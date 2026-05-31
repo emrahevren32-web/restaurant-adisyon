@@ -19,7 +19,7 @@ th { color:#4b5563; font-size:13px; font-weight:700 }
 
 .muted { color:var(--muted); margin:4px 0 0 }
 .small-text { font-size:12px }
-.products-page, .tables-page, .summary-page, .history-page, .action-history-page { display:flex; flex-direction:column; gap:14px }
+.products-page, .tables-page, .summary-page, .history-page, .action-history-page, .staff-page { display:flex; flex-direction:column; gap:14px }
 .page-title { display:flex; justify-content:space-between; gap:16px; align-items:flex-start }
 .page-title h2, .section-header h3 { margin:0 }
 .metric-grid { display:grid; grid-template-columns:repeat(4, minmax(0, 1fr)); gap:12px }
@@ -91,6 +91,9 @@ th { color:#4b5563; font-size:13px; font-weight:700 }
 .payment-row { display:flex; justify-content:space-between; gap:10px; border:1px solid var(--line); border-radius:8px; padding:12px }
 .history-controls { display:grid; grid-template-columns:minmax(220px, 1fr) 160px; gap:8px; min-width:min(100%, 460px) }
 .action-log-filters { display:grid; grid-template-columns:150px minmax(180px, 1fr) minmax(200px, 1fr); gap:8px; min-width:min(100%, 620px) }
+.period-select { max-width:180px }
+.staff-table td, .staff-table th { white-space:nowrap }
+.staff-table td:first-child, .staff-table th:first-child { min-width:220px; white-space:normal }
 .history-list { display:flex; flex-direction:column; gap:10px }
 .history-card { border:1px solid var(--line); border-radius:8px; background:#fff; overflow:hidden }
 .history-card summary { display:flex; justify-content:space-between; gap:12px; align-items:center; padding:12px; cursor:pointer }
