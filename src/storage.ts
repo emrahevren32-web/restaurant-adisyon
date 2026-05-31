@@ -6,6 +6,8 @@ import {
   KitchenOrderStatus,
   Product,
   ProductCategory,
+  QRRequest,
+  QRRequestStatus,
   TableState,
   User
 } from './types'
@@ -18,6 +20,7 @@ const KEY_USERS = 'ra_users'
 const KEY_AUTH = 'ra_auth'
 const KEY_LOGS = 'ra_logs'
 const KEY_KITCHEN = 'ra_kitchen_orders'
+const KEY_QR_REQUESTS = 'ra_qr_requests'
 
 const DEFAULT_CATEGORY_ID = 'cat_general'
 
@@ -81,6 +84,29 @@ const normalizeKitchenOrder = (item: Partial<KitchenOrder>): KitchenOrder => {
     })).filter(orderItem => orderItem.productId),
     createdAt: timestamp,
     updatedAt: item.updatedAt || timestamp
+  }
+}
+
+const normalizeQRRequestStatus = (value: unknown): QRRequestStatus => {
+  if(value === 'Garson Onayı Bekliyor') return value
+  return 'Garson Onayı Bekliyor'
+}
+
+const normalizeQRRequest = (item: Partial<QRRequest>): QRRequest => {
+  const timestamp = item.createdAt || new Date().toISOString()
+
+  return {
+    id: String(item.id || `qr_${Date.now()}`),
+    tableId: item.tableId ? String(item.tableId) : undefined,
+    tableName: String(item.tableName || 'Masa'),
+    items: (item.items || []).map(orderItem => ({
+      productId: String(orderItem.productId || ''),
+      productName: String(orderItem.productName || 'Ürün'),
+      unitPrice: Math.max(0, Number(orderItem.unitPrice) || 0),
+      qty: Math.max(1, Number(orderItem.qty) || 1)
+    })).filter(orderItem => orderItem.productId),
+    status: normalizeQRRequestStatus(item.status),
+    createdAt: timestamp
   }
 }
 
@@ -158,6 +184,14 @@ export const loadKitchenOrders = (): KitchenOrder[] => {
 
 export const saveKitchenOrders = (items: KitchenOrder[]) => {
   localStorage.setItem(KEY_KITCHEN, JSON.stringify(items.map(normalizeKitchenOrder)))
+}
+
+export const loadQRRequests = (): QRRequest[] => {
+  return readJson<Partial<QRRequest>[]>(KEY_QR_REQUESTS, []).map(normalizeQRRequest)
+}
+
+export const saveQRRequests = (items: QRRequest[]) => {
+  localStorage.setItem(KEY_QR_REQUESTS, JSON.stringify(items.map(normalizeQRRequest)))
 }
 
 export const loadUsers = (): User[] => {

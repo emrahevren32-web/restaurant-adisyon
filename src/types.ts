@@ -69,6 +69,24 @@ export type KitchenOrder = {
   updatedAt: string
 }
 
+export type QRRequestStatus = 'Garson Onayı Bekliyor'
+
+export type QRRequestItem = {
+  productId: string
+  productName: string
+  unitPrice: number
+  qty: number
+}
+
+export type QRRequest = {
+  id: string
+  tableId?: string
+  tableName: string
+  items: QRRequestItem[]
+  status: QRRequestStatus
+  createdAt: string
+}
+
 export type ClosedBill = {
   id: string
   tableId: string
@@ -118,6 +136,9 @@ export type ActionLogType =
   | 'Masa birleştirildi'
   | 'Sipariş Hazırlanıyor'
   | 'Sipariş Hazır'
+  | 'Garson çağrıldı'
+  | 'QR Siparişi Onaylandı'
+  | 'QR Siparişi Reddedildi'
   | 'Hesap kapatıldı'
   | 'Ürün oluşturuldu'
   | 'Ürün güncellendi'
