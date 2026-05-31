@@ -187,18 +187,62 @@ export default function Reports(){
   const [period, setPeriod] = React.useState<PeriodFilter>('today')
   const [closedBills] = React.useState<ClosedBill[]>(() => loadClosed())
   const [products] = React.useState<Product[]>(() => loadProducts())
+  const [dayEndPrintedAt, setDayEndPrintedAt] = React.useState(() => new Date())
+  const [isDayEndPrintActive, setIsDayEndPrintActive] = React.useState(false)
+
+  React.useEffect(() => {
+    const clearPrintMode = () => {
+      document.body.classList.remove('printing')
+      setIsDayEndPrintActive(false)
+    }
+
+    window.addEventListener('afterprint', clearPrintMode)
+    return () => {
+      window.removeEventListener('afterprint', clearPrintMode)
+      document.body.classList.remove('printing')
+    }
+  }, [])
 
   const filteredBills = React.useMemo(() => {
     return closedBills.filter(bill => isRevenueBill(bill) && isInPeriod(bill.timestamp, period))
   }, [closedBills, period])
+  const dayEndBills = React.useMemo(() => {
+    return closedBills.filter(bill => isRevenueBill(bill) && isInPeriod(bill.timestamp, 'today'))
+  }, [closedBills])
 
   const totalRevenue = filteredBills.reduce((sum, bill) => sum + bill.total, 0)
   const averageBill = filteredBills.length > 0 ? totalRevenue / filteredBills.length : 0
   const productMetrics = React.useMemo(() => getProductMetrics(filteredBills, products), [filteredBills, products])
   const paymentTotals = React.useMemo(() => getPaymentTotals(filteredBills), [filteredBills])
   const staffMetrics = React.useMemo(() => getStaffMetrics(filteredBills), [filteredBills])
+  const dayEndProductMetrics = React.useMemo(() => getProductMetrics(dayEndBills, products), [dayEndBills, products])
+  const dayEndPaymentTotals = React.useMemo(() => getPaymentTotals(dayEndBills), [dayEndBills])
+  const dayEndStaffMetrics = React.useMemo(() => getStaffMetrics(dayEndBills), [dayEndBills])
   const topSeller = findTopStaff(staffMetrics, 'totalSales')
   const topCloser = findTopStaff(staffMetrics, 'closedBillCount')
+  const dayEndRevenue = dayEndBills.reduce((sum, bill) => sum + bill.total, 0)
+  const dayEndDiscount = dayEndBills.reduce((sum, bill) => sum + getBillDiscount(bill, products), 0)
+  const dayEndGift = dayEndProductMetrics.reduce((sum, item) => sum + item.giftTotal, 0)
+  const dayEndTopProduct = dayEndProductMetrics
+    .filter(item => item.soldQty > 0)
+    .sort((a, b) => {
+      if(b.soldQty !== a.soldQty) return b.soldQty - a.soldQty
+      return b.salesTotal - a.salesTotal
+    })[0] || null
+  const dayEndTopSeller = findTopStaff(dayEndStaffMetrics, 'totalSales')
+  const dayEndTopCloser = findTopStaff(dayEndStaffMetrics, 'closedBillCount')
+  const dayEndDate = dayEndPrintedAt.toLocaleDateString('tr-TR')
+  const dayEndTime = dayEndPrintedAt.toLocaleTimeString('tr-TR', { hour: '2-digit', minute: '2-digit' })
+  const getDayEndPaymentTotal = (method: PaymentMethod) => {
+    return dayEndPaymentTotals.find(item => item.method === method)?.total || 0
+  }
+
+  const printDayEnd = () => {
+    setDayEndPrintedAt(new Date())
+    setIsDayEndPrintActive(true)
+    document.body.classList.add('printing')
+    window.setTimeout(() => window.print(), 50)
+  }
 
   const topSellingProducts = productMetrics
     .filter(item => item.soldQty > 0)
@@ -265,6 +309,43 @@ export default function Reports(){
           <p className="muted">{periodOptions.find(option => option.value === period)?.label}</p>
         </div>
       </div>
+
+      <section className="card">
+        <div className="section-header compact">
+          <div>
+            <h3>Gün Sonu Raporu</h3>
+            <p className="muted">Bugünün kapanan adisyonlarından hesaplanır.</p>
+          </div>
+          <button className="btn" type="button" onClick={printDayEnd}>Gün Sonu Yazdır</button>
+        </div>
+        <div className="metric-grid report-metric-grid">
+          <div className="metric-card">
+            <span>Toplam İndirim</span>
+            <strong>{formatCurrency(dayEndDiscount)}</strong>
+            <p className="muted">Bugün</p>
+          </div>
+          <div className="metric-card">
+            <span>Toplam İkram</span>
+            <strong>{formatCurrency(dayEndGift)}</strong>
+            <p className="muted">Bugün</p>
+          </div>
+          <div className="metric-card">
+            <span>En Çok Satan Ürün</span>
+            <strong>{dayEndTopProduct ? dayEndTopProduct.name : '-'}</strong>
+            <p className="muted">{dayEndTopProduct ? `${dayEndTopProduct.soldQty} adet` : 'Satış yok'}</p>
+          </div>
+          <div className="metric-card">
+            <span>En Çok Satış Yapan Personel</span>
+            <strong>{dayEndTopSeller && dayEndTopSeller.totalSales > 0 ? dayEndTopSeller.name : '-'}</strong>
+            <p className="muted">{dayEndTopSeller ? formatCurrency(dayEndTopSeller.totalSales) : formatCurrency(0)}</p>
+          </div>
+          <div className="metric-card">
+            <span>En Çok Hesap Kapatan Personel</span>
+            <strong>{dayEndTopCloser && dayEndTopCloser.closedBillCount > 0 ? dayEndTopCloser.name : '-'}</strong>
+            <p className="muted">{dayEndTopCloser?.closedBillCount || 0} adisyon</p>
+          </div>
+        </div>
+      </section>
 
       <section className="card">
         <div className="section-header compact">
@@ -389,6 +470,36 @@ export default function Reports(){
             </table>
           </div>
         </section>
+      </div>
+
+      <div className={`print-only ${isDayEndPrintActive ? 'print-active' : ''}`}>
+        <div className="print-document">
+          <div className="print-header">
+            <h2>Restaurant Adisyon</h2>
+            <p>Gün Sonu Raporu</p>
+          </div>
+          <div className="print-meta-grid">
+            <div>
+              <span>Tarih</span>
+              <strong>{dayEndDate}</strong>
+            </div>
+            <div>
+              <span>Saat</span>
+              <strong>{dayEndTime}</strong>
+            </div>
+          </div>
+          <div className="print-summary-list">
+            <div><span>Günlük Ciro</span><strong>{formatCurrency(dayEndRevenue)}</strong></div>
+            <div><span>Toplam Adisyon</span><strong>{dayEndBills.length}</strong></div>
+            <div><span>Nakit Toplamı</span><strong>{formatCurrency(getDayEndPaymentTotal('Nakit'))}</strong></div>
+            <div><span>Kart Toplamı</span><strong>{formatCurrency(getDayEndPaymentTotal('Kart'))}</strong></div>
+            <div><span>Diğer Ödeme Toplamı</span><strong>{formatCurrency(getDayEndPaymentTotal('Diğer'))}</strong></div>
+            <div><span>Toplam İndirim</span><strong>{formatCurrency(dayEndDiscount)}</strong></div>
+            <div><span>Toplam İkram</span><strong>{formatCurrency(dayEndGift)}</strong></div>
+            <div><span>En Çok Satan Ürün</span><strong>{dayEndTopProduct ? `${dayEndTopProduct.name} (${dayEndTopProduct.soldQty} adet)` : '-'}</strong></div>
+            <div><span>En Çok Satış Yapan Personel</span><strong>{dayEndTopSeller && dayEndTopSeller.totalSales > 0 ? dayEndTopSeller.name : '-'}</strong></div>
+          </div>
+        </div>
       </div>
     </div>
   )

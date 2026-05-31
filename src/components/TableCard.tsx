@@ -65,6 +65,8 @@ export default function TableCard({
   const [transferTargetId, setTransferTargetId] = React.useState('')
   const [mergeTargetId, setMergeTargetId] = React.useState('')
   const [discountTypeInput, setDiscountTypeInput] = React.useState<DiscountType>(table.discount?.type || 'percent')
+  const [receiptPrintedAt, setReceiptPrintedAt] = React.useState(() => new Date())
+  const [isReceiptPrintActive, setIsReceiptPrintActive] = React.useState(false)
 
   const categoryMap = React.useMemo(() => new Map(categories.map(category => [category.id, category])), [categories])
   const transferTargets = React.useMemo(() => {
@@ -99,6 +101,19 @@ export default function TableCard({
   React.useEffect(() => {
     setDiscountTypeInput(table.discount?.type || 'percent')
   }, [table.discount?.type, table.id])
+
+  React.useEffect(() => {
+    const clearPrintMode = () => {
+      document.body.classList.remove('printing')
+      setIsReceiptPrintActive(false)
+    }
+
+    window.addEventListener('afterprint', clearPrintMode)
+    return () => {
+      window.removeEventListener('afterprint', clearPrintMode)
+      document.body.classList.remove('printing')
+    }
+  }, [])
 
   React.useEffect(() => {
     setSelectedQuantities({})
@@ -167,6 +182,8 @@ export default function TableCard({
   const paymentDifference = roundCurrency(paymentTarget - paymentTotal)
   const isPaymentBalanced = paymentsCoverTotal(paymentParts, paymentTarget)
   const canTakePayment = table.orders.length > 0 && isPaymentBalanced
+  const receiptDate = receiptPrintedAt.toLocaleDateString('tr-TR')
+  const receiptTime = receiptPrintedAt.toLocaleTimeString('tr-TR', { hour: '2-digit', minute: '2-digit' })
 
   const updateDiscountValue = (rawValue: string) => {
     if(rawValue === ''){
@@ -245,6 +262,15 @@ export default function TableCard({
     onMergeTables(table.id, mergeTarget.id)
   }
 
+  const printReceipt = () => {
+    if(!table.open || table.orders.length === 0) return
+
+    setReceiptPrintedAt(new Date())
+    setIsReceiptPrintActive(true)
+    document.body.classList.add('printing')
+    window.setTimeout(() => window.print(), 50)
+  }
+
   return (
     <div className="card table-detail">
       <div className="section-header">
@@ -252,7 +278,10 @@ export default function TableCard({
           <h3>{table.name}</h3>
           <p className="muted">{table.open ? 'Açık adisyon' : 'Kapalı masa'}</p>
         </div>
-        <span className={`status-pill ${table.open ? 'success' : 'muted-pill'}`}>{table.open ? 'Açık' : 'Kapalı'}</span>
+        <div className="table-header-actions">
+          <button className="btn" type="button" disabled={!table.open || table.orders.length === 0} onClick={printReceipt}>Yazdır</button>
+          <span className={`status-pill ${table.open ? 'success' : 'muted-pill'}`}>{table.open ? 'Açık' : 'Kapalı'}</span>
+        </div>
       </div>
 
       {!table.open ? (
@@ -533,6 +562,56 @@ export default function TableCard({
           </div>
         </>
       )}
+      <div className={`print-only ${isReceiptPrintActive ? 'print-active' : ''}`}>
+        <div className="print-document">
+          <div className="print-header">
+            <h2>Restaurant Adisyon</h2>
+            <p>Adisyon Fişi</p>
+          </div>
+          <div className="print-meta">
+            <span>Masa</span>
+            <strong>{table.name}</strong>
+          </div>
+          <div className="print-meta-grid">
+            <div>
+              <span>Tarih</span>
+              <strong>{receiptDate}</strong>
+            </div>
+            <div>
+              <span>Saat</span>
+              <strong>{receiptTime}</strong>
+            </div>
+          </div>
+          <table className="print-table">
+            <thead>
+              <tr><th>Ürün</th><th>Adet</th><th>Tutar</th></tr>
+            </thead>
+            <tbody>
+              {table.orders.map(order => {
+                const product = allProducts.find(item => item.id === order.productId)
+                const lineTotal = calculateOrderPayableTotal(order, allProducts)
+
+                return (
+                  <tr key={order.id}>
+                    <td>
+                      {order.productName || product?.name || 'Bilinmiyor'}
+                      {order.isGift && <small>İkram</small>}
+                    </td>
+                    <td>{order.qty}</td>
+                    <td>{formatCurrency(lineTotal)}</td>
+                  </tr>
+                )
+              })}
+            </tbody>
+          </table>
+          <div className="print-totals">
+            <div><span>Ara Toplam</span><strong>{formatCurrency(subtotal)}</strong></div>
+            <div><span>İndirim</span><strong>{formatCurrency(discountTotal)}</strong></div>
+            <div><span>İkram</span><strong>{formatCurrency(giftTotal)}</strong></div>
+            <div className="grand-total"><span>Genel Toplam</span><strong>{formatCurrency(finalTotal)}</strong></div>
+          </div>
+        </div>
+      </div>
     </div>
   )
 }
