@@ -19,7 +19,7 @@ th { color:#4b5563; font-size:13px; font-weight:700 }
 
 .muted { color:var(--muted); margin:4px 0 0 }
 .small-text { font-size:12px }
-.products-page { display:flex; flex-direction:column; gap:14px }
+.products-page, .tables-page, .summary-page { display:flex; flex-direction:column; gap:14px }
 .page-title { display:flex; justify-content:space-between; gap:16px; align-items:flex-start }
 .page-title h2, .section-header h3 { margin:0 }
 .metric-grid { display:grid; grid-template-columns:repeat(4, minmax(0, 1fr)); gap:12px }
@@ -52,16 +52,48 @@ th { color:#4b5563; font-size:13px; font-weight:700 }
 .category-row { display:grid; grid-template-columns:minmax(0, 1fr) auto auto; gap:10px; align-items:center; border:1px solid var(--line); border-radius:8px; padding:10px }
 .row-actions { display:flex; gap:6px; flex-wrap:wrap; justify-content:flex-end }
 .category-edit-form { grid-column:1 / -1; display:grid; grid-template-columns:1fr auto auto; gap:8px }
+.tables-layout { display:grid; grid-template-columns:340px minmax(0, 1fr); gap:16px; align-items:start }
+.table-grid { display:grid; grid-template-columns:repeat(2, minmax(0, 1fr)); gap:10px }
+.table-tile { display:flex; flex-direction:column; gap:6px; align-items:flex-start; border:1px solid var(--line); background:#fff; border-radius:8px; padding:12px; cursor:pointer; text-align:left; min-height:98px }
+.table-tile span { font-weight:800 }
+.table-tile strong { font-size:18px }
+.table-tile small { color:var(--muted) }
+.table-tile.open { border-color:#bbf7d0; background:#f0fdf4 }
+.table-tile.selected { outline:2px solid #111827; outline-offset:2px }
+.table-admin-actions { display:flex; gap:8px; flex-wrap:wrap; margin-top:12px }
+.table-detail { min-width:0 }
+.closed-table-panel { display:flex; flex-direction:column; align-items:flex-start; gap:8px; border:1px dashed var(--line); border-radius:8px; padding:18px; background:#f9fafb }
+.order-summary { display:grid; grid-template-columns:repeat(3, minmax(0, 1fr)); gap:10px; margin-bottom:14px }
+.order-summary > div { border:1px solid var(--line); border-radius:8px; padding:12px; background:#fff }
+.order-summary span { display:block; color:var(--muted); font-size:12px; margin-bottom:4px }
+.order-summary strong { font-size:20px }
+.order-layout { display:grid; grid-template-columns:minmax(0, 1fr) 320px; gap:16px; align-items:start }
+.qty-controls { display:inline-flex; align-items:center; gap:8px }
+.qty-controls span { min-width:24px; text-align:center; font-weight:700 }
+.icon-btn { width:32px; height:32px; padding:0 }
+.product-picker { border:1px solid var(--line); border-radius:8px; padding:12px; background:#f9fafb }
+.picker-controls { display:grid; grid-template-columns:1fr 1fr 80px; gap:8px; margin-bottom:10px }
+.product-picker-list { display:flex; flex-direction:column; gap:8px; max-height:420px; overflow:auto }
+.product-pick-button { display:flex; justify-content:space-between; gap:10px; align-items:center; border:1px solid var(--line); background:#fff; border-radius:8px; padding:10px; cursor:pointer; text-align:left }
+.product-pick-button span { display:flex; flex-direction:column; gap:3px }
+.product-pick-button small { color:var(--muted) }
+.checkout-panel { display:grid; grid-template-columns:minmax(0, 1fr) 150px auto; gap:10px; align-items:center; border-top:1px solid var(--line); margin-top:14px; padding-top:14px }
+.checkout-panel strong { display:block; font-size:22px }
+.empty-state { color:var(--muted); border:1px dashed var(--line); border-radius:8px; padding:16px; background:#fff }
+.summary-layout { display:grid; grid-template-columns:minmax(0, 1fr) 320px; gap:16px; align-items:start }
+.payment-breakdown { display:flex; flex-direction:column; gap:8px }
+.payment-row { display:flex; justify-content:space-between; gap:10px; border:1px solid var(--line); border-radius:8px; padding:12px }
 
 @media (max-width: 980px){
-  .container, .product-layout { display:block }
+  .container, .product-layout, .tables-layout, .order-layout, .summary-layout { display:block }
   .metric-grid { grid-template-columns:repeat(2, minmax(0, 1fr)) }
   .toolbar-controls { grid-template-columns:1fr }
+  .product-picker { margin-top:12px }
 }
 
 @media (max-width: 560px){
   body { padding:12px }
   .metric-grid { grid-template-columns:1fr }
-  .form-row, .inline-form, .category-row, .category-edit-form { grid-template-columns:1fr }
+  .form-row, .inline-form, .category-row, .category-edit-form, .order-summary, .picker-controls, .checkout-panel, .table-grid { grid-template-columns:1fr }
   .actions-cell { justify-content:flex-start }
 }

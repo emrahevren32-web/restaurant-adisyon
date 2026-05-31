@@ -24,6 +24,8 @@ export type Order = {
   qty: number
 }
 
+export type PaymentMethod = 'Nakit' | 'Kart' | 'Diğer'
+
 export type TableState = {
   id: string
   name: string
@@ -38,6 +40,9 @@ export type ClosedBill = {
   total: number
   timestamp: string
   orders: Order[]
+  paymentMethod?: PaymentMethod
+  closedByUserId?: string
+  closedByFullName?: string
 }
 
 export type Role = 'Admin' | 'Garson'
