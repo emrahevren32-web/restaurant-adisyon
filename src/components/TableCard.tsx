@@ -1,15 +1,22 @@
 import React from 'react'
-import { Discount, DiscountType, PaymentMethod, Product, ProductCategory, TableState } from '../types'
+import { Discount, DiscountType, PaymentMethod, PaymentPart, Product, ProductCategory, TableState } from '../types'
 import {
+  calculatePaymentsTotal,
   calculateDiscountTotal,
   calculateFinalTotal,
   calculateGiftTotal,
   calculateOrderOriginalTotal,
   calculateOrderPayableTotal,
+  calculateProratedDiscountTotal,
   calculateSubtotal,
   formatCurrency,
-  getOrderUnitPrice
+  getOrderUnitPrice,
+  normalizePayments,
+  paymentsCoverTotal,
+  roundCurrency
 } from '../billing'
+
+type SplitSelection = Record<string, number>
 
 type Props = {
   table: TableState
@@ -21,7 +28,8 @@ type Props = {
   onUpdateOrderQty: (tableId: string, orderId: string, qty: number) => void
   onRemoveOrder: (tableId: string, orderId: string) => void
   onOpenTable: (tableId: string) => void
-  onCloseTable: (tableId: string, paymentMethod: PaymentMethod) => void
+  onCloseTable: (tableId: string, payments: PaymentPart[]) => void
+  onPaySelectedOrders: (tableId: string, selectedQuantities: SplitSelection, payments: PaymentPart[]) => void
   onUpdateNote: (tableId: string, note: string) => void
   onUpdateDiscount: (tableId: string, discount: Discount) => void
   onClearDiscount: (tableId: string) => void
@@ -39,6 +47,7 @@ export default function TableCard({
   onRemoveOrder,
   onOpenTable,
   onCloseTable,
+  onPaySelectedOrders,
   onUpdateNote,
   onUpdateDiscount,
   onClearDiscount,
@@ -47,7 +56,10 @@ export default function TableCard({
   const [qty, setQty] = React.useState<number>(1)
   const [search, setSearch] = React.useState('')
   const [categoryFilter, setCategoryFilter] = React.useState('all')
-  const [paymentMethod, setPaymentMethod] = React.useState<PaymentMethod>('Nakit')
+  const [selectedQuantities, setSelectedQuantities] = React.useState<SplitSelection>({})
+  const [cashAmount, setCashAmount] = React.useState('')
+  const [cardAmount, setCardAmount] = React.useState('')
+  const [otherAmount, setOtherAmount] = React.useState('')
   const [transferTargetId, setTransferTargetId] = React.useState('')
   const [discountTypeInput, setDiscountTypeInput] = React.useState<DiscountType>(table.discount?.type || 'percent')
 
@@ -71,6 +83,32 @@ export default function TableCard({
     setDiscountTypeInput(table.discount?.type || 'percent')
   }, [table.discount?.type, table.id])
 
+  React.useEffect(() => {
+    setSelectedQuantities({})
+    setCashAmount('')
+    setCardAmount('')
+    setOtherAmount('')
+  }, [table.id])
+
+  React.useEffect(() => {
+    setSelectedQuantities(prev => {
+      const next: SplitSelection = {}
+
+      table.orders.forEach(order => {
+        const selectedQty = Math.floor(Number(prev[order.id]) || 0)
+        if(selectedQty > 0){
+          next[order.id] = Math.min(selectedQty, order.qty)
+        }
+      })
+
+      const prevKeys = Object.keys(prev)
+      const nextKeys = Object.keys(next)
+      const changed = prevKeys.length !== nextKeys.length || nextKeys.some(key => next[key] !== prev[key])
+
+      return changed ? next : prev
+    })
+  }, [table.orders])
+
   const visibleProducts = React.useMemo(() => {
     const normalizedSearch = search.trim().toLocaleLowerCase('tr-TR')
 
@@ -90,8 +128,28 @@ export default function TableCard({
   const finalTotal = calculateFinalTotal(table.orders, allProducts, table.discount)
   const giftTotal = calculateGiftTotal(table.orders, allProducts)
   const itemCount = table.orders.reduce((sum, order) => sum + order.qty, 0)
-  const splitAmount = finalTotal / 2
   const discountType: DiscountType = table.discount?.type || discountTypeInput
+  const selectedOrders = React.useMemo(() => {
+    return table.orders.flatMap(order => {
+      const selectedQty = Math.min(order.qty, Math.max(0, Math.floor(Number(selectedQuantities[order.id]) || 0)))
+      return selectedQty > 0 ? [{ ...order, qty: selectedQty }] : []
+    })
+  }, [selectedQuantities, table.orders])
+  const selectedItemCount = selectedOrders.reduce((sum, order) => sum + order.qty, 0)
+  const hasSelection = selectedOrders.length > 0
+  const selectedSubtotal = calculateSubtotal(selectedOrders, allProducts)
+  const selectedDiscountTotal = calculateProratedDiscountTotal(table.discount, selectedSubtotal, subtotal)
+  const selectedTotal = roundCurrency(Math.max(0, selectedSubtotal - selectedDiscountTotal))
+  const paymentTarget = hasSelection ? selectedTotal : finalTotal
+  const paymentParts = normalizePayments([
+    { method: 'Nakit', amount: Number(cashAmount) },
+    { method: 'Kart', amount: Number(cardAmount) },
+    { method: 'Diğer', amount: Number(otherAmount) }
+  ])
+  const paymentTotal = calculatePaymentsTotal(paymentParts)
+  const paymentDifference = roundCurrency(paymentTarget - paymentTotal)
+  const isPaymentBalanced = paymentsCoverTotal(paymentParts, paymentTarget)
+  const canTakePayment = table.orders.length > 0 && isPaymentBalanced
 
   const updateDiscountValue = (rawValue: string) => {
     if(rawValue === ''){
@@ -111,6 +169,53 @@ export default function TableCard({
     if(table.discount?.value){
       onUpdateDiscount(table.id, { type, value: table.discount.value })
     }
+  }
+
+  const toggleOrderSelection = (orderId: string, checked: boolean, maxQty: number) => {
+    setSelectedQuantities(prev => {
+      if(!checked){
+        const next = { ...prev }
+        delete next[orderId]
+        return next
+      }
+
+      return { ...prev, [orderId]: Math.max(1, Math.min(maxQty, prev[orderId] || 1)) }
+    })
+  }
+
+  const updateSelectedQty = (orderId: string, rawValue: string, maxQty: number) => {
+    const nextQty = Math.min(maxQty, Math.max(1, Math.floor(Number(rawValue) || 1)))
+    setSelectedQuantities(prev => ({ ...prev, [orderId]: nextQty }))
+  }
+
+  const clearSelection = () => {
+    setSelectedQuantities({})
+  }
+
+  const clearPaymentInputs = () => {
+    setCashAmount('')
+    setCardAmount('')
+    setOtherAmount('')
+  }
+
+  const fillSinglePayment = (method: PaymentMethod) => {
+    const value = paymentTarget > 0 ? String(paymentTarget) : ''
+    setCashAmount(method === 'Nakit' ? value : '')
+    setCardAmount(method === 'Kart' ? value : '')
+    setOtherAmount(method === 'Diğer' ? value : '')
+  }
+
+  const completeSelectedPayment = () => {
+    if(!hasSelection || !canTakePayment) return
+    onPaySelectedOrders(table.id, selectedQuantities, paymentParts)
+    clearSelection()
+    clearPaymentInputs()
+  }
+
+  const closeFullBill = () => {
+    if(hasSelection || !canTakePayment) return
+    onCloseTable(table.id, paymentParts)
+    clearPaymentInputs()
   }
 
   return (
@@ -199,20 +304,44 @@ export default function TableCard({
               <div className="table-wrap">
                 <table className="data-table">
                   <thead>
-                    <tr><th>Ürün</th><th>Adet</th><th>Tutar</th><th></th></tr>
+                    <tr><th>Seç</th><th>Ürün</th><th>Adet</th><th>Tutar</th><th></th></tr>
                   </thead>
                   <tbody>
                     {table.orders.length === 0 && (
-                      <tr><td colSpan={4} className="empty-cell">Bu adisyonda henüz ürün yok.</td></tr>
+                      <tr><td colSpan={5} className="empty-cell">Bu adisyonda henüz ürün yok.</td></tr>
                     )}
                     {table.orders.map(order => {
                       const unitPrice = getOrderUnitPrice(order, allProducts)
                       const originalTotal = calculateOrderOriginalTotal(order, allProducts)
                       const payableTotal = calculateOrderPayableTotal(order, allProducts)
                       const product = allProducts.find(item => item.id === order.productId)
+                      const selectedQty = selectedQuantities[order.id] || 0
 
                       return (
                         <tr key={order.id}>
+                          <td>
+                            <div className="split-select-controls">
+                              <label className="check-row">
+                                <input
+                                  type="checkbox"
+                                  checked={selectedQty > 0}
+                                  onChange={e=>toggleOrderSelection(order.id, e.target.checked, order.qty)}
+                                />
+                                Seç
+                              </label>
+                              {selectedQty > 0 && (
+                                <input
+                                  className="split-qty"
+                                  type="number"
+                                  min={1}
+                                  max={order.qty}
+                                  value={selectedQty}
+                                  aria-label="Ödenecek adet"
+                                  onChange={e=>updateSelectedQty(order.id, e.target.value, order.qty)}
+                                />
+                              )}
+                            </div>
+                          </td>
                           <td>
                             <strong>{order.productName || product?.name || 'Bilinmiyor'}</strong>
                             <div className="muted small-text">
@@ -276,25 +405,87 @@ export default function TableCard({
           </div>
 
           <div className="checkout-panel">
-            <div>
-              <span className="muted small-text">Ara Toplam</span>
-              <strong>{formatCurrency(subtotal)}</strong>
+            <div className="checkout-total-grid">
+              <div>
+                <span className="muted small-text">Ara Toplam</span>
+                <strong>{formatCurrency(subtotal)}</strong>
+              </div>
+              <div>
+                <span className="muted small-text">İkram</span>
+                <strong>{formatCurrency(giftTotal)}</strong>
+              </div>
+              <div>
+                <span className="muted small-text">İndirim</span>
+                <strong>{formatCurrency(discountTotal)}</strong>
+              </div>
+              <div>
+                <span className="muted small-text">Hesap Toplamı</span>
+                <strong>{formatCurrency(finalTotal)}</strong>
+              </div>
+              <div>
+                <span className="muted small-text">Seçili Ürün</span>
+                <strong>{selectedItemCount}</strong>
+              </div>
+              <div>
+                <span className="muted small-text">Seçili Ödenecek</span>
+                <strong>{hasSelection ? formatCurrency(selectedTotal) : '-'}</strong>
+              </div>
             </div>
-            <div>
-              <span className="muted small-text">İkram</span>
-              <strong>{formatCurrency(giftTotal)}</strong>
+
+            <div className="payment-panel">
+              <div className="section-header compact">
+                <div>
+                  <h3>{hasSelection ? 'Seçili Ürün Ödemesi' : 'Hesap Kapatma'}</h3>
+                  <p className="muted small-text">
+                    {hasSelection
+                      ? 'Seçili ürünler ödendikten sonra kalan ürünler masada kalır.'
+                      : 'Hesabın tamamını tek veya çoklu ödeme ile kapatın.'}
+                  </p>
+                </div>
+                {hasSelection && <button className="btn" type="button" onClick={clearSelection}>Seçimi Temizle</button>}
+              </div>
+
+              <div className="payment-target">
+                <span>Ödenecek</span>
+                <strong>{formatCurrency(paymentTarget)}</strong>
+              </div>
+
+              <div className="payment-grid">
+                <label className="payment-field">
+                  <span>Nakit</span>
+                  <input type="number" min={0} step="0.01" value={cashAmount} onChange={e=>setCashAmount(e.target.value)} />
+                </label>
+                <label className="payment-field">
+                  <span>Kart</span>
+                  <input type="number" min={0} step="0.01" value={cardAmount} onChange={e=>setCardAmount(e.target.value)} />
+                </label>
+                <label className="payment-field">
+                  <span>Diğer</span>
+                  <input type="number" min={0} step="0.01" value={otherAmount} onChange={e=>setOtherAmount(e.target.value)} />
+                </label>
+              </div>
+
+              <div className={`payment-balance ${canTakePayment ? 'ok' : 'warning'}`}>
+                <span>Girilen ödeme: {formatCurrency(paymentTotal)}</span>
+                <strong>
+                  {paymentTarget === 0
+                    ? 'Ödeme gerekmez'
+                    : canTakePayment
+                      ? 'Ödeme tamam'
+                      : `${paymentDifference > 0 ? 'Eksik' : 'Fazla'}: ${formatCurrency(Math.abs(paymentDifference))}`}
+                </strong>
+              </div>
+
+              <div className="form-actions">
+                <button className="btn" type="button" disabled={table.orders.length === 0} onClick={()=>fillSinglePayment('Nakit')}>Tamamı Nakit</button>
+                <button className="btn" type="button" disabled={table.orders.length === 0} onClick={()=>fillSinglePayment('Kart')}>Tamamı Kart</button>
+                {hasSelection ? (
+                  <button className="btn primary" type="button" disabled={!canTakePayment} onClick={completeSelectedPayment}>Seçili Ürünleri Öde</button>
+                ) : (
+                  <button className="btn primary" type="button" disabled={!canTakePayment} onClick={closeFullBill}>Hesabı Kapat</button>
+                )}
+              </div>
             </div>
-            <div>
-              <span className="muted small-text">Ödenecek</span>
-              <strong>{formatCurrency(finalTotal)}</strong>
-              <div className="muted small-text">2 kişi: {formatCurrency(splitAmount)} / kişi</div>
-            </div>
-            <select value={paymentMethod} onChange={e=>setPaymentMethod(e.target.value as PaymentMethod)}>
-              <option value="Nakit">Nakit</option>
-              <option value="Kart">Kart</option>
-              <option value="Diğer">Diğer</option>
-            </select>
-            <button className="btn primary" onClick={()=>onCloseTable(table.id, paymentMethod)}>Hesabı Kapat</button>
           </div>
         </>
       )}

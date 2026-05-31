@@ -1,6 +1,7 @@
 import React from 'react'
 import { ClosedBill, PaymentMethod } from '../types'
 import { loadClosed } from '../storage'
+import { getBillPayments } from '../billing'
 
 const currencyFormatter = new Intl.NumberFormat('tr-TR', {
   style: 'currency',
@@ -15,6 +16,12 @@ const getLocalDateKey = (value: string | Date) => {
 }
 
 const paymentMethods: PaymentMethod[] = ['Nakit', 'Kart', 'Diğer']
+const formatPaymentMethods = (bill: ClosedBill) => {
+  const payments = getBillPayments(bill)
+  if(payments.length === 0) return 'Ödeme yok'
+
+  return payments.map(payment => `${payment.method} ${formatCurrency(payment.amount)}`).join(' + ')
+}
 
 export default function DailySummary(){
   const [closed] = React.useState<ClosedBill[]>(() => loadClosed())
@@ -24,8 +31,13 @@ export default function DailySummary(){
   const paymentTotals = paymentMethods.map(method => ({
     method,
     total: todays
-      .filter(bill => (bill.paymentMethod || 'Nakit') === method)
-      .reduce((sum, bill) => sum + bill.total, 0)
+      .reduce((sum, bill) => {
+        const methodTotal = getBillPayments(bill)
+          .filter(payment => payment.method === method)
+          .reduce((paymentSum, payment) => paymentSum + payment.amount, 0)
+
+        return sum + methodTotal
+      }, 0)
   }))
 
   return (
@@ -72,7 +84,7 @@ export default function DailySummary(){
                   <tr key={bill.id}>
                     <td>{bill.tableName}</td>
                     <td>{formatCurrency(bill.total)}</td>
-                    <td>{bill.paymentMethod || 'Nakit'}</td>
+                    <td>{formatPaymentMethods(bill)}</td>
                     <td>{bill.closedByFullName || '-'}</td>
                     <td>{new Date(bill.timestamp).toLocaleTimeString('tr-TR', { hour:'2-digit', minute:'2-digit' })}</td>
                   </tr>

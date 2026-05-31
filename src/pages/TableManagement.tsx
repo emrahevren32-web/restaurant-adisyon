@@ -1,15 +1,68 @@
 import React from 'react'
-import { ClosedBill, Discount, Order, PaymentMethod, Product, ProductCategory, TableState, User } from '../types'
+import { ClosedBill, Discount, Order, PaymentPart, Product, ProductCategory, TableState, User } from '../types'
 import { addActionLog, loadCategories, loadClosed, loadProducts, loadTables, saveClosed, saveTables } from '../storage'
 import TableCard from '../components/TableCard'
-import { calculateDiscountTotal, calculateFinalTotal, calculateSubtotal, formatCurrency } from '../billing'
+import {
+  calculateDiscountTotal,
+  calculateFinalTotal,
+  calculateProratedDiscountTotal,
+  calculateSubtotal,
+  formatCurrency,
+  normalizePayments,
+  paymentsCoverTotal,
+  roundCurrency
+} from '../billing'
 
 type Props = { currentUser: User }
+type SplitSelection = Record<string, number>
 
 const createId = (prefix: string) => `${prefix}_${Date.now()}`
 
 const calculateTableTotal = (table: TableState, products: Product[]) => {
   return calculateFinalTotal(table.orders, products, table.discount)
+}
+
+const getSelectedQty = (selectedQuantities: SplitSelection, order: Order) => {
+  const qty = Math.floor(Number(selectedQuantities[order.id]) || 0)
+  return Math.min(order.qty, Math.max(0, qty))
+}
+
+const splitOrdersBySelection = (orders: Order[], selectedQuantities: SplitSelection) => {
+  return orders.reduce<{ selectedOrders: Order[]; remainingOrders: Order[] }>((result, order) => {
+    const selectedQty = getSelectedQty(selectedQuantities, order)
+
+    if(selectedQty > 0){
+      result.selectedOrders.push({ ...order, qty: selectedQty })
+    }
+
+    if(selectedQty < order.qty){
+      result.remainingOrders.push({ ...order, qty: order.qty - selectedQty })
+    }
+
+    return result
+  }, { selectedOrders: [], remainingOrders: [] })
+}
+
+const formatPaymentSummary = (payments: PaymentPart[], total: number) => {
+  const normalizedPayments = normalizePayments(payments)
+  if(normalizedPayments.length === 0) return total === 0 ? 'ödeme alınmadan' : 'ödeme bilgisi olmadan'
+
+  return normalizedPayments.map(payment => `${payment.method} ${formatCurrency(payment.amount)}`).join(' + ')
+}
+
+const getRemainingDiscount = (
+  discount: Discount | undefined,
+  sourceSubtotal: number,
+  selectedDiscountTotal: number,
+  remainingSubtotal: number
+) => {
+  if(!discount || remainingSubtotal <= 0) return undefined
+  if(discount.type === 'percent') return discount
+
+  const sourceDiscount = calculateDiscountTotal(discount, sourceSubtotal)
+  const remainingDiscount = roundCurrency(Math.max(0, sourceDiscount - selectedDiscountTotal))
+
+  return remainingDiscount > 0 ? { type: 'amount' as const, value: remainingDiscount } : undefined
 }
 
 export default function TableManagement({ currentUser }: Props){
@@ -331,13 +384,19 @@ export default function TableManagement({ currentUser }: Props){
     })
   }
 
-  const closeTable = (tableId: string, paymentMethod: PaymentMethod) => {
+  const closeTable = (tableId: string, payments: PaymentPart[]) => {
     const table = tables.find(item => item.id === tableId)
     if(!table || !table.open) return
 
     const subtotal = calculateSubtotal(table.orders, products)
     const discountTotal = calculateDiscountTotal(table.discount, subtotal)
     const total = calculateFinalTotal(table.orders, products, table.discount)
+    const normalizedPayments = normalizePayments(payments)
+
+    if(!paymentsCoverTotal(normalizedPayments, total)){
+      setTableError('Ödeme tutarı ödenecek tutarla eşleşmelidir.')
+      return
+    }
 
     if(table.orders.length > 0){
       const closed = loadClosed()
@@ -349,7 +408,9 @@ export default function TableManagement({ currentUser }: Props){
         total,
         timestamp: new Date().toISOString(),
         orders: table.orders,
-        paymentMethod,
+        paymentMethod: normalizedPayments[0]?.method || 'Nakit',
+        payments: normalizedPayments,
+        splitPayment: false,
         closedByUserId: currentUser.id,
         closedByFullName: currentUser.fullName,
         note: table.note,
@@ -362,11 +423,76 @@ export default function TableManagement({ currentUser }: Props){
         user: currentUser,
         tableId: table.id,
         tableName: table.name,
-        description: `${table.name} hesabı ${paymentMethod} ile ${formatCurrency(total)} tutarında kapatıldı.`
+        description: `${table.name} hesabı ${formatPaymentSummary(normalizedPayments, total)} ${formatCurrency(total)} tutarında kapatıldı.`
       })
     }
 
+    setTableError('')
     setTables(prev => prev.map(item => item.id===tableId ? {...item, open:false, orders: [], note: '', discount: undefined} : item))
+  }
+
+  const paySelectedOrders = (tableId: string, selectedQuantities: SplitSelection, payments: PaymentPart[]) => {
+    const table = tables.find(item => item.id === tableId)
+    if(!table || !table.open || table.orders.length === 0) return
+
+    const { selectedOrders, remainingOrders } = splitOrdersBySelection(table.orders, selectedQuantities)
+    if(selectedOrders.length === 0){
+      setTableError('Ödeme almak için en az bir ürün seçin.')
+      return
+    }
+
+    const sourceSubtotal = calculateSubtotal(table.orders, products)
+    const selectedSubtotal = calculateSubtotal(selectedOrders, products)
+    const selectedDiscountTotal = calculateProratedDiscountTotal(table.discount, selectedSubtotal, sourceSubtotal)
+    const selectedTotal = roundCurrency(Math.max(0, selectedSubtotal - selectedDiscountTotal))
+    const normalizedPayments = normalizePayments(payments)
+
+    if(!paymentsCoverTotal(normalizedPayments, selectedTotal)){
+      setTableError('Seçili ürün ödeme tutarı ödenecek tutarla eşleşmelidir.')
+      return
+    }
+
+    const closed = loadClosed()
+    const bill: ClosedBill = {
+      id: createId('bill'),
+      tableId: table.id,
+      tableName: table.name,
+      subtotal: selectedSubtotal,
+      total: selectedTotal,
+      timestamp: new Date().toISOString(),
+      orders: selectedOrders,
+      paymentMethod: normalizedPayments[0]?.method || 'Nakit',
+      payments: normalizedPayments,
+      splitPayment: true,
+      splitLabel: 'Seçili ürün ödemesi',
+      closedByUserId: currentUser.id,
+      closedByFullName: currentUser.fullName,
+      note: table.note,
+      discount: table.discount,
+      discountTotal: selectedDiscountTotal
+    }
+
+    saveClosed([bill, ...closed])
+
+    const remainingSubtotal = calculateSubtotal(remainingOrders, products)
+    const remainingDiscount = getRemainingDiscount(table.discount, sourceSubtotal, selectedDiscountTotal, remainingSubtotal)
+    const selectedSummary = selectedOrders.map(order => `${order.productName || 'Ürün'} x${order.qty}`).join(', ')
+    const paymentSummary = formatPaymentSummary(normalizedPayments, selectedTotal)
+
+    addActionLog({
+      operationType: 'Hesap kapatıldı',
+      user: currentUser,
+      tableId: table.id,
+      tableName: table.name,
+      description: `${table.name} için bölünmüş ödeme alındı: ${selectedSummary}. ${paymentSummary} ${formatCurrency(selectedTotal)}.`
+    })
+
+    setTableError('')
+    setTables(prev => prev.map(item => {
+      if(item.id !== tableId) return item
+      if(remainingOrders.length === 0) return { ...item, open:false, orders: [], note: '', discount: undefined }
+      return { ...item, orders: remainingOrders, discount: remainingDiscount }
+    }))
   }
 
   return (
@@ -453,6 +579,7 @@ export default function TableManagement({ currentUser }: Props){
               onRemoveOrder={removeOrder}
               onOpenTable={openTable}
               onCloseTable={closeTable}
+              onPaySelectedOrders={paySelectedOrders}
               onUpdateNote={updateNote}
               onUpdateDiscount={updateDiscount}
               onClearDiscount={clearDiscount}

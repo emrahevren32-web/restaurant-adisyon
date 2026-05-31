@@ -1,4 +1,4 @@
-import { Discount, Order, Product } from './types'
+import { ClosedBill, Discount, Order, PaymentPart, Product } from './types'
 
 export const currencyFormatter = new Intl.NumberFormat('tr-TR', {
   style: 'currency',
@@ -6,6 +6,10 @@ export const currencyFormatter = new Intl.NumberFormat('tr-TR', {
 })
 
 export const formatCurrency = (value: number) => currencyFormatter.format(value)
+
+export const roundCurrency = (value: number) => {
+  return Math.round((value + Number.EPSILON) * 100) / 100
+}
 
 export const getOrderUnitPrice = (order: Order, products: Product[]) => {
   const product = products.find(item => item.id === order.productId)
@@ -40,7 +44,57 @@ export const calculateDiscountTotal = (discount: Discount | undefined, subtotal:
   return Math.min(subtotal, Math.max(discount.value, 0))
 }
 
+export const calculateProratedDiscountTotal = (
+  discount: Discount | undefined,
+  subtotal: number,
+  sourceSubtotal = subtotal
+) => {
+  if(!discount || subtotal <= 0) return 0
+
+  if(discount.type === 'amount' && sourceSubtotal > 0 && subtotal < sourceSubtotal){
+    const sourceDiscount = calculateDiscountTotal(discount, sourceSubtotal)
+    return roundCurrency(Math.min(subtotal, sourceDiscount * (subtotal / sourceSubtotal)))
+  }
+
+  return roundCurrency(calculateDiscountTotal(discount, subtotal))
+}
+
 export const calculateFinalTotal = (orders: Order[], products: Product[], discount?: Discount) => {
   const subtotal = calculateSubtotal(orders, products)
-  return Math.max(0, subtotal - calculateDiscountTotal(discount, subtotal))
+  return roundCurrency(Math.max(0, subtotal - calculateDiscountTotal(discount, subtotal)))
+}
+
+export const normalizePayments = (payments: PaymentPart[] = []) => {
+  return payments
+    .map(payment => ({
+      method: payment.method,
+      amount: roundCurrency(Number(payment.amount))
+    }))
+    .filter(payment => Number.isFinite(payment.amount) && payment.amount > 0)
+}
+
+export const calculatePaymentsTotal = (payments: PaymentPart[] = []) => {
+  return roundCurrency(normalizePayments(payments).reduce((sum, payment) => sum + payment.amount, 0))
+}
+
+export const paymentsCoverTotal = (payments: PaymentPart[] = [], total: number) => {
+  const normalizedTotal = roundCurrency(Math.max(0, total))
+  const normalizedPayments = normalizePayments(payments)
+  const paymentTotal = calculatePaymentsTotal(normalizedPayments)
+
+  if(normalizedTotal === 0) return paymentTotal === 0
+
+  return normalizedPayments.length > 0 && Math.abs(paymentTotal - normalizedTotal) <= 0.01
+}
+
+export const getBillPayments = (bill: ClosedBill): PaymentPart[] => {
+  const payments = normalizePayments(bill.payments)
+  if(payments.length > 0) return payments
+
+  if(bill.total <= 0) return []
+
+  return [{
+    method: bill.paymentMethod || 'Nakit',
+    amount: roundCurrency(bill.total)
+  }]
 }

@@ -27,6 +27,11 @@ export type Order = {
 
 export type PaymentMethod = 'Nakit' | 'Kart' | 'Diğer'
 
+export type PaymentPart = {
+  method: PaymentMethod
+  amount: number
+}
+
 export type DiscountType = 'percent' | 'amount'
 
 export type Discount = {
@@ -52,6 +57,9 @@ export type ClosedBill = {
   timestamp: string
   orders: Order[]
   paymentMethod?: PaymentMethod
+  payments?: PaymentPart[]
+  splitPayment?: boolean
+  splitLabel?: string
   closedByUserId?: string
   closedByFullName?: string
   note?: string

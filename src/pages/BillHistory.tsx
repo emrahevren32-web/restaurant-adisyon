@@ -7,7 +7,8 @@ import {
   calculateOrderOriginalTotal,
   calculateOrderPayableTotal,
   calculateSubtotal,
-  formatCurrency
+  formatCurrency,
+  getBillPayments
 } from '../billing'
 
 type PaymentFilter = 'all' | PaymentMethod
@@ -26,6 +27,17 @@ const formatDateTime = (value: string) => {
 
 const getBillSubtotal = (bill: ClosedBill, products: Product[]) => bill.subtotal ?? calculateSubtotal(bill.orders, products)
 const getBillDiscount = (bill: ClosedBill, products: Product[]) => bill.discountTotal ?? calculateDiscountTotal(bill.discount, getBillSubtotal(bill, products))
+const getPaymentAmount = (bill: ClosedBill, method: PaymentMethod) => {
+  return getBillPayments(bill)
+    .filter(payment => payment.method === method)
+    .reduce((sum, payment) => sum + payment.amount, 0)
+}
+const formatPaymentMethods = (bill: ClosedBill) => {
+  const payments = getBillPayments(bill)
+  if(payments.length === 0) return 'Ödeme yok'
+
+  return payments.map(payment => payment.method).join(' + ')
+}
 
 export default function BillHistory(){
   const [closed] = React.useState<ClosedBill[]>(() => loadClosed())
@@ -37,7 +49,8 @@ export default function BillHistory(){
     const normalizedSearch = search.trim().toLocaleLowerCase('tr-TR')
 
     return closed.filter(bill => {
-      const matchesPayment = paymentFilter === 'all' || (bill.paymentMethod || 'Nakit') === paymentFilter
+      const billPayments = getBillPayments(bill)
+      const matchesPayment = paymentFilter === 'all' || billPayments.some(payment => payment.method === paymentFilter)
       const matchesSearch = !normalizedSearch
         || bill.tableName.toLocaleLowerCase('tr-TR').includes(normalizedSearch)
         || (bill.closedByFullName || '').toLocaleLowerCase('tr-TR').includes(normalizedSearch)
@@ -101,6 +114,9 @@ export default function BillHistory(){
             const subtotal = getBillSubtotal(bill, products)
             const discountTotal = getBillDiscount(bill, products)
             const giftTotal = calculateGiftTotal(bill.orders, products)
+            const cashTotal = getPaymentAmount(bill, 'Nakit')
+            const cardTotal = getPaymentAmount(bill, 'Kart')
+            const otherTotal = getPaymentAmount(bill, 'Diğer')
 
             return (
               <details className="history-card" key={bill.id}>
@@ -108,10 +124,11 @@ export default function BillHistory(){
                   <span>
                     <strong>{bill.tableName}</strong>
                     <small>{formatDateTime(bill.timestamp)} · {bill.closedByFullName || 'Kapatan yok'}</small>
+                    {bill.splitPayment && <small className="status-pill">Bölünmüş hesap</small>}
                   </span>
                   <span className="history-summary-values">
                     <b>{formatCurrency(bill.total)}</b>
-                    <small>{bill.paymentMethod || 'Nakit'}</small>
+                    <small>{formatPaymentMethods(bill)}</small>
                   </span>
                 </summary>
 
@@ -132,8 +149,21 @@ export default function BillHistory(){
                     <span>Ödenen</span>
                     <strong>{formatCurrency(bill.total)}</strong>
                   </div>
+                  <div>
+                    <span>Nakit</span>
+                    <strong>{formatCurrency(cashTotal)}</strong>
+                  </div>
+                  <div>
+                    <span>Kart</span>
+                    <strong>{formatCurrency(cardTotal)}</strong>
+                  </div>
+                  <div>
+                    <span>Diğer</span>
+                    <strong>{formatCurrency(otherTotal)}</strong>
+                  </div>
                 </div>
 
+                {bill.splitPayment && <div className="bill-note">Bölünen hesap bilgisi: {bill.splitLabel || 'Seçili ürün ödemesi'}.</div>}
                 {bill.note && <div className="bill-note">Not: {bill.note}</div>}
 
                 <div className="table-wrap">
