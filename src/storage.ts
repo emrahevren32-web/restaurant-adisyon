@@ -1,4 +1,14 @@
-import { ActionLog, ActionLogType, ClosedBill, Product, ProductCategory, TableState, User } from './types'
+import {
+  ActionLog,
+  ActionLogType,
+  ClosedBill,
+  KitchenOrder,
+  KitchenOrderStatus,
+  Product,
+  ProductCategory,
+  TableState,
+  User
+} from './types'
 
 const KEY_PRODUCTS = 'ra_products'
 const KEY_CATEGORIES = 'ra_categories'
@@ -7,6 +17,7 @@ const KEY_CLOSED = 'ra_closed'
 const KEY_USERS = 'ra_users'
 const KEY_AUTH = 'ra_auth'
 const KEY_LOGS = 'ra_logs'
+const KEY_KITCHEN = 'ra_kitchen_orders'
 
 const DEFAULT_CATEGORY_ID = 'cat_general'
 
@@ -44,6 +55,32 @@ const normalizeProduct = (item: Partial<Product>, fallbackCategoryId = DEFAULT_C
     active: item.active !== false,
     createdAt: item.createdAt || new Date().toISOString(),
     updatedAt: item.updatedAt
+  }
+}
+
+const normalizeKitchenStatus = (value: unknown): KitchenOrderStatus => {
+  if(value === 'Hazırlanıyor' || value === 'Hazır') return value
+  return 'Yeni Sipariş'
+}
+
+const normalizeKitchenOrder = (item: Partial<KitchenOrder>): KitchenOrder => {
+  const timestamp = item.createdAt || new Date().toISOString()
+
+  return {
+    id: String(item.id || `kitchen_${Date.now()}`),
+    tableId: String(item.tableId || ''),
+    tableName: String(item.tableName || 'Masa'),
+    waiterId: String(item.waiterId || ''),
+    waiterName: String(item.waiterName || 'Bilinmeyen Garson'),
+    status: normalizeKitchenStatus(item.status),
+    items: (item.items || []).map(orderItem => ({
+      productId: String(orderItem.productId || ''),
+      productName: String(orderItem.productName || 'Ürün'),
+      qty: Math.max(1, Number(orderItem.qty) || 1),
+      isGift: orderItem.isGift
+    })).filter(orderItem => orderItem.productId),
+    createdAt: timestamp,
+    updatedAt: item.updatedAt || timestamp
   }
 }
 
@@ -113,6 +150,14 @@ export const loadClosed = (): ClosedBill[] => {
 
 export const saveClosed = (items: ClosedBill[]) => {
   localStorage.setItem(KEY_CLOSED, JSON.stringify(items))
+}
+
+export const loadKitchenOrders = (): KitchenOrder[] => {
+  return readJson<Partial<KitchenOrder>[]>(KEY_KITCHEN, []).map(normalizeKitchenOrder)
+}
+
+export const saveKitchenOrders = (items: KitchenOrder[]) => {
+  localStorage.setItem(KEY_KITCHEN, JSON.stringify(items.map(normalizeKitchenOrder)))
 }
 
 export const loadUsers = (): User[] => {

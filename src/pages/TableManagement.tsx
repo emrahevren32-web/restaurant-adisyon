@@ -1,6 +1,16 @@
 import React from 'react'
-import { ClosedBill, Discount, Order, PaymentPart, Product, ProductCategory, TableState, User } from '../types'
-import { addActionLog, loadCategories, loadClosed, loadProducts, loadTables, saveClosed, saveTables } from '../storage'
+import { ClosedBill, Discount, KitchenOrder, Order, PaymentPart, Product, ProductCategory, TableState, User } from '../types'
+import {
+  addActionLog,
+  loadCategories,
+  loadClosed,
+  loadKitchenOrders,
+  loadProducts,
+  loadTables,
+  saveClosed,
+  saveKitchenOrders,
+  saveTables
+} from '../storage'
 import TableCard from '../components/TableCard'
 import {
   calculateDiscountTotal,
@@ -105,6 +115,39 @@ const mergeDiscounts = (
 
   if(discountTotal <= 0 || mergedSubtotal <= 0) return undefined
   return { type: 'amount' as const, value: Math.min(discountTotal, mergedSubtotal) }
+}
+
+const normalizeCategoryName = (value: string) => {
+  return value.toLocaleLowerCase('tr-TR').normalize('NFD').replace(/[\u0300-\u036f]/g, '')
+}
+
+const shouldSendToKitchen = (product: Product, categories: ProductCategory[]) => {
+  const category = categories.find(item => item.id === product.categoryId)
+  const categoryName = normalizeCategoryName(category?.name || '')
+  return !categoryName.includes('icecek')
+}
+
+const mergeKitchenItem = (order: KitchenOrder, product: Product, qty: number, isGift: boolean, timestamp: string): KitchenOrder => {
+  const existingItem = order.items.find(item => item.productId === product.id && Boolean(item.isGift) === isGift)
+
+  if(existingItem){
+    return {
+      ...order,
+      items: order.items.map(item => item === existingItem ? { ...item, qty: item.qty + qty } : item),
+      updatedAt: timestamp
+    }
+  }
+
+  return {
+    ...order,
+    items: [...order.items, {
+      productId: product.id,
+      productName: product.name,
+      qty,
+      isGift
+    }],
+    updatedAt: timestamp
+  }
 }
 
 export default function TableManagement({ currentUser }: Props){
@@ -250,6 +293,44 @@ export default function TableManagement({ currentUser }: Props){
     })
   }
 
+  const addKitchenOrder = (table: TableState, product: Product, qty: number, isGift: boolean) => {
+    if(!shouldSendToKitchen(product, categories)) return
+
+    const now = new Date().toISOString()
+    const kitchenOrders = loadKitchenOrders()
+    const existingOrder = kitchenOrders.find(order =>
+      order.tableId === table.id
+      && order.waiterId === currentUser.id
+      && order.status === 'Yeni Sipariş'
+    )
+
+    if(existingOrder){
+      saveKitchenOrders(kitchenOrders.map(order =>
+        order.id === existingOrder.id ? mergeKitchenItem(order, product, qty, isGift, now) : order
+      ))
+      return
+    }
+
+    const kitchenOrder: KitchenOrder = {
+      id: createId('kitchen'),
+      tableId: table.id,
+      tableName: table.name,
+      waiterId: currentUser.id,
+      waiterName: currentUser.fullName || currentUser.username,
+      status: 'Yeni Sipariş',
+      items: [{
+        productId: product.id,
+        productName: product.name,
+        qty,
+        isGift
+      }],
+      createdAt: now,
+      updatedAt: now
+    }
+
+    saveKitchenOrders([kitchenOrder, ...kitchenOrders])
+  }
+
   const addOrder = (tableId: string, productId: string, qty: number, isGift = false) => {
     if(!productId || !Number.isFinite(qty) || qty < 1) return
 
@@ -291,6 +372,7 @@ export default function TableManagement({ currentUser }: Props){
     }))
 
     if(tableForLog){
+      addKitchenOrder(tableForLog, product, qty, isGift)
       addActionLog({
         operationType: isGift ? 'İkram eklendi' : existingOrderForLog ? 'Ürün adedi artırıldı' : 'Sipariş eklendi',
         user: currentUser,

@@ -48,6 +48,27 @@ export type TableState = {
   discount?: Discount
 }
 
+export type KitchenOrderStatus = 'Yeni Sipariş' | 'Hazırlanıyor' | 'Hazır'
+
+export type KitchenOrderItem = {
+  productId: string
+  productName: string
+  qty: number
+  isGift?: boolean
+}
+
+export type KitchenOrder = {
+  id: string
+  tableId: string
+  tableName: string
+  waiterId: string
+  waiterName: string
+  status: KitchenOrderStatus
+  items: KitchenOrderItem[]
+  createdAt: string
+  updatedAt: string
+}
+
 export type ClosedBill = {
   id: string
   tableId: string
@@ -95,6 +116,8 @@ export type ActionLogType =
   | 'İkram eklendi'
   | 'Masa taşındı'
   | 'Masa birleştirildi'
+  | 'Sipariş Hazırlanıyor'
+  | 'Sipariş Hazır'
   | 'Hesap kapatıldı'
   | 'Ürün oluşturuldu'
   | 'Ürün güncellendi'

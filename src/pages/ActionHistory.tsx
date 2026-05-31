@@ -16,6 +16,8 @@ const operationTypes: ActionLogType[] = [
   'İkram eklendi',
   'Masa taşındı',
   'Masa birleştirildi',
+  'Sipariş Hazırlanıyor',
+  'Sipariş Hazır',
   'Hesap kapatıldı',
   'Ürün oluşturuldu',
   'Ürün güncellendi',
