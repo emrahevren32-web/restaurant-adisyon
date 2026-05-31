@@ -1,5 +1,5 @@
 import React from 'react'
-import { KitchenOrder, Order, Product, ProductCategory, QRRequest, QRRequestItem, TableState, User } from '../types'
+import { KitchenOrder, Order, Product, ProductCategory, QRRequest, QRRequestItem, TableState, User, WaiterCall } from '../types'
 import {
   addActionLog,
   loadCategories,
@@ -7,9 +7,11 @@ import {
   loadProducts,
   loadQRRequests,
   loadTables,
+  loadWaiterCalls,
   saveKitchenOrders,
   saveQRRequests,
-  saveTables
+  saveTables,
+  saveWaiterCalls
 } from '../storage'
 import { formatCurrency } from '../billing'
 
@@ -38,6 +40,13 @@ const requestTotal = (request: QRRequest) => {
   return request.items.reduce((sum, item) => sum + item.unitPrice * item.qty, 0)
 }
 
+const sortByCreatedAtDesc = <T extends { createdAt: string }>(items: T[]) => {
+  return [...items].sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())
+}
+
+const loadSortedQRRequests = () => sortByCreatedAtDesc(loadQRRequests())
+const loadSortedWaiterCalls = () => sortByCreatedAtDesc(loadWaiterCalls())
+
 const summarizeItems = (items: QRRequestItem[]) => {
   return items.map(item => `${item.productName} x${item.qty}`).join(', ')
 }
@@ -62,12 +71,7 @@ const shouldSendToKitchen = (product: Product, categories: ProductCategory[]) =>
 }
 
 const findTargetTable = (request: QRRequest, tables: TableState[]) => {
-  if(request.tableId){
-    const table = tables.find(item => item.id === request.tableId)
-    if(table) return table
-  }
-
-  return tables.find(item => item.name.toLocaleLowerCase('tr-TR') === request.tableName.toLocaleLowerCase('tr-TR'))
+  return tables.find(item => item.id === request.tableId)
 }
 
 const mergeRequestItemsIntoOrders = (orders: Order[], items: QRRequestItem[]) => {
@@ -176,17 +180,44 @@ const addKitchenOrderForRequest = (
 }
 
 export default function QROrders({ currentUser }: Props){
-  const [requests, setRequests] = React.useState<QRRequest[]>(() => {
-    return loadQRRequests().sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())
-  })
+  const [requests, setRequests] = React.useState<QRRequest[]>(() => loadSortedQRRequests())
+  const [waiterCalls, setWaiterCalls] = React.useState<WaiterCall[]>(() => loadSortedWaiterCalls())
   const [feedback, setFeedback] = React.useState<Feedback>(null)
 
   const canProcessRequests = currentUser.role === 'Admin' || currentUser.role === 'Garson'
 
+  const refreshLiveData = React.useCallback(() => {
+    setRequests(loadSortedQRRequests())
+    setWaiterCalls(loadSortedWaiterCalls())
+  }, [])
+
+  React.useEffect(() => {
+    refreshLiveData()
+    const intervalId = window.setInterval(refreshLiveData, 3000)
+    window.addEventListener('storage', refreshLiveData)
+
+    return () => {
+      window.clearInterval(intervalId)
+      window.removeEventListener('storage', refreshLiveData)
+    }
+  }, [refreshLiveData])
+
   const removeRequest = (requestId: string) => {
-    const nextRequests = requests.filter(request => request.id !== requestId)
-    setRequests(nextRequests)
+    const nextRequests = loadQRRequests().filter(request => request.id !== requestId)
     saveQRRequests(nextRequests)
+    refreshLiveData()
+  }
+
+  const completeWaiterCall = (call: WaiterCall) => {
+    if(!canProcessRequests){
+      setFeedback({ type: 'error', text: 'Garson çağrısını kapatmak için yetkiniz yok.' })
+      return
+    }
+
+    const nextCalls = loadWaiterCalls().filter(item => item.id !== call.id)
+    saveWaiterCalls(nextCalls)
+    refreshLiveData()
+    setFeedback({ type: 'success', text: `${call.tableName} garson çağrısı kapatıldı.` })
   }
 
   const approveRequest = (request: QRRequest) => {
@@ -204,7 +235,7 @@ export default function QROrders({ currentUser }: Props){
     const table = findTargetTable(request, tables)
 
     if(!table){
-      setFeedback({ type: 'error', text: `${request.tableName} için kayıtlı masa bulunamadı. Talep kaldırılmadı.` })
+      setFeedback({ type: 'error', text: `${request.tableName} için kayıtlı masa ID bulunamadı. Talep kaldırılmadı.` })
       return
     }
 
@@ -266,7 +297,44 @@ export default function QROrders({ currentUser }: Props){
 
       <section className="card">
         <div className="section-header compact">
-          <h3>Sipariş Talepleri</h3>
+          <div>
+            <h3>Garson Çağrıları</h3>
+            <p className="muted">QR menüden gelen çağrılar canlı yenilenir.</p>
+          </div>
+          <span className="status-pill">{waiterCalls.length} çağrı</span>
+        </div>
+
+        {waiterCalls.length === 0 ? (
+          <div className="empty-state">Bekleyen garson çağrısı yok.</div>
+        ) : (
+          <div className="waiter-call-list">
+            {waiterCalls.map(call => {
+              const createdAt = formatDateTime(call.createdAt)
+
+              return (
+                <article className="waiter-call-card" key={call.id}>
+                  <div>
+                    <span className="small-text">Garson çağrısı</span>
+                    <strong>{call.tableName}</strong>
+                    <p className="muted">{createdAt.time} · {createdAt.date}</p>
+                  </div>
+                  <div className="row-actions">
+                    <span className="status-pill">{call.status}</span>
+                    <button className="btn primary" onClick={() => completeWaiterCall(call)} type="button">Görüldü</button>
+                  </div>
+                </article>
+              )
+            })}
+          </div>
+        )}
+      </section>
+
+      <section className="card">
+        <div className="section-header compact">
+          <div>
+            <h3>Sipariş Talepleri</h3>
+            <p className="muted">QR sipariş talepleri canlı yenilenir.</p>
+          </div>
         </div>
 
         {requests.length === 0 ? (

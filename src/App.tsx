@@ -12,7 +12,15 @@ import QROrders from './pages/QROrders'
 import Login from './pages/Login'
 import Users from './pages/Users'
 import Settings from './pages/Settings'
-import { loadProducts, ensureDefaultAdmin, getCurrentUser, setCurrentUser, loadSettings } from './storage'
+import {
+  loadProducts,
+  ensureDefaultAdmin,
+  getCurrentUser,
+  setCurrentUser,
+  loadSettings,
+  loadQRRequests,
+  loadWaiterCalls
+} from './storage'
 import { User } from './types'
 
 type Route =
@@ -33,18 +41,38 @@ export default function App(){
   const [route, setRoute] = React.useState<Route>('tables')
   const [currentUser, setUserState] = React.useState<User | null>(() => getCurrentUser())
   const [settings, setSettings] = React.useState(() => loadSettings())
+  const [qrNotificationCount, setQrNotificationCount] = React.useState(0)
 
   React.useEffect(()=>{ loadProducts(); ensureDefaultAdmin() }, [])
   React.useEffect(() => {
     document.title = settings.restaurantName
   }, [settings.restaurantName])
+  React.useEffect(() => {
+    if(!currentUser){
+      setQrNotificationCount(0)
+      return
+    }
+
+    const refreshNotifications = () => {
+      setQrNotificationCount(loadQRRequests().length + loadWaiterCalls().length)
+    }
+
+    refreshNotifications()
+    const intervalId = window.setInterval(refreshNotifications, 3000)
+    window.addEventListener('storage', refreshNotifications)
+
+    return () => {
+      window.clearInterval(intervalId)
+      window.removeEventListener('storage', refreshNotifications)
+    }
+  }, [currentUser])
 
   const onLogin = (u: User) => setUserState(u)
   const logout = () => { setCurrentUser(null); setUserState(null); setRoute('tables') }
   const refreshSettings = () => setSettings(loadSettings())
 
   if(qrRouteMatch){
-    return <QRMenu slug={qrRouteMatch[1]} />
+    return <QRMenu tableId={qrRouteMatch[1]} />
   }
 
   return (
@@ -64,7 +92,10 @@ export default function App(){
               <button className="btn" onClick={()=>setRoute('summary')}>Günlük Satış</button>
               <button className="btn" onClick={()=>setRoute('history')}>Adisyon Geçmişi</button>
               <button className="btn" onClick={()=>setRoute('kitchen')}>Mutfak Ekranı</button>
-              <button className="btn" onClick={()=>setRoute('qr-orders')}>QR Siparişler</button>
+              <button className="btn nav-alert-btn" onClick={()=>setRoute('qr-orders')}>
+                QR Siparişler
+                {qrNotificationCount > 0 && <span className="nav-badge">{qrNotificationCount}</span>}
+              </button>
               {currentUser.role === 'Admin' && <button className="btn" onClick={()=>setRoute('reports')}>Raporlama</button>}
               {currentUser.role === 'Admin' && <button className="btn" onClick={()=>setRoute('staff')}>Personel Takibi</button>}
               {currentUser.role === 'Admin' && <button className="btn" onClick={()=>setRoute('actions')}>İşlem Geçmişi</button>}

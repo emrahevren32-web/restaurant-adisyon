@@ -10,7 +10,9 @@ import {
   QRRequestStatus,
   SystemSettings,
   TableState,
-  User
+  User,
+  WaiterCall,
+  WaiterCallStatus
 } from './types'
 
 const KEY_PRODUCTS = 'ra_products'
@@ -23,6 +25,7 @@ const KEY_LOGS = 'ra_logs'
 const KEY_KITCHEN = 'ra_kitchen_orders'
 const KEY_QR_REQUESTS = 'ra_qr_requests'
 const KEY_SETTINGS = 'ra_settings'
+const KEY_WAITER_CALLS = 'ra_waiter_calls'
 
 const DEFAULT_CATEGORY_ID = 'cat_general'
 
@@ -117,7 +120,7 @@ const normalizeQRRequest = (item: Partial<QRRequest>): QRRequest => {
 
   return {
     id: String(item.id || `qr_${Date.now()}`),
-    tableId: item.tableId ? String(item.tableId) : undefined,
+    tableId: String(item.tableId || ''),
     tableName: String(item.tableName || 'Masa'),
     items: (item.items || []).map(orderItem => ({
       productId: String(orderItem.productId || ''),
@@ -127,6 +130,21 @@ const normalizeQRRequest = (item: Partial<QRRequest>): QRRequest => {
     })).filter(orderItem => orderItem.productId),
     status: normalizeQRRequestStatus(item.status),
     createdAt: timestamp
+  }
+}
+
+const normalizeWaiterCallStatus = (value: unknown): WaiterCallStatus => {
+  if(value === 'Bekliyor') return value
+  return 'Bekliyor'
+}
+
+const normalizeWaiterCall = (item: Partial<WaiterCall>): WaiterCall => {
+  return {
+    id: String(item.id || `call_${Date.now()}`),
+    tableId: String(item.tableId || ''),
+    tableName: String(item.tableName || 'Masa'),
+    status: normalizeWaiterCallStatus(item.status),
+    createdAt: item.createdAt || new Date().toISOString()
   }
 }
 
@@ -223,6 +241,14 @@ export const loadQRRequests = (): QRRequest[] => {
 
 export const saveQRRequests = (items: QRRequest[]) => {
   localStorage.setItem(KEY_QR_REQUESTS, JSON.stringify(items.map(normalizeQRRequest)))
+}
+
+export const loadWaiterCalls = (): WaiterCall[] => {
+  return readJson<Partial<WaiterCall>[]>(KEY_WAITER_CALLS, []).map(normalizeWaiterCall).filter(call => call.tableId)
+}
+
+export const saveWaiterCalls = (items: WaiterCall[]) => {
+  localStorage.setItem(KEY_WAITER_CALLS, JSON.stringify(items.map(normalizeWaiterCall).filter(call => call.tableId)))
 }
 
 export const loadSettings = (): SystemSettings => {
@@ -403,6 +429,7 @@ export const createDemoData = () => {
   saveTables(tables)
   saveKitchenOrders([])
   saveQRRequests([])
+  saveWaiterCalls([])
   ensureDefaultAdmin()
 
   return { categories: loadCategories(), products: loadProducts(), tables }

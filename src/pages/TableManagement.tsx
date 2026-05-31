@@ -234,6 +234,11 @@ export default function TableManagement({ currentUser }: Props){
     const table = tables.find(item => item.id === tableId)
     if(!table) return
 
+    if(table.open){
+      setTableError('Açık masa yeniden adlandırılamaz. Önce hesabı kapatın.')
+      return
+    }
+
     const nextName = prompt('Yeni masa adı', table.name)?.trim()
     if(!nextName) return
 
@@ -770,6 +775,7 @@ export default function TableManagement({ currentUser }: Props){
           {selectedTable && canManageTables && (
             <div className="table-admin-actions">
               <button className="btn" onClick={()=>renameTable(selectedTable.id)}>Masayı Düzenle</button>
+              <a className="btn" href={`/qr/${selectedTable.id}`} target="_blank" rel="noreferrer">QR Menü</a>
               <button className="btn" onClick={()=>deleteTable(selectedTable.id)}>Masayı Sil</button>
             </div>
           )}

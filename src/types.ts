@@ -80,10 +80,20 @@ export type QRRequestItem = {
 
 export type QRRequest = {
   id: string
-  tableId?: string
+  tableId: string
   tableName: string
   items: QRRequestItem[]
   status: QRRequestStatus
+  createdAt: string
+}
+
+export type WaiterCallStatus = 'Bekliyor'
+
+export type WaiterCall = {
+  id: string
+  tableId: string
+  tableName: string
+  status: WaiterCallStatus
   createdAt: string
 }
 

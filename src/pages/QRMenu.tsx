@@ -7,12 +7,14 @@ import {
   loadQRRequests,
   loadSettings,
   loadTables,
-  saveQRRequests
+  loadWaiterCalls,
+  saveQRRequests,
+  saveWaiterCalls
 } from '../storage'
 import { formatCurrency, roundCurrency } from '../billing'
 
 type Props = {
-  slug: string
+  tableId: string
 }
 
 type CartItem = QRRequestItem
@@ -27,47 +29,11 @@ const qrCustomerUser: User = {
   active: true
 }
 
-const slugify = (value: string) => {
-  const normalized = value
-    .replace(/[ıİ]/g, 'i')
-    .replace(/[ğĞ]/g, 'g')
-    .replace(/[üÜ]/g, 'u')
-    .replace(/[şŞ]/g, 's')
-    .replace(/[öÖ]/g, 'o')
-    .replace(/[çÇ]/g, 'c')
-    .normalize('NFD')
-    .replace(/[\u0300-\u036f]/g, '')
-
-  return normalized
-    .toLowerCase()
-    .replace(/[^a-z0-9]+/g, '-')
-    .replace(/^-+|-+$/g, '')
-}
-
-const titleFromSlug = (value: string) => {
-  return value
-    .replace(/[-_]+/g, ' ')
-    .trim()
-    .split(/\s+/)
-    .map(part => part.charAt(0).toLocaleUpperCase('tr-TR') + part.slice(1))
-    .join(' ') || 'Masa'
-}
-
-const findTableBySlug = (tables: TableState[], slug: string) => {
-  const normalizedSlug = slugify(slug)
-  return tables.find(table => {
-    return slug === table.id
-      || normalizedSlug === slugify(table.id)
-      || normalizedSlug === slugify(table.name)
-      || normalizedSlug === `masa-${slugify(table.id)}`
-  })
-}
-
 const cartTotal = (items: CartItem[]) => {
   return roundCurrency(items.reduce((sum, item) => sum + item.unitPrice * item.qty, 0))
 }
 
-export default function QRMenu({ slug }: Props){
+export default function QRMenu({ tableId }: Props){
   const [products] = React.useState<Product[]>(() => loadProducts())
   const [categories] = React.useState(() => loadCategories())
   const [tables] = React.useState<TableState[]>(() => loadTables())
@@ -76,9 +42,9 @@ export default function QRMenu({ slug }: Props){
   const [cart, setCart] = React.useState<Record<string, CartItem>>({})
   const [message, setMessage] = React.useState<Message>(null)
 
-  const decodedSlug = React.useMemo(() => decodeURIComponent(slug), [slug])
-  const table = React.useMemo(() => findTableBySlug(tables, decodedSlug), [decodedSlug, tables])
-  const tableName = table?.name || titleFromSlug(decodedSlug)
+  const decodedTableId = React.useMemo(() => decodeURIComponent(tableId), [tableId])
+  const table = React.useMemo(() => tables.find(item => item.id === decodedTableId), [decodedTableId, tables])
+  const tableName = table?.name || 'Masa bulunamadı'
 
   const activeCategoryIds = React.useMemo(() => {
     return new Set(categories.filter(category => category.active).map(category => category.id))
@@ -149,17 +115,36 @@ export default function QRMenu({ slug }: Props){
   const removeFromCart = (productId: string) => updateQty(productId, 0)
 
   const callWaiter = () => {
+    if(!table){
+      setMessage({ type: 'error', text: 'Bu QR kod kayıtlı bir masaya bağlı değil.' })
+      return
+    }
+
+    const now = new Date().toISOString()
+    saveWaiterCalls([{
+      id: `call_${Date.now()}_${Math.random().toString(16).slice(2)}`,
+      tableId: table.id,
+      tableName: table.name,
+      status: 'Bekliyor',
+      createdAt: now
+    }, ...loadWaiterCalls()])
+
     addActionLog({
       operationType: 'Garson çağrıldı',
       user: qrCustomerUser,
-      tableId: table?.id,
-      tableName,
-      description: `${tableName} garson çağırdı.`
+      tableId: table.id,
+      tableName: table.name,
+      description: `${table.name} garson çağırdı.`
     })
     setMessage({ type: 'success', text: 'Garson çağrınız iletildi.' })
   }
 
   const sendOrderRequest = () => {
+    if(!table){
+      setMessage({ type: 'error', text: 'Bu QR kod kayıtlı bir masaya bağlı değil.' })
+      return
+    }
+
     if(cartItems.length === 0){
       setMessage({ type: 'error', text: 'Sipariş göndermek için sepete ürün ekleyin.' })
       return
@@ -167,8 +152,8 @@ export default function QRMenu({ slug }: Props){
 
     const request = {
       id: `qr_${Date.now()}_${Math.random().toString(16).slice(2)}`,
-      tableId: table?.id,
-      tableName,
+      tableId: table.id,
+      tableName: table.name,
       items: cartItems,
       status: 'Garson Onayı Bekliyor' as const,
       createdAt: new Date().toISOString()
@@ -195,6 +180,14 @@ export default function QRMenu({ slug }: Props){
 
       {message && <div className={`qr-message ${message.type}`}>{message.text}</div>}
 
+      {!table && (
+        <section className="card qr-invalid-card">
+          <h2>Masa bulunamadı</h2>
+          <p className="muted">Bu QR bağlantısı geçerli bir masa ID değerine bağlı değil. Lütfen işletme personelinden güncel QR kodu isteyin.</p>
+        </section>
+      )}
+
+      {table && (
       <div className="qr-menu-layout">
         <main className="qr-menu-main">
           <div className="qr-category-tabs" aria-label="Kategoriler">
@@ -275,6 +268,7 @@ export default function QRMenu({ slug }: Props){
           </section>
         </aside>
       </div>
+      )}
     </div>
   )
 }
