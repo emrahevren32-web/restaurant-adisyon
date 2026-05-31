@@ -34,6 +34,7 @@ type Props = {
   onUpdateDiscount: (tableId: string, discount: Discount) => void
   onClearDiscount: (tableId: string) => void
   onTransferTable: (sourceTableId: string, targetTableId: string) => void
+  onMergeTables: (sourceTableId: string, targetTableId: string) => void
 }
 
 export default function TableCard({
@@ -51,7 +52,8 @@ export default function TableCard({
   onUpdateNote,
   onUpdateDiscount,
   onClearDiscount,
-  onTransferTable
+  onTransferTable,
+  onMergeTables
 }: Props) {
   const [qty, setQty] = React.useState<number>(1)
   const [search, setSearch] = React.useState('')
@@ -61,11 +63,15 @@ export default function TableCard({
   const [cardAmount, setCardAmount] = React.useState('')
   const [otherAmount, setOtherAmount] = React.useState('')
   const [transferTargetId, setTransferTargetId] = React.useState('')
+  const [mergeTargetId, setMergeTargetId] = React.useState('')
   const [discountTypeInput, setDiscountTypeInput] = React.useState<DiscountType>(table.discount?.type || 'percent')
 
   const categoryMap = React.useMemo(() => new Map(categories.map(category => [category.id, category])), [categories])
   const transferTargets = React.useMemo(() => {
     return tables.filter(item => item.id !== table.id && !item.open && item.orders.length === 0)
+  }, [table.id, tables])
+  const mergeTargets = React.useMemo(() => {
+    return tables.filter(item => item.id !== table.id && item.open)
   }, [table.id, tables])
 
   React.useEffect(() => {
@@ -78,6 +84,17 @@ export default function TableCard({
       setTransferTargetId(transferTargets[0].id)
     }
   }, [transferTargetId, transferTargets])
+
+  React.useEffect(() => {
+    if(mergeTargets.length === 0){
+      setMergeTargetId('')
+      return
+    }
+
+    if(!mergeTargets.find(item => item.id === mergeTargetId)){
+      setMergeTargetId((mergeTargets.find(item => item.orders.length > 0) || mergeTargets[0]).id)
+    }
+  }, [mergeTargetId, mergeTargets])
 
   React.useEffect(() => {
     setDiscountTypeInput(table.discount?.type || 'percent')
@@ -218,6 +235,16 @@ export default function TableCard({
     clearPaymentInputs()
   }
 
+  const mergeTarget = mergeTargets.find(item => item.id === mergeTargetId)
+  const canMergeTable = table.open && table.orders.length > 0 && Boolean(mergeTarget) && Boolean(mergeTarget?.open) && Boolean(mergeTarget?.orders.length)
+
+  const mergeCurrentTable = () => {
+    if(!mergeTarget) return
+
+    if(!confirm(`${table.name} içerisindeki tüm siparişler ${mergeTarget.name}'e taşınacak. Devam etmek istiyor musunuz?`)) return
+    onMergeTables(table.id, mergeTarget.id)
+  }
+
   return (
     <div className="card table-detail">
       <div className="section-header">
@@ -293,6 +320,22 @@ export default function TableCard({
                 <button className="btn" type="button" disabled={!transferTargetId} onClick={()=>onTransferTable(table.id, transferTargetId)}>Taşı</button>
               </div>
               <p className="muted small-text">Adisyon sadece kapalı ve boş masaya taşınır.</p>
+            </section>
+
+            <section className="tool-panel">
+              <label>Masa Birleştir</label>
+              <div className="discount-controls">
+                <select value={mergeTargetId} onChange={e=>setMergeTargetId(e.target.value)} disabled={mergeTargets.length === 0}>
+                  {mergeTargets.length === 0 && <option value="">Açık hedef masa yok</option>}
+                  {mergeTargets.map(item => (
+                    <option key={item.id} value={item.id}>
+                      {item.name}{item.orders.length === 0 ? ' (boş)' : ` (${item.orders.length} kalem)`}
+                    </option>
+                  ))}
+                </select>
+                <button className="btn" type="button" disabled={!canMergeTable} onClick={mergeCurrentTable}>Birleştir</button>
+              </div>
+              <p className="muted small-text">Kaynak ve hedef masa açık, siparişli ve farklı olmalıdır. İşlem geri alınamaz.</p>
             </section>
           </div>
 
@@ -479,6 +522,7 @@ export default function TableCard({
               <div className="form-actions">
                 <button className="btn" type="button" disabled={table.orders.length === 0} onClick={()=>fillSinglePayment('Nakit')}>Tamamı Nakit</button>
                 <button className="btn" type="button" disabled={table.orders.length === 0} onClick={()=>fillSinglePayment('Kart')}>Tamamı Kart</button>
+                <button className="btn" type="button" disabled={table.orders.length === 0} onClick={()=>fillSinglePayment('Diğer')}>Tamamı Diğer</button>
                 {hasSelection ? (
                   <button className="btn primary" type="button" disabled={!canTakePayment} onClick={completeSelectedPayment}>Seçili Ürünleri Öde</button>
                 ) : (

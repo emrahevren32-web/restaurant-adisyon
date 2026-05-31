@@ -88,6 +88,8 @@ export const paymentsCoverTotal = (payments: PaymentPart[] = [], total: number) 
 }
 
 export const getBillPayments = (bill: ClosedBill): PaymentPart[] => {
+  if(bill.mergeHistory) return []
+
   const payments = normalizePayments(bill.payments)
   if(payments.length > 0) return payments
 
@@ -97,4 +99,8 @@ export const getBillPayments = (bill: ClosedBill): PaymentPart[] => {
     method: bill.paymentMethod || 'Nakit',
     amount: roundCurrency(bill.total)
   }]
+}
+
+export const isRevenueBill = (bill: ClosedBill) => {
+  return bill.mergeHistory !== true
 }

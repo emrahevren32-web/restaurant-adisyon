@@ -60,6 +60,9 @@ export type ClosedBill = {
   payments?: PaymentPart[]
   splitPayment?: boolean
   splitLabel?: string
+  mergeHistory?: boolean
+  mergeTargetTableId?: string
+  mergeTargetTableName?: string
   closedByUserId?: string
   closedByFullName?: string
   note?: string
@@ -91,6 +94,7 @@ export type ActionLogType =
   | 'İndirim kaldırıldı'
   | 'İkram eklendi'
   | 'Masa taşındı'
+  | 'Masa birleştirildi'
   | 'Hesap kapatıldı'
   | 'Ürün oluşturuldu'
   | 'Ürün güncellendi'

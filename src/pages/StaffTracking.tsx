@@ -1,7 +1,7 @@
 import React from 'react'
 import { ActionLog, ClosedBill, Product, Role, User } from '../types'
 import { loadActionLogs, loadClosed, loadProducts, loadUsers } from '../storage'
-import { calculateDiscountTotal, calculateGiftTotal, calculateSubtotal, formatCurrency } from '../billing'
+import { calculateDiscountTotal, calculateGiftTotal, calculateSubtotal, formatCurrency, isRevenueBill } from '../billing'
 
 type PeriodFilter = 'today' | '7days' | '30days' | 'all'
 
@@ -92,7 +92,7 @@ export default function StaffTracking(){
       })
 
     closedBills
-      .filter(bill => isInPeriod(bill.timestamp, period))
+      .filter(bill => isRevenueBill(bill) && isInPeriod(bill.timestamp, period))
       .forEach(bill => {
         const userId = bill.closedByUserId || 'unknown'
         const metric = metrics.get(userId) || createEmptyMetric(userId, bill.closedByFullName || 'Bilinmeyen Personel', '-')

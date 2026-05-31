@@ -8,7 +8,8 @@ import {
   calculateOrderPayableTotal,
   calculateSubtotal,
   formatCurrency,
-  getBillPayments
+  getBillPayments,
+  isRevenueBill
 } from '../billing'
 
 type PaymentFilter = 'all' | PaymentMethod
@@ -33,6 +34,8 @@ const getPaymentAmount = (bill: ClosedBill, method: PaymentMethod) => {
     .reduce((sum, payment) => sum + payment.amount, 0)
 }
 const formatPaymentMethods = (bill: ClosedBill) => {
+  if(bill.mergeHistory) return 'Masa birleştirme'
+
   const payments = getBillPayments(bill)
   if(payments.length === 0) return 'Ödeme yok'
 
@@ -53,6 +56,7 @@ export default function BillHistory(){
       const matchesPayment = paymentFilter === 'all' || billPayments.some(payment => payment.method === paymentFilter)
       const matchesSearch = !normalizedSearch
         || bill.tableName.toLocaleLowerCase('tr-TR').includes(normalizedSearch)
+        || (bill.mergeTargetTableName || '').toLocaleLowerCase('tr-TR').includes(normalizedSearch)
         || (bill.closedByFullName || '').toLocaleLowerCase('tr-TR').includes(normalizedSearch)
         || (bill.note || '').toLocaleLowerCase('tr-TR').includes(normalizedSearch)
 
@@ -60,16 +64,17 @@ export default function BillHistory(){
     })
   }, [closed, paymentFilter, search])
 
-  const totalRevenue = filteredBills.reduce((sum, bill) => sum + bill.total, 0)
-  const totalDiscount = filteredBills.reduce((sum, bill) => sum + getBillDiscount(bill, products), 0)
-  const totalGift = filteredBills.reduce((sum, bill) => sum + calculateGiftTotal(bill.orders, products), 0)
+  const revenueBills = filteredBills.filter(isRevenueBill)
+  const totalRevenue = revenueBills.reduce((sum, bill) => sum + bill.total, 0)
+  const totalDiscount = revenueBills.reduce((sum, bill) => sum + getBillDiscount(bill, products), 0)
+  const totalGift = revenueBills.reduce((sum, bill) => sum + calculateGiftTotal(bill.orders, products), 0)
 
   return (
     <div className="history-page">
       <div className="page-title">
         <div>
           <h2>Adisyon Geçmişi</h2>
-          <p className="muted">Kapanan hesapları not, indirim, ikram ve kalem detaylarıyla inceleyin.</p>
+          <p className="muted">Kapanan hesapları, bölünmüş ödemeleri ve masa birleştirme kayıtlarını inceleyin.</p>
         </div>
       </div>
 
@@ -125,6 +130,7 @@ export default function BillHistory(){
                     <strong>{bill.tableName}</strong>
                     <small>{formatDateTime(bill.timestamp)} · {bill.closedByFullName || 'Kapatan yok'}</small>
                     {bill.splitPayment && <small className="status-pill">Bölünmüş hesap</small>}
+                    {bill.mergeHistory && <small className="status-pill">Masa birleştirme</small>}
                   </span>
                   <span className="history-summary-values">
                     <b>{formatCurrency(bill.total)}</b>
@@ -146,7 +152,7 @@ export default function BillHistory(){
                     <strong>{formatCurrency(giftTotal)}</strong>
                   </div>
                   <div>
-                    <span>Ödenen</span>
+                    <span>{bill.mergeHistory ? 'Aktarılan Değer' : 'Ödenen'}</span>
                     <strong>{formatCurrency(bill.total)}</strong>
                   </div>
                   <div>
@@ -164,6 +170,11 @@ export default function BillHistory(){
                 </div>
 
                 {bill.splitPayment && <div className="bill-note">Bölünen hesap bilgisi: {bill.splitLabel || 'Seçili ürün ödemesi'}.</div>}
+                {bill.mergeHistory && (
+                  <div className="bill-note">
+                    Birleştirme: {bill.tableName} içerisindeki ürünler {bill.mergeTargetTableName || 'hedef masa'} masasına aktarıldı. Bu kayıt satış toplamlarına dahil edilmez.
+                  </div>
+                )}
                 {bill.note && <div className="bill-note">Not: {bill.note}</div>}
 
                 <div className="table-wrap">

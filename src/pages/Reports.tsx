@@ -8,6 +8,7 @@ import {
   calculateSubtotal,
   formatCurrency,
   getBillPayments,
+  isRevenueBill,
   roundCurrency
 } from '../billing'
 
@@ -171,7 +172,7 @@ const getStaffMetrics = (bills: ClosedBill[]) => {
 
 const getRevenue = (bills: ClosedBill[], period: PeriodFilter) => {
   return roundCurrency(bills
-    .filter(bill => isInPeriod(bill.timestamp, period))
+    .filter(bill => isRevenueBill(bill) && isInPeriod(bill.timestamp, period))
     .reduce((sum, bill) => sum + bill.total, 0))
 }
 
@@ -188,7 +189,7 @@ export default function Reports(){
   const [products] = React.useState<Product[]>(() => loadProducts())
 
   const filteredBills = React.useMemo(() => {
-    return closedBills.filter(bill => isInPeriod(bill.timestamp, period))
+    return closedBills.filter(bill => isRevenueBill(bill) && isInPeriod(bill.timestamp, period))
   }, [closedBills, period])
 
   const totalRevenue = filteredBills.reduce((sum, bill) => sum + bill.total, 0)

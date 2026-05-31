@@ -1,7 +1,7 @@
 import React from 'react'
 import { ClosedBill, PaymentMethod } from '../types'
 import { loadClosed } from '../storage'
-import { getBillPayments } from '../billing'
+import { getBillPayments, isRevenueBill } from '../billing'
 
 const currencyFormatter = new Intl.NumberFormat('tr-TR', {
   style: 'currency',
@@ -26,7 +26,7 @@ const formatPaymentMethods = (bill: ClosedBill) => {
 export default function DailySummary(){
   const [closed] = React.useState<ClosedBill[]>(() => loadClosed())
   const today = getLocalDateKey(new Date())
-  const todays = closed.filter(bill => getLocalDateKey(bill.timestamp) === today)
+  const todays = closed.filter(bill => isRevenueBill(bill) && getLocalDateKey(bill.timestamp) === today)
   const total = todays.reduce((sum,bill)=> sum + bill.total, 0)
   const paymentTotals = paymentMethods.map(method => ({
     method,

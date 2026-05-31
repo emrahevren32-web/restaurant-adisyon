@@ -8,6 +8,7 @@ import {
   calculateProratedDiscountTotal,
   calculateSubtotal,
   formatCurrency,
+  isRevenueBill,
   normalizePayments,
   paymentsCoverTotal,
   roundCurrency
@@ -65,6 +66,47 @@ const getRemainingDiscount = (
   return remainingDiscount > 0 ? { type: 'amount' as const, value: remainingDiscount } : undefined
 }
 
+const canMergeOrder = (left: Order, right: Order) => {
+  return left.productId === right.productId
+    && (left.unitPrice ?? 0) === (right.unitPrice ?? 0)
+    && Boolean(left.isGift) === Boolean(right.isGift)
+}
+
+const mergeOrders = (targetOrders: Order[], sourceOrders: Order[]) => {
+  return sourceOrders.reduce<Order[]>((orders, sourceOrder) => {
+    const existingOrder = orders.find(order => canMergeOrder(order, sourceOrder))
+
+    if(existingOrder){
+      return orders.map(order => order.id === existingOrder.id ? { ...order, qty: order.qty + sourceOrder.qty } : order)
+    }
+
+    return [...orders, { ...sourceOrder }]
+  }, targetOrders.map(order => ({ ...order })))
+}
+
+const mergeNotes = (targetNote: string | undefined, sourceNote: string | undefined, sourceTableName: string) => {
+  const notes = []
+  if(targetNote?.trim()) notes.push(targetNote.trim())
+  if(sourceNote?.trim()) notes.push(`[${sourceTableName}] ${sourceNote.trim()}`)
+
+  return notes.join('\n')
+}
+
+const mergeDiscounts = (
+  targetDiscount: Discount | undefined,
+  targetSubtotal: number,
+  sourceDiscount: Discount | undefined,
+  sourceSubtotal: number
+) => {
+  const discountTotal = roundCurrency(
+    calculateDiscountTotal(targetDiscount, targetSubtotal) + calculateDiscountTotal(sourceDiscount, sourceSubtotal)
+  )
+  const mergedSubtotal = targetSubtotal + sourceSubtotal
+
+  if(discountTotal <= 0 || mergedSubtotal <= 0) return undefined
+  return { type: 'amount' as const, value: Math.min(discountTotal, mergedSubtotal) }
+}
+
 export default function TableManagement({ currentUser }: Props){
   const [tables, setTables] = React.useState<TableState[]>(() => {
     const storedTables = loadTables()
@@ -106,7 +148,7 @@ export default function TableManagement({ currentUser }: Props){
   const activeProducts = products.filter(product => product.active)
   const openTableCount = tables.filter(table => table.open).length
   const activeTotal = tables.reduce((sum, table) => sum + calculateTableTotal(table, products), 0)
-  const closedCount = loadClosed().length
+  const closedCount = loadClosed().filter(isRevenueBill).length
 
   const addTable = (e: React.FormEvent) => {
     e.preventDefault()
@@ -384,6 +426,91 @@ export default function TableManagement({ currentUser }: Props){
     })
   }
 
+  const mergeTables = (sourceTableId: string, targetTableId: string) => {
+    if(sourceTableId === targetTableId){
+      setTableError('Aynı masa ile birleştirme yapılamaz.')
+      return
+    }
+
+    const source = tables.find(table => table.id === sourceTableId)
+    const target = tables.find(table => table.id === targetTableId)
+
+    if(!source || !target){
+      setTableError('Kaynak veya hedef masa bulunamadı.')
+      return
+    }
+
+    if(!source.open){
+      setTableError('Kapalı kaynak masa birleştirilemez.')
+      return
+    }
+
+    if(!target.open){
+      setTableError('Kapalı hedef masaya birleştirme yapılamaz.')
+      return
+    }
+
+    if(source.orders.length === 0){
+      setTableError('Boş kaynak masa birleştirilemez.')
+      return
+    }
+
+    if(target.orders.length === 0){
+      setTableError('Boş hedef masaya birleştirme yapılamaz. Bunun için masa taşıma işlemini kullanın.')
+      return
+    }
+
+    const sourceSubtotal = calculateSubtotal(source.orders, products)
+    const targetSubtotal = calculateSubtotal(target.orders, products)
+    const sourceDiscountTotal = calculateDiscountTotal(source.discount, sourceSubtotal)
+    const sourceTotal = calculateFinalTotal(source.orders, products, source.discount)
+    const sourceItemCount = source.orders.reduce((sum, order) => sum + order.qty, 0)
+    const mergedOrders = mergeOrders(target.orders, source.orders)
+    const mergedDiscount = mergeDiscounts(target.discount, targetSubtotal, source.discount, sourceSubtotal)
+    const mergedNote = mergeNotes(target.note, source.note, source.name)
+    const closed = loadClosed()
+    const mergeHistoryBill: ClosedBill = {
+      id: createId('merge'),
+      tableId: source.id,
+      tableName: source.name,
+      subtotal: sourceSubtotal,
+      total: sourceTotal,
+      timestamp: new Date().toISOString(),
+      orders: source.orders,
+      payments: [],
+      mergeHistory: true,
+      mergeTargetTableId: target.id,
+      mergeTargetTableName: target.name,
+      closedByUserId: currentUser.id,
+      closedByFullName: currentUser.fullName,
+      note: source.note,
+      discount: source.discount,
+      discountTotal: sourceDiscountTotal
+    }
+
+    saveClosed([mergeHistoryBill, ...closed])
+    setTables(prev => prev.map(table => {
+      if(table.id === source.id){
+        return { ...table, open:false, orders: [], note: '', discount: undefined }
+      }
+
+      if(table.id === target.id){
+        return { ...table, open:true, orders: mergedOrders, note: mergedNote, discount: mergedDiscount }
+      }
+
+      return table
+    }))
+    setSelectedTableId(target.id)
+    setTableError('')
+    addActionLog({
+      operationType: 'Masa birleştirildi',
+      user: currentUser,
+      tableId: source.id,
+      tableName: source.name,
+      description: `${source.name} içerisindeki ${sourceItemCount} ürün ${target.name} masasına aktarıldı.`
+    })
+  }
+
   const closeTable = (tableId: string, payments: PaymentPart[]) => {
     const table = tables.find(item => item.id === tableId)
     if(!table || !table.open) return
@@ -584,6 +711,7 @@ export default function TableManagement({ currentUser }: Props){
               onUpdateDiscount={updateDiscount}
               onClearDiscount={clearDiscount}
               onTransferTable={transferTable}
+              onMergeTables={mergeTables}
             />
           ) : (
             <div className="card empty-state">Henüz masa bulunmuyor.</div>
