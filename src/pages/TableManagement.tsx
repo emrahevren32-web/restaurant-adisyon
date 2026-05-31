@@ -1,6 +1,6 @@
 import React from 'react'
 import { ClosedBill, Discount, Order, PaymentMethod, Product, ProductCategory, TableState, User } from '../types'
-import { loadCategories, loadClosed, loadProducts, loadTables, saveClosed, saveTables } from '../storage'
+import { addActionLog, loadCategories, loadClosed, loadProducts, loadTables, saveClosed, saveTables } from '../storage'
 import TableCard from '../components/TableCard'
 import { calculateDiscountTotal, calculateFinalTotal, calculateSubtotal, formatCurrency } from '../billing'
 
@@ -78,6 +78,13 @@ export default function TableManagement({ currentUser }: Props){
     setSelectedTableId(table.id)
     setNewTableName('')
     setTableError('')
+    addActionLog({
+      operationType: 'Masa oluşturuldu',
+      user: currentUser,
+      tableId: table.id,
+      tableName: table.name,
+      description: `${table.name} oluşturuldu.`
+    })
   }
 
   const renameTable = (tableId: string) => {
@@ -99,6 +106,13 @@ export default function TableManagement({ currentUser }: Props){
 
     setTables(prev => prev.map(item => item.id === tableId ? { ...item, name: nextName } : item))
     setTableError('')
+    addActionLog({
+      operationType: 'Masa adı değiştirildi',
+      user: currentUser,
+      tableId,
+      tableName: nextName,
+      description: `${table.name} masa adı ${nextName} olarak değiştirildi.`
+    })
   }
 
   const deleteTable = (tableId: string) => {
@@ -118,17 +132,42 @@ export default function TableManagement({ currentUser }: Props){
     if(!confirm(`${table.name} silinecek. Emin misiniz?`)) return
     setTables(prev => prev.filter(item => item.id !== tableId))
     setTableError('')
+    addActionLog({
+      operationType: 'Masa silindi',
+      user: currentUser,
+      tableId: table.id,
+      tableName: table.name,
+      description: `${table.name} silindi.`
+    })
   }
 
   const openTable = (tableId: string) => {
+    const table = tables.find(item => item.id === tableId)
+    if(!table || table.open) return
+
     setTables(prev => prev.map(table => table.id === tableId ? { ...table, open:true } : table))
+    addActionLog({
+      operationType: 'Masa açıldı',
+      user: currentUser,
+      tableId: table.id,
+      tableName: table.name,
+      description: `${table.name} açıldı.`
+    })
   }
 
   const addOrder = (tableId: string, productId: string, qty: number, isGift = false) => {
     if(!productId || !Number.isFinite(qty) || qty < 1) return
 
     const product = products.find(item => item.id === productId)
+    const tableForLog = tables.find(table => table.id === tableId)
     if(!product || !product.active) return
+    if(tableForLog && !tableForLog.open) return
+
+    const existingOrderForLog = tableForLog?.orders.find(order =>
+      order.productId === productId
+      && (order.unitPrice ?? product.price) === product.price
+      && Boolean(order.isGift) === isGift
+    )
 
     setTables(prev => prev.map(table => {
       if(table.id !== tableId || !table.open) return table
@@ -155,9 +194,24 @@ export default function TableManagement({ currentUser }: Props){
       }
       return {...table, orders: [...table.orders, order]}
     }))
+
+    if(tableForLog){
+      addActionLog({
+        operationType: isGift ? 'İkram eklendi' : existingOrderForLog ? 'Ürün adedi artırıldı' : 'Sipariş eklendi',
+        user: currentUser,
+        tableId: tableForLog.id,
+        tableName: tableForLog.name,
+        description: existingOrderForLog
+          ? `${product.name} adedi ${existingOrderForLog.qty} -> ${existingOrderForLog.qty + qty} olarak artırıldı.`
+          : `${product.name} x${qty} ${isGift ? 'ikram olarak ' : ''}${tableForLog.name} adisyonuna eklendi.`
+      })
+    }
   }
 
   const updateOrderQty = (tableId: string, orderId: string, qty: number) => {
+    const table = tables.find(item => item.id === tableId)
+    const order = table?.orders.find(item => item.id === orderId)
+
     setTables(prev => prev.map(table => {
       if(table.id !== tableId) return table
       if(qty < 1){
@@ -165,10 +219,39 @@ export default function TableManagement({ currentUser }: Props){
       }
       return { ...table, orders: table.orders.map(order => order.id === orderId ? { ...order, qty } : order) }
     }))
+
+    if(table && order){
+      const operationType = qty < 1
+        ? 'Sipariş silindi'
+        : qty > order.qty
+          ? 'Ürün adedi artırıldı'
+          : 'Ürün adedi azaltıldı'
+
+      addActionLog({
+        operationType,
+        user: currentUser,
+        tableId: table.id,
+        tableName: table.name,
+        description: `${order.productName || 'Ürün'} adedi ${order.qty} -> ${Math.max(qty, 0)} olarak değiştirildi.`
+      })
+    }
   }
 
   const removeOrder = (tableId: string, orderId: string) => {
+    const table = tables.find(item => item.id === tableId)
+    const order = table?.orders.find(item => item.id === orderId)
+
     setTables(prev => prev.map(table => table.id===tableId ? {...table, orders: table.orders.filter(order=>order.id!==orderId)} : table))
+
+    if(table && order){
+      addActionLog({
+        operationType: 'Sipariş silindi',
+        user: currentUser,
+        tableId: table.id,
+        tableName: table.name,
+        description: `${order.productName || 'Ürün'} siparişi silindi.`
+      })
+    }
   }
 
   const updateNote = (tableId: string, note: string) => {
@@ -188,10 +271,30 @@ export default function TableManagement({ currentUser }: Props){
     }
 
     setTables(prev => prev.map(table => table.id === tableId ? { ...table, discount: normalizedDiscount } : table))
+    const table = tables.find(item => item.id === tableId)
+    if(table){
+      addActionLog({
+        operationType: 'İndirim uygulandı',
+        user: currentUser,
+        tableId: table.id,
+        tableName: table.name,
+        description: `${table.name} için ${normalizedDiscount.type === 'percent' ? `%${normalizedDiscount.value}` : formatCurrency(normalizedDiscount.value)} indirim uygulandı.`
+      })
+    }
   }
 
   const clearDiscount = (tableId: string) => {
+    const table = tables.find(item => item.id === tableId)
     setTables(prev => prev.map(table => table.id === tableId ? { ...table, discount: undefined } : table))
+    if(table?.discount){
+      addActionLog({
+        operationType: 'İndirim kaldırıldı',
+        user: currentUser,
+        tableId: table.id,
+        tableName: table.name,
+        description: `${table.name} indirimi kaldırıldı.`
+      })
+    }
   }
 
   const transferTable = (sourceTableId: string, targetTableId: string) => {
@@ -219,6 +322,13 @@ export default function TableManagement({ currentUser }: Props){
     }))
     setSelectedTableId(targetTableId)
     setTableError('')
+    addActionLog({
+      operationType: 'Masa taşındı',
+      user: currentUser,
+      tableId: source.id,
+      tableName: source.name,
+      description: `${source.name} adisyonu ${target.name} masasına taşındı.`
+    })
   }
 
   const closeTable = (tableId: string, paymentMethod: PaymentMethod) => {
@@ -247,6 +357,13 @@ export default function TableManagement({ currentUser }: Props){
         discountTotal
       }
       saveClosed([bill, ...closed])
+      addActionLog({
+        operationType: 'Hesap kapatıldı',
+        user: currentUser,
+        tableId: table.id,
+        tableName: table.name,
+        description: `${table.name} hesabı ${paymentMethod} ile ${formatCurrency(total)} tutarında kapatıldı.`
+      })
     }
 
     setTables(prev => prev.map(item => item.id===tableId ? {...item, open:false, orders: [], note: '', discount: undefined} : item))

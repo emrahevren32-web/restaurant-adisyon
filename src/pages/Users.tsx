@@ -1,8 +1,10 @@
 import React from 'react'
 import { User, Role } from '../types'
-import { loadUsers, saveUsers, addUser, updateUser, deleteUser } from '../storage'
+import { addActionLog, loadUsers, saveUsers } from '../storage'
 
-export default function Users(){
+type Props = { currentUser: User }
+
+export default function Users({ currentUser }: Props){
   const [users, setUsers] = React.useState<User[]>(() => loadUsers())
   const [editing, setEditing] = React.useState<User | null>(null)
 
@@ -10,10 +12,21 @@ export default function Users(){
 
   const startAdd = () => setEditing({ id: Date.now().toString(), fullName:'', username:'', password:'', role:'Garson', active:true })
   const save = (u: User) => {
-    if(users.find(x=>x.id===u.id)){
+    const existingUser = users.find(x=>x.id===u.id)
+    if(existingUser){
       setUsers(prev => prev.map(x=> x.id===u.id ? u : x))
+      addActionLog({
+        operationType: 'Kullanıcı güncellendi',
+        user: currentUser,
+        description: `${existingUser.fullName || existingUser.username} kullanıcısı güncellendi.`
+      })
     } else {
       setUsers(prev => [u, ...prev])
+      addActionLog({
+        operationType: 'Kullanıcı oluşturuldu',
+        user: currentUser,
+        description: `${u.fullName || u.username} kullanıcısı oluşturuldu.`
+      })
     }
     setEditing(null)
   }
@@ -24,7 +37,15 @@ export default function Users(){
   }
 
   const toggleActive = (id: string) => {
+    const user = users.find(item => item.id === id)
     setUsers(prev => prev.map(u=> u.id===id ? {...u, active: !u.active} : u))
+    if(user){
+      addActionLog({
+        operationType: user.active ? 'Kullanıcı pasif yapıldı' : 'Kullanıcı aktif yapıldı',
+        user: currentUser,
+        description: `${user.fullName || user.username} kullanıcısı ${user.active ? 'pasif' : 'aktif'} yapıldı.`
+      })
+    }
   }
 
   return (

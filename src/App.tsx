@@ -3,13 +3,14 @@ import Products from './pages/Products'
 import TableManagement from './pages/TableManagement'
 import DailySummary from './pages/DailySummary'
 import BillHistory from './pages/BillHistory'
+import ActionHistory from './pages/ActionHistory'
 import Login from './pages/Login'
 import Users from './pages/Users'
 import { loadProducts, ensureDefaultAdmin, getCurrentUser, setCurrentUser } from './storage'
 import { User } from './types'
 
 export default function App(){
-  const [route, setRoute] = React.useState<'tables'|'products'|'summary'|'history'|'users'>('tables')
+  const [route, setRoute] = React.useState<'tables'|'products'|'summary'|'history'|'actions'|'users'>('tables')
   const [currentUser, setUserState] = React.useState<User | null>(() => getCurrentUser())
 
   React.useEffect(()=>{ loadProducts(); ensureDefaultAdmin() }, [])
@@ -30,6 +31,7 @@ export default function App(){
               <button className="btn" onClick={()=>setRoute('products')}>Ürünler</button>
               <button className="btn" onClick={()=>setRoute('summary')}>Günlük Satış</button>
               <button className="btn" onClick={()=>setRoute('history')}>Adisyon Geçmişi</button>
+              {currentUser.role === 'Admin' && <button className="btn" onClick={()=>setRoute('actions')}>İşlem Geçmişi</button>}
               {currentUser.role === 'Admin' && <button className="btn" onClick={()=>setRoute('users')}>Kullanıcılar</button>}
             </div>
             <div>
@@ -42,7 +44,8 @@ export default function App(){
             {route === 'products' && <Products currentUser={currentUser} />}
             {route === 'summary' && <DailySummary />}
             {route === 'history' && <BillHistory />}
-            {route === 'users' && currentUser.role === 'Admin' && <Users />}
+            {route === 'actions' && currentUser.role === 'Admin' && <ActionHistory />}
+            {route === 'users' && currentUser.role === 'Admin' && <Users currentUser={currentUser} />}
           </div>
         </>
       )}

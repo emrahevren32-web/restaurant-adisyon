@@ -1,4 +1,4 @@
-import { ClosedBill, Product, ProductCategory, TableState, User } from './types'
+import { ActionLog, ActionLogType, ClosedBill, Product, ProductCategory, TableState, User } from './types'
 
 const KEY_PRODUCTS = 'ra_products'
 const KEY_CATEGORIES = 'ra_categories'
@@ -6,6 +6,7 @@ const KEY_TABLES = 'ra_tables'
 const KEY_CLOSED = 'ra_closed'
 const KEY_USERS = 'ra_users'
 const KEY_AUTH = 'ra_auth'
+const KEY_LOGS = 'ra_logs'
 
 const DEFAULT_CATEGORY_ID = 'cat_general'
 
@@ -43,6 +44,25 @@ const normalizeProduct = (item: Partial<Product>, fallbackCategoryId = DEFAULT_C
     active: item.active !== false,
     createdAt: item.createdAt || new Date().toISOString(),
     updatedAt: item.updatedAt
+  }
+}
+
+const normalizeActionLog = (item: Partial<ActionLog>): ActionLog => {
+  const timestamp = item.timestamp || new Date().toISOString()
+  const date = item.date || new Date(timestamp).toLocaleDateString('sv-SE')
+  const time = item.time || new Date(timestamp).toLocaleTimeString('tr-TR', { hour12: false })
+
+  return {
+    id: String(item.id || `log_${Date.now()}`),
+    operationType: item.operationType || 'Sipariş eklendi',
+    userId: String(item.userId || ''),
+    userName: String(item.userName || 'Bilinmeyen Kullanıcı'),
+    tableId: item.tableId,
+    tableName: item.tableName,
+    date,
+    time,
+    timestamp,
+    description: String(item.description || '')
   }
 }
 
@@ -144,4 +164,42 @@ export const addUser = (user: User) => {
 export const deleteUser = (id: string) => {
   const users = loadUsers()
   saveUsers(users.filter(u => u.id !== id))
+}
+
+export const loadActionLogs = (): ActionLog[] => {
+  return readJson<Partial<ActionLog>[]>(KEY_LOGS, []).map(normalizeActionLog)
+}
+
+export const saveActionLogs = (items: ActionLog[]) => {
+  localStorage.setItem(KEY_LOGS, JSON.stringify(items.map(normalizeActionLog)))
+}
+
+export const addActionLog = ({
+  operationType,
+  user,
+  tableId,
+  tableName,
+  description
+}: {
+  operationType: ActionLogType
+  user: User
+  tableId?: string
+  tableName?: string
+  description: string
+}) => {
+  const now = new Date()
+  const log: ActionLog = {
+    id: `log_${Date.now()}_${Math.random().toString(16).slice(2)}`,
+    operationType,
+    userId: user.id,
+    userName: user.fullName || user.username,
+    tableId,
+    tableName,
+    date: now.toLocaleDateString('sv-SE'),
+    time: now.toLocaleTimeString('tr-TR', { hour12: false }),
+    timestamp: now.toISOString(),
+    description
+  }
+
+  saveActionLogs([log, ...loadActionLogs()])
 }

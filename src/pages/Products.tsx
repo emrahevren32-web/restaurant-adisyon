@@ -1,6 +1,6 @@
 import React from 'react'
 import { Product, ProductCategory, User } from '../types'
-import { loadCategories, loadProducts, saveCategories, saveProducts } from '../storage'
+import { addActionLog, loadCategories, loadProducts, saveCategories, saveProducts } from '../storage'
 import ProductForm, { ProductFormValues } from '../components/ProductForm'
 
 type StatusFilter = 'all' | 'active' | 'inactive'
@@ -111,16 +111,28 @@ export default function Products({ currentUser }: Props){
         ? { ...product, ...values, updatedAt: now }
         : product
       ))
+      addActionLog({
+        operationType: 'Ürün güncellendi',
+        user: currentUser,
+        description: `${editingProduct.name} ürünü güncellendi. Yeni ad: ${values.name}, fiyat: ${formatCurrency(values.price)}.`
+      })
       setEditingProduct(null)
       return
     }
 
-    setItems(prev => [{
+    const product: Product = {
       id: createId('prd'),
       ...values,
       createdAt: now,
       updatedAt: now
-    }, ...prev])
+    }
+
+    setItems(prev => [product, ...prev])
+    addActionLog({
+      operationType: 'Ürün oluşturuldu',
+      user: currentUser,
+      description: `${product.name} ürünü ${formatCurrency(product.price)} fiyatıyla oluşturuldu.`
+    })
   }
 
   const addCategory = (e: React.FormEvent) => {
@@ -140,14 +152,21 @@ export default function Products({ currentUser }: Props){
       return
     }
 
-    setCategories(prev => [{
+    const category: ProductCategory = {
       id: createId('cat'),
       name,
       active: true,
       createdAt: new Date().toISOString()
-    }, ...prev])
+    }
+
+    setCategories(prev => [category, ...prev])
     setNewCategoryName('')
     setCategoryError('')
+    addActionLog({
+      operationType: 'Kategori oluşturuldu',
+      user: currentUser,
+      description: `${category.name} kategorisi oluşturuldu.`
+    })
   }
 
   const startEditCategory = (category: ProductCategory) => {
@@ -178,29 +197,53 @@ export default function Products({ currentUser }: Props){
       return
     }
 
+    const oldCategory = categories.find(category => category.id === editingCategoryId)
     setCategories(prev => prev.map(category => category.id === editingCategoryId ? { ...category, name } : category))
     setEditingCategoryId(null)
     setEditingCategoryName('')
     setCategoryError('')
+    if(oldCategory){
+      addActionLog({
+        operationType: 'Kategori güncellendi',
+        user: currentUser,
+        description: `${oldCategory.name} kategorisi ${name} olarak güncellendi.`
+      })
+    }
   }
 
   const toggleCategory = (categoryId: string) => {
     if(!assertCanManageCatalog()) return
     if(categoryId === 'cat_general') return
 
+    const category = categories.find(item => item.id === categoryId)
     setCategories(prev => prev.map(category => category.id === categoryId
       ? { ...category, active: !category.active }
       : category
     ))
+    if(category){
+      addActionLog({
+        operationType: category.active ? 'Kategori pasif yapıldı' : 'Kategori aktif yapıldı',
+        user: currentUser,
+        description: `${category.name} kategorisi ${category.active ? 'pasif' : 'aktif'} yapıldı.`
+      })
+    }
   }
 
   const toggleProductStatus = (productId: string) => {
     if(!assertCanManageCatalog()) return
 
+    const product = items.find(item => item.id === productId)
     setItems(prev => prev.map(product => product.id === productId
       ? { ...product, active: !product.active, updatedAt: new Date().toISOString() }
       : product
     ))
+    if(product){
+      addActionLog({
+        operationType: product.active ? 'Ürün pasif yapıldı' : 'Ürün aktif yapıldı',
+        user: currentUser,
+        description: `${product.name} ürünü ${product.active ? 'pasif' : 'aktif'} yapıldı.`
+      })
+    }
   }
 
   return (

@@ -1,0 +1,123 @@
+import React from 'react'
+import { ActionLog, ActionLogType } from '../types'
+import { loadActionLogs, loadUsers } from '../storage'
+
+const operationTypes: ActionLogType[] = [
+  'Masa oluşturuldu',
+  'Masa silindi',
+  'Masa adı değiştirildi',
+  'Masa açıldı',
+  'Sipariş eklendi',
+  'Sipariş silindi',
+  'Ürün adedi artırıldı',
+  'Ürün adedi azaltıldı',
+  'İndirim uygulandı',
+  'İndirim kaldırıldı',
+  'İkram eklendi',
+  'Masa taşındı',
+  'Hesap kapatıldı',
+  'Ürün oluşturuldu',
+  'Ürün güncellendi',
+  'Ürün aktif yapıldı',
+  'Ürün pasif yapıldı',
+  'Kategori oluşturuldu',
+  'Kategori güncellendi',
+  'Kategori aktif yapıldı',
+  'Kategori pasif yapıldı',
+  'Kullanıcı oluşturuldu',
+  'Kullanıcı güncellendi',
+  'Kullanıcı aktif yapıldı',
+  'Kullanıcı pasif yapıldı'
+]
+
+export default function ActionHistory(){
+  const [logs] = React.useState<ActionLog[]>(() => loadActionLogs())
+  const [users] = React.useState(() => loadUsers())
+  const [dateFilter, setDateFilter] = React.useState('')
+  const [userFilter, setUserFilter] = React.useState('all')
+  const [operationFilter, setOperationFilter] = React.useState<'all' | ActionLogType>('all')
+
+  const userOptions = React.useMemo(() => {
+    const seen = new Set<string>()
+    const fromLogs = logs
+      .filter(log => {
+        if(seen.has(log.userId)) return false
+        seen.add(log.userId)
+        return true
+      })
+      .map(log => ({ id: log.userId, name: log.userName }))
+
+    const fromUsers = users.map(user => ({ id: user.id, name: user.fullName || user.username }))
+    const merged = [...fromUsers, ...fromLogs]
+    const unique = new Map(merged.map(user => [user.id, user]))
+    return Array.from(unique.values()).filter(user => user.id)
+  }, [logs, users])
+
+  const filteredLogs = logs.filter(log => {
+    const matchesDate = !dateFilter || log.date === dateFilter
+    const matchesUser = userFilter === 'all' || log.userId === userFilter
+    const matchesOperation = operationFilter === 'all' || log.operationType === operationFilter
+    return matchesDate && matchesUser && matchesOperation
+  })
+
+  return (
+    <div className="action-history-page">
+      <div className="page-title">
+        <div>
+          <h2>İşlem Geçmişi</h2>
+          <p className="muted">Sistemde yapılan kritik işlemleri kullanıcı, tarih ve işlem tipine göre inceleyin.</p>
+        </div>
+      </div>
+
+      <section className="card">
+        <div className="section-header">
+          <div>
+            <h3>Log Kayıtları</h3>
+            <p className="muted">{filteredLogs.length} kayıt gösteriliyor.</p>
+          </div>
+          <div className="action-log-filters">
+            <input type="date" value={dateFilter} onChange={e=>setDateFilter(e.target.value)} />
+            <select value={userFilter} onChange={e=>setUserFilter(e.target.value)}>
+              <option value="all">Tüm kullanıcılar</option>
+              {userOptions.map(user => <option key={user.id} value={user.id}>{user.name}</option>)}
+            </select>
+            <select value={operationFilter} onChange={e=>setOperationFilter(e.target.value as 'all' | ActionLogType)}>
+              <option value="all">Tüm işlemler</option>
+              {operationTypes.map(type => <option key={type} value={type}>{type}</option>)}
+            </select>
+          </div>
+        </div>
+
+        <div className="table-wrap">
+          <table className="data-table">
+            <thead>
+              <tr>
+                <th>Tarih</th>
+                <th>Saat</th>
+                <th>Kullanıcı</th>
+                <th>İşlem</th>
+                <th>Masa</th>
+                <th>Açıklama</th>
+              </tr>
+            </thead>
+            <tbody>
+              {filteredLogs.length === 0 && (
+                <tr><td colSpan={6} className="empty-cell">Filtrelere uygun işlem kaydı bulunamadı.</td></tr>
+              )}
+              {filteredLogs.map(log => (
+                <tr key={log.id}>
+                  <td>{log.date}</td>
+                  <td>{log.time}</td>
+                  <td>{log.userName}</td>
+                  <td>{log.operationType}</td>
+                  <td>{log.tableName || '-'}</td>
+                  <td>{log.description}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      </section>
+    </div>
+  )
+}

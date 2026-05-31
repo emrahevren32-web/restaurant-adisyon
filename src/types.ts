@@ -69,3 +69,43 @@ export type User = {
   role: Role
   active: boolean
 }
+
+export type ActionLogType =
+  | 'Masa oluşturuldu'
+  | 'Masa silindi'
+  | 'Masa adı değiştirildi'
+  | 'Masa açıldı'
+  | 'Sipariş eklendi'
+  | 'Sipariş silindi'
+  | 'Ürün adedi artırıldı'
+  | 'Ürün adedi azaltıldı'
+  | 'İndirim uygulandı'
+  | 'İndirim kaldırıldı'
+  | 'İkram eklendi'
+  | 'Masa taşındı'
+  | 'Hesap kapatıldı'
+  | 'Ürün oluşturuldu'
+  | 'Ürün güncellendi'
+  | 'Ürün aktif yapıldı'
+  | 'Ürün pasif yapıldı'
+  | 'Kategori oluşturuldu'
+  | 'Kategori güncellendi'
+  | 'Kategori aktif yapıldı'
+  | 'Kategori pasif yapıldı'
+  | 'Kullanıcı oluşturuldu'
+  | 'Kullanıcı güncellendi'
+  | 'Kullanıcı aktif yapıldı'
+  | 'Kullanıcı pasif yapıldı'
+
+export type ActionLog = {
+  id: string
+  operationType: ActionLogType
+  userId: string
+  userName: string
+  tableId?: string
+  tableName?: string
+  date: string
+  time: string
+  timestamp: string
+  description: string
+}
