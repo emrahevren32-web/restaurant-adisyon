@@ -8,6 +8,7 @@ import {
   ProductCategory,
   QRRequest,
   QRRequestStatus,
+  SystemSettings,
   TableState,
   User
 } from './types'
@@ -21,8 +22,16 @@ const KEY_AUTH = 'ra_auth'
 const KEY_LOGS = 'ra_logs'
 const KEY_KITCHEN = 'ra_kitchen_orders'
 const KEY_QR_REQUESTS = 'ra_qr_requests'
+const KEY_SETTINGS = 'ra_settings'
 
 const DEFAULT_CATEGORY_ID = 'cat_general'
+
+export const DEFAULT_SETTINGS: SystemSettings = {
+  restaurantName: 'Restaurant Adisyon',
+  logoUrl: '',
+  vatRate: 10,
+  currency: 'TRY'
+}
 
 const createDefaultCategory = (): ProductCategory => ({
   id: DEFAULT_CATEGORY_ID,
@@ -37,6 +46,17 @@ const readJson = <T,>(key: string, fallback: T): T => {
   } catch {
     return fallback
   }
+}
+
+const getAppStorageKeys = () => {
+  const keys: string[] = []
+
+  for(let index = 0; index < localStorage.length; index += 1){
+    const key = localStorage.key(index)
+    if(key?.startsWith('ra_')) keys.push(key)
+  }
+
+  return keys
 }
 
 const normalizeCategory = (item: Partial<ProductCategory>): ProductCategory => ({
@@ -107,6 +127,17 @@ const normalizeQRRequest = (item: Partial<QRRequest>): QRRequest => {
     })).filter(orderItem => orderItem.productId),
     status: normalizeQRRequestStatus(item.status),
     createdAt: timestamp
+  }
+}
+
+const normalizeSettings = (item: Partial<SystemSettings>): SystemSettings => {
+  const vatRate = Number(item.vatRate)
+
+  return {
+    restaurantName: String(item.restaurantName || DEFAULT_SETTINGS.restaurantName).trim() || DEFAULT_SETTINGS.restaurantName,
+    logoUrl: String(item.logoUrl || '').trim(),
+    vatRate: Number.isFinite(vatRate) ? Math.min(100, Math.max(0, vatRate)) : DEFAULT_SETTINGS.vatRate,
+    currency: String(item.currency || DEFAULT_SETTINGS.currency).trim() || DEFAULT_SETTINGS.currency
   }
 }
 
@@ -192,6 +223,14 @@ export const loadQRRequests = (): QRRequest[] => {
 
 export const saveQRRequests = (items: QRRequest[]) => {
   localStorage.setItem(KEY_QR_REQUESTS, JSON.stringify(items.map(normalizeQRRequest)))
+}
+
+export const loadSettings = (): SystemSettings => {
+  return normalizeSettings(readJson<Partial<SystemSettings>>(KEY_SETTINGS, DEFAULT_SETTINGS))
+}
+
+export const saveSettings = (settings: SystemSettings) => {
+  localStorage.setItem(KEY_SETTINGS, JSON.stringify(normalizeSettings(settings)))
 }
 
 export const loadUsers = (): User[] => {
@@ -281,4 +320,90 @@ export const addActionLog = ({
   }
 
   saveActionLogs([log, ...loadActionLogs()])
+}
+
+export const createSystemBackup = () => {
+  const data = getAppStorageKeys().reduce<Record<string, unknown>>((backupData, key) => {
+    const rawValue = localStorage.getItem(key)
+    if(rawValue === null) return backupData
+
+    try {
+      backupData[key] = JSON.parse(rawValue)
+    } catch {
+      backupData[key] = rawValue
+    }
+
+    return backupData
+  }, {})
+
+  return {
+    app: 'restaurant-adisyon',
+    version: 1,
+    exportedAt: new Date().toISOString(),
+    data
+  }
+}
+
+const isRecord = (value: unknown): value is Record<string, unknown> => {
+  return typeof value === 'object' && value !== null && !Array.isArray(value)
+}
+
+export const restoreSystemBackup = (backup: unknown) => {
+  if(!isRecord(backup)){
+    throw new Error('Geçersiz yedek dosyası.')
+  }
+
+  const data = isRecord(backup.data) ? backup.data : backup
+  const entries = Object.entries(data).filter(([key]) => key.startsWith('ra_'))
+
+  if(entries.length === 0){
+    throw new Error('Yedek dosyasında sisteme ait veri bulunamadı.')
+  }
+
+  getAppStorageKeys().forEach(key => localStorage.removeItem(key))
+
+  entries.forEach(([key, value]) => {
+    if(value === undefined) return
+    localStorage.setItem(key, typeof value === 'string' ? value : JSON.stringify(value))
+  })
+
+  ensureDefaultAdmin()
+  loadCategories()
+  loadSettings()
+
+  return entries.length
+}
+
+export const createDemoData = () => {
+  const now = new Date().toISOString()
+  const categories: ProductCategory[] = [
+    { id: 'cat_food', name: 'Yemekler', active: true, createdAt: now },
+    { id: 'cat_drinks', name: 'İçecekler', active: true, createdAt: now },
+    { id: 'cat_desserts', name: 'Tatlılar', active: true, createdAt: now }
+  ]
+
+  const products: Product[] = [
+    { id: 'prd_adana', name: 'Adana Kebap', price: 450, categoryId: 'cat_food', description: 'Közlenmiş domates ve biber ile servis edilir.', active: true, createdAt: now, updatedAt: now },
+    { id: 'prd_chicken', name: 'Tavuk Şiş', price: 360, categoryId: 'cat_food', description: 'Pilav ve salata ile servis edilir.', active: true, createdAt: now, updatedAt: now },
+    { id: 'prd_soup', name: 'Mercimek Çorbası', price: 120, categoryId: 'cat_food', description: 'Günlük sıcak çorba.', active: true, createdAt: now, updatedAt: now },
+    { id: 'prd_cola', name: 'Kola', price: 80, categoryId: 'cat_drinks', description: '330 ml kutu içecek.', active: true, createdAt: now, updatedAt: now },
+    { id: 'prd_tea', name: 'Çay', price: 35, categoryId: 'cat_drinks', description: 'Taze demlenmiş bardak çay.', active: true, createdAt: now, updatedAt: now },
+    { id: 'prd_baklava', name: 'Baklava', price: 180, categoryId: 'cat_desserts', description: 'Antep fıstıklı porsiyon baklava.', active: true, createdAt: now, updatedAt: now }
+  ]
+
+  const tables: TableState[] = Array.from({ length: 6 }).map((_, index) => ({
+    id: String(index + 1),
+    name: `Masa ${index + 1}`,
+    open: false,
+    orders: []
+  }))
+
+  saveCategories(categories)
+  saveProducts(products)
+  saveTables(tables)
+  saveKitchenOrders([])
+  saveQRRequests([])
+  ensureDefaultAdmin()
+
+  return { categories: loadCategories(), products: loadProducts(), tables }
 }

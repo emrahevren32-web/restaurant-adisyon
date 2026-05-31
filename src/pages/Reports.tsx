@@ -1,6 +1,6 @@
 import React from 'react'
 import { ClosedBill, PaymentMethod, Product } from '../types'
-import { loadClosed, loadProducts } from '../storage'
+import { loadClosed, loadProducts, loadSettings } from '../storage'
 import {
   calculateDiscountTotal,
   calculateOrderOriginalTotal,
@@ -176,6 +176,26 @@ const getRevenue = (bills: ClosedBill[], period: PeriodFilter) => {
     .reduce((sum, bill) => sum + bill.total, 0))
 }
 
+const getVatSummary = (grossTotal: number, vatRate: number) => {
+  const normalizedGross = roundCurrency(Math.max(0, grossTotal))
+  const normalizedRate = Math.max(0, Number(vatRate) || 0) / 100
+
+  if(normalizedGross <= 0 || normalizedRate <= 0){
+    return {
+      gross: normalizedGross,
+      net: normalizedGross,
+      vat: 0
+    }
+  }
+
+  const net = roundCurrency(normalizedGross / (1 + normalizedRate))
+  return {
+    gross: normalizedGross,
+    net,
+    vat: roundCurrency(normalizedGross - net)
+  }
+}
+
 const findTopStaff = (items: StaffMetric[], key: keyof Pick<StaffMetric, 'totalSales' | 'closedBillCount'>) => {
   return items.reduce<StaffMetric | null>((top, item) => {
     if(!top || item[key] > top[key]) return item
@@ -187,6 +207,7 @@ export default function Reports(){
   const [period, setPeriod] = React.useState<PeriodFilter>('today')
   const [closedBills] = React.useState<ClosedBill[]>(() => loadClosed())
   const [products] = React.useState<Product[]>(() => loadProducts())
+  const [settings] = React.useState(() => loadSettings())
   const [dayEndPrintedAt, setDayEndPrintedAt] = React.useState(() => new Date())
   const [isDayEndPrintActive, setIsDayEndPrintActive] = React.useState(false)
 
@@ -233,6 +254,7 @@ export default function Reports(){
   const dayEndTopCloser = findTopStaff(dayEndStaffMetrics, 'closedBillCount')
   const dayEndDate = dayEndPrintedAt.toLocaleDateString('tr-TR')
   const dayEndTime = dayEndPrintedAt.toLocaleTimeString('tr-TR', { hour: '2-digit', minute: '2-digit' })
+  const dayEndVatSummary = getVatSummary(dayEndRevenue, settings.vatRate)
   const getDayEndPaymentTotal = (method: PaymentMethod) => {
     return dayEndPaymentTotals.find(item => item.method === method)?.total || 0
   }
@@ -319,6 +341,21 @@ export default function Reports(){
           <button className="btn" type="button" onClick={printDayEnd}>Gün Sonu Yazdır</button>
         </div>
         <div className="metric-grid report-metric-grid">
+          <div className="metric-card">
+            <span>Toplam Satış</span>
+            <strong>{formatCurrency(dayEndVatSummary.gross)}</strong>
+            <p className="muted">KDV dahil satış tutarı</p>
+          </div>
+          <div className="metric-card">
+            <span>KDV Hariç Satış</span>
+            <strong>{formatCurrency(dayEndVatSummary.net)}</strong>
+            <p className="muted">%{settings.vatRate} KDV oranı ile</p>
+          </div>
+          <div className="metric-card">
+            <span>KDV Tutarı</span>
+            <strong>{formatCurrency(dayEndVatSummary.vat)}</strong>
+            <p className="muted">Toplam satıştan ayrıştırıldı</p>
+          </div>
           <div className="metric-card">
             <span>Toplam İndirim</span>
             <strong>{formatCurrency(dayEndDiscount)}</strong>
@@ -475,7 +512,7 @@ export default function Reports(){
       <div className={`print-only ${isDayEndPrintActive ? 'print-active' : ''}`}>
         <div className="print-document">
           <div className="print-header">
-            <h2>Restaurant Adisyon</h2>
+            <h2>{settings.restaurantName}</h2>
             <p>Gün Sonu Raporu</p>
           </div>
           <div className="print-meta-grid">
@@ -489,7 +526,9 @@ export default function Reports(){
             </div>
           </div>
           <div className="print-summary-list">
-            <div><span>Günlük Ciro</span><strong>{formatCurrency(dayEndRevenue)}</strong></div>
+            <div><span>Toplam Satış</span><strong>{formatCurrency(dayEndVatSummary.gross)}</strong></div>
+            <div><span>KDV Hariç Satış</span><strong>{formatCurrency(dayEndVatSummary.net)}</strong></div>
+            <div><span>KDV Tutarı (%{settings.vatRate})</span><strong>{formatCurrency(dayEndVatSummary.vat)}</strong></div>
             <div><span>Toplam Adisyon</span><strong>{dayEndBills.length}</strong></div>
             <div><span>Nakit Toplamı</span><strong>{formatCurrency(getDayEndPaymentTotal('Nakit'))}</strong></div>
             <div><span>Kart Toplamı</span><strong>{formatCurrency(getDayEndPaymentTotal('Kart'))}</strong></div>

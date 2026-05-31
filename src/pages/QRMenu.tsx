@@ -5,6 +5,7 @@ import {
   loadCategories,
   loadProducts,
   loadQRRequests,
+  loadSettings,
   loadTables,
   saveQRRequests
 } from '../storage'
@@ -70,6 +71,7 @@ export default function QRMenu({ slug }: Props){
   const [products] = React.useState<Product[]>(() => loadProducts())
   const [categories] = React.useState(() => loadCategories())
   const [tables] = React.useState<TableState[]>(() => loadTables())
+  const [settings] = React.useState(() => loadSettings())
   const [selectedCategory, setSelectedCategory] = React.useState('all')
   const [cart, setCart] = React.useState<Record<string, CartItem>>({})
   const [message, setMessage] = React.useState<Message>(null)
@@ -180,7 +182,13 @@ export default function QRMenu({ slug }: Props){
   return (
     <div className="qr-menu-page">
       <header className="qr-menu-header">
-        <span className="status-pill">QR Menü</span>
+        <div className="qr-menu-brand">
+          {settings.logoUrl && <img src={settings.logoUrl} alt={`${settings.restaurantName} logosu`} />}
+          <div>
+            <strong>{settings.restaurantName}</strong>
+            <span>QR Menü</span>
+          </div>
+        </div>
         <h1>{tableName}</h1>
         <p>Menüyü inceleyin, ürünleri sepete ekleyin ve garson onayı için talep gönderin.</p>
       </header>

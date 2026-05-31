@@ -87,6 +87,13 @@ export type QRRequest = {
   createdAt: string
 }
 
+export type SystemSettings = {
+  restaurantName: string
+  logoUrl: string
+  vatRate: number
+  currency: string
+}
+
 export type ClosedBill = {
   id: string
   tableId: string

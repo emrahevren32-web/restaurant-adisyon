@@ -15,6 +15,7 @@ import {
   paymentsCoverTotal,
   roundCurrency
 } from '../billing'
+import { loadSettings } from '../storage'
 
 type SplitSelection = Record<string, number>
 
@@ -55,6 +56,7 @@ export default function TableCard({
   onTransferTable,
   onMergeTables
 }: Props) {
+  const [settings] = React.useState(() => loadSettings())
   const [qty, setQty] = React.useState<number>(1)
   const [search, setSearch] = React.useState('')
   const [categoryFilter, setCategoryFilter] = React.useState('all')
@@ -565,7 +567,7 @@ export default function TableCard({
       <div className={`print-only ${isReceiptPrintActive ? 'print-active' : ''}`}>
         <div className="print-document">
           <div className="print-header">
-            <h2>Restaurant Adisyon</h2>
+            <h2>{settings.restaurantName}</h2>
             <p>Adisyon Fişi</p>
           </div>
           <div className="print-meta">

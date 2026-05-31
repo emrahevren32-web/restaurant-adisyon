@@ -1,14 +1,7 @@
 import React from 'react'
 import { ClosedBill, PaymentMethod } from '../types'
 import { loadClosed } from '../storage'
-import { getBillPayments, isRevenueBill } from '../billing'
-
-const currencyFormatter = new Intl.NumberFormat('tr-TR', {
-  style: 'currency',
-  currency: 'TRY'
-})
-
-const formatCurrency = (value: number) => currencyFormatter.format(value)
+import { formatCurrency, getBillPayments, isRevenueBill } from '../billing'
 
 const getLocalDateKey = (value: string | Date) => {
   const date = typeof value === 'string' ? new Date(value) : value

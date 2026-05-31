@@ -1,17 +1,11 @@
 import React from 'react'
 import { Product, ProductCategory, User } from '../types'
 import { addActionLog, loadCategories, loadProducts, saveCategories, saveProducts } from '../storage'
+import { formatCurrency } from '../billing'
 import ProductForm, { ProductFormValues } from '../components/ProductForm'
 
 type StatusFilter = 'all' | 'active' | 'inactive'
 type Props = { currentUser: User }
-
-const currencyFormatter = new Intl.NumberFormat('tr-TR', {
-  style: 'currency',
-  currency: 'TRY'
-})
-
-const formatCurrency = (value: number) => currencyFormatter.format(value)
 
 const createId = (prefix: string) => `${prefix}_${Date.now()}`
 

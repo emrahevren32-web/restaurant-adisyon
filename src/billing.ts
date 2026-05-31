@@ -1,11 +1,23 @@
 import { ClosedBill, Discount, Order, PaymentPart, Product } from './types'
+import { loadSettings } from './storage'
 
-export const currencyFormatter = new Intl.NumberFormat('tr-TR', {
-  style: 'currency',
-  currency: 'TRY'
-})
+const createCurrencyFormatter = () => {
+  const currency = loadSettings().currency || 'TRY'
 
-export const formatCurrency = (value: number) => currencyFormatter.format(value)
+  try {
+    return new Intl.NumberFormat('tr-TR', {
+      style: 'currency',
+      currency
+    })
+  } catch {
+    return new Intl.NumberFormat('tr-TR', {
+      style: 'currency',
+      currency: 'TRY'
+    })
+  }
+}
+
+export const formatCurrency = (value: number) => createCurrencyFormatter().format(value)
 
 export const roundCurrency = (value: number) => {
   return Math.round((value + Number.EPSILON) * 100) / 100

@@ -11,18 +11,37 @@ import QRMenu from './pages/QRMenu'
 import QROrders from './pages/QROrders'
 import Login from './pages/Login'
 import Users from './pages/Users'
-import { loadProducts, ensureDefaultAdmin, getCurrentUser, setCurrentUser } from './storage'
+import Settings from './pages/Settings'
+import { loadProducts, ensureDefaultAdmin, getCurrentUser, setCurrentUser, loadSettings } from './storage'
 import { User } from './types'
+
+type Route =
+  | 'tables'
+  | 'products'
+  | 'summary'
+  | 'history'
+  | 'kitchen'
+  | 'qr-orders'
+  | 'actions'
+  | 'staff'
+  | 'reports'
+  | 'users'
+  | 'settings'
 
 export default function App(){
   const qrRouteMatch = window.location.pathname.match(/^\/qr\/([^/?#]+)/)
-  const [route, setRoute] = React.useState<'tables'|'products'|'summary'|'history'|'kitchen'|'qr-orders'|'actions'|'staff'|'reports'|'users'>('tables')
+  const [route, setRoute] = React.useState<Route>('tables')
   const [currentUser, setUserState] = React.useState<User | null>(() => getCurrentUser())
+  const [settings, setSettings] = React.useState(() => loadSettings())
 
   React.useEffect(()=>{ loadProducts(); ensureDefaultAdmin() }, [])
+  React.useEffect(() => {
+    document.title = settings.restaurantName
+  }, [settings.restaurantName])
 
   const onLogin = (u: User) => setUserState(u)
   const logout = () => { setCurrentUser(null); setUserState(null); setRoute('tables') }
+  const refreshSettings = () => setSettings(loadSettings())
 
   if(qrRouteMatch){
     return <QRMenu slug={qrRouteMatch[1]} />
@@ -30,7 +49,10 @@ export default function App(){
 
   return (
     <div>
-      <h1>Restaurant Adisyon</h1>
+      <div className="app-brand">
+        {settings.logoUrl && <img src={settings.logoUrl} alt={`${settings.restaurantName} logosu`} />}
+        <h1>{settings.restaurantName}</h1>
+      </div>
       {!currentUser ? (
         <Login onLogin={onLogin} />
       ) : (
@@ -47,6 +69,7 @@ export default function App(){
               {currentUser.role === 'Admin' && <button className="btn" onClick={()=>setRoute('staff')}>Personel Takibi</button>}
               {currentUser.role === 'Admin' && <button className="btn" onClick={()=>setRoute('actions')}>İşlem Geçmişi</button>}
               {currentUser.role === 'Admin' && <button className="btn" onClick={()=>setRoute('users')}>Kullanıcılar</button>}
+              {currentUser.role === 'Admin' && <button className="btn" onClick={()=>setRoute('settings')}>Ayarlar</button>}
             </div>
             <div>
               <span style={{marginRight:12}}>{currentUser.fullName}</span>
@@ -64,6 +87,7 @@ export default function App(){
             {route === 'staff' && currentUser.role === 'Admin' && <StaffTracking />}
             {route === 'reports' && currentUser.role === 'Admin' && <Reports />}
             {route === 'users' && currentUser.role === 'Admin' && <Users currentUser={currentUser} />}
+            {route === 'settings' && currentUser.role === 'Admin' && <Settings currentUser={currentUser} onSettingsChange={refreshSettings} />}
           </div>
         </>
       )}
