@@ -37,7 +37,7 @@ export default function App(){
           </div>
           <div>
             {route === 'tables' && <TableManagement />}
-            {route === 'products' && <Products />}
+            {route === 'products' && <Products currentUser={currentUser} />}
             {route === 'summary' && <DailySummary />}
             {route === 'users' && currentUser.role === 'Admin' && <Users />}
           </div>

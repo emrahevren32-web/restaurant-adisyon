@@ -1,12 +1,26 @@
+export type ProductCategory = {
+  id: string
+  name: string
+  active: boolean
+  createdAt: string
+}
+
 export type Product = {
   id: string
   name: string
   price: number
+  categoryId: string
+  description?: string
+  active: boolean
+  createdAt: string
+  updatedAt?: string
 }
 
 export type Order = {
   id: string
   productId: string
+  productName?: string
+  unitPrice?: number
   qty: number
 }
 

@@ -7,7 +7,7 @@ export default function TableManagement(){
   const [tables, setTables] = React.useState<TableState[]>(() => {
     const t = loadTables()
     if(t.length===0){
-      const generated = Array.from({length:6}).map((_,i)=>({id:String(i+1), name:`Table ${i+1}`, open:false, orders:[] as Order[]} as TableState))
+      const generated = Array.from({length:6}).map((_,i)=>({id:String(i+1), name:`Masa ${i+1}`, open:false, orders:[] as Order[]} as TableState))
       saveTables(generated)
       return generated
     }
@@ -19,10 +19,20 @@ export default function TableManagement(){
   React.useEffect(()=> saveTables(tables), [tables])
 
   const onAddOrder = (tableId: string, productId: string, qty: number) => {
-    if(!productId) return
+    if(!productId || !Number.isFinite(qty) || qty < 1) return
+
+    const product = products.find(item => item.id === productId)
+    if(!product || !product.active) return
+
     setTables(prev => prev.map(t=> {
       if(t.id !== tableId) return t
-      const order: Order = { id: Date.now().toString(), productId, qty }
+      const order: Order = {
+        id: Date.now().toString(),
+        productId,
+        productName: product.name,
+        unitPrice: product.price,
+        qty
+      }
       return {...t, orders: [...t.orders, order]}
     }))
   }
@@ -35,15 +45,14 @@ export default function TableManagement(){
     const t = tables.find(x=>x.id===tableId)
     if(!t) return
     if(t.open){
-      // closing: compute total and move to closed
       const closed = loadClosed()
       const total = t.orders.reduce((s,o)=>{
         const p = products.find(x=>x.id===o.productId)
-        return s + (p ? p.price * o.qty : 0)
+        const unitPrice = o.unitPrice ?? p?.price ?? 0
+        return s + unitPrice * o.qty
       }, 0)
       const bill: ClosedBill = { id: Date.now().toString(), tableId: t.id, tableName: t.name, total, timestamp: new Date().toISOString(), orders: t.orders }
       saveClosed([bill, ...closed])
-      // clear orders and close
       setTables(prev => prev.map(x=> x.id===tableId ? {...x, open:false, orders: []} : x))
     } else {
       setTables(prev => prev.map(x=> x.id===tableId ? {...x, open:true} : x))
@@ -63,6 +72,7 @@ export default function TableManagement(){
           <div className="card">
             <h3>Bilgiler</h3>
             <p>Ürün sayısı: {products.length}</p>
+            <p>Aktif ürün sayısı: {products.filter(product => product.active).length}</p>
             <p>Kapanmış hesaplar: {loadClosed().length}</p>
           </div>
         </div>

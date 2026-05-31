@@ -1,5 +1,5 @@
 import React from 'react'
-import { TableState, Product, Order } from '../types'
+import { TableState, Product } from '../types'
 
 type Props = {
   table: TableState
@@ -10,30 +10,44 @@ type Props = {
 }
 
 export default function TableCard({ table, products, onAddOrder, onRemoveOrder, onToggleOpen }: Props) {
-  const [productId, setProductId] = React.useState<string>(products[0]?.id || '')
+  const activeProducts = React.useMemo(() => products.filter(product => product.active), [products])
+  const [productId, setProductId] = React.useState<string>(activeProducts[0]?.id || '')
   const [qty, setQty] = React.useState<number>(1)
+
+  React.useEffect(() => {
+    if(activeProducts.length === 0){
+      setProductId('')
+      return
+    }
+
+    if(!activeProducts.find(product => product.id === productId)){
+      setProductId(activeProducts[0].id)
+    }
+  }, [activeProducts, productId])
 
   const findProduct = (id: string) => products.find(p => p.id === id)
 
   const total = table.orders.reduce((s, o) => {
     const p = findProduct(o.productId)
-    return s + (p ? p.price * o.qty : 0)
+    const unitPrice = o.unitPrice ?? p?.price ?? 0
+    return s + unitPrice * o.qty
   }, 0)
 
   return (
     <div className="card">
       <h3>{table.name} {table.open ? '(Açık)' : '(Kapalı)'}</h3>
-      <div>Orders:</div>
+      <div>Siparişler:</div>
       <table>
-        <thead><tr><th>Item</th><th>Qty</th><th>Price</th><th></th></tr></thead>
+        <thead><tr><th>Ürün</th><th>Adet</th><th>Tutar</th><th></th></tr></thead>
         <tbody>
           {table.orders.map(o => {
             const p = findProduct(o.productId)
+            const unitPrice = o.unitPrice ?? p?.price ?? 0
             return (
               <tr key={o.id}>
-                <td>{p?.name || 'Bilinmiyor'}</td>
+                <td>{o.productName || p?.name || 'Bilinmiyor'}</td>
                 <td>{o.qty}</td>
-                <td>{(p ? p.price * o.qty : 0).toFixed(2)}</td>
+                <td>{(unitPrice * o.qty).toFixed(2)}</td>
                 <td><button className="btn" onClick={() => onRemoveOrder(table.id, o.id)}>Kaldır</button></td>
               </tr>
             )
@@ -43,11 +57,11 @@ export default function TableCard({ table, products, onAddOrder, onRemoveOrder, 
       <div style={{marginTop:8}}>Toplam: <strong>{total.toFixed(2)}</strong></div>
 
       <div style={{marginTop:8, display:'flex', gap:8}}>
-        <select value={productId} onChange={e=>setProductId(e.target.value)}>
-          {products.map(p => <option key={p.id} value={p.id}>{p.name} - {p.price.toFixed(2)}</option>)}
+        <select value={productId} onChange={e=>setProductId(e.target.value)} disabled={activeProducts.length === 0}>
+          {activeProducts.map(p => <option key={p.id} value={p.id}>{p.name} - {p.price.toFixed(2)}</option>)}
         </select>
         <input type="number" value={qty} min={1} onChange={e=>setQty(Number(e.target.value))} style={{width:60}} />
-        <button className="btn" onClick={() => onAddOrder(table.id, productId, qty)} disabled={!table.open}>Ekle</button>
+        <button className="btn" onClick={() => onAddOrder(table.id, productId, qty)} disabled={!table.open || !productId}>Ekle</button>
         <button className="btn" onClick={()=>onToggleOpen(table.id)}>{table.open ? 'Kapat' : 'Aç'}</button>
       </div>
     </div>
