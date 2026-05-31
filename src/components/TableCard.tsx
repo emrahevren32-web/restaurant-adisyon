@@ -1,32 +1,36 @@
 import React from 'react'
-import { Order, PaymentMethod, Product, ProductCategory, TableState } from '../types'
+import { Discount, DiscountType, PaymentMethod, Product, ProductCategory, TableState } from '../types'
+import {
+  calculateDiscountTotal,
+  calculateFinalTotal,
+  calculateGiftTotal,
+  calculateOrderOriginalTotal,
+  calculateOrderPayableTotal,
+  calculateSubtotal,
+  formatCurrency,
+  getOrderUnitPrice
+} from '../billing'
 
 type Props = {
   table: TableState
+  tables: TableState[]
   products: Product[]
   allProducts: Product[]
   categories: ProductCategory[]
-  onAddOrder: (tableId: string, productId: string, qty: number) => void
+  onAddOrder: (tableId: string, productId: string, qty: number, isGift?: boolean) => void
   onUpdateOrderQty: (tableId: string, orderId: string, qty: number) => void
   onRemoveOrder: (tableId: string, orderId: string) => void
   onOpenTable: (tableId: string) => void
   onCloseTable: (tableId: string, paymentMethod: PaymentMethod) => void
-}
-
-const currencyFormatter = new Intl.NumberFormat('tr-TR', {
-  style: 'currency',
-  currency: 'TRY'
-})
-
-const formatCurrency = (value: number) => currencyFormatter.format(value)
-
-const getOrderUnitPrice = (order: Order, products: Product[]) => {
-  const product = products.find(item => item.id === order.productId)
-  return order.unitPrice ?? product?.price ?? 0
+  onUpdateNote: (tableId: string, note: string) => void
+  onUpdateDiscount: (tableId: string, discount: Discount) => void
+  onClearDiscount: (tableId: string) => void
+  onTransferTable: (sourceTableId: string, targetTableId: string) => void
 }
 
 export default function TableCard({
   table,
+  tables,
   products,
   allProducts,
   categories,
@@ -34,14 +38,39 @@ export default function TableCard({
   onUpdateOrderQty,
   onRemoveOrder,
   onOpenTable,
-  onCloseTable
+  onCloseTable,
+  onUpdateNote,
+  onUpdateDiscount,
+  onClearDiscount,
+  onTransferTable
 }: Props) {
   const [qty, setQty] = React.useState<number>(1)
   const [search, setSearch] = React.useState('')
   const [categoryFilter, setCategoryFilter] = React.useState('all')
   const [paymentMethod, setPaymentMethod] = React.useState<PaymentMethod>('Nakit')
+  const [transferTargetId, setTransferTargetId] = React.useState('')
+  const [discountTypeInput, setDiscountTypeInput] = React.useState<DiscountType>(table.discount?.type || 'percent')
 
   const categoryMap = React.useMemo(() => new Map(categories.map(category => [category.id, category])), [categories])
+  const transferTargets = React.useMemo(() => {
+    return tables.filter(item => item.id !== table.id && !item.open && item.orders.length === 0)
+  }, [table.id, tables])
+
+  React.useEffect(() => {
+    if(transferTargets.length === 0){
+      setTransferTargetId('')
+      return
+    }
+
+    if(!transferTargets.find(item => item.id === transferTargetId)){
+      setTransferTargetId(transferTargets[0].id)
+    }
+  }, [transferTargetId, transferTargets])
+
+  React.useEffect(() => {
+    setDiscountTypeInput(table.discount?.type || 'percent')
+  }, [table.discount?.type, table.id])
+
   const visibleProducts = React.useMemo(() => {
     const normalizedSearch = search.trim().toLocaleLowerCase('tr-TR')
 
@@ -56,8 +85,33 @@ export default function TableCard({
     })
   }, [categoryFilter, categoryMap, products, search])
 
-  const total = table.orders.reduce((sum, order) => sum + getOrderUnitPrice(order, allProducts) * order.qty, 0)
+  const subtotal = calculateSubtotal(table.orders, allProducts)
+  const discountTotal = calculateDiscountTotal(table.discount, subtotal)
+  const finalTotal = calculateFinalTotal(table.orders, allProducts, table.discount)
+  const giftTotal = calculateGiftTotal(table.orders, allProducts)
   const itemCount = table.orders.reduce((sum, order) => sum + order.qty, 0)
+  const splitAmount = finalTotal / 2
+  const discountType: DiscountType = table.discount?.type || discountTypeInput
+
+  const updateDiscountValue = (rawValue: string) => {
+    if(rawValue === ''){
+      onClearDiscount(table.id)
+      return
+    }
+
+    onUpdateDiscount(table.id, {
+      type: discountType,
+      value: Number(rawValue)
+    })
+  }
+
+  const updateDiscountType = (type: DiscountType) => {
+    setDiscountTypeInput(type)
+
+    if(table.discount?.value){
+      onUpdateDiscount(table.id, { type, value: table.discount.value })
+    }
+  }
 
   return (
     <div className="card table-detail">
@@ -88,8 +142,53 @@ export default function TableCard({
             </div>
             <div>
               <span>Toplam</span>
-              <strong>{formatCurrency(total)}</strong>
+              <strong>{formatCurrency(finalTotal)}</strong>
             </div>
+          </div>
+
+          <div className="adisyon-tools">
+            <section className="tool-panel">
+              <label>Adisyon Notu</label>
+              <textarea
+                rows={3}
+                placeholder="Mutfak, servis veya müşteri notu"
+                value={table.note || ''}
+                onChange={e=>onUpdateNote(table.id, e.target.value)}
+              />
+            </section>
+
+            <section className="tool-panel">
+              <label>İndirim</label>
+              <div className="discount-controls">
+                <select value={discountType} onChange={e=>updateDiscountType(e.target.value as DiscountType)}>
+                  <option value="percent">Yüzde (%)</option>
+                  <option value="amount">Tutar</option>
+                </select>
+                <input
+                  type="number"
+                  min={0}
+                  max={discountType === 'percent' ? 100 : undefined}
+                  step="0.01"
+                  placeholder={discountType === 'percent' ? '10' : '50'}
+                  value={table.discount?.value ?? ''}
+                  onChange={e=>updateDiscountValue(e.target.value)}
+                />
+                <button className="btn" type="button" onClick={()=>onClearDiscount(table.id)}>Temizle</button>
+              </div>
+              <p className="muted small-text">İndirim tutarı: {formatCurrency(discountTotal)}</p>
+            </section>
+
+            <section className="tool-panel">
+              <label>Masa Taşıma</label>
+              <div className="discount-controls">
+                <select value={transferTargetId} onChange={e=>setTransferTargetId(e.target.value)} disabled={transferTargets.length === 0}>
+                  {transferTargets.length === 0 && <option value="">Uygun masa yok</option>}
+                  {transferTargets.map(item => <option key={item.id} value={item.id}>{item.name}</option>)}
+                </select>
+                <button className="btn" type="button" disabled={!transferTargetId} onClick={()=>onTransferTable(table.id, transferTargetId)}>Taşı</button>
+              </div>
+              <p className="muted small-text">Adisyon sadece kapalı ve boş masaya taşınır.</p>
+            </section>
           </div>
 
           <div className="order-layout">
@@ -108,13 +207,18 @@ export default function TableCard({
                     )}
                     {table.orders.map(order => {
                       const unitPrice = getOrderUnitPrice(order, allProducts)
+                      const originalTotal = calculateOrderOriginalTotal(order, allProducts)
+                      const payableTotal = calculateOrderPayableTotal(order, allProducts)
                       const product = allProducts.find(item => item.id === order.productId)
 
                       return (
                         <tr key={order.id}>
                           <td>
                             <strong>{order.productName || product?.name || 'Bilinmiyor'}</strong>
-                            <div className="muted small-text">{formatCurrency(unitPrice)} birim fiyat</div>
+                            <div className="muted small-text">
+                              {formatCurrency(unitPrice)} birim fiyat
+                              {order.isGift && <span className="gift-label">İkram</span>}
+                            </div>
                           </td>
                           <td>
                             <div className="qty-controls">
@@ -123,7 +227,10 @@ export default function TableCard({
                               <button className="btn icon-btn" onClick={()=>onUpdateOrderQty(table.id, order.id, order.qty + 1)}>+</button>
                             </div>
                           </td>
-                          <td>{formatCurrency(unitPrice * order.qty)}</td>
+                          <td>
+                            {formatCurrency(payableTotal)}
+                            {order.isGift && <div className="muted small-text">Normal: {formatCurrency(originalTotal)}</div>}
+                          </td>
                           <td className="actions-cell">
                             <button className="btn" onClick={() => onRemoveOrder(table.id, order.id)}>Kaldır</button>
                           </td>
@@ -153,13 +260,16 @@ export default function TableCard({
               <div className="product-picker-list">
                 {visibleProducts.length === 0 && <div className="empty-state">Aktif ürün bulunamadı.</div>}
                 {visibleProducts.map(product => (
-                  <button className="product-pick-button" key={product.id} onClick={()=>onAddOrder(table.id, product.id, qty)} type="button">
-                    <span>
-                      <strong>{product.name}</strong>
-                      <small>{categoryMap.get(product.categoryId)?.name || 'Kategori yok'}</small>
-                    </span>
-                    <b>{formatCurrency(product.price)}</b>
-                  </button>
+                  <div className="product-pick-row" key={product.id}>
+                    <button className="product-pick-main" onClick={()=>onAddOrder(table.id, product.id, qty)} type="button">
+                      <span>
+                        <strong>{product.name}</strong>
+                        <small>{categoryMap.get(product.categoryId)?.name || 'Kategori yok'}</small>
+                      </span>
+                      <b>{formatCurrency(product.price)}</b>
+                    </button>
+                    <button className="btn" type="button" onClick={()=>onAddOrder(table.id, product.id, qty, true)}>İkram</button>
+                  </div>
                 ))}
               </div>
             </section>
@@ -167,8 +277,17 @@ export default function TableCard({
 
           <div className="checkout-panel">
             <div>
-              <span className="muted small-text">Hesap Toplamı</span>
-              <strong>{formatCurrency(total)}</strong>
+              <span className="muted small-text">Ara Toplam</span>
+              <strong>{formatCurrency(subtotal)}</strong>
+            </div>
+            <div>
+              <span className="muted small-text">İkram</span>
+              <strong>{formatCurrency(giftTotal)}</strong>
+            </div>
+            <div>
+              <span className="muted small-text">Ödenecek</span>
+              <strong>{formatCurrency(finalTotal)}</strong>
+              <div className="muted small-text">2 kişi: {formatCurrency(splitAmount)} / kişi</div>
             </div>
             <select value={paymentMethod} onChange={e=>setPaymentMethod(e.target.value as PaymentMethod)}>
               <option value="Nakit">Nakit</option>

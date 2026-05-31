@@ -1,26 +1,15 @@
 import React from 'react'
-import { ClosedBill, Order, PaymentMethod, Product, ProductCategory, TableState, User } from '../types'
+import { ClosedBill, Discount, Order, PaymentMethod, Product, ProductCategory, TableState, User } from '../types'
 import { loadCategories, loadClosed, loadProducts, loadTables, saveClosed, saveTables } from '../storage'
 import TableCard from '../components/TableCard'
+import { calculateDiscountTotal, calculateFinalTotal, calculateSubtotal, formatCurrency } from '../billing'
 
 type Props = { currentUser: User }
 
-const currencyFormatter = new Intl.NumberFormat('tr-TR', {
-  style: 'currency',
-  currency: 'TRY'
-})
-
-const formatCurrency = (value: number) => currencyFormatter.format(value)
 const createId = (prefix: string) => `${prefix}_${Date.now()}`
 
-const calculateOrderTotal = (order: Order, products: Product[]) => {
-  const product = products.find(item => item.id === order.productId)
-  const unitPrice = order.unitPrice ?? product?.price ?? 0
-  return unitPrice * order.qty
-}
-
 const calculateTableTotal = (table: TableState, products: Product[]) => {
-  return table.orders.reduce((sum, order) => sum + calculateOrderTotal(order, products), 0)
+  return calculateFinalTotal(table.orders, products, table.discount)
 }
 
 export default function TableManagement({ currentUser }: Props){
@@ -135,7 +124,7 @@ export default function TableManagement({ currentUser }: Props){
     setTables(prev => prev.map(table => table.id === tableId ? { ...table, open:true } : table))
   }
 
-  const addOrder = (tableId: string, productId: string, qty: number) => {
+  const addOrder = (tableId: string, productId: string, qty: number, isGift = false) => {
     if(!productId || !Number.isFinite(qty) || qty < 1) return
 
     const product = products.find(item => item.id === productId)
@@ -144,7 +133,11 @@ export default function TableManagement({ currentUser }: Props){
     setTables(prev => prev.map(table => {
       if(table.id !== tableId || !table.open) return table
 
-      const existingOrder = table.orders.find(order => order.productId === productId && (order.unitPrice ?? product.price) === product.price)
+      const existingOrder = table.orders.find(order =>
+        order.productId === productId
+        && (order.unitPrice ?? product.price) === product.price
+        && Boolean(order.isGift) === isGift
+      )
       if(existingOrder){
         return {
           ...table,
@@ -157,7 +150,8 @@ export default function TableManagement({ currentUser }: Props){
         productId,
         productName: product.name,
         unitPrice: product.price,
-        qty
+        qty,
+        isGift
       }
       return {...table, orders: [...table.orders, order]}
     }))
@@ -177,28 +171,85 @@ export default function TableManagement({ currentUser }: Props){
     setTables(prev => prev.map(table => table.id===tableId ? {...table, orders: table.orders.filter(order=>order.id!==orderId)} : table))
   }
 
+  const updateNote = (tableId: string, note: string) => {
+    setTables(prev => prev.map(table => table.id === tableId ? { ...table, note } : table))
+  }
+
+  const updateDiscount = (tableId: string, discount: Discount) => {
+    const normalizedValue = Number(discount.value)
+    if(!Number.isFinite(normalizedValue) || normalizedValue <= 0){
+      clearDiscount(tableId)
+      return
+    }
+
+    const normalizedDiscount: Discount = {
+      type: discount.type,
+      value: discount.type === 'percent' ? Math.min(normalizedValue, 100) : normalizedValue
+    }
+
+    setTables(prev => prev.map(table => table.id === tableId ? { ...table, discount: normalizedDiscount } : table))
+  }
+
+  const clearDiscount = (tableId: string) => {
+    setTables(prev => prev.map(table => table.id === tableId ? { ...table, discount: undefined } : table))
+  }
+
+  const transferTable = (sourceTableId: string, targetTableId: string) => {
+    if(sourceTableId === targetTableId) return
+
+    const source = tables.find(table => table.id === sourceTableId)
+    const target = tables.find(table => table.id === targetTableId)
+    if(!source || !target || !source.open) return
+
+    if(target.open || target.orders.length > 0){
+      setTableError('Adisyon sadece kapalı ve boş bir masaya taşınabilir.')
+      return
+    }
+
+    setTables(prev => prev.map(table => {
+      if(table.id === sourceTableId){
+        return { ...table, open:false, orders: [], note: '', discount: undefined }
+      }
+
+      if(table.id === targetTableId){
+        return { ...table, open:true, orders: source.orders, note: source.note, discount: source.discount }
+      }
+
+      return table
+    }))
+    setSelectedTableId(targetTableId)
+    setTableError('')
+  }
+
   const closeTable = (tableId: string, paymentMethod: PaymentMethod) => {
     const table = tables.find(item => item.id === tableId)
     if(!table || !table.open) return
 
-    const total = calculateTableTotal(table, products)
+    const subtotal = calculateSubtotal(table.orders, products)
+    const discountTotal = calculateDiscountTotal(table.discount, subtotal)
+    const total = calculateFinalTotal(table.orders, products, table.discount)
+
     if(table.orders.length > 0){
       const closed = loadClosed()
       const bill: ClosedBill = {
         id: createId('bill'),
         tableId: table.id,
         tableName: table.name,
+        subtotal,
         total,
         timestamp: new Date().toISOString(),
         orders: table.orders,
         paymentMethod,
         closedByUserId: currentUser.id,
-        closedByFullName: currentUser.fullName
+        closedByFullName: currentUser.fullName,
+        note: table.note,
+        discount: table.discount,
+        discountTotal
       }
       saveClosed([bill, ...closed])
     }
 
-    setTables(prev => prev.map(item => item.id===tableId ? {...item, open:false, orders: []} : item))
+    setTables(prev => prev.map(item => item.id===tableId ? {...item, open:false, orders: [], note: '', discount: undefined} : item))
   }
 
   return (
@@ -276,6 +327,7 @@ export default function TableManagement({ currentUser }: Props){
           {selectedTable ? (
             <TableCard
               table={selectedTable}
+              tables={tables}
               products={activeProducts}
               allProducts={products}
               categories={categories}
@@ -284,6 +336,10 @@ export default function TableManagement({ currentUser }: Props){
               onRemoveOrder={removeOrder}
               onOpenTable={openTable}
               onCloseTable={closeTable}
+              onUpdateNote={updateNote}
+              onUpdateDiscount={updateDiscount}
+              onClearDiscount={clearDiscount}
+              onTransferTable={transferTable}
             />
           ) : (
             <div className="card empty-state">Henüz masa bulunmuyor.</div>
