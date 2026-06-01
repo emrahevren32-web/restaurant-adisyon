@@ -9,6 +9,7 @@ import Reports from './pages/Reports'
 import Kitchen from './pages/Kitchen'
 import QRMenu from './pages/QRMenu'
 import QROrders from './pages/QROrders'
+import QRCodes from './pages/QRCodes'
 import Login from './pages/Login'
 import Users from './pages/Users'
 import Settings from './pages/Settings'
@@ -30,6 +31,7 @@ type Route =
   | 'history'
   | 'kitchen'
   | 'qr-orders'
+  | 'qr-codes'
   | 'actions'
   | 'staff'
   | 'reports'
@@ -96,6 +98,7 @@ export default function App(){
                 QR Siparişler
                 {qrNotificationCount > 0 && <span className="nav-badge">{qrNotificationCount}</span>}
               </button>
+              {currentUser.role === 'Admin' && <button className="btn" onClick={()=>setRoute('qr-codes')}>QR Kodlar</button>}
               {currentUser.role === 'Admin' && <button className="btn" onClick={()=>setRoute('reports')}>Raporlama</button>}
               {currentUser.role === 'Admin' && <button className="btn" onClick={()=>setRoute('staff')}>Personel Takibi</button>}
               {currentUser.role === 'Admin' && <button className="btn" onClick={()=>setRoute('actions')}>İşlem Geçmişi</button>}
@@ -114,6 +117,7 @@ export default function App(){
             {route === 'history' && <BillHistory />}
             {route === 'kitchen' && <Kitchen currentUser={currentUser} />}
             {route === 'qr-orders' && <QROrders currentUser={currentUser} />}
+            {route === 'qr-codes' && currentUser.role === 'Admin' && <QRCodes />}
             {route === 'actions' && currentUser.role === 'Admin' && <ActionHistory />}
             {route === 'staff' && currentUser.role === 'Admin' && <StaffTracking />}
             {route === 'reports' && currentUser.role === 'Admin' && <Reports />}
