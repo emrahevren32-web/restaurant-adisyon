@@ -39,6 +39,59 @@ export type StockItem = {
   active: boolean
   createdAt: string
   updatedAt?: string
+  lastPurchasePrice?: number
+  lastSupplierName?: string
+}
+
+export type StockMovementType = 'Giriş' | 'Çıkış' | 'Sayım Düzeltme'
+export type StockMovementSource = 'Manuel' | 'Reçete' | 'Adisyon' | 'Sayım' | 'İade'
+export type StockMovementReason =
+  | 'Satın Alma'
+  | 'İade'
+  | 'Fire'
+  | 'Kullanım'
+  | 'Sayım Fazlası'
+  | 'Sayım Eksiği'
+  | 'Ters Hareket'
+  | 'Diğer'
+
+export type StockMovement = {
+  id: string
+  stockItemId: string
+  stockItemName: string
+  type: StockMovementType
+  source: StockMovementSource
+  reason: StockMovementReason
+  qty: number
+  unit: StockUnit
+  previousQty: number
+  nextQty: number
+  purchasePrice?: number
+  supplierName?: string
+  invoiceNo?: string
+  description?: string
+  movementDate: string
+  createdAt: string
+  createdByUserId: string
+  createdByFullName: string
+  reversesMovementId?: string
+  reversedByMovementId?: string
+  reversedAt?: string
+}
+
+export type StockMovementAuditEventType = 'created' | 'reversed'
+
+export type StockMovementAuditEvent = {
+  id: string
+  movementId: string
+  stockItemId: string
+  eventType: StockMovementAuditEventType
+  userId: string
+  userName: string
+  timestamp: string
+  before?: unknown
+  after?: unknown
+  note?: string
 }
 
 export type Order = {
@@ -263,6 +316,10 @@ export type ActionLogType =
   | 'Stok kategorisi güncellendi'
   | 'Stok kategorisi aktif yapıldı'
   | 'Stok kategorisi pasif yapıldı'
+  | 'Stok girişi yapıldı'
+  | 'Stok çıkışı yapıldı'
+  | 'Stok sayım düzeltmesi yapıldı'
+  | 'Stok ters hareketi oluşturuldu'
   | 'Kullanıcı oluşturuldu'
   | 'Kullanıcı güncellendi'
   | 'Kullanıcı aktif yapıldı'

@@ -39,6 +39,15 @@ th { color:#4b5563; font-size:13px; font-weight:700 }
 .section-header.compact { align-items:center }
 .toolbar-controls { display:grid; grid-template-columns:minmax(220px, 1fr) 180px 150px; gap:8px; min-width:min(100%, 620px) }
 .stock-toolbar-controls { grid-template-columns:minmax(220px, 1fr) 170px 150px 130px; min-width:min(100%, 760px) }
+.stock-movement-layout { display:grid; grid-template-columns:minmax(0, 1fr) 390px; gap:16px; align-items:start }
+.stock-movement-main, .stock-movement-side { min-width:0 }
+.stock-movement-filters { display:grid; grid-template-columns:140px 140px minmax(180px, 1fr) 150px 140px minmax(220px, 1fr); gap:8px; min-width:min(100%, 980px) }
+.stock-movement-table th, .stock-movement-table td { white-space:nowrap }
+.stock-movement-table td:nth-child(2), .stock-movement-table th:nth-child(2),
+.stock-movement-table td:nth-child(7), .stock-movement-table th:nth-child(7) { min-width:180px; white-space:normal }
+.stock-movement-type-row { grid-template-columns:1fr 1fr }
+.stock-current-hint { display:flex; justify-content:space-between; gap:12px; align-items:center; border:1px solid var(--line); border-radius:8px; padding:10px 12px; background:#f9fafb }
+.stock-current-hint span { color:var(--muted); font-size:12px; font-weight:700 }
 .table-wrap { overflow:auto }
 .data-table strong { display:block }
 .empty-cell { text-align:center; color:var(--muted); padding:28px 8px }
@@ -257,10 +266,10 @@ th { color:#4b5563; font-size:13px; font-weight:700 }
 .logo-preview img { max-width:160px; max-height:70px; object-fit:contain; background:#fff; border:1px solid var(--line); border-radius:8px; padding:6px }
 
 @media (max-width: 980px){
-  .container, .product-layout, .tables-layout, .order-layout, .summary-layout, .report-layout, .qr-menu-layout, .settings-layout { display:block }
+  .container, .product-layout, .stock-movement-layout, .tables-layout, .order-layout, .summary-layout, .report-layout, .qr-menu-layout, .settings-layout { display:block }
   .metric-grid { grid-template-columns:repeat(2, minmax(0, 1fr)) }
   .kitchen-grid { grid-template-columns:repeat(2, minmax(0, 1fr)) }
-  .toolbar-controls, .adisyon-tools, .action-log-filters, .report-panel-grid.three { grid-template-columns:1fr }
+  .toolbar-controls, .stock-movement-filters, .adisyon-tools, .action-log-filters, .report-panel-grid.three { grid-template-columns:1fr }
   .product-picker { margin-top:12px }
   .report-layout > .card { margin-top:12px }
   .qr-cart-panel { position:static; margin-top:12px }
@@ -273,7 +282,7 @@ th { color:#4b5563; font-size:13px; font-weight:700 }
   .app-brand img { width:38px; height:38px }
   .metric-grid { grid-template-columns:1fr }
   .kitchen-grid { grid-template-columns:1fr }
-  .form-row, .inline-form, .category-row, .category-edit-form, .order-summary, .picker-controls, .checkout-panel, .checkout-total-grid, .payment-grid, .table-grid, .discount-controls, .product-pick-row, .history-controls, .history-detail-grid, .report-highlight-grid, .qr-product-card, .qr-request-list, .qr-request-meta, .qr-edit-row, .qr-edit-add-row, .qr-reject-row, .waiter-call-list, .settings-form-grid { grid-template-columns:1fr }
+  .form-row, .stock-movement-type-row, .inline-form, .category-row, .category-edit-form, .order-summary, .picker-controls, .checkout-panel, .checkout-total-grid, .payment-grid, .table-grid, .discount-controls, .product-pick-row, .history-controls, .history-detail-grid, .report-highlight-grid, .qr-product-card, .qr-request-list, .qr-request-meta, .qr-edit-row, .qr-edit-add-row, .qr-reject-row, .waiter-call-list, .settings-form-grid { grid-template-columns:1fr }
   .actions-cell { justify-content:flex-start }
   .history-card summary { align-items:flex-start; flex-direction:column }
   .history-summary-values { text-align:left }

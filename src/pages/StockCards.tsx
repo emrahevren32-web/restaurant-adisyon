@@ -2,8 +2,10 @@ import React from 'react'
 import { StockCategory, StockItem, StockUnit, User } from '../types'
 import {
   addActionLog,
+  applyStockMovement,
   loadStockCategories,
   loadStockItems,
+  loadStockMovements,
   saveStockCategories,
   saveStockItems
 } from '../storage'
@@ -120,10 +122,36 @@ export default function StockCards({ currentUser }: Props){
     const now = new Date().toISOString()
 
     if(editingItem){
-      setItems(prev => prev.map(item => item.id === editingItem.id
-        ? { ...item, ...values, updatedAt: now }
-        : item
-      ))
+      const qtyChanged = values.currentQty !== editingItem.currentQty
+      const updatedItem = {
+        ...editingItem,
+        ...values,
+        currentQty: editingItem.currentQty,
+        updatedAt: now
+      }
+      const nextItems = items.map(item => item.id === editingItem.id ? updatedItem : item)
+      saveStockItems(nextItems)
+      setItems(nextItems)
+
+      if(qtyChanged){
+        try {
+          applyStockMovement({
+            stockItemId: editingItem.id,
+            type: 'Sayım Düzeltme',
+            source: 'Sayım',
+            reason: values.currentQty >= editingItem.currentQty ? 'Sayım Fazlası' : 'Sayım Eksiği',
+            qty: values.currentQty,
+            description: 'Stok kartı ekranından mevcut miktar düzeltmesi.',
+            user: currentUser
+          })
+          setItems(loadStockItems())
+        } catch (error) {
+          setPermissionError(error instanceof Error ? error.message : 'Stok miktarı güncellenemedi.')
+          setItems(loadStockItems())
+          return
+        }
+      }
+
       addActionLog({
         operationType: 'Stok kartı güncellendi',
         user: currentUser,
@@ -136,15 +164,35 @@ export default function StockCards({ currentUser }: Props){
     const item: StockItem = {
       id: createId('stock'),
       ...values,
+      currentQty: 0,
       createdAt: now,
       updatedAt: now
     }
 
-    setItems(prev => [item, ...prev])
+    const nextItems = [item, ...items]
+    saveStockItems(nextItems)
+
+    if(values.currentQty > 0){
+      try {
+        applyStockMovement({
+          stockItemId: item.id,
+          type: 'Giriş',
+          source: 'Manuel',
+          reason: 'Satın Alma',
+          qty: values.currentQty,
+          description: 'Stok kartı oluşturulurken girilen başlangıç miktarı.',
+          user: currentUser
+        })
+      } catch (error) {
+        setPermissionError(error instanceof Error ? error.message : 'Başlangıç stok hareketi oluşturulamadı.')
+      }
+    }
+
+    setItems(loadStockItems())
     addActionLog({
       operationType: 'Stok kartı oluşturuldu',
       user: currentUser,
-      description: `${item.name} stok kartı oluşturuldu. Kritik seviye: ${formatQuantity(item.minQty, item.unit)}.`
+      description: `${item.name} stok kartı oluşturuldu. Kritik seviye: ${formatQuantity(item.minQty, item.unit)}.${values.currentQty > 0 ? ` Başlangıç miktarı hareket kaydıyla eklendi: ${formatQuantity(values.currentQty, item.unit)}.` : ''}`
     })
   }
 
@@ -158,6 +206,11 @@ export default function StockCards({ currentUser }: Props){
 
     const item = items.find(stockItem => stockItem.id === itemId)
     if(!item) return
+
+    if(loadStockMovements().some(movement => movement.stockItemId === itemId)){
+      setPermissionError('Hareket geçmişi olan stok kartı silinemez. Kartı pasif yapabilirsiniz.')
+      return
+    }
 
     if(!confirm(`${item.name} stok kartı silinecek. Emin misiniz?`)) return
 

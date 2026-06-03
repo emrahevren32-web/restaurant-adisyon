@@ -16,6 +16,12 @@ import {
   QRRequestStatus,
   StockCategory,
   StockItem,
+  StockMovement,
+  StockMovementAuditEvent,
+  StockMovementAuditEventType,
+  StockMovementReason,
+  StockMovementSource,
+  StockMovementType,
   StockUnit,
   SystemSettings,
   TableState,
@@ -29,6 +35,8 @@ const KEY_PRODUCTS = 'ra_products'
 const KEY_CATEGORIES = 'ra_categories'
 const KEY_STOCK_ITEMS = 'ra_stock_items'
 const KEY_STOCK_CATEGORIES = 'ra_stock_categories'
+const KEY_STOCK_MOVEMENTS = 'ra_stock_movements'
+const KEY_STOCK_MOVEMENT_AUDIT = 'ra_stock_movement_audit'
 const KEY_TABLES = 'ra_tables'
 const KEY_CLOSED = 'ra_closed'
 const KEY_USERS = 'ra_users'
@@ -45,6 +53,9 @@ const KEY_WAITER_CALL_HISTORY = 'ra_waiter_call_history'
 const DEFAULT_CATEGORY_ID = 'cat_general'
 const DEFAULT_STOCK_CATEGORY_ID = 'stock_cat_general'
 const STOCK_UNITS: StockUnit[] = ['adet', 'kg', 'gr', 'lt', 'ml', 'paket', 'koli']
+const STOCK_MOVEMENT_TYPES: StockMovementType[] = ['Giriş', 'Çıkış', 'Sayım Düzeltme']
+const STOCK_MOVEMENT_SOURCES: StockMovementSource[] = ['Manuel', 'Reçete', 'Adisyon', 'Sayım', 'İade']
+const STOCK_MOVEMENT_REASONS: StockMovementReason[] = ['Satın Alma', 'İade', 'Fire', 'Kullanım', 'Sayım Fazlası', 'Sayım Eksiği', 'Ters Hareket', 'Diğer']
 
 export const DEFAULT_SETTINGS: SystemSettings = {
   restaurantName: 'Restaurant Adisyon',
@@ -123,6 +134,7 @@ const normalizeStockCategory = (item: Partial<StockCategory>): StockCategory => 
 const normalizeStockItem = (item: Partial<StockItem>, fallbackCategoryId = DEFAULT_STOCK_CATEGORY_ID): StockItem => {
   const currentQty = Number(item.currentQty)
   const minQty = Number(item.minQty)
+  const lastPurchasePrice = Number(item.lastPurchasePrice)
 
   return {
     id: String(item.id || `stock_${Date.now()}`),
@@ -136,9 +148,72 @@ const normalizeStockItem = (item: Partial<StockItem>, fallbackCategoryId = DEFAU
     description: item.description || '',
     active: item.active !== false,
     createdAt: item.createdAt || new Date().toISOString(),
-    updatedAt: item.updatedAt
+    updatedAt: item.updatedAt,
+    lastPurchasePrice: Number.isFinite(lastPurchasePrice) && lastPurchasePrice >= 0 ? lastPurchasePrice : undefined,
+    lastSupplierName: item.lastSupplierName || ''
   }
 }
+
+const normalizeStockMovementType = (value: unknown): StockMovementType => {
+  return STOCK_MOVEMENT_TYPES.includes(value as StockMovementType) ? value as StockMovementType : 'Giriş'
+}
+
+const normalizeStockMovementSource = (value: unknown): StockMovementSource => {
+  return STOCK_MOVEMENT_SOURCES.includes(value as StockMovementSource) ? value as StockMovementSource : 'Manuel'
+}
+
+const normalizeStockMovementReason = (value: unknown): StockMovementReason => {
+  return STOCK_MOVEMENT_REASONS.includes(value as StockMovementReason) ? value as StockMovementReason : 'Diğer'
+}
+
+const normalizeStockMovement = (item: Partial<StockMovement>): StockMovement => {
+  const qty = Number(item.qty)
+  const previousQty = Number(item.previousQty)
+  const nextQty = Number(item.nextQty)
+  const purchasePrice = Number(item.purchasePrice)
+  const timestamp = item.createdAt || new Date().toISOString()
+
+  return {
+    id: String(item.id || `stock_move_${Date.now()}`),
+    stockItemId: String(item.stockItemId || ''),
+    stockItemName: String(item.stockItemName || 'Stok Kartı'),
+    type: normalizeStockMovementType(item.type),
+    source: normalizeStockMovementSource(item.source),
+    reason: normalizeStockMovementReason(item.reason),
+    qty: Number.isFinite(qty) ? Math.max(0, qty) : 0,
+    unit: normalizeStockUnit(item.unit),
+    previousQty: Number.isFinite(previousQty) ? Math.max(0, previousQty) : 0,
+    nextQty: Number.isFinite(nextQty) ? Math.max(0, nextQty) : 0,
+    purchasePrice: Number.isFinite(purchasePrice) && purchasePrice >= 0 ? purchasePrice : undefined,
+    supplierName: item.supplierName || '',
+    invoiceNo: item.invoiceNo || '',
+    description: item.description || '',
+    movementDate: item.movementDate || timestamp,
+    createdAt: timestamp,
+    createdByUserId: String(item.createdByUserId || ''),
+    createdByFullName: String(item.createdByFullName || 'Bilinmeyen Kullanıcı'),
+    reversesMovementId: item.reversesMovementId,
+    reversedByMovementId: item.reversedByMovementId,
+    reversedAt: item.reversedAt
+  }
+}
+
+const normalizeStockMovementAuditEventType = (value: unknown): StockMovementAuditEventType => {
+  return value === 'reversed' ? 'reversed' : 'created'
+}
+
+const normalizeStockMovementAuditEvent = (item: Partial<StockMovementAuditEvent>): StockMovementAuditEvent => ({
+  id: String(item.id || `stock_audit_${Date.now()}`),
+  movementId: String(item.movementId || ''),
+  stockItemId: String(item.stockItemId || ''),
+  eventType: normalizeStockMovementAuditEventType(item.eventType),
+  userId: String(item.userId || ''),
+  userName: String(item.userName || 'Bilinmeyen Kullanıcı'),
+  timestamp: item.timestamp || new Date().toISOString(),
+  before: item.before,
+  after: item.after,
+  note: item.note || ''
+})
 
 const normalizeKitchenStatus = (value: unknown): KitchenOrderStatus => {
   if(value === 'Hazırlanıyor' || value === 'Hazır') return value
@@ -405,6 +480,26 @@ export const saveStockItems = (items: StockItem[]) => {
   localStorage.setItem(KEY_STOCK_ITEMS, JSON.stringify(items.map(item => normalizeStockItem(item, fallbackCategoryId))))
 }
 
+export const loadStockMovements = (): StockMovement[] => {
+  return readJson<Partial<StockMovement>[]>(KEY_STOCK_MOVEMENTS, []).map(normalizeStockMovement)
+}
+
+export const saveStockMovements = (items: StockMovement[]) => {
+  localStorage.setItem(KEY_STOCK_MOVEMENTS, JSON.stringify(items.map(normalizeStockMovement)))
+}
+
+export const loadStockMovementAuditEvents = (): StockMovementAuditEvent[] => {
+  return readJson<Partial<StockMovementAuditEvent>[]>(KEY_STOCK_MOVEMENT_AUDIT, []).map(normalizeStockMovementAuditEvent)
+}
+
+export const saveStockMovementAuditEvents = (items: StockMovementAuditEvent[]) => {
+  localStorage.setItem(KEY_STOCK_MOVEMENT_AUDIT, JSON.stringify(items.map(normalizeStockMovementAuditEvent)))
+}
+
+export const addStockMovementAuditEvent = (event: StockMovementAuditEvent) => {
+  saveStockMovementAuditEvents([event, ...loadStockMovementAuditEvents()])
+}
+
 export const loadTables = (): TableState[] => {
   return readJson<TableState[]>(KEY_TABLES, [])
 }
@@ -611,6 +706,176 @@ export const addActionLog = ({
   }
 
   saveActionLogs([log, ...loadActionLogs()])
+}
+
+const getStockMovementLogType = (movement: StockMovement): ActionLogType => {
+  if(movement.reversesMovementId) return 'Stok ters hareketi oluşturuldu'
+  if(movement.type === 'Çıkış') return 'Stok çıkışı yapıldı'
+  if(movement.type === 'Sayım Düzeltme') return 'Stok sayım düzeltmesi yapıldı'
+  return 'Stok girişi yapıldı'
+}
+
+const formatStockQty = (value: number, unit: StockUnit) => {
+  return `${value.toLocaleString('tr-TR', { maximumFractionDigits: 3 })} ${unit}`
+}
+
+export const applyStockMovement = ({
+  stockItemId,
+  type,
+  source,
+  reason,
+  qty,
+  purchasePrice,
+  supplierName,
+  invoiceNo,
+  description,
+  movementDate,
+  user,
+  reversesMovementId
+}: {
+  stockItemId: string
+  type: StockMovementType
+  source: StockMovementSource
+  reason: StockMovementReason
+  qty: number
+  purchasePrice?: number
+  supplierName?: string
+  invoiceNo?: string
+  description?: string
+  movementDate?: string
+  user: User
+  reversesMovementId?: string
+}) => {
+  const stockItems = loadStockItems()
+  const stockItem = stockItems.find(item => item.id === stockItemId)
+
+  if(!stockItem){
+    throw new Error('Stok kartı bulunamadı.')
+  }
+
+  const normalizedQty = Number(qty)
+  if(!Number.isFinite(normalizedQty) || normalizedQty < 0 || (type !== 'Sayım Düzeltme' && normalizedQty <= 0)){
+    throw new Error(type === 'Sayım Düzeltme' ? 'Sayım sonucu 0 veya daha büyük olmalıdır.' : 'Hareket miktarı 0’dan büyük olmalıdır.')
+  }
+
+  const previousQty = stockItem.currentQty
+  const nextQty = type === 'Giriş'
+    ? previousQty + normalizedQty
+    : type === 'Çıkış'
+      ? previousQty - normalizedQty
+      : normalizedQty
+
+  if(nextQty < 0){
+    throw new Error('Çıkış hareketi stok miktarını eksiye düşüremez.')
+  }
+
+  const normalizedPurchasePrice = Number(purchasePrice)
+  const now = new Date().toISOString()
+  const movement: StockMovement = {
+    id: `stock_move_${Date.now()}_${Math.random().toString(16).slice(2)}`,
+    stockItemId: stockItem.id,
+    stockItemName: stockItem.name,
+    type,
+    source,
+    reason,
+    qty: normalizedQty,
+    unit: stockItem.unit,
+    previousQty,
+    nextQty,
+    purchasePrice: Number.isFinite(normalizedPurchasePrice) && normalizedPurchasePrice >= 0 ? normalizedPurchasePrice : undefined,
+    supplierName: supplierName?.trim() || '',
+    invoiceNo: invoiceNo?.trim() || '',
+    description: description?.trim() || '',
+    movementDate: movementDate || now,
+    createdAt: now,
+    createdByUserId: user.id,
+    createdByFullName: user.fullName || user.username,
+    reversesMovementId
+  }
+  const nextStockItem: StockItem = {
+    ...stockItem,
+    currentQty: nextQty,
+    updatedAt: now,
+    lastPurchasePrice: movement.type === 'Giriş' && movement.purchasePrice !== undefined ? movement.purchasePrice : stockItem.lastPurchasePrice,
+    lastSupplierName: movement.type === 'Giriş' && movement.supplierName ? movement.supplierName : stockItem.lastSupplierName
+  }
+  const nextStockItems = stockItems.map(item => item.id === stockItem.id ? nextStockItem : item)
+  const existingMovements = loadStockMovements()
+  const nextExistingMovements = reversesMovementId
+    ? existingMovements.map(item => item.id === reversesMovementId ? { ...item, reversedByMovementId: movement.id, reversedAt: now } : item)
+    : existingMovements
+
+  saveStockItems(nextStockItems)
+  saveStockMovements([movement, ...nextExistingMovements])
+  addStockMovementAuditEvent({
+    id: `stock_audit_${Date.now()}_${Math.random().toString(16).slice(2)}`,
+    movementId: movement.id,
+    stockItemId: stockItem.id,
+    eventType: 'created',
+    userId: user.id,
+    userName: user.fullName || user.username,
+    timestamp: now,
+    before: stockItem,
+    after: nextStockItem,
+    note: `${movement.stockItemName}: ${movement.type} ${formatStockQty(movement.qty, movement.unit)}. ${formatStockQty(previousQty, movement.unit)} -> ${formatStockQty(nextQty, movement.unit)}.`
+  })
+
+  if(reversesMovementId){
+    addStockMovementAuditEvent({
+      id: `stock_audit_${Date.now()}_${Math.random().toString(16).slice(2)}`,
+      movementId: reversesMovementId,
+      stockItemId: stockItem.id,
+      eventType: 'reversed',
+      userId: user.id,
+      userName: user.fullName || user.username,
+      timestamp: now,
+      before: existingMovements.find(item => item.id === reversesMovementId),
+      after: nextExistingMovements.find(item => item.id === reversesMovementId),
+      note: `${movement.id} hareketi ile ters hareket oluşturuldu.`
+    })
+  }
+
+  addActionLog({
+    operationType: getStockMovementLogType(movement),
+    user,
+    description: `${user.fullName || user.username} ${movement.stockItemName} için ${movement.type.toLocaleLowerCase('tr-TR')} hareketi oluşturdu. Kaynak: ${movement.source}. Sebep: ${movement.reason}. Miktar: ${formatStockQty(movement.qty, movement.unit)}. Stok: ${formatStockQty(previousQty, movement.unit)} -> ${formatStockQty(nextQty, movement.unit)}.${movement.invoiceNo ? ` Fatura: ${movement.invoiceNo}.` : ''}${movement.supplierName ? ` Tedarikçi: ${movement.supplierName}.` : ''}${movement.description ? ` Açıklama: ${movement.description}.` : ''}`
+  })
+
+  return movement
+}
+
+export const reverseStockMovement = (movementId: string, user: User) => {
+  const movement = loadStockMovements().find(item => item.id === movementId)
+
+  if(!movement){
+    throw new Error('Ters hareket oluşturulacak kayıt bulunamadı.')
+  }
+
+  if(movement.reversedByMovementId){
+    throw new Error('Bu hareket için daha önce ters hareket oluşturulmuş.')
+  }
+
+  const reverseType: StockMovementType = movement.type === 'Giriş'
+    ? 'Çıkış'
+    : movement.type === 'Çıkış'
+      ? 'Giriş'
+      : 'Sayım Düzeltme'
+  const reverseQty = movement.type === 'Sayım Düzeltme' ? movement.previousQty : movement.qty
+
+  return applyStockMovement({
+    stockItemId: movement.stockItemId,
+    type: reverseType,
+    source: movement.source,
+    reason: 'Ters Hareket',
+    qty: reverseQty,
+    purchasePrice: reverseType === 'Giriş' ? movement.purchasePrice : undefined,
+    supplierName: movement.supplierName,
+    invoiceNo: movement.invoiceNo,
+    description: `${movement.id} numaralı hareketin ters kaydı.${movement.description ? ` Orijinal açıklama: ${movement.description}` : ''}`,
+    movementDate: new Date().toISOString(),
+    user,
+    reversesMovementId: movement.id
+  })
 }
 
 export const createSystemBackup = () => {
