@@ -14,6 +14,11 @@ import {
   QRRequestHistory,
   QRRequestItem,
   QRRequestStatus,
+  Recipe,
+  RecipeAuditEvent,
+  RecipeAuditEventType,
+  RecipeCostSnapshot,
+  RecipeItem,
   StockCategory,
   StockItem,
   StockMovement,
@@ -37,6 +42,8 @@ const KEY_STOCK_ITEMS = 'ra_stock_items'
 const KEY_STOCK_CATEGORIES = 'ra_stock_categories'
 const KEY_STOCK_MOVEMENTS = 'ra_stock_movements'
 const KEY_STOCK_MOVEMENT_AUDIT = 'ra_stock_movement_audit'
+const KEY_RECIPES = 'ra_recipes'
+const KEY_RECIPE_AUDIT_EVENTS = 'ra_recipe_audit_events'
 const KEY_TABLES = 'ra_tables'
 const KEY_CLOSED = 'ra_closed'
 const KEY_USERS = 'ra_users'
@@ -207,6 +214,90 @@ const normalizeStockMovementAuditEvent = (item: Partial<StockMovementAuditEvent>
   movementId: String(item.movementId || ''),
   stockItemId: String(item.stockItemId || ''),
   eventType: normalizeStockMovementAuditEventType(item.eventType),
+  userId: String(item.userId || ''),
+  userName: String(item.userName || 'Bilinmeyen Kullanıcı'),
+  timestamp: item.timestamp || new Date().toISOString(),
+  before: item.before,
+  after: item.after,
+  note: item.note || ''
+})
+
+const normalizeRecipeItem = (item: Partial<RecipeItem>): RecipeItem => {
+  const qty = Number(item.qty)
+  const wastePercent = Number(item.wastePercent)
+
+  return {
+    id: String(item.id || `recipe_item_${Date.now()}`),
+    stockItemId: String(item.stockItemId || ''),
+    stockItemName: String(item.stockItemName || 'Stok Kartı'),
+    qty: Number.isFinite(qty) ? Math.max(0, qty) : 0,
+    unit: normalizeStockUnit(item.unit),
+    wastePercent: Number.isFinite(wastePercent) ? Math.max(0, wastePercent) : 0,
+    note: item.note || ''
+  }
+}
+
+const normalizeRecipeCostSnapshot = (item?: Partial<RecipeCostSnapshot>): RecipeCostSnapshot | undefined => {
+  if(!item) return undefined
+
+  const totalCost = Number(item.totalCost)
+  const missingCostItemCount = Number(item.missingCostItemCount)
+
+  return {
+    totalCost: Number.isFinite(totalCost) ? Math.max(0, totalCost) : 0,
+    missingCostItemCount: Number.isFinite(missingCostItemCount) ? Math.max(0, Math.floor(missingCostItemCount)) : 0,
+    calculatedAt: item.calculatedAt || new Date().toISOString()
+  }
+}
+
+const normalizeRecipe = (item: Partial<Recipe>): Recipe => {
+  const timestamp = item.createdAt || new Date().toISOString()
+  const version = Number(item.version)
+  const recipeVersion = Number(item.recipeVersion)
+
+  return {
+    id: String(item.id || `recipe_${Date.now()}`),
+    productId: String(item.productId || ''),
+    productName: String(item.productName || 'Ürün'),
+    name: String(item.name || 'Reçete').trim() || 'Reçete',
+    version: Number.isFinite(version) && version > 0 ? Math.floor(version) : 1,
+    recipeVersion: Number.isFinite(recipeVersion) && recipeVersion > 0 ? Math.floor(recipeVersion) : (Number.isFinite(version) && version > 0 ? Math.floor(version) : 1),
+    active: item.active === true && !item.deletedAt,
+    items: (item.items || []).map(normalizeRecipeItem).filter(recipeItem => recipeItem.stockItemId && recipeItem.qty > 0),
+    note: item.note || '',
+    costSnapshot: normalizeRecipeCostSnapshot(item.costSnapshot),
+    createdAt: timestamp,
+    updatedAt: item.updatedAt,
+    createdByUserId: String(item.createdByUserId || ''),
+    createdByFullName: String(item.createdByFullName || 'Bilinmeyen Kullanıcı'),
+    updatedByUserId: item.updatedByUserId,
+    updatedByFullName: item.updatedByFullName,
+    copiedFromRecipeId: item.copiedFromRecipeId,
+    deletedAt: item.deletedAt,
+    deletedByUserId: item.deletedByUserId,
+    deletedByFullName: item.deletedByFullName
+  }
+}
+
+const normalizeRecipeAuditEventType = (value: unknown): RecipeAuditEventType => {
+  if(
+    value === 'updated'
+    || value === 'deleted'
+    || value === 'copied'
+    || value === 'activated'
+    || value === 'deactivated'
+    || value === 'created'
+  ){
+    return value
+  }
+
+  return 'created'
+}
+
+const normalizeRecipeAuditEvent = (item: Partial<RecipeAuditEvent>): RecipeAuditEvent => ({
+  id: String(item.id || `recipe_audit_${Date.now()}`),
+  recipeId: String(item.recipeId || ''),
+  eventType: normalizeRecipeAuditEventType(item.eventType),
   userId: String(item.userId || ''),
   userName: String(item.userName || 'Bilinmeyen Kullanıcı'),
   timestamp: item.timestamp || new Date().toISOString(),
@@ -498,6 +589,26 @@ export const saveStockMovementAuditEvents = (items: StockMovementAuditEvent[]) =
 
 export const addStockMovementAuditEvent = (event: StockMovementAuditEvent) => {
   saveStockMovementAuditEvents([event, ...loadStockMovementAuditEvents()])
+}
+
+export const loadRecipes = (): Recipe[] => {
+  return readJson<Partial<Recipe>[]>(KEY_RECIPES, []).map(normalizeRecipe)
+}
+
+export const saveRecipes = (items: Recipe[]) => {
+  localStorage.setItem(KEY_RECIPES, JSON.stringify(items.map(normalizeRecipe)))
+}
+
+export const loadRecipeAuditEvents = (): RecipeAuditEvent[] => {
+  return readJson<Partial<RecipeAuditEvent>[]>(KEY_RECIPE_AUDIT_EVENTS, []).map(normalizeRecipeAuditEvent)
+}
+
+export const saveRecipeAuditEvents = (items: RecipeAuditEvent[]) => {
+  localStorage.setItem(KEY_RECIPE_AUDIT_EVENTS, JSON.stringify(items.map(normalizeRecipeAuditEvent)))
+}
+
+export const addRecipeAuditEvent = (event: RecipeAuditEvent) => {
+  saveRecipeAuditEvents([event, ...loadRecipeAuditEvents()])
 }
 
 export const loadTables = (): TableState[] => {

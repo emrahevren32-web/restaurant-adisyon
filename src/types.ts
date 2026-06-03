@@ -94,6 +94,59 @@ export type StockMovementAuditEvent = {
   note?: string
 }
 
+export type RecipeItem = {
+  id: string
+  stockItemId: string
+  stockItemName: string
+  qty: number
+  unit: StockUnit
+  wastePercent: number
+  note?: string
+}
+
+export type RecipeCostSnapshot = {
+  totalCost: number
+  missingCostItemCount: number
+  calculatedAt: string
+}
+
+export type Recipe = {
+  id: string
+  productId: string
+  productName: string
+  name: string
+  version: number
+  recipeVersion: number
+  active: boolean
+  items: RecipeItem[]
+  note?: string
+  costSnapshot?: RecipeCostSnapshot
+  createdAt: string
+  updatedAt?: string
+  createdByUserId: string
+  createdByFullName: string
+  updatedByUserId?: string
+  updatedByFullName?: string
+  copiedFromRecipeId?: string
+  deletedAt?: string
+  deletedByUserId?: string
+  deletedByFullName?: string
+}
+
+export type RecipeAuditEventType = 'created' | 'updated' | 'deleted' | 'copied' | 'activated' | 'deactivated'
+
+export type RecipeAuditEvent = {
+  id: string
+  recipeId: string
+  eventType: RecipeAuditEventType
+  userId: string
+  userName: string
+  timestamp: string
+  before?: unknown
+  after?: unknown
+  note?: string
+}
+
 export type Order = {
   id: string
   productId: string
@@ -320,6 +373,12 @@ export type ActionLogType =
   | 'Stok çıkışı yapıldı'
   | 'Stok sayım düzeltmesi yapıldı'
   | 'Stok ters hareketi oluşturuldu'
+  | 'Reçete oluşturuldu'
+  | 'Reçete güncellendi'
+  | 'Reçete silindi'
+  | 'Reçete kopyalandı'
+  | 'Reçete aktif yapıldı'
+  | 'Reçete pasif yapıldı'
   | 'Kullanıcı oluşturuldu'
   | 'Kullanıcı güncellendi'
   | 'Kullanıcı aktif yapıldı'

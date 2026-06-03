@@ -12,6 +12,7 @@ import QROrders from './pages/QROrders'
 import QRCodes from './pages/QRCodes'
 import StockCards from './pages/StockCards'
 import StockMovements from './pages/StockMovements'
+import Recipes from './pages/Recipes'
 import Login from './pages/Login'
 import Users from './pages/Users'
 import Settings from './pages/Settings'
@@ -31,6 +32,7 @@ type Route =
   | 'products'
   | 'stock-cards'
   | 'stock-movements'
+  | 'recipes'
   | 'summary'
   | 'history'
   | 'kitchen'
@@ -97,6 +99,7 @@ export default function App(){
               <button className="btn" onClick={()=>setRoute('products')}>Ürünler</button>
               {currentUser.role === 'Admin' && <button className="btn" onClick={()=>setRoute('stock-cards')}>Stok Kartları</button>}
               {currentUser.role === 'Admin' && <button className="btn" onClick={()=>setRoute('stock-movements')}>Stok Hareketleri</button>}
+              {currentUser.role === 'Admin' && <button className="btn" onClick={()=>setRoute('recipes')}>Reçeteler</button>}
               <button className="btn" onClick={()=>setRoute('summary')}>Günlük Satış</button>
               <button className="btn" onClick={()=>setRoute('history')}>Adisyon Geçmişi</button>
               <button className="btn" onClick={()=>setRoute('kitchen')}>Mutfak Ekranı</button>
@@ -121,6 +124,7 @@ export default function App(){
             {route === 'products' && <Products currentUser={currentUser} />}
             {route === 'stock-cards' && currentUser.role === 'Admin' && <StockCards currentUser={currentUser} />}
             {route === 'stock-movements' && currentUser.role === 'Admin' && <StockMovements currentUser={currentUser} />}
+            {route === 'recipes' && currentUser.role === 'Admin' && <Recipes currentUser={currentUser} />}
             {route === 'summary' && <DailySummary />}
             {route === 'history' && <BillHistory />}
             {route === 'kitchen' && <Kitchen currentUser={currentUser} />}
