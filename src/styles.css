@@ -24,7 +24,7 @@ th { color:#4b5563; font-size:13px; font-weight:700 }
 
 .muted { color:var(--muted); margin:4px 0 0 }
 .small-text { font-size:12px }
-.products-page, .tables-page, .summary-page, .history-page, .action-history-page, .staff-page, .reports-page, .kitchen-page, .qr-orders-page, .qr-codes-page, .settings-page { display:flex; flex-direction:column; gap:14px }
+.products-page, .stock-page, .tables-page, .summary-page, .history-page, .action-history-page, .staff-page, .reports-page, .kitchen-page, .qr-orders-page, .qr-codes-page, .settings-page { display:flex; flex-direction:column; gap:14px }
 .page-title { display:flex; justify-content:space-between; gap:16px; align-items:flex-start }
 .page-title h2, .section-header h3 { margin:0 }
 .metric-grid { display:grid; grid-template-columns:repeat(4, minmax(0, 1fr)); gap:12px }
@@ -38,6 +38,7 @@ th { color:#4b5563; font-size:13px; font-weight:700 }
 .section-header { display:flex; justify-content:space-between; gap:14px; align-items:flex-start; margin-bottom:14px }
 .section-header.compact { align-items:center }
 .toolbar-controls { display:grid; grid-template-columns:minmax(220px, 1fr) 180px 150px; gap:8px; min-width:min(100%, 620px) }
+.stock-toolbar-controls { grid-template-columns:minmax(220px, 1fr) 170px 150px 130px; min-width:min(100%, 760px) }
 .table-wrap { overflow:auto }
 .data-table strong { display:block }
 .empty-cell { text-align:center; color:var(--muted); padding:28px 8px }
@@ -45,6 +46,7 @@ th { color:#4b5563; font-size:13px; font-weight:700 }
 .status-pill { display:inline-flex; align-items:center; border-radius:999px; padding:4px 9px; border:1px solid var(--line); color:#374151; background:#f9fafb; font-size:12px; font-weight:700 }
 .status-pill.success { color:var(--success); background:#ecfdf3; border-color:#bbf7d0 }
 .status-pill.muted-pill { color:#6b7280; background:#f3f4f6 }
+.status-pill.danger-pill { color:var(--danger); background:#fff5f5; border-color:#fecaca }
 .stacked-form { display:flex; flex-direction:column; gap:12px }
 .form-row { display:grid; grid-template-columns:1fr 120px; gap:10px }
 .form-field label { display:block; font-weight:700; font-size:13px; margin-bottom:6px }
@@ -205,15 +207,32 @@ th { color:#4b5563; font-size:13px; font-weight:700 }
 .qr-request-head { display:flex; justify-content:space-between; gap:12px; align-items:flex-start; margin-bottom:12px }
 .qr-request-head h3 { margin:3px 0 0; font-size:20px }
 .qr-request-head .small-text { color:var(--muted); font-weight:700 }
-.qr-request-meta { display:grid; grid-template-columns:repeat(2, minmax(0, 1fr)); gap:10px; margin-top:12px }
+.qr-request-meta { display:grid; grid-template-columns:repeat(3, minmax(0, 1fr)); gap:10px; margin-top:12px }
 .qr-request-meta div { border:1px solid var(--line); border-radius:8px; padding:10px; background:#f9fafb }
 .qr-request-meta span, .qr-request-meta small { display:block; color:var(--muted); font-size:12px }
 .qr-request-meta strong { display:block; margin:4px 0; font-size:18px }
 .qr-request-actions { display:flex; gap:8px; justify-content:flex-end; flex-wrap:wrap; margin-top:12px; padding-top:12px; border-top:1px solid var(--line) }
 .waiter-call-list { display:grid; grid-template-columns:repeat(2, minmax(0, 1fr)); gap:10px }
-.waiter-call-card { display:flex; justify-content:space-between; gap:12px; align-items:center; border:1px solid #fecaca; border-left:6px solid var(--danger); border-radius:8px; padding:12px; background:#fff7f7 }
+.waiter-call-card { display:flex; justify-content:space-between; gap:12px; align-items:center; flex-wrap:wrap; border:1px solid #fecaca; border-left:6px solid var(--danger); border-radius:8px; padding:12px; background:#fff7f7 }
 .waiter-call-card strong { display:block; font-size:20px; margin-top:2px }
 .waiter-call-card .small-text { color:var(--danger); font-weight:800 }
+.qr-note-field { margin-top:12px }
+.qr-note-box { border:1px solid var(--line); border-radius:8px; padding:10px; background:#f9fafb; margin-top:12px }
+.qr-note-box p { margin:0 0 6px }
+.qr-note-box p:last-child { margin-bottom:0 }
+.qr-inline-panel { flex:1 0 100%; border:1px solid var(--line); border-radius:8px; padding:12px; background:#f9fafb; margin-top:12px }
+.qr-inline-panel label { display:block; font-weight:800; font-size:13px; margin-bottom:6px }
+.qr-edit-list { display:flex; flex-direction:column; gap:8px; margin:12px 0 }
+.qr-edit-row { display:grid; grid-template-columns:minmax(0, 1fr) 90px auto; gap:8px; align-items:center; border:1px solid var(--line); border-radius:8px; padding:10px; background:#fff }
+.qr-edit-row span { display:block; color:var(--muted); font-size:12px; margin-top:3px }
+.qr-edit-add-row { display:grid; grid-template-columns:minmax(0, 1fr) 90px auto; gap:8px; margin-bottom:12px }
+.qr-reject-row { grid-template-columns:220px minmax(0, 1fr) }
+.qr-audit-details { border-top:1px solid var(--line); margin-top:12px; padding-top:10px }
+.qr-audit-details summary { cursor:pointer; font-weight:800; color:#374151 }
+.qr-audit-list { list-style:none; padding:0; margin:10px 0 0; display:flex; flex-direction:column; gap:8px }
+.qr-audit-list li { border:1px solid var(--line); border-radius:8px; padding:8px 10px; background:#fff }
+.qr-audit-list strong, .qr-audit-list span, .qr-audit-list small { display:block }
+.qr-audit-list span, .qr-audit-list small { color:var(--muted); font-size:12px; margin-top:3px }
 .qr-link { font-family:ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; color:#111827; word-break:break-all }
 .qr-code-preview { display:grid; grid-template-columns:320px minmax(0, 1fr); gap:16px; align-items:start }
 .qr-preview-actions { display:flex; gap:8px; flex-wrap:wrap; align-items:center }
@@ -254,7 +273,7 @@ th { color:#4b5563; font-size:13px; font-weight:700 }
   .app-brand img { width:38px; height:38px }
   .metric-grid { grid-template-columns:1fr }
   .kitchen-grid { grid-template-columns:1fr }
-  .form-row, .inline-form, .category-row, .category-edit-form, .order-summary, .picker-controls, .checkout-panel, .checkout-total-grid, .payment-grid, .table-grid, .discount-controls, .product-pick-row, .history-controls, .history-detail-grid, .report-highlight-grid, .qr-product-card, .qr-request-list, .qr-request-meta, .waiter-call-list, .settings-form-grid { grid-template-columns:1fr }
+  .form-row, .inline-form, .category-row, .category-edit-form, .order-summary, .picker-controls, .checkout-panel, .checkout-total-grid, .payment-grid, .table-grid, .discount-controls, .product-pick-row, .history-controls, .history-detail-grid, .report-highlight-grid, .qr-product-card, .qr-request-list, .qr-request-meta, .qr-edit-row, .qr-edit-add-row, .qr-reject-row, .waiter-call-list, .settings-form-grid { grid-template-columns:1fr }
   .actions-cell { justify-content:flex-start }
   .history-card summary { align-items:flex-start; flex-direction:column }
   .history-summary-values { text-align:left }

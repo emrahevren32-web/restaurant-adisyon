@@ -10,6 +10,7 @@ import Kitchen from './pages/Kitchen'
 import QRMenu from './pages/QRMenu'
 import QROrders from './pages/QROrders'
 import QRCodes from './pages/QRCodes'
+import StockCards from './pages/StockCards'
 import Login from './pages/Login'
 import Users from './pages/Users'
 import Settings from './pages/Settings'
@@ -27,6 +28,7 @@ import { User } from './types'
 type Route =
   | 'tables'
   | 'products'
+  | 'stock-cards'
   | 'summary'
   | 'history'
   | 'kitchen'
@@ -91,6 +93,7 @@ export default function App(){
             <div className="nav">
               <button className="btn" onClick={()=>setRoute('tables')}>Masalar</button>
               <button className="btn" onClick={()=>setRoute('products')}>Ürünler</button>
+              {currentUser.role === 'Admin' && <button className="btn" onClick={()=>setRoute('stock-cards')}>Stok Kartları</button>}
               <button className="btn" onClick={()=>setRoute('summary')}>Günlük Satış</button>
               <button className="btn" onClick={()=>setRoute('history')}>Adisyon Geçmişi</button>
               <button className="btn" onClick={()=>setRoute('kitchen')}>Mutfak Ekranı</button>
@@ -113,6 +116,7 @@ export default function App(){
           <div>
             {route === 'tables' && <TableManagement currentUser={currentUser} />}
             {route === 'products' && <Products currentUser={currentUser} />}
+            {route === 'stock-cards' && currentUser.role === 'Admin' && <StockCards currentUser={currentUser} />}
             {route === 'summary' && <DailySummary />}
             {route === 'history' && <BillHistory />}
             {route === 'kitchen' && <Kitchen currentUser={currentUser} />}

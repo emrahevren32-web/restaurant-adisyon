@@ -2,6 +2,7 @@ import React from 'react'
 import { Product, QRRequestItem, TableState, User } from '../types'
 import {
   addActionLog,
+  addQRAuditEvent,
   loadCategories,
   loadProducts,
   loadQRRequests,
@@ -40,6 +41,7 @@ export default function QRMenu({ tableId }: Props){
   const [settings] = React.useState(() => loadSettings())
   const [selectedCategory, setSelectedCategory] = React.useState('all')
   const [cart, setCart] = React.useState<Record<string, CartItem>>({})
+  const [customerNote, setCustomerNote] = React.useState('')
   const [message, setMessage] = React.useState<Message>(null)
 
   const decodedTableId = React.useMemo(() => decodeURIComponent(tableId), [tableId])
@@ -121,13 +123,15 @@ export default function QRMenu({ tableId }: Props){
     }
 
     const now = new Date().toISOString()
-    saveWaiterCalls([{
+    const call = {
       id: `call_${Date.now()}_${Math.random().toString(16).slice(2)}`,
       tableId: table.id,
       tableName: table.name,
       status: 'Bekliyor',
       createdAt: now
-    }, ...loadWaiterCalls()])
+    } as const
+
+    saveWaiterCalls([call, ...loadWaiterCalls()])
 
     addActionLog({
       operationType: 'Garson çağrıldı',
@@ -135,6 +139,16 @@ export default function QRMenu({ tableId }: Props){
       tableId: table.id,
       tableName: table.name,
       description: `${table.name} garson çağırdı.`
+    })
+    addQRAuditEvent({
+      entityType: 'WaiterCall',
+      entityId: call.id,
+      eventType: 'created',
+      user: qrCustomerUser,
+      tableId: table.id,
+      tableName: table.name,
+      after: call,
+      note: `${table.name} garson çağırdı.`
     })
     setMessage({ type: 'success', text: 'Garson çağrınız iletildi.' })
   }
@@ -155,12 +169,33 @@ export default function QRMenu({ tableId }: Props){
       tableId: table.id,
       tableName: table.name,
       items: cartItems,
+      originalItems: cartItems,
       status: 'Garson Onayı Bekliyor' as const,
+      customerNote: customerNote.trim(),
+      staffNote: '',
       createdAt: new Date().toISOString()
     }
 
     saveQRRequests([request, ...loadQRRequests()])
+    addActionLog({
+      operationType: 'QR Siparişi Oluşturuldu',
+      user: qrCustomerUser,
+      tableId: table.id,
+      tableName: table.name,
+      description: `${table.name} QR sipariş talebi oluşturdu. ${cartItems.map(item => `${item.productName} x${item.qty}`).join(', ')}${customerNote.trim() ? ` Not: ${customerNote.trim()}` : ''}`
+    })
+    addQRAuditEvent({
+      entityType: 'QRRequest',
+      entityId: request.id,
+      eventType: 'created',
+      user: qrCustomerUser,
+      tableId: table.id,
+      tableName: table.name,
+      after: request,
+      note: customerNote.trim() || 'QR sipariş talebi oluşturuldu.'
+    })
     setCart({})
+    setCustomerNote('')
     setMessage({ type: 'success', text: 'Sipariş talebiniz garson onayına gönderildi.' })
   }
 
@@ -259,6 +294,16 @@ export default function QRMenu({ tableId }: Props){
             <div className="qr-cart-total">
               <span>Toplam</span>
               <strong>{formatCurrency(total)}</strong>
+            </div>
+
+            <div className="form-field qr-note-field">
+              <label>Sipariş notu</label>
+              <textarea
+                rows={3}
+                placeholder="Alerji, pişirme tercihi veya servis notu"
+                value={customerNote}
+                onChange={event => setCustomerNote(event.target.value)}
+              />
             </div>
 
             <div className="qr-sticky-actions">

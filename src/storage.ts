@@ -6,17 +6,29 @@ import {
   KitchenOrderStatus,
   Product,
   ProductCategory,
+  QRAuditEvent,
+  AuditEntityType,
+  AuditEventType,
+  QRRejectReason,
   QRRequest,
+  QRRequestHistory,
+  QRRequestItem,
   QRRequestStatus,
+  StockCategory,
+  StockItem,
+  StockUnit,
   SystemSettings,
   TableState,
   User,
   WaiterCall,
+  WaiterCallHistory,
   WaiterCallStatus
 } from './types'
 
 const KEY_PRODUCTS = 'ra_products'
 const KEY_CATEGORIES = 'ra_categories'
+const KEY_STOCK_ITEMS = 'ra_stock_items'
+const KEY_STOCK_CATEGORIES = 'ra_stock_categories'
 const KEY_TABLES = 'ra_tables'
 const KEY_CLOSED = 'ra_closed'
 const KEY_USERS = 'ra_users'
@@ -24,10 +36,15 @@ const KEY_AUTH = 'ra_auth'
 const KEY_LOGS = 'ra_logs'
 const KEY_KITCHEN = 'ra_kitchen_orders'
 const KEY_QR_REQUESTS = 'ra_qr_requests'
+const KEY_QR_REQUEST_HISTORY = 'ra_qr_request_history'
+const KEY_QR_AUDIT_EVENTS = 'ra_qr_audit_events'
 const KEY_SETTINGS = 'ra_settings'
 const KEY_WAITER_CALLS = 'ra_waiter_calls'
+const KEY_WAITER_CALL_HISTORY = 'ra_waiter_call_history'
 
 const DEFAULT_CATEGORY_ID = 'cat_general'
+const DEFAULT_STOCK_CATEGORY_ID = 'stock_cat_general'
+const STOCK_UNITS: StockUnit[] = ['adet', 'kg', 'gr', 'lt', 'ml', 'paket', 'koli']
 
 export const DEFAULT_SETTINGS: SystemSettings = {
   restaurantName: 'Restaurant Adisyon',
@@ -38,6 +55,13 @@ export const DEFAULT_SETTINGS: SystemSettings = {
 
 const createDefaultCategory = (): ProductCategory => ({
   id: DEFAULT_CATEGORY_ID,
+  name: 'Genel',
+  active: true,
+  createdAt: new Date().toISOString()
+})
+
+const createDefaultStockCategory = (): StockCategory => ({
+  id: DEFAULT_STOCK_CATEGORY_ID,
   name: 'Genel',
   active: true,
   createdAt: new Date().toISOString()
@@ -84,6 +108,38 @@ const normalizeProduct = (item: Partial<Product>, fallbackCategoryId = DEFAULT_C
   }
 }
 
+const normalizeStockUnit = (value: unknown): StockUnit => {
+  return STOCK_UNITS.includes(value as StockUnit) ? value as StockUnit : 'adet'
+}
+
+const normalizeStockCategory = (item: Partial<StockCategory>): StockCategory => ({
+  id: String(item.id || `stock_cat_${Date.now()}`),
+  name: String(item.name || 'Genel').trim() || 'Genel',
+  active: item.active !== false,
+  createdAt: item.createdAt || new Date().toISOString(),
+  updatedAt: item.updatedAt
+})
+
+const normalizeStockItem = (item: Partial<StockItem>, fallbackCategoryId = DEFAULT_STOCK_CATEGORY_ID): StockItem => {
+  const currentQty = Number(item.currentQty)
+  const minQty = Number(item.minQty)
+
+  return {
+    id: String(item.id || `stock_${Date.now()}`),
+    name: String(item.name || 'İsimsiz Stok Kartı').trim() || 'İsimsiz Stok Kartı',
+    categoryId: item.categoryId || fallbackCategoryId,
+    unit: normalizeStockUnit(item.unit),
+    currentQty: Number.isFinite(currentQty) ? Math.max(0, currentQty) : 0,
+    minQty: Number.isFinite(minQty) ? Math.max(0, minQty) : 0,
+    sku: item.sku || '',
+    barcode: item.barcode || '',
+    description: item.description || '',
+    active: item.active !== false,
+    createdAt: item.createdAt || new Date().toISOString(),
+    updatedAt: item.updatedAt
+  }
+}
+
 const normalizeKitchenStatus = (value: unknown): KitchenOrderStatus => {
   if(value === 'Hazırlanıyor' || value === 'Hazır') return value
   return 'Yeni Sipariş'
@@ -111,30 +167,65 @@ const normalizeKitchenOrder = (item: Partial<KitchenOrder>): KitchenOrder => {
 }
 
 const normalizeQRRequestStatus = (value: unknown): QRRequestStatus => {
-  if(value === 'Garson Onayı Bekliyor') return value
+  if(value === 'Onaylandı' || value === 'Reddedildi' || value === 'Garson Onayı Bekliyor') return value
   return 'Garson Onayı Bekliyor'
+}
+
+const normalizeQRRequestItem = (orderItem: Partial<QRRequestItem>): QRRequestItem => ({
+  productId: String(orderItem.productId || ''),
+  productName: String(orderItem.productName || 'Ürün'),
+  unitPrice: Math.max(0, Number(orderItem.unitPrice) || 0),
+  qty: Math.max(1, Number(orderItem.qty) || 1)
+})
+
+const normalizeQRRejectReason = (value: unknown): QRRejectReason | undefined => {
+  if(
+    value === 'Ürün mevcut değil'
+    || value === 'Mutfak kapalı'
+    || value === 'Müşteri iptali'
+    || value === 'Hatalı masa'
+    || value === 'Stok yetersiz'
+    || value === 'Diğer'
+  ){
+    return value
+  }
+
+  return undefined
 }
 
 const normalizeQRRequest = (item: Partial<QRRequest>): QRRequest => {
   const timestamp = item.createdAt || new Date().toISOString()
+  const items = (item.items || []).map(normalizeQRRequestItem).filter(orderItem => orderItem.productId)
+  const originalItems = (item.originalItems || items).map(normalizeQRRequestItem).filter(orderItem => orderItem.productId)
 
   return {
     id: String(item.id || `qr_${Date.now()}`),
     tableId: String(item.tableId || ''),
     tableName: String(item.tableName || 'Masa'),
-    items: (item.items || []).map(orderItem => ({
-      productId: String(orderItem.productId || ''),
-      productName: String(orderItem.productName || 'Ürün'),
-      unitPrice: Math.max(0, Number(orderItem.unitPrice) || 0),
-      qty: Math.max(1, Number(orderItem.qty) || 1)
-    })).filter(orderItem => orderItem.productId),
+    items,
+    originalItems,
     status: normalizeQRRequestStatus(item.status),
-    createdAt: timestamp
+    customerNote: item.customerNote || '',
+    staffNote: item.staffNote || '',
+    createdAt: timestamp,
+    updatedAt: item.updatedAt,
+    updatedByUserId: item.updatedByUserId,
+    updatedByFullName: item.updatedByFullName,
+    editCount: Math.max(0, Number(item.editCount) || 0),
+    approvedAt: item.approvedAt,
+    approvedByUserId: item.approvedByUserId,
+    approvedByFullName: item.approvedByFullName,
+    rejectedAt: item.rejectedAt,
+    rejectedByUserId: item.rejectedByUserId,
+    rejectedByFullName: item.rejectedByFullName,
+    rejectReason: normalizeQRRejectReason(item.rejectReason),
+    rejectNote: item.rejectNote,
+    archivedAt: item.archivedAt
   }
 }
 
 const normalizeWaiterCallStatus = (value: unknown): WaiterCallStatus => {
-  if(value === 'Bekliyor') return value
+  if(value === 'Sahiplenildi' || value === 'Masaya Gidildi' || value === 'Kapatıldı' || value === 'Bekliyor') return value
   return 'Bekliyor'
 }
 
@@ -144,9 +235,79 @@ const normalizeWaiterCall = (item: Partial<WaiterCall>): WaiterCall => {
     tableId: String(item.tableId || ''),
     tableName: String(item.tableName || 'Masa'),
     status: normalizeWaiterCallStatus(item.status),
-    createdAt: item.createdAt || new Date().toISOString()
+    createdAt: item.createdAt || new Date().toISOString(),
+    updatedAt: item.updatedAt,
+    assignedAt: item.assignedAt,
+    assignedByUserId: item.assignedByUserId,
+    assignedByFullName: item.assignedByFullName,
+    visitedAt: item.visitedAt,
+    visitedByUserId: item.visitedByUserId,
+    visitedByFullName: item.visitedByFullName,
+    closedAt: item.closedAt,
+    closedByUserId: item.closedByUserId,
+    closedByFullName: item.closedByFullName,
+    closeNote: item.closeNote || '',
+    archivedAt: item.archivedAt
   }
 }
+
+const normalizeQRRequestHistory = (item: Partial<QRRequestHistory>): QRRequestHistory => {
+  const request = normalizeQRRequest(item)
+  const status = request.status === 'Onaylandı' || request.status === 'Reddedildi' ? request.status : 'Reddedildi'
+  const archivedAt = item.archivedAt || request.archivedAt || request.rejectedAt || request.approvedAt || new Date().toISOString()
+
+  return {
+    ...request,
+    status,
+    archivedAt
+  }
+}
+
+const normalizeWaiterCallHistory = (item: Partial<WaiterCallHistory>): WaiterCallHistory => {
+  const call = normalizeWaiterCall(item)
+
+  return {
+    ...call,
+    status: 'Kapatıldı',
+    archivedAt: item.archivedAt || call.archivedAt || call.closedAt || new Date().toISOString()
+  }
+}
+
+const normalizeAuditEventType = (value: unknown): AuditEventType => {
+  if(
+    value === 'edited'
+    || value === 'approved'
+    || value === 'rejected'
+    || value === 'assigned'
+    || value === 'visited'
+    || value === 'closed'
+    || value === 'note_updated'
+    || value === 'created'
+  ){
+    return value
+  }
+
+  return 'created'
+}
+
+const normalizeAuditEntityType = (value: unknown): AuditEntityType => {
+  return value === 'WaiterCall' ? 'WaiterCall' : 'QRRequest'
+}
+
+const normalizeQRAuditEvent = (item: Partial<QRAuditEvent>): QRAuditEvent => ({
+  id: String(item.id || `audit_${Date.now()}`),
+  entityType: normalizeAuditEntityType(item.entityType),
+  entityId: String(item.entityId || ''),
+  eventType: normalizeAuditEventType(item.eventType),
+  userId: String(item.userId || ''),
+  userName: String(item.userName || 'Bilinmeyen Kullanıcı'),
+  tableId: item.tableId,
+  tableName: item.tableName,
+  timestamp: item.timestamp || new Date().toISOString(),
+  before: item.before,
+  after: item.after,
+  note: item.note || ''
+})
 
 const normalizeSettings = (item: Partial<SystemSettings>): SystemSettings => {
   const vatRate = Number(item.vatRate)
@@ -211,6 +372,39 @@ export const saveCategories = (items: ProductCategory[]) => {
   localStorage.setItem(KEY_CATEGORIES, JSON.stringify(categories))
 }
 
+export const loadStockCategories = (): StockCategory[] => {
+  const stored = readJson<Partial<StockCategory>[]>(KEY_STOCK_CATEGORIES, [])
+  const categories = stored.map(normalizeStockCategory)
+
+  if(!categories.find(c => c.id === DEFAULT_STOCK_CATEGORY_ID)){
+    categories.unshift(createDefaultStockCategory())
+  }
+
+  return categories
+}
+
+export const saveStockCategories = (items: StockCategory[]) => {
+  const categories = items.map(normalizeStockCategory)
+
+  if(!categories.find(c => c.id === DEFAULT_STOCK_CATEGORY_ID)){
+    categories.unshift(createDefaultStockCategory())
+  }
+
+  localStorage.setItem(KEY_STOCK_CATEGORIES, JSON.stringify(categories))
+}
+
+export const loadStockItems = (): StockItem[] => {
+  const categories = loadStockCategories()
+  const fallbackCategoryId = categories.find(c => c.id === DEFAULT_STOCK_CATEGORY_ID)?.id || categories[0]?.id || DEFAULT_STOCK_CATEGORY_ID
+  return readJson<Partial<StockItem>[]>(KEY_STOCK_ITEMS, []).map(item => normalizeStockItem(item, fallbackCategoryId))
+}
+
+export const saveStockItems = (items: StockItem[]) => {
+  const categories = loadStockCategories()
+  const fallbackCategoryId = categories.find(c => c.id === DEFAULT_STOCK_CATEGORY_ID)?.id || categories[0]?.id || DEFAULT_STOCK_CATEGORY_ID
+  localStorage.setItem(KEY_STOCK_ITEMS, JSON.stringify(items.map(item => normalizeStockItem(item, fallbackCategoryId))))
+}
+
 export const loadTables = (): TableState[] => {
   return readJson<TableState[]>(KEY_TABLES, [])
 }
@@ -243,12 +437,83 @@ export const saveQRRequests = (items: QRRequest[]) => {
   localStorage.setItem(KEY_QR_REQUESTS, JSON.stringify(items.map(normalizeQRRequest)))
 }
 
+export const loadQRRequestHistory = (): QRRequestHistory[] => {
+  return readJson<Partial<QRRequestHistory>[]>(KEY_QR_REQUEST_HISTORY, []).map(normalizeQRRequestHistory)
+}
+
+export const saveQRRequestHistory = (items: QRRequestHistory[]) => {
+  localStorage.setItem(KEY_QR_REQUEST_HISTORY, JSON.stringify(items.map(normalizeQRRequestHistory)))
+}
+
+export const addQRRequestHistory = (item: QRRequestHistory) => {
+  saveQRRequestHistory([item, ...loadQRRequestHistory()])
+}
+
+export const loadQRAuditEvents = (): QRAuditEvent[] => {
+  return readJson<Partial<QRAuditEvent>[]>(KEY_QR_AUDIT_EVENTS, []).map(normalizeQRAuditEvent)
+}
+
+export const saveQRAuditEvents = (items: QRAuditEvent[]) => {
+  localStorage.setItem(KEY_QR_AUDIT_EVENTS, JSON.stringify(items.map(normalizeQRAuditEvent)))
+}
+
+export const addQRAuditEvent = ({
+  entityType,
+  entityId,
+  eventType,
+  user,
+  tableId,
+  tableName,
+  before,
+  after,
+  note
+}: {
+  entityType: AuditEntityType
+  entityId: string
+  eventType: AuditEventType
+  user: User
+  tableId?: string
+  tableName?: string
+  before?: unknown
+  after?: unknown
+  note?: string
+}) => {
+  const event: QRAuditEvent = {
+    id: `audit_${Date.now()}_${Math.random().toString(16).slice(2)}`,
+    entityType,
+    entityId,
+    eventType,
+    userId: user.id,
+    userName: user.fullName || user.username,
+    tableId,
+    tableName,
+    timestamp: new Date().toISOString(),
+    before,
+    after,
+    note
+  }
+
+  saveQRAuditEvents([event, ...loadQRAuditEvents()])
+}
+
 export const loadWaiterCalls = (): WaiterCall[] => {
   return readJson<Partial<WaiterCall>[]>(KEY_WAITER_CALLS, []).map(normalizeWaiterCall).filter(call => call.tableId)
 }
 
 export const saveWaiterCalls = (items: WaiterCall[]) => {
   localStorage.setItem(KEY_WAITER_CALLS, JSON.stringify(items.map(normalizeWaiterCall).filter(call => call.tableId)))
+}
+
+export const loadWaiterCallHistory = (): WaiterCallHistory[] => {
+  return readJson<Partial<WaiterCallHistory>[]>(KEY_WAITER_CALL_HISTORY, []).map(normalizeWaiterCallHistory)
+}
+
+export const saveWaiterCallHistory = (items: WaiterCallHistory[]) => {
+  localStorage.setItem(KEY_WAITER_CALL_HISTORY, JSON.stringify(items.map(normalizeWaiterCallHistory)))
+}
+
+export const addWaiterCallHistory = (item: WaiterCallHistory) => {
+  saveWaiterCallHistory([item, ...loadWaiterCallHistory()])
 }
 
 export const loadSettings = (): SystemSettings => {
@@ -395,6 +660,7 @@ export const restoreSystemBackup = (backup: unknown) => {
 
   ensureDefaultAdmin()
   loadCategories()
+  loadStockCategories()
   loadSettings()
 
   return entries.length
