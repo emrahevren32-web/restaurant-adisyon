@@ -30,6 +30,11 @@ import {
   saveWaiterCalls
 } from '../storage'
 import { formatCurrency } from '../billing'
+import {
+  captureActiveRecipeSnapshot,
+  deductStockForOrder,
+  orderMatchesRecipeSnapshot
+} from '../stockDeduction'
 
 type Props = {
   currentUser: User
@@ -112,29 +117,56 @@ const findTargetTable = (request: QRRequest, tables: TableState[]) => {
   return tables.find(item => item.id === request.tableId)
 }
 
-const mergeRequestItemsIntoOrders = (orders: Order[], items: QRRequestItem[]) => {
-  return items.reduce<Order[]>((nextOrders, item) => {
-    const existingOrder = nextOrders.find(order => {
-      return order.productId === item.productId
-        && (order.unitPrice ?? item.unitPrice) === item.unitPrice
-        && Boolean(order.isGift) === false
-    })
+const mergeRequestItemsIntoOrders = (
+  orders: Order[],
+  items: QRRequestItem[],
+  table: TableState,
+  currentUser: User,
+  products: Product[]
+) => {
+  const warnings: string[] = []
+  let nextOrders = orders.map(order => ({ ...order }))
 
-    if(existingOrder){
-      return nextOrders.map(order => order.id === existingOrder.id ? { ...order, qty: order.qty + item.qty } : order)
+  items.forEach(item => {
+    const product = products.find(product => product.id === item.productId) || {
+      id: item.productId,
+      name: item.productName,
+      price: item.unitPrice,
+      categoryId: '',
+      active: false,
+      createdAt: new Date().toISOString()
+    }
+    const recipeSnapshot = captureActiveRecipeSnapshot(item.productId)
+    const existingOrder = nextOrders.find(order => orderMatchesRecipeSnapshot(order, item.productId, item.unitPrice, false, recipeSnapshot))
+    const draftOrder: Order = existingOrder || {
+      id: createId('ord'),
+      productId: item.productId,
+      productName: item.productName,
+      unitPrice: item.unitPrice,
+      qty: 0
+    }
+    const deductionResult = deductStockForOrder({
+      order: draftOrder,
+      product,
+      tableId: table.id,
+      tableName: table.name,
+      qty: item.qty,
+      user: currentUser,
+      sourceType: existingOrder ? 'Adet Artışı' : 'QR Siparişi',
+      recipeSnapshot: existingOrder?.recipeSnapshot || recipeSnapshot
+    })
+    const nextOrder: Order = {
+      ...deductionResult.order,
+      qty: (existingOrder?.qty || 0) + item.qty
     }
 
-    return [
-      ...nextOrders,
-      {
-        id: createId('ord'),
-        productId: item.productId,
-        productName: item.productName,
-        unitPrice: item.unitPrice,
-        qty: item.qty
-      }
-    ]
-  }, orders.map(order => ({ ...order })))
+    warnings.push(...deductionResult.warnings, ...deductionResult.errors)
+    nextOrders = existingOrder
+      ? nextOrders.map(order => order.id === existingOrder.id ? nextOrder : order)
+      : [...nextOrders, nextOrder]
+  })
+
+  return { orders: nextOrders, warnings }
 }
 
 const mergeKitchenItem = (items: QRRequestItem[], nextItem: QRRequestItem) => {
@@ -538,11 +570,12 @@ export default function QROrders({ currentUser }: Props){
       approvedByFullName: getUserName(currentUser),
       archivedAt: now
     }
+    const mergeResult = mergeRequestItemsIntoOrders(table.orders, request.items, table, currentUser, products)
     const nextTables = tables.map(item => item.id === table.id
       ? {
         ...item,
         open: true,
-        orders: mergeRequestItemsIntoOrders(item.orders, request.items),
+        orders: mergeResult.orders,
         note: mergeTableNoteWithQRNotes(item.note, request)
       }
       : item
@@ -562,17 +595,22 @@ export default function QROrders({ currentUser }: Props){
       tableName: table.name,
       before: request,
       after: approvedRequest,
-      note: `${getUserName(currentUser)} QR siparişini onayladı.`
+      note: `${getUserName(currentUser)} QR siparişini onayladı.${mergeResult.warnings.length > 0 ? ` Stok uyarısı: ${mergeResult.warnings.join(' | ')}` : ''}`
     })
     addActionLog({
       operationType: 'QR Siparişi Onaylandı',
       user: currentUser,
       tableId: table.id,
       tableName: table.name,
-      description: `${getUserName(currentUser)} ${table.name} QR sipariş talebini onayladı. ${summarizeItems(request.items)} adisyona eklendi.${kitchenItemCount > 0 ? ` ${kitchenItemCount} ürün mutfağa gönderildi.` : ''}${request.customerNote?.trim() ? ` Müşteri notu: ${request.customerNote.trim()}.` : ''}${request.staffNote?.trim() ? ` Personel notu: ${request.staffNote.trim()}.` : ''}`
+      description: `${getUserName(currentUser)} ${table.name} QR sipariş talebini onayladı. ${summarizeItems(request.items)} adisyona eklendi.${kitchenItemCount > 0 ? ` ${kitchenItemCount} ürün mutfağa gönderildi.` : ''}${mergeResult.warnings.length > 0 ? ` Stok uyarısı: ${mergeResult.warnings.join(' | ')}.` : ''}${request.customerNote?.trim() ? ` Müşteri notu: ${request.customerNote.trim()}.` : ''}${request.staffNote?.trim() ? ` Personel notu: ${request.staffNote.trim()}.` : ''}`
     })
 
-    setFeedback({ type: 'success', text: `${table.name} QR sipariş talebi onaylandı.` })
+    setFeedback({
+      type: 'success',
+      text: mergeResult.warnings.length > 0
+        ? `${table.name} QR sipariş talebi onaylandı. Stok uyarısı: ${mergeResult.warnings.join(' | ')}`
+        : `${table.name} QR sipariş talebi onaylandı.`
+    })
     refreshLiveData()
   }
 

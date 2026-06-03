@@ -77,6 +77,16 @@ export type StockMovement = {
   reversesMovementId?: string
   reversedByMovementId?: string
   reversedAt?: string
+  sourceEntityType?: string
+  sourceEntityId?: string
+  tableId?: string
+  tableName?: string
+  orderId?: string
+  recipeId?: string
+  recipeVersion?: number
+  deductionBatchId?: string
+  reverseOfBatchId?: string
+  reverseMode?: 'full' | 'partial'
 }
 
 export type StockMovementAuditEventType = 'created' | 'reversed'
@@ -147,6 +157,89 @@ export type RecipeAuditEvent = {
   note?: string
 }
 
+export type OrderRecipeSnapshot = {
+  recipeId: string
+  recipeName: string
+  recipeVersion: number
+  productId: string
+  productName: string
+  items: RecipeItem[]
+  capturedAt: string
+}
+
+export type StockDeductionStatus =
+  | 'not_required'
+  | 'deducted'
+  | 'warning'
+  | 'missing_recipe'
+  | 'failed'
+  | 'partial_reversed'
+  | 'reversed'
+
+export type StockDeductionSourceType =
+  | 'Masa Siparişi'
+  | 'QR Siparişi'
+  | 'Adet Artışı'
+  | 'Adet Azalışı'
+  | 'Sipariş İptali'
+
+export type StockDeductionLine = {
+  id: string
+  stockItemId: string
+  stockItemName: string
+  qty: number
+  unit: StockUnit
+  recipeQty: number
+  recipeUnit: StockUnit
+  wastePercent: number
+  movementId?: string
+  reverseMovementIds?: string[]
+  warning?: string
+  error?: string
+}
+
+export type StockDeductionBatch = {
+  id: string
+  orderId: string
+  tableId: string
+  tableName: string
+  productId: string
+  productName: string
+  qty: number
+  remainingQty: number
+  sourceType: StockDeductionSourceType
+  status: StockDeductionStatus
+  recipeId?: string
+  recipeVersion?: number
+  recipeSnapshot?: OrderRecipeSnapshot
+  movementIds: string[]
+  lines: StockDeductionLine[]
+  warnings: string[]
+  errors: string[]
+  createdAt: string
+  createdByUserId: string
+  createdByFullName: string
+  updatedAt?: string
+}
+
+export type StockDeductionAuditEventType = 'deducted' | 'reversed' | 'warning' | 'failed' | 'skipped'
+
+export type StockDeductionAuditEvent = {
+  id: string
+  batchId?: string
+  orderId?: string
+  productId?: string
+  eventType: StockDeductionAuditEventType
+  userId: string
+  userName: string
+  tableId?: string
+  tableName?: string
+  timestamp: string
+  before?: unknown
+  after?: unknown
+  note?: string
+}
+
 export type Order = {
   id: string
   productId: string
@@ -154,6 +247,13 @@ export type Order = {
   unitPrice?: number
   qty: number
   isGift?: boolean
+  recipeId?: string
+  recipeVersion?: number
+  recipeSnapshot?: OrderRecipeSnapshot
+  stockDeductionStatus?: StockDeductionStatus
+  stockDeductionBatchIds?: string[]
+  stockDeductedQty?: number
+  stockDeductionWarnings?: string[]
 }
 
 export type PaymentMethod = 'Nakit' | 'Kart' | 'Diğer'
@@ -379,6 +479,10 @@ export type ActionLogType =
   | 'Reçete kopyalandı'
   | 'Reçete aktif yapıldı'
   | 'Reçete pasif yapıldı'
+  | 'Otomatik stok düşümü yapıldı'
+  | 'Otomatik stok düşümü terslendi'
+  | 'Otomatik stok düşümü uyarısı'
+  | 'Otomatik stok düşümü başarısız'
   | 'Kullanıcı oluşturuldu'
   | 'Kullanıcı güncellendi'
   | 'Kullanıcı aktif yapıldı'

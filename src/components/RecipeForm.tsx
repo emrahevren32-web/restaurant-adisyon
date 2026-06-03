@@ -121,7 +121,6 @@ export default function RecipeForm({ products, stockItems, recipe, onSave, onCan
   const [newQty, setNewQty] = React.useState('1')
   const [newUnit, setNewUnit] = React.useState<StockUnit>(stockItems[0]?.unit || 'adet')
   const [newWastePercent, setNewWastePercent] = React.useState('0')
-  const [newNote, setNewNote] = React.useState('')
   const [error, setError] = React.useState('')
 
   React.useEffect(() => {
@@ -183,12 +182,11 @@ export default function RecipeForm({ products, stockItems, recipe, onSave, onCan
         qty,
         unit: newUnit,
         wastePercent,
-        note: newNote.trim()
+        note: ''
       }
     ])
     setNewQty('1')
     setNewWastePercent('0')
-    setNewNote('')
     setError('')
   }
 
@@ -267,7 +265,7 @@ export default function RecipeForm({ products, stockItems, recipe, onSave, onCan
         <input value={name} onChange={event => setName(event.target.value)} placeholder="Örn. Adana Kebap standart reçetesi" />
       </div>
 
-      <div className="recipe-add-row">
+      <div className="recipe-add-panel">
         <div className="form-field">
           <label>Hammadde</label>
           <select value={newStockItemId} onChange={event => {
@@ -279,26 +277,24 @@ export default function RecipeForm({ products, stockItems, recipe, onSave, onCan
             {stockItems.map(item => <option key={item.id} value={item.id}>{item.name} ({item.unit})</option>)}
           </select>
         </div>
-        <div className="form-field">
-          <label>Miktar</label>
-          <input type="number" min="0" step="0.001" value={newQty} onChange={event => setNewQty(event.target.value)} />
-        </div>
-        <div className="form-field">
-          <label>Birim</label>
-          <select value={newUnit} onChange={event => setNewUnit(event.target.value as StockUnit)}>
-            {unitOptions.map(unit => <option key={unit} value={unit}>{unit}</option>)}
-          </select>
-        </div>
-        <div className="form-field">
-          <label>Fire %</label>
-          <input type="number" min="0" step="0.01" value={newWastePercent} onChange={event => setNewWastePercent(event.target.value)} />
-        </div>
-        <button className="btn primary" type="button" onClick={addIngredient} disabled={!selectedNewStockItem}>Ekle</button>
-      </div>
 
-      <div className="form-field">
-        <label>Satır notu</label>
-        <input value={newNote} onChange={event => setNewNote(event.target.value)} placeholder="Opsiyonel hazırlık notu" />
+        <div className="recipe-add-controls">
+          <div className="form-field">
+            <label>Miktar</label>
+            <input type="number" min="0" step="0.001" value={newQty} onChange={event => setNewQty(event.target.value)} />
+          </div>
+          <div className="form-field">
+            <label>Birim</label>
+            <select value={newUnit} onChange={event => setNewUnit(event.target.value as StockUnit)}>
+              {unitOptions.map(unit => <option key={unit} value={unit}>{unit}</option>)}
+            </select>
+          </div>
+          <div className="form-field">
+            <label>Fire</label>
+            <input type="number" min="0" step="0.01" value={newWastePercent} onChange={event => setNewWastePercent(event.target.value)} />
+          </div>
+          <button className="btn primary recipe-add-button" type="button" onClick={addIngredient} disabled={!selectedNewStockItem}>Ekle</button>
+        </div>
       </div>
 
       <div className="recipe-item-list">

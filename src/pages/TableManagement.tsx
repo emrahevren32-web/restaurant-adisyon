@@ -13,6 +13,12 @@ import {
 } from '../storage'
 import TableCard from '../components/TableCard'
 import {
+  captureActiveRecipeSnapshot,
+  deductStockForOrder,
+  orderMatchesRecipeSnapshot,
+  reverseStockDeductionForOrderQty
+} from '../stockDeduction'
+import {
   calculateDiscountTotal,
   calculateFinalTotal,
   calculateProratedDiscountTotal,
@@ -80,6 +86,8 @@ const canMergeOrder = (left: Order, right: Order) => {
   return left.productId === right.productId
     && (left.unitPrice ?? 0) === (right.unitPrice ?? 0)
     && Boolean(left.isGift) === Boolean(right.isGift)
+    && (left.recipeId || '') === (right.recipeId || '')
+    && (left.recipeVersion || 0) === (right.recipeVersion || 0)
 }
 
 const mergeOrders = (targetOrders: Order[], sourceOrders: Order[]) => {
@@ -342,42 +350,55 @@ export default function TableManagement({ currentUser }: Props){
     const product = products.find(item => item.id === productId)
     const tableForLog = tables.find(table => table.id === tableId)
     if(!product || !product.active) return
-    if(tableForLog && !tableForLog.open) return
+    if(!tableForLog || !tableForLog.open) return
 
+    const recipeSnapshot = captureActiveRecipeSnapshot(product.id)
     const existingOrderForLog = tableForLog?.orders.find(order =>
-      order.productId === productId
-      && (order.unitPrice ?? product.price) === product.price
-      && Boolean(order.isGift) === isGift
+      orderMatchesRecipeSnapshot(order, productId, product.price, isGift, recipeSnapshot)
     )
+    const draftOrder: Order = existingOrderForLog || {
+      id: createId('ord'),
+      productId,
+      productName: product.name,
+      unitPrice: product.price,
+      qty: 0,
+      isGift
+    }
+    const deductionResult = deductStockForOrder({
+      order: draftOrder,
+      product,
+      tableId,
+      tableName: tableForLog?.name || 'Masa',
+      qty,
+      user: currentUser,
+      sourceType: existingOrderForLog ? 'Adet Artışı' : 'Masa Siparişi',
+      recipeSnapshot: existingOrderForLog?.recipeSnapshot || recipeSnapshot
+    })
+    const nextOrderForTable: Order = {
+      ...deductionResult.order,
+      qty: (existingOrderForLog?.qty || 0) + qty
+    }
 
     setTables(prev => prev.map(table => {
       if(table.id !== tableId || !table.open) return table
 
       const existingOrder = table.orders.find(order =>
-        order.productId === productId
-        && (order.unitPrice ?? product.price) === product.price
-        && Boolean(order.isGift) === isGift
+        orderMatchesRecipeSnapshot(order, productId, product.price, isGift, recipeSnapshot)
       )
       if(existingOrder){
         return {
           ...table,
-          orders: table.orders.map(order => order.id === existingOrder.id ? { ...order, qty: order.qty + qty } : order)
+          orders: table.orders.map(order => order.id === existingOrder.id ? nextOrderForTable : order)
         }
       }
 
-      const order: Order = {
-        id: createId('ord'),
-        productId,
-        productName: product.name,
-        unitPrice: product.price,
-        qty,
-        isGift
-      }
-      return {...table, orders: [...table.orders, order]}
+      return {...table, orders: [...table.orders, nextOrderForTable]}
     }))
 
     if(tableForLog){
       addKitchenOrder(tableForLog, product, qty, isGift)
+      const stockWarning = [...deductionResult.warnings, ...deductionResult.errors].join(' ')
+      setTableError(stockWarning ? `Sipariş eklendi ancak stok uyarısı oluştu: ${stockWarning}` : '')
       addActionLog({
         operationType: isGift ? 'İkram eklendi' : existingOrderForLog ? 'Ürün adedi artırıldı' : 'Sipariş eklendi',
         user: currentUser,
@@ -393,47 +414,94 @@ export default function TableManagement({ currentUser }: Props){
   const updateOrderQty = (tableId: string, orderId: string, qty: number) => {
     const table = tables.find(item => item.id === tableId)
     const order = table?.orders.find(item => item.id === orderId)
+    if(!table || !order) return
+    if(qty === order.qty) return
+
+    let nextOrder: Order = { ...order, qty: Math.max(qty, 0) }
+    let stockWarning = ''
+
+    if(qty > order.qty){
+      const product = products.find(item => item.id === order.productId)
+      if(product){
+        const deductionResult = deductStockForOrder({
+          order,
+          product,
+          tableId: table.id,
+          tableName: table.name,
+          qty: qty - order.qty,
+          user: currentUser,
+          sourceType: 'Adet Artışı',
+          recipeSnapshot: order.recipeSnapshot || captureActiveRecipeSnapshot(product.id)
+        })
+        nextOrder = { ...deductionResult.order, qty }
+        stockWarning = [...deductionResult.warnings, ...deductionResult.errors].join(' ')
+      } else {
+        stockWarning = `${order.productName || 'Ürün'} için ürün kaydı bulunamadı. Stok düşümü yapılmadı.`
+      }
+    }
+
+    if(qty < order.qty){
+      const reverseResult = reverseStockDeductionForOrderQty({
+        order,
+        tableId: table.id,
+        tableName: table.name,
+        qty: order.qty - Math.max(qty, 0),
+        user: currentUser,
+        sourceType: qty < 1 ? 'Sipariş İptali' : 'Adet Azalışı'
+      })
+      nextOrder = { ...reverseResult.order, qty: Math.max(qty, 0) }
+      stockWarning = reverseResult.warnings.join(' ')
+    }
 
     setTables(prev => prev.map(table => {
       if(table.id !== tableId) return table
       if(qty < 1){
         return { ...table, orders: table.orders.filter(order => order.id !== orderId) }
       }
-      return { ...table, orders: table.orders.map(order => order.id === orderId ? { ...order, qty } : order) }
+      return { ...table, orders: table.orders.map(order => order.id === orderId ? nextOrder : order) }
     }))
 
-    if(table && order){
-      const operationType = qty < 1
-        ? 'Sipariş silindi'
-        : qty > order.qty
-          ? 'Ürün adedi artırıldı'
-          : 'Ürün adedi azaltıldı'
+    setTableError(stockWarning ? `Sipariş güncellendi ancak stok uyarısı oluştu: ${stockWarning}` : '')
 
-      addActionLog({
-        operationType,
-        user: currentUser,
-        tableId: table.id,
-        tableName: table.name,
-        description: `${order.productName || 'Ürün'} adedi ${order.qty} -> ${Math.max(qty, 0)} olarak değiştirildi.`
-      })
-    }
+    const operationType = qty < 1
+      ? 'Sipariş silindi'
+      : qty > order.qty
+        ? 'Ürün adedi artırıldı'
+        : 'Ürün adedi azaltıldı'
+
+    addActionLog({
+      operationType,
+      user: currentUser,
+      tableId: table.id,
+      tableName: table.name,
+      description: `${order.productName || 'Ürün'} adedi ${order.qty} -> ${Math.max(qty, 0)} olarak değiştirildi.`
+    })
   }
 
   const removeOrder = (tableId: string, orderId: string) => {
     const table = tables.find(item => item.id === tableId)
     const order = table?.orders.find(item => item.id === orderId)
+    if(!table || !order) return
+
+    const reverseResult = reverseStockDeductionForOrderQty({
+      order,
+      tableId: table.id,
+      tableName: table.name,
+      qty: order.qty,
+      user: currentUser,
+      sourceType: 'Sipariş İptali'
+    })
 
     setTables(prev => prev.map(table => table.id===tableId ? {...table, orders: table.orders.filter(order=>order.id!==orderId)} : table))
 
-    if(table && order){
-      addActionLog({
-        operationType: 'Sipariş silindi',
-        user: currentUser,
-        tableId: table.id,
-        tableName: table.name,
-        description: `${order.productName || 'Ürün'} siparişi silindi.`
-      })
-    }
+    setTableError(reverseResult.warnings.length > 0 ? `Sipariş silindi ancak stok iadesi uyarısı oluştu: ${reverseResult.warnings.join(' ')}` : '')
+    addActionLog({
+      operationType: 'Sipariş silindi',
+      user: currentUser,
+      tableId: table.id,
+      tableName: table.name,
+      description: `${order.productName || 'Ürün'} siparişi silindi.`
+    })
   }
 
   const updateNote = (tableId: string, note: string) => {

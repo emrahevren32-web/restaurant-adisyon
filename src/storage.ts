@@ -20,6 +20,12 @@ import {
   RecipeCostSnapshot,
   RecipeItem,
   StockCategory,
+  StockDeductionAuditEvent,
+  StockDeductionAuditEventType,
+  StockDeductionBatch,
+  StockDeductionLine,
+  StockDeductionSourceType,
+  StockDeductionStatus,
   StockItem,
   StockMovement,
   StockMovementAuditEvent,
@@ -42,6 +48,8 @@ const KEY_STOCK_ITEMS = 'ra_stock_items'
 const KEY_STOCK_CATEGORIES = 'ra_stock_categories'
 const KEY_STOCK_MOVEMENTS = 'ra_stock_movements'
 const KEY_STOCK_MOVEMENT_AUDIT = 'ra_stock_movement_audit'
+const KEY_STOCK_DEDUCTION_BATCHES = 'ra_stock_deduction_batches'
+const KEY_STOCK_DEDUCTION_AUDIT = 'ra_stock_deduction_audit_events'
 const KEY_RECIPES = 'ra_recipes'
 const KEY_RECIPE_AUDIT_EVENTS = 'ra_recipe_audit_events'
 const KEY_TABLES = 'ra_tables'
@@ -148,7 +156,7 @@ const normalizeStockItem = (item: Partial<StockItem>, fallbackCategoryId = DEFAU
     name: String(item.name || 'İsimsiz Stok Kartı').trim() || 'İsimsiz Stok Kartı',
     categoryId: item.categoryId || fallbackCategoryId,
     unit: normalizeStockUnit(item.unit),
-    currentQty: Number.isFinite(currentQty) ? Math.max(0, currentQty) : 0,
+    currentQty: Number.isFinite(currentQty) ? currentQty : 0,
     minQty: Number.isFinite(minQty) ? Math.max(0, minQty) : 0,
     sku: item.sku || '',
     barcode: item.barcode || '',
@@ -189,8 +197,8 @@ const normalizeStockMovement = (item: Partial<StockMovement>): StockMovement => 
     reason: normalizeStockMovementReason(item.reason),
     qty: Number.isFinite(qty) ? Math.max(0, qty) : 0,
     unit: normalizeStockUnit(item.unit),
-    previousQty: Number.isFinite(previousQty) ? Math.max(0, previousQty) : 0,
-    nextQty: Number.isFinite(nextQty) ? Math.max(0, nextQty) : 0,
+    previousQty: Number.isFinite(previousQty) ? previousQty : 0,
+    nextQty: Number.isFinite(nextQty) ? nextQty : 0,
     purchasePrice: Number.isFinite(purchasePrice) && purchasePrice >= 0 ? purchasePrice : undefined,
     supplierName: item.supplierName || '',
     invoiceNo: item.invoiceNo || '',
@@ -201,7 +209,17 @@ const normalizeStockMovement = (item: Partial<StockMovement>): StockMovement => 
     createdByFullName: String(item.createdByFullName || 'Bilinmeyen Kullanıcı'),
     reversesMovementId: item.reversesMovementId,
     reversedByMovementId: item.reversedByMovementId,
-    reversedAt: item.reversedAt
+    reversedAt: item.reversedAt,
+    sourceEntityType: item.sourceEntityType,
+    sourceEntityId: item.sourceEntityId,
+    tableId: item.tableId,
+    tableName: item.tableName,
+    orderId: item.orderId,
+    recipeId: item.recipeId,
+    recipeVersion: item.recipeVersion,
+    deductionBatchId: item.deductionBatchId,
+    reverseOfBatchId: item.reverseOfBatchId,
+    reverseMode: item.reverseMode === 'full' || item.reverseMode === 'partial' ? item.reverseMode : undefined
   }
 }
 
@@ -216,6 +234,110 @@ const normalizeStockMovementAuditEvent = (item: Partial<StockMovementAuditEvent>
   eventType: normalizeStockMovementAuditEventType(item.eventType),
   userId: String(item.userId || ''),
   userName: String(item.userName || 'Bilinmeyen Kullanıcı'),
+  timestamp: item.timestamp || new Date().toISOString(),
+  before: item.before,
+  after: item.after,
+  note: item.note || ''
+})
+
+const normalizeStockDeductionStatus = (value: unknown): StockDeductionStatus => {
+  if(
+    value === 'deducted'
+    || value === 'warning'
+    || value === 'missing_recipe'
+    || value === 'failed'
+    || value === 'partial_reversed'
+    || value === 'reversed'
+    || value === 'not_required'
+  ){
+    return value
+  }
+
+  return 'not_required'
+}
+
+const normalizeStockDeductionSourceType = (value: unknown): StockDeductionSourceType => {
+  if(
+    value === 'QR Siparişi'
+    || value === 'Adet Artışı'
+    || value === 'Adet Azalışı'
+    || value === 'Sipariş İptali'
+    || value === 'Masa Siparişi'
+  ){
+    return value
+  }
+
+  return 'Masa Siparişi'
+}
+
+const normalizeStockDeductionLine = (item: Partial<StockDeductionLine>): StockDeductionLine => {
+  const qty = Number(item.qty)
+  const recipeQty = Number(item.recipeQty)
+  const wastePercent = Number(item.wastePercent)
+
+  return {
+    id: String(item.id || `stock_deduction_line_${Date.now()}`),
+    stockItemId: String(item.stockItemId || ''),
+    stockItemName: String(item.stockItemName || 'Stok Kartı'),
+    qty: Number.isFinite(qty) ? Math.max(0, qty) : 0,
+    unit: normalizeStockUnit(item.unit),
+    recipeQty: Number.isFinite(recipeQty) ? Math.max(0, recipeQty) : 0,
+    recipeUnit: normalizeStockUnit(item.recipeUnit),
+    wastePercent: Number.isFinite(wastePercent) ? Math.max(0, wastePercent) : 0,
+    movementId: item.movementId,
+    reverseMovementIds: item.reverseMovementIds || [],
+    warning: item.warning,
+    error: item.error
+  }
+}
+
+const normalizeStockDeductionBatch = (item: Partial<StockDeductionBatch>): StockDeductionBatch => {
+  const qty = Number(item.qty)
+  const remainingQty = Number(item.remainingQty)
+
+  return {
+    id: String(item.id || `stock_deduction_${Date.now()}`),
+    orderId: String(item.orderId || ''),
+    tableId: String(item.tableId || ''),
+    tableName: String(item.tableName || 'Masa'),
+    productId: String(item.productId || ''),
+    productName: String(item.productName || 'Ürün'),
+    qty: Number.isFinite(qty) ? Math.max(0, qty) : 0,
+    remainingQty: Number.isFinite(remainingQty) ? Math.max(0, remainingQty) : 0,
+    sourceType: normalizeStockDeductionSourceType(item.sourceType),
+    status: normalizeStockDeductionStatus(item.status),
+    recipeId: item.recipeId,
+    recipeVersion: item.recipeVersion,
+    recipeSnapshot: item.recipeSnapshot,
+    movementIds: item.movementIds || [],
+    lines: (item.lines || []).map(normalizeStockDeductionLine),
+    warnings: item.warnings || [],
+    errors: item.errors || [],
+    createdAt: item.createdAt || new Date().toISOString(),
+    createdByUserId: String(item.createdByUserId || ''),
+    createdByFullName: String(item.createdByFullName || 'Bilinmeyen Kullanıcı'),
+    updatedAt: item.updatedAt
+  }
+}
+
+const normalizeStockDeductionAuditEventType = (value: unknown): StockDeductionAuditEventType => {
+  if(value === 'reversed' || value === 'warning' || value === 'failed' || value === 'skipped' || value === 'deducted'){
+    return value
+  }
+
+  return 'deducted'
+}
+
+const normalizeStockDeductionAuditEvent = (item: Partial<StockDeductionAuditEvent>): StockDeductionAuditEvent => ({
+  id: String(item.id || `stock_deduction_audit_${Date.now()}`),
+  batchId: item.batchId,
+  orderId: item.orderId,
+  productId: item.productId,
+  eventType: normalizeStockDeductionAuditEventType(item.eventType),
+  userId: String(item.userId || ''),
+  userName: String(item.userName || 'Bilinmeyen Kullanıcı'),
+  tableId: item.tableId,
+  tableName: item.tableName,
   timestamp: item.timestamp || new Date().toISOString(),
   before: item.before,
   after: item.after,
@@ -591,6 +713,30 @@ export const addStockMovementAuditEvent = (event: StockMovementAuditEvent) => {
   saveStockMovementAuditEvents([event, ...loadStockMovementAuditEvents()])
 }
 
+export const loadStockDeductionBatches = (): StockDeductionBatch[] => {
+  return readJson<Partial<StockDeductionBatch>[]>(KEY_STOCK_DEDUCTION_BATCHES, []).map(normalizeStockDeductionBatch)
+}
+
+export const saveStockDeductionBatches = (items: StockDeductionBatch[]) => {
+  localStorage.setItem(KEY_STOCK_DEDUCTION_BATCHES, JSON.stringify(items.map(normalizeStockDeductionBatch)))
+}
+
+export const addStockDeductionBatch = (batch: StockDeductionBatch) => {
+  saveStockDeductionBatches([batch, ...loadStockDeductionBatches()])
+}
+
+export const loadStockDeductionAuditEvents = (): StockDeductionAuditEvent[] => {
+  return readJson<Partial<StockDeductionAuditEvent>[]>(KEY_STOCK_DEDUCTION_AUDIT, []).map(normalizeStockDeductionAuditEvent)
+}
+
+export const saveStockDeductionAuditEvents = (items: StockDeductionAuditEvent[]) => {
+  localStorage.setItem(KEY_STOCK_DEDUCTION_AUDIT, JSON.stringify(items.map(normalizeStockDeductionAuditEvent)))
+}
+
+export const addStockDeductionAuditEvent = (event: StockDeductionAuditEvent) => {
+  saveStockDeductionAuditEvents([event, ...loadStockDeductionAuditEvents()])
+}
+
 export const loadRecipes = (): Recipe[] => {
   return readJson<Partial<Recipe>[]>(KEY_RECIPES, []).map(normalizeRecipe)
 }
@@ -842,7 +988,18 @@ export const applyStockMovement = ({
   description,
   movementDate,
   user,
-  reversesMovementId
+  reversesMovementId,
+  allowNegativeStock = false,
+  sourceEntityType,
+  sourceEntityId,
+  tableId,
+  tableName,
+  orderId,
+  recipeId,
+  recipeVersion,
+  deductionBatchId,
+  reverseOfBatchId,
+  reverseMode
 }: {
   stockItemId: string
   type: StockMovementType
@@ -856,6 +1013,17 @@ export const applyStockMovement = ({
   movementDate?: string
   user: User
   reversesMovementId?: string
+  allowNegativeStock?: boolean
+  sourceEntityType?: string
+  sourceEntityId?: string
+  tableId?: string
+  tableName?: string
+  orderId?: string
+  recipeId?: string
+  recipeVersion?: number
+  deductionBatchId?: string
+  reverseOfBatchId?: string
+  reverseMode?: 'full' | 'partial'
 }) => {
   const stockItems = loadStockItems()
   const stockItem = stockItems.find(item => item.id === stockItemId)
@@ -876,7 +1044,7 @@ export const applyStockMovement = ({
       ? previousQty - normalizedQty
       : normalizedQty
 
-  if(nextQty < 0){
+  if(nextQty < 0 && !allowNegativeStock){
     throw new Error('Çıkış hareketi stok miktarını eksiye düşüremez.')
   }
 
@@ -901,7 +1069,17 @@ export const applyStockMovement = ({
     createdAt: now,
     createdByUserId: user.id,
     createdByFullName: user.fullName || user.username,
-    reversesMovementId
+    reversesMovementId,
+    sourceEntityType,
+    sourceEntityId,
+    tableId,
+    tableName,
+    orderId,
+    recipeId,
+    recipeVersion,
+    deductionBatchId,
+    reverseOfBatchId,
+    reverseMode
   }
   const nextStockItem: StockItem = {
     ...stockItem,

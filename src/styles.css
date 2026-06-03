@@ -50,7 +50,10 @@ th { color:#4b5563; font-size:13px; font-weight:700 }
 .stock-current-hint span { color:var(--muted); font-size:12px; font-weight:700 }
 .recipe-layout { grid-template-columns:minmax(0, 1fr) 440px }
 .recipe-filters { display:grid; grid-template-columns:minmax(220px, 1fr) 180px 140px; gap:8px; min-width:min(100%, 680px) }
-.recipe-add-row { display:grid; grid-template-columns:minmax(160px, 1fr) 92px 88px 86px auto; gap:8px; align-items:end }
+.recipe-add-panel { display:flex; flex-direction:column; gap:8px }
+.recipe-add-controls { display:grid; grid-template-columns:minmax(0, 1fr) 84px 72px auto; gap:8px; align-items:end }
+.recipe-add-controls .form-field { min-width:0 }
+.recipe-add-button { min-width:62px; height:39px }
 .recipe-item-list { display:flex; flex-direction:column; gap:10px }
 .recipe-item-row { display:grid; grid-template-columns:minmax(150px, 1fr) 88px 82px 82px minmax(130px, .8fr) auto; gap:8px; align-items:end; border:1px solid var(--line); border-radius:8px; padding:10px; background:#f9fafb }
 .recipe-line-note { grid-column:1 / -1 }
@@ -300,7 +303,7 @@ th { color:#4b5563; font-size:13px; font-weight:700 }
   .app-brand img { width:38px; height:38px }
   .metric-grid { grid-template-columns:1fr }
   .kitchen-grid { grid-template-columns:1fr }
-  .form-row, .stock-movement-type-row, .recipe-add-row, .recipe-item-row, .recipe-cost-box, .inline-form, .category-row, .category-edit-form, .order-summary, .picker-controls, .checkout-panel, .checkout-total-grid, .payment-grid, .table-grid, .discount-controls, .product-pick-row, .history-controls, .history-detail-grid, .report-highlight-grid, .qr-product-card, .qr-request-list, .qr-request-meta, .qr-edit-row, .qr-edit-add-row, .qr-reject-row, .waiter-call-list, .settings-form-grid { grid-template-columns:1fr }
+  .form-row, .stock-movement-type-row, .recipe-add-controls, .recipe-item-row, .recipe-cost-box, .inline-form, .category-row, .category-edit-form, .order-summary, .picker-controls, .checkout-panel, .checkout-total-grid, .payment-grid, .table-grid, .discount-controls, .product-pick-row, .history-controls, .history-detail-grid, .report-highlight-grid, .qr-product-card, .qr-request-list, .qr-request-meta, .qr-edit-row, .qr-edit-add-row, .qr-reject-row, .waiter-call-list, .settings-form-grid { grid-template-columns:1fr }
   .actions-cell { justify-content:flex-start }
   .history-card summary { align-items:flex-start; flex-direction:column }
   .history-summary-values { text-align:left }
