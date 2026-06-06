@@ -503,7 +503,7 @@ export type ActionLogType =
   | 'Stok çıkışı yapıldı'
   | 'Stok sayım düzeltmesi yapıldı'
   | 'Stok ters hareketi oluşturuldu'
-  | 'Kritik stok uyarısı'
+  | 'Kritik stok uyarısı oluştu'
   | 'Kritik stoktan çıkıldı'
   | 'Reçete oluşturuldu'
   | 'Reçete güncellendi'

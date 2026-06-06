@@ -265,7 +265,7 @@ export default function StockMovements({ currentUser }: Props){
                       {movement.description && <div className="muted small-text">{movement.description}</div>}
                     </td>
                     <td>{movement.createdByFullName}</td>
-                    <td className="actions-cell">
+                    <td className="stock-movement-action-cell">
                       <button className="btn" disabled={Boolean(movement.reversedByMovementId)} onClick={() => reverseMovement(movement)} type="button">
                         Ters Hareket
                       </button>

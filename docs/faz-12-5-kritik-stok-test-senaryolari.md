@@ -18,7 +18,7 @@
 
 ## Kritik stok logları
 
-1. Sağlıklı kart manuel çıkış hareketiyle kritik seviyeye düşerse tek `Kritik stok uyarısı` işlem geçmişi kaydı oluşur.
+1. Sağlıklı kart manuel çıkış hareketiyle kritik seviyeye düşerse tek `Kritik stok uyarısı oluştu` işlem geçmişi kaydı oluşur.
 2. Aynı kart kritikken tekrar çıkış hareketi yapılırsa yeni kritik stok uyarısı oluşmaz.
 3. Kritik kart stok girişiyle kritik seviyenin üstüne çıkarsa tek `Kritik stoktan çıkıldı` kaydı oluşur.
 4. Kritik stoktan çıkmış kart tekrar kritik seviyeye düşerse yeni bir kritik stok uyarısı oluşur.

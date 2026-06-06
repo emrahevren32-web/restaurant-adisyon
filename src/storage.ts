@@ -1095,7 +1095,7 @@ export const recordCriticalStockTransition = ({
 
   addCriticalStockEvent(event)
   addActionLog({
-    operationType: eventType === 'entered' ? 'Kritik stok uyarısı' : 'Kritik stoktan çıkıldı',
+    operationType: eventType === 'entered' ? 'Kritik stok uyarısı oluştu' : 'Kritik stoktan çıkıldı',
     user,
     tableId,
     tableName,
