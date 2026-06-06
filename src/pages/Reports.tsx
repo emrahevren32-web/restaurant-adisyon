@@ -1,6 +1,14 @@
 import React from 'react'
-import { ClosedBill, PaymentMethod, Product } from '../types'
-import { loadClosed, loadProducts, loadSettings } from '../storage'
+import { ClosedBill, PaymentMethod, Product, StockItem } from '../types'
+import {
+  loadClosed,
+  loadCriticalStockEvents,
+  loadProducts,
+  loadSettings,
+  loadStockCategories,
+  loadStockItems,
+  loadStockMovements
+} from '../storage'
 import {
   calculateDiscountTotal,
   calculateOrderOriginalTotal,
@@ -11,8 +19,11 @@ import {
   isRevenueBill,
   roundCurrency
 } from '../billing'
+import { formatStockQuantity, getCriticalShortage, isCriticalStock, isOutOfStock, sortCriticalStockFirst } from '../criticalStock'
 
 type PeriodFilter = 'today' | '7days' | '30days' | 'all'
+type CriticalReportStatusFilter = 'critical' | 'out' | 'healthy' | 'history' | 'all'
+type CriticalReportUnitFilter = 'all' | StockItem['unit']
 
 type ProductMetric = {
   productId: string
@@ -39,6 +50,7 @@ const periodOptions: { value: PeriodFilter; label: string }[] = [
 ]
 
 const paymentMethods: PaymentMethod[] = ['Nakit', 'Kart', 'Diğer']
+const stockUnits: StockItem['unit'][] = ['adet', 'kg', 'gr', 'lt', 'ml', 'paket', 'koli']
 
 const getStartDate = (period: PeriodFilter) => {
   if(period === 'all') return null
@@ -203,11 +215,32 @@ const findTopStaff = (items: StaffMetric[], key: keyof Pick<StaffMetric, 'totalS
   }, null)
 }
 
+const formatDateTime = (value: string) => {
+  const date = new Date(value)
+  if(Number.isNaN(date.getTime())) return '-'
+
+  return date.toLocaleString('tr-TR', {
+    year: 'numeric',
+    month: '2-digit',
+    day: '2-digit',
+    hour: '2-digit',
+    minute: '2-digit'
+  })
+}
+
 export default function Reports(){
   const [period, setPeriod] = React.useState<PeriodFilter>('today')
   const [closedBills] = React.useState<ClosedBill[]>(() => loadClosed())
   const [products] = React.useState<Product[]>(() => loadProducts())
   const [settings] = React.useState(() => loadSettings())
+  const [stockItems] = React.useState(() => loadStockItems())
+  const [stockCategories] = React.useState(() => loadStockCategories())
+  const [stockMovements] = React.useState(() => loadStockMovements())
+  const [criticalStockEvents] = React.useState(() => loadCriticalStockEvents())
+  const [criticalStatusFilter, setCriticalStatusFilter] = React.useState<CriticalReportStatusFilter>('critical')
+  const [criticalCategoryFilter, setCriticalCategoryFilter] = React.useState('all')
+  const [criticalUnitFilter, setCriticalUnitFilter] = React.useState<CriticalReportUnitFilter>('all')
+  const [criticalSearch, setCriticalSearch] = React.useState('')
   const [dayEndPrintedAt, setDayEndPrintedAt] = React.useState(() => new Date())
   const [isDayEndPrintActive, setIsDayEndPrintActive] = React.useState(false)
 
@@ -258,6 +291,54 @@ export default function Reports(){
   const getDayEndPaymentTotal = (method: PaymentMethod) => {
     return dayEndPaymentTotals.find(item => item.method === method)?.total || 0
   }
+  const stockCategoryMap = React.useMemo(() => new Map(stockCategories.map(category => [category.id, category])), [stockCategories])
+  const latestCriticalEventByStockId = React.useMemo(() => {
+    const map = new Map<string, typeof criticalStockEvents[number]>()
+    ;[...criticalStockEvents]
+      .sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime())
+      .forEach(event => {
+        if(!map.has(event.stockItemId)) map.set(event.stockItemId, event)
+      })
+    return map
+  }, [criticalStockEvents])
+  const latestMovementByStockId = React.useMemo(() => {
+    const map = new Map<string, typeof stockMovements[number]>()
+    ;[...stockMovements]
+      .sort((a, b) => new Date(b.movementDate).getTime() - new Date(a.movementDate).getTime())
+      .forEach(movement => {
+        if(!map.has(movement.stockItemId)) map.set(movement.stockItemId, movement)
+      })
+    return map
+  }, [stockMovements])
+  const criticalEventsInPeriod = React.useMemo(() => {
+    return criticalStockEvents
+      .filter(event => isInPeriod(event.timestamp, period))
+      .sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime())
+  }, [criticalStockEvents, period])
+  const currentCriticalStockItems = React.useMemo(() => sortCriticalStockFirst(stockItems.filter(isCriticalStock)), [stockItems])
+  const outOfStockItems = React.useMemo(() => stockItems.filter(isOutOfStock), [stockItems])
+  const criticalReportRows = React.useMemo(() => {
+    const normalizedSearch = criticalSearch.trim().toLocaleLowerCase('tr-TR')
+
+    return sortCriticalStockFirst(stockItems).filter(item => {
+      const category = stockCategoryMap.get(item.categoryId)
+      const hasHistory = criticalStockEvents.some(event => event.stockItemId === item.id)
+      const matchesStatus = criticalStatusFilter === 'all'
+        || (criticalStatusFilter === 'critical' && isCriticalStock(item))
+        || (criticalStatusFilter === 'out' && isOutOfStock(item))
+        || (criticalStatusFilter === 'healthy' && item.active && !isCriticalStock(item))
+        || (criticalStatusFilter === 'history' && hasHistory)
+      const matchesCategory = criticalCategoryFilter === 'all' || item.categoryId === criticalCategoryFilter
+      const matchesUnit = criticalUnitFilter === 'all' || item.unit === criticalUnitFilter
+      const matchesSearch = !normalizedSearch
+        || item.name.toLocaleLowerCase('tr-TR').includes(normalizedSearch)
+        || (item.sku || '').toLocaleLowerCase('tr-TR').includes(normalizedSearch)
+        || (item.barcode || '').toLocaleLowerCase('tr-TR').includes(normalizedSearch)
+        || (category?.name || '').toLocaleLowerCase('tr-TR').includes(normalizedSearch)
+
+      return matchesStatus && matchesCategory && matchesUnit && matchesSearch
+    })
+  }, [criticalCategoryFilter, criticalSearch, criticalStatusFilter, criticalStockEvents, criticalUnitFilter, stockCategoryMap, stockItems])
 
   const printDayEnd = () => {
     setDayEndPrintedAt(new Date())
@@ -446,6 +527,137 @@ export default function Reports(){
                       <td>{item.name}</td>
                       <td>{item.soldQty}</td>
                       <td>{formatCurrency(item.discountTotal)}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <section className="card">
+        <div className="section-header">
+          <div>
+            <h3>Stok Raporları</h3>
+            <p className="muted">Kritik stok, stokta yok ve kritik stok olaylarını takip edin.</p>
+          </div>
+          <span className="status-pill">{periodOptions.find(option => option.value === period)?.label}</span>
+        </div>
+
+        <div className="metric-grid report-metric-grid">
+          <div className="metric-card">
+            <span>Kritik Stok</span>
+            <strong>{currentCriticalStockItems.length}</strong>
+            <p className="muted">Anlık aktif kart</p>
+          </div>
+          <div className="metric-card">
+            <span>Stokta Yok</span>
+            <strong>{outOfStockItems.length}</strong>
+            <p className="muted">0 veya negatif stok</p>
+          </div>
+          <div className="metric-card">
+            <span>Dönem Kritik Olayı</span>
+            <strong>{criticalEventsInPeriod.filter(event => event.eventType === 'entered').length}</strong>
+            <p className="muted">Kritik seviyeye düşen</p>
+          </div>
+          <div className="metric-card">
+            <span>Dönem Çıkış Olayı</span>
+            <strong>{criticalEventsInPeriod.filter(event => event.eventType === 'resolved').length}</strong>
+            <p className="muted">Kritikten çıkan</p>
+          </div>
+        </div>
+
+        <div className="stock-report-filters">
+          <input type="search" placeholder="Stok, kod, barkod veya kategori ara" value={criticalSearch} onChange={event => setCriticalSearch(event.target.value)} />
+          <select value={criticalStatusFilter} onChange={event => setCriticalStatusFilter(event.target.value as CriticalReportStatusFilter)}>
+            <option value="critical">Kritik stok</option>
+            <option value="out">Stokta yok</option>
+            <option value="healthy">Sağlıklı stok</option>
+            <option value="history">Kritik geçmişi olanlar</option>
+            <option value="all">Tüm stoklar</option>
+          </select>
+          <select value={criticalCategoryFilter} onChange={event => setCriticalCategoryFilter(event.target.value)}>
+            <option value="all">Tüm kategoriler</option>
+            {stockCategories.map(category => <option key={category.id} value={category.id}>{category.name}</option>)}
+          </select>
+          <select value={criticalUnitFilter} onChange={event => setCriticalUnitFilter(event.target.value as CriticalReportUnitFilter)}>
+            <option value="all">Tüm birimler</option>
+            {stockUnits.map(unit => <option key={unit} value={unit}>{unit}</option>)}
+          </select>
+        </div>
+
+        <div className="report-layout stock-report-layout">
+          <div className="table-wrap">
+            <table className="data-table report-table">
+              <thead>
+                <tr>
+                  <th>Stok Kartı</th>
+                  <th>Kategori</th>
+                  <th>Mevcut</th>
+                  <th>Kritik</th>
+                  <th>Eksik</th>
+                  <th>Durum</th>
+                  <th>Son Hareket</th>
+                  <th>Son Kritik Olay</th>
+                </tr>
+              </thead>
+              <tbody>
+                {criticalReportRows.length === 0 && <tr><td colSpan={8} className="empty-cell">Filtrelere uygun stok kaydı yok.</td></tr>}
+                {criticalReportRows.map(item => {
+                  const category = stockCategoryMap.get(item.categoryId)
+                  const critical = isCriticalStock(item)
+                  const latestEvent = latestCriticalEventByStockId.get(item.id)
+                  const latestMovement = latestMovementByStockId.get(item.id)
+
+                  return (
+                    <tr key={item.id}>
+                      <td>
+                        <strong>{item.name}</strong>
+                        {(item.sku || item.barcode) && <div className="muted small-text">{[item.sku && `Kod: ${item.sku}`, item.barcode && `Barkod: ${item.barcode}`].filter(Boolean).join(' · ')}</div>}
+                      </td>
+                      <td>{category?.name || 'Kategori yok'}</td>
+                      <td>{formatStockQuantity(item.currentQty, item.unit)}</td>
+                      <td>{formatStockQuantity(item.minQty, item.unit)}</td>
+                      <td>{critical ? formatStockQuantity(getCriticalShortage(item), item.unit) : '-'}</td>
+                      <td>
+                        {!item.active ? (
+                          <span className="status-pill muted-pill">Pasif</span>
+                        ) : critical ? (
+                          <span className="status-pill danger-pill">Kritik</span>
+                        ) : (
+                          <span className="status-pill success">Sağlıklı</span>
+                        )}
+                      </td>
+                      <td>{latestMovement ? `${latestMovement.type} · ${formatDateTime(latestMovement.movementDate)}` : '-'}</td>
+                      <td>{latestEvent ? `${latestEvent.eventType === 'entered' ? 'Kritik oldu' : 'Çıktı'} · ${formatDateTime(latestEvent.timestamp)}` : '-'}</td>
+                    </tr>
+                  )
+                })}
+              </tbody>
+            </table>
+          </div>
+
+          <div className="report-panel">
+            <h4>Kritik Stok Olayları</h4>
+            <div className="table-wrap">
+              <table className="data-table report-table">
+                <thead>
+                  <tr><th>Tarih</th><th>Stok</th><th>Olay</th><th>Stok</th></tr>
+                </thead>
+                <tbody>
+                  {criticalEventsInPeriod.length === 0 && <tr><td colSpan={4} className="empty-cell">Bu dönem kritik stok olayı yok.</td></tr>}
+                  {criticalEventsInPeriod.slice(0, 12).map(event => (
+                    <tr key={event.id}>
+                      <td>{formatDateTime(event.timestamp)}</td>
+                      <td>{event.stockItemName}</td>
+                      <td>
+                        <span className={`status-pill ${event.eventType === 'entered' ? 'danger-pill' : 'success'}`}>
+                          {event.eventType === 'entered' ? 'Kritik oldu' : 'Çıktı'}
+                        </span>
+                        <div className="muted small-text">{event.trigger}</div>
+                      </td>
+                      <td>{formatStockQuantity(event.previousQty, event.unit)} → {formatStockQuantity(event.nextQty, event.unit)}</td>
                     </tr>
                   ))}
                 </tbody>

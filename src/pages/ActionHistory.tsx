@@ -49,6 +49,8 @@ const operationTypes: ActionLogType[] = [
   'Stok çıkışı yapıldı',
   'Stok sayım düzeltmesi yapıldı',
   'Stok ters hareketi oluşturuldu',
+  'Kritik stok uyarısı',
+  'Kritik stoktan çıkıldı',
   'Reçete oluşturuldu',
   'Reçete güncellendi',
   'Reçete silindi',

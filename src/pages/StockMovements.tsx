@@ -34,6 +34,17 @@ const formatQuantity = (value: number, unit: string) => {
   return `${value.toLocaleString('tr-TR', { maximumFractionDigits: 3 })} ${unit}`
 }
 
+const formatCriticalStockMessage = (movement: ReturnType<typeof applyStockMovement>) => {
+  const event = movement.criticalStockEvent
+  if(!event) return ''
+
+  if(event.eventType === 'entered'){
+    return ` ${event.stockItemName} kritik stok seviyesine düştü.`
+  }
+
+  return ` ${event.stockItemName} kritik stoktan çıktı.`
+}
+
 const getMovementDirectionClass = (movement: StockMovement) => {
   if(movement.type === 'Giriş') return 'success'
   if(movement.type === 'Çıkış') return 'danger-pill'
@@ -109,7 +120,10 @@ export default function StockMovements({ currentUser }: Props){
         user: currentUser
       })
       refreshData()
-      setMessage({ type: 'success', text: `${movement.stockItemName} için ${movement.type} fişi oluşturuldu.` })
+      setMessage({
+        type: movement.criticalStockEvent?.eventType === 'entered' ? 'error' : 'success',
+        text: `${movement.stockItemName} için ${movement.type} fişi oluşturuldu.${formatCriticalStockMessage(movement)}`
+      })
     } catch (error) {
       setMessage({ type: 'error', text: error instanceof Error ? error.message : 'Stok hareketi oluşturulamadı.' })
     }
@@ -126,7 +140,10 @@ export default function StockMovements({ currentUser }: Props){
     try {
       const reversedMovement = reverseStockMovement(movement.id, currentUser)
       refreshData()
-      setMessage({ type: 'success', text: `${movement.stockItemName} için ters hareket oluşturuldu: ${reversedMovement.type}.` })
+      setMessage({
+        type: reversedMovement.criticalStockEvent?.eventType === 'entered' ? 'error' : 'success',
+        text: `${movement.stockItemName} için ters hareket oluşturuldu: ${reversedMovement.type}.${formatCriticalStockMessage(reversedMovement)}`
+      })
     } catch (error) {
       setMessage({ type: 'error', text: error instanceof Error ? error.message : 'Ters hareket oluşturulamadı.' })
     }

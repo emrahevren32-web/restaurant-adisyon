@@ -125,7 +125,7 @@ export default function App(){
             {route === 'stock-cards' && currentUser.role === 'Admin' && <StockCards currentUser={currentUser} />}
             {route === 'stock-movements' && currentUser.role === 'Admin' && <StockMovements currentUser={currentUser} />}
             {route === 'recipes' && currentUser.role === 'Admin' && <Recipes currentUser={currentUser} />}
-            {route === 'summary' && <DailySummary />}
+            {route === 'summary' && <DailySummary currentUser={currentUser} />}
             {route === 'history' && <BillHistory />}
             {route === 'kitchen' && <Kitchen currentUser={currentUser} />}
             {route === 'qr-orders' && <QROrders currentUser={currentUser} />}

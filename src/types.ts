@@ -104,6 +104,36 @@ export type StockMovementAuditEvent = {
   note?: string
 }
 
+export type CriticalStockEventType = 'entered' | 'resolved'
+
+export type CriticalStockTrigger =
+  | 'Stok Hareketi'
+  | 'Otomatik Stok Düşümü'
+  | 'Ters Hareket'
+  | 'Stok Kartı Oluşturma'
+  | 'Stok Kartı Güncelleme'
+  | 'Stok Kartı Aktifleştirme'
+  | 'Stok Kartı Pasifleştirme'
+
+export type CriticalStockEvent = {
+  id: string
+  stockItemId: string
+  stockItemName: string
+  eventType: CriticalStockEventType
+  trigger: CriticalStockTrigger
+  previousQty: number
+  nextQty: number
+  minQty: number
+  unit: StockUnit
+  userId: string
+  userName: string
+  timestamp: string
+  movementId?: string
+  tableId?: string
+  tableName?: string
+  note?: string
+}
+
 export type RecipeItem = {
   id: string
   stockItemId: string
@@ -473,6 +503,8 @@ export type ActionLogType =
   | 'Stok çıkışı yapıldı'
   | 'Stok sayım düzeltmesi yapıldı'
   | 'Stok ters hareketi oluşturuldu'
+  | 'Kritik stok uyarısı'
+  | 'Kritik stoktan çıkıldı'
   | 'Reçete oluşturuldu'
   | 'Reçete güncellendi'
   | 'Reçete silindi'

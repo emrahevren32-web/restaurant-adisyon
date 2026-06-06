@@ -2,6 +2,9 @@ import {
   ActionLog,
   ActionLogType,
   ClosedBill,
+  CriticalStockEvent,
+  CriticalStockEventType,
+  CriticalStockTrigger,
   KitchenOrder,
   KitchenOrderStatus,
   Product,
@@ -41,6 +44,7 @@ import {
   WaiterCallHistory,
   WaiterCallStatus
 } from './types'
+import { formatStockQuantity, isCriticalStock } from './criticalStock'
 
 const KEY_PRODUCTS = 'ra_products'
 const KEY_CATEGORIES = 'ra_categories'
@@ -48,6 +52,7 @@ const KEY_STOCK_ITEMS = 'ra_stock_items'
 const KEY_STOCK_CATEGORIES = 'ra_stock_categories'
 const KEY_STOCK_MOVEMENTS = 'ra_stock_movements'
 const KEY_STOCK_MOVEMENT_AUDIT = 'ra_stock_movement_audit'
+const KEY_CRITICAL_STOCK_EVENTS = 'ra_critical_stock_events'
 const KEY_STOCK_DEDUCTION_BATCHES = 'ra_stock_deduction_batches'
 const KEY_STOCK_DEDUCTION_AUDIT = 'ra_stock_deduction_audit_events'
 const KEY_RECIPES = 'ra_recipes'
@@ -239,6 +244,51 @@ const normalizeStockMovementAuditEvent = (item: Partial<StockMovementAuditEvent>
   after: item.after,
   note: item.note || ''
 })
+
+const normalizeCriticalStockEventType = (value: unknown): CriticalStockEventType => {
+  return value === 'resolved' ? 'resolved' : 'entered'
+}
+
+const normalizeCriticalStockTrigger = (value: unknown): CriticalStockTrigger => {
+  if(
+    value === 'Otomatik Stok Düşümü'
+    || value === 'Ters Hareket'
+    || value === 'Stok Kartı Oluşturma'
+    || value === 'Stok Kartı Güncelleme'
+    || value === 'Stok Kartı Aktifleştirme'
+    || value === 'Stok Kartı Pasifleştirme'
+    || value === 'Stok Hareketi'
+  ){
+    return value
+  }
+
+  return 'Stok Hareketi'
+}
+
+const normalizeCriticalStockEvent = (item: Partial<CriticalStockEvent>): CriticalStockEvent => {
+  const previousQty = Number(item.previousQty)
+  const nextQty = Number(item.nextQty)
+  const minQty = Number(item.minQty)
+
+  return {
+    id: String(item.id || `critical_stock_${Date.now()}`),
+    stockItemId: String(item.stockItemId || ''),
+    stockItemName: String(item.stockItemName || 'Stok Kartı'),
+    eventType: normalizeCriticalStockEventType(item.eventType),
+    trigger: normalizeCriticalStockTrigger(item.trigger),
+    previousQty: Number.isFinite(previousQty) ? previousQty : 0,
+    nextQty: Number.isFinite(nextQty) ? nextQty : 0,
+    minQty: Number.isFinite(minQty) ? Math.max(0, minQty) : 0,
+    unit: normalizeStockUnit(item.unit),
+    userId: String(item.userId || ''),
+    userName: String(item.userName || 'Bilinmeyen Kullanıcı'),
+    timestamp: item.timestamp || new Date().toISOString(),
+    movementId: item.movementId,
+    tableId: item.tableId,
+    tableName: item.tableName,
+    note: item.note || ''
+  }
+}
 
 const normalizeStockDeductionStatus = (value: unknown): StockDeductionStatus => {
   if(
@@ -713,6 +763,18 @@ export const addStockMovementAuditEvent = (event: StockMovementAuditEvent) => {
   saveStockMovementAuditEvents([event, ...loadStockMovementAuditEvents()])
 }
 
+export const loadCriticalStockEvents = (): CriticalStockEvent[] => {
+  return readJson<Partial<CriticalStockEvent>[]>(KEY_CRITICAL_STOCK_EVENTS, []).map(normalizeCriticalStockEvent)
+}
+
+export const saveCriticalStockEvents = (items: CriticalStockEvent[]) => {
+  localStorage.setItem(KEY_CRITICAL_STOCK_EVENTS, JSON.stringify(items.map(normalizeCriticalStockEvent)))
+}
+
+export const addCriticalStockEvent = (event: CriticalStockEvent) => {
+  saveCriticalStockEvents([event, ...loadCriticalStockEvents()])
+}
+
 export const loadStockDeductionBatches = (): StockDeductionBatch[] => {
   return readJson<Partial<StockDeductionBatch>[]>(KEY_STOCK_DEDUCTION_BATCHES, []).map(normalizeStockDeductionBatch)
 }
@@ -965,11 +1027,95 @@ export const addActionLog = ({
   saveActionLogs([log, ...loadActionLogs()])
 }
 
+const getLatestCriticalStockEvent = (stockItemId: string) => {
+  return loadCriticalStockEvents()
+    .filter(event => event.stockItemId === stockItemId)
+    .sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime())[0]
+}
+
+const buildCriticalStockActionDescription = (event: CriticalStockEvent) => {
+  const stockChange = `${formatStockQuantity(event.previousQty, event.unit)} -> ${formatStockQuantity(event.nextQty, event.unit)}`
+  const level = formatStockQuantity(event.minQty, event.unit)
+
+  if(event.eventType === 'entered'){
+    return `${event.stockItemName} kritik stok seviyesine düştü. Stok: ${stockChange}. Kritik seviye: ${level}. Kaynak: ${event.trigger}.${event.note ? ` ${event.note}` : ''}`
+  }
+
+  return `${event.stockItemName} kritik stoktan çıktı. Stok: ${stockChange}. Kritik seviye: ${level}. Kaynak: ${event.trigger}.${event.note ? ` ${event.note}` : ''}`
+}
+
+export const recordCriticalStockTransition = ({
+  before,
+  after,
+  user,
+  trigger,
+  movementId,
+  tableId,
+  tableName,
+  note
+}: {
+  before?: StockItem
+  after: StockItem
+  user: User
+  trigger: CriticalStockTrigger
+  movementId?: string
+  tableId?: string
+  tableName?: string
+  note?: string
+}) => {
+  const beforeCritical = before ? isCriticalStock(before) : false
+  const afterCritical = isCriticalStock(after)
+
+  if(beforeCritical === afterCritical) return undefined
+
+  const eventType: CriticalStockEventType = afterCritical ? 'entered' : 'resolved'
+  const latestEvent = getLatestCriticalStockEvent(after.id)
+
+  if(latestEvent?.eventType === eventType) return undefined
+
+  const timestamp = new Date().toISOString()
+  const event: CriticalStockEvent = {
+    id: `critical_stock_${Date.now()}_${Math.random().toString(16).slice(2)}`,
+    stockItemId: after.id,
+    stockItemName: after.name,
+    eventType,
+    trigger,
+    previousQty: before?.currentQty ?? after.currentQty,
+    nextQty: after.currentQty,
+    minQty: after.minQty,
+    unit: after.unit,
+    userId: user.id,
+    userName: user.fullName || user.username,
+    timestamp,
+    movementId,
+    tableId,
+    tableName,
+    note: note?.trim() || ''
+  }
+
+  addCriticalStockEvent(event)
+  addActionLog({
+    operationType: eventType === 'entered' ? 'Kritik stok uyarısı' : 'Kritik stoktan çıkıldı',
+    user,
+    tableId,
+    tableName,
+    description: buildCriticalStockActionDescription(event)
+  })
+
+  return event
+}
+
 const getStockMovementLogType = (movement: StockMovement): ActionLogType => {
   if(movement.reversesMovementId) return 'Stok ters hareketi oluşturuldu'
   if(movement.type === 'Çıkış') return 'Stok çıkışı yapıldı'
   if(movement.type === 'Sayım Düzeltme') return 'Stok sayım düzeltmesi yapıldı'
   return 'Stok girişi yapıldı'
+}
+
+const getCriticalStockTriggerFromMovement = (movement: StockMovement): CriticalStockTrigger => {
+  if(movement.reversesMovementId || movement.reverseOfBatchId || movement.reason === 'Ters Hareket') return 'Ters Hareket'
+  if(movement.source === 'Adisyon' && movement.deductionBatchId) return 'Otomatik Stok Düşümü'
+  return 'Stok Hareketi'
 }
 
 const formatStockQty = (value: number, unit: StockUnit) => {
@@ -999,7 +1145,10 @@ export const applyStockMovement = ({
   recipeVersion,
   deductionBatchId,
   reverseOfBatchId,
-  reverseMode
+  reverseMode,
+  criticalBeforeItem,
+  criticalStockTrigger,
+  skipCriticalStockCheck = false
 }: {
   stockItemId: string
   type: StockMovementType
@@ -1024,6 +1173,9 @@ export const applyStockMovement = ({
   deductionBatchId?: string
   reverseOfBatchId?: string
   reverseMode?: 'full' | 'partial'
+  criticalBeforeItem?: StockItem
+  criticalStockTrigger?: CriticalStockTrigger
+  skipCriticalStockCheck?: boolean
 }) => {
   const stockItems = loadStockItems()
   const stockItem = stockItems.find(item => item.id === stockItemId)
@@ -1130,7 +1282,18 @@ export const applyStockMovement = ({
     description: `${user.fullName || user.username} ${movement.stockItemName} için ${movement.type.toLocaleLowerCase('tr-TR')} hareketi oluşturdu. Kaynak: ${movement.source}. Sebep: ${movement.reason}. Miktar: ${formatStockQty(movement.qty, movement.unit)}. Stok: ${formatStockQty(previousQty, movement.unit)} -> ${formatStockQty(nextQty, movement.unit)}.${movement.invoiceNo ? ` Fatura: ${movement.invoiceNo}.` : ''}${movement.supplierName ? ` Tedarikçi: ${movement.supplierName}.` : ''}${movement.description ? ` Açıklama: ${movement.description}.` : ''}`
   })
 
-  return movement
+  const criticalStockEvent = skipCriticalStockCheck ? undefined : recordCriticalStockTransition({
+    before: criticalBeforeItem || stockItem,
+    after: nextStockItem,
+    user,
+    trigger: criticalStockTrigger || getCriticalStockTriggerFromMovement(movement),
+    movementId: movement.id,
+    tableId,
+    tableName,
+    note: movement.description
+  })
+
+  return { ...movement, criticalStockEvent }
 }
 
 export const reverseStockMovement = (movementId: string, user: User) => {

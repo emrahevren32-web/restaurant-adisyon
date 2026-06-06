@@ -288,6 +288,10 @@ export const deductStockForOrder = ({
         deductionBatchId: batchId
       })
 
+      if(movement.criticalStockEvent?.eventType === 'entered'){
+        warnings.push(`${stockItem.name} kritik stok seviyesine düştü: mevcut ${formatQty(movement.criticalStockEvent.nextQty, stockItem.unit)}, kritik seviye ${formatQty(movement.criticalStockEvent.minQty, stockItem.unit)}.`)
+      }
+
       movementIds.push(movement.id)
       lines.push({
         id: createId('stock_deduction_line'),

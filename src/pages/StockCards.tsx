@@ -3,28 +3,37 @@ import { StockCategory, StockItem, StockUnit, User } from '../types'
 import {
   addActionLog,
   applyStockMovement,
+  loadCriticalStockEvents,
   loadStockCategories,
   loadStockItems,
   loadStockMovements,
+  recordCriticalStockTransition,
   saveStockCategories,
   saveStockItems
 } from '../storage'
 import StockItemForm, { StockItemFormValues } from '../components/StockItemForm'
+import {
+  formatStockQuantity,
+  getCriticalRiskRatio,
+  getCriticalShortage,
+  isCriticalStock,
+  isOutOfStock,
+  sortCriticalStockFirst
+} from '../criticalStock'
 
 type Props = { currentUser: User }
-type StatusFilter = 'all' | 'active' | 'inactive' | 'critical'
+type StatusFilter = 'all' | 'active' | 'inactive' | 'critical' | 'out' | 'healthy'
 type UnitFilter = 'all' | StockUnit
 
 const DEFAULT_STOCK_CATEGORY_ID = 'stock_cat_general'
 const stockUnits: StockUnit[] = ['adet', 'kg', 'gr', 'lt', 'ml', 'paket', 'koli']
 const createId = (prefix: string) => `${prefix}_${Date.now()}`
 
-const formatQuantity = (value: number, unit: StockUnit) => {
-  return `${value.toLocaleString('tr-TR', { maximumFractionDigits: 3 })} ${unit}`
-}
+const formatQuantity = formatStockQuantity
 
-const isCriticalStock = (item: StockItem) => {
-  return item.active && item.currentQty <= item.minQty
+const getLocalDateKey = (value: string | Date) => {
+  const date = typeof value === 'string' ? new Date(value) : value
+  return Number.isNaN(date.getTime()) ? '' : date.toLocaleDateString('sv-SE')
 }
 
 export default function StockCards({ currentUser }: Props){
@@ -40,6 +49,8 @@ export default function StockCards({ currentUser }: Props){
   const [editingCategoryName, setEditingCategoryName] = React.useState('')
   const [categoryError, setCategoryError] = React.useState('')
   const [permissionError, setPermissionError] = React.useState('')
+  const [stockNotice, setStockNotice] = React.useState<{ type: 'success' | 'warning'; text: string } | null>(null)
+  const [criticalEvents, setCriticalEvents] = React.useState(() => loadCriticalStockEvents())
 
   const canManageStock = currentUser.role === 'Admin'
 
@@ -50,6 +61,25 @@ export default function StockCards({ currentUser }: Props){
   React.useEffect(() => {
     if(canManageStock) saveStockCategories(categories)
   }, [canManageStock, categories])
+
+  const refreshCriticalEvents = React.useCallback(() => {
+    setCriticalEvents(loadCriticalStockEvents())
+  }, [])
+
+  const showCriticalNotice = (event?: ReturnType<typeof recordCriticalStockTransition>) => {
+    refreshCriticalEvents()
+    if(!event){
+      setStockNotice(null)
+      return
+    }
+
+    setStockNotice({
+      type: event.eventType === 'entered' ? 'warning' : 'success',
+      text: event.eventType === 'entered'
+        ? `${event.stockItemName} kritik stok seviyesine düştü.`
+        : `${event.stockItemName} kritik stoktan çıktı.`
+    })
+  }
 
   React.useEffect(() => {
     if(canManageStock) return
@@ -96,15 +126,23 @@ export default function StockCards({ currentUser }: Props){
         || (statusFilter === 'active' && item.active)
         || (statusFilter === 'inactive' && !item.active)
         || (statusFilter === 'critical' && isCriticalStock(item))
+        || (statusFilter === 'out' && isOutOfStock(item))
+        || (statusFilter === 'healthy' && item.active && !isCriticalStock(item))
       const matchesUnit = unitFilter === 'all' || item.unit === unitFilter
 
       return matchesSearch && matchesCategory && matchesStatus && matchesUnit
     })
   }, [categoryFilter, categoryMap, items, search, statusFilter, unitFilter])
+  const sortedVisibleItems = React.useMemo(() => sortCriticalStockFirst(visibleItems), [visibleItems])
 
   const activeItemCount = items.filter(item => item.active).length
   const inactiveItemCount = items.length - activeItemCount
   const criticalItemCount = items.filter(isCriticalStock).length
+  const outOfStockCount = items.filter(isOutOfStock).length
+  const healthyItemCount = items.filter(item => item.active && !isCriticalStock(item)).length
+  const today = getLocalDateKey(new Date())
+  const todayCriticalEnteredCount = criticalEvents.filter(event => event.eventType === 'entered' && getLocalDateKey(event.timestamp) === today).length
+  const todayCriticalResolvedCount = criticalEvents.filter(event => event.eventType === 'resolved' && getLocalDateKey(event.timestamp) === today).length
 
   const assertCanManageStock = () => {
     if(canManageStock){
@@ -132,24 +170,36 @@ export default function StockCards({ currentUser }: Props){
       const nextItems = items.map(item => item.id === editingItem.id ? updatedItem : item)
       saveStockItems(nextItems)
       setItems(nextItems)
+      let criticalEvent: ReturnType<typeof recordCriticalStockTransition>
 
       if(qtyChanged){
         try {
-          applyStockMovement({
+          const movement = applyStockMovement({
             stockItemId: editingItem.id,
             type: 'Sayım Düzeltme',
             source: 'Sayım',
             reason: values.currentQty >= editingItem.currentQty ? 'Sayım Fazlası' : 'Sayım Eksiği',
             qty: values.currentQty,
             description: 'Stok kartı ekranından mevcut miktar düzeltmesi.',
-            user: currentUser
+            user: currentUser,
+            criticalBeforeItem: editingItem,
+            criticalStockTrigger: 'Stok Kartı Güncelleme'
           })
+          criticalEvent = movement.criticalStockEvent
           setItems(loadStockItems())
         } catch (error) {
           setPermissionError(error instanceof Error ? error.message : 'Stok miktarı güncellenemedi.')
           setItems(loadStockItems())
           return
         }
+      } else {
+        criticalEvent = recordCriticalStockTransition({
+          before: editingItem,
+          after: updatedItem,
+          user: currentUser,
+          trigger: 'Stok Kartı Güncelleme',
+          note: 'Stok kartı bilgileri güncellendi.'
+        })
       }
 
       addActionLog({
@@ -158,6 +208,7 @@ export default function StockCards({ currentUser }: Props){
         description: `${editingItem.name} stok kartı güncellendi. Yeni ad: ${values.name}.`
       })
       setEditingItem(null)
+      showCriticalNotice(criticalEvent)
       return
     }
 
@@ -171,6 +222,7 @@ export default function StockCards({ currentUser }: Props){
 
     const nextItems = [item, ...items]
     saveStockItems(nextItems)
+    let criticalEvent: ReturnType<typeof recordCriticalStockTransition>
 
     if(values.currentQty > 0){
       try {
@@ -181,12 +233,21 @@ export default function StockCards({ currentUser }: Props){
           reason: 'Satın Alma',
           qty: values.currentQty,
           description: 'Stok kartı oluşturulurken girilen başlangıç miktarı.',
-          user: currentUser
+          user: currentUser,
+          skipCriticalStockCheck: true
         })
       } catch (error) {
         setPermissionError(error instanceof Error ? error.message : 'Başlangıç stok hareketi oluşturulamadı.')
       }
     }
+
+    const finalItem = loadStockItems().find(stockItem => stockItem.id === item.id) || item
+    criticalEvent = recordCriticalStockTransition({
+      after: finalItem,
+      user: currentUser,
+      trigger: 'Stok Kartı Oluşturma',
+      note: 'Stok kartı oluşturuldu.'
+    })
 
     setItems(loadStockItems())
     addActionLog({
@@ -194,6 +255,7 @@ export default function StockCards({ currentUser }: Props){
       user: currentUser,
       description: `${item.name} stok kartı oluşturuldu. Kritik seviye: ${formatQuantity(item.minQty, item.unit)}.${values.currentQty > 0 ? ` Başlangıç miktarı hareket kaydıyla eklendi: ${formatQuantity(values.currentQty, item.unit)}.` : ''}`
     })
+    showCriticalNotice(criticalEvent)
   }
 
   const startEditItem = (item: StockItem) => {
@@ -227,18 +289,23 @@ export default function StockCards({ currentUser }: Props){
     if(!assertCanManageStock()) return
 
     const item = items.find(stockItem => stockItem.id === itemId)
-    setItems(prev => prev.map(stockItem => stockItem.id === itemId
-      ? { ...stockItem, active: !stockItem.active, updatedAt: new Date().toISOString() }
-      : stockItem
-    ))
+    if(!item) return
 
-    if(item){
-      addActionLog({
-        operationType: item.active ? 'Stok kartı pasif yapıldı' : 'Stok kartı aktif yapıldı',
-        user: currentUser,
-        description: `${item.name} stok kartı ${item.active ? 'pasif' : 'aktif'} yapıldı.`
-      })
-    }
+    const nextItem = { ...item, active: !item.active, updatedAt: new Date().toISOString() }
+    setItems(prev => prev.map(stockItem => stockItem.id === itemId ? nextItem : stockItem))
+
+    addActionLog({
+      operationType: item.active ? 'Stok kartı pasif yapıldı' : 'Stok kartı aktif yapıldı',
+      user: currentUser,
+      description: `${item.name} stok kartı ${item.active ? 'pasif' : 'aktif'} yapıldı.`
+    })
+    showCriticalNotice(recordCriticalStockTransition({
+      before: item,
+      after: nextItem,
+      user: currentUser,
+      trigger: item.active ? 'Stok Kartı Pasifleştirme' : 'Stok Kartı Aktifleştirme',
+      note: `${item.name} stok kartı ${item.active ? 'pasif' : 'aktif'} yapıldı.`
+    }))
   }
 
   const addCategory = (event: React.FormEvent) => {
@@ -362,6 +429,7 @@ export default function StockCards({ currentUser }: Props){
       </div>
 
       {permissionError && <div className="form-error">{permissionError}</div>}
+      {stockNotice && <div className={`settings-message ${stockNotice.type}`}>{stockNotice.text}</div>}
 
       <div className="metric-grid">
         <div className="metric-card">
@@ -375,6 +443,17 @@ export default function StockCards({ currentUser }: Props){
         <div className="metric-card">
           <span>Kritik Stok</span>
           <strong>{criticalItemCount}</strong>
+          <p className="muted">Bugün giriş: {todayCriticalEnteredCount}</p>
+        </div>
+        <div className="metric-card">
+          <span>Stokta Yok</span>
+          <strong>{outOfStockCount}</strong>
+          <p className="muted">Aktif kartlar</p>
+        </div>
+        <div className="metric-card">
+          <span>Sağlıklı Stok</span>
+          <strong>{healthyItemCount}</strong>
+          <p className="muted">Bugün çıkış: {todayCriticalResolvedCount}</p>
         </div>
         <div className="metric-card">
           <span>Pasif Kart</span>
@@ -405,6 +484,8 @@ export default function StockCards({ currentUser }: Props){
               <select value={statusFilter} onChange={event => setStatusFilter(event.target.value as StatusFilter)}>
                 <option value="active">Aktif kartlar</option>
                 <option value="critical">Kritik stok</option>
+                <option value="out">Stokta yok</option>
+                <option value="healthy">Sağlıklı stok</option>
                 <option value="inactive">Pasif kartlar</option>
                 <option value="all">Tüm durumlar</option>
               </select>
@@ -424,6 +505,7 @@ export default function StockCards({ currentUser }: Props){
                   <th>Birim</th>
                   <th>Mevcut</th>
                   <th>Kritik</th>
+                  <th>Eksik</th>
                   <th>Durum</th>
                   <th></th>
                 </tr>
@@ -431,15 +513,17 @@ export default function StockCards({ currentUser }: Props){
               <tbody>
                 {visibleItems.length === 0 && (
                   <tr>
-                    <td colSpan={7} className="empty-cell">Bu filtrelere uygun stok kartı bulunamadı.</td>
+                    <td colSpan={8} className="empty-cell">Bu filtrelere uygun stok kartı bulunamadı.</td>
                   </tr>
                 )}
-                {visibleItems.map(item => {
+                {sortedVisibleItems.map(item => {
                   const category = categoryMap.get(item.categoryId)
                   const critical = isCriticalStock(item)
+                  const shortage = getCriticalShortage(item)
+                  const riskRatio = getCriticalRiskRatio(item)
 
                   return (
-                    <tr key={item.id}>
+                    <tr key={item.id} className={critical ? 'critical-stock-table-row' : undefined}>
                       <td>
                         <strong>{item.name}</strong>
                         {(item.sku || item.barcode || item.description) && (
@@ -452,8 +536,16 @@ export default function StockCards({ currentUser }: Props){
                       </td>
                       <td>{category?.name || 'Kategori yok'}</td>
                       <td>{item.unit}</td>
-                      <td>{formatQuantity(item.currentQty, item.unit)}</td>
+                      <td>
+                        <strong>{formatQuantity(item.currentQty, item.unit)}</strong>
+                        {critical && (
+                          <div className="critical-risk-bar" title="Kritik stok riski">
+                            <span style={{ width: `${Math.max(12, Math.round(riskRatio * 100))}%` }} />
+                          </div>
+                        )}
+                      </td>
                       <td>{formatQuantity(item.minQty, item.unit)}</td>
+                      <td>{shortage > 0 ? formatQuantity(shortage, item.unit) : critical ? 'Eşik seviyesinde' : '-'}</td>
                       <td>
                         {!item.active ? (
                           <span className="status-pill muted-pill">Pasif</span>
