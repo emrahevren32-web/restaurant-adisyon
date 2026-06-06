@@ -10,6 +10,7 @@ export type StockMovementFormValues = {
   purchasePrice?: number
   supplierName: string
   invoiceNo: string
+  expiryDate?: string
   description: string
   movementDate: string
 }
@@ -42,6 +43,7 @@ export default function StockMovementForm({ stockItems, onSave }: Props){
   const [purchasePrice, setPurchasePrice] = React.useState('')
   const [supplierName, setSupplierName] = React.useState('')
   const [invoiceNo, setInvoiceNo] = React.useState('')
+  const [expiryDate, setExpiryDate] = React.useState('')
   const [description, setDescription] = React.useState('')
   const [movementDate, setMovementDate] = React.useState(() => toDateTimeLocalValue())
   const [error, setError] = React.useState('')
@@ -74,6 +76,7 @@ export default function StockMovementForm({ stockItems, onSave }: Props){
 
   const selectedItem = stockItems.find(item => item.id === stockItemId)
   const qtyLabel = type === 'Sayım Düzeltme' ? 'Sayım sonucu miktar' : 'Miktar'
+  const showExpiryDateField = Boolean(selectedItem?.tracksExpiry && (type === 'Giriş' || type === 'Sayım Düzeltme'))
 
   const submit = (event: React.FormEvent) => {
     event.preventDefault()
@@ -96,6 +99,16 @@ export default function StockMovementForm({ stockItems, onSave }: Props){
       return
     }
 
+    if(selectedItem?.tracksExpiry && type === 'Giriş' && !expiryDate){
+      setError('SKT takipli stok girişlerinde son kullanma tarihi zorunludur.')
+      return
+    }
+
+    if(selectedItem?.tracksExpiry && type === 'Sayım Düzeltme' && parsedQty > selectedItem.currentQty && !expiryDate){
+      setError('SKT takipli sayım fazlası girişlerinde son kullanma tarihi zorunludur.')
+      return
+    }
+
     onSave({
       stockItemId,
       type,
@@ -105,6 +118,7 @@ export default function StockMovementForm({ stockItems, onSave }: Props){
       purchasePrice: parsedPurchasePrice,
       supplierName: supplierName.trim(),
       invoiceNo: invoiceNo.trim(),
+      expiryDate: showExpiryDateField ? expiryDate || undefined : undefined,
       description: description.trim(),
       movementDate: toIsoDate(movementDate)
     })
@@ -113,6 +127,7 @@ export default function StockMovementForm({ stockItems, onSave }: Props){
     setPurchasePrice('')
     setSupplierName('')
     setInvoiceNo('')
+    setExpiryDate('')
     setDescription('')
     setMovementDate(toDateTimeLocalValue())
     setError('')
@@ -164,6 +179,14 @@ export default function StockMovementForm({ stockItems, onSave }: Props){
         <div className="stock-current-hint">
           <span>Mevcut stok</span>
           <strong>{selectedItem.currentQty.toLocaleString('tr-TR', { maximumFractionDigits: 3 })} {selectedItem.unit}</strong>
+          {selectedItem.tracksExpiry && <em>SKT takibi aktif</em>}
+        </div>
+      )}
+
+      {showExpiryDateField && (
+        <div className="form-field">
+          <label>Son kullanma tarihi</label>
+          <input type="date" value={expiryDate} onChange={event => setExpiryDate(event.target.value)} />
         </div>
       )}
 

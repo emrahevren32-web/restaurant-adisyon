@@ -7,6 +7,7 @@ import {
   reverseStockMovement
 } from '../storage'
 import StockMovementForm, { StockMovementFormValues } from '../components/StockMovementForm'
+import { formatExpiryDate } from '../expiryStock'
 
 type Props = { currentUser: User }
 type TypeFilter = 'all' | StockMovementType
@@ -45,10 +46,36 @@ const formatCriticalStockMessage = (movement: ReturnType<typeof applyStockMoveme
   return ` ${event.stockItemName} kritik stoktan çıktı.`
 }
 
+const formatExpiryWarningMessage = (movement: ReturnType<typeof applyStockMovement>) => {
+  if(!movement.expiryWarnings?.length) return ''
+  return ` SKT uyarısı: ${movement.expiryWarnings.join(' | ')}`
+}
+
 const getMovementDirectionClass = (movement: StockMovement) => {
   if(movement.type === 'Giriş') return 'success'
   if(movement.type === 'Çıkış') return 'danger-pill'
   return ''
+}
+
+const getExpiryMovementText = (movement: StockMovement) => {
+  const parts: string[] = []
+
+  if(movement.expiryDate){
+    parts.push(`SKT: ${formatExpiryDate(movement.expiryDate)}`)
+  }
+
+  if(movement.expiryAllocations?.length){
+    parts.push(`FEFO: ${movement.expiryAllocations.map(allocation => {
+      const expiry = allocation.expiryDate ? formatExpiryDate(allocation.expiryDate) : 'SKT yok'
+      return `${allocation.lotCode} ${formatQuantity(allocation.qty, allocation.unit)} (${expiry})`
+    }).join(' | ')}`)
+  }
+
+  if(movement.expiryUnallocatedQty && movement.expiryUnallocatedQty > 0){
+    parts.push(`Eşleşmeyen: ${formatQuantity(movement.expiryUnallocatedQty, movement.unit)}`)
+  }
+
+  return parts.join(' · ')
 }
 
 export default function StockMovements({ currentUser }: Props){
@@ -122,7 +149,7 @@ export default function StockMovements({ currentUser }: Props){
       refreshData()
       setMessage({
         type: movement.criticalStockEvent?.eventType === 'entered' ? 'error' : 'success',
-        text: `${movement.stockItemName} için ${movement.type} fişi oluşturuldu.${formatCriticalStockMessage(movement)}`
+        text: `${movement.stockItemName} için ${movement.type} fişi oluşturuldu.${formatCriticalStockMessage(movement)}${formatExpiryWarningMessage(movement)}`
       })
     } catch (error) {
       setMessage({ type: 'error', text: error instanceof Error ? error.message : 'Stok hareketi oluşturulamadı.' })
@@ -142,7 +169,7 @@ export default function StockMovements({ currentUser }: Props){
       refreshData()
       setMessage({
         type: reversedMovement.criticalStockEvent?.eventType === 'entered' ? 'error' : 'success',
-        text: `${movement.stockItemName} için ters hareket oluşturuldu: ${reversedMovement.type}.${formatCriticalStockMessage(reversedMovement)}`
+        text: `${movement.stockItemName} için ters hareket oluşturuldu: ${reversedMovement.type}.${formatCriticalStockMessage(reversedMovement)}${formatExpiryWarningMessage(reversedMovement)}`
       })
     } catch (error) {
       setMessage({ type: 'error', text: error instanceof Error ? error.message : 'Ters hareket oluşturulamadı.' })
@@ -165,7 +192,7 @@ export default function StockMovements({ currentUser }: Props){
       <div className="page-title">
         <div>
           <h2>Stok Hareketleri</h2>
-          <p className="muted">Stok giriş, çıkış ve sayım düzeltme fişlerini kullanıcı, tarih, kaynak ve gerekçe ile takip edin.</p>
+          <p className="muted">Stok miktarı, SKT girişleri ve stok hareketleri bu ekran üzerinden yönetilir.</p>
         </div>
         <span className="status-pill success">Admin</span>
       </div>
@@ -251,6 +278,8 @@ export default function StockMovements({ currentUser }: Props){
                     <td>
                       <strong>{movement.stockItemName}</strong>
                       <div className="muted small-text">{movement.reason}{movement.reversesMovementId ? ' · Ters kayıt' : ''}{movement.reversedByMovementId ? ' · Terslendi' : ''}</div>
+                      {getExpiryMovementText(movement) && <div className="muted small-text">{getExpiryMovementText(movement)}</div>}
+                      {movement.expiryWarnings?.map(warning => <div className="small-text danger-text" key={warning}>{warning}</div>)}
                     </td>
                     <td><span className={`status-pill ${getMovementDirectionClass(movement)}`}>{movement.type}</span></td>
                     <td>{movement.source}</td>

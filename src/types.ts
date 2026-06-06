@@ -33,6 +33,8 @@ export type StockItem = {
   unit: StockUnit
   currentQty: number
   minQty: number
+  tracksExpiry?: boolean
+  expiryWarningDays?: number
   sku?: string
   barcode?: string
   description?: string
@@ -69,6 +71,10 @@ export type StockMovement = {
   purchasePrice?: number
   supplierName?: string
   invoiceNo?: string
+  expiryDate?: string
+  expiryAllocations?: StockExpiryAllocation[]
+  expiryUnallocatedQty?: number
+  expiryWarnings?: string[]
   description?: string
   movementDate: string
   createdAt: string
@@ -131,6 +137,75 @@ export type CriticalStockEvent = {
   movementId?: string
   tableId?: string
   tableName?: string
+  note?: string
+}
+
+export type StockExpiryStatus = 'valid' | 'near_expiry' | 'expired' | 'depleted' | 'unknown'
+
+export type StockExpiryEventType =
+  | 'lot_created'
+  | 'lot_consumed'
+  | 'lot_returned'
+  | 'lot_adjusted'
+  | 'near_expiry'
+  | 'expired'
+  | 'allocation_missing'
+
+export type StockExpiryTrigger =
+  | 'Stok Girişi'
+  | 'Stok Çıkışı'
+  | 'Otomatik Stok Düşümü'
+  | 'Ters Hareket'
+  | 'Sayım Düzeltme'
+  | 'SKT Kontrolü'
+
+export type StockExpiryAllocation = {
+  lotId: string
+  lotCode: string
+  expiryDate?: string
+  qty: number
+  unit: StockUnit
+}
+
+export type StockExpiryLot = {
+  id: string
+  lotCode: string
+  stockItemId: string
+  stockItemName: string
+  unit: StockUnit
+  initialQty: number
+  remainingQty: number
+  expiryDate?: string
+  receivedAt: string
+  purchaseMovementId?: string
+  supplierName?: string
+  invoiceNo?: string
+  createdAt: string
+  createdByUserId: string
+  createdByFullName: string
+  updatedAt?: string
+  depletedAt?: string
+}
+
+export type StockExpiryEvent = {
+  id: string
+  lotId?: string
+  lotCode?: string
+  stockItemId: string
+  stockItemName: string
+  eventType: StockExpiryEventType
+  trigger: StockExpiryTrigger
+  qty?: number
+  unit: StockUnit
+  expiryDate?: string
+  previousStatus?: StockExpiryStatus
+  nextStatus?: StockExpiryStatus
+  movementId?: string
+  tableId?: string
+  tableName?: string
+  userId: string
+  userName: string
+  timestamp: string
   note?: string
 }
 
@@ -224,6 +299,9 @@ export type StockDeductionLine = {
   wastePercent: number
   movementId?: string
   reverseMovementIds?: string[]
+  expiryAllocations?: StockExpiryAllocation[]
+  expiryUnallocatedQty?: number
+  expiryWarnings?: string[]
   warning?: string
   error?: string
 }
@@ -505,6 +583,13 @@ export type ActionLogType =
   | 'Stok ters hareketi oluşturuldu'
   | 'Kritik stok uyarısı oluştu'
   | 'Kritik stoktan çıkıldı'
+  | 'SKT lotu oluşturuldu'
+  | 'SKT lotu tüketildi'
+  | 'SKT lotu iade edildi'
+  | 'SKT lotu güncellendi'
+  | 'SKT yaklaşan uyarısı oluştu'
+  | 'SKT tarihi geçti'
+  | 'SKT lot eşleşmesi yapılamadı'
   | 'Reçete oluşturuldu'
   | 'Reçete güncellendi'
   | 'Reçete silindi'

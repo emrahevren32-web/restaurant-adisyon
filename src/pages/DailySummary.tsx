@@ -1,8 +1,9 @@
 import React from 'react'
 import { ClosedBill, PaymentMethod, User } from '../types'
-import { loadClosed, loadCriticalStockEvents, loadStockItems } from '../storage'
+import { loadClosed, loadCriticalStockEvents, loadStockExpiryLots, loadStockItems, syncStockExpiryStatusEvents } from '../storage'
 import { formatCurrency, getBillPayments, isRevenueBill } from '../billing'
 import { formatStockQuantity, getCriticalShortage, isCriticalStock, isOutOfStock, sortCriticalStockFirst } from '../criticalStock'
+import { formatExpiryDate, formatExpiryQuantity, formatExpiryStatusLabel, getExpiryStatus, getExpiryStatusClass, getExpiryWarningDays, isExpiryTracked, sortLotsFefo } from '../expiryStock'
 
 type Props = {
   currentUser: User
@@ -25,6 +26,15 @@ export default function DailySummary({ currentUser }: Props){
   const [closed] = React.useState<ClosedBill[]>(() => loadClosed())
   const [stockItems] = React.useState(() => loadStockItems())
   const [criticalEvents] = React.useState(() => loadCriticalStockEvents())
+  const [expiryLots, setExpiryLots] = React.useState(() => loadStockExpiryLots())
+
+  React.useEffect(() => {
+    if(currentUser.role !== 'Admin') return
+
+    syncStockExpiryStatusEvents(currentUser)
+    setExpiryLots(loadStockExpiryLots())
+  }, [currentUser])
+
   const today = getLocalDateKey(new Date())
   const todays = closed.filter(bill => isRevenueBill(bill) && getLocalDateKey(bill.timestamp) === today)
   const total = todays.reduce((sum,bill)=> sum + bill.total, 0)
@@ -44,6 +54,24 @@ export default function DailySummary({ currentUser }: Props){
   const outOfStockCount = stockItems.filter(isOutOfStock).length
   const todayCriticalEnteredCount = criticalEvents.filter(event => event.eventType === 'entered' && getLocalDateKey(event.timestamp) === today).length
   const todayCriticalResolvedCount = criticalEvents.filter(event => event.eventType === 'resolved' && getLocalDateKey(event.timestamp) === today).length
+  const stockItemMap = React.useMemo(() => new Map(stockItems.map(item => [item.id, item])), [stockItems])
+  const activeExpiryLots = React.useMemo(() => {
+    return sortLotsFefo(expiryLots.filter(lot => {
+      const item = stockItemMap.get(lot.stockItemId)
+      return lot.remainingQty > 0 && item?.active && isExpiryTracked(item)
+    }))
+  }, [expiryLots, stockItemMap])
+  const expiryRows = React.useMemo(() => {
+    return activeExpiryLots.map(lot => {
+      const item = stockItemMap.get(lot.stockItemId)
+      const status = getExpiryStatus(lot, getExpiryWarningDays(item))
+      return { lot, item, status }
+    })
+  }, [activeExpiryLots, stockItemMap])
+  const expiredLots = expiryRows.filter(row => row.status === 'expired')
+  const nearExpiryLots = expiryRows.filter(row => row.status === 'near_expiry')
+  const unknownExpiryLots = expiryRows.filter(row => row.status === 'unknown')
+  const expiryAlertRows = [...expiredLots, ...nearExpiryLots].slice(0, 5)
 
   return (
     <div className="summary-page">
@@ -116,6 +144,58 @@ export default function DailySummary({ currentUser }: Props){
                 </div>
                 <span className="status-pill danger-pill">
                   Eksik {formatStockQuantity(getCriticalShortage(item), item.unit)}
+                </span>
+              </div>
+            ))}
+          </div>
+        </section>
+      )}
+
+      {canSeeStockSummary && (
+        <section className="card">
+          <div className="section-header compact">
+            <div>
+              <h3>SKT Özeti</h3>
+              <p className="muted">Lot bazlı son kullanma tarihi uyarıları.</p>
+            </div>
+            <span className={`status-pill ${expiredLots.length > 0 ? 'danger-pill' : nearExpiryLots.length > 0 ? 'warning-pill' : 'success'}`}>
+              {expiredLots.length > 0 ? `${expiredLots.length} tarihi geçmiş` : nearExpiryLots.length > 0 ? `${nearExpiryLots.length} yaklaşıyor` : 'SKT sağlıklı'}
+            </span>
+          </div>
+
+          <div className="metric-grid report-metric-grid">
+            <div className="metric-card">
+              <span>SKT Takipli Lot</span>
+              <strong>{activeExpiryLots.length}</strong>
+              <p className="muted">Kalan miktarı olan</p>
+            </div>
+            <div className="metric-card">
+              <span>Yaklaşan SKT</span>
+              <strong>{nearExpiryLots.length}</strong>
+              <p className="muted">Uyarı günü içinde</p>
+            </div>
+            <div className="metric-card">
+              <span>Tarihi Geçmiş</span>
+              <strong>{expiredLots.length}</strong>
+              <p className="muted">FEFO tüketimde atlanır</p>
+            </div>
+            <div className="metric-card">
+              <span>SKT Eksik Lot</span>
+              <strong>{unknownExpiryLots.length}</strong>
+              <p className="muted">Tarih girilmemiş</p>
+            </div>
+          </div>
+
+          <div className="critical-stock-list">
+            {expiryAlertRows.length === 0 && <div className="empty-state">SKT uyarısı bulunmuyor.</div>}
+            {expiryAlertRows.map(({ lot, status }) => (
+              <div className="critical-stock-row expiry-stock-row" key={lot.id}>
+                <div>
+                  <strong>{lot.stockItemName}</strong>
+                  <span>{lot.lotCode} · SKT {formatExpiryDate(lot.expiryDate)} · Kalan {formatExpiryQuantity(lot.remainingQty, lot.unit)}</span>
+                </div>
+                <span className={`status-pill ${getExpiryStatusClass(status)}`}>
+                  {formatExpiryStatusLabel(status)}
                 </span>
               </div>
             ))}

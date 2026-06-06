@@ -29,6 +29,12 @@ import {
   StockDeductionLine,
   StockDeductionSourceType,
   StockDeductionStatus,
+  StockExpiryAllocation,
+  StockExpiryEvent,
+  StockExpiryEventType,
+  StockExpiryLot,
+  StockExpiryStatus,
+  StockExpiryTrigger,
   StockItem,
   StockMovement,
   StockMovementAuditEvent,
@@ -45,6 +51,17 @@ import {
   WaiterCallStatus
 } from './types'
 import { formatStockQuantity, isCriticalStock } from './criticalStock'
+import {
+  DEFAULT_EXPIRY_WARNING_DAYS,
+  formatExpiryDate,
+  formatExpiryQuantity,
+  getExpiryStatus,
+  getExpiryWarningDays,
+  isConsumableExpiryLot,
+  isExpiryTracked,
+  normalizeExpiryDateKey,
+  sortLotsFefo
+} from './expiryStock'
 
 const KEY_PRODUCTS = 'ra_products'
 const KEY_CATEGORIES = 'ra_categories'
@@ -53,6 +70,8 @@ const KEY_STOCK_CATEGORIES = 'ra_stock_categories'
 const KEY_STOCK_MOVEMENTS = 'ra_stock_movements'
 const KEY_STOCK_MOVEMENT_AUDIT = 'ra_stock_movement_audit'
 const KEY_CRITICAL_STOCK_EVENTS = 'ra_critical_stock_events'
+const KEY_STOCK_EXPIRY_LOTS = 'ra_stock_expiry_lots'
+const KEY_STOCK_EXPIRY_EVENTS = 'ra_stock_expiry_events'
 const KEY_STOCK_DEDUCTION_BATCHES = 'ra_stock_deduction_batches'
 const KEY_STOCK_DEDUCTION_AUDIT = 'ra_stock_deduction_audit_events'
 const KEY_RECIPES = 'ra_recipes'
@@ -155,6 +174,7 @@ const normalizeStockItem = (item: Partial<StockItem>, fallbackCategoryId = DEFAU
   const currentQty = Number(item.currentQty)
   const minQty = Number(item.minQty)
   const lastPurchasePrice = Number(item.lastPurchasePrice)
+  const expiryWarningDays = Number(item.expiryWarningDays)
 
   return {
     id: String(item.id || `stock_${Date.now()}`),
@@ -163,6 +183,8 @@ const normalizeStockItem = (item: Partial<StockItem>, fallbackCategoryId = DEFAU
     unit: normalizeStockUnit(item.unit),
     currentQty: Number.isFinite(currentQty) ? currentQty : 0,
     minQty: Number.isFinite(minQty) ? Math.max(0, minQty) : 0,
+    tracksExpiry: item.tracksExpiry === true,
+    expiryWarningDays: Number.isFinite(expiryWarningDays) ? Math.max(0, Math.floor(expiryWarningDays)) : DEFAULT_EXPIRY_WARNING_DAYS,
     sku: item.sku || '',
     barcode: item.barcode || '',
     description: item.description || '',
@@ -186,11 +208,24 @@ const normalizeStockMovementReason = (value: unknown): StockMovementReason => {
   return STOCK_MOVEMENT_REASONS.includes(value as StockMovementReason) ? value as StockMovementReason : 'Diğer'
 }
 
+const normalizeStockExpiryAllocation = (item: Partial<StockExpiryAllocation>): StockExpiryAllocation => {
+  const qty = Number(item.qty)
+
+  return {
+    lotId: String(item.lotId || ''),
+    lotCode: String(item.lotCode || item.lotId || 'LOT'),
+    expiryDate: normalizeExpiryDateKey(item.expiryDate),
+    qty: Number.isFinite(qty) ? Math.max(0, qty) : 0,
+    unit: normalizeStockUnit(item.unit)
+  }
+}
+
 const normalizeStockMovement = (item: Partial<StockMovement>): StockMovement => {
   const qty = Number(item.qty)
   const previousQty = Number(item.previousQty)
   const nextQty = Number(item.nextQty)
   const purchasePrice = Number(item.purchasePrice)
+  const expiryUnallocatedQty = Number(item.expiryUnallocatedQty)
   const timestamp = item.createdAt || new Date().toISOString()
 
   return {
@@ -207,6 +242,10 @@ const normalizeStockMovement = (item: Partial<StockMovement>): StockMovement => 
     purchasePrice: Number.isFinite(purchasePrice) && purchasePrice >= 0 ? purchasePrice : undefined,
     supplierName: item.supplierName || '',
     invoiceNo: item.invoiceNo || '',
+    expiryDate: normalizeExpiryDateKey(item.expiryDate),
+    expiryAllocations: (item.expiryAllocations || []).map(normalizeStockExpiryAllocation).filter(allocation => allocation.lotId && allocation.qty > 0),
+    expiryUnallocatedQty: Number.isFinite(expiryUnallocatedQty) ? Math.max(0, expiryUnallocatedQty) : undefined,
+    expiryWarnings: item.expiryWarnings || [],
     description: item.description || '',
     movementDate: item.movementDate || timestamp,
     createdAt: timestamp,
@@ -290,6 +329,98 @@ const normalizeCriticalStockEvent = (item: Partial<CriticalStockEvent>): Critica
   }
 }
 
+const normalizeStockExpiryLot = (item: Partial<StockExpiryLot>): StockExpiryLot => {
+  const initialQty = Number(item.initialQty)
+  const remainingQty = Number(item.remainingQty)
+  const timestamp = item.createdAt || new Date().toISOString()
+  const id = String(item.id || `stock_expiry_lot_${Date.now()}`)
+
+  return {
+    id,
+    lotCode: String(item.lotCode || `LOT-${id.slice(-6).toUpperCase()}`),
+    stockItemId: String(item.stockItemId || ''),
+    stockItemName: String(item.stockItemName || 'Stok Kartı'),
+    unit: normalizeStockUnit(item.unit),
+    initialQty: Number.isFinite(initialQty) ? Math.max(0, initialQty) : 0,
+    remainingQty: Number.isFinite(remainingQty) ? Math.max(0, remainingQty) : 0,
+    expiryDate: normalizeExpiryDateKey(item.expiryDate),
+    receivedAt: item.receivedAt || timestamp,
+    purchaseMovementId: item.purchaseMovementId,
+    supplierName: item.supplierName || '',
+    invoiceNo: item.invoiceNo || '',
+    createdAt: timestamp,
+    createdByUserId: String(item.createdByUserId || ''),
+    createdByFullName: String(item.createdByFullName || 'Bilinmeyen Kullanıcı'),
+    updatedAt: item.updatedAt,
+    depletedAt: item.depletedAt
+  }
+}
+
+const normalizeStockExpiryStatus = (value: unknown): StockExpiryStatus | undefined => {
+  if(value === 'valid' || value === 'near_expiry' || value === 'expired' || value === 'depleted' || value === 'unknown'){
+    return value
+  }
+
+  return undefined
+}
+
+const normalizeStockExpiryEventType = (value: unknown): StockExpiryEventType => {
+  if(
+    value === 'lot_consumed'
+    || value === 'lot_returned'
+    || value === 'lot_adjusted'
+    || value === 'near_expiry'
+    || value === 'expired'
+    || value === 'allocation_missing'
+    || value === 'lot_created'
+  ){
+    return value
+  }
+
+  return 'lot_created'
+}
+
+const normalizeStockExpiryTrigger = (value: unknown): StockExpiryTrigger => {
+  if(
+    value === 'Stok Çıkışı'
+    || value === 'Otomatik Stok Düşümü'
+    || value === 'Ters Hareket'
+    || value === 'Sayım Düzeltme'
+    || value === 'SKT Kontrolü'
+    || value === 'Stok Girişi'
+  ){
+    return value
+  }
+
+  return 'Stok Girişi'
+}
+
+const normalizeStockExpiryEvent = (item: Partial<StockExpiryEvent>): StockExpiryEvent => {
+  const qty = Number(item.qty)
+
+  return {
+    id: String(item.id || `stock_expiry_event_${Date.now()}`),
+    lotId: item.lotId,
+    lotCode: item.lotCode,
+    stockItemId: String(item.stockItemId || ''),
+    stockItemName: String(item.stockItemName || 'Stok Kartı'),
+    eventType: normalizeStockExpiryEventType(item.eventType),
+    trigger: normalizeStockExpiryTrigger(item.trigger),
+    qty: Number.isFinite(qty) ? Math.max(0, qty) : undefined,
+    unit: normalizeStockUnit(item.unit),
+    expiryDate: normalizeExpiryDateKey(item.expiryDate),
+    previousStatus: normalizeStockExpiryStatus(item.previousStatus),
+    nextStatus: normalizeStockExpiryStatus(item.nextStatus),
+    movementId: item.movementId,
+    tableId: item.tableId,
+    tableName: item.tableName,
+    userId: String(item.userId || ''),
+    userName: String(item.userName || 'Bilinmeyen Kullanıcı'),
+    timestamp: item.timestamp || new Date().toISOString(),
+    note: item.note || ''
+  }
+}
+
 const normalizeStockDeductionStatus = (value: unknown): StockDeductionStatus => {
   if(
     value === 'deducted'
@@ -324,6 +455,7 @@ const normalizeStockDeductionLine = (item: Partial<StockDeductionLine>): StockDe
   const qty = Number(item.qty)
   const recipeQty = Number(item.recipeQty)
   const wastePercent = Number(item.wastePercent)
+  const expiryUnallocatedQty = Number(item.expiryUnallocatedQty)
 
   return {
     id: String(item.id || `stock_deduction_line_${Date.now()}`),
@@ -336,6 +468,9 @@ const normalizeStockDeductionLine = (item: Partial<StockDeductionLine>): StockDe
     wastePercent: Number.isFinite(wastePercent) ? Math.max(0, wastePercent) : 0,
     movementId: item.movementId,
     reverseMovementIds: item.reverseMovementIds || [],
+    expiryAllocations: (item.expiryAllocations || []).map(normalizeStockExpiryAllocation).filter(allocation => allocation.lotId && allocation.qty > 0),
+    expiryUnallocatedQty: Number.isFinite(expiryUnallocatedQty) ? Math.max(0, expiryUnallocatedQty) : undefined,
+    expiryWarnings: item.expiryWarnings || [],
     warning: item.warning,
     error: item.error
   }
@@ -775,6 +910,26 @@ export const addCriticalStockEvent = (event: CriticalStockEvent) => {
   saveCriticalStockEvents([event, ...loadCriticalStockEvents()])
 }
 
+export const loadStockExpiryLots = (): StockExpiryLot[] => {
+  return readJson<Partial<StockExpiryLot>[]>(KEY_STOCK_EXPIRY_LOTS, []).map(normalizeStockExpiryLot).filter(lot => lot.stockItemId)
+}
+
+export const saveStockExpiryLots = (items: StockExpiryLot[]) => {
+  localStorage.setItem(KEY_STOCK_EXPIRY_LOTS, JSON.stringify(items.map(normalizeStockExpiryLot).filter(lot => lot.stockItemId)))
+}
+
+export const loadStockExpiryEvents = (): StockExpiryEvent[] => {
+  return readJson<Partial<StockExpiryEvent>[]>(KEY_STOCK_EXPIRY_EVENTS, []).map(normalizeStockExpiryEvent).filter(event => event.stockItemId)
+}
+
+export const saveStockExpiryEvents = (items: StockExpiryEvent[]) => {
+  localStorage.setItem(KEY_STOCK_EXPIRY_EVENTS, JSON.stringify(items.map(normalizeStockExpiryEvent).filter(event => event.stockItemId)))
+}
+
+export const addStockExpiryEvent = (event: StockExpiryEvent) => {
+  saveStockExpiryEvents([event, ...loadStockExpiryEvents()])
+}
+
 export const loadStockDeductionBatches = (): StockDeductionBatch[] => {
   return readJson<Partial<StockDeductionBatch>[]>(KEY_STOCK_DEDUCTION_BATCHES, []).map(normalizeStockDeductionBatch)
 }
@@ -1122,6 +1277,392 @@ const formatStockQty = (value: number, unit: StockUnit) => {
   return `${value.toLocaleString('tr-TR', { maximumFractionDigits: 3 })} ${unit}`
 }
 
+const roundStockQty = (value: number) => {
+  return Math.round((value + Number.EPSILON) * 1000000) / 1000000
+}
+
+const createStorageId = (prefix: string) => `${prefix}_${Date.now()}_${Math.random().toString(16).slice(2)}`
+
+const buildLotCode = (stockItem: StockItem, expiryDate?: string) => {
+  const stockCode = (stockItem.sku || stockItem.name || 'LOT')
+    .toLocaleUpperCase('tr-TR')
+    .replace(/[^A-Z0-9]/g, '')
+    .slice(0, 8) || 'LOT'
+  const dateCode = expiryDate ? expiryDate.replace(/-/g, '') : 'NOSKT'
+  const suffix = Date.now().toString(36).toLocaleUpperCase('tr-TR').slice(-5)
+
+  return `${stockCode}-${dateCode}-${suffix}`
+}
+
+const getExpiryTriggerFromMovement = (movement: StockMovement): StockExpiryTrigger => {
+  if(movement.reversesMovementId || movement.reverseOfBatchId || movement.reason === 'Ters Hareket') return 'Ters Hareket'
+  if(movement.source === 'Adisyon' && movement.deductionBatchId) return 'Otomatik Stok Düşümü'
+  if(movement.type === 'Sayım Düzeltme') return 'Sayım Düzeltme'
+  if(movement.type === 'Çıkış') return 'Stok Çıkışı'
+  return 'Stok Girişi'
+}
+
+const getExpiryActionLogType = (eventType: StockExpiryEventType): ActionLogType => {
+  if(eventType === 'lot_consumed') return 'SKT lotu tüketildi'
+  if(eventType === 'lot_returned') return 'SKT lotu iade edildi'
+  if(eventType === 'lot_adjusted') return 'SKT lotu güncellendi'
+  if(eventType === 'near_expiry') return 'SKT yaklaşan uyarısı oluştu'
+  if(eventType === 'expired') return 'SKT tarihi geçti'
+  if(eventType === 'allocation_missing') return 'SKT lot eşleşmesi yapılamadı'
+  return 'SKT lotu oluşturuldu'
+}
+
+const buildStockExpiryActionDescription = (event: StockExpiryEvent) => {
+  const lotText = event.lotCode ? `Lot: ${event.lotCode}.` : ''
+  const expiryText = event.expiryDate ? ` SKT: ${formatExpiryDate(event.expiryDate)}.` : ' SKT yok.'
+  const qtyText = event.qty !== undefined ? ` Miktar: ${formatExpiryQuantity(event.qty, event.unit)}.` : ''
+  const sourceText = ` Kaynak: ${event.trigger}.`
+
+  if(event.eventType === 'lot_created'){
+    return `${event.stockItemName} için SKT lotu oluşturuldu. ${lotText}${expiryText}${qtyText}${sourceText}${event.note ? ` ${event.note}` : ''}`
+  }
+
+  if(event.eventType === 'lot_consumed'){
+    return `${event.stockItemName} SKT lotundan tüketim yapıldı. ${lotText}${expiryText}${qtyText}${sourceText}${event.note ? ` ${event.note}` : ''}`
+  }
+
+  if(event.eventType === 'lot_returned'){
+    return `${event.stockItemName} SKT lotuna ters hareketle iade yapıldı. ${lotText}${expiryText}${qtyText}${sourceText}${event.note ? ` ${event.note}` : ''}`
+  }
+
+  if(event.eventType === 'near_expiry'){
+    return `${event.stockItemName} SKT yaklaşan ürün uyarısı oluştu. ${lotText}${expiryText}${qtyText}${sourceText}${event.note ? ` ${event.note}` : ''}`
+  }
+
+  if(event.eventType === 'expired'){
+    return `${event.stockItemName} için tarihi geçmiş ürün uyarısı oluştu. ${lotText}${expiryText}${qtyText}${sourceText}${event.note ? ` ${event.note}` : ''}`
+  }
+
+  if(event.eventType === 'allocation_missing'){
+    return `${event.stockItemName} için SKT lot eşleşmesi yapılamadı.${qtyText}${sourceText}${event.note ? ` ${event.note}` : ''}`
+  }
+
+  return `${event.stockItemName} SKT lotu güncellendi. ${lotText}${expiryText}${qtyText}${sourceText}${event.note ? ` ${event.note}` : ''}`
+}
+
+const recordStockExpiryEvent = ({
+  stockItem,
+  lot,
+  eventType,
+  trigger,
+  user,
+  qty,
+  movementId,
+  tableId,
+  tableName,
+  previousStatus,
+  nextStatus,
+  note
+}: {
+  stockItem: StockItem
+  lot?: StockExpiryLot
+  eventType: StockExpiryEventType
+  trigger: StockExpiryTrigger
+  user: User
+  qty?: number
+  movementId?: string
+  tableId?: string
+  tableName?: string
+  previousStatus?: StockExpiryStatus
+  nextStatus?: StockExpiryStatus
+  note?: string
+}) => {
+  const event: StockExpiryEvent = {
+    id: createStorageId('stock_expiry_event'),
+    lotId: lot?.id,
+    lotCode: lot?.lotCode,
+    stockItemId: stockItem.id,
+    stockItemName: stockItem.name,
+    eventType,
+    trigger,
+    qty,
+    unit: stockItem.unit,
+    expiryDate: lot?.expiryDate,
+    previousStatus,
+    nextStatus,
+    movementId,
+    tableId,
+    tableName,
+    userId: user.id,
+    userName: user.fullName || user.username,
+    timestamp: new Date().toISOString(),
+    note: note?.trim() || ''
+  }
+
+  addStockExpiryEvent(event)
+  addActionLog({
+    operationType: getExpiryActionLogType(eventType),
+    user,
+    tableId,
+    tableName,
+    description: buildStockExpiryActionDescription(event)
+  })
+
+  return event
+}
+
+const getLatestExpiryStatusEvent = (lotId: string) => {
+  return loadStockExpiryEvents()
+    .filter(event => event.lotId === lotId && (event.eventType === 'near_expiry' || event.eventType === 'expired'))
+    .sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime())[0]
+}
+
+const recordStockExpiryStatusIfNeeded = ({
+  stockItem,
+  lot,
+  user,
+  trigger,
+  movementId,
+  tableId,
+  tableName
+}: {
+  stockItem: StockItem
+  lot: StockExpiryLot
+  user: User
+  trigger: StockExpiryTrigger
+  movementId?: string
+  tableId?: string
+  tableName?: string
+}) => {
+  if(lot.remainingQty <= 0) return undefined
+
+  const nextStatus = getExpiryStatus(lot, getExpiryWarningDays(stockItem))
+  if(nextStatus !== 'near_expiry' && nextStatus !== 'expired') return undefined
+
+  const latestStatusEvent = getLatestExpiryStatusEvent(lot.id)
+  if(latestStatusEvent?.nextStatus === nextStatus) return undefined
+
+  return recordStockExpiryEvent({
+    stockItem,
+    lot,
+    eventType: nextStatus === 'expired' ? 'expired' : 'near_expiry',
+    trigger,
+    user,
+    qty: lot.remainingQty,
+    movementId,
+    tableId,
+    tableName,
+    previousStatus: latestStatusEvent?.nextStatus,
+    nextStatus,
+    note: nextStatus === 'expired' ? 'Lot tarihi geçti.' : 'Lot uyarı günü eşiğine girdi.'
+  })
+}
+
+export const syncStockExpiryStatusEvents = (user: User) => {
+  const stockItems = loadStockItems()
+  const lots = loadStockExpiryLots()
+  let createdCount = 0
+
+  lots.forEach(lot => {
+    const stockItem = stockItems.find(item => item.id === lot.stockItemId)
+    if(!stockItem || !isExpiryTracked(stockItem)) return
+
+    const event = recordStockExpiryStatusIfNeeded({
+      stockItem,
+      lot,
+      user,
+      trigger: 'SKT Kontrolü'
+    })
+    if(event) createdCount += 1
+  })
+
+  return createdCount
+}
+
+const addExpiryAllocation = (
+  allocations: StockExpiryAllocation[],
+  lot: StockExpiryLot,
+  qty: number
+) => {
+  const existing = allocations.find(item => item.lotId === lot.id)
+  if(existing){
+    existing.qty = roundStockQty(existing.qty + qty)
+    return
+  }
+
+  allocations.push({
+    lotId: lot.id,
+    lotCode: lot.lotCode,
+    expiryDate: lot.expiryDate,
+    qty: roundStockQty(qty),
+    unit: lot.unit
+  })
+}
+
+const createExpiryLotForMovement = ({
+  lots,
+  stockItem,
+  movement,
+  qty,
+  expiryDate,
+  now,
+  warnings
+}: {
+  lots: StockExpiryLot[]
+  stockItem: StockItem
+  movement: StockMovement
+  qty: number
+  expiryDate?: string
+  now: string
+  warnings: string[]
+}) => {
+  const normalizedExpiryDate = normalizeExpiryDateKey(expiryDate)
+  if(!normalizedExpiryDate){
+    warnings.push(`${stockItem.name} SKT takipli; giriş hareketinde son kullanma tarihi girilmedi. Lot SKT'siz açıldı.`)
+  }
+
+  const lot: StockExpiryLot = {
+    id: createStorageId('stock_expiry_lot'),
+    lotCode: buildLotCode(stockItem, normalizedExpiryDate),
+    stockItemId: stockItem.id,
+    stockItemName: stockItem.name,
+    unit: stockItem.unit,
+    initialQty: roundStockQty(qty),
+    remainingQty: roundStockQty(qty),
+    expiryDate: normalizedExpiryDate,
+    receivedAt: movement.movementDate || now,
+    purchaseMovementId: movement.id,
+    supplierName: movement.supplierName,
+    invoiceNo: movement.invoiceNo,
+    createdAt: now,
+    createdByUserId: movement.createdByUserId,
+    createdByFullName: movement.createdByFullName
+  }
+
+  return {
+    lots: [lot, ...lots],
+    lot
+  }
+}
+
+const consumeExpiryLots = ({
+  lots,
+  stockItem,
+  qty,
+  now,
+  preferredPurchaseMovementId
+}: {
+  lots: StockExpiryLot[]
+  stockItem: StockItem
+  qty: number
+  now: string
+  preferredPurchaseMovementId?: string
+}) => {
+  let remainingQty = roundStockQty(qty)
+  let nextLots = [...lots]
+  const allocations: StockExpiryAllocation[] = []
+  const changedLots: { before: StockExpiryLot; after: StockExpiryLot; qty: number }[] = []
+  const warnings: string[] = []
+  const warningDays = getExpiryWarningDays(stockItem)
+  const candidateLots = sortLotsFefo(nextLots.filter(lot => {
+    if(lot.stockItemId !== stockItem.id || lot.remainingQty <= 0) return false
+    if(preferredPurchaseMovementId) return lot.purchaseMovementId === preferredPurchaseMovementId
+    return isConsumableExpiryLot(lot, warningDays)
+  }))
+
+  candidateLots.forEach(lot => {
+    if(remainingQty <= 0) return
+
+    const allocationQty = roundStockQty(Math.min(lot.remainingQty, remainingQty))
+    if(allocationQty <= 0) return
+
+    const nextRemainingQty = roundStockQty(Math.max(0, lot.remainingQty - allocationQty))
+    const updatedLot: StockExpiryLot = {
+      ...lot,
+      remainingQty: nextRemainingQty,
+      updatedAt: now,
+      depletedAt: nextRemainingQty <= 0 ? now : lot.depletedAt
+    }
+
+    nextLots = nextLots.map(item => item.id === lot.id ? updatedLot : item)
+    addExpiryAllocation(allocations, lot, allocationQty)
+    changedLots.push({ before: lot, after: updatedLot, qty: allocationQty })
+    remainingQty = roundStockQty(remainingQty - allocationQty)
+  })
+
+  if(remainingQty > 0){
+    const message = preferredPurchaseMovementId
+      ? `${stockItem.name} için terslenen giriş lotunda ${formatStockQty(remainingQty, stockItem.unit)} karşılanamadı.`
+      : `${stockItem.name} için tüketilebilir SKT lotu bulunamadı veya yetersiz: ${formatStockQty(remainingQty, stockItem.unit)} lot eşleşmedi.`
+    warnings.push(message)
+  }
+
+  return {
+    lots: nextLots,
+    allocations,
+    unallocatedQty: remainingQty > 0 ? remainingQty : undefined,
+    warnings,
+    changedLots
+  }
+}
+
+const restoreExpiryAllocations = ({
+  lots,
+  stockItem,
+  allocations,
+  now
+}: {
+  lots: StockExpiryLot[]
+  stockItem: StockItem
+  allocations: StockExpiryAllocation[]
+  now: string
+}) => {
+  let nextLots = [...lots]
+  const restoredAllocations: StockExpiryAllocation[] = []
+  const changedLots: { before: StockExpiryLot; after: StockExpiryLot; qty: number }[] = []
+  const warnings: string[] = []
+  let unallocatedQty = 0
+
+  allocations.forEach(allocation => {
+    const requestedQty = roundStockQty(allocation.qty)
+    if(requestedQty <= 0) return
+
+    const lot = nextLots.find(item => item.id === allocation.lotId)
+    if(!lot){
+      unallocatedQty = roundStockQty(unallocatedQty + requestedQty)
+      warnings.push(`${stockItem.name} için ${allocation.lotCode || allocation.lotId} lotu bulunamadı; ${formatStockQty(requestedQty, stockItem.unit)} SKT iadesi eşleşmedi.`)
+      return
+    }
+
+    const restorableQty = roundStockQty(Math.min(requestedQty, Math.max(0, lot.initialQty - lot.remainingQty)))
+    if(restorableQty <= 0){
+      unallocatedQty = roundStockQty(unallocatedQty + requestedQty)
+      warnings.push(`${stockItem.name} için ${lot.lotCode} lotu zaten tam görünüyor; ${formatStockQty(requestedQty, stockItem.unit)} SKT iadesi eşleşmedi.`)
+      return
+    }
+
+    if(restorableQty < requestedQty){
+      const missingQty = roundStockQty(requestedQty - restorableQty)
+      unallocatedQty = roundStockQty(unallocatedQty + missingQty)
+      warnings.push(`${stockItem.name} için ${lot.lotCode} lotuna yalnızca ${formatStockQty(restorableQty, stockItem.unit)} iade edilebildi.`)
+    }
+
+    const updatedLot: StockExpiryLot = {
+      ...lot,
+      remainingQty: roundStockQty(lot.remainingQty + restorableQty),
+      updatedAt: now,
+      depletedAt: undefined
+    }
+
+    nextLots = nextLots.map(item => item.id === lot.id ? updatedLot : item)
+    addExpiryAllocation(restoredAllocations, updatedLot, restorableQty)
+    changedLots.push({ before: lot, after: updatedLot, qty: restorableQty })
+  })
+
+  return {
+    lots: nextLots,
+    allocations: restoredAllocations,
+    unallocatedQty: unallocatedQty > 0 ? unallocatedQty : undefined,
+    warnings,
+    changedLots
+  }
+}
+
 export const applyStockMovement = ({
   stockItemId,
   type,
@@ -1131,6 +1672,8 @@ export const applyStockMovement = ({
   purchasePrice,
   supplierName,
   invoiceNo,
+  expiryDate,
+  expiryReturnAllocations,
   description,
   movementDate,
   user,
@@ -1158,6 +1701,8 @@ export const applyStockMovement = ({
   purchasePrice?: number
   supplierName?: string
   invoiceNo?: string
+  expiryDate?: string
+  expiryReturnAllocations?: StockExpiryAllocation[]
   description?: string
   movementDate?: string
   user: User
@@ -1201,6 +1746,7 @@ export const applyStockMovement = ({
   }
 
   const normalizedPurchasePrice = Number(purchasePrice)
+  const normalizedExpiryDate = normalizeExpiryDateKey(expiryDate)
   const now = new Date().toISOString()
   const movement: StockMovement = {
     id: `stock_move_${Date.now()}_${Math.random().toString(16).slice(2)}`,
@@ -1216,6 +1762,7 @@ export const applyStockMovement = ({
     purchasePrice: Number.isFinite(normalizedPurchasePrice) && normalizedPurchasePrice >= 0 ? normalizedPurchasePrice : undefined,
     supplierName: supplierName?.trim() || '',
     invoiceNo: invoiceNo?.trim() || '',
+    expiryDate: normalizedExpiryDate,
     description: description?.trim() || '',
     movementDate: movementDate || now,
     createdAt: now,
@@ -1233,6 +1780,125 @@ export const applyStockMovement = ({
     reverseOfBatchId,
     reverseMode
   }
+  const existingMovements = loadStockMovements()
+  const originalMovement = reversesMovementId ? existingMovements.find(item => item.id === reversesMovementId) : undefined
+  const expiryTrigger = getExpiryTriggerFromMovement(movement)
+  const expiryWarnings: string[] = []
+  const createdExpiryLots: { lot: StockExpiryLot; qty: number }[] = []
+  const consumedExpiryLots: { lot: StockExpiryLot; qty: number }[] = []
+  const returnedExpiryLots: { lot: StockExpiryLot; qty: number }[] = []
+  const statusCheckLots: StockExpiryLot[] = []
+  let expiryLots = loadStockExpiryLots()
+  let expiryAllocations: StockExpiryAllocation[] = []
+  let expiryUnallocatedQty: number | undefined
+  let expiryTouched = false
+
+  if(isExpiryTracked(stockItem)){
+    const normalizedReturnAllocations = (expiryReturnAllocations || []).map(normalizeStockExpiryAllocation).filter(allocation => allocation.lotId && allocation.qty > 0)
+
+    if(type === 'Giriş'){
+      const allocationsToReturn = normalizedReturnAllocations.length > 0
+        ? normalizedReturnAllocations
+        : originalMovement?.type === 'Çıkış'
+          ? (originalMovement.expiryAllocations || [])
+          : []
+
+      if(allocationsToReturn.length > 0){
+        const restored = restoreExpiryAllocations({
+          lots: expiryLots,
+          stockItem,
+          allocations: allocationsToReturn,
+          now
+        })
+
+        expiryLots = restored.lots
+        expiryAllocations = restored.allocations
+        expiryUnallocatedQty = restored.unallocatedQty
+        expiryWarnings.push(...restored.warnings)
+        returnedExpiryLots.push(...restored.changedLots.map(item => ({ lot: item.after, qty: item.qty })))
+        statusCheckLots.push(...restored.changedLots.map(item => item.after))
+        expiryTouched = restored.changedLots.length > 0
+      } else {
+        if(!normalizedExpiryDate){
+          throw new Error('SKT takipli stok girişlerinde son kullanma tarihi zorunludur.')
+        }
+
+        const created = createExpiryLotForMovement({
+          lots: expiryLots,
+          stockItem,
+          movement,
+          qty: normalizedQty,
+          expiryDate: normalizedExpiryDate,
+          now,
+          warnings: expiryWarnings
+        })
+
+        expiryLots = created.lots
+        createdExpiryLots.push({ lot: created.lot, qty: normalizedQty })
+        statusCheckLots.push(created.lot)
+        expiryTouched = true
+      }
+    } else if(type === 'Çıkış'){
+      const consumed = consumeExpiryLots({
+        lots: expiryLots,
+        stockItem,
+        qty: normalizedQty,
+        now,
+        preferredPurchaseMovementId: originalMovement?.type === 'Giriş' ? originalMovement.id : undefined
+      })
+
+      expiryLots = consumed.lots
+      expiryAllocations = consumed.allocations
+      expiryUnallocatedQty = consumed.unallocatedQty
+      expiryWarnings.push(...consumed.warnings)
+      consumedExpiryLots.push(...consumed.changedLots.map(item => ({ lot: item.after, qty: item.qty })))
+      statusCheckLots.push(...consumed.changedLots.map(item => item.after))
+      expiryTouched = consumed.changedLots.length > 0
+    } else {
+      const correctionQty = roundStockQty(nextQty - previousQty)
+
+      if(correctionQty > 0){
+        if(!normalizedExpiryDate){
+          throw new Error('SKT takipli sayım fazlası girişlerinde son kullanma tarihi zorunludur.')
+        }
+
+        const created = createExpiryLotForMovement({
+          lots: expiryLots,
+          stockItem,
+          movement,
+          qty: correctionQty,
+          expiryDate: normalizedExpiryDate,
+          now,
+          warnings: expiryWarnings
+        })
+
+        expiryLots = created.lots
+        createdExpiryLots.push({ lot: created.lot, qty: correctionQty })
+        statusCheckLots.push(created.lot)
+        expiryTouched = true
+      } else if(correctionQty < 0){
+        const consumed = consumeExpiryLots({
+          lots: expiryLots,
+          stockItem,
+          qty: Math.abs(correctionQty),
+          now
+        })
+
+        expiryLots = consumed.lots
+        expiryAllocations = consumed.allocations
+        expiryUnallocatedQty = consumed.unallocatedQty
+        expiryWarnings.push(...consumed.warnings)
+        consumedExpiryLots.push(...consumed.changedLots.map(item => ({ lot: item.after, qty: item.qty })))
+        statusCheckLots.push(...consumed.changedLots.map(item => item.after))
+        expiryTouched = consumed.changedLots.length > 0
+      }
+    }
+
+    if(expiryAllocations.length > 0) movement.expiryAllocations = expiryAllocations
+    if(expiryUnallocatedQty !== undefined && expiryUnallocatedQty > 0) movement.expiryUnallocatedQty = expiryUnallocatedQty
+    if(expiryWarnings.length > 0) movement.expiryWarnings = expiryWarnings
+  }
+
   const nextStockItem: StockItem = {
     ...stockItem,
     currentQty: nextQty,
@@ -1241,12 +1907,12 @@ export const applyStockMovement = ({
     lastSupplierName: movement.type === 'Giriş' && movement.supplierName ? movement.supplierName : stockItem.lastSupplierName
   }
   const nextStockItems = stockItems.map(item => item.id === stockItem.id ? nextStockItem : item)
-  const existingMovements = loadStockMovements()
   const nextExistingMovements = reversesMovementId
     ? existingMovements.map(item => item.id === reversesMovementId ? { ...item, reversedByMovementId: movement.id, reversedAt: now } : item)
     : existingMovements
 
   saveStockItems(nextStockItems)
+  if(expiryTouched) saveStockExpiryLots(expiryLots)
   saveStockMovements([movement, ...nextExistingMovements])
   addStockMovementAuditEvent({
     id: `stock_audit_${Date.now()}_${Math.random().toString(16).slice(2)}`,
@@ -1279,7 +1945,78 @@ export const applyStockMovement = ({
   addActionLog({
     operationType: getStockMovementLogType(movement),
     user,
-    description: `${user.fullName || user.username} ${movement.stockItemName} için ${movement.type.toLocaleLowerCase('tr-TR')} hareketi oluşturdu. Kaynak: ${movement.source}. Sebep: ${movement.reason}. Miktar: ${formatStockQty(movement.qty, movement.unit)}. Stok: ${formatStockQty(previousQty, movement.unit)} -> ${formatStockQty(nextQty, movement.unit)}.${movement.invoiceNo ? ` Fatura: ${movement.invoiceNo}.` : ''}${movement.supplierName ? ` Tedarikçi: ${movement.supplierName}.` : ''}${movement.description ? ` Açıklama: ${movement.description}.` : ''}`
+    description: `${user.fullName || user.username} ${movement.stockItemName} için ${movement.type.toLocaleLowerCase('tr-TR')} hareketi oluşturdu. Kaynak: ${movement.source}. Sebep: ${movement.reason}. Miktar: ${formatStockQty(movement.qty, movement.unit)}. Stok: ${formatStockQty(previousQty, movement.unit)} -> ${formatStockQty(nextQty, movement.unit)}.${movement.invoiceNo ? ` Fatura: ${movement.invoiceNo}.` : ''}${movement.supplierName ? ` Tedarikçi: ${movement.supplierName}.` : ''}${movement.description ? ` Açıklama: ${movement.description}.` : ''}${movement.expiryWarnings?.length ? ` SKT uyarısı: ${movement.expiryWarnings.join(' | ')}.` : ''}`
+  })
+
+  createdExpiryLots.forEach(item => {
+    recordStockExpiryEvent({
+      stockItem: nextStockItem,
+      lot: item.lot,
+      eventType: 'lot_created',
+      trigger: expiryTrigger,
+      user,
+      qty: item.qty,
+      movementId: movement.id,
+      tableId,
+      tableName,
+      note: movement.description
+    })
+  })
+
+  consumedExpiryLots.forEach(item => {
+    recordStockExpiryEvent({
+      stockItem: nextStockItem,
+      lot: item.lot,
+      eventType: 'lot_consumed',
+      trigger: expiryTrigger,
+      user,
+      qty: item.qty,
+      movementId: movement.id,
+      tableId,
+      tableName,
+      note: movement.description
+    })
+  })
+
+  returnedExpiryLots.forEach(item => {
+    recordStockExpiryEvent({
+      stockItem: nextStockItem,
+      lot: item.lot,
+      eventType: 'lot_returned',
+      trigger: expiryTrigger,
+      user,
+      qty: item.qty,
+      movementId: movement.id,
+      tableId,
+      tableName,
+      note: movement.description
+    })
+  })
+
+  if(movement.expiryUnallocatedQty && movement.expiryUnallocatedQty > 0){
+    recordStockExpiryEvent({
+      stockItem: nextStockItem,
+      eventType: 'allocation_missing',
+      trigger: expiryTrigger,
+      user,
+      qty: movement.expiryUnallocatedQty,
+      movementId: movement.id,
+      tableId,
+      tableName,
+      note: movement.expiryWarnings?.join(' | ') || movement.description
+    })
+  }
+
+  statusCheckLots.forEach(lot => {
+    recordStockExpiryStatusIfNeeded({
+      stockItem: nextStockItem,
+      lot,
+      user,
+      trigger: expiryTrigger,
+      movementId: movement.id,
+      tableId,
+      tableName
+    })
   })
 
   const criticalStockEvent = skipCriticalStockCheck ? undefined : recordCriticalStockTransition({

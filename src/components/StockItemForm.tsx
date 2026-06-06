@@ -7,6 +7,8 @@ export type StockItemFormValues = {
   unit: StockUnit
   currentQty: number
   minQty: number
+  tracksExpiry: boolean
+  expiryWarningDays: number
   sku: string
   barcode: string
   description: string
@@ -28,11 +30,14 @@ export default function StockItemForm({ categories, item, onSave, onCancel }: Pr
   const [unit, setUnit] = React.useState<StockUnit>('adet')
   const [currentQty, setCurrentQty] = React.useState('0')
   const [minQty, setMinQty] = React.useState('0')
+  const [tracksExpiry, setTracksExpiry] = React.useState(false)
+  const [expiryWarningDays, setExpiryWarningDays] = React.useState('7')
   const [sku, setSku] = React.useState('')
   const [barcode, setBarcode] = React.useState('')
   const [description, setDescription] = React.useState('')
   const [active, setActive] = React.useState(true)
   const [error, setError] = React.useState('')
+  const disableCurrentQtyForExpiry = !item && tracksExpiry
 
   React.useEffect(() => {
     setName(item?.name || '')
@@ -40,6 +45,8 @@ export default function StockItemForm({ categories, item, onSave, onCancel }: Pr
     setUnit(item?.unit || 'adet')
     setCurrentQty(String(item?.currentQty ?? 0))
     setMinQty(String(item?.minQty ?? 0))
+    setTracksExpiry(item?.tracksExpiry ?? false)
+    setExpiryWarningDays(String(item?.expiryWarningDays ?? 7))
     setSku(item?.sku || '')
     setBarcode(item?.barcode || '')
     setDescription(item?.description || '')
@@ -47,11 +54,17 @@ export default function StockItemForm({ categories, item, onSave, onCancel }: Pr
     setError('')
   }, [item, categories])
 
+  const changeTracksExpiry = (checked: boolean) => {
+    setTracksExpiry(checked)
+    if(checked && !item) setCurrentQty('0')
+  }
+
   const submit = (event: React.FormEvent) => {
     event.preventDefault()
 
     const parsedCurrentQty = Number(currentQty)
     const parsedMinQty = Number(minQty)
+    const parsedExpiryWarningDays = Number(expiryWarningDays)
 
     if(!name.trim()){
       setError('Stok kartı adı zorunludur.')
@@ -73,12 +86,24 @@ export default function StockItemForm({ categories, item, onSave, onCancel }: Pr
       return
     }
 
+    if(!Number.isFinite(parsedExpiryWarningDays) || parsedExpiryWarningDays < 0){
+      setError('SKT uyarı günü 0 veya daha büyük olmalıdır.')
+      return
+    }
+
+    if(tracksExpiry && parsedCurrentQty > 0){
+      setError('SKT takipli başlangıç stoğu için mevcut miktarı 0 girin; SKT tarihli giriş fişini Stok Hareketleri ekranından oluşturun.')
+      return
+    }
+
     onSave({
       name: name.trim(),
       categoryId,
       unit,
       currentQty: parsedCurrentQty,
       minQty: parsedMinQty,
+      tracksExpiry,
+      expiryWarningDays: Math.floor(parsedExpiryWarningDays),
       sku: sku.trim(),
       barcode: barcode.trim(),
       description: description.trim(),
@@ -91,6 +116,8 @@ export default function StockItemForm({ categories, item, onSave, onCancel }: Pr
       setUnit('adet')
       setCurrentQty('0')
       setMinQty('0')
+      setTracksExpiry(false)
+      setExpiryWarningDays('7')
       setSku('')
       setBarcode('')
       setDescription('')
@@ -129,11 +156,36 @@ export default function StockItemForm({ categories, item, onSave, onCancel }: Pr
       <div className="form-row">
         <div className="form-field">
           <label>Mevcut miktar</label>
-          <input type="number" min="0" step="0.001" value={currentQty} onChange={event => setCurrentQty(event.target.value)} />
+          <input
+            type="number"
+            min="0"
+            step="0.001"
+            value={currentQty}
+            onChange={event => setCurrentQty(event.target.value)}
+            disabled={disableCurrentQtyForExpiry}
+            readOnly={disableCurrentQtyForExpiry}
+          />
+          {disableCurrentQtyForExpiry && (
+            <p className="muted small-text">SKT takipli ürünlerde ilk stok girişi Stok Hareketleri ekranından yapılır.</p>
+          )}
         </div>
         <div className="form-field">
           <label>Kritik seviye</label>
           <input type="number" min="0" step="0.001" value={minQty} onChange={event => setMinQty(event.target.value)} />
+        </div>
+      </div>
+
+      <div className="form-row">
+        <div className="form-check-field">
+          <label className="check-row">
+            <input type="checkbox" checked={tracksExpiry} onChange={event => changeTracksExpiry(event.target.checked)} />
+            SKT takibi aktif
+          </label>
+          <p className="muted small-text">Son kullanma tarihleri lot bazında Stok Hareketleri ekranından girilir.</p>
+        </div>
+        <div className="form-field">
+          <label>SKT uyarı günü</label>
+          <input type="number" min="0" step="1" value={expiryWarningDays} onChange={event => setExpiryWarningDays(event.target.value)} disabled={!tracksExpiry} />
         </div>
       </div>
 

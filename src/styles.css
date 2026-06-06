@@ -2,10 +2,12 @@
 * { box-sizing:border-box }
 body { font-family: Inter, ui-sans-serif, system-ui, -apple-system, 'Segoe UI', Roboto, 'Helvetica Neue', Arial; margin:0; padding:20px; background:var(--bg); color:#111827 }
 input, select, textarea { width:100%; border:1px solid var(--line); border-radius:8px; padding:9px 10px; font:inherit; background:#fff; color:#111827 }
+input:disabled, select:disabled, textarea:disabled { background:#f3f4f6; color:#6b7280; cursor:not-allowed }
 textarea { resize:vertical }
 .nav { display:flex; gap:12px; margin-bottom:18px; flex-wrap:wrap }
 .btn { padding:8px 12px; border-radius:8px; border:1px solid rgba(0,0,0,0.08); background:linear-gradient(180deg,#fff,#f8fafc); cursor:pointer; box-shadow:0 1px 2px rgba(16,24,40,0.03); white-space:nowrap }
 .btn.primary { background:#111827; color:#fff; border-color:#111827 }
+.btn.lot-view-btn { border-color:#111827; background:#111827; color:#fff; box-shadow:0 4px 12px rgba(17,24,39,.16) }
 .btn:disabled { cursor:not-allowed; opacity:.55 }
 .nav-alert-btn { display:inline-flex; align-items:center; gap:8px }
 .nav-badge { display:inline-flex; align-items:center; justify-content:center; min-width:22px; height:22px; border-radius:999px; padding:0 7px; background:var(--danger); color:#fff; font-size:12px; font-weight:800 }
@@ -49,6 +51,7 @@ th { color:#4b5563; font-size:13px; font-weight:700 }
 .stock-movement-type-row { grid-template-columns:1fr 1fr }
 .stock-current-hint { display:flex; justify-content:space-between; gap:12px; align-items:center; border:1px solid var(--line); border-radius:8px; padding:10px 12px; background:#f9fafb }
 .stock-current-hint span { color:var(--muted); font-size:12px; font-weight:700 }
+.stock-current-hint em { color:#374151; font-size:12px; font-style:normal; font-weight:700 }
 .recipe-layout { grid-template-columns:minmax(0, 1fr) 440px }
 .recipe-filters { display:grid; grid-template-columns:minmax(220px, 1fr) 180px 140px; gap:8px; min-width:min(100%, 680px) }
 .recipe-add-panel { display:flex; flex-direction:column; gap:8px }
@@ -74,10 +77,28 @@ th { color:#4b5563; font-size:13px; font-weight:700 }
 .data-table strong { display:block }
 .empty-cell { text-align:center; color:var(--muted); padding:28px 8px }
 .actions-cell { display:flex; justify-content:flex-end; gap:8px; flex-wrap:wrap }
+.stock-cards-table td.actions-cell { display:table-cell; text-align:right; vertical-align:middle; white-space:nowrap; min-width:340px }
+.stock-cards-table td.actions-cell .btn { margin-left:8px }
+.stock-cards-table td.actions-cell .btn:first-child { margin-left:0 }
+.modal-backdrop { position:fixed; inset:0; z-index:50; display:flex; align-items:flex-start; justify-content:center; overflow:auto; padding:24px; background:rgba(17,24,39,.55) }
+.stock-lot-modal { width:min(1180px, 100%); max-height:calc(100vh - 48px); overflow:auto; background:#fff; border-radius:8px; padding:16px; box-shadow:0 24px 70px rgba(15,23,42,.28) }
+.lot-panel-section { border-top:1px solid var(--line); margin-top:14px; padding-top:14px }
+.lot-priority-list, .lot-event-list { display:flex; flex-direction:column; gap:8px }
+.lot-priority-row { display:grid; grid-template-columns:minmax(0, 1.4fr) minmax(130px, .7fr) minmax(130px, .7fr); gap:12px; align-items:center; border:1px solid var(--line); border-radius:8px; padding:10px 12px; background:#f9fafb }
+.lot-priority-row strong, .lot-priority-row span { display:block }
+.lot-priority-row span, .lot-event-row span { color:var(--muted); font-size:12px; margin-top:3px }
+.lot-consumption-bar { height:6px; border-radius:999px; background:#e5e7eb; overflow:hidden; margin-top:6px; min-width:80px }
+.lot-consumption-bar span { display:block; height:100%; border-radius:999px; background:#111827 }
+.lot-history-card summary { background:#fff }
+.lot-event-rows { display:flex; flex-direction:column; gap:8px; padding:12px; border-top:1px solid var(--line); background:#f9fafb }
+.lot-event-row { display:grid; grid-template-columns:minmax(0, 1fr) minmax(170px, auto); gap:12px; align-items:start; border:1px solid var(--line); border-radius:8px; padding:10px; background:#fff }
+.lot-event-row strong, .lot-event-row span { display:block }
 .status-pill { display:inline-flex; align-items:center; border-radius:999px; padding:4px 9px; border:1px solid var(--line); color:#374151; background:#f9fafb; font-size:12px; font-weight:700 }
 .status-pill.success { color:var(--success); background:#ecfdf3; border-color:#bbf7d0 }
 .status-pill.muted-pill { color:#6b7280; background:#f3f4f6 }
 .status-pill.danger-pill { color:var(--danger); background:#fff5f5; border-color:#fecaca }
+.status-pill.warning-pill { color:#92400e; background:#fffbeb; border-color:#fde68a }
+.danger-text { color:var(--danger) }
 .critical-stock-table-row { background:#fffafa }
 .critical-risk-bar { height:6px; border-radius:999px; background:#fee2e2; overflow:hidden; margin-top:6px; max-width:140px }
 .critical-risk-bar span { display:block; height:100%; border-radius:999px; background:var(--danger) }
@@ -86,6 +107,8 @@ th { color:#4b5563; font-size:13px; font-weight:700 }
 .form-field label { display:block; font-weight:700; font-size:13px; margin-bottom:6px }
 .check-row { display:flex; align-items:center; gap:8px; color:#374151 }
 .check-row input { width:auto }
+.form-check-field { min-height:64px; border:1px solid var(--line); border-radius:8px; padding:10px 12px; background:#f9fafb; align-items:center }
+.form-check-field .muted { margin-top:6px }
 .form-actions { display:flex; gap:8px; flex-wrap:wrap }
 .form-error { color:var(--danger); background:#fff5f5; border:1px solid #fecaca; border-radius:8px; padding:8px 10px; margin-top:8px; font-size:13px }
 .inline-form { display:grid; grid-template-columns:1fr auto; gap:8px; margin-bottom:12px }
@@ -174,6 +197,7 @@ th { color:#4b5563; font-size:13px; font-weight:700 }
 .report-table th, .report-table td { white-space:nowrap }
 .report-table td:first-child, .report-table th:first-child { white-space:normal; min-width:150px }
 .stock-report-filters { display:grid; grid-template-columns:minmax(220px, 1fr) 170px 180px 140px; gap:8px; margin:12px 0 }
+.expiry-report-filters { grid-template-columns:minmax(220px, 1fr) 180px 180px }
 .stock-report-layout { grid-template-columns:minmax(0, 1.25fr) minmax(360px, .75fr); margin-top:12px }
 .history-controls { display:grid; grid-template-columns:minmax(220px, 1fr) 160px; gap:8px; min-width:min(100%, 460px) }
 .action-log-filters { display:grid; grid-template-columns:150px minmax(180px, 1fr) minmax(200px, 1fr); gap:8px; min-width:min(100%, 620px) }
@@ -302,6 +326,7 @@ th { color:#4b5563; font-size:13px; font-weight:700 }
   .metric-grid { grid-template-columns:repeat(2, minmax(0, 1fr)) }
   .kitchen-grid { grid-template-columns:repeat(2, minmax(0, 1fr)) }
   .toolbar-controls, .stock-movement-filters, .recipe-filters, .adisyon-tools, .action-log-filters, .stock-report-filters, .report-panel-grid.three { grid-template-columns:1fr }
+  .lot-priority-row, .lot-event-row { grid-template-columns:1fr }
   .product-picker { margin-top:12px }
   .report-layout > .card { margin-top:12px }
   .qr-cart-panel { position:static; margin-top:12px }
@@ -317,6 +342,7 @@ th { color:#4b5563; font-size:13px; font-weight:700 }
   .form-row, .stock-movement-type-row, .recipe-add-controls, .recipe-item-row, .recipe-cost-box, .inline-form, .category-row, .category-edit-form, .order-summary, .picker-controls, .checkout-panel, .checkout-total-grid, .payment-grid, .table-grid, .discount-controls, .product-pick-row, .history-controls, .history-detail-grid, .report-highlight-grid, .qr-product-card, .qr-request-list, .qr-request-meta, .qr-edit-row, .qr-edit-add-row, .qr-reject-row, .waiter-call-list, .critical-stock-row, .settings-form-grid { grid-template-columns:1fr }
   .critical-stock-row { align-items:flex-start; flex-direction:column }
   .actions-cell { justify-content:flex-start }
+  .stock-cards-table td.actions-cell { text-align:left }
   .history-card summary { align-items:flex-start; flex-direction:column }
   .history-summary-values { text-align:left }
   .qr-menu-header { padding:18px }

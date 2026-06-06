@@ -1,10 +1,12 @@
 import React from 'react'
-import { StockCategory, StockItem, StockUnit, User } from '../types'
+import { StockCategory, StockExpiryEvent, StockExpiryLot, StockItem, StockUnit, User } from '../types'
 import {
   addActionLog,
   applyStockMovement,
   loadCriticalStockEvents,
   loadStockCategories,
+  loadStockExpiryEvents,
+  loadStockExpiryLots,
   loadStockItems,
   loadStockMovements,
   recordCriticalStockTransition,
@@ -20,9 +22,19 @@ import {
   isOutOfStock,
   sortCriticalStockFirst
 } from '../criticalStock'
+import {
+  formatExpiryDate,
+  formatExpiryQuantity,
+  formatExpiryStatusLabel,
+  getExpiryStatus,
+  getExpiryStatusClass,
+  getExpiryWarningDays,
+  isExpiryTracked,
+  sortLotsFefo
+} from '../expiryStock'
 
 type Props = { currentUser: User }
-type StatusFilter = 'all' | 'active' | 'inactive' | 'critical' | 'out' | 'healthy'
+type StatusFilter = 'all' | 'active' | 'inactive' | 'critical' | 'out' | 'healthy' | 'expiry' | 'expiry-risk' | 'expired'
 type UnitFilter = 'all' | StockUnit
 
 const DEFAULT_STOCK_CATEGORY_ID = 'stock_cat_general'
@@ -34,6 +46,36 @@ const formatQuantity = formatStockQuantity
 const getLocalDateKey = (value: string | Date) => {
   const date = typeof value === 'string' ? new Date(value) : value
   return Number.isNaN(date.getTime()) ? '' : date.toLocaleDateString('sv-SE')
+}
+
+const formatDateTime = (value: string) => {
+  const date = new Date(value)
+  if(Number.isNaN(date.getTime())) return '-'
+
+  return date.toLocaleString('tr-TR', {
+    year: 'numeric',
+    month: '2-digit',
+    day: '2-digit',
+    hour: '2-digit',
+    minute: '2-digit'
+  })
+}
+
+const formatLotEventType = (event: StockExpiryEvent) => {
+  if(event.eventType === 'lot_created') return 'Oluşturuldu'
+  if(event.eventType === 'lot_consumed') return 'Tüketildi'
+  if(event.eventType === 'lot_returned') return 'Ters hareketle iade edildi'
+  if(event.eventType === 'expired') return 'Tarihi geçti'
+  if(event.eventType === 'near_expiry') return 'SKT yaklaşan uyarısı'
+  if(event.eventType === 'allocation_missing') return 'Lot eşleşmesi yok'
+  return 'Lot güncellendi'
+}
+
+const getConsumptionPercent = (lot: Pick<StockExpiryLot, 'initialQty' | 'remainingQty'>) => {
+  if(lot.initialQty <= 0) return 0
+
+  const consumedQty = Math.max(0, lot.initialQty - lot.remainingQty)
+  return Math.min(100, Math.round((consumedQty / lot.initialQty) * 100))
 }
 
 export default function StockCards({ currentUser }: Props){
@@ -51,6 +93,9 @@ export default function StockCards({ currentUser }: Props){
   const [permissionError, setPermissionError] = React.useState('')
   const [stockNotice, setStockNotice] = React.useState<{ type: 'success' | 'warning'; text: string } | null>(null)
   const [criticalEvents, setCriticalEvents] = React.useState(() => loadCriticalStockEvents())
+  const [expiryLots, setExpiryLots] = React.useState(() => loadStockExpiryLots())
+  const [expiryEvents, setExpiryEvents] = React.useState(() => loadStockExpiryEvents())
+  const [lotPanelItem, setLotPanelItem] = React.useState<StockItem | null>(null)
 
   const canManageStock = currentUser.role === 'Admin'
 
@@ -64,6 +109,11 @@ export default function StockCards({ currentUser }: Props){
 
   const refreshCriticalEvents = React.useCallback(() => {
     setCriticalEvents(loadCriticalStockEvents())
+  }, [])
+
+  const refreshExpiryData = React.useCallback(() => {
+    setExpiryLots(loadStockExpiryLots())
+    setExpiryEvents(loadStockExpiryEvents())
   }, [])
 
   const showCriticalNotice = (event?: ReturnType<typeof recordCriticalStockTransition>) => {
@@ -91,6 +141,71 @@ export default function StockCards({ currentUser }: Props){
   const categoryMap = React.useMemo(() => {
     return new Map(categories.map(category => [category.id, category]))
   }, [categories])
+
+  const allExpiryLotsByStockId = React.useMemo(() => {
+    return expiryLots.reduce<Record<string, typeof expiryLots>>((acc, lot) => {
+      acc[lot.stockItemId] = [...(acc[lot.stockItemId] || []), lot]
+      return acc
+    }, {})
+  }, [expiryLots])
+
+  const expiryLotsByStockId = React.useMemo(() => {
+    return expiryLots.reduce<Record<string, typeof expiryLots>>((acc, lot) => {
+      if(lot.remainingQty <= 0) return acc
+      acc[lot.stockItemId] = [...(acc[lot.stockItemId] || []), lot]
+      return acc
+    }, {})
+  }, [expiryLots])
+
+  const getItemExpirySummary = React.useCallback((item: StockItem) => {
+    if(!isExpiryTracked(item)){
+      return { tracked: false, status: null as ReturnType<typeof getExpiryStatus> | null, nextLot: null as typeof expiryLots[number] | null, activeLots: [] as typeof expiryLots }
+    }
+
+    const activeLots = sortLotsFefo(expiryLotsByStockId[item.id] || [])
+    const warningDays = getExpiryWarningDays(item)
+    const expiredLot = activeLots.find(lot => getExpiryStatus(lot, warningDays) === 'expired')
+    const nearLot = activeLots.find(lot => getExpiryStatus(lot, warningDays) === 'near_expiry')
+    const unknownLot = activeLots.find(lot => getExpiryStatus(lot, warningDays) === 'unknown')
+    const nextLot = expiredLot || nearLot || activeLots[0] || null
+    const status = expiredLot
+      ? 'expired'
+      : nearLot
+        ? 'near_expiry'
+        : unknownLot && activeLots.length === 1
+          ? 'unknown'
+          : activeLots.length > 0
+            ? getExpiryStatus(nextLot || activeLots[0], warningDays)
+            : 'unknown'
+
+    return { tracked: true, status, nextLot, activeLots }
+  }, [expiryLots, expiryLotsByStockId])
+
+  const selectedLotRows = React.useMemo(() => {
+    if(!lotPanelItem) return []
+
+    return sortLotsFefo(allExpiryLotsByStockId[lotPanelItem.id] || []).map(lot => ({
+      lot,
+      status: getExpiryStatus(lot, getExpiryWarningDays(lotPanelItem)),
+      events: expiryEvents
+        .filter(event => event.lotId === lot.id)
+        .sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime())
+    }))
+  }, [allExpiryLotsByStockId, expiryEvents, lotPanelItem])
+
+  const selectedFefoLots = React.useMemo(() => {
+    if(!lotPanelItem) return []
+
+    const warningDays = getExpiryWarningDays(lotPanelItem)
+    return sortLotsFefo(selectedLotRows
+      .filter(row => {
+        if(row.lot.remainingQty <= 0) return false
+
+        const status = getExpiryStatus(row.lot, warningDays)
+        return status === 'valid' || status === 'near_expiry' || status === 'unknown'
+      })
+      .map(row => row.lot))
+  }, [lotPanelItem, selectedLotRows])
 
   const itemCountsByCategory = React.useMemo(() => {
     return items.reduce<Record<string, number>>((acc, item) => {
@@ -128,11 +243,14 @@ export default function StockCards({ currentUser }: Props){
         || (statusFilter === 'critical' && isCriticalStock(item))
         || (statusFilter === 'out' && isOutOfStock(item))
         || (statusFilter === 'healthy' && item.active && !isCriticalStock(item))
+        || (statusFilter === 'expiry' && isExpiryTracked(item))
+        || (statusFilter === 'expiry-risk' && getItemExpirySummary(item).status === 'near_expiry')
+        || (statusFilter === 'expired' && getItemExpirySummary(item).status === 'expired')
       const matchesUnit = unitFilter === 'all' || item.unit === unitFilter
 
       return matchesSearch && matchesCategory && matchesStatus && matchesUnit
     })
-  }, [categoryFilter, categoryMap, items, search, statusFilter, unitFilter])
+  }, [categoryFilter, categoryMap, getItemExpirySummary, items, search, statusFilter, unitFilter])
   const sortedVisibleItems = React.useMemo(() => sortCriticalStockFirst(visibleItems), [visibleItems])
 
   const activeItemCount = items.filter(item => item.active).length
@@ -140,6 +258,9 @@ export default function StockCards({ currentUser }: Props){
   const criticalItemCount = items.filter(isCriticalStock).length
   const outOfStockCount = items.filter(isOutOfStock).length
   const healthyItemCount = items.filter(item => item.active && !isCriticalStock(item)).length
+  const expiryTrackedItemCount = items.filter(isExpiryTracked).length
+  const nearExpiryItemCount = items.filter(item => getItemExpirySummary(item).status === 'near_expiry').length
+  const expiredItemCount = items.filter(item => getItemExpirySummary(item).status === 'expired').length
   const today = getLocalDateKey(new Date())
   const todayCriticalEnteredCount = criticalEvents.filter(event => event.eventType === 'entered' && getLocalDateKey(event.timestamp) === today).length
   const todayCriticalResolvedCount = criticalEvents.filter(event => event.eventType === 'resolved' && getLocalDateKey(event.timestamp) === today).length
@@ -187,9 +308,11 @@ export default function StockCards({ currentUser }: Props){
           })
           criticalEvent = movement.criticalStockEvent
           setItems(loadStockItems())
+          refreshExpiryData()
         } catch (error) {
           setPermissionError(error instanceof Error ? error.message : 'Stok miktarı güncellenemedi.')
           setItems(loadStockItems())
+          refreshExpiryData()
           return
         }
       } else {
@@ -222,7 +345,6 @@ export default function StockCards({ currentUser }: Props){
 
     const nextItems = [item, ...items]
     saveStockItems(nextItems)
-    let criticalEvent: ReturnType<typeof recordCriticalStockTransition>
 
     if(values.currentQty > 0){
       try {
@@ -242,7 +364,7 @@ export default function StockCards({ currentUser }: Props){
     }
 
     const finalItem = loadStockItems().find(stockItem => stockItem.id === item.id) || item
-    criticalEvent = recordCriticalStockTransition({
+    recordCriticalStockTransition({
       after: finalItem,
       user: currentUser,
       trigger: 'Stok Kartı Oluşturma',
@@ -250,12 +372,17 @@ export default function StockCards({ currentUser }: Props){
     })
 
     setItems(loadStockItems())
+    refreshExpiryData()
     addActionLog({
       operationType: 'Stok kartı oluşturuldu',
       user: currentUser,
       description: `${item.name} stok kartı oluşturuldu. Kritik seviye: ${formatQuantity(item.minQty, item.unit)}.${values.currentQty > 0 ? ` Başlangıç miktarı hareket kaydıyla eklendi: ${formatQuantity(values.currentQty, item.unit)}.` : ''}`
     })
-    showCriticalNotice(criticalEvent)
+    refreshCriticalEvents()
+    setStockNotice({
+      type: 'success',
+      text: 'Stok kartı oluşturuldu. İlk stok girişinizi Stok Hareketleri ekranından yapabilirsiniz.'
+    })
   }
 
   const startEditItem = (item: StockItem) => {
@@ -423,7 +550,7 @@ export default function StockCards({ currentUser }: Props){
       <div className="page-title">
         <div>
           <h2>Stok Kartları</h2>
-          <p className="muted">Hammadde, hazır ürün ve ambalaj stoklarını kategori, birim ve kritik seviye bilgileriyle yönetin.</p>
+          <p className="muted">Stok kartlarını oluşturun. Stok miktarı ve SKT girişleri Stok Hareketleri ekranından yapılır.</p>
         </div>
         <span className="status-pill success">Admin</span>
       </div>
@@ -449,6 +576,16 @@ export default function StockCards({ currentUser }: Props){
           <span>Stokta Yok</span>
           <strong>{outOfStockCount}</strong>
           <p className="muted">Aktif kartlar</p>
+        </div>
+        <div className="metric-card">
+          <span>SKT Takipli</span>
+          <strong>{expiryTrackedItemCount}</strong>
+          <p className="muted">Lot bazlı izlenir</p>
+        </div>
+        <div className="metric-card">
+          <span>SKT Riski</span>
+          <strong>{nearExpiryItemCount + expiredItemCount}</strong>
+          <p className="muted">{expiredItemCount} tarihi geçmiş</p>
         </div>
         <div className="metric-card">
           <span>Sağlıklı Stok</span>
@@ -486,6 +623,9 @@ export default function StockCards({ currentUser }: Props){
                 <option value="critical">Kritik stok</option>
                 <option value="out">Stokta yok</option>
                 <option value="healthy">Sağlıklı stok</option>
+                <option value="expiry">SKT takipli</option>
+                <option value="expiry-risk">SKT yaklaşan</option>
+                <option value="expired">SKT tarihi geçmiş</option>
                 <option value="inactive">Pasif kartlar</option>
                 <option value="all">Tüm durumlar</option>
               </select>
@@ -497,7 +637,7 @@ export default function StockCards({ currentUser }: Props){
           </div>
 
           <div className="table-wrap">
-            <table className="data-table">
+            <table className="data-table stock-cards-table">
               <thead>
                 <tr>
                   <th>Stok Kartı</th>
@@ -506,6 +646,7 @@ export default function StockCards({ currentUser }: Props){
                   <th>Mevcut</th>
                   <th>Kritik</th>
                   <th>Eksik</th>
+                  <th>SKT</th>
                   <th>Durum</th>
                   <th></th>
                 </tr>
@@ -513,7 +654,7 @@ export default function StockCards({ currentUser }: Props){
               <tbody>
                 {visibleItems.length === 0 && (
                   <tr>
-                    <td colSpan={8} className="empty-cell">Bu filtrelere uygun stok kartı bulunamadı.</td>
+                    <td colSpan={9} className="empty-cell">Bu filtrelere uygun stok kartı bulunamadı.</td>
                   </tr>
                 )}
                 {sortedVisibleItems.map(item => {
@@ -521,6 +662,7 @@ export default function StockCards({ currentUser }: Props){
                   const critical = isCriticalStock(item)
                   const shortage = getCriticalShortage(item)
                   const riskRatio = getCriticalRiskRatio(item)
+                  const expirySummary = getItemExpirySummary(item)
 
                   return (
                     <tr key={item.id} className={critical ? 'critical-stock-table-row' : undefined}>
@@ -547,6 +689,22 @@ export default function StockCards({ currentUser }: Props){
                       <td>{formatQuantity(item.minQty, item.unit)}</td>
                       <td>{shortage > 0 ? formatQuantity(shortage, item.unit) : critical ? 'Eşik seviyesinde' : '-'}</td>
                       <td>
+                        {!expirySummary.tracked ? (
+                          <span className="status-pill muted-pill">Kapalı</span>
+                        ) : (
+                          <>
+                            <span className={`status-pill ${getExpiryStatusClass(expirySummary.status || 'unknown')}`}>
+                              {formatExpiryStatusLabel(expirySummary.status || 'unknown')}
+                            </span>
+                            <div className="muted small-text">
+                              {expirySummary.nextLot
+                                ? `${formatExpiryDate(expirySummary.nextLot.expiryDate)} · ${formatQuantity(expirySummary.nextLot.remainingQty, item.unit)}`
+                                : 'Lot kaydı yok'}
+                            </div>
+                          </>
+                        )}
+                      </td>
+                      <td>
                         {!item.active ? (
                           <span className="status-pill muted-pill">Pasif</span>
                         ) : critical ? (
@@ -556,6 +714,7 @@ export default function StockCards({ currentUser }: Props){
                         )}
                       </td>
                       <td className="actions-cell">
+                        <button className={`btn ${item.tracksExpiry ? 'lot-view-btn' : ''}`} onClick={() => setLotPanelItem(item)}>Lotları Gör</button>
                         <button className="btn" onClick={() => startEditItem(item)}>Düzenle</button>
                         <button className="btn" onClick={() => toggleItemStatus(item.id)}>
                           {item.active ? 'Pasif Yap' : 'Aktif Yap'}
@@ -630,6 +789,152 @@ export default function StockCards({ currentUser }: Props){
           </section>
         </aside>
       </div>
+
+      {lotPanelItem && (
+        <div className="modal-backdrop" role="dialog" aria-modal="true" aria-label={`${lotPanelItem.name} lotları`}>
+          <div className="stock-lot-modal">
+            <div className="section-header">
+              <div>
+                <h3>{lotPanelItem.name} Lotları</h3>
+                <p className="muted">
+                  FEFO tüketim önceliği, kalan miktarlar ve lot bazlı işlem geçmişi.
+                </p>
+              </div>
+              <button className="btn" type="button" onClick={() => setLotPanelItem(null)}>Kapat</button>
+            </div>
+
+            <div className="metric-grid report-metric-grid">
+              <div className="metric-card">
+                <span>Toplam Lot</span>
+                <strong>{selectedLotRows.length}</strong>
+                <p className="muted">{lotPanelItem.tracksExpiry ? 'SKT takibi aktif' : 'SKT takibi kapalı'}</p>
+              </div>
+              <div className="metric-card">
+                <span>FEFO Adayı</span>
+                <strong>{selectedFefoLots.length}</strong>
+                <p className="muted">Tüketilebilir kalan lot</p>
+              </div>
+              <div className="metric-card">
+                <span>Toplam Kalan</span>
+                <strong>{formatExpiryQuantity(selectedLotRows.reduce((sum, row) => sum + row.lot.remainingQty, 0), lotPanelItem.unit)}</strong>
+                <p className="muted">Lot bakiyeleri toplamı</p>
+              </div>
+            </div>
+
+            <section className="lot-panel-section">
+              <div className="section-header compact">
+                <h4>FEFO Tüketim Önceliği</h4>
+                <span className="status-pill">En yakın SKT önce</span>
+              </div>
+              <div className="lot-priority-list">
+                {selectedFefoLots.length === 0 && <div className="empty-state">Tüketilebilir FEFO lotu bulunmuyor.</div>}
+                {selectedFefoLots.map((lot, index) => (
+                  <div className="lot-priority-row" key={lot.id}>
+                    <div>
+                      <strong>{index + 1}. Öncelikli Lot</strong>
+                      <span>{lot.lotCode}</span>
+                    </div>
+                    <div>
+                      <span>SKT</span>
+                      <strong>{formatExpiryDate(lot.expiryDate)}</strong>
+                    </div>
+                    <div>
+                      <span>Kalan</span>
+                      <strong>{formatExpiryQuantity(lot.remainingQty, lot.unit)}</strong>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </section>
+
+            <section className="lot-panel-section">
+              <div className="section-header compact">
+                <h4>Lot Listesi</h4>
+                <span className="status-pill">{selectedLotRows.length} lot</span>
+              </div>
+              <div className="table-wrap">
+                <table className="data-table report-table">
+                  <thead>
+                    <tr>
+                      <th>Lot No</th>
+                      <th>SKT</th>
+                      <th>Oluşturulma Tarihi</th>
+                      <th>İlk Giriş Miktarı</th>
+                      <th>Kalan Miktar</th>
+                      <th>Tüketim</th>
+                      <th>Durum</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {selectedLotRows.length === 0 && <tr><td colSpan={7} className="empty-cell">Bu stok kartı için lot kaydı yok.</td></tr>}
+                    {selectedLotRows.map(({ lot, status }) => (
+                      <tr key={lot.id}>
+                        <td>
+                          <strong>{lot.lotCode}</strong>
+                          {(lot.supplierName || lot.invoiceNo) && (
+                            <div className="muted small-text">
+                              {[lot.supplierName && `Tedarikçi: ${lot.supplierName}`, lot.invoiceNo && `Fatura: ${lot.invoiceNo}`].filter(Boolean).join(' · ')}
+                            </div>
+                          )}
+                        </td>
+                        <td>{formatExpiryDate(lot.expiryDate)}</td>
+                        <td>{formatDateTime(lot.createdAt)}</td>
+                        <td>{formatExpiryQuantity(lot.initialQty, lot.unit)}</td>
+                        <td>{formatExpiryQuantity(lot.remainingQty, lot.unit)}</td>
+                        <td>
+                          <strong>%{getConsumptionPercent(lot)}</strong>
+                          <div className="lot-consumption-bar" aria-label="Tüketim yüzdesi">
+                            <span style={{ width: `${getConsumptionPercent(lot)}%` }} />
+                          </div>
+                        </td>
+                        <td><span className={`status-pill ${getExpiryStatusClass(status)}`}>{formatExpiryStatusLabel(status)}</span></td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            </section>
+
+            <section className="lot-panel-section">
+              <div className="section-header compact">
+                <h4>Lot Hareket Geçmişi</h4>
+              </div>
+              <div className="lot-event-list">
+                {selectedLotRows.length === 0 && <div className="empty-state">Lot hareket geçmişi yok.</div>}
+                {selectedLotRows.map(({ lot, events }) => (
+                  <details className="history-card lot-history-card" key={lot.id}>
+                    <summary>
+                      <span>
+                        <strong>{lot.lotCode}</strong>
+                        <small>{formatExpiryDate(lot.expiryDate)} · Kalan {formatExpiryQuantity(lot.remainingQty, lot.unit)}</small>
+                      </span>
+                      <span className="history-summary-values">
+                        <strong>{events.length}</strong>
+                        <small>olay</small>
+                      </span>
+                    </summary>
+                    <div className="lot-event-rows">
+                      {events.length === 0 && <div className="empty-state">Bu lot için olay kaydı yok.</div>}
+                      {events.map(event => (
+                        <div className="lot-event-row" key={event.id}>
+                          <div>
+                            <strong>{formatLotEventType(event)}</strong>
+                            <span>{formatDateTime(event.timestamp)} · {event.trigger}</span>
+                          </div>
+                          <div>
+                            <strong>{event.qty !== undefined ? formatExpiryQuantity(event.qty, event.unit) : '-'}</strong>
+                            {event.note && <span>{event.note}</span>}
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  </details>
+                ))}
+              </div>
+            </section>
+          </div>
+        </div>
+      )}
     </div>
   )
 }

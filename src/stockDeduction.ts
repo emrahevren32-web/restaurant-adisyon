@@ -4,6 +4,7 @@ import {
   Product,
   Recipe,
   RecipeItem,
+  StockExpiryAllocation,
   StockDeductionAuditEventType,
   StockDeductionBatch,
   StockDeductionLine,
@@ -33,6 +34,17 @@ const formatQty = (value: number, unit: StockUnit) => {
 
 const roundStockQty = (value: number) => {
   return Math.round((value + Number.EPSILON) * 1000000) / 1000000
+}
+
+const scaleExpiryAllocations = (allocations: StockExpiryAllocation[] | undefined, ratio: number) => {
+  if(!allocations || ratio <= 0) return []
+
+  return allocations
+    .map(allocation => ({
+      ...allocation,
+      qty: roundStockQty(allocation.qty * ratio)
+    }))
+    .filter(allocation => allocation.qty > 0)
 }
 
 const convertQuantity = (qty: number, fromUnit: StockUnit, toUnit: StockUnit) => {
@@ -292,6 +304,10 @@ export const deductStockForOrder = ({
         warnings.push(`${stockItem.name} kritik stok seviyesine düştü: mevcut ${formatQty(movement.criticalStockEvent.nextQty, stockItem.unit)}, kritik seviye ${formatQty(movement.criticalStockEvent.minQty, stockItem.unit)}.`)
       }
 
+      if(movement.expiryWarnings?.length){
+        warnings.push(...movement.expiryWarnings)
+      }
+
       movementIds.push(movement.id)
       lines.push({
         id: createId('stock_deduction_line'),
@@ -303,6 +319,9 @@ export const deductStockForOrder = ({
         recipeUnit: recipeItem.unit,
         wastePercent: recipeItem.wastePercent,
         movementId: movement.id,
+        expiryAllocations: movement.expiryAllocations || [],
+        expiryUnallocatedQty: movement.expiryUnallocatedQty,
+        expiryWarnings: movement.expiryWarnings || [],
         warning
       })
     } catch (error) {
@@ -414,6 +433,8 @@ export const reverseStockDeductionForOrderQty = ({
       const reverseQty = roundStockQty(line.qty * ratio)
       if(reverseQty <= 0) return line
 
+      const expiryReturnAllocations = scaleExpiryAllocations(line.expiryAllocations, ratio)
+
       try {
         const movement = applyStockMovement({
           stockItemId: line.stockItemId,
@@ -431,8 +452,13 @@ export const reverseStockDeductionForOrderQty = ({
           recipeId: batch.recipeId,
           recipeVersion: batch.recipeVersion,
           reverseOfBatchId: batch.id,
-          reverseMode: reverseProductQty >= batch.remainingQty ? 'full' : 'partial'
+          reverseMode: reverseProductQty >= batch.remainingQty ? 'full' : 'partial',
+          expiryReturnAllocations
         })
+
+        if(movement.expiryWarnings?.length){
+          warnings.push(...movement.expiryWarnings)
+        }
 
         reverseMovementIds.push(movement.id)
         return {
