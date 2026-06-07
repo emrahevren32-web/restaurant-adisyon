@@ -1,4 +1,10 @@
 import React from 'react'
+import CriticalStockReport, {
+  CriticalStockSortDirection,
+  CriticalStockSortKey,
+  exportCriticalStockReportCsv,
+  useCriticalStockReport
+} from '../components/reports/CriticalStockReport'
 import ReportFilters, { defaultReportFilters, ReportFiltersValue } from '../components/reports/ReportFilters'
 import ReportKpis, { ReportKpi } from '../components/reports/ReportKpis'
 import ReportPlaceholder from '../components/reports/ReportPlaceholder'
@@ -15,7 +21,7 @@ import StockStatusReport, {
   StockStatusSortKey,
   useStockStatusReport
 } from '../components/reports/StockStatusReport'
-import { loadStockCategories, loadStockExpiryLots, loadStockItems, loadStockMovements, loadUsers } from '../storage'
+import { loadCriticalStockEvents, loadStockCategories, loadStockExpiryLots, loadStockItems, loadStockMovements, loadUsers } from '../storage'
 
 const placeholderKpis: ReportKpi[] = [
   { label: 'Toplam Stok Değeri', value: '-', detail: 'Faz 12.8.x hesaplaması' },
@@ -27,7 +33,7 @@ const placeholderKpis: ReportKpi[] = [
 ]
 
 const isRealReport = (activeTab: ReportTabId) => {
-  return activeTab === 'stock-status' || activeTab === 'stock-movements'
+  return activeTab === 'stock-status' || activeTab === 'stock-movements' || activeTab === 'critical-stock'
 }
 
 export default function Reports(){
@@ -37,10 +43,13 @@ export default function Reports(){
   const [stockStatusSortDirection, setStockStatusSortDirection] = React.useState<StockStatusSortDirection>('asc')
   const [stockMovementsSortKey, setStockMovementsSortKey] = React.useState<StockMovementsSortKey>('date')
   const [stockMovementsSortDirection, setStockMovementsSortDirection] = React.useState<StockMovementsSortDirection>('desc')
+  const [criticalStockSortKey, setCriticalStockSortKey] = React.useState<CriticalStockSortKey>('shortage')
+  const [criticalStockSortDirection, setCriticalStockSortDirection] = React.useState<CriticalStockSortDirection>('desc')
   const [categories] = React.useState(() => loadStockCategories())
   const [stockItems] = React.useState(() => loadStockItems())
   const [stockMovements] = React.useState(() => loadStockMovements())
   const [stockExpiryLots] = React.useState(() => loadStockExpiryLots())
+  const [criticalStockEvents] = React.useState(() => loadCriticalStockEvents())
   const [users] = React.useState(() => loadUsers())
   const stockStatusReport = useStockStatusReport({
     stockItems,
@@ -58,11 +67,22 @@ export default function Reports(){
     sortKey: stockMovementsSortKey,
     sortDirection: stockMovementsSortDirection
   })
+  const criticalStockReport = useCriticalStockReport({
+    stockItems,
+    categories,
+    movements: stockMovements,
+    criticalEvents: criticalStockEvents,
+    filters,
+    sortKey: criticalStockSortKey,
+    sortDirection: criticalStockSortDirection
+  })
   const activeKpis = activeTab === 'stock-status'
     ? stockStatusReport.kpis
     : activeTab === 'stock-movements'
       ? stockMovementsReport.kpis
-      : placeholderKpis
+      : activeTab === 'critical-stock'
+        ? criticalStockReport.kpis
+        : placeholderKpis
 
   const exportCsv = () => {
     if(activeTab === 'stock-status'){
@@ -84,6 +104,18 @@ export default function Reports(){
         users,
         sortKey: stockMovementsSortKey,
         sortDirection: stockMovementsSortDirection
+      })
+      return
+    }
+
+    if(activeTab === 'critical-stock'){
+      exportCriticalStockReportCsv({
+        report: criticalStockReport,
+        filters,
+        categories,
+        stockItems,
+        sortKey: criticalStockSortKey,
+        sortDirection: criticalStockSortDirection
       })
     }
   }
@@ -121,6 +153,9 @@ export default function Reports(){
         users={users}
         onChange={setFilters}
         showMovementTypeFilter={activeTab === 'stock-movements'}
+        showCriticalStatusFilter={activeTab === 'critical-stock'}
+        showDateFilters={activeTab !== 'critical-stock'}
+        showPersonnelFilter={activeTab !== 'critical-stock'}
       />
 
       {activeTab === 'stock-status' ? (
@@ -138,6 +173,14 @@ export default function Reports(){
           sortDirection={stockMovementsSortDirection}
           onSortKeyChange={setStockMovementsSortKey}
           onSortDirectionChange={setStockMovementsSortDirection}
+        />
+      ) : activeTab === 'critical-stock' ? (
+        <CriticalStockReport
+          report={criticalStockReport}
+          sortKey={criticalStockSortKey}
+          sortDirection={criticalStockSortDirection}
+          onSortKeyChange={setCriticalStockSortKey}
+          onSortDirectionChange={setCriticalStockSortDirection}
         />
       ) : (
         <ReportPlaceholder activeTab={activeTab} />
