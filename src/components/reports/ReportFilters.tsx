@@ -2,6 +2,7 @@ import { StockCategory, StockItem, User } from '../../types'
 
 export type ReportMovementTypeFilter = 'all' | 'entry' | 'exit' | 'waste' | 'count' | 'reverse'
 export type ReportCriticalStatusFilter = 'all' | 'critical' | 'very-critical' | 'out'
+export type ReportExpiryStatusFilter = 'all' | 'urgent' | 'approaching' | 'watch'
 
 export type ReportFiltersValue = {
   search: string
@@ -12,6 +13,7 @@ export type ReportFiltersValue = {
   personnelId: string
   movementType: ReportMovementTypeFilter
   criticalStatus: ReportCriticalStatusFilter
+  expiryStatus: ReportExpiryStatusFilter
 }
 
 type Props = {
@@ -22,6 +24,7 @@ type Props = {
   onChange: (filters: ReportFiltersValue) => void
   showMovementTypeFilter?: boolean
   showCriticalStatusFilter?: boolean
+  showExpiryStatusFilter?: boolean
   showDateFilters?: boolean
   showPersonnelFilter?: boolean
 }
@@ -34,7 +37,8 @@ export const defaultReportFilters: ReportFiltersValue = {
   stockItemId: 'all',
   personnelId: 'all',
   movementType: 'all',
-  criticalStatus: 'all'
+  criticalStatus: 'all',
+  expiryStatus: 'all'
 }
 
 export const reportMovementTypeOptions: { value: ReportMovementTypeFilter; label: string }[] = [
@@ -53,6 +57,13 @@ export const reportCriticalStatusOptions: { value: ReportCriticalStatusFilter; l
   { value: 'out', label: 'Stok Yok' }
 ]
 
+export const reportExpiryStatusOptions: { value: ReportExpiryStatusFilter; label: string }[] = [
+  { value: 'all', label: 'Tüm durumlar' },
+  { value: 'urgent', label: 'Acil' },
+  { value: 'approaching', label: 'Yaklaşıyor' },
+  { value: 'watch', label: 'Takip Et' }
+]
+
 export default function ReportFilters({
   filters,
   categories,
@@ -61,6 +72,7 @@ export default function ReportFilters({
   onChange,
   showMovementTypeFilter = false,
   showCriticalStatusFilter = false,
+  showExpiryStatusFilter = false,
   showDateFilters = true,
   showPersonnelFilter = true
 }: Props){
@@ -71,14 +83,17 @@ export default function ReportFilters({
   const gridClassName = [
     'report-filter-grid',
     showMovementTypeFilter ? 'with-movement-type' : '',
-    showCriticalStatusFilter ? 'with-critical-status' : ''
+    showCriticalStatusFilter ? 'with-critical-status' : '',
+    showExpiryStatusFilter ? 'with-expiry-status' : ''
   ].filter(Boolean).join(' ')
 
   const searchPlaceholder = showMovementTypeFilter
     ? 'Ürün, açıklama, kaynak veya kullanıcı'
     : showCriticalStatusFilter
       ? 'Ürün adı veya kategori'
-      : 'Ürün adı, kategori veya kod'
+      : showExpiryStatusFilter
+        ? 'Ürün adı, lot numarası veya kategori'
+        : 'Ürün adı, kategori veya kod'
 
   return (
     <section className="card report-center-card">
@@ -148,6 +163,14 @@ export default function ReportFilters({
             <label>Durum</label>
             <select value={filters.criticalStatus} onChange={event => updateFilter('criticalStatus', event.target.value as ReportCriticalStatusFilter)}>
               {reportCriticalStatusOptions.map(option => <option key={option.value} value={option.value}>{option.label}</option>)}
+            </select>
+          </div>
+        )}
+        {showExpiryStatusFilter && (
+          <div className="form-field">
+            <label>Durum</label>
+            <select value={filters.expiryStatus} onChange={event => updateFilter('expiryStatus', event.target.value as ReportExpiryStatusFilter)}>
+              {reportExpiryStatusOptions.map(option => <option key={option.value} value={option.value}>{option.label}</option>)}
             </select>
           </div>
         )}

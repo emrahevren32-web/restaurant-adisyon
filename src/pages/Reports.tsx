@@ -5,6 +5,12 @@ import CriticalStockReport, {
   exportCriticalStockReportCsv,
   useCriticalStockReport
 } from '../components/reports/CriticalStockReport'
+import ExpiringProductsReport, {
+  ExpiringProductsSortDirection,
+  ExpiringProductsSortKey,
+  exportExpiringProductsReportCsv,
+  useExpiringProductsReport
+} from '../components/reports/ExpiringProductsReport'
 import ReportFilters, { defaultReportFilters, ReportFiltersValue } from '../components/reports/ReportFilters'
 import ReportKpis, { ReportKpi } from '../components/reports/ReportKpis'
 import ReportPlaceholder from '../components/reports/ReportPlaceholder'
@@ -33,7 +39,10 @@ const placeholderKpis: ReportKpi[] = [
 ]
 
 const isRealReport = (activeTab: ReportTabId) => {
-  return activeTab === 'stock-status' || activeTab === 'stock-movements' || activeTab === 'critical-stock'
+  return activeTab === 'stock-status'
+    || activeTab === 'stock-movements'
+    || activeTab === 'critical-stock'
+    || activeTab === 'expiry-near'
 }
 
 export default function Reports(){
@@ -45,6 +54,8 @@ export default function Reports(){
   const [stockMovementsSortDirection, setStockMovementsSortDirection] = React.useState<StockMovementsSortDirection>('desc')
   const [criticalStockSortKey, setCriticalStockSortKey] = React.useState<CriticalStockSortKey>('shortage')
   const [criticalStockSortDirection, setCriticalStockSortDirection] = React.useState<CriticalStockSortDirection>('desc')
+  const [expiringProductsSortKey, setExpiringProductsSortKey] = React.useState<ExpiringProductsSortKey>('expiryDate')
+  const [expiringProductsSortDirection, setExpiringProductsSortDirection] = React.useState<ExpiringProductsSortDirection>('asc')
   const [categories] = React.useState(() => loadStockCategories())
   const [stockItems] = React.useState(() => loadStockItems())
   const [stockMovements] = React.useState(() => loadStockMovements())
@@ -76,13 +87,23 @@ export default function Reports(){
     sortKey: criticalStockSortKey,
     sortDirection: criticalStockSortDirection
   })
+  const expiringProductsReport = useExpiringProductsReport({
+    stockItems,
+    categories,
+    expiryLots: stockExpiryLots,
+    filters,
+    sortKey: expiringProductsSortKey,
+    sortDirection: expiringProductsSortDirection
+  })
   const activeKpis = activeTab === 'stock-status'
     ? stockStatusReport.kpis
     : activeTab === 'stock-movements'
       ? stockMovementsReport.kpis
       : activeTab === 'critical-stock'
         ? criticalStockReport.kpis
-        : placeholderKpis
+        : activeTab === 'expiry-near'
+          ? expiringProductsReport.kpis
+          : placeholderKpis
 
   const exportCsv = () => {
     if(activeTab === 'stock-status'){
@@ -117,8 +138,22 @@ export default function Reports(){
         sortKey: criticalStockSortKey,
         sortDirection: criticalStockSortDirection
       })
+      return
+    }
+
+    if(activeTab === 'expiry-near'){
+      exportExpiringProductsReportCsv({
+        report: expiringProductsReport,
+        filters,
+        categories,
+        stockItems,
+        sortKey: expiringProductsSortKey,
+        sortDirection: expiringProductsSortDirection
+      })
     }
   }
+
+  const usesCompactReportFilters = activeTab === 'critical-stock' || activeTab === 'expiry-near'
 
   return (
     <div className="reports-page">
@@ -154,8 +189,9 @@ export default function Reports(){
         onChange={setFilters}
         showMovementTypeFilter={activeTab === 'stock-movements'}
         showCriticalStatusFilter={activeTab === 'critical-stock'}
-        showDateFilters={activeTab !== 'critical-stock'}
-        showPersonnelFilter={activeTab !== 'critical-stock'}
+        showExpiryStatusFilter={activeTab === 'expiry-near'}
+        showDateFilters={!usesCompactReportFilters}
+        showPersonnelFilter={!usesCompactReportFilters}
       />
 
       {activeTab === 'stock-status' ? (
@@ -181,6 +217,14 @@ export default function Reports(){
           sortDirection={criticalStockSortDirection}
           onSortKeyChange={setCriticalStockSortKey}
           onSortDirectionChange={setCriticalStockSortDirection}
+        />
+      ) : activeTab === 'expiry-near' ? (
+        <ExpiringProductsReport
+          report={expiringProductsReport}
+          sortKey={expiringProductsSortKey}
+          sortDirection={expiringProductsSortDirection}
+          onSortKeyChange={setExpiringProductsSortKey}
+          onSortDirectionChange={setExpiringProductsSortDirection}
         />
       ) : (
         <ReportPlaceholder activeTab={activeTab} />
