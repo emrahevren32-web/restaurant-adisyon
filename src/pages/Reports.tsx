@@ -11,6 +11,12 @@ import ExpiringProductsReport, {
   exportExpiringProductsReportCsv,
   useExpiringProductsReport
 } from '../components/reports/ExpiringProductsReport'
+import ExpiredProductsReport, {
+  ExpiredProductsSortDirection,
+  ExpiredProductsSortKey,
+  exportExpiredProductsReportCsv,
+  useExpiredProductsReport
+} from '../components/reports/ExpiredProductsReport'
 import ReportFilters, { defaultReportFilters, ReportFiltersValue } from '../components/reports/ReportFilters'
 import ReportKpis, { ReportKpi } from '../components/reports/ReportKpis'
 import ReportPlaceholder from '../components/reports/ReportPlaceholder'
@@ -43,6 +49,7 @@ const isRealReport = (activeTab: ReportTabId) => {
     || activeTab === 'stock-movements'
     || activeTab === 'critical-stock'
     || activeTab === 'expiry-near'
+    || activeTab === 'expiry-expired'
 }
 
 export default function Reports(){
@@ -56,6 +63,8 @@ export default function Reports(){
   const [criticalStockSortDirection, setCriticalStockSortDirection] = React.useState<CriticalStockSortDirection>('desc')
   const [expiringProductsSortKey, setExpiringProductsSortKey] = React.useState<ExpiringProductsSortKey>('expiryDate')
   const [expiringProductsSortDirection, setExpiringProductsSortDirection] = React.useState<ExpiringProductsSortDirection>('asc')
+  const [expiredProductsSortKey, setExpiredProductsSortKey] = React.useState<ExpiredProductsSortKey>('expiryDate')
+  const [expiredProductsSortDirection, setExpiredProductsSortDirection] = React.useState<ExpiredProductsSortDirection>('asc')
   const [categories] = React.useState(() => loadStockCategories())
   const [stockItems] = React.useState(() => loadStockItems())
   const [stockMovements] = React.useState(() => loadStockMovements())
@@ -95,6 +104,14 @@ export default function Reports(){
     sortKey: expiringProductsSortKey,
     sortDirection: expiringProductsSortDirection
   })
+  const expiredProductsReport = useExpiredProductsReport({
+    stockItems,
+    categories,
+    expiryLots: stockExpiryLots,
+    filters,
+    sortKey: expiredProductsSortKey,
+    sortDirection: expiredProductsSortDirection
+  })
   const activeKpis = activeTab === 'stock-status'
     ? stockStatusReport.kpis
     : activeTab === 'stock-movements'
@@ -103,7 +120,9 @@ export default function Reports(){
         ? criticalStockReport.kpis
         : activeTab === 'expiry-near'
           ? expiringProductsReport.kpis
-          : placeholderKpis
+          : activeTab === 'expiry-expired'
+            ? expiredProductsReport.kpis
+            : placeholderKpis
 
   const exportCsv = () => {
     if(activeTab === 'stock-status'){
@@ -150,10 +169,22 @@ export default function Reports(){
         sortKey: expiringProductsSortKey,
         sortDirection: expiringProductsSortDirection
       })
+      return
+    }
+
+    if(activeTab === 'expiry-expired'){
+      exportExpiredProductsReportCsv({
+        report: expiredProductsReport,
+        filters,
+        categories,
+        stockItems,
+        sortKey: expiredProductsSortKey,
+        sortDirection: expiredProductsSortDirection
+      })
     }
   }
 
-  const usesCompactReportFilters = activeTab === 'critical-stock' || activeTab === 'expiry-near'
+  const usesCompactReportFilters = activeTab === 'critical-stock' || activeTab === 'expiry-near' || activeTab === 'expiry-expired'
 
   return (
     <div className="reports-page">
@@ -190,6 +221,7 @@ export default function Reports(){
         showMovementTypeFilter={activeTab === 'stock-movements'}
         showCriticalStatusFilter={activeTab === 'critical-stock'}
         showExpiryStatusFilter={activeTab === 'expiry-near'}
+        showExpiredStatusFilter={activeTab === 'expiry-expired'}
         showDateFilters={!usesCompactReportFilters}
         showPersonnelFilter={!usesCompactReportFilters}
       />
@@ -225,6 +257,14 @@ export default function Reports(){
           sortDirection={expiringProductsSortDirection}
           onSortKeyChange={setExpiringProductsSortKey}
           onSortDirectionChange={setExpiringProductsSortDirection}
+        />
+      ) : activeTab === 'expiry-expired' ? (
+        <ExpiredProductsReport
+          report={expiredProductsReport}
+          sortKey={expiredProductsSortKey}
+          sortDirection={expiredProductsSortDirection}
+          onSortKeyChange={setExpiredProductsSortKey}
+          onSortDirectionChange={setExpiredProductsSortDirection}
         />
       ) : (
         <ReportPlaceholder activeTab={activeTab} />

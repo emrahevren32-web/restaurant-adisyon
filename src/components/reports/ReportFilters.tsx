@@ -3,6 +3,7 @@ import { StockCategory, StockItem, User } from '../../types'
 export type ReportMovementTypeFilter = 'all' | 'entry' | 'exit' | 'waste' | 'count' | 'reverse'
 export type ReportCriticalStatusFilter = 'all' | 'critical' | 'very-critical' | 'out'
 export type ReportExpiryStatusFilter = 'all' | 'urgent' | 'approaching' | 'watch'
+export type ReportExpiredStatusFilter = 'all' | 'newly-expired' | 'critical' | 'dispose'
 
 export type ReportFiltersValue = {
   search: string
@@ -14,6 +15,7 @@ export type ReportFiltersValue = {
   movementType: ReportMovementTypeFilter
   criticalStatus: ReportCriticalStatusFilter
   expiryStatus: ReportExpiryStatusFilter
+  expiredStatus: ReportExpiredStatusFilter
 }
 
 type Props = {
@@ -25,6 +27,7 @@ type Props = {
   showMovementTypeFilter?: boolean
   showCriticalStatusFilter?: boolean
   showExpiryStatusFilter?: boolean
+  showExpiredStatusFilter?: boolean
   showDateFilters?: boolean
   showPersonnelFilter?: boolean
 }
@@ -38,7 +41,8 @@ export const defaultReportFilters: ReportFiltersValue = {
   personnelId: 'all',
   movementType: 'all',
   criticalStatus: 'all',
-  expiryStatus: 'all'
+  expiryStatus: 'all',
+  expiredStatus: 'all'
 }
 
 export const reportMovementTypeOptions: { value: ReportMovementTypeFilter; label: string }[] = [
@@ -64,6 +68,13 @@ export const reportExpiryStatusOptions: { value: ReportExpiryStatusFilter; label
   { value: 'watch', label: 'Takip Et' }
 ]
 
+export const reportExpiredStatusOptions: { value: ReportExpiredStatusFilter; label: string }[] = [
+  { value: 'all', label: 'Tüm durumlar' },
+  { value: 'newly-expired', label: 'Yeni Geçmiş' },
+  { value: 'critical', label: 'Kritik' },
+  { value: 'dispose', label: 'İmha Edilmeli' }
+]
+
 export default function ReportFilters({
   filters,
   categories,
@@ -73,6 +84,7 @@ export default function ReportFilters({
   showMovementTypeFilter = false,
   showCriticalStatusFilter = false,
   showExpiryStatusFilter = false,
+  showExpiredStatusFilter = false,
   showDateFilters = true,
   showPersonnelFilter = true
 }: Props){
@@ -84,7 +96,8 @@ export default function ReportFilters({
     'report-filter-grid',
     showMovementTypeFilter ? 'with-movement-type' : '',
     showCriticalStatusFilter ? 'with-critical-status' : '',
-    showExpiryStatusFilter ? 'with-expiry-status' : ''
+    showExpiryStatusFilter ? 'with-expiry-status' : '',
+    showExpiredStatusFilter ? 'with-expired-status' : ''
   ].filter(Boolean).join(' ')
 
   const searchPlaceholder = showMovementTypeFilter
@@ -93,7 +106,9 @@ export default function ReportFilters({
       ? 'Ürün adı veya kategori'
       : showExpiryStatusFilter
         ? 'Ürün adı, lot numarası veya kategori'
-        : 'Ürün adı, kategori veya kod'
+        : showExpiredStatusFilter
+          ? 'Ürün adı, lot numarası veya kategori'
+          : 'Ürün adı, kategori veya kod'
 
   return (
     <section className="card report-center-card">
@@ -171,6 +186,14 @@ export default function ReportFilters({
             <label>Durum</label>
             <select value={filters.expiryStatus} onChange={event => updateFilter('expiryStatus', event.target.value as ReportExpiryStatusFilter)}>
               {reportExpiryStatusOptions.map(option => <option key={option.value} value={option.value}>{option.label}</option>)}
+            </select>
+          </div>
+        )}
+        {showExpiredStatusFilter && (
+          <div className="form-field">
+            <label>Durum</label>
+            <select value={filters.expiredStatus} onChange={event => updateFilter('expiredStatus', event.target.value as ReportExpiredStatusFilter)}>
+              {reportExpiredStatusOptions.map(option => <option key={option.value} value={option.value}>{option.label}</option>)}
             </select>
           </div>
         )}
