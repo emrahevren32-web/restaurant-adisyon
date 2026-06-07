@@ -33,7 +33,13 @@ import StockStatusReport, {
   StockStatusSortKey,
   useStockStatusReport
 } from '../components/reports/StockStatusReport'
-import { loadCriticalStockEvents, loadStockCategories, loadStockExpiryLots, loadStockItems, loadStockMovements, loadUsers } from '../storage'
+import WasteCostReport, {
+  exportWasteCostReportCsv,
+  useWasteCostReport,
+  WasteCostSortDirection,
+  WasteCostSortKey
+} from '../components/reports/WasteCostReport'
+import { loadCriticalStockEvents, loadStockCategories, loadStockExpiryLots, loadStockItems, loadStockMovements, loadStockWasteRecords, loadUsers } from '../storage'
 
 const placeholderKpis: ReportKpi[] = [
   { label: 'Toplam Stok Değeri', value: '-', detail: 'Faz 12.8.x hesaplaması' },
@@ -50,6 +56,7 @@ const isRealReport = (activeTab: ReportTabId) => {
     || activeTab === 'critical-stock'
     || activeTab === 'expiry-near'
     || activeTab === 'expiry-expired'
+    || activeTab === 'waste-cost'
 }
 
 export default function Reports(){
@@ -65,10 +72,13 @@ export default function Reports(){
   const [expiringProductsSortDirection, setExpiringProductsSortDirection] = React.useState<ExpiringProductsSortDirection>('asc')
   const [expiredProductsSortKey, setExpiredProductsSortKey] = React.useState<ExpiredProductsSortKey>('expiryDate')
   const [expiredProductsSortDirection, setExpiredProductsSortDirection] = React.useState<ExpiredProductsSortDirection>('asc')
+  const [wasteCostSortKey, setWasteCostSortKey] = React.useState<WasteCostSortKey>('totalCost')
+  const [wasteCostSortDirection, setWasteCostSortDirection] = React.useState<WasteCostSortDirection>('desc')
   const [categories] = React.useState(() => loadStockCategories())
   const [stockItems] = React.useState(() => loadStockItems())
   const [stockMovements] = React.useState(() => loadStockMovements())
   const [stockExpiryLots] = React.useState(() => loadStockExpiryLots())
+  const [stockWasteRecords] = React.useState(() => loadStockWasteRecords())
   const [criticalStockEvents] = React.useState(() => loadCriticalStockEvents())
   const [users] = React.useState(() => loadUsers())
   const stockStatusReport = useStockStatusReport({
@@ -112,6 +122,15 @@ export default function Reports(){
     sortKey: expiredProductsSortKey,
     sortDirection: expiredProductsSortDirection
   })
+  const wasteCostReport = useWasteCostReport({
+    wasteRecords: stockWasteRecords,
+    movements: stockMovements,
+    stockItems,
+    categories,
+    filters,
+    sortKey: wasteCostSortKey,
+    sortDirection: wasteCostSortDirection
+  })
   const activeKpis = activeTab === 'stock-status'
     ? stockStatusReport.kpis
     : activeTab === 'stock-movements'
@@ -122,7 +141,9 @@ export default function Reports(){
           ? expiringProductsReport.kpis
           : activeTab === 'expiry-expired'
             ? expiredProductsReport.kpis
-            : placeholderKpis
+            : activeTab === 'waste-cost'
+              ? wasteCostReport.kpis
+              : placeholderKpis
 
   const exportCsv = () => {
     if(activeTab === 'stock-status'){
@@ -181,6 +202,19 @@ export default function Reports(){
         sortKey: expiredProductsSortKey,
         sortDirection: expiredProductsSortDirection
       })
+      return
+    }
+
+    if(activeTab === 'waste-cost'){
+      exportWasteCostReportCsv({
+        report: wasteCostReport,
+        filters,
+        categories,
+        stockItems,
+        users,
+        sortKey: wasteCostSortKey,
+        sortDirection: wasteCostSortDirection
+      })
     }
   }
 
@@ -222,6 +256,7 @@ export default function Reports(){
         showCriticalStatusFilter={activeTab === 'critical-stock'}
         showExpiryStatusFilter={activeTab === 'expiry-near'}
         showExpiredStatusFilter={activeTab === 'expiry-expired'}
+        showWasteReasonFilter={activeTab === 'waste-cost'}
         showDateFilters={!usesCompactReportFilters}
         showPersonnelFilter={!usesCompactReportFilters}
       />
@@ -265,6 +300,14 @@ export default function Reports(){
           sortDirection={expiredProductsSortDirection}
           onSortKeyChange={setExpiredProductsSortKey}
           onSortDirectionChange={setExpiredProductsSortDirection}
+        />
+      ) : activeTab === 'waste-cost' ? (
+        <WasteCostReport
+          report={wasteCostReport}
+          sortKey={wasteCostSortKey}
+          sortDirection={wasteCostSortDirection}
+          onSortKeyChange={setWasteCostSortKey}
+          onSortDirectionChange={setWasteCostSortDirection}
         />
       ) : (
         <ReportPlaceholder activeTab={activeTab} />

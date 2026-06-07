@@ -4,6 +4,7 @@ export type ReportMovementTypeFilter = 'all' | 'entry' | 'exit' | 'waste' | 'cou
 export type ReportCriticalStatusFilter = 'all' | 'critical' | 'very-critical' | 'out'
 export type ReportExpiryStatusFilter = 'all' | 'urgent' | 'approaching' | 'watch'
 export type ReportExpiredStatusFilter = 'all' | 'newly-expired' | 'critical' | 'dispose'
+export type ReportWasteReasonFilter = 'all' | 'spoilage' | 'breakage' | 'wrong-production' | 'expiry' | 'count-difference' | 'other'
 
 export type ReportFiltersValue = {
   search: string
@@ -16,6 +17,7 @@ export type ReportFiltersValue = {
   criticalStatus: ReportCriticalStatusFilter
   expiryStatus: ReportExpiryStatusFilter
   expiredStatus: ReportExpiredStatusFilter
+  wasteReason: ReportWasteReasonFilter
 }
 
 type Props = {
@@ -28,6 +30,7 @@ type Props = {
   showCriticalStatusFilter?: boolean
   showExpiryStatusFilter?: boolean
   showExpiredStatusFilter?: boolean
+  showWasteReasonFilter?: boolean
   showDateFilters?: boolean
   showPersonnelFilter?: boolean
 }
@@ -42,7 +45,8 @@ export const defaultReportFilters: ReportFiltersValue = {
   movementType: 'all',
   criticalStatus: 'all',
   expiryStatus: 'all',
-  expiredStatus: 'all'
+  expiredStatus: 'all',
+  wasteReason: 'all'
 }
 
 export const reportMovementTypeOptions: { value: ReportMovementTypeFilter; label: string }[] = [
@@ -75,6 +79,16 @@ export const reportExpiredStatusOptions: { value: ReportExpiredStatusFilter; lab
   { value: 'dispose', label: 'İmha Edilmeli' }
 ]
 
+export const reportWasteReasonOptions: { value: ReportWasteReasonFilter; label: string }[] = [
+  { value: 'all', label: 'Tüm fire sebepleri' },
+  { value: 'spoilage', label: 'Bozulma' },
+  { value: 'breakage', label: 'Kırılma' },
+  { value: 'wrong-production', label: 'Yanlış Üretim' },
+  { value: 'expiry', label: 'Son Kullanma Tarihi' },
+  { value: 'count-difference', label: 'Sayım Farkı' },
+  { value: 'other', label: 'Diğer' }
+]
+
 export default function ReportFilters({
   filters,
   categories,
@@ -85,6 +99,7 @@ export default function ReportFilters({
   showCriticalStatusFilter = false,
   showExpiryStatusFilter = false,
   showExpiredStatusFilter = false,
+  showWasteReasonFilter = false,
   showDateFilters = true,
   showPersonnelFilter = true
 }: Props){
@@ -97,7 +112,8 @@ export default function ReportFilters({
     showMovementTypeFilter ? 'with-movement-type' : '',
     showCriticalStatusFilter ? 'with-critical-status' : '',
     showExpiryStatusFilter ? 'with-expiry-status' : '',
-    showExpiredStatusFilter ? 'with-expired-status' : ''
+    showExpiredStatusFilter ? 'with-expired-status' : '',
+    showWasteReasonFilter ? 'with-waste-reason' : ''
   ].filter(Boolean).join(' ')
 
   const searchPlaceholder = showMovementTypeFilter
@@ -108,7 +124,9 @@ export default function ReportFilters({
         ? 'Ürün adı, lot numarası veya kategori'
         : showExpiredStatusFilter
           ? 'Ürün adı, lot numarası veya kategori'
-          : 'Ürün adı, kategori veya kod'
+          : showWasteReasonFilter
+            ? 'Ürün adı, fire sebebi veya kullanıcı'
+            : 'Ürün adı, kategori veya kod'
 
   return (
     <section className="card report-center-card">
@@ -162,6 +180,14 @@ export default function ReportFilters({
             <select value={filters.personnelId} onChange={event => updateFilter('personnelId', event.target.value)}>
               <option value="all">Tüm personel</option>
               {users.map(user => <option key={user.id} value={user.id}>{user.fullName || user.username}</option>)}
+            </select>
+          </div>
+        )}
+        {showWasteReasonFilter && (
+          <div className="form-field">
+            <label>Fire Sebebi</label>
+            <select value={filters.wasteReason} onChange={event => updateFilter('wasteReason', event.target.value as ReportWasteReasonFilter)}>
+              {reportWasteReasonOptions.map(option => <option key={option.value} value={option.value}>{option.label}</option>)}
             </select>
           </div>
         )}

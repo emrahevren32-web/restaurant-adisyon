@@ -23,7 +23,7 @@ export const reportTabs: ReportTab[] = [
   { id: 'expiry-expired', label: 'SKT Geçmiş' },
   { id: 'lot-movements', label: 'Lot Hareketleri' },
   { id: 'waste-report', label: 'Fire Raporu' },
-  { id: 'waste-cost', label: 'Fire Maliyet' },
+  { id: 'waste-cost', label: 'Fire ve Kayıp Maliyet' },
   { id: 'recipe-consumption', label: 'Reçete Tüketim' },
   { id: 'daily-summary', label: 'Günlük Özet' }
 ]
