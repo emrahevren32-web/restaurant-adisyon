@@ -33,6 +33,9 @@ type Props = {
   showWasteReasonFilter?: boolean
   showDateFilters?: boolean
   showPersonnelFilter?: boolean
+  stockItemFilterLabel?: string
+  stockItemAllLabel?: string
+  searchPlaceholderOverride?: string
 }
 
 export const defaultReportFilters: ReportFiltersValue = {
@@ -101,7 +104,10 @@ export default function ReportFilters({
   showExpiredStatusFilter = false,
   showWasteReasonFilter = false,
   showDateFilters = true,
-  showPersonnelFilter = true
+  showPersonnelFilter = true,
+  stockItemFilterLabel = 'Ürün',
+  stockItemAllLabel = 'Tüm ürünler',
+  searchPlaceholderOverride
 }: Props){
   const updateFilter = <K extends keyof ReportFiltersValue>(key: K, value: ReportFiltersValue[K]) => {
     onChange({ ...filters, [key]: value })
@@ -116,7 +122,7 @@ export default function ReportFilters({
     showWasteReasonFilter ? 'with-waste-reason' : ''
   ].filter(Boolean).join(' ')
 
-  const searchPlaceholder = showMovementTypeFilter
+  const searchPlaceholder = searchPlaceholderOverride || (showMovementTypeFilter
     ? 'Ürün, açıklama, kaynak veya kullanıcı'
     : showCriticalStatusFilter
       ? 'Ürün adı veya kategori'
@@ -126,7 +132,7 @@ export default function ReportFilters({
           ? 'Ürün adı, lot numarası veya kategori'
           : showWasteReasonFilter
             ? 'Ürün adı, fire sebebi veya kullanıcı'
-            : 'Ürün adı, kategori veya kod'
+            : 'Ürün adı, kategori veya kod')
 
   return (
     <section className="card report-center-card">
@@ -168,9 +174,9 @@ export default function ReportFilters({
           </select>
         </div>
         <div className="form-field">
-          <label>Ürün</label>
+          <label>{stockItemFilterLabel}</label>
           <select value={filters.stockItemId} onChange={event => updateFilter('stockItemId', event.target.value)}>
-            <option value="all">Tüm ürünler</option>
+            <option value="all">{stockItemAllLabel}</option>
             {stockItems.map(item => <option key={item.id} value={item.id}>{item.name}</option>)}
           </select>
         </div>

@@ -24,7 +24,7 @@ export const reportTabs: ReportTab[] = [
   { id: 'lot-movements', label: 'Lot Hareketleri' },
   { id: 'waste-report', label: 'Fire Raporu' },
   { id: 'waste-cost', label: 'Fire ve Kayıp Maliyet' },
-  { id: 'recipe-consumption', label: 'Reçete Tüketim' },
+  { id: 'recipe-consumption', label: 'Reçete Tüketim ve Maliyet' },
   { id: 'daily-summary', label: 'Günlük Özet' }
 ]
 

@@ -21,6 +21,12 @@ import ReportFilters, { defaultReportFilters, ReportFiltersValue } from '../comp
 import ReportKpis, { ReportKpi } from '../components/reports/ReportKpis'
 import ReportPlaceholder from '../components/reports/ReportPlaceholder'
 import ReportTabs, { ReportTabId } from '../components/reports/ReportTabs'
+import RecipeConsumptionReport, {
+  exportRecipeConsumptionReportCsv,
+  RecipeConsumptionSortDirection,
+  RecipeConsumptionSortKey,
+  useRecipeConsumptionReport
+} from '../components/reports/RecipeConsumptionReport'
 import StockMovementsReport, {
   exportStockMovementsReportCsv,
   StockMovementsSortDirection,
@@ -39,7 +45,7 @@ import WasteCostReport, {
   WasteCostSortDirection,
   WasteCostSortKey
 } from '../components/reports/WasteCostReport'
-import { loadCriticalStockEvents, loadStockCategories, loadStockExpiryLots, loadStockItems, loadStockMovements, loadStockWasteRecords, loadUsers } from '../storage'
+import { loadCriticalStockEvents, loadStockCategories, loadStockDeductionBatches, loadStockExpiryLots, loadStockItems, loadStockMovements, loadStockWasteRecords, loadUsers } from '../storage'
 
 const placeholderKpis: ReportKpi[] = [
   { label: 'Toplam Stok Değeri', value: '-', detail: 'Faz 12.8.x hesaplaması' },
@@ -57,6 +63,7 @@ const isRealReport = (activeTab: ReportTabId) => {
     || activeTab === 'expiry-near'
     || activeTab === 'expiry-expired'
     || activeTab === 'waste-cost'
+    || activeTab === 'recipe-consumption'
 }
 
 export default function Reports(){
@@ -74,11 +81,14 @@ export default function Reports(){
   const [expiredProductsSortDirection, setExpiredProductsSortDirection] = React.useState<ExpiredProductsSortDirection>('asc')
   const [wasteCostSortKey, setWasteCostSortKey] = React.useState<WasteCostSortKey>('totalCost')
   const [wasteCostSortDirection, setWasteCostSortDirection] = React.useState<WasteCostSortDirection>('desc')
+  const [recipeConsumptionSortKey, setRecipeConsumptionSortKey] = React.useState<RecipeConsumptionSortKey>('totalCost')
+  const [recipeConsumptionSortDirection, setRecipeConsumptionSortDirection] = React.useState<RecipeConsumptionSortDirection>('desc')
   const [categories] = React.useState(() => loadStockCategories())
   const [stockItems] = React.useState(() => loadStockItems())
   const [stockMovements] = React.useState(() => loadStockMovements())
   const [stockExpiryLots] = React.useState(() => loadStockExpiryLots())
   const [stockWasteRecords] = React.useState(() => loadStockWasteRecords())
+  const [stockDeductionBatches] = React.useState(() => loadStockDeductionBatches())
   const [criticalStockEvents] = React.useState(() => loadCriticalStockEvents())
   const [users] = React.useState(() => loadUsers())
   const stockStatusReport = useStockStatusReport({
@@ -131,6 +141,15 @@ export default function Reports(){
     sortKey: wasteCostSortKey,
     sortDirection: wasteCostSortDirection
   })
+  const recipeConsumptionReport = useRecipeConsumptionReport({
+    deductionBatches: stockDeductionBatches,
+    stockItems,
+    categories,
+    movements: stockMovements,
+    filters,
+    sortKey: recipeConsumptionSortKey,
+    sortDirection: recipeConsumptionSortDirection
+  })
   const activeKpis = activeTab === 'stock-status'
     ? stockStatusReport.kpis
     : activeTab === 'stock-movements'
@@ -143,7 +162,9 @@ export default function Reports(){
             ? expiredProductsReport.kpis
             : activeTab === 'waste-cost'
               ? wasteCostReport.kpis
-              : placeholderKpis
+              : activeTab === 'recipe-consumption'
+                ? recipeConsumptionReport.kpis
+                : placeholderKpis
 
   const exportCsv = () => {
     if(activeTab === 'stock-status'){
@@ -215,6 +236,18 @@ export default function Reports(){
         sortKey: wasteCostSortKey,
         sortDirection: wasteCostSortDirection
       })
+      return
+    }
+
+    if(activeTab === 'recipe-consumption'){
+      exportRecipeConsumptionReportCsv({
+        report: recipeConsumptionReport,
+        filters,
+        categories,
+        stockItems,
+        sortKey: recipeConsumptionSortKey,
+        sortDirection: recipeConsumptionSortDirection
+      })
     }
   }
 
@@ -258,7 +291,10 @@ export default function Reports(){
         showExpiredStatusFilter={activeTab === 'expiry-expired'}
         showWasteReasonFilter={activeTab === 'waste-cost'}
         showDateFilters={!usesCompactReportFilters}
-        showPersonnelFilter={!usesCompactReportFilters}
+        showPersonnelFilter={!usesCompactReportFilters && activeTab !== 'recipe-consumption'}
+        stockItemFilterLabel={activeTab === 'recipe-consumption' ? 'Hammadde' : undefined}
+        stockItemAllLabel={activeTab === 'recipe-consumption' ? 'Tüm hammaddeler' : undefined}
+        searchPlaceholderOverride={activeTab === 'recipe-consumption' ? 'Hammadde adı veya kategori' : undefined}
       />
 
       {activeTab === 'stock-status' ? (
@@ -308,6 +344,14 @@ export default function Reports(){
           sortDirection={wasteCostSortDirection}
           onSortKeyChange={setWasteCostSortKey}
           onSortDirectionChange={setWasteCostSortDirection}
+        />
+      ) : activeTab === 'recipe-consumption' ? (
+        <RecipeConsumptionReport
+          report={recipeConsumptionReport}
+          sortKey={recipeConsumptionSortKey}
+          sortDirection={recipeConsumptionSortDirection}
+          onSortKeyChange={setRecipeConsumptionSortKey}
+          onSortDirectionChange={setRecipeConsumptionSortDirection}
         />
       ) : (
         <ReportPlaceholder activeTab={activeTab} />

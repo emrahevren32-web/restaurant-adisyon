@@ -223,6 +223,9 @@ th { color:#4b5563; font-size:13px; font-weight:700 }
 .waste-cost-report-table td:nth-child(5), .waste-cost-report-table th:nth-child(5),
 .waste-cost-report-table td:nth-child(7), .waste-cost-report-table th:nth-child(7),
 .waste-cost-report-table td:nth-child(8), .waste-cost-report-table th:nth-child(8) { text-align:right }
+.recipe-consumption-report-table td:nth-child(4), .recipe-consumption-report-table th:nth-child(4),
+.recipe-consumption-report-table td:nth-child(5), .recipe-consumption-report-table th:nth-child(5),
+.recipe-consumption-report-table td:nth-child(6), .recipe-consumption-report-table th:nth-child(6) { text-align:right }
 .waste-reason-summary-section { display:flex; flex-direction:column; gap:12px; margin:16px 0 }
 .waste-reason-summary-grid { display:grid; grid-template-columns:repeat(6, minmax(0, 1fr)); gap:10px }
 .waste-reason-summary-tile { border:1px solid var(--line); border-radius:8px; padding:12px; background:#fff; min-width:0 }
