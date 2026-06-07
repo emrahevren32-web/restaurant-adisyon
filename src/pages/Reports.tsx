@@ -3,6 +3,12 @@ import ReportFilters, { defaultReportFilters, ReportFiltersValue } from '../comp
 import ReportKpis, { ReportKpi } from '../components/reports/ReportKpis'
 import ReportPlaceholder from '../components/reports/ReportPlaceholder'
 import ReportTabs, { ReportTabId } from '../components/reports/ReportTabs'
+import StockMovementsReport, {
+  exportStockMovementsReportCsv,
+  StockMovementsSortDirection,
+  StockMovementsSortKey,
+  useStockMovementsReport
+} from '../components/reports/StockMovementsReport'
 import StockStatusReport, {
   exportStockStatusReportCsv,
   StockStatusSortDirection,
@@ -20,11 +26,17 @@ const placeholderKpis: ReportKpi[] = [
   { label: 'En Çok Tüketilen Ürün', value: '-', detail: 'Faz 12.8.x hesaplaması' }
 ]
 
+const isRealReport = (activeTab: ReportTabId) => {
+  return activeTab === 'stock-status' || activeTab === 'stock-movements'
+}
+
 export default function Reports(){
   const [activeTab, setActiveTab] = React.useState<ReportTabId>('stock-status')
   const [filters, setFilters] = React.useState<ReportFiltersValue>(defaultReportFilters)
   const [stockStatusSortKey, setStockStatusSortKey] = React.useState<StockStatusSortKey>('name')
   const [stockStatusSortDirection, setStockStatusSortDirection] = React.useState<StockStatusSortDirection>('asc')
+  const [stockMovementsSortKey, setStockMovementsSortKey] = React.useState<StockMovementsSortKey>('date')
+  const [stockMovementsSortDirection, setStockMovementsSortDirection] = React.useState<StockMovementsSortDirection>('desc')
   const [categories] = React.useState(() => loadStockCategories())
   const [stockItems] = React.useState(() => loadStockItems())
   const [stockMovements] = React.useState(() => loadStockMovements())
@@ -39,17 +51,41 @@ export default function Reports(){
     sortKey: stockStatusSortKey,
     sortDirection: stockStatusSortDirection
   })
-  const activeKpis = activeTab === 'stock-status' ? stockStatusReport.kpis : placeholderKpis
+  const stockMovementsReport = useStockMovementsReport({
+    movements: stockMovements,
+    stockItems,
+    filters,
+    sortKey: stockMovementsSortKey,
+    sortDirection: stockMovementsSortDirection
+  })
+  const activeKpis = activeTab === 'stock-status'
+    ? stockStatusReport.kpis
+    : activeTab === 'stock-movements'
+      ? stockMovementsReport.kpis
+      : placeholderKpis
 
   const exportCsv = () => {
-    if(activeTab !== 'stock-status') return
+    if(activeTab === 'stock-status'){
+      exportStockStatusReportCsv({
+        report: stockStatusReport,
+        filters,
+        categories,
+        stockItems
+      })
+      return
+    }
 
-    exportStockStatusReportCsv({
-      report: stockStatusReport,
-      filters,
-      categories,
-      stockItems
-    })
+    if(activeTab === 'stock-movements'){
+      exportStockMovementsReportCsv({
+        report: stockMovementsReport,
+        filters,
+        categories,
+        stockItems,
+        users,
+        sortKey: stockMovementsSortKey,
+        sortDirection: stockMovementsSortDirection
+      })
+    }
   }
 
   return (
@@ -60,7 +96,7 @@ export default function Reports(){
           <p className="muted">Stok, SKT, lot, reçete ve fire verileri için merkezi rapor altyapısı.</p>
         </div>
         <div className="report-export-actions">
-          <button className="btn" type="button" onClick={exportCsv} disabled={activeTab !== 'stock-status'}>CSV Dışa Aktar</button>
+          <button className="btn" type="button" onClick={exportCsv} disabled={!isRealReport(activeTab)}>CSV Dışa Aktar</button>
           <button className="btn" type="button" disabled>PDF Dışa Aktar</button>
         </div>
       </div>
@@ -84,6 +120,7 @@ export default function Reports(){
         stockItems={stockItems}
         users={users}
         onChange={setFilters}
+        showMovementTypeFilter={activeTab === 'stock-movements'}
       />
 
       {activeTab === 'stock-status' ? (
@@ -93,6 +130,14 @@ export default function Reports(){
           sortDirection={stockStatusSortDirection}
           onSortKeyChange={setStockStatusSortKey}
           onSortDirectionChange={setStockStatusSortDirection}
+        />
+      ) : activeTab === 'stock-movements' ? (
+        <StockMovementsReport
+          report={stockMovementsReport}
+          sortKey={stockMovementsSortKey}
+          sortDirection={stockMovementsSortDirection}
+          onSortKeyChange={setStockMovementsSortKey}
+          onSortDirectionChange={setStockMovementsSortDirection}
         />
       ) : (
         <ReportPlaceholder activeTab={activeTab} />

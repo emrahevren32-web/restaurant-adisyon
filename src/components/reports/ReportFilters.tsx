@@ -1,5 +1,7 @@
 import { StockCategory, StockItem, User } from '../../types'
 
+export type ReportMovementTypeFilter = 'all' | 'entry' | 'exit' | 'waste' | 'count' | 'reverse'
+
 export type ReportFiltersValue = {
   search: string
   startDate: string
@@ -7,6 +9,7 @@ export type ReportFiltersValue = {
   categoryId: string
   stockItemId: string
   personnelId: string
+  movementType: ReportMovementTypeFilter
 }
 
 type Props = {
@@ -15,6 +18,7 @@ type Props = {
   stockItems: StockItem[]
   users: User[]
   onChange: (filters: ReportFiltersValue) => void
+  showMovementTypeFilter?: boolean
 }
 
 export const defaultReportFilters: ReportFiltersValue = {
@@ -23,10 +27,27 @@ export const defaultReportFilters: ReportFiltersValue = {
   endDate: '',
   categoryId: 'all',
   stockItemId: 'all',
-  personnelId: 'all'
+  personnelId: 'all',
+  movementType: 'all'
 }
 
-export default function ReportFilters({ filters, categories, stockItems, users, onChange }: Props){
+export const reportMovementTypeOptions: { value: ReportMovementTypeFilter; label: string }[] = [
+  { value: 'all', label: 'Tüm işlem tipleri' },
+  { value: 'entry', label: 'Giriş' },
+  { value: 'exit', label: 'Çıkış' },
+  { value: 'waste', label: 'Fire' },
+  { value: 'count', label: 'Sayım Düzeltme' },
+  { value: 'reverse', label: 'Ters Hareket' }
+]
+
+export default function ReportFilters({
+  filters,
+  categories,
+  stockItems,
+  users,
+  onChange,
+  showMovementTypeFilter = false
+}: Props){
   const updateFilter = <K extends keyof ReportFiltersValue>(key: K, value: ReportFiltersValue[K]) => {
     onChange({ ...filters, [key]: value })
   }
@@ -41,12 +62,12 @@ export default function ReportFilters({ filters, categories, stockItems, users, 
         <button className="btn" type="button" onClick={() => onChange(defaultReportFilters)}>Temizle</button>
       </div>
 
-      <div className="report-filter-grid">
+      <div className={`report-filter-grid ${showMovementTypeFilter ? 'with-movement-type' : ''}`}>
         <div className="form-field">
           <label>Arama</label>
           <input
             type="search"
-            placeholder="Ürün adı, kategori veya kod"
+            placeholder={showMovementTypeFilter ? 'Ürün, açıklama, kaynak veya kullanıcı' : 'Ürün adı, kategori veya kod'}
             value={filters.search}
             onChange={event => updateFilter('search', event.target.value)}
           />
@@ -80,6 +101,14 @@ export default function ReportFilters({ filters, categories, stockItems, users, 
             {users.map(user => <option key={user.id} value={user.id}>{user.fullName || user.username}</option>)}
           </select>
         </div>
+        {showMovementTypeFilter && (
+          <div className="form-field">
+            <label>İşlem Tipi</label>
+            <select value={filters.movementType} onChange={event => updateFilter('movementType', event.target.value as ReportMovementTypeFilter)}>
+              {reportMovementTypeOptions.map(option => <option key={option.value} value={option.value}>{option.label}</option>)}
+            </select>
+          </div>
+        )}
       </div>
     </section>
   )
