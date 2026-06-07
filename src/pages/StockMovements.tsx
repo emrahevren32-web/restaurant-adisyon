@@ -2,12 +2,17 @@ import React from 'react'
 import { StockItem, StockMovement, StockMovementSource, StockMovementType, User } from '../types'
 import {
   applyStockMovement,
+  createStockWasteRecord,
   loadStockItems,
   loadStockMovements,
+  loadStockWasteRecords,
+  loadUsers,
   reverseStockMovement
 } from '../storage'
 import StockMovementForm, { StockMovementFormValues } from '../components/StockMovementForm'
+import StockWasteForm, { StockWasteFormValues } from '../components/StockWasteForm'
 import { formatExpiryDate } from '../expiryStock'
+import { formatCurrency } from '../billing'
 
 type Props = { currentUser: User }
 type TypeFilter = 'all' | StockMovementType
@@ -81,6 +86,8 @@ const getExpiryMovementText = (movement: StockMovement) => {
 export default function StockMovements({ currentUser }: Props){
   const [stockItems, setStockItems] = React.useState<StockItem[]>(() => loadStockItems())
   const [movements, setMovements] = React.useState<StockMovement[]>(() => loadStockMovements())
+  const [wasteRecords, setWasteRecords] = React.useState(() => loadStockWasteRecords())
+  const [users] = React.useState<User[]>(() => loadUsers())
   const [startDate, setStartDate] = React.useState('')
   const [endDate, setEndDate] = React.useState('')
   const [stockItemFilter, setStockItemFilter] = React.useState('all')
@@ -94,6 +101,7 @@ export default function StockMovements({ currentUser }: Props){
   const refreshData = React.useCallback(() => {
     setStockItems(loadStockItems())
     setMovements(loadStockMovements())
+    setWasteRecords(loadStockWasteRecords())
   }, [])
 
   React.useEffect(() => {
@@ -119,6 +127,7 @@ export default function StockMovements({ currentUser }: Props){
       const matchesSource = sourceFilter === 'all' || movement.source === sourceFilter
       const matchesSearch = !normalizedSearch
         || movement.stockItemName.toLocaleLowerCase('tr-TR').includes(normalizedSearch)
+        || movement.reason.toLocaleLowerCase('tr-TR').includes(normalizedSearch)
         || (movement.supplierName || '').toLocaleLowerCase('tr-TR').includes(normalizedSearch)
         || (movement.invoiceNo || '').toLocaleLowerCase('tr-TR').includes(normalizedSearch)
         || (movement.description || '').toLocaleLowerCase('tr-TR').includes(normalizedSearch)
@@ -134,6 +143,11 @@ export default function StockMovements({ currentUser }: Props){
   const todayExitCount = todaysMovements.filter(movement => movement.type === 'Çıkış').length
   const todayCountCorrectionCount = todaysMovements.filter(movement => movement.type === 'Sayım Düzeltme').length
   const reversedMovementCount = movements.filter(movement => movement.reversedByMovementId).length
+  const todaysWasteRecords = wasteRecords.filter(record => getLocalDateKey(record.occurredAt) === today && record.status === 'active')
+  const todayWasteCost = todaysWasteRecords.reduce((sum, record) => sum + (record.estimatedTotalCost || 0), 0)
+  const recentWasteRecords = React.useMemo(() => {
+    return [...wasteRecords].sort((a, b) => new Date(b.occurredAt).getTime() - new Date(a.occurredAt).getTime()).slice(0, 5)
+  }, [wasteRecords])
 
   const saveMovement = (values: StockMovementFormValues) => {
     if(!canManageStock){
@@ -153,6 +167,29 @@ export default function StockMovements({ currentUser }: Props){
       })
     } catch (error) {
       setMessage({ type: 'error', text: error instanceof Error ? error.message : 'Stok hareketi oluşturulamadı.' })
+    }
+  }
+
+  const saveWasteRecord = (values: StockWasteFormValues) => {
+    if(!canManageStock){
+      setMessage({ type: 'error', text: 'Bu işlem için Admin yetkisi gereklidir.' })
+      return false
+    }
+
+    try {
+      const result = createStockWasteRecord({
+        ...values,
+        user: currentUser
+      })
+      refreshData()
+      setMessage({
+        type: result.movement.criticalStockEvent?.eventType === 'entered' ? 'error' : 'success',
+        text: `${result.record.stockItemName} için fire kaydı oluşturuldu. Tahmini maliyet: ${formatCurrency(result.record.estimatedTotalCost || 0)}.${formatCriticalStockMessage(result.movement)}${formatExpiryWarningMessage(result.movement)}`
+      })
+      return true
+    } catch (error) {
+      setMessage({ type: 'error', text: error instanceof Error ? error.message : 'Fire kaydı oluşturulamadı.' })
+      return false
     }
   }
 
@@ -216,6 +253,11 @@ export default function StockMovements({ currentUser }: Props){
           <span>Ters Hareket</span>
           <strong>{reversedMovementCount}</strong>
         </div>
+        <div className="metric-card">
+          <span>Bugünkü Fire</span>
+          <strong>{todaysWasteRecords.length}</strong>
+          <p className="muted">{formatCurrency(todayWasteCost)}</p>
+        </div>
       </div>
 
       <div className="stock-movement-layout">
@@ -245,8 +287,9 @@ export default function StockMovements({ currentUser }: Props){
                 <option value="Adisyon">Adisyon</option>
                 <option value="Sayım">Sayım</option>
                 <option value="İade">İade</option>
+                <option value="Fire">Fire</option>
               </select>
-              <input type="search" placeholder="Stok, tedarikçi, fatura, kullanıcı ara" value={search} onChange={event => setSearch(event.target.value)} />
+              <input type="search" placeholder="Stok, sebep, tedarikçi, fatura, kullanıcı ara" value={search} onChange={event => setSearch(event.target.value)} />
             </div>
           </div>
 
@@ -277,12 +320,16 @@ export default function StockMovements({ currentUser }: Props){
                     </td>
                     <td>
                       <strong>{movement.stockItemName}</strong>
-                      <div className="muted small-text">{movement.reason}{movement.reversesMovementId ? ' · Ters kayıt' : ''}{movement.reversedByMovementId ? ' · Terslendi' : ''}</div>
+                      <div className="muted small-text">
+                        {movement.reason}{movement.source === 'Fire' ? ' · Fire kaydı' : ''}{movement.reversesMovementId ? ' · Ters kayıt' : ''}{movement.reversedByMovementId ? ' · Terslendi' : ''}
+                      </div>
                       {getExpiryMovementText(movement) && <div className="muted small-text">{getExpiryMovementText(movement)}</div>}
                       {movement.expiryWarnings?.map(warning => <div className="small-text danger-text" key={warning}>{warning}</div>)}
                     </td>
                     <td><span className={`status-pill ${getMovementDirectionClass(movement)}`}>{movement.type}</span></td>
-                    <td>{movement.source}</td>
+                    <td>
+                      {movement.source === 'Fire' ? <span className="status-pill warning-pill">Fire</span> : movement.source}
+                    </td>
                     <td>{formatQuantity(movement.qty, movement.unit)}</td>
                     <td>
                       <strong>{formatQuantity(movement.previousQty, movement.unit)} → {formatQuantity(movement.nextQty, movement.unit)}</strong>
@@ -307,6 +354,34 @@ export default function StockMovements({ currentUser }: Props){
         </section>
 
         <aside className="stock-movement-side">
+          <section className="card">
+            <div className="section-header compact">
+              <h3>Fire Kaydı</h3>
+            </div>
+            <StockWasteForm stockItems={activeStockItems} users={users} onSave={saveWasteRecord} />
+          </section>
+
+          <section className="card">
+            <div className="section-header compact">
+              <h3>Son Fire Kayıtları</h3>
+            </div>
+            <div className="waste-mini-list">
+              {recentWasteRecords.length === 0 && <div className="empty-state">Fire kaydı yok.</div>}
+              {recentWasteRecords.map(record => (
+                <div className="waste-mini-row" key={record.id}>
+                  <div>
+                    <strong>{record.stockItemName}</strong>
+                    <span>{record.reasonCategory} · {formatQuantity(record.qty, record.unit)}</span>
+                    <small>{record.responsibleFullName || 'Sorumlu yok'} · {formatDateTime(record.occurredAt)}</small>
+                  </div>
+                  <span className={`status-pill ${record.status === 'reversed' ? 'muted-pill' : 'warning-pill'}`}>
+                    {record.status === 'reversed' ? 'Terslendi' : formatCurrency(record.estimatedTotalCost || 0)}
+                  </span>
+                </div>
+              ))}
+            </div>
+          </section>
+
           <section className="card">
             <div className="section-header compact">
               <h3>Yeni Stok Fişi</h3>

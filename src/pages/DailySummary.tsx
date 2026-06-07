@@ -1,6 +1,6 @@
 import React from 'react'
 import { ClosedBill, PaymentMethod, User } from '../types'
-import { loadClosed, loadCriticalStockEvents, loadStockExpiryLots, loadStockItems, syncStockExpiryStatusEvents } from '../storage'
+import { loadClosed, loadCriticalStockEvents, loadStockExpiryLots, loadStockItems, loadStockWasteRecords, syncStockExpiryStatusEvents } from '../storage'
 import { formatCurrency, getBillPayments, isRevenueBill } from '../billing'
 import { formatStockQuantity, getCriticalShortage, isCriticalStock, isOutOfStock, sortCriticalStockFirst } from '../criticalStock'
 import { formatExpiryDate, formatExpiryQuantity, formatExpiryStatusLabel, getExpiryStatus, getExpiryStatusClass, getExpiryWarningDays, isExpiryTracked, sortLotsFefo } from '../expiryStock'
@@ -27,6 +27,7 @@ export default function DailySummary({ currentUser }: Props){
   const [stockItems] = React.useState(() => loadStockItems())
   const [criticalEvents] = React.useState(() => loadCriticalStockEvents())
   const [expiryLots, setExpiryLots] = React.useState(() => loadStockExpiryLots())
+  const [wasteRecords] = React.useState(() => loadStockWasteRecords())
 
   React.useEffect(() => {
     if(currentUser.role !== 'Admin') return
@@ -72,6 +73,22 @@ export default function DailySummary({ currentUser }: Props){
   const nearExpiryLots = expiryRows.filter(row => row.status === 'near_expiry')
   const unknownExpiryLots = expiryRows.filter(row => row.status === 'unknown')
   const expiryAlertRows = [...expiredLots, ...nearExpiryLots].slice(0, 5)
+  const todaysWasteRecords = React.useMemo(() => {
+    return wasteRecords.filter(record => record.status === 'active' && getLocalDateKey(record.occurredAt) === today)
+  }, [today, wasteRecords])
+  const todayWasteCost = todaysWasteRecords.reduce((sum, record) => sum + (record.estimatedTotalCost || 0), 0)
+  const sktWasteCount = todaysWasteRecords.filter(record => record.reasonCategory === 'SKT Geçmesi').length
+  const topWasteReason = React.useMemo(() => {
+    const counts = todaysWasteRecords.reduce<Map<string, number>>((map, record) => {
+      map.set(record.reasonCategory, (map.get(record.reasonCategory) || 0) + 1)
+      return map
+    }, new Map())
+
+    return Array.from(counts.entries()).sort((a, b) => b[1] - a[1])[0]?.[0] || '-'
+  }, [todaysWasteRecords])
+  const wasteAlertRows = [...todaysWasteRecords]
+    .sort((a, b) => (b.estimatedTotalCost || 0) - (a.estimatedTotalCost || 0))
+    .slice(0, 5)
 
   return (
     <div className="summary-page">
@@ -196,6 +213,58 @@ export default function DailySummary({ currentUser }: Props){
                 </div>
                 <span className={`status-pill ${getExpiryStatusClass(status)}`}>
                   {formatExpiryStatusLabel(status)}
+                </span>
+              </div>
+            ))}
+          </div>
+        </section>
+      )}
+
+      {canSeeStockSummary && (
+        <section className="card">
+          <div className="section-header compact">
+            <div>
+              <h3>Fire Özeti</h3>
+              <p className="muted">Bugünkü aktif fire kayıtları ve tahmini maliyet etkisi.</p>
+            </div>
+            <span className={`status-pill ${todaysWasteRecords.length > 0 ? 'warning-pill' : 'success'}`}>
+              {todaysWasteRecords.length > 0 ? `${todaysWasteRecords.length} fire` : 'Fire yok'}
+            </span>
+          </div>
+
+          <div className="metric-grid report-metric-grid">
+            <div className="metric-card">
+              <span>Bugünkü Fire</span>
+              <strong>{todaysWasteRecords.length}</strong>
+              <p className="muted">Aktif kayıt</p>
+            </div>
+            <div className="metric-card">
+              <span>Tahmini Maliyet</span>
+              <strong>{formatCurrency(todayWasteCost)}</strong>
+              <p className="muted">Son alış fiyatına göre</p>
+            </div>
+            <div className="metric-card">
+              <span>En Sık Neden</span>
+              <strong>{topWasteReason}</strong>
+              <p className="muted">Bugün</p>
+            </div>
+            <div className="metric-card">
+              <span>SKT Kaynaklı</span>
+              <strong>{sktWasteCount}</strong>
+              <p className="muted">SKT geçmesi</p>
+            </div>
+          </div>
+
+          <div className="critical-stock-list">
+            {wasteAlertRows.length === 0 && <div className="empty-state">Bugün fire kaydı bulunmuyor.</div>}
+            {wasteAlertRows.map(record => (
+              <div className="critical-stock-row expiry-stock-row" key={record.id}>
+                <div>
+                  <strong>{record.stockItemName}</strong>
+                  <span>{record.reasonCategory} · {formatExpiryQuantity(record.qty, record.unit)} · {record.responsibleFullName || 'Sorumlu yok'}</span>
+                </div>
+                <span className="status-pill warning-pill">
+                  {formatCurrency(record.estimatedTotalCost || 0)}
                 </span>
               </div>
             ))}

@@ -198,7 +198,15 @@ th { color:#4b5563; font-size:13px; font-weight:700 }
 .report-table td:first-child, .report-table th:first-child { white-space:normal; min-width:150px }
 .stock-report-filters { display:grid; grid-template-columns:minmax(220px, 1fr) 170px 180px 140px; gap:8px; margin:12px 0 }
 .expiry-report-filters { grid-template-columns:minmax(220px, 1fr) 180px 180px }
+.waste-report-filters { grid-template-columns:minmax(220px, 1fr) 170px 150px 180px }
 .stock-report-layout { grid-template-columns:minmax(0, 1.25fr) minmax(360px, .75fr); margin-top:12px }
+.approval-panel { border:1px solid #fed7aa; border-radius:8px; padding:12px; background:#fff7ed; color:#9a3412; display:flex; flex-direction:column; gap:8px }
+.approval-panel strong, .approval-panel span { display:block }
+.waste-cost-hint { border-color:#fed7aa; background:#fff7ed }
+.waste-mini-list { display:flex; flex-direction:column; gap:8px }
+.waste-mini-row { display:flex; justify-content:space-between; gap:10px; align-items:center; border:1px solid var(--line); border-radius:8px; padding:10px; background:#f9fafb }
+.waste-mini-row strong, .waste-mini-row span, .waste-mini-row small { display:block }
+.waste-mini-row span, .waste-mini-row small { color:var(--muted); font-size:12px; margin-top:3px }
 .history-controls { display:grid; grid-template-columns:minmax(220px, 1fr) 160px; gap:8px; min-width:min(100%, 460px) }
 .action-log-filters { display:grid; grid-template-columns:150px minmax(180px, 1fr) minmax(200px, 1fr); gap:8px; min-width:min(100%, 620px) }
 .period-select { max-width:180px }

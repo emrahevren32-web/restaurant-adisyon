@@ -2,7 +2,6 @@ import React from 'react'
 import { StockCategory, StockExpiryEvent, StockExpiryLot, StockItem, StockUnit, User } from '../types'
 import {
   addActionLog,
-  applyStockMovement,
   loadCriticalStockEvents,
   loadStockCategories,
   loadStockExpiryEvents,
@@ -16,7 +15,6 @@ import {
 import StockItemForm, { StockItemFormValues } from '../components/StockItemForm'
 import {
   formatStockQuantity,
-  getCriticalRiskRatio,
   getCriticalShortage,
   isCriticalStock,
   isOutOfStock,
@@ -64,6 +62,7 @@ const formatDateTime = (value: string) => {
 const formatLotEventType = (event: StockExpiryEvent) => {
   if(event.eventType === 'lot_created') return 'Oluşturuldu'
   if(event.eventType === 'lot_consumed') return 'Tüketildi'
+  if(event.eventType === 'lot_wasted') return 'Fire düşüldü'
   if(event.eventType === 'lot_returned') return 'Ters hareketle iade edildi'
   if(event.eventType === 'expired') return 'Tarihi geçti'
   if(event.eventType === 'near_expiry') return 'SKT yaklaşan uyarısı'
@@ -281,7 +280,6 @@ export default function StockCards({ currentUser }: Props){
     const now = new Date().toISOString()
 
     if(editingItem){
-      const qtyChanged = values.currentQty !== editingItem.currentQty
       const updatedItem = {
         ...editingItem,
         ...values,
@@ -291,39 +289,13 @@ export default function StockCards({ currentUser }: Props){
       const nextItems = items.map(item => item.id === editingItem.id ? updatedItem : item)
       saveStockItems(nextItems)
       setItems(nextItems)
-      let criticalEvent: ReturnType<typeof recordCriticalStockTransition>
-
-      if(qtyChanged){
-        try {
-          const movement = applyStockMovement({
-            stockItemId: editingItem.id,
-            type: 'Sayım Düzeltme',
-            source: 'Sayım',
-            reason: values.currentQty >= editingItem.currentQty ? 'Sayım Fazlası' : 'Sayım Eksiği',
-            qty: values.currentQty,
-            description: 'Stok kartı ekranından mevcut miktar düzeltmesi.',
-            user: currentUser,
-            criticalBeforeItem: editingItem,
-            criticalStockTrigger: 'Stok Kartı Güncelleme'
-          })
-          criticalEvent = movement.criticalStockEvent
-          setItems(loadStockItems())
-          refreshExpiryData()
-        } catch (error) {
-          setPermissionError(error instanceof Error ? error.message : 'Stok miktarı güncellenemedi.')
-          setItems(loadStockItems())
-          refreshExpiryData()
-          return
-        }
-      } else {
-        criticalEvent = recordCriticalStockTransition({
-          before: editingItem,
-          after: updatedItem,
-          user: currentUser,
-          trigger: 'Stok Kartı Güncelleme',
-          note: 'Stok kartı bilgileri güncellendi.'
-        })
-      }
+      const criticalEvent = recordCriticalStockTransition({
+        before: editingItem,
+        after: updatedItem,
+        user: currentUser,
+        trigger: 'Stok Kartı Güncelleme',
+        note: 'Stok kartı bilgileri güncellendi.'
+      })
 
       addActionLog({
         operationType: 'Stok kartı güncellendi',
@@ -346,37 +318,19 @@ export default function StockCards({ currentUser }: Props){
     const nextItems = [item, ...items]
     saveStockItems(nextItems)
 
-    if(values.currentQty > 0){
-      try {
-        applyStockMovement({
-          stockItemId: item.id,
-          type: 'Giriş',
-          source: 'Manuel',
-          reason: 'Satın Alma',
-          qty: values.currentQty,
-          description: 'Stok kartı oluşturulurken girilen başlangıç miktarı.',
-          user: currentUser,
-          skipCriticalStockCheck: true
-        })
-      } catch (error) {
-        setPermissionError(error instanceof Error ? error.message : 'Başlangıç stok hareketi oluşturulamadı.')
-      }
-    }
-
-    const finalItem = loadStockItems().find(stockItem => stockItem.id === item.id) || item
     recordCriticalStockTransition({
-      after: finalItem,
+      after: item,
       user: currentUser,
       trigger: 'Stok Kartı Oluşturma',
       note: 'Stok kartı oluşturuldu.'
     })
 
-    setItems(loadStockItems())
+    setItems(nextItems)
     refreshExpiryData()
     addActionLog({
       operationType: 'Stok kartı oluşturuldu',
       user: currentUser,
-      description: `${item.name} stok kartı oluşturuldu. Kritik seviye: ${formatQuantity(item.minQty, item.unit)}.${values.currentQty > 0 ? ` Başlangıç miktarı hareket kaydıyla eklendi: ${formatQuantity(values.currentQty, item.unit)}.` : ''}`
+      description: `${item.name} stok kartı oluşturuldu. Kritik seviye: ${formatQuantity(item.minQty, item.unit)}. Stok miktarı ve SKT girişleri Stok Hareketleri ekranından yapılır.`
     })
     refreshCriticalEvents()
     setStockNotice({
@@ -643,7 +597,6 @@ export default function StockCards({ currentUser }: Props){
                   <th>Stok Kartı</th>
                   <th>Kategori</th>
                   <th>Birim</th>
-                  <th>Mevcut</th>
                   <th>Kritik</th>
                   <th>Eksik</th>
                   <th>SKT</th>
@@ -654,14 +607,13 @@ export default function StockCards({ currentUser }: Props){
               <tbody>
                 {visibleItems.length === 0 && (
                   <tr>
-                    <td colSpan={9} className="empty-cell">Bu filtrelere uygun stok kartı bulunamadı.</td>
+                    <td colSpan={8} className="empty-cell">Bu filtrelere uygun stok kartı bulunamadı.</td>
                   </tr>
                 )}
                 {sortedVisibleItems.map(item => {
                   const category = categoryMap.get(item.categoryId)
                   const critical = isCriticalStock(item)
                   const shortage = getCriticalShortage(item)
-                  const riskRatio = getCriticalRiskRatio(item)
                   const expirySummary = getItemExpirySummary(item)
 
                   return (
@@ -678,14 +630,6 @@ export default function StockCards({ currentUser }: Props){
                       </td>
                       <td>{category?.name || 'Kategori yok'}</td>
                       <td>{item.unit}</td>
-                      <td>
-                        <strong>{formatQuantity(item.currentQty, item.unit)}</strong>
-                        {critical && (
-                          <div className="critical-risk-bar" title="Kritik stok riski">
-                            <span style={{ width: `${Math.max(12, Math.round(riskRatio * 100))}%` }} />
-                          </div>
-                        )}
-                      </td>
                       <td>{formatQuantity(item.minQty, item.unit)}</td>
                       <td>{shortage > 0 ? formatQuantity(shortage, item.unit) : critical ? 'Eşik seviyesinde' : '-'}</td>
                       <td>

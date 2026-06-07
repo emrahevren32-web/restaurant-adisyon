@@ -1,5 +1,5 @@
 import React from 'react'
-import { ClosedBill, PaymentMethod, Product, StockItem } from '../types'
+import { ClosedBill, PaymentMethod, Product, StockItem, StockWasteReasonCategory } from '../types'
 import {
   loadClosed,
   loadCriticalStockEvents,
@@ -9,7 +9,10 @@ import {
   loadStockExpiryEvents,
   loadStockExpiryLots,
   loadStockItems,
-  loadStockMovements
+  loadStockMovements,
+  loadStockWasteRecords,
+  loadUsers,
+  STOCK_WASTE_REASONS
 } from '../storage'
 import {
   calculateDiscountTotal,
@@ -37,6 +40,8 @@ type PeriodFilter = 'today' | '7days' | '30days' | 'all'
 type CriticalReportStatusFilter = 'critical' | 'out' | 'healthy' | 'history' | 'all'
 type CriticalReportUnitFilter = 'all' | StockItem['unit']
 type ExpiryReportStatusFilter = 'alerts' | 'expired' | 'near_expiry' | 'valid' | 'unknown' | 'depleted' | 'all'
+type WasteReportReasonFilter = 'all' | StockWasteReasonCategory
+type WasteReportStatusFilter = 'active' | 'reversed' | 'all'
 
 type ProductMetric = {
   productId: string
@@ -244,6 +249,7 @@ const formatDateTime = (value: string) => {
 const formatExpiryEventType = (eventType: string) => {
   if(eventType === 'lot_created') return 'Lot oluşturuldu'
   if(eventType === 'lot_consumed') return 'Lot tüketildi'
+  if(eventType === 'lot_wasted') return 'Fire düşüldü'
   if(eventType === 'lot_returned') return 'Lot iade edildi'
   if(eventType === 'near_expiry') return 'Yaklaşan uyarı'
   if(eventType === 'expired') return 'Tarihi geçti'
@@ -266,6 +272,8 @@ export default function Reports(){
   const [stockItems] = React.useState(() => loadStockItems())
   const [stockCategories] = React.useState(() => loadStockCategories())
   const [stockMovements] = React.useState(() => loadStockMovements())
+  const [stockWasteRecords] = React.useState(() => loadStockWasteRecords())
+  const [users] = React.useState(() => loadUsers())
   const [criticalStockEvents] = React.useState(() => loadCriticalStockEvents())
   const [expiryLots] = React.useState(() => loadStockExpiryLots())
   const [expiryEvents] = React.useState(() => loadStockExpiryEvents())
@@ -276,6 +284,10 @@ export default function Reports(){
   const [expiryStatusFilter, setExpiryStatusFilter] = React.useState<ExpiryReportStatusFilter>('alerts')
   const [expiryCategoryFilter, setExpiryCategoryFilter] = React.useState('all')
   const [expirySearch, setExpirySearch] = React.useState('')
+  const [wasteReasonFilter, setWasteReasonFilter] = React.useState<WasteReportReasonFilter>('all')
+  const [wasteStatusFilter, setWasteStatusFilter] = React.useState<WasteReportStatusFilter>('active')
+  const [wasteStaffFilter, setWasteStaffFilter] = React.useState('all')
+  const [wasteSearch, setWasteSearch] = React.useState('')
   const [dayEndPrintedAt, setDayEndPrintedAt] = React.useState(() => new Date())
   const [isDayEndPrintActive, setIsDayEndPrintActive] = React.useState(false)
 
@@ -413,6 +425,64 @@ export default function Reports(){
       return matchesStatus && matchesCategory && matchesUnit && matchesSearch
     })
   }, [criticalCategoryFilter, criticalSearch, criticalStatusFilter, criticalStockEvents, criticalUnitFilter, stockCategoryMap, stockItems])
+  const wasteRecordsInPeriod = React.useMemo(() => {
+    return stockWasteRecords
+      .filter(record => isInPeriod(record.occurredAt, period))
+      .sort((a, b) => new Date(b.occurredAt).getTime() - new Date(a.occurredAt).getTime())
+  }, [period, stockWasteRecords])
+  const activeWasteRecordsInPeriod = React.useMemo(() => wasteRecordsInPeriod.filter(record => record.status === 'active'), [wasteRecordsInPeriod])
+  const wasteStaffOptions = React.useMemo(() => {
+    const fromUsers = users.map(user => ({ id: user.id, name: user.fullName || user.username }))
+    const fromRecords = stockWasteRecords
+      .filter(record => record.responsibleUserId || record.responsibleFullName)
+      .map(record => ({ id: record.responsibleUserId || record.responsibleFullName || '', name: record.responsibleFullName || 'Sorumlu' }))
+    const unique = new Map([...fromUsers, ...fromRecords].filter(item => item.id).map(item => [item.id, item]))
+    return Array.from(unique.values())
+  }, [stockWasteRecords, users])
+  const wasteReportRows = React.useMemo(() => {
+    const normalizedSearch = wasteSearch.trim().toLocaleLowerCase('tr-TR')
+
+    return wasteRecordsInPeriod.map(record => {
+      const item = stockItemMap.get(record.stockItemId)
+      const category = item ? stockCategoryMap.get(item.categoryId) : undefined
+
+      return { record, item, category }
+    }).filter(({ record, category }) => {
+      const matchesReason = wasteReasonFilter === 'all' || record.reasonCategory === wasteReasonFilter
+      const matchesStatus = wasteStatusFilter === 'all' || record.status === wasteStatusFilter
+      const staffId = record.responsibleUserId || record.responsibleFullName || ''
+      const matchesStaff = wasteStaffFilter === 'all' || staffId === wasteStaffFilter
+      const matchesSearch = !normalizedSearch
+        || record.stockItemName.toLocaleLowerCase('tr-TR').includes(normalizedSearch)
+        || record.reasonCategory.toLocaleLowerCase('tr-TR').includes(normalizedSearch)
+        || (record.reasonNote || '').toLocaleLowerCase('tr-TR').includes(normalizedSearch)
+        || (record.responsibleFullName || '').toLocaleLowerCase('tr-TR').includes(normalizedSearch)
+        || (category?.name || '').toLocaleLowerCase('tr-TR').includes(normalizedSearch)
+        || (record.expiryAllocations || []).some(allocation => allocation.lotCode.toLocaleLowerCase('tr-TR').includes(normalizedSearch))
+
+      return matchesReason && matchesStatus && matchesStaff && matchesSearch
+    })
+  }, [stockCategoryMap, stockItemMap, wasteReasonFilter, wasteRecordsInPeriod, wasteSearch, wasteStaffFilter, wasteStatusFilter])
+  const wasteTotalCost = activeWasteRecordsInPeriod.reduce((sum, record) => sum + (record.estimatedTotalCost || 0), 0)
+  const sktWasteRecordCount = activeWasteRecordsInPeriod.filter(record => record.reasonCategory === 'SKT Geçmesi').length
+  const topWasteReason = React.useMemo(() => {
+    const counts = activeWasteRecordsInPeriod.reduce<Map<string, number>>((map, record) => {
+      map.set(record.reasonCategory, (map.get(record.reasonCategory) || 0) + 1)
+      return map
+    }, new Map())
+    return Array.from(counts.entries()).sort((a, b) => b[1] - a[1])[0]?.[0] || '-'
+  }, [activeWasteRecordsInPeriod])
+  const topWasteStaff = React.useMemo(() => {
+    const costs = activeWasteRecordsInPeriod.reduce<Map<string, { name: string; cost: number }>>((map, record) => {
+      const key = record.responsibleUserId || record.responsibleFullName || 'unknown'
+      const existing = map.get(key) || { name: record.responsibleFullName || 'Sorumlu yok', cost: 0 }
+      existing.cost += record.estimatedTotalCost || 0
+      map.set(key, existing)
+      return map
+    }, new Map())
+
+    return Array.from(costs.values()).sort((a, b) => b.cost - a.cost)[0] || null
+  }, [activeWasteRecordsInPeriod])
 
   const printDayEnd = () => {
     setDayEndPrintedAt(new Date())
@@ -849,7 +919,7 @@ export default function Reports(){
                       <td>{formatDateTime(event.timestamp)}</td>
                       <td>{event.stockItemName}</td>
                       <td>
-                        <span className={`status-pill ${event.eventType === 'expired' || event.eventType === 'allocation_missing' ? 'danger-pill' : event.eventType === 'near_expiry' ? 'warning-pill' : 'success'}`}>
+                        <span className={`status-pill ${event.eventType === 'expired' || event.eventType === 'allocation_missing' ? 'danger-pill' : event.eventType === 'near_expiry' || event.eventType === 'lot_wasted' ? 'warning-pill' : 'success'}`}>
                           {formatExpiryEventType(event.eventType)}
                         </span>
                         <div className="muted small-text">{event.trigger}</div>
@@ -864,6 +934,119 @@ export default function Reports(){
               </table>
             </div>
           </div>
+        </div>
+      </section>
+
+      <section className="card">
+        <div className="section-header">
+          <div>
+            <h3>Fire Raporu</h3>
+            <p className="muted">Fire kayıtlarını neden, personel, lot ve maliyet etkisiyle takip edin.</p>
+          </div>
+          <span className="status-pill">{periodOptions.find(option => option.value === period)?.label}</span>
+        </div>
+
+        <div className="metric-grid report-metric-grid">
+          <div className="metric-card">
+            <span>Aktif Fire</span>
+            <strong>{activeWasteRecordsInPeriod.length}</strong>
+            <p className="muted">Terslenmemiş kayıt</p>
+          </div>
+          <div className="metric-card">
+            <span>Tahmini Fire Maliyeti</span>
+            <strong>{formatCurrency(wasteTotalCost)}</strong>
+            <p className="muted">Son alış fiyatına göre</p>
+          </div>
+          <div className="metric-card">
+            <span>SKT Kaynaklı Fire</span>
+            <strong>{sktWasteRecordCount}</strong>
+            <p className="muted">SKT geçmesi</p>
+          </div>
+          <div className="metric-card">
+            <span>En Sık Neden</span>
+            <strong>{topWasteReason}</strong>
+            <p className="muted">Aktif kayıtlar</p>
+          </div>
+          <div className="metric-card">
+            <span>En Yüksek Personel Etkisi</span>
+            <strong>{topWasteStaff?.name || '-'}</strong>
+            <p className="muted">{formatCurrency(topWasteStaff?.cost || 0)}</p>
+          </div>
+        </div>
+
+        <div className="stock-report-filters waste-report-filters">
+          <input type="search" placeholder="Stok, neden, lot, personel veya kategori ara" value={wasteSearch} onChange={event => setWasteSearch(event.target.value)} />
+          <select value={wasteReasonFilter} onChange={event => setWasteReasonFilter(event.target.value as WasteReportReasonFilter)}>
+            <option value="all">Tüm nedenler</option>
+            {STOCK_WASTE_REASONS.map(reason => <option key={reason} value={reason}>{reason}</option>)}
+          </select>
+          <select value={wasteStatusFilter} onChange={event => setWasteStatusFilter(event.target.value as WasteReportStatusFilter)}>
+            <option value="active">Aktif fire</option>
+            <option value="reversed">Terslenmiş</option>
+            <option value="all">Tüm durumlar</option>
+          </select>
+          <select value={wasteStaffFilter} onChange={event => setWasteStaffFilter(event.target.value)}>
+            <option value="all">Tüm personel</option>
+            {wasteStaffOptions.map(staff => <option key={staff.id} value={staff.id}>{staff.name}</option>)}
+          </select>
+        </div>
+
+        <div className="table-wrap">
+          <table className="data-table report-table">
+            <thead>
+              <tr>
+                <th>Tarih</th>
+                <th>Stok</th>
+                <th>Kategori</th>
+                <th>Lot / SKT</th>
+                <th>Miktar</th>
+                <th>Neden</th>
+                <th>Personel</th>
+                <th>Maliyet</th>
+                <th>Durum</th>
+                <th>Açıklama</th>
+              </tr>
+            </thead>
+            <tbody>
+              {wasteReportRows.length === 0 && <tr><td colSpan={10} className="empty-cell">Filtrelere uygun fire kaydı yok.</td></tr>}
+              {wasteReportRows.map(({ record, category }) => (
+                <tr key={record.id}>
+                  <td>
+                    <strong>{formatDateTime(record.occurredAt)}</strong>
+                    <div className="muted small-text">Kayıt: {formatDateTime(record.createdAt)}</div>
+                  </td>
+                  <td>{record.stockItemName}</td>
+                  <td>{category?.name || 'Kategori yok'}</td>
+                  <td>
+                    {(record.expiryAllocations || []).length === 0 && '-'}
+                    {(record.expiryAllocations || []).map(allocation => (
+                      <div className="muted small-text" key={`${record.id}_${allocation.lotId}`}>
+                        <strong>{allocation.lotCode}</strong> · {formatExpiryDate(allocation.expiryDate)} · {formatExpiryQuantity(allocation.qty, allocation.unit)}
+                      </div>
+                    ))}
+                    {record.expiryUnallocatedQty ? <div className="danger-text small-text">Eşleşmeyen: {formatExpiryQuantity(record.expiryUnallocatedQty, record.unit)}</div> : null}
+                  </td>
+                  <td>{formatExpiryQuantity(record.qty, record.unit)}</td>
+                  <td>{record.reasonCategory}</td>
+                  <td>
+                    <strong>{record.responsibleFullName || '-'}</strong>
+                    <div className="muted small-text">Kaydeden: {record.createdByFullName}</div>
+                  </td>
+                  <td>
+                    <strong>{formatCurrency(record.estimatedTotalCost || 0)}</strong>
+                    <div className="muted small-text">Birim: {record.estimatedUnitCost !== undefined ? formatCurrency(record.estimatedUnitCost) : '-'}</div>
+                  </td>
+                  <td>
+                    <span className={`status-pill ${record.status === 'reversed' ? 'muted-pill' : 'warning-pill'}`}>
+                      {record.status === 'reversed' ? 'Terslendi' : 'Aktif'}
+                    </span>
+                    {record.reversedAt && <div className="muted small-text">{formatDateTime(record.reversedAt)}</div>}
+                  </td>
+                  <td>{record.reasonNote || '-'}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
         </div>
       </section>
 

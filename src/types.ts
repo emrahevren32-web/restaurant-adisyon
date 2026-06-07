@@ -46,7 +46,7 @@ export type StockItem = {
 }
 
 export type StockMovementType = 'Giriş' | 'Çıkış' | 'Sayım Düzeltme'
-export type StockMovementSource = 'Manuel' | 'Reçete' | 'Adisyon' | 'Sayım' | 'İade'
+export type StockMovementSource = 'Manuel' | 'Reçete' | 'Adisyon' | 'Sayım' | 'İade' | 'Fire'
 export type StockMovementReason =
   | 'Satın Alma'
   | 'İade'
@@ -93,6 +93,7 @@ export type StockMovement = {
   deductionBatchId?: string
   reverseOfBatchId?: string
   reverseMode?: 'full' | 'partial'
+  wasteRecordId?: string
 }
 
 export type StockMovementAuditEventType = 'created' | 'reversed'
@@ -145,6 +146,7 @@ export type StockExpiryStatus = 'valid' | 'near_expiry' | 'expired' | 'depleted'
 export type StockExpiryEventType =
   | 'lot_created'
   | 'lot_consumed'
+  | 'lot_wasted'
   | 'lot_returned'
   | 'lot_adjusted'
   | 'near_expiry'
@@ -157,6 +159,7 @@ export type StockExpiryTrigger =
   | 'Otomatik Stok Düşümü'
   | 'Ters Hareket'
   | 'Sayım Düzeltme'
+  | 'Fire'
   | 'SKT Kontrolü'
 
 export type StockExpiryAllocation = {
@@ -207,6 +210,45 @@ export type StockExpiryEvent = {
   userName: string
   timestamp: string
   note?: string
+}
+
+export type StockWasteReasonCategory =
+  | 'Bozulma'
+  | 'SKT Geçmesi'
+  | 'Dökülme'
+  | 'Hazırlık Kaybı'
+  | 'Üretim Hatası'
+  | 'Yanlış Sipariş'
+  | 'Müşteri İadesi'
+  | 'Sayım Farkı'
+  | 'Diğer'
+
+export type StockWasteStatus = 'active' | 'reversed'
+
+export type StockWasteRecord = {
+  id: string
+  stockMovementId: string
+  stockItemId: string
+  stockItemName: string
+  qty: number
+  unit: StockUnit
+  reasonCategory: StockWasteReasonCategory
+  reasonNote?: string
+  responsibleUserId?: string
+  responsibleFullName?: string
+  createdByUserId: string
+  createdByFullName: string
+  occurredAt: string
+  createdAt: string
+  expiryAllocations?: StockExpiryAllocation[]
+  expiryUnallocatedQty?: number
+  expiryWarnings?: string[]
+  estimatedUnitCost?: number
+  estimatedTotalCost?: number
+  status: StockWasteStatus
+  reversedByMovementId?: string
+  reversedAt?: string
+  updatedAt?: string
 }
 
 export type RecipeItem = {
@@ -590,6 +632,10 @@ export type ActionLogType =
   | 'SKT yaklaşan uyarısı oluştu'
   | 'SKT tarihi geçti'
   | 'SKT lot eşleşmesi yapılamadı'
+  | 'Fire kaydı oluşturuldu'
+  | 'Fire kaydı terslendi'
+  | 'Fire lottan düşüldü'
+  | 'SKT nedeniyle fire oluşturuldu'
   | 'Reçete oluşturuldu'
   | 'Reçete güncellendi'
   | 'Reçete silindi'
