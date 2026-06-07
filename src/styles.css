@@ -185,6 +185,15 @@ th { color:#4b5563; font-size:13px; font-weight:700 }
 .payment-breakdown { display:flex; flex-direction:column; gap:8px }
 .payment-row { display:flex; justify-content:space-between; gap:10px; border:1px solid var(--line); border-radius:8px; padding:12px }
 .report-metric-grid { grid-template-columns:repeat(3, minmax(0, 1fr)) }
+.report-center-kpi-grid { grid-template-columns:repeat(3, minmax(0, 1fr)) }
+.report-kpi-card strong { min-height:30px }
+.report-export-actions { display:flex; gap:8px; flex-wrap:wrap; justify-content:flex-end }
+.report-center-card { min-width:0 }
+.report-tab-list { display:flex; flex-wrap:wrap; gap:8px }
+.report-tab-btn { border:1px solid var(--line); border-radius:8px; background:#fff; color:#374151; padding:9px 12px; font:inherit; font-weight:800; cursor:pointer }
+.report-tab-btn.active { background:#111827; border-color:#111827; color:#fff }
+.report-filter-grid { display:grid; grid-template-columns:repeat(5, minmax(0, 1fr)); gap:10px }
+.report-placeholder-table td:first-child, .report-placeholder-table th:first-child { min-width:180px }
 .report-panel-grid { display:grid; gap:12px }
 .report-panel-grid.three { grid-template-columns:repeat(3, minmax(0, 1fr)) }
 .report-panel { border:1px solid var(--line); border-radius:8px; padding:12px; background:#fff; min-width:0 }
@@ -333,7 +342,8 @@ th { color:#4b5563; font-size:13px; font-weight:700 }
   .container, .product-layout, .stock-movement-layout, .tables-layout, .order-layout, .summary-layout, .report-layout, .qr-menu-layout, .settings-layout { display:block }
   .metric-grid { grid-template-columns:repeat(2, minmax(0, 1fr)) }
   .kitchen-grid { grid-template-columns:repeat(2, minmax(0, 1fr)) }
-  .toolbar-controls, .stock-movement-filters, .recipe-filters, .adisyon-tools, .action-log-filters, .stock-report-filters, .report-panel-grid.three { grid-template-columns:1fr }
+  .toolbar-controls, .stock-movement-filters, .recipe-filters, .adisyon-tools, .action-log-filters, .stock-report-filters, .report-filter-grid, .report-panel-grid.three { grid-template-columns:1fr }
+  .report-center-kpi-grid { grid-template-columns:repeat(2, minmax(0, 1fr)) }
   .lot-priority-row, .lot-event-row { grid-template-columns:1fr }
   .product-picker { margin-top:12px }
   .report-layout > .card { margin-top:12px }
@@ -347,7 +357,7 @@ th { color:#4b5563; font-size:13px; font-weight:700 }
   .app-brand img { width:38px; height:38px }
   .metric-grid { grid-template-columns:1fr }
   .kitchen-grid { grid-template-columns:1fr }
-  .form-row, .stock-movement-type-row, .recipe-add-controls, .recipe-item-row, .recipe-cost-box, .inline-form, .category-row, .category-edit-form, .order-summary, .picker-controls, .checkout-panel, .checkout-total-grid, .payment-grid, .table-grid, .discount-controls, .product-pick-row, .history-controls, .history-detail-grid, .report-highlight-grid, .qr-product-card, .qr-request-list, .qr-request-meta, .qr-edit-row, .qr-edit-add-row, .qr-reject-row, .waiter-call-list, .critical-stock-row, .settings-form-grid { grid-template-columns:1fr }
+  .form-row, .stock-movement-type-row, .recipe-add-controls, .recipe-item-row, .recipe-cost-box, .inline-form, .category-row, .category-edit-form, .order-summary, .picker-controls, .checkout-panel, .checkout-total-grid, .payment-grid, .table-grid, .discount-controls, .product-pick-row, .history-controls, .history-detail-grid, .report-highlight-grid, .report-center-kpi-grid, .qr-product-card, .qr-request-list, .qr-request-meta, .qr-edit-row, .qr-edit-add-row, .qr-reject-row, .waiter-call-list, .critical-stock-row, .settings-form-grid { grid-template-columns:1fr }
   .critical-stock-row { align-items:flex-start; flex-direction:column }
   .actions-cell { justify-content:flex-start }
   .stock-cards-table td.actions-cell { text-align:left }
