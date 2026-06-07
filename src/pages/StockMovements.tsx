@@ -13,6 +13,7 @@ import StockMovementForm, { StockMovementFormValues } from '../components/StockM
 import StockWasteForm, { StockWasteFormValues } from '../components/StockWasteForm'
 import { formatExpiryDate } from '../expiryStock'
 import { formatCurrency } from '../billing'
+import { DEFAULT_STOCK_CURRENCY, formatStockMoney } from '../stockCost'
 
 type Props = { currentUser: User }
 type TypeFilter = 'all' | StockMovementType
@@ -333,7 +334,13 @@ export default function StockMovements({ currentUser }: Props){
                     <td>{formatQuantity(movement.qty, movement.unit)}</td>
                     <td>
                       <strong>{formatQuantity(movement.previousQty, movement.unit)} → {formatQuantity(movement.nextQty, movement.unit)}</strong>
-                      {movement.purchasePrice !== undefined && <div className="muted small-text">Alış: {movement.purchasePrice.toLocaleString('tr-TR', { maximumFractionDigits: 2 })}</div>}
+                      {movement.purchasePrice !== undefined && <div className="muted small-text">Birim alış: {formatStockMoney(movement.purchasePrice, movement.currency || DEFAULT_STOCK_CURRENCY)}</div>}
+                      <div className="muted small-text">
+                        Ort. maliyet: {formatStockMoney(movement.nextAverageCost || 0, movement.currency || DEFAULT_STOCK_CURRENCY)}
+                      </div>
+                      <div className="muted small-text">
+                        Stok değeri: {formatStockMoney(movement.previousStockValue || 0, movement.currency || DEFAULT_STOCK_CURRENCY)} → {formatStockMoney(movement.nextStockValue || 0, movement.currency || DEFAULT_STOCK_CURRENCY)}
+                      </div>
                     </td>
                     <td>
                       <strong>{movement.supplierName || '-'}</strong>

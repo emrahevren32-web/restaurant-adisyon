@@ -2,6 +2,7 @@ import React from 'react'
 import { StockItem, StockWasteReasonCategory, User } from '../types'
 import { formatCurrency } from '../billing'
 import { HIGH_COST_FIRE_APPROVAL_THRESHOLD, STOCK_WASTE_REASONS } from '../storage'
+import { getStockConsumptionUnitCost } from '../stockCost'
 
 export type StockWasteFormValues = {
   stockItemId: string
@@ -57,8 +58,9 @@ export default function StockWasteForm({ stockItems, users, onSave }: Props){
   const selectedItem = stockItems.find(item => item.id === stockItemId)
   const responsibleUser = users.find(user => user.id === responsibleUserId)
   const parsedQty = Number(qty)
-  const estimatedTotal = selectedItem?.lastPurchasePrice !== undefined && Number.isFinite(parsedQty)
-    ? selectedItem.lastPurchasePrice * Math.max(0, parsedQty)
+  const estimatedUnitCost = selectedItem ? getStockConsumptionUnitCost(selectedItem) : 0
+  const estimatedTotal = selectedItem && Number.isFinite(parsedQty)
+    ? estimatedUnitCost * Math.max(0, parsedQty)
     : undefined
 
   const resetForm = () => {
@@ -174,7 +176,7 @@ export default function StockWasteForm({ stockItems, users, onSave }: Props){
       <div className="stock-current-hint waste-cost-hint">
         <span>Tahmini fire maliyeti</span>
         <strong>{estimatedTotal !== undefined ? formatCurrency(estimatedTotal) : '-'}</strong>
-        <em>Birim maliyet son alış fiyatından hesaplanır</em>
+        <em>Birim maliyet ortalama maliyet, son alış fiyatı veya kart maliyetinden hesaplanır</em>
       </div>
 
       {pendingApproval && (

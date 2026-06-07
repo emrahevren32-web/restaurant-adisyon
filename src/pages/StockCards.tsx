@@ -30,6 +30,13 @@ import {
   isExpiryTracked,
   sortLotsFefo
 } from '../expiryStock'
+import {
+  formatStockMoney,
+  getStockAverageCost,
+  getStockCurrency,
+  getStockLastPurchasePrice,
+  getStockValueByAverageCost
+} from '../stockCost'
 
 type Props = { currentUser: User }
 type StatusFilter = 'all' | 'active' | 'inactive' | 'critical' | 'out' | 'healthy' | 'expiry' | 'expiry-risk' | 'expired'
@@ -280,10 +287,12 @@ export default function StockCards({ currentUser }: Props){
     const now = new Date().toISOString()
 
     if(editingItem){
+      const costChanged = editingItem.unitPurchasePrice !== values.unitPurchasePrice || getStockCurrency(editingItem) !== values.currency
       const updatedItem = {
         ...editingItem,
         ...values,
         currentQty: editingItem.currentQty,
+        lastCostUpdatedAt: costChanged ? now : editingItem.lastCostUpdatedAt,
         updatedAt: now
       }
       const nextItems = items.map(item => item.id === editingItem.id ? updatedItem : item)
@@ -302,6 +311,13 @@ export default function StockCards({ currentUser }: Props){
         user: currentUser,
         description: `${editingItem.name} stok kartı güncellendi. Yeni ad: ${values.name}.`
       })
+      if(costChanged){
+        addActionLog({
+          operationType: 'Maliyet güncellendi',
+          user: currentUser,
+          description: `${updatedItem.name} stok kartı maliyet bilgisi güncellendi. Birim alış fiyatı: ${formatStockMoney(values.unitPurchasePrice || 0, values.currency)}. Para birimi: ${values.currency}.`
+        })
+      }
       setEditingItem(null)
       showCriticalNotice(criticalEvent)
       return
@@ -311,6 +327,7 @@ export default function StockCards({ currentUser }: Props){
       id: createId('stock'),
       ...values,
       currentQty: 0,
+      lastCostUpdatedAt: values.unitPurchasePrice !== undefined ? now : undefined,
       createdAt: now,
       updatedAt: now
     }
@@ -332,6 +349,13 @@ export default function StockCards({ currentUser }: Props){
       user: currentUser,
       description: `${item.name} stok kartı oluşturuldu. Kritik seviye: ${formatQuantity(item.minQty, item.unit)}. Stok miktarı ve SKT girişleri Stok Hareketleri ekranından yapılır.`
     })
+    if(item.unitPurchasePrice !== undefined){
+      addActionLog({
+        operationType: 'Maliyet güncellendi',
+        user: currentUser,
+        description: `${item.name} stok kartı için birim alış fiyatı ${formatStockMoney(item.unitPurchasePrice, item.currency)} olarak tanımlandı.`
+      })
+    }
     refreshCriticalEvents()
     setStockNotice({
       type: 'success',
@@ -601,13 +625,14 @@ export default function StockCards({ currentUser }: Props){
                   <th>Eksik</th>
                   <th>SKT</th>
                   <th>Durum</th>
+                  <th>Maliyet Bilgileri</th>
                   <th></th>
                 </tr>
               </thead>
               <tbody>
                 {visibleItems.length === 0 && (
                   <tr>
-                    <td colSpan={8} className="empty-cell">Bu filtrelere uygun stok kartı bulunamadı.</td>
+                    <td colSpan={9} className="empty-cell">Bu filtrelere uygun stok kartı bulunamadı.</td>
                   </tr>
                 )}
                 {sortedVisibleItems.map(item => {
@@ -656,6 +681,13 @@ export default function StockCards({ currentUser }: Props){
                         ) : (
                           <span className="status-pill success">Aktif</span>
                         )}
+                      </td>
+                      <td>
+                        <div className="stock-cost-summary">
+                          <span>Son alış: {formatStockMoney(getStockLastPurchasePrice(item), getStockCurrency(item))}</span>
+                          <span>Ortalama: {formatStockMoney(getStockAverageCost(item), getStockCurrency(item))}</span>
+                          <strong>Stok değeri: {formatStockMoney(getStockValueByAverageCost(item), getStockCurrency(item))}</strong>
+                        </div>
                       </td>
                       <td className="actions-cell">
                         <button className={`btn ${item.tracksExpiry ? 'lot-view-btn' : ''}`} onClick={() => setLotPanelItem(item)}>Lotları Gör</button>

@@ -1,6 +1,7 @@
 import React from 'react'
 import { Product, Recipe, RecipeCostSnapshot, RecipeItem, StockItem, StockUnit } from '../types'
 import { formatCurrency, roundCurrency } from '../billing'
+import { getStockConsumptionUnitCost } from '../stockCost'
 
 export type RecipeFormValues = {
   productId: string
@@ -64,37 +65,28 @@ export const calculateRecipeCost = (items: RecipeItem[], stockItems: StockItem[]
 
     const convertedQty = convertQuantity(effectiveQty, recipeItem.unit, stockItem.unit)
     if(convertedQty === null){
+      const unitCost = getStockConsumptionUnitCost(stockItem)
       return {
         itemId: recipeItem.id,
         stockItemName: stockItem.name,
         effectiveQty,
         stockUnit: stockItem.unit,
-        unitPrice: stockItem.lastPurchasePrice,
+        unitPrice: unitCost,
         cost: 0,
         canCalculate: false,
         message: `${recipeItem.unit} birimi ${stockItem.unit} birimine çevrilemiyor.`
       }
     }
 
-    if(stockItem.lastPurchasePrice === undefined){
-      return {
-        itemId: recipeItem.id,
-        stockItemName: stockItem.name,
-        effectiveQty: convertedQty,
-        stockUnit: stockItem.unit,
-        cost: 0,
-        canCalculate: false,
-        message: 'Alış fiyatı yok.'
-      }
-    }
+    const unitCost = getStockConsumptionUnitCost(stockItem)
 
     return {
       itemId: recipeItem.id,
       stockItemName: stockItem.name,
       effectiveQty: convertedQty,
       stockUnit: stockItem.unit,
-      unitPrice: stockItem.lastPurchasePrice,
-      cost: roundCurrency(convertedQty * stockItem.lastPurchasePrice),
+      unitPrice: unitCost,
+      cost: roundCurrency(convertedQty * unitCost),
       canCalculate: true
     }
   })

@@ -65,6 +65,16 @@ import {
   normalizeExpiryDateKey,
   sortLotsFefo
 } from './expiryStock'
+import {
+  DEFAULT_STOCK_CURRENCY,
+  calculateWeightedAverageCost,
+  formatStockMoney,
+  getStockAverageCost,
+  getStockConsumptionUnitCost,
+  getStockCurrency,
+  normalizeCostValue,
+  roundCost
+} from './stockCost'
 
 const KEY_PRODUCTS = 'ra_products'
 const KEY_CATEGORIES = 'ra_categories'
@@ -179,7 +189,9 @@ const normalizeStockCategory = (item: Partial<StockCategory>): StockCategory => 
 const normalizeStockItem = (item: Partial<StockItem>, fallbackCategoryId = DEFAULT_STOCK_CATEGORY_ID): StockItem => {
   const currentQty = Number(item.currentQty)
   const minQty = Number(item.minQty)
+  const unitPurchasePrice = normalizeCostValue(item.unitPurchasePrice)
   const lastPurchasePrice = Number(item.lastPurchasePrice)
+  const averageCost = normalizeCostValue(item.averageCost)
   const expiryWarningDays = Number(item.expiryWarningDays)
 
   return {
@@ -197,7 +209,11 @@ const normalizeStockItem = (item: Partial<StockItem>, fallbackCategoryId = DEFAU
     active: item.active !== false,
     createdAt: item.createdAt || new Date().toISOString(),
     updatedAt: item.updatedAt,
+    unitPurchasePrice,
+    currency: String(item.currency || DEFAULT_STOCK_CURRENCY).trim() || DEFAULT_STOCK_CURRENCY,
     lastPurchasePrice: Number.isFinite(lastPurchasePrice) && lastPurchasePrice >= 0 ? lastPurchasePrice : undefined,
+    averageCost,
+    lastCostUpdatedAt: item.lastCostUpdatedAt,
     lastSupplierName: item.lastSupplierName || ''
   }
 }
@@ -213,6 +229,9 @@ const normalizeStockMovementSource = (value: unknown): StockMovementSource => {
 const normalizeStockMovementReason = (value: unknown): StockMovementReason => {
   return STOCK_MOVEMENT_REASONS.includes(value as StockMovementReason) ? value as StockMovementReason : 'Diğer'
 }
+
+const isStockEntryMovementType = (value: string) => value.includes('Giri')
+const isStockCountMovementType = (value: string) => value.includes('Say')
 
 const normalizeStockExpiryAllocation = (item: Partial<StockExpiryAllocation>): StockExpiryAllocation => {
   const qty = Number(item.qty)
@@ -231,6 +250,12 @@ const normalizeStockMovement = (item: Partial<StockMovement>): StockMovement => 
   const previousQty = Number(item.previousQty)
   const nextQty = Number(item.nextQty)
   const purchasePrice = Number(item.purchasePrice)
+  const unitCost = normalizeCostValue(item.unitCost)
+  const totalCost = normalizeCostValue(item.totalCost)
+  const previousAverageCost = normalizeCostValue(item.previousAverageCost)
+  const nextAverageCost = normalizeCostValue(item.nextAverageCost)
+  const previousStockValue = normalizeCostValue(item.previousStockValue)
+  const nextStockValue = normalizeCostValue(item.nextStockValue)
   const expiryUnallocatedQty = Number(item.expiryUnallocatedQty)
   const timestamp = item.createdAt || new Date().toISOString()
 
@@ -246,6 +271,13 @@ const normalizeStockMovement = (item: Partial<StockMovement>): StockMovement => 
     previousQty: Number.isFinite(previousQty) ? previousQty : 0,
     nextQty: Number.isFinite(nextQty) ? nextQty : 0,
     purchasePrice: Number.isFinite(purchasePrice) && purchasePrice >= 0 ? purchasePrice : undefined,
+    currency: String(item.currency || DEFAULT_STOCK_CURRENCY).trim() || DEFAULT_STOCK_CURRENCY,
+    unitCost,
+    totalCost,
+    previousAverageCost,
+    nextAverageCost,
+    previousStockValue,
+    nextStockValue,
     supplierName: item.supplierName || '',
     invoiceNo: item.invoiceNo || '',
     expiryDate: normalizeExpiryDateKey(item.expiryDate),
@@ -1810,14 +1842,18 @@ export const applyStockMovement = ({
   }
 
   const normalizedQty = Number(qty)
-  if(!Number.isFinite(normalizedQty) || normalizedQty < 0 || (type !== 'Sayım Düzeltme' && normalizedQty <= 0)){
-    throw new Error(type === 'Sayım Düzeltme' ? 'Sayım sonucu 0 veya daha büyük olmalıdır.' : 'Hareket miktarı 0’dan büyük olmalıdır.')
+  const isEntryMovement = isStockEntryMovementType(type)
+  const isCountMovement = isStockCountMovementType(type)
+  const isExitMovement = !isEntryMovement && !isCountMovement
+
+  if(!Number.isFinite(normalizedQty) || normalizedQty < 0 || (!isCountMovement && normalizedQty <= 0)){
+    throw new Error(isCountMovement ? 'Sayım sonucu 0 veya daha büyük olmalıdır.' : 'Hareket miktarı 0’dan büyük olmalıdır.')
   }
 
   const previousQty = stockItem.currentQty
-  const nextQty = type === 'Giriş'
+  const nextQty = isEntryMovement
     ? previousQty + normalizedQty
-    : type === 'Çıkış'
+    : isExitMovement
       ? previousQty - normalizedQty
       : normalizedQty
 
@@ -1826,6 +1862,24 @@ export const applyStockMovement = ({
   }
 
   const normalizedPurchasePrice = Number(purchasePrice)
+  const validPurchasePrice = Number.isFinite(normalizedPurchasePrice) && normalizedPurchasePrice >= 0 ? normalizedPurchasePrice : undefined
+  const previousAverageCost = getStockAverageCost(stockItem)
+  const previousStockValue = roundCost(Math.max(0, previousQty) * previousAverageCost)
+  const stockQtyDelta = roundStockQty(nextQty - previousQty)
+  const incomingCostQty = Math.max(0, stockQtyDelta)
+  const shouldUpdateCost = incomingCostQty > 0 && validPurchasePrice !== undefined
+  const nextAverageCost = shouldUpdateCost
+    ? calculateWeightedAverageCost({
+      previousQty,
+      previousAverageCost,
+      incomingQty: incomingCostQty,
+      incomingUnitCost: validPurchasePrice
+    })
+    : previousAverageCost
+  const movementCostQty = Math.abs(stockQtyDelta)
+  const movementUnitCost = validPurchasePrice !== undefined ? validPurchasePrice : previousAverageCost
+  const averageCostChanged = shouldUpdateCost && Math.abs(nextAverageCost - previousAverageCost) > 0.0001
+  const nextStockValue = roundCost(Math.max(0, nextQty) * nextAverageCost)
   const normalizedExpiryDate = normalizeExpiryDateKey(expiryDate)
   const now = new Date().toISOString()
   const movement: StockMovement = {
@@ -1839,7 +1893,14 @@ export const applyStockMovement = ({
     unit: stockItem.unit,
     previousQty,
     nextQty,
-    purchasePrice: Number.isFinite(normalizedPurchasePrice) && normalizedPurchasePrice >= 0 ? normalizedPurchasePrice : undefined,
+    purchasePrice: validPurchasePrice,
+    currency: getStockCurrency(stockItem),
+    unitCost: roundCost(movementUnitCost),
+    totalCost: roundCost(movementCostQty * movementUnitCost),
+    previousAverageCost: roundCost(previousAverageCost),
+    nextAverageCost: roundCost(nextAverageCost),
+    previousStockValue,
+    nextStockValue,
     supplierName: supplierName?.trim() || '',
     invoiceNo: invoiceNo?.trim() || '',
     expiryDate: normalizedExpiryDate,
@@ -1985,8 +2046,12 @@ export const applyStockMovement = ({
     ...stockItem,
     currentQty: nextQty,
     updatedAt: now,
-    lastPurchasePrice: movement.type === 'Giriş' && movement.purchasePrice !== undefined ? movement.purchasePrice : stockItem.lastPurchasePrice,
-    lastSupplierName: movement.type === 'Giriş' && movement.supplierName ? movement.supplierName : stockItem.lastSupplierName
+    unitPurchasePrice: shouldUpdateCost ? validPurchasePrice : stockItem.unitPurchasePrice,
+    currency: getStockCurrency(stockItem),
+    lastPurchasePrice: shouldUpdateCost ? validPurchasePrice : stockItem.lastPurchasePrice,
+    averageCost: shouldUpdateCost ? roundCost(nextAverageCost) : stockItem.averageCost,
+    lastCostUpdatedAt: shouldUpdateCost ? now : stockItem.lastCostUpdatedAt,
+    lastSupplierName: incomingCostQty > 0 && movement.supplierName ? movement.supplierName : stockItem.lastSupplierName
   }
   const nextStockItems = stockItems.map(item => item.id === stockItem.id ? nextStockItem : item)
   const nextExistingMovements = reversesMovementId
@@ -2029,6 +2094,28 @@ export const applyStockMovement = ({
     user,
     description: `${user.fullName || user.username} ${movement.stockItemName} için ${movement.type.toLocaleLowerCase('tr-TR')} hareketi oluşturdu. Kaynak: ${movement.source}. Sebep: ${movement.reason}. Miktar: ${formatStockQty(movement.qty, movement.unit)}. Stok: ${formatStockQty(previousQty, movement.unit)} -> ${formatStockQty(nextQty, movement.unit)}.${movement.invoiceNo ? ` Fatura: ${movement.invoiceNo}.` : ''}${movement.supplierName ? ` Tedarikçi: ${movement.supplierName}.` : ''}${movement.description ? ` Açıklama: ${movement.description}.` : ''}${movement.expiryWarnings?.length ? ` SKT uyarısı: ${movement.expiryWarnings.join(' | ')}.` : ''}`
   })
+
+  if(shouldUpdateCost && validPurchasePrice !== undefined){
+    addActionLog({
+      operationType: 'Yeni alış fiyatı girildi',
+      user,
+      description: `${movement.stockItemName} için yeni birim alış fiyatı girildi: ${formatStockMoney(validPurchasePrice, movement.currency)}. Hareket: ${movement.id}.`
+    })
+
+    addActionLog({
+      operationType: 'Maliyet güncellendi',
+      user,
+      description: `${movement.stockItemName} maliyeti güncellendi. Son alış: ${formatStockMoney(validPurchasePrice, movement.currency)}. Stok değeri: ${formatStockMoney(previousStockValue, movement.currency)} -> ${formatStockMoney(nextStockValue, movement.currency)}.`
+    })
+  }
+
+  if(averageCostChanged){
+    addActionLog({
+      operationType: 'Ortalama maliyet değişti',
+      user,
+      description: `${movement.stockItemName} ortalama maliyeti ${formatStockMoney(previousAverageCost, movement.currency)} -> ${formatStockMoney(nextAverageCost, movement.currency)} olarak değişti.`
+    })
+  }
 
   createdExpiryLots.forEach(item => {
     recordStockExpiryEvent({
@@ -2243,8 +2330,8 @@ export const createStockWasteRecord = ({
 
   const now = new Date().toISOString()
   const recordId = createStorageId('stock_waste')
-  const estimatedUnitCost = stockItem.lastPurchasePrice
-  const estimatedTotalCost = estimatedUnitCost !== undefined ? roundStockQty(estimatedUnitCost * normalizedQty) : undefined
+  const estimatedUnitCost = getStockConsumptionUnitCost(stockItem)
+  const estimatedTotalCost = roundCost(estimatedUnitCost * normalizedQty)
   const normalizedReasonNote = reasonNote?.trim() || ''
   const normalizedResponsibleName = responsibleFullName?.trim() || ''
   const movementDescription = [

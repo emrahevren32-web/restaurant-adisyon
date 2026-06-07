@@ -1,6 +1,7 @@
 import { StockCategory, StockItem, User } from '../../types'
 
 export type ReportFiltersValue = {
+  search: string
   startDate: string
   endDate: string
   categoryId: string
@@ -17,6 +18,7 @@ type Props = {
 }
 
 export const defaultReportFilters: ReportFiltersValue = {
+  search: '',
   startDate: '',
   endDate: '',
   categoryId: 'all',
@@ -34,12 +36,21 @@ export default function ReportFilters({ filters, categories, stockItems, users, 
       <div className="section-header compact">
         <div>
           <h3>Ortak Filtreler</h3>
-          <p className="muted">Filtreler bu fazda arayüz altyapısı olarak hazırlanmıştır.</p>
+          <p className="muted">Filtreler seçili raporun verilerine uygulanır.</p>
         </div>
         <button className="btn" type="button" onClick={() => onChange(defaultReportFilters)}>Temizle</button>
       </div>
 
       <div className="report-filter-grid">
+        <div className="form-field">
+          <label>Arama</label>
+          <input
+            type="search"
+            placeholder="Ürün adı, kategori veya kod"
+            value={filters.search}
+            onChange={event => updateFilter('search', event.target.value)}
+          />
+        </div>
         <div className="form-field">
           <label>Başlangıç tarihi</label>
           <input type="date" value={filters.startDate} onChange={event => updateFilter('startDate', event.target.value)} />

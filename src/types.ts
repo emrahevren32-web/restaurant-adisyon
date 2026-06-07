@@ -41,7 +41,11 @@ export type StockItem = {
   active: boolean
   createdAt: string
   updatedAt?: string
+  unitPurchasePrice?: number
+  currency?: string
   lastPurchasePrice?: number
+  averageCost?: number
+  lastCostUpdatedAt?: string
   lastSupplierName?: string
 }
 
@@ -69,6 +73,13 @@ export type StockMovement = {
   previousQty: number
   nextQty: number
   purchasePrice?: number
+  currency?: string
+  unitCost?: number
+  totalCost?: number
+  previousAverageCost?: number
+  nextAverageCost?: number
+  previousStockValue?: number
+  nextStockValue?: number
   supplierName?: string
   invoiceNo?: string
   expiryDate?: string
@@ -623,6 +634,9 @@ export type ActionLogType =
   | 'Stok çıkışı yapıldı'
   | 'Stok sayım düzeltmesi yapıldı'
   | 'Stok ters hareketi oluşturuldu'
+  | 'Maliyet güncellendi'
+  | 'Ortalama maliyet değişti'
+  | 'Yeni alış fiyatı girildi'
   | 'Kritik stok uyarısı oluştu'
   | 'Kritik stoktan çıkıldı'
   | 'SKT lotu oluşturuldu'

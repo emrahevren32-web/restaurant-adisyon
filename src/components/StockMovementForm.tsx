@@ -1,5 +1,6 @@
 import React from 'react'
 import { StockItem, StockMovementReason, StockMovementSource, StockMovementType } from '../types'
+import { formatStockMoney, getStockAverageCost, getStockCurrency, getStockLastPurchasePrice } from '../stockCost'
 
 export type StockMovementFormValues = {
   stockItemId: string
@@ -23,6 +24,12 @@ type Props = {
 const movementTypes: StockMovementType[] = ['Giriş', 'Çıkış', 'Sayım Düzeltme']
 const movementSources: StockMovementSource[] = ['Manuel', 'Reçete', 'Adisyon', 'Sayım', 'İade']
 const movementReasons: StockMovementReason[] = ['Satın Alma', 'İade', 'Fire', 'Kullanım', 'Sayım Fazlası', 'Sayım Eksiği', 'Diğer']
+
+const isEntryMovementType = (value: string) => value.includes('Giri')
+const isCountMovementType = (value: string) => value.includes('Say')
+const findReason = (pattern: string, fallback: StockMovementReason) => {
+  return movementReasons.find(reason => reason.includes(pattern)) || fallback
+}
 
 const toDateTimeLocalValue = (date = new Date()) => {
   const offsetMs = date.getTimezoneOffset() * 60000
@@ -60,37 +67,40 @@ export default function StockMovementForm({ stockItems, onSave }: Props){
   }, [stockItemId, stockItems])
 
   React.useEffect(() => {
-    if(type === 'Giriş'){
-      setReason(source === 'İade' ? 'İade' : 'Satın Alma')
+    if(isEntryMovementType(type)){
+      setReason(source.includes('ade') ? findReason('ade', 'İade') : findReason('Sat', 'Satın Alma'))
       return
     }
 
-    if(type === 'Çıkış'){
-      setReason('Kullanım')
+    if(!isCountMovementType(type)){
+      setReason(findReason('Kullan', 'Kullanım'))
       return
     }
 
     setSource('Sayım')
-    setReason('Sayım Fazlası')
+    setReason(findReason('Fazla', 'Sayım Fazlası'))
   }, [source, type])
 
   const selectedItem = stockItems.find(item => item.id === stockItemId)
-  const qtyLabel = type === 'Sayım Düzeltme' ? 'Sayım sonucu miktar' : 'Miktar'
-  const showExpiryDateField = Boolean(selectedItem?.tracksExpiry && (type === 'Giriş' || type === 'Sayım Düzeltme'))
+  const isCountMovement = isCountMovementType(type)
+  const isEntryMovement = isEntryMovementType(type)
+  const qtyLabel = isCountMovement ? 'Sayım sonucu miktar' : 'Miktar'
+  const showExpiryDateField = Boolean(selectedItem?.tracksExpiry && (isEntryMovement || isCountMovement))
+  const showPurchasePriceField = isEntryMovement || isCountMovement
 
   const submit = (event: React.FormEvent) => {
     event.preventDefault()
 
     const parsedQty = Number(qty)
-    const parsedPurchasePrice = purchasePrice === '' ? undefined : Number(purchasePrice)
+    const parsedPurchasePrice = showPurchasePriceField && purchasePrice !== '' ? Number(purchasePrice) : undefined
 
     if(!stockItemId){
       setError('Stok kartı seçimi zorunludur.')
       return
     }
 
-    if(!Number.isFinite(parsedQty) || parsedQty < 0 || (type !== 'Sayım Düzeltme' && parsedQty <= 0)){
-      setError(type === 'Sayım Düzeltme' ? 'Sayım sonucu 0 veya daha büyük olmalıdır.' : 'Miktar 0’dan büyük olmalıdır.')
+    if(!Number.isFinite(parsedQty) || parsedQty < 0 || (!isCountMovement && parsedQty <= 0)){
+      setError(isCountMovement ? 'Sayım sonucu 0 veya daha büyük olmalıdır.' : 'Miktar 0’dan büyük olmalıdır.')
       return
     }
 
@@ -180,6 +190,7 @@ export default function StockMovementForm({ stockItems, onSave }: Props){
           <span>Mevcut stok</span>
           <strong>{selectedItem.currentQty.toLocaleString('tr-TR', { maximumFractionDigits: 3 })} {selectedItem.unit}</strong>
           {selectedItem.tracksExpiry && <em>SKT takibi aktif</em>}
+          <em>Ort. maliyet {formatStockMoney(getStockAverageCost(selectedItem), getStockCurrency(selectedItem))} · Son alış {formatStockMoney(getStockLastPurchasePrice(selectedItem), getStockCurrency(selectedItem))}</em>
         </div>
       )}
 
@@ -195,10 +206,18 @@ export default function StockMovementForm({ stockItems, onSave }: Props){
           <label>Hareket tarihi</label>
           <input type="datetime-local" value={movementDate} onChange={event => setMovementDate(event.target.value)} />
         </div>
-        <div className="form-field">
-          <label>Alış fiyatı</label>
-          <input type="number" min="0" step="0.01" value={purchasePrice} onChange={event => setPurchasePrice(event.target.value)} placeholder="Opsiyonel" />
-        </div>
+        {showPurchasePriceField ? (
+          <div className="form-field">
+            <label>Birim alış fiyatı</label>
+            <input type="number" min="0" step="0.01" value={purchasePrice} onChange={event => setPurchasePrice(event.target.value)} placeholder="Opsiyonel" />
+          </div>
+        ) : (
+          <div className="stock-current-hint">
+            <span>Hareket maliyeti</span>
+            <strong>{selectedItem ? formatStockMoney(getStockAverageCost(selectedItem), getStockCurrency(selectedItem)) : '-'}</strong>
+            <em>Çıkışlarda ortalama maliyet snapshot olarak kaydedilir</em>
+          </div>
+        )}
       </div>
 
       <div className="form-row stock-movement-type-row">

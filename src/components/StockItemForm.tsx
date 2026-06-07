@@ -6,6 +6,8 @@ export type StockItemFormValues = {
   categoryId: string
   unit: StockUnit
   minQty: number
+  unitPurchasePrice?: number
+  currency: string
   tracksExpiry: boolean
   expiryWarningDays: number
   sku: string
@@ -22,12 +24,19 @@ type Props = {
 }
 
 const unitOptions: StockUnit[] = ['adet', 'kg', 'gr', 'lt', 'ml', 'paket', 'koli']
+const currencyOptions = [
+  { value: 'TRY', label: 'TL' },
+  { value: 'USD', label: 'USD' },
+  { value: 'EUR', label: 'EUR' }
+]
 
 export default function StockItemForm({ categories, item, onSave, onCancel }: Props){
   const [name, setName] = React.useState('')
   const [categoryId, setCategoryId] = React.useState(categories[0]?.id || '')
   const [unit, setUnit] = React.useState<StockUnit>('adet')
   const [minQty, setMinQty] = React.useState('0')
+  const [unitPurchasePrice, setUnitPurchasePrice] = React.useState('')
+  const [currency, setCurrency] = React.useState('TRY')
   const [tracksExpiry, setTracksExpiry] = React.useState(false)
   const [expiryWarningDays, setExpiryWarningDays] = React.useState('7')
   const [sku, setSku] = React.useState('')
@@ -41,6 +50,8 @@ export default function StockItemForm({ categories, item, onSave, onCancel }: Pr
     setCategoryId(item?.categoryId || categories[0]?.id || '')
     setUnit(item?.unit || 'adet')
     setMinQty(String(item?.minQty ?? 0))
+    setUnitPurchasePrice(item?.unitPurchasePrice !== undefined ? String(item.unitPurchasePrice) : '')
+    setCurrency(item?.currency || 'TRY')
     setTracksExpiry(item?.tracksExpiry ?? false)
     setExpiryWarningDays(String(item?.expiryWarningDays ?? 7))
     setSku(item?.sku || '')
@@ -54,6 +65,7 @@ export default function StockItemForm({ categories, item, onSave, onCancel }: Pr
     event.preventDefault()
 
     const parsedMinQty = Number(minQty)
+    const parsedUnitPurchasePrice = unitPurchasePrice === '' ? undefined : Number(unitPurchasePrice)
     const parsedExpiryWarningDays = Number(expiryWarningDays)
 
     if(!name.trim()){
@@ -71,6 +83,11 @@ export default function StockItemForm({ categories, item, onSave, onCancel }: Pr
       return
     }
 
+    if(parsedUnitPurchasePrice !== undefined && (!Number.isFinite(parsedUnitPurchasePrice) || parsedUnitPurchasePrice < 0)){
+      setError('Birim alış fiyatı 0 veya daha büyük olmalıdır.')
+      return
+    }
+
     if(!Number.isFinite(parsedExpiryWarningDays) || parsedExpiryWarningDays < 0){
       setError('SKT uyarı günü 0 veya daha büyük olmalıdır.')
       return
@@ -81,6 +98,8 @@ export default function StockItemForm({ categories, item, onSave, onCancel }: Pr
       categoryId,
       unit,
       minQty: parsedMinQty,
+      unitPurchasePrice: parsedUnitPurchasePrice,
+      currency,
       tracksExpiry,
       expiryWarningDays: Math.floor(parsedExpiryWarningDays),
       sku: sku.trim(),
@@ -94,6 +113,8 @@ export default function StockItemForm({ categories, item, onSave, onCancel }: Pr
       setCategoryId(categories[0]?.id || '')
       setUnit('adet')
       setMinQty('0')
+      setUnitPurchasePrice('')
+      setCurrency('TRY')
       setTracksExpiry(false)
       setExpiryWarningDays('7')
       setSku('')
@@ -136,6 +157,19 @@ export default function StockItemForm({ categories, item, onSave, onCancel }: Pr
       <div className="form-field">
         <label>Kritik seviye</label>
         <input type="number" min="0" step="0.001" value={minQty} onChange={event => setMinQty(event.target.value)} />
+      </div>
+
+      <div className="form-row">
+        <div className="form-field">
+          <label>Birim alış fiyatı</label>
+          <input type="number" min="0" step="0.01" value={unitPurchasePrice} onChange={event => setUnitPurchasePrice(event.target.value)} placeholder="Opsiyonel" />
+        </div>
+        <div className="form-field">
+          <label>Para birimi</label>
+          <select value={currency} onChange={event => setCurrency(event.target.value)}>
+            {currencyOptions.map(option => <option key={option.value} value={option.value}>{option.label}</option>)}
+          </select>
+        </div>
       </div>
 
       <div className="form-row">

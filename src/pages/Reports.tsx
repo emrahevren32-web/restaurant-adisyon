@@ -3,7 +3,13 @@ import ReportFilters, { defaultReportFilters, ReportFiltersValue } from '../comp
 import ReportKpis, { ReportKpi } from '../components/reports/ReportKpis'
 import ReportPlaceholder from '../components/reports/ReportPlaceholder'
 import ReportTabs, { ReportTabId } from '../components/reports/ReportTabs'
-import { loadStockCategories, loadStockItems, loadUsers } from '../storage'
+import StockStatusReport, {
+  exportStockStatusReportCsv,
+  StockStatusSortDirection,
+  StockStatusSortKey,
+  useStockStatusReport
+} from '../components/reports/StockStatusReport'
+import { loadStockCategories, loadStockExpiryLots, loadStockItems, loadStockMovements, loadUsers } from '../storage'
 
 const placeholderKpis: ReportKpi[] = [
   { label: 'Toplam Stok Değeri', value: '-', detail: 'Faz 12.8.x hesaplaması' },
@@ -17,9 +23,34 @@ const placeholderKpis: ReportKpi[] = [
 export default function Reports(){
   const [activeTab, setActiveTab] = React.useState<ReportTabId>('stock-status')
   const [filters, setFilters] = React.useState<ReportFiltersValue>(defaultReportFilters)
+  const [stockStatusSortKey, setStockStatusSortKey] = React.useState<StockStatusSortKey>('name')
+  const [stockStatusSortDirection, setStockStatusSortDirection] = React.useState<StockStatusSortDirection>('asc')
   const [categories] = React.useState(() => loadStockCategories())
   const [stockItems] = React.useState(() => loadStockItems())
+  const [stockMovements] = React.useState(() => loadStockMovements())
+  const [stockExpiryLots] = React.useState(() => loadStockExpiryLots())
   const [users] = React.useState(() => loadUsers())
+  const stockStatusReport = useStockStatusReport({
+    stockItems,
+    categories,
+    movements: stockMovements,
+    expiryLots: stockExpiryLots,
+    filters,
+    sortKey: stockStatusSortKey,
+    sortDirection: stockStatusSortDirection
+  })
+  const activeKpis = activeTab === 'stock-status' ? stockStatusReport.kpis : placeholderKpis
+
+  const exportCsv = () => {
+    if(activeTab !== 'stock-status') return
+
+    exportStockStatusReportCsv({
+      report: stockStatusReport,
+      filters,
+      categories,
+      stockItems
+    })
+  }
 
   return (
     <div className="reports-page">
@@ -29,12 +60,12 @@ export default function Reports(){
           <p className="muted">Stok, SKT, lot, reçete ve fire verileri için merkezi rapor altyapısı.</p>
         </div>
         <div className="report-export-actions">
-          <button className="btn" type="button" disabled>CSV Dışa Aktar</button>
+          <button className="btn" type="button" onClick={exportCsv} disabled={activeTab !== 'stock-status'}>CSV Dışa Aktar</button>
           <button className="btn" type="button" disabled>PDF Dışa Aktar</button>
         </div>
       </div>
 
-      <ReportKpis items={placeholderKpis} />
+      <ReportKpis items={activeKpis} />
 
       <section className="card report-center-card">
         <div className="section-header compact">
@@ -55,7 +86,17 @@ export default function Reports(){
         onChange={setFilters}
       />
 
-      <ReportPlaceholder activeTab={activeTab} />
+      {activeTab === 'stock-status' ? (
+        <StockStatusReport
+          report={stockStatusReport}
+          sortKey={stockStatusSortKey}
+          sortDirection={stockStatusSortDirection}
+          onSortKeyChange={setStockStatusSortKey}
+          onSortDirectionChange={setStockStatusSortDirection}
+        />
+      ) : (
+        <ReportPlaceholder activeTab={activeTab} />
+      )}
     </div>
   )
 }
