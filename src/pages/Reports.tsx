@@ -33,6 +33,12 @@ import RecipeConsumptionReport, {
   RecipeConsumptionSortKey,
   useRecipeConsumptionReport
 } from '../components/reports/RecipeConsumptionReport'
+import SalesRevenueReport, {
+  exportSalesRevenueReportCsv,
+  SalesRevenueSortDirection,
+  SalesRevenueSortKey,
+  useSalesRevenueReport
+} from '../components/reports/SalesRevenueReport'
 import StockMovementsReport, {
   exportStockMovementsReportCsv,
   StockMovementsSortDirection,
@@ -51,7 +57,7 @@ import WasteCostReport, {
   WasteCostSortDirection,
   WasteCostSortKey
 } from '../components/reports/WasteCostReport'
-import { loadCategories, loadClosed, loadCriticalStockEvents, loadProducts, loadRecipes, loadStockCategories, loadStockDeductionBatches, loadStockExpiryLots, loadStockItems, loadStockMovements, loadStockWasteRecords, loadUsers } from '../storage'
+import { loadCategories, loadClosed, loadCriticalStockEvents, loadProducts, loadRecipes, loadStockCategories, loadStockDeductionBatches, loadStockExpiryLots, loadStockItems, loadStockMovements, loadStockWasteRecords, loadTables, loadUsers } from '../storage'
 
 const placeholderKpis: ReportKpi[] = [
   { label: 'Toplam Stok Değeri', value: '-', detail: 'Faz 12.8.x hesaplaması' },
@@ -71,6 +77,7 @@ const isRealReport = (activeTab: ReportTabId) => {
     || activeTab === 'waste-cost'
     || activeTab === 'recipe-consumption'
     || activeTab === 'product-profitability'
+    || activeTab === 'sales-revenue'
 }
 
 export default function Reports(){
@@ -92,10 +99,13 @@ export default function Reports(){
   const [recipeConsumptionSortDirection, setRecipeConsumptionSortDirection] = React.useState<RecipeConsumptionSortDirection>('desc')
   const [productProfitabilitySortKey, setProductProfitabilitySortKey] = React.useState<ProductProfitabilitySortKey>('grossProfit')
   const [productProfitabilitySortDirection, setProductProfitabilitySortDirection] = React.useState<ProductProfitabilitySortDirection>('desc')
+  const [salesRevenueSortKey, setSalesRevenueSortKey] = React.useState<SalesRevenueSortKey>('netTotal')
+  const [salesRevenueSortDirection, setSalesRevenueSortDirection] = React.useState<SalesRevenueSortDirection>('desc')
   const [productCategories] = React.useState(() => loadCategories())
   const [products] = React.useState(() => loadProducts())
   const [closedBills] = React.useState(() => loadClosed())
   const [recipes] = React.useState(() => loadRecipes())
+  const [tables] = React.useState(() => loadTables())
   const [categories] = React.useState(() => loadStockCategories())
   const [stockItems] = React.useState(() => loadStockItems())
   const [stockMovements] = React.useState(() => loadStockMovements())
@@ -104,6 +114,15 @@ export default function Reports(){
   const [stockDeductionBatches] = React.useState(() => loadStockDeductionBatches())
   const [criticalStockEvents] = React.useState(() => loadCriticalStockEvents())
   const [users] = React.useState(() => loadUsers())
+  const reportTables = React.useMemo(() => {
+    const tableMap = new Map(tables.map(table => [table.id, { id: table.id, name: table.name }]))
+    closedBills.forEach(bill => {
+      if(!tableMap.has(bill.tableId)){
+        tableMap.set(bill.tableId, { id: bill.tableId, name: bill.tableName || bill.tableId })
+      }
+    })
+    return [...tableMap.values()].sort((first, second) => first.name.localeCompare(second.name, 'tr-TR'))
+  }, [tables, closedBills])
   const stockStatusReport = useStockStatusReport({
     stockItems,
     categories,
@@ -173,6 +192,14 @@ export default function Reports(){
     sortKey: productProfitabilitySortKey,
     sortDirection: productProfitabilitySortDirection
   })
+  const salesRevenueReport = useSalesRevenueReport({
+    closedBills,
+    products,
+    users,
+    filters,
+    sortKey: salesRevenueSortKey,
+    sortDirection: salesRevenueSortDirection
+  })
   const activeKpis = activeTab === 'stock-status'
     ? stockStatusReport.kpis
     : activeTab === 'stock-movements'
@@ -189,7 +216,9 @@ export default function Reports(){
                 ? recipeConsumptionReport.kpis
                 : activeTab === 'product-profitability'
                   ? productProfitabilityReport.kpis
-                  : placeholderKpis
+                  : activeTab === 'sales-revenue'
+                    ? salesRevenueReport.kpis
+                    : placeholderKpis
 
   const exportCsv = () => {
     if(activeTab === 'stock-status'){
@@ -285,11 +314,24 @@ export default function Reports(){
         sortKey: productProfitabilitySortKey,
         sortDirection: productProfitabilitySortDirection
       })
+      return
+    }
+
+    if(activeTab === 'sales-revenue'){
+      exportSalesRevenueReportCsv({
+        report: salesRevenueReport,
+        filters,
+        users,
+        tables: reportTables,
+        sortKey: salesRevenueSortKey,
+        sortDirection: salesRevenueSortDirection
+      })
     }
   }
 
   const usesCompactReportFilters = activeTab === 'critical-stock' || activeTab === 'expiry-near' || activeTab === 'expiry-expired'
   const usesProductFilters = activeTab === 'product-profitability'
+  const usesSalesRevenueFilters = activeTab === 'sales-revenue'
   const reportFilterCategories = usesProductFilters ? productCategories : categories
   const reportFilterItems = usesProductFilters ? products : stockItems
 
@@ -314,7 +356,7 @@ export default function Reports(){
             <h3>Rapor Türleri</h3>
             <p className="muted">Ana raporları seçin; filtreler ve dışa aktarma seçili rapora göre güncellenir.</p>
           </div>
-          <span className="status-pill">8 aktif rapor</span>
+          <span className="status-pill">9 aktif rapor</span>
         </div>
         <ReportTabs activeTab={activeTab} onChange={setActiveTab} />
       </section>
@@ -324,6 +366,7 @@ export default function Reports(){
         categories={reportFilterCategories}
         stockItems={reportFilterItems}
         users={users}
+        tables={reportTables}
         onChange={setFilters}
         showMovementTypeFilter={activeTab === 'stock-movements'}
         showCriticalStatusFilter={activeTab === 'critical-stock'}
@@ -331,14 +374,19 @@ export default function Reports(){
         showExpiredStatusFilter={activeTab === 'expiry-expired'}
         showWasteReasonFilter={activeTab === 'waste-cost'}
         showDateFilters={!usesCompactReportFilters}
+        showCategoryFilter={!usesSalesRevenueFilters}
+        showStockItemFilter={!usesSalesRevenueFilters}
         showPersonnelFilter={!usesCompactReportFilters && activeTab !== 'recipe-consumption' && activeTab !== 'product-profitability'}
+        showTableFilter={usesSalesRevenueFilters}
         stockItemFilterLabel={activeTab === 'recipe-consumption' ? 'Hammadde' : 'Ürün'}
         stockItemAllLabel={activeTab === 'recipe-consumption' ? 'Tüm hammaddeler' : 'Tüm ürünler'}
         searchPlaceholderOverride={activeTab === 'recipe-consumption'
           ? 'Hammadde adı veya kategori'
           : activeTab === 'product-profitability'
             ? 'Ürün adı veya kategori'
-            : undefined}
+            : activeTab === 'sales-revenue'
+              ? 'Adisyon no, kullanıcı veya masa'
+              : undefined}
       />
 
       {activeTab === 'stock-status' ? (
@@ -404,6 +452,14 @@ export default function Reports(){
           sortDirection={productProfitabilitySortDirection}
           onSortKeyChange={setProductProfitabilitySortKey}
           onSortDirectionChange={setProductProfitabilitySortDirection}
+        />
+      ) : activeTab === 'sales-revenue' ? (
+        <SalesRevenueReport
+          report={salesRevenueReport}
+          sortKey={salesRevenueSortKey}
+          sortDirection={salesRevenueSortDirection}
+          onSortKeyChange={setSalesRevenueSortKey}
+          onSortDirectionChange={setSalesRevenueSortDirection}
         />
       ) : (
         <ReportPlaceholder activeTab={activeTab} />

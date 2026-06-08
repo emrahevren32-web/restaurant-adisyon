@@ -9,6 +9,7 @@ export type ReportTabId =
   | 'waste-cost'
   | 'recipe-consumption'
   | 'product-profitability'
+  | 'sales-revenue'
   | 'daily-summary'
 
 export type ReportTab = {
@@ -25,7 +26,8 @@ export const reportTabs: ReportTab[] = [
   { id: 'expiry-expired', label: 'SKT Geçmiş', description: 'Son kullanma tarihi geçmiş lotlar.' },
   { id: 'waste-cost', label: 'Fire ve Kayıp', description: 'Fire kaynaklı miktar ve maliyet kayıpları.' },
   { id: 'recipe-consumption', label: 'Reçete Tüketim', description: 'Satış kaynaklı hammadde tüketim maliyeti.' },
-  { id: 'product-profitability', label: 'Ürün Karlılık', description: 'Satış geliri, reçete maliyeti ve brüt kar.' }
+  { id: 'product-profitability', label: 'Ürün Karlılık', description: 'Satış geliri, reçete maliyeti ve brüt kar.' },
+  { id: 'sales-revenue', label: 'Satış ve Ciro', description: 'Adisyon, satış adedi ve ciro performansı.' }
 ]
 
 type Props = {

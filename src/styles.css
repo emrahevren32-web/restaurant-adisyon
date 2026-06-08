@@ -288,6 +288,10 @@ th { color:#4b5563; font-size:13px; font-weight:700 }
 .product-profitability-report-table td:nth-child(5), .product-profitability-report-table th:nth-child(5),
 .product-profitability-report-table td:nth-child(6), .product-profitability-report-table th:nth-child(6),
 .product-profitability-report-table td:nth-child(7), .product-profitability-report-table th:nth-child(7) { text-align:right }
+.sales-revenue-report-table td:nth-child(4), .sales-revenue-report-table th:nth-child(4),
+.sales-revenue-report-table td:nth-child(5), .sales-revenue-report-table th:nth-child(5),
+.sales-revenue-report-table td:nth-child(6), .sales-revenue-report-table th:nth-child(6),
+.sales-revenue-report-table td:nth-child(7), .sales-revenue-report-table th:nth-child(7) { text-align:right }
 .waste-reason-summary-section { display:flex; flex-direction:column; gap:12px; margin:16px 0 }
 .waste-reason-summary-grid { display:grid; grid-template-columns:repeat(6, minmax(0, 1fr)); gap:10px }
 .waste-reason-summary-tile { border:1px solid var(--line); border-radius:8px; padding:12px; background:#fff; min-width:0 }
@@ -298,6 +302,10 @@ th { color:#4b5563; font-size:13px; font-weight:700 }
 .report-panel-grid.three { grid-template-columns:repeat(3, minmax(0, 1fr)) }
 .report-panel { border:1px solid var(--line); border-radius:8px; padding:12px; background:#fff; min-width:0 }
 .report-panel h4 { margin:0 0 10px; font-size:15px }
+.sales-period-summary-grid { margin:4px 0 16px }
+.sales-period-values { display:flex; justify-content:space-between; gap:10px; align-items:center; border-top:1px solid #eef2f7; padding-top:8px; margin-top:8px }
+.sales-period-values span { color:var(--muted); font-size:12px; font-weight:800 }
+.sales-period-values strong { font-size:17px }
 .report-layout { display:grid; grid-template-columns:minmax(0, .8fr) minmax(0, 1.2fr); gap:16px; align-items:start }
 .report-highlight-grid { display:grid; grid-template-columns:repeat(2, minmax(0, 1fr)); gap:10px; margin-bottom:12px }
 .report-highlight { border:1px solid var(--line); border-radius:8px; padding:12px; background:#f9fafb }

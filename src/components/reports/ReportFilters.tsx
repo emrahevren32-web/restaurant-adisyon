@@ -13,6 +13,7 @@ export type ReportFiltersValue = {
   categoryId: string
   stockItemId: string
   personnelId: string
+  tableId: string
   movementType: ReportMovementTypeFilter
   criticalStatus: ReportCriticalStatusFilter
   expiryStatus: ReportExpiryStatusFilter
@@ -25,6 +26,7 @@ type Props = {
   categories: { id: string; name: string }[]
   stockItems: { id: string; name: string }[]
   users: User[]
+  tables?: { id: string; name: string }[]
   onChange: (filters: ReportFiltersValue) => void
   showMovementTypeFilter?: boolean
   showCriticalStatusFilter?: boolean
@@ -32,7 +34,10 @@ type Props = {
   showExpiredStatusFilter?: boolean
   showWasteReasonFilter?: boolean
   showDateFilters?: boolean
+  showCategoryFilter?: boolean
+  showStockItemFilter?: boolean
   showPersonnelFilter?: boolean
+  showTableFilter?: boolean
   stockItemFilterLabel?: string
   stockItemAllLabel?: string
   searchPlaceholderOverride?: string
@@ -45,6 +50,7 @@ export const defaultReportFilters: ReportFiltersValue = {
   categoryId: 'all',
   stockItemId: 'all',
   personnelId: 'all',
+  tableId: 'all',
   movementType: 'all',
   criticalStatus: 'all',
   expiryStatus: 'all',
@@ -97,6 +103,7 @@ export default function ReportFilters({
   categories,
   stockItems,
   users,
+  tables = [],
   onChange,
   showMovementTypeFilter = false,
   showCriticalStatusFilter = false,
@@ -104,7 +111,10 @@ export default function ReportFilters({
   showExpiredStatusFilter = false,
   showWasteReasonFilter = false,
   showDateFilters = true,
+  showCategoryFilter = true,
+  showStockItemFilter = true,
   showPersonnelFilter = true,
+  showTableFilter = false,
   stockItemFilterLabel = 'Ürün',
   stockItemAllLabel = 'Tüm ürünler',
   searchPlaceholderOverride
@@ -119,7 +129,8 @@ export default function ReportFilters({
     showCriticalStatusFilter ? 'with-critical-status' : '',
     showExpiryStatusFilter ? 'with-expiry-status' : '',
     showExpiredStatusFilter ? 'with-expired-status' : '',
-    showWasteReasonFilter ? 'with-waste-reason' : ''
+    showWasteReasonFilter ? 'with-waste-reason' : '',
+    showTableFilter ? 'with-table-filter' : ''
   ].filter(Boolean).join(' ')
 
   const searchPlaceholder = searchPlaceholderOverride || (showMovementTypeFilter
@@ -166,26 +177,39 @@ export default function ReportFilters({
             </div>
           </>
         )}
-        <div className="form-field">
-          <label>Kategori</label>
-          <select value={filters.categoryId} onChange={event => updateFilter('categoryId', event.target.value)}>
-            <option value="all">Tüm kategoriler</option>
-            {categories.map(category => <option key={category.id} value={category.id}>{category.name}</option>)}
-          </select>
-        </div>
-        <div className="form-field">
-          <label>{stockItemFilterLabel}</label>
-          <select value={filters.stockItemId} onChange={event => updateFilter('stockItemId', event.target.value)}>
-            <option value="all">{stockItemAllLabel}</option>
-            {stockItems.map(item => <option key={item.id} value={item.id}>{item.name}</option>)}
-          </select>
-        </div>
+        {showCategoryFilter && (
+          <div className="form-field">
+            <label>Kategori</label>
+            <select value={filters.categoryId} onChange={event => updateFilter('categoryId', event.target.value)}>
+              <option value="all">Tüm kategoriler</option>
+              {categories.map(category => <option key={category.id} value={category.id}>{category.name}</option>)}
+            </select>
+          </div>
+        )}
+        {showStockItemFilter && (
+          <div className="form-field">
+            <label>{stockItemFilterLabel}</label>
+            <select value={filters.stockItemId} onChange={event => updateFilter('stockItemId', event.target.value)}>
+              <option value="all">{stockItemAllLabel}</option>
+              {stockItems.map(item => <option key={item.id} value={item.id}>{item.name}</option>)}
+            </select>
+          </div>
+        )}
         {showPersonnelFilter && (
           <div className="form-field">
             <label>Personel</label>
             <select value={filters.personnelId} onChange={event => updateFilter('personnelId', event.target.value)}>
               <option value="all">Tüm personel</option>
               {users.map(user => <option key={user.id} value={user.id}>{user.fullName || user.username}</option>)}
+            </select>
+          </div>
+        )}
+        {showTableFilter && (
+          <div className="form-field">
+            <label>Masa</label>
+            <select value={filters.tableId} onChange={event => updateFilter('tableId', event.target.value)}>
+              <option value="all">Tüm masalar</option>
+              {tables.map(table => <option key={table.id} value={table.id}>{table.name}</option>)}
             </select>
           </div>
         )}
