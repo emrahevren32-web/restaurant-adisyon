@@ -14,6 +14,7 @@ const reportDescriptions: Record<ReportTabId, string> = {
   'waste-report': 'Fire kayıtları neden, personel, ürün ve lot kırılımlarıyla burada listelenecek.',
   'waste-cost': 'Fire maliyeti ve maliyet kırılımları burada listelenecek.',
   'recipe-consumption': 'Reçete bazlı hammadde tüketimi ve otomatik stok düşümü detayları burada listelenecek.',
+  'product-profitability': 'Ürün satış geliri, reçete maliyeti ve brüt kar kırılımı burada listelenecek.',
   'daily-summary': 'Günlük stok giriş, çıkış, fire ve sayım özeti burada listelenecek.'
 }
 

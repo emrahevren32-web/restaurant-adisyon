@@ -1,4 +1,4 @@
-import { StockCategory, StockItem, User } from '../../types'
+import { User } from '../../types'
 
 export type ReportMovementTypeFilter = 'all' | 'entry' | 'exit' | 'waste' | 'count' | 'reverse'
 export type ReportCriticalStatusFilter = 'all' | 'critical' | 'very-critical' | 'out'
@@ -22,8 +22,8 @@ export type ReportFiltersValue = {
 
 type Props = {
   filters: ReportFiltersValue
-  categories: StockCategory[]
-  stockItems: StockItem[]
+  categories: { id: string; name: string }[]
+  stockItems: { id: string; name: string }[]
   users: User[]
   onChange: (filters: ReportFiltersValue) => void
   showMovementTypeFilter?: boolean

@@ -94,8 +94,8 @@ export default function DailySummary({ currentUser }: Props){
     <div className="summary-page">
       <div className="page-title">
         <div>
-          <h2>Günlük Satışlar</h2>
-          <p className="muted">{today} tarihli kapanan hesaplar ve ödeme dağılımı.</p>
+          <h2>Dashboard</h2>
+          <p className="muted">{today} tarihli satış, stok, SKT ve fire özetleri.</p>
         </div>
       </div>
 

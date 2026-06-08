@@ -781,7 +781,7 @@ export default function TableManagement({ currentUser }: Props){
     <div className="tables-page">
       <div className="page-title">
         <div>
-          <h2>Masalar</h2>
+          <h2>Adisyon</h2>
           <p className="muted">Açık adisyonları takip edin, ürün ekleyin ve hesabı ödeme yöntemiyle kapatın.</p>
         </div>
       </div>

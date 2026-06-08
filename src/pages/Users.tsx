@@ -49,13 +49,19 @@ export default function Users({ currentUser }: Props){
   }
 
   return (
-    <div>
-      <h2>Kullanıcı Yönetimi</h2>
-      <div style={{display:'flex', gap:16}}>
-        <div style={{flex:1}}>
-          <div className="card">
-            <button className="btn" onClick={startAdd}>Yeni Kullanıcı Ekle</button>
-            <table style={{marginTop:8}}>
+    <div className="users-page">
+      <div className="page-title">
+        <div>
+          <h2>Kullanıcı Yönetimi</h2>
+          <p className="muted">Sistem kullanıcılarını, rollerini ve aktiflik durumlarını yönetin.</p>
+        </div>
+        <button className="btn primary" onClick={startAdd}>Yeni Kullanıcı Ekle</button>
+      </div>
+
+      <div className="users-layout">
+        <section className="card users-main">
+          <div className="table-wrap">
+            <table className="data-table">
               <thead><tr><th>Ad Soyad</th><th>Kullanıcı Adı</th><th>Rol</th><th>Aktif</th><th></th></tr></thead>
               <tbody>
                 {users.map(u=> (
@@ -64,7 +70,7 @@ export default function Users({ currentUser }: Props){
                     <td>{u.username}</td>
                     <td>{u.role}</td>
                     <td>{u.active ? 'Evet' : 'Hayır'}</td>
-                    <td>
+                    <td className="actions-cell">
                       <button className="btn" onClick={()=>setEditing(u)}>Düzenle</button>
                       <button className="btn" onClick={()=>toggleActive(u.id)}>{u.active ? 'Pasif Yap' : 'Aktif Yap'}</button>
                       <button className="btn" onClick={()=>remove(u.id)}>Sil</button>
@@ -74,15 +80,22 @@ export default function Users({ currentUser }: Props){
               </tbody>
             </table>
           </div>
-        </div>
-        <div style={{width:360}}>
-          {editing && (
-            <div className="card">
-              <h3>{users.find(x=>x.id===editing.id) ? 'Kullanıcı Düzenle' : 'Yeni Kullanıcı'}</h3>
+        </section>
+
+        <aside className="users-side">
+          {editing ? (
+            <section className="card">
+              <div className="section-header compact">
+                <h3>{users.find(x=>x.id===editing.id) ? 'Kullanıcı Düzenle' : 'Yeni Kullanıcı'}</h3>
+              </div>
               <UserForm user={editing} onCancel={()=>setEditing(null)} onSave={save} />
-            </div>
+            </section>
+          ) : (
+            <section className="card empty-state">
+              Kullanıcı eklemek veya düzenlemek için tablodan işlem seçin.
+            </section>
           )}
-        </div>
+        </aside>
       </div>
     </div>
   )
@@ -95,32 +108,30 @@ function UserForm({ user, onSave, onCancel }: { user: User, onSave: (u: User)=>v
   React.useEffect(()=> setU(user), [user])
 
   return (
-    <form onSubmit={(e)=>{e.preventDefault(); onSave(u)}}>
-      <div>
+    <form className="stacked-form" onSubmit={(e)=>{e.preventDefault(); onSave(u)}}>
+      <div className="form-field">
         <label>Ad Soyad</label>
-        <input value={u.fullName} onChange={e=>setU({...u, fullName: e.target.value})} style={{width:'100%'}} />
+        <input value={u.fullName} onChange={e=>setU({...u, fullName: e.target.value})} />
       </div>
-      <div>
+      <div className="form-field">
         <label>Kullanıcı Adı</label>
-        <input value={u.username} onChange={e=>setU({...u, username: e.target.value})} style={{width:'100%'}} />
+        <input value={u.username} onChange={e=>setU({...u, username: e.target.value})} />
       </div>
-      <div>
+      <div className="form-field">
         <label>Şifre</label>
-        <input value={u.password} onChange={e=>setU({...u, password: e.target.value})} style={{width:'100%'}} />
+        <input value={u.password} onChange={e=>setU({...u, password: e.target.value})} />
       </div>
-      <div>
+      <div className="form-field">
         <label>Rol</label>
         <select value={u.role} onChange={e=>setU({...u, role: e.target.value as Role})}>
           {roles.map(r=> <option key={r} value={r}>{r}</option>)}
         </select>
       </div>
-      <div>
-        <label>
-          <input type="checkbox" checked={u.active} onChange={e=>setU({...u, active: e.target.checked})} /> Aktif
-        </label>
-      </div>
-      <div style={{marginTop:8, display:'flex', gap:8}}>
-        <button className="btn" type="submit">Kaydet</button>
+      <label className="check-row form-check-field">
+        <input type="checkbox" checked={u.active} onChange={e=>setU({...u, active: e.target.checked})} /> Aktif
+      </label>
+      <div className="form-actions">
+        <button className="btn primary" type="submit">Kaydet</button>
         <button className="btn" type="button" onClick={onCancel}>İptal</button>
       </div>
     </form>
