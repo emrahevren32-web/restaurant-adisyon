@@ -258,6 +258,7 @@ th { color:#4b5563; font-size:13px; font-weight:700 }
 .report-filter-grid.with-expiry-status { grid-template-columns:minmax(220px, 1.25fr) repeat(3, minmax(0, 1fr)) }
 .report-filter-grid.with-expired-status { grid-template-columns:minmax(220px, 1.25fr) repeat(3, minmax(0, 1fr)) }
 .report-filter-grid.with-waste-reason { grid-template-columns:minmax(220px, 1.25fr) repeat(6, minmax(0, 1fr)) }
+.report-filter-grid.with-turnover-status { grid-template-columns:minmax(220px, 1.25fr) repeat(4, minmax(0, 1fr)) }
 .report-placeholder-table td:first-child, .report-placeholder-table th:first-child { min-width:180px }
 .report-table-toolbar { display:flex; justify-content:space-between; gap:12px; align-items:center; flex-wrap:wrap; margin-bottom:12px }
 .report-sort-controls { display:grid; grid-template-columns:210px 120px; gap:8px; min-width:min(100%, 340px) }
@@ -292,6 +293,10 @@ th { color:#4b5563; font-size:13px; font-weight:700 }
 .sales-revenue-report-table td:nth-child(5), .sales-revenue-report-table th:nth-child(5),
 .sales-revenue-report-table td:nth-child(6), .sales-revenue-report-table th:nth-child(6),
 .sales-revenue-report-table td:nth-child(7), .sales-revenue-report-table th:nth-child(7) { text-align:right }
+.stock-turnover-report-table td:nth-child(4), .stock-turnover-report-table th:nth-child(4),
+.stock-turnover-report-table td:nth-child(5), .stock-turnover-report-table th:nth-child(5),
+.stock-turnover-report-table td:nth-child(6), .stock-turnover-report-table th:nth-child(6),
+.stock-turnover-report-table td:nth-child(8), .stock-turnover-report-table th:nth-child(8) { text-align:right }
 .waste-reason-summary-section { display:flex; flex-direction:column; gap:12px; margin:16px 0 }
 .waste-reason-summary-grid { display:grid; grid-template-columns:repeat(6, minmax(0, 1fr)); gap:10px }
 .waste-reason-summary-tile { border:1px solid var(--line); border-radius:8px; padding:12px; background:#fff; min-width:0 }

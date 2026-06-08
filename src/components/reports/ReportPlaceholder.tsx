@@ -16,6 +16,7 @@ const reportDescriptions: Record<ReportTabId, string> = {
   'recipe-consumption': 'Reçete bazlı hammadde tüketimi ve otomatik stok düşümü detayları burada listelenecek.',
   'product-profitability': 'Ürün satış geliri, reçete maliyeti ve brüt kar kırılımı burada listelenecek.',
   'sales-revenue': 'Satış adedi, ciro ve adisyon kırılımları burada listelenecek.',
+  'stock-turnover': 'Stok devir hızı, tüketim maliyeti ve yavaş dönen ürün analizi burada listelenecek.',
   'daily-summary': 'Günlük stok giriş, çıkış, fire ve sayım özeti burada listelenecek.'
 }
 
