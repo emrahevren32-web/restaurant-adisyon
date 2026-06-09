@@ -20,6 +20,7 @@ const reportDescriptions: Record<ReportTabId, string> = {
   'top-selling-products': 'En çok satan ürünler, ciro ve satış payı kırılımı burada listelenecek.',
   'low-selling-products': 'Az satan, satılmayan ve riskli ürünler burada listelenecek.',
   'daily-summary': 'Günlük stok giriş, çıkış, fire ve sayım özeti burada listelenecek.'
+  , 'sales-trend': 'Satış trendleri ve zaman analizi burada listelenecek.'
 }
 
 export default function ReportPlaceholder({ activeTab }: Props){

@@ -306,6 +306,10 @@ th { color:#4b5563; font-size:13px; font-weight:700 }
 .sales-revenue-report-table td:nth-child(5), .sales-revenue-report-table th:nth-child(5),
 .sales-revenue-report-table td:nth-child(6), .sales-revenue-report-table th:nth-child(6),
 .sales-revenue-report-table td:nth-child(7), .sales-revenue-report-table th:nth-child(7) { text-align:right }
+.sales-trend-report-table td:nth-child(3), .sales-trend-report-table th:nth-child(3),
+.sales-trend-report-table td:nth-child(4), .sales-trend-report-table th:nth-child(4),
+.sales-trend-report-table td:nth-child(5), .sales-trend-report-table th:nth-child(5),
+.sales-trend-report-table td:nth-child(6), .sales-trend-report-table th:nth-child(6) { text-align:right }
 .stock-turnover-report-table td:nth-child(4), .stock-turnover-report-table th:nth-child(4),
 .stock-turnover-report-table td:nth-child(5), .stock-turnover-report-table th:nth-child(5),
 .stock-turnover-report-table td:nth-child(6), .stock-turnover-report-table th:nth-child(6),
@@ -321,6 +325,12 @@ th { color:#4b5563; font-size:13px; font-weight:700 }
 .report-panel { border:1px solid var(--line); border-radius:8px; padding:12px; background:#fff; min-width:0 }
 .report-panel h4 { margin:0 0 10px; font-size:15px }
 .sales-period-summary-grid, .top-selling-summary-grid, .low-selling-summary-grid { margin:4px 0 16px }
+.sales-trend-analysis-grid { margin:4px 0 16px; align-items:start }
+.mini-report-table { width:100%; border-collapse:collapse; font-size:12px }
+.mini-report-table th, .mini-report-table td { border-top:1px solid #eef2f7; padding:8px 0; text-align:left; vertical-align:top }
+.mini-report-table thead th { color:var(--muted); font-weight:800 }
+.mini-report-table th:nth-child(2), .mini-report-table td:nth-child(2),
+.mini-report-table th:nth-child(3), .mini-report-table td:nth-child(3) { text-align:right }
 .sales-period-values { display:flex; justify-content:space-between; gap:10px; align-items:center; border-top:1px solid #eef2f7; padding-top:8px; margin-top:8px }
 .sales-period-values span { color:var(--muted); font-size:12px; font-weight:800 }
 .sales-period-values strong { font-size:17px }

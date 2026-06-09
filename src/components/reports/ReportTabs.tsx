@@ -13,6 +13,7 @@ export type ReportTabId =
   | 'stock-turnover'
   | 'top-selling-products'
   | 'low-selling-products'
+  | 'sales-trend'
   | 'daily-summary'
 
 export type ReportTab = {
@@ -34,6 +35,7 @@ export const reportTabs: ReportTab[] = [
   { id: 'stock-turnover', label: 'Stok Devir Hızı', description: 'Hızlı ve yavaş dönen stokların tüketim analizi.' },
   { id: 'top-selling-products', label: 'En Çok Satan', description: 'Ürün satış adedi, ciro ve satış payı analizi.' },
   { id: 'low-selling-products', label: 'En Az Satan', description: 'Az satan, satılmayan ve riskli ürün analizi.' }
+  , { id: 'sales-trend', label: 'Satış Trendleri', description: 'Saat, gün ve dönem bazlı satış yoğunluğu.' }
 ]
 
 type Props = {
