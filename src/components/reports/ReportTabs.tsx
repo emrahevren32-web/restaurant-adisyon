@@ -11,6 +11,7 @@ export type ReportTabId =
   | 'product-profitability'
   | 'sales-revenue'
   | 'stock-turnover'
+  | 'top-selling-products'
   | 'daily-summary'
 
 export type ReportTab = {
@@ -29,7 +30,8 @@ export const reportTabs: ReportTab[] = [
   { id: 'recipe-consumption', label: 'Reçete Tüketim', description: 'Satış kaynaklı hammadde tüketim maliyeti.' },
   { id: 'product-profitability', label: 'Ürün Karlılık', description: 'Satış geliri, reçete maliyeti ve brüt kar.' },
   { id: 'sales-revenue', label: 'Satış ve Ciro', description: 'Adisyon, satış adedi ve ciro performansı.' },
-  { id: 'stock-turnover', label: 'Stok Devir Hızı', description: 'Hızlı ve yavaş dönen stokların tüketim analizi.' }
+  { id: 'stock-turnover', label: 'Stok Devir Hızı', description: 'Hızlı ve yavaş dönen stokların tüketim analizi.' },
+  { id: 'top-selling-products', label: 'En Çok Satan', description: 'Ürün satış adedi, ciro ve satış payı analizi.' }
 ]
 
 type Props = {

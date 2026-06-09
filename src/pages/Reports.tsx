@@ -57,6 +57,12 @@ import StockTurnoverReport, {
   StockTurnoverSortKey,
   useStockTurnoverReport
 } from '../components/reports/StockTurnoverReport'
+import TopSellingProductsReport, {
+  exportTopSellingProductsReportCsv,
+  TopSellingProductsSortDirection,
+  TopSellingProductsSortKey,
+  useTopSellingProductsReport
+} from '../components/reports/TopSellingProductsReport'
 import WasteCostReport, {
   exportWasteCostReportCsv,
   useWasteCostReport,
@@ -85,6 +91,7 @@ const isRealReport = (activeTab: ReportTabId) => {
     || activeTab === 'product-profitability'
     || activeTab === 'sales-revenue'
     || activeTab === 'stock-turnover'
+    || activeTab === 'top-selling-products'
 }
 
 export default function Reports(){
@@ -110,6 +117,8 @@ export default function Reports(){
   const [salesRevenueSortDirection, setSalesRevenueSortDirection] = React.useState<SalesRevenueSortDirection>('desc')
   const [stockTurnoverSortKey, setStockTurnoverSortKey] = React.useState<StockTurnoverSortKey>('turnoverRate')
   const [stockTurnoverSortDirection, setStockTurnoverSortDirection] = React.useState<StockTurnoverSortDirection>('asc')
+  const [topSellingProductsSortKey, setTopSellingProductsSortKey] = React.useState<TopSellingProductsSortKey>('salesQty')
+  const [topSellingProductsSortDirection, setTopSellingProductsSortDirection] = React.useState<TopSellingProductsSortDirection>('desc')
   const [productCategories] = React.useState(() => loadCategories())
   const [products] = React.useState(() => loadProducts())
   const [closedBills] = React.useState(() => loadClosed())
@@ -217,6 +226,16 @@ export default function Reports(){
     sortKey: stockTurnoverSortKey,
     sortDirection: stockTurnoverSortDirection
   })
+  const topSellingProductsReport = useTopSellingProductsReport({
+    closedBills,
+    products,
+    productCategories,
+    recipes,
+    stockItems,
+    filters,
+    sortKey: topSellingProductsSortKey,
+    sortDirection: topSellingProductsSortDirection
+  })
   const activeKpis = activeTab === 'stock-status'
     ? stockStatusReport.kpis
     : activeTab === 'stock-movements'
@@ -237,7 +256,9 @@ export default function Reports(){
                     ? salesRevenueReport.kpis
                     : activeTab === 'stock-turnover'
                       ? stockTurnoverReport.kpis
-                      : placeholderKpis
+                      : activeTab === 'top-selling-products'
+                        ? topSellingProductsReport.kpis
+                        : placeholderKpis
 
   const exportCsv = () => {
     if(activeTab === 'stock-status'){
@@ -357,11 +378,23 @@ export default function Reports(){
         sortKey: stockTurnoverSortKey,
         sortDirection: stockTurnoverSortDirection
       })
+      return
+    }
+
+    if(activeTab === 'top-selling-products'){
+      exportTopSellingProductsReportCsv({
+        report: topSellingProductsReport,
+        filters,
+        productCategories,
+        products,
+        sortKey: topSellingProductsSortKey,
+        sortDirection: topSellingProductsSortDirection
+      })
     }
   }
 
   const usesCompactReportFilters = activeTab === 'critical-stock' || activeTab === 'expiry-near' || activeTab === 'expiry-expired'
-  const usesProductFilters = activeTab === 'product-profitability'
+  const usesProductFilters = activeTab === 'product-profitability' || activeTab === 'top-selling-products'
   const usesSalesRevenueFilters = activeTab === 'sales-revenue'
   const usesStockTurnoverFilters = activeTab === 'stock-turnover'
   const reportFilterCategories = usesProductFilters ? productCategories : categories
@@ -388,7 +421,7 @@ export default function Reports(){
             <h3>Rapor Türleri</h3>
             <p className="muted">Ana raporları seçin; filtreler ve dışa aktarma seçili rapora göre güncellenir.</p>
           </div>
-          <span className="status-pill">10 aktif rapor</span>
+          <span className="status-pill">11 aktif rapor</span>
         </div>
         <ReportTabs activeTab={activeTab} onChange={setActiveTab} />
       </section>
@@ -409,7 +442,7 @@ export default function Reports(){
         showDateFilters={!usesCompactReportFilters}
         showCategoryFilter={!usesSalesRevenueFilters}
         showStockItemFilter={!usesSalesRevenueFilters}
-        showPersonnelFilter={!usesCompactReportFilters && activeTab !== 'recipe-consumption' && activeTab !== 'product-profitability' && !usesStockTurnoverFilters}
+        showPersonnelFilter={!usesCompactReportFilters && activeTab !== 'recipe-consumption' && !usesProductFilters && !usesStockTurnoverFilters}
         showTableFilter={usesSalesRevenueFilters}
         stockItemFilterLabel={activeTab === 'recipe-consumption' ? 'Hammadde' : 'Ürün'}
         stockItemAllLabel={activeTab === 'recipe-consumption' ? 'Tüm hammaddeler' : 'Tüm ürünler'}
@@ -421,7 +454,9 @@ export default function Reports(){
               ? 'Adisyon no, kullanıcı veya masa'
               : activeTab === 'stock-turnover'
                 ? 'Ürün adı veya kategori'
-              : undefined}
+                : activeTab === 'top-selling-products'
+                  ? 'Ürün adı veya kategori'
+                  : undefined}
       />
 
       {activeTab === 'stock-status' ? (
@@ -503,6 +538,14 @@ export default function Reports(){
           sortDirection={stockTurnoverSortDirection}
           onSortKeyChange={setStockTurnoverSortKey}
           onSortDirectionChange={setStockTurnoverSortDirection}
+        />
+      ) : activeTab === 'top-selling-products' ? (
+        <TopSellingProductsReport
+          report={topSellingProductsReport}
+          sortKey={topSellingProductsSortKey}
+          sortDirection={topSellingProductsSortDirection}
+          onSortKeyChange={setTopSellingProductsSortKey}
+          onSortDirectionChange={setTopSellingProductsSortDirection}
         />
       ) : (
         <ReportPlaceholder activeTab={activeTab} />
