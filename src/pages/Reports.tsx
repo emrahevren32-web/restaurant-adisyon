@@ -17,6 +17,9 @@ import ExpiredProductsReport, {
   exportExpiredProductsReportCsv,
   useExpiredProductsReport
 } from '../components/reports/ExpiredProductsReport'
+import ExecutiveDashboardReport, {
+  useExecutiveDashboardReport
+} from '../components/reports/ExecutiveDashboardReport'
 import ReportFilters, { defaultReportFilters, ReportFiltersValue } from '../components/reports/ReportFilters'
 import ReportKpis, { ReportKpi } from '../components/reports/ReportKpis'
 import ReportPlaceholder from '../components/reports/ReportPlaceholder'
@@ -93,7 +96,8 @@ const placeholderKpis: ReportKpi[] = [
 ]
 
 const isRealReport = (activeTab: ReportTabId) => {
-  return activeTab === 'stock-status'
+  return activeTab === 'executive-dashboard'
+    || activeTab === 'stock-status'
     || activeTab === 'stock-movements'
     || activeTab === 'critical-stock'
     || activeTab === 'expiry-near'
@@ -272,33 +276,126 @@ export default function Reports(){
     sortKey: lowSellingProductsSortKey,
     sortDirection: lowSellingProductsSortDirection
   })
-  const activeKpis = activeTab === 'stock-status'
-    ? stockStatusReport.kpis
-    : activeTab === 'stock-movements'
-      ? stockMovementsReport.kpis
-      : activeTab === 'critical-stock'
-        ? criticalStockReport.kpis
-        : activeTab === 'expiry-near'
-          ? expiringProductsReport.kpis
-          : activeTab === 'expiry-expired'
-            ? expiredProductsReport.kpis
-            : activeTab === 'waste-cost'
-              ? wasteCostReport.kpis
-              : activeTab === 'recipe-consumption'
-                ? recipeConsumptionReport.kpis
-                : activeTab === 'product-profitability'
-                  ? productProfitabilityReport.kpis
-                  : activeTab === 'sales-revenue'
-                    ? salesRevenueReport.kpis
-                    : activeTab === 'stock-turnover'
-                      ? stockTurnoverReport.kpis
-                      : activeTab === 'top-selling-products'
-                        ? topSellingProductsReport.kpis
-                        : activeTab === 'low-selling-products'
-                          ? lowSellingProductsReport.kpis
-                          : activeTab === 'sales-trend'
-                            ? salesTrendReport.kpis
-                            : placeholderKpis
+  const executiveSalesRevenueReport = useSalesRevenueReport({
+    closedBills,
+    products,
+    users,
+    filters: defaultReportFilters,
+    sortKey: 'netTotal',
+    sortDirection: 'desc'
+  })
+  const executiveProductProfitabilityReport = useProductProfitabilityReport({
+    closedBills,
+    products,
+    productCategories,
+    recipes,
+    stockItems,
+    filters: defaultReportFilters,
+    sortKey: 'grossProfit',
+    sortDirection: 'desc'
+  })
+  const executiveCriticalStockReport = useCriticalStockReport({
+    stockItems,
+    categories,
+    movements: stockMovements,
+    criticalEvents: criticalStockEvents,
+    filters: defaultReportFilters,
+    sortKey: 'shortage',
+    sortDirection: 'desc'
+  })
+  const executiveExpiringProductsReport = useExpiringProductsReport({
+    stockItems,
+    categories,
+    expiryLots: stockExpiryLots,
+    filters: defaultReportFilters,
+    sortKey: 'expiryDate',
+    sortDirection: 'asc'
+  })
+  const executiveExpiredProductsReport = useExpiredProductsReport({
+    stockItems,
+    categories,
+    expiryLots: stockExpiryLots,
+    filters: defaultReportFilters,
+    sortKey: 'expiryDate',
+    sortDirection: 'asc'
+  })
+  const executiveWasteCostReport = useWasteCostReport({
+    wasteRecords: stockWasteRecords,
+    movements: stockMovements,
+    stockItems,
+    categories,
+    filters: defaultReportFilters,
+    sortKey: 'totalCost',
+    sortDirection: 'desc'
+  })
+  const executiveStockTurnoverReport = useStockTurnoverReport({
+    stockItems,
+    categories,
+    movements: stockMovements,
+    filters: defaultReportFilters,
+    sortKey: 'turnoverRate',
+    sortDirection: 'asc'
+  })
+  const executiveTopSellingProductsReport = useTopSellingProductsReport({
+    closedBills,
+    products,
+    productCategories,
+    recipes,
+    stockItems,
+    filters: defaultReportFilters,
+    sortKey: 'salesQty',
+    sortDirection: 'desc'
+  })
+  const executiveLowSellingProductsReport = useLowSellingProductsReport({
+    closedBills,
+    products,
+    productCategories,
+    recipes,
+    stockItems,
+    filters: defaultReportFilters,
+    sortKey: 'salesQty',
+    sortDirection: 'asc'
+  })
+  const executiveDashboardReport = useExecutiveDashboardReport({
+    salesRevenueReport: executiveSalesRevenueReport,
+    productProfitabilityReport: executiveProductProfitabilityReport,
+    criticalStockReport: executiveCriticalStockReport,
+    expiringProductsReport: executiveExpiringProductsReport,
+    expiredProductsReport: executiveExpiredProductsReport,
+    wasteCostReport: executiveWasteCostReport,
+    stockTurnoverReport: executiveStockTurnoverReport,
+    topSellingProductsReport: executiveTopSellingProductsReport,
+    lowSellingProductsReport: executiveLowSellingProductsReport
+  })
+  const activeKpis = activeTab === 'executive-dashboard'
+    ? executiveDashboardReport.kpis
+    : activeTab === 'stock-status'
+      ? stockStatusReport.kpis
+      : activeTab === 'stock-movements'
+        ? stockMovementsReport.kpis
+        : activeTab === 'critical-stock'
+          ? criticalStockReport.kpis
+          : activeTab === 'expiry-near'
+            ? expiringProductsReport.kpis
+            : activeTab === 'expiry-expired'
+              ? expiredProductsReport.kpis
+              : activeTab === 'waste-cost'
+                ? wasteCostReport.kpis
+                : activeTab === 'recipe-consumption'
+                  ? recipeConsumptionReport.kpis
+                  : activeTab === 'product-profitability'
+                    ? productProfitabilityReport.kpis
+                    : activeTab === 'sales-revenue'
+                      ? salesRevenueReport.kpis
+                      : activeTab === 'stock-turnover'
+                        ? stockTurnoverReport.kpis
+                        : activeTab === 'top-selling-products'
+                          ? topSellingProductsReport.kpis
+                          : activeTab === 'low-selling-products'
+                            ? lowSellingProductsReport.kpis
+                            : activeTab === 'sales-trend'
+                              ? salesTrendReport.kpis
+                              : placeholderKpis
 
   const exportCsv = () => {
     if(activeTab === 'stock-status'){
@@ -466,6 +563,7 @@ export default function Reports(){
   const usesLowSellingFilters = activeTab === 'low-selling-products'
   const reportFilterCategories = usesProductFilters ? productCategories : categories
   const reportFilterItems = usesProductFilters ? products : stockItems
+  const canExportCsv = isRealReport(activeTab) && activeTab !== 'executive-dashboard'
 
   return (
     <div className="reports-page">
@@ -475,7 +573,7 @@ export default function Reports(){
           <p className="muted">Stok, SKT, lot, reçete ve fire verileri için merkezi rapor altyapısı.</p>
         </div>
         <div className="report-export-actions">
-          <button className="btn" type="button" onClick={exportCsv} disabled={!isRealReport(activeTab)}>CSV Dışa Aktar</button>
+          <button className="btn" type="button" onClick={exportCsv} disabled={!canExportCsv}>CSV Dışa Aktar</button>
           <button className="btn" type="button" disabled>PDF Dışa Aktar</button>
         </div>
       </div>
@@ -488,50 +586,54 @@ export default function Reports(){
             <h3>Rapor Türleri</h3>
             <p className="muted">Ana raporları seçin; filtreler ve dışa aktarma seçili rapora göre güncellenir.</p>
           </div>
-          <span className="status-pill">13 aktif rapor</span>
+          <span className="status-pill">14 aktif rapor</span>
         </div>
         <ReportTabs activeTab={activeTab} onChange={setActiveTab} />
       </section>
 
-      <ReportFilters
-        filters={filters}
-        categories={reportFilterCategories}
-        stockItems={reportFilterItems}
-        users={users}
-        tables={reportTables}
-        onChange={setFilters}
-        showMovementTypeFilter={activeTab === 'stock-movements'}
-        showCriticalStatusFilter={activeTab === 'critical-stock'}
-        showExpiryStatusFilter={activeTab === 'expiry-near'}
-        showExpiredStatusFilter={activeTab === 'expiry-expired'}
-        showWasteReasonFilter={activeTab === 'waste-cost'}
-        showTurnoverStatusFilter={usesStockTurnoverFilters}
-        showLowSellingStatusFilter={usesLowSellingFilters}
-        showDateFilters={!usesCompactReportFilters}
-        showCategoryFilter={!usesSalesBillFilters}
-        showStockItemFilter={!usesSalesBillFilters}
-        showPersonnelFilter={!usesCompactReportFilters && activeTab !== 'recipe-consumption' && !usesProductFilters && !usesStockTurnoverFilters}
-        showTableFilter={usesSalesBillFilters}
-        stockItemFilterLabel={activeTab === 'recipe-consumption' ? 'Hammadde' : 'Ürün'}
-        stockItemAllLabel={activeTab === 'recipe-consumption' ? 'Tüm hammaddeler' : 'Tüm ürünler'}
-        searchPlaceholderOverride={activeTab === 'recipe-consumption'
-          ? 'Hammadde adı veya kategori'
-          : activeTab === 'product-profitability'
-            ? 'Ürün adı veya kategori'
-            : activeTab === 'sales-revenue'
-              ? 'Adisyon no, kullanıcı veya masa'
-              : activeTab === 'sales-trend'
-                ? 'KullanÄ±cÄ± veya masa'
-                : activeTab === 'stock-turnover'
-                ? 'Ürün adı veya kategori'
-                : activeTab === 'top-selling-products'
-                  ? 'Ürün adı veya kategori'
-                  : activeTab === 'low-selling-products'
+      {activeTab !== 'executive-dashboard' && (
+        <ReportFilters
+          filters={filters}
+          categories={reportFilterCategories}
+          stockItems={reportFilterItems}
+          users={users}
+          tables={reportTables}
+          onChange={setFilters}
+          showMovementTypeFilter={activeTab === 'stock-movements'}
+          showCriticalStatusFilter={activeTab === 'critical-stock'}
+          showExpiryStatusFilter={activeTab === 'expiry-near'}
+          showExpiredStatusFilter={activeTab === 'expiry-expired'}
+          showWasteReasonFilter={activeTab === 'waste-cost'}
+          showTurnoverStatusFilter={usesStockTurnoverFilters}
+          showLowSellingStatusFilter={usesLowSellingFilters}
+          showDateFilters={!usesCompactReportFilters}
+          showCategoryFilter={!usesSalesBillFilters}
+          showStockItemFilter={!usesSalesBillFilters}
+          showPersonnelFilter={!usesCompactReportFilters && activeTab !== 'recipe-consumption' && !usesProductFilters && !usesStockTurnoverFilters}
+          showTableFilter={usesSalesBillFilters}
+          stockItemFilterLabel={activeTab === 'recipe-consumption' ? 'Hammadde' : 'Ürün'}
+          stockItemAllLabel={activeTab === 'recipe-consumption' ? 'Tüm hammaddeler' : 'Tüm ürünler'}
+          searchPlaceholderOverride={activeTab === 'recipe-consumption'
+            ? 'Hammadde adı veya kategori'
+            : activeTab === 'product-profitability'
+              ? 'Ürün adı veya kategori'
+              : activeTab === 'sales-revenue'
+                ? 'Adisyon no, kullanıcı veya masa'
+                : activeTab === 'sales-trend'
+                  ? 'Kullanıcı veya masa'
+                  : activeTab === 'stock-turnover'
                     ? 'Ürün adı veya kategori'
-                  : undefined}
-      />
+                    : activeTab === 'top-selling-products'
+                      ? 'Ürün adı veya kategori'
+                      : activeTab === 'low-selling-products'
+                        ? 'Ürün adı veya kategori'
+                        : undefined}
+        />
+      )}
 
-      {activeTab === 'stock-status' ? (
+      {activeTab === 'executive-dashboard' ? (
+        <ExecutiveDashboardReport report={executiveDashboardReport} onOpenReport={setActiveTab} />
+      ) : activeTab === 'stock-status' ? (
         <StockStatusReport
           report={stockStatusReport}
           sortKey={stockStatusSortKey}

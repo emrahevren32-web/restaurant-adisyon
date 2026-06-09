@@ -324,6 +324,23 @@ th { color:#4b5563; font-size:13px; font-weight:700 }
 .report-panel-grid.three { grid-template-columns:repeat(3, minmax(0, 1fr)) }
 .report-panel { border:1px solid var(--line); border-radius:8px; padding:12px; background:#fff; min-width:0 }
 .report-panel h4 { margin:0 0 10px; font-size:15px }
+.executive-summary-grid { margin:4px 0 16px }
+.executive-summary-card { border:1px solid var(--line); border-radius:8px; padding:12px; background:#fff; min-width:0 }
+.executive-summary-card span, .executive-summary-card p { display:block; color:var(--muted); font-size:12px }
+.executive-summary-card strong { display:block; margin:6px 0; font-size:18px; line-height:1.25; color:#111827; overflow-wrap:anywhere }
+.executive-dashboard-grid { display:grid; grid-template-columns:minmax(0, 1.15fr) minmax(320px, .85fr); gap:16px; align-items:start }
+.executive-side-stack { display:flex; flex-direction:column; gap:12px; min-width:0 }
+.executive-alert-panel .section-header { margin-bottom:10px }
+.executive-alert-list { display:flex; flex-direction:column; gap:8px }
+.executive-alert-row { display:flex; align-items:center; justify-content:space-between; gap:12px; border:1px solid #eef2f7; border-radius:8px; padding:10px; background:#f9fafb; min-width:0 }
+.executive-alert-row div { min-width:0 }
+.executive-alert-row span, .executive-alert-row small { display:block; color:var(--muted); font-size:12px }
+.executive-alert-row strong { display:block; margin:3px 0; color:#111827; overflow-wrap:anywhere }
+.executive-empty-alert { border:1px dashed var(--line); border-radius:8px; padding:14px; text-align:center }
+.executive-mini-grid { display:grid; grid-template-columns:repeat(2, minmax(0, 1fr)); gap:10px }
+.executive-sales-list { display:flex; flex-direction:column; gap:2px }
+.executive-quick-links { display:grid; grid-template-columns:repeat(2, minmax(0, 1fr)); gap:8px }
+.executive-quick-links .btn { justify-content:center }
 .sales-period-summary-grid, .top-selling-summary-grid, .low-selling-summary-grid { margin:4px 0 16px }
 .sales-trend-analysis-grid { margin:4px 0 16px; align-items:start }
 .mini-report-table { width:100%; border-collapse:collapse; font-size:12px }
@@ -479,7 +496,7 @@ th { color:#4b5563; font-size:13px; font-weight:700 }
 .users-side { position:sticky; top:20px }
 
 @media (max-width: 980px){
-  .app-layout, .container, .product-layout, .stock-movement-layout, .tables-layout, .order-layout, .summary-layout, .report-layout, .qr-menu-layout, .settings-layout, .users-layout { display:block }
+  .app-layout, .container, .product-layout, .stock-movement-layout, .tables-layout, .order-layout, .summary-layout, .report-layout, .executive-dashboard-grid, .qr-menu-layout, .settings-layout, .users-layout { display:block }
   .side-nav { position:static; display:block; max-height:none; margin-bottom:14px; overflow:visible }
   .side-nav-groups { overflow:visible; padding-right:0; margin-right:0 }
   .side-nav-groups { display:grid; grid-template-columns:repeat(2, minmax(0, 1fr)); gap:12px }
@@ -494,6 +511,7 @@ th { color:#4b5563; font-size:13px; font-weight:700 }
   .lot-priority-row, .lot-event-row { grid-template-columns:1fr }
   .product-picker { margin-top:12px }
   .report-layout > .card { margin-top:12px }
+  .executive-side-stack { margin-top:12px }
   .qr-cart-panel { position:static; margin-top:12px }
   .qr-code-preview { grid-template-columns:1fr }
 }
@@ -516,7 +534,7 @@ th { color:#4b5563; font-size:13px; font-weight:700 }
   .page-title .btn, .report-export-actions, .report-export-actions .btn { width:100% }
   .metric-grid { grid-template-columns:1fr }
   .kitchen-grid { grid-template-columns:1fr }
-  .form-row, .stock-movement-type-row, .recipe-add-controls, .recipe-item-row, .recipe-cost-box, .inline-form, .category-row, .category-edit-form, .order-summary, .picker-controls, .checkout-panel, .checkout-total-grid, .payment-grid, .table-grid, .discount-controls, .product-pick-row, .history-controls, .history-detail-grid, .report-highlight-grid, .report-center-kpi-grid, .waste-reason-summary-grid, .qr-product-card, .qr-request-list, .qr-request-meta, .qr-edit-row, .qr-edit-add-row, .qr-reject-row, .waiter-call-list, .critical-stock-row, .settings-form-grid { grid-template-columns:1fr }
+  .form-row, .stock-movement-type-row, .recipe-add-controls, .recipe-item-row, .recipe-cost-box, .inline-form, .category-row, .category-edit-form, .order-summary, .picker-controls, .checkout-panel, .checkout-total-grid, .payment-grid, .table-grid, .discount-controls, .product-pick-row, .history-controls, .history-detail-grid, .report-highlight-grid, .report-center-kpi-grid, .waste-reason-summary-grid, .executive-mini-grid, .executive-quick-links, .qr-product-card, .qr-request-list, .qr-request-meta, .qr-edit-row, .qr-edit-add-row, .qr-reject-row, .waiter-call-list, .critical-stock-row, .settings-form-grid { grid-template-columns:1fr }
   .critical-stock-row { align-items:flex-start; flex-direction:column }
   .actions-cell { justify-content:flex-start }
   .stock-cards-table td.actions-cell { text-align:left }

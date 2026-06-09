@@ -1,4 +1,5 @@
 export type ReportTabId =
+  | 'executive-dashboard'
   | 'stock-status'
   | 'stock-movements'
   | 'critical-stock'
@@ -23,6 +24,7 @@ export type ReportTab = {
 }
 
 export const reportTabs: ReportTab[] = [
+  { id: 'executive-dashboard', label: 'Yönetici Özeti', description: 'Ciro, kârlılık ve operasyon uyarıları.' },
   { id: 'stock-status', label: 'Stok Durum', description: 'Miktar, değer ve stok sağlığını gösterir.' },
   { id: 'stock-movements', label: 'Stok Hareketleri', description: 'Giriş, çıkış, fire ve sayım hareketleri.' },
   { id: 'critical-stock', label: 'Kritik Stok', description: 'Kritik seviyeye düşen ürünler.' },
@@ -34,8 +36,8 @@ export const reportTabs: ReportTab[] = [
   { id: 'sales-revenue', label: 'Satış ve Ciro', description: 'Adisyon, satış adedi ve ciro performansı.' },
   { id: 'stock-turnover', label: 'Stok Devir Hızı', description: 'Hızlı ve yavaş dönen stokların tüketim analizi.' },
   { id: 'top-selling-products', label: 'En Çok Satan', description: 'Ürün satış adedi, ciro ve satış payı analizi.' },
-  { id: 'low-selling-products', label: 'En Az Satan', description: 'Az satan, satılmayan ve riskli ürün analizi.' }
-  , { id: 'sales-trend', label: 'Satış Trendleri', description: 'Saat, gün ve dönem bazlı satış yoğunluğu.' }
+  { id: 'low-selling-products', label: 'En Az Satan', description: 'Az satan, satılmayan ve riskli ürün analizi.' },
+  { id: 'sales-trend', label: 'Satış Trendleri', description: 'Saat, gün ve dönem bazlı satış yoğunluğu.' }
 ]
 
 type Props = {
