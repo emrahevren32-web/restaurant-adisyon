@@ -6,6 +6,7 @@ export type ReportExpiryStatusFilter = 'all' | 'urgent' | 'approaching' | 'watch
 export type ReportExpiredStatusFilter = 'all' | 'newly-expired' | 'critical' | 'dispose'
 export type ReportWasteReasonFilter = 'all' | 'spoilage' | 'breakage' | 'wrong-production' | 'expiry' | 'count-difference' | 'other'
 export type ReportTurnoverStatusFilter = 'all' | 'fast' | 'normal' | 'slow'
+export type ReportLowSellingStatusFilter = 'all' | 'not-selling' | 'risky' | 'low' | 'normal'
 
 export type ReportFiltersValue = {
   search: string
@@ -21,6 +22,7 @@ export type ReportFiltersValue = {
   expiredStatus: ReportExpiredStatusFilter
   wasteReason: ReportWasteReasonFilter
   turnoverStatus: ReportTurnoverStatusFilter
+  lowSellingStatus: ReportLowSellingStatusFilter
 }
 
 type Props = {
@@ -36,6 +38,7 @@ type Props = {
   showExpiredStatusFilter?: boolean
   showWasteReasonFilter?: boolean
   showTurnoverStatusFilter?: boolean
+  showLowSellingStatusFilter?: boolean
   showDateFilters?: boolean
   showCategoryFilter?: boolean
   showStockItemFilter?: boolean
@@ -59,7 +62,8 @@ export const defaultReportFilters: ReportFiltersValue = {
   expiryStatus: 'all',
   expiredStatus: 'all',
   wasteReason: 'all',
-  turnoverStatus: 'all'
+  turnoverStatus: 'all',
+  lowSellingStatus: 'all'
 }
 
 export const reportMovementTypeOptions: { value: ReportMovementTypeFilter; label: string }[] = [
@@ -109,6 +113,14 @@ export const reportTurnoverStatusOptions: { value: ReportTurnoverStatusFilter; l
   { value: 'slow', label: 'Yavaş' }
 ]
 
+export const reportLowSellingStatusOptions: { value: ReportLowSellingStatusFilter; label: string }[] = [
+  { value: 'all', label: 'Tüm durumlar' },
+  { value: 'not-selling', label: 'Satılmıyor' },
+  { value: 'risky', label: 'Riskli' },
+  { value: 'low', label: 'Düşük Performans' },
+  { value: 'normal', label: 'Normal' }
+]
+
 export default function ReportFilters({
   filters,
   categories,
@@ -122,6 +134,7 @@ export default function ReportFilters({
   showExpiredStatusFilter = false,
   showWasteReasonFilter = false,
   showTurnoverStatusFilter = false,
+  showLowSellingStatusFilter = false,
   showDateFilters = true,
   showCategoryFilter = true,
   showStockItemFilter = true,
@@ -143,6 +156,7 @@ export default function ReportFilters({
     showExpiredStatusFilter ? 'with-expired-status' : '',
     showWasteReasonFilter ? 'with-waste-reason' : '',
     showTurnoverStatusFilter ? 'with-turnover-status' : '',
+    showLowSellingStatusFilter ? 'with-low-selling-status' : '',
     showTableFilter ? 'with-table-filter' : ''
   ].filter(Boolean).join(' ')
 
@@ -158,7 +172,9 @@ export default function ReportFilters({
             ? 'Ürün adı, fire sebebi veya kullanıcı'
             : showTurnoverStatusFilter
               ? 'Ürün adı veya kategori'
-              : 'Ürün adı, kategori veya kod')
+              : showLowSellingStatusFilter
+                ? 'Ürün adı veya kategori'
+                : 'Ürün adı, kategori veya kod')
 
   return (
     <section className="card report-center-card">
@@ -249,6 +265,14 @@ export default function ReportFilters({
             <label>Durum</label>
             <select value={filters.turnoverStatus} onChange={event => updateFilter('turnoverStatus', event.target.value as ReportTurnoverStatusFilter)}>
               {reportTurnoverStatusOptions.map(option => <option key={option.value} value={option.value}>{option.label}</option>)}
+            </select>
+          </div>
+        )}
+        {showLowSellingStatusFilter && (
+          <div className="form-field">
+            <label>Durum</label>
+            <select value={filters.lowSellingStatus} onChange={event => updateFilter('lowSellingStatus', event.target.value as ReportLowSellingStatusFilter)}>
+              {reportLowSellingStatusOptions.map(option => <option key={option.value} value={option.value}>{option.label}</option>)}
             </select>
           </div>
         )}

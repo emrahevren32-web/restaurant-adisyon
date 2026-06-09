@@ -21,6 +21,12 @@ import ReportFilters, { defaultReportFilters, ReportFiltersValue } from '../comp
 import ReportKpis, { ReportKpi } from '../components/reports/ReportKpis'
 import ReportPlaceholder from '../components/reports/ReportPlaceholder'
 import ReportTabs, { ReportTabId } from '../components/reports/ReportTabs'
+import LowSellingProductsReport, {
+  exportLowSellingProductsReportCsv,
+  LowSellingProductsSortDirection,
+  LowSellingProductsSortKey,
+  useLowSellingProductsReport
+} from '../components/reports/LowSellingProductsReport'
 import ProductProfitabilityReport, {
   exportProductProfitabilityReportCsv,
   ProductProfitabilitySortDirection,
@@ -92,6 +98,7 @@ const isRealReport = (activeTab: ReportTabId) => {
     || activeTab === 'sales-revenue'
     || activeTab === 'stock-turnover'
     || activeTab === 'top-selling-products'
+    || activeTab === 'low-selling-products'
 }
 
 export default function Reports(){
@@ -119,6 +126,8 @@ export default function Reports(){
   const [stockTurnoverSortDirection, setStockTurnoverSortDirection] = React.useState<StockTurnoverSortDirection>('asc')
   const [topSellingProductsSortKey, setTopSellingProductsSortKey] = React.useState<TopSellingProductsSortKey>('salesQty')
   const [topSellingProductsSortDirection, setTopSellingProductsSortDirection] = React.useState<TopSellingProductsSortDirection>('desc')
+  const [lowSellingProductsSortKey, setLowSellingProductsSortKey] = React.useState<LowSellingProductsSortKey>('salesQty')
+  const [lowSellingProductsSortDirection, setLowSellingProductsSortDirection] = React.useState<LowSellingProductsSortDirection>('asc')
   const [productCategories] = React.useState(() => loadCategories())
   const [products] = React.useState(() => loadProducts())
   const [closedBills] = React.useState(() => loadClosed())
@@ -236,6 +245,16 @@ export default function Reports(){
     sortKey: topSellingProductsSortKey,
     sortDirection: topSellingProductsSortDirection
   })
+  const lowSellingProductsReport = useLowSellingProductsReport({
+    closedBills,
+    products,
+    productCategories,
+    recipes,
+    stockItems,
+    filters,
+    sortKey: lowSellingProductsSortKey,
+    sortDirection: lowSellingProductsSortDirection
+  })
   const activeKpis = activeTab === 'stock-status'
     ? stockStatusReport.kpis
     : activeTab === 'stock-movements'
@@ -258,7 +277,9 @@ export default function Reports(){
                       ? stockTurnoverReport.kpis
                       : activeTab === 'top-selling-products'
                         ? topSellingProductsReport.kpis
-                        : placeholderKpis
+                        : activeTab === 'low-selling-products'
+                          ? lowSellingProductsReport.kpis
+                          : placeholderKpis
 
   const exportCsv = () => {
     if(activeTab === 'stock-status'){
@@ -390,13 +411,26 @@ export default function Reports(){
         sortKey: topSellingProductsSortKey,
         sortDirection: topSellingProductsSortDirection
       })
+      return
+    }
+
+    if(activeTab === 'low-selling-products'){
+      exportLowSellingProductsReportCsv({
+        report: lowSellingProductsReport,
+        filters,
+        productCategories,
+        products,
+        sortKey: lowSellingProductsSortKey,
+        sortDirection: lowSellingProductsSortDirection
+      })
     }
   }
 
   const usesCompactReportFilters = activeTab === 'critical-stock' || activeTab === 'expiry-near' || activeTab === 'expiry-expired'
-  const usesProductFilters = activeTab === 'product-profitability' || activeTab === 'top-selling-products'
+  const usesProductFilters = activeTab === 'product-profitability' || activeTab === 'top-selling-products' || activeTab === 'low-selling-products'
   const usesSalesRevenueFilters = activeTab === 'sales-revenue'
   const usesStockTurnoverFilters = activeTab === 'stock-turnover'
+  const usesLowSellingFilters = activeTab === 'low-selling-products'
   const reportFilterCategories = usesProductFilters ? productCategories : categories
   const reportFilterItems = usesProductFilters ? products : stockItems
 
@@ -421,7 +455,7 @@ export default function Reports(){
             <h3>Rapor Türleri</h3>
             <p className="muted">Ana raporları seçin; filtreler ve dışa aktarma seçili rapora göre güncellenir.</p>
           </div>
-          <span className="status-pill">11 aktif rapor</span>
+          <span className="status-pill">12 aktif rapor</span>
         </div>
         <ReportTabs activeTab={activeTab} onChange={setActiveTab} />
       </section>
@@ -439,6 +473,7 @@ export default function Reports(){
         showExpiredStatusFilter={activeTab === 'expiry-expired'}
         showWasteReasonFilter={activeTab === 'waste-cost'}
         showTurnoverStatusFilter={usesStockTurnoverFilters}
+        showLowSellingStatusFilter={usesLowSellingFilters}
         showDateFilters={!usesCompactReportFilters}
         showCategoryFilter={!usesSalesRevenueFilters}
         showStockItemFilter={!usesSalesRevenueFilters}
@@ -456,6 +491,8 @@ export default function Reports(){
                 ? 'Ürün adı veya kategori'
                 : activeTab === 'top-selling-products'
                   ? 'Ürün adı veya kategori'
+                  : activeTab === 'low-selling-products'
+                    ? 'Ürün adı veya kategori'
                   : undefined}
       />
 
@@ -546,6 +583,14 @@ export default function Reports(){
           sortDirection={topSellingProductsSortDirection}
           onSortKeyChange={setTopSellingProductsSortKey}
           onSortDirectionChange={setTopSellingProductsSortDirection}
+        />
+      ) : activeTab === 'low-selling-products' ? (
+        <LowSellingProductsReport
+          report={lowSellingProductsReport}
+          sortKey={lowSellingProductsSortKey}
+          sortDirection={lowSellingProductsSortDirection}
+          onSortKeyChange={setLowSellingProductsSortKey}
+          onSortDirectionChange={setLowSellingProductsSortDirection}
         />
       ) : (
         <ReportPlaceholder activeTab={activeTab} />
