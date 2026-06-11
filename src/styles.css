@@ -126,6 +126,22 @@ th { color:#4b5563; font-size:13px; font-weight:700 }
 .section-header.compact { align-items:center }
 .section-header h3 { font-size:18px; line-height:1.25; font-weight:850 }
 .section-header .muted { line-height:1.45 }
+.section-header .toolbar-controls,
+.section-header .stock-movement-filters,
+.section-header .recipe-filters,
+.section-header .history-controls,
+.section-header .action-log-filters,
+.section-header .kitchen-filters { align-self:flex-start }
+.section-header .toolbar-controls input,
+.section-header .toolbar-controls select,
+.section-header .stock-movement-filters input,
+.section-header .stock-movement-filters select,
+.section-header .recipe-filters input,
+.section-header .recipe-filters select,
+.section-header .history-controls input,
+.section-header .history-controls select,
+.section-header .action-log-filters input,
+.section-header .action-log-filters select { min-height:38px }
 .toolbar-controls { display:grid; grid-template-columns:minmax(220px, 1fr) 180px 150px; gap:8px; width:min(100%, 620px); min-width:0 }
 .stock-toolbar-controls { grid-template-columns:minmax(220px, 1fr) 170px 150px 130px; width:min(100%, 760px); min-width:0 }
 .stock-movement-layout { display:grid; grid-template-columns:minmax(0, 1fr) 390px; gap:18px; align-items:start }
@@ -160,16 +176,36 @@ th { color:#4b5563; font-size:13px; font-weight:700 }
 .recipe-table td:nth-child(4), .recipe-table th:nth-child(4) { min-width:220px }
 .recipe-history-details { margin-top:8px }
 .recipe-history-details summary { cursor:pointer; color:#374151; font-weight:800; font-size:12px }
-.table-wrap { width:100%; min-width:0; overflow:auto; border:1px solid #eef2f7; border-radius:8px; background:#fff }
-.table-wrap table { min-width:680px }
-.table-wrap th:first-child, .table-wrap td:first-child { padding-left:12px }
-.table-wrap th:last-child, .table-wrap td:last-child { padding-right:12px }
-.data-table strong { display:block }
-.empty-cell { text-align:center; color:var(--muted); padding:28px 8px }
+.card:has(.table-wrap) { overflow:hidden }
+.card:has(.table-wrap) > .section-header { gap:12px; margin-bottom:14px }
+.card:has(.table-wrap) > .section-header .muted { max-width:720px }
+.card:has(.table-wrap) > .section-header > :last-child { flex:0 1 auto }
+.table-wrap { width:100%; max-width:100%; min-width:0; overflow:auto; overscroll-behavior-x:contain; -webkit-overflow-scrolling:touch; border:1px solid #e5e7eb; border-radius:8px; background:#fff; box-shadow:0 1px 2px rgba(15,23,42,0.03) }
+.table-wrap::-webkit-scrollbar { height:9px; width:9px }
+.table-wrap::-webkit-scrollbar-track { background:#f8fafc; border-radius:999px }
+.table-wrap::-webkit-scrollbar-thumb { background:#cbd5e1; border:2px solid #f8fafc; border-radius:999px }
+.table-wrap table { min-width:720px }
+.table-wrap th:first-child, .table-wrap td:first-child { padding-left:14px }
+.table-wrap th:last-child, .table-wrap td:last-child { padding-right:14px }
+.data-table { border-collapse:separate; border-spacing:0; color:#374151; font-size:13px; line-height:1.35 }
+.data-table thead th { height:40px; border-bottom:1px solid #e5e7eb; background:#f8fafc; color:#475569; font-size:12px; font-weight:850; line-height:1.25; vertical-align:middle; white-space:nowrap }
+.data-table tbody td { height:52px; border-bottom:1px solid #eef2f7; background:#fff }
+.data-table tbody tr:last-child td { border-bottom:0 }
+.data-table tbody tr { transition:background .16s ease, box-shadow .16s ease }
+.data-table tbody tr:hover td { background:#f9fafb }
+.data-table tbody tr.selected td,
+.data-table tbody tr.active td,
+.data-table tbody tr[aria-selected="true"] td { background:#eff6ff }
+.data-table strong { display:block; color:#111827; font-weight:850; line-height:1.25 }
+.data-table .muted { line-height:1.35 }
+.data-table .small-text { font-size:12px }
+.data-table .btn { min-height:32px; padding:6px 10px }
+.empty-cell { text-align:center; color:var(--muted); padding:30px 12px; background:#fff }
 .actions-cell { display:flex; justify-content:flex-end; gap:8px; flex-wrap:wrap }
-.stock-cards-table td.actions-cell { display:table-cell; text-align:right; vertical-align:middle; white-space:nowrap; min-width:340px }
-.stock-cards-table td.actions-cell .btn { margin-left:8px }
-.stock-cards-table td.actions-cell .btn:first-child { margin-left:0 }
+.data-table td.actions-cell { display:table-cell; text-align:right; vertical-align:middle; white-space:nowrap }
+.data-table td.actions-cell .btn { margin-left:8px }
+.data-table td.actions-cell .btn:first-child { margin-left:0 }
+.stock-cards-table td.actions-cell { min-width:340px }
 .stock-cost-summary { display:flex; flex-direction:column; gap:3px; min-width:170px; font-size:12px }
 .stock-cost-summary span { color:var(--muted) }
 .stock-cost-summary strong { color:#111827; font-size:12px }
@@ -186,7 +222,7 @@ th { color:#4b5563; font-size:13px; font-weight:700 }
 .lot-event-rows { display:flex; flex-direction:column; gap:8px; padding:12px; border-top:1px solid var(--line); background:#f9fafb }
 .lot-event-row { display:grid; grid-template-columns:minmax(0, 1fr) minmax(170px, auto); gap:12px; align-items:start; border:1px solid var(--line); border-radius:8px; padding:10px; background:#fff }
 .lot-event-row strong, .lot-event-row span { display:block }
-.status-pill { display:inline-flex; align-items:center; border-radius:999px; padding:4px 9px; border:1px solid var(--line); color:#374151; background:#f9fafb; font-size:12px; font-weight:700 }
+.status-pill { display:inline-flex; align-items:center; justify-content:center; gap:5px; min-height:26px; border-radius:999px; padding:4px 9px; border:1px solid var(--line); color:#374151; background:#f9fafb; font-size:12px; font-weight:800; line-height:1.2; white-space:nowrap }
 .status-pill.success { color:var(--success); background:#ecfdf3; border-color:#bbf7d0 }
 .status-pill.muted-pill { color:#6b7280; background:#f3f4f6 }
 .status-pill.danger-pill { color:var(--danger); background:#fff5f5; border-color:#fecaca }
@@ -196,7 +232,8 @@ th { color:#4b5563; font-size:13px; font-weight:700 }
 .success-text { color:var(--success) }
 .warning-text { color:#92400e }
 .info-text { color:var(--accent) }
-.critical-stock-table-row { background:#fffafa }
+.critical-stock-table-row td { background:#fffafa }
+.critical-stock-table-row:hover td { background:#fff7f7 }
 .critical-risk-bar { height:6px; border-radius:999px; background:#fee2e2; overflow:hidden; margin-top:6px; max-width:140px }
 .critical-risk-bar span { display:block; height:100%; border-radius:999px; background:var(--danger) }
 .stacked-form { display:flex; flex-direction:column; gap:12px }
@@ -327,6 +364,8 @@ th { color:#4b5563; font-size:13px; font-weight:700 }
 .report-filter-grid .form-field label { margin-bottom:5px; color:#374151; font-size:12px }
 .report-placeholder-table td:first-child, .report-placeholder-table th:first-child { min-width:180px }
 .report-table-toolbar { display:flex; justify-content:space-between; gap:12px; align-items:center; flex-wrap:wrap; margin-bottom:12px }
+.report-table-toolbar > :first-child { min-width:0 }
+.report-table-toolbar select { min-height:38px }
 .report-sort-controls { display:grid; grid-template-columns:minmax(0, 210px) 120px; gap:8px; width:min(100%, 340px); min-width:0 }
 .stock-status-report-table td:nth-child(9), .stock-status-report-table th:nth-child(9) { text-align:right }
 .stock-movements-report-table td:nth-child(5), .stock-movements-report-table th:nth-child(5),
@@ -408,9 +447,9 @@ th { color:#4b5563; font-size:13px; font-weight:700 }
 .executive-quick-links .btn { justify-content:center }
 .sales-period-summary-grid, .top-selling-summary-grid, .low-selling-summary-grid { margin:4px 0 16px }
 .sales-trend-analysis-grid { margin:4px 0 16px; align-items:start }
-.mini-report-table { width:100%; border-collapse:collapse; font-size:12px }
-.mini-report-table th, .mini-report-table td { border-top:1px solid #eef2f7; padding:8px 0; text-align:left; vertical-align:top }
-.mini-report-table thead th { color:var(--muted); font-weight:800 }
+.mini-report-table { width:100%; border-collapse:separate; border-spacing:0; font-size:12px; line-height:1.35 }
+.mini-report-table th, .mini-report-table td { border-top:1px solid #eef2f7; padding:9px 8px; text-align:left; vertical-align:middle }
+.mini-report-table thead th { background:#f8fafc; color:#475569; font-weight:850 }
 .mini-report-table th:nth-child(2), .mini-report-table td:nth-child(2),
 .mini-report-table th:nth-child(3), .mini-report-table td:nth-child(3) { text-align:right }
 .sales-period-values { display:flex; justify-content:space-between; gap:10px; align-items:center; border-top:1px solid #eef2f7; padding-top:8px; margin-top:8px }
@@ -421,8 +460,14 @@ th { color:#4b5563; font-size:13px; font-weight:700 }
 .report-highlight { border:1px solid var(--line); border-radius:8px; padding:12px; background:#f9fafb }
 .report-highlight span, .report-highlight small { display:block; color:var(--muted); font-size:12px }
 .report-highlight strong { display:block; margin:5px 0; font-size:18px }
+.report-table { min-width:880px }
 .report-table th, .report-table td { white-space:nowrap }
-.report-table td:first-child, .report-table th:first-child { white-space:normal; min-width:150px }
+.report-table td:first-child, .report-table th:first-child { white-space:normal; min-width:160px }
+.stock-cards-table { min-width:1120px }
+.recipe-table { min-width:940px }
+.stock-movement-table { min-width:920px }
+.staff-table { min-width:860px }
+.report-placeholder-table { min-width:680px }
 .stock-report-filters { display:grid; grid-template-columns:minmax(220px, 1fr) 170px 180px 140px; gap:8px; width:100%; min-width:0; margin:12px 0 }
 .expiry-report-filters { grid-template-columns:minmax(220px, 1fr) 180px 180px }
 .waste-report-filters { grid-template-columns:minmax(220px, 1fr) 170px 150px 180px }
@@ -628,6 +673,9 @@ th { color:#4b5563; font-size:13px; font-weight:700 }
   .metric-grid { grid-template-columns:repeat(2, minmax(0, 1fr)) }
   .kitchen-grid { grid-template-columns:repeat(2, minmax(0, 1fr)) }
   .toolbar-controls, .stock-movement-filters, .recipe-filters, .adisyon-tools, .action-log-filters, .stock-report-filters, .report-filter-grid, .report-sort-controls, .report-panel-grid.three, .waste-reason-summary-grid { grid-template-columns:1fr; width:100% }
+  .card:has(.table-wrap) > .section-header > :last-child { flex:1 1 100%; width:100% }
+  .table-wrap table { min-width:700px }
+  .report-table { min-width:840px }
   .report-filter-grid .form-field:first-child { grid-column:auto }
   .report-center-kpi-grid { grid-template-columns:repeat(2, minmax(0, 1fr)) }
   .report-tab-list { grid-template-columns:repeat(2, minmax(0, 1fr)) }
@@ -672,8 +720,11 @@ th { color:#4b5563; font-size:13px; font-weight:700 }
   .form-row, .stock-movement-type-row, .recipe-add-controls, .recipe-item-row, .recipe-cost-box, .inline-form, .category-row, .category-edit-form, .order-summary, .picker-controls, .checkout-panel, .checkout-total-grid, .payment-grid, .table-grid, .discount-controls, .product-pick-row, .history-controls, .history-detail-grid, .report-highlight-grid, .report-center-kpi-grid, .waste-reason-summary-grid, .executive-mini-grid, .executive-quick-links, .qr-product-card, .qr-request-list, .qr-request-meta, .qr-edit-row, .qr-edit-add-row, .qr-reject-row, .waiter-call-list, .critical-stock-row, .settings-form-grid { grid-template-columns:1fr }
   .critical-stock-row { align-items:flex-start; flex-direction:column }
   .actions-cell { justify-content:flex-start }
-  .stock-cards-table td.actions-cell { min-width:0; text-align:left; white-space:normal }
-  .stock-cards-table td.actions-cell .btn { margin:4px 4px 0 0 }
+  .data-table td.actions-cell { min-width:0; text-align:left; white-space:normal }
+  .data-table td.actions-cell .btn { margin:4px 4px 0 0 }
+  .table-wrap table { min-width:640px }
+  .report-table { min-width:760px }
+  .stock-cards-table { min-width:980px }
   .history-card summary { align-items:flex-start; flex-direction:column }
   .history-summary-values { text-align:left }
   .qr-menu-header { padding:18px }
