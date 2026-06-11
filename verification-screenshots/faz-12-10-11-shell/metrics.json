@@ -1,0 +1,1207 @@
+{
+  "outputs": [
+    "C:\\Users\\90544\\Documents\\restaurant-adisyon\\verification-screenshots\\faz-12-10-11-shell\\dashboard-1366.png",
+    "C:\\Users\\90544\\Documents\\restaurant-adisyon\\verification-screenshots\\faz-12-10-11-shell\\urunler-1366.png",
+    "C:\\Users\\90544\\Documents\\restaurant-adisyon\\verification-screenshots\\faz-12-10-11-shell\\rapor-merkezi-1366.png",
+    "C:\\Users\\90544\\Documents\\restaurant-adisyon\\verification-screenshots\\faz-12-10-11-shell\\dashboard-1024.png",
+    "C:\\Users\\90544\\Documents\\restaurant-adisyon\\verification-screenshots\\faz-12-10-11-shell\\dashboard-768.png"
+  ],
+  "metrics": [
+    {
+      "name": "dashboard-1366",
+      "viewport": {
+        "width": 1366,
+        "height": 768
+      },
+      "scrollWidth": 1351,
+      "overflowX": false,
+      "offscreen": [],
+      "sidebar": {
+        "rect": {
+          "top": 0,
+          "left": 0,
+          "width": 252,
+          "height": 768,
+          "bottom": 768,
+          "right": 252
+        },
+        "overflow": "hidden",
+        "overflowY": "hidden"
+      },
+      "sidebarGroups": {
+        "rect": {
+          "top": 80,
+          "left": 10,
+          "width": 237,
+          "height": 672,
+          "bottom": 752,
+          "right": 247
+        },
+        "clientHeight": 672,
+        "scrollHeight": 726,
+        "overflowY": "auto",
+        "scrollTest": {
+          "beforeScroll": 0,
+          "afterScroll": 54
+        }
+      },
+      "menuItemHeights": [
+        40,
+        40,
+        40,
+        40,
+        40,
+        40,
+        40,
+        40,
+        40,
+        40,
+        40,
+        40
+      ],
+      "menuHeightRange": 0,
+      "activeMenu": {
+        "rect": {
+          "top": 115,
+          "left": 10,
+          "width": 223,
+          "height": 40,
+          "bottom": 155,
+          "right": 233
+        },
+        "text": "DBDashboard",
+        "background": "rgb(239, 246, 255)",
+        "color": "rgb(17, 24, 39)",
+        "boxShadow": "rgb(15, 98, 254) 3px 0px 0px 0px inset, rgba(15, 98, 254, 0.08) 0px 4px 12px 0px",
+        "borderLeft": "1px"
+      },
+      "topbar": {
+        "top": 0,
+        "left": 252,
+        "width": 1099,
+        "height": 70,
+        "bottom": 70,
+        "right": 1351
+      },
+      "kpiCount": 16,
+      "kpiRects": [
+        {
+          "top": 168,
+          "left": 276,
+          "width": 252,
+          "height": 110,
+          "bottom": 278,
+          "right": 528
+        },
+        {
+          "top": 168,
+          "left": 542,
+          "width": 252,
+          "height": 110,
+          "bottom": 278,
+          "right": 795
+        },
+        {
+          "top": 168,
+          "left": 809,
+          "width": 252,
+          "height": 110,
+          "bottom": 278,
+          "right": 1061
+        },
+        {
+          "top": 168,
+          "left": 1075,
+          "width": 252,
+          "height": 110,
+          "bottom": 278,
+          "right": 1327
+        },
+        {
+          "top": 380,
+          "left": 295,
+          "width": 328,
+          "height": 113,
+          "bottom": 493,
+          "right": 623
+        },
+        {
+          "top": 380,
+          "left": 637,
+          "width": 328,
+          "height": 113,
+          "bottom": 493,
+          "right": 966
+        },
+        {
+          "top": 380,
+          "left": 980,
+          "width": 328,
+          "height": 113,
+          "bottom": 493,
+          "right": 1308
+        },
+        {
+          "top": 507,
+          "left": 295,
+          "width": 328,
+          "height": 113,
+          "bottom": 620,
+          "right": 623
+        },
+        {
+          "top": 809,
+          "left": 295,
+          "width": 328,
+          "height": 113,
+          "bottom": 921,
+          "right": 623
+        },
+        {
+          "top": 809,
+          "left": 637,
+          "width": 328,
+          "height": 113,
+          "bottom": 921,
+          "right": 966
+        },
+        {
+          "top": 809,
+          "left": 980,
+          "width": 328,
+          "height": 113,
+          "bottom": 921,
+          "right": 1308
+        },
+        {
+          "top": 935,
+          "left": 295,
+          "width": 328,
+          "height": 113,
+          "bottom": 1048,
+          "right": 623
+        },
+        {
+          "top": 1237,
+          "left": 295,
+          "width": 328,
+          "height": 113,
+          "bottom": 1350,
+          "right": 623
+        },
+        {
+          "top": 1237,
+          "left": 637,
+          "width": 328,
+          "height": 113,
+          "bottom": 1350,
+          "right": 966
+        },
+        {
+          "top": 1237,
+          "left": 980,
+          "width": 328,
+          "height": 113,
+          "bottom": 1350,
+          "right": 1308
+        },
+        {
+          "top": 1364,
+          "left": 295,
+          "width": 328,
+          "height": 113,
+          "bottom": 1477,
+          "right": 623
+        }
+      ],
+      "kpiHeightRange": 3,
+      "formRects": [],
+      "cardCount": 5
+    },
+    {
+      "name": "urunler-1366",
+      "viewport": {
+        "width": 1366,
+        "height": 768
+      },
+      "scrollWidth": 1351,
+      "overflowX": false,
+      "offscreen": [],
+      "sidebar": {
+        "rect": {
+          "top": 0,
+          "left": 0,
+          "width": 252,
+          "height": 768,
+          "bottom": 768,
+          "right": 252
+        },
+        "overflow": "hidden",
+        "overflowY": "hidden"
+      },
+      "sidebarGroups": {
+        "rect": {
+          "top": 80,
+          "left": 10,
+          "width": 237,
+          "height": 672,
+          "bottom": 752,
+          "right": 247
+        },
+        "clientHeight": 672,
+        "scrollHeight": 726,
+        "overflowY": "auto",
+        "scrollTest": {
+          "beforeScroll": 0,
+          "afterScroll": 54
+        }
+      },
+      "menuItemHeights": [
+        40,
+        40,
+        40,
+        40,
+        40,
+        40,
+        40,
+        40,
+        40,
+        40,
+        40,
+        40
+      ],
+      "menuHeightRange": 0,
+      "activeMenu": {
+        "rect": {
+          "top": 284,
+          "left": 10,
+          "width": 223,
+          "height": 40,
+          "bottom": 324,
+          "right": 233
+        },
+        "text": "URÜrünler",
+        "background": "rgb(239, 246, 255)",
+        "color": "rgb(17, 24, 39)",
+        "boxShadow": "rgb(15, 98, 254) 3px 0px 0px 0px inset, rgba(15, 98, 254, 0.08) 0px 4px 12px 0px",
+        "borderLeft": "1px"
+      },
+      "topbar": {
+        "top": 0,
+        "left": 252,
+        "width": 1099,
+        "height": 70,
+        "bottom": 70,
+        "right": 1351
+      },
+      "kpiCount": 4,
+      "kpiRects": [
+        {
+          "top": 168,
+          "left": 276,
+          "width": 252,
+          "height": 110,
+          "bottom": 278,
+          "right": 528
+        },
+        {
+          "top": 168,
+          "left": 542,
+          "width": 252,
+          "height": 110,
+          "bottom": 278,
+          "right": 795
+        },
+        {
+          "top": 168,
+          "left": 809,
+          "width": 252,
+          "height": 110,
+          "bottom": 278,
+          "right": 1061
+        },
+        {
+          "top": 168,
+          "left": 1075,
+          "width": 252,
+          "height": 110,
+          "bottom": 278,
+          "right": 1327
+        }
+      ],
+      "kpiHeightRange": 0,
+      "formRects": [
+        {
+          "top": 378,
+          "left": 295,
+          "width": 615,
+          "height": 43,
+          "bottom": 421,
+          "right": 910
+        },
+        {
+          "top": 353,
+          "left": 966,
+          "width": 342,
+          "height": 64,
+          "bottom": 417,
+          "right": 1308
+        },
+        {
+          "top": 429,
+          "left": 966,
+          "width": 342,
+          "height": 66,
+          "bottom": 495,
+          "right": 1308
+        },
+        {
+          "top": 429,
+          "left": 966,
+          "width": 212,
+          "height": 66,
+          "bottom": 495,
+          "right": 1178
+        },
+        {
+          "top": 431,
+          "left": 1188,
+          "width": 120,
+          "height": 64,
+          "bottom": 495,
+          "right": 1308
+        },
+        {
+          "top": 507,
+          "left": 966,
+          "width": 342,
+          "height": 110,
+          "bottom": 617,
+          "right": 1308
+        },
+        {
+          "top": 777,
+          "left": 966,
+          "width": 342,
+          "height": 41,
+          "bottom": 818,
+          "right": 1308
+        }
+      ],
+      "cardCount": 3
+    },
+    {
+      "name": "rapor-merkezi-1366",
+      "viewport": {
+        "width": 1366,
+        "height": 768
+      },
+      "scrollWidth": 1351,
+      "overflowX": false,
+      "offscreen": [],
+      "sidebar": {
+        "rect": {
+          "top": 0,
+          "left": 0,
+          "width": 252,
+          "height": 768,
+          "bottom": 768,
+          "right": 252
+        },
+        "overflow": "hidden",
+        "overflowY": "hidden"
+      },
+      "sidebarGroups": {
+        "rect": {
+          "top": 80,
+          "left": 10,
+          "width": 237,
+          "height": 672,
+          "bottom": 752,
+          "right": 247
+        },
+        "clientHeight": 672,
+        "scrollHeight": 726,
+        "overflowY": "auto",
+        "scrollTest": {
+          "beforeScroll": 0,
+          "afterScroll": 54
+        }
+      },
+      "menuItemHeights": [
+        40,
+        40,
+        40,
+        40,
+        40,
+        40,
+        40,
+        40,
+        40,
+        40,
+        40,
+        40
+      ],
+      "menuHeightRange": 0,
+      "activeMenu": {
+        "rect": {
+          "top": 665,
+          "left": 10,
+          "width": 223,
+          "height": 40,
+          "bottom": 705,
+          "right": 233
+        },
+        "text": "RMRapor Merkezi",
+        "background": "rgb(239, 246, 255)",
+        "color": "rgb(17, 24, 39)",
+        "boxShadow": "rgb(15, 98, 254) 3px 0px 0px 0px inset, rgba(15, 98, 254, 0.08) 0px 4px 12px 0px",
+        "borderLeft": "1px"
+      },
+      "topbar": {
+        "top": 0,
+        "left": 252,
+        "width": 1099,
+        "height": 70,
+        "bottom": 70,
+        "right": 1351
+      },
+      "kpiCount": 6,
+      "kpiRects": [
+        {
+          "top": 168,
+          "left": 276,
+          "width": 341,
+          "height": 115,
+          "bottom": 283,
+          "right": 617
+        },
+        {
+          "top": 168,
+          "left": 631,
+          "width": 341,
+          "height": 115,
+          "bottom": 283,
+          "right": 972
+        },
+        {
+          "top": 168,
+          "left": 986,
+          "width": 341,
+          "height": 115,
+          "bottom": 283,
+          "right": 1327
+        },
+        {
+          "top": 297,
+          "left": 276,
+          "width": 341,
+          "height": 115,
+          "bottom": 412,
+          "right": 617
+        },
+        {
+          "top": 297,
+          "left": 631,
+          "width": 341,
+          "height": 115,
+          "bottom": 412,
+          "right": 972
+        },
+        {
+          "top": 297,
+          "left": 986,
+          "width": 341,
+          "height": 115,
+          "bottom": 412,
+          "right": 1327
+        }
+      ],
+      "kpiHeightRange": 0,
+      "formRects": [
+        {
+          "top": 908,
+          "left": 295,
+          "width": 220,
+          "height": 66,
+          "bottom": 974,
+          "right": 515
+        },
+        {
+          "top": 908,
+          "left": 525,
+          "width": 149,
+          "height": 66,
+          "bottom": 974,
+          "right": 674
+        },
+        {
+          "top": 908,
+          "left": 684,
+          "width": 149,
+          "height": 66,
+          "bottom": 974,
+          "right": 832
+        },
+        {
+          "top": 908,
+          "left": 842,
+          "width": 149,
+          "height": 66,
+          "bottom": 974,
+          "right": 991
+        },
+        {
+          "top": 908,
+          "left": 1001,
+          "width": 149,
+          "height": 66,
+          "bottom": 974,
+          "right": 1149
+        },
+        {
+          "top": 908,
+          "left": 1159,
+          "width": 149,
+          "height": 66,
+          "bottom": 974,
+          "right": 1308
+        }
+      ],
+      "cardCount": 3
+    },
+    {
+      "name": "dashboard-1280",
+      "viewport": {
+        "width": 1280,
+        "height": 768
+      },
+      "scrollWidth": 1265,
+      "overflowX": false,
+      "offscreen": [],
+      "sidebar": {
+        "rect": {
+          "top": 0,
+          "left": 0,
+          "width": 244,
+          "height": 768,
+          "bottom": 768,
+          "right": 244
+        },
+        "overflow": "hidden",
+        "overflowY": "hidden"
+      },
+      "sidebarGroups": {
+        "rect": {
+          "top": 80,
+          "left": 10,
+          "width": 229,
+          "height": 672,
+          "bottom": 752,
+          "right": 239
+        },
+        "clientHeight": 672,
+        "scrollHeight": 726,
+        "overflowY": "auto",
+        "scrollTest": {
+          "beforeScroll": 0,
+          "afterScroll": 54
+        }
+      },
+      "menuItemHeights": [
+        40,
+        40,
+        40,
+        40,
+        40,
+        40,
+        40,
+        40,
+        40,
+        40,
+        40,
+        40
+      ],
+      "menuHeightRange": 0,
+      "activeMenu": {
+        "rect": {
+          "top": 115,
+          "left": 10,
+          "width": 215,
+          "height": 40,
+          "bottom": 155,
+          "right": 225
+        },
+        "text": "DBDashboard",
+        "background": "rgb(239, 246, 255)",
+        "color": "rgb(17, 24, 39)",
+        "boxShadow": "rgb(15, 98, 254) 3px 0px 0px 0px inset, rgba(15, 98, 254, 0.08) 0px 4px 12px 0px",
+        "borderLeft": "1px"
+      },
+      "topbar": {
+        "top": 0,
+        "left": 244,
+        "width": 1021,
+        "height": 76,
+        "bottom": 76,
+        "right": 1265
+      },
+      "kpiCount": 16,
+      "kpiRects": [
+        {
+          "top": 172,
+          "left": 262,
+          "width": 236,
+          "height": 110,
+          "bottom": 282,
+          "right": 498
+        },
+        {
+          "top": 172,
+          "left": 512,
+          "width": 236,
+          "height": 110,
+          "bottom": 282,
+          "right": 748
+        },
+        {
+          "top": 172,
+          "left": 762,
+          "width": 236,
+          "height": 110,
+          "bottom": 282,
+          "right": 997
+        },
+        {
+          "top": 172,
+          "left": 1011,
+          "width": 236,
+          "height": 110,
+          "bottom": 282,
+          "right": 1247
+        },
+        {
+          "top": 384,
+          "left": 281,
+          "width": 306,
+          "height": 112,
+          "bottom": 496,
+          "right": 587
+        },
+        {
+          "top": 384,
+          "left": 601,
+          "width": 306,
+          "height": 112,
+          "bottom": 496,
+          "right": 908
+        },
+        {
+          "top": 384,
+          "left": 922,
+          "width": 306,
+          "height": 112,
+          "bottom": 496,
+          "right": 1228
+        },
+        {
+          "top": 510,
+          "left": 281,
+          "width": 306,
+          "height": 112,
+          "bottom": 622,
+          "right": 587
+        },
+        {
+          "top": 810,
+          "left": 281,
+          "width": 306,
+          "height": 112,
+          "bottom": 922,
+          "right": 587
+        },
+        {
+          "top": 810,
+          "left": 601,
+          "width": 306,
+          "height": 112,
+          "bottom": 922,
+          "right": 908
+        },
+        {
+          "top": 810,
+          "left": 922,
+          "width": 306,
+          "height": 112,
+          "bottom": 922,
+          "right": 1228
+        },
+        {
+          "top": 936,
+          "left": 281,
+          "width": 306,
+          "height": 112,
+          "bottom": 1048,
+          "right": 587
+        },
+        {
+          "top": 1236,
+          "left": 281,
+          "width": 306,
+          "height": 112,
+          "bottom": 1348,
+          "right": 587
+        },
+        {
+          "top": 1236,
+          "left": 601,
+          "width": 306,
+          "height": 112,
+          "bottom": 1348,
+          "right": 908
+        },
+        {
+          "top": 1236,
+          "left": 922,
+          "width": 306,
+          "height": 112,
+          "bottom": 1348,
+          "right": 1228
+        },
+        {
+          "top": 1362,
+          "left": 281,
+          "width": 306,
+          "height": 112,
+          "bottom": 1474,
+          "right": 587
+        }
+      ],
+      "kpiHeightRange": 2,
+      "formRects": [],
+      "cardCount": 5
+    },
+    {
+      "name": "dashboard-1024",
+      "viewport": {
+        "width": 1024,
+        "height": 768
+      },
+      "scrollWidth": 1009,
+      "overflowX": false,
+      "offscreen": [],
+      "sidebar": {
+        "rect": {
+          "top": 0,
+          "left": 0,
+          "width": 228,
+          "height": 768,
+          "bottom": 768,
+          "right": 228
+        },
+        "overflow": "hidden",
+        "overflowY": "hidden"
+      },
+      "sidebarGroups": {
+        "rect": {
+          "top": 76,
+          "left": 9,
+          "width": 215,
+          "height": 678,
+          "bottom": 754,
+          "right": 224
+        },
+        "clientHeight": 678,
+        "scrollHeight": 688,
+        "overflowY": "auto",
+        "scrollTest": {
+          "beforeScroll": 0,
+          "afterScroll": 10
+        }
+      },
+      "menuItemHeights": [
+        38,
+        38,
+        38,
+        38,
+        38,
+        38,
+        38,
+        38,
+        38,
+        38,
+        38,
+        38
+      ],
+      "menuHeightRange": 0,
+      "activeMenu": {
+        "rect": {
+          "top": 109,
+          "left": 9,
+          "width": 202,
+          "height": 38,
+          "bottom": 147,
+          "right": 211
+        },
+        "text": "DBDashboard",
+        "background": "rgb(239, 246, 255)",
+        "color": "rgb(17, 24, 39)",
+        "boxShadow": "rgb(15, 98, 254) 3px 0px 0px 0px inset, rgba(15, 98, 254, 0.08) 0px 4px 12px 0px",
+        "borderLeft": "1px"
+      },
+      "topbar": {
+        "top": 0,
+        "left": 228,
+        "width": 781,
+        "height": 76,
+        "bottom": 76,
+        "right": 1009
+      },
+      "kpiCount": 16,
+      "kpiRects": [
+        {
+          "top": 172,
+          "left": 246,
+          "width": 176,
+          "height": 110,
+          "bottom": 282,
+          "right": 422
+        },
+        {
+          "top": 172,
+          "left": 436,
+          "width": 176,
+          "height": 110,
+          "bottom": 282,
+          "right": 612
+        },
+        {
+          "top": 172,
+          "left": 626,
+          "width": 176,
+          "height": 110,
+          "bottom": 282,
+          "right": 801
+        },
+        {
+          "top": 172,
+          "left": 815,
+          "width": 176,
+          "height": 110,
+          "bottom": 282,
+          "right": 991
+        },
+        {
+          "top": 384,
+          "left": 265,
+          "width": 226,
+          "height": 112,
+          "bottom": 496,
+          "right": 491
+        },
+        {
+          "top": 384,
+          "left": 505,
+          "width": 226,
+          "height": 112,
+          "bottom": 496,
+          "right": 732
+        },
+        {
+          "top": 384,
+          "left": 746,
+          "width": 226,
+          "height": 112,
+          "bottom": 496,
+          "right": 972
+        },
+        {
+          "top": 510,
+          "left": 265,
+          "width": 226,
+          "height": 112,
+          "bottom": 622,
+          "right": 491
+        },
+        {
+          "top": 810,
+          "left": 265,
+          "width": 226,
+          "height": 112,
+          "bottom": 922,
+          "right": 491
+        },
+        {
+          "top": 810,
+          "left": 505,
+          "width": 226,
+          "height": 112,
+          "bottom": 922,
+          "right": 732
+        },
+        {
+          "top": 810,
+          "left": 746,
+          "width": 226,
+          "height": 112,
+          "bottom": 922,
+          "right": 972
+        },
+        {
+          "top": 936,
+          "left": 265,
+          "width": 226,
+          "height": 112,
+          "bottom": 1048,
+          "right": 491
+        },
+        {
+          "top": 1236,
+          "left": 265,
+          "width": 226,
+          "height": 112,
+          "bottom": 1348,
+          "right": 491
+        },
+        {
+          "top": 1236,
+          "left": 505,
+          "width": 226,
+          "height": 112,
+          "bottom": 1348,
+          "right": 732
+        },
+        {
+          "top": 1236,
+          "left": 746,
+          "width": 226,
+          "height": 112,
+          "bottom": 1348,
+          "right": 972
+        },
+        {
+          "top": 1362,
+          "left": 265,
+          "width": 226,
+          "height": 112,
+          "bottom": 1474,
+          "right": 491
+        }
+      ],
+      "kpiHeightRange": 2,
+      "formRects": [],
+      "cardCount": 5
+    },
+    {
+      "name": "dashboard-768",
+      "viewport": {
+        "width": 768,
+        "height": 768
+      },
+      "scrollWidth": 753,
+      "overflowX": false,
+      "offscreen": [],
+      "sidebar": {
+        "rect": {
+          "top": 0,
+          "left": 0,
+          "width": 753,
+          "height": 482,
+          "bottom": 482,
+          "right": 753
+        },
+        "overflow": "visible",
+        "overflowY": "visible"
+      },
+      "sidebarGroups": {
+        "rect": {
+          "top": 80,
+          "left": 16,
+          "width": 721,
+          "height": 387,
+          "bottom": 467,
+          "right": 737
+        },
+        "clientHeight": 387,
+        "scrollHeight": 387,
+        "overflowY": "visible",
+        "scrollTest": {
+          "beforeScroll": 0,
+          "afterScroll": 0
+        }
+      },
+      "menuItemHeights": [
+        38,
+        38,
+        38,
+        38,
+        38,
+        38,
+        38,
+        38,
+        38,
+        38,
+        38,
+        38
+      ],
+      "menuHeightRange": 0,
+      "activeMenu": {
+        "rect": {
+          "top": 113,
+          "left": 16,
+          "width": 355,
+          "height": 38,
+          "bottom": 151,
+          "right": 371
+        },
+        "text": "DBDashboard",
+        "background": "rgb(239, 246, 255)",
+        "color": "rgb(17, 24, 39)",
+        "boxShadow": "rgb(15, 98, 254) 3px 0px 0px 0px inset, rgba(15, 98, 254, 0.08) 0px 4px 12px 0px",
+        "borderLeft": "1px"
+      },
+      "topbar": {
+        "top": 482,
+        "left": 0,
+        "width": 753,
+        "height": 70,
+        "bottom": 552,
+        "right": 753
+      },
+      "kpiCount": 16,
+      "kpiRects": [
+        {
+          "top": 644,
+          "left": 16,
+          "width": 354,
+          "height": 110,
+          "bottom": 754,
+          "right": 370
+        },
+        {
+          "top": 644,
+          "left": 384,
+          "width": 354,
+          "height": 110,
+          "bottom": 754,
+          "right": 737
+        },
+        {
+          "top": 768,
+          "left": 16,
+          "width": 354,
+          "height": 110,
+          "bottom": 878,
+          "right": 370
+        },
+        {
+          "top": 768,
+          "left": 384,
+          "width": 354,
+          "height": 110,
+          "bottom": 878,
+          "right": 737
+        },
+        {
+          "top": 980,
+          "left": 35,
+          "width": 335,
+          "height": 112,
+          "bottom": 1092,
+          "right": 370
+        },
+        {
+          "top": 980,
+          "left": 384,
+          "width": 335,
+          "height": 112,
+          "bottom": 1092,
+          "right": 718
+        },
+        {
+          "top": 1106,
+          "left": 35,
+          "width": 335,
+          "height": 112,
+          "bottom": 1218,
+          "right": 370
+        },
+        {
+          "top": 1106,
+          "left": 384,
+          "width": 335,
+          "height": 112,
+          "bottom": 1218,
+          "right": 718
+        },
+        {
+          "top": 1406,
+          "left": 35,
+          "width": 335,
+          "height": 112,
+          "bottom": 1518,
+          "right": 370
+        },
+        {
+          "top": 1406,
+          "left": 384,
+          "width": 335,
+          "height": 112,
+          "bottom": 1518,
+          "right": 718
+        },
+        {
+          "top": 1532,
+          "left": 35,
+          "width": 335,
+          "height": 112,
+          "bottom": 1644,
+          "right": 370
+        },
+        {
+          "top": 1532,
+          "left": 384,
+          "width": 335,
+          "height": 112,
+          "bottom": 1644,
+          "right": 718
+        },
+        {
+          "top": 1832,
+          "left": 35,
+          "width": 335,
+          "height": 112,
+          "bottom": 1944,
+          "right": 370
+        },
+        {
+          "top": 1832,
+          "left": 384,
+          "width": 335,
+          "height": 112,
+          "bottom": 1944,
+          "right": 718
+        },
+        {
+          "top": 1958,
+          "left": 35,
+          "width": 335,
+          "height": 112,
+          "bottom": 2070,
+          "right": 370
+        },
+        {
+          "top": 1958,
+          "left": 384,
+          "width": 335,
+          "height": 112,
+          "bottom": 2070,
+          "right": 718
+        }
+      ],
+      "kpiHeightRange": 2,
+      "formRects": [],
+      "cardCount": 5
+    }
+  ]
+}
