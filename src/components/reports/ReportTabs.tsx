@@ -45,21 +45,37 @@ type Props = {
   onChange: (tab: ReportTabId) => void
 }
 
+type ReportTabCardProps = {
+  tab: ReportTab
+  active: boolean
+  onSelect: (tab: ReportTabId) => void
+}
+
+function ReportTabCard({ tab, active, onSelect }: ReportTabCardProps){
+  return (
+    <button
+      type="button"
+      role="tab"
+      aria-selected={active}
+      className={`report-tab-btn ${active ? 'active' : ''}`}
+      onClick={() => onSelect(tab.id)}
+    >
+      <strong>{tab.label}</strong>
+      <span>{tab.description}</span>
+    </button>
+  )
+}
+
 export default function ReportTabs({ activeTab, onChange }: Props){
   return (
     <div className="report-tab-list" role="tablist" aria-label="Rapor türleri">
       {reportTabs.map(tab => (
-        <button
+        <ReportTabCard
           key={tab.id}
-          type="button"
-          role="tab"
-          aria-selected={activeTab === tab.id}
-          className={`report-tab-btn ${activeTab === tab.id ? 'active' : ''}`}
-          onClick={() => onChange(tab.id)}
-        >
-          <strong>{tab.label}</strong>
-          <span>{tab.description}</span>
-        </button>
+          tab={tab}
+          active={activeTab === tab.id}
+          onSelect={onChange}
+        />
       ))}
     </div>
   )

@@ -567,12 +567,12 @@ export default function Reports(){
 
   return (
     <div className="reports-page">
-      <div className="page-title">
+      <div className="page-title report-title">
         <div>
           <h2>Raporlama</h2>
           <p className="muted">Stok, SKT, lot, reçete ve fire verileri için merkezi rapor altyapısı.</p>
         </div>
-        <div className="report-export-actions">
+        <div className="report-title-actions report-export-actions">
           <button className="btn" type="button" onClick={exportCsv} disabled={!canExportCsv}>CSV Dışa Aktar</button>
           <button className="btn" type="button" disabled>PDF Dışa Aktar</button>
         </div>

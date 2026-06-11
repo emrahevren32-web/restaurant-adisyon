@@ -177,13 +177,13 @@ export default function ReportFilters({
                 : 'Ürün adı, kategori veya kod')
 
   return (
-    <section className="card report-center-card">
-      <div className="section-header compact">
+    <section className="card report-center-card report-filter-card">
+      <div className="section-header compact report-filter-header">
         <div>
           <h3>Ortak Filtreler</h3>
           <p className="muted">Filtreler seçili raporun verilerine uygulanır.</p>
         </div>
-        <button className="btn" type="button" onClick={() => onChange(defaultReportFilters)}>Temizle</button>
+        <button className="btn report-filter-clear" type="button" onClick={() => onChange(defaultReportFilters)}>Temizle</button>
       </div>
 
       <div className={gridClassName}>
