@@ -9,9 +9,67 @@ type Props = {
   currentUser: User
 }
 
+type DashboardKpiCardProps = {
+  label: string
+  value: React.ReactNode
+  detail?: React.ReactNode
+  className?: string
+}
+
+type DashboardPanelProps = {
+  title: string
+  description?: string
+  badge?: React.ReactNode
+  children: React.ReactNode
+}
+
+type DashboardSummaryRowProps = {
+  title: React.ReactNode
+  detail: React.ReactNode
+  badge?: React.ReactNode
+  className?: string
+}
+
 const getLocalDateKey = (value: string | Date) => {
   const date = typeof value === 'string' ? new Date(value) : value
   return date.toLocaleDateString('sv-SE')
+}
+
+function DashboardKpiCard({ label, value, detail, className = '' }: DashboardKpiCardProps){
+  return (
+    <div className={`metric-card dashboard-kpi-card ${className}`}>
+      <span>{label}</span>
+      <strong>{value}</strong>
+      {detail && <p className="muted">{detail}</p>}
+    </div>
+  )
+}
+
+function DashboardPanel({ title, description, badge, children }: DashboardPanelProps){
+  return (
+    <section className="card dashboard-panel">
+      <div className="section-header compact dashboard-panel-header">
+        <div>
+          <h3>{title}</h3>
+          {description && <p className="muted">{description}</p>}
+        </div>
+        {badge}
+      </div>
+      {children}
+    </section>
+  )
+}
+
+function DashboardSummaryRow({ title, detail, badge, className = '' }: DashboardSummaryRowProps){
+  return (
+    <div className={`critical-stock-row dashboard-summary-row ${className}`}>
+      <div>
+        <strong>{title}</strong>
+        <span>{detail}</span>
+      </div>
+      {badge}
+    </div>
+  )
 }
 
 const paymentMethods: PaymentMethod[] = ['Nakit', 'Kart', 'Diğer']
@@ -89,194 +147,188 @@ export default function DailySummary({ currentUser }: Props){
   const wasteAlertRows = [...todaysWasteRecords]
     .sort((a, b) => (b.estimatedTotalCost || 0) - (a.estimatedTotalCost || 0))
     .slice(0, 5)
+  const salesKpis = [
+    { label: 'Toplam Satış', value: formatCurrency(total), detail: 'Bugünkü gelir' },
+    { label: 'Kapanan Hesap', value: todays.length, detail: 'Bugün kapanan' },
+    ...paymentTotals.slice(0, 2).map(item => ({
+      label: item.method,
+      value: formatCurrency(item.total),
+      detail: 'Ödeme toplamı'
+    }))
+  ]
+  const criticalKpis = [
+    { label: 'Kritik Stok', value: criticalStockItems.length, detail: 'Aktif kartlar' },
+    { label: 'Stokta Yok', value: outOfStockCount, detail: '0 veya negatif stok' },
+    { label: 'Bugün Kritik Oldu', value: todayCriticalEnteredCount, detail: 'Durum değişimi' },
+    { label: 'Bugün Çıktı', value: todayCriticalResolvedCount, detail: 'Kritikten çıkış' }
+  ]
+  const expiryKpis = [
+    { label: 'SKT Takipli Lot', value: activeExpiryLots.length, detail: 'Kalan miktarı olan' },
+    { label: 'Yaklaşan SKT', value: nearExpiryLots.length, detail: 'Uyarı günü içinde' },
+    { label: 'Tarihi Geçmiş', value: expiredLots.length, detail: 'FEFO tüketimde atlanır' },
+    { label: 'SKT Eksik Lot', value: unknownExpiryLots.length, detail: 'Tarih girilmemiş' }
+  ]
+  const wasteKpis = [
+    { label: 'Bugünkü Fire', value: todaysWasteRecords.length, detail: 'Aktif kayıt' },
+    { label: 'Tahmini Maliyet', value: formatCurrency(todayWasteCost), detail: 'Son alış fiyatına göre' },
+    { label: 'En Sık Neden', value: topWasteReason, detail: 'Bugün' },
+    { label: 'SKT Kaynaklı', value: sktWasteCount, detail: 'SKT geçmesi' }
+  ]
 
   return (
     <div className="summary-page">
-      <div className="page-title">
+      <div className="page-title dashboard-title">
         <div>
           <h2>Dashboard</h2>
           <p className="muted">{today} tarihli satış, stok, SKT ve fire özetleri.</p>
         </div>
+        <div className="dashboard-title-actions">
+          <span className="status-pill info-pill">Bugün</span>
+          <span className="dashboard-date-pill">{today}</span>
+        </div>
       </div>
 
-      <div className="metric-grid">
-        <div className="metric-card">
-          <span>Toplam Satış</span>
-          <strong>{formatCurrency(total)}</strong>
-        </div>
-        <div className="metric-card">
-          <span>Kapanan Hesap</span>
-          <strong>{todays.length}</strong>
-        </div>
-        {paymentTotals.slice(0,2).map(item => (
-          <div className="metric-card" key={item.method}>
-            <span>{item.method}</span>
-            <strong>{formatCurrency(item.total)}</strong>
-          </div>
+      <div className="metric-grid dashboard-kpi-grid">
+        {salesKpis.map(item => (
+          <DashboardKpiCard
+            key={item.label}
+            label={item.label}
+            value={item.value}
+            detail={item.detail}
+          />
         ))}
       </div>
 
       {canSeeStockSummary && (
-        <section className="card">
-          <div className="section-header compact">
-            <div>
-              <h3>Kritik Stok Özeti</h3>
-              <p className="muted">Aktif stok kartlarındaki kritik eşik durumları.</p>
-            </div>
+        <DashboardPanel
+          title="Kritik Stok Özeti"
+          description="Aktif stok kartlarındaki kritik eşik durumları."
+          badge={(
             <span className={`status-pill ${criticalStockItems.length > 0 ? 'danger-pill' : 'success'}`}>
               {criticalStockItems.length > 0 ? `${criticalStockItems.length} kritik` : 'Stok sağlıklı'}
             </span>
-          </div>
+          )}
+        >
 
-          <div className="metric-grid report-metric-grid">
-            <div className="metric-card">
-              <span>Kritik Stok</span>
-              <strong>{criticalStockItems.length}</strong>
-              <p className="muted">Aktif kartlar</p>
-            </div>
-            <div className="metric-card">
-              <span>Stokta Yok</span>
-              <strong>{outOfStockCount}</strong>
-              <p className="muted">0 veya negatif stok</p>
-            </div>
-            <div className="metric-card">
-              <span>Bugün Kritik Oldu</span>
-              <strong>{todayCriticalEnteredCount}</strong>
-              <p className="muted">Durum değişimi</p>
-            </div>
-            <div className="metric-card">
-              <span>Bugün Çıktı</span>
-              <strong>{todayCriticalResolvedCount}</strong>
-              <p className="muted">Kritikten çıkış</p>
-            </div>
+          <div className="metric-grid dashboard-panel-kpi-grid">
+            {criticalKpis.map(item => (
+              <DashboardKpiCard
+                key={item.label}
+                className="compact"
+                label={item.label}
+                value={item.value}
+                detail={item.detail}
+              />
+            ))}
           </div>
 
           <div className="critical-stock-list">
             {criticalStockItems.length === 0 && <div className="empty-state">Kritik stok bulunmuyor.</div>}
             {criticalStockItems.slice(0, 5).map(item => (
-              <div className="critical-stock-row" key={item.id}>
-                <div>
-                  <strong>{item.name}</strong>
-                  <span>Mevcut {formatStockQuantity(item.currentQty, item.unit)} / Kritik {formatStockQuantity(item.minQty, item.unit)}</span>
-                </div>
-                <span className="status-pill danger-pill">
+              <DashboardSummaryRow
+                key={item.id}
+                title={item.name}
+                detail={<>Mevcut {formatStockQuantity(item.currentQty, item.unit)} / Kritik {formatStockQuantity(item.minQty, item.unit)}</>}
+                badge={(
+                  <span className="status-pill danger-pill">
                   Eksik {formatStockQuantity(getCriticalShortage(item), item.unit)}
-                </span>
-              </div>
+                  </span>
+                )}
+              />
             ))}
           </div>
-        </section>
+        </DashboardPanel>
       )}
 
       {canSeeStockSummary && (
-        <section className="card">
-          <div className="section-header compact">
-            <div>
-              <h3>SKT Özeti</h3>
-              <p className="muted">Lot bazlı son kullanma tarihi uyarıları.</p>
-            </div>
+        <DashboardPanel
+          title="SKT Özeti"
+          description="Lot bazlı son kullanma tarihi uyarıları."
+          badge={(
             <span className={`status-pill ${expiredLots.length > 0 ? 'danger-pill' : nearExpiryLots.length > 0 ? 'warning-pill' : 'success'}`}>
               {expiredLots.length > 0 ? `${expiredLots.length} tarihi geçmiş` : nearExpiryLots.length > 0 ? `${nearExpiryLots.length} yaklaşıyor` : 'SKT sağlıklı'}
             </span>
-          </div>
+          )}
+        >
 
-          <div className="metric-grid report-metric-grid">
-            <div className="metric-card">
-              <span>SKT Takipli Lot</span>
-              <strong>{activeExpiryLots.length}</strong>
-              <p className="muted">Kalan miktarı olan</p>
-            </div>
-            <div className="metric-card">
-              <span>Yaklaşan SKT</span>
-              <strong>{nearExpiryLots.length}</strong>
-              <p className="muted">Uyarı günü içinde</p>
-            </div>
-            <div className="metric-card">
-              <span>Tarihi Geçmiş</span>
-              <strong>{expiredLots.length}</strong>
-              <p className="muted">FEFO tüketimde atlanır</p>
-            </div>
-            <div className="metric-card">
-              <span>SKT Eksik Lot</span>
-              <strong>{unknownExpiryLots.length}</strong>
-              <p className="muted">Tarih girilmemiş</p>
-            </div>
+          <div className="metric-grid dashboard-panel-kpi-grid">
+            {expiryKpis.map(item => (
+              <DashboardKpiCard
+                key={item.label}
+                className="compact"
+                label={item.label}
+                value={item.value}
+                detail={item.detail}
+              />
+            ))}
           </div>
 
           <div className="critical-stock-list">
             {expiryAlertRows.length === 0 && <div className="empty-state">SKT uyarısı bulunmuyor.</div>}
             {expiryAlertRows.map(({ lot, status }) => (
-              <div className="critical-stock-row expiry-stock-row" key={lot.id}>
-                <div>
-                  <strong>{lot.stockItemName}</strong>
-                  <span>{lot.lotCode} · SKT {formatExpiryDate(lot.expiryDate)} · Kalan {formatExpiryQuantity(lot.remainingQty, lot.unit)}</span>
-                </div>
-                <span className={`status-pill ${getExpiryStatusClass(status)}`}>
-                  {formatExpiryStatusLabel(status)}
-                </span>
-              </div>
+              <DashboardSummaryRow
+                key={lot.id}
+                className="expiry-stock-row"
+                title={lot.stockItemName}
+                detail={<>{lot.lotCode} · SKT {formatExpiryDate(lot.expiryDate)} · Kalan {formatExpiryQuantity(lot.remainingQty, lot.unit)}</>}
+                badge={(
+                  <span className={`status-pill ${getExpiryStatusClass(status)}`}>
+                    {formatExpiryStatusLabel(status)}
+                  </span>
+                )}
+              />
             ))}
           </div>
-        </section>
+        </DashboardPanel>
       )}
 
       {canSeeStockSummary && (
-        <section className="card">
-          <div className="section-header compact">
-            <div>
-              <h3>Fire Özeti</h3>
-              <p className="muted">Bugünkü aktif fire kayıtları ve tahmini maliyet etkisi.</p>
-            </div>
+        <DashboardPanel
+          title="Fire Özeti"
+          description="Bugünkü aktif fire kayıtları ve tahmini maliyet etkisi."
+          badge={(
             <span className={`status-pill ${todaysWasteRecords.length > 0 ? 'warning-pill' : 'success'}`}>
               {todaysWasteRecords.length > 0 ? `${todaysWasteRecords.length} fire` : 'Fire yok'}
             </span>
-          </div>
+          )}
+        >
 
-          <div className="metric-grid report-metric-grid">
-            <div className="metric-card">
-              <span>Bugünkü Fire</span>
-              <strong>{todaysWasteRecords.length}</strong>
-              <p className="muted">Aktif kayıt</p>
-            </div>
-            <div className="metric-card">
-              <span>Tahmini Maliyet</span>
-              <strong>{formatCurrency(todayWasteCost)}</strong>
-              <p className="muted">Son alış fiyatına göre</p>
-            </div>
-            <div className="metric-card">
-              <span>En Sık Neden</span>
-              <strong>{topWasteReason}</strong>
-              <p className="muted">Bugün</p>
-            </div>
-            <div className="metric-card">
-              <span>SKT Kaynaklı</span>
-              <strong>{sktWasteCount}</strong>
-              <p className="muted">SKT geçmesi</p>
-            </div>
+          <div className="metric-grid dashboard-panel-kpi-grid">
+            {wasteKpis.map(item => (
+              <DashboardKpiCard
+                key={item.label}
+                className="compact"
+                label={item.label}
+                value={item.value}
+                detail={item.detail}
+              />
+            ))}
           </div>
 
           <div className="critical-stock-list">
             {wasteAlertRows.length === 0 && <div className="empty-state">Bugün fire kaydı bulunmuyor.</div>}
             {wasteAlertRows.map(record => (
-              <div className="critical-stock-row expiry-stock-row" key={record.id}>
-                <div>
-                  <strong>{record.stockItemName}</strong>
-                  <span>{record.reasonCategory} · {formatExpiryQuantity(record.qty, record.unit)} · {record.responsibleFullName || 'Sorumlu yok'}</span>
-                </div>
-                <span className="status-pill warning-pill">
-                  {formatCurrency(record.estimatedTotalCost || 0)}
-                </span>
-              </div>
+              <DashboardSummaryRow
+                key={record.id}
+                className="expiry-stock-row"
+                title={record.stockItemName}
+                detail={<>{record.reasonCategory} · {formatExpiryQuantity(record.qty, record.unit)} · {record.responsibleFullName || 'Sorumlu yok'}</>}
+                badge={(
+                  <span className="status-pill warning-pill">
+                    {formatCurrency(record.estimatedTotalCost || 0)}
+                  </span>
+                )}
+              />
             ))}
           </div>
-        </section>
+        </DashboardPanel>
       )}
 
       <div className="summary-layout">
-        <section className="card">
-          <div className="section-header compact">
-            <h3>Satış Detayı</h3>
-          </div>
+        <DashboardPanel
+          title="Satış Detayı"
+          description="Bugün kapanan hesapların masa ve ödeme özeti."
+        >
           <div className="table-wrap">
             <table className="data-table">
               <thead>
@@ -298,12 +350,12 @@ export default function DailySummary({ currentUser }: Props){
               </tbody>
             </table>
           </div>
-        </section>
+        </DashboardPanel>
 
-        <section className="card">
-          <div className="section-header compact">
-            <h3>Ödeme Dağılımı</h3>
-          </div>
+        <DashboardPanel
+          title="Ödeme Dağılımı"
+          description="Nakit, kart ve diğer ödeme toplamları."
+        >
           <div className="payment-breakdown">
             {paymentTotals.map(item => (
               <div className="payment-row" key={item.method}>
@@ -312,7 +364,7 @@ export default function DailySummary({ currentUser }: Props){
               </div>
             ))}
           </div>
-        </section>
+        </DashboardPanel>
       </div>
     </div>
   )
