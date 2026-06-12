@@ -38,7 +38,10 @@ import {
 
 type Props = {
   currentUser: User
+  focus?: QROrdersFocus
 }
+
+export type QROrdersFocus = 'orders' | 'calls'
 
 type Feedback = {
   type: 'success' | 'error'
@@ -295,7 +298,7 @@ const getComparisonRows = (originalItems: QRRequestItem[], currentItems: QRReque
   return Array.from(rows.values())
 }
 
-export default function QROrders({ currentUser }: Props){
+export default function QROrders({ currentUser, focus = 'orders' }: Props){
   const [requests, setRequests] = React.useState<QRRequest[]>(() => loadSortedQRRequests())
   const [waiterCalls, setWaiterCalls] = React.useState<WaiterCall[]>(() => loadSortedWaiterCalls())
   const [auditEvents, setAuditEvents] = React.useState<QRAuditEvent[]>(() => loadSortedAuditEvents())
@@ -315,6 +318,7 @@ export default function QROrders({ currentUser }: Props){
 
   const canProcessRequests = currentUser.role === 'Admin' || currentUser.role === 'Garson'
   const activeProducts = React.useMemo(() => products.filter(product => product.active), [products])
+  const isCallsFocus = focus === 'calls'
 
   const refreshLiveData = React.useCallback(() => {
     setRequests(loadSortedQRRequests())
@@ -760,19 +764,8 @@ export default function QROrders({ currentUser }: Props){
     </details>
   )
 
-  return (
-    <div className="qr-orders-page">
-      <div className="page-title">
-        <div>
-          <h2>QR Siparişler</h2>
-          <p className="muted">Müşteri QR menüsünden gelen talepleri düzenleyin, onaylayın, reddedin ve çağrı denetimini takip edin.</p>
-        </div>
-        <span className="status-pill">{requests.length} talep</span>
-      </div>
-
-      {feedback && <div className={`qr-message ${feedback.type}`}>{feedback.text}</div>}
-
-      <section className="card">
+  const waiterCallsSection = (
+      <section className="card qr-focus-section">
         <div className="section-header compact">
           <div>
             <h3>Garson Çağrıları</h3>
@@ -821,8 +814,10 @@ export default function QROrders({ currentUser }: Props){
           </div>
         )}
       </section>
+  )
 
-      <section className="card">
+  const requestSection = (
+      <section className="card qr-focus-section">
         <div className="section-header compact">
           <div>
             <h3>Sipariş Talepleri</h3>
@@ -993,6 +988,35 @@ export default function QROrders({ currentUser }: Props){
           </div>
         )}
       </section>
+  )
+
+  return (
+    <div className={`qr-orders-page ${isCallsFocus ? 'calls-focus' : 'orders-focus'}`}>
+      <div className="page-title">
+        <div>
+          <h2>{isCallsFocus ? 'Garson Çağrıları' : 'QR Siparişler'}</h2>
+          <p className="muted">
+            {isCallsFocus
+              ? 'QR menüden gelen garson çağrılarını sahiplenin, masaya gidildi olarak işaretleyin ve kapatın.'
+              : 'Müşteri QR menüsünden gelen sipariş taleplerini düzenleyin, onaylayın, reddedin ve audit kayıtlarını takip edin.'}
+          </p>
+        </div>
+        <span className="status-pill">{isCallsFocus ? `${waiterCalls.length} aktif çağrı` : `${requests.length} talep`}</span>
+      </div>
+
+      {feedback && <div className={`qr-message ${feedback.type}`}>{feedback.text}</div>}
+
+      {isCallsFocus ? (
+        <>
+          {waiterCallsSection}
+          {requestSection}
+        </>
+      ) : (
+        <>
+          {requestSection}
+          {waiterCallsSection}
+        </>
+      )}
     </div>
   )
 }

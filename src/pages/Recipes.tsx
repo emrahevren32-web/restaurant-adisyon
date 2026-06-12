@@ -430,7 +430,6 @@ export default function Recipes({ currentUser }: Props){
           <h2>Reçete Yönetimi</h2>
           <p className="muted">Ürünlerin hangi hammaddelerden oluştuğunu, fire oranını, reçete maliyetini ve versiyon geçmişini yönetin.</p>
         </div>
-        <span className="status-pill success">Admin</span>
       </div>
 
       {message && <div className={`settings-message ${message.type}`}>{message.text}</div>}

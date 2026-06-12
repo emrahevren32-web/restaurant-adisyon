@@ -48,6 +48,9 @@ type NavKey =
   | 'adisyon'
   | 'tables-management'
   | 'products'
+  | 'kitchen'
+  | 'qr-orders'
+  | 'waiter-calls'
   | 'stock-cards'
   | 'stock-movements'
   | 'recipes'
@@ -55,6 +58,11 @@ type NavKey =
   | 'expiry-lots'
   | 'waste'
   | 'reports'
+  | 'bill-history'
+  | 'action-history'
+  | 'users'
+  | 'staff'
+  | 'qr-codes'
   | 'settings'
 
 type NavGroupKey =
@@ -83,7 +91,10 @@ const navGroups: NavGroup[] = [
     items: [
       { key: 'adisyon', label: 'Adisyonlar', route: 'tables', icon: 'AD' },
       { key: 'tables-management', label: 'Masalar', route: 'tables', icon: 'MS' },
-      { key: 'products', label: 'Ürünler', route: 'products', icon: 'UR' }
+      { key: 'products', label: 'Ürünler', route: 'products', icon: 'UR' },
+      { key: 'kitchen', label: 'Mutfak Ekranı', route: 'kitchen', icon: 'MF' },
+      { key: 'qr-orders', label: 'QR Siparişler', route: 'qr-orders', icon: 'QR' },
+      { key: 'waiter-calls', label: 'Garson Çağrıları', route: 'qr-orders', icon: 'GC' }
     ]
   },
   {
@@ -104,7 +115,9 @@ const navGroups: NavGroup[] = [
     title: 'Raporlama',
     icon: 'RP',
     items: [
-      { key: 'reports', label: 'Rapor Merkezi', route: 'reports', icon: 'RM', adminOnly: true }
+      { key: 'reports', label: 'Rapor Merkezi', route: 'reports', icon: 'RM', adminOnly: true },
+      { key: 'bill-history', label: 'Adisyon Geçmişi', route: 'history', icon: 'AG', adminOnly: true },
+      { key: 'action-history', label: 'İşlem Geçmişi', route: 'actions', icon: 'IG', adminOnly: true }
     ]
   },
   {
@@ -112,6 +125,9 @@ const navGroups: NavGroup[] = [
     title: 'Yönetim',
     icon: 'YN',
     items: [
+      { key: 'users', label: 'Kullanıcı Yönetimi', route: 'users', icon: 'KY', adminOnly: true },
+      { key: 'staff', label: 'Personel Takibi', route: 'staff', icon: 'PT', adminOnly: true },
+      { key: 'qr-codes', label: 'QR Kodlar', route: 'qr-codes', icon: 'QK', adminOnly: true },
       { key: 'settings', label: 'Ayarlar', route: 'settings', icon: 'AY', adminOnly: true }
     ]
   }
@@ -183,15 +199,35 @@ export default function App(){
       onOpenNavItem={openNavItem}
       onLogout={logout}
     >
-      {route === 'tables' && <TableManagement currentUser={currentUser} />}
+      {route === 'tables' && (
+        <TableManagement
+          currentUser={currentUser}
+          focus={activeNavKey === 'tables-management' ? 'tables' : 'billing'}
+        />
+      )}
       {route === 'products' && <Products currentUser={currentUser} />}
-      {route === 'stock-cards' && currentUser.role === 'Admin' && <StockCards currentUser={currentUser} />}
-      {route === 'stock-movements' && currentUser.role === 'Admin' && <StockMovements currentUser={currentUser} />}
+      {route === 'stock-cards' && currentUser.role === 'Admin' && (
+        <StockCards
+          currentUser={currentUser}
+          focus={activeNavKey === 'critical-stock' ? 'critical' : activeNavKey === 'expiry-lots' ? 'expiry' : 'cards'}
+        />
+      )}
+      {route === 'stock-movements' && currentUser.role === 'Admin' && (
+        <StockMovements
+          currentUser={currentUser}
+          focus={activeNavKey === 'waste' ? 'waste' : 'movements'}
+        />
+      )}
       {route === 'recipes' && currentUser.role === 'Admin' && <Recipes currentUser={currentUser} />}
       {route === 'summary' && <DailySummary currentUser={currentUser} />}
       {route === 'history' && <BillHistory />}
       {route === 'kitchen' && <Kitchen currentUser={currentUser} />}
-      {route === 'qr-orders' && <QROrders currentUser={currentUser} />}
+      {route === 'qr-orders' && (
+        <QROrders
+          currentUser={currentUser}
+          focus={activeNavKey === 'waiter-calls' ? 'calls' : 'orders'}
+        />
+      )}
       {route === 'qr-codes' && currentUser.role === 'Admin' && <QRCodes />}
       {route === 'actions' && currentUser.role === 'Admin' && <ActionHistory />}
       {route === 'staff' && currentUser.role === 'Admin' && <StaffTracking />}

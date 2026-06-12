@@ -117,7 +117,6 @@ export default function Settings({ currentUser, onSettingsChange }: Props){
           <h2>Ayarlar</h2>
           <p className="muted">Restoran bilgileri, yedekleme, geri yükleme ve demo veri işlemlerini yönetin.</p>
         </div>
-        <span className="status-pill success">Yönetici</span>
       </div>
 
       {message && <div className={`settings-message ${message.type}`}>{message.text}</div>}

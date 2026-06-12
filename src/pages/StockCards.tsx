@@ -38,13 +38,20 @@ import {
   getStockValueByAverageCost
 } from '../stockCost'
 
-type Props = { currentUser: User }
-type StatusFilter = 'all' | 'active' | 'inactive' | 'critical' | 'out' | 'healthy' | 'expiry' | 'expiry-risk' | 'expired'
+export type StockCardsFocus = 'cards' | 'critical' | 'expiry'
+type Props = { currentUser: User; focus?: StockCardsFocus }
+type StatusFilter = 'all' | 'active' | 'inactive' | 'critical' | 'out' | 'healthy' | 'expiry' | 'expiry-risk' | 'expired' | 'expiry-risk-or-expired'
 type UnitFilter = 'all' | StockUnit
 
 const DEFAULT_STOCK_CATEGORY_ID = 'stock_cat_general'
 const stockUnits: StockUnit[] = ['adet', 'kg', 'gr', 'lt', 'ml', 'paket', 'koli']
 const createId = (prefix: string) => `${prefix}_${Date.now()}`
+
+const getDefaultStatusFilter = (focus: StockCardsFocus): StatusFilter => {
+  if(focus === 'critical') return 'critical'
+  if(focus === 'expiry') return 'expiry-risk-or-expired'
+  return 'all'
+}
 
 const formatQuantity = formatStockQuantity
 
@@ -84,13 +91,13 @@ const getConsumptionPercent = (lot: Pick<StockExpiryLot, 'initialQty' | 'remaini
   return Math.min(100, Math.round((consumedQty / lot.initialQty) * 100))
 }
 
-export default function StockCards({ currentUser }: Props){
+export default function StockCards({ currentUser, focus = 'cards' }: Props){
   const [items, setItems] = React.useState<StockItem[]>(() => loadStockItems())
   const [categories, setCategories] = React.useState<StockCategory[]>(() => loadStockCategories())
   const [editingItem, setEditingItem] = React.useState<StockItem | null>(null)
   const [search, setSearch] = React.useState('')
   const [categoryFilter, setCategoryFilter] = React.useState('all')
-  const [statusFilter, setStatusFilter] = React.useState<StatusFilter>('active')
+  const [statusFilter, setStatusFilter] = React.useState<StatusFilter>(() => getDefaultStatusFilter(focus))
   const [unitFilter, setUnitFilter] = React.useState<UnitFilter>('all')
   const [newCategoryName, setNewCategoryName] = React.useState('')
   const [editingCategoryId, setEditingCategoryId] = React.useState<string | null>(null)
@@ -102,6 +109,7 @@ export default function StockCards({ currentUser }: Props){
   const [expiryLots, setExpiryLots] = React.useState(() => loadStockExpiryLots())
   const [expiryEvents, setExpiryEvents] = React.useState(() => loadStockExpiryEvents())
   const [lotPanelItem, setLotPanelItem] = React.useState<StockItem | null>(null)
+  const previousFocusRef = React.useRef<StockCardsFocus>(focus)
 
   const canManageStock = currentUser.role === 'Admin'
 
@@ -143,6 +151,17 @@ export default function StockCards({ currentUser }: Props){
     setEditingCategoryId(null)
     setEditingCategoryName('')
   }, [canManageStock])
+
+  React.useEffect(() => {
+    if(previousFocusRef.current === focus) return
+
+    previousFocusRef.current = focus
+    setSearch('')
+    setCategoryFilter('all')
+    setStatusFilter(getDefaultStatusFilter(focus))
+    setUnitFilter('all')
+    setLotPanelItem(null)
+  }, [focus])
 
   const categoryMap = React.useMemo(() => {
     return new Map(categories.map(category => [category.id, category]))
@@ -252,6 +271,7 @@ export default function StockCards({ currentUser }: Props){
         || (statusFilter === 'expiry' && isExpiryTracked(item))
         || (statusFilter === 'expiry-risk' && getItemExpirySummary(item).status === 'near_expiry')
         || (statusFilter === 'expired' && getItemExpirySummary(item).status === 'expired')
+        || (statusFilter === 'expiry-risk-or-expired' && ['near_expiry', 'expired'].includes(getItemExpirySummary(item).status || ''))
       const matchesUnit = unitFilter === 'all' || item.unit === unitFilter
 
       return matchesSearch && matchesCategory && matchesStatus && matchesUnit
@@ -265,11 +285,102 @@ export default function StockCards({ currentUser }: Props){
   const outOfStockCount = items.filter(isOutOfStock).length
   const healthyItemCount = items.filter(item => item.active && !isCriticalStock(item)).length
   const expiryTrackedItemCount = items.filter(isExpiryTracked).length
-  const nearExpiryItemCount = items.filter(item => getItemExpirySummary(item).status === 'near_expiry').length
-  const expiredItemCount = items.filter(item => getItemExpirySummary(item).status === 'expired').length
   const today = getLocalDateKey(new Date())
   const todayCriticalEnteredCount = criticalEvents.filter(event => event.eventType === 'entered' && getLocalDateKey(event.timestamp) === today).length
   const todayCriticalResolvedCount = criticalEvents.filter(event => event.eventType === 'resolved' && getLocalDateKey(event.timestamp) === today).length
+  const criticalShortageTotal = items.filter(isCriticalStock).reduce((sum, item) => sum + getCriticalShortage(item), 0)
+  const criticalAlmostOutCount = items.filter(item => item.active && isCriticalStock(item) && !isOutOfStock(item)).length
+  const stockItemById = React.useMemo(() => new Map(items.map(item => [item.id, item])), [items])
+  const activeExpiryLotStatusCounts = React.useMemo(() => {
+    return expiryLots.reduce(
+      (acc, lot) => {
+        if(lot.remainingQty <= 0) return acc
+
+        const item = stockItemById.get(lot.stockItemId)
+        if(!item) return acc
+
+        const status = getExpiryStatus(lot, getExpiryWarningDays(item))
+        if(status === 'near_expiry'){
+          acc.near += 1
+          acc.risky += 1
+        } else if(status === 'expired'){
+          acc.expired += 1
+          acc.risky += 1
+        } else if(status === 'valid'){
+          acc.healthy += 1
+        }
+
+        return acc
+      },
+      { near: 0, expired: 0, risky: 0, healthy: 0 }
+    )
+  }, [expiryLots, stockItemById])
+  const focusMeta = React.useMemo(() => {
+    if(focus === 'critical'){
+      return {
+        title: 'Kritik Stok',
+        description: 'Kritik seviyeye inen stok kartlarını takip edin ve eksik miktarları önceliklendirin.',
+        listTitle: 'Kritik Stok Listesi',
+        emptyText: 'Kritik seviyede stok kartı bulunamadı.'
+      }
+    }
+
+    if(focus === 'expiry'){
+      return {
+        title: 'SKT Yönetimi',
+        description: 'Yaklaşan ve geçmiş SKT riski taşıyan lotları stok kartları üzerinden izleyin.',
+        listTitle: 'SKT Risk Listesi',
+        emptyText: 'Yaklaşan veya geçmiş SKT riski bulunan lot/stok kartı bulunamadı.'
+      }
+    }
+
+    return {
+      title: 'Stok Kartları',
+      description: 'Tüm stok kartlarını oluşturun ve temel stok bilgilerini yönetin.',
+      listTitle: 'Stok Listesi',
+      emptyText: 'Bu filtrelere uygun stok kartı bulunamadı.'
+    }
+  }, [focus])
+  const metricCards = React.useMemo(() => {
+    if(focus === 'critical'){
+      return [
+        { label: 'Kritik Ürün', value: criticalItemCount, detail: `${outOfStockCount} stokta yok` },
+        { label: 'Eksik Miktar', value: criticalShortageTotal.toLocaleString('tr-TR', { maximumFractionDigits: 3 }), detail: 'Birim karma toplam' },
+        { label: 'Tükenmek Üzere', value: criticalAlmostOutCount, detail: 'Kritik ama stokta var' },
+        { label: 'Bugünkü Kritik Sayısı', value: todayCriticalEnteredCount, detail: `${todayCriticalResolvedCount} bugün çözüldü` }
+      ]
+    }
+
+    if(focus === 'expiry'){
+      return [
+        { label: 'Yaklaşan SKT', value: activeExpiryLotStatusCounts.near, detail: 'Uyarı aralığında' },
+        { label: 'Geçmiş SKT', value: activeExpiryLotStatusCounts.expired, detail: 'Müdahale bekler' },
+        { label: 'Riskli Lot', value: activeExpiryLotStatusCounts.risky, detail: 'Yaklaşan veya geçmiş' },
+        { label: 'Sağlıklı Lot', value: activeExpiryLotStatusCounts.healthy, detail: 'Aktif geçerli lot' }
+      ]
+    }
+
+    return [
+      { label: 'Toplam Kart', value: items.length, detail: `${inactiveItemCount} pasif kart` },
+      { label: 'Aktif Kart', value: activeItemCount, detail: `${healthyItemCount} sağlıklı stok` },
+      { label: 'SKT Takibi', value: expiryTrackedItemCount, detail: 'Lot bazlı izlenir' },
+      { label: 'Stok Riski', value: criticalItemCount, detail: `${outOfStockCount} stokta yok` }
+    ]
+  }, [
+    activeExpiryLotStatusCounts,
+    activeItemCount,
+    criticalAlmostOutCount,
+    criticalItemCount,
+    criticalShortageTotal,
+    expiryTrackedItemCount,
+    focus,
+    healthyItemCount,
+    inactiveItemCount,
+    items.length,
+    outOfStockCount,
+    todayCriticalEnteredCount,
+    todayCriticalResolvedCount
+  ])
 
   const assertCanManageStock = () => {
     if(canManageStock){
@@ -524,63 +635,32 @@ export default function StockCards({ currentUser }: Props){
   }
 
   return (
-    <div className="stock-page">
+    <div className={`stock-page stock-cards-page ${focus}-focus`}>
       <div className="page-title">
         <div>
-          <h2>Stok Kartları</h2>
-          <p className="muted">Stok kartlarını oluşturun. Stok miktarı ve SKT girişleri Stok Hareketleri ekranından yapılır.</p>
+          <h2>{focusMeta.title}</h2>
+          <p className="muted">{focusMeta.description}</p>
         </div>
-        <span className="status-pill success">Admin</span>
       </div>
 
       {permissionError && <div className="form-error">{permissionError}</div>}
       {stockNotice && <div className={`settings-message ${stockNotice.type}`}>{stockNotice.text}</div>}
 
       <div className="metric-grid">
-        <div className="metric-card">
-          <span>Toplam Stok Kartı</span>
-          <strong>{items.length}</strong>
-        </div>
-        <div className="metric-card">
-          <span>Aktif Kart</span>
-          <strong>{activeItemCount}</strong>
-        </div>
-        <div className="metric-card">
-          <span>Kritik Stok</span>
-          <strong>{criticalItemCount}</strong>
-          <p className="muted">Bugün giriş: {todayCriticalEnteredCount}</p>
-        </div>
-        <div className="metric-card">
-          <span>Stokta Yok</span>
-          <strong>{outOfStockCount}</strong>
-          <p className="muted">Aktif kartlar</p>
-        </div>
-        <div className="metric-card">
-          <span>SKT Takipli</span>
-          <strong>{expiryTrackedItemCount}</strong>
-          <p className="muted">Lot bazlı izlenir</p>
-        </div>
-        <div className="metric-card">
-          <span>SKT Riski</span>
-          <strong>{nearExpiryItemCount + expiredItemCount}</strong>
-          <p className="muted">{expiredItemCount} tarihi geçmiş</p>
-        </div>
-        <div className="metric-card">
-          <span>Sağlıklı Stok</span>
-          <strong>{healthyItemCount}</strong>
-          <p className="muted">Bugün çıkış: {todayCriticalResolvedCount}</p>
-        </div>
-        <div className="metric-card">
-          <span>Pasif Kart</span>
-          <strong>{inactiveItemCount}</strong>
-        </div>
+        {metricCards.map(card => (
+          <div className="metric-card" key={card.label}>
+            <span>{card.label}</span>
+            <strong>{card.value}</strong>
+            {card.detail && <p className="muted">{card.detail}</p>}
+          </div>
+        ))}
       </div>
 
       <div className="product-layout">
         <section className="product-main card">
           <div className="section-header">
             <div>
-              <h3>Stok Listesi</h3>
+              <h3>{focusMeta.listTitle}</h3>
               <p className="muted">{visibleItems.length} kayıt gösteriliyor.</p>
             </div>
             <div className="toolbar-controls stock-toolbar-controls">
@@ -604,6 +684,7 @@ export default function StockCards({ currentUser }: Props){
                 <option value="expiry">SKT takipli</option>
                 <option value="expiry-risk">SKT yaklaşan</option>
                 <option value="expired">SKT tarihi geçmiş</option>
+                <option value="expiry-risk-or-expired">Yaklaşan veya geçmiş SKT</option>
                 <option value="inactive">Pasif kartlar</option>
                 <option value="all">Tüm durumlar</option>
               </select>
@@ -632,7 +713,7 @@ export default function StockCards({ currentUser }: Props){
               <tbody>
                 {visibleItems.length === 0 && (
                   <tr>
-                    <td colSpan={9} className="empty-cell">Bu filtrelere uygun stok kartı bulunamadı.</td>
+                    <td colSpan={9} className="empty-cell">{focusMeta.emptyText}</td>
                   </tr>
                 )}
                 {sortedVisibleItems.map(item => {

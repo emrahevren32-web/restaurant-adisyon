@@ -101,7 +101,7 @@ export default function AppShell<
                       <span className="side-nav-title-icon" aria-hidden="true">{group.icon}</span>
                       <span>{group.title}</span>
                     </span>
-                    <span className="side-nav-chevron" aria-hidden="true">v</span>
+                    <span className="side-nav-chevron" aria-hidden="true">{isOpen ? '▼' : '▶'}</span>
                   </button>
                   <div className="side-nav-items" id={groupPanelId} hidden={!isOpen}>
                     {visibleItems.map(item => (
@@ -133,13 +133,13 @@ export default function AppShell<
               <strong>{activeNavLabel}</strong>
             </div>
             <div className="topbar-actions">
-              <div className="notification-placeholder" aria-label="Bildirim alanı" title="Bildirim alanı">
+              <div className="topbar-notification" aria-label="Bildirimler" title="Bildirimler">
+                <span className="topbar-bell" aria-hidden="true"></span>
                 <span className="notification-dot" aria-hidden="true"></span>
-                <span className="notification-count">0</span>
               </div>
-              <div className="profile-placeholder" aria-label="Kullanıcı bilgisi" title="Kullanıcı bilgisi">
-                <span className="profile-avatar">{getUserInitials(currentUser)}</span>
-                <span className="user-meta">
+              <div className="topbar-user-card" aria-label="Kullanıcı bilgisi" title="Kullanıcı bilgisi">
+                <span className="topbar-user-avatar">{getUserInitials(currentUser)}</span>
+                <span className="topbar-user-meta">
                   <strong>{currentUser.fullName || currentUser.username}</strong>
                   <span>{currentUser.role}</span>
                 </span>

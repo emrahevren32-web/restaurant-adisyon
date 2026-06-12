@@ -30,10 +30,23 @@ import {
   roundCurrency
 } from '../billing'
 
-type Props = { currentUser: User }
+export type TableManagementFocus = 'billing' | 'tables'
+
+type Props = {
+  currentUser: User
+  focus?: TableManagementFocus
+}
 type SplitSelection = Record<string, number>
 
 const createId = (prefix: string) => `${prefix}_${Date.now()}`
+
+const getDefaultSelectedTableId = (tables: TableState[], focus: TableManagementFocus) => {
+  if(focus === 'billing'){
+    return tables.find(table => table.open)?.id || tables[0]?.id || ''
+  }
+
+  return tables[0]?.id || ''
+}
 
 const calculateTableTotal = (table: TableState, products: Product[]) => {
   return calculateFinalTotal(table.orders, products, table.discount)
@@ -158,7 +171,7 @@ const mergeKitchenItem = (order: KitchenOrder, product: Product, qty: number, is
   }
 }
 
-export default function TableManagement({ currentUser }: Props){
+export default function TableManagement({ currentUser, focus = 'billing' }: Props){
   const [tables, setTables] = React.useState<TableState[]>(() => {
     const storedTables = loadTables()
     if(storedTables.length===0){
@@ -176,9 +189,10 @@ export default function TableManagement({ currentUser }: Props){
 
   const [products] = React.useState<Product[]>(() => loadProducts())
   const [categories] = React.useState<ProductCategory[]>(() => loadCategories())
-  const [selectedTableId, setSelectedTableId] = React.useState(() => tables[0]?.id || '')
+  const [selectedTableId, setSelectedTableId] = React.useState(() => getDefaultSelectedTableId(tables, focus))
   const [newTableName, setNewTableName] = React.useState('')
   const [tableError, setTableError] = React.useState('')
+  const previousFocusRef = React.useRef<TableManagementFocus>(focus)
 
   const canManageTables = currentUser.role === 'Admin'
 
@@ -194,6 +208,13 @@ export default function TableManagement({ currentUser }: Props){
       setSelectedTableId(tables[0].id)
     }
   }, [selectedTableId, tables])
+
+  React.useEffect(() => {
+    if(previousFocusRef.current === focus) return
+
+    previousFocusRef.current = focus
+    setSelectedTableId(getDefaultSelectedTableId(tables, focus))
+  }, [focus, tables])
 
   const selectedTable = tables.find(table => table.id === selectedTableId) || tables[0]
   const activeProducts = products.filter(product => product.active)
@@ -777,41 +798,12 @@ export default function TableManagement({ currentUser }: Props){
     }))
   }
 
-  return (
-    <div className="tables-page">
-      <div className="page-title">
-        <div>
-          <h2>Adisyon</h2>
-          <p className="muted">Açık adisyonları takip edin, ürün ekleyin ve hesabı ödeme yöntemiyle kapatın.</p>
-        </div>
-      </div>
+  const isBillingFocus = focus === 'billing'
 
-      <div className="metric-grid">
-        <div className="metric-card">
-          <span>Toplam Masa</span>
-          <strong>{tables.length}</strong>
-        </div>
-        <div className="metric-card">
-          <span>Açık Masa</span>
-          <strong>{openTableCount}</strong>
-        </div>
-        <div className="metric-card">
-          <span>Açık Adisyon</span>
-          <strong>{formatCurrency(activeTotal)}</strong>
-        </div>
-        <div className="metric-card">
-          <span>Kapanmış Hesap</span>
-          <strong>{closedCount}</strong>
-        </div>
-      </div>
-
-      {tableError && <div className="form-error">{tableError}</div>}
-
-      <div className="tables-layout">
-        <section className="card">
+  const tablePlanSection = (
+        <section className="card table-plan-panel">
           <div className="section-header compact">
             <h3>Masa Planı</h3>
-            {canManageTables && <span className="status-pill">Admin</span>}
           </div>
 
           {canManageTables && (
@@ -848,8 +840,10 @@ export default function TableManagement({ currentUser }: Props){
             </div>
           )}
         </section>
+  )
 
-        <section>
+  const tableDetailSection = (
+        <section className="table-detail-panel">
           {selectedTable ? (
             <TableCard
               table={selectedTable}
@@ -873,6 +867,54 @@ export default function TableManagement({ currentUser }: Props){
             <div className="card empty-state">Henüz masa bulunmuyor.</div>
           )}
         </section>
+  )
+
+  return (
+    <div className={`tables-page ${isBillingFocus ? 'billing-focus' : 'tables-focus'}`}>
+      <div className="page-title">
+        <div>
+          <h2>{isBillingFocus ? 'Adisyonlar' : 'Masalar'}</h2>
+          <p className="muted">
+            {isBillingFocus
+              ? 'Sipariş ve hesap yönetimine odaklanın; açık adisyonları takip edin, ürün ekleyin ve hesabı kapatın.'
+              : 'Masa planını ve masa durumlarını takip edin; masa seçimi, QR menü ve masa düzenleme işlemlerini yönetin.'}
+          </p>
+        </div>
+      </div>
+
+      <div className="metric-grid">
+        <div className="metric-card">
+          <span>Toplam Masa</span>
+          <strong>{tables.length}</strong>
+        </div>
+        <div className="metric-card">
+          <span>Açık Masa</span>
+          <strong>{openTableCount}</strong>
+        </div>
+        <div className="metric-card">
+          <span>Açık Adisyon</span>
+          <strong>{formatCurrency(activeTotal)}</strong>
+        </div>
+        <div className="metric-card">
+          <span>Kapanmış Hesap</span>
+          <strong>{closedCount}</strong>
+        </div>
+      </div>
+
+      {tableError && <div className="form-error">{tableError}</div>}
+
+      <div className={`tables-layout ${isBillingFocus ? 'billing-focus' : 'tables-focus'}`}>
+        {isBillingFocus ? (
+          <>
+            {tableDetailSection}
+            {tablePlanSection}
+          </>
+        ) : (
+          <>
+            {tablePlanSection}
+            {tableDetailSection}
+          </>
+        )}
       </div>
     </div>
   )

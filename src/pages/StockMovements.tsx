@@ -15,9 +15,15 @@ import { formatExpiryDate } from '../expiryStock'
 import { formatCurrency } from '../billing'
 import { DEFAULT_STOCK_CURRENCY, formatStockMoney } from '../stockCost'
 
-type Props = { currentUser: User }
+export type StockMovementFocus = 'movements' | 'waste'
+type Props = { currentUser: User; focus?: StockMovementFocus }
 type TypeFilter = 'all' | StockMovementType
 type SourceFilter = 'all' | StockMovementSource
+
+const getDefaultSourceFilter = (focus: StockMovementFocus): SourceFilter => {
+  if(focus === 'waste') return 'Fire'
+  return 'all'
+}
 
 const getLocalDateKey = (value: string | Date) => {
   const date = typeof value === 'string' ? new Date(value) : value
@@ -84,7 +90,7 @@ const getExpiryMovementText = (movement: StockMovement) => {
   return parts.join(' · ')
 }
 
-export default function StockMovements({ currentUser }: Props){
+export default function StockMovements({ currentUser, focus = 'movements' }: Props){
   const [stockItems, setStockItems] = React.useState<StockItem[]>(() => loadStockItems())
   const [movements, setMovements] = React.useState<StockMovement[]>(() => loadStockMovements())
   const [wasteRecords, setWasteRecords] = React.useState(() => loadStockWasteRecords())
@@ -93,9 +99,10 @@ export default function StockMovements({ currentUser }: Props){
   const [endDate, setEndDate] = React.useState('')
   const [stockItemFilter, setStockItemFilter] = React.useState('all')
   const [typeFilter, setTypeFilter] = React.useState<TypeFilter>('all')
-  const [sourceFilter, setSourceFilter] = React.useState<SourceFilter>('all')
+  const [sourceFilter, setSourceFilter] = React.useState<SourceFilter>(() => getDefaultSourceFilter(focus))
   const [search, setSearch] = React.useState('')
   const [message, setMessage] = React.useState<{ type: 'success' | 'error'; text: string } | null>(null)
+  const previousFocusRef = React.useRef<StockMovementFocus>(focus)
 
   const canManageStock = currentUser.role === 'Admin'
 
@@ -110,6 +117,18 @@ export default function StockMovements({ currentUser }: Props){
     window.addEventListener('storage', refreshData)
     return () => window.removeEventListener('storage', refreshData)
   }, [refreshData])
+
+  React.useEffect(() => {
+    if(previousFocusRef.current === focus) return
+
+    previousFocusRef.current = focus
+    setStartDate('')
+    setEndDate('')
+    setStockItemFilter('all')
+    setTypeFilter('all')
+    setSourceFilter(getDefaultSourceFilter(focus))
+    setSearch('')
+  }, [focus])
 
   const activeStockItems = React.useMemo(() => stockItems.filter(item => item.active), [stockItems])
   const sortedMovements = React.useMemo(() => {
@@ -149,6 +168,57 @@ export default function StockMovements({ currentUser }: Props){
   const recentWasteRecords = React.useMemo(() => {
     return [...wasteRecords].sort((a, b) => new Date(b.occurredAt).getTime() - new Date(a.occurredAt).getTime()).slice(0, 5)
   }, [wasteRecords])
+  const currentMonth = today.slice(0, 7)
+  const activeWasteRecords = wasteRecords.filter(record => record.status === 'active')
+  const thisMonthWasteRecords = activeWasteRecords.filter(record => getLocalDateKey(record.occurredAt).slice(0, 7) === currentMonth)
+  const thisMonthWasteCost = thisMonthWasteRecords.reduce((sum, record) => sum + (record.estimatedTotalCost || 0), 0)
+  const isWasteFocus = focus === 'waste'
+  const pageMeta = React.useMemo(() => {
+    if(isWasteFocus){
+      return {
+        title: 'Fire Yönetimi',
+        description: 'Fire kayıtlarını, fire kaynaklı stok hareketlerini ve maliyet etkisini takip edin.',
+        listTitle: 'Fire Hareketleri',
+        emptyText: 'Filtrelere uygun fire hareketi bulunamadı.'
+      }
+    }
+
+    return {
+      title: 'Stok Hareketleri',
+      description: 'Stok miktarı, SKT girişleri ve stok hareketleri bu ekran üzerinden yönetilir.',
+      listTitle: 'Hareket Geçmişi',
+      emptyText: 'Filtrelere uygun stok hareketi bulunamadı.'
+    }
+  }, [isWasteFocus])
+  const metricCards = React.useMemo(() => {
+    if(isWasteFocus){
+      return [
+        { label: 'Bugünkü Fire', value: todaysWasteRecords.length, detail: formatCurrency(todayWasteCost) },
+        { label: 'Bu Ay Fire', value: thisMonthWasteRecords.length, detail: formatCurrency(thisMonthWasteCost) },
+        { label: 'Fire Maliyeti', value: formatCurrency(thisMonthWasteCost), detail: 'Bu ay tahmini maliyet' },
+        { label: 'Fire Adedi', value: activeWasteRecords.length, detail: 'Aktif fire kaydı' }
+      ]
+    }
+
+    return [
+      { label: 'Bugünkü Giriş Fişi', value: todayEntryCount },
+      { label: 'Bugünkü Çıkış Fişi', value: todayExitCount },
+      { label: 'Sayım Düzeltme', value: todayCountCorrectionCount },
+      { label: 'Ters Hareket', value: reversedMovementCount },
+      { label: 'Bugünkü Fire', value: todaysWasteRecords.length, detail: formatCurrency(todayWasteCost) }
+    ]
+  }, [
+    activeWasteRecords.length,
+    isWasteFocus,
+    reversedMovementCount,
+    thisMonthWasteCost,
+    thisMonthWasteRecords.length,
+    todayCountCorrectionCount,
+    todayEntryCount,
+    todayExitCount,
+    todayWasteCost,
+    todaysWasteRecords.length
+  ])
 
   const saveMovement = (values: StockMovementFormValues) => {
     if(!canManageStock){
@@ -226,46 +296,31 @@ export default function StockMovements({ currentUser }: Props){
   }
 
   return (
-    <div className="stock-page">
+    <div className={`stock-page stock-movements-page ${isWasteFocus ? 'waste-focus' : 'movements-focus'}`}>
       <div className="page-title">
         <div>
-          <h2>Stok Hareketleri</h2>
-          <p className="muted">Stok miktarı, SKT girişleri ve stok hareketleri bu ekran üzerinden yönetilir.</p>
+          <h2>{pageMeta.title}</h2>
+          <p className="muted">{pageMeta.description}</p>
         </div>
-        <span className="status-pill success">Admin</span>
       </div>
 
       {message && <div className={`settings-message ${message.type}`}>{message.text}</div>}
 
       <div className="metric-grid">
-        <div className="metric-card">
-          <span>Bugünkü Giriş Fişi</span>
-          <strong>{todayEntryCount}</strong>
-        </div>
-        <div className="metric-card">
-          <span>Bugünkü Çıkış Fişi</span>
-          <strong>{todayExitCount}</strong>
-        </div>
-        <div className="metric-card">
-          <span>Sayım Düzeltme</span>
-          <strong>{todayCountCorrectionCount}</strong>
-        </div>
-        <div className="metric-card">
-          <span>Ters Hareket</span>
-          <strong>{reversedMovementCount}</strong>
-        </div>
-        <div className="metric-card">
-          <span>Bugünkü Fire</span>
-          <strong>{todaysWasteRecords.length}</strong>
-          <p className="muted">{formatCurrency(todayWasteCost)}</p>
-        </div>
+        {metricCards.map(card => (
+          <div className="metric-card" key={card.label}>
+            <span>{card.label}</span>
+            <strong>{card.value}</strong>
+            {card.detail && <p className="muted">{card.detail}</p>}
+          </div>
+        ))}
       </div>
 
-      <div className="stock-movement-layout">
+      <div className={`stock-movement-layout ${isWasteFocus ? 'waste-focus' : 'movements-focus'}`}>
         <section className="card stock-movement-main">
           <div className="section-header">
             <div>
-              <h3>Hareket Geçmişi</h3>
+              <h3>{pageMeta.listTitle}</h3>
               <p className="muted">{filteredMovements.length} hareket gösteriliyor.</p>
             </div>
             <div className="stock-movement-filters">
@@ -311,7 +366,7 @@ export default function StockMovements({ currentUser }: Props){
               </thead>
               <tbody>
                 {filteredMovements.length === 0 && (
-                  <tr><td colSpan={9} className="empty-cell">Filtrelere uygun stok hareketi bulunamadı.</td></tr>
+                  <tr><td colSpan={9} className="empty-cell">{pageMeta.emptyText}</td></tr>
                 )}
                 {filteredMovements.map(movement => (
                   <tr key={movement.id}>
