@@ -587,6 +587,24 @@ export type User = {
   active: boolean
 }
 
+export type CurrentAccountType = 'Müşteri' | 'Firma' | 'Personel' | 'Tedarikçi'
+
+export type CurrentAccount = {
+  id: string
+  code: string
+  name: string
+  type: CurrentAccountType
+  phone: string
+  email: string
+  taxNumber: string
+  authorizedPerson: string
+  address: string
+  note: string
+  isActive: boolean
+  createdAt: string
+  updatedAt: string
+}
+
 export type ActionLogType =
   | 'Masa oluşturuldu'
   | 'Masa silindi'
@@ -664,6 +682,11 @@ export type ActionLogType =
   | 'Kullanıcı güncellendi'
   | 'Kullanıcı aktif yapıldı'
   | 'Kullanıcı pasif yapıldı'
+  | 'Cari oluşturuldu'
+  | 'Cari güncellendi'
+  | 'Cari aktif yapıldı'
+  | 'Cari pasif yapıldı'
+  | 'Cari silindi'
 
 export type ActionLog = {
   id: string

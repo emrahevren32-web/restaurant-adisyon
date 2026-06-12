@@ -132,7 +132,7 @@ th { color:var(--muted-strong); font-size:13px; font-weight:750 }
 
 .muted { color:var(--muted); margin:4px 0 0 }
 .small-text { font-size:12px; line-height:1.45 }
-.products-page, .stock-page, .recipes-page, .tables-page, .summary-page, .history-page, .action-history-page, .staff-page, .reports-page, .kitchen-page, .qr-orders-page, .qr-codes-page, .settings-page, .users-page { display:flex; flex-direction:column; gap:18px; min-width:0; max-width:100% }
+.products-page, .stock-page, .recipes-page, .tables-page, .summary-page, .history-page, .action-history-page, .staff-page, .reports-page, .kitchen-page, .qr-orders-page, .qr-codes-page, .settings-page, .users-page, .current-accounts-page { display:flex; flex-direction:column; gap:18px; min-width:0; max-width:100% }
 .page-title { display:flex; justify-content:space-between; gap:16px; align-items:flex-start; flex-wrap:wrap; padding:0; margin:0 0 2px }
 .page-title > div, .section-header > div { min-width:0 }
 .page-title > div:first-child { flex:1 1 420px; max-width:820px }
@@ -255,6 +255,7 @@ th { color:var(--muted-strong); font-size:13px; font-weight:750 }
 .data-table td.actions-cell .btn { margin:4px 0 4px var(--touch-gap) }
 .data-table td.actions-cell .btn:first-child { margin-left:0 }
 .stock-cards-table td.actions-cell { min-width:340px }
+.current-account-table td.actions-cell { min-width:260px }
 .stock-cost-summary { display:flex; flex-direction:column; gap:3px; min-width:170px; font-size:12px }
 .stock-cost-summary span { color:var(--muted) }
 .stock-cost-summary strong { color:var(--text); font-size:12px }

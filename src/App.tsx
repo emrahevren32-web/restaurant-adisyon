@@ -16,6 +16,7 @@ import Recipes from './pages/Recipes'
 import Login from './pages/Login'
 import Users from './pages/Users'
 import Settings from './pages/Settings'
+import CurrentAccounts from './pages/CurrentAccounts'
 import AppShell, { ShellNavGroup, ShellNavItem } from './components/AppShell'
 import {
   loadProducts,
@@ -41,6 +42,7 @@ type Route =
   | 'staff'
   | 'reports'
   | 'users'
+  | 'current-accounts'
   | 'settings'
 
 type NavKey =
@@ -62,6 +64,7 @@ type NavKey =
   | 'action-history'
   | 'users'
   | 'staff'
+  | 'current-accounts'
   | 'qr-codes'
   | 'settings'
 
@@ -127,6 +130,7 @@ const navGroups: NavGroup[] = [
     items: [
       { key: 'users', label: 'Kullanıcı Yönetimi', route: 'users', icon: 'KY', adminOnly: true },
       { key: 'staff', label: 'Personel Takibi', route: 'staff', icon: 'PT', adminOnly: true },
+      { key: 'current-accounts', label: 'Cari Kartları', route: 'current-accounts', icon: 'CK', adminOnly: true },
       { key: 'qr-codes', label: 'QR Kodlar', route: 'qr-codes', icon: 'QK', adminOnly: true },
       { key: 'settings', label: 'Ayarlar', route: 'settings', icon: 'AY', adminOnly: true }
     ]
@@ -233,6 +237,7 @@ export default function App(){
       {route === 'staff' && currentUser.role === 'Admin' && <StaffTracking />}
       {route === 'reports' && currentUser.role === 'Admin' && <Reports />}
       {route === 'users' && currentUser.role === 'Admin' && <Users currentUser={currentUser} />}
+      {route === 'current-accounts' && currentUser.role === 'Admin' && <CurrentAccounts currentUser={currentUser} />}
       {route === 'settings' && currentUser.role === 'Admin' && <Settings currentUser={currentUser} onSettingsChange={refreshSettings} />}
     </AppShell>
   )

@@ -5,6 +5,8 @@ import {
   CriticalStockEvent,
   CriticalStockEventType,
   CriticalStockTrigger,
+  CurrentAccount,
+  CurrentAccountType,
   KitchenOrder,
   KitchenOrderStatus,
   Product,
@@ -93,6 +95,7 @@ const KEY_RECIPE_AUDIT_EVENTS = 'ra_recipe_audit_events'
 const KEY_TABLES = 'ra_tables'
 const KEY_CLOSED = 'ra_closed'
 const KEY_USERS = 'ra_users'
+const KEY_CURRENT_ACCOUNTS = 'ra_current_accounts'
 const KEY_AUTH = 'ra_auth'
 const KEY_LOGS = 'ra_logs'
 const KEY_KITCHEN = 'ra_kitchen_orders'
@@ -111,6 +114,7 @@ const STOCK_MOVEMENT_SOURCES: StockMovementSource[] = ['Manuel', 'Reçete', 'Adi
 const STOCK_MOVEMENT_REASONS: StockMovementReason[] = ['Satın Alma', 'İade', 'Fire', 'Kullanım', 'Sayım Fazlası', 'Sayım Eksiği', 'Ters Hareket', 'Diğer']
 export const STOCK_WASTE_REASONS: StockWasteReasonCategory[] = ['Bozulma', 'SKT Geçmesi', 'Dökülme', 'Hazırlık Kaybı', 'Üretim Hatası', 'Yanlış Sipariş', 'Müşteri İadesi', 'Sayım Farkı', 'Diğer']
 export const HIGH_COST_FIRE_APPROVAL_THRESHOLD = 1000
+const CURRENT_ACCOUNT_TYPES: CurrentAccountType[] = ['Müşteri', 'Firma', 'Personel', 'Tedarikçi']
 
 export const DEFAULT_SETTINGS: SystemSettings = {
   restaurantName: 'Restaurant Adisyon',
@@ -173,6 +177,78 @@ const normalizeProduct = (item: Partial<Product>, fallbackCategoryId = DEFAULT_C
     updatedAt: item.updatedAt
   }
 }
+
+const normalizeCurrentAccountType = (value: unknown): CurrentAccountType => {
+  return CURRENT_ACCOUNT_TYPES.includes(value as CurrentAccountType) ? value as CurrentAccountType : 'Müşteri'
+}
+
+const normalizeCurrentAccount = (item: Partial<CurrentAccount>): CurrentAccount => {
+  const timestamp = item.createdAt || new Date().toISOString()
+
+  return {
+    id: String(item.id || `cari_${Date.now()}`),
+    code: String(item.code || `CARI-${Date.now()}`).trim() || `CARI-${Date.now()}`,
+    name: String(item.name || 'İsimsiz Cari').trim() || 'İsimsiz Cari',
+    type: normalizeCurrentAccountType(item.type),
+    phone: String(item.phone || ''),
+    email: String(item.email || ''),
+    taxNumber: String(item.taxNumber || ''),
+    authorizedPerson: String(item.authorizedPerson || ''),
+    address: String(item.address || ''),
+    note: String(item.note || ''),
+    isActive: item.isActive !== false,
+    createdAt: timestamp,
+    updatedAt: item.updatedAt || timestamp
+  }
+}
+
+const createDemoCurrentAccounts = (now = new Date().toISOString()): CurrentAccount[] => [
+  {
+    id: 'cari_ali_veli',
+    code: 'CARI-001',
+    name: 'Ali Veli',
+    type: 'Müşteri',
+    phone: '05xx xxx xx xx',
+    email: 'ali.veli@example.com',
+    taxNumber: '',
+    authorizedPerson: 'Ali Veli',
+    address: 'Merkez Mahallesi',
+    note: 'Demo müşteri cari kartı.',
+    isActive: true,
+    createdAt: now,
+    updatedAt: now
+  },
+  {
+    id: 'cari_abc_gida',
+    code: 'CARI-002',
+    name: 'ABC Gıda',
+    type: 'Tedarikçi',
+    phone: '0212 000 00 00',
+    email: 'tedarik@abcgida.com',
+    taxNumber: '1234567890',
+    authorizedPerson: 'Ayşe Demir',
+    address: 'Gıda Toptancılar Sitesi',
+    note: 'Demo tedarikçi cari kartı.',
+    isActive: true,
+    createdAt: now,
+    updatedAt: now
+  },
+  {
+    id: 'cari_can_ciger',
+    code: 'CARI-003',
+    name: 'Can Ciğer Ltd.',
+    type: 'Firma',
+    phone: '0216 000 00 00',
+    email: 'info@canciger.com',
+    taxNumber: '9876543210',
+    authorizedPerson: 'Can Yılmaz',
+    address: 'Sanayi Caddesi No: 12',
+    note: 'Demo firma cari kartı.',
+    isActive: true,
+    createdAt: now,
+    updatedAt: now
+  }
+]
 
 const normalizeStockUnit = (value: unknown): StockUnit => {
   return STOCK_UNITS.includes(value as StockUnit) ? value as StockUnit : 'adet'
@@ -905,6 +981,17 @@ export const saveProducts = (items: Product[]) => {
   const categories = loadCategories()
   const fallbackCategoryId = categories.find(c => c.id === DEFAULT_CATEGORY_ID)?.id || categories[0]?.id || DEFAULT_CATEGORY_ID
   localStorage.setItem(KEY_PRODUCTS, JSON.stringify(items.map(item => normalizeProduct(item, fallbackCategoryId))))
+}
+
+export const loadCurrentAccounts = (): CurrentAccount[] => {
+  const stored = localStorage.getItem(KEY_CURRENT_ACCOUNTS)
+  if(stored === null) return createDemoCurrentAccounts()
+
+  return readJson<Partial<CurrentAccount>[]>(KEY_CURRENT_ACCOUNTS, []).map(normalizeCurrentAccount)
+}
+
+export const saveCurrentAccounts = (items: CurrentAccount[]) => {
+  localStorage.setItem(KEY_CURRENT_ACCOUNTS, JSON.stringify(items.map(normalizeCurrentAccount)))
 }
 
 export const loadCategories = (): ProductCategory[] => {
@@ -2480,6 +2567,8 @@ export const createDemoData = () => {
     { id: 'prd_baklava', name: 'Baklava', price: 180, categoryId: 'cat_desserts', description: 'Antep fıstıklı porsiyon baklava.', active: true, createdAt: now, updatedAt: now }
   ]
 
+  const currentAccounts = createDemoCurrentAccounts(now)
+
   const tables: TableState[] = Array.from({ length: 6 }).map((_, index) => ({
     id: String(index + 1),
     name: `Masa ${index + 1}`,
@@ -2489,11 +2578,12 @@ export const createDemoData = () => {
 
   saveCategories(categories)
   saveProducts(products)
+  saveCurrentAccounts(currentAccounts)
   saveTables(tables)
   saveKitchenOrders([])
   saveQRRequests([])
   saveWaiterCalls([])
   ensureDefaultAdmin()
 
-  return { categories: loadCategories(), products: loadProducts(), tables }
+  return { categories: loadCategories(), products: loadProducts(), tables, currentAccounts: loadCurrentAccounts() }
 }
