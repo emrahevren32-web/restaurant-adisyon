@@ -1,0 +1,522 @@
+import { createHotContext as __vite__createHotContext } from "/@vite/client";import.meta.hot = __vite__createHotContext("/src/pages/BillHistory.tsx");import __vite__cjsImport0_react_jsxDevRuntime from "/node_modules/.vite/deps/react_jsx-dev-runtime.js?v=99165b73"; const jsxDEV = __vite__cjsImport0_react_jsxDevRuntime["jsxDEV"];
+import RefreshRuntime from "/@react-refresh";
+let prevRefreshReg;
+let prevRefreshSig;
+if (import.meta.hot) {
+  if (!window.__vite_plugin_react_preamble_installed__) {
+    throw new Error("@vitejs/plugin-react can't detect preamble. Something is wrong. See https://github.com/vitejs/vite-plugin-react/pull/11#discussion_r430879201");
+  }
+  prevRefreshReg = window.$RefreshReg$;
+  prevRefreshSig = window.$RefreshSig$;
+  window.$RefreshReg$ = (type, id) => {
+    RefreshRuntime.register(type, "C:/Users/90544/Documents/restaurant-adisyon/src/pages/BillHistory.tsx " + id);
+  };
+  window.$RefreshSig$ = RefreshRuntime.createSignatureFunctionForTransform;
+}
+var _s = $RefreshSig$();
+import __vite__cjsImport3_react from "/node_modules/.vite/deps/react.js?v=99165b73"; const React = __vite__cjsImport3_react.__esModule ? __vite__cjsImport3_react.default : __vite__cjsImport3_react;
+import { loadClosed, loadProducts } from "/src/storage.ts";
+import { calculateDiscountTotal, calculateGiftTotal, calculateOrderOriginalTotal, calculateOrderPayableTotal, calculateSubtotal, formatCurrency, getBillPayments, isRevenueBill } from "/src/billing.ts";
+const paymentOptions = ["all", "Nakit", "Kart", "Diğer"];
+const formatDateTime = (value) => {
+  return new Date(value).toLocaleString("tr-TR", {
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+    hour: "2-digit",
+    minute: "2-digit"
+  });
+};
+const getBillSubtotal = (bill, products) => bill.subtotal ?? calculateSubtotal(bill.orders, products);
+const getBillDiscount = (bill, products) => bill.discountTotal ?? calculateDiscountTotal(bill.discount, getBillSubtotal(bill, products));
+const getPaymentAmount = (bill, method) => {
+  return getBillPayments(bill).filter((payment) => payment.method === method).reduce((sum, payment) => sum + payment.amount, 0);
+};
+const formatPaymentMethods = (bill) => {
+  if (bill.mergeHistory)
+    return "Masa birleştirme";
+  const payments = getBillPayments(bill);
+  if (payments.length === 0)
+    return "Ödeme yok";
+  return payments.map((payment) => payment.method).join(" + ");
+};
+export default function BillHistory() {
+  _s();
+  const [closed] = React.useState(() => loadClosed());
+  const [products] = React.useState(() => loadProducts());
+  const [search, setSearch] = React.useState("");
+  const [paymentFilter, setPaymentFilter] = React.useState("all");
+  const filteredBills = React.useMemo(() => {
+    const normalizedSearch = search.trim().toLocaleLowerCase("tr-TR");
+    return closed.filter((bill) => {
+      const billPayments = getBillPayments(bill);
+      const matchesPayment = paymentFilter === "all" || billPayments.some((payment) => payment.method === paymentFilter);
+      const matchesSearch = !normalizedSearch || bill.tableName.toLocaleLowerCase("tr-TR").includes(normalizedSearch) || (bill.mergeTargetTableName || "").toLocaleLowerCase("tr-TR").includes(normalizedSearch) || (bill.closedByFullName || "").toLocaleLowerCase("tr-TR").includes(normalizedSearch) || (bill.note || "").toLocaleLowerCase("tr-TR").includes(normalizedSearch);
+      return matchesPayment && matchesSearch;
+    });
+  }, [closed, paymentFilter, search]);
+  const revenueBills = filteredBills.filter(isRevenueBill);
+  const totalRevenue = revenueBills.reduce((sum, bill) => sum + bill.total, 0);
+  const totalDiscount = revenueBills.reduce((sum, bill) => sum + getBillDiscount(bill, products), 0);
+  const totalGift = revenueBills.reduce((sum, bill) => sum + calculateGiftTotal(bill.orders, products), 0);
+  return /* @__PURE__ */ jsxDEV("div", { className: "history-page", children: [
+    /* @__PURE__ */ jsxDEV("div", { className: "page-title", children: /* @__PURE__ */ jsxDEV("div", { children: [
+      /* @__PURE__ */ jsxDEV("h2", { children: "Adisyon Geçmişi" }, void 0, false, {
+        fileName: "C:/Users/90544/Documents/restaurant-adisyon/src/pages/BillHistory.tsx",
+        lineNumber: 50,
+        columnNumber: 11
+      }, this),
+      /* @__PURE__ */ jsxDEV("p", { className: "muted", children: "Kapanan hesapları, bölünmüş ödemeleri ve masa birleştirme kayıtlarını inceleyin." }, void 0, false, {
+        fileName: "C:/Users/90544/Documents/restaurant-adisyon/src/pages/BillHistory.tsx",
+        lineNumber: 51,
+        columnNumber: 11
+      }, this)
+    ] }, void 0, true, {
+      fileName: "C:/Users/90544/Documents/restaurant-adisyon/src/pages/BillHistory.tsx",
+      lineNumber: 49,
+      columnNumber: 9
+    }, this) }, void 0, false, {
+      fileName: "C:/Users/90544/Documents/restaurant-adisyon/src/pages/BillHistory.tsx",
+      lineNumber: 48,
+      columnNumber: 7
+    }, this),
+    /* @__PURE__ */ jsxDEV("div", { className: "metric-grid", children: [
+      /* @__PURE__ */ jsxDEV("div", { className: "metric-card", children: [
+        /* @__PURE__ */ jsxDEV("span", { children: "Kapanan Adisyon" }, void 0, false, {
+          fileName: "C:/Users/90544/Documents/restaurant-adisyon/src/pages/BillHistory.tsx",
+          lineNumber: 57,
+          columnNumber: 11
+        }, this),
+        /* @__PURE__ */ jsxDEV("strong", { children: filteredBills.length }, void 0, false, {
+          fileName: "C:/Users/90544/Documents/restaurant-adisyon/src/pages/BillHistory.tsx",
+          lineNumber: 58,
+          columnNumber: 11
+        }, this)
+      ] }, void 0, true, {
+        fileName: "C:/Users/90544/Documents/restaurant-adisyon/src/pages/BillHistory.tsx",
+        lineNumber: 56,
+        columnNumber: 9
+      }, this),
+      /* @__PURE__ */ jsxDEV("div", { className: "metric-card", children: [
+        /* @__PURE__ */ jsxDEV("span", { children: "Toplam Ciro" }, void 0, false, {
+          fileName: "C:/Users/90544/Documents/restaurant-adisyon/src/pages/BillHistory.tsx",
+          lineNumber: 61,
+          columnNumber: 11
+        }, this),
+        /* @__PURE__ */ jsxDEV("strong", { children: formatCurrency(totalRevenue) }, void 0, false, {
+          fileName: "C:/Users/90544/Documents/restaurant-adisyon/src/pages/BillHistory.tsx",
+          lineNumber: 62,
+          columnNumber: 11
+        }, this)
+      ] }, void 0, true, {
+        fileName: "C:/Users/90544/Documents/restaurant-adisyon/src/pages/BillHistory.tsx",
+        lineNumber: 60,
+        columnNumber: 9
+      }, this),
+      /* @__PURE__ */ jsxDEV("div", { className: "metric-card", children: [
+        /* @__PURE__ */ jsxDEV("span", { children: "Toplam İndirim" }, void 0, false, {
+          fileName: "C:/Users/90544/Documents/restaurant-adisyon/src/pages/BillHistory.tsx",
+          lineNumber: 65,
+          columnNumber: 11
+        }, this),
+        /* @__PURE__ */ jsxDEV("strong", { children: formatCurrency(totalDiscount) }, void 0, false, {
+          fileName: "C:/Users/90544/Documents/restaurant-adisyon/src/pages/BillHistory.tsx",
+          lineNumber: 66,
+          columnNumber: 11
+        }, this)
+      ] }, void 0, true, {
+        fileName: "C:/Users/90544/Documents/restaurant-adisyon/src/pages/BillHistory.tsx",
+        lineNumber: 64,
+        columnNumber: 9
+      }, this),
+      /* @__PURE__ */ jsxDEV("div", { className: "metric-card", children: [
+        /* @__PURE__ */ jsxDEV("span", { children: "Toplam İkram" }, void 0, false, {
+          fileName: "C:/Users/90544/Documents/restaurant-adisyon/src/pages/BillHistory.tsx",
+          lineNumber: 69,
+          columnNumber: 11
+        }, this),
+        /* @__PURE__ */ jsxDEV("strong", { children: formatCurrency(totalGift) }, void 0, false, {
+          fileName: "C:/Users/90544/Documents/restaurant-adisyon/src/pages/BillHistory.tsx",
+          lineNumber: 70,
+          columnNumber: 11
+        }, this)
+      ] }, void 0, true, {
+        fileName: "C:/Users/90544/Documents/restaurant-adisyon/src/pages/BillHistory.tsx",
+        lineNumber: 68,
+        columnNumber: 9
+      }, this)
+    ] }, void 0, true, {
+      fileName: "C:/Users/90544/Documents/restaurant-adisyon/src/pages/BillHistory.tsx",
+      lineNumber: 55,
+      columnNumber: 7
+    }, this),
+    /* @__PURE__ */ jsxDEV("section", { className: "card", children: [
+      /* @__PURE__ */ jsxDEV("div", { className: "section-header", children: [
+        /* @__PURE__ */ jsxDEV("div", { children: [
+          /* @__PURE__ */ jsxDEV("h3", { children: "Geçmiş Kayıtlar" }, void 0, false, {
+            fileName: "C:/Users/90544/Documents/restaurant-adisyon/src/pages/BillHistory.tsx",
+            lineNumber: 77,
+            columnNumber: 13
+          }, this),
+          /* @__PURE__ */ jsxDEV("p", { className: "muted", children: [
+            filteredBills.length,
+            " kayıt gösteriliyor."
+          ] }, void 0, true, {
+            fileName: "C:/Users/90544/Documents/restaurant-adisyon/src/pages/BillHistory.tsx",
+            lineNumber: 78,
+            columnNumber: 13
+          }, this)
+        ] }, void 0, true, {
+          fileName: "C:/Users/90544/Documents/restaurant-adisyon/src/pages/BillHistory.tsx",
+          lineNumber: 76,
+          columnNumber: 11
+        }, this),
+        /* @__PURE__ */ jsxDEV("div", { className: "history-controls", children: [
+          /* @__PURE__ */ jsxDEV("input", { type: "search", placeholder: "Masa, kapatan veya not ara", value: search, onChange: (e) => setSearch(e.target.value) }, void 0, false, {
+            fileName: "C:/Users/90544/Documents/restaurant-adisyon/src/pages/BillHistory.tsx",
+            lineNumber: 81,
+            columnNumber: 13
+          }, this),
+          /* @__PURE__ */ jsxDEV("select", { value: paymentFilter, onChange: (e) => setPaymentFilter(e.target.value), children: paymentOptions.map((option) => /* @__PURE__ */ jsxDEV("option", { value: option, children: option === "all" ? "Tüm ödemeler" : option }, option, false, {
+            fileName: "C:/Users/90544/Documents/restaurant-adisyon/src/pages/BillHistory.tsx",
+            lineNumber: 83,
+            columnNumber: 45
+          }, this)) }, void 0, false, {
+            fileName: "C:/Users/90544/Documents/restaurant-adisyon/src/pages/BillHistory.tsx",
+            lineNumber: 82,
+            columnNumber: 13
+          }, this)
+        ] }, void 0, true, {
+          fileName: "C:/Users/90544/Documents/restaurant-adisyon/src/pages/BillHistory.tsx",
+          lineNumber: 80,
+          columnNumber: 11
+        }, this)
+      ] }, void 0, true, {
+        fileName: "C:/Users/90544/Documents/restaurant-adisyon/src/pages/BillHistory.tsx",
+        lineNumber: 75,
+        columnNumber: 9
+      }, this),
+      /* @__PURE__ */ jsxDEV("div", { className: "history-list", children: [
+        filteredBills.length === 0 && /* @__PURE__ */ jsxDEV("div", { className: "empty-state", children: "Filtrelere uygun adisyon bulunamadı." }, void 0, false, {
+          fileName: "C:/Users/90544/Documents/restaurant-adisyon/src/pages/BillHistory.tsx",
+          lineNumber: 89,
+          columnNumber: 42
+        }, this),
+        filteredBills.map((bill) => {
+          const subtotal = getBillSubtotal(bill, products);
+          const discountTotal = getBillDiscount(bill, products);
+          const giftTotal = calculateGiftTotal(bill.orders, products);
+          const cashTotal = getPaymentAmount(bill, "Nakit");
+          const cardTotal = getPaymentAmount(bill, "Kart");
+          const otherTotal = getPaymentAmount(bill, "Diğer");
+          return /* @__PURE__ */ jsxDEV("details", { className: "history-card", children: [
+            /* @__PURE__ */ jsxDEV("summary", { children: [
+              /* @__PURE__ */ jsxDEV("span", { children: [
+                /* @__PURE__ */ jsxDEV("strong", { children: bill.tableName }, void 0, false, {
+                  fileName: "C:/Users/90544/Documents/restaurant-adisyon/src/pages/BillHistory.tsx",
+                  lineNumber: 100,
+                  columnNumber: 21
+                }, this),
+                /* @__PURE__ */ jsxDEV("small", { children: [
+                  formatDateTime(bill.timestamp),
+                  " · ",
+                  bill.closedByFullName || "Kapatan yok"
+                ] }, void 0, true, {
+                  fileName: "C:/Users/90544/Documents/restaurant-adisyon/src/pages/BillHistory.tsx",
+                  lineNumber: 101,
+                  columnNumber: 21
+                }, this),
+                bill.splitPayment && /* @__PURE__ */ jsxDEV("small", { className: "status-pill", children: "Bölünmüş hesap" }, void 0, false, {
+                  fileName: "C:/Users/90544/Documents/restaurant-adisyon/src/pages/BillHistory.tsx",
+                  lineNumber: 102,
+                  columnNumber: 43
+                }, this),
+                bill.mergeHistory && /* @__PURE__ */ jsxDEV("small", { className: "status-pill", children: "Masa birleştirme" }, void 0, false, {
+                  fileName: "C:/Users/90544/Documents/restaurant-adisyon/src/pages/BillHistory.tsx",
+                  lineNumber: 103,
+                  columnNumber: 43
+                }, this)
+              ] }, void 0, true, {
+                fileName: "C:/Users/90544/Documents/restaurant-adisyon/src/pages/BillHistory.tsx",
+                lineNumber: 99,
+                columnNumber: 19
+              }, this),
+              /* @__PURE__ */ jsxDEV("span", { className: "history-summary-values", children: [
+                /* @__PURE__ */ jsxDEV("b", { children: formatCurrency(bill.total) }, void 0, false, {
+                  fileName: "C:/Users/90544/Documents/restaurant-adisyon/src/pages/BillHistory.tsx",
+                  lineNumber: 106,
+                  columnNumber: 21
+                }, this),
+                /* @__PURE__ */ jsxDEV("small", { children: formatPaymentMethods(bill) }, void 0, false, {
+                  fileName: "C:/Users/90544/Documents/restaurant-adisyon/src/pages/BillHistory.tsx",
+                  lineNumber: 107,
+                  columnNumber: 21
+                }, this)
+              ] }, void 0, true, {
+                fileName: "C:/Users/90544/Documents/restaurant-adisyon/src/pages/BillHistory.tsx",
+                lineNumber: 105,
+                columnNumber: 19
+              }, this)
+            ] }, void 0, true, {
+              fileName: "C:/Users/90544/Documents/restaurant-adisyon/src/pages/BillHistory.tsx",
+              lineNumber: 98,
+              columnNumber: 17
+            }, this),
+            /* @__PURE__ */ jsxDEV("div", { className: "history-detail-grid", children: [
+              /* @__PURE__ */ jsxDEV("div", { children: [
+                /* @__PURE__ */ jsxDEV("span", { children: "Ara Toplam" }, void 0, false, {
+                  fileName: "C:/Users/90544/Documents/restaurant-adisyon/src/pages/BillHistory.tsx",
+                  lineNumber: 113,
+                  columnNumber: 21
+                }, this),
+                /* @__PURE__ */ jsxDEV("strong", { children: formatCurrency(subtotal) }, void 0, false, {
+                  fileName: "C:/Users/90544/Documents/restaurant-adisyon/src/pages/BillHistory.tsx",
+                  lineNumber: 114,
+                  columnNumber: 21
+                }, this)
+              ] }, void 0, true, {
+                fileName: "C:/Users/90544/Documents/restaurant-adisyon/src/pages/BillHistory.tsx",
+                lineNumber: 112,
+                columnNumber: 19
+              }, this),
+              /* @__PURE__ */ jsxDEV("div", { children: [
+                /* @__PURE__ */ jsxDEV("span", { children: "İndirim" }, void 0, false, {
+                  fileName: "C:/Users/90544/Documents/restaurant-adisyon/src/pages/BillHistory.tsx",
+                  lineNumber: 117,
+                  columnNumber: 21
+                }, this),
+                /* @__PURE__ */ jsxDEV("strong", { children: formatCurrency(discountTotal) }, void 0, false, {
+                  fileName: "C:/Users/90544/Documents/restaurant-adisyon/src/pages/BillHistory.tsx",
+                  lineNumber: 118,
+                  columnNumber: 21
+                }, this)
+              ] }, void 0, true, {
+                fileName: "C:/Users/90544/Documents/restaurant-adisyon/src/pages/BillHistory.tsx",
+                lineNumber: 116,
+                columnNumber: 19
+              }, this),
+              /* @__PURE__ */ jsxDEV("div", { children: [
+                /* @__PURE__ */ jsxDEV("span", { children: "İkram" }, void 0, false, {
+                  fileName: "C:/Users/90544/Documents/restaurant-adisyon/src/pages/BillHistory.tsx",
+                  lineNumber: 121,
+                  columnNumber: 21
+                }, this),
+                /* @__PURE__ */ jsxDEV("strong", { children: formatCurrency(giftTotal) }, void 0, false, {
+                  fileName: "C:/Users/90544/Documents/restaurant-adisyon/src/pages/BillHistory.tsx",
+                  lineNumber: 122,
+                  columnNumber: 21
+                }, this)
+              ] }, void 0, true, {
+                fileName: "C:/Users/90544/Documents/restaurant-adisyon/src/pages/BillHistory.tsx",
+                lineNumber: 120,
+                columnNumber: 19
+              }, this),
+              /* @__PURE__ */ jsxDEV("div", { children: [
+                /* @__PURE__ */ jsxDEV("span", { children: bill.mergeHistory ? "Aktarılan Değer" : "Ödenen" }, void 0, false, {
+                  fileName: "C:/Users/90544/Documents/restaurant-adisyon/src/pages/BillHistory.tsx",
+                  lineNumber: 125,
+                  columnNumber: 21
+                }, this),
+                /* @__PURE__ */ jsxDEV("strong", { children: formatCurrency(bill.total) }, void 0, false, {
+                  fileName: "C:/Users/90544/Documents/restaurant-adisyon/src/pages/BillHistory.tsx",
+                  lineNumber: 126,
+                  columnNumber: 21
+                }, this)
+              ] }, void 0, true, {
+                fileName: "C:/Users/90544/Documents/restaurant-adisyon/src/pages/BillHistory.tsx",
+                lineNumber: 124,
+                columnNumber: 19
+              }, this),
+              /* @__PURE__ */ jsxDEV("div", { children: [
+                /* @__PURE__ */ jsxDEV("span", { children: "Nakit" }, void 0, false, {
+                  fileName: "C:/Users/90544/Documents/restaurant-adisyon/src/pages/BillHistory.tsx",
+                  lineNumber: 129,
+                  columnNumber: 21
+                }, this),
+                /* @__PURE__ */ jsxDEV("strong", { children: formatCurrency(cashTotal) }, void 0, false, {
+                  fileName: "C:/Users/90544/Documents/restaurant-adisyon/src/pages/BillHistory.tsx",
+                  lineNumber: 130,
+                  columnNumber: 21
+                }, this)
+              ] }, void 0, true, {
+                fileName: "C:/Users/90544/Documents/restaurant-adisyon/src/pages/BillHistory.tsx",
+                lineNumber: 128,
+                columnNumber: 19
+              }, this),
+              /* @__PURE__ */ jsxDEV("div", { children: [
+                /* @__PURE__ */ jsxDEV("span", { children: "Kart" }, void 0, false, {
+                  fileName: "C:/Users/90544/Documents/restaurant-adisyon/src/pages/BillHistory.tsx",
+                  lineNumber: 133,
+                  columnNumber: 21
+                }, this),
+                /* @__PURE__ */ jsxDEV("strong", { children: formatCurrency(cardTotal) }, void 0, false, {
+                  fileName: "C:/Users/90544/Documents/restaurant-adisyon/src/pages/BillHistory.tsx",
+                  lineNumber: 134,
+                  columnNumber: 21
+                }, this)
+              ] }, void 0, true, {
+                fileName: "C:/Users/90544/Documents/restaurant-adisyon/src/pages/BillHistory.tsx",
+                lineNumber: 132,
+                columnNumber: 19
+              }, this),
+              /* @__PURE__ */ jsxDEV("div", { children: [
+                /* @__PURE__ */ jsxDEV("span", { children: "Diğer" }, void 0, false, {
+                  fileName: "C:/Users/90544/Documents/restaurant-adisyon/src/pages/BillHistory.tsx",
+                  lineNumber: 137,
+                  columnNumber: 21
+                }, this),
+                /* @__PURE__ */ jsxDEV("strong", { children: formatCurrency(otherTotal) }, void 0, false, {
+                  fileName: "C:/Users/90544/Documents/restaurant-adisyon/src/pages/BillHistory.tsx",
+                  lineNumber: 138,
+                  columnNumber: 21
+                }, this)
+              ] }, void 0, true, {
+                fileName: "C:/Users/90544/Documents/restaurant-adisyon/src/pages/BillHistory.tsx",
+                lineNumber: 136,
+                columnNumber: 19
+              }, this)
+            ] }, void 0, true, {
+              fileName: "C:/Users/90544/Documents/restaurant-adisyon/src/pages/BillHistory.tsx",
+              lineNumber: 111,
+              columnNumber: 17
+            }, this),
+            bill.splitPayment && /* @__PURE__ */ jsxDEV("div", { className: "bill-note", children: [
+              "Bölünen hesap bilgisi: ",
+              bill.splitLabel || "Seçili ürün ödemesi",
+              "."
+            ] }, void 0, true, {
+              fileName: "C:/Users/90544/Documents/restaurant-adisyon/src/pages/BillHistory.tsx",
+              lineNumber: 142,
+              columnNumber: 39
+            }, this),
+            bill.mergeHistory && /* @__PURE__ */ jsxDEV("div", { className: "bill-note", children: [
+              "Birleştirme: ",
+              bill.tableName,
+              " içerisindeki ürünler ",
+              bill.mergeTargetTableName || "hedef masa",
+              " masasına aktarıldı. Bu kayıt satış toplamlarına dahil edilmez."
+            ] }, void 0, true, {
+              fileName: "C:/Users/90544/Documents/restaurant-adisyon/src/pages/BillHistory.tsx",
+              lineNumber: 143,
+              columnNumber: 39
+            }, this),
+            bill.note && /* @__PURE__ */ jsxDEV("div", { className: "bill-note", children: [
+              "Not: ",
+              bill.note
+            ] }, void 0, true, {
+              fileName: "C:/Users/90544/Documents/restaurant-adisyon/src/pages/BillHistory.tsx",
+              lineNumber: 146,
+              columnNumber: 31
+            }, this),
+            /* @__PURE__ */ jsxDEV("div", { className: "table-wrap", children: /* @__PURE__ */ jsxDEV("table", { className: "data-table", children: [
+              /* @__PURE__ */ jsxDEV("thead", { children: /* @__PURE__ */ jsxDEV("tr", { children: [
+                /* @__PURE__ */ jsxDEV("th", { children: "Ürün" }, void 0, false, {
+                  fileName: "C:/Users/90544/Documents/restaurant-adisyon/src/pages/BillHistory.tsx",
+                  lineNumber: 151,
+                  columnNumber: 27
+                }, this),
+                /* @__PURE__ */ jsxDEV("th", { children: "Adet" }, void 0, false, {
+                  fileName: "C:/Users/90544/Documents/restaurant-adisyon/src/pages/BillHistory.tsx",
+                  lineNumber: 151,
+                  columnNumber: 40
+                }, this),
+                /* @__PURE__ */ jsxDEV("th", { children: "Durum" }, void 0, false, {
+                  fileName: "C:/Users/90544/Documents/restaurant-adisyon/src/pages/BillHistory.tsx",
+                  lineNumber: 151,
+                  columnNumber: 53
+                }, this),
+                /* @__PURE__ */ jsxDEV("th", { children: "Tutar" }, void 0, false, {
+                  fileName: "C:/Users/90544/Documents/restaurant-adisyon/src/pages/BillHistory.tsx",
+                  lineNumber: 151,
+                  columnNumber: 67
+                }, this)
+              ] }, void 0, true, {
+                fileName: "C:/Users/90544/Documents/restaurant-adisyon/src/pages/BillHistory.tsx",
+                lineNumber: 151,
+                columnNumber: 23
+              }, this) }, void 0, false, {
+                fileName: "C:/Users/90544/Documents/restaurant-adisyon/src/pages/BillHistory.tsx",
+                lineNumber: 150,
+                columnNumber: 21
+              }, this),
+              /* @__PURE__ */ jsxDEV("tbody", { children: bill.orders.map((order) => /* @__PURE__ */ jsxDEV("tr", { children: [
+                /* @__PURE__ */ jsxDEV("td", { children: order.productName || products.find((product) => product.id === order.productId)?.name || "Bilinmiyor" }, void 0, false, {
+                  fileName: "C:/Users/90544/Documents/restaurant-adisyon/src/pages/BillHistory.tsx",
+                  lineNumber: 155,
+                  columnNumber: 27
+                }, this),
+                /* @__PURE__ */ jsxDEV("td", { children: order.qty }, void 0, false, {
+                  fileName: "C:/Users/90544/Documents/restaurant-adisyon/src/pages/BillHistory.tsx",
+                  lineNumber: 156,
+                  columnNumber: 27
+                }, this),
+                /* @__PURE__ */ jsxDEV("td", { children: order.isGift ? "İkram" : "Satış" }, void 0, false, {
+                  fileName: "C:/Users/90544/Documents/restaurant-adisyon/src/pages/BillHistory.tsx",
+                  lineNumber: 157,
+                  columnNumber: 27
+                }, this),
+                /* @__PURE__ */ jsxDEV("td", { children: formatCurrency(order.isGift ? calculateOrderOriginalTotal(order, products) : calculateOrderPayableTotal(order, products)) }, void 0, false, {
+                  fileName: "C:/Users/90544/Documents/restaurant-adisyon/src/pages/BillHistory.tsx",
+                  lineNumber: 158,
+                  columnNumber: 27
+                }, this)
+              ] }, order.id, true, {
+                fileName: "C:/Users/90544/Documents/restaurant-adisyon/src/pages/BillHistory.tsx",
+                lineNumber: 154,
+                columnNumber: 49
+              }, this)) }, void 0, false, {
+                fileName: "C:/Users/90544/Documents/restaurant-adisyon/src/pages/BillHistory.tsx",
+                lineNumber: 153,
+                columnNumber: 21
+              }, this)
+            ] }, void 0, true, {
+              fileName: "C:/Users/90544/Documents/restaurant-adisyon/src/pages/BillHistory.tsx",
+              lineNumber: 149,
+              columnNumber: 19
+            }, this) }, void 0, false, {
+              fileName: "C:/Users/90544/Documents/restaurant-adisyon/src/pages/BillHistory.tsx",
+              lineNumber: 148,
+              columnNumber: 17
+            }, this)
+          ] }, bill.id, true, {
+            fileName: "C:/Users/90544/Documents/restaurant-adisyon/src/pages/BillHistory.tsx",
+            lineNumber: 97,
+            columnNumber: 18
+          }, this);
+        })
+      ] }, void 0, true, {
+        fileName: "C:/Users/90544/Documents/restaurant-adisyon/src/pages/BillHistory.tsx",
+        lineNumber: 88,
+        columnNumber: 9
+      }, this)
+    ] }, void 0, true, {
+      fileName: "C:/Users/90544/Documents/restaurant-adisyon/src/pages/BillHistory.tsx",
+      lineNumber: 74,
+      columnNumber: 7
+    }, this)
+  ] }, void 0, true, {
+    fileName: "C:/Users/90544/Documents/restaurant-adisyon/src/pages/BillHistory.tsx",
+    lineNumber: 47,
+    columnNumber: 10
+  }, this);
+}
+_s(BillHistory, "sXHwEfCszXPFyJ0Tx2tetR0GeBY=");
+_c = BillHistory;
+var _c;
+$RefreshReg$(_c, "BillHistory");
+if (import.meta.hot) {
+  window.$RefreshReg$ = prevRefreshReg;
+  window.$RefreshSig$ = prevRefreshSig;
+  RefreshRuntime.__hmr_import(import.meta.url).then((currentExports) => {
+    RefreshRuntime.registerExportsForReactRefresh("C:/Users/90544/Documents/restaurant-adisyon/src/pages/BillHistory.tsx", currentExports);
+    import.meta.hot.accept((nextExports) => {
+      if (!nextExports)
+        return;
+      const invalidateMessage = RefreshRuntime.validateRefreshBoundaryAndEnqueueUpdate(currentExports, nextExports);
+      if (invalidateMessage)
+        import.meta.hot.invalidate(invalidateMessage);
+    });
+  });
+}
+
+//# sourceMappingURL=data:application/json;base64,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QUE7QUFBQTtBQUFBLHVCQUFzQztBQUFBLGdCQUN0Qyx1QkFBQyxRQUFJL0UseUJBQWV1RSxNQUFNUSxTQUFTbEYsNEJBQTRCMEUsT0FBT3hELFFBQVEsSUFBSWpCLDJCQUEyQnlFLE9BQU94RCxRQUFRLENBQUMsS0FBN0g7QUFBQTtBQUFBO0FBQUE7QUFBQSx1QkFBK0g7QUFBQSxtQkFKeEh3RCxNQUFNSSxJQUFmO0FBQUE7QUFBQTtBQUFBO0FBQUEscUJBS0EsQ0FDRCxLQVJIO0FBQUE7QUFBQTtBQUFBO0FBQUEscUJBU0E7QUFBQSxpQkFiRjtBQUFBO0FBQUE7QUFBQTtBQUFBLG1CQWNBLEtBZkY7QUFBQTtBQUFBO0FBQUE7QUFBQSxtQkFnQkE7QUFBQSxlQXJFcUM3RCxLQUFLNkQsSUFBNUM7QUFBQTtBQUFBO0FBQUE7QUFBQSxpQkFzRUE7QUFBQSxRQUVKLENBQUM7QUFBQSxXQW5GSDtBQUFBO0FBQUE7QUFBQTtBQUFBLGFBb0ZBO0FBQUEsU0FwR0Y7QUFBQTtBQUFBO0FBQUE7QUFBQSxXQXFHQTtBQUFBLE9BaElGO0FBQUE7QUFBQTtBQUFBO0FBQUEsU0FpSUE7QUFFSjtBQUFDeEMsR0EvSnVCRCxhQUFXO0FBQUE4QyxLQUFYOUM7QUFBVyxJQUFBOEM7QUFBQUMsYUFBQUQsSUFBQSIsIm5hbWVzIjpbIlJlYWN0IiwibG9hZENsb3NlZCIsImxvYWRQcm9kdWN0cyIsImNhbGN1bGF0ZURpc2NvdW50VG90YWwiLCJjYWxjdWxhdGVHaWZ0VG90YWwiLCJjYWxjdWxhdGVPcmRlck9yaWdpbmFsVG90YWwiLCJjYWxjdWxhdGVPcmRlclBheWFibGVUb3RhbCIsImNhbGN1bGF0ZVN1YnRvdGFsIiwiZm9ybWF0Q3VycmVuY3kiLCJnZXRCaWxsUGF5bWVudHMiLCJpc1JldmVudWVCaWxsIiwicGF5bWVudE9wdGlvbnMiLCJmb3JtYXREYXRlVGltZSIsInZhbHVlIiwiRGF0ZSIsInRvTG9jYWxlU3RyaW5nIiwieWVhciIsIm1vbnRoIiwiZGF5IiwiaG91ciIsIm1pbnV0ZSIsImdldEJpbGxTdWJ0b3RhbCIsImJpbGwiLCJwcm9kdWN0cyIsInN1YnRvdGFsIiwib3JkZXJzIiwiZ2V0QmlsbERpc2NvdW50IiwiZGlzY291bnRUb3RhbCIsImRpc2NvdW50IiwiZ2V0UGF5bWVudEFtb3VudCIsIm1ldGhvZCIsImZpbHRlciIsInBheW1lbnQiLCJyZWR1Y2UiLCJzdW0iLCJhbW91bnQiLCJmb3JtYXRQYXltZW50TWV0aG9kcyIsIm1lcmdlSGlzdG9yeSIsInBheW1lbnRzIiwibGVuZ3RoIiwibWFwIiwiam9pbiIsIkJpbGxIaXN0b3J5IiwiX3MiLCJjbG9zZWQiLCJ1c2VTdGF0ZSIsInNlYXJjaCIsInNldFNlYXJjaCIsInBheW1lbnRGaWx0ZXIiLCJzZXRQYXltZW50RmlsdGVyIiwiZmlsdGVyZWRCaWxscyIsInVzZU1lbW8iLCJub3JtYWxpemVkU2VhcmNoIiwidHJpbSIsInRvTG9jYWxlTG93ZXJDYXNlIiwiYmlsbFBheW1lbnRzIiwibWF0Y2hlc1BheW1lbnQiLCJzb21lIiwibWF0Y2hlc1NlYXJjaCIsInRhYmxlTmFtZSIsImluY2x1ZGVzIiwibWVyZ2VUYXJnZXRUYWJsZU5hbWUiLCJjbG9zZWRCeUZ1bGxOYW1lIiwibm90ZSIsInJldmVudWVCaWxscyIsInRvdGFsUmV2ZW51ZSIsInRvdGFsIiwidG90YWxEaXNjb3VudCIsInRvdGFsR2lmdCIsImUiLCJ0YXJnZXQiLCJvcHRpb24iLCJnaWZ0VG90YWwiLCJjYXNoVG90YWwiLCJjYXJkVG90YWwiLCJvdGhlclRvdGFsIiwidGltZXN0YW1wIiwic3BsaXRQYXltZW50Iiwic3BsaXRMYWJlbCIsIm9yZGVyIiwicHJvZHVjdE5hbWUiLCJmaW5kIiwicHJvZHVjdCIsImlkIiwicHJvZHVjdElkIiwibmFtZSIsInF0eSIsImlzR2lmdCIsIl9jIiwiJFJlZnJlc2hSZWckIl0sInNvdXJjZXMiOlsiQmlsbEhpc3RvcnkudHN4Il0sInNvdXJjZXNDb250ZW50IjpbImltcG9ydCBSZWFjdCBmcm9tICdyZWFjdCdcbmltcG9ydCB7IENsb3NlZEJpbGwsIFBheW1lbnRNZXRob2QsIFByb2R1Y3QgfSBmcm9tICcuLi90eXBlcydcbmltcG9ydCB7IGxvYWRDbG9zZWQsIGxvYWRQcm9kdWN0cyB9IGZyb20gJy4uL3N0b3JhZ2UnXG5pbXBvcnQge1xuICBjYWxjdWxhdGVEaXNjb3VudFRvdGFsLFxuICBjYWxjdWxhdGVHaWZ0VG90YWwsXG4gIGNhbGN1bGF0ZU9yZGVyT3JpZ2luYWxUb3RhbCxcbiAgY2FsY3VsYXRlT3JkZXJQYXlhYmxlVG90YWwsXG4gIGNhbGN1bGF0ZVN1YnRvdGFsLFxuICBmb3JtYXRDdXJyZW5jeSxcbiAgZ2V0QmlsbFBheW1lbnRzLFxuICBpc1JldmVudWVCaWxsXG59IGZyb20gJy4uL2JpbGxpbmcnXG5cbnR5cGUgUGF5bWVudEZpbHRlciA9ICdhbGwnIHwgUGF5bWVudE1ldGhvZFxuXG5jb25zdCBwYXltZW50T3B0aW9uczogUGF5bWVudEZpbHRlcltdID0gWydhbGwnLCAnTmFraXQnLCAnS2FydCcsICdEacSfZXInXVxuXG5jb25zdCBmb3JtYXREYXRlVGltZSA9ICh2YWx1ZTogc3RyaW5nKSA9PiB7XG4gIHJldHVybiBuZXcgRGF0ZSh2YWx1ZSkudG9Mb2NhbGVTdHJpbmcoJ3RyLVRSJywge1xuICAgIHllYXI6ICdudW1lcmljJyxcbiAgICBtb250aDogJzItZGlnaXQnLFxuICAgIGRheTogJzItZGlnaXQnLFxuICAgIGhvdXI6ICcyLWRpZ2l0JyxcbiAgICBtaW51dGU6ICcyLWRpZ2l0J1xuICB9KVxufVxuXG5jb25zdCBnZXRCaWxsU3VidG90YWwgPSAoYmlsbDogQ2xvc2VkQmlsbCwgcHJvZHVjdHM6IFByb2R1Y3RbXSkgPT4gYmlsbC5zdWJ0b3RhbCA/PyBjYWxjdWxhdGVTdWJ0b3RhbChiaWxsLm9yZGVycywgcHJvZHVjdHMpXG5jb25zdCBnZXRCaWxsRGlzY291bnQgPSAoYmlsbDogQ2xvc2VkQmlsbCwgcHJvZHVjdHM6IFByb2R1Y3RbXSkgPT4gYmlsbC5kaXNjb3VudFRvdGFsID8/IGNhbGN1bGF0ZURpc2NvdW50VG90YWwoYmlsbC5kaXNjb3VudCwgZ2V0QmlsbFN1YnRvdGFsKGJpbGwsIHByb2R1Y3RzKSlcbmNvbnN0IGdldFBheW1lbnRBbW91bnQgPSAoYmlsbDogQ2xvc2VkQmlsbCwgbWV0aG9kOiBQYXltZW50TWV0aG9kKSA9PiB7XG4gIHJldHVybiBnZXRCaWxsUGF5bWVudHMoYmlsbClcbiAgICAuZmlsdGVyKHBheW1lbnQgPT4gcGF5bWVudC5tZXRob2QgPT09IG1ldGhvZClcbiAgICAucmVkdWNlKChzdW0sIHBheW1lbnQpID0+IHN1bSArIHBheW1lbnQuYW1vdW50LCAwKVxufVxuY29uc3QgZm9ybWF0UGF5bWVudE1ldGhvZHMgPSAoYmlsbDogQ2xvc2VkQmlsbCkgPT4ge1xuICBpZihiaWxsLm1lcmdlSGlzdG9yeSkgcmV0dXJuICdNYXNhIGJpcmxlxZ90aXJtZSdcblxuICBjb25zdCBwYXltZW50cyA9IGdldEJpbGxQYXltZW50cyhiaWxsKVxuICBpZihwYXltZW50cy5sZW5ndGggPT09IDApIHJldHVybiAnw5ZkZW1lIHlvaydcblxuICByZXR1cm4gcGF5bWVudHMubWFwKHBheW1lbnQgPT4gcGF5bWVudC5tZXRob2QpLmpvaW4oJyArICcpXG59XG5cbmV4cG9ydCBkZWZhdWx0IGZ1bmN0aW9uIEJpbGxIaXN0b3J5KCl7XG4gIGNvbnN0IFtjbG9zZWRdID0gUmVhY3QudXNlU3RhdGU8Q2xvc2VkQmlsbFtdPigoKSA9PiBsb2FkQ2xvc2VkKCkpXG4gIGNvbnN0IFtwcm9kdWN0c10gPSBSZWFjdC51c2VTdGF0ZTxQcm9kdWN0W10+KCgpID0+IGxvYWRQcm9kdWN0cygpKVxuICBjb25zdCBbc2VhcmNoLCBzZXRTZWFyY2hdID0gUmVhY3QudXNlU3RhdGUoJycpXG4gIGNvbnN0IFtwYXltZW50RmlsdGVyLCBzZXRQYXltZW50RmlsdGVyXSA9IFJlYWN0LnVzZVN0YXRlPFBheW1lbnRGaWx0ZXI+KCdhbGwnKVxuXG4gIGNvbnN0IGZpbHRlcmVkQmlsbHMgPSBSZWFjdC51c2VNZW1vKCgpID0+IHtcbiAgICBjb25zdCBub3JtYWxpemVkU2VhcmNoID0gc2VhcmNoLnRyaW0oKS50b0xvY2FsZUxvd2VyQ2FzZSgndHItVFInKVxuXG4gICAgcmV0dXJuIGNsb3NlZC5maWx0ZXIoYmlsbCA9PiB7XG4gICAgICBjb25zdCBiaWxsUGF5bWVudHMgPSBnZXRCaWxsUGF5bWVudHMoYmlsbClcbiAgICAgIGNvbnN0IG1hdGNoZXNQYXltZW50ID0gcGF5bWVudEZpbHRlciA9PT0gJ2FsbCcgfHwgYmlsbFBheW1lbnRzLnNvbWUocGF5bWVudCA9PiBwYXltZW50Lm1ldGhvZCA9PT0gcGF5bWVudEZpbHRlcilcbiAgICAgIGNvbnN0IG1hdGNoZXNTZWFyY2ggPSAhbm9ybWFsaXplZFNlYXJjaFxuICAgICAgICB8fCBiaWxsLnRhYmxlTmFtZS50b0xvY2FsZUxvd2VyQ2FzZSgndHItVFInKS5pbmNsdWRlcyhub3JtYWxpemVkU2VhcmNoKVxuICAgICAgICB8fCAoYmlsbC5tZXJnZVRhcmdldFRhYmxlTmFtZSB8fCAnJykudG9Mb2NhbGVMb3dlckNhc2UoJ3RyLVRSJykuaW5jbHVkZXMobm9ybWFsaXplZFNlYXJjaClcbiAgICAgICAgfHwgKGJpbGwuY2xvc2VkQnlGdWxsTmFtZSB8fCAnJykudG9Mb2NhbGVMb3dlckNhc2UoJ3RyLVRSJykuaW5jbHVkZXMobm9ybWFsaXplZFNlYXJjaClcbiAgICAgICAgfHwgKGJpbGwubm90ZSB8fCAnJykudG9Mb2NhbGVMb3dlckNhc2UoJ3RyLVRSJykuaW5jbHVkZXMobm9ybWFsaXplZFNlYXJjaClcblxuICAgICAgcmV0dXJuIG1hdGNoZXNQYXltZW50ICYmIG1hdGNoZXNTZWFyY2hcbiAgICB9KVxuICB9LCBbY2xvc2VkLCBwYXltZW50RmlsdGVyLCBzZWFyY2hdKVxuXG4gIGNvbnN0IHJldmVudWVCaWxscyA9IGZpbHRlcmVkQmlsbHMuZmlsdGVyKGlzUmV2ZW51ZUJpbGwpXG4gIGNvbnN0IHRvdGFsUmV2ZW51ZSA9IHJldmVudWVCaWxscy5yZWR1Y2UoKHN1bSwgYmlsbCkgPT4gc3VtICsgYmlsbC50b3RhbCwgMClcbiAgY29uc3QgdG90YWxEaXNjb3VudCA9IHJldmVudWVCaWxscy5yZWR1Y2UoKHN1bSwgYmlsbCkgPT4gc3VtICsgZ2V0QmlsbERpc2NvdW50KGJpbGwsIHByb2R1Y3RzKSwgMClcbiAgY29uc3QgdG90YWxHaWZ0ID0gcmV2ZW51ZUJpbGxzLnJlZHVjZSgoc3VtLCBiaWxsKSA9PiBzdW0gKyBjYWxjdWxhdGVHaWZ0VG90YWwoYmlsbC5vcmRlcnMsIHByb2R1Y3RzKSwgMClcblxuICByZXR1cm4gKFxuICAgIDxkaXYgY2xhc3NOYW1lPVwiaGlzdG9yeS1wYWdlXCI+XG4gICAgICA8ZGl2IGNsYXNzTmFtZT1cInBhZ2UtdGl0bGVcIj5cbiAgICAgICAgPGRpdj5cbiAgICAgICAgICA8aDI+QWRpc3lvbiBHZcOnbWnFn2k8L2gyPlxuICAgICAgICAgIDxwIGNsYXNzTmFtZT1cIm11dGVkXCI+S2FwYW5hbiBoZXNhcGxhcsSxLCBiw7Zsw7xubcO8xZ8gw7ZkZW1lbGVyaSB2ZSBtYXNhIGJpcmxlxZ90aXJtZSBrYXnEsXRsYXLEsW7EsSBpbmNlbGV5aW4uPC9wPlxuICAgICAgICA8L2Rpdj5cbiAgICAgIDwvZGl2PlxuXG4gICAgICA8ZGl2IGNsYXNzTmFtZT1cIm1ldHJpYy1ncmlkXCI+XG4gICAgICAgIDxkaXYgY2xhc3NOYW1lPVwibWV0cmljLWNhcmRcIj5cbiAgICAgICAgICA8c3Bhbj5LYXBhbmFuIEFkaXN5b248L3NwYW4+XG4gICAgICAgICAgPHN0cm9uZz57ZmlsdGVyZWRCaWxscy5sZW5ndGh9PC9zdHJvbmc+XG4gICAgICAgIDwvZGl2PlxuICAgICAgICA8ZGl2IGNsYXNzTmFtZT1cIm1ldHJpYy1jYXJkXCI+XG4gICAgICAgICAgPHNwYW4+VG9wbGFtIENpcm88L3NwYW4+XG4gICAgICAgICAgPHN0cm9uZz57Zm9ybWF0Q3VycmVuY3kodG90YWxSZXZlbnVlKX08L3N0cm9uZz5cbiAgICAgICAgPC9kaXY+XG4gICAgICAgIDxkaXYgY2xhc3NOYW1lPVwibWV0cmljLWNhcmRcIj5cbiAgICAgICAgICA8c3Bhbj5Ub3BsYW0gxLBuZGlyaW08L3NwYW4+XG4gICAgICAgICAgPHN0cm9uZz57Zm9ybWF0Q3VycmVuY3kodG90YWxEaXNjb3VudCl9PC9zdHJvbmc+XG4gICAgICAgIDwvZGl2PlxuICAgICAgICA8ZGl2IGNsYXNzTmFtZT1cIm1ldHJpYy1jYXJkXCI+XG4gICAgICAgICAgPHNwYW4+VG9wbGFtIMSwa3JhbTwvc3Bhbj5cbiAgICAgICAgICA8c3Ryb25nPntmb3JtYXRDdXJyZW5jeSh0b3RhbEdpZnQpfTwvc3Ryb25nPlxuICAgICAgICA8L2Rpdj5cbiAgICAgIDwvZGl2PlxuXG4gICAgICA8c2VjdGlvbiBjbGFzc05hbWU9XCJjYXJkXCI+XG4gICAgICAgIDxkaXYgY2xhc3NOYW1lPVwic2VjdGlvbi1oZWFkZXJcIj5cbiAgICAgICAgICA8ZGl2PlxuICAgICAgICAgICAgPGgzPkdlw6dtacWfIEthecSxdGxhcjwvaDM+XG4gICAgICAgICAgICA8cCBjbGFzc05hbWU9XCJtdXRlZFwiPntmaWx0ZXJlZEJpbGxzLmxlbmd0aH0ga2F5xLF0IGfDtnN0ZXJpbGl5b3IuPC9wPlxuICAgICAgICAgIDwvZGl2PlxuICAgICAgICAgIDxkaXYgY2xhc3NOYW1lPVwiaGlzdG9yeS1jb250cm9sc1wiPlxuICAgICAgICAgICAgPGlucHV0IHR5cGU9XCJzZWFyY2hcIiBwbGFjZWhvbGRlcj1cIk1hc2EsIGthcGF0YW4gdmV5YSBub3QgYXJhXCIgdmFsdWU9e3NlYXJjaH0gb25DaGFuZ2U9e2U9PnNldFNlYXJjaChlLnRhcmdldC52YWx1ZSl9IC8+XG4gICAgICAgICAgICA8c2VsZWN0IHZhbHVlPXtwYXltZW50RmlsdGVyfSBvbkNoYW5nZT17ZT0+c2V0UGF5bWVudEZpbHRlcihlLnRhcmdldC52YWx1ZSBhcyBQYXltZW50RmlsdGVyKX0+XG4gICAgICAgICAgICAgIHtwYXltZW50T3B0aW9ucy5tYXAob3B0aW9uID0+IChcbiAgICAgICAgICAgICAgICA8b3B0aW9uIGtleT17b3B0aW9ufSB2YWx1ZT17b3B0aW9ufT57b3B0aW9uID09PSAnYWxsJyA/ICdUw7xtIMO2ZGVtZWxlcicgOiBvcHRpb259PC9vcHRpb24+XG4gICAgICAgICAgICAgICkpfVxuICAgICAgICAgICAgPC9zZWxlY3Q+XG4gICAgICAgICAgPC9kaXY+XG4gICAgICAgIDwvZGl2PlxuXG4gICAgICAgIDxkaXYgY2xhc3NOYW1lPVwiaGlzdG9yeS1saXN0XCI+XG4gICAgICAgICAge2ZpbHRlcmVkQmlsbHMubGVuZ3RoID09PSAwICYmIDxkaXYgY2xhc3NOYW1lPVwiZW1wdHktc3RhdGVcIj5GaWx0cmVsZXJlIHV5Z3VuIGFkaXN5b24gYnVsdW5hbWFkxLEuPC9kaXY+fVxuICAgICAgICAgIHtmaWx0ZXJlZEJpbGxzLm1hcChiaWxsID0+IHtcbiAgICAgICAgICAgIGNvbnN0IHN1YnRvdGFsID0gZ2V0QmlsbFN1YnRvdGFsKGJpbGwsIHByb2R1Y3RzKVxuICAgICAgICAgICAgY29uc3QgZGlzY291bnRUb3RhbCA9IGdldEJpbGxEaXNjb3VudChiaWxsLCBwcm9kdWN0cylcbiAgICAgICAgICAgIGNvbnN0IGdpZnRUb3RhbCA9IGNhbGN1bGF0ZUdpZnRUb3RhbChiaWxsLm9yZGVycywgcHJvZHVjdHMpXG4gICAgICAgICAgICBjb25zdCBjYXNoVG90YWwgPSBnZXRQYXltZW50QW1vdW50KGJpbGwsICdOYWtpdCcpXG4gICAgICAgICAgICBjb25zdCBjYXJkVG90YWwgPSBnZXRQYXltZW50QW1vdW50KGJpbGwsICdLYXJ0JylcbiAgICAgICAgICAgIGNvbnN0IG90aGVyVG90YWwgPSBnZXRQYXltZW50QW1vdW50KGJpbGwsICdEacSfZXInKVxuXG4gICAgICAgICAgICByZXR1cm4gKFxuICAgICAgICAgICAgICA8ZGV0YWlscyBjbGFzc05hbWU9XCJoaXN0b3J5LWNhcmRcIiBrZXk9e2JpbGwuaWR9PlxuICAgICAgICAgICAgICAgIDxzdW1tYXJ5PlxuICAgICAgICAgICAgICAgICAgPHNwYW4+XG4gICAgICAgICAgICAgICAgICAgIDxzdHJvbmc+e2JpbGwudGFibGVOYW1lfTwvc3Ryb25nPlxuICAgICAgICAgICAgICAgICAgICA8c21hbGw+e2Zvcm1hdERhdGVUaW1lKGJpbGwudGltZXN0YW1wKX0gwrcge2JpbGwuY2xvc2VkQnlGdWxsTmFtZSB8fCAnS2FwYXRhbiB5b2snfTwvc21hbGw+XG4gICAgICAgICAgICAgICAgICAgIHtiaWxsLnNwbGl0UGF5bWVudCAmJiA8c21hbGwgY2xhc3NOYW1lPVwic3RhdHVzLXBpbGxcIj5Cw7Zsw7xubcO8xZ8gaGVzYXA8L3NtYWxsPn1cbiAgICAgICAgICAgICAgICAgICAge2JpbGwubWVyZ2VIaXN0b3J5ICYmIDxzbWFsbCBjbGFzc05hbWU9XCJzdGF0dXMtcGlsbFwiPk1hc2EgYmlybGXFn3Rpcm1lPC9zbWFsbD59XG4gICAgICAgICAgICAgICAgICA8L3NwYW4+XG4gICAgICAgICAgICAgICAgICA8c3BhbiBjbGFzc05hbWU9XCJoaXN0b3J5LXN1bW1hcnktdmFsdWVzXCI+XG4gICAgICAgICAgICAgICAgICAgIDxiPntmb3JtYXRDdXJyZW5jeShiaWxsLnRvdGFsKX08L2I+XG4gICAgICAgICAgICAgICAgICAgIDxzbWFsbD57Zm9ybWF0UGF5bWVudE1ldGhvZHMoYmlsbCl9PC9zbWFsbD5cbiAgICAgICAgICAgICAgICAgIDwvc3Bhbj5cbiAgICAgICAgICAgICAgICA8L3N1bW1hcnk+XG5cbiAgICAgICAgICAgICAgICA8ZGl2IGNsYXNzTmFtZT1cImhpc3RvcnktZGV0YWlsLWdyaWRcIj5cbiAgICAgICAgICAgICAgICAgIDxkaXY+XG4gICAgICAgICAgICAgICAgICAgIDxzcGFuPkFyYSBUb3BsYW08L3NwYW4+XG4gICAgICAgICAgICAgICAgICAgIDxzdHJvbmc+e2Zvcm1hdEN1cnJlbmN5KHN1YnRvdGFsKX08L3N0cm9uZz5cbiAgICAgICAgICAgICAgICAgIDwvZGl2PlxuICAgICAgICAgICAgICAgICAgPGRpdj5cbiAgICAgICAgICAgICAgICAgICAgPHNwYW4+xLBuZGlyaW08L3NwYW4+XG4gICAgICAgICAgICAgICAgICAgIDxzdHJvbmc+e2Zvcm1hdEN1cnJlbmN5KGRpc2NvdW50VG90YWwpfTwvc3Ryb25nPlxuICAgICAgICAgICAgICAgICAgPC9kaXY+XG4gICAgICAgICAgICAgICAgICA8ZGl2PlxuICAgICAgICAgICAgICAgICAgICA8c3Bhbj7EsGtyYW08L3NwYW4+XG4gICAgICAgICAgICAgICAgICAgIDxzdHJvbmc+e2Zvcm1hdEN1cnJlbmN5KGdpZnRUb3RhbCl9PC9zdHJvbmc+XG4gICAgICAgICAgICAgICAgICA8L2Rpdj5cbiAgICAgICAgICAgICAgICAgIDxkaXY+XG4gICAgICAgICAgICAgICAgICAgIDxzcGFuPntiaWxsLm1lcmdlSGlzdG9yeSA/ICdBa3RhcsSxbGFuIERlxJ9lcicgOiAnw5ZkZW5lbid9PC9zcGFuPlxuICAgICAgICAgICAgICAgICAgICA8c3Ryb25nPntmb3JtYXRDdXJyZW5jeShiaWxsLnRvdGFsKX08L3N0cm9uZz5cbiAgICAgICAgICAgICAgICAgIDwvZGl2PlxuICAgICAgICAgICAgICAgICAgPGRpdj5cbiAgICAgICAgICAgICAgICAgICAgPHNwYW4+TmFraXQ8L3NwYW4+XG4gICAgICAgICAgICAgICAgICAgIDxzdHJvbmc+e2Zvcm1hdEN1cnJlbmN5KGNhc2hUb3RhbCl9PC9zdHJvbmc+XG4gICAgICAgICAgICAgICAgICA8L2Rpdj5cbiAgICAgICAgICAgICAgICAgIDxkaXY+XG4gICAgICAgICAgICAgICAgICAgIDxzcGFuPkthcnQ8L3NwYW4+XG4gICAgICAgICAgICAgICAgICAgIDxzdHJvbmc+e2Zvcm1hdEN1cnJlbmN5KGNhcmRUb3RhbCl9PC9zdHJvbmc+XG4gICAgICAgICAgICAgICAgICA8L2Rpdj5cbiAgICAgICAgICAgICAgICAgIDxkaXY+XG4gICAgICAgICAgICAgICAgICAgIDxzcGFuPkRpxJ9lcjwvc3Bhbj5cbiAgICAgICAgICAgICAgICAgICAgPHN0cm9uZz57Zm9ybWF0Q3VycmVuY3kob3RoZXJUb3RhbCl9PC9zdHJvbmc+XG4gICAgICAgICAgICAgICAgICA8L2Rpdj5cbiAgICAgICAgICAgICAgICA8L2Rpdj5cblxuICAgICAgICAgICAgICAgIHtiaWxsLnNwbGl0UGF5bWVudCAmJiA8ZGl2IGNsYXNzTmFtZT1cImJpbGwtbm90ZVwiPkLDtmzDvG5lbiBoZXNhcCBiaWxnaXNpOiB7YmlsbC5zcGxpdExhYmVsIHx8ICdTZcOnaWxpIMO8csO8biDDtmRlbWVzaSd9LjwvZGl2Pn1cbiAgICAgICAgICAgICAgICB7YmlsbC5tZXJnZUhpc3RvcnkgJiYgKFxuICAgICAgICAgICAgICAgICAgPGRpdiBjbGFzc05hbWU9XCJiaWxsLW5vdGVcIj5cbiAgICAgICAgICAgICAgICAgICAgQmlybGXFn3Rpcm1lOiB7YmlsbC50YWJsZU5hbWV9IGnDp2VyaXNpbmRla2kgw7xyw7xubGVyIHtiaWxsLm1lcmdlVGFyZ2V0VGFibGVOYW1lIHx8ICdoZWRlZiBtYXNhJ30gbWFzYXPEsW5hIGFrdGFyxLFsZMSxLiBCdSBrYXnEsXQgc2F0xLHFnyB0b3BsYW1sYXLEsW5hIGRhaGlsIGVkaWxtZXouXG4gICAgICAgICAgICAgICAgICA8L2Rpdj5cbiAgICAgICAgICAgICAgICApfVxuICAgICAgICAgICAgICAgIHtiaWxsLm5vdGUgJiYgPGRpdiBjbGFzc05hbWU9XCJiaWxsLW5vdGVcIj5Ob3Q6IHtiaWxsLm5vdGV9PC9kaXY+fVxuXG4gICAgICAgICAgICAgICAgPGRpdiBjbGFzc05hbWU9XCJ0YWJsZS13cmFwXCI+XG4gICAgICAgICAgICAgICAgICA8dGFibGUgY2xhc3NOYW1lPVwiZGF0YS10YWJsZVwiPlxuICAgICAgICAgICAgICAgICAgICA8dGhlYWQ+XG4gICAgICAgICAgICAgICAgICAgICAgPHRyPjx0aD7DnHLDvG48L3RoPjx0aD5BZGV0PC90aD48dGg+RHVydW08L3RoPjx0aD5UdXRhcjwvdGg+PC90cj5cbiAgICAgICAgICAgICAgICAgICAgPC90aGVhZD5cbiAgICAgICAgICAgICAgICAgICAgPHRib2R5PlxuICAgICAgICAgICAgICAgICAgICAgIHtiaWxsLm9yZGVycy5tYXAob3JkZXIgPT4gKFxuICAgICAgICAgICAgICAgICAgICAgICAgPHRyIGtleT17b3JkZXIuaWR9PlxuICAgICAgICAgICAgICAgICAgICAgICAgICA8dGQ+e29yZGVyLnByb2R1Y3ROYW1lIHx8IHByb2R1Y3RzLmZpbmQocHJvZHVjdCA9PiBwcm9kdWN0LmlkID09PSBvcmRlci5wcm9kdWN0SWQpPy5uYW1lIHx8ICdCaWxpbm1peW9yJ308L3RkPlxuICAgICAgICAgICAgICAgICAgICAgICAgICA8dGQ+e29yZGVyLnF0eX08L3RkPlxuICAgICAgICAgICAgICAgICAgICAgICAgICA8dGQ+e29yZGVyLmlzR2lmdCA/ICfEsGtyYW0nIDogJ1NhdMSxxZ8nfTwvdGQ+XG4gICAgICAgICAgICAgICAgICAgICAgICAgIDx0ZD57Zm9ybWF0Q3VycmVuY3kob3JkZXIuaXNHaWZ0ID8gY2FsY3VsYXRlT3JkZXJPcmlnaW5hbFRvdGFsKG9yZGVyLCBwcm9kdWN0cykgOiBjYWxjdWxhdGVPcmRlclBheWFibGVUb3RhbChvcmRlciwgcHJvZHVjdHMpKX08L3RkPlxuICAgICAgICAgICAgICAgICAgICAgICAgPC90cj5cbiAgICAgICAgICAgICAgICAgICAgICApKX1cbiAgICAgICAgICAgICAgICAgICAgPC90Ym9keT5cbiAgICAgICAgICAgICAgICAgIDwvdGFibGU+XG4gICAgICAgICAgICAgICAgPC9kaXY+XG4gICAgICAgICAgICAgIDwvZGV0YWlscz5cbiAgICAgICAgICAgIClcbiAgICAgICAgICB9KX1cbiAgICAgICAgPC9kaXY+XG4gICAgICA8L3NlY3Rpb24+XG4gICAgPC9kaXY+XG4gIClcbn1cbiJdLCJmaWxlIjoiQzovVXNlcnMvOTA1NDQvRG9jdW1lbnRzL3Jlc3RhdXJhbnQtYWRpc3lvbi9zcmMvcGFnZXMvQmlsbEhpc3RvcnkudHN4In0=

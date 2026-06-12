@@ -184,7 +184,7 @@ th { color:#4b5563; font-size:13px; font-weight:700 }
 .table-wrap::-webkit-scrollbar { height:9px; width:9px }
 .table-wrap::-webkit-scrollbar-track { background:#f8fafc; border-radius:999px }
 .table-wrap::-webkit-scrollbar-thumb { background:#cbd5e1; border:2px solid #f8fafc; border-radius:999px }
-.table-wrap table { min-width:720px }
+.table-wrap table { min-width:100% }
 .table-wrap th:first-child, .table-wrap td:first-child { padding-left:14px }
 .table-wrap th:last-child, .table-wrap td:last-child { padding-right:14px }
 .data-table { border-collapse:separate; border-spacing:0; color:#374151; font-size:13px; line-height:1.35 }
@@ -460,14 +460,14 @@ th { color:#4b5563; font-size:13px; font-weight:700 }
 .report-highlight { border:1px solid var(--line); border-radius:8px; padding:12px; background:#f9fafb }
 .report-highlight span, .report-highlight small { display:block; color:var(--muted); font-size:12px }
 .report-highlight strong { display:block; margin:5px 0; font-size:18px }
-.report-table { min-width:880px }
+.table-wrap .report-table { min-width:880px }
 .report-table th, .report-table td { white-space:nowrap }
 .report-table td:first-child, .report-table th:first-child { white-space:normal; min-width:160px }
-.stock-cards-table { min-width:1120px }
-.recipe-table { min-width:940px }
-.stock-movement-table { min-width:920px }
-.staff-table { min-width:860px }
-.report-placeholder-table { min-width:680px }
+.table-wrap .stock-cards-table { min-width:1120px }
+.table-wrap .recipe-table { min-width:940px }
+.table-wrap .stock-movement-table { min-width:920px }
+.table-wrap .staff-table { min-width:860px }
+.table-wrap .report-placeholder-table { min-width:680px }
 .stock-report-filters { display:grid; grid-template-columns:minmax(220px, 1fr) 170px 180px 140px; gap:8px; width:100%; min-width:0; margin:12px 0 }
 .expiry-report-filters { grid-template-columns:minmax(220px, 1fr) 180px 180px }
 .waste-report-filters { grid-template-columns:minmax(220px, 1fr) 170px 150px 180px }
@@ -651,6 +651,13 @@ th { color:#4b5563; font-size:13px; font-weight:700 }
   .report-filter-grid .form-field:first-child { grid-column:span 2 }
   .report-tab-list { grid-template-columns:repeat(auto-fit, minmax(180px, 1fr)) }
   .report-tab-btn { min-height:104px }
+  .product-layout,
+  .stock-movement-layout,
+  .recipe-layout,
+  .users-layout { grid-template-columns:1fr }
+  .product-side,
+  .stock-movement-side,
+  .users-side { position:static; margin-top:14px }
 }
 
 @media (max-width: 980px){
@@ -674,8 +681,8 @@ th { color:#4b5563; font-size:13px; font-weight:700 }
   .kitchen-grid { grid-template-columns:repeat(2, minmax(0, 1fr)) }
   .toolbar-controls, .stock-movement-filters, .recipe-filters, .adisyon-tools, .action-log-filters, .stock-report-filters, .report-filter-grid, .report-sort-controls, .report-panel-grid.three, .waste-reason-summary-grid { grid-template-columns:1fr; width:100% }
   .card:has(.table-wrap) > .section-header > :last-child { flex:1 1 100%; width:100% }
-  .table-wrap table { min-width:700px }
-  .report-table { min-width:840px }
+  .table-wrap table { min-width:100% }
+  .table-wrap .report-table { min-width:840px }
   .report-filter-grid .form-field:first-child { grid-column:auto }
   .report-center-kpi-grid { grid-template-columns:repeat(2, minmax(0, 1fr)) }
   .report-tab-list { grid-template-columns:repeat(2, minmax(0, 1fr)) }
@@ -722,9 +729,9 @@ th { color:#4b5563; font-size:13px; font-weight:700 }
   .actions-cell { justify-content:flex-start }
   .data-table td.actions-cell { min-width:0; text-align:left; white-space:normal }
   .data-table td.actions-cell .btn { margin:4px 4px 0 0 }
-  .table-wrap table { min-width:640px }
-  .report-table { min-width:760px }
-  .stock-cards-table { min-width:980px }
+  .table-wrap table { min-width:100% }
+  .table-wrap .report-table { min-width:760px }
+  .table-wrap .stock-cards-table { min-width:980px }
   .history-card summary { align-items:flex-start; flex-direction:column }
   .history-summary-values { text-align:left }
   .qr-menu-header { padding:18px }

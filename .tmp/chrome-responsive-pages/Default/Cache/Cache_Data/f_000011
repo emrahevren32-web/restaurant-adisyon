@@ -1,0 +1,393 @@
+import { createHotContext as __vite__createHotContext } from "/@vite/client";import.meta.hot = __vite__createHotContext("/src/pages/QRCodes.tsx");import __vite__cjsImport0_react_jsxDevRuntime from "/node_modules/.vite/deps/react_jsx-dev-runtime.js?v=99165b73"; const jsxDEV = __vite__cjsImport0_react_jsxDevRuntime["jsxDEV"];
+import RefreshRuntime from "/@react-refresh";
+let prevRefreshReg;
+let prevRefreshSig;
+if (import.meta.hot) {
+  if (!window.__vite_plugin_react_preamble_installed__) {
+    throw new Error("@vitejs/plugin-react can't detect preamble. Something is wrong. See https://github.com/vitejs/vite-plugin-react/pull/11#discussion_r430879201");
+  }
+  prevRefreshReg = window.$RefreshReg$;
+  prevRefreshSig = window.$RefreshSig$;
+  window.$RefreshReg$ = (type, id) => {
+    RefreshRuntime.register(type, "C:/Users/90544/Documents/restaurant-adisyon/src/pages/QRCodes.tsx " + id);
+  };
+  window.$RefreshSig$ = RefreshRuntime.createSignatureFunctionForTransform;
+}
+var _s = $RefreshSig$();
+import __vite__cjsImport3_react from "/node_modules/.vite/deps/react.js?v=99165b73"; const React = __vite__cjsImport3_react.__esModule ? __vite__cjsImport3_react.default : __vite__cjsImport3_react;
+import __vite__cjsImport4_qrcode from "/node_modules/.vite/deps/qrcode.js?v=99165b73"; const QRCode = ((m) => m?.__esModule ? m : { ...(typeof m === 'object' && !Array.isArray(m) ? m : {}), default: m })(__vite__cjsImport4_qrcode);
+import { loadSettings, loadTables } from "/src/storage.ts";
+const QR_OPTIONS = {
+  errorCorrectionLevel: "M",
+  margin: 2,
+  width: 240
+};
+const getQRPath = (table) => `/qr/${encodeURIComponent(table.id)}`;
+const sortTables = (tables) => {
+  return [...tables].sort((a, b) => a.name.localeCompare(b.name, "tr-TR", {
+    numeric: true
+  }));
+};
+export default function QRCodes() {
+  _s();
+  const [settings] = React.useState(() => loadSettings());
+  const [tables, setTables] = React.useState(() => sortTables(loadTables()));
+  const [qrImages, setQrImages] = React.useState({});
+  const [previewTableId, setPreviewTableId] = React.useState("");
+  const [printTables, setPrintTables] = React.useState([]);
+  const [printMode, setPrintMode] = React.useState(null);
+  const [error, setError] = React.useState("");
+  const refreshTables = React.useCallback(() => {
+    setTables(sortTables(loadTables()));
+  }, []);
+  React.useEffect(() => {
+    refreshTables();
+    const intervalId = window.setInterval(refreshTables, 3e3);
+    window.addEventListener("storage", refreshTables);
+    return () => {
+      window.clearInterval(intervalId);
+      window.removeEventListener("storage", refreshTables);
+    };
+  }, [refreshTables]);
+  React.useEffect(() => {
+    let cancelled = false;
+    const createCodes = async () => {
+      try {
+        const entries = await Promise.all(tables.map(async (table) => {
+          const image = await QRCode.toDataURL(getQRPath(table), QR_OPTIONS);
+          return [table.id, image];
+        }));
+        if (!cancelled) {
+          setQrImages(Object.fromEntries(entries));
+          setError("");
+        }
+      } catch {
+        if (!cancelled)
+          setError("QR kodlar oluşturulamadı. Lütfen sayfayı yenileyin.");
+      }
+    };
+    createCodes();
+    return () => {
+      cancelled = true;
+    };
+  }, [tables]);
+  React.useEffect(() => {
+    if (previewTableId && !tables.some((table) => table.id === previewTableId)) {
+      setPreviewTableId("");
+    }
+  }, [previewTableId, tables]);
+  React.useEffect(() => {
+    const clearPrintMode = () => {
+      document.body.classList.remove("printing");
+      setPrintMode(null);
+      setPrintTables([]);
+    };
+    window.addEventListener("afterprint", clearPrintMode);
+    return () => {
+      window.removeEventListener("afterprint", clearPrintMode);
+      document.body.classList.remove("printing");
+    };
+  }, []);
+  const previewTable = tables.find((table) => table.id === previewTableId) || null;
+  const allQRCodesReady = tables.length > 0 && tables.every((table) => qrImages[table.id]);
+  const startPrint = (items, mode) => {
+    if (items.length === 0)
+      return;
+    setPrintTables(items);
+    setPrintMode(mode);
+    document.body.classList.add("printing");
+    window.setTimeout(() => window.print(), 50);
+  };
+  return /* @__PURE__ */ jsxDEV("div", { className: "qr-codes-page", children: [
+    /* @__PURE__ */ jsxDEV("div", { className: "page-title", children: [
+      /* @__PURE__ */ jsxDEV("div", { children: [
+        /* @__PURE__ */ jsxDEV("h2", { children: "QR Kodlar" }, void 0, false, {
+          fileName: "C:/Users/90544/Documents/restaurant-adisyon/src/pages/QRCodes.tsx",
+          lineNumber: 89,
+          columnNumber: 11
+        }, this),
+        /* @__PURE__ */ jsxDEV("p", { className: "muted", children: "Masalara ait QR menü linklerini oluşturun, önizleyin ve yazdırın." }, void 0, false, {
+          fileName: "C:/Users/90544/Documents/restaurant-adisyon/src/pages/QRCodes.tsx",
+          lineNumber: 90,
+          columnNumber: 11
+        }, this)
+      ] }, void 0, true, {
+        fileName: "C:/Users/90544/Documents/restaurant-adisyon/src/pages/QRCodes.tsx",
+        lineNumber: 88,
+        columnNumber: 9
+      }, this),
+      /* @__PURE__ */ jsxDEV("button", { className: "btn primary", disabled: !allQRCodesReady, onClick: () => startPrint(tables, "all"), type: "button", children: "Tüm QR Kodları Yazdır" }, void 0, false, {
+        fileName: "C:/Users/90544/Documents/restaurant-adisyon/src/pages/QRCodes.tsx",
+        lineNumber: 92,
+        columnNumber: 9
+      }, this)
+    ] }, void 0, true, {
+      fileName: "C:/Users/90544/Documents/restaurant-adisyon/src/pages/QRCodes.tsx",
+      lineNumber: 87,
+      columnNumber: 7
+    }, this),
+    error && /* @__PURE__ */ jsxDEV("div", { className: "form-error", children: error }, void 0, false, {
+      fileName: "C:/Users/90544/Documents/restaurant-adisyon/src/pages/QRCodes.tsx",
+      lineNumber: 97,
+      columnNumber: 17
+    }, this),
+    /* @__PURE__ */ jsxDEV("section", { className: "card", children: [
+      /* @__PURE__ */ jsxDEV("div", { className: "section-header compact", children: /* @__PURE__ */ jsxDEV("div", { children: [
+        /* @__PURE__ */ jsxDEV("h3", { children: "QR Kod Listesi" }, void 0, false, {
+          fileName: "C:/Users/90544/Documents/restaurant-adisyon/src/pages/QRCodes.tsx",
+          lineNumber: 102,
+          columnNumber: 13
+        }, this),
+        /* @__PURE__ */ jsxDEV("p", { className: "muted", children: [
+          tables.length,
+          " masa listeleniyor. Liste otomatik yenilenir."
+        ] }, void 0, true, {
+          fileName: "C:/Users/90544/Documents/restaurant-adisyon/src/pages/QRCodes.tsx",
+          lineNumber: 103,
+          columnNumber: 13
+        }, this)
+      ] }, void 0, true, {
+        fileName: "C:/Users/90544/Documents/restaurant-adisyon/src/pages/QRCodes.tsx",
+        lineNumber: 101,
+        columnNumber: 11
+      }, this) }, void 0, false, {
+        fileName: "C:/Users/90544/Documents/restaurant-adisyon/src/pages/QRCodes.tsx",
+        lineNumber: 100,
+        columnNumber: 9
+      }, this),
+      /* @__PURE__ */ jsxDEV("div", { className: "table-wrap", children: /* @__PURE__ */ jsxDEV("table", { className: "data-table", children: [
+        /* @__PURE__ */ jsxDEV("thead", { children: /* @__PURE__ */ jsxDEV("tr", { children: [
+          /* @__PURE__ */ jsxDEV("th", { children: "Masa adı" }, void 0, false, {
+            fileName: "C:/Users/90544/Documents/restaurant-adisyon/src/pages/QRCodes.tsx",
+            lineNumber: 111,
+            columnNumber: 17
+          }, this),
+          /* @__PURE__ */ jsxDEV("th", { children: "QR linki" }, void 0, false, {
+            fileName: "C:/Users/90544/Documents/restaurant-adisyon/src/pages/QRCodes.tsx",
+            lineNumber: 112,
+            columnNumber: 17
+          }, this),
+          /* @__PURE__ */ jsxDEV("th", {}, void 0, false, {
+            fileName: "C:/Users/90544/Documents/restaurant-adisyon/src/pages/QRCodes.tsx",
+            lineNumber: 113,
+            columnNumber: 17
+          }, this)
+        ] }, void 0, true, {
+          fileName: "C:/Users/90544/Documents/restaurant-adisyon/src/pages/QRCodes.tsx",
+          lineNumber: 110,
+          columnNumber: 15
+        }, this) }, void 0, false, {
+          fileName: "C:/Users/90544/Documents/restaurant-adisyon/src/pages/QRCodes.tsx",
+          lineNumber: 109,
+          columnNumber: 13
+        }, this),
+        /* @__PURE__ */ jsxDEV("tbody", { children: [
+          tables.length === 0 && /* @__PURE__ */ jsxDEV("tr", { children: /* @__PURE__ */ jsxDEV("td", { colSpan: 3, className: "empty-cell", children: "Kayıtlı masa bulunmuyor." }, void 0, false, {
+            fileName: "C:/Users/90544/Documents/restaurant-adisyon/src/pages/QRCodes.tsx",
+            lineNumber: 117,
+            columnNumber: 43
+          }, this) }, void 0, false, {
+            fileName: "C:/Users/90544/Documents/restaurant-adisyon/src/pages/QRCodes.tsx",
+            lineNumber: 117,
+            columnNumber: 39
+          }, this),
+          tables.map((table) => /* @__PURE__ */ jsxDEV("tr", { children: [
+            /* @__PURE__ */ jsxDEV("td", { children: [
+              /* @__PURE__ */ jsxDEV("strong", { children: table.name }, void 0, false, {
+                fileName: "C:/Users/90544/Documents/restaurant-adisyon/src/pages/QRCodes.tsx",
+                lineNumber: 120,
+                columnNumber: 21
+              }, this),
+              /* @__PURE__ */ jsxDEV("div", { className: "muted small-text", children: [
+                "Masa ID: ",
+                table.id
+              ] }, void 0, true, {
+                fileName: "C:/Users/90544/Documents/restaurant-adisyon/src/pages/QRCodes.tsx",
+                lineNumber: 121,
+                columnNumber: 21
+              }, this)
+            ] }, void 0, true, {
+              fileName: "C:/Users/90544/Documents/restaurant-adisyon/src/pages/QRCodes.tsx",
+              lineNumber: 119,
+              columnNumber: 19
+            }, this),
+            /* @__PURE__ */ jsxDEV("td", { children: /* @__PURE__ */ jsxDEV("a", { className: "qr-link", href: getQRPath(table), target: "_blank", rel: "noreferrer", children: getQRPath(table) }, void 0, false, {
+              fileName: "C:/Users/90544/Documents/restaurant-adisyon/src/pages/QRCodes.tsx",
+              lineNumber: 124,
+              columnNumber: 21
+            }, this) }, void 0, false, {
+              fileName: "C:/Users/90544/Documents/restaurant-adisyon/src/pages/QRCodes.tsx",
+              lineNumber: 123,
+              columnNumber: 19
+            }, this),
+            /* @__PURE__ */ jsxDEV("td", { className: "actions-cell", children: [
+              /* @__PURE__ */ jsxDEV("button", { className: "btn", onClick: () => setPreviewTableId(table.id), type: "button", children: "QR Gör" }, void 0, false, {
+                fileName: "C:/Users/90544/Documents/restaurant-adisyon/src/pages/QRCodes.tsx",
+                lineNumber: 127,
+                columnNumber: 21
+              }, this),
+              /* @__PURE__ */ jsxDEV("button", { className: "btn", disabled: !qrImages[table.id], onClick: () => startPrint([table], "single"), type: "button", children: "Yazdır" }, void 0, false, {
+                fileName: "C:/Users/90544/Documents/restaurant-adisyon/src/pages/QRCodes.tsx",
+                lineNumber: 128,
+                columnNumber: 21
+              }, this)
+            ] }, void 0, true, {
+              fileName: "C:/Users/90544/Documents/restaurant-adisyon/src/pages/QRCodes.tsx",
+              lineNumber: 126,
+              columnNumber: 19
+            }, this)
+          ] }, table.id, true, {
+            fileName: "C:/Users/90544/Documents/restaurant-adisyon/src/pages/QRCodes.tsx",
+            lineNumber: 118,
+            columnNumber: 36
+          }, this))
+        ] }, void 0, true, {
+          fileName: "C:/Users/90544/Documents/restaurant-adisyon/src/pages/QRCodes.tsx",
+          lineNumber: 116,
+          columnNumber: 13
+        }, this)
+      ] }, void 0, true, {
+        fileName: "C:/Users/90544/Documents/restaurant-adisyon/src/pages/QRCodes.tsx",
+        lineNumber: 108,
+        columnNumber: 11
+      }, this) }, void 0, false, {
+        fileName: "C:/Users/90544/Documents/restaurant-adisyon/src/pages/QRCodes.tsx",
+        lineNumber: 107,
+        columnNumber: 9
+      }, this)
+    ] }, void 0, true, {
+      fileName: "C:/Users/90544/Documents/restaurant-adisyon/src/pages/QRCodes.tsx",
+      lineNumber: 99,
+      columnNumber: 7
+    }, this),
+    /* @__PURE__ */ jsxDEV("section", { className: "card", children: [
+      /* @__PURE__ */ jsxDEV("div", { className: "section-header compact", children: /* @__PURE__ */ jsxDEV("h3", { children: "QR Önizleme" }, void 0, false, {
+        fileName: "C:/Users/90544/Documents/restaurant-adisyon/src/pages/QRCodes.tsx",
+        lineNumber: 138,
+        columnNumber: 11
+      }, this) }, void 0, false, {
+        fileName: "C:/Users/90544/Documents/restaurant-adisyon/src/pages/QRCodes.tsx",
+        lineNumber: 137,
+        columnNumber: 9
+      }, this),
+      !previewTable ? /* @__PURE__ */ jsxDEV("div", { className: "empty-state", children: "Önizlemek için listeden bir masa seçin." }, void 0, false, {
+        fileName: "C:/Users/90544/Documents/restaurant-adisyon/src/pages/QRCodes.tsx",
+        lineNumber: 141,
+        columnNumber: 26
+      }, this) : /* @__PURE__ */ jsxDEV("div", { className: "qr-code-preview", children: [
+        /* @__PURE__ */ jsxDEV("div", { className: "qr-print-card", children: [
+          /* @__PURE__ */ jsxDEV("h3", { children: settings.restaurantName }, void 0, false, {
+            fileName: "C:/Users/90544/Documents/restaurant-adisyon/src/pages/QRCodes.tsx",
+            lineNumber: 143,
+            columnNumber: 15
+          }, this),
+          /* @__PURE__ */ jsxDEV("strong", { children: previewTable.name }, void 0, false, {
+            fileName: "C:/Users/90544/Documents/restaurant-adisyon/src/pages/QRCodes.tsx",
+            lineNumber: 144,
+            columnNumber: 15
+          }, this),
+          qrImages[previewTable.id] ? /* @__PURE__ */ jsxDEV("img", { src: qrImages[previewTable.id], alt: `${previewTable.name} QR kodu` }, void 0, false, {
+            fileName: "C:/Users/90544/Documents/restaurant-adisyon/src/pages/QRCodes.tsx",
+            lineNumber: 145,
+            columnNumber: 44
+          }, this) : /* @__PURE__ */ jsxDEV("div", { className: "empty-state", children: "QR hazırlanıyor." }, void 0, false, {
+            fileName: "C:/Users/90544/Documents/restaurant-adisyon/src/pages/QRCodes.tsx",
+            lineNumber: 145,
+            columnNumber: 123
+          }, this),
+          /* @__PURE__ */ jsxDEV("span", { children: getQRPath(previewTable) }, void 0, false, {
+            fileName: "C:/Users/90544/Documents/restaurant-adisyon/src/pages/QRCodes.tsx",
+            lineNumber: 146,
+            columnNumber: 15
+          }, this)
+        ] }, void 0, true, {
+          fileName: "C:/Users/90544/Documents/restaurant-adisyon/src/pages/QRCodes.tsx",
+          lineNumber: 142,
+          columnNumber: 13
+        }, this),
+        /* @__PURE__ */ jsxDEV("div", { className: "qr-preview-actions", children: [
+          /* @__PURE__ */ jsxDEV("button", { className: "btn primary", disabled: !qrImages[previewTable.id], onClick: () => startPrint([previewTable], "single"), type: "button", children: "Bu QR Kodunu Yazdır" }, void 0, false, {
+            fileName: "C:/Users/90544/Documents/restaurant-adisyon/src/pages/QRCodes.tsx",
+            lineNumber: 149,
+            columnNumber: 15
+          }, this),
+          /* @__PURE__ */ jsxDEV("a", { className: "btn", href: getQRPath(previewTable), target: "_blank", rel: "noreferrer", children: "Menüyü Aç" }, void 0, false, {
+            fileName: "C:/Users/90544/Documents/restaurant-adisyon/src/pages/QRCodes.tsx",
+            lineNumber: 150,
+            columnNumber: 15
+          }, this)
+        ] }, void 0, true, {
+          fileName: "C:/Users/90544/Documents/restaurant-adisyon/src/pages/QRCodes.tsx",
+          lineNumber: 148,
+          columnNumber: 13
+        }, this)
+      ] }, void 0, true, {
+        fileName: "C:/Users/90544/Documents/restaurant-adisyon/src/pages/QRCodes.tsx",
+        lineNumber: 141,
+        columnNumber: 103
+      }, this)
+    ] }, void 0, true, {
+      fileName: "C:/Users/90544/Documents/restaurant-adisyon/src/pages/QRCodes.tsx",
+      lineNumber: 136,
+      columnNumber: 7
+    }, this),
+    /* @__PURE__ */ jsxDEV("div", { className: `print-only ${printMode ? "print-active" : ""}`, children: /* @__PURE__ */ jsxDEV("div", { className: `qr-print-document ${printMode === "all" ? "all" : "single"}`, children: printTables.map((table) => /* @__PURE__ */ jsxDEV("div", { className: "qr-print-card", children: [
+      /* @__PURE__ */ jsxDEV("h3", { children: settings.restaurantName }, void 0, false, {
+        fileName: "C:/Users/90544/Documents/restaurant-adisyon/src/pages/QRCodes.tsx",
+        lineNumber: 158,
+        columnNumber: 15
+      }, this),
+      /* @__PURE__ */ jsxDEV("strong", { children: table.name }, void 0, false, {
+        fileName: "C:/Users/90544/Documents/restaurant-adisyon/src/pages/QRCodes.tsx",
+        lineNumber: 159,
+        columnNumber: 15
+      }, this),
+      qrImages[table.id] && /* @__PURE__ */ jsxDEV("img", { src: qrImages[table.id], alt: `${table.name} QR kodu` }, void 0, false, {
+        fileName: "C:/Users/90544/Documents/restaurant-adisyon/src/pages/QRCodes.tsx",
+        lineNumber: 160,
+        columnNumber: 38
+      }, this),
+      /* @__PURE__ */ jsxDEV("span", { children: getQRPath(table) }, void 0, false, {
+        fileName: "C:/Users/90544/Documents/restaurant-adisyon/src/pages/QRCodes.tsx",
+        lineNumber: 161,
+        columnNumber: 15
+      }, this)
+    ] }, table.id, true, {
+      fileName: "C:/Users/90544/Documents/restaurant-adisyon/src/pages/QRCodes.tsx",
+      lineNumber: 157,
+      columnNumber: 37
+    }, this)) }, void 0, false, {
+      fileName: "C:/Users/90544/Documents/restaurant-adisyon/src/pages/QRCodes.tsx",
+      lineNumber: 156,
+      columnNumber: 9
+    }, this) }, void 0, false, {
+      fileName: "C:/Users/90544/Documents/restaurant-adisyon/src/pages/QRCodes.tsx",
+      lineNumber: 155,
+      columnNumber: 7
+    }, this)
+  ] }, void 0, true, {
+    fileName: "C:/Users/90544/Documents/restaurant-adisyon/src/pages/QRCodes.tsx",
+    lineNumber: 86,
+    columnNumber: 10
+  }, this);
+}
+_s(QRCodes, "70UjdMct79r3mn0tTqlKSreubxc=");
+_c = QRCodes;
+var _c;
+$RefreshReg$(_c, "QRCodes");
+if (import.meta.hot) {
+  window.$RefreshReg$ = prevRefreshReg;
+  window.$RefreshSig$ = prevRefreshSig;
+  RefreshRuntime.__hmr_import(import.meta.url).then((currentExports) => {
+    RefreshRuntime.registerExportsForReactRefresh("C:/Users/90544/Documents/restaurant-adisyon/src/pages/QRCodes.tsx", currentExports);
+    import.meta.hot.accept((nextExports) => {
+      if (!nextExports)
+        return;
+      const invalidateMessage = RefreshRuntime.validateRefreshBoundaryAndEnqueueUpdate(currentExports, nextExports);
+      if (invalidateMessage)
+        import.meta.hot.invalidate(invalidateMessage);
+    });
+  });
+}
+
+//# sourceMappingURL=data:application/json;base64,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QUFBRCxJQUFBIiwibmFtZXMiOlsiUmVhY3QiLCJRUkNvZGUiLCJsb2FkU2V0dGluZ3MiLCJsb2FkVGFibGVzIiwiUVJfT1BUSU9OUyIsImVycm9yQ29ycmVjdGlvbkxldmVsIiwibWFyZ2luIiwid2lkdGgiLCJnZXRRUlBhdGgiLCJ0YWJsZSIsImVuY29kZVVSSUNvbXBvbmVudCIsImlkIiwic29ydFRhYmxlcyIsInRhYmxlcyIsInNvcnQiLCJhIiwiYiIsIm5hbWUiLCJsb2NhbGVDb21wYXJlIiwibnVtZXJpYyIsIlFSQ29kZXMiLCJfcyIsInNldHRpbmdzIiwidXNlU3RhdGUiLCJzZXRUYWJsZXMiLCJxckltYWdlcyIsInNldFFySW1hZ2VzIiwicHJldmlld1RhYmxlSWQiLCJzZXRQcmV2aWV3VGFibGVJZCIsInByaW50VGFibGVzIiwic2V0UHJpbnRUYWJsZXMiLCJwcmludE1vZGUiLCJzZXRQcmludE1vZGUiLCJlcnJvciIsInNldEVycm9yIiwicmVmcmVzaFRhYmxlcyIsInVzZUNhbGxiYWNrIiwidXNlRWZmZWN0IiwiaW50ZXJ2YWxJZCIsIndpbmRvdyIsInNldEludGVydmFsIiwiYWRkRXZlbnRMaXN0ZW5lciIsImNsZWFySW50ZXJ2YWwiLCJyZW1vdmVFdmVudExpc3RlbmVyIiwiY2FuY2VsbGVkIiwiY3JlYXRlQ29kZXMiLCJlbnRyaWVzIiwiUHJvbWlzZSIsImFsbCIsIm1hcCIsImltYWdlIiwidG9EYXRhVVJMIiwiT2JqZWN0IiwiZnJvbUVudHJpZXMiLCJzb21lIiwiY2xlYXJQcmludE1vZGUiLCJkb2N1bWVudCIsImJvZHkiLCJjbGFzc0xpc3QiLCJyZW1vdmUiLCJwcmV2aWV3VGFibGUiLCJmaW5kIiwiYWxsUVJDb2Rlc1JlYWR5IiwibGVuZ3RoIiwiZXZlcnkiLCJzdGFydFByaW50IiwiaXRlbXMiLCJtb2RlIiwiYWRkIiwic2V0VGltZW91dCIsInByaW50IiwicmVzdGF1cmFudE5hbWUiLCJfYyIsIiRSZWZyZXNoUmVnJCJdLCJzb3VyY2VzIjpbIlFSQ29kZXMudHN4Il0sInNvdXJjZXNDb250ZW50IjpbImltcG9ydCBSZWFjdCBmcm9tICdyZWFjdCdcbmltcG9ydCAqIGFzIFFSQ29kZSBmcm9tICdxcmNvZGUnXG5pbXBvcnQgeyBUYWJsZVN0YXRlIH0gZnJvbSAnLi4vdHlwZXMnXG5pbXBvcnQgeyBsb2FkU2V0dGluZ3MsIGxvYWRUYWJsZXMgfSBmcm9tICcuLi9zdG9yYWdlJ1xuXG50eXBlIFByaW50TW9kZSA9ICdzaW5nbGUnIHwgJ2FsbCcgfCBudWxsXG5cbmNvbnN0IFFSX09QVElPTlMgPSB7XG4gIGVycm9yQ29ycmVjdGlvbkxldmVsOiAnTScgYXMgY29uc3QsXG4gIG1hcmdpbjogMixcbiAgd2lkdGg6IDI0MFxufVxuXG5jb25zdCBnZXRRUlBhdGggPSAodGFibGU6IFRhYmxlU3RhdGUpID0+IGAvcXIvJHtlbmNvZGVVUklDb21wb25lbnQodGFibGUuaWQpfWBcblxuY29uc3Qgc29ydFRhYmxlcyA9ICh0YWJsZXM6IFRhYmxlU3RhdGVbXSkgPT4ge1xuICByZXR1cm4gWy4uLnRhYmxlc10uc29ydCgoYSwgYikgPT4gYS5uYW1lLmxvY2FsZUNvbXBhcmUoYi5uYW1lLCAndHItVFInLCB7IG51bWVyaWM6IHRydWUgfSkpXG59XG5cbmV4cG9ydCBkZWZhdWx0IGZ1bmN0aW9uIFFSQ29kZXMoKXtcbiAgY29uc3QgW3NldHRpbmdzXSA9IFJlYWN0LnVzZVN0YXRlKCgpID0+IGxvYWRTZXR0aW5ncygpKVxuICBjb25zdCBbdGFibGVzLCBzZXRUYWJsZXNdID0gUmVhY3QudXNlU3RhdGU8VGFibGVTdGF0ZVtdPigoKSA9PiBzb3J0VGFibGVzKGxvYWRUYWJsZXMoKSkpXG4gIGNvbnN0IFtxckltYWdlcywgc2V0UXJJbWFnZXNdID0gUmVhY3QudXNlU3RhdGU8UmVjb3JkPHN0cmluZywgc3RyaW5nPj4oe30pXG4gIGNvbnN0IFtwcmV2aWV3VGFibGVJZCwgc2V0UHJldmlld1RhYmxlSWRdID0gUmVhY3QudXNlU3RhdGUoJycpXG4gIGNvbnN0IFtwcmludFRhYmxlcywgc2V0UHJpbnRUYWJsZXNdID0gUmVhY3QudXNlU3RhdGU8VGFibGVTdGF0ZVtdPihbXSlcbiAgY29uc3QgW3ByaW50TW9kZSwgc2V0UHJpbnRNb2RlXSA9IFJlYWN0LnVzZVN0YXRlPFByaW50TW9kZT4obnVsbClcbiAgY29uc3QgW2Vycm9yLCBzZXRFcnJvcl0gPSBSZWFjdC51c2VTdGF0ZSgnJylcblxuICBjb25zdCByZWZyZXNoVGFibGVzID0gUmVhY3QudXNlQ2FsbGJhY2soKCkgPT4ge1xuICAgIHNldFRhYmxlcyhzb3J0VGFibGVzKGxvYWRUYWJsZXMoKSkpXG4gIH0sIFtdKVxuXG4gIFJlYWN0LnVzZUVmZmVjdCgoKSA9PiB7XG4gICAgcmVmcmVzaFRhYmxlcygpXG4gICAgY29uc3QgaW50ZXJ2YWxJZCA9IHdpbmRvdy5zZXRJbnRlcnZhbChyZWZyZXNoVGFibGVzLCAzMDAwKVxuICAgIHdpbmRvdy5hZGRFdmVudExpc3RlbmVyKCdzdG9yYWdlJywgcmVmcmVzaFRhYmxlcylcblxuICAgIHJldHVybiAoKSA9PiB7XG4gICAgICB3aW5kb3cuY2xlYXJJbnRlcnZhbChpbnRlcnZhbElkKVxuICAgICAgd2luZG93LnJlbW92ZUV2ZW50TGlzdGVuZXIoJ3N0b3JhZ2UnLCByZWZyZXNoVGFibGVzKVxuICAgIH1cbiAgfSwgW3JlZnJlc2hUYWJsZXNdKVxuXG4gIFJlYWN0LnVzZUVmZmVjdCgoKSA9PiB7XG4gICAgbGV0IGNhbmNlbGxlZCA9IGZhbHNlXG5cbiAgICBjb25zdCBjcmVhdGVDb2RlcyA9IGFzeW5jICgpID0+IHtcbiAgICAgIHRyeSB7XG4gICAgICAgIGNvbnN0IGVudHJpZXMgPSBhd2FpdCBQcm9taXNlLmFsbCh0YWJsZXMubWFwKGFzeW5jIHRhYmxlID0+IHtcbiAgICAgICAgICBjb25zdCBpbWFnZSA9IGF3YWl0IFFSQ29kZS50b0RhdGFVUkwoZ2V0UVJQYXRoKHRhYmxlKSwgUVJfT1BUSU9OUylcbiAgICAgICAgICByZXR1cm4gW3RhYmxlLmlkLCBpbWFnZV0gYXMgY29uc3RcbiAgICAgICAgfSkpXG5cbiAgICAgICAgaWYoIWNhbmNlbGxlZCl7XG4gICAgICAgICAgc2V0UXJJbWFnZXMoT2JqZWN0LmZyb21FbnRyaWVzKGVudHJpZXMpKVxuICAgICAgICAgIHNldEVycm9yKCcnKVxuICAgICAgICB9XG4gICAgICB9IGNhdGNoIHtcbiAgICAgICAgaWYoIWNhbmNlbGxlZCkgc2V0RXJyb3IoJ1FSIGtvZGxhciBvbHXFn3R1cnVsYW1hZMSxLiBMw7x0ZmVuIHNheWZhecSxIHllbmlsZXlpbi4nKVxuICAgICAgfVxuICAgIH1cblxuICAgIGNyZWF0ZUNvZGVzKClcbiAgICByZXR1cm4gKCkgPT4ge1xuICAgICAgY2FuY2VsbGVkID0gdHJ1ZVxuICAgIH1cbiAgfSwgW3RhYmxlc10pXG5cbiAgUmVhY3QudXNlRWZmZWN0KCgpID0+IHtcbiAgICBpZihwcmV2aWV3VGFibGVJZCAmJiAhdGFibGVzLnNvbWUodGFibGUgPT4gdGFibGUuaWQgPT09IHByZXZpZXdUYWJsZUlkKSl7XG4gICAgICBzZXRQcmV2aWV3VGFibGVJZCgnJylcbiAgICB9XG4gIH0sIFtwcmV2aWV3VGFibGVJZCwgdGFibGVzXSlcblxuICBSZWFjdC51c2VFZmZlY3QoKCkgPT4ge1xuICAgIGNvbnN0IGNsZWFyUHJpbnRNb2RlID0gKCkgPT4ge1xuICAgICAgZG9jdW1lbnQuYm9keS5jbGFzc0xpc3QucmVtb3ZlKCdwcmludGluZycpXG4gICAgICBzZXRQcmludE1vZGUobnVsbClcbiAgICAgIHNldFByaW50VGFibGVzKFtdKVxuICAgIH1cblxuICAgIHdpbmRvdy5hZGRFdmVudExpc3RlbmVyKCdhZnRlcnByaW50JywgY2xlYXJQcmludE1vZGUpXG4gICAgcmV0dXJuICgpID0+IHtcbiAgICAgIHdpbmRvdy5yZW1vdmVFdmVudExpc3RlbmVyKCdhZnRlcnByaW50JywgY2xlYXJQcmludE1vZGUpXG4gICAgICBkb2N1bWVudC5ib2R5LmNsYXNzTGlzdC5yZW1vdmUoJ3ByaW50aW5nJylcbiAgICB9XG4gIH0sIFtdKVxuXG4gIGNvbnN0IHByZXZpZXdUYWJsZSA9IHRhYmxlcy5maW5kKHRhYmxlID0+IHRhYmxlLmlkID09PSBwcmV2aWV3VGFibGVJZCkgfHwgbnVsbFxuICBjb25zdCBhbGxRUkNvZGVzUmVhZHkgPSB0YWJsZXMubGVuZ3RoID4gMCAmJiB0YWJsZXMuZXZlcnkodGFibGUgPT4gcXJJbWFnZXNbdGFibGUuaWRdKVxuXG4gIGNvbnN0IHN0YXJ0UHJpbnQgPSAoaXRlbXM6IFRhYmxlU3RhdGVbXSwgbW9kZTogRXhjbHVkZTxQcmludE1vZGUsIG51bGw+KSA9PiB7XG4gICAgaWYoaXRlbXMubGVuZ3RoID09PSAwKSByZXR1cm5cblxuICAgIHNldFByaW50VGFibGVzKGl0ZW1zKVxuICAgIHNldFByaW50TW9kZShtb2RlKVxuICAgIGRvY3VtZW50LmJvZHkuY2xhc3NMaXN0LmFkZCgncHJpbnRpbmcnKVxuICAgIHdpbmRvdy5zZXRUaW1lb3V0KCgpID0+IHdpbmRvdy5wcmludCgpLCA1MClcbiAgfVxuXG4gIHJldHVybiAoXG4gICAgPGRpdiBjbGFzc05hbWU9XCJxci1jb2Rlcy1wYWdlXCI+XG4gICAgICA8ZGl2IGNsYXNzTmFtZT1cInBhZ2UtdGl0bGVcIj5cbiAgICAgICAgPGRpdj5cbiAgICAgICAgICA8aDI+UVIgS29kbGFyPC9oMj5cbiAgICAgICAgICA8cCBjbGFzc05hbWU9XCJtdXRlZFwiPk1hc2FsYXJhIGFpdCBRUiBtZW7DvCBsaW5rbGVyaW5pIG9sdcWfdHVydW4sIMO2bml6bGV5aW4gdmUgeWF6ZMSxcsSxbi48L3A+XG4gICAgICAgIDwvZGl2PlxuICAgICAgICA8YnV0dG9uIGNsYXNzTmFtZT1cImJ0biBwcmltYXJ5XCIgZGlzYWJsZWQ9eyFhbGxRUkNvZGVzUmVhZHl9IG9uQ2xpY2s9eygpID0+IHN0YXJ0UHJpbnQodGFibGVzLCAnYWxsJyl9IHR5cGU9XCJidXR0b25cIj5cbiAgICAgICAgICBUw7xtIFFSIEtvZGxhcsSxIFlhemTEsXJcbiAgICAgICAgPC9idXR0b24+XG4gICAgICA8L2Rpdj5cblxuICAgICAge2Vycm9yICYmIDxkaXYgY2xhc3NOYW1lPVwiZm9ybS1lcnJvclwiPntlcnJvcn08L2Rpdj59XG5cbiAgICAgIDxzZWN0aW9uIGNsYXNzTmFtZT1cImNhcmRcIj5cbiAgICAgICAgPGRpdiBjbGFzc05hbWU9XCJzZWN0aW9uLWhlYWRlciBjb21wYWN0XCI+XG4gICAgICAgICAgPGRpdj5cbiAgICAgICAgICAgIDxoMz5RUiBLb2QgTGlzdGVzaTwvaDM+XG4gICAgICAgICAgICA8cCBjbGFzc05hbWU9XCJtdXRlZFwiPnt0YWJsZXMubGVuZ3RofSBtYXNhIGxpc3RlbGVuaXlvci4gTGlzdGUgb3RvbWF0aWsgeWVuaWxlbmlyLjwvcD5cbiAgICAgICAgICA8L2Rpdj5cbiAgICAgICAgPC9kaXY+XG5cbiAgICAgICAgPGRpdiBjbGFzc05hbWU9XCJ0YWJsZS13cmFwXCI+XG4gICAgICAgICAgPHRhYmxlIGNsYXNzTmFtZT1cImRhdGEtdGFibGVcIj5cbiAgICAgICAgICAgIDx0aGVhZD5cbiAgICAgICAgICAgICAgPHRyPlxuICAgICAgICAgICAgICAgIDx0aD5NYXNhIGFkxLE8L3RoPlxuICAgICAgICAgICAgICAgIDx0aD5RUiBsaW5raTwvdGg+XG4gICAgICAgICAgICAgICAgPHRoPjwvdGg+XG4gICAgICAgICAgICAgIDwvdHI+XG4gICAgICAgICAgICA8L3RoZWFkPlxuICAgICAgICAgICAgPHRib2R5PlxuICAgICAgICAgICAgICB7dGFibGVzLmxlbmd0aCA9PT0gMCAmJiAoXG4gICAgICAgICAgICAgICAgPHRyPjx0ZCBjb2xTcGFuPXszfSBjbGFzc05hbWU9XCJlbXB0eS1jZWxsXCI+S2F5xLF0bMSxIG1hc2EgYnVsdW5tdXlvci48L3RkPjwvdHI+XG4gICAgICAgICAgICAgICl9XG4gICAgICAgICAgICAgIHt0YWJsZXMubWFwKHRhYmxlID0+IChcbiAgICAgICAgICAgICAgICA8dHIga2V5PXt0YWJsZS5pZH0+XG4gICAgICAgICAgICAgICAgICA8dGQ+XG4gICAgICAgICAgICAgICAgICAgIDxzdHJvbmc+e3RhYmxlLm5hbWV9PC9zdHJvbmc+XG4gICAgICAgICAgICAgICAgICAgIDxkaXYgY2xhc3NOYW1lPVwibXV0ZWQgc21hbGwtdGV4dFwiPk1hc2EgSUQ6IHt0YWJsZS5pZH08L2Rpdj5cbiAgICAgICAgICAgICAgICAgIDwvdGQ+XG4gICAgICAgICAgICAgICAgICA8dGQ+XG4gICAgICAgICAgICAgICAgICAgIDxhIGNsYXNzTmFtZT1cInFyLWxpbmtcIiBocmVmPXtnZXRRUlBhdGgodGFibGUpfSB0YXJnZXQ9XCJfYmxhbmtcIiByZWw9XCJub3JlZmVycmVyXCI+e2dldFFSUGF0aCh0YWJsZSl9PC9hPlxuICAgICAgICAgICAgICAgICAgPC90ZD5cbiAgICAgICAgICAgICAgICAgIDx0ZCBjbGFzc05hbWU9XCJhY3Rpb25zLWNlbGxcIj5cbiAgICAgICAgICAgICAgICAgICAgPGJ1dHRvbiBjbGFzc05hbWU9XCJidG5cIiBvbkNsaWNrPXsoKSA9PiBzZXRQcmV2aWV3VGFibGVJZCh0YWJsZS5pZCl9IHR5cGU9XCJidXR0b25cIj5RUiBHw7ZyPC9idXR0b24+XG4gICAgICAgICAgICAgICAgICAgIDxidXR0b24gY2xhc3NOYW1lPVwiYnRuXCIgZGlzYWJsZWQ9eyFxckltYWdlc1t0YWJsZS5pZF19IG9uQ2xpY2s9eygpID0+IHN0YXJ0UHJpbnQoW3RhYmxlXSwgJ3NpbmdsZScpfSB0eXBlPVwiYnV0dG9uXCI+WWF6ZMSxcjwvYnV0dG9uPlxuICAgICAgICAgICAgICAgICAgPC90ZD5cbiAgICAgICAgICAgICAgICA8L3RyPlxuICAgICAgICAgICAgICApKX1cbiAgICAgICAgICAgIDwvdGJvZHk+XG4gICAgICAgICAgPC90YWJsZT5cbiAgICAgICAgPC9kaXY+XG4gICAgICA8L3NlY3Rpb24+XG5cbiAgICAgIDxzZWN0aW9uIGNsYXNzTmFtZT1cImNhcmRcIj5cbiAgICAgICAgPGRpdiBjbGFzc05hbWU9XCJzZWN0aW9uLWhlYWRlciBjb21wYWN0XCI+XG4gICAgICAgICAgPGgzPlFSIMOWbml6bGVtZTwvaDM+XG4gICAgICAgIDwvZGl2PlxuXG4gICAgICAgIHshcHJldmlld1RhYmxlID8gKFxuICAgICAgICAgIDxkaXYgY2xhc3NOYW1lPVwiZW1wdHktc3RhdGVcIj7Dlm5pemxlbWVrIGnDp2luIGxpc3RlZGVuIGJpciBtYXNhIHNlw6dpbi48L2Rpdj5cbiAgICAgICAgKSA6IChcbiAgICAgICAgICA8ZGl2IGNsYXNzTmFtZT1cInFyLWNvZGUtcHJldmlld1wiPlxuICAgICAgICAgICAgPGRpdiBjbGFzc05hbWU9XCJxci1wcmludC1jYXJkXCI+XG4gICAgICAgICAgICAgIDxoMz57c2V0dGluZ3MucmVzdGF1cmFudE5hbWV9PC9oMz5cbiAgICAgICAgICAgICAgPHN0cm9uZz57cHJldmlld1RhYmxlLm5hbWV9PC9zdHJvbmc+XG4gICAgICAgICAgICAgIHtxckltYWdlc1twcmV2aWV3VGFibGUuaWRdID8gKFxuICAgICAgICAgICAgICAgIDxpbWcgc3JjPXtxckltYWdlc1twcmV2aWV3VGFibGUuaWRdfSBhbHQ9e2Ake3ByZXZpZXdUYWJsZS5uYW1lfSBRUiBrb2R1YH0gLz5cbiAgICAgICAgICAgICAgKSA6IChcbiAgICAgICAgICAgICAgICA8ZGl2IGNsYXNzTmFtZT1cImVtcHR5LXN0YXRlXCI+UVIgaGF6xLFybGFuxLF5b3IuPC9kaXY+XG4gICAgICAgICAgICAgICl9XG4gICAgICAgICAgICAgIDxzcGFuPntnZXRRUlBhdGgocHJldmlld1RhYmxlKX08L3NwYW4+XG4gICAgICAgICAgICA8L2Rpdj5cbiAgICAgICAgICAgIDxkaXYgY2xhc3NOYW1lPVwicXItcHJldmlldy1hY3Rpb25zXCI+XG4gICAgICAgICAgICAgIDxidXR0b24gY2xhc3NOYW1lPVwiYnRuIHByaW1hcnlcIiBkaXNhYmxlZD17IXFySW1hZ2VzW3ByZXZpZXdUYWJsZS5pZF19IG9uQ2xpY2s9eygpID0+IHN0YXJ0UHJpbnQoW3ByZXZpZXdUYWJsZV0sICdzaW5nbGUnKX0gdHlwZT1cImJ1dHRvblwiPkJ1IFFSIEtvZHVudSBZYXpkxLFyPC9idXR0b24+XG4gICAgICAgICAgICAgIDxhIGNsYXNzTmFtZT1cImJ0blwiIGhyZWY9e2dldFFSUGF0aChwcmV2aWV3VGFibGUpfSB0YXJnZXQ9XCJfYmxhbmtcIiByZWw9XCJub3JlZmVycmVyXCI+TWVuw7x5w7wgQcOnPC9hPlxuICAgICAgICAgICAgPC9kaXY+XG4gICAgICAgICAgPC9kaXY+XG4gICAgICAgICl9XG4gICAgICA8L3NlY3Rpb24+XG5cbiAgICAgIDxkaXYgY2xhc3NOYW1lPXtgcHJpbnQtb25seSAke3ByaW50TW9kZSA/ICdwcmludC1hY3RpdmUnIDogJyd9YH0+XG4gICAgICAgIDxkaXYgY2xhc3NOYW1lPXtgcXItcHJpbnQtZG9jdW1lbnQgJHtwcmludE1vZGUgPT09ICdhbGwnID8gJ2FsbCcgOiAnc2luZ2xlJ31gfT5cbiAgICAgICAgICB7cHJpbnRUYWJsZXMubWFwKHRhYmxlID0+IChcbiAgICAgICAgICAgIDxkaXYgY2xhc3NOYW1lPVwicXItcHJpbnQtY2FyZFwiIGtleT17dGFibGUuaWR9PlxuICAgICAgICAgICAgICA8aDM+e3NldHRpbmdzLnJlc3RhdXJhbnROYW1lfTwvaDM+XG4gICAgICAgICAgICAgIDxzdHJvbmc+e3RhYmxlLm5hbWV9PC9zdHJvbmc+XG4gICAgICAgICAgICAgIHtxckltYWdlc1t0YWJsZS5pZF0gJiYgPGltZyBzcmM9e3FySW1hZ2VzW3RhYmxlLmlkXX0gYWx0PXtgJHt0YWJsZS5uYW1lfSBRUiBrb2R1YH0gLz59XG4gICAgICAgICAgICAgIDxzcGFuPntnZXRRUlBhdGgodGFibGUpfTwvc3Bhbj5cbiAgICAgICAgICAgIDwvZGl2PlxuICAgICAgICAgICkpfVxuICAgICAgICA8L2Rpdj5cbiAgICAgIDwvZGl2PlxuICAgIDwvZGl2PlxuICApXG59XG4iXSwiZmlsZSI6IkM6L1VzZXJzLzkwNTQ0L0RvY3VtZW50cy9yZXN0YXVyYW50LWFkaXN5b24vc3JjL3BhZ2VzL1FSQ29kZXMudHN4In0=

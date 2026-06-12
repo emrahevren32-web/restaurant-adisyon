@@ -1,0 +1,273 @@
+import { createHotContext as __vite__createHotContext } from "/@vite/client";import.meta.hot = __vite__createHotContext("/src/pages/ActionHistory.tsx");import __vite__cjsImport0_react_jsxDevRuntime from "/node_modules/.vite/deps/react_jsx-dev-runtime.js?v=99165b73"; const jsxDEV = __vite__cjsImport0_react_jsxDevRuntime["jsxDEV"];
+import RefreshRuntime from "/@react-refresh";
+let prevRefreshReg;
+let prevRefreshSig;
+if (import.meta.hot) {
+  if (!window.__vite_plugin_react_preamble_installed__) {
+    throw new Error("@vitejs/plugin-react can't detect preamble. Something is wrong. See https://github.com/vitejs/vite-plugin-react/pull/11#discussion_r430879201");
+  }
+  prevRefreshReg = window.$RefreshReg$;
+  prevRefreshSig = window.$RefreshSig$;
+  window.$RefreshReg$ = (type, id) => {
+    RefreshRuntime.register(type, "C:/Users/90544/Documents/restaurant-adisyon/src/pages/ActionHistory.tsx " + id);
+  };
+  window.$RefreshSig$ = RefreshRuntime.createSignatureFunctionForTransform;
+}
+var _s = $RefreshSig$();
+import __vite__cjsImport3_react from "/node_modules/.vite/deps/react.js?v=99165b73"; const React = __vite__cjsImport3_react.__esModule ? __vite__cjsImport3_react.default : __vite__cjsImport3_react;
+import { loadActionLogs, loadUsers } from "/src/storage.ts";
+const operationTypes = ["Masa oluşturuldu", "Masa silindi", "Masa adı değiştirildi", "Masa açıldı", "Sipariş eklendi", "Sipariş silindi", "Ürün adedi artırıldı", "Ürün adedi azaltıldı", "İndirim uygulandı", "İndirim kaldırıldı", "İkram eklendi", "Masa taşındı", "Masa birleştirildi", "Sipariş Hazırlanıyor", "Sipariş Hazır", "Garson çağrıldı", "Garson Çağrısı Sahiplenildi", "Garson Çağrısı Masaya Gidildi", "Garson Çağrısı Kapatıldı", "QR Siparişi Oluşturuldu", "QR Siparişi Düzenlendi", "QR Sipariş Notu Güncellendi", "QR Siparişi Onaylandı", "QR Siparişi Reddedildi", "Hesap kapatıldı", "Ürün oluşturuldu", "Ürün güncellendi", "Ürün aktif yapıldı", "Ürün pasif yapıldı", "Kategori oluşturuldu", "Kategori güncellendi", "Kategori aktif yapıldı", "Kategori pasif yapıldı", "Stok kartı oluşturuldu", "Stok kartı güncellendi", "Stok kartı silindi", "Stok kartı aktif yapıldı", "Stok kartı pasif yapıldı", "Stok kategorisi oluşturuldu", "Stok kategorisi güncellendi", "Stok kategorisi aktif yapıldı", "Stok kategorisi pasif yapıldı", "Stok girişi yapıldı", "Stok çıkışı yapıldı", "Stok sayım düzeltmesi yapıldı", "Stok ters hareketi oluşturuldu", "Kritik stok uyarısı oluştu", "Kritik stoktan çıkıldı", "SKT lotu oluşturuldu", "SKT lotu tüketildi", "SKT lotu iade edildi", "SKT lotu güncellendi", "SKT yaklaşan uyarısı oluştu", "SKT tarihi geçti", "SKT lot eşleşmesi yapılamadı", "Fire kaydı oluşturuldu", "Fire kaydı terslendi", "Fire lottan düşüldü", "SKT nedeniyle fire oluşturuldu", "Reçete oluşturuldu", "Reçete güncellendi", "Reçete silindi", "Reçete kopyalandı", "Reçete aktif yapıldı", "Reçete pasif yapıldı", "Otomatik stok düşümü yapıldı", "Otomatik stok düşümü terslendi", "Otomatik stok düşümü uyarısı", "Otomatik stok düşümü başarısız", "Kullanıcı oluşturuldu", "Kullanıcı güncellendi", "Kullanıcı aktif yapıldı", "Kullanıcı pasif yapıldı"];
+export default function ActionHistory() {
+  _s();
+  const [logs] = React.useState(() => loadActionLogs());
+  const [users] = React.useState(() => loadUsers());
+  const [dateFilter, setDateFilter] = React.useState("");
+  const [userFilter, setUserFilter] = React.useState("all");
+  const [operationFilter, setOperationFilter] = React.useState("all");
+  const userOptions = React.useMemo(() => {
+    const seen = /* @__PURE__ */ new Set();
+    const fromLogs = logs.filter((log) => {
+      if (seen.has(log.userId))
+        return false;
+      seen.add(log.userId);
+      return true;
+    }).map((log) => ({
+      id: log.userId,
+      name: log.userName
+    }));
+    const fromUsers = users.map((user) => ({
+      id: user.id,
+      name: user.fullName || user.username
+    }));
+    const merged = [...fromUsers, ...fromLogs];
+    const unique = new Map(merged.map((user) => [user.id, user]));
+    return Array.from(unique.values()).filter((user) => user.id);
+  }, [logs, users]);
+  const filteredLogs = logs.filter((log) => {
+    const matchesDate = !dateFilter || log.date === dateFilter;
+    const matchesUser = userFilter === "all" || log.userId === userFilter;
+    const matchesOperation = operationFilter === "all" || log.operationType === operationFilter;
+    return matchesDate && matchesUser && matchesOperation;
+  });
+  return /* @__PURE__ */ jsxDEV("div", { className: "action-history-page", children: [
+    /* @__PURE__ */ jsxDEV("div", { className: "page-title", children: /* @__PURE__ */ jsxDEV("div", { children: [
+      /* @__PURE__ */ jsxDEV("h2", { children: "İşlem Geçmişi" }, void 0, false, {
+        fileName: "C:/Users/90544/Documents/restaurant-adisyon/src/pages/ActionHistory.tsx",
+        lineNumber: 40,
+        columnNumber: 11
+      }, this),
+      /* @__PURE__ */ jsxDEV("p", { className: "muted", children: "Sistemde yapılan kritik işlemleri kullanıcı, tarih ve işlem tipine göre inceleyin." }, void 0, false, {
+        fileName: "C:/Users/90544/Documents/restaurant-adisyon/src/pages/ActionHistory.tsx",
+        lineNumber: 41,
+        columnNumber: 11
+      }, this)
+    ] }, void 0, true, {
+      fileName: "C:/Users/90544/Documents/restaurant-adisyon/src/pages/ActionHistory.tsx",
+      lineNumber: 39,
+      columnNumber: 9
+    }, this) }, void 0, false, {
+      fileName: "C:/Users/90544/Documents/restaurant-adisyon/src/pages/ActionHistory.tsx",
+      lineNumber: 38,
+      columnNumber: 7
+    }, this),
+    /* @__PURE__ */ jsxDEV("section", { className: "card", children: [
+      /* @__PURE__ */ jsxDEV("div", { className: "section-header", children: [
+        /* @__PURE__ */ jsxDEV("div", { children: [
+          /* @__PURE__ */ jsxDEV("h3", { children: "Log Kayıtları" }, void 0, false, {
+            fileName: "C:/Users/90544/Documents/restaurant-adisyon/src/pages/ActionHistory.tsx",
+            lineNumber: 48,
+            columnNumber: 13
+          }, this),
+          /* @__PURE__ */ jsxDEV("p", { className: "muted", children: [
+            filteredLogs.length,
+            " kayıt gösteriliyor."
+          ] }, void 0, true, {
+            fileName: "C:/Users/90544/Documents/restaurant-adisyon/src/pages/ActionHistory.tsx",
+            lineNumber: 49,
+            columnNumber: 13
+          }, this)
+        ] }, void 0, true, {
+          fileName: "C:/Users/90544/Documents/restaurant-adisyon/src/pages/ActionHistory.tsx",
+          lineNumber: 47,
+          columnNumber: 11
+        }, this),
+        /* @__PURE__ */ jsxDEV("div", { className: "action-log-filters", children: [
+          /* @__PURE__ */ jsxDEV("input", { type: "date", value: dateFilter, onChange: (e) => setDateFilter(e.target.value) }, void 0, false, {
+            fileName: "C:/Users/90544/Documents/restaurant-adisyon/src/pages/ActionHistory.tsx",
+            lineNumber: 52,
+            columnNumber: 13
+          }, this),
+          /* @__PURE__ */ jsxDEV("select", { value: userFilter, onChange: (e) => setUserFilter(e.target.value), children: [
+            /* @__PURE__ */ jsxDEV("option", { value: "all", children: "Tüm kullanıcılar" }, void 0, false, {
+              fileName: "C:/Users/90544/Documents/restaurant-adisyon/src/pages/ActionHistory.tsx",
+              lineNumber: 54,
+              columnNumber: 15
+            }, this),
+            userOptions.map((user) => /* @__PURE__ */ jsxDEV("option", { value: user.id, children: user.name }, user.id, false, {
+              fileName: "C:/Users/90544/Documents/restaurant-adisyon/src/pages/ActionHistory.tsx",
+              lineNumber: 55,
+              columnNumber: 40
+            }, this))
+          ] }, void 0, true, {
+            fileName: "C:/Users/90544/Documents/restaurant-adisyon/src/pages/ActionHistory.tsx",
+            lineNumber: 53,
+            columnNumber: 13
+          }, this),
+          /* @__PURE__ */ jsxDEV("select", { value: operationFilter, onChange: (e) => setOperationFilter(e.target.value), children: [
+            /* @__PURE__ */ jsxDEV("option", { value: "all", children: "Tüm işlemler" }, void 0, false, {
+              fileName: "C:/Users/90544/Documents/restaurant-adisyon/src/pages/ActionHistory.tsx",
+              lineNumber: 58,
+              columnNumber: 15
+            }, this),
+            operationTypes.map((type) => /* @__PURE__ */ jsxDEV("option", { value: type, children: type }, type, false, {
+              fileName: "C:/Users/90544/Documents/restaurant-adisyon/src/pages/ActionHistory.tsx",
+              lineNumber: 59,
+              columnNumber: 43
+            }, this))
+          ] }, void 0, true, {
+            fileName: "C:/Users/90544/Documents/restaurant-adisyon/src/pages/ActionHistory.tsx",
+            lineNumber: 57,
+            columnNumber: 13
+          }, this)
+        ] }, void 0, true, {
+          fileName: "C:/Users/90544/Documents/restaurant-adisyon/src/pages/ActionHistory.tsx",
+          lineNumber: 51,
+          columnNumber: 11
+        }, this)
+      ] }, void 0, true, {
+        fileName: "C:/Users/90544/Documents/restaurant-adisyon/src/pages/ActionHistory.tsx",
+        lineNumber: 46,
+        columnNumber: 9
+      }, this),
+      /* @__PURE__ */ jsxDEV("div", { className: "table-wrap", children: /* @__PURE__ */ jsxDEV("table", { className: "data-table", children: [
+        /* @__PURE__ */ jsxDEV("thead", { children: /* @__PURE__ */ jsxDEV("tr", { children: [
+          /* @__PURE__ */ jsxDEV("th", { children: "Tarih" }, void 0, false, {
+            fileName: "C:/Users/90544/Documents/restaurant-adisyon/src/pages/ActionHistory.tsx",
+            lineNumber: 68,
+            columnNumber: 17
+          }, this),
+          /* @__PURE__ */ jsxDEV("th", { children: "Saat" }, void 0, false, {
+            fileName: "C:/Users/90544/Documents/restaurant-adisyon/src/pages/ActionHistory.tsx",
+            lineNumber: 69,
+            columnNumber: 17
+          }, this),
+          /* @__PURE__ */ jsxDEV("th", { children: "Kullanıcı" }, void 0, false, {
+            fileName: "C:/Users/90544/Documents/restaurant-adisyon/src/pages/ActionHistory.tsx",
+            lineNumber: 70,
+            columnNumber: 17
+          }, this),
+          /* @__PURE__ */ jsxDEV("th", { children: "İşlem" }, void 0, false, {
+            fileName: "C:/Users/90544/Documents/restaurant-adisyon/src/pages/ActionHistory.tsx",
+            lineNumber: 71,
+            columnNumber: 17
+          }, this),
+          /* @__PURE__ */ jsxDEV("th", { children: "Masa" }, void 0, false, {
+            fileName: "C:/Users/90544/Documents/restaurant-adisyon/src/pages/ActionHistory.tsx",
+            lineNumber: 72,
+            columnNumber: 17
+          }, this),
+          /* @__PURE__ */ jsxDEV("th", { children: "Açıklama" }, void 0, false, {
+            fileName: "C:/Users/90544/Documents/restaurant-adisyon/src/pages/ActionHistory.tsx",
+            lineNumber: 73,
+            columnNumber: 17
+          }, this)
+        ] }, void 0, true, {
+          fileName: "C:/Users/90544/Documents/restaurant-adisyon/src/pages/ActionHistory.tsx",
+          lineNumber: 67,
+          columnNumber: 15
+        }, this) }, void 0, false, {
+          fileName: "C:/Users/90544/Documents/restaurant-adisyon/src/pages/ActionHistory.tsx",
+          lineNumber: 66,
+          columnNumber: 13
+        }, this),
+        /* @__PURE__ */ jsxDEV("tbody", { children: [
+          filteredLogs.length === 0 && /* @__PURE__ */ jsxDEV("tr", { children: /* @__PURE__ */ jsxDEV("td", { colSpan: 6, className: "empty-cell", children: "Filtrelere uygun işlem kaydı bulunamadı." }, void 0, false, {
+            fileName: "C:/Users/90544/Documents/restaurant-adisyon/src/pages/ActionHistory.tsx",
+            lineNumber: 77,
+            columnNumber: 49
+          }, this) }, void 0, false, {
+            fileName: "C:/Users/90544/Documents/restaurant-adisyon/src/pages/ActionHistory.tsx",
+            lineNumber: 77,
+            columnNumber: 45
+          }, this),
+          filteredLogs.map((log) => /* @__PURE__ */ jsxDEV("tr", { children: [
+            /* @__PURE__ */ jsxDEV("td", { children: log.date }, void 0, false, {
+              fileName: "C:/Users/90544/Documents/restaurant-adisyon/src/pages/ActionHistory.tsx",
+              lineNumber: 79,
+              columnNumber: 19
+            }, this),
+            /* @__PURE__ */ jsxDEV("td", { children: log.time }, void 0, false, {
+              fileName: "C:/Users/90544/Documents/restaurant-adisyon/src/pages/ActionHistory.tsx",
+              lineNumber: 80,
+              columnNumber: 19
+            }, this),
+            /* @__PURE__ */ jsxDEV("td", { children: log.userName }, void 0, false, {
+              fileName: "C:/Users/90544/Documents/restaurant-adisyon/src/pages/ActionHistory.tsx",
+              lineNumber: 81,
+              columnNumber: 19
+            }, this),
+            /* @__PURE__ */ jsxDEV("td", { children: log.operationType }, void 0, false, {
+              fileName: "C:/Users/90544/Documents/restaurant-adisyon/src/pages/ActionHistory.tsx",
+              lineNumber: 82,
+              columnNumber: 19
+            }, this),
+            /* @__PURE__ */ jsxDEV("td", { children: log.tableName || "-" }, void 0, false, {
+              fileName: "C:/Users/90544/Documents/restaurant-adisyon/src/pages/ActionHistory.tsx",
+              lineNumber: 83,
+              columnNumber: 19
+            }, this),
+            /* @__PURE__ */ jsxDEV("td", { children: log.description }, void 0, false, {
+              fileName: "C:/Users/90544/Documents/restaurant-adisyon/src/pages/ActionHistory.tsx",
+              lineNumber: 84,
+              columnNumber: 19
+            }, this)
+          ] }, log.id, true, {
+            fileName: "C:/Users/90544/Documents/restaurant-adisyon/src/pages/ActionHistory.tsx",
+            lineNumber: 78,
+            columnNumber: 40
+          }, this))
+        ] }, void 0, true, {
+          fileName: "C:/Users/90544/Documents/restaurant-adisyon/src/pages/ActionHistory.tsx",
+          lineNumber: 76,
+          columnNumber: 13
+        }, this)
+      ] }, void 0, true, {
+        fileName: "C:/Users/90544/Documents/restaurant-adisyon/src/pages/ActionHistory.tsx",
+        lineNumber: 65,
+        columnNumber: 11
+      }, this) }, void 0, false, {
+        fileName: "C:/Users/90544/Documents/restaurant-adisyon/src/pages/ActionHistory.tsx",
+        lineNumber: 64,
+        columnNumber: 9
+      }, this)
+    ] }, void 0, true, {
+      fileName: "C:/Users/90544/Documents/restaurant-adisyon/src/pages/ActionHistory.tsx",
+      lineNumber: 45,
+      columnNumber: 7
+    }, this)
+  ] }, void 0, true, {
+    fileName: "C:/Users/90544/Documents/restaurant-adisyon/src/pages/ActionHistory.tsx",
+    lineNumber: 37,
+    columnNumber: 10
+  }, this);
+}
+_s(ActionHistory, "LZY4QMWQw8DsNksmRlzELY9LFOo=");
+_c = ActionHistory;
+var _c;
+$RefreshReg$(_c, "ActionHistory");
+if (import.meta.hot) {
+  window.$RefreshReg$ = prevRefreshReg;
+  window.$RefreshSig$ = prevRefreshSig;
+  RefreshRuntime.__hmr_import(import.meta.url).then((currentExports) => {
+    RefreshRuntime.registerExportsForReactRefresh("C:/Users/90544/Documents/restaurant-adisyon/src/pages/ActionHistory.tsx", currentExports);
+    import.meta.hot.accept((nextExports) => {
+      if (!nextExports)
+        return;
+      const invalidateMessage = RefreshRuntime.validateRefreshBoundaryAndEnqueueUpdate(currentExports, nextExports);
+      if (invalidateMessage)
+        import.meta.hot.invalidate(invalidateMessage);
+    });
+  });
+}
+
+//# sourceMappingURL=data:application/json;base64,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LGFBQWFkLElBQUlKLFNBQ2hCLHVCQUFDLFFBQ0M7QUFBQSxtQ0FBQyxRQUFJQSxjQUFJb0IsUUFBVDtBQUFBO0FBQUE7QUFBQTtBQUFBLG1CQUFjO0FBQUEsWUFDZCx1QkFBQyxRQUFJcEIsY0FBSTZCLFFBQVQ7QUFBQTtBQUFBO0FBQUE7QUFBQSxtQkFBYztBQUFBLFlBQ2QsdUJBQUMsUUFBSTdCLGNBQUlPLFlBQVQ7QUFBQTtBQUFBO0FBQUE7QUFBQSxtQkFBa0I7QUFBQSxZQUNsQix1QkFBQyxRQUFJUCxjQUFJdUIsaUJBQVQ7QUFBQTtBQUFBO0FBQUE7QUFBQSxtQkFBdUI7QUFBQSxZQUN2Qix1QkFBQyxRQUFJdkIsY0FBSThCLGFBQWEsT0FBdEI7QUFBQTtBQUFBO0FBQUE7QUFBQSxtQkFBMEI7QUFBQSxZQUMxQix1QkFBQyxRQUFJOUIsY0FBSStCLGVBQVQ7QUFBQTtBQUFBO0FBQUE7QUFBQSxtQkFBcUI7QUFBQSxlQU5kL0IsSUFBSUssSUFBYjtBQUFBO0FBQUE7QUFBQTtBQUFBLGlCQU9BLENBQ0Q7QUFBQSxhQWJIO0FBQUE7QUFBQTtBQUFBO0FBQUEsZUFjQTtBQUFBLFdBekJGO0FBQUE7QUFBQTtBQUFBO0FBQUEsYUEwQkEsS0EzQkY7QUFBQTtBQUFBO0FBQUE7QUFBQSxhQTRCQTtBQUFBLFNBL0NGO0FBQUE7QUFBQTtBQUFBO0FBQUEsV0FnREE7QUFBQSxPQXhERjtBQUFBO0FBQUE7QUFBQTtBQUFBLFNBeURBO0FBRUo7QUFBQ3JCLEdBMUZ1QkQsZUFBYTtBQUFBaUQsS0FBYmpEO0FBQWEsSUFBQWlEO0FBQUFDLGFBQUFELElBQUEiLCJuYW1lcyI6WyJSZWFjdCIsImxvYWRBY3Rpb25Mb2dzIiwibG9hZFVzZXJzIiwib3BlcmF0aW9uVHlwZXMiLCJBY3Rpb25IaXN0b3J5IiwiX3MiLCJsb2dzIiwidXNlU3RhdGUiLCJ1c2VycyIsImRhdGVGaWx0ZXIiLCJzZXREYXRlRmlsdGVyIiwidXNlckZpbHRlciIsInNldFVzZXJGaWx0ZXIiLCJvcGVyYXRpb25GaWx0ZXIiLCJzZXRPcGVyYXRpb25GaWx0ZXIiLCJ1c2VyT3B0aW9ucyIsInVzZU1lbW8iLCJzZWVuIiwiU2V0IiwiZnJvbUxvZ3MiLCJmaWx0ZXIiLCJsb2ciLCJoYXMiLCJ1c2VySWQiLCJhZGQiLCJtYXAiLCJpZCIsIm5hbWUiLCJ1c2VyTmFtZSIsImZyb21Vc2VycyIsInVzZXIiLCJmdWxsTmFtZSIsInVzZXJuYW1lIiwibWVyZ2VkIiwidW5pcXVlIiwiTWFwIiwiQXJyYXkiLCJmcm9tIiwidmFsdWVzIiwiZmlsdGVyZWRMb2dzIiwibWF0Y2hlc0RhdGUiLCJkYXRlIiwibWF0Y2hlc1VzZXIiLCJtYXRjaGVzT3BlcmF0aW9uIiwib3BlcmF0aW9uVHlwZSIsImxlbmd0aCIsImUiLCJ0YXJnZXQiLCJ2YWx1ZSIsInR5cGUiLCJ0aW1lIiwidGFibGVOYW1lIiwiZGVzY3JpcHRpb24iLCJfYyIsIiRSZWZyZXNoUmVnJCJdLCJzb3VyY2VzIjpbIkFjdGlvbkhpc3RvcnkudHN4Il0sInNvdXJjZXNDb250ZW50IjpbImltcG9ydCBSZWFjdCBmcm9tICdyZWFjdCdcbmltcG9ydCB7IEFjdGlvbkxvZywgQWN0aW9uTG9nVHlwZSB9IGZyb20gJy4uL3R5cGVzJ1xuaW1wb3J0IHsgbG9hZEFjdGlvbkxvZ3MsIGxvYWRVc2VycyB9IGZyb20gJy4uL3N0b3JhZ2UnXG5cbmNvbnN0IG9wZXJhdGlvblR5cGVzOiBBY3Rpb25Mb2dUeXBlW10gPSBbXG4gICdNYXNhIG9sdcWfdHVydWxkdScsXG4gICdNYXNhIHNpbGluZGknLFxuICAnTWFzYSBhZMSxIGRlxJ9pxZ90aXJpbGRpJyxcbiAgJ01hc2EgYcOnxLFsZMSxJyxcbiAgJ1NpcGFyacWfIGVrbGVuZGknLFxuICAnU2lwYXJpxZ8gc2lsaW5kaScsXG4gICfDnHLDvG4gYWRlZGkgYXJ0xLFyxLFsZMSxJyxcbiAgJ8OccsO8biBhZGVkaSBhemFsdMSxbGTEsScsXG4gICfEsG5kaXJpbSB1eWd1bGFuZMSxJyxcbiAgJ8SwbmRpcmltIGthbGTEsXLEsWxkxLEnLFxuICAnxLBrcmFtIGVrbGVuZGknLFxuICAnTWFzYSB0YcWfxLFuZMSxJyxcbiAgJ01hc2EgYmlybGXFn3RpcmlsZGknLFxuICAnU2lwYXJpxZ8gSGF6xLFybGFuxLF5b3InLFxuICAnU2lwYXJpxZ8gSGF6xLFyJyxcbiAgJ0dhcnNvbiDDp2HEn3LEsWxkxLEnLFxuICAnR2Fyc29uIMOHYcSfcsSxc8SxIFNhaGlwbGVuaWxkaScsXG4gICdHYXJzb24gw4dhxJ9yxLFzxLEgTWFzYXlhIEdpZGlsZGknLFxuICAnR2Fyc29uIMOHYcSfcsSxc8SxIEthcGF0xLFsZMSxJyxcbiAgJ1FSIFNpcGFyacWfaSBPbHXFn3R1cnVsZHUnLFxuICAnUVIgU2lwYXJpxZ9pIETDvHplbmxlbmRpJyxcbiAgJ1FSIFNpcGFyacWfIE5vdHUgR8O8bmNlbGxlbmRpJyxcbiAgJ1FSIFNpcGFyacWfaSBPbmF5bGFuZMSxJyxcbiAgJ1FSIFNpcGFyacWfaSBSZWRkZWRpbGRpJyxcbiAgJ0hlc2FwIGthcGF0xLFsZMSxJyxcbiAgJ8OccsO8biBvbHXFn3R1cnVsZHUnLFxuICAnw5xyw7xuIGfDvG5jZWxsZW5kaScsXG4gICfDnHLDvG4gYWt0aWYgeWFwxLFsZMSxJyxcbiAgJ8OccsO8biBwYXNpZiB5YXDEsWxkxLEnLFxuICAnS2F0ZWdvcmkgb2x1xZ90dXJ1bGR1JyxcbiAgJ0thdGVnb3JpIGfDvG5jZWxsZW5kaScsXG4gICdLYXRlZ29yaSBha3RpZiB5YXDEsWxkxLEnLFxuICAnS2F0ZWdvcmkgcGFzaWYgeWFwxLFsZMSxJyxcbiAgJ1N0b2sga2FydMSxIG9sdcWfdHVydWxkdScsXG4gICdTdG9rIGthcnTEsSBnw7xuY2VsbGVuZGknLFxuICAnU3RvayBrYXJ0xLEgc2lsaW5kaScsXG4gICdTdG9rIGthcnTEsSBha3RpZiB5YXDEsWxkxLEnLFxuICAnU3RvayBrYXJ0xLEgcGFzaWYgeWFwxLFsZMSxJyxcbiAgJ1N0b2sga2F0ZWdvcmlzaSBvbHXFn3R1cnVsZHUnLFxuICAnU3RvayBrYXRlZ29yaXNpIGfDvG5jZWxsZW5kaScsXG4gICdTdG9rIGthdGVnb3Jpc2kgYWt0aWYgeWFwxLFsZMSxJyxcbiAgJ1N0b2sga2F0ZWdvcmlzaSBwYXNpZiB5YXDEsWxkxLEnLFxuICAnU3RvayBnaXJpxZ9pIHlhcMSxbGTEsScsXG4gICdTdG9rIMOnxLFrxLHFn8SxIHlhcMSxbGTEsScsXG4gICdTdG9rIHNhecSxbSBkw7x6ZWx0bWVzaSB5YXDEsWxkxLEnLFxuICAnU3RvayB0ZXJzIGhhcmVrZXRpIG9sdcWfdHVydWxkdScsXG4gICdLcml0aWsgc3RvayB1eWFyxLFzxLEgb2x1xZ90dScsXG4gICdLcml0aWsgc3Rva3RhbiDDp8Sxa8SxbGTEsScsXG4gICdTS1QgbG90dSBvbHXFn3R1cnVsZHUnLFxuICAnU0tUIGxvdHUgdMO8a2V0aWxkaScsXG4gICdTS1QgbG90dSBpYWRlIGVkaWxkaScsXG4gICdTS1QgbG90dSBnw7xuY2VsbGVuZGknLFxuICAnU0tUIHlha2xhxZ9hbiB1eWFyxLFzxLEgb2x1xZ90dScsXG4gICdTS1QgdGFyaWhpIGdlw6d0aScsXG4gICdTS1QgbG90IGXFn2xlxZ9tZXNpIHlhcMSxbGFtYWTEsScsXG4gICdGaXJlIGtheWTEsSBvbHXFn3R1cnVsZHUnLFxuICAnRmlyZSBrYXlkxLEgdGVyc2xlbmRpJyxcbiAgJ0ZpcmUgbG90dGFuIGTDvMWfw7xsZMO8JyxcbiAgJ1NLVCBuZWRlbml5bGUgZmlyZSBvbHXFn3R1cnVsZHUnLFxuICAnUmXDp2V0ZSBvbHXFn3R1cnVsZHUnLFxuICAnUmXDp2V0ZSBnw7xuY2VsbGVuZGknLFxuICAnUmXDp2V0ZSBzaWxpbmRpJyxcbiAgJ1Jlw6dldGUga29weWFsYW5kxLEnLFxuICAnUmXDp2V0ZSBha3RpZiB5YXDEsWxkxLEnLFxuICAnUmXDp2V0ZSBwYXNpZiB5YXDEsWxkxLEnLFxuICAnT3RvbWF0aWsgc3RvayBkw7zFn8O8bcO8IHlhcMSxbGTEsScsXG4gICdPdG9tYXRpayBzdG9rIGTDvMWfw7xtw7wgdGVyc2xlbmRpJyxcbiAgJ090b21hdGlrIHN0b2sgZMO8xZ/DvG3DvCB1eWFyxLFzxLEnLFxuICAnT3RvbWF0aWsgc3RvayBkw7zFn8O8bcO8IGJhxZ9hcsSxc8SxeicsXG4gICdLdWxsYW7EsWPEsSBvbHXFn3R1cnVsZHUnLFxuICAnS3VsbGFuxLFjxLEgZ8O8bmNlbGxlbmRpJyxcbiAgJ0t1bGxhbsSxY8SxIGFrdGlmIHlhcMSxbGTEsScsXG4gICdLdWxsYW7EsWPEsSBwYXNpZiB5YXDEsWxkxLEnXG5dXG5cbmV4cG9ydCBkZWZhdWx0IGZ1bmN0aW9uIEFjdGlvbkhpc3RvcnkoKXtcbiAgY29uc3QgW2xvZ3NdID0gUmVhY3QudXNlU3RhdGU8QWN0aW9uTG9nW10+KCgpID0+IGxvYWRBY3Rpb25Mb2dzKCkpXG4gIGNvbnN0IFt1c2Vyc10gPSBSZWFjdC51c2VTdGF0ZSgoKSA9PiBsb2FkVXNlcnMoKSlcbiAgY29uc3QgW2RhdGVGaWx0ZXIsIHNldERhdGVGaWx0ZXJdID0gUmVhY3QudXNlU3RhdGUoJycpXG4gIGNvbnN0IFt1c2VyRmlsdGVyLCBzZXRVc2VyRmlsdGVyXSA9IFJlYWN0LnVzZVN0YXRlKCdhbGwnKVxuICBjb25zdCBbb3BlcmF0aW9uRmlsdGVyLCBzZXRPcGVyYXRpb25GaWx0ZXJdID0gUmVhY3QudXNlU3RhdGU8J2FsbCcgfCBBY3Rpb25Mb2dUeXBlPignYWxsJylcblxuICBjb25zdCB1c2VyT3B0aW9ucyA9IFJlYWN0LnVzZU1lbW8oKCkgPT4ge1xuICAgIGNvbnN0IHNlZW4gPSBuZXcgU2V0PHN0cmluZz4oKVxuICAgIGNvbnN0IGZyb21Mb2dzID0gbG9nc1xuICAgICAgLmZpbHRlcihsb2cgPT4ge1xuICAgICAgICBpZihzZWVuLmhhcyhsb2cudXNlcklkKSkgcmV0dXJuIGZhbHNlXG4gICAgICAgIHNlZW4uYWRkKGxvZy51c2VySWQpXG4gICAgICAgIHJldHVybiB0cnVlXG4gICAgICB9KVxuICAgICAgLm1hcChsb2cgPT4gKHsgaWQ6IGxvZy51c2VySWQsIG5hbWU6IGxvZy51c2VyTmFtZSB9KSlcblxuICAgIGNvbnN0IGZyb21Vc2VycyA9IHVzZXJzLm1hcCh1c2VyID0+ICh7IGlkOiB1c2VyLmlkLCBuYW1lOiB1c2VyLmZ1bGxOYW1lIHx8IHVzZXIudXNlcm5hbWUgfSkpXG4gICAgY29uc3QgbWVyZ2VkID0gWy4uLmZyb21Vc2VycywgLi4uZnJvbUxvZ3NdXG4gICAgY29uc3QgdW5pcXVlID0gbmV3IE1hcChtZXJnZWQubWFwKHVzZXIgPT4gW3VzZXIuaWQsIHVzZXJdKSlcbiAgICByZXR1cm4gQXJyYXkuZnJvbSh1bmlxdWUudmFsdWVzKCkpLmZpbHRlcih1c2VyID0+IHVzZXIuaWQpXG4gIH0sIFtsb2dzLCB1c2Vyc10pXG5cbiAgY29uc3QgZmlsdGVyZWRMb2dzID0gbG9ncy5maWx0ZXIobG9nID0+IHtcbiAgICBjb25zdCBtYXRjaGVzRGF0ZSA9ICFkYXRlRmlsdGVyIHx8IGxvZy5kYXRlID09PSBkYXRlRmlsdGVyXG4gICAgY29uc3QgbWF0Y2hlc1VzZXIgPSB1c2VyRmlsdGVyID09PSAnYWxsJyB8fCBsb2cudXNlcklkID09PSB1c2VyRmlsdGVyXG4gICAgY29uc3QgbWF0Y2hlc09wZXJhdGlvbiA9IG9wZXJhdGlvbkZpbHRlciA9PT0gJ2FsbCcgfHwgbG9nLm9wZXJhdGlvblR5cGUgPT09IG9wZXJhdGlvbkZpbHRlclxuICAgIHJldHVybiBtYXRjaGVzRGF0ZSAmJiBtYXRjaGVzVXNlciAmJiBtYXRjaGVzT3BlcmF0aW9uXG4gIH0pXG5cbiAgcmV0dXJuIChcbiAgICA8ZGl2IGNsYXNzTmFtZT1cImFjdGlvbi1oaXN0b3J5LXBhZ2VcIj5cbiAgICAgIDxkaXYgY2xhc3NOYW1lPVwicGFnZS10aXRsZVwiPlxuICAgICAgICA8ZGl2PlxuICAgICAgICAgIDxoMj7EsMWfbGVtIEdlw6dtacWfaTwvaDI+XG4gICAgICAgICAgPHAgY2xhc3NOYW1lPVwibXV0ZWRcIj5TaXN0ZW1kZSB5YXDEsWxhbiBrcml0aWsgacWfbGVtbGVyaSBrdWxsYW7EsWPEsSwgdGFyaWggdmUgacWfbGVtIHRpcGluZSBnw7ZyZSBpbmNlbGV5aW4uPC9wPlxuICAgICAgICA8L2Rpdj5cbiAgICAgIDwvZGl2PlxuXG4gICAgICA8c2VjdGlvbiBjbGFzc05hbWU9XCJjYXJkXCI+XG4gICAgICAgIDxkaXYgY2xhc3NOYW1lPVwic2VjdGlvbi1oZWFkZXJcIj5cbiAgICAgICAgICA8ZGl2PlxuICAgICAgICAgICAgPGgzPkxvZyBLYXnEsXRsYXLEsTwvaDM+XG4gICAgICAgICAgICA8cCBjbGFzc05hbWU9XCJtdXRlZFwiPntmaWx0ZXJlZExvZ3MubGVuZ3RofSBrYXnEsXQgZ8O2c3RlcmlsaXlvci48L3A+XG4gICAgICAgICAgPC9kaXY+XG4gICAgICAgICAgPGRpdiBjbGFzc05hbWU9XCJhY3Rpb24tbG9nLWZpbHRlcnNcIj5cbiAgICAgICAgICAgIDxpbnB1dCB0eXBlPVwiZGF0ZVwiIHZhbHVlPXtkYXRlRmlsdGVyfSBvbkNoYW5nZT17ZT0+c2V0RGF0ZUZpbHRlcihlLnRhcmdldC52YWx1ZSl9IC8+XG4gICAgICAgICAgICA8c2VsZWN0IHZhbHVlPXt1c2VyRmlsdGVyfSBvbkNoYW5nZT17ZT0+c2V0VXNlckZpbHRlcihlLnRhcmdldC52YWx1ZSl9PlxuICAgICAgICAgICAgICA8b3B0aW9uIHZhbHVlPVwiYWxsXCI+VMO8bSBrdWxsYW7EsWPEsWxhcjwvb3B0aW9uPlxuICAgICAgICAgICAgICB7dXNlck9wdGlvbnMubWFwKHVzZXIgPT4gPG9wdGlvbiBrZXk9e3VzZXIuaWR9IHZhbHVlPXt1c2VyLmlkfT57dXNlci5uYW1lfTwvb3B0aW9uPil9XG4gICAgICAgICAgICA8L3NlbGVjdD5cbiAgICAgICAgICAgIDxzZWxlY3QgdmFsdWU9e29wZXJhdGlvbkZpbHRlcn0gb25DaGFuZ2U9e2U9PnNldE9wZXJhdGlvbkZpbHRlcihlLnRhcmdldC52YWx1ZSBhcyAnYWxsJyB8IEFjdGlvbkxvZ1R5cGUpfT5cbiAgICAgICAgICAgICAgPG9wdGlvbiB2YWx1ZT1cImFsbFwiPlTDvG0gacWfbGVtbGVyPC9vcHRpb24+XG4gICAgICAgICAgICAgIHtvcGVyYXRpb25UeXBlcy5tYXAodHlwZSA9PiA8b3B0aW9uIGtleT17dHlwZX0gdmFsdWU9e3R5cGV9Pnt0eXBlfTwvb3B0aW9uPil9XG4gICAgICAgICAgICA8L3NlbGVjdD5cbiAgICAgICAgICA8L2Rpdj5cbiAgICAgICAgPC9kaXY+XG5cbiAgICAgICAgPGRpdiBjbGFzc05hbWU9XCJ0YWJsZS13cmFwXCI+XG4gICAgICAgICAgPHRhYmxlIGNsYXNzTmFtZT1cImRhdGEtdGFibGVcIj5cbiAgICAgICAgICAgIDx0aGVhZD5cbiAgICAgICAgICAgICAgPHRyPlxuICAgICAgICAgICAgICAgIDx0aD5UYXJpaDwvdGg+XG4gICAgICAgICAgICAgICAgPHRoPlNhYXQ8L3RoPlxuICAgICAgICAgICAgICAgIDx0aD5LdWxsYW7EsWPEsTwvdGg+XG4gICAgICAgICAgICAgICAgPHRoPsSwxZ9sZW08L3RoPlxuICAgICAgICAgICAgICAgIDx0aD5NYXNhPC90aD5cbiAgICAgICAgICAgICAgICA8dGg+QcOnxLFrbGFtYTwvdGg+XG4gICAgICAgICAgICAgIDwvdHI+XG4gICAgICAgICAgICA8L3RoZWFkPlxuICAgICAgICAgICAgPHRib2R5PlxuICAgICAgICAgICAgICB7ZmlsdGVyZWRMb2dzLmxlbmd0aCA9PT0gMCAmJiAoXG4gICAgICAgICAgICAgICAgPHRyPjx0ZCBjb2xTcGFuPXs2fSBjbGFzc05hbWU9XCJlbXB0eS1jZWxsXCI+RmlsdHJlbGVyZSB1eWd1biBpxZ9sZW0ga2F5ZMSxIGJ1bHVuYW1hZMSxLjwvdGQ+PC90cj5cbiAgICAgICAgICAgICAgKX1cbiAgICAgICAgICAgICAge2ZpbHRlcmVkTG9ncy5tYXAobG9nID0+IChcbiAgICAgICAgICAgICAgICA8dHIga2V5PXtsb2cuaWR9PlxuICAgICAgICAgICAgICAgICAgPHRkPntsb2cuZGF0ZX08L3RkPlxuICAgICAgICAgICAgICAgICAgPHRkPntsb2cudGltZX08L3RkPlxuICAgICAgICAgICAgICAgICAgPHRkPntsb2cudXNlck5hbWV9PC90ZD5cbiAgICAgICAgICAgICAgICAgIDx0ZD57bG9nLm9wZXJhdGlvblR5cGV9PC90ZD5cbiAgICAgICAgICAgICAgICAgIDx0ZD57bG9nLnRhYmxlTmFtZSB8fCAnLSd9PC90ZD5cbiAgICAgICAgICAgICAgICAgIDx0ZD57bG9nLmRlc2NyaXB0aW9ufTwvdGQ+XG4gICAgICAgICAgICAgICAgPC90cj5cbiAgICAgICAgICAgICAgKSl9XG4gICAgICAgICAgICA8L3Rib2R5PlxuICAgICAgICAgIDwvdGFibGU+XG4gICAgICAgIDwvZGl2PlxuICAgICAgPC9zZWN0aW9uPlxuICAgIDwvZGl2PlxuICApXG59XG4iXSwiZmlsZSI6IkM6L1VzZXJzLzkwNTQ0L0RvY3VtZW50cy9yZXN0YXVyYW50LWFkaXN5b24vc3JjL3BhZ2VzL0FjdGlvbkhpc3RvcnkudHN4In0=
