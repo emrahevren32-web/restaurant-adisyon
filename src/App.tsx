@@ -28,6 +28,7 @@ import CashTransactions from './pages/CashTransactions'
 import IncomeExpenseManagement from './pages/IncomeExpenseManagement'
 import CashClosingPage from './pages/CashClosing'
 import FinancialReports from './pages/FinancialReports'
+import CashTransfers from './pages/CashTransfers'
 import AppShell, { ShellNavGroup, ShellNavItem } from './components/AppShell'
 import {
   loadProducts,
@@ -50,6 +51,7 @@ type Route =
   | 'income-expense'
   | 'cash-closing'
   | 'financial-reports'
+  | 'cash-transfers'
   | 'summary'
   | 'history'
   | 'kitchen'
@@ -87,6 +89,7 @@ type NavKey =
   | 'income-expense'
   | 'cash-closing'
   | 'financial-reports'
+  | 'cash-transfers'
   | 'reports'
   | 'current-report'
   | 'risky-current'
@@ -157,7 +160,8 @@ const navGroups: NavGroup[] = [
       { key: 'cash-transactions', label: 'Kasa Hareketleri', route: 'cash-transactions', icon: 'KH', adminOnly: true },
       { key: 'income-expense', label: 'Gelir Gider Yönetimi', route: 'income-expense', icon: 'GG', adminOnly: true },
       { key: 'cash-closing', label: 'Gün Sonu Kasa Kapatma', route: 'cash-closing', icon: 'GS', adminOnly: true },
-      { key: 'financial-reports', label: 'Finans Raporları', route: 'financial-reports', icon: 'FR', adminOnly: true }
+      { key: 'financial-reports', label: 'Finans Raporları', route: 'financial-reports', icon: 'FR', adminOnly: true },
+      { key: 'cash-transfers', label: 'Kasa Devir İşlemleri', route: 'cash-transfers', icon: 'KD', adminOnly: true }
     ]
   },
   {
@@ -281,6 +285,7 @@ export default function App(){
       {route === 'income-expense' && currentUser.role === 'Admin' && <IncomeExpenseManagement currentUser={currentUser} />}
       {route === 'cash-closing' && currentUser.role === 'Admin' && <CashClosingPage currentUser={currentUser} />}
       {route === 'financial-reports' && currentUser.role === 'Admin' && <FinancialReports />}
+      {route === 'cash-transfers' && currentUser.role === 'Admin' && <CashTransfers currentUser={currentUser} />}
       {route === 'summary' && <DailySummary currentUser={currentUser} />}
       {route === 'history' && <BillHistory />}
       {route === 'kitchen' && <Kitchen currentUser={currentUser} />}

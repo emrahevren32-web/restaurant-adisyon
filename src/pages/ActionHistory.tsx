@@ -104,7 +104,9 @@ const operationTypes: ActionLogType[] = [
   'Gider kaydı oluşturuldu',
   'Gider kaydı güncellendi',
   'Gider kaydı silindi',
-  'Gün sonu kasa kapatıldı'
+  'Gün sonu kasa kapatıldı',
+  'Kasa devri oluşturuldu',
+  'Kasa devri silindi'
 ]
 
 export default function ActionHistory(){

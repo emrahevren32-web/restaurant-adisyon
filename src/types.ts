@@ -693,6 +693,18 @@ export type CashClosing = {
   createdAt: string
 }
 
+export type CashTransfer = {
+  id: string
+  date: string
+  transferNo: string
+  fromUser: string
+  toUser: string
+  openingBalance: number
+  transferredAmount: number
+  note: string
+  createdAt: string
+}
+
 export type CollectionPaymentMethod = 'Nakit' | 'Kart' | 'Havale/EFT' | 'Diğer'
 
 export type CollectionTransaction = {
@@ -812,6 +824,8 @@ export type ActionLogType =
   | 'Gider kaydı güncellendi'
   | 'Gider kaydı silindi'
   | 'Gün sonu kasa kapatıldı'
+  | 'Kasa devri oluşturuldu'
+  | 'Kasa devri silindi'
 
 export type ActionLog = {
   id: string

@@ -132,7 +132,7 @@ th { color:var(--muted-strong); font-size:13px; font-weight:750 }
 
 .muted { color:var(--muted); margin:4px 0 0 }
 .small-text { font-size:12px; line-height:1.45 }
-.products-page, .stock-page, .recipes-page, .tables-page, .summary-page, .history-page, .action-history-page, .staff-page, .reports-page, .current-report-page, .risky-current-page, .financial-reports-page, .kitchen-page, .qr-orders-page, .qr-codes-page, .settings-page, .users-page, .current-accounts-page, .credit-transactions-page, .collection-transactions-page, .supplier-debts-page, .supplier-payments-page, .cash-transactions-page, .income-expense-page, .cash-closing-page, .current-account-movements-page { display:flex; flex-direction:column; gap:18px; min-width:0; max-width:100% }
+.products-page, .stock-page, .recipes-page, .tables-page, .summary-page, .history-page, .action-history-page, .staff-page, .reports-page, .current-report-page, .risky-current-page, .financial-reports-page, .kitchen-page, .qr-orders-page, .qr-codes-page, .settings-page, .users-page, .current-accounts-page, .credit-transactions-page, .collection-transactions-page, .supplier-debts-page, .supplier-payments-page, .cash-transactions-page, .income-expense-page, .cash-closing-page, .cash-transfers-page, .current-account-movements-page { display:flex; flex-direction:column; gap:18px; min-width:0; max-width:100% }
 .page-title { display:flex; justify-content:space-between; gap:16px; align-items:flex-start; flex-wrap:wrap; padding:0; margin:0 0 2px }
 .page-title > div, .section-header > div { min-width:0 }
 .page-title > div:first-child { flex:1 1 420px; max-width:820px }
@@ -306,6 +306,10 @@ th { color:var(--muted-strong); font-size:13px; font-weight:750 }
 .cash-closing-preview > div { border:1px solid var(--line); border-radius:var(--radius-md); padding:10px 12px; background:var(--surface-muted); min-width:0 }
 .cash-closing-preview span { display:block; color:var(--muted); font-size:12px; font-weight:800; margin-bottom:4px }
 .cash-closing-preview strong { display:block; color:var(--text); font-size:16px; line-height:1.25; overflow-wrap:anywhere }
+.cash-transfer-preview { display:grid; grid-template-columns:repeat(2, minmax(0, 1fr)); gap:10px }
+.cash-transfer-preview > div { border:1px solid var(--line); border-radius:var(--radius-md); padding:10px 12px; background:var(--surface-muted); min-width:0 }
+.cash-transfer-preview span { display:block; color:var(--muted); font-size:12px; font-weight:800; margin-bottom:4px }
+.cash-transfer-preview strong { display:block; color:var(--text); font-size:16px; line-height:1.25; overflow-wrap:anywhere }
 .credit-payment-modal { width:min(520px, 100%); max-height:calc(100vh - 48px); overflow:auto; background:var(--surface); border-radius:var(--radius-md); padding:16px; box-shadow:0 24px 70px rgba(15,23,42,.28) }
 .credit-payment-summary { display:grid; grid-template-columns:repeat(3, minmax(0, 1fr)); gap:10px; margin:12px 0 }
 .credit-payment-summary > div { border:1px solid var(--line); border-radius:var(--radius-md); padding:10px 12px; background:var(--surface-muted) }
@@ -587,6 +591,7 @@ th { color:var(--muted-strong); font-size:13px; font-weight:750 }
 .table-wrap .cash-transaction-table { min-width:1060px }
 .table-wrap .income-expense-table { min-width:980px }
 .table-wrap .cash-closing-table { min-width:1080px }
+.table-wrap .cash-transfer-table { min-width:980px }
 .table-wrap .staff-table { min-width:860px }
 .table-wrap .report-placeholder-table { min-width:680px }
 .stock-report-filters { display:grid; grid-template-columns:minmax(220px, 1fr) 170px 180px 140px; gap:8px; width:100%; min-width:0; margin:12px 0 }
@@ -847,7 +852,7 @@ th { color:var(--muted-strong); font-size:13px; font-weight:750 }
   .page-title .btn, .report-export-actions, .report-export-actions .btn { width:100% }
   .metric-grid { grid-template-columns:1fr }
   .kitchen-grid { grid-template-columns:1fr }
-  .form-row, .stock-movement-type-row, .recipe-add-controls, .recipe-item-row, .recipe-cost-box, .inline-form, .category-row, .category-edit-form, .order-summary, .picker-controls, .checkout-panel, .checkout-total-grid, .payment-grid, .credit-payment-summary, .table-grid, .discount-controls, .product-pick-row, .history-controls, .history-detail-grid, .report-highlight-grid, .report-center-kpi-grid, .waste-reason-summary-grid, .current-report-summary-grid, .risky-current-summary-grid, .financial-summary-grid, .financial-summary-values, .financial-report-list-grid, .executive-mini-grid, .executive-quick-links, .qr-product-card, .qr-request-list, .qr-request-meta, .qr-edit-row, .qr-edit-add-row, .qr-reject-row, .waiter-call-list, .critical-stock-row, .settings-form-grid { grid-template-columns:1fr }
+  .form-row, .stock-movement-type-row, .recipe-add-controls, .recipe-item-row, .recipe-cost-box, .inline-form, .category-row, .category-edit-form, .order-summary, .picker-controls, .checkout-panel, .checkout-total-grid, .payment-grid, .credit-payment-summary, .cash-closing-preview, .cash-transfer-preview, .table-grid, .discount-controls, .product-pick-row, .history-controls, .history-detail-grid, .report-highlight-grid, .report-center-kpi-grid, .waste-reason-summary-grid, .current-report-summary-grid, .risky-current-summary-grid, .financial-summary-grid, .financial-summary-values, .financial-report-list-grid, .executive-mini-grid, .executive-quick-links, .qr-product-card, .qr-request-list, .qr-request-meta, .qr-edit-row, .qr-edit-add-row, .qr-reject-row, .waiter-call-list, .critical-stock-row, .settings-form-grid { grid-template-columns:1fr }
   .critical-stock-row { align-items:flex-start; flex-direction:column }
   .actions-cell { justify-content:flex-start }
   .data-table td.actions-cell { min-width:0; text-align:left; white-space:normal }

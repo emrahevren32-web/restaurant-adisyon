@@ -3,6 +3,7 @@ import {
   ActionLogType,
   CashPaymentMethod,
   CashClosing,
+  CashTransfer,
   CashTransaction,
   CashTransactionType,
   ClosedBill,
@@ -116,6 +117,7 @@ const KEY_SUPPLIER_PAYMENTS = 'ra_supplier_payments'
 const KEY_CASH_TRANSACTIONS = 'ra_cash_transactions'
 const KEY_INCOME_EXPENSES = 'ra_income_expenses'
 const KEY_CASH_CLOSINGS = 'ra_cash_closings'
+const KEY_CASH_TRANSFERS = 'ra_cash_transfers'
 const KEY_AUTH = 'ra_auth'
 const KEY_LOGS = 'ra_logs'
 const KEY_KITCHEN = 'ra_kitchen_orders'
@@ -405,6 +407,23 @@ const normalizeCashClosing = (item: Partial<CashClosing>): CashClosing => {
   }
 }
 
+const normalizeCashTransfer = (item: Partial<CashTransfer>): CashTransfer => {
+  const openingBalance = Number(item.openingBalance)
+  const transferredAmount = Number(item.transferredAmount)
+
+  return {
+    id: String(item.id || `cash_transfer_${Date.now()}`),
+    date: String(item.date || new Date().toLocaleDateString('sv-SE')),
+    transferNo: String(item.transferNo || ''),
+    fromUser: String(item.fromUser || ''),
+    toUser: String(item.toUser || ''),
+    openingBalance: Number.isFinite(openingBalance) ? Math.max(0, roundMoneyValue(openingBalance)) : 0,
+    transferredAmount: Number.isFinite(transferredAmount) ? Math.max(0, roundMoneyValue(transferredAmount)) : 0,
+    note: String(item.note || ''),
+    createdAt: item.createdAt || new Date().toISOString()
+  }
+}
+
 const createDemoCurrentAccounts = (now = new Date().toISOString()): CurrentAccount[] => [
   {
     id: 'cari_ali_veli',
@@ -569,6 +588,20 @@ const createDemoIncomeExpenses = (now = new Date().toISOString()): IncomeExpense
     description: 'Demo elektrik gideri.',
     createdAt: now,
     updatedAt: now
+  })
+]
+
+const createDemoCashTransfers = (now = new Date().toISOString()): CashTransfer[] => [
+  normalizeCashTransfer({
+    id: 'cash_transfer_devir_0001_demo',
+    date: new Date().toLocaleDateString('sv-SE'),
+    transferNo: 'DEVIR-0001',
+    fromUser: 'Yönetici',
+    toUser: 'Kasiyer',
+    openingBalance: 0,
+    transferredAmount: 5000,
+    note: 'Sabah vardiyası devir işlemi.',
+    createdAt: now
   })
 ]
 
@@ -1374,6 +1407,17 @@ export const loadCashClosings = (): CashClosing[] => {
 
 export const saveCashClosings = (items: CashClosing[]) => {
   localStorage.setItem(KEY_CASH_CLOSINGS, JSON.stringify(items.map(normalizeCashClosing)))
+}
+
+export const loadCashTransfers = (): CashTransfer[] => {
+  const stored = localStorage.getItem(KEY_CASH_TRANSFERS)
+  if(stored === null) return createDemoCashTransfers()
+
+  return readJson<Partial<CashTransfer>[]>(KEY_CASH_TRANSFERS, []).map(normalizeCashTransfer)
+}
+
+export const saveCashTransfers = (items: CashTransfer[]) => {
+  localStorage.setItem(KEY_CASH_TRANSFERS, JSON.stringify(items.map(normalizeCashTransfer)))
 }
 
 export const loadCollectionTransactions = (): CollectionTransaction[] => {
@@ -2966,6 +3010,7 @@ export const createDemoData = () => {
   const supplierDebts = createDemoSupplierDebts(now)
   const supplierPayments = createDemoSupplierPayments(now)
   const incomeExpenses = createDemoIncomeExpenses(now)
+  const cashTransfers = createDemoCashTransfers(now)
 
   const tables: TableState[] = Array.from({ length: 6 }).map((_, index) => ({
     id: String(index + 1),
@@ -2984,6 +3029,7 @@ export const createDemoData = () => {
   saveCashTransactions([])
   saveIncomeExpenses(incomeExpenses)
   saveCashClosings([])
+  saveCashTransfers(cashTransfers)
   saveTables(tables)
   saveKitchenOrders([])
   saveQRRequests([])
@@ -3001,6 +3047,7 @@ export const createDemoData = () => {
     supplierPayments: loadSupplierPayments(),
     cashTransactions: loadCashTransactions(),
     incomeExpenses: loadIncomeExpenses(),
-    cashClosings: loadCashClosings()
+    cashClosings: loadCashClosings(),
+    cashTransfers: loadCashTransfers()
   }
 }
