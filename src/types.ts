@@ -636,6 +636,19 @@ export type SupplierDebt = {
   updatedAt: string
 }
 
+export type SupplierPaymentMethod = 'Nakit' | 'Kart' | 'Havale/EFT'
+
+export type SupplierPayment = {
+  id: string
+  supplierDebtId: string
+  currentAccountId: string
+  date: string
+  amount: number
+  paymentMethod: SupplierPaymentMethod
+  note: string
+  createdAt: string
+}
+
 export type CollectionPaymentMethod = 'Nakit' | 'Kart' | 'Havale/EFT' | 'Diğer'
 
 export type CollectionTransaction = {
@@ -744,6 +757,8 @@ export type ActionLogType =
   | 'Tedarikçi ödemesi girildi'
   | 'Tedarikçi borcu kapatıldı'
   | 'Tedarikçi borcu silindi'
+  | 'Tedarikçi ödemesi oluşturuldu'
+  | 'Tedarikçi ödemesi silindi'
 
 export type ActionLog = {
   id: string

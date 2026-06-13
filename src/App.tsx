@@ -23,6 +23,7 @@ import CreditTransactions from './pages/CreditTransactions'
 import CollectionTransactions from './pages/CollectionTransactions'
 import CurrentAccountMovements from './pages/CurrentAccountMovements'
 import SupplierDebts from './pages/SupplierDebts'
+import SupplierPayments from './pages/SupplierPayments'
 import AppShell, { ShellNavGroup, ShellNavItem } from './components/AppShell'
 import {
   loadProducts,
@@ -40,6 +41,7 @@ type Route =
   | 'stock-movements'
   | 'recipes'
   | 'supplier-debts'
+  | 'supplier-payments'
   | 'summary'
   | 'history'
   | 'kitchen'
@@ -72,6 +74,7 @@ type NavKey =
   | 'expiry-lots'
   | 'waste'
   | 'supplier-debts'
+  | 'supplier-payments'
   | 'reports'
   | 'current-report'
   | 'risky-current'
@@ -137,7 +140,8 @@ const navGroups: NavGroup[] = [
     title: 'Kasa & Finans',
     icon: 'KF',
     items: [
-      { key: 'supplier-debts', label: 'Tedarikçi Borçları', route: 'supplier-debts', icon: 'TB', adminOnly: true }
+      { key: 'supplier-debts', label: 'Tedarikçi Borçları', route: 'supplier-debts', icon: 'TB', adminOnly: true },
+      { key: 'supplier-payments', label: 'Tedarikçi Ödeme İşlemleri', route: 'supplier-payments', icon: 'TO', adminOnly: true }
     ]
   },
   {
@@ -256,6 +260,7 @@ export default function App(){
       )}
       {route === 'recipes' && currentUser.role === 'Admin' && <Recipes currentUser={currentUser} />}
       {route === 'supplier-debts' && currentUser.role === 'Admin' && <SupplierDebts currentUser={currentUser} />}
+      {route === 'supplier-payments' && currentUser.role === 'Admin' && <SupplierPayments currentUser={currentUser} />}
       {route === 'summary' && <DailySummary currentUser={currentUser} />}
       {route === 'history' && <BillHistory />}
       {route === 'kitchen' && <Kitchen currentUser={currentUser} />}
