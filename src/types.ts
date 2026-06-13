@@ -649,6 +649,21 @@ export type SupplierPayment = {
   createdAt: string
 }
 
+export type CashTransactionType = 'Gelir' | 'Gider'
+export type CashPaymentMethod = 'Nakit' | 'Kart' | 'Havale/EFT'
+
+export type CashTransaction = {
+  id: string
+  date: string
+  type: CashTransactionType
+  category: string
+  amount: number
+  paymentMethod: CashPaymentMethod
+  referenceId: string
+  description: string
+  createdAt: string
+}
+
 export type CollectionPaymentMethod = 'Nakit' | 'Kart' | 'Havale/EFT' | 'Diğer'
 
 export type CollectionTransaction = {
@@ -759,6 +774,8 @@ export type ActionLogType =
   | 'Tedarikçi borcu silindi'
   | 'Tedarikçi ödemesi oluşturuldu'
   | 'Tedarikçi ödemesi silindi'
+  | 'Kasa hareketi oluşturuldu'
+  | 'Kasa hareketi silindi'
 
 export type ActionLog = {
   id: string

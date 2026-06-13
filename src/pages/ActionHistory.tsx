@@ -95,7 +95,9 @@ const operationTypes: ActionLogType[] = [
   'Tedarikçi borcu kapatıldı',
   'Tedarikçi borcu silindi',
   'Tedarikçi ödemesi oluşturuldu',
-  'Tedarikçi ödemesi silindi'
+  'Tedarikçi ödemesi silindi',
+  'Kasa hareketi oluşturuldu',
+  'Kasa hareketi silindi'
 ]
 
 export default function ActionHistory(){

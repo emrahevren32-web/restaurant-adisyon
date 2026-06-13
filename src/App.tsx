@@ -24,6 +24,7 @@ import CollectionTransactions from './pages/CollectionTransactions'
 import CurrentAccountMovements from './pages/CurrentAccountMovements'
 import SupplierDebts from './pages/SupplierDebts'
 import SupplierPayments from './pages/SupplierPayments'
+import CashTransactions from './pages/CashTransactions'
 import AppShell, { ShellNavGroup, ShellNavItem } from './components/AppShell'
 import {
   loadProducts,
@@ -42,6 +43,7 @@ type Route =
   | 'recipes'
   | 'supplier-debts'
   | 'supplier-payments'
+  | 'cash-transactions'
   | 'summary'
   | 'history'
   | 'kitchen'
@@ -75,6 +77,7 @@ type NavKey =
   | 'waste'
   | 'supplier-debts'
   | 'supplier-payments'
+  | 'cash-transactions'
   | 'reports'
   | 'current-report'
   | 'risky-current'
@@ -141,7 +144,8 @@ const navGroups: NavGroup[] = [
     icon: 'KF',
     items: [
       { key: 'supplier-debts', label: 'Tedarikçi Borçları', route: 'supplier-debts', icon: 'TB', adminOnly: true },
-      { key: 'supplier-payments', label: 'Tedarikçi Ödeme İşlemleri', route: 'supplier-payments', icon: 'TO', adminOnly: true }
+      { key: 'supplier-payments', label: 'Tedarikçi Ödeme İşlemleri', route: 'supplier-payments', icon: 'TO', adminOnly: true },
+      { key: 'cash-transactions', label: 'Kasa Hareketleri', route: 'cash-transactions', icon: 'KH', adminOnly: true }
     ]
   },
   {
@@ -261,6 +265,7 @@ export default function App(){
       {route === 'recipes' && currentUser.role === 'Admin' && <Recipes currentUser={currentUser} />}
       {route === 'supplier-debts' && currentUser.role === 'Admin' && <SupplierDebts currentUser={currentUser} />}
       {route === 'supplier-payments' && currentUser.role === 'Admin' && <SupplierPayments currentUser={currentUser} />}
+      {route === 'cash-transactions' && currentUser.role === 'Admin' && <CashTransactions currentUser={currentUser} />}
       {route === 'summary' && <DailySummary currentUser={currentUser} />}
       {route === 'history' && <BillHistory />}
       {route === 'kitchen' && <Kitchen currentUser={currentUser} />}

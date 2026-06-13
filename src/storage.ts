@@ -1,6 +1,9 @@
 import {
   ActionLog,
   ActionLogType,
+  CashPaymentMethod,
+  CashTransaction,
+  CashTransactionType,
   ClosedBill,
   CriticalStockEvent,
   CriticalStockEventType,
@@ -106,6 +109,7 @@ const KEY_CREDIT_TRANSACTIONS = 'ra_credit_transactions'
 const KEY_COLLECTION_TRANSACTIONS = 'ra_collection_transactions'
 const KEY_SUPPLIER_DEBTS = 'ra_supplier_debts'
 const KEY_SUPPLIER_PAYMENTS = 'ra_supplier_payments'
+const KEY_CASH_TRANSACTIONS = 'ra_cash_transactions'
 const KEY_AUTH = 'ra_auth'
 const KEY_LOGS = 'ra_logs'
 const KEY_KITCHEN = 'ra_kitchen_orders'
@@ -127,6 +131,8 @@ export const HIGH_COST_FIRE_APPROVAL_THRESHOLD = 1000
 const CURRENT_ACCOUNT_TYPES: CurrentAccountType[] = ['Müşteri', 'Firma', 'Personel', 'Tedarikçi']
 const COLLECTION_PAYMENT_METHODS: CollectionPaymentMethod[] = ['Nakit', 'Kart', 'Havale/EFT', 'Diğer']
 const SUPPLIER_PAYMENT_METHODS: SupplierPaymentMethod[] = ['Nakit', 'Kart', 'Havale/EFT']
+const CASH_TRANSACTION_TYPES: CashTransactionType[] = ['Gelir', 'Gider']
+const CASH_PAYMENT_METHODS: CashPaymentMethod[] = ['Nakit', 'Kart', 'Havale/EFT']
 
 export const DEFAULT_SETTINGS: SystemSettings = {
   restaurantName: 'Restaurant Adisyon',
@@ -305,6 +311,30 @@ const normalizeSupplierPayment = (item: Partial<SupplierPayment>): SupplierPayme
     amount: Number.isFinite(amount) ? Math.max(0, roundMoneyValue(amount)) : 0,
     paymentMethod: normalizeSupplierPaymentMethod(item.paymentMethod),
     note: String(item.note || ''),
+    createdAt: item.createdAt || new Date().toISOString()
+  }
+}
+
+const normalizeCashTransactionType = (value: unknown): CashTransactionType => {
+  return CASH_TRANSACTION_TYPES.includes(value as CashTransactionType) ? value as CashTransactionType : 'Gelir'
+}
+
+const normalizeCashPaymentMethod = (value: unknown): CashPaymentMethod => {
+  return CASH_PAYMENT_METHODS.includes(value as CashPaymentMethod) ? value as CashPaymentMethod : 'Nakit'
+}
+
+const normalizeCashTransaction = (item: Partial<CashTransaction>): CashTransaction => {
+  const amount = Number(item.amount)
+
+  return {
+    id: String(item.id || `cash_${Date.now()}`),
+    date: String(item.date || new Date().toLocaleDateString('sv-SE')),
+    type: normalizeCashTransactionType(item.type),
+    category: String(item.category || 'Diğer').trim() || 'Diğer',
+    amount: Number.isFinite(amount) ? Math.max(0, roundMoneyValue(amount)) : 0,
+    paymentMethod: normalizeCashPaymentMethod(item.paymentMethod),
+    referenceId: String(item.referenceId || ''),
+    description: String(item.description || ''),
     createdAt: item.createdAt || new Date().toISOString()
   }
 }
@@ -1215,6 +1245,14 @@ export const loadSupplierPayments = (): SupplierPayment[] => {
 
 export const saveSupplierPayments = (items: SupplierPayment[]) => {
   localStorage.setItem(KEY_SUPPLIER_PAYMENTS, JSON.stringify(items.map(normalizeSupplierPayment)))
+}
+
+export const loadCashTransactions = (): CashTransaction[] => {
+  return readJson<Partial<CashTransaction>[]>(KEY_CASH_TRANSACTIONS, []).map(normalizeCashTransaction)
+}
+
+export const saveCashTransactions = (items: CashTransaction[]) => {
+  localStorage.setItem(KEY_CASH_TRANSACTIONS, JSON.stringify(items.map(normalizeCashTransaction)))
 }
 
 export const loadCollectionTransactions = (): CollectionTransaction[] => {
@@ -2821,6 +2859,7 @@ export const createDemoData = () => {
   saveCollectionTransactions(collectionTransactions)
   saveSupplierDebts(supplierDebts)
   saveSupplierPayments(supplierPayments)
+  saveCashTransactions([])
   saveTables(tables)
   saveKitchenOrders([])
   saveQRRequests([])
@@ -2835,6 +2874,7 @@ export const createDemoData = () => {
     creditTransactions: loadCreditTransactions(),
     collectionTransactions: loadCollectionTransactions(),
     supplierDebts: loadSupplierDebts(),
-    supplierPayments: loadSupplierPayments()
+    supplierPayments: loadSupplierPayments(),
+    cashTransactions: loadCashTransactions()
   }
 }
