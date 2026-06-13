@@ -48,6 +48,7 @@ import {
   StockMovementSource,
   StockMovementType,
   StockUnit,
+  SupplierDebt,
   StockWasteReasonCategory,
   StockWasteRecord,
   StockWasteStatus,
@@ -101,6 +102,7 @@ const KEY_USERS = 'ra_users'
 const KEY_CURRENT_ACCOUNTS = 'ra_current_accounts'
 const KEY_CREDIT_TRANSACTIONS = 'ra_credit_transactions'
 const KEY_COLLECTION_TRANSACTIONS = 'ra_collection_transactions'
+const KEY_SUPPLIER_DEBTS = 'ra_supplier_debts'
 const KEY_AUTH = 'ra_auth'
 const KEY_LOGS = 'ra_logs'
 const KEY_KITCHEN = 'ra_kitchen_orders'
@@ -245,6 +247,25 @@ const normalizeCreditTransaction = (item: Partial<CreditTransaction>): CreditTra
   }
 }
 
+const normalizeSupplierDebt = (item: Partial<SupplierDebt>): SupplierDebt => {
+  const timestamp = item.createdAt || new Date().toISOString()
+  const amounts = calculateCreditAmounts(item.amount, item.paidAmount)
+
+  return {
+    id: String(item.id || `supplier_debt_${Date.now()}`),
+    currentAccountId: String(item.currentAccountId || ''),
+    date: String(item.date || new Date().toLocaleDateString('sv-SE')),
+    amount: amounts.amount,
+    paidAmount: amounts.paidAmount,
+    remainingAmount: amounts.remainingAmount,
+    status: amounts.status,
+    invoiceNumber: String(item.invoiceNumber || ''),
+    note: String(item.note || ''),
+    createdAt: timestamp,
+    updatedAt: item.updatedAt || timestamp
+  }
+}
+
 const normalizeCollectionPaymentMethod = (value: unknown): CollectionPaymentMethod => {
   return COLLECTION_PAYMENT_METHODS.includes(value as CollectionPaymentMethod) ? value as CollectionPaymentMethod : 'Nakit'
 }
@@ -331,6 +352,20 @@ const createDemoCreditTransactions = (now = new Date().toISOString()): CreditTra
     amount: 12000,
     paidAmount: 0,
     note: 'Demo firma veresiye kaydı.',
+    createdAt: now,
+    updatedAt: now
+  })
+]
+
+const createDemoSupplierDebts = (now = new Date().toISOString()): SupplierDebt[] => [
+  normalizeSupplierDebt({
+    id: 'supplier_debt_abc_gida_demo',
+    currentAccountId: 'cari_abc_gida',
+    date: new Date().toLocaleDateString('sv-SE'),
+    invoiceNumber: 'ABC-2026-001',
+    amount: 15000,
+    paidAmount: 3000,
+    note: 'Demo tedarikçi borcu.',
     createdAt: now,
     updatedAt: now
   })
@@ -1122,6 +1157,17 @@ export const loadCreditTransactions = (): CreditTransaction[] => {
 
 export const saveCreditTransactions = (items: CreditTransaction[]) => {
   localStorage.setItem(KEY_CREDIT_TRANSACTIONS, JSON.stringify(items.map(normalizeCreditTransaction)))
+}
+
+export const loadSupplierDebts = (): SupplierDebt[] => {
+  const stored = localStorage.getItem(KEY_SUPPLIER_DEBTS)
+  if(stored === null) return createDemoSupplierDebts()
+
+  return readJson<Partial<SupplierDebt>[]>(KEY_SUPPLIER_DEBTS, []).map(normalizeSupplierDebt)
+}
+
+export const saveSupplierDebts = (items: SupplierDebt[]) => {
+  localStorage.setItem(KEY_SUPPLIER_DEBTS, JSON.stringify(items.map(normalizeSupplierDebt)))
 }
 
 export const loadCollectionTransactions = (): CollectionTransaction[] => {
@@ -2711,6 +2757,7 @@ export const createDemoData = () => {
   const currentAccounts = createDemoCurrentAccounts(now)
   const creditTransactions = createDemoCreditTransactions(now)
   const collectionTransactions = createDemoCollectionTransactions(now)
+  const supplierDebts = createDemoSupplierDebts(now)
 
   const tables: TableState[] = Array.from({ length: 6 }).map((_, index) => ({
     id: String(index + 1),
@@ -2724,6 +2771,7 @@ export const createDemoData = () => {
   saveCurrentAccounts(currentAccounts)
   saveCreditTransactions(creditTransactions)
   saveCollectionTransactions(collectionTransactions)
+  saveSupplierDebts(supplierDebts)
   saveTables(tables)
   saveKitchenOrders([])
   saveQRRequests([])
@@ -2736,6 +2784,7 @@ export const createDemoData = () => {
     tables,
     currentAccounts: loadCurrentAccounts(),
     creditTransactions: loadCreditTransactions(),
-    collectionTransactions: loadCollectionTransactions()
+    collectionTransactions: loadCollectionTransactions(),
+    supplierDebts: loadSupplierDebts()
   }
 }

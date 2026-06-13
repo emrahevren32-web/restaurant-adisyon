@@ -88,7 +88,12 @@ const operationTypes: ActionLogType[] = [
   'Veresiye silindi',
   'Tahsilat oluşturuldu',
   'Tahsilat güncellendi',
-  'Tahsilat silindi'
+  'Tahsilat silindi',
+  'Tedarikçi borcu oluşturuldu',
+  'Tedarikçi borcu güncellendi',
+  'Tedarikçi ödemesi girildi',
+  'Tedarikçi borcu kapatıldı',
+  'Tedarikçi borcu silindi'
 ]
 
 export default function ActionHistory(){

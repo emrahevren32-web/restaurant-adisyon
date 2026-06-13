@@ -620,6 +620,22 @@ export type CreditTransaction = {
   updatedAt: string
 }
 
+export type SupplierDebtStatus = 'Açık' | 'Kapandı'
+
+export type SupplierDebt = {
+  id: string
+  currentAccountId: string
+  date: string
+  amount: number
+  paidAmount: number
+  remainingAmount: number
+  status: SupplierDebtStatus
+  invoiceNumber: string
+  note: string
+  createdAt: string
+  updatedAt: string
+}
+
 export type CollectionPaymentMethod = 'Nakit' | 'Kart' | 'Havale/EFT' | 'Diğer'
 
 export type CollectionTransaction = {
@@ -723,6 +739,11 @@ export type ActionLogType =
   | 'Tahsilat oluşturuldu'
   | 'Tahsilat güncellendi'
   | 'Tahsilat silindi'
+  | 'Tedarikçi borcu oluşturuldu'
+  | 'Tedarikçi borcu güncellendi'
+  | 'Tedarikçi ödemesi girildi'
+  | 'Tedarikçi borcu kapatıldı'
+  | 'Tedarikçi borcu silindi'
 
 export type ActionLog = {
   id: string

@@ -22,6 +22,7 @@ import CurrentAccounts from './pages/CurrentAccounts'
 import CreditTransactions from './pages/CreditTransactions'
 import CollectionTransactions from './pages/CollectionTransactions'
 import CurrentAccountMovements from './pages/CurrentAccountMovements'
+import SupplierDebts from './pages/SupplierDebts'
 import AppShell, { ShellNavGroup, ShellNavItem } from './components/AppShell'
 import {
   loadProducts,
@@ -38,6 +39,7 @@ type Route =
   | 'stock-cards'
   | 'stock-movements'
   | 'recipes'
+  | 'supplier-debts'
   | 'summary'
   | 'history'
   | 'kitchen'
@@ -69,6 +71,7 @@ type NavKey =
   | 'critical-stock'
   | 'expiry-lots'
   | 'waste'
+  | 'supplier-debts'
   | 'reports'
   | 'current-report'
   | 'risky-current'
@@ -87,6 +90,7 @@ type NavGroupKey =
   | 'dashboard'
   | 'operations'
   | 'stock'
+  | 'finance'
   | 'reports'
   | 'management'
 
@@ -126,6 +130,14 @@ const navGroups: NavGroup[] = [
       { key: 'critical-stock', label: 'Kritik Stok', route: 'stock-cards', icon: 'KS', adminOnly: true },
       { key: 'expiry-lots', label: 'SKT Yönetimi', route: 'stock-cards', icon: 'SKT', adminOnly: true },
       { key: 'waste', label: 'Fire Yönetimi', route: 'stock-movements', icon: 'FR', adminOnly: true }
+    ]
+  },
+  {
+    key: 'finance',
+    title: 'Kasa & Finans',
+    icon: 'KF',
+    items: [
+      { key: 'supplier-debts', label: 'Tedarikçi Borçları', route: 'supplier-debts', icon: 'TB', adminOnly: true }
     ]
   },
   {
@@ -243,6 +255,7 @@ export default function App(){
         />
       )}
       {route === 'recipes' && currentUser.role === 'Admin' && <Recipes currentUser={currentUser} />}
+      {route === 'supplier-debts' && currentUser.role === 'Admin' && <SupplierDebts currentUser={currentUser} />}
       {route === 'summary' && <DailySummary currentUser={currentUser} />}
       {route === 'history' && <BillHistory />}
       {route === 'kitchen' && <Kitchen currentUser={currentUser} />}
