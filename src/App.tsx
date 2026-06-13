@@ -7,6 +7,7 @@ import ActionHistory from './pages/ActionHistory'
 import StaffTracking from './pages/StaffTracking'
 import Reports from './pages/Reports'
 import CurrentReport from './pages/CurrentReport'
+import RiskyCurrentAccounts from './pages/RiskyCurrentAccounts'
 import Kitchen from './pages/Kitchen'
 import QRMenu from './pages/QRMenu'
 import QROrders from './pages/QROrders'
@@ -46,6 +47,7 @@ type Route =
   | 'staff'
   | 'reports'
   | 'current-report'
+  | 'risky-current'
   | 'users'
   | 'current-accounts'
   | 'credit-transactions'
@@ -69,6 +71,7 @@ type NavKey =
   | 'waste'
   | 'reports'
   | 'current-report'
+  | 'risky-current'
   | 'bill-history'
   | 'action-history'
   | 'users'
@@ -133,6 +136,7 @@ const navGroups: NavGroup[] = [
       { key: 'action-history', label: 'İşlem Geçmişi', route: 'actions', icon: 'IG', adminOnly: true },
       { key: 'reports', label: 'Rapor Merkezi', route: 'reports', icon: 'RM', adminOnly: true },
       { key: 'current-report', label: 'Cari Raporu', route: 'current-report', icon: 'CR', adminOnly: true },
+      { key: 'risky-current', label: 'Riskli Cari', route: 'risky-current', icon: 'RC', adminOnly: true },
       { key: 'bill-history', label: 'Adisyon Geçmişi', route: 'history', icon: 'AG', adminOnly: true }
     ]
   },
@@ -253,6 +257,7 @@ export default function App(){
       {route === 'staff' && currentUser.role === 'Admin' && <StaffTracking />}
       {route === 'reports' && currentUser.role === 'Admin' && <Reports />}
       {route === 'current-report' && currentUser.role === 'Admin' && <CurrentReport />}
+      {route === 'risky-current' && currentUser.role === 'Admin' && <RiskyCurrentAccounts />}
       {route === 'users' && currentUser.role === 'Admin' && <Users currentUser={currentUser} />}
       {route === 'current-accounts' && currentUser.role === 'Admin' && <CurrentAccounts currentUser={currentUser} />}
       {route === 'credit-transactions' && currentUser.role === 'Admin' && <CreditTransactions currentUser={currentUser} />}
