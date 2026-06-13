@@ -587,6 +587,23 @@ export type User = {
   active: boolean
 }
 
+export type EmployeePosition = 'Garson' | 'Kasiyer' | 'Aşçı' | 'Kurye' | 'Yönetici' | 'Diğer'
+
+export type Employee = {
+  id: string
+  code: string
+  fullName: string
+  position: EmployeePosition
+  phone: string
+  email: string
+  startDate: string
+  salary: number
+  isActive: boolean
+  note: string
+  createdAt: string
+  updatedAt: string
+}
+
 export type CurrentAccountType = 'Müşteri' | 'Firma' | 'Personel' | 'Tedarikçi'
 
 export type CurrentAccount = {
@@ -826,6 +843,10 @@ export type ActionLogType =
   | 'Gün sonu kasa kapatıldı'
   | 'Kasa devri oluşturuldu'
   | 'Kasa devri silindi'
+  | 'Personel oluşturuldu'
+  | 'Personel güncellendi'
+  | 'Personel pasif yapıldı'
+  | 'Personel silindi'
 
 export type ActionLog = {
   id: string

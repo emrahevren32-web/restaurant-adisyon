@@ -5,6 +5,7 @@ import DailySummary from './pages/DailySummary'
 import BillHistory from './pages/BillHistory'
 import ActionHistory from './pages/ActionHistory'
 import StaffTracking from './pages/StaffTracking'
+import EmployeeCards from './pages/EmployeeCards'
 import Reports from './pages/Reports'
 import CurrentReport from './pages/CurrentReport'
 import RiskyCurrentAccounts from './pages/RiskyCurrentAccounts'
@@ -58,6 +59,7 @@ type Route =
   | 'qr-orders'
   | 'qr-codes'
   | 'actions'
+  | 'employee-cards'
   | 'staff'
   | 'reports'
   | 'current-report'
@@ -95,6 +97,7 @@ type NavKey =
   | 'risky-current'
   | 'bill-history'
   | 'action-history'
+  | 'employee-cards'
   | 'users'
   | 'staff'
   | 'current-accounts'
@@ -110,6 +113,7 @@ type NavGroupKey =
   | 'stock'
   | 'finance'
   | 'reports'
+  | 'personnel'
   | 'management'
 
 type NavItem = ShellNavItem<Route, NavKey>
@@ -177,12 +181,20 @@ const navGroups: NavGroup[] = [
     ]
   },
   {
+    key: 'personnel',
+    title: 'Personel & Denetim',
+    icon: 'PD',
+    items: [
+      { key: 'employee-cards', label: 'Personel Kartları', route: 'employee-cards', icon: 'PK', adminOnly: true },
+      { key: 'staff', label: 'Personel Takibi', route: 'staff', icon: 'PT', adminOnly: true }
+    ]
+  },
+  {
     key: 'management',
     title: 'Yönetim',
     icon: 'YN',
     items: [
       { key: 'users', label: 'Kullanıcı Yönetimi', route: 'users', icon: 'KY', adminOnly: true },
-      { key: 'staff', label: 'Personel Takibi', route: 'staff', icon: 'PT', adminOnly: true },
       { key: 'current-accounts', label: 'Cari Kartları', route: 'current-accounts', icon: 'CK', adminOnly: true },
       { key: 'credit-transactions', label: 'Veresiye İşlemleri', route: 'credit-transactions', icon: 'VI', adminOnly: true },
       { key: 'collection-transactions', label: 'Tahsilat İşlemleri', route: 'collection-transactions', icon: 'TI', adminOnly: true },
@@ -297,6 +309,7 @@ export default function App(){
       )}
       {route === 'qr-codes' && currentUser.role === 'Admin' && <QRCodes />}
       {route === 'actions' && currentUser.role === 'Admin' && <ActionHistory />}
+      {route === 'employee-cards' && currentUser.role === 'Admin' && <EmployeeCards currentUser={currentUser} />}
       {route === 'staff' && currentUser.role === 'Admin' && <StaffTracking />}
       {route === 'reports' && currentUser.role === 'Admin' && <Reports />}
       {route === 'current-report' && currentUser.role === 'Admin' && <CurrentReport />}

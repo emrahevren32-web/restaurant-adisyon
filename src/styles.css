@@ -132,7 +132,7 @@ th { color:var(--muted-strong); font-size:13px; font-weight:750 }
 
 .muted { color:var(--muted); margin:4px 0 0 }
 .small-text { font-size:12px; line-height:1.45 }
-.products-page, .stock-page, .recipes-page, .tables-page, .summary-page, .history-page, .action-history-page, .staff-page, .reports-page, .current-report-page, .risky-current-page, .financial-reports-page, .kitchen-page, .qr-orders-page, .qr-codes-page, .settings-page, .users-page, .current-accounts-page, .credit-transactions-page, .collection-transactions-page, .supplier-debts-page, .supplier-payments-page, .cash-transactions-page, .income-expense-page, .cash-closing-page, .cash-transfers-page, .current-account-movements-page { display:flex; flex-direction:column; gap:18px; min-width:0; max-width:100% }
+.products-page, .stock-page, .recipes-page, .tables-page, .summary-page, .history-page, .action-history-page, .staff-page, .employee-cards-page, .reports-page, .current-report-page, .risky-current-page, .financial-reports-page, .kitchen-page, .qr-orders-page, .qr-codes-page, .settings-page, .users-page, .current-accounts-page, .credit-transactions-page, .collection-transactions-page, .supplier-debts-page, .supplier-payments-page, .cash-transactions-page, .income-expense-page, .cash-closing-page, .cash-transfers-page, .current-account-movements-page { display:flex; flex-direction:column; gap:18px; min-width:0; max-width:100% }
 .page-title { display:flex; justify-content:space-between; gap:16px; align-items:flex-start; flex-wrap:wrap; padding:0; margin:0 0 2px }
 .page-title > div, .section-header > div { min-width:0 }
 .page-title > div:first-child { flex:1 1 420px; max-width:820px }
@@ -201,6 +201,7 @@ th { color:var(--muted-strong); font-size:13px; font-weight:750 }
 .current-report-filters { grid-template-columns:minmax(180px, 1fr) minmax(140px, .72fr) minmax(140px, .72fr); width:100%; max-width:100%; min-width:0 }
 .risky-current-filters { grid-template-columns:minmax(180px, 1fr) minmax(180px, 1fr); width:100%; max-width:100%; min-width:0 }
 .financial-report-filters { grid-template-columns:minmax(160px, .75fr) minmax(150px, .72fr) minmax(150px, .72fr); width:100%; max-width:100%; min-width:0 }
+.employee-filters { grid-template-columns:minmax(180px, 1fr) minmax(150px, .72fr) minmax(120px, .6fr); width:100%; max-width:100%; min-width:0 }
 .current-account-summary-card { overflow:hidden }
 .current-account-summary-grid { display:grid; grid-template-columns:repeat(auto-fit, minmax(180px, 1fr)); gap:10px }
 .current-account-summary-grid > div { border:1px solid var(--line); border-radius:var(--radius-md); padding:10px 12px; background:var(--surface-muted); min-width:0 }
@@ -592,6 +593,7 @@ th { color:var(--muted-strong); font-size:13px; font-weight:750 }
 .table-wrap .income-expense-table { min-width:980px }
 .table-wrap .cash-closing-table { min-width:1080px }
 .table-wrap .cash-transfer-table { min-width:980px }
+.table-wrap .employee-table { min-width:980px }
 .table-wrap .staff-table { min-width:860px }
 .table-wrap .report-placeholder-table { min-width:680px }
 .stock-report-filters { display:grid; grid-template-columns:minmax(220px, 1fr) 170px 180px 140px; gap:8px; width:100%; min-width:0; margin:12px 0 }

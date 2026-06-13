@@ -15,6 +15,8 @@ import {
   CreditTransaction,
   CurrentAccount,
   CurrentAccountType,
+  Employee,
+  EmployeePosition,
   IncomeExpense,
   IncomeExpensePaymentMethod,
   IncomeExpenseType,
@@ -109,6 +111,7 @@ const KEY_RECIPE_AUDIT_EVENTS = 'ra_recipe_audit_events'
 const KEY_TABLES = 'ra_tables'
 const KEY_CLOSED = 'ra_closed'
 const KEY_USERS = 'ra_users'
+const KEY_EMPLOYEES = 'ra_employees'
 const KEY_CURRENT_ACCOUNTS = 'ra_current_accounts'
 const KEY_CREDIT_TRANSACTIONS = 'ra_credit_transactions'
 const KEY_COLLECTION_TRANSACTIONS = 'ra_collection_transactions'
@@ -143,6 +146,7 @@ const CASH_TRANSACTION_TYPES: CashTransactionType[] = ['Gelir', 'Gider']
 const CASH_PAYMENT_METHODS: CashPaymentMethod[] = ['Nakit', 'Kart', 'Havale/EFT']
 const INCOME_EXPENSE_TYPES: IncomeExpenseType[] = ['Gelir', 'Gider']
 const INCOME_EXPENSE_PAYMENT_METHODS: IncomeExpensePaymentMethod[] = ['Nakit', 'Kart', 'Havale/EFT']
+const EMPLOYEE_POSITIONS: EmployeePosition[] = ['Garson', 'Kasiyer', 'Aşçı', 'Kurye', 'Yönetici', 'Diğer']
 
 export const DEFAULT_SETTINGS: SystemSettings = {
   restaurantName: 'Restaurant Adisyon',
@@ -208,6 +212,30 @@ const normalizeProduct = (item: Partial<Product>, fallbackCategoryId = DEFAULT_C
 
 const normalizeCurrentAccountType = (value: unknown): CurrentAccountType => {
   return CURRENT_ACCOUNT_TYPES.includes(value as CurrentAccountType) ? value as CurrentAccountType : 'Müşteri'
+}
+
+const normalizeEmployeePosition = (value: unknown): EmployeePosition => {
+  return EMPLOYEE_POSITIONS.includes(value as EmployeePosition) ? value as EmployeePosition : 'Diğer'
+}
+
+const normalizeEmployee = (item: Partial<Employee>): Employee => {
+  const timestamp = item.createdAt || new Date().toISOString()
+  const salary = Number(item.salary)
+
+  return {
+    id: String(item.id || `employee_${Date.now()}`),
+    code: String(item.code || '').trim(),
+    fullName: String(item.fullName || '').trim(),
+    position: normalizeEmployeePosition(item.position),
+    phone: String(item.phone || '').trim(),
+    email: String(item.email || '').trim(),
+    startDate: String(item.startDate || new Date().toLocaleDateString('sv-SE')),
+    salary: Number.isFinite(salary) ? Math.max(0, roundMoneyValue(salary)) : 0,
+    isActive: item.isActive !== false,
+    note: String(item.note || '').trim(),
+    createdAt: timestamp,
+    updatedAt: item.updatedAt || timestamp
+  }
 }
 
 const normalizeCurrentAccount = (item: Partial<CurrentAccount>): CurrentAccount => {
@@ -423,6 +451,51 @@ const normalizeCashTransfer = (item: Partial<CashTransfer>): CashTransfer => {
     createdAt: item.createdAt || new Date().toISOString()
   }
 }
+
+const createDemoEmployees = (now = new Date().toISOString()): Employee[] => [
+  normalizeEmployee({
+    id: 'employee_ahmet_kaya',
+    code: 'PER-001',
+    fullName: 'Ahmet Kaya',
+    position: 'Garson',
+    phone: '0532 111 22 33',
+    email: 'ahmet.kaya@example.com',
+    startDate: new Date().toLocaleDateString('sv-SE'),
+    salary: 30000,
+    isActive: true,
+    note: 'Demo garson personel kaydı.',
+    createdAt: now,
+    updatedAt: now
+  }),
+  normalizeEmployee({
+    id: 'employee_mehmet_demir',
+    code: 'PER-002',
+    fullName: 'Mehmet Demir',
+    position: 'Kasiyer',
+    phone: '0532 222 33 44',
+    email: 'mehmet.demir@example.com',
+    startDate: new Date().toLocaleDateString('sv-SE'),
+    salary: 32000,
+    isActive: true,
+    note: 'Demo kasiyer personel kaydı.',
+    createdAt: now,
+    updatedAt: now
+  }),
+  normalizeEmployee({
+    id: 'employee_ayse_yilmaz',
+    code: 'PER-003',
+    fullName: 'Ayşe Yılmaz',
+    position: 'Yönetici',
+    phone: '0532 333 44 55',
+    email: 'ayse.yilmaz@example.com',
+    startDate: new Date().toLocaleDateString('sv-SE'),
+    salary: 45000,
+    isActive: true,
+    note: 'Demo yönetici personel kaydı.',
+    createdAt: now,
+    updatedAt: now
+  })
+]
 
 const createDemoCurrentAccounts = (now = new Date().toISOString()): CurrentAccount[] => [
   {
@@ -1720,6 +1793,17 @@ export const saveUsers = (items: User[]) => {
   localStorage.setItem(KEY_USERS, JSON.stringify(items))
 }
 
+export const loadEmployees = (): Employee[] => {
+  const stored = localStorage.getItem(KEY_EMPLOYEES)
+  if(stored === null) return createDemoEmployees()
+
+  return readJson<Partial<Employee>[]>(KEY_EMPLOYEES, []).map(normalizeEmployee)
+}
+
+export const saveEmployees = (items: Employee[]) => {
+  localStorage.setItem(KEY_EMPLOYEES, JSON.stringify(items.map(normalizeEmployee)))
+}
+
 export const ensureDefaultAdmin = () => {
   const users = loadUsers()
   if(!users.find(u => u.username === 'admin')){
@@ -3004,6 +3088,7 @@ export const createDemoData = () => {
     { id: 'prd_baklava', name: 'Baklava', price: 180, categoryId: 'cat_desserts', description: 'Antep fıstıklı porsiyon baklava.', active: true, createdAt: now, updatedAt: now }
   ]
 
+  const employees = createDemoEmployees(now)
   const currentAccounts = createDemoCurrentAccounts(now)
   const creditTransactions = createDemoCreditTransactions(now)
   const collectionTransactions = createDemoCollectionTransactions(now)
@@ -3021,6 +3106,7 @@ export const createDemoData = () => {
 
   saveCategories(categories)
   saveProducts(products)
+  saveEmployees(employees)
   saveCurrentAccounts(currentAccounts)
   saveCreditTransactions(creditTransactions)
   saveCollectionTransactions(collectionTransactions)
@@ -3040,6 +3126,7 @@ export const createDemoData = () => {
     categories: loadCategories(),
     products: loadProducts(),
     tables,
+    employees: loadEmployees(),
     currentAccounts: loadCurrentAccounts(),
     creditTransactions: loadCreditTransactions(),
     collectionTransactions: loadCollectionTransactions(),
