@@ -58,6 +58,9 @@ import {
   StockMovementSource,
   StockMovementType,
   StockUnit,
+  Shift,
+  ShiftName,
+  ShiftStatus,
   SupplierDebt,
   SupplierPayment,
   SupplierPaymentMethod,
@@ -112,6 +115,7 @@ const KEY_TABLES = 'ra_tables'
 const KEY_CLOSED = 'ra_closed'
 const KEY_USERS = 'ra_users'
 const KEY_EMPLOYEES = 'ra_employees'
+const KEY_SHIFTS = 'ra_shifts'
 const KEY_CURRENT_ACCOUNTS = 'ra_current_accounts'
 const KEY_CREDIT_TRANSACTIONS = 'ra_credit_transactions'
 const KEY_COLLECTION_TRANSACTIONS = 'ra_collection_transactions'
@@ -147,6 +151,8 @@ const CASH_PAYMENT_METHODS: CashPaymentMethod[] = ['Nakit', 'Kart', 'Havale/EFT'
 const INCOME_EXPENSE_TYPES: IncomeExpenseType[] = ['Gelir', 'Gider']
 const INCOME_EXPENSE_PAYMENT_METHODS: IncomeExpensePaymentMethod[] = ['Nakit', 'Kart', 'Havale/EFT']
 const EMPLOYEE_POSITIONS: EmployeePosition[] = ['Garson', 'Kasiyer', 'Aşçı', 'Kurye', 'Yönetici', 'Diğer']
+const SHIFT_NAMES: ShiftName[] = ['Sabah', 'Akşam', 'Tam Gün', 'Gece']
+const SHIFT_STATUSES: ShiftStatus[] = ['Planlandı', 'Tamamlandı', 'İptal']
 
 export const DEFAULT_SETTINGS: SystemSettings = {
   restaurantName: 'Restaurant Adisyon',
@@ -232,6 +238,36 @@ const normalizeEmployee = (item: Partial<Employee>): Employee => {
     startDate: String(item.startDate || new Date().toLocaleDateString('sv-SE')),
     salary: Number.isFinite(salary) ? Math.max(0, roundMoneyValue(salary)) : 0,
     isActive: item.isActive !== false,
+    note: String(item.note || '').trim(),
+    createdAt: timestamp,
+    updatedAt: item.updatedAt || timestamp
+  }
+}
+
+const normalizeShiftName = (value: unknown): ShiftName => {
+  return SHIFT_NAMES.includes(value as ShiftName) ? value as ShiftName : 'Sabah'
+}
+
+const normalizeShiftStatus = (value: unknown): ShiftStatus => {
+  return SHIFT_STATUSES.includes(value as ShiftStatus) ? value as ShiftStatus : 'Planlandı'
+}
+
+const normalizeTimeValue = (value: unknown, fallback: string) => {
+  const text = String(value || '').trim()
+  return /^\d{2}:\d{2}$/.test(text) ? text : fallback
+}
+
+const normalizeShift = (item: Partial<Shift>): Shift => {
+  const timestamp = item.createdAt || new Date().toISOString()
+
+  return {
+    id: String(item.id || `shift_${Date.now()}`),
+    employeeId: String(item.employeeId || ''),
+    shiftName: normalizeShiftName(item.shiftName),
+    startTime: normalizeTimeValue(item.startTime, '08:00'),
+    endTime: normalizeTimeValue(item.endTime, '16:00'),
+    workDate: String(item.workDate || new Date().toLocaleDateString('sv-SE')),
+    status: normalizeShiftStatus(item.status),
     note: String(item.note || '').trim(),
     createdAt: timestamp,
     updatedAt: item.updatedAt || timestamp
@@ -496,6 +532,49 @@ const createDemoEmployees = (now = new Date().toISOString()): Employee[] => [
     updatedAt: now
   })
 ]
+
+const createDemoShifts = (now = new Date().toISOString()): Shift[] => {
+  const today = new Date().toLocaleDateString('sv-SE')
+
+  return [
+    normalizeShift({
+      id: 'shift_ahmet_kaya_sabah_demo',
+      employeeId: 'employee_ahmet_kaya',
+      shiftName: 'Sabah',
+      workDate: today,
+      startTime: '08:00',
+      endTime: '16:00',
+      status: 'Planlandı',
+      note: 'Demo sabah vardiyası.',
+      createdAt: now,
+      updatedAt: now
+    }),
+    normalizeShift({
+      id: 'shift_mehmet_demir_aksam_demo',
+      employeeId: 'employee_mehmet_demir',
+      shiftName: 'Akşam',
+      workDate: today,
+      startTime: '16:00',
+      endTime: '00:00',
+      status: 'Planlandı',
+      note: 'Demo akşam vardiyası.',
+      createdAt: now,
+      updatedAt: now
+    }),
+    normalizeShift({
+      id: 'shift_ayse_yilmaz_tam_gun_demo',
+      employeeId: 'employee_ayse_yilmaz',
+      shiftName: 'Tam Gün',
+      workDate: today,
+      startTime: '09:00',
+      endTime: '18:00',
+      status: 'Planlandı',
+      note: 'Demo tam gün vardiyası.',
+      createdAt: now,
+      updatedAt: now
+    })
+  ]
+}
 
 const createDemoCurrentAccounts = (now = new Date().toISOString()): CurrentAccount[] => [
   {
@@ -1804,6 +1883,17 @@ export const saveEmployees = (items: Employee[]) => {
   localStorage.setItem(KEY_EMPLOYEES, JSON.stringify(items.map(normalizeEmployee)))
 }
 
+export const loadShifts = (): Shift[] => {
+  const stored = localStorage.getItem(KEY_SHIFTS)
+  if(stored === null) return createDemoShifts()
+
+  return readJson<Partial<Shift>[]>(KEY_SHIFTS, []).map(normalizeShift)
+}
+
+export const saveShifts = (items: Shift[]) => {
+  localStorage.setItem(KEY_SHIFTS, JSON.stringify(items.map(normalizeShift)))
+}
+
 export const ensureDefaultAdmin = () => {
   const users = loadUsers()
   if(!users.find(u => u.username === 'admin')){
@@ -3089,6 +3179,7 @@ export const createDemoData = () => {
   ]
 
   const employees = createDemoEmployees(now)
+  const shifts = createDemoShifts(now)
   const currentAccounts = createDemoCurrentAccounts(now)
   const creditTransactions = createDemoCreditTransactions(now)
   const collectionTransactions = createDemoCollectionTransactions(now)
@@ -3107,6 +3198,7 @@ export const createDemoData = () => {
   saveCategories(categories)
   saveProducts(products)
   saveEmployees(employees)
+  saveShifts(shifts)
   saveCurrentAccounts(currentAccounts)
   saveCreditTransactions(creditTransactions)
   saveCollectionTransactions(collectionTransactions)
@@ -3127,6 +3219,7 @@ export const createDemoData = () => {
     products: loadProducts(),
     tables,
     employees: loadEmployees(),
+    shifts: loadShifts(),
     currentAccounts: loadCurrentAccounts(),
     creditTransactions: loadCreditTransactions(),
     collectionTransactions: loadCollectionTransactions(),

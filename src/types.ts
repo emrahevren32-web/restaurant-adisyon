@@ -604,6 +604,22 @@ export type Employee = {
   updatedAt: string
 }
 
+export type ShiftName = 'Sabah' | 'Akşam' | 'Tam Gün' | 'Gece'
+export type ShiftStatus = 'Planlandı' | 'Tamamlandı' | 'İptal'
+
+export type Shift = {
+  id: string
+  employeeId: string
+  shiftName: ShiftName
+  startTime: string
+  endTime: string
+  workDate: string
+  status: ShiftStatus
+  note: string
+  createdAt: string
+  updatedAt: string
+}
+
 export type CurrentAccountType = 'Müşteri' | 'Firma' | 'Personel' | 'Tedarikçi'
 
 export type CurrentAccount = {
@@ -847,6 +863,11 @@ export type ActionLogType =
   | 'Personel güncellendi'
   | 'Personel pasif yapıldı'
   | 'Personel silindi'
+  | 'Vardiya oluşturuldu'
+  | 'Vardiya güncellendi'
+  | 'Vardiya tamamlandı'
+  | 'Vardiya iptal edildi'
+  | 'Vardiya silindi'
 
 export type ActionLog = {
   id: string

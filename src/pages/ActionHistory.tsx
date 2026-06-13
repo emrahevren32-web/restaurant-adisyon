@@ -110,7 +110,12 @@ const operationTypes: ActionLogType[] = [
   'Personel oluşturuldu',
   'Personel güncellendi',
   'Personel pasif yapıldı',
-  'Personel silindi'
+  'Personel silindi',
+  'Vardiya oluşturuldu',
+  'Vardiya güncellendi',
+  'Vardiya tamamlandı',
+  'Vardiya iptal edildi',
+  'Vardiya silindi'
 ]
 
 export default function ActionHistory(){

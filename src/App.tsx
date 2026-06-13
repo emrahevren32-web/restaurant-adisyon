@@ -6,6 +6,7 @@ import BillHistory from './pages/BillHistory'
 import ActionHistory from './pages/ActionHistory'
 import StaffTracking from './pages/StaffTracking'
 import EmployeeCards from './pages/EmployeeCards'
+import ShiftManagement from './pages/ShiftManagement'
 import Reports from './pages/Reports'
 import CurrentReport from './pages/CurrentReport'
 import RiskyCurrentAccounts from './pages/RiskyCurrentAccounts'
@@ -60,6 +61,7 @@ type Route =
   | 'qr-codes'
   | 'actions'
   | 'employee-cards'
+  | 'shift-management'
   | 'staff'
   | 'reports'
   | 'current-report'
@@ -98,6 +100,7 @@ type NavKey =
   | 'bill-history'
   | 'action-history'
   | 'employee-cards'
+  | 'shift-management'
   | 'users'
   | 'staff'
   | 'current-accounts'
@@ -186,6 +189,7 @@ const navGroups: NavGroup[] = [
     icon: 'PD',
     items: [
       { key: 'employee-cards', label: 'Personel Kartları', route: 'employee-cards', icon: 'PK', adminOnly: true },
+      { key: 'shift-management', label: 'Vardiya Yönetimi', route: 'shift-management', icon: 'VY', adminOnly: true },
       { key: 'staff', label: 'Personel Takibi', route: 'staff', icon: 'PT', adminOnly: true }
     ]
   },
@@ -310,6 +314,7 @@ export default function App(){
       {route === 'qr-codes' && currentUser.role === 'Admin' && <QRCodes />}
       {route === 'actions' && currentUser.role === 'Admin' && <ActionHistory />}
       {route === 'employee-cards' && currentUser.role === 'Admin' && <EmployeeCards currentUser={currentUser} />}
+      {route === 'shift-management' && currentUser.role === 'Admin' && <ShiftManagement currentUser={currentUser} />}
       {route === 'staff' && currentUser.role === 'Admin' && <StaffTracking />}
       {route === 'reports' && currentUser.role === 'Admin' && <Reports />}
       {route === 'current-report' && currentUser.role === 'Admin' && <CurrentReport />}
