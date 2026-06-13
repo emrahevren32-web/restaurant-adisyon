@@ -25,6 +25,7 @@ import CurrentAccountMovements from './pages/CurrentAccountMovements'
 import SupplierDebts from './pages/SupplierDebts'
 import SupplierPayments from './pages/SupplierPayments'
 import CashTransactions from './pages/CashTransactions'
+import IncomeExpenseManagement from './pages/IncomeExpenseManagement'
 import AppShell, { ShellNavGroup, ShellNavItem } from './components/AppShell'
 import {
   loadProducts,
@@ -44,6 +45,7 @@ type Route =
   | 'supplier-debts'
   | 'supplier-payments'
   | 'cash-transactions'
+  | 'income-expense'
   | 'summary'
   | 'history'
   | 'kitchen'
@@ -78,6 +80,7 @@ type NavKey =
   | 'supplier-debts'
   | 'supplier-payments'
   | 'cash-transactions'
+  | 'income-expense'
   | 'reports'
   | 'current-report'
   | 'risky-current'
@@ -145,7 +148,8 @@ const navGroups: NavGroup[] = [
     items: [
       { key: 'supplier-debts', label: 'Tedarikçi Borçları', route: 'supplier-debts', icon: 'TB', adminOnly: true },
       { key: 'supplier-payments', label: 'Tedarikçi Ödeme İşlemleri', route: 'supplier-payments', icon: 'TO', adminOnly: true },
-      { key: 'cash-transactions', label: 'Kasa Hareketleri', route: 'cash-transactions', icon: 'KH', adminOnly: true }
+      { key: 'cash-transactions', label: 'Kasa Hareketleri', route: 'cash-transactions', icon: 'KH', adminOnly: true },
+      { key: 'income-expense', label: 'Gelir Gider Yönetimi', route: 'income-expense', icon: 'GG', adminOnly: true }
     ]
   },
   {
@@ -266,6 +270,7 @@ export default function App(){
       {route === 'supplier-debts' && currentUser.role === 'Admin' && <SupplierDebts currentUser={currentUser} />}
       {route === 'supplier-payments' && currentUser.role === 'Admin' && <SupplierPayments currentUser={currentUser} />}
       {route === 'cash-transactions' && currentUser.role === 'Admin' && <CashTransactions currentUser={currentUser} />}
+      {route === 'income-expense' && currentUser.role === 'Admin' && <IncomeExpenseManagement currentUser={currentUser} />}
       {route === 'summary' && <DailySummary currentUser={currentUser} />}
       {route === 'history' && <BillHistory />}
       {route === 'kitchen' && <Kitchen currentUser={currentUser} />}

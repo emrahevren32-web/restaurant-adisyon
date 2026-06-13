@@ -13,6 +13,9 @@ import {
   CreditTransaction,
   CurrentAccount,
   CurrentAccountType,
+  IncomeExpense,
+  IncomeExpensePaymentMethod,
+  IncomeExpenseType,
   KitchenOrder,
   KitchenOrderStatus,
   Product,
@@ -110,6 +113,7 @@ const KEY_COLLECTION_TRANSACTIONS = 'ra_collection_transactions'
 const KEY_SUPPLIER_DEBTS = 'ra_supplier_debts'
 const KEY_SUPPLIER_PAYMENTS = 'ra_supplier_payments'
 const KEY_CASH_TRANSACTIONS = 'ra_cash_transactions'
+const KEY_INCOME_EXPENSES = 'ra_income_expenses'
 const KEY_AUTH = 'ra_auth'
 const KEY_LOGS = 'ra_logs'
 const KEY_KITCHEN = 'ra_kitchen_orders'
@@ -133,6 +137,8 @@ const COLLECTION_PAYMENT_METHODS: CollectionPaymentMethod[] = ['Nakit', 'Kart', 
 const SUPPLIER_PAYMENT_METHODS: SupplierPaymentMethod[] = ['Nakit', 'Kart', 'Havale/EFT']
 const CASH_TRANSACTION_TYPES: CashTransactionType[] = ['Gelir', 'Gider']
 const CASH_PAYMENT_METHODS: CashPaymentMethod[] = ['Nakit', 'Kart', 'Havale/EFT']
+const INCOME_EXPENSE_TYPES: IncomeExpenseType[] = ['Gelir', 'Gider']
+const INCOME_EXPENSE_PAYMENT_METHODS: IncomeExpensePaymentMethod[] = ['Nakit', 'Kart', 'Havale/EFT']
 
 export const DEFAULT_SETTINGS: SystemSettings = {
   restaurantName: 'Restaurant Adisyon',
@@ -339,6 +345,31 @@ const normalizeCashTransaction = (item: Partial<CashTransaction>): CashTransacti
   }
 }
 
+const normalizeIncomeExpenseType = (value: unknown): IncomeExpenseType => {
+  return INCOME_EXPENSE_TYPES.includes(value as IncomeExpenseType) ? value as IncomeExpenseType : 'Gelir'
+}
+
+const normalizeIncomeExpensePaymentMethod = (value: unknown): IncomeExpensePaymentMethod => {
+  return INCOME_EXPENSE_PAYMENT_METHODS.includes(value as IncomeExpensePaymentMethod) ? value as IncomeExpensePaymentMethod : 'Nakit'
+}
+
+const normalizeIncomeExpense = (item: Partial<IncomeExpense>): IncomeExpense => {
+  const timestamp = item.createdAt || new Date().toISOString()
+  const amount = Number(item.amount)
+
+  return {
+    id: String(item.id || `income_expense_${Date.now()}`),
+    date: String(item.date || new Date().toLocaleDateString('sv-SE')),
+    type: normalizeIncomeExpenseType(item.type),
+    category: String(item.category || 'Diğer').trim() || 'Diğer',
+    amount: Number.isFinite(amount) ? Math.max(0, roundMoneyValue(amount)) : 0,
+    paymentMethod: normalizeIncomeExpensePaymentMethod(item.paymentMethod),
+    description: String(item.description || ''),
+    createdAt: timestamp,
+    updatedAt: item.updatedAt || timestamp
+  }
+}
+
 const createDemoCurrentAccounts = (now = new Date().toISOString()): CurrentAccount[] => [
   {
     id: 'cari_ali_veli',
@@ -465,6 +496,42 @@ const createDemoCollectionTransactions = (now = new Date().toISOString()): Colle
     amount: 2500,
     paymentMethod: 'Kart',
     note: 'Demo tedarikçi tahsilatı.',
+    createdAt: now,
+    updatedAt: now
+  })
+]
+
+const createDemoIncomeExpenses = (now = new Date().toISOString()): IncomeExpense[] => [
+  normalizeIncomeExpense({
+    id: 'income_expense_urun_satisi_demo',
+    date: new Date().toLocaleDateString('sv-SE'),
+    type: 'Gelir',
+    category: 'Ürün Satışı',
+    amount: 12500,
+    paymentMethod: 'Kart',
+    description: 'Demo ürün satışı geliri.',
+    createdAt: now,
+    updatedAt: now
+  }),
+  normalizeIncomeExpense({
+    id: 'income_expense_kira_demo',
+    date: new Date().toLocaleDateString('sv-SE'),
+    type: 'Gider',
+    category: 'Kira',
+    amount: 5000,
+    paymentMethod: 'Havale/EFT',
+    description: 'Demo kira gideri.',
+    createdAt: now,
+    updatedAt: now
+  }),
+  normalizeIncomeExpense({
+    id: 'income_expense_elektrik_demo',
+    date: new Date().toLocaleDateString('sv-SE'),
+    type: 'Gider',
+    category: 'Elektrik',
+    amount: 1200,
+    paymentMethod: 'Havale/EFT',
+    description: 'Demo elektrik gideri.',
     createdAt: now,
     updatedAt: now
   })
@@ -1253,6 +1320,17 @@ export const loadCashTransactions = (): CashTransaction[] => {
 
 export const saveCashTransactions = (items: CashTransaction[]) => {
   localStorage.setItem(KEY_CASH_TRANSACTIONS, JSON.stringify(items.map(normalizeCashTransaction)))
+}
+
+export const loadIncomeExpenses = (): IncomeExpense[] => {
+  const stored = localStorage.getItem(KEY_INCOME_EXPENSES)
+  if(stored === null) return createDemoIncomeExpenses()
+
+  return readJson<Partial<IncomeExpense>[]>(KEY_INCOME_EXPENSES, []).map(normalizeIncomeExpense)
+}
+
+export const saveIncomeExpenses = (items: IncomeExpense[]) => {
+  localStorage.setItem(KEY_INCOME_EXPENSES, JSON.stringify(items.map(normalizeIncomeExpense)))
 }
 
 export const loadCollectionTransactions = (): CollectionTransaction[] => {
@@ -2844,6 +2922,7 @@ export const createDemoData = () => {
   const collectionTransactions = createDemoCollectionTransactions(now)
   const supplierDebts = createDemoSupplierDebts(now)
   const supplierPayments = createDemoSupplierPayments(now)
+  const incomeExpenses = createDemoIncomeExpenses(now)
 
   const tables: TableState[] = Array.from({ length: 6 }).map((_, index) => ({
     id: String(index + 1),
@@ -2860,6 +2939,7 @@ export const createDemoData = () => {
   saveSupplierDebts(supplierDebts)
   saveSupplierPayments(supplierPayments)
   saveCashTransactions([])
+  saveIncomeExpenses(incomeExpenses)
   saveTables(tables)
   saveKitchenOrders([])
   saveQRRequests([])
@@ -2875,6 +2955,7 @@ export const createDemoData = () => {
     collectionTransactions: loadCollectionTransactions(),
     supplierDebts: loadSupplierDebts(),
     supplierPayments: loadSupplierPayments(),
-    cashTransactions: loadCashTransactions()
+    cashTransactions: loadCashTransactions(),
+    incomeExpenses: loadIncomeExpenses()
   }
 }

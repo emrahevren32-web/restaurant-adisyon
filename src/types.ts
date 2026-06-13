@@ -664,6 +664,21 @@ export type CashTransaction = {
   createdAt: string
 }
 
+export type IncomeExpenseType = 'Gelir' | 'Gider'
+export type IncomeExpensePaymentMethod = 'Nakit' | 'Kart' | 'Havale/EFT'
+
+export type IncomeExpense = {
+  id: string
+  date: string
+  type: IncomeExpenseType
+  category: string
+  amount: number
+  paymentMethod: IncomeExpensePaymentMethod
+  description: string
+  createdAt: string
+  updatedAt: string
+}
+
 export type CollectionPaymentMethod = 'Nakit' | 'Kart' | 'Havale/EFT' | 'Diğer'
 
 export type CollectionTransaction = {
@@ -776,6 +791,12 @@ export type ActionLogType =
   | 'Tedarikçi ödemesi silindi'
   | 'Kasa hareketi oluşturuldu'
   | 'Kasa hareketi silindi'
+  | 'Gelir kaydı oluşturuldu'
+  | 'Gelir kaydı güncellendi'
+  | 'Gelir kaydı silindi'
+  | 'Gider kaydı oluşturuldu'
+  | 'Gider kaydı güncellendi'
+  | 'Gider kaydı silindi'
 
 export type ActionLog = {
   id: string

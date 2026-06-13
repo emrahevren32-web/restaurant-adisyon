@@ -106,7 +106,7 @@ export default function Settings({ currentUser, onSettingsChange }: Props){
     const demo = createDemoData()
     setMessage({
       type: 'success',
-      text: `Demo veri oluşturuldu: ${demo.tables.length} masa, ${demo.categories.length} kategori, ${demo.products.length} ürün, ${demo.currentAccounts.length} cari, ${demo.creditTransactions.length} veresiye kaydı, ${demo.collectionTransactions.length} tahsilat, ${demo.supplierDebts.length} tedarikçi borcu, ${demo.supplierPayments.length} tedarikçi ödemesi, ${demo.cashTransactions.length} manuel kasa hareketi.`
+      text: `Demo veri oluşturuldu: ${demo.tables.length} masa, ${demo.categories.length} kategori, ${demo.products.length} ürün, ${demo.currentAccounts.length} cari, ${demo.creditTransactions.length} veresiye kaydı, ${demo.collectionTransactions.length} tahsilat, ${demo.supplierDebts.length} tedarikçi borcu, ${demo.supplierPayments.length} tedarikçi ödemesi, ${demo.cashTransactions.length} manuel kasa hareketi, ${demo.incomeExpenses.length} gelir gider kaydı.`
     })
   }
 
