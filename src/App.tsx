@@ -19,6 +19,7 @@ import Settings from './pages/Settings'
 import CurrentAccounts from './pages/CurrentAccounts'
 import CreditTransactions from './pages/CreditTransactions'
 import CollectionTransactions from './pages/CollectionTransactions'
+import CurrentAccountMovements from './pages/CurrentAccountMovements'
 import AppShell, { ShellNavGroup, ShellNavItem } from './components/AppShell'
 import {
   loadProducts,
@@ -47,6 +48,7 @@ type Route =
   | 'current-accounts'
   | 'credit-transactions'
   | 'collection-transactions'
+  | 'current-account-movements'
   | 'settings'
 
 type NavKey =
@@ -71,6 +73,7 @@ type NavKey =
   | 'current-accounts'
   | 'credit-transactions'
   | 'collection-transactions'
+  | 'current-account-movements'
   | 'qr-codes'
   | 'settings'
 
@@ -139,6 +142,7 @@ const navGroups: NavGroup[] = [
       { key: 'current-accounts', label: 'Cari Kartları', route: 'current-accounts', icon: 'CK', adminOnly: true },
       { key: 'credit-transactions', label: 'Veresiye İşlemleri', route: 'credit-transactions', icon: 'VI', adminOnly: true },
       { key: 'collection-transactions', label: 'Tahsilat İşlemleri', route: 'collection-transactions', icon: 'TI', adminOnly: true },
+      { key: 'current-account-movements', label: 'Cari Hareketleri', route: 'current-account-movements', icon: 'CH', adminOnly: true },
       { key: 'qr-codes', label: 'QR Kodlar', route: 'qr-codes', icon: 'QK', adminOnly: true },
       { key: 'settings', label: 'Ayarlar', route: 'settings', icon: 'AY', adminOnly: true }
     ]
@@ -248,6 +252,7 @@ export default function App(){
       {route === 'current-accounts' && currentUser.role === 'Admin' && <CurrentAccounts currentUser={currentUser} />}
       {route === 'credit-transactions' && currentUser.role === 'Admin' && <CreditTransactions currentUser={currentUser} />}
       {route === 'collection-transactions' && currentUser.role === 'Admin' && <CollectionTransactions currentUser={currentUser} />}
+      {route === 'current-account-movements' && currentUser.role === 'Admin' && <CurrentAccountMovements />}
       {route === 'settings' && currentUser.role === 'Admin' && <Settings currentUser={currentUser} onSettingsChange={refreshSettings} />}
     </AppShell>
   )
