@@ -2,6 +2,7 @@ import {
   ActionLog,
   ActionLogType,
   CashPaymentMethod,
+  CashClosing,
   CashTransaction,
   CashTransactionType,
   ClosedBill,
@@ -114,6 +115,7 @@ const KEY_SUPPLIER_DEBTS = 'ra_supplier_debts'
 const KEY_SUPPLIER_PAYMENTS = 'ra_supplier_payments'
 const KEY_CASH_TRANSACTIONS = 'ra_cash_transactions'
 const KEY_INCOME_EXPENSES = 'ra_income_expenses'
+const KEY_CASH_CLOSINGS = 'ra_cash_closings'
 const KEY_AUTH = 'ra_auth'
 const KEY_LOGS = 'ra_logs'
 const KEY_KITCHEN = 'ra_kitchen_orders'
@@ -367,6 +369,39 @@ const normalizeIncomeExpense = (item: Partial<IncomeExpense>): IncomeExpense => 
     description: String(item.description || ''),
     createdAt: timestamp,
     updatedAt: item.updatedAt || timestamp
+  }
+}
+
+const normalizeCashClosing = (item: Partial<CashClosing>): CashClosing => {
+  const openingBalance = Number(item.openingBalance)
+  const totalIncome = Number(item.totalIncome)
+  const totalExpense = Number(item.totalExpense)
+  const expectedBalance = Number(item.expectedBalance)
+  const actualBalance = Number(item.actualBalance)
+  const normalizedOpeningBalance = Number.isFinite(openingBalance) ? roundMoneyValue(openingBalance) : 0
+  const normalizedTotalIncome = Number.isFinite(totalIncome) ? Math.max(0, roundMoneyValue(totalIncome)) : 0
+  const normalizedTotalExpense = Number.isFinite(totalExpense) ? Math.max(0, roundMoneyValue(totalExpense)) : 0
+  const normalizedExpectedBalance = Number.isFinite(expectedBalance)
+    ? roundMoneyValue(expectedBalance)
+    : roundMoneyValue(normalizedOpeningBalance + normalizedTotalIncome - normalizedTotalExpense)
+  const normalizedActualBalance = Number.isFinite(actualBalance) ? roundMoneyValue(actualBalance) : 0
+  const difference = Number(item.difference)
+  const normalizedDifference = Number.isFinite(difference)
+    ? roundMoneyValue(difference)
+    : roundMoneyValue(normalizedActualBalance - normalizedExpectedBalance)
+
+  return {
+    id: String(item.id || `cash_closing_${Date.now()}`),
+    date: String(item.date || new Date().toLocaleDateString('sv-SE')),
+    openingBalance: normalizedOpeningBalance,
+    totalIncome: normalizedTotalIncome,
+    totalExpense: normalizedTotalExpense,
+    expectedBalance: normalizedExpectedBalance,
+    actualBalance: normalizedActualBalance,
+    difference: normalizedDifference,
+    note: String(item.note || ''),
+    closedBy: String(item.closedBy || ''),
+    createdAt: item.createdAt || new Date().toISOString()
   }
 }
 
@@ -1331,6 +1366,14 @@ export const loadIncomeExpenses = (): IncomeExpense[] => {
 
 export const saveIncomeExpenses = (items: IncomeExpense[]) => {
   localStorage.setItem(KEY_INCOME_EXPENSES, JSON.stringify(items.map(normalizeIncomeExpense)))
+}
+
+export const loadCashClosings = (): CashClosing[] => {
+  return readJson<Partial<CashClosing>[]>(KEY_CASH_CLOSINGS, []).map(normalizeCashClosing)
+}
+
+export const saveCashClosings = (items: CashClosing[]) => {
+  localStorage.setItem(KEY_CASH_CLOSINGS, JSON.stringify(items.map(normalizeCashClosing)))
 }
 
 export const loadCollectionTransactions = (): CollectionTransaction[] => {
@@ -2940,6 +2983,7 @@ export const createDemoData = () => {
   saveSupplierPayments(supplierPayments)
   saveCashTransactions([])
   saveIncomeExpenses(incomeExpenses)
+  saveCashClosings([])
   saveTables(tables)
   saveKitchenOrders([])
   saveQRRequests([])
@@ -2956,6 +3000,7 @@ export const createDemoData = () => {
     supplierDebts: loadSupplierDebts(),
     supplierPayments: loadSupplierPayments(),
     cashTransactions: loadCashTransactions(),
-    incomeExpenses: loadIncomeExpenses()
+    incomeExpenses: loadIncomeExpenses(),
+    cashClosings: loadCashClosings()
   }
 }

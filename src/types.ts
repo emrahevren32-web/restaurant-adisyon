@@ -679,6 +679,20 @@ export type IncomeExpense = {
   updatedAt: string
 }
 
+export type CashClosing = {
+  id: string
+  date: string
+  openingBalance: number
+  totalIncome: number
+  totalExpense: number
+  expectedBalance: number
+  actualBalance: number
+  difference: number
+  note: string
+  closedBy: string
+  createdAt: string
+}
+
 export type CollectionPaymentMethod = 'Nakit' | 'Kart' | 'Havale/EFT' | 'Diğer'
 
 export type CollectionTransaction = {
@@ -797,6 +811,7 @@ export type ActionLogType =
   | 'Gider kaydı oluşturuldu'
   | 'Gider kaydı güncellendi'
   | 'Gider kaydı silindi'
+  | 'Gün sonu kasa kapatıldı'
 
 export type ActionLog = {
   id: string

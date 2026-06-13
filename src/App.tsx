@@ -26,6 +26,7 @@ import SupplierDebts from './pages/SupplierDebts'
 import SupplierPayments from './pages/SupplierPayments'
 import CashTransactions from './pages/CashTransactions'
 import IncomeExpenseManagement from './pages/IncomeExpenseManagement'
+import CashClosingPage from './pages/CashClosing'
 import AppShell, { ShellNavGroup, ShellNavItem } from './components/AppShell'
 import {
   loadProducts,
@@ -46,6 +47,7 @@ type Route =
   | 'supplier-payments'
   | 'cash-transactions'
   | 'income-expense'
+  | 'cash-closing'
   | 'summary'
   | 'history'
   | 'kitchen'
@@ -81,6 +83,7 @@ type NavKey =
   | 'supplier-payments'
   | 'cash-transactions'
   | 'income-expense'
+  | 'cash-closing'
   | 'reports'
   | 'current-report'
   | 'risky-current'
@@ -149,7 +152,8 @@ const navGroups: NavGroup[] = [
       { key: 'supplier-debts', label: 'Tedarikçi Borçları', route: 'supplier-debts', icon: 'TB', adminOnly: true },
       { key: 'supplier-payments', label: 'Tedarikçi Ödeme İşlemleri', route: 'supplier-payments', icon: 'TO', adminOnly: true },
       { key: 'cash-transactions', label: 'Kasa Hareketleri', route: 'cash-transactions', icon: 'KH', adminOnly: true },
-      { key: 'income-expense', label: 'Gelir Gider Yönetimi', route: 'income-expense', icon: 'GG', adminOnly: true }
+      { key: 'income-expense', label: 'Gelir Gider Yönetimi', route: 'income-expense', icon: 'GG', adminOnly: true },
+      { key: 'cash-closing', label: 'Gün Sonu Kasa Kapatma', route: 'cash-closing', icon: 'GS', adminOnly: true }
     ]
   },
   {
@@ -271,6 +275,7 @@ export default function App(){
       {route === 'supplier-payments' && currentUser.role === 'Admin' && <SupplierPayments currentUser={currentUser} />}
       {route === 'cash-transactions' && currentUser.role === 'Admin' && <CashTransactions currentUser={currentUser} />}
       {route === 'income-expense' && currentUser.role === 'Admin' && <IncomeExpenseManagement currentUser={currentUser} />}
+      {route === 'cash-closing' && currentUser.role === 'Admin' && <CashClosingPage currentUser={currentUser} />}
       {route === 'summary' && <DailySummary currentUser={currentUser} />}
       {route === 'history' && <BillHistory />}
       {route === 'kitchen' && <Kitchen currentUser={currentUser} />}
