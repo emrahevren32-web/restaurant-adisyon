@@ -5,6 +5,7 @@ import {
   CriticalStockEvent,
   CriticalStockEventType,
   CriticalStockTrigger,
+  CreditTransaction,
   CurrentAccount,
   CurrentAccountType,
   KitchenOrder,
@@ -96,6 +97,7 @@ const KEY_TABLES = 'ra_tables'
 const KEY_CLOSED = 'ra_closed'
 const KEY_USERS = 'ra_users'
 const KEY_CURRENT_ACCOUNTS = 'ra_current_accounts'
+const KEY_CREDIT_TRANSACTIONS = 'ra_credit_transactions'
 const KEY_AUTH = 'ra_auth'
 const KEY_LOGS = 'ra_logs'
 const KEY_KITCHEN = 'ra_kitchen_orders'
@@ -202,6 +204,43 @@ const normalizeCurrentAccount = (item: Partial<CurrentAccount>): CurrentAccount 
   }
 }
 
+const roundMoneyValue = (value: number) => Math.round(value * 100) / 100
+
+const calculateCreditAmounts = (amountValue: unknown, paidValue: unknown) => {
+  const amount = Number(amountValue)
+  const paidAmount = Number(paidValue)
+  const normalizedAmount = Number.isFinite(amount) ? Math.max(0, roundMoneyValue(amount)) : 0
+  const normalizedPaidAmount = Number.isFinite(paidAmount)
+    ? Math.min(normalizedAmount, Math.max(0, roundMoneyValue(paidAmount)))
+    : 0
+  const remainingAmount = roundMoneyValue(Math.max(0, normalizedAmount - normalizedPaidAmount))
+
+  return {
+    amount: normalizedAmount,
+    paidAmount: normalizedPaidAmount,
+    remainingAmount,
+    status: remainingAmount > 0 ? 'Açık' as const : 'Kapandı' as const
+  }
+}
+
+const normalizeCreditTransaction = (item: Partial<CreditTransaction>): CreditTransaction => {
+  const timestamp = item.createdAt || new Date().toISOString()
+  const amounts = calculateCreditAmounts(item.amount, item.paidAmount)
+
+  return {
+    id: String(item.id || `veresiye_${Date.now()}`),
+    currentAccountId: String(item.currentAccountId || ''),
+    date: String(item.date || new Date().toLocaleDateString('sv-SE')),
+    amount: amounts.amount,
+    paidAmount: amounts.paidAmount,
+    remainingAmount: amounts.remainingAmount,
+    status: amounts.status,
+    note: String(item.note || ''),
+    createdAt: timestamp,
+    updatedAt: item.updatedAt || timestamp
+  }
+}
+
 const createDemoCurrentAccounts = (now = new Date().toISOString()): CurrentAccount[] => [
   {
     id: 'cari_ali_veli',
@@ -248,6 +287,29 @@ const createDemoCurrentAccounts = (now = new Date().toISOString()): CurrentAccou
     createdAt: now,
     updatedAt: now
   }
+]
+
+const createDemoCreditTransactions = (now = new Date().toISOString()): CreditTransaction[] => [
+  normalizeCreditTransaction({
+    id: 'veresiye_ali_veli_demo',
+    currentAccountId: 'cari_ali_veli',
+    date: new Date().toLocaleDateString('sv-SE'),
+    amount: 2500,
+    paidAmount: 500,
+    note: 'Demo veresiye kaydı.',
+    createdAt: now,
+    updatedAt: now
+  }),
+  normalizeCreditTransaction({
+    id: 'veresiye_can_ciger_demo',
+    currentAccountId: 'cari_can_ciger',
+    date: new Date().toLocaleDateString('sv-SE'),
+    amount: 12000,
+    paidAmount: 0,
+    note: 'Demo firma veresiye kaydı.',
+    createdAt: now,
+    updatedAt: now
+  })
 ]
 
 const normalizeStockUnit = (value: unknown): StockUnit => {
@@ -992,6 +1054,17 @@ export const loadCurrentAccounts = (): CurrentAccount[] => {
 
 export const saveCurrentAccounts = (items: CurrentAccount[]) => {
   localStorage.setItem(KEY_CURRENT_ACCOUNTS, JSON.stringify(items.map(normalizeCurrentAccount)))
+}
+
+export const loadCreditTransactions = (): CreditTransaction[] => {
+  const stored = localStorage.getItem(KEY_CREDIT_TRANSACTIONS)
+  if(stored === null) return createDemoCreditTransactions()
+
+  return readJson<Partial<CreditTransaction>[]>(KEY_CREDIT_TRANSACTIONS, []).map(normalizeCreditTransaction)
+}
+
+export const saveCreditTransactions = (items: CreditTransaction[]) => {
+  localStorage.setItem(KEY_CREDIT_TRANSACTIONS, JSON.stringify(items.map(normalizeCreditTransaction)))
 }
 
 export const loadCategories = (): ProductCategory[] => {
@@ -2568,6 +2641,7 @@ export const createDemoData = () => {
   ]
 
   const currentAccounts = createDemoCurrentAccounts(now)
+  const creditTransactions = createDemoCreditTransactions(now)
 
   const tables: TableState[] = Array.from({ length: 6 }).map((_, index) => ({
     id: String(index + 1),
@@ -2579,11 +2653,18 @@ export const createDemoData = () => {
   saveCategories(categories)
   saveProducts(products)
   saveCurrentAccounts(currentAccounts)
+  saveCreditTransactions(creditTransactions)
   saveTables(tables)
   saveKitchenOrders([])
   saveQRRequests([])
   saveWaiterCalls([])
   ensureDefaultAdmin()
 
-  return { categories: loadCategories(), products: loadProducts(), tables, currentAccounts: loadCurrentAccounts() }
+  return {
+    categories: loadCategories(),
+    products: loadProducts(),
+    tables,
+    currentAccounts: loadCurrentAccounts(),
+    creditTransactions: loadCreditTransactions()
+  }
 }

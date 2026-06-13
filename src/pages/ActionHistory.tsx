@@ -80,7 +80,12 @@ const operationTypes: ActionLogType[] = [
   'Cari güncellendi',
   'Cari aktif yapıldı',
   'Cari pasif yapıldı',
-  'Cari silindi'
+  'Cari silindi',
+  'Veresiye oluşturuldu',
+  'Veresiye güncellendi',
+  'Tahsilat girildi',
+  'Veresiye kapatıldı',
+  'Veresiye silindi'
 ]
 
 export default function ActionHistory(){

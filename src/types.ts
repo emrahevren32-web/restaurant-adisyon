@@ -605,6 +605,21 @@ export type CurrentAccount = {
   updatedAt: string
 }
 
+export type CreditTransactionStatus = 'Açık' | 'Kapandı'
+
+export type CreditTransaction = {
+  id: string
+  currentAccountId: string
+  date: string
+  amount: number
+  paidAmount: number
+  remainingAmount: number
+  status: CreditTransactionStatus
+  note: string
+  createdAt: string
+  updatedAt: string
+}
+
 export type ActionLogType =
   | 'Masa oluşturuldu'
   | 'Masa silindi'
@@ -687,6 +702,11 @@ export type ActionLogType =
   | 'Cari aktif yapıldı'
   | 'Cari pasif yapıldı'
   | 'Cari silindi'
+  | 'Veresiye oluşturuldu'
+  | 'Veresiye güncellendi'
+  | 'Tahsilat girildi'
+  | 'Veresiye kapatıldı'
+  | 'Veresiye silindi'
 
 export type ActionLog = {
   id: string
