@@ -5,6 +5,8 @@ import {
   CriticalStockEvent,
   CriticalStockEventType,
   CriticalStockTrigger,
+  CollectionPaymentMethod,
+  CollectionTransaction,
   CreditTransaction,
   CurrentAccount,
   CurrentAccountType,
@@ -98,6 +100,7 @@ const KEY_CLOSED = 'ra_closed'
 const KEY_USERS = 'ra_users'
 const KEY_CURRENT_ACCOUNTS = 'ra_current_accounts'
 const KEY_CREDIT_TRANSACTIONS = 'ra_credit_transactions'
+const KEY_COLLECTION_TRANSACTIONS = 'ra_collection_transactions'
 const KEY_AUTH = 'ra_auth'
 const KEY_LOGS = 'ra_logs'
 const KEY_KITCHEN = 'ra_kitchen_orders'
@@ -117,6 +120,7 @@ const STOCK_MOVEMENT_REASONS: StockMovementReason[] = ['Satın Alma', 'İade', '
 export const STOCK_WASTE_REASONS: StockWasteReasonCategory[] = ['Bozulma', 'SKT Geçmesi', 'Dökülme', 'Hazırlık Kaybı', 'Üretim Hatası', 'Yanlış Sipariş', 'Müşteri İadesi', 'Sayım Farkı', 'Diğer']
 export const HIGH_COST_FIRE_APPROVAL_THRESHOLD = 1000
 const CURRENT_ACCOUNT_TYPES: CurrentAccountType[] = ['Müşteri', 'Firma', 'Personel', 'Tedarikçi']
+const COLLECTION_PAYMENT_METHODS: CollectionPaymentMethod[] = ['Nakit', 'Kart', 'Havale/EFT', 'Diğer']
 
 export const DEFAULT_SETTINGS: SystemSettings = {
   restaurantName: 'Restaurant Adisyon',
@@ -241,6 +245,26 @@ const normalizeCreditTransaction = (item: Partial<CreditTransaction>): CreditTra
   }
 }
 
+const normalizeCollectionPaymentMethod = (value: unknown): CollectionPaymentMethod => {
+  return COLLECTION_PAYMENT_METHODS.includes(value as CollectionPaymentMethod) ? value as CollectionPaymentMethod : 'Nakit'
+}
+
+const normalizeCollectionTransaction = (item: Partial<CollectionTransaction>): CollectionTransaction => {
+  const timestamp = item.createdAt || new Date().toISOString()
+  const amount = Number(item.amount)
+
+  return {
+    id: String(item.id || `tahsilat_${Date.now()}`),
+    currentAccountId: String(item.currentAccountId || ''),
+    date: String(item.date || new Date().toLocaleDateString('sv-SE')),
+    amount: Number.isFinite(amount) ? Math.max(0, roundMoneyValue(amount)) : 0,
+    paymentMethod: normalizeCollectionPaymentMethod(item.paymentMethod),
+    note: String(item.note || ''),
+    createdAt: timestamp,
+    updatedAt: item.updatedAt || timestamp
+  }
+}
+
 const createDemoCurrentAccounts = (now = new Date().toISOString()): CurrentAccount[] => [
   {
     id: 'cari_ali_veli',
@@ -307,6 +331,39 @@ const createDemoCreditTransactions = (now = new Date().toISOString()): CreditTra
     amount: 12000,
     paidAmount: 0,
     note: 'Demo firma veresiye kaydı.',
+    createdAt: now,
+    updatedAt: now
+  })
+]
+
+const createDemoCollectionTransactions = (now = new Date().toISOString()): CollectionTransaction[] => [
+  normalizeCollectionTransaction({
+    id: 'tahsilat_ali_veli_demo',
+    currentAccountId: 'cari_ali_veli',
+    date: new Date().toLocaleDateString('sv-SE'),
+    amount: 1000,
+    paymentMethod: 'Nakit',
+    note: 'Demo tahsilat kaydı.',
+    createdAt: now,
+    updatedAt: now
+  }),
+  normalizeCollectionTransaction({
+    id: 'tahsilat_can_ciger_demo',
+    currentAccountId: 'cari_can_ciger',
+    date: new Date().toLocaleDateString('sv-SE'),
+    amount: 5000,
+    paymentMethod: 'Havale/EFT',
+    note: 'Demo firma tahsilatı.',
+    createdAt: now,
+    updatedAt: now
+  }),
+  normalizeCollectionTransaction({
+    id: 'tahsilat_abc_gida_demo',
+    currentAccountId: 'cari_abc_gida',
+    date: new Date().toLocaleDateString('sv-SE'),
+    amount: 2500,
+    paymentMethod: 'Kart',
+    note: 'Demo tedarikçi tahsilatı.',
     createdAt: now,
     updatedAt: now
   })
@@ -1065,6 +1122,17 @@ export const loadCreditTransactions = (): CreditTransaction[] => {
 
 export const saveCreditTransactions = (items: CreditTransaction[]) => {
   localStorage.setItem(KEY_CREDIT_TRANSACTIONS, JSON.stringify(items.map(normalizeCreditTransaction)))
+}
+
+export const loadCollectionTransactions = (): CollectionTransaction[] => {
+  const stored = localStorage.getItem(KEY_COLLECTION_TRANSACTIONS)
+  if(stored === null) return createDemoCollectionTransactions()
+
+  return readJson<Partial<CollectionTransaction>[]>(KEY_COLLECTION_TRANSACTIONS, []).map(normalizeCollectionTransaction)
+}
+
+export const saveCollectionTransactions = (items: CollectionTransaction[]) => {
+  localStorage.setItem(KEY_COLLECTION_TRANSACTIONS, JSON.stringify(items.map(normalizeCollectionTransaction)))
 }
 
 export const loadCategories = (): ProductCategory[] => {
@@ -2642,6 +2710,7 @@ export const createDemoData = () => {
 
   const currentAccounts = createDemoCurrentAccounts(now)
   const creditTransactions = createDemoCreditTransactions(now)
+  const collectionTransactions = createDemoCollectionTransactions(now)
 
   const tables: TableState[] = Array.from({ length: 6 }).map((_, index) => ({
     id: String(index + 1),
@@ -2654,6 +2723,7 @@ export const createDemoData = () => {
   saveProducts(products)
   saveCurrentAccounts(currentAccounts)
   saveCreditTransactions(creditTransactions)
+  saveCollectionTransactions(collectionTransactions)
   saveTables(tables)
   saveKitchenOrders([])
   saveQRRequests([])
@@ -2665,6 +2735,7 @@ export const createDemoData = () => {
     products: loadProducts(),
     tables,
     currentAccounts: loadCurrentAccounts(),
-    creditTransactions: loadCreditTransactions()
+    creditTransactions: loadCreditTransactions(),
+    collectionTransactions: loadCollectionTransactions()
   }
 }

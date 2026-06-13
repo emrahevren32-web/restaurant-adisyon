@@ -18,6 +18,7 @@ import Users from './pages/Users'
 import Settings from './pages/Settings'
 import CurrentAccounts from './pages/CurrentAccounts'
 import CreditTransactions from './pages/CreditTransactions'
+import CollectionTransactions from './pages/CollectionTransactions'
 import AppShell, { ShellNavGroup, ShellNavItem } from './components/AppShell'
 import {
   loadProducts,
@@ -45,6 +46,7 @@ type Route =
   | 'users'
   | 'current-accounts'
   | 'credit-transactions'
+  | 'collection-transactions'
   | 'settings'
 
 type NavKey =
@@ -68,6 +70,7 @@ type NavKey =
   | 'staff'
   | 'current-accounts'
   | 'credit-transactions'
+  | 'collection-transactions'
   | 'qr-codes'
   | 'settings'
 
@@ -135,6 +138,7 @@ const navGroups: NavGroup[] = [
       { key: 'staff', label: 'Personel Takibi', route: 'staff', icon: 'PT', adminOnly: true },
       { key: 'current-accounts', label: 'Cari Kartları', route: 'current-accounts', icon: 'CK', adminOnly: true },
       { key: 'credit-transactions', label: 'Veresiye İşlemleri', route: 'credit-transactions', icon: 'VI', adminOnly: true },
+      { key: 'collection-transactions', label: 'Tahsilat İşlemleri', route: 'collection-transactions', icon: 'TI', adminOnly: true },
       { key: 'qr-codes', label: 'QR Kodlar', route: 'qr-codes', icon: 'QK', adminOnly: true },
       { key: 'settings', label: 'Ayarlar', route: 'settings', icon: 'AY', adminOnly: true }
     ]
@@ -243,6 +247,7 @@ export default function App(){
       {route === 'users' && currentUser.role === 'Admin' && <Users currentUser={currentUser} />}
       {route === 'current-accounts' && currentUser.role === 'Admin' && <CurrentAccounts currentUser={currentUser} />}
       {route === 'credit-transactions' && currentUser.role === 'Admin' && <CreditTransactions currentUser={currentUser} />}
+      {route === 'collection-transactions' && currentUser.role === 'Admin' && <CollectionTransactions currentUser={currentUser} />}
       {route === 'settings' && currentUser.role === 'Admin' && <Settings currentUser={currentUser} onSettingsChange={refreshSettings} />}
     </AppShell>
   )

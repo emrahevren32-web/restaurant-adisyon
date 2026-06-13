@@ -620,6 +620,19 @@ export type CreditTransaction = {
   updatedAt: string
 }
 
+export type CollectionPaymentMethod = 'Nakit' | 'Kart' | 'Havale/EFT' | 'Diğer'
+
+export type CollectionTransaction = {
+  id: string
+  currentAccountId: string
+  date: string
+  amount: number
+  paymentMethod: CollectionPaymentMethod
+  note: string
+  createdAt: string
+  updatedAt: string
+}
+
 export type ActionLogType =
   | 'Masa oluşturuldu'
   | 'Masa silindi'
@@ -707,6 +720,9 @@ export type ActionLogType =
   | 'Tahsilat girildi'
   | 'Veresiye kapatıldı'
   | 'Veresiye silindi'
+  | 'Tahsilat oluşturuldu'
+  | 'Tahsilat güncellendi'
+  | 'Tahsilat silindi'
 
 export type ActionLog = {
   id: string
