@@ -115,7 +115,10 @@ const operationTypes: ActionLogType[] = [
   'Vardiya güncellendi',
   'Vardiya tamamlandı',
   'Vardiya iptal edildi',
-  'Vardiya silindi'
+  'Vardiya silindi',
+  'Puantaj oluşturuldu',
+  'Puantaj güncellendi',
+  'Puantaj silindi'
 ]
 
 export default function ActionHistory(){

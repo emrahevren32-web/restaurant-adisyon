@@ -1,6 +1,8 @@
 import {
   ActionLog,
   ActionLogType,
+  Attendance,
+  AttendanceStatus,
   CashPaymentMethod,
   CashClosing,
   CashTransfer,
@@ -116,6 +118,7 @@ const KEY_CLOSED = 'ra_closed'
 const KEY_USERS = 'ra_users'
 const KEY_EMPLOYEES = 'ra_employees'
 const KEY_SHIFTS = 'ra_shifts'
+const KEY_ATTENDANCES = 'ra_attendances'
 const KEY_CURRENT_ACCOUNTS = 'ra_current_accounts'
 const KEY_CREDIT_TRANSACTIONS = 'ra_credit_transactions'
 const KEY_COLLECTION_TRANSACTIONS = 'ra_collection_transactions'
@@ -153,6 +156,7 @@ const INCOME_EXPENSE_PAYMENT_METHODS: IncomeExpensePaymentMethod[] = ['Nakit', '
 const EMPLOYEE_POSITIONS: EmployeePosition[] = ['Garson', 'Kasiyer', 'Aşçı', 'Kurye', 'Yönetici', 'Diğer']
 const SHIFT_NAMES: ShiftName[] = ['Sabah', 'Akşam', 'Tam Gün', 'Gece']
 const SHIFT_STATUSES: ShiftStatus[] = ['Planlandı', 'Tamamlandı', 'İptal']
+const ATTENDANCE_STATUSES: AttendanceStatus[] = ['Normal', 'Eksik Mesai', 'Fazla Mesai', 'Devamsız']
 
 export const DEFAULT_SETTINGS: SystemSettings = {
   restaurantName: 'Restaurant Adisyon',
@@ -268,6 +272,30 @@ const normalizeShift = (item: Partial<Shift>): Shift => {
     endTime: normalizeTimeValue(item.endTime, '16:00'),
     workDate: String(item.workDate || new Date().toLocaleDateString('sv-SE')),
     status: normalizeShiftStatus(item.status),
+    note: String(item.note || '').trim(),
+    createdAt: timestamp,
+    updatedAt: item.updatedAt || timestamp
+  }
+}
+
+const normalizeAttendanceStatus = (value: unknown): AttendanceStatus => {
+  return ATTENDANCE_STATUSES.includes(value as AttendanceStatus) ? value as AttendanceStatus : 'Normal'
+}
+
+const normalizeAttendance = (item: Partial<Attendance>): Attendance => {
+  const timestamp = item.createdAt || new Date().toISOString()
+  const workedMinutes = Number(item.workedMinutes)
+  const overtimeMinutes = Number(item.overtimeMinutes)
+
+  return {
+    id: String(item.id || `attendance_${Date.now()}`),
+    employeeId: String(item.employeeId || ''),
+    workDate: String(item.workDate || new Date().toLocaleDateString('sv-SE')),
+    checkInTime: normalizeTimeValue(item.checkInTime, ''),
+    checkOutTime: normalizeTimeValue(item.checkOutTime, ''),
+    workedMinutes: Number.isFinite(workedMinutes) ? Math.max(0, Math.round(workedMinutes)) : 0,
+    overtimeMinutes: Number.isFinite(overtimeMinutes) ? Math.max(0, Math.round(overtimeMinutes)) : 0,
+    status: normalizeAttendanceStatus(item.status),
     note: String(item.note || '').trim(),
     createdAt: timestamp,
     updatedAt: item.updatedAt || timestamp
@@ -570,6 +598,52 @@ const createDemoShifts = (now = new Date().toISOString()): Shift[] => {
       endTime: '18:00',
       status: 'Planlandı',
       note: 'Demo tam gün vardiyası.',
+      createdAt: now,
+      updatedAt: now
+    })
+  ]
+}
+
+const createDemoAttendances = (now = new Date().toISOString()): Attendance[] => {
+  const today = new Date().toLocaleDateString('sv-SE')
+
+  return [
+    normalizeAttendance({
+      id: 'attendance_ahmet_kaya_demo',
+      employeeId: 'employee_ahmet_kaya',
+      workDate: today,
+      checkInTime: '08:00',
+      checkOutTime: '17:30',
+      workedMinutes: 570,
+      overtimeMinutes: 90,
+      status: 'Fazla Mesai',
+      note: 'Demo fazla mesai kaydı.',
+      createdAt: now,
+      updatedAt: now
+    }),
+    normalizeAttendance({
+      id: 'attendance_mehmet_demir_demo',
+      employeeId: 'employee_mehmet_demir',
+      workDate: today,
+      checkInTime: '16:00',
+      checkOutTime: '00:00',
+      workedMinutes: 480,
+      overtimeMinutes: 0,
+      status: 'Normal',
+      note: 'Demo akşam vardiyası puantaj kaydı.',
+      createdAt: now,
+      updatedAt: now
+    }),
+    normalizeAttendance({
+      id: 'attendance_ayse_yilmaz_demo',
+      employeeId: 'employee_ayse_yilmaz',
+      workDate: today,
+      checkInTime: '09:00',
+      checkOutTime: '18:00',
+      workedMinutes: 540,
+      overtimeMinutes: 0,
+      status: 'Normal',
+      note: 'Demo tam gün puantaj kaydı.',
       createdAt: now,
       updatedAt: now
     })
@@ -1894,6 +1968,17 @@ export const saveShifts = (items: Shift[]) => {
   localStorage.setItem(KEY_SHIFTS, JSON.stringify(items.map(normalizeShift)))
 }
 
+export const loadAttendances = (): Attendance[] => {
+  const stored = localStorage.getItem(KEY_ATTENDANCES)
+  if(stored === null) return createDemoAttendances()
+
+  return readJson<Partial<Attendance>[]>(KEY_ATTENDANCES, []).map(normalizeAttendance)
+}
+
+export const saveAttendances = (items: Attendance[]) => {
+  localStorage.setItem(KEY_ATTENDANCES, JSON.stringify(items.map(normalizeAttendance)))
+}
+
 export const ensureDefaultAdmin = () => {
   const users = loadUsers()
   if(!users.find(u => u.username === 'admin')){
@@ -3180,6 +3265,7 @@ export const createDemoData = () => {
 
   const employees = createDemoEmployees(now)
   const shifts = createDemoShifts(now)
+  const attendances = createDemoAttendances(now)
   const currentAccounts = createDemoCurrentAccounts(now)
   const creditTransactions = createDemoCreditTransactions(now)
   const collectionTransactions = createDemoCollectionTransactions(now)
@@ -3199,6 +3285,7 @@ export const createDemoData = () => {
   saveProducts(products)
   saveEmployees(employees)
   saveShifts(shifts)
+  saveAttendances(attendances)
   saveCurrentAccounts(currentAccounts)
   saveCreditTransactions(creditTransactions)
   saveCollectionTransactions(collectionTransactions)
@@ -3220,6 +3307,7 @@ export const createDemoData = () => {
     tables,
     employees: loadEmployees(),
     shifts: loadShifts(),
+    attendances: loadAttendances(),
     currentAccounts: loadCurrentAccounts(),
     creditTransactions: loadCreditTransactions(),
     collectionTransactions: loadCollectionTransactions(),

@@ -620,6 +620,22 @@ export type Shift = {
   updatedAt: string
 }
 
+export type AttendanceStatus = 'Normal' | 'Eksik Mesai' | 'Fazla Mesai' | 'Devamsız'
+
+export type Attendance = {
+  id: string
+  employeeId: string
+  workDate: string
+  checkInTime: string
+  checkOutTime: string
+  workedMinutes: number
+  overtimeMinutes: number
+  status: AttendanceStatus
+  note: string
+  createdAt: string
+  updatedAt: string
+}
+
 export type CurrentAccountType = 'Müşteri' | 'Firma' | 'Personel' | 'Tedarikçi'
 
 export type CurrentAccount = {
@@ -868,6 +884,9 @@ export type ActionLogType =
   | 'Vardiya tamamlandı'
   | 'Vardiya iptal edildi'
   | 'Vardiya silindi'
+  | 'Puantaj oluşturuldu'
+  | 'Puantaj güncellendi'
+  | 'Puantaj silindi'
 
 export type ActionLog = {
   id: string
