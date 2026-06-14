@@ -650,6 +650,21 @@ export type EmployeePerformance = {
   updatedAt: string
 }
 
+export type EmployeeBonusStatus = 'Hesaplandı' | 'Onaylandı' | 'Ödendi' | 'İptal'
+
+export type EmployeeBonus = {
+  id: string
+  employeeId: string
+  period: string
+  performanceScore: number
+  bonusRate: number
+  bonusAmount: number
+  status: EmployeeBonusStatus
+  note: string
+  createdAt: string
+  updatedAt: string
+}
+
 export type CurrentAccountType = 'Müşteri' | 'Firma' | 'Personel' | 'Tedarikçi'
 
 export type CurrentAccount = {
@@ -904,6 +919,12 @@ export type ActionLogType =
   | 'Performans kaydı oluşturuldu'
   | 'Performans kaydı güncellendi'
   | 'Performans kaydı silindi'
+  | 'Prim oluşturuldu'
+  | 'Prim güncellendi'
+  | 'Prim onaylandı'
+  | 'Prim ödendi'
+  | 'Prim iptal edildi'
+  | 'Prim silindi'
 
 export type ActionLog = {
   id: string

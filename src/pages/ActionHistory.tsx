@@ -121,7 +121,13 @@ const operationTypes: ActionLogType[] = [
   'Puantaj silindi',
   'Performans kaydı oluşturuldu',
   'Performans kaydı güncellendi',
-  'Performans kaydı silindi'
+  'Performans kaydı silindi',
+  'Prim oluşturuldu',
+  'Prim güncellendi',
+  'Prim onaylandı',
+  'Prim ödendi',
+  'Prim iptal edildi',
+  'Prim silindi'
 ]
 
 export default function ActionHistory(){

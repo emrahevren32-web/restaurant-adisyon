@@ -18,6 +18,8 @@ import {
   CurrentAccount,
   CurrentAccountType,
   Employee,
+  EmployeeBonus,
+  EmployeeBonusStatus,
   EmployeePerformance,
   EmployeePosition,
   IncomeExpense,
@@ -121,6 +123,7 @@ const KEY_EMPLOYEES = 'ra_employees'
 const KEY_SHIFTS = 'ra_shifts'
 const KEY_ATTENDANCES = 'ra_attendances'
 const KEY_EMPLOYEE_PERFORMANCES = 'ra_employee_performances'
+const KEY_EMPLOYEE_BONUSES = 'ra_employee_bonuses'
 const KEY_CURRENT_ACCOUNTS = 'ra_current_accounts'
 const KEY_CREDIT_TRANSACTIONS = 'ra_credit_transactions'
 const KEY_COLLECTION_TRANSACTIONS = 'ra_collection_transactions'
@@ -159,6 +162,7 @@ const EMPLOYEE_POSITIONS: EmployeePosition[] = ['Garson', 'Kasiyer', 'Aşçı', 
 const SHIFT_NAMES: ShiftName[] = ['Sabah', 'Akşam', 'Tam Gün', 'Gece']
 const SHIFT_STATUSES: ShiftStatus[] = ['Planlandı', 'Tamamlandı', 'İptal']
 const ATTENDANCE_STATUSES: AttendanceStatus[] = ['Normal', 'Eksik Mesai', 'Fazla Mesai', 'Devamsız']
+const EMPLOYEE_BONUS_STATUSES: EmployeeBonusStatus[] = ['Hesaplandı', 'Onaylandı', 'Ödendi', 'İptal']
 
 export const DEFAULT_SETTINGS: SystemSettings = {
   restaurantName: 'Restaurant Adisyon',
@@ -339,6 +343,47 @@ const normalizeEmployeePerformance = (item: Partial<EmployeePerformance>): Emplo
       qrOrderCount,
       customerCallCount
     }),
+    note: String(item.note || '').trim(),
+    createdAt: timestamp,
+    updatedAt: item.updatedAt || timestamp
+  }
+}
+
+const normalizePeriodValue = (value: unknown) => {
+  const text = String(value || '').trim()
+  return /^\d{4}-\d{2}$/.test(text) ? text : new Date().toLocaleDateString('sv-SE').slice(0, 7)
+}
+
+const normalizeEmployeeBonusStatus = (value: unknown): EmployeeBonusStatus => {
+  return EMPLOYEE_BONUS_STATUSES.includes(value as EmployeeBonusStatus) ? value as EmployeeBonusStatus : 'Hesaplandı'
+}
+
+const calculateBonusAmount = (performanceScoreValue: unknown, bonusRateValue: unknown) => {
+  const performanceScore = Number(performanceScoreValue)
+  const bonusRate = Number(bonusRateValue)
+  const normalizedPerformanceScore = Number.isFinite(performanceScore) ? Math.max(0, Math.round(performanceScore)) : 0
+  const normalizedBonusRate = Number.isFinite(bonusRate) ? Math.max(0, roundMoneyValue(bonusRate)) : 0
+  const bonusAmount = roundMoneyValue(normalizedPerformanceScore * normalizedBonusRate)
+
+  return {
+    performanceScore: normalizedPerformanceScore,
+    bonusRate: normalizedBonusRate,
+    bonusAmount
+  }
+}
+
+const normalizeEmployeeBonus = (item: Partial<EmployeeBonus>): EmployeeBonus => {
+  const timestamp = item.createdAt || new Date().toISOString()
+  const amounts = calculateBonusAmount(item.performanceScore, item.bonusRate)
+
+  return {
+    id: String(item.id || `employee_bonus_${Date.now()}`),
+    employeeId: String(item.employeeId || ''),
+    period: normalizePeriodValue(item.period),
+    performanceScore: amounts.performanceScore,
+    bonusRate: amounts.bonusRate,
+    bonusAmount: amounts.bonusAmount,
+    status: normalizeEmployeeBonusStatus(item.status),
     note: String(item.note || '').trim(),
     createdAt: timestamp,
     updatedAt: item.updatedAt || timestamp
@@ -718,6 +763,35 @@ const createDemoEmployeePerformances = (now = new Date().toISOString()): Employe
       qrOrderCount: 4,
       customerCallCount: 5,
       note: 'Demo kasiyer performans kaydı.',
+      createdAt: now,
+      updatedAt: now
+    })
+  ]
+}
+
+const createDemoEmployeeBonuses = (now = new Date().toISOString()): EmployeeBonus[] => {
+  const period = new Date().toLocaleDateString('sv-SE').slice(0, 7)
+
+  return [
+    normalizeEmployeeBonus({
+      id: 'employee_bonus_ahmet_kaya_demo',
+      employeeId: 'employee_ahmet_kaya',
+      period,
+      performanceScore: 80,
+      bonusRate: 5,
+      status: 'Hesaplandı',
+      note: 'Demo prim kaydı.',
+      createdAt: now,
+      updatedAt: now
+    }),
+    normalizeEmployeeBonus({
+      id: 'employee_bonus_mehmet_demir_demo',
+      employeeId: 'employee_mehmet_demir',
+      period,
+      performanceScore: 52,
+      bonusRate: 5,
+      status: 'Hesaplandı',
+      note: 'Demo prim kaydı.',
       createdAt: now,
       updatedAt: now
     })
@@ -2064,6 +2138,17 @@ export const saveEmployeePerformances = (items: EmployeePerformance[]) => {
   localStorage.setItem(KEY_EMPLOYEE_PERFORMANCES, JSON.stringify(items.map(normalizeEmployeePerformance)))
 }
 
+export const loadEmployeeBonuses = (): EmployeeBonus[] => {
+  const stored = localStorage.getItem(KEY_EMPLOYEE_BONUSES)
+  if(stored === null) return createDemoEmployeeBonuses()
+
+  return readJson<Partial<EmployeeBonus>[]>(KEY_EMPLOYEE_BONUSES, []).map(normalizeEmployeeBonus)
+}
+
+export const saveEmployeeBonuses = (items: EmployeeBonus[]) => {
+  localStorage.setItem(KEY_EMPLOYEE_BONUSES, JSON.stringify(items.map(normalizeEmployeeBonus)))
+}
+
 export const ensureDefaultAdmin = () => {
   const users = loadUsers()
   if(!users.find(u => u.username === 'admin')){
@@ -3352,6 +3437,7 @@ export const createDemoData = () => {
   const shifts = createDemoShifts(now)
   const attendances = createDemoAttendances(now)
   const employeePerformances = createDemoEmployeePerformances(now)
+  const employeeBonuses = createDemoEmployeeBonuses(now)
   const currentAccounts = createDemoCurrentAccounts(now)
   const creditTransactions = createDemoCreditTransactions(now)
   const collectionTransactions = createDemoCollectionTransactions(now)
@@ -3373,6 +3459,7 @@ export const createDemoData = () => {
   saveShifts(shifts)
   saveAttendances(attendances)
   saveEmployeePerformances(employeePerformances)
+  saveEmployeeBonuses(employeeBonuses)
   saveCurrentAccounts(currentAccounts)
   saveCreditTransactions(creditTransactions)
   saveCollectionTransactions(collectionTransactions)
@@ -3396,6 +3483,7 @@ export const createDemoData = () => {
     shifts: loadShifts(),
     attendances: loadAttendances(),
     employeePerformances: loadEmployeePerformances(),
+    employeeBonuses: loadEmployeeBonuses(),
     currentAccounts: loadCurrentAccounts(),
     creditTransactions: loadCreditTransactions(),
     collectionTransactions: loadCollectionTransactions(),
