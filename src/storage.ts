@@ -18,6 +18,7 @@ import {
   CurrentAccount,
   CurrentAccountType,
   Employee,
+  EmployeePerformance,
   EmployeePosition,
   IncomeExpense,
   IncomeExpensePaymentMethod,
@@ -119,6 +120,7 @@ const KEY_USERS = 'ra_users'
 const KEY_EMPLOYEES = 'ra_employees'
 const KEY_SHIFTS = 'ra_shifts'
 const KEY_ATTENDANCES = 'ra_attendances'
+const KEY_EMPLOYEE_PERFORMANCES = 'ra_employee_performances'
 const KEY_CURRENT_ACCOUNTS = 'ra_current_accounts'
 const KEY_CREDIT_TRANSACTIONS = 'ra_credit_transactions'
 const KEY_COLLECTION_TRANSACTIONS = 'ra_collection_transactions'
@@ -296,6 +298,47 @@ const normalizeAttendance = (item: Partial<Attendance>): Attendance => {
     workedMinutes: Number.isFinite(workedMinutes) ? Math.max(0, Math.round(workedMinutes)) : 0,
     overtimeMinutes: Number.isFinite(overtimeMinutes) ? Math.max(0, Math.round(overtimeMinutes)) : 0,
     status: normalizeAttendanceStatus(item.status),
+    note: String(item.note || '').trim(),
+    createdAt: timestamp,
+    updatedAt: item.updatedAt || timestamp
+  }
+}
+
+const normalizeCountValue = (value: unknown) => {
+  const numberValue = Number(value)
+  return Number.isFinite(numberValue) ? Math.max(0, Math.round(numberValue)) : 0
+}
+
+const calculatePerformanceScore = ({
+  servedTableCount,
+  approvedOrderCount,
+  qrOrderCount,
+  customerCallCount
+}: Pick<EmployeePerformance, 'servedTableCount' | 'approvedOrderCount' | 'qrOrderCount' | 'customerCallCount'>) => {
+  return servedTableCount + approvedOrderCount + qrOrderCount + customerCallCount
+}
+
+const normalizeEmployeePerformance = (item: Partial<EmployeePerformance>): EmployeePerformance => {
+  const timestamp = item.createdAt || new Date().toISOString()
+  const servedTableCount = normalizeCountValue(item.servedTableCount)
+  const approvedOrderCount = normalizeCountValue(item.approvedOrderCount)
+  const qrOrderCount = normalizeCountValue(item.qrOrderCount)
+  const customerCallCount = normalizeCountValue(item.customerCallCount)
+
+  return {
+    id: String(item.id || `employee_performance_${Date.now()}`),
+    employeeId: String(item.employeeId || ''),
+    workDate: String(item.workDate || new Date().toLocaleDateString('sv-SE')),
+    servedTableCount,
+    approvedOrderCount,
+    qrOrderCount,
+    customerCallCount,
+    performanceScore: calculatePerformanceScore({
+      servedTableCount,
+      approvedOrderCount,
+      qrOrderCount,
+      customerCallCount
+    }),
     note: String(item.note || '').trim(),
     createdAt: timestamp,
     updatedAt: item.updatedAt || timestamp
@@ -644,6 +687,37 @@ const createDemoAttendances = (now = new Date().toISOString()): Attendance[] => 
       overtimeMinutes: 0,
       status: 'Normal',
       note: 'Demo tam gün puantaj kaydı.',
+      createdAt: now,
+      updatedAt: now
+    })
+  ]
+}
+
+const createDemoEmployeePerformances = (now = new Date().toISOString()): EmployeePerformance[] => {
+  const today = new Date().toLocaleDateString('sv-SE')
+
+  return [
+    normalizeEmployeePerformance({
+      id: 'employee_performance_ahmet_kaya_demo',
+      employeeId: 'employee_ahmet_kaya',
+      workDate: today,
+      servedTableCount: 18,
+      approvedOrderCount: 42,
+      qrOrderCount: 11,
+      customerCallCount: 9,
+      note: 'Demo yüksek performans kaydı.',
+      createdAt: now,
+      updatedAt: now
+    }),
+    normalizeEmployeePerformance({
+      id: 'employee_performance_mehmet_demir_demo',
+      employeeId: 'employee_mehmet_demir',
+      workDate: today,
+      servedTableCount: 12,
+      approvedOrderCount: 31,
+      qrOrderCount: 4,
+      customerCallCount: 5,
+      note: 'Demo kasiyer performans kaydı.',
       createdAt: now,
       updatedAt: now
     })
@@ -1979,6 +2053,17 @@ export const saveAttendances = (items: Attendance[]) => {
   localStorage.setItem(KEY_ATTENDANCES, JSON.stringify(items.map(normalizeAttendance)))
 }
 
+export const loadEmployeePerformances = (): EmployeePerformance[] => {
+  const stored = localStorage.getItem(KEY_EMPLOYEE_PERFORMANCES)
+  if(stored === null) return createDemoEmployeePerformances()
+
+  return readJson<Partial<EmployeePerformance>[]>(KEY_EMPLOYEE_PERFORMANCES, []).map(normalizeEmployeePerformance)
+}
+
+export const saveEmployeePerformances = (items: EmployeePerformance[]) => {
+  localStorage.setItem(KEY_EMPLOYEE_PERFORMANCES, JSON.stringify(items.map(normalizeEmployeePerformance)))
+}
+
 export const ensureDefaultAdmin = () => {
   const users = loadUsers()
   if(!users.find(u => u.username === 'admin')){
@@ -3266,6 +3351,7 @@ export const createDemoData = () => {
   const employees = createDemoEmployees(now)
   const shifts = createDemoShifts(now)
   const attendances = createDemoAttendances(now)
+  const employeePerformances = createDemoEmployeePerformances(now)
   const currentAccounts = createDemoCurrentAccounts(now)
   const creditTransactions = createDemoCreditTransactions(now)
   const collectionTransactions = createDemoCollectionTransactions(now)
@@ -3286,6 +3372,7 @@ export const createDemoData = () => {
   saveEmployees(employees)
   saveShifts(shifts)
   saveAttendances(attendances)
+  saveEmployeePerformances(employeePerformances)
   saveCurrentAccounts(currentAccounts)
   saveCreditTransactions(creditTransactions)
   saveCollectionTransactions(collectionTransactions)
@@ -3308,6 +3395,7 @@ export const createDemoData = () => {
     employees: loadEmployees(),
     shifts: loadShifts(),
     attendances: loadAttendances(),
+    employeePerformances: loadEmployeePerformances(),
     currentAccounts: loadCurrentAccounts(),
     creditTransactions: loadCreditTransactions(),
     collectionTransactions: loadCollectionTransactions(),

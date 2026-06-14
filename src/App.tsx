@@ -8,6 +8,7 @@ import StaffTracking from './pages/StaffTracking'
 import EmployeeCards from './pages/EmployeeCards'
 import ShiftManagement from './pages/ShiftManagement'
 import AttendanceTracking from './pages/AttendanceTracking'
+import EmployeePerformanceTracking from './pages/EmployeePerformanceTracking'
 import Reports from './pages/Reports'
 import CurrentReport from './pages/CurrentReport'
 import RiskyCurrentAccounts from './pages/RiskyCurrentAccounts'
@@ -64,6 +65,7 @@ type Route =
   | 'employee-cards'
   | 'shift-management'
   | 'attendance-tracking'
+  | 'employee-performance'
   | 'staff'
   | 'reports'
   | 'current-report'
@@ -104,6 +106,7 @@ type NavKey =
   | 'employee-cards'
   | 'shift-management'
   | 'attendance-tracking'
+  | 'employee-performance'
   | 'users'
   | 'staff'
   | 'current-accounts'
@@ -194,6 +197,7 @@ const navGroups: NavGroup[] = [
       { key: 'employee-cards', label: 'Personel Kartları', route: 'employee-cards', icon: 'PK', adminOnly: true },
       { key: 'shift-management', label: 'Vardiya Yönetimi', route: 'shift-management', icon: 'VY', adminOnly: true },
       { key: 'attendance-tracking', label: 'Puantaj ve Mesai Takibi', route: 'attendance-tracking', icon: 'PM', adminOnly: true },
+      { key: 'employee-performance', label: 'Personel Performans Takibi', route: 'employee-performance', icon: 'PF', adminOnly: true },
       { key: 'staff', label: 'Personel Takibi', route: 'staff', icon: 'PT', adminOnly: true }
     ]
   },
@@ -320,6 +324,7 @@ export default function App(){
       {route === 'employee-cards' && currentUser.role === 'Admin' && <EmployeeCards currentUser={currentUser} />}
       {route === 'shift-management' && currentUser.role === 'Admin' && <ShiftManagement currentUser={currentUser} />}
       {route === 'attendance-tracking' && currentUser.role === 'Admin' && <AttendanceTracking currentUser={currentUser} />}
+      {route === 'employee-performance' && currentUser.role === 'Admin' && <EmployeePerformanceTracking currentUser={currentUser} />}
       {route === 'staff' && currentUser.role === 'Admin' && <StaffTracking />}
       {route === 'reports' && currentUser.role === 'Admin' && <Reports />}
       {route === 'current-report' && currentUser.role === 'Admin' && <CurrentReport />}

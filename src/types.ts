@@ -636,6 +636,20 @@ export type Attendance = {
   updatedAt: string
 }
 
+export type EmployeePerformance = {
+  id: string
+  employeeId: string
+  workDate: string
+  servedTableCount: number
+  approvedOrderCount: number
+  qrOrderCount: number
+  customerCallCount: number
+  performanceScore: number
+  note: string
+  createdAt: string
+  updatedAt: string
+}
+
 export type CurrentAccountType = 'Müşteri' | 'Firma' | 'Personel' | 'Tedarikçi'
 
 export type CurrentAccount = {
@@ -887,6 +901,9 @@ export type ActionLogType =
   | 'Puantaj oluşturuldu'
   | 'Puantaj güncellendi'
   | 'Puantaj silindi'
+  | 'Performans kaydı oluşturuldu'
+  | 'Performans kaydı güncellendi'
+  | 'Performans kaydı silindi'
 
 export type ActionLog = {
   id: string
