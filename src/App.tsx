@@ -2,6 +2,8 @@ import React from 'react'
 import Products from './pages/Products'
 import TableManagement from './pages/TableManagement'
 import BusinessSummary from './pages/BusinessSummary'
+import SalesRevenueAnalysis from './pages/SalesRevenueAnalysis'
+import ProductPerformanceAnalysis from './pages/ProductPerformanceAnalysis'
 import DailySummary from './pages/DailySummary'
 import BillHistory from './pages/BillHistory'
 import ActionHistory from './pages/ActionHistory'
@@ -61,6 +63,8 @@ type Route =
   | 'financial-reports'
   | 'cash-transfers'
   | 'business-summary'
+  | 'sales-revenue-analysis'
+  | 'product-performance-analysis'
   | 'summary'
   | 'history'
   | 'kitchen'
@@ -87,6 +91,8 @@ type Route =
 
 type NavKey =
   | 'business-summary'
+  | 'sales-revenue-analysis'
+  | 'product-performance-analysis'
   | 'dashboard'
   | 'adisyon'
   | 'tables-management'
@@ -146,7 +152,9 @@ const navGroups: NavGroup[] = [
     title: 'Patron Dashboard',
     icon: 'PD',
     items: [
-      { key: 'business-summary', label: '17.1 Genel İşletme Özeti', route: 'business-summary', icon: '17', adminOnly: true },
+      { key: 'business-summary', label: 'Genel İşletme Özeti', route: 'business-summary', icon: 'Gİ', adminOnly: true },
+      { key: 'sales-revenue-analysis', label: 'Satış ve Ciro Analizleri', route: 'sales-revenue-analysis', icon: 'SC', adminOnly: true },
+      { key: 'product-performance-analysis', label: 'Ürün Performans Analizleri', route: 'product-performance-analysis', icon: 'ÜP', adminOnly: true },
       { key: 'dashboard', label: 'Günlük Operasyon Özeti', route: 'summary', icon: 'DB', adminOnly: true }
     ]
   },
@@ -282,7 +290,7 @@ export default function App(){
   const refreshSettings = () => setSettings(loadSettings())
   const activeNavLabel = navGroups
     .flatMap(group => group.items)
-    .find(item => item.key === activeNavKey)?.label || '17.1 Genel İşletme Özeti'
+    .find(item => item.key === activeNavKey)?.label || 'Genel İşletme Özeti'
 
   const openNavItem = (item: NavItem) => {
     setRoute(item.route)
@@ -352,6 +360,8 @@ export default function App(){
       {route === 'financial-reports' && currentUser.role === 'Admin' && <FinancialReports />}
       {route === 'cash-transfers' && currentUser.role === 'Admin' && <CashTransfers currentUser={currentUser} />}
       {route === 'business-summary' && currentUser.role === 'Admin' && <BusinessSummary />}
+      {route === 'sales-revenue-analysis' && currentUser.role === 'Admin' && <SalesRevenueAnalysis />}
+      {route === 'product-performance-analysis' && currentUser.role === 'Admin' && <ProductPerformanceAnalysis />}
       {route === 'summary' && <DailySummary currentUser={currentUser} />}
       {route === 'history' && <BillHistory />}
       {route === 'kitchen' && <Kitchen currentUser={currentUser} />}
