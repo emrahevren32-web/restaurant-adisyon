@@ -4,6 +4,7 @@ import TableManagement from './pages/TableManagement'
 import BusinessSummary from './pages/BusinessSummary'
 import SalesRevenueAnalysis from './pages/SalesRevenueAnalysis'
 import ProductPerformanceAnalysis from './pages/ProductPerformanceAnalysis'
+import StockRiskCenter from './pages/StockRiskCenter'
 import DailySummary from './pages/DailySummary'
 import BillHistory from './pages/BillHistory'
 import ActionHistory from './pages/ActionHistory'
@@ -65,6 +66,7 @@ type Route =
   | 'business-summary'
   | 'sales-revenue-analysis'
   | 'product-performance-analysis'
+  | 'stock-risk-center'
   | 'summary'
   | 'history'
   | 'kitchen'
@@ -93,6 +95,7 @@ type NavKey =
   | 'business-summary'
   | 'sales-revenue-analysis'
   | 'product-performance-analysis'
+  | 'stock-risk-center'
   | 'dashboard'
   | 'adisyon'
   | 'tables-management'
@@ -155,6 +158,7 @@ const navGroups: NavGroup[] = [
       { key: 'business-summary', label: 'Genel İşletme Özeti', route: 'business-summary', icon: 'Gİ', adminOnly: true },
       { key: 'sales-revenue-analysis', label: 'Satış ve Ciro Analizleri', route: 'sales-revenue-analysis', icon: 'SC', adminOnly: true },
       { key: 'product-performance-analysis', label: 'Ürün Performans Analizleri', route: 'product-performance-analysis', icon: 'ÜP', adminOnly: true },
+      { key: 'stock-risk-center', label: 'Stok ve Risk Merkezi', route: 'stock-risk-center', icon: 'SR', adminOnly: true },
       { key: 'dashboard', label: 'Günlük Operasyon Özeti', route: 'summary', icon: 'DB', adminOnly: true }
     ]
   },
@@ -362,6 +366,7 @@ export default function App(){
       {route === 'business-summary' && currentUser.role === 'Admin' && <BusinessSummary />}
       {route === 'sales-revenue-analysis' && currentUser.role === 'Admin' && <SalesRevenueAnalysis />}
       {route === 'product-performance-analysis' && currentUser.role === 'Admin' && <ProductPerformanceAnalysis />}
+      {route === 'stock-risk-center' && currentUser.role === 'Admin' && <StockRiskCenter />}
       {route === 'summary' && <DailySummary currentUser={currentUser} />}
       {route === 'history' && <BillHistory />}
       {route === 'kitchen' && <Kitchen currentUser={currentUser} />}
