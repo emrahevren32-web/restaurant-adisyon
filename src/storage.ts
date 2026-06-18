@@ -18,6 +18,9 @@ import {
   CurrentAccount,
   CurrentAccountType,
   Employee,
+  EmployeeAudit,
+  EmployeeAuditRecordType,
+  EmployeeAuditSeverity,
   EmployeeBonus,
   EmployeeBonusStatus,
   EmployeePerformance,
@@ -124,6 +127,7 @@ const KEY_SHIFTS = 'ra_shifts'
 const KEY_ATTENDANCES = 'ra_attendances'
 const KEY_EMPLOYEE_PERFORMANCES = 'ra_employee_performances'
 const KEY_EMPLOYEE_BONUSES = 'ra_employee_bonuses'
+const KEY_EMPLOYEE_AUDITS = 'ra_employee_audits'
 const KEY_CURRENT_ACCOUNTS = 'ra_current_accounts'
 const KEY_CREDIT_TRANSACTIONS = 'ra_credit_transactions'
 const KEY_COLLECTION_TRANSACTIONS = 'ra_collection_transactions'
@@ -163,6 +167,8 @@ const SHIFT_NAMES: ShiftName[] = ['Sabah', 'Akşam', 'Tam Gün', 'Gece']
 const SHIFT_STATUSES: ShiftStatus[] = ['Planlandı', 'Tamamlandı', 'İptal']
 const ATTENDANCE_STATUSES: AttendanceStatus[] = ['Normal', 'Eksik Mesai', 'Fazla Mesai', 'Devamsız']
 const EMPLOYEE_BONUS_STATUSES: EmployeeBonusStatus[] = ['Hesaplandı', 'Onaylandı', 'Ödendi', 'İptal']
+const EMPLOYEE_AUDIT_RECORD_TYPES: EmployeeAuditRecordType[] = ['Uyarı', 'Tutanak', 'Ödül', 'Denetim Notu', 'Bilgilendirme']
+const EMPLOYEE_AUDIT_SEVERITIES: EmployeeAuditSeverity[] = ['Düşük', 'Orta', 'Yüksek', 'Kritik']
 
 export const DEFAULT_SETTINGS: SystemSettings = {
   restaurantName: 'Restaurant Adisyon',
@@ -385,6 +391,35 @@ const normalizeEmployeeBonus = (item: Partial<EmployeeBonus>): EmployeeBonus => 
     bonusAmount: amounts.bonusAmount,
     status: normalizeEmployeeBonusStatus(item.status),
     note: String(item.note || '').trim(),
+    createdAt: timestamp,
+    updatedAt: item.updatedAt || timestamp
+  }
+}
+
+const normalizeEmployeeAuditRecordType = (value: unknown): EmployeeAuditRecordType => {
+  return EMPLOYEE_AUDIT_RECORD_TYPES.includes(value as EmployeeAuditRecordType)
+    ? value as EmployeeAuditRecordType
+    : 'Bilgilendirme'
+}
+
+const normalizeEmployeeAuditSeverity = (value: unknown): EmployeeAuditSeverity => {
+  return EMPLOYEE_AUDIT_SEVERITIES.includes(value as EmployeeAuditSeverity)
+    ? value as EmployeeAuditSeverity
+    : 'Orta'
+}
+
+const normalizeEmployeeAudit = (item: Partial<EmployeeAudit>): EmployeeAudit => {
+  const timestamp = item.createdAt || new Date().toISOString()
+
+  return {
+    id: String(item.id || `employee_audit_${Date.now()}`),
+    employeeId: String(item.employeeId || ''),
+    date: String(item.date || new Date().toLocaleDateString('sv-SE')),
+    recordType: normalizeEmployeeAuditRecordType(item.recordType),
+    severity: normalizeEmployeeAuditSeverity(item.severity),
+    title: String(item.title || '').trim(),
+    description: String(item.description || '').trim(),
+    createdBy: String(item.createdBy || 'Yönetici').trim() || 'Yönetici',
     createdAt: timestamp,
     updatedAt: item.updatedAt || timestamp
   }
@@ -792,6 +827,49 @@ const createDemoEmployeeBonuses = (now = new Date().toISOString()): EmployeeBonu
       bonusRate: 5,
       status: 'Hesaplandı',
       note: 'Demo prim kaydı.',
+      createdAt: now,
+      updatedAt: now
+    })
+  ]
+}
+
+const createDemoEmployeeAudits = (now = new Date().toISOString()): EmployeeAudit[] => {
+  const today = new Date().toLocaleDateString('sv-SE')
+
+  return [
+    normalizeEmployeeAudit({
+      id: 'employee_audit_ahmet_kaya_demo',
+      employeeId: 'employee_ahmet_kaya',
+      date: today,
+      recordType: 'Ödül',
+      severity: 'Orta',
+      title: 'Ayın Personeli',
+      description: 'Müşteri memnuniyeti ve servis hızı yüksek olduğu için ödül kaydı oluşturuldu.',
+      createdBy: 'Yönetici',
+      createdAt: now,
+      updatedAt: now
+    }),
+    normalizeEmployeeAudit({
+      id: 'employee_audit_mehmet_demir_demo',
+      employeeId: 'employee_mehmet_demir',
+      date: today,
+      recordType: 'Uyarı',
+      severity: 'Düşük',
+      title: 'Geç Kalma',
+      description: 'Vardiya başlangıcına geç kalma nedeniyle sözlü uyarı kaydı oluşturuldu.',
+      createdBy: 'Yönetici',
+      createdAt: now,
+      updatedAt: now
+    }),
+    normalizeEmployeeAudit({
+      id: 'employee_audit_ayse_yilmaz_demo',
+      employeeId: 'employee_ayse_yilmaz',
+      date: today,
+      recordType: 'Denetim Notu',
+      severity: 'Yüksek',
+      title: 'Vardiya Yönetimi Başarılı',
+      description: 'Vardiya planlama ve ekip koordinasyonu başarılı bulundu.',
+      createdBy: 'Yönetici',
       createdAt: now,
       updatedAt: now
     })
@@ -2149,6 +2227,17 @@ export const saveEmployeeBonuses = (items: EmployeeBonus[]) => {
   localStorage.setItem(KEY_EMPLOYEE_BONUSES, JSON.stringify(items.map(normalizeEmployeeBonus)))
 }
 
+export const loadEmployeeAudits = (): EmployeeAudit[] => {
+  const stored = localStorage.getItem(KEY_EMPLOYEE_AUDITS)
+  if(stored === null) return createDemoEmployeeAudits()
+
+  return readJson<Partial<EmployeeAudit>[]>(KEY_EMPLOYEE_AUDITS, []).map(normalizeEmployeeAudit)
+}
+
+export const saveEmployeeAudits = (items: EmployeeAudit[]) => {
+  localStorage.setItem(KEY_EMPLOYEE_AUDITS, JSON.stringify(items.map(normalizeEmployeeAudit)))
+}
+
 export const ensureDefaultAdmin = () => {
   const users = loadUsers()
   if(!users.find(u => u.username === 'admin')){
@@ -3438,6 +3527,7 @@ export const createDemoData = () => {
   const attendances = createDemoAttendances(now)
   const employeePerformances = createDemoEmployeePerformances(now)
   const employeeBonuses = createDemoEmployeeBonuses(now)
+  const employeeAudits = createDemoEmployeeAudits(now)
   const currentAccounts = createDemoCurrentAccounts(now)
   const creditTransactions = createDemoCreditTransactions(now)
   const collectionTransactions = createDemoCollectionTransactions(now)
@@ -3460,6 +3550,7 @@ export const createDemoData = () => {
   saveAttendances(attendances)
   saveEmployeePerformances(employeePerformances)
   saveEmployeeBonuses(employeeBonuses)
+  saveEmployeeAudits(employeeAudits)
   saveCurrentAccounts(currentAccounts)
   saveCreditTransactions(creditTransactions)
   saveCollectionTransactions(collectionTransactions)
@@ -3484,6 +3575,7 @@ export const createDemoData = () => {
     attendances: loadAttendances(),
     employeePerformances: loadEmployeePerformances(),
     employeeBonuses: loadEmployeeBonuses(),
+    employeeAudits: loadEmployeeAudits(),
     currentAccounts: loadCurrentAccounts(),
     creditTransactions: loadCreditTransactions(),
     collectionTransactions: loadCollectionTransactions(),

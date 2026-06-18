@@ -665,6 +665,22 @@ export type EmployeeBonus = {
   updatedAt: string
 }
 
+export type EmployeeAuditRecordType = 'Uyarı' | 'Tutanak' | 'Ödül' | 'Denetim Notu' | 'Bilgilendirme'
+export type EmployeeAuditSeverity = 'Düşük' | 'Orta' | 'Yüksek' | 'Kritik'
+
+export type EmployeeAudit = {
+  id: string
+  employeeId: string
+  date: string
+  recordType: EmployeeAuditRecordType
+  severity: EmployeeAuditSeverity
+  title: string
+  description: string
+  createdBy: string
+  createdAt: string
+  updatedAt: string
+}
+
 export type CurrentAccountType = 'Müşteri' | 'Firma' | 'Personel' | 'Tedarikçi'
 
 export type CurrentAccount = {
@@ -925,6 +941,9 @@ export type ActionLogType =
   | 'Prim ödendi'
   | 'Prim iptal edildi'
   | 'Prim silindi'
+  | 'Denetim kaydı oluşturuldu'
+  | 'Denetim kaydı güncellendi'
+  | 'Denetim kaydı silindi'
 
 export type ActionLog = {
   id: string

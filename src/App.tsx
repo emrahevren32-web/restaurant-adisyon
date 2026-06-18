@@ -10,6 +10,8 @@ import ShiftManagement from './pages/ShiftManagement'
 import AttendanceTracking from './pages/AttendanceTracking'
 import EmployeePerformanceTracking from './pages/EmployeePerformanceTracking'
 import EmployeeBonusSystem from './pages/EmployeeBonusSystem'
+import EmployeeAuditRecords from './pages/EmployeeAuditRecords'
+import EmployeeReports from './pages/EmployeeReports'
 import Reports from './pages/Reports'
 import CurrentReport from './pages/CurrentReport'
 import RiskyCurrentAccounts from './pages/RiskyCurrentAccounts'
@@ -68,6 +70,8 @@ type Route =
   | 'attendance-tracking'
   | 'employee-performance'
   | 'employee-bonus'
+  | 'employee-audit'
+  | 'employee-reports'
   | 'staff'
   | 'reports'
   | 'current-report'
@@ -110,6 +114,8 @@ type NavKey =
   | 'attendance-tracking'
   | 'employee-performance'
   | 'employee-bonus'
+  | 'employee-audit'
+  | 'employee-reports'
   | 'users'
   | 'staff'
   | 'current-accounts'
@@ -202,6 +208,8 @@ const navGroups: NavGroup[] = [
       { key: 'attendance-tracking', label: 'Puantaj ve Mesai Takibi', route: 'attendance-tracking', icon: 'PM', adminOnly: true },
       { key: 'employee-performance', label: 'Personel Performans Takibi', route: 'employee-performance', icon: 'PF', adminOnly: true },
       { key: 'employee-bonus', label: 'Prim Sistemi', route: 'employee-bonus', icon: 'PR', adminOnly: true },
+      { key: 'employee-audit', label: 'Disiplin ve Denetim Kayıtları', route: 'employee-audit', icon: 'DD', adminOnly: true },
+      { key: 'employee-reports', label: 'Personel Raporları', route: 'employee-reports', icon: 'RA', adminOnly: true },
       { key: 'staff', label: 'Personel Takibi', route: 'staff', icon: 'PT', adminOnly: true }
     ]
   },
@@ -330,6 +338,8 @@ export default function App(){
       {route === 'attendance-tracking' && currentUser.role === 'Admin' && <AttendanceTracking currentUser={currentUser} />}
       {route === 'employee-performance' && currentUser.role === 'Admin' && <EmployeePerformanceTracking currentUser={currentUser} />}
       {route === 'employee-bonus' && currentUser.role === 'Admin' && <EmployeeBonusSystem currentUser={currentUser} />}
+      {route === 'employee-audit' && currentUser.role === 'Admin' && <EmployeeAuditRecords currentUser={currentUser} />}
+      {route === 'employee-reports' && currentUser.role === 'Admin' && <EmployeeReports />}
       {route === 'staff' && currentUser.role === 'Admin' && <StaffTracking />}
       {route === 'reports' && currentUser.role === 'Admin' && <Reports />}
       {route === 'current-report' && currentUser.role === 'Admin' && <CurrentReport />}

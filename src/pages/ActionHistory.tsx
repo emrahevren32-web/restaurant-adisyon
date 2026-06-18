@@ -127,7 +127,10 @@ const operationTypes: ActionLogType[] = [
   'Prim onaylandı',
   'Prim ödendi',
   'Prim iptal edildi',
-  'Prim silindi'
+  'Prim silindi',
+  'Denetim kaydı oluşturuldu',
+  'Denetim kaydı güncellendi',
+  'Denetim kaydı silindi'
 ]
 
 export default function ActionHistory(){
