@@ -1,6 +1,7 @@
 import React from 'react'
 import Products from './pages/Products'
 import TableManagement from './pages/TableManagement'
+import BusinessSummary from './pages/BusinessSummary'
 import DailySummary from './pages/DailySummary'
 import BillHistory from './pages/BillHistory'
 import ActionHistory from './pages/ActionHistory'
@@ -59,6 +60,7 @@ type Route =
   | 'cash-closing'
   | 'financial-reports'
   | 'cash-transfers'
+  | 'business-summary'
   | 'summary'
   | 'history'
   | 'kitchen'
@@ -84,6 +86,7 @@ type Route =
   | 'settings'
 
 type NavKey =
+  | 'business-summary'
   | 'dashboard'
   | 'adisyon'
   | 'tables-management'
@@ -140,10 +143,11 @@ type NavGroup = ShellNavGroup<Route, NavKey, NavGroupKey>
 const navGroups: NavGroup[] = [
   {
     key: 'dashboard',
-    title: 'Dashboard',
-    icon: 'DB',
+    title: 'Patron Dashboard',
+    icon: 'PD',
     items: [
-      { key: 'dashboard', label: 'Dashboard', route: 'summary', icon: 'DB' }
+      { key: 'business-summary', label: '17.1 Genel İşletme Özeti', route: 'business-summary', icon: '17', adminOnly: true },
+      { key: 'dashboard', label: 'Günlük Operasyon Özeti', route: 'summary', icon: 'DB', adminOnly: true }
     ]
   },
   {
@@ -229,12 +233,30 @@ const navGroups: NavGroup[] = [
   }
 ]
 
+const getDefaultNavigation = (user: User | null) => {
+  if(user?.role === 'Admin'){
+    return {
+      route: 'business-summary' as Route,
+      activeNavKey: 'business-summary' as NavKey,
+      openGroupKey: 'dashboard' as NavGroupKey
+    }
+  }
+
+  return {
+    route: 'tables' as Route,
+    activeNavKey: 'adisyon' as NavKey,
+    openGroupKey: 'operations' as NavGroupKey
+  }
+}
+
 export default function App(){
   const qrRouteMatch = window.location.pathname.match(/^\/qr\/([^/?#]+)/)
-  const [route, setRoute] = React.useState<Route>('tables')
-  const [activeNavKey, setActiveNavKey] = React.useState<NavKey>('adisyon')
-  const [openGroupKey, setOpenGroupKey] = React.useState<NavGroupKey | null>('operations')
-  const [currentUser, setUserState] = React.useState<User | null>(() => getCurrentUser())
+  const initialUser = React.useMemo(() => getCurrentUser(), [])
+  const initialNavigation = React.useMemo(() => getDefaultNavigation(initialUser), [initialUser])
+  const [route, setRoute] = React.useState<Route>(initialNavigation.route)
+  const [activeNavKey, setActiveNavKey] = React.useState<NavKey>(initialNavigation.activeNavKey)
+  const [openGroupKey, setOpenGroupKey] = React.useState<NavGroupKey | null>(initialNavigation.openGroupKey)
+  const [currentUser, setUserState] = React.useState<User | null>(initialUser)
   const [settings, setSettings] = React.useState(() => loadSettings())
 
   React.useEffect(()=>{ loadProducts(); ensureDefaultAdmin() }, [])
@@ -242,18 +264,25 @@ export default function App(){
     document.title = settings.restaurantName
   }, [settings.restaurantName])
 
-  const onLogin = (u: User) => setUserState(u)
+  const onLogin = (u: User) => {
+    const defaultNavigation = getDefaultNavigation(u)
+    setUserState(u)
+    setRoute(defaultNavigation.route)
+    setActiveNavKey(defaultNavigation.activeNavKey)
+    setOpenGroupKey(defaultNavigation.openGroupKey)
+  }
   const logout = () => {
+    const defaultNavigation = getDefaultNavigation(null)
     setCurrentUser(null)
     setUserState(null)
-    setRoute('tables')
-    setActiveNavKey('adisyon')
-    setOpenGroupKey('operations')
+    setRoute(defaultNavigation.route)
+    setActiveNavKey(defaultNavigation.activeNavKey)
+    setOpenGroupKey(defaultNavigation.openGroupKey)
   }
   const refreshSettings = () => setSettings(loadSettings())
   const activeNavLabel = navGroups
     .flatMap(group => group.items)
-    .find(item => item.key === activeNavKey)?.label || 'Adisyonlar'
+    .find(item => item.key === activeNavKey)?.label || '17.1 Genel İşletme Özeti'
 
   const openNavItem = (item: NavItem) => {
     setRoute(item.route)
@@ -322,6 +351,7 @@ export default function App(){
       {route === 'cash-closing' && currentUser.role === 'Admin' && <CashClosingPage currentUser={currentUser} />}
       {route === 'financial-reports' && currentUser.role === 'Admin' && <FinancialReports />}
       {route === 'cash-transfers' && currentUser.role === 'Admin' && <CashTransfers currentUser={currentUser} />}
+      {route === 'business-summary' && currentUser.role === 'Admin' && <BusinessSummary />}
       {route === 'summary' && <DailySummary currentUser={currentUser} />}
       {route === 'history' && <BillHistory />}
       {route === 'kitchen' && <Kitchen currentUser={currentUser} />}
