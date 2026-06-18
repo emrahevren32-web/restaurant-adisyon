@@ -6,6 +6,8 @@ import SalesRevenueAnalysis from './pages/SalesRevenueAnalysis'
 import ProductPerformanceAnalysis from './pages/ProductPerformanceAnalysis'
 import StockRiskCenter from './pages/StockRiskCenter'
 import CurrentFinanceCenter from './pages/CurrentFinanceCenter'
+import PersonnelPerformanceCenter from './pages/PersonnelPerformanceCenter'
+import ManagerAlertCenter from './pages/ManagerAlertCenter'
 import DailySummary from './pages/DailySummary'
 import BillHistory from './pages/BillHistory'
 import ActionHistory from './pages/ActionHistory'
@@ -69,6 +71,8 @@ type Route =
   | 'product-performance-analysis'
   | 'stock-risk-center'
   | 'current-finance-center'
+  | 'personnel-performance-center'
+  | 'manager-alert-center'
   | 'summary'
   | 'history'
   | 'kitchen'
@@ -99,6 +103,8 @@ type NavKey =
   | 'product-performance-analysis'
   | 'stock-risk-center'
   | 'current-finance-center'
+  | 'personnel-performance-center'
+  | 'manager-alert-center'
   | 'dashboard'
   | 'adisyon'
   | 'tables-management'
@@ -163,6 +169,8 @@ const navGroups: NavGroup[] = [
       { key: 'product-performance-analysis', label: 'Ürün Performans Analizleri', route: 'product-performance-analysis', icon: 'ÜP', adminOnly: true },
       { key: 'stock-risk-center', label: 'Stok ve Risk Merkezi', route: 'stock-risk-center', icon: 'SR', adminOnly: true },
       { key: 'current-finance-center', label: 'Cari ve Finans Merkezi', route: 'current-finance-center', icon: 'CF', adminOnly: true },
+      { key: 'personnel-performance-center', label: 'Personel Performans Merkezi', route: 'personnel-performance-center', icon: 'PP', adminOnly: true },
+      { key: 'manager-alert-center', label: 'Yönetici Uyarı Merkezi', route: 'manager-alert-center', icon: 'YU', adminOnly: true },
       { key: 'dashboard', label: 'Günlük Operasyon Özeti', route: 'summary', icon: 'DB', adminOnly: true }
     ]
   },
@@ -372,6 +380,8 @@ export default function App(){
       {route === 'product-performance-analysis' && currentUser.role === 'Admin' && <ProductPerformanceAnalysis />}
       {route === 'stock-risk-center' && currentUser.role === 'Admin' && <StockRiskCenter />}
       {route === 'current-finance-center' && currentUser.role === 'Admin' && <CurrentFinanceCenter />}
+      {route === 'personnel-performance-center' && currentUser.role === 'Admin' && <PersonnelPerformanceCenter />}
+      {route === 'manager-alert-center' && currentUser.role === 'Admin' && <ManagerAlertCenter />}
       {route === 'summary' && <DailySummary currentUser={currentUser} />}
       {route === 'history' && <BillHistory />}
       {route === 'kitchen' && <Kitchen currentUser={currentUser} />}
