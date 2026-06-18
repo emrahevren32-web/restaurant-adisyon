@@ -587,6 +587,20 @@ export type User = {
   active: boolean
 }
 
+export type Branch = {
+  id: string
+  code: string
+  name: string
+  phone: string
+  email: string
+  address: string
+  city: string
+  managerName: string
+  isActive: boolean
+  createdAt: string
+  updatedAt: string
+}
+
 export type EmployeePosition = 'Garson' | 'Kasiyer' | 'Aşçı' | 'Kurye' | 'Yönetici' | 'Diğer'
 
 export type Employee = {
@@ -889,6 +903,11 @@ export type ActionLogType =
   | 'Kullanıcı güncellendi'
   | 'Kullanıcı aktif yapıldı'
   | 'Kullanıcı pasif yapıldı'
+  | 'Şube oluşturuldu'
+  | 'Şube güncellendi'
+  | 'Şube silindi'
+  | 'Şube aktif yapıldı'
+  | 'Şube pasif yapıldı'
   | 'Cari oluşturuldu'
   | 'Cari güncellendi'
   | 'Cari aktif yapıldı'

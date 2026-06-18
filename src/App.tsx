@@ -32,6 +32,7 @@ import Recipes from './pages/Recipes'
 import Login from './pages/Login'
 import Users from './pages/Users'
 import Settings from './pages/Settings'
+import BranchManagement from './pages/BranchManagement'
 import CurrentAccounts from './pages/CurrentAccounts'
 import CreditTransactions from './pages/CreditTransactions'
 import CollectionTransactions from './pages/CollectionTransactions'
@@ -91,6 +92,7 @@ type Route =
   | 'current-report'
   | 'risky-current'
   | 'users'
+  | 'branches'
   | 'current-accounts'
   | 'credit-transactions'
   | 'collection-transactions'
@@ -138,6 +140,7 @@ type NavKey =
   | 'employee-audit'
   | 'employee-reports'
   | 'users'
+  | 'branches'
   | 'staff'
   | 'current-accounts'
   | 'credit-transactions'
@@ -246,6 +249,7 @@ const navGroups: NavGroup[] = [
     title: 'Yönetim',
     icon: 'YN',
     items: [
+      { key: 'branches', label: 'Şube Yönetimi', route: 'branches', icon: 'ŞB', adminOnly: true },
       { key: 'users', label: 'Kullanıcı Yönetimi', route: 'users', icon: 'KY', adminOnly: true },
       { key: 'current-accounts', label: 'Cari Kartları', route: 'current-accounts', icon: 'CK', adminOnly: true },
       { key: 'credit-transactions', label: 'Veresiye İşlemleri', route: 'credit-transactions', icon: 'VI', adminOnly: true },
@@ -404,6 +408,7 @@ export default function App(){
       {route === 'reports' && currentUser.role === 'Admin' && <Reports />}
       {route === 'current-report' && currentUser.role === 'Admin' && <CurrentReport />}
       {route === 'risky-current' && currentUser.role === 'Admin' && <RiskyCurrentAccounts />}
+      {route === 'branches' && currentUser.role === 'Admin' && <BranchManagement currentUser={currentUser} />}
       {route === 'users' && currentUser.role === 'Admin' && <Users currentUser={currentUser} />}
       {route === 'current-accounts' && currentUser.role === 'Admin' && <CurrentAccounts currentUser={currentUser} />}
       {route === 'credit-transactions' && currentUser.role === 'Admin' && <CreditTransactions currentUser={currentUser} />}

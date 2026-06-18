@@ -35,6 +35,7 @@ import {
   QRAuditEvent,
   AuditEntityType,
   AuditEventType,
+  Branch,
   QRRejectReason,
   QRRequest,
   QRRequestHistory,
@@ -122,6 +123,7 @@ const KEY_RECIPE_AUDIT_EVENTS = 'ra_recipe_audit_events'
 const KEY_TABLES = 'ra_tables'
 const KEY_CLOSED = 'ra_closed'
 const KEY_USERS = 'ra_users'
+const KEY_BRANCHES = 'ra_branches'
 const KEY_EMPLOYEES = 'ra_employees'
 const KEY_SHIFTS = 'ra_shifts'
 const KEY_ATTENDANCES = 'ra_attendances'
@@ -444,6 +446,61 @@ const normalizeCurrentAccount = (item: Partial<CurrentAccount>): CurrentAccount 
     updatedAt: item.updatedAt || timestamp
   }
 }
+
+const createDemoBranches = (now = new Date().toISOString()): Branch[] => [
+  normalizeBranch({
+    id: 'branch_merkez',
+    code: 'SUBE-001',
+    name: 'Merkez Şube',
+    phone: '0212 000 00 01',
+    email: 'merkez@restaurant.local',
+    city: 'İstanbul',
+    address: 'Merkez Mahallesi No: 1',
+    managerName: 'Emrah Evren',
+    isActive: true,
+    createdAt: now,
+    updatedAt: now
+  }),
+  normalizeBranch({
+    id: 'branch_istanbul',
+    code: 'SUBE-002',
+    name: 'İstanbul Şubesi',
+    phone: '0212 000 00 02',
+    email: 'istanbul@restaurant.local',
+    city: 'İstanbul',
+    address: 'Kadıköy Cad. No: 12',
+    managerName: 'Ayşe Yılmaz',
+    isActive: true,
+    createdAt: now,
+    updatedAt: now
+  }),
+  normalizeBranch({
+    id: 'branch_ankara',
+    code: 'SUBE-003',
+    name: 'Ankara Şubesi',
+    phone: '0312 000 00 03',
+    email: 'ankara@restaurant.local',
+    city: 'Ankara',
+    address: 'Çankaya Sok. No: 8',
+    managerName: 'Mehmet Demir',
+    isActive: true,
+    createdAt: now,
+    updatedAt: now
+  }),
+  normalizeBranch({
+    id: 'branch_izmir',
+    code: 'SUBE-004',
+    name: 'İzmir Şubesi',
+    phone: '0232 000 00 04',
+    email: 'izmir@restaurant.local',
+    city: 'İzmir',
+    address: 'Alsancak Bulvarı No: 4',
+    managerName: 'Selin Arslan',
+    isActive: false,
+    createdAt: now,
+    updatedAt: now
+  })
+]
 
 const roundMoneyValue = (value: number) => Math.round(value * 100) / 100
 
@@ -1759,6 +1816,24 @@ const normalizeSettings = (item: Partial<SystemSettings>): SystemSettings => {
   }
 }
 
+const normalizeBranch = (item: Partial<Branch>): Branch => {
+  const timestamp = item.createdAt || new Date().toISOString()
+
+  return {
+    id: String(item.id || `branch_${Date.now()}`),
+    code: String(item.code || `SUBE-${Date.now()}`).trim() || `SUBE-${Date.now()}`,
+    name: String(item.name || 'İsimsiz Şube').trim() || 'İsimsiz Şube',
+    phone: String(item.phone || '').trim(),
+    email: String(item.email || '').trim(),
+    address: String(item.address || '').trim(),
+    city: String(item.city || '').trim(),
+    managerName: String(item.managerName || '').trim(),
+    isActive: item.isActive !== false,
+    createdAt: timestamp,
+    updatedAt: item.updatedAt || timestamp
+  }
+}
+
 const normalizeActionLog = (item: Partial<ActionLog>): ActionLog => {
   const timestamp = item.timestamp || new Date().toISOString()
   const date = item.date || new Date(timestamp).toLocaleDateString('sv-SE')
@@ -2170,6 +2245,17 @@ export const loadUsers = (): User[] => {
 
 export const saveUsers = (items: User[]) => {
   localStorage.setItem(KEY_USERS, JSON.stringify(items))
+}
+
+export const loadBranches = (): Branch[] => {
+  const stored = localStorage.getItem(KEY_BRANCHES)
+  if(stored === null) return createDemoBranches()
+
+  return readJson<Partial<Branch>[]>(KEY_BRANCHES, []).map(normalizeBranch)
+}
+
+export const saveBranches = (items: Branch[]) => {
+  localStorage.setItem(KEY_BRANCHES, JSON.stringify(items.map(normalizeBranch)))
 }
 
 export const loadEmployees = (): Employee[] => {
@@ -3522,6 +3608,7 @@ export const createDemoData = () => {
     { id: 'prd_baklava', name: 'Baklava', price: 180, categoryId: 'cat_desserts', description: 'Antep fıstıklı porsiyon baklava.', active: true, createdAt: now, updatedAt: now }
   ]
 
+  const branches = createDemoBranches(now)
   const employees = createDemoEmployees(now)
   const shifts = createDemoShifts(now)
   const attendances = createDemoAttendances(now)
@@ -3545,6 +3632,7 @@ export const createDemoData = () => {
 
   saveCategories(categories)
   saveProducts(products)
+  saveBranches(branches)
   saveEmployees(employees)
   saveShifts(shifts)
   saveAttendances(attendances)
@@ -3570,6 +3658,7 @@ export const createDemoData = () => {
     categories: loadCategories(),
     products: loadProducts(),
     tables,
+    branches: loadBranches(),
     employees: loadEmployees(),
     shifts: loadShifts(),
     attendances: loadAttendances(),
