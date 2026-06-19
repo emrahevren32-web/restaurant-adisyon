@@ -50,9 +50,13 @@ import {
   ensureDefaultAdmin,
   getCurrentUser,
   setCurrentUser,
-  loadSettings
+  loadSettings,
+  loadBranches,
+  getActiveBranchId,
+  setActiveBranchId,
+  migrateBranchScopedData
 } from './storage'
-import { User } from './types'
+import { Branch, User } from './types'
 
 type Route =
   | 'tables'
@@ -286,14 +290,23 @@ export default function App(){
   const [openGroupKey, setOpenGroupKey] = React.useState<NavGroupKey | null>(initialNavigation.openGroupKey)
   const [currentUser, setUserState] = React.useState<User | null>(initialUser)
   const [settings, setSettings] = React.useState(() => loadSettings())
+  const [branches, setBranches] = React.useState<Branch[]>(() => loadBranches())
+  const [activeBranchId, setActiveBranchState] = React.useState(() => getActiveBranchId())
 
-  React.useEffect(()=>{ loadProducts(); ensureDefaultAdmin() }, [])
+  React.useEffect(()=>{
+    loadProducts()
+    ensureDefaultAdmin()
+    if(currentUser) migrateBranchScopedData(currentUser)
+    setBranches(loadBranches())
+    setActiveBranchState(getActiveBranchId())
+  }, [currentUser])
   React.useEffect(() => {
     document.title = settings.restaurantName
   }, [settings.restaurantName])
 
   const onLogin = (u: User) => {
     const defaultNavigation = getDefaultNavigation(u)
+    migrateBranchScopedData(u)
     setUserState(u)
     setRoute(defaultNavigation.route)
     setActiveNavKey(defaultNavigation.activeNavKey)
@@ -308,6 +321,15 @@ export default function App(){
     setOpenGroupKey(defaultNavigation.openGroupKey)
   }
   const refreshSettings = () => setSettings(loadSettings())
+  const refreshBranches = (nextBranches?: Branch[]) => {
+    setBranches(nextBranches || loadBranches())
+    setActiveBranchState(getActiveBranchId())
+  }
+  const changeActiveBranch = (branchId: string) => {
+    const nextBranchId = setActiveBranchId(branchId, currentUser || undefined)
+    setActiveBranchState(nextBranchId)
+    setBranches(loadBranches())
+  }
   const activeNavLabel = navGroups
     .flatMap(group => group.items)
     .find(item => item.key === activeNavKey)?.label || 'Genel İşletme Özeti'
@@ -347,11 +369,15 @@ export default function App(){
       navGroups={navGroups}
       activeNavKey={activeNavKey}
       activeNavLabel={activeNavLabel}
+      branches={branches}
+      activeBranchId={activeBranchId}
       openGroupKey={openGroupKey}
       onToggleGroup={toggleNavGroup}
       onOpenNavItem={openNavItem}
+      onActiveBranchChange={changeActiveBranch}
       onLogout={logout}
     >
+      <React.Fragment key={activeBranchId}>
       {route === 'tables' && (
         <TableManagement
           currentUser={currentUser}
@@ -408,13 +434,14 @@ export default function App(){
       {route === 'reports' && currentUser.role === 'Admin' && <Reports />}
       {route === 'current-report' && currentUser.role === 'Admin' && <CurrentReport />}
       {route === 'risky-current' && currentUser.role === 'Admin' && <RiskyCurrentAccounts />}
-      {route === 'branches' && currentUser.role === 'Admin' && <BranchManagement currentUser={currentUser} />}
+      {route === 'branches' && currentUser.role === 'Admin' && <BranchManagement currentUser={currentUser} onBranchesChange={refreshBranches} />}
       {route === 'users' && currentUser.role === 'Admin' && <Users currentUser={currentUser} />}
       {route === 'current-accounts' && currentUser.role === 'Admin' && <CurrentAccounts currentUser={currentUser} />}
       {route === 'credit-transactions' && currentUser.role === 'Admin' && <CreditTransactions currentUser={currentUser} />}
       {route === 'collection-transactions' && currentUser.role === 'Admin' && <CollectionTransactions currentUser={currentUser} />}
       {route === 'current-account-movements' && currentUser.role === 'Admin' && <CurrentAccountMovements />}
       {route === 'settings' && currentUser.role === 'Admin' && <Settings currentUser={currentUser} onSettingsChange={refreshSettings} />}
+      </React.Fragment>
     </AppShell>
   )
 }

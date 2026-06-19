@@ -1,6 +1,6 @@
 import React from 'react'
 import { Employee, EmployeePerformance, User } from '../types'
-import { addActionLog, loadEmployeePerformances, loadEmployees, saveEmployeePerformances } from '../storage'
+import { addActionLog, getActiveBranchId, loadEmployeePerformances, loadEmployees, saveEmployeePerformances } from '../storage'
 
 type Props = { currentUser: User }
 type EmployeeFilter = string
@@ -187,6 +187,7 @@ export default function EmployeePerformanceTracking({ currentUser }: Props){
 
     const performance: EmployeePerformance = {
       id: createId('employee_performance'),
+      branchId: getActiveBranchId(),
       employeeId: values.employeeId,
       workDate: values.workDate,
       ...counts,

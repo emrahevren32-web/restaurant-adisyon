@@ -1,6 +1,6 @@
 import React from 'react'
 import { Attendance, AttendanceStatus, Employee, Shift, User } from '../types'
-import { addActionLog, loadAttendances, loadEmployees, loadShifts, saveAttendances } from '../storage'
+import { addActionLog, getActiveBranchId, loadAttendances, loadEmployees, loadShifts, saveAttendances } from '../storage'
 
 type Props = { currentUser: User }
 type EmployeeFilter = string
@@ -274,6 +274,7 @@ export default function AttendanceTracking({ currentUser }: Props){
 
     const attendance: Attendance = {
       id: createId('attendance'),
+      branchId: getActiveBranchId(),
       employeeId: values.employeeId,
       workDate: values.workDate,
       checkInTime: values.checkInTime,

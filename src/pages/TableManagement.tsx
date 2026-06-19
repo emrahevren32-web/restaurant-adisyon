@@ -2,6 +2,7 @@ import React from 'react'
 import { ClosedBill, Discount, KitchenOrder, Order, PaymentPart, Product, ProductCategory, TableState, User } from '../types'
 import {
   addActionLog,
+  getActiveBranchId,
   loadCategories,
   loadClosed,
   loadKitchenOrders,
@@ -175,8 +176,10 @@ export default function TableManagement({ currentUser, focus = 'billing' }: Prop
   const [tables, setTables] = React.useState<TableState[]>(() => {
     const storedTables = loadTables()
     if(storedTables.length===0){
+      const activeBranchId = getActiveBranchId()
       const generated = Array.from({length:6}).map((_,i)=>({
         id:String(i+1),
+        branchId: activeBranchId,
         name:`Masa ${i+1}`,
         open:false,
         orders:[] as Order[]
@@ -240,7 +243,7 @@ export default function TableManagement({ currentUser, focus = 'billing' }: Prop
       return
     }
 
-    const table: TableState = { id: createId('tbl'), name, open:false, orders:[] }
+    const table: TableState = { id: createId('tbl'), branchId: getActiveBranchId(), name, open:false, orders:[] }
     setTables(prev => [...prev, table])
     setSelectedTableId(table.id)
     setNewTableName('')
@@ -347,6 +350,7 @@ export default function TableManagement({ currentUser, focus = 'billing' }: Prop
 
     const kitchenOrder: KitchenOrder = {
       id: createId('kitchen'),
+      branchId: table.branchId,
       tableId: table.id,
       tableName: table.name,
       waiterId: currentUser.id,
@@ -379,6 +383,7 @@ export default function TableManagement({ currentUser, focus = 'billing' }: Prop
     )
     const draftOrder: Order = existingOrderForLog || {
       id: createId('ord'),
+      branchId: tableForLog.branchId,
       productId,
       productName: product.name,
       unitPrice: product.price,
@@ -647,6 +652,7 @@ export default function TableManagement({ currentUser, focus = 'billing' }: Prop
     const closed = loadClosed()
     const mergeHistoryBill: ClosedBill = {
       id: createId('merge'),
+      branchId: source.branchId,
       tableId: source.id,
       tableName: source.name,
       subtotal: sourceSubtotal,
@@ -705,6 +711,7 @@ export default function TableManagement({ currentUser, focus = 'billing' }: Prop
       const closed = loadClosed()
       const bill: ClosedBill = {
         id: createId('bill'),
+        branchId: table.branchId,
         tableId: table.id,
         tableName: table.name,
         subtotal,
@@ -758,6 +765,7 @@ export default function TableManagement({ currentUser, focus = 'billing' }: Prop
     const closed = loadClosed()
     const bill: ClosedBill = {
       id: createId('bill'),
+      branchId: table.branchId,
       tableId: table.id,
       tableName: table.name,
       subtotal: selectedSubtotal,

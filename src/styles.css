@@ -117,6 +117,9 @@ th { color:var(--muted-strong); font-size:13px; font-weight:750 }
 .topbar-title strong { color:var(--text); font-size:18px; line-height:1.2; font-weight:850; overflow:hidden; text-overflow:ellipsis; white-space:nowrap }
 .topbar-eyebrow { color:var(--muted); font-size:12px; font-weight:800; margin-bottom:3px }
 .topbar-actions { display:flex; align-items:center; justify-content:flex-end; gap:10px; height:100%; min-width:0; max-width:100%; flex:0 1 auto; flex-wrap:nowrap }
+.branch-switcher { display:flex; align-items:center; gap:8px; flex:0 1 230px; min-width:174px; max-width:250px; height:var(--touch-target); border:1px solid var(--line); border-radius:var(--radius-md); padding:5px 8px 5px 10px; background:var(--surface); box-shadow:var(--shadow-xs) }
+.branch-switcher span { flex:0 0 auto; color:var(--muted); font-size:11px; font-weight:850; white-space:nowrap }
+.branch-switcher select { min-height:34px; height:34px; padding:6px 30px 6px 9px; border-radius:var(--radius-sm); box-shadow:none; font-size:13px; font-weight:800 }
 .topbar-notification { display:inline-flex; position:relative; align-items:center; justify-content:center; flex:0 0 var(--touch-target); width:var(--touch-target); height:var(--touch-target); border:1px solid var(--line); border-radius:var(--radius-md); background:var(--surface-muted); color:var(--text-soft); font-weight:900 }
 .topbar-bell { position:relative; display:block; width:16px; height:16px; border:2px solid currentColor; border-bottom:0; border-radius:9px 9px 4px 4px }
 .topbar-bell::before { content:''; position:absolute; top:-6px; left:50%; width:5px; height:5px; border-radius:999px; background:currentColor; transform:translateX(-50%) }
@@ -942,9 +945,14 @@ th { color:var(--muted-strong); font-size:13px; font-weight:750 }
   .topbar { align-items:center; flex-direction:row; gap:8px; height:64px; min-height:64px; padding:0 12px }
   .topbar-title { display:none }
   .topbar-actions { width:100%; flex-wrap:nowrap; justify-content:flex-end; gap:8px }
+  .branch-switcher { flex:0 1 136px; min-width:118px; padding:5px 6px }
+  .branch-switcher span { display:none }
+  .branch-switcher select { font-size:12px; padding-left:7px }
   .topbar-user-card { flex:1 1 auto; min-width:0; max-width:none }
   .topbar-notification { flex:0 0 var(--touch-target) }
   .topbar-logout { flex:0 0 auto; width:auto; min-width:74px }
+
+  .branch-switcher { flex-basis:116px; min-width:108px }
   .page-title { flex-direction:column }
   .business-summary-page .page-title > div:first-child, .sales-analysis-page .page-title > div:first-child, .product-performance-page .page-title > div:first-child, .stock-risk-page .page-title > div:first-child, .current-finance-page .page-title > div:first-child, .personnel-performance-center-page .page-title > div:first-child, .manager-alert-center-page .page-title > div:first-child, .branch-management-page .page-title > div:first-child { flex-basis:auto }
   .page-title .btn, .report-export-actions, .report-export-actions .btn { width:100% }

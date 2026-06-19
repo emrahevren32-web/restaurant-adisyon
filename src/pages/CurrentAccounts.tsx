@@ -1,6 +1,6 @@
 import React from 'react'
 import { CurrentAccount, CurrentAccountType, User } from '../types'
-import { addActionLog, loadCurrentAccounts, saveCurrentAccounts } from '../storage'
+import { addActionLog, getActiveBranchId, loadCurrentAccounts, saveCurrentAccounts } from '../storage'
 
 type Props = { currentUser: User }
 type StatusFilter = 'active' | 'inactive' | 'all'
@@ -147,6 +147,7 @@ export default function CurrentAccounts({ currentUser }: Props){
 
     const account: CurrentAccount = {
       id: createId('cari'),
+      branchId: getActiveBranchId(),
       code: createCurrentAccountCode(items),
       ...normalized,
       isActive: true,

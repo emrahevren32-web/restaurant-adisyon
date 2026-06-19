@@ -1,6 +1,6 @@
 import React from 'react'
 import { CreditTransaction, CurrentAccount, User } from '../types'
-import { addActionLog, loadCreditTransactions, loadCurrentAccounts, saveCreditTransactions } from '../storage'
+import { addActionLog, getActiveBranchId, loadCreditTransactions, loadCurrentAccounts, saveCreditTransactions } from '../storage'
 import { formatCurrency } from '../billing'
 
 type Props = { currentUser: User }
@@ -152,6 +152,7 @@ export default function CreditTransactions({ currentUser }: Props){
     const amounts = calculateCreditState(amount, 0)
     const transaction: CreditTransaction = {
       id: createId('veresiye'),
+      branchId: getActiveBranchId(),
       currentAccountId,
       date,
       note,

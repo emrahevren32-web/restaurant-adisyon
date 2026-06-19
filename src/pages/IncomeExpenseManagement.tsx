@@ -6,7 +6,7 @@ import {
   IncomeExpenseType,
   User
 } from '../types'
-import { addActionLog, loadIncomeExpenses, saveIncomeExpenses } from '../storage'
+import { addActionLog, getActiveBranchId, loadIncomeExpenses, saveIncomeExpenses } from '../storage'
 import { formatCurrency } from '../billing'
 
 type Props = { currentUser: User }
@@ -188,6 +188,7 @@ export default function IncomeExpenseManagement({ currentUser }: Props){
 
     const record: IncomeExpense = {
       id: createId('income_expense'),
+      branchId: getActiveBranchId(),
       type: values.type,
       category,
       amount: normalizedAmount,

@@ -133,6 +133,7 @@ const mergeRequestItemsIntoOrders = (
   items.forEach(item => {
     const product = products.find(product => product.id === item.productId) || {
       id: item.productId,
+      branchId: table.branchId,
       name: item.productName,
       price: item.unitPrice,
       categoryId: '',
@@ -143,6 +144,7 @@ const mergeRequestItemsIntoOrders = (
     const existingOrder = nextOrders.find(order => orderMatchesRecipeSnapshot(order, item.productId, item.unitPrice, false, recipeSnapshot))
     const draftOrder: Order = existingOrder || {
       id: createId('ord'),
+      branchId: table.branchId,
       productId: item.productId,
       productName: item.productName,
       unitPrice: item.unitPrice,
@@ -234,6 +236,7 @@ const addKitchenOrderForRequest = (
 
   const kitchenOrder: KitchenOrder = {
     id: createId('kitchen'),
+    branchId: request.branchId,
     tableId: table.id,
     tableName: table.name,
     waiterId: currentUser.id,

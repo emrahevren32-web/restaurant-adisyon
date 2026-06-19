@@ -1,5 +1,5 @@
 import React from 'react'
-import { User } from '../types'
+import { Branch, User } from '../types'
 
 export type ShellNavItem<Route extends string, NavKey extends string> = {
   key: NavKey
@@ -32,9 +32,12 @@ type AppShellProps<
   navGroups: ShellNavGroup<Route, NavKey, GroupKey>[]
   activeNavKey: NavKey
   activeNavLabel: string
+  branches: Branch[]
+  activeBranchId: string
   openGroupKey: GroupKey | null
   onToggleGroup: (groupKey: GroupKey) => void
   onOpenNavItem: (item: ShellNavItem<Route, NavKey>) => void
+  onActiveBranchChange: (branchId: string) => void
   onLogout: () => void
   children: React.ReactNode
 }
@@ -60,13 +63,18 @@ export default function AppShell<
   navGroups,
   activeNavKey,
   activeNavLabel,
+  branches,
+  activeBranchId,
   openGroupKey,
   onToggleGroup,
   onOpenNavItem,
+  onActiveBranchChange,
   onLogout,
   children
 }: AppShellProps<Route, NavKey, GroupKey>){
   const activeGroupKey = navGroups.find(group => group.items.some(item => item.key === activeNavKey))?.key
+  const activeBranches = branches.filter(branch => branch.isActive)
+  const selectableBranches = activeBranches.length > 0 ? activeBranches : branches
 
   return (
     <div className="app-shell">
@@ -133,6 +141,14 @@ export default function AppShell<
               <strong>{activeNavLabel}</strong>
             </div>
             <div className="topbar-actions">
+              <label className="branch-switcher">
+                <span>Aktif Şube</span>
+                <select value={activeBranchId} onChange={event => onActiveBranchChange(event.target.value)}>
+                  {selectableBranches.map(branch => (
+                    <option key={branch.id} value={branch.id}>{branch.name}</option>
+                  ))}
+                </select>
+              </label>
               <div className="topbar-notification" aria-label="Bildirimler" title="Bildirimler">
                 <span className="topbar-bell" aria-hidden="true"></span>
                 <span className="notification-dot" aria-hidden="true"></span>

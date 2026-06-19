@@ -17,6 +17,7 @@ import {
   CreditTransaction,
   CurrentAccount,
   CurrentAccountType,
+  Discount,
   Employee,
   EmployeeAudit,
   EmployeeAuditRecordType,
@@ -30,6 +31,9 @@ import {
   IncomeExpenseType,
   KitchenOrder,
   KitchenOrderStatus,
+  Order,
+  PaymentMethod,
+  PaymentPart,
   Product,
   ProductCategory,
   QRAuditEvent,
@@ -124,6 +128,7 @@ const KEY_TABLES = 'ra_tables'
 const KEY_CLOSED = 'ra_closed'
 const KEY_USERS = 'ra_users'
 const KEY_BRANCHES = 'ra_branches'
+const KEY_ACTIVE_BRANCH = 'ra_active_branch_id'
 const KEY_EMPLOYEES = 'ra_employees'
 const KEY_SHIFTS = 'ra_shifts'
 const KEY_ATTENDANCES = 'ra_attendances'
@@ -149,6 +154,7 @@ const KEY_SETTINGS = 'ra_settings'
 const KEY_WAITER_CALLS = 'ra_waiter_calls'
 const KEY_WAITER_CALL_HISTORY = 'ra_waiter_call_history'
 
+export const DEFAULT_BRANCH_ID = 'branch_merkez'
 const DEFAULT_CATEGORY_ID = 'cat_general'
 const DEFAULT_STOCK_CATEGORY_ID = 'stock_cat_general'
 const STOCK_UNITS: StockUnit[] = ['adet', 'kg', 'gr', 'lt', 'ml', 'paket', 'koli']
@@ -212,6 +218,126 @@ const getAppStorageKeys = () => {
   return keys
 }
 
+type BranchScopedRecord = {
+  id: string
+  branchId: string
+}
+
+const getBranchIdValue = (item: { branchId?: string } | undefined, fallbackBranchId = DEFAULT_BRANCH_ID) => {
+  const branchId = String(item?.branchId || '').trim()
+  return branchId || fallbackBranchId
+}
+
+const withBranchIdFallback = <T extends object>(item: Partial<T>, fallbackBranchId: string): Partial<T> & { branchId: string } => {
+  return {
+    ...item,
+    branchId: getBranchIdValue(item as { branchId?: string }, fallbackBranchId)
+  }
+}
+
+const readBranchesFromStorage = () => {
+  const stored = localStorage.getItem(KEY_BRANCHES)
+  if(stored === null) return createDemoBranches()
+
+  return readJson<Partial<Branch>[]>(KEY_BRANCHES, []).map(normalizeBranch)
+}
+
+export function getActiveBranchId(){
+  const branches = readBranchesFromStorage()
+  const storedBranchId = String(localStorage.getItem(KEY_ACTIVE_BRANCH) || '').trim()
+  const selectedBranch = branches.find(branch => branch.id === storedBranchId && branch.isActive)
+    || branches.find(branch => branch.id === DEFAULT_BRANCH_ID && branch.isActive)
+    || branches.find(branch => branch.isActive)
+    || branches[0]
+
+  const activeBranchId = selectedBranch?.id || DEFAULT_BRANCH_ID
+  localStorage.setItem(KEY_ACTIVE_BRANCH, activeBranchId)
+  return activeBranchId
+}
+
+export function getActiveBranch(){
+  const branches = readBranchesFromStorage()
+  const activeBranchId = getActiveBranchId()
+  return branches.find(branch => branch.id === activeBranchId) || branches[0]
+}
+
+export function setActiveBranchId(branchId: string, user?: User){
+  const branches = readBranchesFromStorage()
+  const previousBranchId = getActiveBranchId()
+  const previousBranch = branches.find(branch => branch.id === previousBranchId)
+  const selectedBranch = branches.find(branch => branch.id === branchId && branch.isActive)
+    || branches.find(branch => branch.id === DEFAULT_BRANCH_ID && branch.isActive)
+    || branches.find(branch => branch.isActive)
+    || branches[0]
+
+  const nextBranchId = selectedBranch?.id || DEFAULT_BRANCH_ID
+  localStorage.setItem(KEY_ACTIVE_BRANCH, nextBranchId)
+
+  if(user && previousBranchId !== nextBranchId){
+    addActionLog({
+      operationType: 'Şube değiştirildi',
+      user,
+      description: `Aktif şube ${previousBranch?.name || previousBranchId || 'Bilinmeyen şube'} -> ${selectedBranch?.name || nextBranchId} olarak değiştirildi.`
+    })
+  }
+
+  return nextBranchId
+}
+
+const normalizeBranchScopedItems = <T extends BranchScopedRecord>(
+  items: Partial<T>[],
+  normalizer: (item: Partial<T>) => T,
+  fallbackBranchId: string,
+  predicate?: (item: T) => boolean
+) => {
+  const normalized = items.map(item => normalizer(withBranchIdFallback<T>(item, fallbackBranchId)))
+  return predicate ? normalized.filter(predicate) : normalized
+}
+
+const loadBranchScopedItems = <T extends BranchScopedRecord>(
+  key: string,
+  normalizer: (item: Partial<T>) => T,
+  predicate?: (item: T) => boolean
+) => {
+  const activeBranchId = getActiveBranchId()
+  return normalizeBranchScopedItems(readJson<Partial<T>[]>(key, []), normalizer, DEFAULT_BRANCH_ID, predicate)
+    .filter(item => item.branchId === activeBranchId)
+}
+
+const loadBranchScopedItemsWithDemo = <T extends BranchScopedRecord>(
+  key: string,
+  createDemoItems: () => T[],
+  normalizer: (item: Partial<T>) => T,
+  predicate?: (item: T) => boolean
+) => {
+  const activeBranchId = getActiveBranchId()
+  const sourceItems = localStorage.getItem(key) === null
+    ? createDemoItems()
+    : readJson<Partial<T>[]>(key, [])
+
+  return normalizeBranchScopedItems(sourceItems, normalizer, DEFAULT_BRANCH_ID, predicate)
+    .filter(item => item.branchId === activeBranchId)
+}
+
+const saveBranchScopedItems = <T extends BranchScopedRecord>(
+  key: string,
+  items: T[],
+  normalizer: (item: Partial<T>) => T,
+  predicate?: (item: T) => boolean
+) => {
+  const activeBranchId = getActiveBranchId()
+  const normalizedItems = normalizeBranchScopedItems(items, normalizer, activeBranchId, predicate)
+  const touchedBranchIds = new Set(normalizedItems.map(item => item.branchId))
+
+  if(touchedBranchIds.size === 0){
+    touchedBranchIds.add(activeBranchId)
+  }
+
+  const existingItems = normalizeBranchScopedItems(readJson<Partial<T>[]>(key, []), normalizer, DEFAULT_BRANCH_ID, predicate)
+  const preservedItems = existingItems.filter(item => !touchedBranchIds.has(item.branchId))
+  localStorage.setItem(key, JSON.stringify([...normalizedItems, ...preservedItems]))
+}
+
 const normalizeCategory = (item: Partial<ProductCategory>): ProductCategory => ({
   id: String(item.id || `cat_${Date.now()}`),
   name: String(item.name || 'Genel').trim() || 'Genel',
@@ -224,6 +350,7 @@ const normalizeProduct = (item: Partial<Product>, fallbackCategoryId = DEFAULT_C
 
   return {
     id: String(item.id || `prd_${Date.now()}`),
+    branchId: getBranchIdValue(item),
     name: String(item.name || 'İsimsiz Ürün').trim() || 'İsimsiz Ürün',
     price: Number.isFinite(price) ? price : 0,
     categoryId: item.categoryId || fallbackCategoryId,
@@ -248,6 +375,7 @@ const normalizeEmployee = (item: Partial<Employee>): Employee => {
 
   return {
     id: String(item.id || `employee_${Date.now()}`),
+    branchId: getBranchIdValue(item),
     code: String(item.code || '').trim(),
     fullName: String(item.fullName || '').trim(),
     position: normalizeEmployeePosition(item.position),
@@ -280,6 +408,7 @@ const normalizeShift = (item: Partial<Shift>): Shift => {
 
   return {
     id: String(item.id || `shift_${Date.now()}`),
+    branchId: getBranchIdValue(item),
     employeeId: String(item.employeeId || ''),
     shiftName: normalizeShiftName(item.shiftName),
     startTime: normalizeTimeValue(item.startTime, '08:00'),
@@ -303,6 +432,7 @@ const normalizeAttendance = (item: Partial<Attendance>): Attendance => {
 
   return {
     id: String(item.id || `attendance_${Date.now()}`),
+    branchId: getBranchIdValue(item),
     employeeId: String(item.employeeId || ''),
     workDate: String(item.workDate || new Date().toLocaleDateString('sv-SE')),
     checkInTime: normalizeTimeValue(item.checkInTime, ''),
@@ -339,6 +469,7 @@ const normalizeEmployeePerformance = (item: Partial<EmployeePerformance>): Emplo
 
   return {
     id: String(item.id || `employee_performance_${Date.now()}`),
+    branchId: getBranchIdValue(item),
     employeeId: String(item.employeeId || ''),
     workDate: String(item.workDate || new Date().toLocaleDateString('sv-SE')),
     servedTableCount,
@@ -386,6 +517,7 @@ const normalizeEmployeeBonus = (item: Partial<EmployeeBonus>): EmployeeBonus => 
 
   return {
     id: String(item.id || `employee_bonus_${Date.now()}`),
+    branchId: getBranchIdValue(item),
     employeeId: String(item.employeeId || ''),
     period: normalizePeriodValue(item.period),
     performanceScore: amounts.performanceScore,
@@ -415,6 +547,7 @@ const normalizeEmployeeAudit = (item: Partial<EmployeeAudit>): EmployeeAudit => 
 
   return {
     id: String(item.id || `employee_audit_${Date.now()}`),
+    branchId: getBranchIdValue(item),
     employeeId: String(item.employeeId || ''),
     date: String(item.date || new Date().toLocaleDateString('sv-SE')),
     recordType: normalizeEmployeeAuditRecordType(item.recordType),
@@ -432,6 +565,7 @@ const normalizeCurrentAccount = (item: Partial<CurrentAccount>): CurrentAccount 
 
   return {
     id: String(item.id || `cari_${Date.now()}`),
+    branchId: getBranchIdValue(item),
     code: String(item.code || `CARI-${Date.now()}`).trim() || `CARI-${Date.now()}`,
     name: String(item.name || 'İsimsiz Cari').trim() || 'İsimsiz Cari',
     type: normalizeCurrentAccountType(item.type),
@@ -527,6 +661,7 @@ const normalizeCreditTransaction = (item: Partial<CreditTransaction>): CreditTra
 
   return {
     id: String(item.id || `veresiye_${Date.now()}`),
+    branchId: getBranchIdValue(item),
     currentAccountId: String(item.currentAccountId || ''),
     date: String(item.date || new Date().toLocaleDateString('sv-SE')),
     amount: amounts.amount,
@@ -545,6 +680,7 @@ const normalizeSupplierDebt = (item: Partial<SupplierDebt>): SupplierDebt => {
 
   return {
     id: String(item.id || `supplier_debt_${Date.now()}`),
+    branchId: getBranchIdValue(item),
     currentAccountId: String(item.currentAccountId || ''),
     date: String(item.date || new Date().toLocaleDateString('sv-SE')),
     amount: amounts.amount,
@@ -568,6 +704,7 @@ const normalizeCollectionTransaction = (item: Partial<CollectionTransaction>): C
 
   return {
     id: String(item.id || `tahsilat_${Date.now()}`),
+    branchId: getBranchIdValue(item),
     currentAccountId: String(item.currentAccountId || ''),
     date: String(item.date || new Date().toLocaleDateString('sv-SE')),
     amount: Number.isFinite(amount) ? Math.max(0, roundMoneyValue(amount)) : 0,
@@ -587,6 +724,7 @@ const normalizeSupplierPayment = (item: Partial<SupplierPayment>): SupplierPayme
 
   return {
     id: String(item.id || `supplier_payment_${Date.now()}`),
+    branchId: getBranchIdValue(item),
     supplierDebtId: String(item.supplierDebtId || ''),
     currentAccountId: String(item.currentAccountId || ''),
     date: String(item.date || new Date().toLocaleDateString('sv-SE')),
@@ -610,6 +748,7 @@ const normalizeCashTransaction = (item: Partial<CashTransaction>): CashTransacti
 
   return {
     id: String(item.id || `cash_${Date.now()}`),
+    branchId: getBranchIdValue(item),
     date: String(item.date || new Date().toLocaleDateString('sv-SE')),
     type: normalizeCashTransactionType(item.type),
     category: String(item.category || 'Diğer').trim() || 'Diğer',
@@ -635,6 +774,7 @@ const normalizeIncomeExpense = (item: Partial<IncomeExpense>): IncomeExpense => 
 
   return {
     id: String(item.id || `income_expense_${Date.now()}`),
+    branchId: getBranchIdValue(item),
     date: String(item.date || new Date().toLocaleDateString('sv-SE')),
     type: normalizeIncomeExpenseType(item.type),
     category: String(item.category || 'Diğer').trim() || 'Diğer',
@@ -666,6 +806,7 @@ const normalizeCashClosing = (item: Partial<CashClosing>): CashClosing => {
 
   return {
     id: String(item.id || `cash_closing_${Date.now()}`),
+    branchId: getBranchIdValue(item),
     date: String(item.date || new Date().toLocaleDateString('sv-SE')),
     openingBalance: normalizedOpeningBalance,
     totalIncome: normalizedTotalIncome,
@@ -685,6 +826,7 @@ const normalizeCashTransfer = (item: Partial<CashTransfer>): CashTransfer => {
 
   return {
     id: String(item.id || `cash_transfer_${Date.now()}`),
+    branchId: getBranchIdValue(item),
     date: String(item.date || new Date().toLocaleDateString('sv-SE')),
     transferNo: String(item.transferNo || ''),
     fromUser: String(item.fromUser || ''),
@@ -936,6 +1078,7 @@ const createDemoEmployeeAudits = (now = new Date().toISOString()): EmployeeAudit
 const createDemoCurrentAccounts = (now = new Date().toISOString()): CurrentAccount[] => [
   {
     id: 'cari_ali_veli',
+    branchId: DEFAULT_BRANCH_ID,
     code: 'CARI-001',
     name: 'Ali Veli',
     type: 'Müşteri',
@@ -951,6 +1094,7 @@ const createDemoCurrentAccounts = (now = new Date().toISOString()): CurrentAccou
   },
   {
     id: 'cari_abc_gida',
+    branchId: DEFAULT_BRANCH_ID,
     code: 'CARI-002',
     name: 'ABC Gıda',
     type: 'Tedarikçi',
@@ -966,6 +1110,7 @@ const createDemoCurrentAccounts = (now = new Date().toISOString()): CurrentAccou
   },
   {
     id: 'cari_can_ciger',
+    branchId: DEFAULT_BRANCH_ID,
     code: 'CARI-003',
     name: 'Can Ciğer Ltd.',
     type: 'Firma',
@@ -1136,6 +1281,7 @@ const normalizeStockItem = (item: Partial<StockItem>, fallbackCategoryId = DEFAU
 
   return {
     id: String(item.id || `stock_${Date.now()}`),
+    branchId: getBranchIdValue(item),
     name: String(item.name || 'İsimsiz Stok Kartı').trim() || 'İsimsiz Stok Kartı',
     categoryId: item.categoryId || fallbackCategoryId,
     unit: normalizeStockUnit(item.unit),
@@ -1201,6 +1347,7 @@ const normalizeStockMovement = (item: Partial<StockMovement>): StockMovement => 
 
   return {
     id: String(item.id || `stock_move_${Date.now()}`),
+    branchId: getBranchIdValue(item),
     stockItemId: String(item.stockItemId || ''),
     stockItemName: String(item.stockItemName || 'Stok Kartı'),
     type: normalizeStockMovementType(item.type),
@@ -1316,6 +1463,7 @@ const normalizeStockExpiryLot = (item: Partial<StockExpiryLot>): StockExpiryLot 
 
   return {
     id,
+    branchId: getBranchIdValue(item),
     lotCode: String(item.lotCode || `LOT-${id.slice(-6).toUpperCase()}`),
     stockItemId: String(item.stockItemId || ''),
     stockItemName: String(item.stockItemName || 'Stok Kartı'),
@@ -1419,6 +1567,7 @@ const normalizeStockWasteRecord = (item: Partial<StockWasteRecord>): StockWasteR
 
   return {
     id: String(item.id || `stock_waste_${Date.now()}`),
+    branchId: getBranchIdValue(item),
     stockMovementId: String(item.stockMovementId || ''),
     stockItemId: String(item.stockItemId || ''),
     stockItemName: String(item.stockItemName || 'Stok Kartı'),
@@ -1505,6 +1654,7 @@ const normalizeStockDeductionBatch = (item: Partial<StockDeductionBatch>): Stock
 
   return {
     id: String(item.id || `stock_deduction_${Date.now()}`),
+    branchId: getBranchIdValue(item),
     orderId: String(item.orderId || ''),
     tableId: String(item.tableId || ''),
     tableName: String(item.tableName || 'Masa'),
@@ -1587,6 +1737,7 @@ const normalizeRecipe = (item: Partial<Recipe>): Recipe => {
 
   return {
     id: String(item.id || `recipe_${Date.now()}`),
+    branchId: getBranchIdValue(item),
     productId: String(item.productId || ''),
     productName: String(item.productName || 'Ürün'),
     name: String(item.name || 'Reçete').trim() || 'Reçete',
@@ -1646,6 +1797,7 @@ const normalizeKitchenOrder = (item: Partial<KitchenOrder>): KitchenOrder => {
 
   return {
     id: String(item.id || `kitchen_${Date.now()}`),
+    branchId: getBranchIdValue(item),
     tableId: String(item.tableId || ''),
     tableName: String(item.tableName || 'Masa'),
     waiterId: String(item.waiterId || ''),
@@ -1696,6 +1848,7 @@ const normalizeQRRequest = (item: Partial<QRRequest>): QRRequest => {
 
   return {
     id: String(item.id || `qr_${Date.now()}`),
+    branchId: getBranchIdValue(item),
     tableId: String(item.tableId || ''),
     tableName: String(item.tableName || 'Masa'),
     items,
@@ -1805,6 +1958,103 @@ const normalizeQRAuditEvent = (item: Partial<QRAuditEvent>): QRAuditEvent => ({
   note: item.note || ''
 })
 
+const normalizePaymentMethod = (value: unknown): PaymentMethod => {
+  if(value === 'Kart' || value === 'Diğer') return value
+  return 'Nakit'
+}
+
+const normalizePaymentParts = (items?: Partial<PaymentPart>[]): PaymentPart[] => {
+  return (items || [])
+    .map(item => {
+      const amount = Number(item.amount)
+
+      return {
+        method: normalizePaymentMethod(item.method),
+        amount: Number.isFinite(amount) ? Math.max(0, roundMoneyValue(amount)) : 0
+      }
+    })
+    .filter(item => item.amount > 0)
+}
+
+const normalizeDiscount = (item?: Partial<Discount>): Discount | undefined => {
+  if(!item) return undefined
+
+  const value = Number(item.value)
+  if(!Number.isFinite(value) || value <= 0) return undefined
+
+  return {
+    type: item.type === 'percent' ? 'percent' : 'amount',
+    value: item.type === 'percent' ? Math.min(100, value) : value
+  }
+}
+
+const normalizeOrder = (item: Partial<Order>, fallbackBranchId = DEFAULT_BRANCH_ID): Order => {
+  const qty = Number(item.qty)
+  const unitPrice = Number(item.unitPrice)
+  const stockDeductedQty = Number(item.stockDeductedQty)
+
+  return {
+    id: String(item.id || `ord_${Date.now()}`),
+    branchId: getBranchIdValue(item, fallbackBranchId),
+    productId: String(item.productId || ''),
+    productName: item.productName,
+    unitPrice: Number.isFinite(unitPrice) ? Math.max(0, unitPrice) : undefined,
+    qty: Number.isFinite(qty) ? Math.max(0, Math.round(qty)) : 0,
+    isGift: item.isGift === true,
+    recipeId: item.recipeId,
+    recipeVersion: item.recipeVersion,
+    recipeSnapshot: item.recipeSnapshot,
+    stockDeductionStatus: item.stockDeductionStatus,
+    stockDeductionBatchIds: item.stockDeductionBatchIds || [],
+    stockDeductedQty: Number.isFinite(stockDeductedQty) ? Math.max(0, stockDeductedQty) : undefined,
+    stockDeductionWarnings: item.stockDeductionWarnings || []
+  }
+}
+
+const normalizeTableState = (item: Partial<TableState>): TableState => {
+  const branchId = getBranchIdValue(item)
+
+  return {
+    id: String(item.id || `tbl_${Date.now()}`),
+    branchId,
+    name: String(item.name || 'Masa').trim() || 'Masa',
+    open: item.open === true,
+    orders: (item.orders || []).map(order => normalizeOrder(order, branchId)).filter(order => order.productId && order.qty > 0),
+    note: item.note || '',
+    discount: normalizeDiscount(item.discount)
+  }
+}
+
+const normalizeClosedBill = (item: Partial<ClosedBill>): ClosedBill => {
+  const branchId = getBranchIdValue(item)
+  const subtotal = Number(item.subtotal)
+  const total = Number(item.total)
+  const discountTotal = Number(item.discountTotal)
+
+  return {
+    id: String(item.id || `bill_${Date.now()}`),
+    branchId,
+    tableId: String(item.tableId || ''),
+    tableName: String(item.tableName || 'Masa'),
+    subtotal: Number.isFinite(subtotal) ? Math.max(0, roundMoneyValue(subtotal)) : undefined,
+    total: Number.isFinite(total) ? Math.max(0, roundMoneyValue(total)) : 0,
+    timestamp: item.timestamp || new Date().toISOString(),
+    orders: (item.orders || []).map(order => normalizeOrder(order, branchId)).filter(order => order.productId && order.qty > 0),
+    paymentMethod: normalizePaymentMethod(item.paymentMethod),
+    payments: normalizePaymentParts(item.payments),
+    splitPayment: item.splitPayment === true,
+    splitLabel: item.splitLabel,
+    mergeHistory: item.mergeHistory === true,
+    mergeTargetTableId: item.mergeTargetTableId,
+    mergeTargetTableName: item.mergeTargetTableName,
+    closedByUserId: item.closedByUserId,
+    closedByFullName: item.closedByFullName,
+    note: item.note || '',
+    discount: normalizeDiscount(item.discount),
+    discountTotal: Number.isFinite(discountTotal) ? Math.max(0, roundMoneyValue(discountTotal)) : undefined
+  }
+}
+
 const normalizeSettings = (item: Partial<SystemSettings>): SystemSettings => {
   const vatRate = Number(item.vatRate)
 
@@ -1856,106 +2106,85 @@ const normalizeActionLog = (item: Partial<ActionLog>): ActionLog => {
 export const loadProducts = (): Product[] => {
   const categories = loadCategories()
   const fallbackCategoryId = categories.find(c => c.id === DEFAULT_CATEGORY_ID)?.id || categories[0]?.id || DEFAULT_CATEGORY_ID
-  return readJson<Partial<Product>[]>(KEY_PRODUCTS, []).map(item => normalizeProduct(item, fallbackCategoryId))
+  return loadBranchScopedItems(KEY_PRODUCTS, item => normalizeProduct(item, fallbackCategoryId))
 }
 
 export const saveProducts = (items: Product[]) => {
   const categories = loadCategories()
   const fallbackCategoryId = categories.find(c => c.id === DEFAULT_CATEGORY_ID)?.id || categories[0]?.id || DEFAULT_CATEGORY_ID
-  localStorage.setItem(KEY_PRODUCTS, JSON.stringify(items.map(item => normalizeProduct(item, fallbackCategoryId))))
+  saveBranchScopedItems(KEY_PRODUCTS, items, item => normalizeProduct(item, fallbackCategoryId))
 }
 
 export const loadCurrentAccounts = (): CurrentAccount[] => {
-  const stored = localStorage.getItem(KEY_CURRENT_ACCOUNTS)
-  if(stored === null) return createDemoCurrentAccounts()
-
-  return readJson<Partial<CurrentAccount>[]>(KEY_CURRENT_ACCOUNTS, []).map(normalizeCurrentAccount)
+  return loadBranchScopedItemsWithDemo(KEY_CURRENT_ACCOUNTS, createDemoCurrentAccounts, normalizeCurrentAccount)
 }
 
 export const saveCurrentAccounts = (items: CurrentAccount[]) => {
-  localStorage.setItem(KEY_CURRENT_ACCOUNTS, JSON.stringify(items.map(normalizeCurrentAccount)))
+  saveBranchScopedItems(KEY_CURRENT_ACCOUNTS, items, normalizeCurrentAccount)
 }
 
 export const loadCreditTransactions = (): CreditTransaction[] => {
-  const stored = localStorage.getItem(KEY_CREDIT_TRANSACTIONS)
-  if(stored === null) return createDemoCreditTransactions()
-
-  return readJson<Partial<CreditTransaction>[]>(KEY_CREDIT_TRANSACTIONS, []).map(normalizeCreditTransaction)
+  return loadBranchScopedItemsWithDemo(KEY_CREDIT_TRANSACTIONS, createDemoCreditTransactions, normalizeCreditTransaction)
 }
 
 export const saveCreditTransactions = (items: CreditTransaction[]) => {
-  localStorage.setItem(KEY_CREDIT_TRANSACTIONS, JSON.stringify(items.map(normalizeCreditTransaction)))
+  saveBranchScopedItems(KEY_CREDIT_TRANSACTIONS, items, normalizeCreditTransaction)
 }
 
 export const loadSupplierDebts = (): SupplierDebt[] => {
-  const stored = localStorage.getItem(KEY_SUPPLIER_DEBTS)
-  if(stored === null) return createDemoSupplierDebts()
-
-  return readJson<Partial<SupplierDebt>[]>(KEY_SUPPLIER_DEBTS, []).map(normalizeSupplierDebt)
+  return loadBranchScopedItemsWithDemo(KEY_SUPPLIER_DEBTS, createDemoSupplierDebts, normalizeSupplierDebt)
 }
 
 export const saveSupplierDebts = (items: SupplierDebt[]) => {
-  localStorage.setItem(KEY_SUPPLIER_DEBTS, JSON.stringify(items.map(normalizeSupplierDebt)))
+  saveBranchScopedItems(KEY_SUPPLIER_DEBTS, items, normalizeSupplierDebt)
 }
 
 export const loadSupplierPayments = (): SupplierPayment[] => {
-  const stored = localStorage.getItem(KEY_SUPPLIER_PAYMENTS)
-  if(stored === null) return createDemoSupplierPayments()
-
-  return readJson<Partial<SupplierPayment>[]>(KEY_SUPPLIER_PAYMENTS, []).map(normalizeSupplierPayment)
+  return loadBranchScopedItemsWithDemo(KEY_SUPPLIER_PAYMENTS, createDemoSupplierPayments, normalizeSupplierPayment)
 }
 
 export const saveSupplierPayments = (items: SupplierPayment[]) => {
-  localStorage.setItem(KEY_SUPPLIER_PAYMENTS, JSON.stringify(items.map(normalizeSupplierPayment)))
+  saveBranchScopedItems(KEY_SUPPLIER_PAYMENTS, items, normalizeSupplierPayment)
 }
 
 export const loadCashTransactions = (): CashTransaction[] => {
-  return readJson<Partial<CashTransaction>[]>(KEY_CASH_TRANSACTIONS, []).map(normalizeCashTransaction)
+  return loadBranchScopedItems(KEY_CASH_TRANSACTIONS, normalizeCashTransaction)
 }
 
 export const saveCashTransactions = (items: CashTransaction[]) => {
-  localStorage.setItem(KEY_CASH_TRANSACTIONS, JSON.stringify(items.map(normalizeCashTransaction)))
+  saveBranchScopedItems(KEY_CASH_TRANSACTIONS, items, normalizeCashTransaction)
 }
 
 export const loadIncomeExpenses = (): IncomeExpense[] => {
-  const stored = localStorage.getItem(KEY_INCOME_EXPENSES)
-  if(stored === null) return createDemoIncomeExpenses()
-
-  return readJson<Partial<IncomeExpense>[]>(KEY_INCOME_EXPENSES, []).map(normalizeIncomeExpense)
+  return loadBranchScopedItemsWithDemo(KEY_INCOME_EXPENSES, createDemoIncomeExpenses, normalizeIncomeExpense)
 }
 
 export const saveIncomeExpenses = (items: IncomeExpense[]) => {
-  localStorage.setItem(KEY_INCOME_EXPENSES, JSON.stringify(items.map(normalizeIncomeExpense)))
+  saveBranchScopedItems(KEY_INCOME_EXPENSES, items, normalizeIncomeExpense)
 }
 
 export const loadCashClosings = (): CashClosing[] => {
-  return readJson<Partial<CashClosing>[]>(KEY_CASH_CLOSINGS, []).map(normalizeCashClosing)
+  return loadBranchScopedItems(KEY_CASH_CLOSINGS, normalizeCashClosing)
 }
 
 export const saveCashClosings = (items: CashClosing[]) => {
-  localStorage.setItem(KEY_CASH_CLOSINGS, JSON.stringify(items.map(normalizeCashClosing)))
+  saveBranchScopedItems(KEY_CASH_CLOSINGS, items, normalizeCashClosing)
 }
 
 export const loadCashTransfers = (): CashTransfer[] => {
-  const stored = localStorage.getItem(KEY_CASH_TRANSFERS)
-  if(stored === null) return createDemoCashTransfers()
-
-  return readJson<Partial<CashTransfer>[]>(KEY_CASH_TRANSFERS, []).map(normalizeCashTransfer)
+  return loadBranchScopedItemsWithDemo(KEY_CASH_TRANSFERS, createDemoCashTransfers, normalizeCashTransfer)
 }
 
 export const saveCashTransfers = (items: CashTransfer[]) => {
-  localStorage.setItem(KEY_CASH_TRANSFERS, JSON.stringify(items.map(normalizeCashTransfer)))
+  saveBranchScopedItems(KEY_CASH_TRANSFERS, items, normalizeCashTransfer)
 }
 
 export const loadCollectionTransactions = (): CollectionTransaction[] => {
-  const stored = localStorage.getItem(KEY_COLLECTION_TRANSACTIONS)
-  if(stored === null) return createDemoCollectionTransactions()
-
-  return readJson<Partial<CollectionTransaction>[]>(KEY_COLLECTION_TRANSACTIONS, []).map(normalizeCollectionTransaction)
+  return loadBranchScopedItemsWithDemo(KEY_COLLECTION_TRANSACTIONS, createDemoCollectionTransactions, normalizeCollectionTransaction)
 }
 
 export const saveCollectionTransactions = (items: CollectionTransaction[]) => {
-  localStorage.setItem(KEY_COLLECTION_TRANSACTIONS, JSON.stringify(items.map(normalizeCollectionTransaction)))
+  saveBranchScopedItems(KEY_COLLECTION_TRANSACTIONS, items, normalizeCollectionTransaction)
 }
 
 export const loadCategories = (): ProductCategory[] => {
@@ -2003,21 +2232,21 @@ export const saveStockCategories = (items: StockCategory[]) => {
 export const loadStockItems = (): StockItem[] => {
   const categories = loadStockCategories()
   const fallbackCategoryId = categories.find(c => c.id === DEFAULT_STOCK_CATEGORY_ID)?.id || categories[0]?.id || DEFAULT_STOCK_CATEGORY_ID
-  return readJson<Partial<StockItem>[]>(KEY_STOCK_ITEMS, []).map(item => normalizeStockItem(item, fallbackCategoryId))
+  return loadBranchScopedItems(KEY_STOCK_ITEMS, item => normalizeStockItem(item, fallbackCategoryId))
 }
 
 export const saveStockItems = (items: StockItem[]) => {
   const categories = loadStockCategories()
   const fallbackCategoryId = categories.find(c => c.id === DEFAULT_STOCK_CATEGORY_ID)?.id || categories[0]?.id || DEFAULT_STOCK_CATEGORY_ID
-  localStorage.setItem(KEY_STOCK_ITEMS, JSON.stringify(items.map(item => normalizeStockItem(item, fallbackCategoryId))))
+  saveBranchScopedItems(KEY_STOCK_ITEMS, items, item => normalizeStockItem(item, fallbackCategoryId))
 }
 
 export const loadStockMovements = (): StockMovement[] => {
-  return readJson<Partial<StockMovement>[]>(KEY_STOCK_MOVEMENTS, []).map(normalizeStockMovement)
+  return loadBranchScopedItems(KEY_STOCK_MOVEMENTS, normalizeStockMovement)
 }
 
 export const saveStockMovements = (items: StockMovement[]) => {
-  localStorage.setItem(KEY_STOCK_MOVEMENTS, JSON.stringify(items.map(normalizeStockMovement)))
+  saveBranchScopedItems(KEY_STOCK_MOVEMENTS, items, normalizeStockMovement)
 }
 
 export const loadStockMovementAuditEvents = (): StockMovementAuditEvent[] => {
@@ -2045,11 +2274,11 @@ export const addCriticalStockEvent = (event: CriticalStockEvent) => {
 }
 
 export const loadStockExpiryLots = (): StockExpiryLot[] => {
-  return readJson<Partial<StockExpiryLot>[]>(KEY_STOCK_EXPIRY_LOTS, []).map(normalizeStockExpiryLot).filter(lot => lot.stockItemId)
+  return loadBranchScopedItems(KEY_STOCK_EXPIRY_LOTS, normalizeStockExpiryLot, lot => Boolean(lot.stockItemId))
 }
 
 export const saveStockExpiryLots = (items: StockExpiryLot[]) => {
-  localStorage.setItem(KEY_STOCK_EXPIRY_LOTS, JSON.stringify(items.map(normalizeStockExpiryLot).filter(lot => lot.stockItemId)))
+  saveBranchScopedItems(KEY_STOCK_EXPIRY_LOTS, items, normalizeStockExpiryLot, lot => Boolean(lot.stockItemId))
 }
 
 export const loadStockExpiryEvents = (): StockExpiryEvent[] => {
@@ -2065,11 +2294,11 @@ export const addStockExpiryEvent = (event: StockExpiryEvent) => {
 }
 
 export const loadStockDeductionBatches = (): StockDeductionBatch[] => {
-  return readJson<Partial<StockDeductionBatch>[]>(KEY_STOCK_DEDUCTION_BATCHES, []).map(normalizeStockDeductionBatch)
+  return loadBranchScopedItems(KEY_STOCK_DEDUCTION_BATCHES, normalizeStockDeductionBatch)
 }
 
 export const saveStockDeductionBatches = (items: StockDeductionBatch[]) => {
-  localStorage.setItem(KEY_STOCK_DEDUCTION_BATCHES, JSON.stringify(items.map(normalizeStockDeductionBatch)))
+  saveBranchScopedItems(KEY_STOCK_DEDUCTION_BATCHES, items, normalizeStockDeductionBatch)
 }
 
 export const addStockDeductionBatch = (batch: StockDeductionBatch) => {
@@ -2089,11 +2318,11 @@ export const addStockDeductionAuditEvent = (event: StockDeductionAuditEvent) => 
 }
 
 export const loadStockWasteRecords = (): StockWasteRecord[] => {
-  return readJson<Partial<StockWasteRecord>[]>(KEY_STOCK_WASTE_RECORDS, []).map(normalizeStockWasteRecord).filter(record => record.stockItemId && record.stockMovementId)
+  return loadBranchScopedItems(KEY_STOCK_WASTE_RECORDS, normalizeStockWasteRecord, record => Boolean(record.stockItemId && record.stockMovementId))
 }
 
 export const saveStockWasteRecords = (items: StockWasteRecord[]) => {
-  localStorage.setItem(KEY_STOCK_WASTE_RECORDS, JSON.stringify(items.map(normalizeStockWasteRecord).filter(record => record.stockItemId && record.stockMovementId)))
+  saveBranchScopedItems(KEY_STOCK_WASTE_RECORDS, items, normalizeStockWasteRecord, record => Boolean(record.stockItemId && record.stockMovementId))
 }
 
 export const addStockWasteRecord = (record: StockWasteRecord) => {
@@ -2101,11 +2330,11 @@ export const addStockWasteRecord = (record: StockWasteRecord) => {
 }
 
 export const loadRecipes = (): Recipe[] => {
-  return readJson<Partial<Recipe>[]>(KEY_RECIPES, []).map(normalizeRecipe)
+  return loadBranchScopedItems(KEY_RECIPES, normalizeRecipe)
 }
 
 export const saveRecipes = (items: Recipe[]) => {
-  localStorage.setItem(KEY_RECIPES, JSON.stringify(items.map(normalizeRecipe)))
+  saveBranchScopedItems(KEY_RECIPES, items, normalizeRecipe)
 }
 
 export const loadRecipeAuditEvents = (): RecipeAuditEvent[] => {
@@ -2121,43 +2350,43 @@ export const addRecipeAuditEvent = (event: RecipeAuditEvent) => {
 }
 
 export const loadTables = (): TableState[] => {
-  return readJson<TableState[]>(KEY_TABLES, [])
+  return loadBranchScopedItems(KEY_TABLES, normalizeTableState)
 }
 
 export const saveTables = (items: TableState[]) => {
-  localStorage.setItem(KEY_TABLES, JSON.stringify(items))
+  saveBranchScopedItems(KEY_TABLES, items, normalizeTableState)
 }
 
 export const loadClosed = (): ClosedBill[] => {
-  return readJson<ClosedBill[]>(KEY_CLOSED, [])
+  return loadBranchScopedItems(KEY_CLOSED, normalizeClosedBill)
 }
 
 export const saveClosed = (items: ClosedBill[]) => {
-  localStorage.setItem(KEY_CLOSED, JSON.stringify(items))
+  saveBranchScopedItems(KEY_CLOSED, items, normalizeClosedBill)
 }
 
 export const loadKitchenOrders = (): KitchenOrder[] => {
-  return readJson<Partial<KitchenOrder>[]>(KEY_KITCHEN, []).map(normalizeKitchenOrder)
+  return loadBranchScopedItems(KEY_KITCHEN, normalizeKitchenOrder)
 }
 
 export const saveKitchenOrders = (items: KitchenOrder[]) => {
-  localStorage.setItem(KEY_KITCHEN, JSON.stringify(items.map(normalizeKitchenOrder)))
+  saveBranchScopedItems(KEY_KITCHEN, items, normalizeKitchenOrder)
 }
 
 export const loadQRRequests = (): QRRequest[] => {
-  return readJson<Partial<QRRequest>[]>(KEY_QR_REQUESTS, []).map(normalizeQRRequest)
+  return loadBranchScopedItems(KEY_QR_REQUESTS, normalizeQRRequest)
 }
 
 export const saveQRRequests = (items: QRRequest[]) => {
-  localStorage.setItem(KEY_QR_REQUESTS, JSON.stringify(items.map(normalizeQRRequest)))
+  saveBranchScopedItems(KEY_QR_REQUESTS, items, normalizeQRRequest)
 }
 
 export const loadQRRequestHistory = (): QRRequestHistory[] => {
-  return readJson<Partial<QRRequestHistory>[]>(KEY_QR_REQUEST_HISTORY, []).map(normalizeQRRequestHistory)
+  return loadBranchScopedItems(KEY_QR_REQUEST_HISTORY, normalizeQRRequestHistory)
 }
 
 export const saveQRRequestHistory = (items: QRRequestHistory[]) => {
-  localStorage.setItem(KEY_QR_REQUEST_HISTORY, JSON.stringify(items.map(normalizeQRRequestHistory)))
+  saveBranchScopedItems(KEY_QR_REQUEST_HISTORY, items, normalizeQRRequestHistory)
 }
 
 export const addQRRequestHistory = (item: QRRequestHistory) => {
@@ -2248,10 +2477,7 @@ export const saveUsers = (items: User[]) => {
 }
 
 export const loadBranches = (): Branch[] => {
-  const stored = localStorage.getItem(KEY_BRANCHES)
-  if(stored === null) return createDemoBranches()
-
-  return readJson<Partial<Branch>[]>(KEY_BRANCHES, []).map(normalizeBranch)
+  return readBranchesFromStorage()
 }
 
 export const saveBranches = (items: Branch[]) => {
@@ -2259,69 +2485,51 @@ export const saveBranches = (items: Branch[]) => {
 }
 
 export const loadEmployees = (): Employee[] => {
-  const stored = localStorage.getItem(KEY_EMPLOYEES)
-  if(stored === null) return createDemoEmployees()
-
-  return readJson<Partial<Employee>[]>(KEY_EMPLOYEES, []).map(normalizeEmployee)
+  return loadBranchScopedItemsWithDemo(KEY_EMPLOYEES, createDemoEmployees, normalizeEmployee)
 }
 
 export const saveEmployees = (items: Employee[]) => {
-  localStorage.setItem(KEY_EMPLOYEES, JSON.stringify(items.map(normalizeEmployee)))
+  saveBranchScopedItems(KEY_EMPLOYEES, items, normalizeEmployee)
 }
 
 export const loadShifts = (): Shift[] => {
-  const stored = localStorage.getItem(KEY_SHIFTS)
-  if(stored === null) return createDemoShifts()
-
-  return readJson<Partial<Shift>[]>(KEY_SHIFTS, []).map(normalizeShift)
+  return loadBranchScopedItemsWithDemo(KEY_SHIFTS, createDemoShifts, normalizeShift)
 }
 
 export const saveShifts = (items: Shift[]) => {
-  localStorage.setItem(KEY_SHIFTS, JSON.stringify(items.map(normalizeShift)))
+  saveBranchScopedItems(KEY_SHIFTS, items, normalizeShift)
 }
 
 export const loadAttendances = (): Attendance[] => {
-  const stored = localStorage.getItem(KEY_ATTENDANCES)
-  if(stored === null) return createDemoAttendances()
-
-  return readJson<Partial<Attendance>[]>(KEY_ATTENDANCES, []).map(normalizeAttendance)
+  return loadBranchScopedItemsWithDemo(KEY_ATTENDANCES, createDemoAttendances, normalizeAttendance)
 }
 
 export const saveAttendances = (items: Attendance[]) => {
-  localStorage.setItem(KEY_ATTENDANCES, JSON.stringify(items.map(normalizeAttendance)))
+  saveBranchScopedItems(KEY_ATTENDANCES, items, normalizeAttendance)
 }
 
 export const loadEmployeePerformances = (): EmployeePerformance[] => {
-  const stored = localStorage.getItem(KEY_EMPLOYEE_PERFORMANCES)
-  if(stored === null) return createDemoEmployeePerformances()
-
-  return readJson<Partial<EmployeePerformance>[]>(KEY_EMPLOYEE_PERFORMANCES, []).map(normalizeEmployeePerformance)
+  return loadBranchScopedItemsWithDemo(KEY_EMPLOYEE_PERFORMANCES, createDemoEmployeePerformances, normalizeEmployeePerformance)
 }
 
 export const saveEmployeePerformances = (items: EmployeePerformance[]) => {
-  localStorage.setItem(KEY_EMPLOYEE_PERFORMANCES, JSON.stringify(items.map(normalizeEmployeePerformance)))
+  saveBranchScopedItems(KEY_EMPLOYEE_PERFORMANCES, items, normalizeEmployeePerformance)
 }
 
 export const loadEmployeeBonuses = (): EmployeeBonus[] => {
-  const stored = localStorage.getItem(KEY_EMPLOYEE_BONUSES)
-  if(stored === null) return createDemoEmployeeBonuses()
-
-  return readJson<Partial<EmployeeBonus>[]>(KEY_EMPLOYEE_BONUSES, []).map(normalizeEmployeeBonus)
+  return loadBranchScopedItemsWithDemo(KEY_EMPLOYEE_BONUSES, createDemoEmployeeBonuses, normalizeEmployeeBonus)
 }
 
 export const saveEmployeeBonuses = (items: EmployeeBonus[]) => {
-  localStorage.setItem(KEY_EMPLOYEE_BONUSES, JSON.stringify(items.map(normalizeEmployeeBonus)))
+  saveBranchScopedItems(KEY_EMPLOYEE_BONUSES, items, normalizeEmployeeBonus)
 }
 
 export const loadEmployeeAudits = (): EmployeeAudit[] => {
-  const stored = localStorage.getItem(KEY_EMPLOYEE_AUDITS)
-  if(stored === null) return createDemoEmployeeAudits()
-
-  return readJson<Partial<EmployeeAudit>[]>(KEY_EMPLOYEE_AUDITS, []).map(normalizeEmployeeAudit)
+  return loadBranchScopedItemsWithDemo(KEY_EMPLOYEE_AUDITS, createDemoEmployeeAudits, normalizeEmployeeAudit)
 }
 
 export const saveEmployeeAudits = (items: EmployeeAudit[]) => {
-  localStorage.setItem(KEY_EMPLOYEE_AUDITS, JSON.stringify(items.map(normalizeEmployeeAudit)))
+  saveBranchScopedItems(KEY_EMPLOYEE_AUDITS, items, normalizeEmployeeAudit)
 }
 
 export const ensureDefaultAdmin = () => {
@@ -2403,6 +2611,82 @@ export const addActionLog = ({
   }
 
   saveActionLogs([log, ...loadActionLogs()])
+}
+
+export type BranchMigrationResult = {
+  label: string
+  count: number
+}
+
+const migrateBranchScopedKey = <T extends BranchScopedRecord>(
+  key: string,
+  label: string,
+  normalizer: (item: Partial<T>) => T,
+  predicate?: (item: T) => boolean
+): BranchMigrationResult | null => {
+  if(localStorage.getItem(key) === null) return null
+
+  const rawItems = readJson<Partial<T>[]>(key, [])
+  const normalizedItems = normalizeBranchScopedItems(rawItems, normalizer, DEFAULT_BRANCH_ID, predicate)
+  const before = JSON.stringify(rawItems)
+  const after = JSON.stringify(normalizedItems)
+
+  if(before === after) return null
+
+  localStorage.setItem(key, after)
+  return {
+    label,
+    count: normalizedItems.length
+  }
+}
+
+export const migrateBranchScopedData = (user?: User): BranchMigrationResult[] => {
+  const categories = loadCategories()
+  const fallbackCategoryId = categories.find(c => c.id === DEFAULT_CATEGORY_ID)?.id || categories[0]?.id || DEFAULT_CATEGORY_ID
+  const stockCategories = loadStockCategories()
+  const fallbackStockCategoryId = stockCategories.find(c => c.id === DEFAULT_STOCK_CATEGORY_ID)?.id || stockCategories[0]?.id || DEFAULT_STOCK_CATEGORY_ID
+
+  const results = [
+    migrateBranchScopedKey(KEY_PRODUCTS, 'Products', item => normalizeProduct(item, fallbackCategoryId)),
+    migrateBranchScopedKey(KEY_STOCK_ITEMS, 'StockItems', item => normalizeStockItem(item, fallbackStockCategoryId)),
+    migrateBranchScopedKey(KEY_STOCK_MOVEMENTS, 'StockMovements', normalizeStockMovement),
+    migrateBranchScopedKey(KEY_STOCK_EXPIRY_LOTS, 'StockExpiryLots', normalizeStockExpiryLot, lot => Boolean(lot.stockItemId)),
+    migrateBranchScopedKey(KEY_STOCK_WASTE_RECORDS, 'WasteRecords', normalizeStockWasteRecord, record => Boolean(record.stockItemId && record.stockMovementId)),
+    migrateBranchScopedKey(KEY_RECIPES, 'Recipes', normalizeRecipe),
+    migrateBranchScopedKey(KEY_STOCK_DEDUCTION_BATCHES, 'StockDeductionBatches', normalizeStockDeductionBatch),
+    migrateBranchScopedKey(KEY_TABLES, 'Tables', normalizeTableState),
+    migrateBranchScopedKey(KEY_CLOSED, 'ClosedBills', normalizeClosedBill),
+    migrateBranchScopedKey(KEY_KITCHEN, 'Orders', normalizeKitchenOrder),
+    migrateBranchScopedKey(KEY_QR_REQUESTS, 'QRRequests', normalizeQRRequest),
+    migrateBranchScopedKey(KEY_QR_REQUEST_HISTORY, 'QRRequestHistory', normalizeQRRequestHistory),
+    migrateBranchScopedKey(KEY_EMPLOYEES, 'Employees', normalizeEmployee),
+    migrateBranchScopedKey(KEY_SHIFTS, 'Shifts', normalizeShift),
+    migrateBranchScopedKey(KEY_ATTENDANCES, 'Attendance', normalizeAttendance),
+    migrateBranchScopedKey(KEY_EMPLOYEE_PERFORMANCES, 'EmployeePerformance', normalizeEmployeePerformance),
+    migrateBranchScopedKey(KEY_EMPLOYEE_BONUSES, 'EmployeeBonus', normalizeEmployeeBonus),
+    migrateBranchScopedKey(KEY_EMPLOYEE_AUDITS, 'EmployeeAudit', normalizeEmployeeAudit),
+    migrateBranchScopedKey(KEY_CURRENT_ACCOUNTS, 'CurrentAccounts', normalizeCurrentAccount),
+    migrateBranchScopedKey(KEY_CREDIT_TRANSACTIONS, 'CreditTransactions', normalizeCreditTransaction),
+    migrateBranchScopedKey(KEY_COLLECTION_TRANSACTIONS, 'CollectionTransactions', normalizeCollectionTransaction),
+    migrateBranchScopedKey(KEY_SUPPLIER_DEBTS, 'SupplierDebts', normalizeSupplierDebt),
+    migrateBranchScopedKey(KEY_SUPPLIER_PAYMENTS, 'SupplierPayments', normalizeSupplierPayment),
+    migrateBranchScopedKey(KEY_CASH_TRANSACTIONS, 'CashTransactions', normalizeCashTransaction),
+    migrateBranchScopedKey(KEY_CASH_CLOSINGS, 'CashClosings', normalizeCashClosing),
+    migrateBranchScopedKey(KEY_INCOME_EXPENSES, 'IncomeExpenseRecords', normalizeIncomeExpense),
+    migrateBranchScopedKey(KEY_CASH_TRANSFERS, 'CashTransfers', normalizeCashTransfer)
+  ].filter((item): item is BranchMigrationResult => Boolean(item))
+
+  if(results.length > 0 && user){
+    const totalCount = results.reduce((sum, item) => sum + item.count, 0)
+
+    addActionLog({
+      operationType: 'Veri şubeye bağlandı',
+      user,
+      description: `${results.length} veri grubu ve ${totalCount} kayıt Merkez Şube ile ilişkilendirildi: ${results.map(item => `${item.label} (${item.count})`).join(', ')}.`
+    })
+  }
+
+  return results
 }
 
 const getLatestCriticalStockEvent = (stockItemId: string) => {
@@ -2749,6 +3033,7 @@ const createExpiryLotForMovement = ({
 
   const lot: StockExpiryLot = {
     id: createStorageId('stock_expiry_lot'),
+    branchId: stockItem.branchId,
     lotCode: buildLotCode(stockItem, normalizedExpiryDate),
     stockItemId: stockItem.id,
     stockItemName: stockItem.name,
@@ -3012,6 +3297,7 @@ export const applyStockMovement = ({
   const now = new Date().toISOString()
   const movement: StockMovement = {
     id: `stock_move_${Date.now()}_${Math.random().toString(16).slice(2)}`,
+    branchId: stockItem.branchId,
     stockItemId: stockItem.id,
     stockItemName: stockItem.name,
     type,
@@ -3485,6 +3771,7 @@ export const createStockWasteRecord = ({
 
   const record: StockWasteRecord = {
     id: recordId,
+    branchId: stockItem.branchId,
     stockMovementId: movement.id,
     stockItemId: stockItem.id,
     stockItemName: stockItem.name,
@@ -3600,12 +3887,12 @@ export const createDemoData = () => {
   ]
 
   const products: Product[] = [
-    { id: 'prd_adana', name: 'Adana Kebap', price: 450, categoryId: 'cat_food', description: 'Közlenmiş domates ve biber ile servis edilir.', active: true, createdAt: now, updatedAt: now },
-    { id: 'prd_chicken', name: 'Tavuk Şiş', price: 360, categoryId: 'cat_food', description: 'Pilav ve salata ile servis edilir.', active: true, createdAt: now, updatedAt: now },
-    { id: 'prd_soup', name: 'Mercimek Çorbası', price: 120, categoryId: 'cat_food', description: 'Günlük sıcak çorba.', active: true, createdAt: now, updatedAt: now },
-    { id: 'prd_cola', name: 'Kola', price: 80, categoryId: 'cat_drinks', description: '330 ml kutu içecek.', active: true, createdAt: now, updatedAt: now },
-    { id: 'prd_tea', name: 'Çay', price: 35, categoryId: 'cat_drinks', description: 'Taze demlenmiş bardak çay.', active: true, createdAt: now, updatedAt: now },
-    { id: 'prd_baklava', name: 'Baklava', price: 180, categoryId: 'cat_desserts', description: 'Antep fıstıklı porsiyon baklava.', active: true, createdAt: now, updatedAt: now }
+    { id: 'prd_adana', branchId: DEFAULT_BRANCH_ID, name: 'Adana Kebap', price: 450, categoryId: 'cat_food', description: 'Közlenmiş domates ve biber ile servis edilir.', active: true, createdAt: now, updatedAt: now },
+    { id: 'prd_chicken', branchId: DEFAULT_BRANCH_ID, name: 'Tavuk Şiş', price: 360, categoryId: 'cat_food', description: 'Pilav ve salata ile servis edilir.', active: true, createdAt: now, updatedAt: now },
+    { id: 'prd_soup', branchId: DEFAULT_BRANCH_ID, name: 'Mercimek Çorbası', price: 120, categoryId: 'cat_food', description: 'Günlük sıcak çorba.', active: true, createdAt: now, updatedAt: now },
+    { id: 'prd_cola', branchId: DEFAULT_BRANCH_ID, name: 'Kola', price: 80, categoryId: 'cat_drinks', description: '330 ml kutu içecek.', active: true, createdAt: now, updatedAt: now },
+    { id: 'prd_tea', branchId: DEFAULT_BRANCH_ID, name: 'Çay', price: 35, categoryId: 'cat_drinks', description: 'Taze demlenmiş bardak çay.', active: true, createdAt: now, updatedAt: now },
+    { id: 'prd_baklava', branchId: DEFAULT_BRANCH_ID, name: 'Baklava', price: 180, categoryId: 'cat_desserts', description: 'Antep fıstıklı porsiyon baklava.', active: true, createdAt: now, updatedAt: now }
   ]
 
   const branches = createDemoBranches(now)
@@ -3625,6 +3912,7 @@ export const createDemoData = () => {
 
   const tables: TableState[] = Array.from({ length: 6 }).map((_, index) => ({
     id: String(index + 1),
+    branchId: DEFAULT_BRANCH_ID,
     name: `Masa ${index + 1}`,
     open: false,
     orders: []

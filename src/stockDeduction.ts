@@ -159,6 +159,7 @@ const buildSkippedBatch = ({
   warning: string
 }): StockDeductionBatch => ({
   id: createId('stock_deduction'),
+  branchId: order.branchId || product.branchId,
   orderId: order.id,
   tableId,
   tableName,
@@ -348,6 +349,7 @@ export const deductStockForOrder = ({
       : 'deducted'
   const batch: StockDeductionBatch = {
     id: batchId,
+    branchId: order.branchId || product.branchId,
     orderId: order.id,
     tableId,
     tableName,

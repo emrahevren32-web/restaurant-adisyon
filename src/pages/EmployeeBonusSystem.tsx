@@ -2,6 +2,7 @@ import React from 'react'
 import { Attendance, Employee, EmployeeBonus, EmployeeBonusStatus, EmployeePerformance, User } from '../types'
 import {
   addActionLog,
+  getActiveBranchId,
   loadAttendances,
   loadEmployeeBonuses,
   loadEmployeePerformances,
@@ -221,6 +222,7 @@ export default function EmployeeBonusSystem({ currentUser }: Props){
 
     const bonus: EmployeeBonus = {
       id: createId('employee_bonus'),
+      branchId: getActiveBranchId(),
       employeeId: values.employeeId,
       period: values.period,
       performanceScore,

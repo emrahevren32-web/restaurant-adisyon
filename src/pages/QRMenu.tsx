@@ -166,6 +166,7 @@ export default function QRMenu({ tableId }: Props){
 
     const request = {
       id: `qr_${Date.now()}_${Math.random().toString(16).slice(2)}`,
+      branchId: table.branchId,
       tableId: table.id,
       tableName: table.name,
       items: cartItems,

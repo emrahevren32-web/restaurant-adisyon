@@ -1,6 +1,6 @@
 import React from 'react'
 import { CurrentAccount, SupplierDebt, User } from '../types'
-import { addActionLog, loadCurrentAccounts, loadSupplierDebts, saveSupplierDebts } from '../storage'
+import { addActionLog, getActiveBranchId, loadCurrentAccounts, loadSupplierDebts, saveSupplierDebts } from '../storage'
 import { formatCurrency } from '../billing'
 
 type Props = { currentUser: User }
@@ -166,6 +166,7 @@ export default function SupplierDebts({ currentUser }: Props){
     const amounts = calculateDebtState(amount, 0)
     const debt: SupplierDebt = {
       id: createId('supplier_debt'),
+      branchId: getActiveBranchId(),
       currentAccountId,
       date,
       invoiceNumber,

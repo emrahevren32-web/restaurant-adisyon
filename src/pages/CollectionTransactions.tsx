@@ -2,6 +2,7 @@ import React from 'react'
 import { CollectionPaymentMethod, CollectionTransaction, CreditTransaction, CurrentAccount, User } from '../types'
 import {
   addActionLog,
+  getActiveBranchId,
   loadCollectionTransactions,
   loadCreditTransactions,
   loadCurrentAccounts,
@@ -163,6 +164,7 @@ export default function CollectionTransactions({ currentUser }: Props){
 
     const transaction: CollectionTransaction = {
       id: createId('tahsilat'),
+      branchId: getActiveBranchId(),
       currentAccountId,
       date,
       amount: normalizedAmount,

@@ -11,6 +11,7 @@ import {
 } from '../types'
 import {
   addActionLog,
+  getActiveBranchId,
   loadCashTransactions,
   loadCollectionTransactions,
   loadCurrentAccounts,
@@ -73,6 +74,7 @@ const buildCollectionMovement = (
 
   return {
     id: `auto_collection_${transaction.id}`,
+    branchId: transaction.branchId,
     date: transaction.date,
     type: 'Gelir',
     category: 'Müşteri Tahsilatı',
@@ -96,6 +98,7 @@ const buildSupplierPaymentMovement = (
 
   return {
     id: `auto_supplier_payment_${payment.id}`,
+    branchId: payment.branchId,
     date: payment.date,
     type: 'Gider',
     category: 'Tedarikçi Ödemesi',
@@ -203,6 +206,7 @@ export default function CashTransactions({ currentUser }: Props){
     const now = new Date().toISOString()
     const transaction: CashTransaction = {
       id: createId('cash'),
+      branchId: getActiveBranchId(),
       date,
       type: values.type,
       category,

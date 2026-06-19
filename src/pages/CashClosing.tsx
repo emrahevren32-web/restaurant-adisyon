@@ -9,6 +9,7 @@ import {
 } from '../types'
 import {
   addActionLog,
+  getActiveBranchId,
   loadCashClosings,
   loadCashTransactions,
   loadCollectionTransactions,
@@ -180,6 +181,7 @@ export default function CashClosingPage({ currentUser }: Props){
     const now = new Date().toISOString()
     const closing: CashClosing = {
       id: createId('cash_closing'),
+      branchId: getActiveBranchId(),
       date: values.date,
       openingBalance: normalizedOpeningBalance,
       totalIncome: dailySummary.totalIncome,

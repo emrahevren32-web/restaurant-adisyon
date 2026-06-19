@@ -260,6 +260,7 @@ export default function Recipes({ currentUser }: Props){
     const nextVersion = getNextRecipeVersion(recipes, product.id)
     const recipe: Recipe = {
       id: createId('recipe'),
+      branchId: product.branchId,
       productId: product.id,
       productName: product.name,
       name: values.name,

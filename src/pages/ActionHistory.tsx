@@ -81,6 +81,8 @@ const operationTypes: ActionLogType[] = [
   'Şube silindi',
   'Şube aktif yapıldı',
   'Şube pasif yapıldı',
+  'Şube değiştirildi',
+  'Veri şubeye bağlandı',
   'Cari oluşturuldu',
   'Cari güncellendi',
   'Cari aktif yapıldı',

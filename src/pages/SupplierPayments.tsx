@@ -2,6 +2,7 @@ import React from 'react'
 import { CurrentAccount, SupplierDebt, SupplierPayment, SupplierPaymentMethod, User } from '../types'
 import {
   addActionLog,
+  getActiveBranchId,
   loadCurrentAccounts,
   loadSupplierDebts,
   loadSupplierPayments,
@@ -190,6 +191,7 @@ export default function SupplierPayments({ currentUser }: Props){
     const normalizedAmount = roundMoney(amount)
     const payment: SupplierPayment = {
       id: createId('supplier_payment'),
+      branchId: getActiveBranchId(),
       supplierDebtId,
       currentAccountId,
       date,

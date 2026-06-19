@@ -1,6 +1,6 @@
 import React from 'react'
 import { Employee, Shift, ShiftName, ShiftStatus, User } from '../types'
-import { addActionLog, loadEmployees, loadShifts, saveShifts } from '../storage'
+import { addActionLog, getActiveBranchId, loadEmployees, loadShifts, saveShifts } from '../storage'
 
 type Props = { currentUser: User }
 type EmployeeFilter = string
@@ -228,6 +228,7 @@ export default function ShiftManagement({ currentUser }: Props){
 
     const shift: Shift = {
       id: createId('shift'),
+      branchId: getActiveBranchId(),
       employeeId: values.employeeId,
       shiftName: values.shiftName,
       workDate: values.workDate,

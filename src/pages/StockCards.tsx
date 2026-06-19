@@ -2,6 +2,7 @@ import React from 'react'
 import { StockCategory, StockExpiryEvent, StockExpiryLot, StockItem, StockUnit, User } from '../types'
 import {
   addActionLog,
+  getActiveBranchId,
   loadCriticalStockEvents,
   loadStockCategories,
   loadStockExpiryEvents,
@@ -436,6 +437,7 @@ export default function StockCards({ currentUser, focus = 'cards' }: Props){
 
     const item: StockItem = {
       id: createId('stock'),
+      branchId: getActiveBranchId(),
       ...values,
       currentQty: 0,
       lastCostUpdatedAt: values.unitPurchasePrice !== undefined ? now : undefined,

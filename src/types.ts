@@ -7,6 +7,7 @@ export type ProductCategory = {
 
 export type Product = {
   id: string
+  branchId: string
   name: string
   price: number
   categoryId: string
@@ -28,6 +29,7 @@ export type StockCategory = {
 
 export type StockItem = {
   id: string
+  branchId: string
   name: string
   categoryId: string
   unit: StockUnit
@@ -63,6 +65,7 @@ export type StockMovementReason =
 
 export type StockMovement = {
   id: string
+  branchId: string
   stockItemId: string
   stockItemName: string
   type: StockMovementType
@@ -183,6 +186,7 @@ export type StockExpiryAllocation = {
 
 export type StockExpiryLot = {
   id: string
+  branchId: string
   lotCode: string
   stockItemId: string
   stockItemName: string
@@ -238,6 +242,7 @@ export type StockWasteStatus = 'active' | 'reversed'
 
 export type StockWasteRecord = {
   id: string
+  branchId: string
   stockMovementId: string
   stockItemId: string
   stockItemName: string
@@ -280,6 +285,7 @@ export type RecipeCostSnapshot = {
 
 export type Recipe = {
   id: string
+  branchId: string
   productId: string
   productName: string
   name: string
@@ -361,6 +367,7 @@ export type StockDeductionLine = {
 
 export type StockDeductionBatch = {
   id: string
+  branchId: string
   orderId: string
   tableId: string
   tableName: string
@@ -403,6 +410,7 @@ export type StockDeductionAuditEvent = {
 
 export type Order = {
   id: string
+  branchId: string
   productId: string
   productName?: string
   unitPrice?: number
@@ -433,6 +441,7 @@ export type Discount = {
 
 export type TableState = {
   id: string
+  branchId: string
   name: string
   open: boolean
   orders: Order[]
@@ -451,6 +460,7 @@ export type KitchenOrderItem = {
 
 export type KitchenOrder = {
   id: string
+  branchId: string
   tableId: string
   tableName: string
   waiterId: string
@@ -474,6 +484,7 @@ export type QRRequestItem = {
 
 export type QRRequest = {
   id: string
+  branchId: string
   tableId: string
   tableName: string
   items: QRRequestItem[]
@@ -556,6 +567,7 @@ export type SystemSettings = {
 
 export type ClosedBill = {
   id: string
+  branchId: string
   tableId: string
   tableName: string
   subtotal?: number
@@ -605,6 +617,7 @@ export type EmployeePosition = 'Garson' | 'Kasiyer' | 'Aşçı' | 'Kurye' | 'Yö
 
 export type Employee = {
   id: string
+  branchId: string
   code: string
   fullName: string
   position: EmployeePosition
@@ -623,6 +636,7 @@ export type ShiftStatus = 'Planlandı' | 'Tamamlandı' | 'İptal'
 
 export type Shift = {
   id: string
+  branchId: string
   employeeId: string
   shiftName: ShiftName
   startTime: string
@@ -638,6 +652,7 @@ export type AttendanceStatus = 'Normal' | 'Eksik Mesai' | 'Fazla Mesai' | 'Devam
 
 export type Attendance = {
   id: string
+  branchId: string
   employeeId: string
   workDate: string
   checkInTime: string
@@ -652,6 +667,7 @@ export type Attendance = {
 
 export type EmployeePerformance = {
   id: string
+  branchId: string
   employeeId: string
   workDate: string
   servedTableCount: number
@@ -668,6 +684,7 @@ export type EmployeeBonusStatus = 'Hesaplandı' | 'Onaylandı' | 'Ödendi' | 'İ
 
 export type EmployeeBonus = {
   id: string
+  branchId: string
   employeeId: string
   period: string
   performanceScore: number
@@ -684,6 +701,7 @@ export type EmployeeAuditSeverity = 'Düşük' | 'Orta' | 'Yüksek' | 'Kritik'
 
 export type EmployeeAudit = {
   id: string
+  branchId: string
   employeeId: string
   date: string
   recordType: EmployeeAuditRecordType
@@ -699,6 +717,7 @@ export type CurrentAccountType = 'Müşteri' | 'Firma' | 'Personel' | 'Tedarikç
 
 export type CurrentAccount = {
   id: string
+  branchId: string
   code: string
   name: string
   type: CurrentAccountType
@@ -717,6 +736,7 @@ export type CreditTransactionStatus = 'Açık' | 'Kapandı'
 
 export type CreditTransaction = {
   id: string
+  branchId: string
   currentAccountId: string
   date: string
   amount: number
@@ -732,6 +752,7 @@ export type SupplierDebtStatus = 'Açık' | 'Kapandı'
 
 export type SupplierDebt = {
   id: string
+  branchId: string
   currentAccountId: string
   date: string
   amount: number
@@ -748,6 +769,7 @@ export type SupplierPaymentMethod = 'Nakit' | 'Kart' | 'Havale/EFT'
 
 export type SupplierPayment = {
   id: string
+  branchId: string
   supplierDebtId: string
   currentAccountId: string
   date: string
@@ -762,6 +784,7 @@ export type CashPaymentMethod = 'Nakit' | 'Kart' | 'Havale/EFT'
 
 export type CashTransaction = {
   id: string
+  branchId: string
   date: string
   type: CashTransactionType
   category: string
@@ -777,6 +800,7 @@ export type IncomeExpensePaymentMethod = 'Nakit' | 'Kart' | 'Havale/EFT'
 
 export type IncomeExpense = {
   id: string
+  branchId: string
   date: string
   type: IncomeExpenseType
   category: string
@@ -789,6 +813,7 @@ export type IncomeExpense = {
 
 export type CashClosing = {
   id: string
+  branchId: string
   date: string
   openingBalance: number
   totalIncome: number
@@ -803,6 +828,7 @@ export type CashClosing = {
 
 export type CashTransfer = {
   id: string
+  branchId: string
   date: string
   transferNo: string
   fromUser: string
@@ -817,6 +843,7 @@ export type CollectionPaymentMethod = 'Nakit' | 'Kart' | 'Havale/EFT' | 'Diğer'
 
 export type CollectionTransaction = {
   id: string
+  branchId: string
   currentAccountId: string
   date: string
   amount: number
@@ -908,6 +935,8 @@ export type ActionLogType =
   | 'Şube silindi'
   | 'Şube aktif yapıldı'
   | 'Şube pasif yapıldı'
+  | 'Şube değiştirildi'
+  | 'Veri şubeye bağlandı'
   | 'Cari oluşturuldu'
   | 'Cari güncellendi'
   | 'Cari aktif yapıldı'

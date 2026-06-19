@@ -1,6 +1,6 @@
 import React from 'react'
 import { CashTransfer, User } from '../types'
-import { addActionLog, loadCashTransfers, loadUsers, saveCashTransfers } from '../storage'
+import { addActionLog, getActiveBranchId, loadCashTransfers, loadUsers, saveCashTransfers } from '../storage'
 import { formatCurrency } from '../billing'
 
 type Props = { currentUser: User }
@@ -116,6 +116,7 @@ export default function CashTransfers({ currentUser }: Props){
     const now = new Date().toISOString()
     const transfer: CashTransfer = {
       id: createId('cash_transfer'),
+      branchId: getActiveBranchId(),
       date: values.date,
       transferNo: nextTransferNo,
       fromUser,

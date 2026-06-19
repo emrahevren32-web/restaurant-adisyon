@@ -2,7 +2,10 @@ import React from 'react'
 import { Branch, User } from '../types'
 import { addActionLog, loadBranches, saveBranches } from '../storage'
 
-type Props = { currentUser: User }
+type Props = {
+  currentUser: User
+  onBranchesChange?: (branches: Branch[]) => void
+}
 type StatusFilter = 'all' | 'active' | 'inactive'
 
 type BranchFormValues = {
@@ -75,7 +78,7 @@ const sortBranches = (branches: Branch[]) => {
   })
 }
 
-export default function BranchManagement({ currentUser }: Props){
+export default function BranchManagement({ currentUser, onBranchesChange }: Props){
   const [items, setItems] = React.useState<Branch[]>(() => loadBranches())
   const [editingBranch, setEditingBranch] = React.useState<Branch | null>(null)
   const [search, setSearch] = React.useState('')
@@ -160,7 +163,10 @@ export default function BranchManagement({ currentUser }: Props){
         updatedAt: now
       }
 
-      setItems(prev => prev.map(item => item.id === editingBranch.id ? updatedBranch : item))
+      const nextItems = items.map(item => item.id === editingBranch.id ? updatedBranch : item)
+      setItems(nextItems)
+      saveBranches(nextItems)
+      onBranchesChange?.(nextItems)
       setEditingBranch(null)
       setFormError('')
       addActionLog({
@@ -178,7 +184,10 @@ export default function BranchManagement({ currentUser }: Props){
       updatedAt: now
     }
 
-    setItems(prev => [branch, ...prev])
+    const nextItems = [branch, ...items]
+    setItems(nextItems)
+    saveBranches(nextItems)
+    onBranchesChange?.(nextItems)
     setFormError('')
     addActionLog({
       operationType: 'Şube oluşturuldu',
@@ -195,7 +204,10 @@ export default function BranchManagement({ currentUser }: Props){
       updatedAt: new Date().toISOString()
     }
 
-    setItems(prev => prev.map(item => item.id === branch.id ? updatedBranch : item))
+    const nextItems = items.map(item => item.id === branch.id ? updatedBranch : item)
+    setItems(nextItems)
+    saveBranches(nextItems)
+    onBranchesChange?.(nextItems)
     if(editingBranch?.id === branch.id) setEditingBranch(updatedBranch)
 
     addActionLog({
@@ -208,7 +220,10 @@ export default function BranchManagement({ currentUser }: Props){
   const deleteBranch = (branch: Branch) => {
     if(!confirm(`${branch.name} şubesi silinecek. Emin misiniz?`)) return
 
-    setItems(prev => prev.filter(item => item.id !== branch.id))
+    const nextItems = items.filter(item => item.id !== branch.id)
+    setItems(nextItems)
+    saveBranches(nextItems)
+    onBranchesChange?.(nextItems)
     if(editingBranch?.id === branch.id) setEditingBranch(null)
     addActionLog({
       operationType: 'Şube silindi',

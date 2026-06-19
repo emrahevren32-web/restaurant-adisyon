@@ -1,6 +1,6 @@
 import React from 'react'
 import { Employee, EmployeePosition, User } from '../types'
-import { addActionLog, loadEmployees, saveEmployees } from '../storage'
+import { addActionLog, getActiveBranchId, loadEmployees, saveEmployees } from '../storage'
 import { formatCurrency } from '../billing'
 
 type Props = { currentUser: User }
@@ -167,6 +167,7 @@ export default function EmployeeCards({ currentUser }: Props){
 
     const employee: Employee = {
       id: createId('employee'),
+      branchId: getActiveBranchId(),
       code: createEmployeeCode(items),
       fullName: normalized.fullName,
       position: normalized.position,

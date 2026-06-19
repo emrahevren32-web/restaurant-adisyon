@@ -1,6 +1,6 @@
 import React from 'react'
 import { Employee, EmployeeAudit, EmployeeAuditRecordType, EmployeeAuditSeverity, User } from '../types'
-import { addActionLog, loadEmployeeAudits, loadEmployees, saveEmployeeAudits } from '../storage'
+import { addActionLog, getActiveBranchId, loadEmployeeAudits, loadEmployees, saveEmployeeAudits } from '../storage'
 
 type Props = { currentUser: User }
 type EmployeeFilter = string
@@ -178,6 +178,7 @@ export default function EmployeeAuditRecords({ currentUser }: Props){
 
     const audit: EmployeeAudit = {
       id: createId('employee_audit'),
+      branchId: getActiveBranchId(),
       employeeId: values.employeeId,
       date: values.date,
       recordType: values.recordType,

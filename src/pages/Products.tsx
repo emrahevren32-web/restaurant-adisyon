@@ -1,6 +1,6 @@
 import React from 'react'
 import { Product, ProductCategory, User } from '../types'
-import { addActionLog, loadCategories, loadProducts, saveCategories, saveProducts } from '../storage'
+import { addActionLog, getActiveBranchId, loadCategories, loadProducts, saveCategories, saveProducts } from '../storage'
 import { formatCurrency } from '../billing'
 import ProductForm, { ProductFormValues } from '../components/ProductForm'
 
@@ -116,6 +116,7 @@ export default function Products({ currentUser }: Props){
 
     const product: Product = {
       id: createId('prd'),
+      branchId: getActiveBranchId(),
       ...values,
       createdAt: now,
       updatedAt: now
