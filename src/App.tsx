@@ -33,6 +33,7 @@ import Login from './pages/Login'
 import Users from './pages/Users'
 import Settings from './pages/Settings'
 import BranchManagement from './pages/BranchManagement'
+import BranchReporting from './pages/BranchReporting'
 import CurrentAccounts from './pages/CurrentAccounts'
 import CreditTransactions from './pages/CreditTransactions'
 import CollectionTransactions from './pages/CollectionTransactions'
@@ -97,6 +98,7 @@ type Route =
   | 'risky-current'
   | 'users'
   | 'branches'
+  | 'branch-reporting'
   | 'current-accounts'
   | 'credit-transactions'
   | 'collection-transactions'
@@ -145,6 +147,7 @@ type NavKey =
   | 'employee-reports'
   | 'users'
   | 'branches'
+  | 'branch-reporting'
   | 'staff'
   | 'current-accounts'
   | 'credit-transactions'
@@ -160,6 +163,7 @@ type NavGroupKey =
   | 'finance'
   | 'reports'
   | 'personnel'
+  | 'multi-branch'
   | 'management'
 
 type NavItem = ShellNavItem<Route, NavKey>
@@ -246,6 +250,14 @@ const navGroups: NavGroup[] = [
       { key: 'employee-audit', label: 'Disiplin ve Denetim Kayıtları', route: 'employee-audit', icon: 'DD', adminOnly: true },
       { key: 'employee-reports', label: 'Personel Raporları', route: 'employee-reports', icon: 'RA', adminOnly: true },
       { key: 'staff', label: 'Personel Takibi', route: 'staff', icon: 'PT', adminOnly: true }
+    ]
+  },
+  {
+    key: 'multi-branch',
+    title: 'Çoklu Şube Yönetimi',
+    icon: 'ÇŞ',
+    items: [
+      { key: 'branch-reporting', label: 'Şubeler Arası Raporlama', route: 'branch-reporting', icon: 'ŞR', adminOnly: true }
     ]
   },
   {
@@ -435,6 +447,7 @@ export default function App(){
       {route === 'current-report' && currentUser.role === 'Admin' && <CurrentReport />}
       {route === 'risky-current' && currentUser.role === 'Admin' && <RiskyCurrentAccounts />}
       {route === 'branches' && currentUser.role === 'Admin' && <BranchManagement currentUser={currentUser} onBranchesChange={refreshBranches} />}
+      {route === 'branch-reporting' && currentUser.role === 'Admin' && <BranchReporting />}
       {route === 'users' && currentUser.role === 'Admin' && <Users currentUser={currentUser} />}
       {route === 'current-accounts' && currentUser.role === 'Admin' && <CurrentAccounts currentUser={currentUser} />}
       {route === 'credit-transactions' && currentUser.role === 'Admin' && <CreditTransactions currentUser={currentUser} />}

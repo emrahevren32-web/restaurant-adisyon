@@ -319,6 +319,27 @@ const loadBranchScopedItemsWithDemo = <T extends BranchScopedRecord>(
     .filter(item => item.branchId === activeBranchId)
 }
 
+const loadAllBranchScopedItems = <T extends BranchScopedRecord>(
+  key: string,
+  normalizer: (item: Partial<T>) => T,
+  predicate?: (item: T) => boolean
+) => {
+  return normalizeBranchScopedItems(readJson<Partial<T>[]>(key, []), normalizer, DEFAULT_BRANCH_ID, predicate)
+}
+
+const loadAllBranchScopedItemsWithDemo = <T extends BranchScopedRecord>(
+  key: string,
+  createDemoItems: () => T[],
+  normalizer: (item: Partial<T>) => T,
+  predicate?: (item: T) => boolean
+) => {
+  const sourceItems = localStorage.getItem(key) === null
+    ? createDemoItems()
+    : readJson<Partial<T>[]>(key, [])
+
+  return normalizeBranchScopedItems(sourceItems, normalizer, DEFAULT_BRANCH_ID, predicate)
+}
+
 const saveBranchScopedItems = <T extends BranchScopedRecord>(
   key: string,
   items: T[],
@@ -2530,6 +2551,38 @@ export const loadEmployeeAudits = (): EmployeeAudit[] => {
 
 export const saveEmployeeAudits = (items: EmployeeAudit[]) => {
   saveBranchScopedItems(KEY_EMPLOYEE_AUDITS, items, normalizeEmployeeAudit)
+}
+
+export const loadBranchReportingData = () => {
+  const productCategories = loadCategories()
+  const fallbackCategoryId = productCategories.find(category => category.id === DEFAULT_CATEGORY_ID)?.id
+    || productCategories[0]?.id
+    || DEFAULT_CATEGORY_ID
+  const stockCategories = loadStockCategories()
+  const fallbackStockCategoryId = stockCategories.find(category => category.id === DEFAULT_STOCK_CATEGORY_ID)?.id
+    || stockCategories[0]?.id
+    || DEFAULT_STOCK_CATEGORY_ID
+
+  return {
+    branches: loadBranches(),
+    tables: loadAllBranchScopedItems<TableState>(KEY_TABLES, normalizeTableState),
+    closedBills: loadAllBranchScopedItems<ClosedBill>(KEY_CLOSED, normalizeClosedBill),
+    kitchenOrders: loadAllBranchScopedItems<KitchenOrder>(KEY_KITCHEN, normalizeKitchenOrder),
+    products: loadAllBranchScopedItems<Product>(KEY_PRODUCTS, item => normalizeProduct(item, fallbackCategoryId)),
+    stockItems: loadAllBranchScopedItems<StockItem>(KEY_STOCK_ITEMS, item => normalizeStockItem(item, fallbackStockCategoryId)),
+    stockExpiryLots: loadAllBranchScopedItems<StockExpiryLot>(KEY_STOCK_EXPIRY_LOTS, normalizeStockExpiryLot, lot => Boolean(lot.stockItemId)),
+    stockWasteRecords: loadAllBranchScopedItems<StockWasteRecord>(KEY_STOCK_WASTE_RECORDS, normalizeStockWasteRecord, record => Boolean(record.stockItemId && record.stockMovementId)),
+    currentAccounts: loadAllBranchScopedItemsWithDemo<CurrentAccount>(KEY_CURRENT_ACCOUNTS, createDemoCurrentAccounts, normalizeCurrentAccount),
+    creditTransactions: loadAllBranchScopedItemsWithDemo<CreditTransaction>(KEY_CREDIT_TRANSACTIONS, createDemoCreditTransactions, normalizeCreditTransaction),
+    collectionTransactions: loadAllBranchScopedItemsWithDemo<CollectionTransaction>(KEY_COLLECTION_TRANSACTIONS, createDemoCollectionTransactions, normalizeCollectionTransaction),
+    supplierDebts: loadAllBranchScopedItemsWithDemo<SupplierDebt>(KEY_SUPPLIER_DEBTS, createDemoSupplierDebts, normalizeSupplierDebt),
+    supplierPayments: loadAllBranchScopedItemsWithDemo<SupplierPayment>(KEY_SUPPLIER_PAYMENTS, createDemoSupplierPayments, normalizeSupplierPayment),
+    cashTransactions: loadAllBranchScopedItems<CashTransaction>(KEY_CASH_TRANSACTIONS, normalizeCashTransaction),
+    employees: loadAllBranchScopedItemsWithDemo<Employee>(KEY_EMPLOYEES, createDemoEmployees, normalizeEmployee),
+    attendances: loadAllBranchScopedItemsWithDemo<Attendance>(KEY_ATTENDANCES, createDemoAttendances, normalizeAttendance),
+    employeePerformances: loadAllBranchScopedItemsWithDemo<EmployeePerformance>(KEY_EMPLOYEE_PERFORMANCES, createDemoEmployeePerformances, normalizeEmployeePerformance),
+    employeeBonuses: loadAllBranchScopedItemsWithDemo<EmployeeBonus>(KEY_EMPLOYEE_BONUSES, createDemoEmployeeBonuses, normalizeEmployeeBonus)
+  }
 }
 
 export const ensureDefaultAdmin = () => {
