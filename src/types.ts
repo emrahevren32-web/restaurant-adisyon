@@ -613,6 +613,18 @@ export type Branch = {
   updatedAt: string
 }
 
+export type BranchPermission = {
+  id: string
+  userId: string
+  branchId: string
+  canView: boolean
+  canCreate: boolean
+  canEdit: boolean
+  canDelete: boolean
+  createdAt: string
+  updatedAt: string
+}
+
 export type BranchStockTransferStatus = 'Bekliyor' | 'Onaylandı' | 'Tamamlandı' | 'İptal Edildi'
 
 export type BranchStockTransferItem = {
@@ -964,6 +976,9 @@ export type ActionLogType =
   | 'Transfer onaylandı'
   | 'Transfer tamamlandı'
   | 'Transfer iptal edildi'
+  | 'Şube yetkisi oluşturuldu'
+  | 'Şube yetkisi güncellendi'
+  | 'Şube yetkisi silindi'
   | 'Cari oluşturuldu'
   | 'Cari güncellendi'
   | 'Cari aktif yapıldı'

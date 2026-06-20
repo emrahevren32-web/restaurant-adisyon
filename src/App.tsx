@@ -33,6 +33,7 @@ import Login from './pages/Login'
 import Users from './pages/Users'
 import Settings from './pages/Settings'
 import BranchManagement from './pages/BranchManagement'
+import BranchPermissions from './pages/BranchPermissions'
 import BranchReporting from './pages/BranchReporting'
 import BranchStockTransfers from './pages/BranchStockTransfers'
 import CurrentAccounts from './pages/CurrentAccounts'
@@ -53,7 +54,7 @@ import {
   getCurrentUser,
   setCurrentUser,
   loadSettings,
-  loadBranches,
+  getVisibleBranchesForUser,
   getActiveBranchId,
   setActiveBranchId,
   migrateBranchScopedData
@@ -99,6 +100,7 @@ type Route =
   | 'risky-current'
   | 'users'
   | 'branches'
+  | 'branch-permissions'
   | 'branch-reporting'
   | 'branch-stock-transfers'
   | 'current-accounts'
@@ -149,6 +151,7 @@ type NavKey =
   | 'employee-reports'
   | 'users'
   | 'branches'
+  | 'branch-permissions'
   | 'branch-reporting'
   | 'branch-stock-transfers'
   | 'staff'
@@ -270,6 +273,7 @@ const navGroups: NavGroup[] = [
     icon: 'YN',
     items: [
       { key: 'branches', label: 'Şube Yönetimi', route: 'branches', icon: 'ŞB', adminOnly: true },
+      { key: 'branch-permissions', label: 'Şube Yetkilendirme', route: 'branch-permissions', icon: 'ŞY', adminOnly: true },
       { key: 'users', label: 'Kullanıcı Yönetimi', route: 'users', icon: 'KY', adminOnly: true },
       { key: 'current-accounts', label: 'Cari Kartları', route: 'current-accounts', icon: 'CK', adminOnly: true },
       { key: 'credit-transactions', label: 'Veresiye İşlemleri', route: 'credit-transactions', icon: 'VI', adminOnly: true },
@@ -306,14 +310,14 @@ export default function App(){
   const [openGroupKey, setOpenGroupKey] = React.useState<NavGroupKey | null>(initialNavigation.openGroupKey)
   const [currentUser, setUserState] = React.useState<User | null>(initialUser)
   const [settings, setSettings] = React.useState(() => loadSettings())
-  const [branches, setBranches] = React.useState<Branch[]>(() => loadBranches())
+  const [branches, setBranches] = React.useState<Branch[]>(() => getVisibleBranchesForUser(initialUser))
   const [activeBranchId, setActiveBranchState] = React.useState(() => getActiveBranchId())
 
   React.useEffect(()=>{
     loadProducts()
     ensureDefaultAdmin()
     if(currentUser) migrateBranchScopedData(currentUser)
-    setBranches(loadBranches())
+    setBranches(getVisibleBranchesForUser(currentUser))
     setActiveBranchState(getActiveBranchId())
   }, [currentUser])
   React.useEffect(() => {
@@ -324,6 +328,8 @@ export default function App(){
     const defaultNavigation = getDefaultNavigation(u)
     migrateBranchScopedData(u)
     setUserState(u)
+    setBranches(getVisibleBranchesForUser(u))
+    setActiveBranchState(getActiveBranchId())
     setRoute(defaultNavigation.route)
     setActiveNavKey(defaultNavigation.activeNavKey)
     setOpenGroupKey(defaultNavigation.openGroupKey)
@@ -338,13 +344,13 @@ export default function App(){
   }
   const refreshSettings = () => setSettings(loadSettings())
   const refreshBranches = (nextBranches?: Branch[]) => {
-    setBranches(nextBranches || loadBranches())
+    setBranches(getVisibleBranchesForUser(currentUser))
     setActiveBranchState(getActiveBranchId())
   }
   const changeActiveBranch = (branchId: string) => {
     const nextBranchId = setActiveBranchId(branchId, currentUser || undefined)
     setActiveBranchState(nextBranchId)
-    setBranches(loadBranches())
+    setBranches(getVisibleBranchesForUser(currentUser))
   }
   const activeNavLabel = navGroups
     .flatMap(group => group.items)
@@ -451,6 +457,7 @@ export default function App(){
       {route === 'current-report' && currentUser.role === 'Admin' && <CurrentReport />}
       {route === 'risky-current' && currentUser.role === 'Admin' && <RiskyCurrentAccounts />}
       {route === 'branches' && currentUser.role === 'Admin' && <BranchManagement currentUser={currentUser} onBranchesChange={refreshBranches} />}
+      {route === 'branch-permissions' && currentUser.role === 'Admin' && <BranchPermissions currentUser={currentUser} />}
       {route === 'branch-reporting' && currentUser.role === 'Admin' && <BranchReporting />}
       {route === 'branch-stock-transfers' && currentUser.role === 'Admin' && <BranchStockTransfers currentUser={currentUser} />}
       {route === 'users' && currentUser.role === 'Admin' && <Users currentUser={currentUser} />}

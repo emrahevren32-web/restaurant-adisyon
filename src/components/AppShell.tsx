@@ -75,6 +75,7 @@ export default function AppShell<
   const activeGroupKey = navGroups.find(group => group.items.some(item => item.key === activeNavKey))?.key
   const activeBranches = branches.filter(branch => branch.isActive)
   const selectableBranches = activeBranches.length > 0 ? activeBranches : branches
+  const hasSelectableBranch = selectableBranches.length > 0
 
   return (
     <div className="app-shell">
@@ -143,7 +144,8 @@ export default function AppShell<
             <div className="topbar-actions">
               <label className="branch-switcher">
                 <span>Aktif Şube</span>
-                <select value={activeBranchId} onChange={event => onActiveBranchChange(event.target.value)}>
+                <select value={hasSelectableBranch ? activeBranchId : ''} onChange={event => onActiveBranchChange(event.target.value)} disabled={!hasSelectableBranch}>
+                  {!hasSelectableBranch && <option value="">Yetkili şube yok</option>}
                   {selectableBranches.map(branch => (
                     <option key={branch.id} value={branch.id}>{branch.name}</option>
                   ))}

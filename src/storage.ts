@@ -40,6 +40,7 @@ import {
   AuditEntityType,
   AuditEventType,
   Branch,
+  BranchPermission,
   BranchStockTransfer,
   BranchStockTransferItem,
   BranchStockTransferStatus,
@@ -131,6 +132,7 @@ const KEY_TABLES = 'ra_tables'
 const KEY_CLOSED = 'ra_closed'
 const KEY_USERS = 'ra_users'
 const KEY_BRANCHES = 'ra_branches'
+const KEY_BRANCH_PERMISSIONS = 'ra_branch_permissions'
 const KEY_ACTIVE_BRANCH = 'ra_active_branch_id'
 const KEY_EMPLOYEES = 'ra_employees'
 const KEY_SHIFTS = 'ra_shifts'
@@ -228,6 +230,8 @@ type BranchScopedRecord = {
   branchId: string
 }
 
+export type BranchPermissionAction = 'canView' | 'canCreate' | 'canEdit' | 'canDelete'
+
 const getBranchIdValue = (item: { branchId?: string } | undefined, fallbackBranchId = DEFAULT_BRANCH_ID) => {
   const branchId = String(item?.branchId || '').trim()
   return branchId || fallbackBranchId
@@ -247,12 +251,62 @@ const readBranchesFromStorage = () => {
   return readJson<Partial<Branch>[]>(KEY_BRANCHES, []).map(normalizeBranch)
 }
 
+const readBranchPermissionsFromStorage = () => {
+  return readJson<Partial<BranchPermission>[]>(KEY_BRANCH_PERMISSIONS, []).map(normalizeBranchPermission)
+}
+
+const isAdminUser = (user?: User | null) => user?.role === 'Admin'
+
+const getPermissionUser = (user?: User | null) => user === undefined ? getCurrentUser() : user
+
+const userHasBranchPermissionValue = (
+  user: User | null | undefined,
+  branchId: string,
+  action: BranchPermissionAction = 'canView',
+  permissions = readBranchPermissionsFromStorage()
+) => {
+  if(isAdminUser(user)) return true
+  if(!user || !branchId) return false
+
+  return permissions.some(permission => (
+    permission.userId === user.id
+    && permission.branchId === branchId
+    && permission.canView
+    && permission[action]
+  ))
+}
+
+const filterBranchesByPermission = (branches: Branch[], user?: User | null) => {
+  const permissionUser = getPermissionUser(user)
+  if(isAdminUser(permissionUser)) return branches
+
+  const permissions = readBranchPermissionsFromStorage()
+  return branches.filter(branch => userHasBranchPermissionValue(permissionUser, branch.id, 'canView', permissions))
+}
+
+export const canUseBranch = (
+  branchId: string,
+  action: BranchPermissionAction = 'canView',
+  user?: User | null
+) => {
+  return userHasBranchPermissionValue(getPermissionUser(user), branchId, action)
+}
+
+export const getVisibleBranchesForUser = (user?: User | null) => {
+  return filterBranchesByPermission(readBranchesFromStorage(), user)
+}
+
 export function getActiveBranchId(){
   const branches = readBranchesFromStorage()
+  const visibleBranches = filterBranchesByPermission(branches)
   const storedBranchId = String(localStorage.getItem(KEY_ACTIVE_BRANCH) || '').trim()
-  const selectedBranch = branches.find(branch => branch.id === storedBranchId && branch.isActive)
-    || branches.find(branch => branch.id === DEFAULT_BRANCH_ID && branch.isActive)
-    || branches.find(branch => branch.isActive)
+  const selectedBranch = visibleBranches.find(branch => branch.id === storedBranchId && branch.isActive)
+    || visibleBranches.find(branch => branch.id === DEFAULT_BRANCH_ID && branch.isActive)
+    || visibleBranches.find(branch => branch.isActive)
+    || visibleBranches[0]
+    || branches.find(branch => branch.id === storedBranchId && branch.isActive && isAdminUser(getCurrentUser()))
+    || branches.find(branch => branch.id === DEFAULT_BRANCH_ID && branch.isActive && isAdminUser(getCurrentUser()))
+    || branches.find(branch => branch.isActive && isAdminUser(getCurrentUser()))
     || branches[0]
 
   const activeBranchId = selectedBranch?.id || DEFAULT_BRANCH_ID
@@ -268,12 +322,13 @@ export function getActiveBranch(){
 
 export function setActiveBranchId(branchId: string, user?: User){
   const branches = readBranchesFromStorage()
+  const visibleBranches = filterBranchesByPermission(branches, user)
   const previousBranchId = getActiveBranchId()
   const previousBranch = branches.find(branch => branch.id === previousBranchId)
-  const selectedBranch = branches.find(branch => branch.id === branchId && branch.isActive)
-    || branches.find(branch => branch.id === DEFAULT_BRANCH_ID && branch.isActive)
-    || branches.find(branch => branch.isActive)
-    || branches[0]
+  const selectedBranch = visibleBranches.find(branch => branch.id === branchId && branch.isActive)
+    || visibleBranches.find(branch => branch.id === DEFAULT_BRANCH_ID && branch.isActive)
+    || visibleBranches.find(branch => branch.isActive)
+    || visibleBranches[0]
 
   const nextBranchId = selectedBranch?.id || DEFAULT_BRANCH_ID
   localStorage.setItem(KEY_ACTIVE_BRANCH, nextBranchId)
@@ -305,6 +360,8 @@ const loadBranchScopedItems = <T extends BranchScopedRecord>(
   predicate?: (item: T) => boolean
 ) => {
   const activeBranchId = getActiveBranchId()
+  if(!canUseBranch(activeBranchId, 'canView')) return []
+
   return normalizeBranchScopedItems(readJson<Partial<T>[]>(key, []), normalizer, DEFAULT_BRANCH_ID, predicate)
     .filter(item => item.branchId === activeBranchId)
 }
@@ -316,6 +373,8 @@ const loadBranchScopedItemsWithDemo = <T extends BranchScopedRecord>(
   predicate?: (item: T) => boolean
 ) => {
   const activeBranchId = getActiveBranchId()
+  if(!canUseBranch(activeBranchId, 'canView')) return []
+
   const sourceItems = localStorage.getItem(key) === null
     ? createDemoItems()
     : readJson<Partial<T>[]>(key, [])
@@ -352,6 +411,16 @@ const saveBranchScopedItems = <T extends BranchScopedRecord>(
   predicate?: (item: T) => boolean
 ) => {
   const activeBranchId = getActiveBranchId()
+  const currentUser = getCurrentUser()
+
+  if(currentUser && !isAdminUser(currentUser) && !(
+    canUseBranch(activeBranchId, 'canCreate', currentUser)
+    || canUseBranch(activeBranchId, 'canEdit', currentUser)
+    || canUseBranch(activeBranchId, 'canDelete', currentUser)
+  )){
+    throw new Error('Bu şube için işlem yetkiniz yok.')
+  }
+
   const normalizedItems = normalizeBranchScopedItems(items, normalizer, activeBranchId, predicate)
   const touchedBranchIds = new Set(normalizedItems.map(item => item.branchId))
 
@@ -2120,6 +2189,22 @@ const normalizeBranch = (item: Partial<Branch>): Branch => {
   }
 }
 
+const normalizeBranchPermission = (item: Partial<BranchPermission>): BranchPermission => {
+  const timestamp = item.createdAt || new Date().toISOString()
+
+  return {
+    id: String(item.id || `branch_permission_${Date.now()}`),
+    userId: String(item.userId || ''),
+    branchId: String(item.branchId || DEFAULT_BRANCH_ID),
+    canView: item.canView === true,
+    canCreate: item.canCreate === true,
+    canEdit: item.canEdit === true,
+    canDelete: item.canDelete === true,
+    createdAt: timestamp,
+    updatedAt: item.updatedAt || timestamp
+  }
+}
+
 const normalizeBranchStockTransferStatus = (value: unknown): BranchStockTransferStatus => {
   return BRANCH_STOCK_TRANSFER_STATUSES.includes(value as BranchStockTransferStatus)
     ? value as BranchStockTransferStatus
@@ -2573,6 +2658,14 @@ export const loadBranches = (): Branch[] => {
 
 export const saveBranches = (items: Branch[]) => {
   localStorage.setItem(KEY_BRANCHES, JSON.stringify(items.map(normalizeBranch)))
+}
+
+export const loadBranchPermissions = (): BranchPermission[] => {
+  return readBranchPermissionsFromStorage()
+}
+
+export const saveBranchPermissions = (items: BranchPermission[]) => {
+  localStorage.setItem(KEY_BRANCH_PERMISSIONS, JSON.stringify(items.map(normalizeBranchPermission)))
 }
 
 export const loadBranchStockTransfers = (): BranchStockTransfer[] => {
