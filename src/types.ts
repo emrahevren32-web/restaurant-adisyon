@@ -52,7 +52,7 @@ export type StockItem = {
 }
 
 export type StockMovementType = 'Giriş' | 'Çıkış' | 'Sayım Düzeltme'
-export type StockMovementSource = 'Manuel' | 'Reçete' | 'Adisyon' | 'Sayım' | 'İade' | 'Fire'
+export type StockMovementSource = 'Manuel' | 'Reçete' | 'Adisyon' | 'Sayım' | 'İade' | 'Fire' | 'Transfer'
 export type StockMovementReason =
   | 'Satın Alma'
   | 'İade'
@@ -613,6 +613,29 @@ export type Branch = {
   updatedAt: string
 }
 
+export type BranchStockTransferStatus = 'Bekliyor' | 'Onaylandı' | 'Tamamlandı' | 'İptal Edildi'
+
+export type BranchStockTransferItem = {
+  stockItemId: string
+  stockItemName: string
+  quantity: number
+  unit: StockUnit
+}
+
+export type BranchStockTransfer = {
+  id: string
+  transferNo: string
+  sourceBranchId: string
+  targetBranchId: string
+  transferDate: string
+  status: BranchStockTransferStatus
+  note: string
+  createdBy: string
+  createdAt: string
+  updatedAt: string
+  items: BranchStockTransferItem[]
+}
+
 export type EmployeePosition = 'Garson' | 'Kasiyer' | 'Aşçı' | 'Kurye' | 'Yönetici' | 'Diğer'
 
 export type Employee = {
@@ -937,6 +960,10 @@ export type ActionLogType =
   | 'Şube pasif yapıldı'
   | 'Şube değiştirildi'
   | 'Veri şubeye bağlandı'
+  | 'Transfer oluşturuldu'
+  | 'Transfer onaylandı'
+  | 'Transfer tamamlandı'
+  | 'Transfer iptal edildi'
   | 'Cari oluşturuldu'
   | 'Cari güncellendi'
   | 'Cari aktif yapıldı'

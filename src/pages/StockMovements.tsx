@@ -344,6 +344,7 @@ export default function StockMovements({ currentUser, focus = 'movements' }: Pro
                 <option value="Sayım">Sayım</option>
                 <option value="İade">İade</option>
                 <option value="Fire">Fire</option>
+                <option value="Transfer">Transfer</option>
               </select>
               <input type="search" placeholder="Stok, sebep, tedarikçi, fatura, kullanıcı ara" value={search} onChange={event => setSearch(event.target.value)} />
             </div>

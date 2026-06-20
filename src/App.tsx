@@ -34,6 +34,7 @@ import Users from './pages/Users'
 import Settings from './pages/Settings'
 import BranchManagement from './pages/BranchManagement'
 import BranchReporting from './pages/BranchReporting'
+import BranchStockTransfers from './pages/BranchStockTransfers'
 import CurrentAccounts from './pages/CurrentAccounts'
 import CreditTransactions from './pages/CreditTransactions'
 import CollectionTransactions from './pages/CollectionTransactions'
@@ -99,6 +100,7 @@ type Route =
   | 'users'
   | 'branches'
   | 'branch-reporting'
+  | 'branch-stock-transfers'
   | 'current-accounts'
   | 'credit-transactions'
   | 'collection-transactions'
@@ -148,6 +150,7 @@ type NavKey =
   | 'users'
   | 'branches'
   | 'branch-reporting'
+  | 'branch-stock-transfers'
   | 'staff'
   | 'current-accounts'
   | 'credit-transactions'
@@ -257,7 +260,8 @@ const navGroups: NavGroup[] = [
     title: 'Çoklu Şube Yönetimi',
     icon: 'ÇŞ',
     items: [
-      { key: 'branch-reporting', label: 'Şubeler Arası Raporlama', route: 'branch-reporting', icon: 'ŞR', adminOnly: true }
+      { key: 'branch-reporting', label: 'Şubeler Arası Raporlama', route: 'branch-reporting', icon: 'ŞR', adminOnly: true },
+      { key: 'branch-stock-transfers', label: 'Şubeler Arası Stok Transferi', route: 'branch-stock-transfers', icon: 'ST', adminOnly: true }
     ]
   },
   {
@@ -448,6 +452,7 @@ export default function App(){
       {route === 'risky-current' && currentUser.role === 'Admin' && <RiskyCurrentAccounts />}
       {route === 'branches' && currentUser.role === 'Admin' && <BranchManagement currentUser={currentUser} onBranchesChange={refreshBranches} />}
       {route === 'branch-reporting' && currentUser.role === 'Admin' && <BranchReporting />}
+      {route === 'branch-stock-transfers' && currentUser.role === 'Admin' && <BranchStockTransfers currentUser={currentUser} />}
       {route === 'users' && currentUser.role === 'Admin' && <Users currentUser={currentUser} />}
       {route === 'current-accounts' && currentUser.role === 'Admin' && <CurrentAccounts currentUser={currentUser} />}
       {route === 'credit-transactions' && currentUser.role === 'Admin' && <CreditTransactions currentUser={currentUser} />}

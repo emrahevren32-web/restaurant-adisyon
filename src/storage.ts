@@ -40,6 +40,9 @@ import {
   AuditEntityType,
   AuditEventType,
   Branch,
+  BranchStockTransfer,
+  BranchStockTransferItem,
+  BranchStockTransferStatus,
   QRRejectReason,
   QRRequest,
   QRRequestHistory,
@@ -153,13 +156,14 @@ const KEY_QR_AUDIT_EVENTS = 'ra_qr_audit_events'
 const KEY_SETTINGS = 'ra_settings'
 const KEY_WAITER_CALLS = 'ra_waiter_calls'
 const KEY_WAITER_CALL_HISTORY = 'ra_waiter_call_history'
+const KEY_BRANCH_STOCK_TRANSFERS = 'ra_branch_stock_transfers'
 
 export const DEFAULT_BRANCH_ID = 'branch_merkez'
 const DEFAULT_CATEGORY_ID = 'cat_general'
 const DEFAULT_STOCK_CATEGORY_ID = 'stock_cat_general'
 const STOCK_UNITS: StockUnit[] = ['adet', 'kg', 'gr', 'lt', 'ml', 'paket', 'koli']
 const STOCK_MOVEMENT_TYPES: StockMovementType[] = ['Giriş', 'Çıkış', 'Sayım Düzeltme']
-const STOCK_MOVEMENT_SOURCES: StockMovementSource[] = ['Manuel', 'Reçete', 'Adisyon', 'Sayım', 'İade', 'Fire']
+const STOCK_MOVEMENT_SOURCES: StockMovementSource[] = ['Manuel', 'Reçete', 'Adisyon', 'Sayım', 'İade', 'Fire', 'Transfer']
 const STOCK_MOVEMENT_REASONS: StockMovementReason[] = ['Satın Alma', 'İade', 'Fire', 'Kullanım', 'Sayım Fazlası', 'Sayım Eksiği', 'Ters Hareket', 'Diğer']
 export const STOCK_WASTE_REASONS: StockWasteReasonCategory[] = ['Bozulma', 'SKT Geçmesi', 'Dökülme', 'Hazırlık Kaybı', 'Üretim Hatası', 'Yanlış Sipariş', 'Müşteri İadesi', 'Sayım Farkı', 'Diğer']
 export const HIGH_COST_FIRE_APPROVAL_THRESHOLD = 1000
@@ -177,6 +181,7 @@ const ATTENDANCE_STATUSES: AttendanceStatus[] = ['Normal', 'Eksik Mesai', 'Fazla
 const EMPLOYEE_BONUS_STATUSES: EmployeeBonusStatus[] = ['Hesaplandı', 'Onaylandı', 'Ödendi', 'İptal']
 const EMPLOYEE_AUDIT_RECORD_TYPES: EmployeeAuditRecordType[] = ['Uyarı', 'Tutanak', 'Ödül', 'Denetim Notu', 'Bilgilendirme']
 const EMPLOYEE_AUDIT_SEVERITIES: EmployeeAuditSeverity[] = ['Düşük', 'Orta', 'Yüksek', 'Kritik']
+const BRANCH_STOCK_TRANSFER_STATUSES: BranchStockTransferStatus[] = ['Bekliyor', 'Onaylandı', 'Tamamlandı', 'İptal Edildi']
 
 export const DEFAULT_SETTINGS: SystemSettings = {
   restaurantName: 'Restaurant Adisyon',
@@ -357,6 +362,16 @@ const saveBranchScopedItems = <T extends BranchScopedRecord>(
   const existingItems = normalizeBranchScopedItems(readJson<Partial<T>[]>(key, []), normalizer, DEFAULT_BRANCH_ID, predicate)
   const preservedItems = existingItems.filter(item => !touchedBranchIds.has(item.branchId))
   localStorage.setItem(key, JSON.stringify([...normalizedItems, ...preservedItems]))
+}
+
+const saveAllBranchScopedItems = <T extends BranchScopedRecord>(
+  key: string,
+  items: T[],
+  normalizer: (item: Partial<T>) => T,
+  predicate?: (item: T) => boolean
+) => {
+  const normalizedItems = normalizeBranchScopedItems(items, normalizer, DEFAULT_BRANCH_ID, predicate)
+  localStorage.setItem(key, JSON.stringify(normalizedItems))
 }
 
 const normalizeCategory = (item: Partial<ProductCategory>): ProductCategory => ({
@@ -2105,6 +2120,41 @@ const normalizeBranch = (item: Partial<Branch>): Branch => {
   }
 }
 
+const normalizeBranchStockTransferStatus = (value: unknown): BranchStockTransferStatus => {
+  return BRANCH_STOCK_TRANSFER_STATUSES.includes(value as BranchStockTransferStatus)
+    ? value as BranchStockTransferStatus
+    : 'Bekliyor'
+}
+
+const normalizeBranchStockTransferItem = (item: Partial<BranchStockTransferItem>): BranchStockTransferItem => {
+  const quantity = Number(item.quantity)
+
+  return {
+    stockItemId: String(item.stockItemId || ''),
+    stockItemName: String(item.stockItemName || 'Stok Kartı').trim() || 'Stok Kartı',
+    quantity: Number.isFinite(quantity) ? Math.max(0, Math.round((quantity + Number.EPSILON) * 1000000) / 1000000) : 0,
+    unit: normalizeStockUnit(item.unit)
+  }
+}
+
+const normalizeBranchStockTransfer = (item: Partial<BranchStockTransfer>): BranchStockTransfer => {
+  const timestamp = item.createdAt || new Date().toISOString()
+
+  return {
+    id: String(item.id || `branch_transfer_${Date.now()}`),
+    transferNo: String(item.transferNo || `TRF-${Date.now()}`).trim() || `TRF-${Date.now()}`,
+    sourceBranchId: String(item.sourceBranchId || DEFAULT_BRANCH_ID),
+    targetBranchId: String(item.targetBranchId || DEFAULT_BRANCH_ID),
+    transferDate: String(item.transferDate || new Date().toLocaleDateString('sv-SE')),
+    status: normalizeBranchStockTransferStatus(item.status),
+    note: String(item.note || '').trim(),
+    createdBy: String(item.createdBy || 'Yönetici').trim() || 'Yönetici',
+    createdAt: timestamp,
+    updatedAt: item.updatedAt || timestamp,
+    items: (item.items || []).map(normalizeBranchStockTransferItem).filter(transferItem => transferItem.stockItemId && transferItem.quantity > 0)
+  }
+}
+
 const normalizeActionLog = (item: Partial<ActionLog>): ActionLog => {
   const timestamp = item.timestamp || new Date().toISOString()
   const date = item.date || new Date(timestamp).toLocaleDateString('sv-SE')
@@ -2256,10 +2306,22 @@ export const loadStockItems = (): StockItem[] => {
   return loadBranchScopedItems(KEY_STOCK_ITEMS, item => normalizeStockItem(item, fallbackCategoryId))
 }
 
+export const loadAllStockItems = (): StockItem[] => {
+  const categories = loadStockCategories()
+  const fallbackCategoryId = categories.find(c => c.id === DEFAULT_STOCK_CATEGORY_ID)?.id || categories[0]?.id || DEFAULT_STOCK_CATEGORY_ID
+  return loadAllBranchScopedItems<StockItem>(KEY_STOCK_ITEMS, item => normalizeStockItem(item, fallbackCategoryId))
+}
+
 export const saveStockItems = (items: StockItem[]) => {
   const categories = loadStockCategories()
   const fallbackCategoryId = categories.find(c => c.id === DEFAULT_STOCK_CATEGORY_ID)?.id || categories[0]?.id || DEFAULT_STOCK_CATEGORY_ID
   saveBranchScopedItems(KEY_STOCK_ITEMS, items, item => normalizeStockItem(item, fallbackCategoryId))
+}
+
+const saveAllStockItems = (items: StockItem[]) => {
+  const categories = loadStockCategories()
+  const fallbackCategoryId = categories.find(c => c.id === DEFAULT_STOCK_CATEGORY_ID)?.id || categories[0]?.id || DEFAULT_STOCK_CATEGORY_ID
+  saveAllBranchScopedItems(KEY_STOCK_ITEMS, items, item => normalizeStockItem(item, fallbackCategoryId))
 }
 
 export const loadStockMovements = (): StockMovement[] => {
@@ -2268,6 +2330,14 @@ export const loadStockMovements = (): StockMovement[] => {
 
 export const saveStockMovements = (items: StockMovement[]) => {
   saveBranchScopedItems(KEY_STOCK_MOVEMENTS, items, normalizeStockMovement)
+}
+
+const loadAllStockMovements = (): StockMovement[] => {
+  return loadAllBranchScopedItems<StockMovement>(KEY_STOCK_MOVEMENTS, normalizeStockMovement)
+}
+
+const saveAllStockMovements = (items: StockMovement[]) => {
+  saveAllBranchScopedItems(KEY_STOCK_MOVEMENTS, items, normalizeStockMovement)
 }
 
 export const loadStockMovementAuditEvents = (): StockMovementAuditEvent[] => {
@@ -2503,6 +2573,14 @@ export const loadBranches = (): Branch[] => {
 
 export const saveBranches = (items: Branch[]) => {
   localStorage.setItem(KEY_BRANCHES, JSON.stringify(items.map(normalizeBranch)))
+}
+
+export const loadBranchStockTransfers = (): BranchStockTransfer[] => {
+  return readJson<Partial<BranchStockTransfer>[]>(KEY_BRANCH_STOCK_TRANSFERS, []).map(normalizeBranchStockTransfer)
+}
+
+export const saveBranchStockTransfers = (items: BranchStockTransfer[]) => {
+  localStorage.setItem(KEY_BRANCH_STOCK_TRANSFERS, JSON.stringify(items.map(normalizeBranchStockTransfer)))
 }
 
 export const loadEmployees = (): Employee[] => {
@@ -2844,6 +2922,292 @@ const roundStockQty = (value: number) => {
 type ExpiryConsumptionMode = 'fefo' | 'expired_only'
 
 const createStorageId = (prefix: string) => `${prefix}_${Date.now()}_${Math.random().toString(16).slice(2)}`
+
+const getBranchNameById = (branchId: string, branches = loadBranches()) => {
+  return branches.find(branch => branch.id === branchId)?.name || branchId
+}
+
+const normalizeMatchText = (value: string) => value.trim().toLocaleLowerCase('tr-TR')
+
+const findTargetTransferStockItem = (items: StockItem[], sourceItem: StockItem, targetBranchId: string) => {
+  const targetItems = items.filter(item => item.branchId === targetBranchId && item.active)
+  const sourceSku = normalizeMatchText(sourceItem.sku || '')
+  const sourceBarcode = normalizeMatchText(sourceItem.barcode || '')
+  const sourceName = normalizeMatchText(sourceItem.name)
+
+  return targetItems.find(item => sourceSku && normalizeMatchText(item.sku || '') === sourceSku)
+    || targetItems.find(item => sourceBarcode && normalizeMatchText(item.barcode || '') === sourceBarcode)
+    || targetItems.find(item => (
+      normalizeMatchText(item.name) === sourceName
+      && item.unit === sourceItem.unit
+      && item.categoryId === sourceItem.categoryId
+    ))
+}
+
+const createTargetTransferStockItem = (sourceItem: StockItem, targetBranchId: string, now: string): StockItem => ({
+  ...sourceItem,
+  id: createStorageId('stock_transfer_target'),
+  branchId: targetBranchId,
+  currentQty: 0,
+  active: true,
+  createdAt: now,
+  updatedAt: now,
+  lastCostUpdatedAt: sourceItem.lastCostUpdatedAt || now
+})
+
+const buildTransferStockMovement = ({
+  stockItem,
+  type,
+  qty,
+  previousQty,
+  nextQty,
+  transfer,
+  counterBranchName,
+  user,
+  now
+}: {
+  stockItem: StockItem
+  type: StockMovementType
+  qty: number
+  previousQty: number
+  nextQty: number
+  transfer: BranchStockTransfer
+  counterBranchName: string
+  user: User
+  now: string
+}) => {
+  const unitCost = getStockAverageCost(stockItem)
+
+  const movement: StockMovement = {
+    id: createStorageId('stock_move'),
+    branchId: stockItem.branchId,
+    stockItemId: stockItem.id,
+    stockItemName: stockItem.name,
+    type,
+    source: 'Transfer',
+    reason: 'Diğer',
+    qty,
+    unit: stockItem.unit,
+    previousQty,
+    nextQty,
+    currency: getStockCurrency(stockItem),
+    unitCost: roundCost(unitCost),
+    totalCost: roundCost(qty * unitCost),
+    previousAverageCost: roundCost(unitCost),
+    nextAverageCost: roundCost(unitCost),
+    previousStockValue: roundCost(Math.max(0, previousQty) * unitCost),
+    nextStockValue: roundCost(Math.max(0, nextQty) * unitCost),
+    supplierName: '',
+    invoiceNo: transfer.transferNo,
+    description: `${transfer.transferNo} şubeler arası stok transferi. Karşı şube: ${counterBranchName}.`,
+    movementDate: `${transfer.transferDate}T00:00:00.000Z`,
+    createdAt: now,
+    createdByUserId: user.id,
+    createdByFullName: user.fullName || user.username,
+    sourceEntityType: 'BranchStockTransfer',
+    sourceEntityId: transfer.id
+  }
+
+  return normalizeStockMovement(movement)
+}
+
+const recordTransferStockMovementAudit = (movement: StockMovement, before: StockItem, after: StockItem, user: User, now: string) => {
+  addStockMovementAuditEvent({
+    id: createStorageId('stock_audit'),
+    movementId: movement.id,
+    stockItemId: movement.stockItemId,
+    eventType: 'created',
+    userId: user.id,
+    userName: user.fullName || user.username,
+    timestamp: now,
+    before,
+    after,
+    note: `${movement.stockItemName}: Transfer kaynaklı ${movement.type} ${formatStockQty(movement.qty, movement.unit)}. ${formatStockQty(before.currentQty, movement.unit)} -> ${formatStockQty(after.currentQty, movement.unit)}.`
+  })
+}
+
+const updateBranchStockTransferStatus = (
+  transferId: string,
+  status: BranchStockTransferStatus,
+  user: User,
+  description: (transfer: BranchStockTransfer, branches: Branch[]) => string,
+  allowedStatuses: BranchStockTransferStatus[]
+) => {
+  const transfers = loadBranchStockTransfers()
+  const transfer = transfers.find(item => item.id === transferId)
+
+  if(!transfer) throw new Error('Transfer kaydı bulunamadı.')
+  if(!allowedStatuses.includes(transfer.status)){
+    throw new Error(`Bu transfer ${transfer.status} durumundayken işlem yapılamaz.`)
+  }
+
+  const now = new Date().toISOString()
+  const updatedTransfer: BranchStockTransfer = {
+    ...transfer,
+    status,
+    updatedAt: now
+  }
+
+  saveBranchStockTransfers(transfers.map(item => item.id === transfer.id ? updatedTransfer : item))
+  const operationType: ActionLogType = status === 'Onaylandı'
+    ? 'Transfer onaylandı'
+    : 'Transfer iptal edildi'
+  const branches = loadBranches()
+
+  addActionLog({
+    operationType,
+    user,
+    description: description(updatedTransfer, branches)
+  })
+
+  return updatedTransfer
+}
+
+export const approveBranchStockTransfer = (transferId: string, user: User) => {
+  return updateBranchStockTransferStatus(
+    transferId,
+    'Onaylandı',
+    user,
+    (transfer, branches) => `${transfer.transferNo} transferi onaylandı. Gönderen: ${getBranchNameById(transfer.sourceBranchId, branches)}. Alan: ${getBranchNameById(transfer.targetBranchId, branches)}.`,
+    ['Bekliyor']
+  )
+}
+
+export const cancelBranchStockTransfer = (transferId: string, user: User) => {
+  return updateBranchStockTransferStatus(
+    transferId,
+    'İptal Edildi',
+    user,
+    (transfer, branches) => `${transfer.transferNo} transferi iptal edildi. Gönderen: ${getBranchNameById(transfer.sourceBranchId, branches)}. Alan: ${getBranchNameById(transfer.targetBranchId, branches)}.`,
+    ['Bekliyor', 'Onaylandı']
+  )
+}
+
+export const completeBranchStockTransfer = (transferId: string, user: User) => {
+  const transfers = loadBranchStockTransfers()
+  const transfer = transfers.find(item => item.id === transferId)
+
+  if(!transfer) throw new Error('Transfer kaydı bulunamadı.')
+  if(transfer.status !== 'Onaylandı') throw new Error('Transfer tamamlanmadan önce onaylanmalıdır.')
+  if(transfer.sourceBranchId === transfer.targetBranchId) throw new Error('Gönderen ve alan şube aynı olamaz.')
+  if(transfer.items.length === 0) throw new Error('Transferde ürün bulunmuyor.')
+
+  const branches = loadBranches()
+  const sourceBranchName = getBranchNameById(transfer.sourceBranchId, branches)
+  const targetBranchName = getBranchNameById(transfer.targetBranchId, branches)
+  const now = new Date().toISOString()
+  let nextStockItems = loadAllStockItems()
+  const movements: StockMovement[] = []
+  const createdTargetItems: StockItem[] = []
+
+  transfer.items.forEach(transferItem => {
+    const quantity = roundStockQty(transferItem.quantity)
+    const sourceItem = nextStockItems.find(item => item.id === transferItem.stockItemId && item.branchId === transfer.sourceBranchId)
+
+    if(!sourceItem) throw new Error(`${transferItem.stockItemName} stok kartı gönderen şubede bulunamadı.`)
+    if(quantity <= 0) throw new Error(`${sourceItem.name} için transfer miktarı sıfırdan büyük olmalıdır.`)
+    if(sourceItem.currentQty < quantity){
+      throw new Error(`${sourceItem.name} için mevcut stok yetersiz. Mevcut: ${formatStockQty(sourceItem.currentQty, sourceItem.unit)}, transfer: ${formatStockQty(quantity, sourceItem.unit)}.`)
+    }
+
+    const sourcePreviousQty = sourceItem.currentQty
+    const sourceAfter: StockItem = {
+      ...sourceItem,
+      currentQty: roundStockQty(sourceItem.currentQty - quantity),
+      updatedAt: now
+    }
+    const sourceMovement = buildTransferStockMovement({
+      stockItem: sourceItem,
+      type: 'Çıkış',
+      qty: quantity,
+      previousQty: sourcePreviousQty,
+      nextQty: sourceAfter.currentQty,
+      transfer,
+      counterBranchName: targetBranchName,
+      user,
+      now
+    })
+
+    nextStockItems = nextStockItems.map(item => item.id === sourceItem.id ? sourceAfter : item)
+    recordTransferStockMovementAudit(sourceMovement, sourceItem, sourceAfter, user, now)
+    recordCriticalStockTransition({
+      before: sourceItem,
+      after: sourceAfter,
+      user,
+      trigger: 'Stok Hareketi',
+      movementId: sourceMovement.id,
+      note: `${transfer.transferNo} şubeler arası transfer çıkışı.`
+    })
+    movements.push(sourceMovement)
+
+    const latestSourceItem = sourceAfter
+    const matchedTargetItem = findTargetTransferStockItem(nextStockItems, latestSourceItem, transfer.targetBranchId)
+    const targetItem = matchedTargetItem || createTargetTransferStockItem(latestSourceItem, transfer.targetBranchId, now)
+    if(!matchedTargetItem) createdTargetItems.push(targetItem)
+
+    const targetPreviousQty = targetItem.currentQty
+    const incomingUnitCost = getStockAverageCost(latestSourceItem)
+    const targetPreviousAverageCost = getStockAverageCost(targetItem)
+    const nextAverageCost = calculateWeightedAverageCost({
+      previousQty: targetPreviousQty,
+      previousAverageCost: targetPreviousAverageCost,
+      incomingQty: quantity,
+      incomingUnitCost
+    })
+    const targetAfter: StockItem = {
+      ...targetItem,
+      currentQty: roundStockQty(targetItem.currentQty + quantity),
+      averageCost: roundCost(nextAverageCost),
+      currency: getStockCurrency(targetItem) || getStockCurrency(latestSourceItem),
+      unitPurchasePrice: targetItem.unitPurchasePrice ?? latestSourceItem.unitPurchasePrice,
+      lastPurchasePrice: targetItem.lastPurchasePrice ?? latestSourceItem.lastPurchasePrice,
+      lastCostUpdatedAt: now,
+      updatedAt: now
+    }
+    const targetMovement = buildTransferStockMovement({
+      stockItem: targetItem,
+      type: 'Giriş',
+      qty: quantity,
+      previousQty: targetPreviousQty,
+      nextQty: targetAfter.currentQty,
+      transfer,
+      counterBranchName: sourceBranchName,
+      user,
+      now
+    })
+
+    nextStockItems = matchedTargetItem
+      ? nextStockItems.map(item => item.id === targetItem.id ? targetAfter : item)
+      : [targetAfter, ...nextStockItems]
+    recordTransferStockMovementAudit(targetMovement, targetItem, targetAfter, user, now)
+    recordCriticalStockTransition({
+      before: targetItem,
+      after: targetAfter,
+      user,
+      trigger: 'Stok Hareketi',
+      movementId: targetMovement.id,
+      note: `${transfer.transferNo} şubeler arası transfer girişi.`
+    })
+    movements.push(targetMovement)
+  })
+
+  const updatedTransfer: BranchStockTransfer = {
+    ...transfer,
+    status: 'Tamamlandı',
+    updatedAt: now
+  }
+
+  saveAllStockItems(nextStockItems)
+  saveAllStockMovements([...movements, ...loadAllStockMovements()])
+  saveBranchStockTransfers(transfers.map(item => item.id === transfer.id ? updatedTransfer : item))
+  addActionLog({
+    operationType: 'Transfer tamamlandı',
+    user,
+    description: `${transfer.transferNo} transferi tamamlandı. ${sourceBranchName} -> ${targetBranchName}. Ürün sayısı: ${transfer.items.length}.`
+  })
+
+  return { transfer: updatedTransfer, movements, createdTargetItems }
+}
 
 const buildLotCode = (stockItem: StockItem, expiryDate?: string) => {
   const stockCode = (stockItem.sku || stockItem.name || 'LOT')
