@@ -1047,3 +1047,40 @@ export type ActionLog = {
   timestamp: string
   description: string
 }
+
+export type SystemUsageModuleName =
+  | 'Adisyon'
+  | 'Masa Yönetimi'
+  | 'Ürün Yönetimi'
+  | 'Stok Yönetimi'
+  | 'Cari Yönetimi'
+  | 'Finans Yönetimi'
+  | 'Personel Yönetimi'
+  | 'Patron Dashboard'
+  | 'Çoklu Şube Yönetimi'
+  | 'Sistem'
+
+export type SystemUsageActionType =
+  | 'Görüntüleme'
+  | 'Oluşturma'
+  | 'Güncelleme'
+  | 'Silme'
+  | 'Giriş Yapma'
+  | 'Çıkış Yapma'
+  | 'Onaylama'
+  | 'İptal Etme'
+
+export type SystemUsageLog = {
+  id: string
+  userId: string
+  userName: string
+  branchId: string
+  moduleName: SystemUsageModuleName
+  actionType: SystemUsageActionType
+  entityType: string
+  entityId: string
+  description: string
+  ipAddress: string
+  deviceInfo: string
+  createdAt: string
+}

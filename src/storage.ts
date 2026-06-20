@@ -85,6 +85,9 @@ import {
   StockWasteRecord,
   StockWasteStatus,
   SystemSettings,
+  SystemUsageActionType,
+  SystemUsageLog,
+  SystemUsageModuleName,
   TableState,
   User,
   WaiterCall,
@@ -151,6 +154,7 @@ const KEY_CASH_CLOSINGS = 'ra_cash_closings'
 const KEY_CASH_TRANSFERS = 'ra_cash_transfers'
 const KEY_AUTH = 'ra_auth'
 const KEY_LOGS = 'ra_logs'
+const KEY_SYSTEM_USAGE_LOGS = 'ra_system_usage_logs'
 const KEY_KITCHEN = 'ra_kitchen_orders'
 const KEY_QR_REQUESTS = 'ra_qr_requests'
 const KEY_QR_REQUEST_HISTORY = 'ra_qr_request_history'
@@ -184,6 +188,8 @@ const EMPLOYEE_BONUS_STATUSES: EmployeeBonusStatus[] = ['Hesaplandı', 'Onayland
 const EMPLOYEE_AUDIT_RECORD_TYPES: EmployeeAuditRecordType[] = ['Uyarı', 'Tutanak', 'Ödül', 'Denetim Notu', 'Bilgilendirme']
 const EMPLOYEE_AUDIT_SEVERITIES: EmployeeAuditSeverity[] = ['Düşük', 'Orta', 'Yüksek', 'Kritik']
 const BRANCH_STOCK_TRANSFER_STATUSES: BranchStockTransferStatus[] = ['Bekliyor', 'Onaylandı', 'Tamamlandı', 'İptal Edildi']
+const SYSTEM_USAGE_MODULE_NAMES: SystemUsageModuleName[] = ['Adisyon', 'Masa Yönetimi', 'Ürün Yönetimi', 'Stok Yönetimi', 'Cari Yönetimi', 'Finans Yönetimi', 'Personel Yönetimi', 'Patron Dashboard', 'Çoklu Şube Yönetimi', 'Sistem']
+const SYSTEM_USAGE_ACTION_TYPES: SystemUsageActionType[] = ['Görüntüleme', 'Oluşturma', 'Güncelleme', 'Silme', 'Giriş Yapma', 'Çıkış Yapma', 'Onaylama', 'İptal Etme']
 
 export const DEFAULT_SETTINGS: SystemSettings = {
   restaurantName: 'Restaurant Adisyon',
@@ -2259,6 +2265,109 @@ const normalizeActionLog = (item: Partial<ActionLog>): ActionLog => {
   }
 }
 
+const normalizeSystemUsageModuleName = (value: unknown): SystemUsageModuleName => {
+  return SYSTEM_USAGE_MODULE_NAMES.includes(value as SystemUsageModuleName)
+    ? value as SystemUsageModuleName
+    : 'Sistem'
+}
+
+const normalizeSystemUsageActionType = (value: unknown): SystemUsageActionType => {
+  return SYSTEM_USAGE_ACTION_TYPES.includes(value as SystemUsageActionType)
+    ? value as SystemUsageActionType
+    : 'Güncelleme'
+}
+
+const normalizeSystemUsageLog = (item: Partial<SystemUsageLog>): SystemUsageLog => ({
+  id: String(item.id || `system_usage_${Date.now()}`),
+  userId: String(item.userId || ''),
+  userName: String(item.userName || 'Bilinmeyen Kullanıcı'),
+  branchId: String(item.branchId || DEFAULT_BRANCH_ID),
+  moduleName: normalizeSystemUsageModuleName(item.moduleName),
+  actionType: normalizeSystemUsageActionType(item.actionType),
+  entityType: String(item.entityType || ''),
+  entityId: String(item.entityId || ''),
+  description: String(item.description || ''),
+  ipAddress: String(item.ipAddress || ''),
+  deviceInfo: String(item.deviceInfo || ''),
+  createdAt: item.createdAt || new Date().toISOString()
+})
+
+const normalizeUsageText = (value: string) => value.toLocaleLowerCase('tr-TR')
+
+const actionTextHas = (text: string, keywords: string[]) => {
+  return keywords.some(keyword => text.includes(keyword))
+}
+
+const inferSystemUsageModuleName = (operationType: ActionLogType): SystemUsageModuleName => {
+  const text = normalizeUsageText(operationType)
+
+  if(actionTextHas(text, ['şube', 'transfer', 'yetkisi', 'şubeye'])) return 'Çoklu Şube Yönetimi'
+  if(actionTextHas(text, ['personel', 'vardiya', 'puantaj', 'performans', 'prim', 'denetim'])) return 'Personel Yönetimi'
+  if(actionTextHas(text, ['tedarikçi', 'kasa', 'gelir', 'gider'])) return 'Finans Yönetimi'
+  if(actionTextHas(text, ['cari', 'veresiye', 'tahsilat'])) return 'Cari Yönetimi'
+  if(actionTextHas(text, ['stok', 'skt', 'fire', 'reçete', 'maliyet', 'alış'])) return 'Stok Yönetimi'
+  if(actionTextHas(text, ['ürün', 'kategori'])) return 'Ürün Yönetimi'
+  if(text.startsWith('masa ') && actionTextHas(text, ['oluşturuldu', 'silindi', 'adı değiştirildi', 'taşındı', 'birleştirildi'])) return 'Masa Yönetimi'
+  if(actionTextHas(text, ['masa', 'sipariş', 'hesap', 'ikram', 'indirim', 'qr', 'garson'])) return 'Adisyon'
+  if(actionTextHas(text, ['kullanıcı', 'giriş', 'çıkış', 'sistem'])) return 'Sistem'
+  return 'Sistem'
+}
+
+const inferSystemUsageActionType = (operationType: ActionLogType): SystemUsageActionType => {
+  const text = normalizeUsageText(operationType)
+
+  if(actionTextHas(text, ['giriş'])) return 'Giriş Yapma'
+  if(actionTextHas(text, ['çıkış'])) return 'Çıkış Yapma'
+  if(actionTextHas(text, ['silindi', 'silme'])) return 'Silme'
+  if(actionTextHas(text, ['onaylandı', 'onaylama'])) return 'Onaylama'
+  if(actionTextHas(text, ['iptal', 'reddedildi'])) return 'İptal Etme'
+  if(actionTextHas(text, ['oluşturuldu', 'eklendi', 'girildi', 'açıldı', 'çağrıldı'])) return 'Oluşturma'
+  if(actionTextHas(text, ['güncellendi', 'değiştirildi', 'aktif', 'pasif', 'kapatıldı', 'hazır', 'taşındı', 'birleştirildi', 'artırıldı', 'azaltıldı', 'uygulandı', 'kaldırıldı', 'ödendi', 'tamamlandı', 'tüketildi', 'iade', 'terslendi', 'düşüldü'])) return 'Güncelleme'
+  return 'Güncelleme'
+}
+
+const inferSystemUsageEntityType = (operationType: ActionLogType) => {
+  const text = normalizeUsageText(operationType)
+
+  if(actionTextHas(text, ['şube yetkisi'])) return 'Şube Yetkisi'
+  if(actionTextHas(text, ['şube', 'transfer'])) return 'Şube'
+  if(actionTextHas(text, ['personel'])) return 'Personel'
+  if(actionTextHas(text, ['vardiya'])) return 'Vardiya'
+  if(actionTextHas(text, ['puantaj'])) return 'Puantaj'
+  if(actionTextHas(text, ['performans'])) return 'Performans'
+  if(actionTextHas(text, ['prim'])) return 'Prim'
+  if(actionTextHas(text, ['denetim'])) return 'Denetim'
+  if(actionTextHas(text, ['tedarikçi'])) return 'Tedarikçi'
+  if(actionTextHas(text, ['kasa'])) return 'Kasa'
+  if(actionTextHas(text, ['gelir', 'gider'])) return 'Gelir/Gider'
+  if(actionTextHas(text, ['cari'])) return 'Cari'
+  if(actionTextHas(text, ['veresiye'])) return 'Veresiye'
+  if(actionTextHas(text, ['tahsilat'])) return 'Tahsilat'
+  if(actionTextHas(text, ['stok', 'skt', 'fire'])) return 'Stok'
+  if(actionTextHas(text, ['reçete'])) return 'Reçete'
+  if(actionTextHas(text, ['ürün'])) return 'Ürün'
+  if(actionTextHas(text, ['kategori'])) return 'Kategori'
+  if(actionTextHas(text, ['masa'])) return 'Masa'
+  if(actionTextHas(text, ['sipariş', 'qr'])) return 'Sipariş'
+  if(actionTextHas(text, ['kullanıcı'])) return 'Kullanıcı'
+  return 'Kayıt'
+}
+
+const createSystemUsageLogFromActionLog = (log: ActionLog): SystemUsageLog => normalizeSystemUsageLog({
+  id: `usage_${log.id}`,
+  userId: log.userId,
+  userName: log.userName,
+  branchId: DEFAULT_BRANCH_ID,
+  moduleName: inferSystemUsageModuleName(log.operationType),
+  actionType: inferSystemUsageActionType(log.operationType),
+  entityType: inferSystemUsageEntityType(log.operationType),
+  entityId: log.tableId || log.id,
+  description: log.description || log.operationType,
+  ipAddress: '',
+  deviceInfo: 'ActionHistory aktarımı',
+  createdAt: log.timestamp
+})
+
 export const loadProducts = (): Product[] => {
   const categories = loadCategories()
   const fallbackCategoryId = categories.find(c => c.id === DEFAULT_CATEGORY_ID)?.id || categories[0]?.id || DEFAULT_CATEGORY_ID
@@ -2809,6 +2918,69 @@ export const loadActionLogs = (): ActionLog[] => {
 
 export const saveActionLogs = (items: ActionLog[]) => {
   localStorage.setItem(KEY_LOGS, JSON.stringify(items.map(normalizeActionLog)))
+}
+
+const loadStoredSystemUsageLogs = (): SystemUsageLog[] => {
+  return readJson<Partial<SystemUsageLog>[]>(KEY_SYSTEM_USAGE_LOGS, []).map(normalizeSystemUsageLog)
+}
+
+export const loadSystemUsageLogs = (): SystemUsageLog[] => {
+  const usageLogs = loadStoredSystemUsageLogs()
+  const actionHistoryLogs = loadActionLogs().map(createSystemUsageLogFromActionLog)
+  const seen = new Set<string>()
+
+  return [...usageLogs, ...actionHistoryLogs]
+    .filter(log => {
+      if(seen.has(log.id)) return false
+      seen.add(log.id)
+      return true
+    })
+    .sort((first, second) => second.createdAt.localeCompare(first.createdAt))
+}
+
+export const saveSystemUsageLogs = (items: SystemUsageLog[]) => {
+  localStorage.setItem(KEY_SYSTEM_USAGE_LOGS, JSON.stringify(items.map(normalizeSystemUsageLog)))
+}
+
+export const addSystemUsageLog = ({
+  user,
+  branchId,
+  moduleName,
+  actionType,
+  entityType,
+  entityId,
+  description,
+  ipAddress,
+  deviceInfo
+}: {
+  user?: User | null
+  branchId?: string
+  moduleName: SystemUsageModuleName
+  actionType: SystemUsageActionType
+  entityType?: string
+  entityId?: string
+  description: string
+  ipAddress?: string
+  deviceInfo?: string
+}) => {
+  const currentUser = user || getCurrentUser()
+  const log = normalizeSystemUsageLog({
+    id: `system_usage_${Date.now()}_${Math.random().toString(16).slice(2)}`,
+    userId: currentUser?.id || '',
+    userName: currentUser ? currentUser.fullName || currentUser.username : 'Bilinmeyen Kullanıcı',
+    branchId: branchId || getActiveBranchId(),
+    moduleName,
+    actionType,
+    entityType: entityType || '',
+    entityId: entityId || '',
+    description,
+    ipAddress: ipAddress || '',
+    deviceInfo: deviceInfo || (typeof navigator !== 'undefined' ? navigator.userAgent : ''),
+    createdAt: new Date().toISOString()
+  })
+
+  saveSystemUsageLogs([log, ...loadStoredSystemUsageLogs()])
+  return log
 }
 
 export const addActionLog = ({

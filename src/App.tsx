@@ -11,6 +11,7 @@ import ManagerAlertCenter from './pages/ManagerAlertCenter'
 import DailySummary from './pages/DailySummary'
 import BillHistory from './pages/BillHistory'
 import ActionHistory from './pages/ActionHistory'
+import SystemUsageLogs from './pages/SystemUsageLogs'
 import StaffTracking from './pages/StaffTracking'
 import EmployeeCards from './pages/EmployeeCards'
 import ShiftManagement from './pages/ShiftManagement'
@@ -88,6 +89,7 @@ type Route =
   | 'qr-orders'
   | 'qr-codes'
   | 'actions'
+  | 'system-usage-logs'
   | 'employee-cards'
   | 'shift-management'
   | 'attendance-tracking'
@@ -144,6 +146,7 @@ type NavKey =
   | 'risky-current'
   | 'bill-history'
   | 'action-history'
+  | 'system-usage-logs'
   | 'employee-cards'
   | 'shift-management'
   | 'attendance-tracking'
@@ -171,6 +174,7 @@ type NavGroupKey =
   | 'stock'
   | 'finance'
   | 'reports'
+  | 'usage-analytics'
   | 'personnel'
   | 'multi-branch'
   | 'management'
@@ -244,6 +248,14 @@ const navGroups: NavGroup[] = [
       { key: 'current-report', label: 'Cari Raporu', route: 'current-report', icon: 'CR', adminOnly: true },
       { key: 'risky-current', label: 'Riskli Cari', route: 'risky-current', icon: 'RC', adminOnly: true },
       { key: 'bill-history', label: 'Adisyon Geçmişi', route: 'history', icon: 'AG', adminOnly: true }
+    ]
+  },
+  {
+    key: 'usage-analytics',
+    title: 'Kullanım Analitiği',
+    icon: 'KA',
+    items: [
+      { key: 'system-usage-logs', label: 'Sistem Kullanım Logları', route: 'system-usage-logs', icon: 'SL', adminOnly: true }
     ]
   },
   {
@@ -449,6 +461,7 @@ export default function App(){
       )}
       {route === 'qr-codes' && currentUser.role === 'Admin' && <QRCodes />}
       {route === 'actions' && currentUser.role === 'Admin' && <ActionHistory />}
+      {route === 'system-usage-logs' && currentUser.role === 'Admin' && <SystemUsageLogs />}
       {route === 'employee-cards' && currentUser.role === 'Admin' && <EmployeeCards currentUser={currentUser} />}
       {route === 'shift-management' && currentUser.role === 'Admin' && <ShiftManagement currentUser={currentUser} />}
       {route === 'attendance-tracking' && currentUser.role === 'Admin' && <AttendanceTracking currentUser={currentUser} />}
