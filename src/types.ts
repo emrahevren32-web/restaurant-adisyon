@@ -1100,3 +1100,16 @@ export type UserActivitySummary = {
   createdAt: string
   updatedAt: string
 }
+
+export type ModuleUsageSummary = {
+  id: string
+  moduleName: SystemUsageModuleName
+  totalUsageCount: number
+  uniqueUserCount: number
+  activeDayCount: number
+  averageDailyUsage: number
+  lastUsedAt: string
+  mostActiveUser: string
+  createdAt: string
+  updatedAt: string
+}

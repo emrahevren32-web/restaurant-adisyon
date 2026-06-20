@@ -31,6 +31,7 @@ import {
   IncomeExpenseType,
   KitchenOrder,
   KitchenOrderStatus,
+  ModuleUsageSummary,
   Order,
   PaymentMethod,
   PaymentPart,
@@ -3071,6 +3072,62 @@ export const calculateUserActivitySummaries = (
 
 export const loadUserActivitySummaries = () => {
   return calculateUserActivitySummaries(loadSystemUsageLogs(), loadUsers())
+}
+
+const getMostActiveModuleUser = (logs: SystemUsageLog[]) => {
+  const userCounts = new Map<string, { userName: string; count: number }>()
+  logs.forEach(log => {
+    const key = log.userId || log.userName
+    if(!key) return
+    const current = userCounts.get(key)
+    userCounts.set(key, {
+      userName: log.userName || key,
+      count: (current?.count || 0) + 1
+    })
+  })
+
+  return Array.from(userCounts.values()).sort((first, second) => {
+    const countDiff = second.count - first.count
+    if(countDiff !== 0) return countDiff
+    return first.userName.localeCompare(second.userName, 'tr-TR')
+  })[0]?.userName || ''
+}
+
+export const calculateModuleUsageSummaries = (logs: SystemUsageLog[]): ModuleUsageSummary[] => {
+  const now = new Date().toISOString()
+
+  return SYSTEM_USAGE_MODULE_NAMES.map(moduleName => {
+    const moduleLogs = logs.filter(log => log.moduleName === moduleName)
+    const sortedLogs = [...moduleLogs].sort((first, second) => getUsageTimestampValue(second.createdAt) - getUsageTimestampValue(first.createdAt))
+    const firstUsage = [...moduleLogs].sort((first, second) => getUsageTimestampValue(first.createdAt) - getUsageTimestampValue(second.createdAt))[0]
+    const activeDayCount = new Set(moduleLogs.map(log => getUsageDateKey(log.createdAt)).filter(Boolean)).size
+    const totalUsageCount = moduleLogs.length
+    const averageDailyUsage = activeDayCount > 0
+      ? Math.round((totalUsageCount / activeDayCount + Number.EPSILON) * 10) / 10
+      : 0
+    const uniqueUserCount = new Set(moduleLogs.map(log => log.userId || log.userName).filter(Boolean)).size
+
+    return {
+      id: `module_usage_${moduleName}`,
+      moduleName,
+      totalUsageCount,
+      uniqueUserCount,
+      activeDayCount,
+      averageDailyUsage,
+      lastUsedAt: sortedLogs[0]?.createdAt || '',
+      mostActiveUser: getMostActiveModuleUser(moduleLogs),
+      createdAt: firstUsage?.createdAt || now,
+      updatedAt: sortedLogs[0]?.createdAt || now
+    }
+  }).sort((first, second) => {
+    const usageDiff = second.totalUsageCount - first.totalUsageCount
+    if(usageDiff !== 0) return usageDiff
+    return first.moduleName.localeCompare(second.moduleName, 'tr-TR')
+  })
+}
+
+export const loadModuleUsageSummaries = () => {
+  return calculateModuleUsageSummaries(loadSystemUsageLogs())
 }
 
 export const addActionLog = ({
