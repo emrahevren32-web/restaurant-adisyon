@@ -36,6 +36,7 @@ import BranchManagement from './pages/BranchManagement'
 import BranchPermissions from './pages/BranchPermissions'
 import BranchReporting from './pages/BranchReporting'
 import BranchStockTransfers from './pages/BranchStockTransfers'
+import HeadOfficeManagement from './pages/HeadOfficeManagement'
 import CurrentAccounts from './pages/CurrentAccounts'
 import CreditTransactions from './pages/CreditTransactions'
 import CollectionTransactions from './pages/CollectionTransactions'
@@ -103,6 +104,7 @@ type Route =
   | 'branch-permissions'
   | 'branch-reporting'
   | 'branch-stock-transfers'
+  | 'head-office-management'
   | 'current-accounts'
   | 'credit-transactions'
   | 'collection-transactions'
@@ -154,6 +156,7 @@ type NavKey =
   | 'branch-permissions'
   | 'branch-reporting'
   | 'branch-stock-transfers'
+  | 'head-office-management'
   | 'staff'
   | 'current-accounts'
   | 'credit-transactions'
@@ -264,7 +267,8 @@ const navGroups: NavGroup[] = [
     icon: 'ÇŞ',
     items: [
       { key: 'branch-reporting', label: 'Şubeler Arası Raporlama', route: 'branch-reporting', icon: 'ŞR', adminOnly: true },
-      { key: 'branch-stock-transfers', label: 'Şubeler Arası Stok Transferi', route: 'branch-stock-transfers', icon: 'ST', adminOnly: true }
+      { key: 'branch-stock-transfers', label: 'Şubeler Arası Stok Transferi', route: 'branch-stock-transfers', icon: 'ST', adminOnly: true },
+      { key: 'head-office-management', label: 'Merkez Ofis Yönetimi', route: 'head-office-management', icon: 'MO', adminOnly: true }
     ]
   },
   {
@@ -460,6 +464,7 @@ export default function App(){
       {route === 'branch-permissions' && currentUser.role === 'Admin' && <BranchPermissions currentUser={currentUser} />}
       {route === 'branch-reporting' && currentUser.role === 'Admin' && <BranchReporting />}
       {route === 'branch-stock-transfers' && currentUser.role === 'Admin' && <BranchStockTransfers currentUser={currentUser} />}
+      {route === 'head-office-management' && currentUser.role === 'Admin' && <HeadOfficeManagement />}
       {route === 'users' && currentUser.role === 'Admin' && <Users currentUser={currentUser} />}
       {route === 'current-accounts' && currentUser.role === 'Admin' && <CurrentAccounts currentUser={currentUser} />}
       {route === 'credit-transactions' && currentUser.role === 'Admin' && <CreditTransactions currentUser={currentUser} />}

@@ -2749,10 +2749,14 @@ export const loadBranchReportingData = () => {
     supplierDebts: loadAllBranchScopedItemsWithDemo<SupplierDebt>(KEY_SUPPLIER_DEBTS, createDemoSupplierDebts, normalizeSupplierDebt),
     supplierPayments: loadAllBranchScopedItemsWithDemo<SupplierPayment>(KEY_SUPPLIER_PAYMENTS, createDemoSupplierPayments, normalizeSupplierPayment),
     cashTransactions: loadAllBranchScopedItems<CashTransaction>(KEY_CASH_TRANSACTIONS, normalizeCashTransaction),
+    cashClosings: loadAllBranchScopedItems<CashClosing>(KEY_CASH_CLOSINGS, normalizeCashClosing),
     employees: loadAllBranchScopedItemsWithDemo<Employee>(KEY_EMPLOYEES, createDemoEmployees, normalizeEmployee),
     attendances: loadAllBranchScopedItemsWithDemo<Attendance>(KEY_ATTENDANCES, createDemoAttendances, normalizeAttendance),
     employeePerformances: loadAllBranchScopedItemsWithDemo<EmployeePerformance>(KEY_EMPLOYEE_PERFORMANCES, createDemoEmployeePerformances, normalizeEmployeePerformance),
-    employeeBonuses: loadAllBranchScopedItemsWithDemo<EmployeeBonus>(KEY_EMPLOYEE_BONUSES, createDemoEmployeeBonuses, normalizeEmployeeBonus)
+    employeeBonuses: loadAllBranchScopedItemsWithDemo<EmployeeBonus>(KEY_EMPLOYEE_BONUSES, createDemoEmployeeBonuses, normalizeEmployeeBonus),
+    employeeAudits: loadAllBranchScopedItemsWithDemo<EmployeeAudit>(KEY_EMPLOYEE_AUDITS, createDemoEmployeeAudits, normalizeEmployeeAudit),
+    branchStockTransfers: loadBranchStockTransfers(),
+    branchPermissions: loadBranchPermissions()
   }
 }
 
