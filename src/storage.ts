@@ -89,6 +89,7 @@ import {
   SystemUsageLog,
   SystemUsageModuleName,
   TableState,
+  UserActivitySummary,
   User,
   WaiterCall,
   WaiterCallHistory,
@@ -2981,6 +2982,95 @@ export const addSystemUsageLog = ({
 
   saveSystemUsageLogs([log, ...loadStoredSystemUsageLogs()])
   return log
+}
+
+const getUsageTimestampValue = (createdAt: string) => {
+  const timestamp = new Date(createdAt).getTime()
+  return Number.isNaN(timestamp) ? 0 : timestamp
+}
+
+const getUsageDateKey = (createdAt: string) => {
+  const date = new Date(createdAt)
+  return Number.isNaN(date.getTime()) ? '' : date.toLocaleDateString('sv-SE')
+}
+
+const getMostUsedModuleName = (logs: SystemUsageLog[]) => {
+  const moduleCounts = new Map<string, number>()
+  logs.forEach(log => {
+    if(!log.moduleName) return
+    moduleCounts.set(log.moduleName, (moduleCounts.get(log.moduleName) || 0) + 1)
+  })
+
+  return Array.from(moduleCounts.entries()).sort((first, second) => {
+    const countDiff = second[1] - first[1]
+    if(countDiff !== 0) return countDiff
+    return first[0].localeCompare(second[0], 'tr-TR')
+  })[0]?.[0] || ''
+}
+
+export const calculateUserActivitySummaries = (
+  logs: SystemUsageLog[],
+  users: User[] = loadUsers()
+): UserActivitySummary[] => {
+  const now = new Date().toISOString()
+  const userMap = new Map<string, { userId: string; userName: string }>()
+
+  users.forEach(user => {
+    userMap.set(user.id, {
+      userId: user.id,
+      userName: user.fullName || user.username
+    })
+  })
+
+  logs.forEach(log => {
+    const key = log.userId || `unknown_${log.userName || 'user'}`
+    if(!userMap.has(key)){
+      userMap.set(key, {
+        userId: key,
+        userName: log.userName || 'Bilinmeyen Kullanıcı'
+      })
+    }
+  })
+
+  return Array.from(userMap.values()).map(user => {
+    const userLogs = logs.filter(log => {
+      const key = log.userId || `unknown_${log.userName || 'user'}`
+      return key === user.userId
+    })
+    const sortedLogs = [...userLogs].sort((first, second) => getUsageTimestampValue(second.createdAt) - getUsageTimestampValue(first.createdAt))
+    const firstActivity = [...userLogs].sort((first, second) => getUsageTimestampValue(first.createdAt) - getUsageTimestampValue(second.createdAt))[0]
+    const lastActivity = sortedLogs[0]
+    const lastLogin = sortedLogs.find(log => log.actionType === 'Giriş Yapma')
+    const activeDays = new Set(userLogs.map(log => getUsageDateKey(log.createdAt)).filter(Boolean)).size
+    const totalActions = userLogs.length
+    const averageDailyActions = activeDays > 0
+      ? Math.round((totalActions / activeDays + Number.EPSILON) * 10) / 10
+      : 0
+
+    return {
+      id: `activity_${user.userId}`,
+      userId: user.userId,
+      userName: user.userName,
+      branchId: lastActivity?.branchId || DEFAULT_BRANCH_ID,
+      lastLoginAt: lastLogin?.createdAt || '',
+      lastActivityAt: lastActivity?.createdAt || '',
+      totalLogins: userLogs.filter(log => log.actionType === 'Giriş Yapma').length,
+      activeDays,
+      totalActions,
+      averageDailyActions,
+      mostUsedModule: getMostUsedModuleName(userLogs),
+      createdAt: firstActivity?.createdAt || now,
+      updatedAt: lastActivity?.createdAt || now
+    }
+  }).sort((first, second) => {
+    const actionDiff = second.totalActions - first.totalActions
+    if(actionDiff !== 0) return actionDiff
+    return first.userName.localeCompare(second.userName, 'tr-TR')
+  })
+}
+
+export const loadUserActivitySummaries = () => {
+  return calculateUserActivitySummaries(loadSystemUsageLogs(), loadUsers())
 }
 
 export const addActionLog = ({

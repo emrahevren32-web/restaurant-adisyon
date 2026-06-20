@@ -12,6 +12,7 @@ import DailySummary from './pages/DailySummary'
 import BillHistory from './pages/BillHistory'
 import ActionHistory from './pages/ActionHistory'
 import SystemUsageLogs from './pages/SystemUsageLogs'
+import UserActivityTracking from './pages/UserActivityTracking'
 import StaffTracking from './pages/StaffTracking'
 import EmployeeCards from './pages/EmployeeCards'
 import ShiftManagement from './pages/ShiftManagement'
@@ -90,6 +91,7 @@ type Route =
   | 'qr-codes'
   | 'actions'
   | 'system-usage-logs'
+  | 'user-activity-tracking'
   | 'employee-cards'
   | 'shift-management'
   | 'attendance-tracking'
@@ -147,6 +149,7 @@ type NavKey =
   | 'bill-history'
   | 'action-history'
   | 'system-usage-logs'
+  | 'user-activity-tracking'
   | 'employee-cards'
   | 'shift-management'
   | 'attendance-tracking'
@@ -255,7 +258,8 @@ const navGroups: NavGroup[] = [
     title: 'Kullanım Analitiği',
     icon: 'KA',
     items: [
-      { key: 'system-usage-logs', label: 'Sistem Kullanım Logları', route: 'system-usage-logs', icon: 'SL', adminOnly: true }
+      { key: 'system-usage-logs', label: 'Sistem Kullanım Logları', route: 'system-usage-logs', icon: 'SL', adminOnly: true },
+      { key: 'user-activity-tracking', label: 'Kullanıcı Aktivite Takibi', route: 'user-activity-tracking', icon: 'KA', adminOnly: true }
     ]
   },
   {
@@ -462,6 +466,7 @@ export default function App(){
       {route === 'qr-codes' && currentUser.role === 'Admin' && <QRCodes />}
       {route === 'actions' && currentUser.role === 'Admin' && <ActionHistory />}
       {route === 'system-usage-logs' && currentUser.role === 'Admin' && <SystemUsageLogs />}
+      {route === 'user-activity-tracking' && currentUser.role === 'Admin' && <UserActivityTracking />}
       {route === 'employee-cards' && currentUser.role === 'Admin' && <EmployeeCards currentUser={currentUser} />}
       {route === 'shift-management' && currentUser.role === 'Admin' && <ShiftManagement currentUser={currentUser} />}
       {route === 'attendance-tracking' && currentUser.role === 'Admin' && <AttendanceTracking currentUser={currentUser} />}

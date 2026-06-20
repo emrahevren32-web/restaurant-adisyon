@@ -1084,3 +1084,19 @@ export type SystemUsageLog = {
   deviceInfo: string
   createdAt: string
 }
+
+export type UserActivitySummary = {
+  id: string
+  userId: string
+  userName: string
+  branchId: string
+  lastLoginAt: string
+  lastActivityAt: string
+  totalLogins: number
+  activeDays: number
+  totalActions: number
+  averageDailyActions: number
+  mostUsedModule: string
+  createdAt: string
+  updatedAt: string
+}
