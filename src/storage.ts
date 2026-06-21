@@ -86,6 +86,8 @@ import {
   StockWasteReasonCategory,
   StockWasteRecord,
   StockWasteStatus,
+  SystemHealthMetric,
+  SystemHealthMetricStatus,
   SystemSettings,
   SystemUsageActionType,
   SystemUsageLog,
@@ -3285,6 +3287,105 @@ export const calculateUsagePerformanceSummaries = (logs: SystemUsageLog[]): Usag
 
 export const loadUsagePerformanceSummaries = () => {
   return calculateUsagePerformanceSummaries(loadSystemUsageLogs())
+}
+
+const getHealthDayDiff = (createdAt: string, today = new Date()) => {
+  if(!createdAt) return Number.POSITIVE_INFINITY
+  const date = new Date(createdAt)
+  if(Number.isNaN(date.getTime())) return Number.POSITIVE_INFINITY
+  const start = new Date(date)
+  start.setHours(0, 0, 0, 0)
+  const end = new Date(today)
+  end.setHours(0, 0, 0, 0)
+  return Math.floor((end.getTime() - start.getTime()) / 86400000)
+}
+
+const getHealthMetricStatus = (value: number): SystemHealthMetricStatus => {
+  if(value >= 80) return 'Sağlıklı'
+  if(value >= 50) return 'Uyarı'
+  return 'Kritik'
+}
+
+const getDataMetricStatus = (warningCount: number): SystemHealthMetricStatus => {
+  if(warningCount === 0) return 'Sağlıklı'
+  if(warningCount < 5) return 'Uyarı'
+  return 'Kritik'
+}
+
+const clampHealthScore = (value: number) => Math.min(100, Math.max(0, Math.round(value)))
+
+export const calculateSystemHealthMetrics = (
+  logs: SystemUsageLog[],
+  users: User[] = loadUsers(),
+  branches: Branch[] = loadBranches(),
+  actionLogs: ActionLog[] = loadActionLogs()
+): SystemHealthMetric[] => {
+  const now = new Date().toISOString()
+  const userIds = new Set(users.map(user => user.id))
+  const branchIds = new Set(branches.map(branch => branch.id))
+  const userSummaries = calculateUserActivitySummaries(logs, users)
+  const moduleSummaries = calculateModuleUsageSummaries(logs)
+  const businessSummaries = calculateBusinessUsageSummaries(logs, branches)
+  const performanceSummaries = calculateUsagePerformanceSummaries(logs)
+  const activeUsers = userSummaries.filter(summary => userIds.has(summary.userId) && summary.totalActions > 0 && getHealthDayDiff(summary.lastActivityAt) <= 7).length
+  const activeBusinesses = businessSummaries.filter(summary => branchIds.has(summary.branchId) && summary.totalActions > 0 && getHealthDayDiff(summary.lastActivityAt) <= 7).length
+  const activeModules = moduleSummaries.filter(summary => summary.totalUsageCount > 0 && getHealthDayDiff(summary.lastUsedAt) <= 7).length
+  const activeUserRatio = users.length > 0 ? clampHealthScore((activeUsers / users.length) * 100) : 0
+  const activeBusinessRatio = branches.length > 0 ? clampHealthScore((activeBusinesses / branches.length) * 100) : 0
+  const moduleUsageRatio = moduleSummaries.length > 0 ? clampHealthScore((activeModules / moduleSummaries.length) * 100) : 0
+  const activeDays = new Set(logs.map(log => getUsageDateKey(log.createdAt)).filter(Boolean)).size
+  const averageDailyActions = activeDays > 0 ? logs.length / activeDays : 0
+  const maxPeakScore = Math.max(0, ...performanceSummaries.map(summary => summary.peakUsageScore))
+  const usageDensityScore = clampHealthScore((Math.min(50, averageDailyActions) / 50) * 50 + maxPeakScore * 0.5)
+  const orphanActionRecords = actionLogs.filter(log => log.userId && !userIds.has(log.userId)).length
+  const missingUserLinks = logs.filter(log => !log.userId || (log.userId && !userIds.has(log.userId))).length
+  const missingBranchLinks = logs.filter(log => !log.branchId || (log.branchId && !branchIds.has(log.branchId))).length
+  const emptyLogRecords = logs.filter(log => !log.moduleName || !log.actionType || !log.createdAt || !log.description).length
+  const inconsistentUsageRecords = logs.filter(log => {
+    const timestamp = new Date(log.createdAt).getTime()
+    return Number.isNaN(timestamp)
+      || !SYSTEM_USAGE_MODULE_NAMES.includes(log.moduleName)
+      || !SYSTEM_USAGE_ACTION_TYPES.includes(log.actionType)
+  }).length
+  const dataWarningCount = orphanActionRecords + missingUserLinks + missingBranchLinks + emptyLogRecords + inconsistentUsageRecords
+  const dataIntegrityScore = clampHealthScore(100 - dataWarningCount * 10)
+  const systemHealthScore = clampHealthScore((activeUserRatio + activeBusinessRatio + moduleUsageRatio + usageDensityScore + dataIntegrityScore) / 5)
+
+  const metric = (
+    metricName: string,
+    metricCategory: string,
+    metricValue: number,
+    status: SystemHealthMetricStatus,
+    description: string
+  ): SystemHealthMetric => ({
+    id: `health_${metricCategory}_${metricName}`.toLocaleLowerCase('tr-TR').replace(/\s+/g, '_'),
+    metricName,
+    metricCategory,
+    metricValue,
+    status,
+    description,
+    measuredAt: now,
+    createdAt: now,
+    updatedAt: now
+  })
+
+  return [
+    metric('Sistem Sağlık Skoru', 'Genel', systemHealthScore, getHealthMetricStatus(systemHealthScore), 'Aktiflik, yoğunluk ve veri bütünlüğü bileşik skoru.'),
+    metric('Aktif Kullanıcı Oranı', 'Kullanıcı', activeUserRatio, getHealthMetricStatus(activeUserRatio), `${activeUsers} aktif kullanıcı / ${users.length} toplam kullanıcı.`),
+    metric('Aktif İşletme Oranı', 'İşletme', activeBusinessRatio, getHealthMetricStatus(activeBusinessRatio), `${activeBusinesses} aktif işletme / ${branches.length} toplam işletme.`),
+    metric('Modül Kullanım Oranı', 'Modül', moduleUsageRatio, getHealthMetricStatus(moduleUsageRatio), `${activeModules} aktif modül / ${moduleSummaries.length} izlenen modül.`),
+    metric('Kullanım Yoğunluğu', 'Performans', usageDensityScore, getHealthMetricStatus(usageDensityScore), `${Math.round(averageDailyActions)} ortalama günlük işlem, ${maxPeakScore} maksimum yoğunluk skoru.`),
+    metric('Veri Bütünlüğü', 'Veri', dataIntegrityScore, getHealthMetricStatus(dataIntegrityScore), `${dataWarningCount} veri uyarısı tespit edildi.`),
+    metric('Yetim Kayıtlar', 'Veri', orphanActionRecords, getDataMetricStatus(orphanActionRecords), 'Kullanıcı eşleşmesi bulunmayan ActionHistory kayıtları.'),
+    metric('Eksik Kullanıcı Bağlantıları', 'Veri', missingUserLinks, getDataMetricStatus(missingUserLinks), 'Kullanıcı bağlantısı eksik veya kullanıcı listesinde olmayan log kayıtları.'),
+    metric('Eksik Şube Bağlantıları', 'Veri', missingBranchLinks, getDataMetricStatus(missingBranchLinks), 'Şube bağlantısı eksik veya şube listesinde olmayan log kayıtları.'),
+    metric('Boş Log Kayıtları', 'Veri', emptyLogRecords, getDataMetricStatus(emptyLogRecords), 'Zorunlu alanları boş olan kullanım logları.'),
+    metric('Tutarsız Kullanım Kayıtları', 'Veri', inconsistentUsageRecords, getDataMetricStatus(inconsistentUsageRecords), 'Geçersiz tarih, modül veya işlem türü taşıyan kullanım kayıtları.')
+  ]
+}
+
+export const loadSystemHealthMetrics = () => {
+  return calculateSystemHealthMetrics(loadSystemUsageLogs(), loadUsers(), loadBranches(), loadActionLogs())
 }
 
 export const addActionLog = ({

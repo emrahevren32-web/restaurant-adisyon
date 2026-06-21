@@ -1142,3 +1142,17 @@ export type UsagePerformanceSummary = {
   createdAt: string
   updatedAt: string
 }
+
+export type SystemHealthMetricStatus = 'Sağlıklı' | 'Uyarı' | 'Kritik'
+
+export type SystemHealthMetric = {
+  id: string
+  metricName: string
+  metricCategory: string
+  metricValue: number
+  status: SystemHealthMetricStatus
+  description: string
+  measuredAt: string
+  createdAt: string
+  updatedAt: string
+}
