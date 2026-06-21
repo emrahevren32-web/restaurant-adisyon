@@ -14,6 +14,7 @@ import ActionHistory from './pages/ActionHistory'
 import SystemUsageLogs from './pages/SystemUsageLogs'
 import UserActivityTracking from './pages/UserActivityTracking'
 import ModuleUsageAnalysis from './pages/ModuleUsageAnalysis'
+import BusinessUsageStats from './pages/BusinessUsageStats'
 import StaffTracking from './pages/StaffTracking'
 import EmployeeCards from './pages/EmployeeCards'
 import ShiftManagement from './pages/ShiftManagement'
@@ -94,6 +95,7 @@ type Route =
   | 'system-usage-logs'
   | 'user-activity-tracking'
   | 'module-usage-analysis'
+  | 'business-usage-stats'
   | 'employee-cards'
   | 'shift-management'
   | 'attendance-tracking'
@@ -153,6 +155,7 @@ type NavKey =
   | 'system-usage-logs'
   | 'user-activity-tracking'
   | 'module-usage-analysis'
+  | 'business-usage-stats'
   | 'employee-cards'
   | 'shift-management'
   | 'attendance-tracking'
@@ -263,7 +266,8 @@ const navGroups: NavGroup[] = [
     items: [
       { key: 'system-usage-logs', label: 'Sistem Kullanım Logları', route: 'system-usage-logs', icon: 'SL', adminOnly: true },
       { key: 'user-activity-tracking', label: 'Kullanıcı Aktivite Takibi', route: 'user-activity-tracking', icon: 'KA', adminOnly: true },
-      { key: 'module-usage-analysis', label: 'Modül Kullanım Analizleri', route: 'module-usage-analysis', icon: 'MA', adminOnly: true }
+      { key: 'module-usage-analysis', label: 'Modül Kullanım Analizleri', route: 'module-usage-analysis', icon: 'MA', adminOnly: true },
+      { key: 'business-usage-stats', label: 'İşletme Kullanım İstatistikleri', route: 'business-usage-stats', icon: 'İK', adminOnly: true }
     ]
   },
   {
@@ -472,6 +476,7 @@ export default function App(){
       {route === 'system-usage-logs' && currentUser.role === 'Admin' && <SystemUsageLogs />}
       {route === 'user-activity-tracking' && currentUser.role === 'Admin' && <UserActivityTracking />}
       {route === 'module-usage-analysis' && currentUser.role === 'Admin' && <ModuleUsageAnalysis />}
+      {route === 'business-usage-stats' && currentUser.role === 'Admin' && <BusinessUsageStats />}
       {route === 'employee-cards' && currentUser.role === 'Admin' && <EmployeeCards currentUser={currentUser} />}
       {route === 'shift-management' && currentUser.role === 'Admin' && <ShiftManagement currentUser={currentUser} />}
       {route === 'attendance-tracking' && currentUser.role === 'Admin' && <AttendanceTracking currentUser={currentUser} />}

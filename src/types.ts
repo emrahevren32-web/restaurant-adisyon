@@ -1113,3 +1113,19 @@ export type ModuleUsageSummary = {
   createdAt: string
   updatedAt: string
 }
+
+export type BusinessUsageSummary = {
+  id: string
+  branchId: string
+  branchName: string
+  lastActivityAt: string
+  activeUserCount: number
+  totalLogins: number
+  totalActions: number
+  activeDays: number
+  averageDailyActions: number
+  mostUsedModule: string
+  usageScore: number
+  createdAt: string
+  updatedAt: string
+}

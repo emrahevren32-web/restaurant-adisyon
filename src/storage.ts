@@ -3,6 +3,7 @@ import {
   ActionLogType,
   Attendance,
   AttendanceStatus,
+  BusinessUsageSummary,
   CashPaymentMethod,
   CashClosing,
   CashTransfer,
@@ -3128,6 +3129,93 @@ export const calculateModuleUsageSummaries = (logs: SystemUsageLog[]): ModuleUsa
 
 export const loadModuleUsageSummaries = () => {
   return calculateModuleUsageSummaries(loadSystemUsageLogs())
+}
+
+const calculateBusinessUsageScore = ({
+  activeUserCount,
+  totalActions,
+  activeDays,
+  averageDailyActions
+}: {
+  activeUserCount: number
+  totalActions: number
+  activeDays: number
+  averageDailyActions: number
+}) => {
+  const activeUserScore = Math.min(25, activeUserCount * 5)
+  const actionScore = Math.min(30, totalActions * 0.6)
+  const activeDayScore = Math.min(25, activeDays * 3)
+  const averageScore = Math.min(20, averageDailyActions * 2)
+  return Math.min(100, Math.round(activeUserScore + actionScore + activeDayScore + averageScore))
+}
+
+export const calculateBusinessUsageSummaries = (
+  logs: SystemUsageLog[],
+  branches: Branch[] = loadBranches()
+): BusinessUsageSummary[] => {
+  const now = new Date().toISOString()
+  const branchMap = new Map<string, { branchId: string; branchName: string }>()
+
+  branches.forEach(branch => {
+    branchMap.set(branch.id, {
+      branchId: branch.id,
+      branchName: branch.name
+    })
+  })
+
+  logs.forEach(log => {
+    const branchId = log.branchId || DEFAULT_BRANCH_ID
+    if(!branchMap.has(branchId)){
+      branchMap.set(branchId, {
+        branchId,
+        branchName: branchId === DEFAULT_BRANCH_ID ? 'Merkez Şube' : branchId
+      })
+    }
+  })
+
+  return Array.from(branchMap.values()).map(branch => {
+    const branchLogs = logs.filter(log => (log.branchId || DEFAULT_BRANCH_ID) === branch.branchId)
+    const sortedLogs = [...branchLogs].sort((first, second) => getUsageTimestampValue(second.createdAt) - getUsageTimestampValue(first.createdAt))
+    const firstActivity = [...branchLogs].sort((first, second) => getUsageTimestampValue(first.createdAt) - getUsageTimestampValue(second.createdAt))[0]
+    const activeDays = new Set(branchLogs.map(log => getUsageDateKey(log.createdAt)).filter(Boolean)).size
+    const totalActions = branchLogs.length
+    const averageDailyActions = activeDays > 0
+      ? Math.round((totalActions / activeDays + Number.EPSILON) * 10) / 10
+      : 0
+    const activeUserCount = new Set(branchLogs.map(log => log.userId || log.userName).filter(Boolean)).size
+    const usageScore = calculateBusinessUsageScore({
+      activeUserCount,
+      totalActions,
+      activeDays,
+      averageDailyActions
+    })
+
+    return {
+      id: `business_usage_${branch.branchId}`,
+      branchId: branch.branchId,
+      branchName: branch.branchName,
+      lastActivityAt: sortedLogs[0]?.createdAt || '',
+      activeUserCount,
+      totalLogins: branchLogs.filter(log => log.actionType === 'Giriş Yapma').length,
+      totalActions,
+      activeDays,
+      averageDailyActions,
+      mostUsedModule: getMostUsedModuleName(branchLogs),
+      usageScore,
+      createdAt: firstActivity?.createdAt || now,
+      updatedAt: sortedLogs[0]?.createdAt || now
+    }
+  }).sort((first, second) => {
+    const scoreDiff = second.usageScore - first.usageScore
+    if(scoreDiff !== 0) return scoreDiff
+    const actionDiff = second.totalActions - first.totalActions
+    if(actionDiff !== 0) return actionDiff
+    return first.branchName.localeCompare(second.branchName, 'tr-TR')
+  })
+}
+
+export const loadBusinessUsageSummaries = () => {
+  return calculateBusinessUsageSummaries(loadSystemUsageLogs(), loadBranches())
 }
 
 export const addActionLog = ({
