@@ -3,6 +3,9 @@ import {
   ActionLogType,
   Attendance,
   AttendanceStatus,
+  BusinessRegistration,
+  BusinessRegistrationPackage,
+  BusinessRegistrationStatus,
   BusinessUsageSummary,
   CashPaymentMethod,
   CashClosing,
@@ -169,6 +172,7 @@ const KEY_SETTINGS = 'ra_settings'
 const KEY_WAITER_CALLS = 'ra_waiter_calls'
 const KEY_WAITER_CALL_HISTORY = 'ra_waiter_call_history'
 const KEY_BRANCH_STOCK_TRANSFERS = 'ra_branch_stock_transfers'
+const KEY_BUSINESS_REGISTRATIONS = 'ra_business_registrations'
 
 export const DEFAULT_BRANCH_ID = 'branch_merkez'
 const DEFAULT_CATEGORY_ID = 'cat_general'
@@ -194,6 +198,8 @@ const EMPLOYEE_BONUS_STATUSES: EmployeeBonusStatus[] = ['Hesaplandı', 'Onayland
 const EMPLOYEE_AUDIT_RECORD_TYPES: EmployeeAuditRecordType[] = ['Uyarı', 'Tutanak', 'Ödül', 'Denetim Notu', 'Bilgilendirme']
 const EMPLOYEE_AUDIT_SEVERITIES: EmployeeAuditSeverity[] = ['Düşük', 'Orta', 'Yüksek', 'Kritik']
 const BRANCH_STOCK_TRANSFER_STATUSES: BranchStockTransferStatus[] = ['Bekliyor', 'Onaylandı', 'Tamamlandı', 'İptal Edildi']
+const BUSINESS_REGISTRATION_STATUSES: BusinessRegistrationStatus[] = ['Başvuru Bekliyor', 'Onaylandı', 'Reddedildi', 'Pasif']
+const BUSINESS_REGISTRATION_PACKAGES: BusinessRegistrationPackage[] = ['Başlangıç', 'Pro', 'Premium', 'Kurumsal']
 const SYSTEM_USAGE_MODULE_NAMES: SystemUsageModuleName[] = ['Adisyon', 'Masa Yönetimi', 'Ürün Yönetimi', 'Stok Yönetimi', 'Cari Yönetimi', 'Finans Yönetimi', 'Personel Yönetimi', 'Patron Dashboard', 'Çoklu Şube Yönetimi', 'Sistem']
 const SYSTEM_USAGE_ACTION_TYPES: SystemUsageActionType[] = ['Görüntüleme', 'Oluşturma', 'Güncelleme', 'Silme', 'Giriş Yapma', 'Çıkış Yapma', 'Onaylama', 'İptal Etme']
 
@@ -2252,6 +2258,112 @@ const normalizeBranchStockTransfer = (item: Partial<BranchStockTransfer>): Branc
   }
 }
 
+const normalizeBusinessRegistrationStatus = (value: unknown): BusinessRegistrationStatus => {
+  return BUSINESS_REGISTRATION_STATUSES.includes(value as BusinessRegistrationStatus)
+    ? value as BusinessRegistrationStatus
+    : 'Başvuru Bekliyor'
+}
+
+const normalizeBusinessRegistrationPackage = (value: unknown): BusinessRegistrationPackage => {
+  return BUSINESS_REGISTRATION_PACKAGES.includes(value as BusinessRegistrationPackage)
+    ? value as BusinessRegistrationPackage
+    : 'Başlangıç'
+}
+
+const normalizeBusinessRegistration = (item: Partial<BusinessRegistration>): BusinessRegistration => {
+  const timestamp = item.createdAt || new Date().toISOString()
+  const branchCount = Number(item.branchCount)
+
+  return {
+    id: String(item.id || `business_registration_${Date.now()}`),
+    businessName: String(item.businessName || 'İsimsiz İşletme').trim() || 'İsimsiz İşletme',
+    ownerName: String(item.ownerName || '').trim(),
+    phone: String(item.phone || '').trim(),
+    email: String(item.email || '').trim(),
+    city: String(item.city || '').trim(),
+    district: String(item.district || '').trim(),
+    taxNumber: String(item.taxNumber || '').trim(),
+    taxOffice: String(item.taxOffice || '').trim(),
+    address: String(item.address || '').trim(),
+    branchCount: Number.isFinite(branchCount) ? Math.max(1, Math.round(branchCount)) : 1,
+    requestedPackage: normalizeBusinessRegistrationPackage(item.requestedPackage),
+    status: normalizeBusinessRegistrationStatus(item.status),
+    notes: String(item.notes || '').trim(),
+    approvedBy: String(item.approvedBy || '').trim(),
+    approvedAt: String(item.approvedAt || '').trim(),
+    rejectedReason: String(item.rejectedReason || '').trim(),
+    createdAt: timestamp,
+    updatedAt: item.updatedAt || timestamp
+  }
+}
+
+const createDemoBusinessRegistrations = (now = new Date().toISOString()): BusinessRegistration[] => {
+  const lastWeek = new Date()
+  lastWeek.setDate(lastWeek.getDate() - 7)
+  const yesterday = new Date()
+  yesterday.setDate(yesterday.getDate() - 1)
+
+  return [
+    normalizeBusinessRegistration({
+      id: 'business_registration_abc_cafe_demo',
+      businessName: 'ABC Cafe',
+      ownerName: 'Ahmet Kaya',
+      phone: '0532 000 00 01',
+      email: 'basvuru@abccafe.com',
+      city: 'İstanbul',
+      district: 'Kadıköy',
+      taxNumber: '1234567890',
+      taxOffice: 'Kadıköy',
+      address: 'Caferağa Mahallesi No: 12',
+      branchCount: 1,
+      requestedPackage: 'Başlangıç',
+      status: 'Başvuru Bekliyor',
+      notes: 'Demo bekleyen başvuru.',
+      createdAt: yesterday.toISOString(),
+      updatedAt: yesterday.toISOString()
+    }),
+    normalizeBusinessRegistration({
+      id: 'business_registration_lezzet_restoran_demo',
+      businessName: 'Lezzet Restoran',
+      ownerName: 'Mehmet Demir',
+      phone: '0532 000 00 02',
+      email: 'yonetim@lezzetrestoran.com',
+      city: 'Ankara',
+      district: 'Çankaya',
+      taxNumber: '2345678901',
+      taxOffice: 'Çankaya',
+      address: 'Kavaklıdere Cad. No: 8',
+      branchCount: 2,
+      requestedPackage: 'Pro',
+      status: 'Onaylandı',
+      notes: 'Demo onaylı başvuru.',
+      approvedBy: 'Demo Admin',
+      approvedAt: lastWeek.toISOString(),
+      createdAt: lastWeek.toISOString(),
+      updatedAt: lastWeek.toISOString()
+    }),
+    normalizeBusinessRegistration({
+      id: 'business_registration_kahve_duragi_demo',
+      businessName: 'Kahve Durağı',
+      ownerName: 'Ayşe Yılmaz',
+      phone: '0532 000 00 03',
+      email: 'info@kahveduragi.com',
+      city: 'İzmir',
+      district: 'Konak',
+      taxNumber: '3456789012',
+      taxOffice: 'Konak',
+      address: 'Alsancak Mahallesi No: 4',
+      branchCount: 1,
+      requestedPackage: 'Premium',
+      status: 'Reddedildi',
+      notes: 'Demo reddedilen başvuru.',
+      rejectedReason: 'Vergi bilgileri eksik.',
+      createdAt: now,
+      updatedAt: now
+    })
+  ]
+}
+
 const normalizeActionLog = (item: Partial<ActionLog>): ActionLog => {
   const timestamp = item.timestamp || new Date().toISOString()
   const date = item.date || new Date(timestamp).toLocaleDateString('sv-SE')
@@ -2789,6 +2901,15 @@ export const loadBranchStockTransfers = (): BranchStockTransfer[] => {
 
 export const saveBranchStockTransfers = (items: BranchStockTransfer[]) => {
   localStorage.setItem(KEY_BRANCH_STOCK_TRANSFERS, JSON.stringify(items.map(normalizeBranchStockTransfer)))
+}
+
+export const loadBusinessRegistrations = (): BusinessRegistration[] => {
+  if(localStorage.getItem(KEY_BUSINESS_REGISTRATIONS) === null) return createDemoBusinessRegistrations()
+  return readJson<Partial<BusinessRegistration>[]>(KEY_BUSINESS_REGISTRATIONS, []).map(normalizeBusinessRegistration)
+}
+
+export const saveBusinessRegistrations = (items: BusinessRegistration[]) => {
+  localStorage.setItem(KEY_BUSINESS_REGISTRATIONS, JSON.stringify(items.map(normalizeBusinessRegistration)))
 }
 
 export const loadEmployees = (): Employee[] => {
@@ -5000,6 +5121,7 @@ export const createDemoData = () => {
   const supplierPayments = createDemoSupplierPayments(now)
   const incomeExpenses = createDemoIncomeExpenses(now)
   const cashTransfers = createDemoCashTransfers(now)
+  const businessRegistrations = createDemoBusinessRegistrations(now)
 
   const tables: TableState[] = Array.from({ length: 6 }).map((_, index) => ({
     id: String(index + 1),
@@ -5027,6 +5149,7 @@ export const createDemoData = () => {
   saveIncomeExpenses(incomeExpenses)
   saveCashClosings([])
   saveCashTransfers(cashTransfers)
+  saveBusinessRegistrations(businessRegistrations)
   saveTables(tables)
   saveKitchenOrders([])
   saveQRRequests([])
@@ -5052,6 +5175,7 @@ export const createDemoData = () => {
     cashTransactions: loadCashTransactions(),
     incomeExpenses: loadIncomeExpenses(),
     cashClosings: loadCashClosings(),
-    cashTransfers: loadCashTransfers()
+    cashTransfers: loadCashTransfers(),
+    businessRegistrations: loadBusinessRegistrations()
   }
 }

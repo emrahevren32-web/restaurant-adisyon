@@ -18,6 +18,7 @@ import BusinessUsageStats from './pages/BusinessUsageStats'
 import UsagePerformanceAnalysis from './pages/UsagePerformanceAnalysis'
 import AnalyticsDashboard from './pages/AnalyticsDashboard'
 import SystemHealthTelemetry from './pages/SystemHealthTelemetry'
+import BusinessRegistrationSystem from './pages/BusinessRegistrationSystem'
 import StaffTracking from './pages/StaffTracking'
 import EmployeeCards from './pages/EmployeeCards'
 import ShiftManagement from './pages/ShiftManagement'
@@ -102,6 +103,7 @@ type Route =
   | 'usage-performance-analysis'
   | 'analytics-dashboard'
   | 'system-health-telemetry'
+  | 'business-registration-system'
   | 'employee-cards'
   | 'shift-management'
   | 'attendance-tracking'
@@ -165,6 +167,7 @@ type NavKey =
   | 'usage-performance-analysis'
   | 'analytics-dashboard'
   | 'system-health-telemetry'
+  | 'business-registration-system'
   | 'employee-cards'
   | 'shift-management'
   | 'attendance-tracking'
@@ -193,6 +196,7 @@ type NavGroupKey =
   | 'finance'
   | 'reports'
   | 'usage-analytics'
+  | 'saas-management'
   | 'personnel'
   | 'multi-branch'
   | 'management'
@@ -280,6 +284,14 @@ const navGroups: NavGroup[] = [
       { key: 'module-usage-analysis', label: 'Modül Kullanım Analizleri', route: 'module-usage-analysis', icon: 'MA', adminOnly: true },
       { key: 'business-usage-stats', label: 'İşletme Kullanım İstatistikleri', route: 'business-usage-stats', icon: 'İK', adminOnly: true },
       { key: 'usage-performance-analysis', label: 'Performans ve Yoğunluk Analizleri', route: 'usage-performance-analysis', icon: 'PY', adminOnly: true }
+    ]
+  },
+  {
+    key: 'saas-management',
+    title: 'SAAS Yönetim Paneli',
+    icon: 'SP',
+    items: [
+      { key: 'business-registration-system', label: 'İşletme Kayıt Sistemi', route: 'business-registration-system', icon: 'İK', adminOnly: true }
     ]
   },
   {
@@ -487,6 +499,7 @@ export default function App(){
       {route === 'actions' && currentUser.role === 'Admin' && <ActionHistory />}
       {route === 'analytics-dashboard' && currentUser.role === 'Admin' && <AnalyticsDashboard />}
       {route === 'system-health-telemetry' && currentUser.role === 'Admin' && <SystemHealthTelemetry />}
+      {route === 'business-registration-system' && currentUser.role === 'Admin' && <BusinessRegistrationSystem currentUser={currentUser} />}
       {route === 'system-usage-logs' && currentUser.role === 'Admin' && <SystemUsageLogs />}
       {route === 'user-activity-tracking' && currentUser.role === 'Admin' && <UserActivityTracking />}
       {route === 'module-usage-analysis' && currentUser.role === 'Admin' && <ModuleUsageAnalysis />}

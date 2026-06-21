@@ -599,6 +599,31 @@ export type User = {
   active: boolean
 }
 
+export type BusinessRegistrationStatus = 'Başvuru Bekliyor' | 'Onaylandı' | 'Reddedildi' | 'Pasif'
+export type BusinessRegistrationPackage = 'Başlangıç' | 'Pro' | 'Premium' | 'Kurumsal'
+
+export type BusinessRegistration = {
+  id: string
+  businessName: string
+  ownerName: string
+  phone: string
+  email: string
+  city: string
+  district: string
+  taxNumber: string
+  taxOffice: string
+  address: string
+  branchCount: number
+  requestedPackage: BusinessRegistrationPackage
+  status: BusinessRegistrationStatus
+  notes: string
+  approvedBy: string
+  approvedAt: string
+  rejectedReason: string
+  createdAt: string
+  updatedAt: string
+}
+
 export type Branch = {
   id: string
   code: string
@@ -1034,6 +1059,10 @@ export type ActionLogType =
   | 'Denetim kaydı oluşturuldu'
   | 'Denetim kaydı güncellendi'
   | 'Denetim kaydı silindi'
+  | 'İşletme başvurusu oluşturuldu'
+  | 'İşletme başvurusu onaylandı'
+  | 'İşletme başvurusu reddedildi'
+  | 'İşletme başvurusu güncellendi'
 
 export type ActionLog = {
   id: string
