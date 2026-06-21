@@ -91,6 +91,7 @@ import {
   SystemUsageLog,
   SystemUsageModuleName,
   TableState,
+  UsagePerformanceSummary,
   UserActivitySummary,
   User,
   WaiterCall,
@@ -3216,6 +3217,74 @@ export const calculateBusinessUsageSummaries = (
 
 export const loadBusinessUsageSummaries = () => {
   return calculateBusinessUsageSummaries(loadSystemUsageLogs(), loadBranches())
+}
+
+const getUsageHourValue = (createdAt: string) => {
+  const date = new Date(createdAt)
+  return Number.isNaN(date.getTime()) ? -1 : date.getHours()
+}
+
+const calculatePeakUsageScore = ({
+  totalActions,
+  activeUsers,
+  activeBranches
+}: {
+  totalActions: number
+  activeUsers: number
+  activeBranches: number
+}) => {
+  const actionScore = Math.min(55, totalActions * 2)
+  const userScore = Math.min(25, activeUsers * 5)
+  const branchScore = Math.min(20, activeBranches * 10)
+  return Math.min(100, Math.round(actionScore + userScore + branchScore))
+}
+
+export const calculateUsagePerformanceSummaries = (logs: SystemUsageLog[]): UsagePerformanceSummary[] => {
+  const now = new Date().toISOString()
+  const groupedLogs = new Map<string, SystemUsageLog[]>()
+
+  logs.forEach(log => {
+    const date = getUsageDateKey(log.createdAt)
+    const hour = getUsageHourValue(log.createdAt)
+    if(!date || hour < 0) return
+    const key = `${date}_${hour}`
+    groupedLogs.set(key, [...(groupedLogs.get(key) || []), log])
+  })
+
+  return Array.from(groupedLogs.entries()).map(([key, groupLogs]) => {
+    const [date, hourValue] = key.split('_')
+    const hour = Number(hourValue)
+    const sortedLogs = [...groupLogs].sort((first, second) => getUsageTimestampValue(second.createdAt) - getUsageTimestampValue(first.createdAt))
+    const firstUsage = [...groupLogs].sort((first, second) => getUsageTimestampValue(first.createdAt) - getUsageTimestampValue(second.createdAt))[0]
+    const activeUsers = new Set(groupLogs.map(log => log.userId || log.userName).filter(Boolean)).size
+    const activeBranches = new Set(groupLogs.map(log => log.branchId || DEFAULT_BRANCH_ID).filter(Boolean)).size
+    const totalActions = groupLogs.length
+    const averageActionsPerUser = activeUsers > 0
+      ? Math.round((totalActions / activeUsers + Number.EPSILON) * 10) / 10
+      : 0
+    const peakUsageScore = calculatePeakUsageScore({ totalActions, activeUsers, activeBranches })
+
+    return {
+      id: `usage_performance_${date}_${hour}`,
+      date,
+      hour,
+      totalActions,
+      activeUsers,
+      activeBranches,
+      averageActionsPerUser,
+      peakUsageScore,
+      createdAt: firstUsage?.createdAt || now,
+      updatedAt: sortedLogs[0]?.createdAt || now
+    }
+  }).sort((first, second) => {
+    const dateDiff = second.date.localeCompare(first.date)
+    if(dateDiff !== 0) return dateDiff
+    return first.hour - second.hour
+  })
+}
+
+export const loadUsagePerformanceSummaries = () => {
+  return calculateUsagePerformanceSummaries(loadSystemUsageLogs())
 }
 
 export const addActionLog = ({

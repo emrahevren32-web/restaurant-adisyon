@@ -1129,3 +1129,16 @@ export type BusinessUsageSummary = {
   createdAt: string
   updatedAt: string
 }
+
+export type UsagePerformanceSummary = {
+  id: string
+  date: string
+  hour: number
+  totalActions: number
+  activeUsers: number
+  activeBranches: number
+  averageActionsPerUser: number
+  peakUsageScore: number
+  createdAt: string
+  updatedAt: string
+}
