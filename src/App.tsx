@@ -19,6 +19,7 @@ import UsagePerformanceAnalysis from './pages/UsagePerformanceAnalysis'
 import AnalyticsDashboard from './pages/AnalyticsDashboard'
 import SystemHealthTelemetry from './pages/SystemHealthTelemetry'
 import BusinessRegistrationSystem from './pages/BusinessRegistrationSystem'
+import CompanySetupWizard from './pages/CompanySetupWizard'
 import StaffTracking from './pages/StaffTracking'
 import EmployeeCards from './pages/EmployeeCards'
 import ShiftManagement from './pages/ShiftManagement'
@@ -104,6 +105,7 @@ type Route =
   | 'analytics-dashboard'
   | 'system-health-telemetry'
   | 'business-registration-system'
+  | 'company-setup-wizard'
   | 'employee-cards'
   | 'shift-management'
   | 'attendance-tracking'
@@ -168,6 +170,7 @@ type NavKey =
   | 'analytics-dashboard'
   | 'system-health-telemetry'
   | 'business-registration-system'
+  | 'company-setup-wizard'
   | 'employee-cards'
   | 'shift-management'
   | 'attendance-tracking'
@@ -291,7 +294,8 @@ const navGroups: NavGroup[] = [
     title: 'SAAS Yönetim Paneli',
     icon: 'SP',
     items: [
-      { key: 'business-registration-system', label: 'İşletme Kayıt Sistemi', route: 'business-registration-system', icon: 'İK', adminOnly: true }
+      { key: 'business-registration-system', label: 'İşletme Kayıt Sistemi', route: 'business-registration-system', icon: 'İK', adminOnly: true },
+      { key: 'company-setup-wizard', label: 'Firma Oluşturma Sihirbazı', route: 'company-setup-wizard', icon: 'FS', adminOnly: true }
     ]
   },
   {
@@ -500,6 +504,7 @@ export default function App(){
       {route === 'analytics-dashboard' && currentUser.role === 'Admin' && <AnalyticsDashboard />}
       {route === 'system-health-telemetry' && currentUser.role === 'Admin' && <SystemHealthTelemetry />}
       {route === 'business-registration-system' && currentUser.role === 'Admin' && <BusinessRegistrationSystem currentUser={currentUser} />}
+      {route === 'company-setup-wizard' && currentUser.role === 'Admin' && <CompanySetupWizard currentUser={currentUser} onBranchesChange={refreshBranches} />}
       {route === 'system-usage-logs' && currentUser.role === 'Admin' && <SystemUsageLogs />}
       {route === 'user-activity-tracking' && currentUser.role === 'Admin' && <UserActivityTracking />}
       {route === 'module-usage-analysis' && currentUser.role === 'Admin' && <ModuleUsageAnalysis />}

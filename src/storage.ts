@@ -13,6 +13,9 @@ import {
   CashTransaction,
   CashTransactionType,
   ClosedBill,
+  Company,
+  CompanySetup,
+  CompanyStatus,
   CriticalStockEvent,
   CriticalStockEventType,
   CriticalStockTrigger,
@@ -173,6 +176,8 @@ const KEY_WAITER_CALLS = 'ra_waiter_calls'
 const KEY_WAITER_CALL_HISTORY = 'ra_waiter_call_history'
 const KEY_BRANCH_STOCK_TRANSFERS = 'ra_branch_stock_transfers'
 const KEY_BUSINESS_REGISTRATIONS = 'ra_business_registrations'
+const KEY_COMPANIES = 'ra_companies'
+const KEY_COMPANY_SETUPS = 'ra_company_setups'
 
 export const DEFAULT_BRANCH_ID = 'branch_merkez'
 const DEFAULT_CATEGORY_ID = 'cat_general'
@@ -200,6 +205,7 @@ const EMPLOYEE_AUDIT_SEVERITIES: EmployeeAuditSeverity[] = ['Düşük', 'Orta', 
 const BRANCH_STOCK_TRANSFER_STATUSES: BranchStockTransferStatus[] = ['Bekliyor', 'Onaylandı', 'Tamamlandı', 'İptal Edildi']
 const BUSINESS_REGISTRATION_STATUSES: BusinessRegistrationStatus[] = ['Başvuru Bekliyor', 'Onaylandı', 'Reddedildi', 'Pasif']
 const BUSINESS_REGISTRATION_PACKAGES: BusinessRegistrationPackage[] = ['Başlangıç', 'Pro', 'Premium', 'Kurumsal']
+const COMPANY_STATUSES: CompanyStatus[] = ['Aktif', 'Pasif']
 const SYSTEM_USAGE_MODULE_NAMES: SystemUsageModuleName[] = ['Adisyon', 'Masa Yönetimi', 'Ürün Yönetimi', 'Stok Yönetimi', 'Cari Yönetimi', 'Finans Yönetimi', 'Personel Yönetimi', 'Patron Dashboard', 'Çoklu Şube Yönetimi', 'Sistem']
 const SYSTEM_USAGE_ACTION_TYPES: SystemUsageActionType[] = ['Görüntüleme', 'Oluşturma', 'Güncelleme', 'Silme', 'Giriş Yapma', 'Çıkış Yapma', 'Onaylama', 'İptal Etme']
 
@@ -2317,8 +2323,10 @@ const createDemoBusinessRegistrations = (now = new Date().toISOString()): Busine
       address: 'Caferağa Mahallesi No: 12',
       branchCount: 1,
       requestedPackage: 'Başlangıç',
-      status: 'Başvuru Bekliyor',
-      notes: 'Demo bekleyen başvuru.',
+      status: 'Onaylandı',
+      notes: 'Demo kurulum bekleyen onaylı başvuru.',
+      approvedBy: 'Demo Admin',
+      approvedAt: yesterday.toISOString(),
       createdAt: yesterday.toISOString(),
       updatedAt: yesterday.toISOString()
     }),
@@ -2363,6 +2371,82 @@ const createDemoBusinessRegistrations = (now = new Date().toISOString()): Busine
     })
   ]
 }
+
+const normalizeCompanyStatus = (value: unknown): CompanyStatus => {
+  return COMPANY_STATUSES.includes(value as CompanyStatus)
+    ? value as CompanyStatus
+    : 'Aktif'
+}
+
+const normalizeCompany = (item: Partial<Company>): Company => {
+  const timestamp = item.createdAt || new Date().toISOString()
+
+  return {
+    id: String(item.id || `company_${Date.now()}`),
+    companyName: String(item.companyName || 'İsimsiz Firma').trim() || 'İsimsiz Firma',
+    ownerName: String(item.ownerName || '').trim(),
+    phone: String(item.phone || '').trim(),
+    email: String(item.email || '').trim(),
+    city: String(item.city || '').trim(),
+    district: String(item.district || '').trim(),
+    taxNumber: String(item.taxNumber || '').trim(),
+    taxOffice: String(item.taxOffice || '').trim(),
+    address: String(item.address || '').trim(),
+    status: normalizeCompanyStatus(item.status),
+    createdAt: timestamp,
+    updatedAt: item.updatedAt || timestamp
+  }
+}
+
+const normalizeCompanySetup = (item: Partial<CompanySetup>): CompanySetup => {
+  const timestamp = item.createdAt || new Date().toISOString()
+
+  return {
+    id: String(item.id || `company_setup_${Date.now()}`),
+    registrationId: String(item.registrationId || ''),
+    companyId: String(item.companyId || ''),
+    branchId: String(item.branchId || ''),
+    adminUserId: String(item.adminUserId || ''),
+    temporaryPassword: String(item.temporaryPassword || ''),
+    setupCompleted: item.setupCompleted === true,
+    completedAt: String(item.completedAt || ''),
+    createdAt: timestamp,
+    updatedAt: item.updatedAt || timestamp
+  }
+}
+
+const createDemoCompanies = (now = new Date().toISOString()): Company[] => [
+  normalizeCompany({
+    id: 'company_lezzet_restoran_demo',
+    companyName: 'Lezzet Restoran',
+    ownerName: 'Mehmet Demir',
+    phone: '0532 000 00 02',
+    email: 'yonetim@lezzetrestoran.com',
+    city: 'Ankara',
+    district: 'Çankaya',
+    taxNumber: '2345678901',
+    taxOffice: 'Çankaya',
+    address: 'Kavaklıdere Cad. No: 8',
+    status: 'Aktif',
+    createdAt: now,
+    updatedAt: now
+  })
+]
+
+const createDemoCompanySetups = (now = new Date().toISOString()): CompanySetup[] => [
+  normalizeCompanySetup({
+    id: 'company_setup_lezzet_restoran_demo',
+    registrationId: 'business_registration_lezzet_restoran_demo',
+    companyId: 'company_lezzet_restoran_demo',
+    branchId: 'branch_lezzet_restoran_merkez_demo',
+    adminUserId: 'user_lezzet_restoran_admin_demo',
+    temporaryPassword: 'MIYOP-4837',
+    setupCompleted: true,
+    completedAt: now,
+    createdAt: now,
+    updatedAt: now
+  })
+]
 
 const normalizeActionLog = (item: Partial<ActionLog>): ActionLog => {
   const timestamp = item.timestamp || new Date().toISOString()
@@ -2910,6 +2994,24 @@ export const loadBusinessRegistrations = (): BusinessRegistration[] => {
 
 export const saveBusinessRegistrations = (items: BusinessRegistration[]) => {
   localStorage.setItem(KEY_BUSINESS_REGISTRATIONS, JSON.stringify(items.map(normalizeBusinessRegistration)))
+}
+
+export const loadCompanies = (): Company[] => {
+  if(localStorage.getItem(KEY_COMPANIES) === null) return createDemoCompanies()
+  return readJson<Partial<Company>[]>(KEY_COMPANIES, []).map(normalizeCompany)
+}
+
+export const saveCompanies = (items: Company[]) => {
+  localStorage.setItem(KEY_COMPANIES, JSON.stringify(items.map(normalizeCompany)))
+}
+
+export const loadCompanySetups = (): CompanySetup[] => {
+  if(localStorage.getItem(KEY_COMPANY_SETUPS) === null) return createDemoCompanySetups()
+  return readJson<Partial<CompanySetup>[]>(KEY_COMPANY_SETUPS, []).map(normalizeCompanySetup)
+}
+
+export const saveCompanySetups = (items: CompanySetup[]) => {
+  localStorage.setItem(KEY_COMPANY_SETUPS, JSON.stringify(items.map(normalizeCompanySetup)))
 }
 
 export const loadEmployees = (): Employee[] => {
@@ -3537,6 +3639,185 @@ export const addActionLog = ({
   }
 
   saveActionLogs([log, ...loadActionLogs()])
+}
+
+const slugifySetupValue = (value: string) => {
+  const normalized = value
+    .toLocaleLowerCase('tr-TR')
+    .replace(/ğ/g, 'g')
+    .replace(/ü/g, 'u')
+    .replace(/ş/g, 's')
+    .replace(/ı/g, 'i')
+    .replace(/ö/g, 'o')
+    .replace(/ç/g, 'c')
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '')
+    .replace(/[^a-z0-9]+/g, '.')
+    .replace(/^\.+|\.+$/g, '')
+
+  return normalized || 'firma'
+}
+
+const createUniqueCompanyAdminUsername = (baseValue: string, users: User[]) => {
+  const base = slugifySetupValue(baseValue)
+  const existingUsernames = new Set(users.map(user => user.username.toLocaleLowerCase('tr-TR')))
+  let username = base
+  let index = 2
+
+  while(existingUsernames.has(username.toLocaleLowerCase('tr-TR'))){
+    username = `${base}${index}`
+    index += 1
+  }
+
+  return username
+}
+
+export const generateTemporaryCompanyPassword = () => {
+  return `MIYOP-${Math.floor(1000 + Math.random() * 9000)}`
+}
+
+const createCompanySetupStorageId = (prefix: string) => `${prefix}_${Date.now()}_${Math.random().toString(16).slice(2)}`
+
+const createNextBranchCode = (branches: Branch[]) => {
+  const maxCode = branches.reduce((max, branch) => {
+    const match = branch.code.match(/^SUBE-(\d+)$/i)
+    if(!match) return max
+
+    const value = Number(match[1])
+    return Number.isFinite(value) ? Math.max(max, value) : max
+  }, 0)
+
+  return `SUBE-${String(maxCode + 1).padStart(3, '0')}`
+}
+
+export type CompleteCompanySetupInput = {
+  registrationId: string
+  adminFullName: string
+  adminEmail: string
+  username: string
+  user: User
+}
+
+export type CompleteCompanySetupResult = {
+  company: Company
+  branch: Branch
+  adminUser: User
+  setup: CompanySetup
+}
+
+export const completeCompanySetupFromRegistration = ({
+  registrationId,
+  adminFullName,
+  adminEmail,
+  username,
+  user
+}: CompleteCompanySetupInput): CompleteCompanySetupResult => {
+  const registrations = loadBusinessRegistrations()
+  const registration = registrations.find(item => item.id === registrationId)
+
+  if(!registration) throw new Error('Başvuru bulunamadı.')
+  if(registration.status !== 'Onaylandı') throw new Error('Sadece onaylanan başvurular kuruluma alınabilir.')
+
+  const existingSetups = loadCompanySetups()
+  if(existingSetups.some(setup => setup.registrationId === registration.id && setup.setupCompleted)){
+    throw new Error('Bu başvuru için kurulum zaten tamamlanmış.')
+  }
+
+  const companies = loadCompanies()
+  const branches = loadBranches()
+  const users = loadUsers()
+  const now = new Date().toISOString()
+  const temporaryPassword = generateTemporaryCompanyPassword()
+  const companyId = createCompanySetupStorageId('company')
+  const branchId = createCompanySetupStorageId('branch')
+  const adminUserId = createCompanySetupStorageId('user')
+  const adminName = adminFullName.trim() || registration.ownerName
+  const adminUsername = createUniqueCompanyAdminUsername(username.trim() || adminEmail.split('@')[0] || registration.businessName, users)
+
+  const company: Company = normalizeCompany({
+    id: companyId,
+    companyName: registration.businessName,
+    ownerName: registration.ownerName,
+    phone: registration.phone,
+    email: registration.email,
+    city: registration.city,
+    district: registration.district,
+    taxNumber: registration.taxNumber,
+    taxOffice: registration.taxOffice,
+    address: registration.address,
+    status: 'Aktif',
+    createdAt: now,
+    updatedAt: now
+  })
+
+  const branch: Branch = normalizeBranch({
+    id: branchId,
+    code: createNextBranchCode(branches),
+    name: 'Merkez Şube',
+    phone: registration.phone,
+    email: registration.email,
+    address: registration.address,
+    city: registration.city,
+    managerName: adminName,
+    isActive: true,
+    createdAt: now,
+    updatedAt: now
+  })
+
+  const adminUser: User = {
+    id: adminUserId,
+    fullName: adminName,
+    username: adminUsername,
+    password: temporaryPassword,
+    role: 'Admin',
+    active: true
+  }
+
+  const setup: CompanySetup = normalizeCompanySetup({
+    id: createCompanySetupStorageId('company_setup'),
+    registrationId: registration.id,
+    companyId: company.id,
+    branchId: branch.id,
+    adminUserId: adminUser.id,
+    temporaryPassword,
+    setupCompleted: true,
+    completedAt: now,
+    createdAt: now,
+    updatedAt: now
+  })
+
+  saveCompanies([company, ...companies])
+  saveBranches([branch, ...branches])
+  saveUsers([adminUser, ...users])
+  saveCompanySetups([setup, ...existingSetups.filter(item => item.registrationId !== registration.id)])
+
+  addActionLog({
+    operationType: 'Firma oluşturuldu',
+    user,
+    description: `${company.companyName} firması oluşturuldu. Firma ID: ${company.id}.`
+  })
+  addActionLog({
+    operationType: 'Şube oluşturuldu',
+    user,
+    description: `${company.companyName} için ${branch.name} oluşturuldu. Şube ID: ${branch.id}.`
+  })
+  addActionLog({
+    operationType: 'Admin kullanıcı oluşturuldu',
+    user,
+    description: `${company.companyName} için ${adminUser.username} admin kullanıcısı oluşturuldu.`
+  })
+  addActionLog({
+    operationType: 'Kurulum tamamlandı',
+    user,
+    description: `${company.companyName} kurulumu tamamlandı. Geçici şifre üretildi.`
+  })
+
+  return {
+    company,
+    branch,
+    adminUser,
+    setup
+  }
 }
 
 export type BranchMigrationResult = {
@@ -5122,6 +5403,8 @@ export const createDemoData = () => {
   const incomeExpenses = createDemoIncomeExpenses(now)
   const cashTransfers = createDemoCashTransfers(now)
   const businessRegistrations = createDemoBusinessRegistrations(now)
+  const companies = createDemoCompanies(now)
+  const companySetups = createDemoCompanySetups(now)
 
   const tables: TableState[] = Array.from({ length: 6 }).map((_, index) => ({
     id: String(index + 1),
@@ -5150,6 +5433,8 @@ export const createDemoData = () => {
   saveCashClosings([])
   saveCashTransfers(cashTransfers)
   saveBusinessRegistrations(businessRegistrations)
+  saveCompanies(companies)
+  saveCompanySetups(companySetups)
   saveTables(tables)
   saveKitchenOrders([])
   saveQRRequests([])
@@ -5176,6 +5461,8 @@ export const createDemoData = () => {
     incomeExpenses: loadIncomeExpenses(),
     cashClosings: loadCashClosings(),
     cashTransfers: loadCashTransfers(),
-    businessRegistrations: loadBusinessRegistrations()
+    businessRegistrations: loadBusinessRegistrations(),
+    companies: loadCompanies(),
+    companySetups: loadCompanySetups()
   }
 }

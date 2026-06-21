@@ -624,6 +624,37 @@ export type BusinessRegistration = {
   updatedAt: string
 }
 
+export type CompanyStatus = 'Aktif' | 'Pasif'
+
+export type Company = {
+  id: string
+  companyName: string
+  ownerName: string
+  phone: string
+  email: string
+  city: string
+  district: string
+  taxNumber: string
+  taxOffice: string
+  address: string
+  status: CompanyStatus
+  createdAt: string
+  updatedAt: string
+}
+
+export type CompanySetup = {
+  id: string
+  registrationId: string
+  companyId: string
+  branchId: string
+  adminUserId: string
+  temporaryPassword: string
+  setupCompleted: boolean
+  completedAt: string
+  createdAt: string
+  updatedAt: string
+}
+
 export type Branch = {
   id: string
   code: string
@@ -1063,6 +1094,9 @@ export type ActionLogType =
   | 'İşletme başvurusu onaylandı'
   | 'İşletme başvurusu reddedildi'
   | 'İşletme başvurusu güncellendi'
+  | 'Firma oluşturuldu'
+  | 'Admin kullanıcı oluşturuldu'
+  | 'Kurulum tamamlandı'
 
 export type ActionLog = {
   id: string
