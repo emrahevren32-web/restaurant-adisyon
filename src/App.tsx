@@ -21,6 +21,7 @@ import SystemHealthTelemetry from './pages/SystemHealthTelemetry'
 import BusinessRegistrationSystem from './pages/BusinessRegistrationSystem'
 import CompanySetupWizard from './pages/CompanySetupWizard'
 import PackageLicenseManagement from './pages/PackageLicenseManagement'
+import UserSubscriptionManagement from './pages/UserSubscriptionManagement'
 import StaffTracking from './pages/StaffTracking'
 import EmployeeCards from './pages/EmployeeCards'
 import ShiftManagement from './pages/ShiftManagement'
@@ -110,6 +111,7 @@ type Route =
   | 'business-registration-system'
   | 'company-setup-wizard'
   | 'package-license-management'
+  | 'user-subscription-management'
   | 'employee-cards'
   | 'shift-management'
   | 'attendance-tracking'
@@ -176,6 +178,7 @@ type NavKey =
   | 'business-registration-system'
   | 'company-setup-wizard'
   | 'package-license-management'
+  | 'user-subscription-management'
   | 'employee-cards'
   | 'shift-management'
   | 'attendance-tracking'
@@ -355,7 +358,8 @@ const navGroups: NavGroup[] = [
     items: [
       { key: 'business-registration-system', label: 'İşletme Kayıt Sistemi', route: 'business-registration-system', icon: 'İK', adminOnly: true },
       { key: 'company-setup-wizard', label: 'Firma Oluşturma Sihirbazı', route: 'company-setup-wizard', icon: 'FS', adminOnly: true },
-      { key: 'package-license-management', label: 'Paket ve Lisans Yönetimi', route: 'package-license-management', icon: 'PL', adminOnly: true }
+      { key: 'package-license-management', label: 'Paket ve Lisans Yönetimi', route: 'package-license-management', icon: 'PL', adminOnly: true },
+      { key: 'user-subscription-management', label: 'Kullanıcı ve Abonelik Yönetimi', route: 'user-subscription-management', icon: 'KA', adminOnly: true }
     ]
   },
   {
@@ -577,6 +581,7 @@ export default function App(){
       {route === 'business-registration-system' && currentUser.role === 'Admin' && <BusinessRegistrationSystem currentUser={currentUser} />}
       {route === 'company-setup-wizard' && currentUser.role === 'Admin' && <CompanySetupWizard currentUser={currentUser} onBranchesChange={refreshBranches} />}
       {route === 'package-license-management' && currentUser.role === 'Admin' && <PackageLicenseManagement currentUser={currentUser} />}
+      {route === 'user-subscription-management' && currentUser.role === 'Admin' && <UserSubscriptionManagement currentUser={currentUser} />}
       {route === 'system-usage-logs' && currentUser.role === 'Admin' && <SystemUsageLogs />}
       {route === 'user-activity-tracking' && currentUser.role === 'Admin' && <UserActivityTracking />}
       {route === 'module-usage-analysis' && currentUser.role === 'Admin' && <ModuleUsageAnalysis />}

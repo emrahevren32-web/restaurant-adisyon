@@ -723,6 +723,45 @@ export type CompanyLicense = {
   updatedAt: string
 }
 
+export type CompanyUserRole =
+  | 'Firma Sahibi'
+  | 'Admin'
+  | 'Müdür'
+  | 'Kasiyer'
+  | 'Garson'
+  | 'Mutfak'
+  | 'Kurye'
+  | 'Muhasebe'
+
+export type CompanyUserStatus = 'Aktif' | 'Pasif' | 'Askıya Alındı' | 'Silindi'
+
+export type CompanyUser = {
+  id: string
+  companyId: string
+  fullName: string
+  username: string
+  email: string
+  phone: string
+  role: CompanyUserRole
+  status: CompanyUserStatus
+  lastLogin: string
+  createdAt: string
+  updatedAt: string
+}
+
+export type UserSubscriptionStatus = 'Aktif' | 'Pasif' | 'Beklemede' | 'Süresi Doldu'
+
+export type UserSubscription = {
+  id: string
+  userId: string
+  companyLicenseId: string
+  status: UserSubscriptionStatus
+  assignedAt: string
+  expiresAt: string
+  createdAt: string
+  updatedAt: string
+}
+
 export type Branch = {
   id: string
   companyId?: string
@@ -1090,6 +1129,10 @@ export type ActionLogType =
   | 'Kullanıcı güncellendi'
   | 'Kullanıcı aktif yapıldı'
   | 'Kullanıcı pasif yapıldı'
+  | 'Kullanıcı pasife alındı'
+  | 'Kullanıcı silindi'
+  | 'Şifre sıfırlandı'
+  | 'Lisans kullanıcıya atandı'
   | 'Şube oluşturuldu'
   | 'Şube güncellendi'
   | 'Şube silindi'

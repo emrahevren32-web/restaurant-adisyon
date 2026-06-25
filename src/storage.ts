@@ -17,6 +17,9 @@ import {
   CompanyLicense,
   CompanySetup,
   CompanyStatus,
+  CompanyUser,
+  CompanyUserRole,
+  CompanyUserStatus,
   CriticalStockEvent,
   CriticalStockEventType,
   CriticalStockTrigger,
@@ -107,6 +110,8 @@ import {
   UsagePerformanceSummary,
   UserActivitySummary,
   User,
+  UserSubscription,
+  UserSubscriptionStatus,
   WaiterCall,
   WaiterCallHistory,
   WaiterCallStatus
@@ -186,6 +191,8 @@ const KEY_COMPANY_SETUPS = 'ra_company_setups'
 const KEY_LICENSE_PACKAGES = 'ra_license_packages'
 const KEY_LICENSE_MODULES = 'ra_license_modules'
 const KEY_COMPANY_LICENSES = 'ra_company_licenses'
+const KEY_COMPANY_USERS = 'ra_company_users'
+const KEY_USER_SUBSCRIPTIONS = 'ra_user_subscriptions'
 
 export const DEFAULT_BRANCH_ID = 'branch_merkez'
 const DEFAULT_CATEGORY_ID = 'cat_general'
@@ -215,6 +222,9 @@ const BUSINESS_REGISTRATION_STATUSES: BusinessRegistrationStatus[] = ['Başvuru 
 const BUSINESS_REGISTRATION_PACKAGES: BusinessRegistrationPackage[] = ['Başlangıç', 'Pro', 'Premium', 'Kurumsal']
 const COMPANY_STATUSES: CompanyStatus[] = ['Aktif', 'Pasif']
 const LICENSE_STATUSES: LicenseStatus[] = ['Deneme', 'Aktif', 'Süresi Yaklaşıyor', 'Süresi Doldu', 'Askıya Alındı', 'İptal Edildi']
+const COMPANY_USER_ROLES: CompanyUserRole[] = ['Firma Sahibi', 'Admin', 'Müdür', 'Kasiyer', 'Garson', 'Mutfak', 'Kurye', 'Muhasebe']
+const COMPANY_USER_STATUSES: CompanyUserStatus[] = ['Aktif', 'Pasif', 'Askıya Alındı', 'Silindi']
+const USER_SUBSCRIPTION_STATUSES: UserSubscriptionStatus[] = ['Aktif', 'Pasif', 'Beklemede', 'Süresi Doldu']
 export const LICENSE_MODULE_CATALOG: Array<{ key: LicenseModuleKey; name: string }> = [
   { key: 'adisyon', name: 'Adisyon' },
   { key: 'qr-menu', name: 'QR Menü' },
@@ -2527,6 +2537,169 @@ const createDemoCompanySetups = (now = new Date().toISOString()): CompanySetup[]
   })
 ]
 
+const normalizeSaasDateKey = (value: unknown, fallbackDate = new Date()) => {
+  const raw = String(value || '').trim()
+  if(!raw) return ''
+  if(/^\d{4}-\d{2}-\d{2}$/.test(raw)) return raw
+
+  const date = new Date(raw)
+  if(Number.isNaN(date.getTime())) return fallbackDate.toLocaleDateString('sv-SE')
+  return date.toLocaleDateString('sv-SE')
+}
+
+const normalizeCompanyUserRole = (value: unknown): CompanyUserRole => {
+  return COMPANY_USER_ROLES.includes(value as CompanyUserRole) ? value as CompanyUserRole : 'Garson'
+}
+
+const normalizeCompanyUserStatus = (value: unknown): CompanyUserStatus => {
+  return COMPANY_USER_STATUSES.includes(value as CompanyUserStatus) ? value as CompanyUserStatus : 'Aktif'
+}
+
+const normalizeCompanyUser = (item: Partial<CompanyUser>): CompanyUser => {
+  const timestamp = item.createdAt || new Date().toISOString()
+
+  return {
+    id: String(item.id || `company_user_${Date.now()}`),
+    companyId: String(item.companyId || ''),
+    fullName: String(item.fullName || 'İsimsiz Kullanıcı').trim() || 'İsimsiz Kullanıcı',
+    username: String(item.username || '').trim(),
+    email: String(item.email || '').trim(),
+    phone: String(item.phone || '').trim(),
+    role: normalizeCompanyUserRole(item.role),
+    status: normalizeCompanyUserStatus(item.status),
+    lastLogin: normalizeSaasDateKey(item.lastLogin, new Date(timestamp)),
+    createdAt: timestamp,
+    updatedAt: item.updatedAt || timestamp
+  }
+}
+
+const normalizeUserSubscriptionStatus = (value: unknown): UserSubscriptionStatus => {
+  return USER_SUBSCRIPTION_STATUSES.includes(value as UserSubscriptionStatus) ? value as UserSubscriptionStatus : 'Beklemede'
+}
+
+const normalizeUserSubscription = (item: Partial<UserSubscription>): UserSubscription => {
+  const timestamp = item.createdAt || new Date().toISOString()
+  const assignedAt = normalizeSaasDateKey(item.assignedAt, new Date(timestamp)) || new Date(timestamp).toLocaleDateString('sv-SE')
+  const expiresAt = normalizeSaasDateKey(item.expiresAt, new Date(timestamp))
+  const status = normalizeUserSubscriptionStatus(item.status)
+  const today = new Date().toLocaleDateString('sv-SE')
+
+  return {
+    id: String(item.id || `user_subscription_${Date.now()}`),
+    userId: String(item.userId || ''),
+    companyLicenseId: String(item.companyLicenseId || ''),
+    status: status === 'Aktif' && expiresAt && expiresAt < today ? 'Süresi Doldu' : status,
+    assignedAt,
+    expiresAt,
+    createdAt: timestamp,
+    updatedAt: item.updatedAt || timestamp
+  }
+}
+
+const createDemoCompanyUsers = (now = new Date().toISOString()): CompanyUser[] => {
+  const today = new Date(now)
+  const yesterday = new Date(now)
+  yesterday.setDate(yesterday.getDate() - 1)
+  const lastWeek = new Date(now)
+  lastWeek.setDate(lastWeek.getDate() - 7)
+  const lastMonth = new Date(now)
+  lastMonth.setDate(lastMonth.getDate() - 31)
+
+  return [
+    normalizeCompanyUser({
+      id: 'company_user_abc_admin_demo',
+      companyId: 'company_abc_cafe_demo',
+      fullName: 'ABC Admin',
+      username: 'abc.admin',
+      email: 'admin@abccafe.com',
+      phone: '0532 100 00 01',
+      role: 'Admin',
+      status: 'Aktif',
+      lastLogin: today.toLocaleDateString('sv-SE'),
+      createdAt: now,
+      updatedAt: now
+    }),
+    normalizeCompanyUser({
+      id: 'company_user_abc_garson_1_demo',
+      companyId: 'company_abc_cafe_demo',
+      fullName: 'Garson 1',
+      username: 'abc.garson1',
+      email: 'garson1@abccafe.com',
+      phone: '0532 100 00 02',
+      role: 'Garson',
+      status: 'Aktif',
+      lastLogin: yesterday.toLocaleDateString('sv-SE'),
+      createdAt: now,
+      updatedAt: now
+    }),
+    normalizeCompanyUser({
+      id: 'company_user_abc_garson_2_demo',
+      companyId: 'company_abc_cafe_demo',
+      fullName: 'Garson 2',
+      username: 'abc.garson2',
+      email: 'garson2@abccafe.com',
+      phone: '0532 100 00 03',
+      role: 'Garson',
+      status: 'Aktif',
+      lastLogin: lastWeek.toLocaleDateString('sv-SE'),
+      createdAt: now,
+      updatedAt: now
+    }),
+    normalizeCompanyUser({
+      id: 'company_user_abc_kasiyer_demo',
+      companyId: 'company_abc_cafe_demo',
+      fullName: 'Kasiyer',
+      username: 'abc.kasiyer',
+      email: 'kasiyer@abccafe.com',
+      phone: '0532 100 00 04',
+      role: 'Kasiyer',
+      status: 'Aktif',
+      lastLogin: '',
+      createdAt: now,
+      updatedAt: now
+    }),
+    normalizeCompanyUser({
+      id: 'company_user_lezzet_owner_demo',
+      companyId: 'company_lezzet_restoran_demo',
+      fullName: 'Firma Sahibi',
+      username: 'lezzet.sahip',
+      email: 'sahip@lezzetrestoran.com',
+      phone: '0532 200 00 01',
+      role: 'Firma Sahibi',
+      status: 'Aktif',
+      lastLogin: today.toLocaleDateString('sv-SE'),
+      createdAt: now,
+      updatedAt: now
+    }),
+    normalizeCompanyUser({
+      id: 'company_user_lezzet_mudur_demo',
+      companyId: 'company_lezzet_restoran_demo',
+      fullName: 'Müdür',
+      username: 'lezzet.mudur',
+      email: 'mudur@lezzetrestoran.com',
+      phone: '0532 200 00 02',
+      role: 'Müdür',
+      status: 'Aktif',
+      lastLogin: yesterday.toLocaleDateString('sv-SE'),
+      createdAt: now,
+      updatedAt: now
+    }),
+    normalizeCompanyUser({
+      id: 'company_user_lezzet_muhasebe_demo',
+      companyId: 'company_lezzet_restoran_demo',
+      fullName: 'Muhasebe',
+      username: 'lezzet.muhasebe',
+      email: 'muhasebe@lezzetrestoran.com',
+      phone: '0532 200 00 03',
+      role: 'Muhasebe',
+      status: 'Aktif',
+      lastLogin: lastMonth.toLocaleDateString('sv-SE'),
+      createdAt: now,
+      updatedAt: now
+    })
+  ]
+}
+
 const normalizeLicenseModuleKey = (value: unknown): LicenseModuleKey => {
   const key = String(value || '').trim() as LicenseModuleKey
   return LICENSE_MODULE_CATALOG.some(module => module.key === key) ? key : 'adisyon'
@@ -2860,6 +3033,68 @@ const createDemoCompanyLicenses = (now = new Date().toISOString()): CompanyLicen
       updatedAt: now
     })
   ]
+}
+
+const createDemoUserSubscriptions = (
+  companyLicenses = createDemoCompanyLicenses(),
+  now = new Date().toISOString()
+): UserSubscription[] => {
+  const licenseMap = new Map(companyLicenses.map(license => [license.id, license]))
+  const subscriptionRows: Array<Partial<UserSubscription>> = [
+    {
+      id: 'user_subscription_abc_admin_demo',
+      userId: 'company_user_abc_admin_demo',
+      companyLicenseId: 'company_license_abc_cafe_demo',
+      status: 'Aktif'
+    },
+    {
+      id: 'user_subscription_abc_garson_1_demo',
+      userId: 'company_user_abc_garson_1_demo',
+      companyLicenseId: 'company_license_abc_cafe_demo',
+      status: 'Aktif'
+    },
+    {
+      id: 'user_subscription_abc_garson_2_demo',
+      userId: 'company_user_abc_garson_2_demo',
+      companyLicenseId: 'company_license_abc_cafe_demo',
+      status: 'Aktif'
+    },
+    {
+      id: 'user_subscription_abc_kasiyer_demo',
+      userId: 'company_user_abc_kasiyer_demo',
+      companyLicenseId: 'company_license_abc_cafe_demo',
+      status: 'Beklemede'
+    },
+    {
+      id: 'user_subscription_lezzet_owner_demo',
+      userId: 'company_user_lezzet_owner_demo',
+      companyLicenseId: 'company_license_lezzet_restoran_demo',
+      status: 'Aktif'
+    },
+    {
+      id: 'user_subscription_lezzet_mudur_demo',
+      userId: 'company_user_lezzet_mudur_demo',
+      companyLicenseId: 'company_license_lezzet_restoran_demo',
+      status: 'Aktif'
+    },
+    {
+      id: 'user_subscription_lezzet_muhasebe_demo',
+      userId: 'company_user_lezzet_muhasebe_demo',
+      companyLicenseId: 'company_license_lezzet_restoran_demo',
+      status: 'Aktif'
+    }
+  ]
+
+  return subscriptionRows.map(row => {
+    const license = row.companyLicenseId ? licenseMap.get(row.companyLicenseId) : undefined
+    return normalizeUserSubscription({
+      ...row,
+      assignedAt: license?.startDate || new Date(now).toLocaleDateString('sv-SE'),
+      expiresAt: license ? getLicenseDeadline(license) : '',
+      createdAt: now,
+      updatedAt: now
+    })
+  })
 }
 
 const normalizeActionLog = (item: Partial<ActionLog>): ActionLog => {
@@ -3489,6 +3724,24 @@ export const saveCompanyLicenses = (items: CompanyLicense[]) => {
   localStorage.setItem(KEY_COMPANY_LICENSES, JSON.stringify(items.map(normalizeCompanyLicenseWithRuntimeStatus)))
 }
 
+export const loadCompanyUsers = (): CompanyUser[] => {
+  if(localStorage.getItem(KEY_COMPANY_USERS) === null) return createDemoCompanyUsers()
+  return readJson<Partial<CompanyUser>[]>(KEY_COMPANY_USERS, []).map(normalizeCompanyUser)
+}
+
+export const saveCompanyUsers = (items: CompanyUser[]) => {
+  localStorage.setItem(KEY_COMPANY_USERS, JSON.stringify(items.map(normalizeCompanyUser)))
+}
+
+export const loadUserSubscriptions = (): UserSubscription[] => {
+  if(localStorage.getItem(KEY_USER_SUBSCRIPTIONS) === null) return createDemoUserSubscriptions(loadCompanyLicenses())
+  return readJson<Partial<UserSubscription>[]>(KEY_USER_SUBSCRIPTIONS, []).map(normalizeUserSubscription)
+}
+
+export const saveUserSubscriptions = (items: UserSubscription[]) => {
+  localStorage.setItem(KEY_USER_SUBSCRIPTIONS, JSON.stringify(items.map(normalizeUserSubscription)))
+}
+
 export const getActiveCompanyLicense = (companyId: string, referenceDate = new Date()) => {
   return loadCompanyLicenses()
     .filter(license => license.companyId === companyId)
@@ -3581,9 +3834,11 @@ export const getCompanyLicenseUsage = (companyId: string) => {
   const branchIds = getCompanyBranchIds(companyId)
   const userIds = getCompanyUserIds(companyId)
   const allTables = loadAllBranchScopedItems<TableState>(KEY_TABLES, normalizeTableState)
+  const companyUserCount = loadCompanyUsers().filter(user => user.companyId === companyId && user.status !== 'Silindi').length
+  const authUserCount = loadUsers().filter(user => user.active !== false && (user.companyId === companyId || userIds.has(user.id))).length
 
   return {
-    users: loadUsers().filter(user => user.active !== false && (user.companyId === companyId || userIds.has(user.id))).length,
+    users: companyUserCount > 0 ? companyUserCount : authUserCount,
     branches: loadBranches().filter(branch => branch.isActive && (branch.companyId === companyId || branchIds.has(branch.id))).length,
     tables: allTables.filter(table => table.companyId === companyId || branchIds.has(table.branchId)).length
   }
@@ -3669,6 +3924,14 @@ export const checkUserLicenseLimit = (
 ) => {
   const companyId = getCompanyIdForUser(user)
   return checkCompanyLicenseLimit(companyId, resource, nextUsage, referenceDate)
+}
+
+export const checkCompanyUserLicenseLimit = (companyId: string, nextUsage?: number, referenceDate = new Date()) => {
+  const check = checkCompanyLicenseLimit(companyId, 'users', nextUsage, referenceDate)
+  return check.allowed ? check : {
+    ...check,
+    message: 'Paketinizde tanımlı maksimum kullanıcı sayısına ulaştınız.'
+  }
 }
 
 export const getCompanyLicenseWarnings = (referenceDate = new Date()): LicenseWarning[] => {
@@ -6110,6 +6373,8 @@ export const createDemoData = () => {
   const licensePackages = createDemoLicensePackages(now)
   const licenseModules = createDemoLicenseModules(licensePackages, now)
   const companyLicenses = createDemoCompanyLicenses(now)
+  const companyUsers = createDemoCompanyUsers(now)
+  const userSubscriptions = createDemoUserSubscriptions(companyLicenses, now)
 
   const tables: TableState[] = Array.from({ length: 6 }).map((_, index) => ({
     id: String(index + 1),
@@ -6143,6 +6408,8 @@ export const createDemoData = () => {
   saveLicensePackages(licensePackages)
   saveLicenseModules(licenseModules)
   saveCompanyLicenses(companyLicenses)
+  saveCompanyUsers(companyUsers)
+  saveUserSubscriptions(userSubscriptions)
   saveTables(tables)
   saveKitchenOrders([])
   saveQRRequests([])
@@ -6174,6 +6441,8 @@ export const createDemoData = () => {
     companySetups: loadCompanySetups(),
     licensePackages: loadLicensePackages(),
     licenseModules: loadLicenseModules(),
-    companyLicenses: loadCompanyLicenses()
+    companyLicenses: loadCompanyLicenses(),
+    companyUsers: loadCompanyUsers(),
+    userSubscriptions: loadUserSubscriptions()
   }
 }
