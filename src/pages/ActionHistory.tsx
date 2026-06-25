@@ -144,7 +144,21 @@ const operationTypes: ActionLogType[] = [
   'Prim silindi',
   'Denetim kaydı oluşturuldu',
   'Denetim kaydı güncellendi',
-  'Denetim kaydı silindi'
+  'Denetim kaydı silindi',
+  'İşletme başvurusu oluşturuldu',
+  'İşletme başvurusu onaylandı',
+  'İşletme başvurusu reddedildi',
+  'İşletme başvurusu güncellendi',
+  'Firma oluşturuldu',
+  'Admin kullanıcı oluşturuldu',
+  'Kurulum tamamlandı',
+  'Paket oluşturuldu',
+  'Paket güncellendi',
+  'Paket pasife alındı',
+  'Lisans atandı',
+  'Lisans yenilendi',
+  'Lisans askıya alındı',
+  'Lisans iptal edildi'
 ]
 
 export default function ActionHistory(){

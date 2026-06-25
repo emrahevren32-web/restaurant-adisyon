@@ -1,6 +1,6 @@
 import React from 'react'
 import { Branch, User } from '../types'
-import { addActionLog, loadBranches, saveBranches } from '../storage'
+import { addActionLog, checkUserLicenseLimit, loadBranches, saveBranches } from '../storage'
 
 type Props = {
   currentUser: User
@@ -177,8 +177,15 @@ export default function BranchManagement({ currentUser, onBranchesChange }: Prop
       return true
     }
 
+    const limitCheck = checkUserLicenseLimit(currentUser, 'branches')
+    if(!limitCheck.allowed){
+      setFormError(limitCheck.message)
+      return false
+    }
+
     const branch: Branch = {
       id: createId(),
+      companyId: limitCheck.companyId || undefined,
       ...normalized,
       createdAt: now,
       updatedAt: now

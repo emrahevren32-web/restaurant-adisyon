@@ -14,6 +14,7 @@ import {
   CashTransactionType,
   ClosedBill,
   Company,
+  CompanyLicense,
   CompanySetup,
   CompanyStatus,
   CriticalStockEvent,
@@ -38,6 +39,10 @@ import {
   IncomeExpenseType,
   KitchenOrder,
   KitchenOrderStatus,
+  LicenseModule,
+  LicenseModuleKey,
+  LicensePackage,
+  LicenseStatus,
   ModuleUsageSummary,
   Order,
   PaymentMethod,
@@ -178,6 +183,9 @@ const KEY_BRANCH_STOCK_TRANSFERS = 'ra_branch_stock_transfers'
 const KEY_BUSINESS_REGISTRATIONS = 'ra_business_registrations'
 const KEY_COMPANIES = 'ra_companies'
 const KEY_COMPANY_SETUPS = 'ra_company_setups'
+const KEY_LICENSE_PACKAGES = 'ra_license_packages'
+const KEY_LICENSE_MODULES = 'ra_license_modules'
+const KEY_COMPANY_LICENSES = 'ra_company_licenses'
 
 export const DEFAULT_BRANCH_ID = 'branch_merkez'
 const DEFAULT_CATEGORY_ID = 'cat_general'
@@ -206,6 +214,21 @@ const BRANCH_STOCK_TRANSFER_STATUSES: BranchStockTransferStatus[] = ['Bekliyor',
 const BUSINESS_REGISTRATION_STATUSES: BusinessRegistrationStatus[] = ['Başvuru Bekliyor', 'Onaylandı', 'Reddedildi', 'Pasif']
 const BUSINESS_REGISTRATION_PACKAGES: BusinessRegistrationPackage[] = ['Başlangıç', 'Pro', 'Premium', 'Kurumsal']
 const COMPANY_STATUSES: CompanyStatus[] = ['Aktif', 'Pasif']
+const LICENSE_STATUSES: LicenseStatus[] = ['Deneme', 'Aktif', 'Süresi Yaklaşıyor', 'Süresi Doldu', 'Askıya Alındı', 'İptal Edildi']
+export const LICENSE_MODULE_CATALOG: Array<{ key: LicenseModuleKey; name: string }> = [
+  { key: 'adisyon', name: 'Adisyon' },
+  { key: 'qr-menu', name: 'QR Menü' },
+  { key: 'stock', name: 'Stok' },
+  { key: 'recipe', name: 'Reçete' },
+  { key: 'current', name: 'Cari' },
+  { key: 'credit', name: 'Veresiye' },
+  { key: 'finance', name: 'Finans' },
+  { key: 'personnel', name: 'Personel' },
+  { key: 'boss-dashboard', name: 'Patron Dashboard' },
+  { key: 'multi-branch', name: 'Çoklu Şube' },
+  { key: 'analytics', name: 'Analitik' },
+  { key: 'ai-consultant', name: 'AI Danışman' }
+]
 const SYSTEM_USAGE_MODULE_NAMES: SystemUsageModuleName[] = ['Adisyon', 'Masa Yönetimi', 'Ürün Yönetimi', 'Stok Yönetimi', 'Cari Yönetimi', 'Finans Yönetimi', 'Personel Yönetimi', 'Patron Dashboard', 'Çoklu Şube Yönetimi', 'Sistem']
 const SYSTEM_USAGE_ACTION_TYPES: SystemUsageActionType[] = ['Görüntüleme', 'Oluşturma', 'Güncelleme', 'Silme', 'Giriş Yapma', 'Çıkış Yapma', 'Onaylama', 'İptal Etme']
 
@@ -2146,6 +2169,7 @@ const normalizeTableState = (item: Partial<TableState>): TableState => {
   return {
     id: String(item.id || `tbl_${Date.now()}`),
     branchId,
+    companyId: String(item.companyId || '').trim() || undefined,
     name: String(item.name || 'Masa').trim() || 'Masa',
     open: item.open === true,
     orders: (item.orders || []).map(order => normalizeOrder(order, branchId)).filter(order => order.productId && order.qty > 0),
@@ -2200,6 +2224,7 @@ const normalizeBranch = (item: Partial<Branch>): Branch => {
 
   return {
     id: String(item.id || `branch_${Date.now()}`),
+    companyId: String(item.companyId || '').trim() || undefined,
     code: String(item.code || `SUBE-${Date.now()}`).trim() || `SUBE-${Date.now()}`,
     name: String(item.name || 'İsimsiz Şube').trim() || 'İsimsiz Şube',
     phone: String(item.phone || '').trim(),
@@ -2417,6 +2442,21 @@ const normalizeCompanySetup = (item: Partial<CompanySetup>): CompanySetup => {
 
 const createDemoCompanies = (now = new Date().toISOString()): Company[] => [
   normalizeCompany({
+    id: 'company_abc_cafe_demo',
+    companyName: 'ABC Cafe',
+    ownerName: 'Ahmet Kaya',
+    phone: '0532 000 00 01',
+    email: 'yonetim@abccafe.com',
+    city: 'İstanbul',
+    district: 'Kadıköy',
+    taxNumber: '1234567890',
+    taxOffice: 'Kadıköy',
+    address: 'Caferağa Mahallesi No: 12',
+    status: 'Aktif',
+    createdAt: now,
+    updatedAt: now
+  }),
+  normalizeCompany({
     id: 'company_lezzet_restoran_demo',
     companyName: 'Lezzet Restoran',
     ownerName: 'Mehmet Demir',
@@ -2430,10 +2470,37 @@ const createDemoCompanies = (now = new Date().toISOString()): Company[] => [
     status: 'Aktif',
     createdAt: now,
     updatedAt: now
+  }),
+  normalizeCompany({
+    id: 'company_kahve_duragi_demo',
+    companyName: 'Kahve Durağı',
+    ownerName: 'Ayşe Yılmaz',
+    phone: '0532 000 00 03',
+    email: 'yonetim@kahveduragi.com',
+    city: 'İzmir',
+    district: 'Konak',
+    taxNumber: '3456789012',
+    taxOffice: 'Konak',
+    address: 'Alsancak Mahallesi No: 4',
+    status: 'Aktif',
+    createdAt: now,
+    updatedAt: now
   })
 ]
 
 const createDemoCompanySetups = (now = new Date().toISOString()): CompanySetup[] => [
+  normalizeCompanySetup({
+    id: 'company_setup_abc_cafe_demo',
+    registrationId: 'business_registration_abc_cafe_demo',
+    companyId: 'company_abc_cafe_demo',
+    branchId: 'branch_merkez',
+    adminUserId: 'user_abc_cafe_admin_demo',
+    temporaryPassword: 'MIYOP-1024',
+    setupCompleted: true,
+    completedAt: now,
+    createdAt: now,
+    updatedAt: now
+  }),
   normalizeCompanySetup({
     id: 'company_setup_lezzet_restoran_demo',
     registrationId: 'business_registration_lezzet_restoran_demo',
@@ -2445,8 +2512,355 @@ const createDemoCompanySetups = (now = new Date().toISOString()): CompanySetup[]
     completedAt: now,
     createdAt: now,
     updatedAt: now
+  }),
+  normalizeCompanySetup({
+    id: 'company_setup_kahve_duragi_demo',
+    registrationId: 'business_registration_kahve_duragi_demo',
+    companyId: 'company_kahve_duragi_demo',
+    branchId: 'branch_izmir',
+    adminUserId: 'user_kahve_duragi_admin_demo',
+    temporaryPassword: 'MIYOP-9142',
+    setupCompleted: true,
+    completedAt: now,
+    createdAt: now,
+    updatedAt: now
   })
 ]
+
+const normalizeLicenseModuleKey = (value: unknown): LicenseModuleKey => {
+  const key = String(value || '').trim() as LicenseModuleKey
+  return LICENSE_MODULE_CATALOG.some(module => module.key === key) ? key : 'adisyon'
+}
+
+const normalizeLicenseStatus = (value: unknown): LicenseStatus => {
+  const status = String(value || '').trim()
+  if(status === 'Askıda') return 'Askıya Alındı'
+  if(status === 'İptal') return 'İptal Edildi'
+
+  return LICENSE_STATUSES.includes(status as LicenseStatus)
+    ? status as LicenseStatus
+    : 'Deneme'
+}
+
+const normalizeLicenseLimit = (value: unknown, fallback = 0) => {
+  const limit = Number(value)
+  if(!Number.isFinite(limit)) return fallback
+  return Math.max(0, Math.round(limit))
+}
+
+const normalizeLicensePrice = (value: unknown) => {
+  const price = Number(value)
+  return Number.isFinite(price) ? Math.max(0, Math.round((price + Number.EPSILON) * 100) / 100) : 0
+}
+
+const normalizeLicenseCount = (value: unknown, fallback = 0) => {
+  const count = Number(value)
+  if(!Number.isFinite(count)) return fallback
+  return Math.max(0, Math.round(count))
+}
+
+const normalizeLicenseDateKey = (value: unknown, fallbackDate = new Date()) => {
+  const raw = String(value || '').trim()
+  if(/^\d{4}-\d{2}-\d{2}$/.test(raw)) return raw
+
+  const date = raw ? new Date(raw) : fallbackDate
+  if(Number.isNaN(date.getTime())) return fallbackDate.toLocaleDateString('sv-SE')
+  return date.toLocaleDateString('sv-SE')
+}
+
+const addLicenseDays = (dateKey: string, days: number) => {
+  const date = new Date(`${dateKey}T12:00:00`)
+  if(Number.isNaN(date.getTime())) return normalizeLicenseDateKey(new Date())
+  date.setDate(date.getDate() + days)
+  return date.toLocaleDateString('sv-SE')
+}
+
+const getLicenseDaysUntil = (dateKey: string, referenceDate = new Date()) => {
+  const target = new Date(`${dateKey}T12:00:00`)
+  const reference = new Date(referenceDate)
+  reference.setHours(12, 0, 0, 0)
+  if(Number.isNaN(target.getTime()) || Number.isNaN(reference.getTime())) return 0
+  return Math.ceil((target.getTime() - reference.getTime()) / 86400000)
+}
+
+const createLicenseKey = (companyId: string, packageId: string, seed = Date.now()) => {
+  const companyPart = (companyId || 'company').replace(/[^a-z0-9]/gi, '').slice(-6).toLocaleUpperCase('tr-TR') || 'COMP'
+  const packagePart = (packageId || 'package').replace(/[^a-z0-9]/gi, '').slice(-4).toLocaleUpperCase('tr-TR') || 'PKG'
+  const seedPart = Math.abs(Math.round(Number(seed) || Date.now())).toString(36).toLocaleUpperCase('tr-TR').slice(-6).padStart(6, '0')
+  return `RA-${companyPart}-${packagePart}-${seedPart}`
+}
+
+const getLicenseModuleName = (moduleKey: LicenseModuleKey) => {
+  return LICENSE_MODULE_CATALOG.find(module => module.key === moduleKey)?.name || 'Adisyon'
+}
+
+const normalizeLicensePackage = (item: Partial<LicensePackage>): LicensePackage => {
+  const timestamp = item.createdAt || new Date().toISOString()
+  const legacyItem = item as Partial<LicensePackage> & {
+    priceMonthly?: unknown
+    priceYearly?: unknown
+  }
+
+  return {
+    id: String(item.id || `license_package_${Date.now()}`),
+    name: String(item.name || 'Yeni Paket').trim() || 'Yeni Paket',
+    description: String(item.description || '').trim(),
+    monthlyPrice: normalizeLicensePrice(item.monthlyPrice ?? legacyItem.priceMonthly),
+    yearlyPrice: normalizeLicensePrice(item.yearlyPrice ?? legacyItem.priceYearly),
+    maxUsers: normalizeLicenseLimit(item.maxUsers),
+    maxBranches: normalizeLicenseLimit(item.maxBranches),
+    maxTables: normalizeLicenseLimit(item.maxTables),
+    maxStorageGB: normalizeLicenseCount(item.maxStorageGB),
+    trialDays: normalizeLicenseCount(item.trialDays, 14),
+    isActive: item.isActive !== false,
+    createdAt: timestamp,
+    updatedAt: item.updatedAt || timestamp
+  }
+}
+
+const normalizeLicenseModule = (item: Partial<LicenseModule>): LicenseModule => {
+  const timestamp = item.createdAt || new Date().toISOString()
+  const moduleKey = normalizeLicenseModuleKey(item.moduleKey)
+
+  return {
+    id: String(item.id || `license_module_${Date.now()}_${moduleKey}`),
+    packageId: String(item.packageId || ''),
+    moduleKey,
+    moduleName: String(item.moduleName || getLicenseModuleName(moduleKey)).trim() || getLicenseModuleName(moduleKey),
+    enabled: item.enabled === true,
+    createdAt: timestamp,
+    updatedAt: item.updatedAt || timestamp
+  }
+}
+
+const normalizeCompanyLicense = (item: Partial<CompanyLicense>): CompanyLicense => {
+  const timestamp = item.createdAt || new Date().toISOString()
+  const legacyItem = item as Partial<CompanyLicense> & {
+    licenseStartDate?: unknown
+    licenseEndDate?: unknown
+  }
+  const startDate = normalizeLicenseDateKey(item.startDate ?? legacyItem.licenseStartDate, new Date(timestamp))
+  const trialEndDate = normalizeLicenseDateKey(item.trialEndDate || addLicenseDays(startDate, 14), new Date(`${startDate}T12:00:00`))
+  const endDate = normalizeLicenseDateKey(item.endDate ?? legacyItem.licenseEndDate ?? (item.isTrial ? trialEndDate : addLicenseDays(startDate, 365)), new Date(`${startDate}T12:00:00`))
+  const isTrial = item.isTrial === true
+  const companyId = String(item.companyId || '')
+  const packageId = String(item.packageId || '')
+
+  return {
+    id: String(item.id || `company_license_${Date.now()}`),
+    companyId,
+    packageId,
+    licenseKey: String(item.licenseKey || createLicenseKey(companyId, packageId, new Date(timestamp).getTime())).trim(),
+    status: normalizeLicenseStatus(item.status || (isTrial ? 'Deneme' : 'Aktif')),
+    startDate,
+    endDate,
+    isTrial,
+    trialEndDate: isTrial ? trialEndDate : String(item.trialEndDate || '').trim(),
+    lastRenewalDate: String(item.lastRenewalDate || '').trim(),
+    nextRenewalDate: String(item.nextRenewalDate || endDate).trim(),
+    createdAt: timestamp,
+    updatedAt: item.updatedAt || timestamp
+  }
+}
+
+export const getCompanyLicenseRuntimeStatus = (license: CompanyLicense, referenceDate = new Date()): LicenseStatus => {
+  if(license.status === 'Askıya Alındı' || license.status === 'İptal Edildi') return license.status
+
+  const todayKey = referenceDate.toLocaleDateString('sv-SE')
+  const trialEndDate = String(license.trialEndDate || '').trim()
+  const licenseEndDate = String(license.endDate || '').trim()
+  const activeEndDate = license.isTrial ? trialEndDate || licenseEndDate : licenseEndDate
+
+  if(activeEndDate && activeEndDate < todayKey) return 'Süresi Doldu'
+  if(license.isTrial || license.status === 'Deneme') return 'Deneme'
+  if(license.status === 'Süresi Doldu') return 'Süresi Doldu'
+  if(activeEndDate && getLicenseDaysUntil(activeEndDate, referenceDate) <= 30) return 'Süresi Yaklaşıyor'
+  return 'Aktif'
+}
+
+const normalizeCompanyLicenseWithRuntimeStatus = (item: Partial<CompanyLicense>) => {
+  const license = normalizeCompanyLicense(item)
+  return {
+    ...license,
+    status: getCompanyLicenseRuntimeStatus(license)
+  }
+}
+
+const defaultPackageSpecs: Array<{
+  id: string
+  name: string
+  description: string
+  monthlyPrice: number
+  yearlyPrice: number
+  maxUsers: number
+  maxBranches: number
+  maxTables: number
+  maxStorageGB: number
+  trialDays: number
+  enabledModules: LicenseModuleKey[]
+}> = [
+  {
+    id: 'license_package_ucretsiz',
+    name: 'Ücretsiz',
+    description: 'Tek şube ve temel adisyon kullanımı için ücretsiz başlangıç paketi.',
+    monthlyPrice: 0,
+    yearlyPrice: 0,
+    maxUsers: 1,
+    maxBranches: 1,
+    maxTables: 10,
+    maxStorageGB: 1,
+    trialDays: 0,
+    enabledModules: ['adisyon']
+  },
+  {
+    id: 'license_package_baslangic',
+    name: 'Başlangıç',
+    description: 'Küçük işletmeler için temel adisyon ve QR menü paketi.',
+    monthlyPrice: 999,
+    yearlyPrice: 9990,
+    maxUsers: 3,
+    maxBranches: 1,
+    maxTables: 25,
+    maxStorageGB: 5,
+    trialDays: 14,
+    enabledModules: ['adisyon', 'qr-menu']
+  },
+  {
+    id: 'license_package_pro',
+    name: 'Pro',
+    description: 'Stok, cari ve finans takibi bulunan büyüyen işletme paketi.',
+    monthlyPrice: 2499,
+    yearlyPrice: 24990,
+    maxUsers: 10,
+    maxBranches: 3,
+    maxTables: 100,
+    maxStorageGB: 25,
+    trialDays: 14,
+    enabledModules: ['adisyon', 'qr-menu', 'stock', 'recipe', 'current', 'credit', 'finance', 'personnel']
+  },
+  {
+    id: 'license_package_premium',
+    name: 'Premium',
+    description: 'Patron dashboard, çoklu şube ve analitik modüllerini içeren kapsamlı paket.',
+    monthlyPrice: 4999,
+    yearlyPrice: 49990,
+    maxUsers: 25,
+    maxBranches: 10,
+    maxTables: 0,
+    maxStorageGB: 100,
+    trialDays: 14,
+    enabledModules: ['adisyon', 'qr-menu', 'stock', 'recipe', 'current', 'credit', 'finance', 'personnel', 'boss-dashboard', 'multi-branch', 'analytics']
+  },
+  {
+    id: 'license_package_kurumsal',
+    name: 'Kurumsal',
+    description: 'Sınırsız kullanım ve tüm modüller için kurumsal lisans.',
+    monthlyPrice: 0,
+    yearlyPrice: 0,
+    maxUsers: 0,
+    maxBranches: 0,
+    maxTables: 0,
+    maxStorageGB: 0,
+    trialDays: 30,
+    enabledModules: LICENSE_MODULE_CATALOG.map(module => module.key)
+  }
+]
+
+const createDemoLicensePackages = (now = new Date().toISOString()): LicensePackage[] => {
+  return defaultPackageSpecs.map(spec => normalizeLicensePackage({
+    id: spec.id,
+    name: spec.name,
+    description: spec.description,
+    monthlyPrice: spec.monthlyPrice,
+    yearlyPrice: spec.yearlyPrice,
+    maxUsers: spec.maxUsers,
+    maxBranches: spec.maxBranches,
+    maxTables: spec.maxTables,
+    maxStorageGB: spec.maxStorageGB,
+    trialDays: spec.trialDays,
+    isActive: true,
+    createdAt: now,
+    updatedAt: now
+  }))
+}
+
+const createDemoLicenseModules = (packages = createDemoLicensePackages(), now = new Date().toISOString()): LicenseModule[] => {
+  const specMap = new Map(defaultPackageSpecs.map(spec => [spec.id, spec]))
+
+  return packages.flatMap(packageItem => {
+    const spec = specMap.get(packageItem.id)
+    const enabledModules = new Set(spec?.enabledModules || [])
+
+    return LICENSE_MODULE_CATALOG.map(module => normalizeLicenseModule({
+      id: `license_module_${packageItem.id}_${module.key}`,
+      packageId: packageItem.id,
+      moduleKey: module.key,
+      moduleName: module.name,
+      enabled: enabledModules.has(module.key),
+      createdAt: now,
+      updatedAt: now
+    }))
+  })
+}
+
+const createDemoCompanyLicenses = (now = new Date().toISOString()): CompanyLicense[] => {
+  const paidStartDate = new Date(now)
+  paidStartDate.setDate(paidStartDate.getDate() - 30)
+  const paidEndDate = new Date(paidStartDate)
+  paidEndDate.setFullYear(paidEndDate.getFullYear() + 1)
+  const trialStartDate = new Date(now)
+  trialStartDate.setDate(trialStartDate.getDate() - 3)
+  const trialEndDate = new Date(trialStartDate)
+  trialEndDate.setDate(trialEndDate.getDate() + 14)
+
+  return [
+    normalizeCompanyLicense({
+      id: 'company_license_abc_cafe_demo',
+      companyId: 'company_abc_cafe_demo',
+      packageId: 'license_package_baslangic',
+      licenseKey: 'RA-ABCCFE-BASL-DEMO01',
+      startDate: paidStartDate.toLocaleDateString('sv-SE'),
+      endDate: paidEndDate.toLocaleDateString('sv-SE'),
+      status: 'Aktif',
+      isTrial: false,
+      trialEndDate: '',
+      lastRenewalDate: paidStartDate.toLocaleDateString('sv-SE'),
+      nextRenewalDate: paidEndDate.toLocaleDateString('sv-SE'),
+      createdAt: now,
+      updatedAt: now
+    }),
+    normalizeCompanyLicense({
+      id: 'company_license_lezzet_restoran_demo',
+      companyId: 'company_lezzet_restoran_demo',
+      packageId: 'license_package_pro',
+      licenseKey: 'RA-LEZZET-PRO-DEMO02',
+      startDate: paidStartDate.toLocaleDateString('sv-SE'),
+      endDate: paidEndDate.toLocaleDateString('sv-SE'),
+      status: 'Aktif',
+      isTrial: false,
+      trialEndDate: '',
+      lastRenewalDate: paidStartDate.toLocaleDateString('sv-SE'),
+      nextRenewalDate: paidEndDate.toLocaleDateString('sv-SE'),
+      createdAt: now,
+      updatedAt: now
+    }),
+    normalizeCompanyLicense({
+      id: 'company_license_kahve_duragi_demo',
+      companyId: 'company_kahve_duragi_demo',
+      packageId: 'license_package_premium',
+      licenseKey: 'RA-KAHVE-PREM-DEMO03',
+      startDate: trialStartDate.toLocaleDateString('sv-SE'),
+      endDate: trialEndDate.toLocaleDateString('sv-SE'),
+      status: 'Deneme',
+      isTrial: true,
+      trialEndDate: trialEndDate.toLocaleDateString('sv-SE'),
+      lastRenewalDate: '',
+      nextRenewalDate: trialEndDate.toLocaleDateString('sv-SE'),
+      createdAt: now,
+      updatedAt: now
+    })
+  ]
+}
 
 const normalizeActionLog = (item: Partial<ActionLog>): ActionLog => {
   const timestamp = item.timestamp || new Date().toISOString()
@@ -3012,6 +3426,292 @@ export const loadCompanySetups = (): CompanySetup[] => {
 
 export const saveCompanySetups = (items: CompanySetup[]) => {
   localStorage.setItem(KEY_COMPANY_SETUPS, JSON.stringify(items.map(normalizeCompanySetup)))
+}
+
+export const loadLicensePackages = (): LicensePackage[] => {
+  const defaultPackages = createDemoLicensePackages()
+  const sourceItems = localStorage.getItem(KEY_LICENSE_PACKAGES) === null
+    ? defaultPackages
+    : readJson<Partial<LicensePackage>[]>(KEY_LICENSE_PACKAGES, []).map(normalizeLicensePackage)
+
+  const existingById = new Map(sourceItems.map(packageItem => [packageItem.id, packageItem]))
+  const defaultIds = new Set(defaultPackages.map(packageItem => packageItem.id))
+  const mergedDefaults = defaultPackages.map(packageItem => existingById.get(packageItem.id) || packageItem)
+  const customPackages = sourceItems.filter(packageItem => !defaultIds.has(packageItem.id))
+
+  return [...mergedDefaults, ...customPackages]
+}
+
+export const saveLicensePackages = (items: LicensePackage[]) => {
+  localStorage.setItem(KEY_LICENSE_PACKAGES, JSON.stringify(items.map(normalizeLicensePackage)))
+}
+
+export const loadLicenseModules = (): LicenseModule[] => {
+  const packages = loadLicensePackages()
+  const sourceModules = localStorage.getItem(KEY_LICENSE_MODULES) === null
+    ? createDemoLicenseModules(packages)
+    : readJson<Partial<LicenseModule>[]>(KEY_LICENSE_MODULES, []).map(normalizeLicenseModule)
+  const moduleMap = new Map(sourceModules.map(module => [`${module.packageId}:${module.moduleKey}`, module]))
+  const specMap = new Map(defaultPackageSpecs.map(spec => [spec.id, spec]))
+  const now = new Date().toISOString()
+
+  return packages.flatMap(packageItem => {
+    const specModules = new Set(specMap.get(packageItem.id)?.enabledModules || [])
+
+    return LICENSE_MODULE_CATALOG.map(module => {
+      const key = `${packageItem.id}:${module.key}`
+      const existingModule = moduleMap.get(key)
+      if(existingModule) return existingModule
+
+      return normalizeLicenseModule({
+        id: `license_module_${packageItem.id}_${module.key}`,
+        packageId: packageItem.id,
+        moduleKey: module.key,
+        moduleName: module.name,
+        enabled: specModules.has(module.key),
+        createdAt: now,
+        updatedAt: now
+      })
+    })
+  })
+}
+
+export const saveLicenseModules = (items: LicenseModule[]) => {
+  localStorage.setItem(KEY_LICENSE_MODULES, JSON.stringify(items.map(normalizeLicenseModule)))
+}
+
+export const loadCompanyLicenses = (): CompanyLicense[] => {
+  if(localStorage.getItem(KEY_COMPANY_LICENSES) === null) return createDemoCompanyLicenses().map(normalizeCompanyLicenseWithRuntimeStatus)
+  return readJson<Partial<CompanyLicense>[]>(KEY_COMPANY_LICENSES, []).map(normalizeCompanyLicenseWithRuntimeStatus)
+}
+
+export const saveCompanyLicenses = (items: CompanyLicense[]) => {
+  localStorage.setItem(KEY_COMPANY_LICENSES, JSON.stringify(items.map(normalizeCompanyLicenseWithRuntimeStatus)))
+}
+
+export const getActiveCompanyLicense = (companyId: string, referenceDate = new Date()) => {
+  return loadCompanyLicenses()
+    .filter(license => license.companyId === companyId)
+    .map(license => ({ ...license, status: getCompanyLicenseRuntimeStatus(license, referenceDate) }))
+    .filter(license => license.status === 'Aktif' || license.status === 'Deneme' || license.status === 'Süresi Yaklaşıyor')
+    .sort((first, second) => second.startDate.localeCompare(first.startDate))[0]
+}
+
+export const hasCompanyModuleAccess = (companyId: string, moduleKey: LicenseModuleKey, referenceDate = new Date()) => {
+  const activeLicense = getActiveCompanyLicense(companyId, referenceDate)
+  if(!activeLicense) return false
+
+  return loadLicenseModules().some(module => (
+    module.packageId === activeLicense.packageId
+    && module.moduleKey === moduleKey
+    && module.enabled
+  ))
+}
+
+export const getCompanyIdForUser = (user?: User | null) => {
+  if(!user) return ''
+  return user.companyId || loadCompanySetups().find(setup => setup.setupCompleted && setup.adminUserId === user.id)?.companyId || ''
+}
+
+export const canUserAccessLicensedModule = (user: User | null | undefined, moduleKey: LicenseModuleKey, referenceDate = new Date()) => {
+  const companyId = getCompanyIdForUser(user)
+  if(!companyId) return true
+  return hasCompanyModuleAccess(companyId, moduleKey, referenceDate)
+}
+
+export const LICENSE_ACCESS_DENIED_MESSAGE = 'Bu özellik mevcut lisans paketinizde bulunmamaktadır.'
+
+export type LicenseLimitResource = 'users' | 'branches' | 'tables'
+
+export type LicenseLimitCheck = {
+  allowed: boolean
+  companyId: string
+  packageName: string
+  limit: number
+  used: number
+  nextUsage: number
+  message: string
+}
+
+export type LicenseWarning = {
+  id: string
+  licenseId: string
+  companyId: string
+  companyName: string
+  packageName: string
+  threshold: '30 gün' | '7 gün' | '1 gün' | 'Süresi doldu'
+  daysRemaining: number
+  message: string
+}
+
+const getLicenseDeadline = (license: CompanyLicense) => {
+  return license.isTrial ? license.trialEndDate || license.endDate : license.endDate
+}
+
+export const getCompanyIdForBranch = (branchId: string) => {
+  const branch = loadBranches().find(item => item.id === branchId)
+  if(branch?.companyId) return branch.companyId
+
+  return loadCompanySetups().find(setup => setup.setupCompleted && setup.branchId === branchId)?.companyId || ''
+}
+
+const getCompanyBranchIds = (companyId: string) => {
+  const setupBranchIds = new Set(loadCompanySetups()
+    .filter(setup => setup.setupCompleted && setup.companyId === companyId && setup.branchId)
+    .map(setup => setup.branchId))
+
+  return new Set(loadBranches()
+    .filter(branch => branch.companyId === companyId || setupBranchIds.has(branch.id))
+    .map(branch => branch.id)
+    .concat(Array.from(setupBranchIds)))
+}
+
+const getCompanyUserIds = (companyId: string) => {
+  const setupUserIds = new Set(loadCompanySetups()
+    .filter(setup => setup.setupCompleted && setup.companyId === companyId && setup.adminUserId)
+    .map(setup => setup.adminUserId))
+
+  return new Set(loadUsers()
+    .filter(user => user.companyId === companyId || setupUserIds.has(user.id))
+    .map(user => user.id)
+    .concat(Array.from(setupUserIds)))
+}
+
+export const getCompanyLicenseUsage = (companyId: string) => {
+  const branchIds = getCompanyBranchIds(companyId)
+  const userIds = getCompanyUserIds(companyId)
+  const allTables = loadAllBranchScopedItems<TableState>(KEY_TABLES, normalizeTableState)
+
+  return {
+    users: loadUsers().filter(user => user.active !== false && (user.companyId === companyId || userIds.has(user.id))).length,
+    branches: loadBranches().filter(branch => branch.isActive && (branch.companyId === companyId || branchIds.has(branch.id))).length,
+    tables: allTables.filter(table => table.companyId === companyId || branchIds.has(table.branchId)).length
+  }
+}
+
+const getLimitValueForResource = (packageItem: LicensePackage, resource: LicenseLimitResource) => {
+  if(resource === 'users') return packageItem.maxUsers
+  if(resource === 'branches') return packageItem.maxBranches
+  return packageItem.maxTables
+}
+
+const getUsageValueForResource = (usage: ReturnType<typeof getCompanyLicenseUsage>, resource: LicenseLimitResource) => {
+  if(resource === 'users') return usage.users
+  if(resource === 'branches') return usage.branches
+  return usage.tables
+}
+
+const getLicenseLimitLabel = (resource: LicenseLimitResource) => {
+  if(resource === 'users') return 'kullanıcı'
+  if(resource === 'branches') return 'şube'
+  return 'masa'
+}
+
+export const checkCompanyLicenseLimit = (
+  companyId: string,
+  resource: LicenseLimitResource,
+  nextUsage?: number,
+  referenceDate = new Date()
+): LicenseLimitCheck => {
+  if(!companyId){
+    return { allowed: true, companyId: '', packageName: '', limit: 0, used: 0, nextUsage: 0, message: '' }
+  }
+
+  const activeLicense = getActiveCompanyLicense(companyId, referenceDate)
+  const packageItem = activeLicense ? loadLicensePackages().find(item => item.id === activeLicense.packageId) : undefined
+
+  if(!activeLicense || !packageItem){
+    return {
+      allowed: false,
+      companyId,
+      packageName: '',
+      limit: 0,
+      used: 0,
+      nextUsage: nextUsage || 1,
+      message: 'Aktif lisans bulunamadığı için işlem yapılamaz.'
+    }
+  }
+
+  const usage = getCompanyLicenseUsage(companyId)
+  const used = getUsageValueForResource(usage, resource)
+  const limit = getLimitValueForResource(packageItem, resource)
+  const normalizedNextUsage = nextUsage === undefined ? used + 1 : nextUsage
+
+  if(limit <= 0 || normalizedNextUsage <= limit){
+    return {
+      allowed: true,
+      companyId,
+      packageName: packageItem.name,
+      limit,
+      used,
+      nextUsage: normalizedNextUsage,
+      message: ''
+    }
+  }
+
+  const label = getLicenseLimitLabel(resource)
+  return {
+    allowed: false,
+    companyId,
+    packageName: packageItem.name,
+    limit,
+    used,
+    nextUsage: normalizedNextUsage,
+    message: `${packageItem.name} paketinde ${label} limiti ${limit}. Mevcut kullanım ${used}, işlem sonrası ${normalizedNextUsage} olur.`
+  }
+}
+
+export const checkUserLicenseLimit = (
+  user: User | null | undefined,
+  resource: LicenseLimitResource,
+  nextUsage?: number,
+  referenceDate = new Date()
+) => {
+  const companyId = getCompanyIdForUser(user)
+  return checkCompanyLicenseLimit(companyId, resource, nextUsage, referenceDate)
+}
+
+export const getCompanyLicenseWarnings = (referenceDate = new Date()): LicenseWarning[] => {
+  const companies = new Map(loadCompanies().map(company => [company.id, company]))
+  const packages = new Map(loadLicensePackages().map(packageItem => [packageItem.id, packageItem]))
+
+  return loadCompanyLicenses().flatMap(license => {
+    if(license.status === 'Askıya Alındı' || license.status === 'İptal Edildi') return []
+
+    const deadline = getLicenseDeadline(license)
+    if(!deadline) return []
+
+    const runtimeStatus = getCompanyLicenseRuntimeStatus(license, referenceDate)
+    const daysRemaining = getLicenseDaysUntil(deadline, referenceDate)
+    const threshold = daysRemaining < 0 || runtimeStatus === 'Süresi Doldu'
+      ? 'Süresi doldu'
+      : daysRemaining <= 1
+        ? '1 gün'
+        : daysRemaining <= 7
+          ? '7 gün'
+          : daysRemaining <= 30
+            ? '30 gün'
+            : ''
+
+    if(!threshold) return []
+
+    const company = companies.get(license.companyId)
+    const packageItem = packages.get(license.packageId)
+    const message = threshold === 'Süresi doldu'
+      ? `${company?.companyName || 'Firma'} lisansının süresi doldu.`
+      : `${company?.companyName || 'Firma'} lisansı ${threshold} eşiğinde yenileme bekliyor.`
+
+    return [{
+      id: `license_warning_${license.id}_${threshold.replace(/\s+/g, '_')}`,
+      licenseId: license.id,
+      companyId: license.companyId,
+      companyName: company?.companyName || '-',
+      packageName: packageItem?.name || '-',
+      threshold,
+      daysRemaining,
+      message
+    }]
+  })
 }
 
 export const loadEmployees = (): Employee[] => {
@@ -3752,6 +4452,7 @@ export const completeCompanySetupFromRegistration = ({
 
   const branch: Branch = normalizeBranch({
     id: branchId,
+    companyId: company.id,
     code: createNextBranchCode(branches),
     name: 'Merkez Şube',
     phone: registration.phone,
@@ -3766,6 +4467,7 @@ export const completeCompanySetupFromRegistration = ({
 
   const adminUser: User = {
     id: adminUserId,
+    companyId: company.id,
     fullName: adminName,
     username: adminUsername,
     password: temporaryPassword,
@@ -5405,6 +6107,9 @@ export const createDemoData = () => {
   const businessRegistrations = createDemoBusinessRegistrations(now)
   const companies = createDemoCompanies(now)
   const companySetups = createDemoCompanySetups(now)
+  const licensePackages = createDemoLicensePackages(now)
+  const licenseModules = createDemoLicenseModules(licensePackages, now)
+  const companyLicenses = createDemoCompanyLicenses(now)
 
   const tables: TableState[] = Array.from({ length: 6 }).map((_, index) => ({
     id: String(index + 1),
@@ -5435,6 +6140,9 @@ export const createDemoData = () => {
   saveBusinessRegistrations(businessRegistrations)
   saveCompanies(companies)
   saveCompanySetups(companySetups)
+  saveLicensePackages(licensePackages)
+  saveLicenseModules(licenseModules)
+  saveCompanyLicenses(companyLicenses)
   saveTables(tables)
   saveKitchenOrders([])
   saveQRRequests([])
@@ -5463,6 +6171,9 @@ export const createDemoData = () => {
     cashTransfers: loadCashTransfers(),
     businessRegistrations: loadBusinessRegistrations(),
     companies: loadCompanies(),
-    companySetups: loadCompanySetups()
+    companySetups: loadCompanySetups(),
+    licensePackages: loadLicensePackages(),
+    licenseModules: loadLicenseModules(),
+    companyLicenses: loadCompanyLicenses()
   }
 }

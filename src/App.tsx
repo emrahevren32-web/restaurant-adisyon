@@ -20,6 +20,7 @@ import AnalyticsDashboard from './pages/AnalyticsDashboard'
 import SystemHealthTelemetry from './pages/SystemHealthTelemetry'
 import BusinessRegistrationSystem from './pages/BusinessRegistrationSystem'
 import CompanySetupWizard from './pages/CompanySetupWizard'
+import PackageLicenseManagement from './pages/PackageLicenseManagement'
 import StaffTracking from './pages/StaffTracking'
 import EmployeeCards from './pages/EmployeeCards'
 import ShiftManagement from './pages/ShiftManagement'
@@ -67,9 +68,11 @@ import {
   getVisibleBranchesForUser,
   getActiveBranchId,
   setActiveBranchId,
-  migrateBranchScopedData
+  migrateBranchScopedData,
+  canUserAccessLicensedModule,
+  LICENSE_ACCESS_DENIED_MESSAGE
 } from './storage'
-import { Branch, User } from './types'
+import { Branch, LicenseModuleKey, User } from './types'
 
 type Route =
   | 'tables'
@@ -106,6 +109,7 @@ type Route =
   | 'system-health-telemetry'
   | 'business-registration-system'
   | 'company-setup-wizard'
+  | 'package-license-management'
   | 'employee-cards'
   | 'shift-management'
   | 'attendance-tracking'
@@ -171,6 +175,7 @@ type NavKey =
   | 'system-health-telemetry'
   | 'business-registration-system'
   | 'company-setup-wizard'
+  | 'package-license-management'
   | 'employee-cards'
   | 'shift-management'
   | 'attendance-tracking'
@@ -206,6 +211,60 @@ type NavGroupKey =
 
 type NavItem = ShellNavItem<Route, NavKey>
 type NavGroup = ShellNavGroup<Route, NavKey, NavGroupKey>
+
+const licensedNavModules: Partial<Record<NavKey, LicenseModuleKey>> = {
+  'business-summary': 'boss-dashboard',
+  'sales-revenue-analysis': 'analytics',
+  'product-performance-analysis': 'analytics',
+  'stock-risk-center': 'analytics',
+  'current-finance-center': 'current',
+  'personnel-performance-center': 'personnel',
+  'manager-alert-center': 'boss-dashboard',
+  dashboard: 'boss-dashboard',
+  adisyon: 'adisyon',
+  'tables-management': 'adisyon',
+  kitchen: 'adisyon',
+  'qr-orders': 'qr-menu',
+  'waiter-calls': 'qr-menu',
+  'stock-cards': 'stock',
+  'stock-movements': 'stock',
+  recipes: 'recipe',
+  'critical-stock': 'stock',
+  'expiry-lots': 'stock',
+  waste: 'stock',
+  'supplier-debts': 'finance',
+  'supplier-payments': 'finance',
+  'cash-transactions': 'finance',
+  'income-expense': 'finance',
+  'cash-closing': 'finance',
+  'financial-reports': 'finance',
+  'cash-transfers': 'finance',
+  reports: 'analytics',
+  'current-report': 'current',
+  'risky-current': 'current',
+  'module-usage-analysis': 'analytics',
+  'business-usage-stats': 'analytics',
+  'usage-performance-analysis': 'analytics',
+  'analytics-dashboard': 'analytics',
+  'employee-cards': 'personnel',
+  'shift-management': 'personnel',
+  'attendance-tracking': 'personnel',
+  'employee-performance': 'personnel',
+  'employee-bonus': 'personnel',
+  'employee-audit': 'personnel',
+  'employee-reports': 'personnel',
+  staff: 'personnel',
+  branches: 'multi-branch',
+  'branch-permissions': 'multi-branch',
+  'branch-reporting': 'multi-branch',
+  'branch-stock-transfers': 'multi-branch',
+  'head-office-management': 'multi-branch',
+  'current-accounts': 'current',
+  'credit-transactions': 'credit',
+  'collection-transactions': 'credit',
+  'current-account-movements': 'current',
+  'qr-codes': 'qr-menu'
+}
 
 const navGroups: NavGroup[] = [
   {
@@ -295,7 +354,8 @@ const navGroups: NavGroup[] = [
     icon: 'SP',
     items: [
       { key: 'business-registration-system', label: 'İşletme Kayıt Sistemi', route: 'business-registration-system', icon: 'İK', adminOnly: true },
-      { key: 'company-setup-wizard', label: 'Firma Oluşturma Sihirbazı', route: 'company-setup-wizard', icon: 'FS', adminOnly: true }
+      { key: 'company-setup-wizard', label: 'Firma Oluşturma Sihirbazı', route: 'company-setup-wizard', icon: 'FS', adminOnly: true },
+      { key: 'package-license-management', label: 'Paket ve Lisans Yönetimi', route: 'package-license-management', icon: 'PL', adminOnly: true }
     ]
   },
   {
@@ -342,7 +402,7 @@ const navGroups: NavGroup[] = [
 ]
 
 const getDefaultNavigation = (user: User | null) => {
-  if(user?.role === 'Admin'){
+  if(user?.role === 'Admin' && canUserAccessLicensedModule(user, 'boss-dashboard')){
     return {
       route: 'business-summary' as Route,
       activeNavKey: 'business-summary' as NavKey,
@@ -368,6 +428,7 @@ export default function App(){
   const [settings, setSettings] = React.useState(() => loadSettings())
   const [branches, setBranches] = React.useState<Branch[]>(() => getVisibleBranchesForUser(initialUser))
   const [activeBranchId, setActiveBranchState] = React.useState(() => getActiveBranchId())
+  const [licenseAccessError, setLicenseAccessError] = React.useState('')
 
   React.useEffect(()=>{
     loadProducts()
@@ -389,6 +450,7 @@ export default function App(){
     setRoute(defaultNavigation.route)
     setActiveNavKey(defaultNavigation.activeNavKey)
     setOpenGroupKey(defaultNavigation.openGroupKey)
+    setLicenseAccessError('')
   }
   const logout = () => {
     const defaultNavigation = getDefaultNavigation(null)
@@ -397,6 +459,7 @@ export default function App(){
     setRoute(defaultNavigation.route)
     setActiveNavKey(defaultNavigation.activeNavKey)
     setOpenGroupKey(defaultNavigation.openGroupKey)
+    setLicenseAccessError('')
   }
   const refreshSettings = () => setSettings(loadSettings())
   const refreshBranches = (nextBranches?: Branch[]) => {
@@ -413,6 +476,13 @@ export default function App(){
     .find(item => item.key === activeNavKey)?.label || 'Genel İşletme Özeti'
 
   const openNavItem = (item: NavItem) => {
+    const requiredModule = licensedNavModules[item.key]
+    if(requiredModule && !canUserAccessLicensedModule(currentUser, requiredModule)){
+      setLicenseAccessError(LICENSE_ACCESS_DENIED_MESSAGE)
+      return
+    }
+
+    setLicenseAccessError('')
     setRoute(item.route)
     setActiveNavKey(item.key)
     const group = navGroups.find(navGroup => navGroup.items.some(groupItem => groupItem.key === item.key))
@@ -456,6 +526,7 @@ export default function App(){
       onLogout={logout}
     >
       <React.Fragment key={activeBranchId}>
+      {licenseAccessError && <div className="form-error license-access-error">{licenseAccessError}</div>}
       {route === 'tables' && (
         <TableManagement
           currentUser={currentUser}
@@ -505,6 +576,7 @@ export default function App(){
       {route === 'system-health-telemetry' && currentUser.role === 'Admin' && <SystemHealthTelemetry />}
       {route === 'business-registration-system' && currentUser.role === 'Admin' && <BusinessRegistrationSystem currentUser={currentUser} />}
       {route === 'company-setup-wizard' && currentUser.role === 'Admin' && <CompanySetupWizard currentUser={currentUser} onBranchesChange={refreshBranches} />}
+      {route === 'package-license-management' && currentUser.role === 'Admin' && <PackageLicenseManagement currentUser={currentUser} />}
       {route === 'system-usage-logs' && currentUser.role === 'Admin' && <SystemUsageLogs />}
       {route === 'user-activity-tracking' && currentUser.role === 'Admin' && <UserActivityTracking />}
       {route === 'module-usage-analysis' && currentUser.role === 'Admin' && <ModuleUsageAnalysis />}

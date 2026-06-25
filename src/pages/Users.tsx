@@ -1,31 +1,44 @@
 import React from 'react'
 import { User, Role } from '../types'
-import { addActionLog, loadUsers, saveUsers } from '../storage'
+import { addActionLog, checkUserLicenseLimit, loadUsers, saveUsers } from '../storage'
 
 type Props = { currentUser: User }
 
 export default function Users({ currentUser }: Props){
   const [users, setUsers] = React.useState<User[]>(() => loadUsers())
   const [editing, setEditing] = React.useState<User | null>(null)
+  const [formError, setFormError] = React.useState('')
 
   React.useEffect(()=> saveUsers(users), [users])
 
-  const startAdd = () => setEditing({ id: Date.now().toString(), fullName:'', username:'', password:'', role:'Garson', active:true })
+  const startAdd = () => {
+    setFormError('')
+    setEditing({ id: Date.now().toString(), fullName:'', username:'', password:'', role:'Garson', active:true })
+  }
   const save = (u: User) => {
     const existingUser = users.find(x=>x.id===u.id)
     if(existingUser){
       setUsers(prev => prev.map(x=> x.id===u.id ? u : x))
+      setFormError('')
       addActionLog({
         operationType: 'Kullanıcı güncellendi',
         user: currentUser,
         description: `${existingUser.fullName || existingUser.username} kullanıcısı güncellendi.`
       })
     } else {
-      setUsers(prev => [u, ...prev])
+      const limitCheck = checkUserLicenseLimit(currentUser, 'users')
+      if(!limitCheck.allowed){
+        setFormError(limitCheck.message)
+        return
+      }
+
+      const nextUser = limitCheck.companyId ? { ...u, companyId: limitCheck.companyId } : u
+      setUsers(prev => [nextUser, ...prev])
+      setFormError('')
       addActionLog({
         operationType: 'Kullanıcı oluşturuldu',
         user: currentUser,
-        description: `${u.fullName || u.username} kullanıcısı oluşturuldu.`
+        description: `${nextUser.fullName || nextUser.username} kullanıcısı oluşturuldu.`
       })
     }
     setEditing(null)
@@ -57,6 +70,8 @@ export default function Users({ currentUser }: Props){
         </div>
         <button className="btn primary" onClick={startAdd}>Yeni Kullanıcı Ekle</button>
       </div>
+
+      {formError && <div className="form-error">{formError}</div>}
 
       <div className="users-layout">
         <section className="card users-main">

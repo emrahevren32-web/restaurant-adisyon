@@ -2,7 +2,9 @@ import React from 'react'
 import { ClosedBill, Discount, KitchenOrder, Order, PaymentPart, Product, ProductCategory, TableState, User } from '../types'
 import {
   addActionLog,
+  checkUserLicenseLimit,
   getActiveBranchId,
+  getCompanyIdForBranch,
   loadCategories,
   loadClosed,
   loadKitchenOrders,
@@ -177,9 +179,11 @@ export default function TableManagement({ currentUser, focus = 'billing' }: Prop
     const storedTables = loadTables()
     if(storedTables.length===0){
       const activeBranchId = getActiveBranchId()
+      const companyId = getCompanyIdForBranch(activeBranchId)
       const generated = Array.from({length:6}).map((_,i)=>({
         id:String(i+1),
         branchId: activeBranchId,
+        companyId: companyId || undefined,
         name:`Masa ${i+1}`,
         open:false,
         orders:[] as Order[]
@@ -243,7 +247,21 @@ export default function TableManagement({ currentUser, focus = 'billing' }: Prop
       return
     }
 
-    const table: TableState = { id: createId('tbl'), branchId: getActiveBranchId(), name, open:false, orders:[] }
+    const limitCheck = checkUserLicenseLimit(currentUser, 'tables')
+    if(!limitCheck.allowed){
+      setTableError(limitCheck.message)
+      return
+    }
+
+    const activeBranchId = getActiveBranchId()
+    const table: TableState = {
+      id: createId('tbl'),
+      branchId: activeBranchId,
+      companyId: getCompanyIdForBranch(activeBranchId) || limitCheck.companyId || undefined,
+      name,
+      open:false,
+      orders:[]
+    }
     setTables(prev => [...prev, table])
     setSelectedTableId(table.id)
     setNewTableName('')

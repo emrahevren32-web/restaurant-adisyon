@@ -442,6 +442,7 @@ export type Discount = {
 export type TableState = {
   id: string
   branchId: string
+  companyId?: string
   name: string
   open: boolean
   orders: Order[]
@@ -592,6 +593,7 @@ export type Role = 'Admin' | 'Garson'
 
 export type User = {
   id: string
+  companyId?: string
   fullName: string
   username: string
   password: string
@@ -655,8 +657,75 @@ export type CompanySetup = {
   updatedAt: string
 }
 
+export type LicenseModuleKey =
+  | 'adisyon'
+  | 'qr-menu'
+  | 'stock'
+  | 'recipe'
+  | 'current'
+  | 'credit'
+  | 'finance'
+  | 'personnel'
+  | 'boss-dashboard'
+  | 'multi-branch'
+  | 'analytics'
+  | 'ai-consultant'
+
+export type LicenseStatus =
+  | 'Deneme'
+  | 'Aktif'
+  | 'Süresi Yaklaşıyor'
+  | 'Süresi Doldu'
+  | 'Askıya Alındı'
+  | 'İptal Edildi'
+
+export type LicensePackage = {
+  id: string
+  name: string
+  description: string
+  monthlyPrice: number
+  yearlyPrice: number
+  maxUsers: number
+  maxBranches: number
+  maxTables: number
+  maxStorageGB: number
+  trialDays: number
+  isActive: boolean
+  createdAt: string
+  updatedAt: string
+}
+
+export type PackageModule = {
+  id: string
+  packageId: string
+  moduleKey: LicenseModuleKey
+  moduleName: string
+  enabled: boolean
+  createdAt: string
+  updatedAt: string
+}
+
+export type LicenseModule = PackageModule
+
+export type CompanyLicense = {
+  id: string
+  companyId: string
+  packageId: string
+  licenseKey: string
+  status: LicenseStatus
+  startDate: string
+  endDate: string
+  isTrial: boolean
+  trialEndDate: string
+  lastRenewalDate: string
+  nextRenewalDate: string
+  createdAt: string
+  updatedAt: string
+}
+
 export type Branch = {
   id: string
+  companyId?: string
   code: string
   name: string
   phone: string
@@ -1097,6 +1166,13 @@ export type ActionLogType =
   | 'Firma oluşturuldu'
   | 'Admin kullanıcı oluşturuldu'
   | 'Kurulum tamamlandı'
+  | 'Paket oluşturuldu'
+  | 'Paket güncellendi'
+  | 'Paket pasife alındı'
+  | 'Lisans atandı'
+  | 'Lisans yenilendi'
+  | 'Lisans askıya alındı'
+  | 'Lisans iptal edildi'
 
 export type ActionLog = {
   id: string
