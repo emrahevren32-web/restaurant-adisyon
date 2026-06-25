@@ -162,7 +162,11 @@ const operationTypes: ActionLogType[] = [
   'Lisans atandı',
   'Lisans yenilendi',
   'Lisans askıya alındı',
-  'Lisans iptal edildi'
+  'Lisans iptal edildi',
+  'Modül aktif edildi',
+  'Modül pasif edildi',
+  'Firma modülü güncellendi',
+  'Lisans erişim kontrolü başarısız'
 ]
 
 export default function ActionHistory(){

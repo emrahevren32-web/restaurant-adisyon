@@ -8,6 +8,9 @@ export type ShellNavItem<Route extends string, NavKey extends string> = {
   icon: string
   adminOnly?: boolean
   badge?: number
+  locked?: boolean
+  hidden?: boolean
+  disabledReason?: string
 }
 
 export type ShellNavGroup<
@@ -91,7 +94,7 @@ export default function AppShell<
 
           <div className="side-nav-groups">
             {navGroups.map(group => {
-              const visibleItems = group.items.filter(item => !item.adminOnly || currentUser.role === 'Admin')
+              const visibleItems = group.items.filter(item => !item.hidden && (!item.adminOnly || currentUser.role === 'Admin'))
               if(visibleItems.length === 0) return null
               const isOpen = openGroupKey === group.key
               const isActiveGroup = activeGroupKey === group.key
@@ -117,14 +120,17 @@ export default function AppShell<
                       <button
                         key={item.key}
                         type="button"
-                        className={`side-nav-item ${activeNavKey === item.key ? 'active' : ''} ${item.badge ? 'nav-alert-btn' : ''}`}
+                        className={`side-nav-item ${activeNavKey === item.key ? 'active' : ''} ${item.badge ? 'nav-alert-btn' : ''} ${item.locked ? 'locked' : ''}`}
                         aria-current={activeNavKey === item.key ? 'page' : undefined}
+                        aria-disabled={item.locked ? true : undefined}
+                        title={item.locked ? item.disabledReason : item.label}
                         onClick={() => onOpenNavItem(item)}
                       >
                         <span className="side-nav-item-main">
                           <span className="side-nav-icon" aria-hidden="true">{item.icon}</span>
                           <span className="side-nav-label">{item.label}</span>
                         </span>
+                        {item.locked && <span className="side-nav-lock" aria-hidden="true">K</span>}
                         {Boolean(item.badge) && <span className="nav-badge">{item.badge}</span>}
                       </button>
                     ))}

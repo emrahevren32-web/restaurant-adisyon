@@ -237,7 +237,9 @@ export const LICENSE_MODULE_CATALOG: Array<{ key: LicenseModuleKey; name: string
   { key: 'boss-dashboard', name: 'Patron Dashboard' },
   { key: 'multi-branch', name: 'Çoklu Şube' },
   { key: 'analytics', name: 'Analitik' },
-  { key: 'ai-consultant', name: 'AI Danışman' }
+  { key: 'ai-consultant', name: 'AI Danışman' },
+  { key: 'task-management', name: 'Görev Yönetimi' },
+  { key: 'calendar', name: 'Takvim' }
 ]
 const SYSTEM_USAGE_MODULE_NAMES: SystemUsageModuleName[] = ['Adisyon', 'Masa Yönetimi', 'Ürün Yönetimi', 'Stok Yönetimi', 'Cari Yönetimi', 'Finans Yönetimi', 'Personel Yönetimi', 'Patron Dashboard', 'Çoklu Şube Yönetimi', 'Sistem']
 const SYSTEM_USAGE_ACTION_TYPES: SystemUsageActionType[] = ['Görüntüleme', 'Oluşturma', 'Güncelleme', 'Silme', 'Giriş Yapma', 'Çıkış Yapma', 'Onaylama', 'İptal Etme']
@@ -3160,6 +3162,7 @@ const inferSystemUsageModuleName = (operationType: ActionLogType): SystemUsageMo
   if(actionTextHas(text, ['ürün', 'kategori'])) return 'Ürün Yönetimi'
   if(text.startsWith('masa ') && actionTextHas(text, ['oluşturuldu', 'silindi', 'adı değiştirildi', 'taşındı', 'birleştirildi'])) return 'Masa Yönetimi'
   if(actionTextHas(text, ['masa', 'sipariş', 'hesap', 'ikram', 'indirim', 'qr', 'garson'])) return 'Adisyon'
+  if(actionTextHas(text, ['modül', 'lisans erişim'])) return 'Sistem'
   if(actionTextHas(text, ['kullanıcı', 'giriş', 'çıkış', 'sistem'])) return 'Sistem'
   return 'Sistem'
 }
@@ -3200,6 +3203,8 @@ const inferSystemUsageEntityType = (operationType: ActionLogType) => {
   if(actionTextHas(text, ['kategori'])) return 'Kategori'
   if(actionTextHas(text, ['masa'])) return 'Masa'
   if(actionTextHas(text, ['sipariş', 'qr'])) return 'Sipariş'
+  if(actionTextHas(text, ['modül'])) return 'Modül'
+  if(actionTextHas(text, ['lisans'])) return 'Lisans'
   if(actionTextHas(text, ['kullanıcı'])) return 'Kullanıcı'
   return 'Kayıt'
 }
@@ -3742,6 +3747,74 @@ export const saveUserSubscriptions = (items: UserSubscription[]) => {
   localStorage.setItem(KEY_USER_SUBSCRIPTIONS, JSON.stringify(items.map(normalizeUserSubscription)))
 }
 
+export type ModuleAccessMode = 'enabled' | 'readonly' | 'disabled'
+export type LicensedModuleActionKey = 'create' | 'edit' | 'delete' | 'import' | 'export'
+
+export type ModuleAccessResult = {
+  allowed: boolean
+  companyId: string
+  moduleKey: LicenseModuleKey
+  moduleName: string
+  mode: ModuleAccessMode
+  packageId: string
+  packageName: string
+  licenseId: string
+  licenseStatus: LicenseStatus | ''
+  daysRemaining: number
+  message: string
+  actions: Record<LicensedModuleActionKey, boolean>
+  readonlyInfrastructureReady: boolean
+}
+
+const createModuleActionPermissions = (mode: ModuleAccessMode): Record<LicensedModuleActionKey, boolean> => {
+  const canWrite = mode === 'enabled'
+  return {
+    create: canWrite,
+    edit: canWrite,
+    delete: canWrite,
+    import: canWrite,
+    export: canWrite
+  }
+}
+
+const createModuleAccessResult = ({
+  allowed,
+  companyId,
+  moduleKey,
+  mode,
+  packageId = '',
+  packageName = '',
+  licenseId = '',
+  licenseStatus = '',
+  daysRemaining = 0,
+  message = ''
+}: {
+  allowed: boolean
+  companyId: string
+  moduleKey: LicenseModuleKey
+  mode: ModuleAccessMode
+  packageId?: string
+  packageName?: string
+  licenseId?: string
+  licenseStatus?: LicenseStatus | ''
+  daysRemaining?: number
+  message?: string
+}): ModuleAccessResult => ({
+  allowed,
+  companyId,
+  moduleKey,
+  moduleName: getLicenseModuleName(moduleKey),
+  mode,
+  packageId,
+  packageName,
+  licenseId,
+  licenseStatus,
+  daysRemaining,
+  message,
+  actions: createModuleActionPermissions(mode),
+  readonlyInfrastructureReady: true
+})
+
 export const getActiveCompanyLicense = (companyId: string, referenceDate = new Date()) => {
   return loadCompanyLicenses()
     .filter(license => license.companyId === companyId)
@@ -3750,15 +3823,87 @@ export const getActiveCompanyLicense = (companyId: string, referenceDate = new D
     .sort((first, second) => second.startDate.localeCompare(first.startDate))[0]
 }
 
-export const hasCompanyModuleAccess = (companyId: string, moduleKey: LicenseModuleKey, referenceDate = new Date()) => {
-  const activeLicense = getActiveCompanyLicense(companyId, referenceDate)
-  if(!activeLicense) return false
+export const canAccessModule = (companyId: string, moduleKey: LicenseModuleKey, referenceDate = new Date()): ModuleAccessResult => {
+  if(!companyId){
+    return createModuleAccessResult({
+      allowed: true,
+      companyId: '',
+      moduleKey,
+      mode: 'enabled',
+      packageName: 'Sistem yöneticisi'
+    })
+  }
 
-  return loadLicenseModules().some(module => (
+  const activeLicense = getActiveCompanyLicense(companyId, referenceDate)
+  if(!activeLicense){
+    return createModuleAccessResult({
+      allowed: false,
+      companyId,
+      moduleKey,
+      mode: 'disabled',
+      message: 'Aktif lisans bulunamadığı için modül erişimi engellendi.'
+    })
+  }
+
+  const packageItem = loadLicensePackages().find(item => item.id === activeLicense.packageId)
+  const deadline = getLicenseDeadline(activeLicense)
+  const daysRemaining = deadline ? getLicenseDaysUntil(deadline, referenceDate) : 0
+
+  if(!packageItem || packageItem.isActive === false){
+    return createModuleAccessResult({
+      allowed: false,
+      companyId,
+      moduleKey,
+      mode: 'disabled',
+      packageId: activeLicense.packageId,
+      packageName: packageItem?.name || '',
+      licenseId: activeLicense.id,
+      licenseStatus: activeLicense.status,
+      daysRemaining,
+      message: LICENSE_ACCESS_DENIED_MESSAGE
+    })
+  }
+
+  const packageModule = loadLicenseModules().find(module => (
     module.packageId === activeLicense.packageId
     && module.moduleKey === moduleKey
-    && module.enabled
   ))
+
+  if(!packageModule?.enabled){
+    return createModuleAccessResult({
+      allowed: false,
+      companyId,
+      moduleKey,
+      mode: 'disabled',
+      packageId: activeLicense.packageId,
+      packageName: packageItem.name,
+      licenseId: activeLicense.id,
+      licenseStatus: activeLicense.status,
+      daysRemaining,
+      message: LICENSE_ACCESS_DENIED_MESSAGE
+    })
+  }
+
+  return createModuleAccessResult({
+    allowed: true,
+    companyId,
+    moduleKey,
+    mode: 'enabled',
+    packageId: activeLicense.packageId,
+    packageName: packageItem.name,
+    licenseId: activeLicense.id,
+    licenseStatus: activeLicense.status,
+    daysRemaining,
+    message: ''
+  })
+}
+
+export const getModuleActionPermissions = (companyId: string, moduleKey: LicenseModuleKey, referenceDate = new Date()) => {
+  return canAccessModule(companyId, moduleKey, referenceDate).actions
+}
+
+export const hasCompanyModuleAccess = (companyId: string, moduleKey: LicenseModuleKey, referenceDate = new Date()) => {
+  return canAccessModule(companyId, moduleKey, referenceDate).allowed
 }
 
 export const getCompanyIdForUser = (user?: User | null) => {
@@ -3768,11 +3913,10 @@ export const getCompanyIdForUser = (user?: User | null) => {
 
 export const canUserAccessLicensedModule = (user: User | null | undefined, moduleKey: LicenseModuleKey, referenceDate = new Date()) => {
   const companyId = getCompanyIdForUser(user)
-  if(!companyId) return true
-  return hasCompanyModuleAccess(companyId, moduleKey, referenceDate)
+  return canAccessModule(companyId, moduleKey, referenceDate).allowed
 }
 
-export const LICENSE_ACCESS_DENIED_MESSAGE = 'Bu özellik mevcut lisans paketinizde bulunmamaktadır.'
+export const LICENSE_ACCESS_DENIED_MESSAGE = 'Bu modül mevcut lisans paketinizde bulunmamaktadır.'
 
 export type LicenseLimitResource = 'users' | 'branches' | 'tables'
 
@@ -4602,6 +4746,26 @@ export const addActionLog = ({
   }
 
   saveActionLogs([log, ...loadActionLogs()])
+}
+
+export const addLicenseAccessFailureLog = ({
+  user,
+  companyId,
+  moduleKey,
+  description
+}: {
+  user: User
+  companyId?: string
+  moduleKey: LicenseModuleKey
+  description?: string
+}) => {
+  addActionLog({
+    operationType: 'Lisans erişim kontrolü başarısız',
+    user,
+    tableId: companyId,
+    tableName: getLicenseModuleName(moduleKey),
+    description: description || `${getLicenseModuleName(moduleKey)} modülü için lisans erişim kontrolü başarısız.`
+  })
 }
 
 const slugifySetupValue = (value: string) => {

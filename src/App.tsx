@@ -22,6 +22,7 @@ import BusinessRegistrationSystem from './pages/BusinessRegistrationSystem'
 import CompanySetupWizard from './pages/CompanySetupWizard'
 import PackageLicenseManagement from './pages/PackageLicenseManagement'
 import UserSubscriptionManagement from './pages/UserSubscriptionManagement'
+import ModuleActivationSystem from './pages/ModuleActivationSystem'
 import StaffTracking from './pages/StaffTracking'
 import EmployeeCards from './pages/EmployeeCards'
 import ShiftManagement from './pages/ShiftManagement'
@@ -70,7 +71,10 @@ import {
   getActiveBranchId,
   setActiveBranchId,
   migrateBranchScopedData,
+  LICENSE_MODULE_CATALOG,
+  addLicenseAccessFailureLog,
   canUserAccessLicensedModule,
+  getCompanyIdForUser,
   LICENSE_ACCESS_DENIED_MESSAGE
 } from './storage'
 import { Branch, LicenseModuleKey, User } from './types'
@@ -112,6 +116,7 @@ type Route =
   | 'company-setup-wizard'
   | 'package-license-management'
   | 'user-subscription-management'
+  | 'module-activation-system'
   | 'employee-cards'
   | 'shift-management'
   | 'attendance-tracking'
@@ -179,6 +184,7 @@ type NavKey =
   | 'company-setup-wizard'
   | 'package-license-management'
   | 'user-subscription-management'
+  | 'module-activation-system'
   | 'employee-cards'
   | 'shift-management'
   | 'attendance-tracking'
@@ -226,6 +232,7 @@ const licensedNavModules: Partial<Record<NavKey, LicenseModuleKey>> = {
   dashboard: 'boss-dashboard',
   adisyon: 'adisyon',
   'tables-management': 'adisyon',
+  products: 'adisyon',
   kitchen: 'adisyon',
   'qr-orders': 'qr-menu',
   'waiter-calls': 'qr-menu',
@@ -245,6 +252,7 @@ const licensedNavModules: Partial<Record<NavKey, LicenseModuleKey>> = {
   reports: 'analytics',
   'current-report': 'current',
   'risky-current': 'current',
+  'bill-history': 'adisyon',
   'module-usage-analysis': 'analytics',
   'business-usage-stats': 'analytics',
   'usage-performance-analysis': 'analytics',
@@ -268,6 +276,62 @@ const licensedNavModules: Partial<Record<NavKey, LicenseModuleKey>> = {
   'current-account-movements': 'current',
   'qr-codes': 'qr-menu'
 }
+
+const licensedRouteModules: Partial<Record<Route, LicenseModuleKey>> = {
+  tables: 'adisyon',
+  products: 'adisyon',
+  kitchen: 'adisyon',
+  'qr-orders': 'qr-menu',
+  'qr-codes': 'qr-menu',
+  'stock-cards': 'stock',
+  'stock-movements': 'stock',
+  recipes: 'recipe',
+  'supplier-debts': 'finance',
+  'supplier-payments': 'finance',
+  'cash-transactions': 'finance',
+  'income-expense': 'finance',
+  'cash-closing': 'finance',
+  'financial-reports': 'finance',
+  'cash-transfers': 'finance',
+  'business-summary': 'boss-dashboard',
+  'sales-revenue-analysis': 'analytics',
+  'product-performance-analysis': 'analytics',
+  'stock-risk-center': 'analytics',
+  'current-finance-center': 'current',
+  'personnel-performance-center': 'personnel',
+  'manager-alert-center': 'boss-dashboard',
+  summary: 'boss-dashboard',
+  history: 'adisyon',
+  reports: 'analytics',
+  'current-report': 'current',
+  'risky-current': 'current',
+  'analytics-dashboard': 'analytics',
+  'system-health-telemetry': 'analytics',
+  'system-usage-logs': 'analytics',
+  'user-activity-tracking': 'analytics',
+  'module-usage-analysis': 'analytics',
+  'business-usage-stats': 'analytics',
+  'usage-performance-analysis': 'analytics',
+  'employee-cards': 'personnel',
+  'shift-management': 'personnel',
+  'attendance-tracking': 'personnel',
+  'employee-performance': 'personnel',
+  'employee-bonus': 'personnel',
+  'employee-audit': 'personnel',
+  'employee-reports': 'personnel',
+  staff: 'personnel',
+  branches: 'multi-branch',
+  'branch-permissions': 'multi-branch',
+  'branch-reporting': 'multi-branch',
+  'branch-stock-transfers': 'multi-branch',
+  'head-office-management': 'multi-branch',
+  'current-accounts': 'current',
+  'credit-transactions': 'credit',
+  'collection-transactions': 'credit',
+  'current-account-movements': 'current'
+}
+
+const MODULE_MENU_CONTROL_MODE: 'locked' | 'hidden' = 'locked'
 
 const navGroups: NavGroup[] = [
   {
@@ -359,7 +423,8 @@ const navGroups: NavGroup[] = [
       { key: 'business-registration-system', label: 'İşletme Kayıt Sistemi', route: 'business-registration-system', icon: 'İK', adminOnly: true },
       { key: 'company-setup-wizard', label: 'Firma Oluşturma Sihirbazı', route: 'company-setup-wizard', icon: 'FS', adminOnly: true },
       { key: 'package-license-management', label: 'Paket ve Lisans Yönetimi', route: 'package-license-management', icon: 'PL', adminOnly: true },
-      { key: 'user-subscription-management', label: 'Kullanıcı ve Abonelik Yönetimi', route: 'user-subscription-management', icon: 'KA', adminOnly: true }
+      { key: 'user-subscription-management', label: 'Kullanıcı ve Abonelik Yönetimi', route: 'user-subscription-management', icon: 'KA', adminOnly: true },
+      { key: 'module-activation-system', label: 'Modül Aktivasyon Sistemi', route: 'module-activation-system', icon: 'MA', adminOnly: true }
     ]
   },
   {
@@ -421,6 +486,21 @@ const getDefaultNavigation = (user: User | null) => {
   }
 }
 
+const LicenseAccessDenied = ({ moduleKey }: { moduleKey?: LicenseModuleKey }) => {
+  const moduleName = moduleKey
+    ? LICENSE_MODULE_CATALOG.find(module => module.key === moduleKey)?.name
+    : ''
+
+  return (
+    <section className="card license-denied-page">
+      <span className="status-pill danger-pill">403</span>
+      <h2>Erişim Engellendi</h2>
+      <p>{LICENSE_ACCESS_DENIED_MESSAGE}</p>
+      {moduleName && <small>Modül: {moduleName}</small>}
+    </section>
+  )
+}
+
 export default function App(){
   const qrRouteMatch = window.location.pathname.match(/^\/qr\/([^/?#]+)/)
   const initialUser = React.useMemo(() => getCurrentUser(), [])
@@ -475,14 +555,66 @@ export default function App(){
     setActiveBranchState(nextBranchId)
     setBranches(getVisibleBranchesForUser(currentUser))
   }
-  const activeNavLabel = navGroups
+  const navGroupsForCurrentUser = React.useMemo<NavGroup[]>(() => {
+    return navGroups.map(group => ({
+      ...group,
+      items: group.items.map(item => {
+        const requiredModule = licensedNavModules[item.key]
+        if(!requiredModule) return item
+
+        const allowed = canUserAccessLicensedModule(currentUser, requiredModule)
+        if(allowed) return { ...item, locked: false, hidden: false, disabledReason: '' }
+
+        return {
+          ...item,
+          locked: MODULE_MENU_CONTROL_MODE === 'locked',
+          hidden: MODULE_MENU_CONTROL_MODE === 'hidden',
+          disabledReason: LICENSE_ACCESS_DENIED_MESSAGE
+        }
+      })
+    }))
+  }, [currentUser])
+  const activeNavLabel = navGroupsForCurrentUser
     .flatMap(group => group.items)
     .find(item => item.key === activeNavKey)?.label || 'Genel İşletme Özeti'
+  const activeRouteModule = licensedNavModules[activeNavKey] || licensedRouteModules[route]
+  const activeRouteLicenseDenied = Boolean(
+    currentUser
+    && activeRouteModule
+    && !canUserAccessLicensedModule(currentUser, activeRouteModule)
+  )
+  const lastDeniedRouteLogKey = React.useRef('')
+
+  React.useEffect(() => {
+    if(!currentUser || !activeRouteModule || !activeRouteLicenseDenied){
+      lastDeniedRouteLogKey.current = ''
+      return
+    }
+
+    const logKey = `${currentUser.id}:${route}:${activeNavKey}:${activeRouteModule}`
+    if(lastDeniedRouteLogKey.current === logKey) return
+
+    lastDeniedRouteLogKey.current = logKey
+    addLicenseAccessFailureLog({
+      user: currentUser,
+      companyId: getCompanyIdForUser(currentUser),
+      moduleKey: activeRouteModule,
+      description: `${activeNavLabel} ekranı için lisans erişim kontrolü başarısız.`
+    })
+  }, [activeNavLabel, activeNavKey, activeRouteLicenseDenied, activeRouteModule, currentUser, route])
 
   const openNavItem = (item: NavItem) => {
     const requiredModule = licensedNavModules[item.key]
     if(requiredModule && !canUserAccessLicensedModule(currentUser, requiredModule)){
       setLicenseAccessError(LICENSE_ACCESS_DENIED_MESSAGE)
+      if(currentUser){
+        addLicenseAccessFailureLog({
+          user: currentUser,
+          companyId: getCompanyIdForUser(currentUser),
+          moduleKey: requiredModule,
+          description: `${item.label} menü erişimi lisans nedeniyle engellendi.`
+        })
+      }
       return
     }
 
@@ -518,7 +650,7 @@ export default function App(){
       restaurantName={settings.restaurantName}
       logoUrl={settings.logoUrl}
       currentUser={currentUser}
-      navGroups={navGroups}
+      navGroups={navGroupsForCurrentUser}
       activeNavKey={activeNavKey}
       activeNavLabel={activeNavLabel}
       branches={branches}
@@ -531,6 +663,10 @@ export default function App(){
     >
       <React.Fragment key={activeBranchId}>
       {licenseAccessError && <div className="form-error license-access-error">{licenseAccessError}</div>}
+      {activeRouteLicenseDenied ? (
+        <LicenseAccessDenied moduleKey={activeRouteModule} />
+      ) : (
+        <>
       {route === 'tables' && (
         <TableManagement
           currentUser={currentUser}
@@ -582,6 +718,7 @@ export default function App(){
       {route === 'company-setup-wizard' && currentUser.role === 'Admin' && <CompanySetupWizard currentUser={currentUser} onBranchesChange={refreshBranches} />}
       {route === 'package-license-management' && currentUser.role === 'Admin' && <PackageLicenseManagement currentUser={currentUser} />}
       {route === 'user-subscription-management' && currentUser.role === 'Admin' && <UserSubscriptionManagement currentUser={currentUser} />}
+      {route === 'module-activation-system' && currentUser.role === 'Admin' && <ModuleActivationSystem currentUser={currentUser} />}
       {route === 'system-usage-logs' && currentUser.role === 'Admin' && <SystemUsageLogs />}
       {route === 'user-activity-tracking' && currentUser.role === 'Admin' && <UserActivityTracking />}
       {route === 'module-usage-analysis' && currentUser.role === 'Admin' && <ModuleUsageAnalysis />}
@@ -609,6 +746,8 @@ export default function App(){
       {route === 'collection-transactions' && currentUser.role === 'Admin' && <CollectionTransactions currentUser={currentUser} />}
       {route === 'current-account-movements' && currentUser.role === 'Admin' && <CurrentAccountMovements />}
       {route === 'settings' && currentUser.role === 'Admin' && <Settings currentUser={currentUser} onSettingsChange={refreshSettings} />}
+        </>
+      )}
       </React.Fragment>
     </AppShell>
   )

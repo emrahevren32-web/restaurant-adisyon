@@ -670,6 +670,8 @@ export type LicenseModuleKey =
   | 'multi-branch'
   | 'analytics'
   | 'ai-consultant'
+  | 'task-management'
+  | 'calendar'
 
 export type LicenseStatus =
   | 'Deneme'
@@ -1216,6 +1218,10 @@ export type ActionLogType =
   | 'Lisans yenilendi'
   | 'Lisans askıya alındı'
   | 'Lisans iptal edildi'
+  | 'Modül aktif edildi'
+  | 'Modül pasif edildi'
+  | 'Firma modülü güncellendi'
+  | 'Lisans erişim kontrolü başarısız'
 
 export type ActionLog = {
   id: string
