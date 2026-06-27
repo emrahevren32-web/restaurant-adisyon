@@ -2,6 +2,7 @@ import { IdentityResult } from '../identity/identity.types'
 import { LoginRedirectResult, LoginRouteTarget } from '../routing/routing.types'
 import { SecurityDecision } from '../security/security.types'
 import { SessionSnapshot } from '../session/session.types'
+import { TenantContextModel } from '../tenant/tenant.types'
 
 export type AuthenticationPipelineRequest = {
   legacyUser?: unknown
@@ -12,12 +13,16 @@ export type AuthenticationPipelineRequest = {
 export type AuthenticationPipelineResult = {
   identity: IdentityResult
   session: SessionSnapshot
+  tenantContext: TenantContextModel
   loginRedirect: LoginRedirectResult
   securityDecision: SecurityDecision
 }
 
 export type AuthenticationPipelineLayer =
   | 'authentication'
+  | 'session'
+  | 'jwt'
+  | 'tenant-context'
   | 'identity-resolver'
   | 'login-router'
   | 'security-gateway'
@@ -25,6 +30,9 @@ export type AuthenticationPipelineLayer =
 
 export const AUTHENTICATION_PIPELINE_LAYERS: AuthenticationPipelineLayer[] = [
   'authentication',
+  'session',
+  'jwt',
+  'tenant-context',
   'identity-resolver',
   'login-router',
   'security-gateway',

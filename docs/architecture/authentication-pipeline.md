@@ -1,6 +1,6 @@
 # Faz 20.9.5 - Authentication Pipeline
 
-Bu dokuman Faz 20.9.1-20.9.5 arasinda hazirlanan Authentication, Identity, Login Router, Session Foundation ve Security Gateway katmanlarinin guncel mimarisini aciklar.
+Bu dokuman Faz 20.9.1-20.10.3 arasinda hazirlanan Authentication, Session, JWT Foundation, Tenant Context, Identity, Login Router ve Security Gateway katmanlarinin guncel mimarisini aciklar.
 
 Bu fazda yeni kullanici deneyimi, JWT, permission engine veya route guard eklenmemistir. Mevcut RestaurantOS login davranisi korunmustur.
 
@@ -9,10 +9,13 @@ Bu fazda yeni kullanici deneyimi, JWT, permission engine veya route guard eklenm
 Guncel Authentication Pipeline su sirayla calisir:
 
 1. Authentication
-2. Identity Resolver
-3. Login Router
-4. Security Gateway
-5. Application
+2. Session
+3. JWT Foundation
+4. Tenant Context
+5. Identity Resolver
+6. Login Router
+7. Security Gateway
+8. Application
 
 Merkezi giris noktasi:
 
@@ -26,7 +29,7 @@ Tip modeli:
 
 Mevcut authentication davranisi degismemistir.
 
-Canli login formu hala `src/pages/Login.tsx` icinden `storage.authenticateUser(username, password)` fonksiyonunu cagirir. Basarili kullanici `ra_auth` localStorage anahtarinda saklanir. Pipeline bu legacy kullanici nesnesini input olarak alir.
+Canli login formu `src/pages/Login.tsx` icinden `authentication.service.ts` servisini cagirir. Servis geriye donuk uyumluluk icin legacy `storage.authenticateUser(username, password)` davranisini kullanir. Basarili kullanici `ra_auth` localStorage anahtarinda saklanir. Pipeline bu legacy kullanici nesnesini input olarak alir.
 
 Bu katmanda JWT yoktur.
 
@@ -50,13 +53,33 @@ Tenant bilgisi once kullanici uzerindeki `tenantId` alanindan, yoksa `companyId`
 
 ## Session Foundation
 
-Dosya:
+Dosyalar:
 
 - `src/session/session.types.ts`
+- `src/session/session.service.ts`
 
-Pipeline, `IdentityResult` sonucundan in-memory `SessionSnapshot` uretir.
+Pipeline, `IdentityResult` sonucundan in-memory `SessionSnapshot` uretir. Authentication Service ayrica merkezi `SessionModel` olusturur.
 
-Mevcut durumda session source `local-storage` olarak kalir. JWT, refresh token, session expiry veya server session henuz aktif degildir.
+Mevcut durumda session source `local-storage` olarak kalir. Refresh token, timeout enforcement veya server session henuz aktif degildir.
+
+## JWT Foundation
+
+Dosyalar:
+
+- `src/auth/jwt.types.ts`
+- `src/auth/jwt.service.ts`
+
+JWT payload modeli hazirdir ancak imzali token uretimi aktif degildir. Authentication State authenticated kullanicilar icin `signed: false` olan bir `JwtDescriptor` tasir.
+
+## Tenant Context
+
+Dosyalar:
+
+- `src/tenant/tenant.types.ts`
+- `src/tenant/tenant.context.ts`
+- `src/tenant/tenant.service.ts`
+
+Pipeline sonucunda `tenantContext` uretilir. Bu context `tenantId`, `companyId`, `companyName`, `tenantName` ve `initialized` alanlarini tasir. Bu fazda tenant isolation veya veri filtreleme davranisi eklenmemistir.
 
 ## Login Router
 
@@ -115,7 +138,7 @@ App hala mevcut kullanici deneyimini korur:
 
 Authentication:
 
-- Legacy login sonucunu uretir.
+- Authentication service uzerinden legacy login sonucunu uretir.
 - `ra_auth` davranisini korur.
 
 Identity:
@@ -125,8 +148,18 @@ Identity:
 
 Session:
 
-- Identity sonucundan session snapshot uretir.
-- Henuz token veya expiry yonetmez.
+- Identity sonucundan session snapshot ve authentication state icin session model uretir.
+- Henuz timeout enforcement veya backend session yonetmez.
+
+JWT Foundation:
+
+- Identity sonucundan standart payload ve imzasiz descriptor hazirlar.
+- Henuz backend imzalama/dogrulama yapmaz.
+
+Tenant Context:
+
+- Identity sonucundan merkezi tenant/firma context'i uretir.
+- Henuz veri izolasyonu uygulamaz.
 
 Login Router:
 
@@ -154,8 +187,9 @@ Mimari su fazlar icin hazirdir:
 
 Bilinen sinirlar:
 
-- JWT henuz yoktur.
+- Imzali JWT henuz yoktur.
 - Backend session yoktur.
+- Tenant isolation bu pipeline tarafindan uygulanmaz.
 - Permission engine henuz yoktur.
 - Route guard henuz aktif degildir.
 - Security Gateway karar uretir fakat uygulama davranisini bloklamaz.

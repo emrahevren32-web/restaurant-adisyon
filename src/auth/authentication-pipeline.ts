@@ -4,6 +4,7 @@ import { resolveLoginRedirect } from '../routing/login-router'
 import { LOGIN_ROUTE_TARGETS, LoginRouteTarget } from '../routing/routing.types'
 import { evaluateSecurityGateway } from '../security/security-gateway'
 import { createSessionSnapshot } from '../session/session.service'
+import { resolveTenantContextFromIdentity } from '../tenant/tenant.service'
 import { AuthenticationPipelineRequest, AuthenticationPipelineResult } from './authentication-pipeline.types'
 
 const getBrowserPath = () => {
@@ -17,12 +18,14 @@ export const resolveAuthenticationPipeline = ({
 }: AuthenticationPipelineRequest = {}): AuthenticationPipelineResult => {
   const identity = resolveIdentity({ legacyUser, requestedPath })
   const session = createSessionSnapshot(identity)
+  const tenantContext = resolveTenantContextFromIdentity(identity)
   const loginRedirect = resolveLoginRedirect(identity)
   const securityTarget = normalizeSecurityTarget(requestedTarget || resolveSecurityTargetForPath(identity, requestedPath))
 
   return {
     identity,
     session,
+    tenantContext,
     loginRedirect,
     securityDecision: evaluateSecurityGateway({
       identity,

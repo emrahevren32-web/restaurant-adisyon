@@ -7,6 +7,7 @@ import {
 import { User } from '../types'
 import { createSessionModel } from '../session/session.service'
 import { SessionModel } from '../session/session.types'
+import { TenantContextModel } from '../tenant/tenant.types'
 import { createUnsignedJwtDescriptor } from './jwt.service'
 import { JwtDescriptor } from './jwt.types'
 import {
@@ -21,6 +22,7 @@ export type AuthenticationState = {
   context: AuthenticationContext
   session: SessionModel | null
   jwt: JwtDescriptor | null
+  tenantContext: TenantContextModel
   pipeline: AuthenticationPipelineResult
 }
 
@@ -73,6 +75,7 @@ export const createAuthenticationState = (
     context: createAuthenticationContext(pipeline, session),
     session,
     jwt,
+    tenantContext: pipeline.tenantContext,
     pipeline
   }
 }
@@ -86,6 +89,7 @@ export const evaluateAuthenticationStateTarget = (
   return {
     ...state,
     context: createAuthenticationContext(pipeline, state.session),
+    tenantContext: pipeline.tenantContext,
     pipeline
   }
 }
