@@ -5,11 +5,9 @@ import {
   setCurrentUser
 } from '../storage'
 import { User } from '../types'
-import { createSessionModel } from '../session/session.service'
 import { SessionModel } from '../session/session.types'
 import { TenantContextModel } from '../tenant/tenant.types'
 import { AuthorizationContext } from '../authorization/authorization.types'
-import { createUnsignedJwtDescriptor } from './jwt.service'
 import { JwtDescriptor } from './jwt.types'
 import {
   evaluateAuthenticationPipelineTarget,
@@ -69,14 +67,12 @@ export const createAuthenticationState = (
     requestedPath: options.requestedPath,
     requestedTarget: options.requestedTarget
   })
-  const session = createSessionModel(pipeline.identity)
-  const jwt = createUnsignedJwtDescriptor(pipeline.identity)
 
   return {
     currentUser: user,
-    context: createAuthenticationContext(pipeline, session),
-    session,
-    jwt,
+    context: createAuthenticationContext(pipeline, pipeline.sessionModel),
+    session: pipeline.sessionModel,
+    jwt: pipeline.jwt,
     tenantContext: pipeline.tenantContext,
     authorization: pipeline.authorization,
     pipeline

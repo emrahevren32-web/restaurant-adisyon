@@ -26,23 +26,18 @@ export const createSessionSnapshot = (
   now = new Date()
 ): SessionSnapshot => {
   const session = createSessionModel(identity, now)
-
-  return {
-    status: session ? 'authenticated' : 'anonymous',
-    source: 'local-storage',
-    identity,
-    issuedAt: session ? session.createdAt.toISOString() : null,
-    expiresAt: session ? session.expiresAt.toISOString() : null
-  }
+  return createSessionSnapshotFromModel(identity, session)
 }
 
 export const createSessionFoundation = (
   identity: IdentityResult,
   now = new Date()
 ): SessionFoundationResult => {
+  const session = createSessionModel(identity, now)
+
   return {
-    session: createSessionModel(identity, now),
-    snapshot: createSessionSnapshot(identity, now)
+    session,
+    snapshot: createSessionSnapshotFromModel(identity, session)
   }
 }
 
@@ -75,3 +70,14 @@ export const expireSession = (
 const createSessionId = (userId: string, date: Date) => {
   return `session_${userId}_${date.getTime()}`
 }
+
+const createSessionSnapshotFromModel = (
+  identity: IdentityResult,
+  session: SessionModel | null
+): SessionSnapshot => ({
+  status: session ? 'authenticated' : 'anonymous',
+  source: 'local-storage',
+  identity,
+  issuedAt: session ? session.createdAt.toISOString() : null,
+  expiresAt: session ? session.expiresAt.toISOString() : null
+})

@@ -26,6 +26,10 @@ export type SessionLifecycleStep =
   | 'login'
   | 'session-created'
   | 'authentication'
+  | 'jwt-prepared'
+  | 'tenant-loaded'
+  | 'role-resolution'
+  | 'permission-resolution'
   | 'identity'
   | 'login-router'
   | 'security-gateway'
@@ -37,6 +41,10 @@ export const SESSION_LIFECYCLE_STEPS: SessionLifecycleStep[] = [
   'login',
   'session-created',
   'authentication',
+  'jwt-prepared',
+  'tenant-loaded',
+  'role-resolution',
+  'permission-resolution',
   'identity',
   'login-router',
   'security-gateway',

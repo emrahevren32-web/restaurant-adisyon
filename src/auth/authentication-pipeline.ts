@@ -7,8 +7,9 @@ import {
 import { resolveLoginRedirect } from '../routing/login-router'
 import { LOGIN_ROUTE_TARGETS, LoginRouteTarget } from '../routing/routing.types'
 import { evaluateSecurityGateway } from '../security/security-gateway'
-import { createSessionSnapshot } from '../session/session.service'
+import { createSessionFoundation } from '../session/session.service'
 import { resolveTenantContextFromIdentity } from '../tenant/tenant.service'
+import { createUnsignedJwtDescriptor } from './jwt.service'
 import { AuthenticationPipelineRequest, AuthenticationPipelineResult } from './authentication-pipeline.types'
 
 const getBrowserPath = () => {
@@ -21,16 +22,19 @@ export const resolveAuthenticationPipeline = ({
   requestedTarget
 }: AuthenticationPipelineRequest = {}): AuthenticationPipelineResult => {
   const baseIdentity = resolveIdentity({ legacyUser, requestedPath })
-  const session = createSessionSnapshot(baseIdentity)
+  const sessionFoundation = createSessionFoundation(baseIdentity)
   const tenantContext = resolveTenantContextFromIdentity(baseIdentity)
   const authorization = resolveAuthorization(baseIdentity, tenantContext)
   const identity = applyAuthorizationToIdentity(baseIdentity, authorization)
+  const jwt = createUnsignedJwtDescriptor(identity)
   const loginRedirect = resolveLoginRedirect(identity)
   const securityTarget = normalizeSecurityTarget(requestedTarget || resolveSecurityTargetForPath(identity, requestedPath))
 
   return {
     identity,
-    session,
+    sessionModel: sessionFoundation.session,
+    session: sessionFoundation.snapshot,
+    jwt,
     tenantContext,
     authorization,
     loginRedirect,

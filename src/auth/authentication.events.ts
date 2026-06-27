@@ -15,12 +15,18 @@ export type AuthenticationEvent = {
 
 export const AUTHENTICATION_LIFECYCLE_STEPS = [
   'login',
-  'authenticated',
+  'authentication',
+  'session-created',
+  'jwt-prepared',
+  'tenant-loaded',
+  'role-resolution',
+  'permission-resolution',
   'identity-resolution',
   'login-router',
   'security-gateway',
   'application',
-  'logout'
+  'logout',
+  'session-cleared'
 ] as const
 
 export type AuthenticationLifecycleStep = typeof AUTHENTICATION_LIFECYCLE_STEPS[number]
