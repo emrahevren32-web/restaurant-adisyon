@@ -64,12 +64,13 @@ import CashClosingPage from './pages/CashClosing'
 import FinancialReports from './pages/FinancialReports'
 import CashTransfers from './pages/CashTransfers'
 import AppShell, { ShellNavGroup, ShellNavItem } from './components/AppShell'
-import { resolveIdentity } from './identity/identity-resolver'
-import { IdentityResult, USER_TYPES } from './identity/identity.types'
-import { resolveLoginRedirect } from './routing/login-router'
+import {
+  evaluateAuthenticationPipelineTarget,
+  resolveAuthenticationPipeline,
+  resolveSecurityTargetForIdentity
+} from './auth/authentication-pipeline'
+import { AuthenticationPipelineResult } from './auth/authentication-pipeline.types'
 import { LOGIN_ROUTE_TARGETS, LoginRedirectResult } from './routing/routing.types'
-import { evaluateSecurityGateway } from './security/security-gateway'
-import { createSessionSnapshot } from './session/session.types'
 import {
   loadProducts,
   ensureDefaultAdmin,
@@ -604,60 +605,27 @@ const PlatformAccessDenied = () => (
   </section>
 )
 
-const getRequestedSecurityTarget = (identity: IdentityResult, path = window.location.pathname) => {
-  if(/^\/(?:evren360|platform)(?:\/|$)/.test(path)) return LOGIN_ROUTE_TARGETS.EVREN360
-  if(/^\/(?:basvuru|apply)(?:\/|$)/.test(path)) return LOGIN_ROUTE_TARGETS.PUBLIC_APPLICATION
-  if(/^\/restaurant-admin(?:\/|$)/.test(path)) return LOGIN_ROUTE_TARGETS.RESTAURANTOS_ADMIN
-  if(/^\/restaurant-user(?:\/|$)/.test(path)) return LOGIN_ROUTE_TARGETS.RESTAURANTOS_USER
-  if(/^\/(?:restaurant|restaurantos)(?:\/|$)/.test(path)){
-    return identity.userType === USER_TYPES.COMPANY_USER
-      ? LOGIN_ROUTE_TARGETS.RESTAURANTOS_USER
-      : LOGIN_ROUTE_TARGETS.RESTAURANTOS_ADMIN
-  }
-
-  if(identity.userType === USER_TYPES.SUPER_ADMIN) return LOGIN_ROUTE_TARGETS.EVREN360
-  if(identity.userType === USER_TYPES.COMPANY_ADMIN) return LOGIN_ROUTE_TARGETS.RESTAURANTOS_ADMIN
-  if(identity.userType === USER_TYPES.COMPANY_USER) return LOGIN_ROUTE_TARGETS.RESTAURANTOS_USER
-  return LOGIN_ROUTE_TARGETS.PUBLIC_APPLICATION
-}
-
-const getRouteSecurityTarget = (route: Route, identity: IdentityResult) => {
+const getRouteSecurityTarget = (route: Route, pipeline: AuthenticationPipelineResult) => {
   if(evren360RouteViews[route]) return LOGIN_ROUTE_TARGETS.EVREN360
-  if(identity.userType === USER_TYPES.SUPER_ADMIN) return LOGIN_ROUTE_TARGETS.EVREN360
-  if(identity.userType === USER_TYPES.COMPANY_ADMIN) return LOGIN_ROUTE_TARGETS.RESTAURANTOS_ADMIN
-  if(identity.userType === USER_TYPES.COMPANY_USER) return LOGIN_ROUTE_TARGETS.RESTAURANTOS_USER
-  return LOGIN_ROUTE_TARGETS.PUBLIC_APPLICATION
+  return resolveSecurityTargetForIdentity(pipeline.identity)
 }
 
-const createIdentitySessionSnapshot = (user: User | null) => {
-  const identity = resolveIdentity({
+const runAuthenticationPipeline = (user: User | null) => {
+  return resolveAuthenticationPipeline({
     legacyUser: user,
     requestedPath: window.location.pathname
   })
-  const loginRedirect = resolveLoginRedirect(identity)
-  const securityTarget = getRequestedSecurityTarget(identity)
-
-  return {
-    identity,
-    session: createSessionSnapshot(identity),
-    loginRedirect,
-    securityDecision: evaluateSecurityGateway({
-      identity,
-      loginRedirect,
-      target: securityTarget
-    })
-  }
 }
 
 export default function App(){
   const qrRouteMatch = window.location.pathname.match(/^\/qr\/([^/?#]+)/)
   const businessApplicationRouteMatch = window.location.pathname.match(/^\/(?:basvuru|apply)\/?$/)
   const initialUser = React.useMemo(() => getCurrentUser(), [])
-  const initialIdentitySession = React.useMemo(() => createIdentitySessionSnapshot(initialUser), [initialUser])
-  const identitySessionRef = React.useRef(initialIdentitySession)
+  const initialAuthPipeline = React.useMemo(() => runAuthenticationPipeline(initialUser), [initialUser])
+  const authPipelineRef = React.useRef(initialAuthPipeline)
   const initialNavigation = React.useMemo(() => {
-    return getDefaultNavigation(initialUser, initialIdentitySession.loginRedirect)
-  }, [initialIdentitySession, initialUser])
+    return getDefaultNavigation(initialUser, initialAuthPipeline.loginRedirect)
+  }, [initialAuthPipeline, initialUser])
   const [route, setRoute] = React.useState<Route>(initialNavigation.route)
   const [activeNavKey, setActiveNavKey] = React.useState<NavKey>(initialNavigation.activeNavKey)
   const [openGroupKey, setOpenGroupKey] = React.useState<NavGroupKey | null>(initialNavigation.openGroupKey)
@@ -669,24 +637,16 @@ export default function App(){
   const isPlatformAdmin = isPlatformAdminUser(currentUser)
   const evren360View = evren360RouteViews[route]
 
-  const updateIdentitySession = (user: User | null) => {
-    const nextIdentitySession = createIdentitySessionSnapshot(user)
-    identitySessionRef.current = nextIdentitySession
-    return nextIdentitySession
+  const updateAuthenticationPipeline = (user: User | null) => {
+    const nextAuthPipeline = runAuthenticationPipeline(user)
+    authPipelineRef.current = nextAuthPipeline
+    return nextAuthPipeline
   }
 
   const evaluateCurrentRouteSecurity = (nextRoute: Route) => {
-    const currentIdentitySession = identitySessionRef.current
-    const target = getRouteSecurityTarget(nextRoute, currentIdentitySession.identity)
-
-    identitySessionRef.current = {
-      ...currentIdentitySession,
-      securityDecision: evaluateSecurityGateway({
-        identity: currentIdentitySession.identity,
-        loginRedirect: currentIdentitySession.loginRedirect,
-        target
-      })
-    }
+    const currentAuthPipeline = authPipelineRef.current
+    const target = getRouteSecurityTarget(nextRoute, currentAuthPipeline)
+    authPipelineRef.current = evaluateAuthenticationPipelineTarget(currentAuthPipeline, target)
   }
 
   React.useEffect(()=>{
@@ -704,8 +664,8 @@ export default function App(){
   }, [route])
 
   const onLogin = (u: User) => {
-    const nextIdentitySession = updateIdentitySession(u)
-    const defaultNavigation = getDefaultNavigation(u, nextIdentitySession.loginRedirect)
+    const nextAuthPipeline = updateAuthenticationPipeline(u)
+    const defaultNavigation = getDefaultNavigation(u, nextAuthPipeline.loginRedirect)
     migrateBranchScopedData(u)
     setUserState(u)
     setBranches(getVisibleBranchesForUser(u))
@@ -717,8 +677,8 @@ export default function App(){
   }
   const logout = () => {
     setCurrentUser(null)
-    const nextIdentitySession = updateIdentitySession(null)
-    const defaultNavigation = getDefaultNavigation(null, nextIdentitySession.loginRedirect)
+    const nextAuthPipeline = updateAuthenticationPipeline(null)
+    const defaultNavigation = getDefaultNavigation(null, nextAuthPipeline.loginRedirect)
     setUserState(null)
     setRoute(defaultNavigation.route)
     setActiveNavKey(defaultNavigation.activeNavKey)
