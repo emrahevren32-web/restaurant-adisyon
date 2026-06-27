@@ -7,6 +7,7 @@ export type ShellNavItem<Route extends string, NavKey extends string> = {
   route: Route
   icon: string
   adminOnly?: boolean
+  platformAdminOnly?: boolean
   badge?: number
   locked?: boolean
   hidden?: boolean
@@ -37,6 +38,7 @@ type AppShellProps<
   activeNavLabel: string
   branches: Branch[]
   activeBranchId: string
+  isPlatformAdmin?: boolean
   openGroupKey: GroupKey | null
   onToggleGroup: (groupKey: GroupKey) => void
   onOpenNavItem: (item: ShellNavItem<Route, NavKey>) => void
@@ -68,6 +70,7 @@ export default function AppShell<
   activeNavLabel,
   branches,
   activeBranchId,
+  isPlatformAdmin = false,
   openGroupKey,
   onToggleGroup,
   onOpenNavItem,
@@ -88,13 +91,17 @@ export default function AppShell<
             {logoUrl && <img src={logoUrl} alt={`${restaurantName} logosu`} />}
             <div className="side-brand-copy">
               <h1>{restaurantName}</h1>
-              <span>Yönetim Paneli</span>
+              <span>{isPlatformAdmin ? 'Yönetici Merkezi' : 'Yönetim Paneli'}</span>
             </div>
           </div>
 
           <div className="side-nav-groups">
             {navGroups.map(group => {
-              const visibleItems = group.items.filter(item => !item.hidden && (!item.adminOnly || currentUser.role === 'Admin'))
+              const visibleItems = group.items.filter(item => (
+                !item.hidden
+                && (!item.adminOnly || currentUser.role === 'Admin')
+                && (!item.platformAdminOnly || isPlatformAdmin)
+              ))
               if(visibleItems.length === 0) return null
               const isOpen = openGroupKey === group.key
               const isActiveGroup = activeGroupKey === group.key
@@ -149,13 +156,19 @@ export default function AppShell<
             </div>
             <div className="topbar-actions">
               <label className="branch-switcher">
-                <span>Aktif Şube</span>
-                <select value={hasSelectableBranch ? activeBranchId : ''} onChange={event => onActiveBranchChange(event.target.value)} disabled={!hasSelectableBranch}>
-                  {!hasSelectableBranch && <option value="">Yetkili şube yok</option>}
-                  {selectableBranches.map(branch => (
-                    <option key={branch.id} value={branch.id}>{branch.name}</option>
-                  ))}
-                </select>
+                <span>{isPlatformAdmin ? 'Kapsam' : 'Aktif Şube'}</span>
+                {isPlatformAdmin ? (
+                  <select value="platform" disabled>
+                    <option value="platform">EVREN360 Platform</option>
+                  </select>
+                ) : (
+                  <select value={hasSelectableBranch ? activeBranchId : ''} onChange={event => onActiveBranchChange(event.target.value)} disabled={!hasSelectableBranch}>
+                    {!hasSelectableBranch && <option value="">Yetkili şube yok</option>}
+                    {selectableBranches.map(branch => (
+                      <option key={branch.id} value={branch.id}>{branch.name}</option>
+                    ))}
+                  </select>
+                )}
               </label>
               <div className="topbar-notification" aria-label="Bildirimler" title="Bildirimler">
                 <span className="topbar-bell" aria-hidden="true"></span>

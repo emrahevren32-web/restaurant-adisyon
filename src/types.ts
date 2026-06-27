@@ -1,5 +1,30 @@
+export type TenantStatus = 'Aktif' | 'Pasif' | 'Askıda' | 'Silinmiş'
+
+export type Tenant = {
+  id: string
+  tenantCode: string
+  companyId: string
+  companyName: string
+  status: TenantStatus
+  createdAt: string
+  updatedAt: string
+}
+
+export type TenantSettings = {
+  id: string
+  tenantId: string
+  timezone: string
+  currency: string
+  language: string
+  dateFormat: string
+  theme: string
+  createdAt: string
+  updatedAt: string
+}
+
 export type ProductCategory = {
   id: string
+  tenantId?: string
   name: string
   active: boolean
   createdAt: string
@@ -7,6 +32,7 @@ export type ProductCategory = {
 
 export type Product = {
   id: string
+  tenantId?: string
   branchId: string
   name: string
   price: number
@@ -21,6 +47,7 @@ export type StockUnit = 'adet' | 'kg' | 'gr' | 'lt' | 'ml' | 'paket' | 'koli'
 
 export type StockCategory = {
   id: string
+  tenantId?: string
   name: string
   active: boolean
   createdAt: string
@@ -29,6 +56,7 @@ export type StockCategory = {
 
 export type StockItem = {
   id: string
+  tenantId?: string
   branchId: string
   name: string
   categoryId: string
@@ -65,6 +93,7 @@ export type StockMovementReason =
 
 export type StockMovement = {
   id: string
+  tenantId?: string
   branchId: string
   stockItemId: string
   stockItemName: string
@@ -114,6 +143,7 @@ export type StockMovementAuditEventType = 'created' | 'reversed'
 
 export type StockMovementAuditEvent = {
   id: string
+  tenantId?: string
   movementId: string
   stockItemId: string
   eventType: StockMovementAuditEventType
@@ -138,6 +168,7 @@ export type CriticalStockTrigger =
 
 export type CriticalStockEvent = {
   id: string
+  tenantId?: string
   stockItemId: string
   stockItemName: string
   eventType: CriticalStockEventType
@@ -186,6 +217,7 @@ export type StockExpiryAllocation = {
 
 export type StockExpiryLot = {
   id: string
+  tenantId?: string
   branchId: string
   lotCode: string
   stockItemId: string
@@ -207,6 +239,7 @@ export type StockExpiryLot = {
 
 export type StockExpiryEvent = {
   id: string
+  tenantId?: string
   lotId?: string
   lotCode?: string
   stockItemId: string
@@ -242,6 +275,7 @@ export type StockWasteStatus = 'active' | 'reversed'
 
 export type StockWasteRecord = {
   id: string
+  tenantId?: string
   branchId: string
   stockMovementId: string
   stockItemId: string
@@ -285,6 +319,7 @@ export type RecipeCostSnapshot = {
 
 export type Recipe = {
   id: string
+  tenantId?: string
   branchId: string
   productId: string
   productName: string
@@ -311,6 +346,7 @@ export type RecipeAuditEventType = 'created' | 'updated' | 'deleted' | 'copied' 
 
 export type RecipeAuditEvent = {
   id: string
+  tenantId?: string
   recipeId: string
   eventType: RecipeAuditEventType
   userId: string
@@ -367,6 +403,7 @@ export type StockDeductionLine = {
 
 export type StockDeductionBatch = {
   id: string
+  tenantId?: string
   branchId: string
   orderId: string
   tableId: string
@@ -394,6 +431,7 @@ export type StockDeductionAuditEventType = 'deducted' | 'reversed' | 'warning' |
 
 export type StockDeductionAuditEvent = {
   id: string
+  tenantId?: string
   batchId?: string
   orderId?: string
   productId?: string
@@ -410,6 +448,7 @@ export type StockDeductionAuditEvent = {
 
 export type Order = {
   id: string
+  tenantId?: string
   branchId: string
   productId: string
   productName?: string
@@ -441,6 +480,7 @@ export type Discount = {
 
 export type TableState = {
   id: string
+  tenantId?: string
   branchId: string
   companyId?: string
   name: string
@@ -461,6 +501,7 @@ export type KitchenOrderItem = {
 
 export type KitchenOrder = {
   id: string
+  tenantId?: string
   branchId: string
   tableId: string
   tableName: string
@@ -485,6 +526,7 @@ export type QRRequestItem = {
 
 export type QRRequest = {
   id: string
+  tenantId?: string
   branchId: string
   tableId: string
   tableName: string
@@ -518,6 +560,7 @@ export type WaiterCallStatus = 'Bekliyor' | 'Sahiplenildi' | 'Masaya Gidildi' | 
 
 export type WaiterCall = {
   id: string
+  tenantId?: string
   tableId: string
   tableName: string
   status: WaiterCallStatus
@@ -546,6 +589,7 @@ export type AuditEventType = 'created' | 'edited' | 'approved' | 'rejected' | 'a
 
 export type QRAuditEvent = {
   id: string
+  tenantId?: string
   entityType: AuditEntityType
   entityId: string
   eventType: AuditEventType
@@ -568,6 +612,7 @@ export type SystemSettings = {
 
 export type ClosedBill = {
   id: string
+  tenantId?: string
   branchId: string
   tableId: string
   tableName: string
@@ -593,6 +638,7 @@ export type Role = 'Admin' | 'Garson'
 
 export type User = {
   id: string
+  tenantId?: string
   companyId?: string
   fullName: string
   username: string
@@ -606,6 +652,7 @@ export type BusinessRegistrationPackage = 'Başlangıç' | 'Pro' | 'Premium' | '
 
 export type BusinessRegistration = {
   id: string
+  tenantId?: string
   businessName: string
   ownerName: string
   phone: string
@@ -626,10 +673,11 @@ export type BusinessRegistration = {
   updatedAt: string
 }
 
-export type CompanyStatus = 'Aktif' | 'Pasif'
+export type CompanyStatus = 'Aktif' | 'Pasif' | 'Askıda' | 'Silindi'
 
 export type Company = {
   id: string
+  tenantId?: string
   companyName: string
   ownerName: string
   phone: string
@@ -646,6 +694,7 @@ export type Company = {
 
 export type CompanySetup = {
   id: string
+  tenantId?: string
   registrationId: string
   companyId: string
   branchId: string
@@ -711,6 +760,7 @@ export type LicenseModule = PackageModule
 
 export type CompanyLicense = {
   id: string
+  tenantId?: string
   companyId: string
   packageId: string
   licenseKey: string
@@ -739,6 +789,7 @@ export type CompanyUserStatus = 'Aktif' | 'Pasif' | 'Askıya Alındı' | 'Silind
 
 export type CompanyUser = {
   id: string
+  tenantId?: string
   companyId: string
   fullName: string
   username: string
@@ -755,6 +806,7 @@ export type UserSubscriptionStatus = 'Aktif' | 'Pasif' | 'Beklemede' | 'Süresi 
 
 export type UserSubscription = {
   id: string
+  tenantId?: string
   userId: string
   companyLicenseId: string
   status: UserSubscriptionStatus
@@ -764,8 +816,42 @@ export type UserSubscription = {
   updatedAt: string
 }
 
+export type PlatformModuleStatus = {
+  id: string
+  moduleKey: LicenseModuleKey
+  moduleName: string
+  active: boolean
+  createdAt: string
+  updatedAt: string
+}
+
+export type PlatformSupportTicketStatus = 'Açık' | 'İnceleniyor' | 'Çözüldü'
+
+export type PlatformSupportTicket = {
+  id: string
+  tenantId?: string
+  companyId: string
+  subject: string
+  message: string
+  status: PlatformSupportTicketStatus
+  priority: 'Düşük' | 'Orta' | 'Yüksek'
+  createdAt: string
+  updatedAt: string
+}
+
+export type PlatformSettings = {
+  id: string
+  defaultCurrency: string
+  defaultLanguage: string
+  maintenanceMode: boolean
+  defaultTheme: string
+  createdAt: string
+  updatedAt: string
+}
+
 export type Branch = {
   id: string
+  tenantId?: string
   companyId?: string
   code: string
   name: string
@@ -781,6 +867,7 @@ export type Branch = {
 
 export type BranchPermission = {
   id: string
+  tenantId?: string
   userId: string
   branchId: string
   canView: boolean
@@ -802,6 +889,7 @@ export type BranchStockTransferItem = {
 
 export type BranchStockTransfer = {
   id: string
+  tenantId?: string
   transferNo: string
   sourceBranchId: string
   targetBranchId: string
@@ -818,6 +906,7 @@ export type EmployeePosition = 'Garson' | 'Kasiyer' | 'Aşçı' | 'Kurye' | 'Yö
 
 export type Employee = {
   id: string
+  tenantId?: string
   branchId: string
   code: string
   fullName: string
@@ -837,6 +926,7 @@ export type ShiftStatus = 'Planlandı' | 'Tamamlandı' | 'İptal'
 
 export type Shift = {
   id: string
+  tenantId?: string
   branchId: string
   employeeId: string
   shiftName: ShiftName
@@ -853,6 +943,7 @@ export type AttendanceStatus = 'Normal' | 'Eksik Mesai' | 'Fazla Mesai' | 'Devam
 
 export type Attendance = {
   id: string
+  tenantId?: string
   branchId: string
   employeeId: string
   workDate: string
@@ -868,6 +959,7 @@ export type Attendance = {
 
 export type EmployeePerformance = {
   id: string
+  tenantId?: string
   branchId: string
   employeeId: string
   workDate: string
@@ -885,6 +977,7 @@ export type EmployeeBonusStatus = 'Hesaplandı' | 'Onaylandı' | 'Ödendi' | 'İ
 
 export type EmployeeBonus = {
   id: string
+  tenantId?: string
   branchId: string
   employeeId: string
   period: string
@@ -902,6 +995,7 @@ export type EmployeeAuditSeverity = 'Düşük' | 'Orta' | 'Yüksek' | 'Kritik'
 
 export type EmployeeAudit = {
   id: string
+  tenantId?: string
   branchId: string
   employeeId: string
   date: string
@@ -918,6 +1012,7 @@ export type CurrentAccountType = 'Müşteri' | 'Firma' | 'Personel' | 'Tedarikç
 
 export type CurrentAccount = {
   id: string
+  tenantId?: string
   branchId: string
   code: string
   name: string
@@ -937,6 +1032,7 @@ export type CreditTransactionStatus = 'Açık' | 'Kapandı'
 
 export type CreditTransaction = {
   id: string
+  tenantId?: string
   branchId: string
   currentAccountId: string
   date: string
@@ -953,6 +1049,7 @@ export type SupplierDebtStatus = 'Açık' | 'Kapandı'
 
 export type SupplierDebt = {
   id: string
+  tenantId?: string
   branchId: string
   currentAccountId: string
   date: string
@@ -970,6 +1067,7 @@ export type SupplierPaymentMethod = 'Nakit' | 'Kart' | 'Havale/EFT'
 
 export type SupplierPayment = {
   id: string
+  tenantId?: string
   branchId: string
   supplierDebtId: string
   currentAccountId: string
@@ -985,6 +1083,7 @@ export type CashPaymentMethod = 'Nakit' | 'Kart' | 'Havale/EFT'
 
 export type CashTransaction = {
   id: string
+  tenantId?: string
   branchId: string
   date: string
   type: CashTransactionType
@@ -1001,6 +1100,7 @@ export type IncomeExpensePaymentMethod = 'Nakit' | 'Kart' | 'Havale/EFT'
 
 export type IncomeExpense = {
   id: string
+  tenantId?: string
   branchId: string
   date: string
   type: IncomeExpenseType
@@ -1014,6 +1114,7 @@ export type IncomeExpense = {
 
 export type CashClosing = {
   id: string
+  tenantId?: string
   branchId: string
   date: string
   openingBalance: number
@@ -1029,6 +1130,7 @@ export type CashClosing = {
 
 export type CashTransfer = {
   id: string
+  tenantId?: string
   branchId: string
   date: string
   transferNo: string
@@ -1044,6 +1146,7 @@ export type CollectionPaymentMethod = 'Nakit' | 'Kart' | 'Havale/EFT' | 'Diğer'
 
 export type CollectionTransaction = {
   id: string
+  tenantId?: string
   branchId: string
   currentAccountId: string
   date: string
@@ -1222,9 +1325,27 @@ export type ActionLogType =
   | 'Modül pasif edildi'
   | 'Firma modülü güncellendi'
   | 'Lisans erişim kontrolü başarısız'
+  | 'EVREN360 firma güncellendi'
+  | 'EVREN360 firma pasife alındı'
+  | 'EVREN360 firma askıya alındı'
+  | 'EVREN360 firma silindi'
+  | 'EVREN360 başvuru notu eklendi'
+  | 'EVREN360 paket silindi'
+  | 'EVREN360 modül durumu güncellendi'
+  | 'EVREN360 abonelik güncellendi'
+  | 'EVREN360 destek talebi güncellendi'
+  | 'EVREN360 sistem ayarı güncellendi'
+
+  | 'Tenant oluşturuldu'
+  | 'Tenant güncellendi'
+  | 'Tenant pasife alındı'
+  | 'Tenant aktif edildi'
+  | 'Tenant erişimi engellendi'
+  | 'Veri izolasyonu doğrulandı'
 
 export type ActionLog = {
   id: string
+  tenantId?: string
   operationType: ActionLogType
   userId: string
   userName: string
@@ -1260,6 +1381,7 @@ export type SystemUsageActionType =
 
 export type SystemUsageLog = {
   id: string
+  tenantId?: string
   userId: string
   userName: string
   branchId: string
@@ -1275,6 +1397,7 @@ export type SystemUsageLog = {
 
 export type UserActivitySummary = {
   id: string
+  tenantId?: string
   userId: string
   userName: string
   branchId: string
@@ -1304,6 +1427,7 @@ export type ModuleUsageSummary = {
 
 export type BusinessUsageSummary = {
   id: string
+  tenantId?: string
   branchId: string
   branchName: string
   lastActivityAt: string

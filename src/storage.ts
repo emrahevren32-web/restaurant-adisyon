@@ -70,6 +70,10 @@ import {
   RecipeAuditEventType,
   RecipeCostSnapshot,
   RecipeItem,
+  PlatformModuleStatus,
+  PlatformSettings,
+  PlatformSupportTicket,
+  PlatformSupportTicketStatus,
   StockCategory,
   StockDeductionAuditEvent,
   StockDeductionAuditEventType,
@@ -100,6 +104,8 @@ import {
   StockWasteReasonCategory,
   StockWasteRecord,
   StockWasteStatus,
+  Tenant,
+  TenantSettings,
   SystemHealthMetric,
   SystemHealthMetricStatus,
   SystemSettings,
@@ -116,6 +122,22 @@ import {
   WaiterCallHistory,
   WaiterCallStatus
 } from './types'
+import {
+  DEFAULT_TENANT_ID,
+  TENANT_ISOLATION_DENIED_MESSAGE,
+  assertTenantAccess,
+  createTenantStorageId,
+  filterByTenant,
+  loadTenantSettings as loadTenantSettingsFromHelper,
+  loadTenants as loadTenantsFromHelper,
+  normalizeTenant,
+  normalizeTenantSettings,
+  resolveTenantIdForCompany,
+  resolveTenantIdForRecord,
+  saveTenantSettings as saveTenantSettingsFromHelper,
+  saveTenants as saveTenantsFromHelper,
+  withTenantId
+} from './tenant'
 import { formatStockQuantity, isCriticalStock } from './criticalStock'
 import {
   DEFAULT_EXPIRY_WARNING_DAYS,
@@ -193,6 +215,9 @@ const KEY_LICENSE_MODULES = 'ra_license_modules'
 const KEY_COMPANY_LICENSES = 'ra_company_licenses'
 const KEY_COMPANY_USERS = 'ra_company_users'
 const KEY_USER_SUBSCRIPTIONS = 'ra_user_subscriptions'
+const KEY_PLATFORM_MODULES = 'ra_platform_modules'
+const KEY_PLATFORM_SUPPORT_TICKETS = 'ra_platform_support_tickets'
+const KEY_PLATFORM_SETTINGS = 'ra_platform_settings'
 
 export const DEFAULT_BRANCH_ID = 'branch_merkez'
 const DEFAULT_CATEGORY_ID = 'cat_general'
@@ -220,11 +245,12 @@ const EMPLOYEE_AUDIT_SEVERITIES: EmployeeAuditSeverity[] = ['Düşük', 'Orta', 
 const BRANCH_STOCK_TRANSFER_STATUSES: BranchStockTransferStatus[] = ['Bekliyor', 'Onaylandı', 'Tamamlandı', 'İptal Edildi']
 const BUSINESS_REGISTRATION_STATUSES: BusinessRegistrationStatus[] = ['Başvuru Bekliyor', 'Onaylandı', 'Reddedildi', 'Pasif']
 const BUSINESS_REGISTRATION_PACKAGES: BusinessRegistrationPackage[] = ['Başlangıç', 'Pro', 'Premium', 'Kurumsal']
-const COMPANY_STATUSES: CompanyStatus[] = ['Aktif', 'Pasif']
+const COMPANY_STATUSES: CompanyStatus[] = ['Aktif', 'Pasif', 'Askıda', 'Silindi']
 const LICENSE_STATUSES: LicenseStatus[] = ['Deneme', 'Aktif', 'Süresi Yaklaşıyor', 'Süresi Doldu', 'Askıya Alındı', 'İptal Edildi']
 const COMPANY_USER_ROLES: CompanyUserRole[] = ['Firma Sahibi', 'Admin', 'Müdür', 'Kasiyer', 'Garson', 'Mutfak', 'Kurye', 'Muhasebe']
 const COMPANY_USER_STATUSES: CompanyUserStatus[] = ['Aktif', 'Pasif', 'Askıya Alındı', 'Silindi']
 const USER_SUBSCRIPTION_STATUSES: UserSubscriptionStatus[] = ['Aktif', 'Pasif', 'Beklemede', 'Süresi Doldu']
+const PLATFORM_SUPPORT_TICKET_STATUSES: PlatformSupportTicketStatus[] = ['Açık', 'İnceleniyor', 'Çözüldü']
 export const LICENSE_MODULE_CATALOG: Array<{ key: LicenseModuleKey; name: string }> = [
   { key: 'adisyon', name: 'Adisyon' },
   { key: 'qr-menu', name: 'QR Menü' },
@@ -287,6 +313,39 @@ const getAppStorageKeys = () => {
 type BranchScopedRecord = {
   id: string
   branchId: string
+  tenantId?: string
+  companyId?: string
+  userId?: string
+}
+
+type TenantScopedRecord = {
+  id?: string
+  tenantId?: string
+  branchId?: string
+  companyId?: string
+  userId?: string
+}
+
+const readUsersForTenantContext = () => {
+  return readJson<Array<Pick<User, 'id' | 'companyId' | 'tenantId'>>>(KEY_USERS, [])
+}
+
+const getTenantStorageContext = (user?: User | null) => ({
+  user: user === undefined ? getCurrentUser() : user,
+  branches: readBranchesFromStorage(),
+  users: readUsersForTenantContext()
+})
+
+const addTenantScope = <T extends TenantScopedRecord>(item: T, user?: User | null) => {
+  return withTenantId(item, getTenantStorageContext(user))
+}
+
+const filterTenantScope = <T extends TenantScopedRecord>(items: T[], user?: User | null) => {
+  return filterByTenant(items, getTenantStorageContext(user))
+}
+
+const assertTenantScope = (item: TenantScopedRecord, user?: User | null) => {
+  return assertTenantAccess(item, getTenantStorageContext(user))
 }
 
 export type BranchPermissionAction = 'canView' | 'canCreate' | 'canEdit' | 'canDelete'
@@ -337,10 +396,15 @@ const userHasBranchPermissionValue = (
 
 const filterBranchesByPermission = (branches: Branch[], user?: User | null) => {
   const permissionUser = getPermissionUser(user)
-  if(isAdminUser(permissionUser)) return branches
+  const tenantScopedBranches = filterByTenant(branches, {
+    user: permissionUser,
+    branches,
+    users: readUsersForTenantContext()
+  })
+  if(isAdminUser(permissionUser)) return tenantScopedBranches
 
   const permissions = readBranchPermissionsFromStorage()
-  return branches.filter(branch => userHasBranchPermissionValue(permissionUser, branch.id, 'canView', permissions))
+  return tenantScopedBranches.filter(branch => userHasBranchPermissionValue(permissionUser, branch.id, 'canView', permissions))
 }
 
 export const canUseBranch = (
@@ -409,7 +473,10 @@ const normalizeBranchScopedItems = <T extends BranchScopedRecord>(
   fallbackBranchId: string,
   predicate?: (item: T) => boolean
 ) => {
-  const normalized = items.map(item => normalizer(withBranchIdFallback<T>(item, fallbackBranchId)))
+  const tenantContext = getTenantStorageContext()
+  const normalized = items
+    .map(item => normalizer(withBranchIdFallback<T>(item, fallbackBranchId)))
+    .map(item => withTenantId(item, tenantContext))
   return predicate ? normalized.filter(predicate) : normalized
 }
 
@@ -421,7 +488,7 @@ const loadBranchScopedItems = <T extends BranchScopedRecord>(
   const activeBranchId = getActiveBranchId()
   if(!canUseBranch(activeBranchId, 'canView')) return []
 
-  return normalizeBranchScopedItems(readJson<Partial<T>[]>(key, []), normalizer, DEFAULT_BRANCH_ID, predicate)
+  return filterTenantScope(normalizeBranchScopedItems(readJson<Partial<T>[]>(key, []), normalizer, DEFAULT_BRANCH_ID, predicate))
     .filter(item => item.branchId === activeBranchId)
 }
 
@@ -438,7 +505,7 @@ const loadBranchScopedItemsWithDemo = <T extends BranchScopedRecord>(
     ? createDemoItems()
     : readJson<Partial<T>[]>(key, [])
 
-  return normalizeBranchScopedItems(sourceItems, normalizer, DEFAULT_BRANCH_ID, predicate)
+  return filterTenantScope(normalizeBranchScopedItems(sourceItems, normalizer, DEFAULT_BRANCH_ID, predicate))
     .filter(item => item.branchId === activeBranchId)
 }
 
@@ -447,7 +514,7 @@ const loadAllBranchScopedItems = <T extends BranchScopedRecord>(
   normalizer: (item: Partial<T>) => T,
   predicate?: (item: T) => boolean
 ) => {
-  return normalizeBranchScopedItems(readJson<Partial<T>[]>(key, []), normalizer, DEFAULT_BRANCH_ID, predicate)
+  return filterTenantScope(normalizeBranchScopedItems(readJson<Partial<T>[]>(key, []), normalizer, DEFAULT_BRANCH_ID, predicate))
 }
 
 const loadAllBranchScopedItemsWithDemo = <T extends BranchScopedRecord>(
@@ -460,7 +527,7 @@ const loadAllBranchScopedItemsWithDemo = <T extends BranchScopedRecord>(
     ? createDemoItems()
     : readJson<Partial<T>[]>(key, [])
 
-  return normalizeBranchScopedItems(sourceItems, normalizer, DEFAULT_BRANCH_ID, predicate)
+  return filterTenantScope(normalizeBranchScopedItems(sourceItems, normalizer, DEFAULT_BRANCH_ID, predicate))
 }
 
 const saveBranchScopedItems = <T extends BranchScopedRecord>(
@@ -481,6 +548,7 @@ const saveBranchScopedItems = <T extends BranchScopedRecord>(
   }
 
   const normalizedItems = normalizeBranchScopedItems(items, normalizer, activeBranchId, predicate)
+  normalizedItems.forEach(item => assertTenantScope(item, currentUser))
   const touchedBranchIds = new Set(normalizedItems.map(item => item.branchId))
 
   if(touchedBranchIds.size === 0){
@@ -499,11 +567,13 @@ const saveAllBranchScopedItems = <T extends BranchScopedRecord>(
   predicate?: (item: T) => boolean
 ) => {
   const normalizedItems = normalizeBranchScopedItems(items, normalizer, DEFAULT_BRANCH_ID, predicate)
+  normalizedItems.forEach(item => assertTenantScope(item))
   localStorage.setItem(key, JSON.stringify(normalizedItems))
 }
 
 const normalizeCategory = (item: Partial<ProductCategory>): ProductCategory => ({
   id: String(item.id || `cat_${Date.now()}`),
+  tenantId: String(item.tenantId || '').trim() || resolveTenantIdForRecord(item),
   name: String(item.name || 'Genel').trim() || 'Genel',
   active: item.active !== false,
   createdAt: item.createdAt || new Date().toISOString()
@@ -514,6 +584,7 @@ const normalizeProduct = (item: Partial<Product>, fallbackCategoryId = DEFAULT_C
 
   return {
     id: String(item.id || `prd_${Date.now()}`),
+    tenantId: String(item.tenantId || '').trim() || resolveTenantIdForRecord({ ...item, branchId: getBranchIdValue(item) }),
     branchId: getBranchIdValue(item),
     name: String(item.name || 'İsimsiz Ürün').trim() || 'İsimsiz Ürün',
     price: Number.isFinite(price) ? price : 0,
@@ -748,6 +819,7 @@ const normalizeCurrentAccount = (item: Partial<CurrentAccount>): CurrentAccount 
 const createDemoBranches = (now = new Date().toISOString()): Branch[] => [
   normalizeBranch({
     id: 'branch_merkez',
+    companyId: 'company_abc_cafe_demo',
     code: 'SUBE-001',
     name: 'Merkez Şube',
     phone: '0212 000 00 01',
@@ -761,6 +833,7 @@ const createDemoBranches = (now = new Date().toISOString()): Branch[] => [
   }),
   normalizeBranch({
     id: 'branch_istanbul',
+    companyId: 'company_abc_cafe_demo',
     code: 'SUBE-002',
     name: 'İstanbul Şubesi',
     phone: '0212 000 00 02',
@@ -774,6 +847,7 @@ const createDemoBranches = (now = new Date().toISOString()): Branch[] => [
   }),
   normalizeBranch({
     id: 'branch_ankara',
+    companyId: 'company_lezzet_restoran_demo',
     code: 'SUBE-003',
     name: 'Ankara Şubesi',
     phone: '0312 000 00 03',
@@ -787,6 +861,7 @@ const createDemoBranches = (now = new Date().toISOString()): Branch[] => [
   }),
   normalizeBranch({
     id: 'branch_izmir',
+    companyId: 'company_kahve_duragi_demo',
     code: 'SUBE-004',
     name: 'İzmir Şubesi',
     phone: '0232 000 00 04',
@@ -1429,6 +1504,7 @@ const normalizeStockUnit = (value: unknown): StockUnit => {
 
 const normalizeStockCategory = (item: Partial<StockCategory>): StockCategory => ({
   id: String(item.id || `stock_cat_${Date.now()}`),
+  tenantId: String(item.tenantId || '').trim() || resolveTenantIdForRecord(item),
   name: String(item.name || 'Genel').trim() || 'Genel',
   active: item.active !== false,
   createdAt: item.createdAt || new Date().toISOString(),
@@ -1445,6 +1521,7 @@ const normalizeStockItem = (item: Partial<StockItem>, fallbackCategoryId = DEFAU
 
   return {
     id: String(item.id || `stock_${Date.now()}`),
+    tenantId: String(item.tenantId || '').trim() || resolveTenantIdForRecord({ ...item, branchId: getBranchIdValue(item) }),
     branchId: getBranchIdValue(item),
     name: String(item.name || 'İsimsiz Stok Kartı').trim() || 'İsimsiz Stok Kartı',
     categoryId: item.categoryId || fallbackCategoryId,
@@ -2156,10 +2233,13 @@ const normalizeOrder = (item: Partial<Order>, fallbackBranchId = DEFAULT_BRANCH_
   const qty = Number(item.qty)
   const unitPrice = Number(item.unitPrice)
   const stockDeductedQty = Number(item.stockDeductedQty)
+  const branchId = getBranchIdValue(item, fallbackBranchId)
+  const tenantId = String(item.tenantId || '').trim() || resolveTenantIdForRecord({ ...item, branchId })
 
   return {
     id: String(item.id || `ord_${Date.now()}`),
-    branchId: getBranchIdValue(item, fallbackBranchId),
+    tenantId,
+    branchId,
     productId: String(item.productId || ''),
     productName: item.productName,
     unitPrice: Number.isFinite(unitPrice) ? Math.max(0, unitPrice) : undefined,
@@ -2177,14 +2257,16 @@ const normalizeOrder = (item: Partial<Order>, fallbackBranchId = DEFAULT_BRANCH_
 
 const normalizeTableState = (item: Partial<TableState>): TableState => {
   const branchId = getBranchIdValue(item)
+  const tenantId = String(item.tenantId || '').trim() || resolveTenantIdForRecord({ ...item, branchId })
 
   return {
     id: String(item.id || `tbl_${Date.now()}`),
+    tenantId,
     branchId,
     companyId: String(item.companyId || '').trim() || undefined,
     name: String(item.name || 'Masa').trim() || 'Masa',
     open: item.open === true,
-    orders: (item.orders || []).map(order => normalizeOrder(order, branchId)).filter(order => order.productId && order.qty > 0),
+    orders: (item.orders || []).map(order => normalizeOrder({ ...order, tenantId }, branchId)).filter(order => order.productId && order.qty > 0),
     note: item.note || '',
     discount: normalizeDiscount(item.discount)
   }
@@ -2192,19 +2274,21 @@ const normalizeTableState = (item: Partial<TableState>): TableState => {
 
 const normalizeClosedBill = (item: Partial<ClosedBill>): ClosedBill => {
   const branchId = getBranchIdValue(item)
+  const tenantId = String(item.tenantId || '').trim() || resolveTenantIdForRecord({ ...item, branchId })
   const subtotal = Number(item.subtotal)
   const total = Number(item.total)
   const discountTotal = Number(item.discountTotal)
 
   return {
     id: String(item.id || `bill_${Date.now()}`),
+    tenantId,
     branchId,
     tableId: String(item.tableId || ''),
     tableName: String(item.tableName || 'Masa'),
     subtotal: Number.isFinite(subtotal) ? Math.max(0, roundMoneyValue(subtotal)) : undefined,
     total: Number.isFinite(total) ? Math.max(0, roundMoneyValue(total)) : 0,
     timestamp: item.timestamp || new Date().toISOString(),
-    orders: (item.orders || []).map(order => normalizeOrder(order, branchId)).filter(order => order.productId && order.qty > 0),
+    orders: (item.orders || []).map(order => normalizeOrder({ ...order, tenantId }, branchId)).filter(order => order.productId && order.qty > 0),
     paymentMethod: normalizePaymentMethod(item.paymentMethod),
     payments: normalizePaymentParts(item.payments),
     splitPayment: item.splitPayment === true,
@@ -2233,10 +2317,12 @@ const normalizeSettings = (item: Partial<SystemSettings>): SystemSettings => {
 
 const normalizeBranch = (item: Partial<Branch>): Branch => {
   const timestamp = item.createdAt || new Date().toISOString()
+  const companyId = String(item.companyId || '').trim()
 
   return {
     id: String(item.id || `branch_${Date.now()}`),
-    companyId: String(item.companyId || '').trim() || undefined,
+    tenantId: String(item.tenantId || '').trim() || resolveTenantIdForCompany(companyId),
+    companyId: companyId || undefined,
     code: String(item.code || `SUBE-${Date.now()}`).trim() || `SUBE-${Date.now()}`,
     name: String(item.name || 'İsimsiz Şube').trim() || 'İsimsiz Şube',
     phone: String(item.phone || '').trim(),
@@ -2252,11 +2338,13 @@ const normalizeBranch = (item: Partial<Branch>): Branch => {
 
 const normalizeBranchPermission = (item: Partial<BranchPermission>): BranchPermission => {
   const timestamp = item.createdAt || new Date().toISOString()
+  const branchId = String(item.branchId || DEFAULT_BRANCH_ID)
 
   return {
     id: String(item.id || `branch_permission_${Date.now()}`),
+    tenantId: String(item.tenantId || '').trim() || resolveTenantIdForRecord({ ...item, branchId }),
     userId: String(item.userId || ''),
-    branchId: String(item.branchId || DEFAULT_BRANCH_ID),
+    branchId,
     canView: item.canView === true,
     canCreate: item.canCreate === true,
     canEdit: item.canEdit === true,
@@ -2285,11 +2373,13 @@ const normalizeBranchStockTransferItem = (item: Partial<BranchStockTransferItem>
 
 const normalizeBranchStockTransfer = (item: Partial<BranchStockTransfer>): BranchStockTransfer => {
   const timestamp = item.createdAt || new Date().toISOString()
+  const sourceBranchId = String(item.sourceBranchId || DEFAULT_BRANCH_ID)
 
   return {
     id: String(item.id || `branch_transfer_${Date.now()}`),
+    tenantId: String(item.tenantId || '').trim() || resolveTenantIdForRecord({ ...item, branchId: sourceBranchId }),
     transferNo: String(item.transferNo || `TRF-${Date.now()}`).trim() || `TRF-${Date.now()}`,
-    sourceBranchId: String(item.sourceBranchId || DEFAULT_BRANCH_ID),
+    sourceBranchId,
     targetBranchId: String(item.targetBranchId || DEFAULT_BRANCH_ID),
     transferDate: String(item.transferDate || new Date().toLocaleDateString('sv-SE')),
     status: normalizeBranchStockTransferStatus(item.status),
@@ -2319,6 +2409,7 @@ const normalizeBusinessRegistration = (item: Partial<BusinessRegistration>): Bus
 
   return {
     id: String(item.id || `business_registration_${Date.now()}`),
+    tenantId: String(item.tenantId || '').trim() || resolveTenantIdForRecord(item),
     businessName: String(item.businessName || 'İsimsiz İşletme').trim() || 'İsimsiz İşletme',
     ownerName: String(item.ownerName || '').trim(),
     phone: String(item.phone || '').trim(),
@@ -2417,9 +2508,11 @@ const normalizeCompanyStatus = (value: unknown): CompanyStatus => {
 
 const normalizeCompany = (item: Partial<Company>): Company => {
   const timestamp = item.createdAt || new Date().toISOString()
+  const companyId = String(item.id || `company_${Date.now()}`)
 
   return {
-    id: String(item.id || `company_${Date.now()}`),
+    id: companyId,
+    tenantId: String(item.tenantId || '').trim() || resolveTenantIdForCompany(companyId),
     companyName: String(item.companyName || 'İsimsiz Firma').trim() || 'İsimsiz Firma',
     ownerName: String(item.ownerName || '').trim(),
     phone: String(item.phone || '').trim(),
@@ -2437,11 +2530,13 @@ const normalizeCompany = (item: Partial<Company>): Company => {
 
 const normalizeCompanySetup = (item: Partial<CompanySetup>): CompanySetup => {
   const timestamp = item.createdAt || new Date().toISOString()
+  const companyId = String(item.companyId || '')
 
   return {
     id: String(item.id || `company_setup_${Date.now()}`),
+    tenantId: String(item.tenantId || '').trim() || resolveTenantIdForCompany(companyId),
     registrationId: String(item.registrationId || ''),
-    companyId: String(item.companyId || ''),
+    companyId,
     branchId: String(item.branchId || ''),
     adminUserId: String(item.adminUserId || ''),
     temporaryPassword: String(item.temporaryPassword || ''),
@@ -2559,10 +2654,12 @@ const normalizeCompanyUserStatus = (value: unknown): CompanyUserStatus => {
 
 const normalizeCompanyUser = (item: Partial<CompanyUser>): CompanyUser => {
   const timestamp = item.createdAt || new Date().toISOString()
+  const companyId = String(item.companyId || '')
 
   return {
     id: String(item.id || `company_user_${Date.now()}`),
-    companyId: String(item.companyId || ''),
+    tenantId: String(item.tenantId || '').trim() || resolveTenantIdForCompany(companyId),
+    companyId,
     fullName: String(item.fullName || 'İsimsiz Kullanıcı').trim() || 'İsimsiz Kullanıcı',
     username: String(item.username || '').trim(),
     email: String(item.email || '').trim(),
@@ -2579,6 +2676,25 @@ const normalizeUserSubscriptionStatus = (value: unknown): UserSubscriptionStatus
   return USER_SUBSCRIPTION_STATUSES.includes(value as UserSubscriptionStatus) ? value as UserSubscriptionStatus : 'Beklemede'
 }
 
+function resolveTenantIdForUserSubscription(item: Partial<UserSubscription>){
+  const explicitTenantId = String(item.tenantId || '').trim()
+  if(explicitTenantId) return explicitTenantId
+
+  const companyIdByDemoLicense: Record<string, string> = {
+    company_license_abc_cafe_demo: 'company_abc_cafe_demo',
+    company_license_lezzet_restoran_demo: 'company_lezzet_restoran_demo',
+    company_license_kahve_duragi_demo: 'company_kahve_duragi_demo'
+  }
+  const companyLicenseId = String(item.companyLicenseId || '')
+  const storedLicense = readJson<Partial<CompanyLicense>[]>(KEY_COMPANY_LICENSES, [])
+    .find(license => license.id === companyLicenseId)
+  const companyId = String(storedLicense?.companyId || companyIdByDemoLicense[companyLicenseId] || '')
+
+  return companyId
+    ? resolveTenantIdForCompany(companyId)
+    : resolveTenantIdForRecord(item, { users: readUsersForTenantContext() })
+}
+
 const normalizeUserSubscription = (item: Partial<UserSubscription>): UserSubscription => {
   const timestamp = item.createdAt || new Date().toISOString()
   const assignedAt = normalizeSaasDateKey(item.assignedAt, new Date(timestamp)) || new Date(timestamp).toLocaleDateString('sv-SE')
@@ -2588,6 +2704,7 @@ const normalizeUserSubscription = (item: Partial<UserSubscription>): UserSubscri
 
   return {
     id: String(item.id || `user_subscription_${Date.now()}`),
+    tenantId: resolveTenantIdForUserSubscription(item),
     userId: String(item.userId || ''),
     companyLicenseId: String(item.companyLicenseId || ''),
     status: status === 'Aktif' && expiresAt && expiresAt < today ? 'Süresi Doldu' : status,
@@ -2823,6 +2940,7 @@ const normalizeCompanyLicense = (item: Partial<CompanyLicense>): CompanyLicense 
 
   return {
     id: String(item.id || `company_license_${Date.now()}`),
+    tenantId: String(item.tenantId || '').trim() || resolveTenantIdForCompany(companyId),
     companyId,
     packageId,
     licenseKey: String(item.licenseKey || createLicenseKey(companyId, packageId, new Date(timestamp).getTime())).trim(),
@@ -3099,6 +3217,115 @@ const createDemoUserSubscriptions = (
   })
 }
 
+const normalizePlatformModuleStatus = (item: Partial<PlatformModuleStatus>): PlatformModuleStatus => {
+  const timestamp = item.createdAt || new Date().toISOString()
+  const moduleKey = LICENSE_MODULE_CATALOG.some(module => module.key === item.moduleKey)
+    ? item.moduleKey as LicenseModuleKey
+    : 'adisyon'
+  const catalogItem = LICENSE_MODULE_CATALOG.find(module => module.key === moduleKey)
+
+  return {
+    id: String(item.id || `platform_module_${moduleKey}`),
+    moduleKey,
+    moduleName: String(item.moduleName || catalogItem?.name || 'Adisyon').trim() || catalogItem?.name || 'Adisyon',
+    active: item.active !== false,
+    createdAt: timestamp,
+    updatedAt: item.updatedAt || timestamp
+  }
+}
+
+const createDefaultPlatformModules = (now = new Date().toISOString()): PlatformModuleStatus[] => {
+  return LICENSE_MODULE_CATALOG.map(module => normalizePlatformModuleStatus({
+    id: `platform_module_${module.key}`,
+    moduleKey: module.key,
+    moduleName: module.name,
+    active: true,
+    createdAt: now,
+    updatedAt: now
+  }))
+}
+
+const normalizePlatformSupportTicketStatus = (value: unknown): PlatformSupportTicketStatus => {
+  return PLATFORM_SUPPORT_TICKET_STATUSES.includes(value as PlatformSupportTicketStatus)
+    ? value as PlatformSupportTicketStatus
+    : 'Açık'
+}
+
+const normalizePlatformSupportTicketPriority = (value: unknown): PlatformSupportTicket['priority'] => {
+  return value === 'Düşük' || value === 'Yüksek' ? value : 'Orta'
+}
+
+const normalizePlatformSupportTicket = (item: Partial<PlatformSupportTicket>): PlatformSupportTicket => {
+  const timestamp = item.createdAt || new Date().toISOString()
+  const companyId = String(item.companyId || '').trim()
+
+  return {
+    id: String(item.id || `platform_support_ticket_${Date.now()}`),
+    tenantId: String(item.tenantId || '').trim() || resolveTenantIdForCompany(companyId),
+    companyId,
+    subject: String(item.subject || 'Destek talebi').trim() || 'Destek talebi',
+    message: String(item.message || '').trim(),
+    status: normalizePlatformSupportTicketStatus(item.status),
+    priority: normalizePlatformSupportTicketPriority(item.priority),
+    createdAt: timestamp,
+    updatedAt: item.updatedAt || timestamp
+  }
+}
+
+const createDemoPlatformSupportTickets = (now = new Date().toISOString()): PlatformSupportTicket[] => {
+  const firstDate = new Date(now)
+  firstDate.setDate(firstDate.getDate() - 2)
+  const secondDate = new Date(now)
+  secondDate.setDate(secondDate.getDate() - 5)
+
+  return [
+    normalizePlatformSupportTicket({
+      id: 'platform_support_ticket_abc_demo',
+      companyId: 'company_abc_cafe_demo',
+      subject: 'QR menü güncelleme kontrolü',
+      message: 'ABC Cafe menü görsellerinin mobilde daha hızlı açılması için destek istiyor.',
+      status: 'Açık',
+      priority: 'Orta',
+      createdAt: firstDate.toISOString(),
+      updatedAt: firstDate.toISOString()
+    }),
+    normalizePlatformSupportTicket({
+      id: 'platform_support_ticket_lezzet_demo',
+      companyId: 'company_lezzet_restoran_demo',
+      subject: 'Çoklu şube raporu',
+      message: 'Lezzet Restoran şube raporunda tarih filtresi doğrulaması istedi.',
+      status: 'İnceleniyor',
+      priority: 'Yüksek',
+      createdAt: secondDate.toISOString(),
+      updatedAt: secondDate.toISOString()
+    })
+  ]
+}
+
+const normalizePlatformSettings = (item: Partial<PlatformSettings>): PlatformSettings => {
+  const timestamp = item.createdAt || new Date().toISOString()
+
+  return {
+    id: String(item.id || 'platform_settings_default'),
+    defaultCurrency: String(item.defaultCurrency || 'TRY').trim().toLocaleUpperCase('tr-TR') || 'TRY',
+    defaultLanguage: String(item.defaultLanguage || 'tr-TR').trim() || 'tr-TR',
+    maintenanceMode: item.maintenanceMode === true,
+    defaultTheme: String(item.defaultTheme || 'EVREN360').trim() || 'EVREN360',
+    createdAt: timestamp,
+    updatedAt: item.updatedAt || timestamp
+  }
+}
+
+const createDefaultPlatformSettings = (now = new Date().toISOString()): PlatformSettings => normalizePlatformSettings({
+  id: 'platform_settings_default',
+  defaultCurrency: 'TRY',
+  defaultLanguage: 'tr-TR',
+  maintenanceMode: false,
+  defaultTheme: 'EVREN360',
+  createdAt: now,
+  updatedAt: now
+})
+
 const normalizeActionLog = (item: Partial<ActionLog>): ActionLog => {
   const timestamp = item.timestamp || new Date().toISOString()
   const date = item.date || new Date(timestamp).toLocaleDateString('sv-SE')
@@ -3106,6 +3333,7 @@ const normalizeActionLog = (item: Partial<ActionLog>): ActionLog => {
 
   return {
     id: String(item.id || `log_${Date.now()}`),
+    tenantId: String(item.tenantId || '').trim() || resolveTenantIdForRecord(item, { users: readUsersForTenantContext() }),
     operationType: item.operationType || 'Sipariş eklendi',
     userId: String(item.userId || ''),
     userName: String(item.userName || 'Bilinmeyen Kullanıcı'),
@@ -3132,6 +3360,7 @@ const normalizeSystemUsageActionType = (value: unknown): SystemUsageActionType =
 
 const normalizeSystemUsageLog = (item: Partial<SystemUsageLog>): SystemUsageLog => ({
   id: String(item.id || `system_usage_${Date.now()}`),
+  tenantId: String(item.tenantId || '').trim() || resolveTenantIdForRecord(item, { users: readUsersForTenantContext() }),
   userId: String(item.userId || ''),
   userName: String(item.userName || 'Bilinmeyen Kullanıcı'),
   branchId: String(item.branchId || DEFAULT_BRANCH_ID),
@@ -3311,43 +3540,59 @@ export const saveCollectionTransactions = (items: CollectionTransaction[]) => {
 export const loadCategories = (): ProductCategory[] => {
   const stored = readJson<Partial<ProductCategory>[]>(KEY_CATEGORIES, [])
   const categories = stored.map(normalizeCategory)
+  const currentUser = getCurrentUser()
+  const visibleCategories = currentUser ? filterTenantScope(categories, currentUser) : categories
 
-  if(!categories.find(c => c.id === DEFAULT_CATEGORY_ID)){
-    categories.unshift(createDefaultCategory())
+  if(!visibleCategories.find(c => c.id === DEFAULT_CATEGORY_ID)){
+    visibleCategories.unshift(addTenantScope(createDefaultCategory(), currentUser))
   }
 
-  return categories
+  return visibleCategories
 }
 
 export const saveCategories = (items: ProductCategory[]) => {
-  const categories = items.map(normalizeCategory)
+  const currentUser = getCurrentUser()
+  const categories = items.map(item => addTenantScope(normalizeCategory(item), currentUser))
 
   if(!categories.find(c => c.id === DEFAULT_CATEGORY_ID)){
-    categories.unshift(createDefaultCategory())
+    categories.unshift(addTenantScope(createDefaultCategory(), currentUser))
   }
 
-  localStorage.setItem(KEY_CATEGORIES, JSON.stringify(categories))
+  const tenantIds = new Set(categories.map(category => category.tenantId || DEFAULT_TENANT_ID))
+  const preservedCategories = readJson<Partial<ProductCategory>[]>(KEY_CATEGORIES, [])
+    .map(normalizeCategory)
+    .filter(category => !tenantIds.has(category.tenantId || DEFAULT_TENANT_ID))
+
+  localStorage.setItem(KEY_CATEGORIES, JSON.stringify([...categories, ...preservedCategories]))
 }
 
 export const loadStockCategories = (): StockCategory[] => {
   const stored = readJson<Partial<StockCategory>[]>(KEY_STOCK_CATEGORIES, [])
   const categories = stored.map(normalizeStockCategory)
+  const currentUser = getCurrentUser()
+  const visibleCategories = currentUser ? filterTenantScope(categories, currentUser) : categories
 
-  if(!categories.find(c => c.id === DEFAULT_STOCK_CATEGORY_ID)){
-    categories.unshift(createDefaultStockCategory())
+  if(!visibleCategories.find(c => c.id === DEFAULT_STOCK_CATEGORY_ID)){
+    visibleCategories.unshift(addTenantScope(createDefaultStockCategory(), currentUser))
   }
 
-  return categories
+  return visibleCategories
 }
 
 export const saveStockCategories = (items: StockCategory[]) => {
-  const categories = items.map(normalizeStockCategory)
+  const currentUser = getCurrentUser()
+  const categories = items.map(item => addTenantScope(normalizeStockCategory(item), currentUser))
 
   if(!categories.find(c => c.id === DEFAULT_STOCK_CATEGORY_ID)){
-    categories.unshift(createDefaultStockCategory())
+    categories.unshift(addTenantScope(createDefaultStockCategory(), currentUser))
   }
 
-  localStorage.setItem(KEY_STOCK_CATEGORIES, JSON.stringify(categories))
+  const tenantIds = new Set(categories.map(category => category.tenantId || DEFAULT_TENANT_ID))
+  const preservedCategories = readJson<Partial<StockCategory>[]>(KEY_STOCK_CATEGORIES, [])
+    .map(normalizeStockCategory)
+    .filter(category => !tenantIds.has(category.tenantId || DEFAULT_TENANT_ID))
+
+  localStorage.setItem(KEY_STOCK_CATEGORIES, JSON.stringify([...categories, ...preservedCategories]))
 }
 
 export const loadStockItems = (): StockItem[] => {
@@ -3609,12 +3854,31 @@ export const saveSettings = (settings: SystemSettings) => {
   localStorage.setItem(KEY_SETTINGS, JSON.stringify(normalizeSettings(settings)))
 }
 
-export const loadUsers = (): User[] => {
-  return readJson<User[]>(KEY_USERS, [])
+const normalizeUser = (item: Partial<User>): User => {
+  const companyId = String(item.companyId || '').trim()
+
+  return {
+    id: String(item.id || `user_${Date.now()}`),
+    tenantId: String(item.tenantId || '').trim() || resolveTenantIdForCompany(companyId),
+    companyId: companyId || undefined,
+    fullName: String(item.fullName || item.username || 'KullanÄ±cÄ±').trim() || 'KullanÄ±cÄ±',
+    username: String(item.username || '').trim(),
+    password: String(item.password || ''),
+    role: item.role === 'Garson' ? 'Garson' : 'Admin',
+    active: item.active !== false
+  }
+}
+
+export const loadUsers = (options: { allTenants?: boolean } = {}): User[] => {
+  const users = readJson<Partial<User>[]>(KEY_USERS, []).map(normalizeUser)
+  if(options.allTenants) return users
+
+  const currentUser = getCurrentUser()
+  return currentUser ? filterTenantScope(users, currentUser) : users
 }
 
 export const saveUsers = (items: User[]) => {
-  localStorage.setItem(KEY_USERS, JSON.stringify(items))
+  localStorage.setItem(KEY_USERS, JSON.stringify(items.map(normalizeUser)))
 }
 
 export const loadBranches = (): Branch[] => {
@@ -3634,16 +3898,21 @@ export const saveBranchPermissions = (items: BranchPermission[]) => {
 }
 
 export const loadBranchStockTransfers = (): BranchStockTransfer[] => {
-  return readJson<Partial<BranchStockTransfer>[]>(KEY_BRANCH_STOCK_TRANSFERS, []).map(normalizeBranchStockTransfer)
+  return filterTenantScope(readJson<Partial<BranchStockTransfer>[]>(KEY_BRANCH_STOCK_TRANSFERS, []).map(normalizeBranchStockTransfer))
 }
 
 export const saveBranchStockTransfers = (items: BranchStockTransfer[]) => {
-  localStorage.setItem(KEY_BRANCH_STOCK_TRANSFERS, JSON.stringify(items.map(normalizeBranchStockTransfer)))
+  const normalizedItems = items.map(normalizeBranchStockTransfer)
+  normalizedItems.forEach(item => assertTenantScope(item))
+  localStorage.setItem(KEY_BRANCH_STOCK_TRANSFERS, JSON.stringify(normalizedItems))
 }
 
 export const loadBusinessRegistrations = (): BusinessRegistration[] => {
-  if(localStorage.getItem(KEY_BUSINESS_REGISTRATIONS) === null) return createDemoBusinessRegistrations()
-  return readJson<Partial<BusinessRegistration>[]>(KEY_BUSINESS_REGISTRATIONS, []).map(normalizeBusinessRegistration)
+  const registrations = localStorage.getItem(KEY_BUSINESS_REGISTRATIONS) === null
+    ? createDemoBusinessRegistrations()
+    : readJson<Partial<BusinessRegistration>[]>(KEY_BUSINESS_REGISTRATIONS, []).map(normalizeBusinessRegistration)
+  const currentUser = getCurrentUser()
+  return currentUser ? filterTenantScope(registrations, currentUser) : registrations
 }
 
 export const saveBusinessRegistrations = (items: BusinessRegistration[]) => {
@@ -3651,8 +3920,11 @@ export const saveBusinessRegistrations = (items: BusinessRegistration[]) => {
 }
 
 export const loadCompanies = (): Company[] => {
-  if(localStorage.getItem(KEY_COMPANIES) === null) return createDemoCompanies()
-  return readJson<Partial<Company>[]>(KEY_COMPANIES, []).map(normalizeCompany)
+  const companies = localStorage.getItem(KEY_COMPANIES) === null
+    ? createDemoCompanies()
+    : readJson<Partial<Company>[]>(KEY_COMPANIES, []).map(normalizeCompany)
+  const currentUser = getCurrentUser()
+  return currentUser ? filterTenantScope(companies, currentUser) : companies
 }
 
 export const saveCompanies = (items: Company[]) => {
@@ -3660,12 +3932,31 @@ export const saveCompanies = (items: Company[]) => {
 }
 
 export const loadCompanySetups = (): CompanySetup[] => {
-  if(localStorage.getItem(KEY_COMPANY_SETUPS) === null) return createDemoCompanySetups()
-  return readJson<Partial<CompanySetup>[]>(KEY_COMPANY_SETUPS, []).map(normalizeCompanySetup)
+  const setups = localStorage.getItem(KEY_COMPANY_SETUPS) === null
+    ? createDemoCompanySetups()
+    : readJson<Partial<CompanySetup>[]>(KEY_COMPANY_SETUPS, []).map(normalizeCompanySetup)
+  const currentUser = getCurrentUser()
+  return currentUser ? filterTenantScope(setups, currentUser) : setups
 }
 
 export const saveCompanySetups = (items: CompanySetup[]) => {
   localStorage.setItem(KEY_COMPANY_SETUPS, JSON.stringify(items.map(normalizeCompanySetup)))
+}
+
+export const loadTenants = (): Tenant[] => {
+  return loadTenantsFromHelper()
+}
+
+export const saveTenants = (items: Tenant[]) => {
+  saveTenantsFromHelper(items.map(normalizeTenant))
+}
+
+export const loadTenantSettings = (): TenantSettings[] => {
+  return loadTenantSettingsFromHelper()
+}
+
+export const saveTenantSettings = (items: TenantSettings[]) => {
+  saveTenantSettingsFromHelper(items.map(normalizeTenantSettings))
 }
 
 export const loadLicensePackages = (): LicensePackage[] => {
@@ -3721,8 +4012,11 @@ export const saveLicenseModules = (items: LicenseModule[]) => {
 }
 
 export const loadCompanyLicenses = (): CompanyLicense[] => {
-  if(localStorage.getItem(KEY_COMPANY_LICENSES) === null) return createDemoCompanyLicenses().map(normalizeCompanyLicenseWithRuntimeStatus)
-  return readJson<Partial<CompanyLicense>[]>(KEY_COMPANY_LICENSES, []).map(normalizeCompanyLicenseWithRuntimeStatus)
+  const licenses = localStorage.getItem(KEY_COMPANY_LICENSES) === null
+    ? createDemoCompanyLicenses().map(normalizeCompanyLicenseWithRuntimeStatus)
+    : readJson<Partial<CompanyLicense>[]>(KEY_COMPANY_LICENSES, []).map(normalizeCompanyLicenseWithRuntimeStatus)
+  const currentUser = getCurrentUser()
+  return currentUser ? filterTenantScope(licenses, currentUser) : licenses
 }
 
 export const saveCompanyLicenses = (items: CompanyLicense[]) => {
@@ -3730,8 +4024,11 @@ export const saveCompanyLicenses = (items: CompanyLicense[]) => {
 }
 
 export const loadCompanyUsers = (): CompanyUser[] => {
-  if(localStorage.getItem(KEY_COMPANY_USERS) === null) return createDemoCompanyUsers()
-  return readJson<Partial<CompanyUser>[]>(KEY_COMPANY_USERS, []).map(normalizeCompanyUser)
+  const users = localStorage.getItem(KEY_COMPANY_USERS) === null
+    ? createDemoCompanyUsers()
+    : readJson<Partial<CompanyUser>[]>(KEY_COMPANY_USERS, []).map(normalizeCompanyUser)
+  const currentUser = getCurrentUser()
+  return currentUser ? filterTenantScope(users, currentUser) : users
 }
 
 export const saveCompanyUsers = (items: CompanyUser[]) => {
@@ -3739,12 +4036,57 @@ export const saveCompanyUsers = (items: CompanyUser[]) => {
 }
 
 export const loadUserSubscriptions = (): UserSubscription[] => {
-  if(localStorage.getItem(KEY_USER_SUBSCRIPTIONS) === null) return createDemoUserSubscriptions(loadCompanyLicenses())
-  return readJson<Partial<UserSubscription>[]>(KEY_USER_SUBSCRIPTIONS, []).map(normalizeUserSubscription)
+  const subscriptions = localStorage.getItem(KEY_USER_SUBSCRIPTIONS) === null
+    ? createDemoUserSubscriptions(loadCompanyLicenses())
+    : readJson<Partial<UserSubscription>[]>(KEY_USER_SUBSCRIPTIONS, []).map(normalizeUserSubscription)
+  const currentUser = getCurrentUser()
+  return currentUser ? filterTenantScope(subscriptions, currentUser) : subscriptions
 }
 
 export const saveUserSubscriptions = (items: UserSubscription[]) => {
   localStorage.setItem(KEY_USER_SUBSCRIPTIONS, JSON.stringify(items.map(normalizeUserSubscription)))
+}
+
+export const loadPlatformModules = (): PlatformModuleStatus[] => {
+  const defaults = createDefaultPlatformModules()
+  const sourceModules = localStorage.getItem(KEY_PLATFORM_MODULES) === null
+    ? defaults
+    : readJson<Partial<PlatformModuleStatus>[]>(KEY_PLATFORM_MODULES, []).map(normalizePlatformModuleStatus)
+  const moduleMap = new Map(sourceModules.map(module => [module.moduleKey, module]))
+
+  return LICENSE_MODULE_CATALOG.map(module => moduleMap.get(module.key) || normalizePlatformModuleStatus({
+    id: `platform_module_${module.key}`,
+    moduleKey: module.key,
+    moduleName: module.name,
+    active: true
+  }))
+}
+
+export const savePlatformModules = (items: PlatformModuleStatus[]) => {
+  localStorage.setItem(KEY_PLATFORM_MODULES, JSON.stringify(items.map(normalizePlatformModuleStatus)))
+}
+
+export const loadPlatformSupportTickets = (): PlatformSupportTicket[] => {
+  const tickets = localStorage.getItem(KEY_PLATFORM_SUPPORT_TICKETS) === null
+    ? createDemoPlatformSupportTickets()
+    : readJson<Partial<PlatformSupportTicket>[]>(KEY_PLATFORM_SUPPORT_TICKETS, []).map(normalizePlatformSupportTicket)
+  const currentUser = getCurrentUser()
+  return currentUser ? filterTenantScope(tickets, currentUser) : tickets
+}
+
+export const savePlatformSupportTickets = (items: PlatformSupportTicket[]) => {
+  localStorage.setItem(KEY_PLATFORM_SUPPORT_TICKETS, JSON.stringify(items.map(normalizePlatformSupportTicket)))
+}
+
+export const loadPlatformSettings = (): PlatformSettings => {
+  const settings = localStorage.getItem(KEY_PLATFORM_SETTINGS) === null
+    ? createDefaultPlatformSettings()
+    : normalizePlatformSettings(readJson<Partial<PlatformSettings>>(KEY_PLATFORM_SETTINGS, {}))
+  return settings
+}
+
+export const savePlatformSettings = (settings: PlatformSettings) => {
+  localStorage.setItem(KEY_PLATFORM_SETTINGS, JSON.stringify(normalizePlatformSettings(settings)))
 }
 
 export type ModuleAccessMode = 'enabled' | 'readonly' | 'disabled'
@@ -3968,7 +4310,7 @@ const getCompanyUserIds = (companyId: string) => {
     .filter(setup => setup.setupCompleted && setup.companyId === companyId && setup.adminUserId)
     .map(setup => setup.adminUserId))
 
-  return new Set(loadUsers()
+  return new Set(loadUsers({ allTenants: true })
     .filter(user => user.companyId === companyId || setupUserIds.has(user.id))
     .map(user => user.id)
     .concat(Array.from(setupUserIds)))
@@ -3979,7 +4321,7 @@ export const getCompanyLicenseUsage = (companyId: string) => {
   const userIds = getCompanyUserIds(companyId)
   const allTables = loadAllBranchScopedItems<TableState>(KEY_TABLES, normalizeTableState)
   const companyUserCount = loadCompanyUsers().filter(user => user.companyId === companyId && user.status !== 'Silindi').length
-  const authUserCount = loadUsers().filter(user => user.active !== false && (user.companyId === companyId || userIds.has(user.id))).length
+  const authUserCount = loadUsers({ allTenants: true }).filter(user => user.active !== false && (user.companyId === companyId || userIds.has(user.id))).length
 
   return {
     users: companyUserCount > 0 ? companyUserCount : authUserCount,
@@ -4205,8 +4547,109 @@ export const loadBranchReportingData = () => {
   }
 }
 
+export type TenantIsolationTestResult = {
+  sourceTenantId: string
+  targetTenantId: string
+  visibleRecordCount: number
+  blockedRecordId: string
+  blockedRecordType: string
+  allowedRecordTypes: string[]
+  denied: boolean
+  message: string
+}
+
+export const runTenantIsolationTest = ({
+  sourceTenantId,
+  targetTenantId,
+  user
+}: {
+  sourceTenantId: string
+  targetTenantId: string
+  user: User
+}): TenantIsolationTestResult => {
+  const categories = loadCategories()
+  const fallbackCategoryId = categories.find(category => category.id === DEFAULT_CATEGORY_ID)?.id
+    || categories[0]?.id
+    || DEFAULT_CATEGORY_ID
+  const stockCategories = loadStockCategories()
+  const fallbackStockCategoryId = stockCategories.find(category => category.id === DEFAULT_STOCK_CATEGORY_ID)?.id
+    || stockCategories[0]?.id
+    || DEFAULT_STOCK_CATEGORY_ID
+  const branches = readBranchesFromStorage()
+  const users = loadUsers({ allTenants: true })
+  const context = { branches, users, includePlatformAdmin: false }
+  const recordGroups: Array<{ type: string; records: TenantScopedRecord[] }> = [
+    { type: 'Users', records: users },
+    { type: 'Branches', records: branches },
+    { type: 'Tables', records: loadAllBranchScopedItems<TableState>(KEY_TABLES, normalizeTableState) },
+    { type: 'Products', records: loadAllBranchScopedItems<Product>(KEY_PRODUCTS, item => normalizeProduct(item, fallbackCategoryId)) },
+    { type: 'Categories', records: categories },
+    { type: 'Stocks', records: loadAllBranchScopedItems<StockItem>(KEY_STOCK_ITEMS, item => normalizeStockItem(item, fallbackStockCategoryId)) },
+    { type: 'Recipes', records: loadAllBranchScopedItems<Recipe>(KEY_RECIPES, normalizeRecipe) },
+    { type: 'Customers', records: loadAllBranchScopedItemsWithDemo<CurrentAccount>(KEY_CURRENT_ACCOUNTS, createDemoCurrentAccounts, normalizeCurrentAccount) },
+    { type: 'CashMovements', records: loadAllBranchScopedItems<CashTransaction>(KEY_CASH_TRANSACTIONS, normalizeCashTransaction) },
+    { type: 'ActionHistory', records: loadActionLogs() }
+  ]
+  const visibleRecords = recordGroups.flatMap(group => (
+    filterByTenant(group.records, { ...context, tenantId: sourceTenantId })
+      .map(record => ({ type: group.type, record }))
+  ))
+  const blockedRecord = recordGroups
+    .flatMap(group => group.records.map(record => ({ type: group.type, record })))
+    .find(item => resolveTenantIdForRecord(item.record, context) === targetTenantId)
+  let denied = false
+
+  if(blockedRecord){
+    try {
+      assertTenantAccess(blockedRecord.record, {
+        ...context,
+        tenantId: sourceTenantId,
+        user,
+        includePlatformAdmin: false
+      })
+    } catch {
+      denied = true
+    }
+  } else {
+    denied = true
+  }
+
+  if(denied){
+    addActionLog({
+      operationType: 'Tenant erişimi engellendi',
+      user,
+      tenantId: sourceTenantId,
+      tableId: blockedRecord?.record.id,
+      tableName: blockedRecord?.type || 'Tenant',
+      description: `${sourceTenantId} tenant kapsamından ${targetTenantId} tenant kaydına erişim reddedildi.`
+    })
+  }
+
+  addActionLog({
+    operationType: 'Veri izolasyonu doğrulandı',
+    user,
+    tenantId: sourceTenantId,
+    tableId: sourceTenantId,
+    tableName: 'Tenant İzolasyonu',
+    description: `${sourceTenantId} için ${visibleRecords.length} görünür kayıt kontrol edildi. Hedef tenant: ${targetTenantId}. Sonuç: ${denied ? 'başarılı' : 'riskli'}.`
+  })
+
+  return {
+    sourceTenantId,
+    targetTenantId,
+    visibleRecordCount: visibleRecords.length,
+    blockedRecordId: blockedRecord?.record.id || '',
+    blockedRecordType: blockedRecord?.type || '',
+    allowedRecordTypes: Array.from(new Set(visibleRecords.map(item => item.type))),
+    denied,
+    message: denied
+      ? 'Başka tenant kaydına erişim reddedildi; izolasyon doğrulandı.'
+      : 'Hedef tenant kaydına erişim engellenemedi; izolasyon riski var.'
+  }
+}
+
 export const ensureDefaultAdmin = () => {
-  const users = loadUsers()
+  const users = loadUsers({ allTenants: true })
   if(!users.find(u => u.username === 'admin')){
     const admin: User = { id: 'u_admin', fullName: 'Yönetici', username: 'admin', password: 'admin123', role: 'Admin', active: true }
     saveUsers([admin, ...users])
@@ -4223,7 +4666,7 @@ export const getCurrentUser = (): User | null => {
 }
 
 export const authenticateUser = (username: string, password: string): User | null => {
-  const users = loadUsers()
+  const users = loadUsers({ allTenants: true })
   const u = users.find(x => x.username === username && x.password === password && x.active)
   if(u){
     setCurrentUser(u)
@@ -4233,23 +4676,25 @@ export const authenticateUser = (username: string, password: string): User | nul
 }
 
 export const updateUser = (user: User) => {
-  const users = loadUsers()
+  const users = loadUsers({ allTenants: true })
   const next = users.map(u=> u.id===user.id ? user : u)
   saveUsers(next)
 }
 
 export const addUser = (user: User) => {
-  const users = loadUsers()
+  const users = loadUsers({ allTenants: true })
   saveUsers([user, ...users])
 }
 
 export const deleteUser = (id: string) => {
-  const users = loadUsers()
+  const users = loadUsers({ allTenants: true })
   saveUsers(users.filter(u => u.id !== id))
 }
 
 export const loadActionLogs = (): ActionLog[] => {
-  return readJson<Partial<ActionLog>[]>(KEY_LOGS, []).map(normalizeActionLog)
+  const logs = readJson<Partial<ActionLog>[]>(KEY_LOGS, []).map(normalizeActionLog)
+  const currentUser = getCurrentUser()
+  return currentUser ? filterTenantScope(logs, currentUser) : logs
 }
 
 export const saveActionLogs = (items: ActionLog[]) => {
@@ -4721,12 +5166,14 @@ export const loadSystemHealthMetrics = () => {
 export const addActionLog = ({
   operationType,
   user,
+  tenantId,
   tableId,
   tableName,
   description
 }: {
   operationType: ActionLogType
   user: User
+  tenantId?: string
   tableId?: string
   tableName?: string
   description: string
@@ -4734,6 +5181,11 @@ export const addActionLog = ({
   const now = new Date()
   const log: ActionLog = {
     id: `log_${Date.now()}_${Math.random().toString(16).slice(2)}`,
+    tenantId: tenantId || resolveTenantIdForRecord({
+      tenantId: user.tenantId,
+      companyId: user.companyId,
+      userId: user.id
+    }, { user, users: readUsersForTenantContext() }),
     operationType,
     userId: user.id,
     userName: user.fullName || user.username,
@@ -4852,7 +5304,7 @@ export const completeCompanySetupFromRegistration = ({
 
   const companies = loadCompanies()
   const branches = loadBranches()
-  const users = loadUsers()
+  const users = loadUsers({ allTenants: true })
   const now = new Date().toISOString()
   const temporaryPassword = generateTemporaryCompanyPassword()
   const companyId = createCompanySetupStorageId('company')

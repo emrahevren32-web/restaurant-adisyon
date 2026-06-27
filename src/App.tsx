@@ -23,6 +23,8 @@ import CompanySetupWizard from './pages/CompanySetupWizard'
 import PackageLicenseManagement from './pages/PackageLicenseManagement'
 import UserSubscriptionManagement from './pages/UserSubscriptionManagement'
 import ModuleActivationSystem from './pages/ModuleActivationSystem'
+import TenantManagement from './pages/TenantManagement'
+import SaasManagementCenter, { SaasManagementView } from './pages/SaasManagementCenter'
 import StaffTracking from './pages/StaffTracking'
 import EmployeeCards from './pages/EmployeeCards'
 import ShiftManagement from './pages/ShiftManagement'
@@ -117,6 +119,18 @@ type Route =
   | 'package-license-management'
   | 'user-subscription-management'
   | 'module-activation-system'
+  | 'tenant-management'
+  | 'evren360-dashboard'
+  | 'evren360-applications'
+  | 'evren360-companies'
+  | 'evren360-packages'
+  | 'evren360-modules'
+  | 'evren360-licenses'
+  | 'evren360-subscriptions'
+  | 'evren360-users'
+  | 'evren360-support'
+  | 'evren360-stats'
+  | 'evren360-settings'
   | 'employee-cards'
   | 'shift-management'
   | 'attendance-tracking'
@@ -185,6 +199,18 @@ type NavKey =
   | 'package-license-management'
   | 'user-subscription-management'
   | 'module-activation-system'
+  | 'tenant-management'
+  | 'evren360-dashboard'
+  | 'evren360-applications'
+  | 'evren360-companies'
+  | 'evren360-packages'
+  | 'evren360-modules'
+  | 'evren360-licenses'
+  | 'evren360-subscriptions'
+  | 'evren360-users'
+  | 'evren360-support'
+  | 'evren360-stats'
+  | 'evren360-settings'
   | 'employee-cards'
   | 'shift-management'
   | 'attendance-tracking'
@@ -213,6 +239,7 @@ type NavGroupKey =
   | 'finance'
   | 'reports'
   | 'usage-analytics'
+  | 'evren360-admin'
   | 'saas-management'
   | 'personnel'
   | 'multi-branch'
@@ -416,6 +443,24 @@ const navGroups: NavGroup[] = [
     ]
   },
   {
+    key: 'evren360-admin',
+    title: 'EVREN360 Yönetici Paneli',
+    icon: 'E3',
+    items: [
+      { key: 'evren360-dashboard', label: 'Dashboard', route: 'evren360-dashboard', icon: 'DB', adminOnly: true, platformAdminOnly: true },
+      { key: 'evren360-applications', label: 'Başvurular', route: 'evren360-applications', icon: 'BV', adminOnly: true, platformAdminOnly: true },
+      { key: 'evren360-companies', label: 'Firmalar', route: 'evren360-companies', icon: 'FR', adminOnly: true, platformAdminOnly: true },
+      { key: 'evren360-packages', label: 'Paketler', route: 'evren360-packages', icon: 'PK', adminOnly: true, platformAdminOnly: true },
+      { key: 'evren360-modules', label: 'Modüller', route: 'evren360-modules', icon: 'MD', adminOnly: true, platformAdminOnly: true },
+      { key: 'evren360-licenses', label: 'Lisanslar', route: 'evren360-licenses', icon: 'LS', adminOnly: true, platformAdminOnly: true },
+      { key: 'evren360-subscriptions', label: 'Abonelikler', route: 'evren360-subscriptions', icon: 'AB', adminOnly: true, platformAdminOnly: true },
+      { key: 'evren360-users', label: 'Kullanıcılar', route: 'evren360-users', icon: 'KU', adminOnly: true, platformAdminOnly: true },
+      { key: 'evren360-support', label: 'Destek Talepleri', route: 'evren360-support', icon: 'DT', adminOnly: true, platformAdminOnly: true },
+      { key: 'evren360-stats', label: 'İstatistikler', route: 'evren360-stats', icon: 'IS', adminOnly: true, platformAdminOnly: true },
+      { key: 'evren360-settings', label: 'Sistem Ayarları', route: 'evren360-settings', icon: 'SA', adminOnly: true, platformAdminOnly: true }
+    ]
+  },
+  {
     key: 'saas-management',
     title: 'SAAS Yönetim Paneli',
     icon: 'SP',
@@ -470,7 +515,46 @@ const navGroups: NavGroup[] = [
   }
 ]
 
+const saasManagementGroup = navGroups.find(group => group.key === 'saas-management')
+saasManagementGroup?.items.push({
+  key: 'tenant-management',
+  label: 'Tenant Yönetimi',
+  route: 'tenant-management',
+  icon: 'TY',
+  adminOnly: true,
+  platformAdminOnly: true
+})
+saasManagementGroup?.items.forEach(item => {
+  item.platformAdminOnly = true
+})
+
+const isPlatformAdminUser = (user?: User | null) => {
+  return user?.role === 'Admin' && !getCompanyIdForUser(user)
+}
+
+const evren360RouteViews: Partial<Record<Route, SaasManagementView>> = {
+  'evren360-dashboard': 'dashboard',
+  'evren360-applications': 'applications',
+  'evren360-companies': 'companies',
+  'evren360-packages': 'packages',
+  'evren360-modules': 'modules',
+  'evren360-licenses': 'licenses',
+  'evren360-subscriptions': 'subscriptions',
+  'evren360-users': 'users',
+  'evren360-support': 'support',
+  'evren360-stats': 'stats',
+  'evren360-settings': 'settings'
+}
+
 const getDefaultNavigation = (user: User | null) => {
+  if(isPlatformAdminUser(user)){
+    return {
+      route: 'evren360-dashboard' as Route,
+      activeNavKey: 'evren360-dashboard' as NavKey,
+      openGroupKey: 'evren360-admin' as NavGroupKey
+    }
+  }
+
   if(user?.role === 'Admin' && canUserAccessLicensedModule(user, 'boss-dashboard')){
     return {
       route: 'business-summary' as Route,
@@ -501,6 +585,14 @@ const LicenseAccessDenied = ({ moduleKey }: { moduleKey?: LicenseModuleKey }) =>
   )
 }
 
+const PlatformAccessDenied = () => (
+  <section className="card license-denied-page">
+    <span className="status-pill danger-pill">403</span>
+    <h2>Erişim Engellendi</h2>
+    <p>EVREN360 Yönetici Paneli yalnızca Super Admin kullanıcısı tarafından görüntülenebilir.</p>
+  </section>
+)
+
 export default function App(){
   const qrRouteMatch = window.location.pathname.match(/^\/qr\/([^/?#]+)/)
   const initialUser = React.useMemo(() => getCurrentUser(), [])
@@ -513,6 +605,8 @@ export default function App(){
   const [branches, setBranches] = React.useState<Branch[]>(() => getVisibleBranchesForUser(initialUser))
   const [activeBranchId, setActiveBranchState] = React.useState(() => getActiveBranchId())
   const [licenseAccessError, setLicenseAccessError] = React.useState('')
+  const isPlatformAdmin = isPlatformAdminUser(currentUser)
+  const evren360View = evren360RouteViews[route]
 
   React.useEffect(()=>{
     loadProducts()
@@ -556,9 +650,17 @@ export default function App(){
     setBranches(getVisibleBranchesForUser(currentUser))
   }
   const navGroupsForCurrentUser = React.useMemo<NavGroup[]>(() => {
-    return navGroups.map(group => ({
+    const scopedGroups = isPlatformAdmin
+      ? navGroups.filter(group => group.key === 'evren360-admin')
+      : navGroups
+
+    return scopedGroups.map(group => ({
       ...group,
       items: group.items.map(item => {
+        if(item.platformAdminOnly && !isPlatformAdmin){
+          return { ...item, hidden: true }
+        }
+
         const requiredModule = licensedNavModules[item.key]
         if(!requiredModule) return item
 
@@ -573,7 +675,7 @@ export default function App(){
         }
       })
     }))
-  }, [currentUser])
+  }, [currentUser, isPlatformAdmin])
   const activeNavLabel = navGroupsForCurrentUser
     .flatMap(group => group.items)
     .find(item => item.key === activeNavKey)?.label || 'Genel İşletme Özeti'
@@ -604,6 +706,11 @@ export default function App(){
   }, [activeNavLabel, activeNavKey, activeRouteLicenseDenied, activeRouteModule, currentUser, route])
 
   const openNavItem = (item: NavItem) => {
+    if(item.platformAdminOnly && !isPlatformAdmin){
+      setLicenseAccessError('EVREN360 Yönetici Paneli yalnızca Super Admin kullanıcısı tarafından görüntülenebilir.')
+      return
+    }
+
     const requiredModule = licensedNavModules[item.key]
     if(requiredModule && !canUserAccessLicensedModule(currentUser, requiredModule)){
       setLicenseAccessError(LICENSE_ACCESS_DENIED_MESSAGE)
@@ -647,14 +754,15 @@ export default function App(){
 
   return (
     <AppShell
-      restaurantName={settings.restaurantName}
-      logoUrl={settings.logoUrl}
+      restaurantName={isPlatformAdmin ? 'EVREN360' : settings.restaurantName}
+      logoUrl={isPlatformAdmin ? '' : settings.logoUrl}
       currentUser={currentUser}
       navGroups={navGroupsForCurrentUser}
       activeNavKey={activeNavKey}
       activeNavLabel={activeNavLabel}
       branches={branches}
       activeBranchId={activeBranchId}
+      isPlatformAdmin={isPlatformAdmin}
       openGroupKey={openGroupKey}
       onToggleGroup={toggleNavGroup}
       onOpenNavItem={openNavItem}
@@ -714,11 +822,29 @@ export default function App(){
       {route === 'actions' && currentUser.role === 'Admin' && <ActionHistory />}
       {route === 'analytics-dashboard' && currentUser.role === 'Admin' && <AnalyticsDashboard />}
       {route === 'system-health-telemetry' && currentUser.role === 'Admin' && <SystemHealthTelemetry />}
-      {route === 'business-registration-system' && currentUser.role === 'Admin' && <BusinessRegistrationSystem currentUser={currentUser} />}
-      {route === 'company-setup-wizard' && currentUser.role === 'Admin' && <CompanySetupWizard currentUser={currentUser} onBranchesChange={refreshBranches} />}
-      {route === 'package-license-management' && currentUser.role === 'Admin' && <PackageLicenseManagement currentUser={currentUser} />}
-      {route === 'user-subscription-management' && currentUser.role === 'Admin' && <UserSubscriptionManagement currentUser={currentUser} />}
-      {route === 'module-activation-system' && currentUser.role === 'Admin' && <ModuleActivationSystem currentUser={currentUser} />}
+      {route === 'business-registration-system' && currentUser.role === 'Admin' && (
+        isPlatformAdmin ? <BusinessRegistrationSystem currentUser={currentUser} /> : <PlatformAccessDenied />
+      )}
+      {route === 'company-setup-wizard' && currentUser.role === 'Admin' && (
+        isPlatformAdmin ? <CompanySetupWizard currentUser={currentUser} onBranchesChange={refreshBranches} /> : <PlatformAccessDenied />
+      )}
+      {route === 'package-license-management' && currentUser.role === 'Admin' && (
+        isPlatformAdmin ? <PackageLicenseManagement currentUser={currentUser} /> : <PlatformAccessDenied />
+      )}
+      {route === 'user-subscription-management' && currentUser.role === 'Admin' && (
+        isPlatformAdmin ? <UserSubscriptionManagement currentUser={currentUser} /> : <PlatformAccessDenied />
+      )}
+      {route === 'module-activation-system' && currentUser.role === 'Admin' && (
+        isPlatformAdmin ? <ModuleActivationSystem currentUser={currentUser} /> : <PlatformAccessDenied />
+      )}
+      {route === 'tenant-management' && currentUser.role === 'Admin' && (
+        isPlatformAdmin ? <TenantManagement currentUser={currentUser} /> : <PlatformAccessDenied />
+      )}
+      {evren360View && (
+        isPlatformAdmin
+          ? <SaasManagementCenter currentUser={currentUser} view={evren360View} />
+          : <PlatformAccessDenied />
+      )}
       {route === 'system-usage-logs' && currentUser.role === 'Admin' && <SystemUsageLogs />}
       {route === 'user-activity-tracking' && currentUser.role === 'Admin' && <UserActivityTracking />}
       {route === 'module-usage-analysis' && currentUser.role === 'Admin' && <ModuleUsageAnalysis />}

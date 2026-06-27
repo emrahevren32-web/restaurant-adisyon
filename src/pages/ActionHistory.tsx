@@ -169,6 +169,15 @@ const operationTypes: ActionLogType[] = [
   'Lisans erişim kontrolü başarısız'
 ]
 
+operationTypes.push(
+  'Tenant oluşturuldu',
+  'Tenant güncellendi',
+  'Tenant pasife alındı',
+  'Tenant aktif edildi',
+  'Tenant erişimi engellendi',
+  'Veri izolasyonu doğrulandı'
+)
+
 export default function ActionHistory(){
   const [logs] = React.useState<ActionLog[]>(() => loadActionLogs())
   const [users] = React.useState(() => loadUsers())
