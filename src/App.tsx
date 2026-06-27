@@ -65,6 +65,8 @@ import FinancialReports from './pages/FinancialReports'
 import CashTransfers from './pages/CashTransfers'
 import AppShell, { ShellNavGroup, ShellNavItem } from './components/AppShell'
 import { resolveIdentity } from './identity/identity-resolver'
+import { resolveLoginRedirect } from './routing/login-router'
+import { LOGIN_ROUTE_TARGETS, LoginRedirectResult } from './routing/routing.types'
 import { createSessionSnapshot } from './session/session.types'
 import {
   loadProducts,
@@ -549,8 +551,8 @@ const evren360RouteViews: Partial<Record<Route, SaasManagementView>> = {
   'evren360-settings': 'settings'
 }
 
-const getDefaultNavigation = (user: User | null) => {
-  if(isPlatformAdminUser(user)){
+const getDefaultNavigation = (user: User | null, loginRedirect: LoginRedirectResult) => {
+  if(loginRedirect.target === LOGIN_ROUTE_TARGETS.EVREN360){
     return {
       route: 'evren360-dashboard' as Route,
       activeNavKey: 'evren360-dashboard' as NavKey,
@@ -558,7 +560,11 @@ const getDefaultNavigation = (user: User | null) => {
     }
   }
 
-  if(user?.role === 'Admin' && canUserAccessLicensedModule(user, 'boss-dashboard')){
+  if(
+    loginRedirect.target === LOGIN_ROUTE_TARGETS.RESTAURANTOS_ADMIN
+    && user?.role === 'Admin'
+    && canUserAccessLicensedModule(user, 'boss-dashboard')
+  ){
     return {
       route: 'business-summary' as Route,
       activeNavKey: 'business-summary' as NavKey,
@@ -604,7 +610,8 @@ const createIdentitySessionSnapshot = (user: User | null) => {
 
   return {
     identity,
-    session: createSessionSnapshot(identity)
+    session: createSessionSnapshot(identity),
+    loginRedirect: resolveLoginRedirect(identity)
   }
 }
 
@@ -612,8 +619,11 @@ export default function App(){
   const qrRouteMatch = window.location.pathname.match(/^\/qr\/([^/?#]+)/)
   const businessApplicationRouteMatch = window.location.pathname.match(/^\/(?:basvuru|apply)\/?$/)
   const initialUser = React.useMemo(() => getCurrentUser(), [])
-  const identitySessionRef = React.useRef(createIdentitySessionSnapshot(initialUser))
-  const initialNavigation = React.useMemo(() => getDefaultNavigation(initialUser), [initialUser])
+  const initialIdentitySession = React.useMemo(() => createIdentitySessionSnapshot(initialUser), [initialUser])
+  const identitySessionRef = React.useRef(initialIdentitySession)
+  const initialNavigation = React.useMemo(() => {
+    return getDefaultNavigation(initialUser, initialIdentitySession.loginRedirect)
+  }, [initialIdentitySession, initialUser])
   const [route, setRoute] = React.useState<Route>(initialNavigation.route)
   const [activeNavKey, setActiveNavKey] = React.useState<NavKey>(initialNavigation.activeNavKey)
   const [openGroupKey, setOpenGroupKey] = React.useState<NavGroupKey | null>(initialNavigation.openGroupKey)
@@ -626,7 +636,9 @@ export default function App(){
   const evren360View = evren360RouteViews[route]
 
   const updateIdentitySession = (user: User | null) => {
-    identitySessionRef.current = createIdentitySessionSnapshot(user)
+    const nextIdentitySession = createIdentitySessionSnapshot(user)
+    identitySessionRef.current = nextIdentitySession
+    return nextIdentitySession
   }
 
   React.useEffect(()=>{
@@ -641,8 +653,8 @@ export default function App(){
   }, [settings.restaurantName])
 
   const onLogin = (u: User) => {
-    const defaultNavigation = getDefaultNavigation(u)
-    updateIdentitySession(u)
+    const nextIdentitySession = updateIdentitySession(u)
+    const defaultNavigation = getDefaultNavigation(u, nextIdentitySession.loginRedirect)
     migrateBranchScopedData(u)
     setUserState(u)
     setBranches(getVisibleBranchesForUser(u))
@@ -653,9 +665,9 @@ export default function App(){
     setLicenseAccessError('')
   }
   const logout = () => {
-    const defaultNavigation = getDefaultNavigation(null)
     setCurrentUser(null)
-    updateIdentitySession(null)
+    const nextIdentitySession = updateIdentitySession(null)
+    const defaultNavigation = getDefaultNavigation(null, nextIdentitySession.loginRedirect)
     setUserState(null)
     setRoute(defaultNavigation.route)
     setActiveNavKey(defaultNavigation.activeNavKey)
