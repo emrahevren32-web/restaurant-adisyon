@@ -64,6 +64,8 @@ import CashClosingPage from './pages/CashClosing'
 import FinancialReports from './pages/FinancialReports'
 import CashTransfers from './pages/CashTransfers'
 import AppShell, { ShellNavGroup, ShellNavItem } from './components/AppShell'
+import { resolveIdentity } from './identity/identity-resolver'
+import { createSessionSnapshot } from './session/session.types'
 import {
   loadProducts,
   ensureDefaultAdmin,
@@ -594,10 +596,23 @@ const PlatformAccessDenied = () => (
   </section>
 )
 
+const createIdentitySessionSnapshot = (user: User | null) => {
+  const identity = resolveIdentity({
+    legacyUser: user,
+    requestedPath: window.location.pathname
+  })
+
+  return {
+    identity,
+    session: createSessionSnapshot(identity)
+  }
+}
+
 export default function App(){
   const qrRouteMatch = window.location.pathname.match(/^\/qr\/([^/?#]+)/)
   const businessApplicationRouteMatch = window.location.pathname.match(/^\/(?:basvuru|apply)\/?$/)
   const initialUser = React.useMemo(() => getCurrentUser(), [])
+  const identitySessionRef = React.useRef(createIdentitySessionSnapshot(initialUser))
   const initialNavigation = React.useMemo(() => getDefaultNavigation(initialUser), [initialUser])
   const [route, setRoute] = React.useState<Route>(initialNavigation.route)
   const [activeNavKey, setActiveNavKey] = React.useState<NavKey>(initialNavigation.activeNavKey)
@@ -609,6 +624,10 @@ export default function App(){
   const [licenseAccessError, setLicenseAccessError] = React.useState('')
   const isPlatformAdmin = isPlatformAdminUser(currentUser)
   const evren360View = evren360RouteViews[route]
+
+  const updateIdentitySession = (user: User | null) => {
+    identitySessionRef.current = createIdentitySessionSnapshot(user)
+  }
 
   React.useEffect(()=>{
     loadProducts()
@@ -623,6 +642,7 @@ export default function App(){
 
   const onLogin = (u: User) => {
     const defaultNavigation = getDefaultNavigation(u)
+    updateIdentitySession(u)
     migrateBranchScopedData(u)
     setUserState(u)
     setBranches(getVisibleBranchesForUser(u))
@@ -635,6 +655,7 @@ export default function App(){
   const logout = () => {
     const defaultNavigation = getDefaultNavigation(null)
     setCurrentUser(null)
+    updateIdentitySession(null)
     setUserState(null)
     setRoute(defaultNavigation.route)
     setActiveNavKey(defaultNavigation.activeNavKey)

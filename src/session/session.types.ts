@@ -13,13 +13,20 @@ export type SessionSnapshot = {
 }
 
 /**
- * Session foundation only. The current app does not create JWTs or expirations;
- * this model exists so future phases can introduce them behind a stable shape.
+ * Creates an in-memory snapshot of the resolved identity. The current app still
+ * uses localStorage auth and does not create JWTs or expirations.
  */
-export const createEmptySessionSnapshot = (identity: IdentityResult): SessionSnapshot => ({
+export const createSessionSnapshot = (
+  identity: IdentityResult,
+  now = new Date().toISOString()
+): SessionSnapshot => ({
   status: identity.authenticated ? 'authenticated' : 'anonymous',
   source: 'local-storage',
   identity,
-  issuedAt: null,
+  issuedAt: identity.authenticated ? now : null,
   expiresAt: null
 })
+
+export const createEmptySessionSnapshot = (identity: IdentityResult): SessionSnapshot => {
+  return createSessionSnapshot(identity)
+}
