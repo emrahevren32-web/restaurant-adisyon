@@ -1,8 +1,7 @@
 import React from 'react'
-import { authenticateUser } from '../storage'
-import { User } from '../types'
+import { authenticateCredentials, AuthenticationState } from '../auth/authentication.service'
 
-type Props = { onLogin: (u: User) => void }
+type Props = { onLogin: (state: AuthenticationState) => void }
 
 export default function Login({ onLogin }: Props){
   const [username, setUsername] = React.useState('')
@@ -11,8 +10,10 @@ export default function Login({ onLogin }: Props){
 
   const submit = (e: React.FormEvent) => {
     e.preventDefault()
-    const u = authenticateUser(username, password)
-    if(u) onLogin(u)
+    const result = authenticateCredentials(username, password, {
+      requestedPath: window.location.pathname
+    })
+    if(result.success) onLogin(result.state)
     else setError('Geçersiz kullanıcı adı veya şifre ya da kullanıcı pasif.')
   }
 

@@ -1,8 +1,14 @@
-export const AUTH_FOUNDATION_STATUS = 'PREPARED_NOT_ACTIVE'
+export const AUTH_FOUNDATION_STATUS = 'PRODUCTION_FOUNDATION_READY'
 
 export const LEGACY_AUTH_STORAGE_KEY = 'ra_auth'
 
-export type AuthFlowBoundary = 'legacy-local-storage' | 'identity-router' | 'access-gateway'
+export type AuthFlowBoundary =
+  | 'legacy-local-storage'
+  | 'authentication-service'
+  | 'authentication-pipeline'
+  | 'identity-router'
+  | 'access-gateway'
+  | 'jwt-session'
 
 export type AuthFoundationDescriptor = {
   status: typeof AUTH_FOUNDATION_STATUS
@@ -12,12 +18,12 @@ export type AuthFoundationDescriptor = {
 }
 
 /**
- * Documents the current auth boundary without activating a new flow.
- * The live system still uses storage.authenticateUser and ra_auth.
+ * Documents the current auth boundary. The live system still uses the legacy
+ * ra_auth payload, but access to it is centralized behind the auth service.
  */
 export const AUTH_FOUNDATION: AuthFoundationDescriptor = {
   status: AUTH_FOUNDATION_STATUS,
   legacyStorageKey: LEGACY_AUTH_STORAGE_KEY,
-  activeBoundary: 'legacy-local-storage',
-  nextBoundary: 'identity-router'
+  activeBoundary: 'authentication-service',
+  nextBoundary: 'jwt-session'
 }

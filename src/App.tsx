@@ -64,18 +64,17 @@ import CashClosingPage from './pages/CashClosing'
 import FinancialReports from './pages/FinancialReports'
 import CashTransfers from './pages/CashTransfers'
 import AppShell, { ShellNavGroup, ShellNavItem } from './components/AppShell'
+import { resolveSecurityTargetForIdentity } from './auth/authentication-pipeline'
 import {
-  evaluateAuthenticationPipelineTarget,
-  resolveAuthenticationPipeline,
-  resolveSecurityTargetForIdentity
-} from './auth/authentication-pipeline'
-import { AuthenticationPipelineResult } from './auth/authentication-pipeline.types'
+  AuthenticationState,
+  evaluateAuthenticationStateTarget,
+  getInitialAuthenticationState,
+  logoutAuthentication
+} from './auth/authentication.service'
 import { LOGIN_ROUTE_TARGETS, LoginRedirectResult } from './routing/routing.types'
 import {
   loadProducts,
   ensureDefaultAdmin,
-  getCurrentUser,
-  setCurrentUser,
   loadSettings,
   getVisibleBranchesForUser,
   getActiveBranchId,
@@ -605,27 +604,22 @@ const PlatformAccessDenied = () => (
   </section>
 )
 
-const getRouteSecurityTarget = (route: Route, pipeline: AuthenticationPipelineResult) => {
+const getRouteSecurityTarget = (route: Route, authState: AuthenticationState) => {
   if(evren360RouteViews[route]) return LOGIN_ROUTE_TARGETS.EVREN360
-  return resolveSecurityTargetForIdentity(pipeline.identity)
-}
-
-const runAuthenticationPipeline = (user: User | null) => {
-  return resolveAuthenticationPipeline({
-    legacyUser: user,
-    requestedPath: window.location.pathname
-  })
+  return resolveSecurityTargetForIdentity(authState.pipeline.identity)
 }
 
 export default function App(){
   const qrRouteMatch = window.location.pathname.match(/^\/qr\/([^/?#]+)/)
   const businessApplicationRouteMatch = window.location.pathname.match(/^\/(?:basvuru|apply)\/?$/)
-  const initialUser = React.useMemo(() => getCurrentUser(), [])
-  const initialAuthPipeline = React.useMemo(() => runAuthenticationPipeline(initialUser), [initialUser])
-  const authPipelineRef = React.useRef(initialAuthPipeline)
+  const initialAuthState = React.useMemo(() => getInitialAuthenticationState({
+    requestedPath: window.location.pathname
+  }), [])
+  const initialUser = initialAuthState.currentUser
+  const authStateRef = React.useRef(initialAuthState)
   const initialNavigation = React.useMemo(() => {
-    return getDefaultNavigation(initialUser, initialAuthPipeline.loginRedirect)
-  }, [initialAuthPipeline, initialUser])
+    return getDefaultNavigation(initialUser, initialAuthState.pipeline.loginRedirect)
+  }, [initialAuthState, initialUser])
   const [route, setRoute] = React.useState<Route>(initialNavigation.route)
   const [activeNavKey, setActiveNavKey] = React.useState<NavKey>(initialNavigation.activeNavKey)
   const [openGroupKey, setOpenGroupKey] = React.useState<NavGroupKey | null>(initialNavigation.openGroupKey)
@@ -637,16 +631,15 @@ export default function App(){
   const isPlatformAdmin = isPlatformAdminUser(currentUser)
   const evren360View = evren360RouteViews[route]
 
-  const updateAuthenticationPipeline = (user: User | null) => {
-    const nextAuthPipeline = runAuthenticationPipeline(user)
-    authPipelineRef.current = nextAuthPipeline
-    return nextAuthPipeline
+  const updateAuthenticationState = (state: AuthenticationState) => {
+    authStateRef.current = state
+    return state
   }
 
   const evaluateCurrentRouteSecurity = (nextRoute: Route) => {
-    const currentAuthPipeline = authPipelineRef.current
-    const target = getRouteSecurityTarget(nextRoute, currentAuthPipeline)
-    authPipelineRef.current = evaluateAuthenticationPipelineTarget(currentAuthPipeline, target)
+    const currentAuthState = authStateRef.current
+    const target = getRouteSecurityTarget(nextRoute, currentAuthState)
+    authStateRef.current = evaluateAuthenticationStateTarget(currentAuthState, target)
   }
 
   React.useEffect(()=>{
@@ -663,9 +656,12 @@ export default function App(){
     evaluateCurrentRouteSecurity(route)
   }, [route])
 
-  const onLogin = (u: User) => {
-    const nextAuthPipeline = updateAuthenticationPipeline(u)
-    const defaultNavigation = getDefaultNavigation(u, nextAuthPipeline.loginRedirect)
+  const onLogin = (nextAuthState: AuthenticationState) => {
+    const u = nextAuthState.currentUser
+    if(!u) return
+
+    updateAuthenticationState(nextAuthState)
+    const defaultNavigation = getDefaultNavigation(u, nextAuthState.pipeline.loginRedirect)
     migrateBranchScopedData(u)
     setUserState(u)
     setBranches(getVisibleBranchesForUser(u))
@@ -676,9 +672,10 @@ export default function App(){
     setLicenseAccessError('')
   }
   const logout = () => {
-    setCurrentUser(null)
-    const nextAuthPipeline = updateAuthenticationPipeline(null)
-    const defaultNavigation = getDefaultNavigation(null, nextAuthPipeline.loginRedirect)
+    const nextAuthState = updateAuthenticationState(logoutAuthentication({
+      requestedPath: window.location.pathname
+    }))
+    const defaultNavigation = getDefaultNavigation(null, nextAuthState.pipeline.loginRedirect)
     setUserState(null)
     setRoute(defaultNavigation.route)
     setActiveNavKey(defaultNavigation.activeNavKey)
