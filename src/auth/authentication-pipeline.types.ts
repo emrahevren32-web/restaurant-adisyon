@@ -1,4 +1,5 @@
 import { IdentityResult } from '../identity/identity.types'
+import { AuthorizationContext } from '../authorization/authorization.types'
 import { LoginRedirectResult, LoginRouteTarget } from '../routing/routing.types'
 import { SecurityDecision } from '../security/security.types'
 import { SessionSnapshot } from '../session/session.types'
@@ -14,6 +15,7 @@ export type AuthenticationPipelineResult = {
   identity: IdentityResult
   session: SessionSnapshot
   tenantContext: TenantContextModel
+  authorization: AuthorizationContext
   loginRedirect: LoginRedirectResult
   securityDecision: SecurityDecision
 }
@@ -23,6 +25,8 @@ export type AuthenticationPipelineLayer =
   | 'session'
   | 'jwt'
   | 'tenant-context'
+  | 'role-engine'
+  | 'permission-engine'
   | 'identity-resolver'
   | 'login-router'
   | 'security-gateway'
@@ -33,6 +37,8 @@ export const AUTHENTICATION_PIPELINE_LAYERS: AuthenticationPipelineLayer[] = [
   'session',
   'jwt',
   'tenant-context',
+  'role-engine',
+  'permission-engine',
   'identity-resolver',
   'login-router',
   'security-gateway',

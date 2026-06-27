@@ -26,7 +26,7 @@ export const resolveIdentity = (context: IdentityResolverContext = {}): Identity
     tenantId,
     userType,
     role: user.role,
-    permissions: createBasePermissions(userType),
+    permissions: [],
     redirectTo: null
   }
 }
@@ -68,13 +68,6 @@ const resolveUserType = (user: User, companyId: string | null): UserType => {
   if(user.role === 'Admin' && !companyId) return USER_TYPES.SUPER_ADMIN
   if(user.role === 'Admin') return USER_TYPES.COMPANY_ADMIN
   return USER_TYPES.COMPANY_USER
-}
-
-const createBasePermissions = (userType: UserType) => {
-  if(userType === USER_TYPES.SUPER_ADMIN) return ['platform.read', 'platform.manage']
-  if(userType === USER_TYPES.COMPANY_ADMIN) return ['company.read', 'company.manage', 'dashboard.read']
-  if(userType === USER_TYPES.COMPANY_USER) return ['restaurant.read']
-  return []
 }
 
 const createPublicIdentityResult = (): IdentityResult => ({

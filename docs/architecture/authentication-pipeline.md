@@ -1,6 +1,6 @@
 # Faz 20.9.5 - Authentication Pipeline
 
-Bu dokuman Faz 20.9.1-20.10.3 arasinda hazirlanan Authentication, Session, JWT Foundation, Tenant Context, Identity, Login Router ve Security Gateway katmanlarinin guncel mimarisini aciklar.
+Bu dokuman Faz 20.9.1-20.10.4 arasinda hazirlanan Authentication, Session, JWT Foundation, Tenant Context, Role & Permission Engine, Identity, Login Router ve Security Gateway katmanlarinin guncel mimarisini aciklar.
 
 Bu fazda yeni kullanici deneyimi, JWT, permission engine veya route guard eklenmemistir. Mevcut RestaurantOS login davranisi korunmustur.
 
@@ -12,10 +12,12 @@ Guncel Authentication Pipeline su sirayla calisir:
 2. Session
 3. JWT Foundation
 4. Tenant Context
-5. Identity Resolver
-6. Login Router
-7. Security Gateway
-8. Application
+5. Role Engine
+6. Permission Engine
+7. Identity Resolver
+8. Login Router
+9. Security Gateway
+10. Application
 
 Merkezi giris noktasi:
 
@@ -80,6 +82,18 @@ Dosyalar:
 - `src/tenant/tenant.service.ts`
 
 Pipeline sonucunda `tenantContext` uretilir. Bu context `tenantId`, `companyId`, `companyName`, `tenantName` ve `initialized` alanlarini tasir. Bu fazda tenant isolation veya veri filtreleme davranisi eklenmemistir.
+
+## Role & Permission Engine
+
+Dosyalar:
+
+- `src/authorization/role.types.ts`
+- `src/authorization/role.service.ts`
+- `src/authorization/permission.types.ts`
+- `src/authorization/permission.service.ts`
+- `src/authorization/authorization.service.ts`
+
+Pipeline sonucunda `authorization` uretilir. Role Engine `UserType` bilgisinden varsayilan rol ve izinleri cozer. Permission Engine izinleri normalize eder ve merkezi permission kataloguna gore filtreler.
 
 ## Login Router
 
@@ -160,6 +174,18 @@ Tenant Context:
 
 - Identity sonucundan merkezi tenant/firma context'i uretir.
 - Henuz veri izolasyonu uygulamaz.
+
+Role Engine:
+
+- UserType bilgisinden merkezi role resolution uretir.
+
+Permission Engine:
+
+- Role izinlerini merkezi permission katalogu ile normalize eder.
+
+Authorization Service:
+
+- `hasPermission`, `hasRole` ve `getPermissions` gibi ortak yetkilendirme islemlerinin sinirini olusturur.
 
 Login Router:
 

@@ -1,4 +1,6 @@
 import { UserType } from '../identity/identity.types'
+import { PermissionName, PermissionResolution } from './permission.types'
+import { RoleResolution } from './role.types'
 
 export type AccessDecisionReason =
   | 'AUTHENTICATED'
@@ -17,6 +19,17 @@ export type AuthorizationSubject = {
   userType: UserType
   role: string | null
   permissions: string[]
+}
+
+export type AuthorizationContext = {
+  userId: string | null
+  userType: UserType
+  role: string | null
+  tenantId: string | null
+  companyId: string | null
+  permissions: PermissionName[]
+  roleResolution: RoleResolution
+  permissionResolution: PermissionResolution
 }
 
 export type AccessDecision = {

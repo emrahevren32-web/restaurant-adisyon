@@ -1,5 +1,9 @@
 import { IdentityResult, USER_TYPES } from '../identity/identity.types'
 import { resolveIdentity } from '../identity/identity-resolver'
+import {
+  applyAuthorizationToIdentity,
+  resolveAuthorization
+} from '../authorization/authorization.service'
 import { resolveLoginRedirect } from '../routing/login-router'
 import { LOGIN_ROUTE_TARGETS, LoginRouteTarget } from '../routing/routing.types'
 import { evaluateSecurityGateway } from '../security/security-gateway'
@@ -16,9 +20,11 @@ export const resolveAuthenticationPipeline = ({
   requestedPath = getBrowserPath(),
   requestedTarget
 }: AuthenticationPipelineRequest = {}): AuthenticationPipelineResult => {
-  const identity = resolveIdentity({ legacyUser, requestedPath })
-  const session = createSessionSnapshot(identity)
-  const tenantContext = resolveTenantContextFromIdentity(identity)
+  const baseIdentity = resolveIdentity({ legacyUser, requestedPath })
+  const session = createSessionSnapshot(baseIdentity)
+  const tenantContext = resolveTenantContextFromIdentity(baseIdentity)
+  const authorization = resolveAuthorization(baseIdentity, tenantContext)
+  const identity = applyAuthorizationToIdentity(baseIdentity, authorization)
   const loginRedirect = resolveLoginRedirect(identity)
   const securityTarget = normalizeSecurityTarget(requestedTarget || resolveSecurityTargetForPath(identity, requestedPath))
 
@@ -26,6 +32,7 @@ export const resolveAuthenticationPipeline = ({
     identity,
     session,
     tenantContext,
+    authorization,
     loginRedirect,
     securityDecision: evaluateSecurityGateway({
       identity,
