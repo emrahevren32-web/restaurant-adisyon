@@ -18,7 +18,8 @@ import BusinessUsageStats from './pages/BusinessUsageStats'
 import UsagePerformanceAnalysis from './pages/UsagePerformanceAnalysis'
 import AnalyticsDashboard from './pages/AnalyticsDashboard'
 import SystemHealthTelemetry from './pages/SystemHealthTelemetry'
-import BusinessRegistrationSystem from './pages/BusinessRegistrationSystem'
+import BusinessApplicationSystem from './pages/BusinessApplicationSystem'
+import BusinessApplicationPublicForm from './pages/BusinessApplicationPublicForm'
 import CompanySetupWizard from './pages/CompanySetupWizard'
 import PackageLicenseManagement from './pages/PackageLicenseManagement'
 import UserSubscriptionManagement from './pages/UserSubscriptionManagement'
@@ -465,7 +466,7 @@ const navGroups: NavGroup[] = [
     title: 'SAAS Yönetim Paneli',
     icon: 'SP',
     items: [
-      { key: 'business-registration-system', label: 'İşletme Kayıt Sistemi', route: 'business-registration-system', icon: 'İK', adminOnly: true },
+      { key: 'business-registration-system', label: 'İşletme Başvuru Sistemi', route: 'business-registration-system', icon: 'İB', adminOnly: true },
       { key: 'company-setup-wizard', label: 'Firma Oluşturma Sihirbazı', route: 'company-setup-wizard', icon: 'FS', adminOnly: true },
       { key: 'package-license-management', label: 'Paket ve Lisans Yönetimi', route: 'package-license-management', icon: 'PL', adminOnly: true },
       { key: 'user-subscription-management', label: 'Kullanıcı ve Abonelik Yönetimi', route: 'user-subscription-management', icon: 'KA', adminOnly: true },
@@ -595,6 +596,7 @@ const PlatformAccessDenied = () => (
 
 export default function App(){
   const qrRouteMatch = window.location.pathname.match(/^\/qr\/([^/?#]+)/)
+  const businessApplicationRouteMatch = window.location.pathname.match(/^\/(?:basvuru|apply)\/?$/)
   const initialUser = React.useMemo(() => getCurrentUser(), [])
   const initialNavigation = React.useMemo(() => getDefaultNavigation(initialUser), [initialUser])
   const [route, setRoute] = React.useState<Route>(initialNavigation.route)
@@ -740,6 +742,10 @@ export default function App(){
     return <QRMenu tableId={qrRouteMatch[1]} />
   }
 
+  if(businessApplicationRouteMatch){
+    return <BusinessApplicationPublicForm />
+  }
+
   if(!currentUser){
     return (
       <div className="app-shell auth-shell">
@@ -823,7 +829,7 @@ export default function App(){
       {route === 'analytics-dashboard' && currentUser.role === 'Admin' && <AnalyticsDashboard />}
       {route === 'system-health-telemetry' && currentUser.role === 'Admin' && <SystemHealthTelemetry />}
       {route === 'business-registration-system' && currentUser.role === 'Admin' && (
-        isPlatformAdmin ? <BusinessRegistrationSystem currentUser={currentUser} /> : <PlatformAccessDenied />
+        isPlatformAdmin ? <BusinessApplicationSystem currentUser={currentUser} /> : <PlatformAccessDenied />
       )}
       {route === 'company-setup-wizard' && currentUser.role === 'Admin' && (
         isPlatformAdmin ? <CompanySetupWizard currentUser={currentUser} onBranchesChange={refreshBranches} /> : <PlatformAccessDenied />

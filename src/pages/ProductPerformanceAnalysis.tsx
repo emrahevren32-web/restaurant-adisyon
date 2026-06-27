@@ -9,6 +9,11 @@ import {
 } from '../storage'
 import { formatCurrency, getOrderUnitPrice, isRevenueBill, roundCurrency } from '../billing'
 import { isCriticalStock } from '../criticalStock'
+import {
+  formatNutritionValue,
+  formatProductAllergens,
+  hasNutritionInfo
+} from '../productNutrition'
 
 type DateRangeMode = 'today' | 'week' | 'month' | 'year' | 'custom'
 
@@ -463,6 +468,14 @@ export default function ProductPerformanceAnalysis(){
     return second.revenue - first.revenue
   })[0]
   const riskItems = React.useMemo(() => toRiskItems(productRows, todayKey, activeRecipeMap, stockItemMap), [activeRecipeMap, productRows, stockItemMap, todayKey])
+  const nutritionInfoProducts = React.useMemo(() => products.filter(product => hasNutritionInfo(product)), [products])
+  const allergenProducts = React.useMemo(() => products.filter(product => product.allergens.length > 0), [products])
+  const allergenFreeProducts = React.useMemo(() => products.filter(product => product.allergens.length === 0), [products])
+  const nutritionReportRows = React.useMemo(() => {
+    return [...products]
+      .sort((first, second) => second.calories - first.calories || first.name.localeCompare(second.name, 'tr-TR'))
+      .slice(0, 12)
+  }, [products])
 
   return (
     <div className="product-performance-page">
@@ -519,7 +532,46 @@ export default function ProductPerformanceAnalysis(){
         <KpiCard compact label="Toplam Ürün Cirosu" value={formatCurrency(totalRevenue)} detail={`${formatNumber(currentBills.length)} kapanan adisyon`} />
         <KpiCard compact label="En Aktif Kategori" value={mostActiveCategory?.categoryName || '-'} detail={mostActiveCategory ? `${formatNumber(mostActiveCategory.salesQty)} satış` : 'Kayıt yok'} />
         <KpiCard compact label="Satış Yapmayan Ürün" value={formatNumber(noSaleProductRows.length)} detail={`${formatNumber(products.length)} toplam ürün`} />
+        <KpiCard compact label="Besin Bilgili Ürün" value={formatNumber(nutritionInfoProducts.length)} detail={`${formatNumber(products.length)} toplam ürün`} />
+        <KpiCard compact label="Alerjen İçermez" value={formatNumber(allergenFreeProducts.length)} detail={`${formatNumber(allergenProducts.length)} alerjenli ürün`} />
       </div>
+
+      <section className="card product-nutrition-report-card">
+        <div className="section-header compact dashboard-panel-header">
+          <div>
+            <h3>Besin ve Alerjen Özeti</h3>
+            <p className="muted">Ürün detayında tanımlanan besin değerleri ve alerjen etiketleri.</p>
+          </div>
+          <span className="status-pill info-pill">{formatNumber(nutritionReportRows.length)} ürün</span>
+        </div>
+        <div className="table-wrap">
+          <table className="data-table product-nutrition-report-table">
+            <thead>
+              <tr>
+                <th>Ürün</th>
+                <th>Porsiyon</th>
+                <th>Kalori</th>
+                <th>Protein / Karbonhidrat / Yağ</th>
+                <th>Alerjenler</th>
+              </tr>
+            </thead>
+            <tbody>
+              {nutritionReportRows.length === 0 && <tr><td className="empty-cell" colSpan={5}>Ürün kaydı yok.</td></tr>}
+              {nutritionReportRows.map(product => (
+                <tr key={product.id}>
+                  <td><strong>{product.name}</strong></td>
+                  <td>{product.servingSize || '-'}</td>
+                  <td>{formatNutritionValue(product.calories, 'kcal')}</td>
+                  <td>
+                    {formatNutritionValue(product.protein, 'g')} / {formatNutritionValue(product.carbohydrate, 'g')} / {formatNutritionValue(product.fat, 'g')}
+                  </td>
+                  <td>{formatProductAllergens(product.allergens)}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      </section>
 
       <section className="product-performance-grid">
         <section className="card">

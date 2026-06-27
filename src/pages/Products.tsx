@@ -1,13 +1,29 @@
 import React from 'react'
-import { Product, ProductCategory, User } from '../types'
+import { Product, ProductAllergen, ProductCategory, User } from '../types'
 import { addActionLog, getActiveBranchId, loadCategories, loadProducts, saveCategories, saveProducts } from '../storage'
 import { formatCurrency } from '../billing'
 import ProductForm, { ProductFormValues } from '../components/ProductForm'
+import {
+  PRODUCT_ALLERGENS,
+  areAllergenValuesEqual,
+  areNutritionValuesEqual,
+  formatProductAllergens,
+  formatNutritionValue,
+  hasNutritionInfo
+} from '../productNutrition'
 
 type StatusFilter = 'all' | 'active' | 'inactive'
+type AllergenFilter = 'all' | 'none' | 'has' | ProductAllergen
 type Props = { currentUser: User }
 
 const createId = (prefix: string) => `${prefix}_${Date.now()}`
+
+const getProductNutritionSummary = (product: Product) => {
+  if(!hasNutritionInfo(product)) return 'Besin bilgisi yok'
+
+  const servingSize = product.servingSize ? ` / ${product.servingSize}` : ''
+  return `${formatNutritionValue(product.calories, 'kcal')}${servingSize}`
+}
 
 export default function Products({ currentUser }: Props){
   const [items, setItems] = React.useState<Product[]>(() => loadProducts())
@@ -16,6 +32,7 @@ export default function Products({ currentUser }: Props){
   const [search, setSearch] = React.useState('')
   const [categoryFilter, setCategoryFilter] = React.useState('all')
   const [statusFilter, setStatusFilter] = React.useState<StatusFilter>('active')
+  const [allergenFilter, setAllergenFilter] = React.useState<AllergenFilter>('all')
   const [newCategoryName, setNewCategoryName] = React.useState('')
   const [categoryError, setCategoryError] = React.useState('')
   const [editingCategoryId, setEditingCategoryId] = React.useState<string | null>(null)
@@ -67,15 +84,21 @@ export default function Products({ currentUser }: Props){
         || product.name.toLocaleLowerCase('tr-TR').includes(normalizedSearch)
         || (product.description || '').toLocaleLowerCase('tr-TR').includes(normalizedSearch)
         || (category?.name || '').toLocaleLowerCase('tr-TR').includes(normalizedSearch)
+        || product.servingSize.toLocaleLowerCase('tr-TR').includes(normalizedSearch)
+        || product.allergens.join(' ').toLocaleLowerCase('tr-TR').includes(normalizedSearch)
 
       const matchesCategory = categoryFilter === 'all' || product.categoryId === categoryFilter
       const matchesStatus = statusFilter === 'all'
         || (statusFilter === 'active' && product.active)
         || (statusFilter === 'inactive' && !product.active)
+      const matchesAllergen = allergenFilter === 'all'
+        || (allergenFilter === 'none' && product.allergens.length === 0)
+        || (allergenFilter === 'has' && product.allergens.length > 0)
+        || product.allergens.includes(allergenFilter as ProductAllergen)
 
-      return matchesSearch && matchesCategory && matchesStatus
+      return matchesSearch && matchesCategory && matchesStatus && matchesAllergen
     })
-  }, [categoryFilter, categoryMap, items, search, statusFilter])
+  }, [allergenFilter, categoryFilter, categoryMap, items, search, statusFilter])
 
   const activeProductCount = items.filter(product => product.active).length
   const inactiveProductCount = items.length - activeProductCount
@@ -101,8 +124,12 @@ export default function Products({ currentUser }: Props){
     const now = new Date().toISOString()
 
     if(editingProduct){
+      const updatedProduct: Product = { ...editingProduct, ...values, updatedAt: now }
+      const nutritionChanged = !areNutritionValuesEqual(editingProduct, updatedProduct)
+      const allergensChanged = !areAllergenValuesEqual(editingProduct, updatedProduct)
+
       setItems(prev => prev.map(product => product.id === editingProduct.id
-        ? { ...product, ...values, updatedAt: now }
+        ? updatedProduct
         : product
       ))
       addActionLog({
@@ -110,6 +137,20 @@ export default function Products({ currentUser }: Props){
         user: currentUser,
         description: `${editingProduct.name} ürünü güncellendi. Yeni ad: ${values.name}, fiyat: ${formatCurrency(values.price)}.`
       })
+      if(nutritionChanged){
+        addActionLog({
+          operationType: 'Ürün besin bilgisi güncellendi',
+          user: currentUser,
+          description: `${updatedProduct.name} ürünü için besin bilgileri güncellendi. Kalori: ${formatNutritionValue(updatedProduct.calories, 'kcal')}, porsiyon: ${updatedProduct.servingSize || '-'}.`
+        })
+      }
+      if(allergensChanged){
+        addActionLog({
+          operationType: 'Ürün alerjen bilgisi güncellendi',
+          user: currentUser,
+          description: `${updatedProduct.name} ürünü için alerjen bilgileri güncellendi: ${formatProductAllergens(updatedProduct.allergens)}.`
+        })
+      }
       setEditingProduct(null)
       return
     }
@@ -128,6 +169,20 @@ export default function Products({ currentUser }: Props){
       user: currentUser,
       description: `${product.name} ürünü ${formatCurrency(product.price)} fiyatıyla oluşturuldu.`
     })
+    if(hasNutritionInfo(product)){
+      addActionLog({
+        operationType: 'Ürün besin bilgisi güncellendi',
+        user: currentUser,
+        description: `${product.name} ürünü için besin bilgileri tanımlandı. Kalori: ${formatNutritionValue(product.calories, 'kcal')}, porsiyon: ${product.servingSize || '-'}.`
+      })
+    }
+    if(product.allergens.length > 0){
+      addActionLog({
+        operationType: 'Ürün alerjen bilgisi güncellendi',
+        user: currentUser,
+        description: `${product.name} ürünü için alerjen bilgileri tanımlandı: ${formatProductAllergens(product.allergens)}.`
+      })
+    }
   }
 
   const addCategory = (e: React.FormEvent) => {
@@ -282,7 +337,7 @@ export default function Products({ currentUser }: Props){
             <div className="toolbar-controls">
               <input
                 type="search"
-                placeholder="Ürün, açıklama veya kategori ara"
+                placeholder="Ürün, açıklama, kategori veya alerjen ara"
                 value={search}
                 onChange={e=>setSearch(e.target.value)}
               />
@@ -297,6 +352,14 @@ export default function Products({ currentUser }: Props){
                 <option value="inactive">Pasif ürünler</option>
                 <option value="all">Tüm durumlar</option>
               </select>
+              <select value={allergenFilter} onChange={e=>setAllergenFilter(e.target.value as AllergenFilter)}>
+                <option value="all">Tüm alerjenler</option>
+                <option value="none">Alerjen içermez</option>
+                <option value="has">Alerjen içerir</option>
+                {PRODUCT_ALLERGENS.map(allergen => (
+                  <option key={allergen} value={allergen}>{allergen}</option>
+                ))}
+              </select>
             </div>
           </div>
 
@@ -307,6 +370,7 @@ export default function Products({ currentUser }: Props){
                   <th>Ürün</th>
                   <th>Kategori</th>
                   <th>Fiyat</th>
+                  <th>Besin / Alerjen</th>
                   <th>Durum</th>
                   {canManageCatalog && <th></th>}
                 </tr>
@@ -314,7 +378,7 @@ export default function Products({ currentUser }: Props){
               <tbody>
                 {visibleProducts.length === 0 && (
                   <tr>
-                    <td colSpan={canManageCatalog ? 5 : 4} className="empty-cell">Bu filtrelere uygun ürün bulunamadı.</td>
+                    <td colSpan={canManageCatalog ? 6 : 5} className="empty-cell">Bu filtrelere uygun ürün bulunamadı.</td>
                   </tr>
                 )}
                 {visibleProducts.map(product => {
@@ -328,6 +392,12 @@ export default function Products({ currentUser }: Props){
                       </td>
                       <td>{category?.name || 'Kategori yok'}</td>
                       <td>{formatCurrency(product.price)}</td>
+                      <td>
+                        <div className="product-nutrition-summary">
+                          <strong>{getProductNutritionSummary(product)}</strong>
+                          <span>{formatProductAllergens(product.allergens)}</span>
+                        </div>
+                      </td>
                       <td>
                         <span className={`status-pill ${product.active ? 'success' : 'muted-pill'}`}>
                           {product.active ? 'Aktif' : 'Pasif'}

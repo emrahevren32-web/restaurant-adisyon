@@ -3,6 +3,9 @@ import {
   ActionLogType,
   Attendance,
   AttendanceStatus,
+  ApplicationNote,
+  ApplicationStatus,
+  BusinessApplication,
   BusinessRegistration,
   BusinessRegistrationPackage,
   BusinessRegistrationStatus,
@@ -123,9 +126,15 @@ import {
   WaiterCallStatus
 } from './types'
 import {
+  normalizeProductAllergens,
+  normalizeProductNutrition,
+  normalizeServingSize
+} from './productNutrition'
+import {
   DEFAULT_TENANT_ID,
   TENANT_ISOLATION_DENIED_MESSAGE,
   assertTenantAccess,
+  createDefaultTenantSettings,
   createTenantStorageId,
   filterByTenant,
   loadTenantSettings as loadTenantSettingsFromHelper,
@@ -207,6 +216,8 @@ const KEY_SETTINGS = 'ra_settings'
 const KEY_WAITER_CALLS = 'ra_waiter_calls'
 const KEY_WAITER_CALL_HISTORY = 'ra_waiter_call_history'
 const KEY_BRANCH_STOCK_TRANSFERS = 'ra_branch_stock_transfers'
+const KEY_BUSINESS_APPLICATIONS = 'ra_business_applications'
+const KEY_APPLICATION_NOTES = 'ra_application_notes'
 const KEY_BUSINESS_REGISTRATIONS = 'ra_business_registrations'
 const KEY_COMPANIES = 'ra_companies'
 const KEY_COMPANY_SETUPS = 'ra_company_setups'
@@ -243,6 +254,8 @@ const EMPLOYEE_BONUS_STATUSES: EmployeeBonusStatus[] = ['Hesaplandı', 'Onayland
 const EMPLOYEE_AUDIT_RECORD_TYPES: EmployeeAuditRecordType[] = ['Uyarı', 'Tutanak', 'Ödül', 'Denetim Notu', 'Bilgilendirme']
 const EMPLOYEE_AUDIT_SEVERITIES: EmployeeAuditSeverity[] = ['Düşük', 'Orta', 'Yüksek', 'Kritik']
 const BRANCH_STOCK_TRANSFER_STATUSES: BranchStockTransferStatus[] = ['Bekliyor', 'Onaylandı', 'Tamamlandı', 'İptal Edildi']
+const APPLICATION_STATUSES: ApplicationStatus[] = ['Beklemede', 'İnceleniyor', 'Onaylandı', 'Reddedildi']
+export const BUSINESS_APPLICATION_PACKAGES = ['Başlangıç', 'Pro', 'Premium', 'Kurumsal'] as const
 const BUSINESS_REGISTRATION_STATUSES: BusinessRegistrationStatus[] = ['Başvuru Bekliyor', 'Onaylandı', 'Reddedildi', 'Pasif']
 const BUSINESS_REGISTRATION_PACKAGES: BusinessRegistrationPackage[] = ['Başlangıç', 'Pro', 'Premium', 'Kurumsal']
 const COMPANY_STATUSES: CompanyStatus[] = ['Aktif', 'Pasif', 'Askıda', 'Silindi']
@@ -581,6 +594,7 @@ const normalizeCategory = (item: Partial<ProductCategory>): ProductCategory => (
 
 const normalizeProduct = (item: Partial<Product>, fallbackCategoryId = DEFAULT_CATEGORY_ID): Product => {
   const price = Number(item.price)
+  const nutrition = normalizeProductNutrition(item)
 
   return {
     id: String(item.id || `prd_${Date.now()}`),
@@ -590,6 +604,9 @@ const normalizeProduct = (item: Partial<Product>, fallbackCategoryId = DEFAULT_C
     price: Number.isFinite(price) ? price : 0,
     categoryId: item.categoryId || fallbackCategoryId,
     description: item.description || '',
+    ...nutrition,
+    servingSize: normalizeServingSize(item.servingSize),
+    allergens: normalizeProductAllergens(item.allergens),
     active: item.active !== false,
     createdAt: item.createdAt || new Date().toISOString(),
     updatedAt: item.updatedAt
@@ -2391,6 +2408,130 @@ const normalizeBranchStockTransfer = (item: Partial<BranchStockTransfer>): Branc
   }
 }
 
+const normalizeApplicationStatus = (value: unknown): ApplicationStatus => {
+  return APPLICATION_STATUSES.includes(value as ApplicationStatus) ? value as ApplicationStatus : 'Beklemede'
+}
+
+const normalizeBusinessApplicationPackage = (value: unknown) => {
+  const requestedPackage = String(value || '').trim()
+  return requestedPackage || BUSINESS_APPLICATION_PACKAGES[0]
+}
+
+const normalizeBusinessApplication = (item: Partial<BusinessApplication>): BusinessApplication => {
+  const timestamp = item.createdAt || new Date().toISOString()
+
+  return {
+    id: String(item.id || createTenantStorageId('business_application')),
+    companyName: String(item.companyName || 'İsimsiz Firma').trim() || 'İsimsiz Firma',
+    ownerName: String(item.ownerName || '').trim(),
+    phone: String(item.phone || '').trim(),
+    email: String(item.email || '').trim(),
+    taxNumber: String(item.taxNumber || '').trim(),
+    taxOffice: String(item.taxOffice || '').trim(),
+    city: String(item.city || '').trim(),
+    district: String(item.district || '').trim(),
+    address: String(item.address || '').trim(),
+    requestedPackage: normalizeBusinessApplicationPackage(item.requestedPackage),
+    status: normalizeApplicationStatus(item.status),
+    approvalNote: String(item.approvalNote || '').trim(),
+    createdAt: timestamp,
+    updatedAt: item.updatedAt || timestamp
+  }
+}
+
+const normalizeApplicationNote = (item: Partial<ApplicationNote>): ApplicationNote => ({
+  id: String(item.id || createTenantStorageId('application_note')),
+  applicationId: String(item.applicationId || '').trim(),
+  note: String(item.note || '').trim(),
+  createdBy: String(item.createdBy || 'Sistem').trim() || 'Sistem',
+  createdAt: item.createdAt || new Date().toISOString()
+})
+
+const createDemoBusinessApplications = (now = new Date().toISOString()): BusinessApplication[] => {
+  const approvedDate = new Date(now)
+  approvedDate.setDate(approvedDate.getDate() - 8)
+  const rejectedDate = new Date(now)
+  rejectedDate.setDate(rejectedDate.getDate() - 2)
+
+  return [
+    normalizeBusinessApplication({
+      id: 'business_application_abc_cafe_demo',
+      companyName: 'ABC Cafe',
+      ownerName: 'Ahmet Kaya',
+      phone: '0532 000 00 01',
+      email: 'basvuru@abccafe.com',
+      taxNumber: '1234567890',
+      taxOffice: 'Kadıköy',
+      city: 'İstanbul',
+      district: 'Kadıköy',
+      address: 'Caferağa Mahallesi No: 12',
+      requestedPackage: 'Başlangıç',
+      status: 'Beklemede',
+      approvalNote: '',
+      createdAt: now,
+      updatedAt: now
+    }),
+    normalizeBusinessApplication({
+      id: 'business_application_lezzet_restoran_demo',
+      companyName: 'Lezzet Restoran',
+      ownerName: 'Mehmet Demir',
+      phone: '0532 000 00 02',
+      email: 'yonetim@lezzetrestoran.com',
+      taxNumber: '2345678901',
+      taxOffice: 'Çankaya',
+      city: 'Ankara',
+      district: 'Çankaya',
+      address: 'Kavaklıdere Cad. No: 8',
+      requestedPackage: 'Pro',
+      status: 'Onaylandı',
+      approvalNote: 'Demo onaylı başvuru.',
+      createdAt: approvedDate.toISOString(),
+      updatedAt: approvedDate.toISOString()
+    }),
+    normalizeBusinessApplication({
+      id: 'business_application_kahve_duragi_demo',
+      companyName: 'Kahve Durağı',
+      ownerName: 'Ayşe Yılmaz',
+      phone: '0532 000 00 03',
+      email: 'info@kahveduragi.com',
+      taxNumber: '3456789012',
+      taxOffice: 'Konak',
+      city: 'İzmir',
+      district: 'Konak',
+      address: 'Alsancak Mahallesi No: 4',
+      requestedPackage: 'Premium',
+      status: 'Reddedildi',
+      approvalNote: 'Vergi bilgileri eksik.',
+      createdAt: rejectedDate.toISOString(),
+      updatedAt: rejectedDate.toISOString()
+    })
+  ]
+}
+
+const createDemoApplicationNotes = (now = new Date().toISOString()): ApplicationNote[] => [
+  normalizeApplicationNote({
+    id: 'application_note_abc_demo',
+    applicationId: 'business_application_abc_cafe_demo',
+    note: 'Demo bekleyen başvuru.',
+    createdBy: 'Sistem',
+    createdAt: now
+  }),
+  normalizeApplicationNote({
+    id: 'application_note_lezzet_demo',
+    applicationId: 'business_application_lezzet_restoran_demo',
+    note: 'Onay sonrası demo firma kayıtları hazır.',
+    createdBy: 'Demo Admin',
+    createdAt: now
+  }),
+  normalizeApplicationNote({
+    id: 'application_note_kahve_demo',
+    applicationId: 'business_application_kahve_duragi_demo',
+    note: 'Red sebebi: Vergi bilgileri eksik.',
+    createdBy: 'Demo Admin',
+    createdAt: now
+  })
+]
+
 const normalizeBusinessRegistrationStatus = (value: unknown): BusinessRegistrationStatus => {
   return BUSINESS_REGISTRATION_STATUSES.includes(value as BusinessRegistrationStatus)
     ? value as BusinessRegistrationStatus
@@ -3459,6 +3600,25 @@ export const loadProducts = (): Product[] => {
   return loadBranchScopedItems(KEY_PRODUCTS, item => normalizeProduct(item, fallbackCategoryId))
 }
 
+export const loadProductNutritionAllergenData = () => {
+  return loadProducts().map(product => ({
+    id: product.id,
+    tenantId: product.tenantId,
+    branchId: product.branchId,
+    name: product.name,
+    categoryId: product.categoryId,
+    calories: product.calories,
+    protein: product.protein,
+    carbohydrate: product.carbohydrate,
+    fat: product.fat,
+    fiber: product.fiber,
+    sugar: product.sugar,
+    salt: product.salt,
+    servingSize: product.servingSize,
+    allergens: product.allergens
+  }))
+}
+
 export const saveProducts = (items: Product[]) => {
   const categories = loadCategories()
   const fallbackCategoryId = categories.find(c => c.id === DEFAULT_CATEGORY_ID)?.id || categories[0]?.id || DEFAULT_CATEGORY_ID
@@ -3905,6 +4065,26 @@ export const saveBranchStockTransfers = (items: BranchStockTransfer[]) => {
   const normalizedItems = items.map(normalizeBranchStockTransfer)
   normalizedItems.forEach(item => assertTenantScope(item))
   localStorage.setItem(KEY_BRANCH_STOCK_TRANSFERS, JSON.stringify(normalizedItems))
+}
+
+export const loadBusinessApplications = (): BusinessApplication[] => {
+  return localStorage.getItem(KEY_BUSINESS_APPLICATIONS) === null
+    ? createDemoBusinessApplications()
+    : readJson<Partial<BusinessApplication>[]>(KEY_BUSINESS_APPLICATIONS, []).map(normalizeBusinessApplication)
+}
+
+export const saveBusinessApplications = (items: BusinessApplication[]) => {
+  localStorage.setItem(KEY_BUSINESS_APPLICATIONS, JSON.stringify(items.map(normalizeBusinessApplication)))
+}
+
+export const loadApplicationNotes = (): ApplicationNote[] => {
+  return localStorage.getItem(KEY_APPLICATION_NOTES) === null
+    ? createDemoApplicationNotes()
+    : readJson<Partial<ApplicationNote>[]>(KEY_APPLICATION_NOTES, []).map(normalizeApplicationNote).filter(note => note.applicationId)
+}
+
+export const saveApplicationNotes = (items: ApplicationNote[]) => {
+  localStorage.setItem(KEY_APPLICATION_NOTES, JSON.stringify(items.map(normalizeApplicationNote).filter(note => note.applicationId)))
 }
 
 export const loadBusinessRegistrations = (): BusinessRegistration[] => {
@@ -5398,6 +5578,404 @@ export const completeCompanySetupFromRegistration = ({
     branch,
     adminUser,
     setup
+  }
+}
+
+export type BusinessApplicationFormInput = {
+  companyName: string
+  ownerName: string
+  phone: string
+  email: string
+  taxNumber: string
+  taxOffice: string
+  city: string
+  district: string
+  address: string
+  requestedPackage: string
+  note?: string
+}
+
+export type BusinessApplicationApprovalResult = {
+  application: BusinessApplication
+  company: Company
+  tenant: Tenant
+  branch: Branch
+  ownerUser: User
+  companyUser: CompanyUser
+  license: CompanyLicense
+  subscription: UserSubscription
+  setup: CompanySetup
+  temporaryPassword: string
+}
+
+const publicApplicationUser: User = {
+  id: 'public_business_application',
+  fullName: 'İşletme Başvuru Formu',
+  username: 'public_application',
+  password: '',
+  role: 'Admin',
+  active: true
+}
+
+const normalizeApplicationInput = (input: BusinessApplicationFormInput): BusinessApplicationFormInput => ({
+  companyName: input.companyName.trim(),
+  ownerName: input.ownerName.trim(),
+  phone: input.phone.trim(),
+  email: input.email.trim(),
+  taxNumber: input.taxNumber.trim(),
+  taxOffice: input.taxOffice.trim(),
+  city: input.city.trim(),
+  district: input.district.trim(),
+  address: input.address.trim(),
+  requestedPackage: normalizeBusinessApplicationPackage(input.requestedPackage),
+  note: String(input.note || '').trim()
+})
+
+const createBusinessApplicationError = (message: string) => new Error(message)
+
+const validateBusinessApplicationInput = (input: BusinessApplicationFormInput) => {
+  if(!input.companyName) throw createBusinessApplicationError('Firma adı zorunludur.')
+  if(!input.ownerName) throw createBusinessApplicationError('Yetkili ad soyad zorunludur.')
+  if(!input.phone) throw createBusinessApplicationError('Telefon zorunludur.')
+  if(!input.email) throw createBusinessApplicationError('E-posta zorunludur.')
+  if(!input.taxOffice) throw createBusinessApplicationError('Vergi dairesi zorunludur.')
+  if(!input.taxNumber) throw createBusinessApplicationError('Vergi numarası zorunludur.')
+  if(!input.city) throw createBusinessApplicationError('Şehir zorunludur.')
+  if(!input.district) throw createBusinessApplicationError('İlçe zorunludur.')
+  if(!input.address) throw createBusinessApplicationError('Adres zorunludur.')
+  if(!input.requestedPackage) throw createBusinessApplicationError('Talep edilen paket zorunludur.')
+}
+
+const createTenantCodeForApplication = (companyName: string, tenants: Tenant[]) => {
+  const clean = slugifySetupValue(companyName).replace(/\./g, '').toLocaleUpperCase('tr-TR')
+  const prefix = (clean || 'TNT').slice(0, 3).padEnd(3, 'X')
+  const existingCodes = new Set(tenants.map(tenant => tenant.tenantCode.toLocaleUpperCase('tr-TR')))
+  let index = tenants.length + 1
+  let code = `${prefix}${String(index).padStart(3, '0')}`
+
+  while(existingCodes.has(code)){
+    index += 1
+    code = `${prefix}${String(index).padStart(3, '0')}`
+  }
+
+  return code
+}
+
+const resolvePackageForApplication = (requestedPackage: string, packages: LicensePackage[]) => {
+  const normalizedRequested = requestedPackage.toLocaleLowerCase('tr-TR')
+  return packages.find(packageItem => packageItem.name.toLocaleLowerCase('tr-TR') === normalizedRequested)
+    || packages.find(packageItem => packageItem.id.toLocaleLowerCase('tr-TR').includes(slugifySetupValue(requestedPackage).replace(/\./g, '')))
+    || packages.find(packageItem => packageItem.isActive)
+    || packages[0]
+}
+
+const upsertApplication = (application: BusinessApplication) => {
+  const applications = loadBusinessApplications()
+  const nextApplications = applications.some(item => item.id === application.id)
+    ? applications.map(item => item.id === application.id ? application : item)
+    : [application, ...applications]
+  saveBusinessApplications(nextApplications)
+  return nextApplications
+}
+
+export const submitBusinessApplication = (input: BusinessApplicationFormInput) => {
+  const normalized = normalizeApplicationInput(input)
+  validateBusinessApplicationInput(normalized)
+
+  const now = new Date().toISOString()
+  const application = normalizeBusinessApplication({
+    id: createTenantStorageId('business_application'),
+    ...normalized,
+    status: 'Beklemede',
+    approvalNote: '',
+    createdAt: now,
+    updatedAt: now
+  })
+
+  saveBusinessApplications([application, ...loadBusinessApplications()])
+
+  if(normalized.note){
+    saveApplicationNotes([
+      normalizeApplicationNote({
+        id: createTenantStorageId('application_note'),
+        applicationId: application.id,
+        note: normalized.note,
+        createdBy: normalized.ownerName || normalized.companyName,
+        createdAt: now
+      }),
+      ...loadApplicationNotes()
+    ])
+  }
+
+  addActionLog({
+    operationType: 'Başvuru oluşturuldu',
+    user: publicApplicationUser,
+    tableId: application.id,
+    tableName: application.companyName,
+    description: `${application.companyName} işletme başvurusu dış form üzerinden oluşturuldu. Paket: ${application.requestedPackage}.`
+  })
+
+  return application
+}
+
+export const addApplicationNote = (applicationId: string, note: string, user: User) => {
+  const normalizedNote = note.trim()
+  if(!normalizedNote) throw createBusinessApplicationError('Not zorunludur.')
+
+  const application = loadBusinessApplications().find(item => item.id === applicationId)
+  if(!application) throw createBusinessApplicationError('Başvuru bulunamadı.')
+
+  const createdNote = normalizeApplicationNote({
+    id: createTenantStorageId('application_note'),
+    applicationId,
+    note: normalizedNote,
+    createdBy: user.fullName || user.username,
+    createdAt: new Date().toISOString()
+  })
+  saveApplicationNotes([createdNote, ...loadApplicationNotes()])
+  return createdNote
+}
+
+export const markBusinessApplicationInReview = (applicationId: string, user: User) => {
+  const application = loadBusinessApplications().find(item => item.id === applicationId)
+  if(!application) throw createBusinessApplicationError('Başvuru bulunamadı.')
+  if(application.status === 'Onaylandı' || application.status === 'Reddedildi') return application
+
+  const updatedApplication = normalizeBusinessApplication({
+    ...application,
+    status: 'İnceleniyor',
+    updatedAt: new Date().toISOString()
+  })
+  upsertApplication(updatedApplication)
+  addActionLog({
+    operationType: 'Başvuru incelendi',
+    user,
+    tableId: updatedApplication.id,
+    tableName: updatedApplication.companyName,
+    description: `${updatedApplication.companyName} başvurusu incelemeye alındı.`
+  })
+  return updatedApplication
+}
+
+export const rejectBusinessApplication = (applicationId: string, reason: string, user: User) => {
+  const rejectionReason = reason.trim()
+  if(!rejectionReason) throw createBusinessApplicationError('Red sebebi zorunludur.')
+
+  const application = loadBusinessApplications().find(item => item.id === applicationId)
+  if(!application) throw createBusinessApplicationError('Başvuru bulunamadı.')
+  if(application.status === 'Onaylandı') throw createBusinessApplicationError('Onaylanan başvuru reddedilemez.')
+
+  const updatedApplication = normalizeBusinessApplication({
+    ...application,
+    status: 'Reddedildi',
+    approvalNote: rejectionReason,
+    updatedAt: new Date().toISOString()
+  })
+  upsertApplication(updatedApplication)
+  addApplicationNote(applicationId, `Red sebebi: ${rejectionReason}`, user)
+  addActionLog({
+    operationType: 'Başvuru reddedildi',
+    user,
+    tableId: updatedApplication.id,
+    tableName: updatedApplication.companyName,
+    description: `${updatedApplication.companyName} başvurusu reddedildi. Red sebebi: ${rejectionReason}.`
+  })
+  return updatedApplication
+}
+
+export const approveBusinessApplication = (applicationId: string, approvalNote: string, user: User): BusinessApplicationApprovalResult => {
+  const applications = loadBusinessApplications()
+  const application = applications.find(item => item.id === applicationId)
+  if(!application) throw createBusinessApplicationError('Başvuru bulunamadı.')
+  if(application.status === 'Onaylandı') throw createBusinessApplicationError('Başvuru zaten onaylanmış.')
+  if(application.status === 'Reddedildi') throw createBusinessApplicationError('Reddedilen başvuru onaylanamaz.')
+
+  const now = new Date().toISOString()
+  const companies = loadCompanies()
+  const tenants = loadTenants()
+  const tenantId = createTenantStorageId('tenant')
+  const companyId = createCompanySetupStorageId('company')
+  const branchId = createCompanySetupStorageId('branch')
+  const authUserId = createCompanySetupStorageId('user')
+  const companyUserId = createCompanySetupStorageId('company_user')
+  const licenseId = createCompanySetupStorageId('company_license')
+  const subscriptionId = createCompanySetupStorageId('user_subscription')
+  const temporaryPassword = generateTemporaryCompanyPassword()
+  const packages = loadLicensePackages()
+  const packageItem = resolvePackageForApplication(application.requestedPackage, packages)
+  const startDate = new Date(now).toLocaleDateString('sv-SE')
+  const trialDays = Math.max(0, packageItem?.trialDays || 0)
+  const trialEndDate = trialDays > 0 ? addLicenseDays(startDate, trialDays) : ''
+  const endDate = trialDays > 0 ? trialEndDate : addLicenseDays(startDate, 365)
+  const ownerName = application.ownerName || application.companyName
+  const tenantCode = createTenantCodeForApplication(application.companyName, tenants)
+
+  const company = normalizeCompany({
+    id: companyId,
+    tenantId,
+    companyName: application.companyName,
+    ownerName,
+    phone: application.phone,
+    email: application.email,
+    city: application.city,
+    district: application.district,
+    taxNumber: application.taxNumber,
+    taxOffice: application.taxOffice,
+    address: application.address,
+    status: 'Aktif',
+    createdAt: now,
+    updatedAt: now
+  })
+  const tenant = normalizeTenant({
+    id: tenantId,
+    tenantCode,
+    companyId,
+    companyName: application.companyName,
+    status: 'Aktif',
+    createdAt: now,
+    updatedAt: now
+  })
+  const branch = normalizeBranch({
+    id: branchId,
+    tenantId,
+    companyId,
+    code: createNextBranchCode(loadBranches()),
+    name: 'Merkez Şube',
+    phone: application.phone,
+    email: application.email,
+    address: application.address,
+    city: application.city,
+    managerName: ownerName,
+    isActive: true,
+    createdAt: now,
+    updatedAt: now
+  })
+  const ownerUser: User = normalizeUser({
+    id: authUserId,
+    tenantId,
+    companyId,
+    fullName: ownerName,
+    username: createUniqueCompanyAdminUsername(application.email.split('@')[0] || application.companyName, loadUsers({ allTenants: true })),
+    password: temporaryPassword,
+    role: 'Admin',
+    active: true
+  })
+  const companyUser = normalizeCompanyUser({
+    id: companyUserId,
+    tenantId,
+    companyId,
+    fullName: ownerName,
+    username: ownerUser.username,
+    email: application.email,
+    phone: application.phone,
+    role: 'Firma Sahibi',
+    status: 'Aktif',
+    lastLogin: '',
+    createdAt: now,
+    updatedAt: now
+  })
+  const license = normalizeCompanyLicense({
+    id: licenseId,
+    tenantId,
+    companyId,
+    packageId: packageItem?.id || '',
+    status: trialDays > 0 ? 'Deneme' : 'Aktif',
+    startDate,
+    endDate,
+    isTrial: trialDays > 0,
+    trialEndDate,
+    lastRenewalDate: '',
+    nextRenewalDate: endDate,
+    createdAt: now,
+    updatedAt: now
+  })
+  const subscription = normalizeUserSubscription({
+    id: subscriptionId,
+    tenantId,
+    userId: companyUser.id,
+    companyLicenseId: license.id,
+    status: 'Aktif',
+    assignedAt: startDate,
+    expiresAt: endDate,
+    createdAt: now,
+    updatedAt: now
+  })
+  const setup = normalizeCompanySetup({
+    id: createCompanySetupStorageId('company_setup'),
+    tenantId,
+    registrationId: application.id,
+    companyId,
+    branchId,
+    adminUserId: ownerUser.id,
+    temporaryPassword,
+    setupCompleted: true,
+    completedAt: now,
+    createdAt: now,
+    updatedAt: now
+  })
+  const approvedApplication = normalizeBusinessApplication({
+    ...application,
+    status: 'Onaylandı',
+    approvalNote: approvalNote.trim(),
+    updatedAt: now
+  })
+
+  saveTenants([tenant, ...tenants])
+  saveTenantSettings([createDefaultTenantSettings(tenant.id, now), ...loadTenantSettings().filter(settings => settings.tenantId !== tenant.id)])
+  saveCompanies([company, ...companies])
+  saveBranches([branch, ...loadBranches()])
+  saveUsers([ownerUser, ...loadUsers({ allTenants: true })])
+  saveCompanyUsers([companyUser, ...loadCompanyUsers()])
+  saveCompanyLicenses([license, ...loadCompanyLicenses()])
+  saveUserSubscriptions([subscription, ...loadUserSubscriptions()])
+  saveCompanySetups([setup, ...loadCompanySetups().filter(item => item.registrationId !== application.id)])
+  upsertApplication(approvedApplication)
+  if(approvalNote.trim()) addApplicationNote(application.id, approvalNote.trim(), user)
+
+  addActionLog({
+    operationType: 'Başvuru onaylandı',
+    user,
+    tenantId,
+    tableId: approvedApplication.id,
+    tableName: approvedApplication.companyName,
+    description: `${approvedApplication.companyName} başvurusu onaylandı. Paket: ${approvedApplication.requestedPackage}.`
+  })
+  addActionLog({
+    operationType: 'Firma otomatik oluşturuldu',
+    user,
+    tenantId,
+    tableId: company.id,
+    tableName: company.companyName,
+    description: `${company.companyName} firması başvuru onayıyla otomatik oluşturuldu.`
+  })
+  addActionLog({
+    operationType: 'Tenant otomatik oluşturuldu',
+    user,
+    tenantId,
+    tableId: tenant.id,
+    tableName: tenant.companyName,
+    description: `${tenant.companyName} için ${tenant.tenantCode} tenant kaydı otomatik oluşturuldu.`
+  })
+  addActionLog({
+    operationType: 'Lisans otomatik oluşturuldu',
+    user,
+    tenantId,
+    tableId: license.id,
+    tableName: company.companyName,
+    description: `${company.companyName} için ${packageItem?.name || approvedApplication.requestedPackage} lisansı otomatik oluşturuldu.`
+  })
+
+  return {
+    application: approvedApplication,
+    company,
+    tenant,
+    branch,
+    ownerUser,
+    companyUser,
+    license,
+    subscription,
+    setup,
+    temporaryPassword
   }
 }
 
@@ -6961,12 +7539,12 @@ export const createDemoData = () => {
   ]
 
   const products: Product[] = [
-    { id: 'prd_adana', branchId: DEFAULT_BRANCH_ID, name: 'Adana Kebap', price: 450, categoryId: 'cat_food', description: 'Közlenmiş domates ve biber ile servis edilir.', active: true, createdAt: now, updatedAt: now },
-    { id: 'prd_chicken', branchId: DEFAULT_BRANCH_ID, name: 'Tavuk Şiş', price: 360, categoryId: 'cat_food', description: 'Pilav ve salata ile servis edilir.', active: true, createdAt: now, updatedAt: now },
-    { id: 'prd_soup', branchId: DEFAULT_BRANCH_ID, name: 'Mercimek Çorbası', price: 120, categoryId: 'cat_food', description: 'Günlük sıcak çorba.', active: true, createdAt: now, updatedAt: now },
-    { id: 'prd_cola', branchId: DEFAULT_BRANCH_ID, name: 'Kola', price: 80, categoryId: 'cat_drinks', description: '330 ml kutu içecek.', active: true, createdAt: now, updatedAt: now },
-    { id: 'prd_tea', branchId: DEFAULT_BRANCH_ID, name: 'Çay', price: 35, categoryId: 'cat_drinks', description: 'Taze demlenmiş bardak çay.', active: true, createdAt: now, updatedAt: now },
-    { id: 'prd_baklava', branchId: DEFAULT_BRANCH_ID, name: 'Baklava', price: 180, categoryId: 'cat_desserts', description: 'Antep fıstıklı porsiyon baklava.', active: true, createdAt: now, updatedAt: now }
+    { id: 'prd_adana', branchId: DEFAULT_BRANCH_ID, name: 'Adana Kebap', price: 450, categoryId: 'cat_food', description: 'Közlenmiş domates ve biber ile servis edilir.', calories: 620, protein: 38, carbohydrate: 18, fat: 43, fiber: 4, sugar: 6, salt: 2.1, servingSize: '1 porsiyon', allergens: [], active: true, createdAt: now, updatedAt: now },
+    { id: 'prd_chicken', branchId: DEFAULT_BRANCH_ID, name: 'Tavuk Şiş', price: 360, categoryId: 'cat_food', description: 'Pilav ve salata ile servis edilir.', calories: 540, protein: 42, carbohydrate: 34, fat: 22, fiber: 3, sugar: 4, salt: 1.7, servingSize: '1 porsiyon', allergens: [], active: true, createdAt: now, updatedAt: now },
+    { id: 'prd_soup', branchId: DEFAULT_BRANCH_ID, name: 'Mercimek Çorbası', price: 120, categoryId: 'cat_food', description: 'Günlük sıcak çorba.', calories: 180, protein: 9, carbohydrate: 24, fat: 5, fiber: 7, sugar: 3, salt: 1.2, servingSize: '1 kase', allergens: ['Gluten'], active: true, createdAt: now, updatedAt: now },
+    { id: 'prd_cola', branchId: DEFAULT_BRANCH_ID, name: 'Kola', price: 80, categoryId: 'cat_drinks', description: '330 ml kutu içecek.', calories: 139, protein: 0, carbohydrate: 35, fat: 0, fiber: 0, sugar: 35, salt: 0.03, servingSize: '330 ml', allergens: [], active: true, createdAt: now, updatedAt: now },
+    { id: 'prd_tea', branchId: DEFAULT_BRANCH_ID, name: 'Çay', price: 35, categoryId: 'cat_drinks', description: 'Taze demlenmiş bardak çay.', calories: 2, protein: 0, carbohydrate: 0, fat: 0, fiber: 0, sugar: 0, salt: 0, servingSize: '1 bardak', allergens: [], active: true, createdAt: now, updatedAt: now },
+    { id: 'prd_baklava', branchId: DEFAULT_BRANCH_ID, name: 'Baklava', price: 180, categoryId: 'cat_desserts', description: 'Antep fıstıklı porsiyon baklava.', calories: 420, protein: 7, carbohydrate: 48, fat: 23, fiber: 3, sugar: 32, salt: 0.35, servingSize: '2 dilim', allergens: ['Gluten', 'Süt', 'Yumurta', 'Fındık'], active: true, createdAt: now, updatedAt: now }
   ]
 
   const branches = createDemoBranches(now)
@@ -6984,6 +7562,8 @@ export const createDemoData = () => {
   const incomeExpenses = createDemoIncomeExpenses(now)
   const cashTransfers = createDemoCashTransfers(now)
   const businessRegistrations = createDemoBusinessRegistrations(now)
+  const businessApplications = createDemoBusinessApplications(now)
+  const applicationNotes = createDemoApplicationNotes(now)
   const companies = createDemoCompanies(now)
   const companySetups = createDemoCompanySetups(now)
   const licensePackages = createDemoLicensePackages(now)
@@ -7019,6 +7599,8 @@ export const createDemoData = () => {
   saveCashClosings([])
   saveCashTransfers(cashTransfers)
   saveBusinessRegistrations(businessRegistrations)
+  saveBusinessApplications(businessApplications)
+  saveApplicationNotes(applicationNotes)
   saveCompanies(companies)
   saveCompanySetups(companySetups)
   saveLicensePackages(licensePackages)
@@ -7053,6 +7635,8 @@ export const createDemoData = () => {
     cashClosings: loadCashClosings(),
     cashTransfers: loadCashTransfers(),
     businessRegistrations: loadBusinessRegistrations(),
+    businessApplications: loadBusinessApplications(),
+    applicationNotes: loadApplicationNotes(),
     companies: loadCompanies(),
     companySetups: loadCompanySetups(),
     licensePackages: loadLicensePackages(),

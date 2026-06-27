@@ -13,6 +13,12 @@ import {
   saveWaiterCalls
 } from '../storage'
 import { formatCurrency, roundCurrency } from '../billing'
+import {
+  NUTRITION_FIELD_CONFIG,
+  formatNutritionValue,
+  formatProductAllergens,
+  hasNutritionInfo
+} from '../productNutrition'
 
 type Props = {
   tableId: string
@@ -42,6 +48,7 @@ export default function QRMenu({ tableId }: Props){
   const [selectedCategory, setSelectedCategory] = React.useState('all')
   const [cart, setCart] = React.useState<Record<string, CartItem>>({})
   const [customerNote, setCustomerNote] = React.useState('')
+  const [selectedProductId, setSelectedProductId] = React.useState<string | null>(null)
   const [message, setMessage] = React.useState<Message>(null)
 
   const decodedTableId = React.useMemo(() => decodeURIComponent(tableId), [tableId])
@@ -79,6 +86,12 @@ export default function QRMenu({ tableId }: Props){
     if(visibleCategories.some(category => category.id === selectedCategory)) return
     setSelectedCategory('all')
   }, [selectedCategory, visibleCategories])
+
+  React.useEffect(() => {
+    if(!selectedProductId) return
+    if(visibleProducts.some(product => product.id === selectedProductId)) return
+    setSelectedProductId(null)
+  }, [selectedProductId, visibleProducts])
 
   const addToCart = (product: Product) => {
     setCart(prev => {
@@ -248,8 +261,11 @@ export default function QRMenu({ tableId }: Props){
             {visibleProducts.length === 0 && (
               <div className="empty-state">Aktif menü ürünü bulunamadı.</div>
             )}
-            {visibleProducts.map(product => (
-              <article className="qr-product-card" key={product.id}>
+            {visibleProducts.map(product => {
+              const detailsOpen = selectedProductId === product.id
+
+              return (
+              <article className={`qr-product-card ${detailsOpen ? 'expanded' : ''}`} key={product.id}>
                 <div>
                   <span className="small-text">{categoryNameById.get(product.categoryId) || 'Genel'}</span>
                   <h2>{product.name}</h2>
@@ -257,10 +273,49 @@ export default function QRMenu({ tableId }: Props){
                 </div>
                 <div className="qr-product-actions">
                   <strong>{formatCurrency(product.price)}</strong>
+                  <button className="btn" onClick={() => setSelectedProductId(detailsOpen ? null : product.id)}>
+                    {detailsOpen ? 'Kapat' : 'Detay'}
+                  </button>
                   <button className="btn primary" onClick={() => addToCart(product)}>Ekle</button>
                 </div>
+                {detailsOpen && (
+                  <div className="qr-product-detail">
+                    <div>
+                      <h3>Besin Değerleri</h3>
+                      {hasNutritionInfo(product) ? (
+                        <div className="qr-nutrition-grid">
+                          {product.servingSize && (
+                            <div>
+                              <span>Porsiyon</span>
+                              <strong>{product.servingSize}</strong>
+                            </div>
+                          )}
+                          {NUTRITION_FIELD_CONFIG.map(field => (
+                            <div key={field.key}>
+                              <span>{field.label}</span>
+                              <strong>{formatNutritionValue(product[field.key], field.unit)}</strong>
+                            </div>
+                          ))}
+                        </div>
+                      ) : (
+                        <p className="muted">Besin bilgisi yok.</p>
+                      )}
+                    </div>
+                    <div>
+                      <h3>Alerjenler</h3>
+                      <div className="qr-allergen-list" aria-label={formatProductAllergens(product.allergens)}>
+                        {product.allergens.length === 0 ? (
+                          <span className="status-pill success">Alerjen içermez</span>
+                        ) : product.allergens.map(allergen => (
+                          <span className="status-pill warning-pill" key={allergen}>{allergen}</span>
+                        ))}
+                      </div>
+                    </div>
+                  </div>
+                )}
               </article>
-            ))}
+              )
+            })}
           </div>
         </main>
 

@@ -30,6 +30,23 @@ export type ProductCategory = {
   createdAt: string
 }
 
+export type ProductAllergen =
+  | 'Gluten'
+  | 'Süt'
+  | 'Yumurta'
+  | 'Yer Fıstığı'
+  | 'Fındık'
+  | 'Ceviz'
+  | 'Soya'
+  | 'Susam'
+  | 'Balık'
+  | 'Kabuklu Deniz Ürünleri'
+  | 'Hardal'
+  | 'Kereviz'
+  | 'Lupin'
+  | 'Sülfit'
+  | 'Yumuşakçalar'
+
 export type Product = {
   id: string
   tenantId?: string
@@ -38,6 +55,15 @@ export type Product = {
   price: number
   categoryId: string
   description?: string
+  calories: number
+  protein: number
+  carbohydrate: number
+  fat: number
+  fiber: number
+  sugar: number
+  salt: number
+  servingSize: string
+  allergens: ProductAllergen[]
   active: boolean
   createdAt: string
   updatedAt?: string
@@ -673,6 +699,34 @@ export type BusinessRegistration = {
   updatedAt: string
 }
 
+export type ApplicationStatus = 'Beklemede' | 'İnceleniyor' | 'Onaylandı' | 'Reddedildi'
+
+export type BusinessApplication = {
+  id: string
+  companyName: string
+  ownerName: string
+  phone: string
+  email: string
+  taxNumber: string
+  taxOffice: string
+  city: string
+  district: string
+  address: string
+  requestedPackage: string
+  status: ApplicationStatus
+  approvalNote: string
+  createdAt: string
+  updatedAt: string
+}
+
+export type ApplicationNote = {
+  id: string
+  applicationId: string
+  note: string
+  createdBy: string
+  createdAt: string
+}
+
 export type CompanyStatus = 'Aktif' | 'Pasif' | 'Askıda' | 'Silindi'
 
 export type Company = {
@@ -1185,6 +1239,8 @@ export type ActionLogType =
   | 'Hesap kapatıldı'
   | 'Ürün oluşturuldu'
   | 'Ürün güncellendi'
+  | 'Ürün besin bilgisi güncellendi'
+  | 'Ürün alerjen bilgisi güncellendi'
   | 'Ürün aktif yapıldı'
   | 'Ürün pasif yapıldı'
   | 'Kategori oluşturuldu'
@@ -1311,6 +1367,13 @@ export type ActionLogType =
   | 'İşletme başvurusu onaylandı'
   | 'İşletme başvurusu reddedildi'
   | 'İşletme başvurusu güncellendi'
+  | 'Başvuru oluşturuldu'
+  | 'Başvuru incelendi'
+  | 'Başvuru onaylandı'
+  | 'Başvuru reddedildi'
+  | 'Firma otomatik oluşturuldu'
+  | 'Tenant otomatik oluşturuldu'
+  | 'Lisans otomatik oluşturuldu'
   | 'Firma oluşturuldu'
   | 'Admin kullanıcı oluşturuldu'
   | 'Kurulum tamamlandı'
