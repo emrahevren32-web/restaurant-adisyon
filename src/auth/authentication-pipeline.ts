@@ -3,7 +3,7 @@ import { resolveIdentity } from '../identity/identity-resolver'
 import { resolveLoginRedirect } from '../routing/login-router'
 import { LOGIN_ROUTE_TARGETS, LoginRouteTarget } from '../routing/routing.types'
 import { evaluateSecurityGateway } from '../security/security-gateway'
-import { createSessionSnapshot } from '../session/session.types'
+import { createSessionSnapshot } from '../session/session.service'
 import { AuthenticationPipelineRequest, AuthenticationPipelineResult } from './authentication-pipeline.types'
 
 const getBrowserPath = () => {

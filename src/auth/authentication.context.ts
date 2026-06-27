@@ -1,4 +1,5 @@
 import { AuthenticationPipelineResult } from './authentication-pipeline.types'
+import { SessionModel } from '../session/session.types'
 
 export type AuthenticationContext = {
   authenticated: boolean
@@ -13,16 +14,11 @@ export type AuthenticationContext = {
  */
 export const createAuthenticationContext = (
   pipeline: AuthenticationPipelineResult,
+  session: SessionModel | null = null,
   now = new Date()
 ): AuthenticationContext => ({
   authenticated: pipeline.identity.authenticated,
   userId: pipeline.identity.userId,
-  sessionId: pipeline.identity.authenticated && pipeline.identity.userId
-    ? createAuthenticationSessionId(pipeline.identity.userId, now)
-    : null,
-  loginTime: pipeline.identity.authenticated ? now : null
+  sessionId: session?.sessionId || null,
+  loginTime: session?.createdAt || (pipeline.identity.authenticated ? now : null)
 })
-
-const createAuthenticationSessionId = (userId: string, date: Date) => {
-  return `auth_session_${userId}_${date.getTime()}`
-}

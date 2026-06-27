@@ -1,8 +1,18 @@
-import { IdentityResult } from '../identity/identity.types'
+import { IdentityResult, UserType } from '../identity/identity.types'
 
 export type SessionSource = 'local-storage' | 'jwt' | 'server-session'
 
 export type SessionStatus = 'anonymous' | 'authenticated' | 'expired' | 'invalid'
+
+export type SessionModel = {
+  sessionId: string
+  userId: string
+  authenticated: boolean
+  createdAt: Date
+  expiresAt: Date
+  lastActivity: Date
+  userType: UserType
+}
 
 export type SessionSnapshot = {
   status: SessionStatus
@@ -12,21 +22,30 @@ export type SessionSnapshot = {
   expiresAt: string | null
 }
 
-/**
- * Creates an in-memory snapshot of the resolved identity. The current app still
- * uses localStorage auth and does not create JWTs or expirations.
- */
-export const createSessionSnapshot = (
-  identity: IdentityResult,
-  now = new Date().toISOString()
-): SessionSnapshot => ({
-  status: identity.authenticated ? 'authenticated' : 'anonymous',
-  source: 'local-storage',
-  identity,
-  issuedAt: identity.authenticated ? now : null,
-  expiresAt: null
-})
+export type SessionLifecycleStep =
+  | 'login'
+  | 'session-created'
+  | 'authentication'
+  | 'identity'
+  | 'login-router'
+  | 'security-gateway'
+  | 'application'
+  | 'session-expired'
+  | 'logout'
 
-export const createEmptySessionSnapshot = (identity: IdentityResult): SessionSnapshot => {
-  return createSessionSnapshot(identity)
+export const SESSION_LIFECYCLE_STEPS: SessionLifecycleStep[] = [
+  'login',
+  'session-created',
+  'authentication',
+  'identity',
+  'login-router',
+  'security-gateway',
+  'application',
+  'session-expired',
+  'logout'
+]
+
+export type SessionFoundationResult = {
+  session: SessionModel | null
+  snapshot: SessionSnapshot
 }
