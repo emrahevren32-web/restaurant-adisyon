@@ -65,8 +65,10 @@ import FinancialReports from './pages/FinancialReports'
 import CashTransfers from './pages/CashTransfers'
 import AppShell, { ShellNavGroup, ShellNavItem } from './components/AppShell'
 import { resolveIdentity } from './identity/identity-resolver'
+import { IdentityResult, USER_TYPES } from './identity/identity.types'
 import { resolveLoginRedirect } from './routing/login-router'
 import { LOGIN_ROUTE_TARGETS, LoginRedirectResult } from './routing/routing.types'
+import { evaluateSecurityGateway } from './security/security-gateway'
 import { createSessionSnapshot } from './session/session.types'
 import {
   loadProducts,
@@ -602,16 +604,48 @@ const PlatformAccessDenied = () => (
   </section>
 )
 
+const getRequestedSecurityTarget = (identity: IdentityResult, path = window.location.pathname) => {
+  if(/^\/(?:evren360|platform)(?:\/|$)/.test(path)) return LOGIN_ROUTE_TARGETS.EVREN360
+  if(/^\/(?:basvuru|apply)(?:\/|$)/.test(path)) return LOGIN_ROUTE_TARGETS.PUBLIC_APPLICATION
+  if(/^\/restaurant-admin(?:\/|$)/.test(path)) return LOGIN_ROUTE_TARGETS.RESTAURANTOS_ADMIN
+  if(/^\/restaurant-user(?:\/|$)/.test(path)) return LOGIN_ROUTE_TARGETS.RESTAURANTOS_USER
+  if(/^\/(?:restaurant|restaurantos)(?:\/|$)/.test(path)){
+    return identity.userType === USER_TYPES.COMPANY_USER
+      ? LOGIN_ROUTE_TARGETS.RESTAURANTOS_USER
+      : LOGIN_ROUTE_TARGETS.RESTAURANTOS_ADMIN
+  }
+
+  if(identity.userType === USER_TYPES.SUPER_ADMIN) return LOGIN_ROUTE_TARGETS.EVREN360
+  if(identity.userType === USER_TYPES.COMPANY_ADMIN) return LOGIN_ROUTE_TARGETS.RESTAURANTOS_ADMIN
+  if(identity.userType === USER_TYPES.COMPANY_USER) return LOGIN_ROUTE_TARGETS.RESTAURANTOS_USER
+  return LOGIN_ROUTE_TARGETS.PUBLIC_APPLICATION
+}
+
+const getRouteSecurityTarget = (route: Route, identity: IdentityResult) => {
+  if(evren360RouteViews[route]) return LOGIN_ROUTE_TARGETS.EVREN360
+  if(identity.userType === USER_TYPES.SUPER_ADMIN) return LOGIN_ROUTE_TARGETS.EVREN360
+  if(identity.userType === USER_TYPES.COMPANY_ADMIN) return LOGIN_ROUTE_TARGETS.RESTAURANTOS_ADMIN
+  if(identity.userType === USER_TYPES.COMPANY_USER) return LOGIN_ROUTE_TARGETS.RESTAURANTOS_USER
+  return LOGIN_ROUTE_TARGETS.PUBLIC_APPLICATION
+}
+
 const createIdentitySessionSnapshot = (user: User | null) => {
   const identity = resolveIdentity({
     legacyUser: user,
     requestedPath: window.location.pathname
   })
+  const loginRedirect = resolveLoginRedirect(identity)
+  const securityTarget = getRequestedSecurityTarget(identity)
 
   return {
     identity,
     session: createSessionSnapshot(identity),
-    loginRedirect: resolveLoginRedirect(identity)
+    loginRedirect,
+    securityDecision: evaluateSecurityGateway({
+      identity,
+      loginRedirect,
+      target: securityTarget
+    })
   }
 }
 
@@ -641,6 +675,20 @@ export default function App(){
     return nextIdentitySession
   }
 
+  const evaluateCurrentRouteSecurity = (nextRoute: Route) => {
+    const currentIdentitySession = identitySessionRef.current
+    const target = getRouteSecurityTarget(nextRoute, currentIdentitySession.identity)
+
+    identitySessionRef.current = {
+      ...currentIdentitySession,
+      securityDecision: evaluateSecurityGateway({
+        identity: currentIdentitySession.identity,
+        loginRedirect: currentIdentitySession.loginRedirect,
+        target
+      })
+    }
+  }
+
   React.useEffect(()=>{
     loadProducts()
     ensureDefaultAdmin()
@@ -651,6 +699,9 @@ export default function App(){
   React.useEffect(() => {
     document.title = settings.restaurantName
   }, [settings.restaurantName])
+  React.useEffect(() => {
+    evaluateCurrentRouteSecurity(route)
+  }, [route])
 
   const onLogin = (u: User) => {
     const nextIdentitySession = updateIdentitySession(u)
