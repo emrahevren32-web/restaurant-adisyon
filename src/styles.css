@@ -666,6 +666,29 @@ th { color:var(--muted-strong); font-size:13px; font-weight:750 }
 .customer-list-table { min-width:1180px }
 .customer-list-table td.actions-cell { min-width:250px }
 .customer-list-table td:nth-child(3) { min-width:210px }
+.customer-detail-page { display:flex; flex-direction:column; gap:16px; min-width:0; max-width:100% }
+.customer-detail-action-row { display:flex; align-items:center; justify-content:space-between; gap:10px; flex-wrap:wrap }
+.customer-detail-info-grid,
+.customer-detail-license-grid { display:grid; grid-template-columns:repeat(4, minmax(0, 1fr)); gap:10px; min-width:0 }
+.customer-detail-license-grid { grid-template-columns:repeat(5, minmax(0, 1fr)) }
+.customer-detail-info-grid > div,
+.customer-detail-license-grid > div { min-width:0; border:1px solid var(--line); border-radius:var(--radius-md); padding:10px 12px; background:var(--surface-muted) }
+.customer-detail-info-grid span,
+.customer-detail-info-grid strong,
+.customer-detail-license-grid span,
+.customer-detail-license-grid strong { display:block; line-height:1.3; overflow-wrap:anywhere }
+.customer-detail-info-grid span,
+.customer-detail-license-grid span { color:var(--muted); font-size:12px; font-weight:850; margin-bottom:4px }
+.customer-detail-info-grid strong,
+.customer-detail-license-grid strong { color:var(--text); font-size:14px; font-weight:850 }
+.customer-detail-grid { display:grid; grid-template-columns:repeat(2, minmax(0, 1fr)); gap:14px; align-items:start }
+.customer-detail-module-grid { display:grid; grid-template-columns:repeat(4, minmax(0, 1fr)); gap:10px; min-width:0 }
+.customer-detail-module-card { display:flex; align-items:center; justify-content:space-between; gap:10px; min-width:0; border:1px solid var(--line); border-radius:var(--radius-md); padding:12px; background:var(--surface-muted) }
+.customer-detail-module-card strong { min-width:0; color:var(--text); font-size:14px; font-weight:900; line-height:1.25; overflow:hidden; text-overflow:ellipsis; white-space:nowrap }
+.customer-detail-branch-table { min-width:520px }
+.customer-detail-user-table { min-width:760px }
+.customer-detail-login-table { min-width:640px }
+.customer-detail-support-table { min-width:580px }
 .pending-applications-page { display:flex; flex-direction:column; gap:16px; min-width:0; max-width:100% }
 .pending-applications-panel { overflow:hidden }
 .pending-applications-controls { display:grid; grid-template-columns:minmax(220px, 1.2fr) minmax(170px, .75fr) minmax(150px, .65fr); gap:10px; align-items:end; width:min(100%, 720px); min-width:0 }
@@ -1334,7 +1357,7 @@ th { color:var(--muted-strong); font-size:13px; font-weight:750 }
   .users-side { position:static }
   .metric-grid { grid-template-columns:repeat(2, minmax(0, 1fr)) }
   .kitchen-grid { grid-template-columns:repeat(2, minmax(0, 1fr)) }
-  .toolbar-controls, .stock-movement-filters, .recipe-filters, .adisyon-tools, .action-log-filters, .stock-report-filters, .report-filter-grid, .report-sort-controls, .report-panel-grid.three, .waste-reason-summary-grid, .current-report-summary-grid, .risky-current-summary-grid, .employee-report-summary-grid, .employee-report-risk-grid, .financial-summary-grid, .business-summary-grid, .sales-analysis-grid, .product-performance-grid, .product-risk-grid, .stock-risk-grid, .stock-risk-list-grid, .current-finance-summary-grid, .finance-risk-grid, .personnel-performance-grid, .personnel-summary-grid, .personnel-risk-grid, .manager-alert-score-grid, .manager-alert-grid, .branch-reporting-grid, .branch-report-best-grid, .head-office-grid, .system-usage-analysis-grid, .user-activity-analysis-grid, .user-activity-detail-grid, .module-usage-analysis-grid, .module-usage-detail-grid, .business-usage-analysis-grid, .business-usage-detail-grid, .usage-performance-density-grid, .usage-performance-analysis-grid, .usage-performance-detail-grid, .usage-performance-summary-grid, .analytics-dashboard-summary-grid, .analytics-dashboard-trend-grid, .analytics-dashboard-detail-grid, .system-health-telemetry-grid, .system-health-risk-grid, .company-setup-detail-grid, .package-license-detail-grid, .package-default-grid, .user-subscription-detail-grid, .module-activation-detail-grid, .module-activation-filters, .module-activation-test-form, .financial-report-list-grid, .customer-list-controls, .pending-applications-controls, .pending-applications-detail-grid, .pending-applications-history { grid-template-columns:1fr; width:100% }
+  .toolbar-controls, .stock-movement-filters, .recipe-filters, .adisyon-tools, .action-log-filters, .stock-report-filters, .report-filter-grid, .report-sort-controls, .report-panel-grid.three, .waste-reason-summary-grid, .current-report-summary-grid, .risky-current-summary-grid, .employee-report-summary-grid, .employee-report-risk-grid, .financial-summary-grid, .business-summary-grid, .sales-analysis-grid, .product-performance-grid, .product-risk-grid, .stock-risk-grid, .stock-risk-list-grid, .current-finance-summary-grid, .finance-risk-grid, .personnel-performance-grid, .personnel-summary-grid, .personnel-risk-grid, .manager-alert-score-grid, .manager-alert-grid, .branch-reporting-grid, .branch-report-best-grid, .head-office-grid, .system-usage-analysis-grid, .user-activity-analysis-grid, .user-activity-detail-grid, .module-usage-analysis-grid, .module-usage-detail-grid, .business-usage-analysis-grid, .business-usage-detail-grid, .usage-performance-density-grid, .usage-performance-analysis-grid, .usage-performance-detail-grid, .usage-performance-summary-grid, .analytics-dashboard-summary-grid, .analytics-dashboard-trend-grid, .analytics-dashboard-detail-grid, .system-health-telemetry-grid, .system-health-risk-grid, .company-setup-detail-grid, .package-license-detail-grid, .package-default-grid, .user-subscription-detail-grid, .module-activation-detail-grid, .module-activation-filters, .module-activation-test-form, .financial-report-list-grid, .customer-list-controls, .customer-detail-grid, .customer-detail-info-grid, .customer-detail-license-grid, .customer-detail-module-grid, .pending-applications-controls, .pending-applications-detail-grid, .pending-applications-history { grid-template-columns:1fr; width:100% }
   .current-finance-summary-grid > .financial-summary-card:last-child { grid-column:auto }
   .card:has(.table-wrap) > .section-header > :last-child { flex:1 1 100%; width:100% }
   .table-wrap table { min-width:100% }

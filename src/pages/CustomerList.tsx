@@ -21,6 +21,10 @@ type CustomerRow = {
   userCount: number
 }
 
+type Props = {
+  onOpenCustomerDetail: (companyId: string) => void
+}
+
 const customerStatuses: CustomerStatus[] = ['Aktif', 'Pasif', 'Deneme', 'Askıda']
 
 const normalizeLookup = (value: string) => value
@@ -97,7 +101,7 @@ const getUserCountForCompany = (companyId: string, users: CompanyUser[]) => {
   )).length
 }
 
-export default function CustomerList(){
+export default function CustomerList({ onOpenCustomerDetail }: Props){
   const [search, setSearch] = React.useState('')
   const [packageFilter, setPackageFilter] = React.useState('all')
   const [statusFilter, setStatusFilter] = React.useState('all')
@@ -278,7 +282,7 @@ export default function CustomerList(){
                   <td>{formatNumber(row.userCount)}</td>
                   <td>{formatDate(row.company.createdAt)}</td>
                   <td className="actions-cell">
-                    <button className="btn" type="button">Detay</button>
+                    <button className="btn" type="button" onClick={() => onOpenCustomerDetail(row.company.id)}>Detay</button>
                     <button className="btn" type="button">Düzenle</button>
                     <button className="btn" type="button">Lisans</button>
                   </td>

@@ -27,6 +27,7 @@ import ModuleActivationSystem from './pages/ModuleActivationSystem'
 import TenantManagement from './pages/TenantManagement'
 import SaasManagementCenter, { SaasManagementView } from './pages/SaasManagementCenter'
 import CustomerList from './pages/CustomerList'
+import CustomerDetail from './pages/CustomerDetail'
 import PendingApplications from './pages/PendingApplications'
 import StaffTracking from './pages/StaffTracking'
 import EmployeeCards from './pages/EmployeeCards'
@@ -131,6 +132,7 @@ type Route =
   | 'tenant-management'
   | 'evren360-dashboard'
   | 'evren360-customer-list'
+  | 'evren360-customer-detail'
   | 'evren360-pending-applications'
   | 'evren360-applications'
   | 'evren360-companies'
@@ -213,6 +215,7 @@ type NavKey =
   | 'tenant-management'
   | 'evren360-dashboard'
   | 'evren360-customer-list'
+  | 'evren360-customer-detail'
   | 'evren360-pending-applications'
   | 'evren360-applications'
   | 'evren360-companies'
@@ -462,6 +465,7 @@ const navGroups: NavGroup[] = [
     items: [
       { key: 'evren360-dashboard', label: 'Dashboard', route: 'evren360-dashboard', icon: 'DB', adminOnly: true, platformAdminOnly: true },
       { key: 'evren360-customer-list', label: 'Müşteri Listesi', route: 'evren360-customer-list', icon: 'ML', adminOnly: true, platformAdminOnly: true },
+      { key: 'evren360-customer-detail', label: 'Müşteri Detayı', route: 'evren360-customer-detail', icon: 'MD', adminOnly: true, platformAdminOnly: true, hidden: true },
       { key: 'evren360-pending-applications', label: 'Onay Bekleyen İşletmeler', route: 'evren360-pending-applications', icon: 'OB', adminOnly: true, platformAdminOnly: true },
       { key: 'evren360-applications', label: 'Başvurular', route: 'evren360-applications', icon: 'BV', adminOnly: true, platformAdminOnly: true },
       { key: 'evren360-companies', label: 'Firmalar', route: 'evren360-companies', icon: 'FR', adminOnly: true, platformAdminOnly: true },
@@ -616,6 +620,7 @@ const getRouteSecurityTarget = (route: Route, authState: AuthenticationState) =>
   if(
     evren360RouteViews[route]
     || route === 'evren360-customer-list'
+    || route === 'evren360-customer-detail'
     || route === 'evren360-pending-applications'
   ) return LOGIN_ROUTE_TARGETS.EVREN360
   return resolveSecurityTargetForIdentity(authState.pipeline.identity)
@@ -640,6 +645,7 @@ export default function App(){
   const [branches, setBranches] = React.useState<Branch[]>(() => getVisibleBranchesForUser(initialUser))
   const [activeBranchId, setActiveBranchState] = React.useState(() => getActiveBranchId())
   const [licenseAccessError, setLicenseAccessError] = React.useState('')
+  const [selectedCustomerId, setSelectedCustomerId] = React.useState('')
   const isPlatformAdmin = isPlatformAdminUser(currentUser)
   const evren360View = evren360RouteViews[route]
 
@@ -703,6 +709,18 @@ export default function App(){
     const nextBranchId = setActiveBranchId(branchId, currentUser || undefined)
     setActiveBranchState(nextBranchId)
     setBranches(getVisibleBranchesForUser(currentUser))
+  }
+  const openCustomerDetail = (companyId: string) => {
+    setSelectedCustomerId(companyId)
+    setLicenseAccessError('')
+    setRoute('evren360-customer-detail')
+    setActiveNavKey('evren360-customer-detail')
+    setOpenGroupKey('evren360-admin')
+  }
+  const returnToCustomerList = () => {
+    setRoute('evren360-customer-list')
+    setActiveNavKey('evren360-customer-list')
+    setOpenGroupKey('evren360-admin')
   }
   const navGroupsForCurrentUser = React.useMemo<NavGroup[]>(() => {
     const scopedGroups = isPlatformAdmin
@@ -900,7 +918,10 @@ export default function App(){
         isPlatformAdmin ? <TenantManagement currentUser={currentUser} /> : <PlatformAccessDenied />
       )}
       {route === 'evren360-customer-list' && currentUser.role === 'Admin' && (
-        isPlatformAdmin ? <CustomerList /> : <PlatformAccessDenied />
+        isPlatformAdmin ? <CustomerList onOpenCustomerDetail={openCustomerDetail} /> : <PlatformAccessDenied />
+      )}
+      {route === 'evren360-customer-detail' && currentUser.role === 'Admin' && (
+        isPlatformAdmin ? <CustomerDetail customerId={selectedCustomerId} onBack={returnToCustomerList} /> : <PlatformAccessDenied />
       )}
       {route === 'evren360-pending-applications' && currentUser.role === 'Admin' && (
         isPlatformAdmin ? <PendingApplications currentUser={currentUser} /> : <PlatformAccessDenied />
