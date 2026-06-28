@@ -707,6 +707,33 @@ th { color:var(--muted-strong); font-size:13px; font-weight:750 }
 .pending-applications-detail-grid strong { color:var(--text); font-size:14px; font-weight:850 }
 .pending-applications-note-list { display:flex; flex-direction:column; gap:8px }
 .pending-applications-history { grid-template-columns:repeat(4, minmax(0, 1fr)); margin-top:0 }
+.system-announcements-page { display:flex; flex-direction:column; gap:16px; min-width:0; max-width:100% }
+.system-announcements-layout { display:grid; grid-template-columns:minmax(0, 1.1fr) minmax(320px, .75fr); gap:14px; align-items:start }
+.system-announcements-form-panel,
+.system-announcements-panel { overflow:hidden }
+.system-announcements-form { display:grid; grid-template-columns:repeat(2, minmax(0, 1fr)); gap:10px; min-width:0 }
+.system-announcements-form label,
+.system-announcements-controls label { min-width:0 }
+.system-announcements-form span,
+.system-announcements-controls span { display:block; margin-bottom:5px; color:var(--muted); font-size:12px; font-weight:850; line-height:1.2 }
+.system-announcements-wide-field { grid-column:1 / -1 }
+.system-announcements-target-preview { min-width:0; border:1px solid var(--line); border-radius:var(--radius-md); padding:10px 12px; background:var(--surface-muted) }
+.system-announcements-target-preview span,
+.system-announcements-target-preview strong { display:block; line-height:1.25 }
+.system-announcements-target-preview span { color:var(--muted); font-size:12px; font-weight:850; margin-bottom:4px }
+.system-announcements-target-preview strong { color:var(--text); font-size:20px; font-weight:950; font-variant-numeric:tabular-nums }
+.system-announcements-form-actions { display:flex; flex-wrap:wrap; gap:8px; align-items:end }
+.system-announcements-foundation-grid { display:grid; grid-template-columns:repeat(2, minmax(0, 1fr)); gap:8px; min-width:0 }
+.system-announcements-foundation-grid > div { display:flex; align-items:center; justify-content:space-between; gap:10px; min-width:0; border:1px solid var(--line); border-radius:var(--radius-md); padding:10px 12px; background:var(--surface-muted) }
+.system-announcements-foundation-grid strong { min-width:0; color:var(--text); font-size:13px; font-weight:900; line-height:1.25; overflow:hidden; text-overflow:ellipsis; white-space:nowrap }
+.system-announcements-preview { margin-top:14px; border:1px solid var(--line); border-radius:var(--radius-md); padding:13px; background:var(--surface-muted); min-width:0 }
+.system-announcements-preview h3 { margin:10px 0 6px; color:var(--text); font-size:17px; line-height:1.2; font-weight:900 }
+.system-announcements-preview p { margin:0; color:var(--text-soft); font-size:13px; font-weight:750; line-height:1.4; overflow-wrap:anywhere }
+.system-announcements-preview small { display:block; margin-top:10px; color:var(--muted); font-size:12px; font-weight:850 }
+.system-announcements-controls { display:grid; grid-template-columns:minmax(220px, 1.2fr) repeat(3, minmax(130px, .66fr)); gap:10px; align-items:end; width:min(100%, 860px); min-width:0 }
+.system-announcements-table { min-width:1160px }
+.system-announcements-table td.actions-cell { min-width:430px }
+.system-announcements-table td:first-child { min-width:260px }
 .side-nav-item.locked { opacity:.76 }
 .side-nav-lock { display:inline-flex; align-items:center; justify-content:center; width:22px; height:22px; border:1px solid var(--warning-line); border-radius:50%; color:var(--warning); background:var(--warning-soft); font-size:11px; font-weight:950; flex:0 0 auto }
 .license-denied-page { align-items:flex-start; max-width:680px }
@@ -1357,7 +1384,7 @@ th { color:var(--muted-strong); font-size:13px; font-weight:750 }
   .users-side { position:static }
   .metric-grid { grid-template-columns:repeat(2, minmax(0, 1fr)) }
   .kitchen-grid { grid-template-columns:repeat(2, minmax(0, 1fr)) }
-  .toolbar-controls, .stock-movement-filters, .recipe-filters, .adisyon-tools, .action-log-filters, .stock-report-filters, .report-filter-grid, .report-sort-controls, .report-panel-grid.three, .waste-reason-summary-grid, .current-report-summary-grid, .risky-current-summary-grid, .employee-report-summary-grid, .employee-report-risk-grid, .financial-summary-grid, .business-summary-grid, .sales-analysis-grid, .product-performance-grid, .product-risk-grid, .stock-risk-grid, .stock-risk-list-grid, .current-finance-summary-grid, .finance-risk-grid, .personnel-performance-grid, .personnel-summary-grid, .personnel-risk-grid, .manager-alert-score-grid, .manager-alert-grid, .branch-reporting-grid, .branch-report-best-grid, .head-office-grid, .system-usage-analysis-grid, .user-activity-analysis-grid, .user-activity-detail-grid, .module-usage-analysis-grid, .module-usage-detail-grid, .business-usage-analysis-grid, .business-usage-detail-grid, .usage-performance-density-grid, .usage-performance-analysis-grid, .usage-performance-detail-grid, .usage-performance-summary-grid, .analytics-dashboard-summary-grid, .analytics-dashboard-trend-grid, .analytics-dashboard-detail-grid, .system-health-telemetry-grid, .system-health-risk-grid, .company-setup-detail-grid, .package-license-detail-grid, .package-default-grid, .user-subscription-detail-grid, .module-activation-detail-grid, .module-activation-filters, .module-activation-test-form, .financial-report-list-grid, .customer-list-controls, .customer-detail-grid, .customer-detail-info-grid, .customer-detail-license-grid, .customer-detail-module-grid, .pending-applications-controls, .pending-applications-detail-grid, .pending-applications-history { grid-template-columns:1fr; width:100% }
+  .toolbar-controls, .stock-movement-filters, .recipe-filters, .adisyon-tools, .action-log-filters, .stock-report-filters, .report-filter-grid, .report-sort-controls, .report-panel-grid.three, .waste-reason-summary-grid, .current-report-summary-grid, .risky-current-summary-grid, .employee-report-summary-grid, .employee-report-risk-grid, .financial-summary-grid, .business-summary-grid, .sales-analysis-grid, .product-performance-grid, .product-risk-grid, .stock-risk-grid, .stock-risk-list-grid, .current-finance-summary-grid, .finance-risk-grid, .personnel-performance-grid, .personnel-summary-grid, .personnel-risk-grid, .manager-alert-score-grid, .manager-alert-grid, .branch-reporting-grid, .branch-report-best-grid, .head-office-grid, .system-usage-analysis-grid, .user-activity-analysis-grid, .user-activity-detail-grid, .module-usage-analysis-grid, .module-usage-detail-grid, .business-usage-analysis-grid, .business-usage-detail-grid, .usage-performance-density-grid, .usage-performance-analysis-grid, .usage-performance-detail-grid, .usage-performance-summary-grid, .analytics-dashboard-summary-grid, .analytics-dashboard-trend-grid, .analytics-dashboard-detail-grid, .system-health-telemetry-grid, .system-health-risk-grid, .company-setup-detail-grid, .package-license-detail-grid, .package-default-grid, .user-subscription-detail-grid, .module-activation-detail-grid, .module-activation-filters, .module-activation-test-form, .financial-report-list-grid, .customer-list-controls, .customer-detail-grid, .customer-detail-info-grid, .customer-detail-license-grid, .customer-detail-module-grid, .pending-applications-controls, .pending-applications-detail-grid, .pending-applications-history, .system-announcements-layout, .system-announcements-form, .system-announcements-foundation-grid, .system-announcements-controls { grid-template-columns:1fr; width:100% }
   .current-finance-summary-grid > .financial-summary-card:last-child { grid-column:auto }
   .card:has(.table-wrap) > .section-header > :last-child { flex:1 1 100%; width:100% }
   .table-wrap table { min-width:100% }
