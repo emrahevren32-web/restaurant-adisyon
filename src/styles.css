@@ -813,6 +813,45 @@ th { color:var(--muted-strong); font-size:13px; font-weight:750 }
 .company-management-branch-table td.actions-cell { min-width:190px }
 .company-management-user-table { min-width:920px }
 .company-management-user-table td.actions-cell { min-width:360px }
+.billing-management-page { display:flex; flex-direction:column; gap:16px; min-width:0; max-width:100% }
+.billing-management-filter-panel { overflow:hidden }
+.billing-management-filters { display:grid; grid-template-columns:repeat(5, minmax(140px, 1fr)); gap:10px; align-items:end; width:min(100%, 1040px); min-width:0 }
+.billing-management-filters label { min-width:0 }
+.billing-management-filters span { display:block; margin-bottom:5px; color:var(--muted); font-size:12px; font-weight:850; line-height:1.2 }
+.billing-management-kpi-grid { grid-template-columns:repeat(3, minmax(0, 1fr)) }
+.billing-management-invoice-table { min-width:1320px }
+.billing-management-invoice-table td.actions-cell { min-width:520px }
+.billing-management-grid,
+.billing-management-chart-grid { display:grid; grid-template-columns:repeat(2, minmax(0, 1fr)); gap:14px; align-items:start; min-width:0 }
+.billing-management-collection-table { min-width:940px }
+.billing-management-license-table,
+.billing-management-risk-table { min-width:640px }
+.billing-management-foundation-grid { display:grid; grid-template-columns:repeat(2, minmax(0, 1fr)); gap:10px; min-width:0 }
+.billing-management-foundation-grid > div { display:flex; align-items:center; justify-content:space-between; gap:10px; min-width:0; border:1px solid var(--line); border-radius:var(--radius-md); padding:10px 12px; background:var(--surface-muted) }
+.billing-management-foundation-grid strong { min-width:0; color:var(--text); font-size:13px; font-weight:900; line-height:1.25; overflow:hidden; text-overflow:ellipsis; white-space:nowrap }
+.billing-management-foundation-grid span { color:var(--success); font-size:12px; font-weight:900; white-space:nowrap }
+.billing-management-chart-card { min-width:0 }
+.billing-management-chart-card h4 { margin:0 0 12px; color:var(--text); font-size:15px; line-height:1.25; font-weight:950 }
+.billing-management-bar-list { display:flex; flex-direction:column; gap:10px; min-width:0 }
+.billing-management-bar-row { display:grid; grid-template-columns:minmax(140px, .42fr) minmax(0, 1fr); gap:12px; align-items:center; min-width:0 }
+.billing-management-bar-row strong,
+.billing-management-bar-row span { display:block; line-height:1.25 }
+.billing-management-bar-row strong { color:var(--text); font-size:13px; font-weight:900; overflow:hidden; text-overflow:ellipsis; white-space:nowrap }
+.billing-management-bar-row span { margin-top:2px; color:var(--muted); font-size:12px; font-weight:850; font-variant-numeric:tabular-nums }
+.billing-management-bar { height:11px; border:1px solid var(--line); border-radius:999px; background:var(--surface-muted); overflow:hidden }
+.billing-management-bar span { display:block; height:100%; min-width:0; border-radius:999px; background:linear-gradient(90deg,#0891b2,#16a34a) }
+.billing-management-donut-layout { display:grid; grid-template-columns:160px minmax(0, 1fr); gap:16px; align-items:center; min-width:0 }
+.billing-management-donut { width:150px; aspect-ratio:1; border-radius:50%; display:grid; place-items:center; box-shadow:inset 0 0 0 1px var(--line) }
+.billing-management-donut > div { width:92px; aspect-ratio:1; border-radius:50%; display:grid; place-items:center; align-content:center; background:var(--surface); border:1px solid var(--line); text-align:center; padding:8px }
+.billing-management-donut strong,
+.billing-management-donut span { display:block; line-height:1.1 }
+.billing-management-donut strong { color:var(--text); font-size:15px; font-weight:950; font-variant-numeric:tabular-nums; overflow-wrap:anywhere }
+.billing-management-donut span { margin-top:3px; color:var(--muted); font-size:11px; font-weight:850 }
+.billing-management-legend { display:flex; flex-direction:column; gap:7px; min-width:0 }
+.billing-management-legend > div { display:grid; grid-template-columns:12px minmax(0, 1fr) auto; gap:8px; align-items:center; min-width:0 }
+.billing-management-legend > div > span { width:12px; height:12px; border-radius:3px }
+.billing-management-legend strong { min-width:0; color:var(--text); font-size:13px; font-weight:850; overflow:hidden; text-overflow:ellipsis; white-space:nowrap }
+.billing-management-legend em { color:var(--muted); font-style:normal; font-size:12px; font-weight:900; font-variant-numeric:tabular-nums; white-space:nowrap }
 .side-nav-item.locked { opacity:.76 }
 .side-nav-lock { display:inline-flex; align-items:center; justify-content:center; width:22px; height:22px; border:1px solid var(--warning-line); border-radius:50%; color:var(--warning); background:var(--warning-soft); font-size:11px; font-weight:950; flex:0 0 auto }
 .license-denied-page { align-items:flex-start; max-width:680px }
@@ -1463,7 +1502,7 @@ th { color:var(--muted-strong); font-size:13px; font-weight:750 }
   .users-side { position:static }
   .metric-grid { grid-template-columns:repeat(2, minmax(0, 1fr)) }
   .kitchen-grid { grid-template-columns:repeat(2, minmax(0, 1fr)) }
-  .toolbar-controls, .stock-movement-filters, .recipe-filters, .adisyon-tools, .action-log-filters, .stock-report-filters, .report-filter-grid, .report-sort-controls, .report-panel-grid.three, .waste-reason-summary-grid, .current-report-summary-grid, .risky-current-summary-grid, .employee-report-summary-grid, .employee-report-risk-grid, .financial-summary-grid, .business-summary-grid, .sales-analysis-grid, .product-performance-grid, .product-risk-grid, .stock-risk-grid, .stock-risk-list-grid, .current-finance-summary-grid, .finance-risk-grid, .personnel-performance-grid, .personnel-summary-grid, .personnel-risk-grid, .manager-alert-score-grid, .manager-alert-grid, .branch-reporting-grid, .branch-report-best-grid, .head-office-grid, .system-usage-analysis-grid, .user-activity-analysis-grid, .user-activity-detail-grid, .module-usage-analysis-grid, .module-usage-detail-grid, .business-usage-analysis-grid, .business-usage-detail-grid, .usage-performance-density-grid, .usage-performance-analysis-grid, .usage-performance-detail-grid, .usage-performance-summary-grid, .analytics-dashboard-summary-grid, .analytics-dashboard-trend-grid, .analytics-dashboard-detail-grid, .system-health-telemetry-grid, .system-health-risk-grid, .company-setup-detail-grid, .package-license-detail-grid, .package-default-grid, .user-subscription-detail-grid, .module-activation-detail-grid, .module-activation-filters, .module-activation-test-form, .financial-report-list-grid, .customer-list-controls, .customer-detail-grid, .customer-detail-info-grid, .customer-detail-license-grid, .customer-detail-module-grid, .pending-applications-controls, .pending-applications-detail-grid, .pending-applications-history, .system-announcements-layout, .system-announcements-form, .system-announcements-foundation-grid, .system-announcements-controls, .customer-statistics-filters, .customer-statistics-chart-grid, .customer-statistics-table-grid, .customer-statistics-donut-layout, .customer-module-usage-list > div, .company-management-quick-grid, .company-management-info-grid, .company-management-license-grid, .company-management-tenant-grid, .company-management-grid, .company-management-module-grid, .company-management-module-card { grid-template-columns:1fr; width:100% }
+  .toolbar-controls, .stock-movement-filters, .recipe-filters, .adisyon-tools, .action-log-filters, .stock-report-filters, .report-filter-grid, .report-sort-controls, .report-panel-grid.three, .waste-reason-summary-grid, .current-report-summary-grid, .risky-current-summary-grid, .employee-report-summary-grid, .employee-report-risk-grid, .financial-summary-grid, .business-summary-grid, .sales-analysis-grid, .product-performance-grid, .product-risk-grid, .stock-risk-grid, .stock-risk-list-grid, .current-finance-summary-grid, .finance-risk-grid, .personnel-performance-grid, .personnel-summary-grid, .personnel-risk-grid, .manager-alert-score-grid, .manager-alert-grid, .branch-reporting-grid, .branch-report-best-grid, .head-office-grid, .system-usage-analysis-grid, .user-activity-analysis-grid, .user-activity-detail-grid, .module-usage-analysis-grid, .module-usage-detail-grid, .business-usage-analysis-grid, .business-usage-detail-grid, .usage-performance-density-grid, .usage-performance-analysis-grid, .usage-performance-detail-grid, .usage-performance-summary-grid, .analytics-dashboard-summary-grid, .analytics-dashboard-trend-grid, .analytics-dashboard-detail-grid, .system-health-telemetry-grid, .system-health-risk-grid, .company-setup-detail-grid, .package-license-detail-grid, .package-default-grid, .user-subscription-detail-grid, .module-activation-detail-grid, .module-activation-filters, .module-activation-test-form, .financial-report-list-grid, .customer-list-controls, .customer-detail-grid, .customer-detail-info-grid, .customer-detail-license-grid, .customer-detail-module-grid, .pending-applications-controls, .pending-applications-detail-grid, .pending-applications-history, .system-announcements-layout, .system-announcements-form, .system-announcements-foundation-grid, .system-announcements-controls, .customer-statistics-filters, .customer-statistics-chart-grid, .customer-statistics-table-grid, .customer-statistics-donut-layout, .customer-module-usage-list > div, .company-management-quick-grid, .company-management-info-grid, .company-management-license-grid, .company-management-tenant-grid, .company-management-grid, .company-management-module-grid, .company-management-module-card, .billing-management-filters, .billing-management-kpi-grid, .billing-management-grid, .billing-management-chart-grid, .billing-management-foundation-grid, .billing-management-bar-row, .billing-management-donut-layout { grid-template-columns:1fr; width:100% }
   .current-finance-summary-grid > .financial-summary-card:last-child { grid-column:auto }
   .card:has(.table-wrap) > .section-header > :last-child { flex:1 1 100%; width:100% }
   .table-wrap table { min-width:100% }
