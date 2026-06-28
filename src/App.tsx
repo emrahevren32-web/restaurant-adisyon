@@ -27,6 +27,7 @@ import ModuleActivationSystem from './pages/ModuleActivationSystem'
 import TenantManagement from './pages/TenantManagement'
 import SaasManagementCenter, { SaasManagementView } from './pages/SaasManagementCenter'
 import CustomerList from './pages/CustomerList'
+import PendingApplications from './pages/PendingApplications'
 import StaffTracking from './pages/StaffTracking'
 import EmployeeCards from './pages/EmployeeCards'
 import ShiftManagement from './pages/ShiftManagement'
@@ -130,6 +131,7 @@ type Route =
   | 'tenant-management'
   | 'evren360-dashboard'
   | 'evren360-customer-list'
+  | 'evren360-pending-applications'
   | 'evren360-applications'
   | 'evren360-companies'
   | 'evren360-packages'
@@ -211,6 +213,7 @@ type NavKey =
   | 'tenant-management'
   | 'evren360-dashboard'
   | 'evren360-customer-list'
+  | 'evren360-pending-applications'
   | 'evren360-applications'
   | 'evren360-companies'
   | 'evren360-packages'
@@ -459,6 +462,7 @@ const navGroups: NavGroup[] = [
     items: [
       { key: 'evren360-dashboard', label: 'Dashboard', route: 'evren360-dashboard', icon: 'DB', adminOnly: true, platformAdminOnly: true },
       { key: 'evren360-customer-list', label: 'Müşteri Listesi', route: 'evren360-customer-list', icon: 'ML', adminOnly: true, platformAdminOnly: true },
+      { key: 'evren360-pending-applications', label: 'Onay Bekleyen İşletmeler', route: 'evren360-pending-applications', icon: 'OB', adminOnly: true, platformAdminOnly: true },
       { key: 'evren360-applications', label: 'Başvurular', route: 'evren360-applications', icon: 'BV', adminOnly: true, platformAdminOnly: true },
       { key: 'evren360-companies', label: 'Firmalar', route: 'evren360-companies', icon: 'FR', adminOnly: true, platformAdminOnly: true },
       { key: 'evren360-packages', label: 'Paketler', route: 'evren360-packages', icon: 'PK', adminOnly: true, platformAdminOnly: true },
@@ -609,7 +613,11 @@ const PlatformAccessDenied = () => (
 )
 
 const getRouteSecurityTarget = (route: Route, authState: AuthenticationState) => {
-  if(evren360RouteViews[route] || route === 'evren360-customer-list') return LOGIN_ROUTE_TARGETS.EVREN360
+  if(
+    evren360RouteViews[route]
+    || route === 'evren360-customer-list'
+    || route === 'evren360-pending-applications'
+  ) return LOGIN_ROUTE_TARGETS.EVREN360
   return resolveSecurityTargetForIdentity(authState.pipeline.identity)
 }
 
@@ -893,6 +901,9 @@ export default function App(){
       )}
       {route === 'evren360-customer-list' && currentUser.role === 'Admin' && (
         isPlatformAdmin ? <CustomerList /> : <PlatformAccessDenied />
+      )}
+      {route === 'evren360-pending-applications' && currentUser.role === 'Admin' && (
+        isPlatformAdmin ? <PendingApplications currentUser={currentUser} /> : <PlatformAccessDenied />
       )}
       {evren360View && (
         isPlatformAdmin
