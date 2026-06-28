@@ -31,6 +31,7 @@ import CustomerDetail from './pages/CustomerDetail'
 import PendingApplications from './pages/PendingApplications'
 import SystemAnnouncements from './pages/SystemAnnouncements'
 import CustomerStatistics from './pages/CustomerStatistics'
+import CompanyManagement from './pages/CompanyManagement'
 import StaffTracking from './pages/StaffTracking'
 import EmployeeCards from './pages/EmployeeCards'
 import ShiftManagement from './pages/ShiftManagement'
@@ -138,6 +139,7 @@ type Route =
   | 'evren360-pending-applications'
   | 'evren360-system-announcements'
   | 'evren360-customer-statistics'
+  | 'evren360-company-management'
   | 'evren360-applications'
   | 'evren360-companies'
   | 'evren360-packages'
@@ -223,6 +225,7 @@ type NavKey =
   | 'evren360-pending-applications'
   | 'evren360-system-announcements'
   | 'evren360-customer-statistics'
+  | 'evren360-company-management'
   | 'evren360-applications'
   | 'evren360-companies'
   | 'evren360-packages'
@@ -475,6 +478,7 @@ const navGroups: NavGroup[] = [
       { key: 'evren360-pending-applications', label: 'Onay Bekleyen İşletmeler', route: 'evren360-pending-applications', icon: 'OB', adminOnly: true, platformAdminOnly: true },
       { key: 'evren360-system-announcements', label: 'Sistem Duyuruları', route: 'evren360-system-announcements', icon: 'SD', adminOnly: true, platformAdminOnly: true },
       { key: 'evren360-customer-statistics', label: 'Müşteri İstatistikleri', route: 'evren360-customer-statistics', icon: 'MI', adminOnly: true, platformAdminOnly: true },
+      { key: 'evren360-company-management', label: 'İşletme Yönetimi', route: 'evren360-company-management', icon: 'IY', adminOnly: true, platformAdminOnly: true },
       { key: 'evren360-applications', label: 'Başvurular', route: 'evren360-applications', icon: 'BV', adminOnly: true, platformAdminOnly: true },
       { key: 'evren360-companies', label: 'Firmalar', route: 'evren360-companies', icon: 'FR', adminOnly: true, platformAdminOnly: true },
       { key: 'evren360-packages', label: 'Paketler', route: 'evren360-packages', icon: 'PK', adminOnly: true, platformAdminOnly: true },
@@ -632,6 +636,7 @@ const getRouteSecurityTarget = (route: Route, authState: AuthenticationState) =>
     || route === 'evren360-pending-applications'
     || route === 'evren360-system-announcements'
     || route === 'evren360-customer-statistics'
+    || route === 'evren360-company-management'
   ) return LOGIN_ROUTE_TARGETS.EVREN360
   return resolveSecurityTargetForIdentity(authState.pipeline.identity)
 }
@@ -941,6 +946,9 @@ export default function App(){
       )}
       {route === 'evren360-customer-statistics' && currentUser.role === 'Admin' && (
         isPlatformAdmin ? <CustomerStatistics /> : <PlatformAccessDenied />
+      )}
+      {route === 'evren360-company-management' && currentUser.role === 'Admin' && (
+        isPlatformAdmin ? <CompanyManagement /> : <PlatformAccessDenied />
       )}
       {evren360View && (
         isPlatformAdmin
