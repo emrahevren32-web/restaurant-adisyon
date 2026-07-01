@@ -21,6 +21,7 @@ import SystemHealthTelemetry from './pages/SystemHealthTelemetry'
 import BusinessApplicationSystem from './pages/BusinessApplicationSystem'
 import BusinessApplicationPublicForm from './pages/BusinessApplicationPublicForm'
 import CompanySetupWizard from './pages/CompanySetupWizard'
+import FirstLoginWizard from './pages/FirstLoginWizard'
 import PackageLicenseManagement from './pages/PackageLicenseManagement'
 import UserSubscriptionManagement from './pages/UserSubscriptionManagement'
 import ModuleActivationSystem from './pages/ModuleActivationSystem'
@@ -83,6 +84,7 @@ import {
   loadProducts,
   ensureDefaultAdmin,
   loadSettings,
+  loadUsers,
   getVisibleBranchesForUser,
   getActiveBranchId,
   setActiveBranchId,
@@ -93,6 +95,7 @@ import {
   getCompanyIdForUser,
   LICENSE_ACCESS_DENIED_MESSAGE
 } from './storage'
+import { getFirstLoginOnboardingState } from './onboarding/onboarding.service'
 import { Branch, LicenseModuleKey, User } from './types'
 
 type Route =
@@ -666,8 +669,14 @@ export default function App(){
   const [activeBranchId, setActiveBranchState] = React.useState(() => getActiveBranchId())
   const [licenseAccessError, setLicenseAccessError] = React.useState('')
   const [selectedCustomerId, setSelectedCustomerId] = React.useState('')
+  const [onboardingRefreshKey, setOnboardingRefreshKey] = React.useState(0)
   const isPlatformAdmin = isPlatformAdminUser(currentUser)
   const evren360View = evren360RouteViews[route]
+  const firstLoginOnboardingState = React.useMemo(() => {
+    if(!currentUser || isPlatformAdmin) return null
+    return getFirstLoginOnboardingState(currentUser)
+  }, [currentUser, isPlatformAdmin, onboardingRefreshKey])
+  const firstLoginOnboardingRequired = Boolean(firstLoginOnboardingState?.required)
 
   const updateAuthenticationState = (state: AuthenticationState) => {
     authStateRef.current = state
@@ -741,6 +750,20 @@ export default function App(){
     setRoute('evren360-customer-list')
     setActiveNavKey('evren360-customer-list')
     setOpenGroupKey('evren360-admin')
+  }
+  const completeFirstLoginOnboarding = () => {
+    const refreshedUser = currentUser
+      ? loadUsers({ allTenants: true }).find(user => user.id === currentUser.id) || currentUser
+      : currentUser
+
+    setOnboardingRefreshKey(current => current + 1)
+    setUserState(refreshedUser)
+    setBranches(getVisibleBranchesForUser(refreshedUser))
+    setActiveBranchState(getActiveBranchId())
+    setRoute('tables')
+    setActiveNavKey('adisyon')
+    setOpenGroupKey('operations')
+    setLicenseAccessError('')
   }
   const navGroupsForCurrentUser = React.useMemo<NavGroup[]>(() => {
     const scopedGroups = isPlatformAdmin
@@ -839,11 +862,7 @@ export default function App(){
 
   if(!currentUser){
     return (
-      <div className="app-shell auth-shell">
-        <div className="app-brand auth-brand">
-          {settings.logoUrl && <img src={settings.logoUrl} alt={`${settings.restaurantName} logosu`} />}
-          <h1>{settings.restaurantName}</h1>
-        </div>
+      <div className="app-shell unified-auth-shell">
         <Login onLogin={onLogin} />
       </div>
     )
@@ -866,7 +885,15 @@ export default function App(){
       onActiveBranchChange={changeActiveBranch}
       onLogout={logout}
     >
-      <React.Fragment key={activeBranchId}>
+      <React.Fragment key={`${activeBranchId}:${onboardingRefreshKey}`}>
+      {firstLoginOnboardingRequired && firstLoginOnboardingState ? (
+        <FirstLoginWizard
+          currentUser={currentUser}
+          onboardingState={firstLoginOnboardingState}
+          onComplete={completeFirstLoginOnboarding}
+        />
+      ) : (
+        <>
       {licenseAccessError && <div className="form-error license-access-error">{licenseAccessError}</div>}
       {activeRouteLicenseDenied ? (
         <LicenseAccessDenied moduleKey={activeRouteModule} />
@@ -990,6 +1017,8 @@ export default function App(){
       {route === 'collection-transactions' && currentUser.role === 'Admin' && <CollectionTransactions currentUser={currentUser} />}
       {route === 'current-account-movements' && currentUser.role === 'Admin' && <CurrentAccountMovements />}
       {route === 'settings' && currentUser.role === 'Admin' && <Settings currentUser={currentUser} onSettingsChange={refreshSettings} />}
+        </>
+      )}
         </>
       )}
       </React.Fragment>

@@ -47,6 +47,7 @@ export default function BusinessApplicationPublicForm(){
           <p>Başvurunuzu gönderin, platform ekibi inceleme sonrası sizinle iletişime geçsin.</p>
         </div>
 
+        {/* TODO: Başvuru sonrası "Ana Sayfaya Dön" butonu eklenecek. */}
         {message && <div className="form-success">{message}</div>}
         {error && <div className="form-error">{error}</div>}
 

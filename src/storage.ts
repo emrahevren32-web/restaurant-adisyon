@@ -2658,6 +2658,7 @@ const normalizeCompany = (item: Partial<Company>): Company => {
     ownerName: String(item.ownerName || '').trim(),
     phone: String(item.phone || '').trim(),
     email: String(item.email || '').trim(),
+    logoUrl: String(item.logoUrl || '').trim(),
     city: String(item.city || '').trim(),
     district: String(item.district || '').trim(),
     taxNumber: String(item.taxNumber || '').trim(),
@@ -4022,6 +4023,8 @@ const normalizeUser = (item: Partial<User>): User => {
     tenantId: String(item.tenantId || '').trim() || resolveTenantIdForCompany(companyId),
     companyId: companyId || undefined,
     fullName: String(item.fullName || item.username || 'KullanÄ±cÄ±').trim() || 'KullanÄ±cÄ±',
+    phone: String(item.phone || '').trim(),
+    profilePhotoUrl: String(item.profilePhotoUrl || '').trim(),
     username: String(item.username || '').trim(),
     password: String(item.password || ''),
     role: item.role === 'Garson' ? 'Garson' : 'Admin',
@@ -4099,10 +4102,12 @@ export const saveBusinessRegistrations = (items: BusinessRegistration[]) => {
   localStorage.setItem(KEY_BUSINESS_REGISTRATIONS, JSON.stringify(items.map(normalizeBusinessRegistration)))
 }
 
-export const loadCompanies = (): Company[] => {
+export const loadCompanies = (options: { allTenants?: boolean } = {}): Company[] => {
   const companies = localStorage.getItem(KEY_COMPANIES) === null
     ? createDemoCompanies()
     : readJson<Partial<Company>[]>(KEY_COMPANIES, []).map(normalizeCompany)
+  if(options.allTenants) return companies
+
   const currentUser = getCurrentUser()
   return currentUser ? filterTenantScope(companies, currentUser) : companies
 }
@@ -4111,10 +4116,12 @@ export const saveCompanies = (items: Company[]) => {
   localStorage.setItem(KEY_COMPANIES, JSON.stringify(items.map(normalizeCompany)))
 }
 
-export const loadCompanySetups = (): CompanySetup[] => {
+export const loadCompanySetups = (options: { allTenants?: boolean } = {}): CompanySetup[] => {
   const setups = localStorage.getItem(KEY_COMPANY_SETUPS) === null
     ? createDemoCompanySetups()
     : readJson<Partial<CompanySetup>[]>(KEY_COMPANY_SETUPS, []).map(normalizeCompanySetup)
+  if(options.allTenants) return setups
+
   const currentUser = getCurrentUser()
   return currentUser ? filterTenantScope(setups, currentUser) : setups
 }
@@ -4191,10 +4198,12 @@ export const saveLicenseModules = (items: LicenseModule[]) => {
   localStorage.setItem(KEY_LICENSE_MODULES, JSON.stringify(items.map(normalizeLicenseModule)))
 }
 
-export const loadCompanyLicenses = (): CompanyLicense[] => {
+export const loadCompanyLicenses = (options: { allTenants?: boolean } = {}): CompanyLicense[] => {
   const licenses = localStorage.getItem(KEY_COMPANY_LICENSES) === null
     ? createDemoCompanyLicenses().map(normalizeCompanyLicenseWithRuntimeStatus)
     : readJson<Partial<CompanyLicense>[]>(KEY_COMPANY_LICENSES, []).map(normalizeCompanyLicenseWithRuntimeStatus)
+  if(options.allTenants) return licenses
+
   const currentUser = getCurrentUser()
   return currentUser ? filterTenantScope(licenses, currentUser) : licenses
 }
@@ -4203,10 +4212,12 @@ export const saveCompanyLicenses = (items: CompanyLicense[]) => {
   localStorage.setItem(KEY_COMPANY_LICENSES, JSON.stringify(items.map(normalizeCompanyLicenseWithRuntimeStatus)))
 }
 
-export const loadCompanyUsers = (): CompanyUser[] => {
+export const loadCompanyUsers = (options: { allTenants?: boolean } = {}): CompanyUser[] => {
   const users = localStorage.getItem(KEY_COMPANY_USERS) === null
     ? createDemoCompanyUsers()
     : readJson<Partial<CompanyUser>[]>(KEY_COMPANY_USERS, []).map(normalizeCompanyUser)
+  if(options.allTenants) return users
+
   const currentUser = getCurrentUser()
   return currentUser ? filterTenantScope(users, currentUser) : users
 }

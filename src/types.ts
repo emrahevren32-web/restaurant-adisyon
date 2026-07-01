@@ -667,6 +667,8 @@ export type User = {
   tenantId?: string
   companyId?: string
   fullName: string
+  phone?: string
+  profilePhotoUrl?: string
   username: string
   password: string
   role: Role
@@ -736,6 +738,7 @@ export type Company = {
   ownerName: string
   phone: string
   email: string
+  logoUrl?: string
   city: string
   district: string
   taxNumber: string

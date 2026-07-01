@@ -1,6 +1,8 @@
 import React from 'react'
 import {
   Branch,
+  ApplicationStatus,
+  BusinessApplication,
   BusinessRegistration,
   BusinessRegistrationStatus,
   Company,
@@ -24,8 +26,11 @@ import {
 import {
   LICENSE_MODULE_CATALOG,
   addActionLog,
+  addApplicationNote,
+  approveBusinessApplication,
   completeCompanySetupFromRegistration,
   loadActionLogs,
+  loadBusinessApplications,
   loadBranches,
   loadBusinessRegistrations,
   loadClosed,
@@ -43,6 +48,8 @@ import {
   loadTenants,
   loadUserSubscriptions,
   loadUsers,
+  markBusinessApplicationInReview,
+  rejectBusinessApplication,
   saveActionLogs,
   saveBranches,
   saveBusinessRegistrations,
@@ -96,10 +103,16 @@ type PackageFormValues = {
 }
 
 const companyStatuses: CompanyStatus[] = ['Aktif', 'Pasif', 'Askıda', 'Silindi']
+const applicationStatuses: ApplicationStatus[] = ['Beklemede', 'İnceleniyor', 'Onaylandı', 'Reddedildi']
 const licenseStatuses: LicenseStatus[] = ['Deneme', 'Aktif', 'Süresi Yaklaşıyor', 'Süresi Doldu', 'Askıya Alındı', 'İptal Edildi']
 const subscriptionStatuses: UserSubscriptionStatus[] = ['Aktif', 'Pasif', 'Beklemede', 'Süresi Doldu']
 const ticketStatuses: PlatformSupportTicketStatus[] = ['Açık', 'İnceleniyor', 'Çözüldü']
 
+// TODO: "İnceleniyor" durumu müşteriye gösterilecek süreç bilgisidir.
+// TODO: Firma durumu ileride dropdown üzerinden yönetilecek.
+// TODO: Abonelik yönetimi satır içi düzenlenebilir hale getirilecek.
+// TODO: Paket sistemi gelecekte Module Based License Engine'e dönüştürülecek.
+// TODO: Modül fiyatları EVREN360 üzerinden yönetilebilir olacaktır.
 const viewCopy: Record<SaasManagementView, { title: string; description: string }> = {
   dashboard: {
     title: 'Dashboard',
@@ -270,6 +283,7 @@ const getPackageLabel = (packageItem?: LicensePackage) => packageItem?.name || '
 
 export default function SaasManagementCenter({ currentUser, view }: Props){
   const initialData = React.useMemo(() => ({
+    applications: loadBusinessApplications(),
     registrations: loadBusinessRegistrations(),
     companies: loadCompanies(),
     setups: loadCompanySetups(),
@@ -288,6 +302,7 @@ export default function SaasManagementCenter({ currentUser, view }: Props){
     systemUsageLogs: loadSystemUsageLogs()
   }), [])
 
+  const [applications, setApplications] = React.useState<BusinessApplication[]>(initialData.applications)
   const [registrations, setRegistrations] = React.useState<BusinessRegistration[]>(initialData.registrations)
   const [companies, setCompanies] = React.useState<Company[]>(initialData.companies)
   const [setups, setSetups] = React.useState<CompanySetup[]>(initialData.setups)
@@ -336,6 +351,7 @@ export default function SaasManagementCenter({ currentUser, view }: Props){
   }
 
   const refreshSaasData = () => {
+    const nextApplications = loadBusinessApplications()
     const nextRegistrations = loadBusinessRegistrations()
     const nextCompanies = loadCompanies()
     const nextSetups = loadCompanySetups()
@@ -346,6 +362,7 @@ export default function SaasManagementCenter({ currentUser, view }: Props){
     const nextBranches = loadBranches()
     const nextAppUsers = loadUsers({ allTenants: true })
 
+    setApplications(nextApplications)
     setRegistrations(nextRegistrations)
     setCompanies(nextCompanies)
     setSetups(nextSetups)
@@ -357,6 +374,7 @@ export default function SaasManagementCenter({ currentUser, view }: Props){
     setAppUsers(nextAppUsers)
 
     return {
+      applications: nextApplications,
       registrations: nextRegistrations,
       companies: nextCompanies,
       setups: nextSetups,
@@ -662,7 +680,7 @@ export default function SaasManagementCenter({ currentUser, view }: Props){
     }
   }, [appUsers, companies, companyUsers, licenses, subscriptions, supportTickets])
 
-  const recentRegistrations = [...registrations]
+  const recentApplications = [...applications]
     .sort((first, second) => second.createdAt.localeCompare(first.createdAt))
     .slice(0, 5)
   const recentCompanies = [...activeCompanies]
@@ -685,8 +703,8 @@ export default function SaasManagementCenter({ currentUser, view }: Props){
     && (statusFilter === 'all' || ticket.status === statusFilter)
   ))
 
-  const filteredRegistrations = registrations.filter(registration => (
-    statusFilter === 'all' || registration.status === statusFilter
+  const filteredApplications = applications.filter(application => (
+    statusFilter === 'all' || application.status === statusFilter
   ))
 
   const updateRegistrationStatus = (registration: BusinessRegistration, status: BusinessRegistrationStatus) => {
@@ -730,6 +748,71 @@ export default function SaasManagementCenter({ currentUser, view }: Props){
     saveBusinessRegistrations(next)
     logPlatformAction('EVREN360 başvuru notu eklendi', `${registration.businessName} başvurusuna not eklendi.`, registration.id, registration.businessName, registration.tenantId)
     setFormMessage('Başvuru notu kaydedildi.')
+  }
+
+  const inspectApplication = (application: BusinessApplication) => {
+    try {
+      setFormError('')
+      setFormMessage('')
+      const updated = markBusinessApplicationInReview(application.id, currentUser)
+      refreshSaasData()
+      setFormMessage(`${updated.companyName} başvurusu incelemeye alındı.`)
+    } catch(error) {
+      setFormError(error instanceof Error ? error.message : 'Başvuru incelemeye alınamadı.')
+    }
+  }
+
+  const approveApplication = (application: BusinessApplication) => {
+    try {
+      setFormError('')
+      setFormMessage('')
+      const result = approveBusinessApplication(application.id, '', currentUser)
+      refreshSaasData()
+      setSelectedCompanyId(result.company.id)
+      setSelectedLicenseId(result.license.id)
+      setSelectedSubscriptionId(result.subscription.id)
+      setFormMessage(`${result.company.companyName} onaylandı. Tenant: ${result.tenant.tenantCode}.`)
+    } catch(error) {
+      setFormError(error instanceof Error ? error.message : 'Başvuru onaylanamadı.')
+    }
+  }
+
+  const rejectApplication = (application: BusinessApplication) => {
+    const reason = window.prompt('Red sebebi')
+    if(reason === null) return
+    if(!reason.trim()){
+      setFormError('Red sebebi zorunludur.')
+      return
+    }
+
+    try {
+      setFormError('')
+      setFormMessage('')
+      const updated = rejectBusinessApplication(application.id, reason.trim(), currentUser)
+      refreshSaasData()
+      setFormMessage(`${updated.companyName} başvurusu reddedildi.`)
+    } catch(error) {
+      setFormError(error instanceof Error ? error.message : 'Başvuru reddedilemedi.')
+    }
+  }
+
+  const addNoteToApplication = (application: BusinessApplication) => {
+    const note = window.prompt('Başvuru notu')
+    if(note === null) return
+    if(!note.trim()){
+      setFormError('Not zorunludur.')
+      return
+    }
+
+    try {
+      setFormError('')
+      setFormMessage('')
+      addApplicationNote(application.id, note.trim(), currentUser)
+      refreshSaasData()
+      setFormMessage('Başvuru notu kaydedildi.')
+    } catch(error) {
+      setFormError(error instanceof Error ? error.message : 'Başvuru notu eklenemedi.')
+    }
   }
 
   const updateCompanyStatus = (company: Company, status: CompanyStatus) => {
@@ -952,15 +1035,16 @@ export default function SaasManagementCenter({ currentUser, view }: Props){
             </div>
           </div>
           <div className="evren360-list">
-            {recentRegistrations.map(registration => (
-              <div className="evren360-list-row" key={registration.id}>
+            {recentApplications.map(application => (
+              <div className="evren360-list-row" key={application.id}>
                 <div>
-                  <strong>{registration.businessName}</strong>
-                  <span>{registration.ownerName} · {registration.city}</span>
+                  <strong>{application.companyName}</strong>
+                  <span>{application.ownerName} · {application.city}</span>
                 </div>
-                <span className={`status-pill ${getStatusClassName(registration.status)}`}>{registration.status}</span>
+                <span className={`status-pill ${getStatusClassName(application.status)}`}>{application.status}</span>
               </div>
             ))}
+            {recentApplications.length === 0 && <p className="muted">Başvuru kaydı bulunamadı.</p>}
           </div>
         </div>
         <div className="evren360-panel">
@@ -997,10 +1081,7 @@ export default function SaasManagementCenter({ currentUser, view }: Props){
           <span>Durum</span>
           <select value={statusFilter} onChange={event => setStatusFilter(event.target.value)}>
             <option value="all">Tüm durumlar</option>
-            <option value="Başvuru Bekliyor">Başvuru Bekliyor</option>
-            <option value="Onaylandı">Onaylandı</option>
-            <option value="Reddedildi">Reddedildi</option>
-            <option value="Pasif">Pasif</option>
+            {applicationStatuses.map(status => <option key={status} value={status}>{status}</option>)}
           </select>
         </label>
       </div>
@@ -1008,9 +1089,9 @@ export default function SaasManagementCenter({ currentUser, view }: Props){
         <table className="data-table evren360-table">
           <thead>
             <tr>
-              <th>İşletme</th>
+              <th>Firma</th>
               <th>Yetkili</th>
-              <th>Şehir</th>
+              <th>Telefon</th>
               <th>Paket</th>
               <th>Durum</th>
               <th>Başvuru Tarihi</th>
@@ -1018,21 +1099,25 @@ export default function SaasManagementCenter({ currentUser, view }: Props){
             </tr>
           </thead>
           <tbody>
-            {filteredRegistrations.map(registration => (
-              <tr key={registration.id}>
-                <td><strong>{registration.businessName}</strong><span className="muted small-text">{registration.email}</span></td>
-                <td>{registration.ownerName}</td>
-                <td>{registration.city} / {registration.district}</td>
-                <td>{registration.requestedPackage}</td>
-                <td><span className={`status-pill ${getStatusClassName(registration.status)}`}>{registration.status}</span></td>
-                <td>{formatDateTime(registration.createdAt)}</td>
+            {filteredApplications.map(application => (
+              <tr key={application.id}>
+                <td><strong>{application.companyName}</strong><span className="muted small-text">{application.email}</span></td>
+                <td>{application.ownerName}</td>
+                <td>{application.phone}</td>
+                <td><span className="status-pill info-pill">{application.requestedPackage}</span></td>
+                <td><span className={`status-pill ${getStatusClassName(application.status)}`}>{application.status}</span></td>
+                <td>{formatDateTime(application.createdAt)}</td>
                 <td className="actions-cell">
-                  <button className="btn" type="button" onClick={() => updateRegistrationStatus(registration, 'Onaylandı')}>Onayla</button>
-                  <button className="btn" type="button" onClick={() => updateRegistrationStatus(registration, 'Reddedildi')}>Reddet</button>
-                  <button className="btn" type="button" onClick={() => addRegistrationNote(registration)}>Not Ekle</button>
+                  <button className="btn" type="button" onClick={() => inspectApplication(application)}>İncele</button>
+                  <button className="btn" type="button" onClick={() => approveApplication(application)}>Onayla</button>
+                  <button className="btn" type="button" onClick={() => rejectApplication(application)}>Reddet</button>
+                  <button className="btn" type="button" onClick={() => addNoteToApplication(application)}>Not Ekle</button>
                 </td>
               </tr>
             ))}
+            {filteredApplications.length === 0 && (
+              <tr><td className="empty-cell" colSpan={7}>Başvuru kaydı bulunamadı.</td></tr>
+            )}
           </tbody>
         </table>
       </div>
@@ -1422,7 +1507,7 @@ export default function SaasManagementCenter({ currentUser, view }: Props){
         {stats.map(item => renderKpi(item[0], item[1], item[2], item[0] === 'Günlük Aktif Kullanıcı' ? 'success' : ''))}
         {renderKpi('Aktif Modül', platformModules.filter(module => module.active).length, 'Platform genelinde aktif', 'success')}
         {renderKpi('Çözülen Destek', supportTickets.filter(ticket => ticket.status === 'Çözüldü').length, 'Kapanmış destek talebi')}
-        {renderKpi('Bugünkü Başvuru', registrations.filter(registration => getDateKey(registration.createdAt) === today).length, 'Bugün gelen başvurular')}
+        {renderKpi('Bugünkü Başvuru', applications.filter(application => getDateKey(application.createdAt) === today).length, 'Bugün gelen başvurular')}
       </section>
     )
   }
