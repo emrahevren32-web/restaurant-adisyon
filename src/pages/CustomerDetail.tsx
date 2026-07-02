@@ -254,7 +254,7 @@ export default function CustomerDetail({ customerId, onBack }: Props){
         <div className="evren360-kpi warning">
           <span>Aktif Modül</span>
           <strong>{formatNumber(activeModuleCount)}</strong>
-          <p>Mevcut paket kapsamı.</p>
+          <p>Mevcut modül kapsamı.</p>
         </div>
         <div className="evren360-kpi muted">
           <span>Lisans Durumu</span>

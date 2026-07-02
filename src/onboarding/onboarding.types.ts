@@ -4,9 +4,17 @@ import {
   CompanyLicense,
   CompanySetup,
   CompanyUser,
+  LicenseModuleKey,
   LicensePackage,
+  TenantSettings,
   User
 } from '../types'
+
+export type FirstLoginModuleSummary = {
+  key: LicenseModuleKey | string
+  name: string
+  description: string
+}
 
 export type FirstLoginOnboardingState = {
   required: boolean
@@ -19,37 +27,38 @@ export type FirstLoginOnboardingState = {
   companyUser: CompanyUser | null
   license: CompanyLicense | null
   packageItem: LicensePackage | null
+  tenantSettings: TenantSettings | null
+  systemModules: FirstLoginModuleSummary[]
+  businessModules: FirstLoginModuleSummary[]
 }
 
-export type FirstLoginCompanyForm = {
-  companyName: string
-  phone: string
-  email: string
-  taxOffice: string
-  taxNumber: string
-  address: string
-  city: string
-  district: string
+export type FirstLoginPasswordForm = {
+  temporaryPassword: string
+  newPassword: string
+  repeatPassword: string
+}
+
+export type FirstLoginWorkspaceForm = {
+  workspaceName: string
   logoUrl: string
+  currency: string
+  language: string
+  timezone: string
 }
 
 export type FirstLoginBranchForm = {
   name: string
   address: string
   phone: string
-}
-
-export type FirstLoginProfileForm = {
-  fullName: string
-  phone: string
-  profilePhotoUrl: string
+  city: string
+  district: string
 }
 
 export type CompleteFirstLoginOnboardingInput = {
   state: FirstLoginOnboardingState
-  company: FirstLoginCompanyForm
+  password: FirstLoginPasswordForm
+  workspace: FirstLoginWorkspaceForm
   branch: FirstLoginBranchForm
-  profile: FirstLoginProfileForm
 }
 
 export type CompleteFirstLoginOnboardingResult = {

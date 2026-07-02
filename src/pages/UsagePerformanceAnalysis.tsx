@@ -52,7 +52,7 @@ const moduleNames: SystemUsageModuleName[] = [
   'Cari Yönetimi',
   'Finans Yönetimi',
   'Personel Yönetimi',
-  'Patron Dashboard',
+  'Yönetici Merkezi',
   'Çoklu Şube Yönetimi',
   'Sistem'
 ]

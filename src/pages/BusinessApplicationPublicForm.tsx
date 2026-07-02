@@ -1,5 +1,6 @@
 import React from 'react'
 import { BUSINESS_APPLICATION_PACKAGES, BusinessApplicationFormInput, submitBusinessApplication } from '../storage'
+import type { BusinessApplication } from '../types'
 
 const createEmptyForm = (): BusinessApplicationFormInput => ({
   companyName: '',
@@ -17,7 +18,7 @@ const createEmptyForm = (): BusinessApplicationFormInput => ({
 
 export default function BusinessApplicationPublicForm(){
   const [values, setValues] = React.useState<BusinessApplicationFormInput>(() => createEmptyForm())
-  const [message, setMessage] = React.useState('')
+  const [submittedApplication, setSubmittedApplication] = React.useState<BusinessApplication | null>(null)
   const [error, setError] = React.useState('')
 
   const updateField = <K extends keyof BusinessApplicationFormInput>(key: K, value: BusinessApplicationFormInput[K]) => {
@@ -26,16 +27,25 @@ export default function BusinessApplicationPublicForm(){
 
   const submit = (event: React.FormEvent) => {
     event.preventDefault()
-    setMessage('')
     setError('')
 
     try {
       const application = submitBusinessApplication(values)
       setValues(createEmptyForm())
-      setMessage(`${application.companyName} başvurusu alındı. Başvuru numarası: ${application.id}.`)
+      setSubmittedApplication(application)
     } catch (submitError) {
       setError(submitError instanceof Error ? submitError.message : 'Başvuru gönderilemedi.')
     }
+  }
+
+  const returnHome = () => {
+    window.location.href = '/'
+  }
+
+  const createNewApplication = () => {
+    setValues(createEmptyForm())
+    setSubmittedApplication(null)
+    setError('')
   }
 
   return (
@@ -47,10 +57,23 @@ export default function BusinessApplicationPublicForm(){
           <p>Başvurunuzu gönderin, platform ekibi inceleme sonrası sizinle iletişime geçsin.</p>
         </div>
 
-        {/* TODO: Başvuru sonrası "Ana Sayfaya Dön" butonu eklenecek. */}
-        {message && <div className="form-success">{message}</div>}
         {error && <div className="form-error">{error}</div>}
 
+        {submittedApplication ? (
+          <section className="public-application-success" aria-live="polite">
+            <div className="public-application-success-icon" aria-hidden="true">✓</div>
+            <h2>Başvurunuz başarıyla alınmıştır.</h2>
+            <div className="public-application-reference">
+              <span>Başvuru Numarası</span>
+              <strong>{submittedApplication.id}</strong>
+            </div>
+            <p>Başvurunuz platform ekibi tarafından incelendikten sonra sizinle iletişime geçilecektir.</p>
+            <div className="public-application-success-actions">
+              <button className="btn primary" type="button" onClick={returnHome}>Ana Sayfaya Dön</button>
+              <button className="btn" type="button" onClick={createNewApplication}>Yeni Başvuru Oluştur</button>
+            </div>
+          </section>
+        ) : (
         <form className="public-application-form" onSubmit={submit}>
           <div className="form-field">
             <label>Firma Adı</label>
@@ -110,6 +133,7 @@ export default function BusinessApplicationPublicForm(){
             <button className="btn primary" type="submit">Başvuruyu Gönder</button>
           </div>
         </form>
+        )}
       </section>
     </div>
   )

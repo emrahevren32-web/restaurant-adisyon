@@ -1,4 +1,5 @@
 import React from 'react'
+import FirstLoginCredentialsCard from '../components/FirstLoginCredentialsCard'
 import {
   Branch,
   ApplicationStatus,
@@ -67,6 +68,7 @@ import {
   saveUserSubscriptions,
   saveUsers
 } from '../storage'
+import type { FirstLoginCredentialDelivery } from '../storage'
 import { createTenantStorageId } from '../tenant'
 
 export type SaasManagementView =
@@ -326,12 +328,14 @@ export default function SaasManagementCenter({ currentUser, view }: Props){
   const [packageForm, setPackageForm] = React.useState<PackageFormValues>(() => createPackageForm(initialData.packages[0], initialData.packageModules))
   const [formMessage, setFormMessage] = React.useState('')
   const [formError, setFormError] = React.useState('')
+  const [approvalCredentials, setApprovalCredentials] = React.useState<FirstLoginCredentialDelivery | null>(null)
 
   React.useEffect(() => {
     setCompanyFilter('all')
     setStatusFilter('all')
     setFormMessage('')
     setFormError('')
+    setApprovalCredentials(null)
   }, [view])
 
   const companyMap = React.useMemo(() => new Map(companies.map(company => [company.id, company])), [companies])
@@ -766,11 +770,13 @@ export default function SaasManagementCenter({ currentUser, view }: Props){
     try {
       setFormError('')
       setFormMessage('')
+      setApprovalCredentials(null)
       const result = approveBusinessApplication(application.id, '', currentUser)
       refreshSaasData()
       setSelectedCompanyId(result.company.id)
       setSelectedLicenseId(result.license.id)
       setSelectedSubscriptionId(result.subscription.id)
+      setApprovalCredentials(result.firstLoginCredentials)
       setFormMessage(`${result.company.companyName} onaylandı. Tenant: ${result.tenant.tenantCode}.`)
     } catch(error) {
       setFormError(error instanceof Error ? error.message : 'Başvuru onaylanamadı.')
@@ -1573,6 +1579,7 @@ export default function SaasManagementCenter({ currentUser, view }: Props){
           {formError || formMessage}
         </div>
       )}
+      {approvalCredentials && <FirstLoginCredentialsCard credentials={approvalCredentials} />}
 
       {renderContent()}
     </div>

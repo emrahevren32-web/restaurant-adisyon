@@ -179,6 +179,10 @@ type Route =
   | 'settings'
 
 type NavKey =
+  | 'roles'
+  | 'notifications'
+  | 'license'
+  | 'subscription'
   | 'business-summary'
   | 'sales-revenue-analysis'
   | 'product-performance-analysis'
@@ -264,6 +268,8 @@ type NavKey =
   | 'settings'
 
 type NavGroupKey =
+  | 'system-modules'
+  | 'business-modules'
   | 'dashboard'
   | 'operations'
   | 'stock'
@@ -280,14 +286,12 @@ type NavItem = ShellNavItem<Route, NavKey>
 type NavGroup = ShellNavGroup<Route, NavKey, NavGroupKey>
 
 const licensedNavModules: Partial<Record<NavKey, LicenseModuleKey>> = {
-  'business-summary': 'boss-dashboard',
   'sales-revenue-analysis': 'analytics',
   'product-performance-analysis': 'analytics',
   'stock-risk-center': 'analytics',
   'current-finance-center': 'current',
   'personnel-performance-center': 'personnel',
   'manager-alert-center': 'boss-dashboard',
-  dashboard: 'boss-dashboard',
   adisyon: 'adisyon',
   'tables-management': 'adisyon',
   products: 'adisyon',
@@ -351,14 +355,12 @@ const licensedRouteModules: Partial<Record<Route, LicenseModuleKey>> = {
   'cash-closing': 'finance',
   'financial-reports': 'finance',
   'cash-transfers': 'finance',
-  'business-summary': 'boss-dashboard',
   'sales-revenue-analysis': 'analytics',
   'product-performance-analysis': 'analytics',
   'stock-risk-center': 'analytics',
   'current-finance-center': 'current',
   'personnel-performance-center': 'personnel',
   'manager-alert-center': 'boss-dashboard',
-  summary: 'boss-dashboard',
   history: 'adisyon',
   reports: 'analytics',
   'current-report': 'current',
@@ -391,11 +393,103 @@ const licensedRouteModules: Partial<Record<Route, LicenseModuleKey>> = {
 
 const MODULE_MENU_CONTROL_MODE: 'locked' | 'hidden' = 'locked'
 
+type BusinessWorkspaceModuleNavDefinition = NavItem & {
+  moduleKey?: LicenseModuleKey
+}
+
+const systemModulePlaceholderReason = 'Bu sistem modülü sonraki workspace fazında ilgili ekrana bağlanacak.'
+
+const businessWorkspaceSystemModuleItems: NavItem[] = [
+  { key: 'dashboard', label: 'Dashboard', route: 'summary', icon: 'DB', adminOnly: true },
+  { key: 'business-summary', label: 'Yönetici Merkezi', route: 'business-summary', icon: 'YM', adminOnly: true },
+  { key: 'users', label: 'Kullanıcılar', route: 'users', icon: 'KU', adminOnly: true },
+  { key: 'roles', label: 'Roller', route: 'users', icon: 'RL', adminOnly: true },
+  { key: 'branches', label: 'Şubeler', route: 'branches', icon: 'SB', adminOnly: true },
+  { key: 'notifications', label: 'Bildirimler', route: 'settings', icon: 'BD', adminOnly: true, locked: true, disabledReason: systemModulePlaceholderReason },
+  { key: 'license', label: 'Lisans', route: 'settings', icon: 'LS', adminOnly: true, locked: true, disabledReason: systemModulePlaceholderReason },
+  { key: 'subscription', label: 'Abonelik', route: 'settings', icon: 'AB', adminOnly: true, locked: true, disabledReason: systemModulePlaceholderReason },
+  { key: 'settings', label: 'Sistem Ayarları', route: 'settings', icon: 'SA', adminOnly: true }
+]
+
+const businessWorkspaceModuleRegistry: BusinessWorkspaceModuleNavDefinition[] = [
+  { moduleKey: 'adisyon', key: 'adisyon', label: 'Adisyonlar', route: 'tables', icon: 'AD' },
+  { moduleKey: 'adisyon', key: 'tables-management', label: 'Masalar', route: 'tables', icon: 'MS' },
+  { moduleKey: 'adisyon', key: 'products', label: 'Ürünler', route: 'products', icon: 'UR' },
+  { moduleKey: 'adisyon', key: 'kitchen', label: 'Mutfak Ekranı', route: 'kitchen', icon: 'MF' },
+  { moduleKey: 'adisyon', key: 'bill-history', label: 'Adisyon Geçmişi', route: 'history', icon: 'AG', adminOnly: true },
+  { moduleKey: 'qr-menu', key: 'qr-orders', label: 'QR Siparişler', route: 'qr-orders', icon: 'QR' },
+  { moduleKey: 'qr-menu', key: 'waiter-calls', label: 'Garson Çağrıları', route: 'qr-orders', icon: 'GC' },
+  { moduleKey: 'qr-menu', key: 'qr-codes', label: 'QR Kodlar', route: 'qr-codes', icon: 'QK', adminOnly: true },
+  { moduleKey: 'stock', key: 'stock-cards', label: 'Stok Kartları', route: 'stock-cards', icon: 'SK', adminOnly: true },
+  { moduleKey: 'stock', key: 'stock-movements', label: 'Stok Hareketleri', route: 'stock-movements', icon: 'SH', adminOnly: true },
+  { moduleKey: 'stock', key: 'critical-stock', label: 'Kritik Stok', route: 'stock-cards', icon: 'KS', adminOnly: true },
+  { moduleKey: 'stock', key: 'expiry-lots', label: 'SKT Yönetimi', route: 'stock-cards', icon: 'SKT', adminOnly: true },
+  { moduleKey: 'stock', key: 'waste', label: 'Fire Yönetimi', route: 'stock-movements', icon: 'FR', adminOnly: true },
+  { moduleKey: 'recipe', key: 'recipes', label: 'Reçeteler', route: 'recipes', icon: 'RC', adminOnly: true },
+  { moduleKey: 'current', key: 'current-accounts', label: 'Cari Kartları', route: 'current-accounts', icon: 'CK', adminOnly: true },
+  { moduleKey: 'current', key: 'current-account-movements', label: 'Cari Hareketleri', route: 'current-account-movements', icon: 'CH', adminOnly: true },
+  { moduleKey: 'current', key: 'current-report', label: 'Cari Raporu', route: 'current-report', icon: 'CR', adminOnly: true },
+  { moduleKey: 'current', key: 'risky-current', label: 'Riskli Cari', route: 'risky-current', icon: 'RC', adminOnly: true },
+  { moduleKey: 'current', key: 'current-finance-center', label: 'Cari ve Finans Merkezi', route: 'current-finance-center', icon: 'CF', adminOnly: true },
+  { moduleKey: 'credit', key: 'credit-transactions', label: 'Veresiye İşlemleri', route: 'credit-transactions', icon: 'VI', adminOnly: true },
+  { moduleKey: 'credit', key: 'collection-transactions', label: 'Tahsilat İşlemleri', route: 'collection-transactions', icon: 'TI', adminOnly: true },
+  { moduleKey: 'finance', key: 'supplier-debts', label: 'Tedarikçi Borçları', route: 'supplier-debts', icon: 'TB', adminOnly: true },
+  { moduleKey: 'finance', key: 'supplier-payments', label: 'Tedarikçi Ödeme İşlemleri', route: 'supplier-payments', icon: 'TO', adminOnly: true },
+  { moduleKey: 'finance', key: 'cash-transactions', label: 'Kasa Hareketleri', route: 'cash-transactions', icon: 'KH', adminOnly: true },
+  { moduleKey: 'finance', key: 'income-expense', label: 'Gelir Gider Yönetimi', route: 'income-expense', icon: 'GG', adminOnly: true },
+  { moduleKey: 'finance', key: 'cash-closing', label: 'Gün Sonu Kasa Kapatma', route: 'cash-closing', icon: 'GS', adminOnly: true },
+  { moduleKey: 'finance', key: 'financial-reports', label: 'Finans Raporları', route: 'financial-reports', icon: 'FR', adminOnly: true },
+  { moduleKey: 'finance', key: 'cash-transfers', label: 'Kasa Devir İşlemleri', route: 'cash-transfers', icon: 'KD', adminOnly: true },
+  { moduleKey: 'personnel', key: 'employee-cards', label: 'Personel Kartları', route: 'employee-cards', icon: 'PK', adminOnly: true },
+  { moduleKey: 'personnel', key: 'shift-management', label: 'Vardiya Yönetimi', route: 'shift-management', icon: 'VY', adminOnly: true },
+  { moduleKey: 'personnel', key: 'attendance-tracking', label: 'Puantaj ve Mesai Takibi', route: 'attendance-tracking', icon: 'PM', adminOnly: true },
+  { moduleKey: 'personnel', key: 'employee-performance', label: 'Personel Performans Takibi', route: 'employee-performance', icon: 'PF', adminOnly: true },
+  { moduleKey: 'personnel', key: 'employee-bonus', label: 'Prim Sistemi', route: 'employee-bonus', icon: 'PR', adminOnly: true },
+  { moduleKey: 'personnel', key: 'employee-audit', label: 'Disiplin ve Denetim Kayıtları', route: 'employee-audit', icon: 'DD', adminOnly: true },
+  { moduleKey: 'personnel', key: 'employee-reports', label: 'Personel Raporları', route: 'employee-reports', icon: 'RA', adminOnly: true },
+  { moduleKey: 'personnel', key: 'staff', label: 'Personel Takibi', route: 'staff', icon: 'PT', adminOnly: true },
+  { moduleKey: 'multi-branch', key: 'branch-reporting', label: 'Şubeler Arası Raporlama', route: 'branch-reporting', icon: 'SR', adminOnly: true },
+  { moduleKey: 'multi-branch', key: 'branch-stock-transfers', label: 'Şubeler Arası Stok Transferi', route: 'branch-stock-transfers', icon: 'ST', adminOnly: true },
+  { moduleKey: 'multi-branch', key: 'head-office-management', label: 'Merkez Ofis Yönetimi', route: 'head-office-management', icon: 'MO', adminOnly: true },
+  { moduleKey: 'analytics', key: 'reports', label: 'Rapor Merkezi', route: 'reports', icon: 'RM', adminOnly: true },
+  { moduleKey: 'analytics', key: 'analytics-dashboard', label: 'Analitik Dashboard', route: 'analytics-dashboard', icon: 'AD', adminOnly: true },
+  { moduleKey: 'analytics', key: 'sales-revenue-analysis', label: 'Satış ve Ciro Analizleri', route: 'sales-revenue-analysis', icon: 'SC', adminOnly: true },
+  { moduleKey: 'analytics', key: 'product-performance-analysis', label: 'Ürün Performans Analizleri', route: 'product-performance-analysis', icon: 'UP', adminOnly: true },
+  { moduleKey: 'analytics', key: 'stock-risk-center', label: 'Stok ve Risk Merkezi', route: 'stock-risk-center', icon: 'SR', adminOnly: true },
+  { moduleKey: 'analytics', key: 'system-health-telemetry', label: 'Sistem Sağlığı ve Telemetri', route: 'system-health-telemetry', icon: 'ST', adminOnly: true },
+  { moduleKey: 'analytics', key: 'system-usage-logs', label: 'Sistem Kullanım Logları', route: 'system-usage-logs', icon: 'SL', adminOnly: true },
+  { moduleKey: 'analytics', key: 'user-activity-tracking', label: 'Kullanıcı Aktivite Takibi', route: 'user-activity-tracking', icon: 'KA', adminOnly: true },
+  { moduleKey: 'analytics', key: 'module-usage-analysis', label: 'Modül Kullanım Analizleri', route: 'module-usage-analysis', icon: 'MA', adminOnly: true },
+  { moduleKey: 'analytics', key: 'business-usage-stats', label: 'İşletme Kullanım İstatistikleri', route: 'business-usage-stats', icon: 'IK', adminOnly: true },
+  { moduleKey: 'analytics', key: 'usage-performance-analysis', label: 'Performans ve Yoğunluk Analizleri', route: 'usage-performance-analysis', icon: 'PY', adminOnly: true },
+  { moduleKey: 'boss-dashboard', key: 'manager-alert-center', label: 'Yönetici Uyarı Merkezi', route: 'manager-alert-center', icon: 'YU', adminOnly: true },
+  { key: 'action-history', label: 'İşlem Geçmişi', route: 'actions', icon: 'IG', adminOnly: true }
+]
+
+const createBusinessWorkspaceBusinessItems = (): NavItem[] => (
+  businessWorkspaceModuleRegistry.map(({ moduleKey, ...item }) => item)
+)
+
+const businessWorkspaceNavGroups: NavGroup[] = [
+  {
+    key: 'system-modules',
+    title: 'SİSTEM MODÜLLERİ',
+    icon: 'SM',
+    items: businessWorkspaceSystemModuleItems
+  },
+  {
+    key: 'business-modules',
+    title: 'İŞ MODÜLLERİ',
+    icon: 'IM',
+    items: createBusinessWorkspaceBusinessItems()
+  }
+]
+
 const navGroups: NavGroup[] = [
   {
     key: 'dashboard',
-    title: 'Patron Dashboard',
-    icon: 'PD',
+    title: 'Yönetici Merkezi',
+    icon: 'YM',
     items: [
       { key: 'business-summary', label: 'Genel İşletme Özeti', route: 'business-summary', icon: 'Gİ', adminOnly: true },
       { key: 'sales-revenue-analysis', label: 'Satış ve Ciro Analizleri', route: 'sales-revenue-analysis', icon: 'SC', adminOnly: true },
@@ -593,22 +687,18 @@ const getDefaultNavigation = (user: User | null, loginRedirect: LoginRedirectRes
     }
   }
 
-  if(
-    loginRedirect.target === LOGIN_ROUTE_TARGETS.RESTAURANTOS_ADMIN
-    && user?.role === 'Admin'
-    && canUserAccessLicensedModule(user, 'boss-dashboard')
-  ){
+  if(loginRedirect.target === LOGIN_ROUTE_TARGETS.RESTAURANTOS_ADMIN && user?.role === 'Admin'){
     return {
-      route: 'business-summary' as Route,
-      activeNavKey: 'business-summary' as NavKey,
-      openGroupKey: 'dashboard' as NavGroupKey
+      route: 'summary' as Route,
+      activeNavKey: 'dashboard' as NavKey,
+      openGroupKey: 'system-modules' as NavGroupKey
     }
   }
 
   return {
     route: 'tables' as Route,
     activeNavKey: 'adisyon' as NavKey,
-    openGroupKey: 'operations' as NavGroupKey
+    openGroupKey: 'business-modules' as NavGroupKey
   }
 }
 
@@ -760,15 +850,15 @@ export default function App(){
     setUserState(refreshedUser)
     setBranches(getVisibleBranchesForUser(refreshedUser))
     setActiveBranchState(getActiveBranchId())
-    setRoute('tables')
-    setActiveNavKey('adisyon')
-    setOpenGroupKey('operations')
+    setRoute('summary')
+    setActiveNavKey('dashboard')
+    setOpenGroupKey('system-modules')
     setLicenseAccessError('')
   }
   const navGroupsForCurrentUser = React.useMemo<NavGroup[]>(() => {
     const scopedGroups = isPlatformAdmin
       ? navGroups.filter(group => group.key === 'evren360-admin')
-      : navGroups
+      : businessWorkspaceNavGroups
 
     return scopedGroups.map(group => ({
       ...group,
@@ -794,7 +884,7 @@ export default function App(){
   }, [currentUser, isPlatformAdmin])
   const activeNavLabel = navGroupsForCurrentUser
     .flatMap(group => group.items)
-    .find(item => item.key === activeNavKey)?.label || 'Genel İşletme Özeti'
+    .find(item => item.key === activeNavKey)?.label || 'Dashboard'
   const activeRouteModule = licensedNavModules[activeNavKey] || licensedRouteModules[route]
   const activeRouteLicenseDenied = Boolean(
     currentUser
@@ -822,6 +912,11 @@ export default function App(){
   }, [activeNavLabel, activeNavKey, activeRouteLicenseDenied, activeRouteModule, currentUser, route])
 
   const openNavItem = (item: NavItem) => {
+    if(item.locked){
+      setLicenseAccessError(item.disabledReason || LICENSE_ACCESS_DENIED_MESSAGE)
+      return
+    }
+
     if(item.platformAdminOnly && !isPlatformAdmin){
       setLicenseAccessError('EVREN360 Yönetici Paneli yalnızca Super Admin kullanıcısı tarafından görüntülenebilir.')
       return
@@ -844,7 +939,7 @@ export default function App(){
     setLicenseAccessError('')
     setRoute(item.route)
     setActiveNavKey(item.key)
-    const group = navGroups.find(navGroup => navGroup.items.some(groupItem => groupItem.key === item.key))
+    const group = navGroupsForCurrentUser.find(navGroup => navGroup.items.some(groupItem => groupItem.key === item.key))
     if(group) setOpenGroupKey(group.key)
   }
 

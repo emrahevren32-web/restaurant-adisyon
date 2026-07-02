@@ -1,28 +1,76 @@
 import {
   getCompanyIdForUser,
+  LICENSE_MODULE_CATALOG,
   loadBranches,
   loadCompanies,
   loadCompanyLicenses,
   loadCompanySetups,
   loadCompanyUsers,
+  loadLicenseModules,
   loadLicensePackages,
+  loadSettings,
+  loadTenantSettings,
+  loadTenants,
   loadUsers,
   saveBranches,
   saveCompanies,
   saveCompanySetups,
   saveCompanyUsers,
+  saveSettings,
+  saveTenantSettings,
+  saveTenants,
   saveUsers,
   setCurrentUser
 } from '../storage'
-import { Branch, Company, CompanyLicense, CompanySetup, CompanyUser, User } from '../types'
+import { Branch, Company, CompanyLicense, CompanySetup, CompanyUser, LicenseModuleKey, User } from '../types'
 import {
   CompleteFirstLoginOnboardingInput,
   CompleteFirstLoginOnboardingResult,
+  FirstLoginModuleSummary,
   FirstLoginOnboardingState
 } from './onboarding.types'
 
 const KEY_FIRST_LOGIN_ONBOARDING = 'ra_first_login_onboarding_completions'
 const APPLICATION_SETUP_PREFIX = 'business_application_'
+const DEFAULT_WORKSPACE_TIMEZONE = 'Europe/Istanbul'
+const DEFAULT_WORKSPACE_LANGUAGE = 'tr-TR'
+const DEFAULT_WORKSPACE_CURRENCY = 'TRY'
+
+const SYSTEM_MODULES: FirstLoginModuleSummary[] = [
+  { key: 'user-management', name: 'Kullanıcı Yönetimi', description: 'Firma kullanıcıları ve erişim kayıtları için temel sistem alanı.' },
+  { key: 'roles', name: 'Roller', description: 'Firma sahibi, admin ve operasyon rollerinin yönetim temeli.' },
+  { key: 'notifications', name: 'Bildirimler', description: 'Duyuru ve sistem bilgilendirme akışları için hazır kanal.' },
+  { key: 'license', name: 'Lisans', description: 'Modül erişimi, kullanım limiti ve abonelik görünürlüğü.' },
+  { key: 'branches', name: 'Şubeler', description: 'Aktif şube, şube yetkileri ve çoklu şube temeli.' },
+  { key: 'system-settings', name: 'Sistem Ayarları', description: 'Dil, para birimi, saat dilimi ve workspace tercihleri.' }
+]
+
+const BUSINESS_MODULE_DESCRIPTIONS: Partial<Record<LicenseModuleKey, string>> = {
+  adisyon: 'Masa, sipariş ve ödeme operasyonlarının başlangıç modülü.',
+  'qr-menu': 'QR menü, QR sipariş ve misafir çağrı akışları.',
+  stock: 'Stok kartları, hareketler, kritik stok ve SKT takibi.',
+  recipe: 'Reçete, maliyet ve tüketim temeli.',
+  current: 'Cari kartlar, hesap hareketleri ve müşteri borç takibi.',
+  credit: 'Veresiye ve tahsilat operasyonları.',
+  finance: 'Kasa, gelir-gider, finans raporları ve kapanış işlemleri.',
+  personnel: 'Personel, vardiya, puantaj ve performans modülleri.',
+  'boss-dashboard': 'Patron dashboard ve yönetici uyarı merkezleri.',
+  'multi-branch': 'Şube raporlama, merkez ofis ve şubeler arası işlemler.',
+  analytics: 'Kullanım, performans ve sistem sağlığı analizleri.',
+  'ai-consultant': 'AI danışman özellikleri için paket hazırlığı.',
+  'task-management': 'Görev yönetimi özellikleri için paket hazırlığı.',
+  calendar: 'Takvim özellikleri için paket hazırlığı.'
+}
+
+const FALLBACK_BUSINESS_MODULES: LicenseModuleKey[] = [
+  'adisyon',
+  'qr-menu',
+  'stock',
+  'recipe',
+  'current',
+  'finance',
+  'personnel'
+]
 
 type OnboardingCompletion = {
   key: string
@@ -78,6 +126,30 @@ const findLatestLicense = (licenses: CompanyLicense[], companyId: string) => {
     .sort((first, second) => second.updatedAt.localeCompare(first.updatedAt))[0] || null
 }
 
+const getTenantIdForOnboarding = (company: Company | null, setup: CompanySetup | null, user: User) => {
+  return company?.tenantId || setup?.tenantId || user.tenantId || ''
+}
+
+const createModuleSummary = (moduleKey: LicenseModuleKey): FirstLoginModuleSummary => {
+  const catalogItem = LICENSE_MODULE_CATALOG.find(module => module.key === moduleKey)
+  return {
+    key: moduleKey,
+    name: catalogItem?.name || moduleKey,
+    description: BUSINESS_MODULE_DESCRIPTIONS[moduleKey] || 'Workspace içinde aktif olan iş modülü.'
+  }
+}
+
+const resolveBusinessModules = (packageId?: string): FirstLoginModuleSummary[] => {
+  const enabledModuleKeys = packageId
+    ? loadLicenseModules()
+      .filter(module => module.packageId === packageId && module.enabled)
+      .map(module => module.moduleKey)
+    : []
+
+  const visibleModuleKeys = enabledModuleKeys.length > 0 ? enabledModuleKeys : FALLBACK_BUSINESS_MODULES
+  return visibleModuleKeys.map(createModuleSummary)
+}
+
 export const getFirstLoginOnboardingState = (user: User): FirstLoginOnboardingState => {
   const companyId = getCompanyIdForUser(user)
   const completionKey = companyId ? createCompletionKey(companyId, user.id) : ''
@@ -95,6 +167,8 @@ export const getFirstLoginOnboardingState = (user: User): FirstLoginOnboardingSt
   const companyUser = companyId ? findCompanyUser(companyUsers, user, companyId) : null
   const license = companyId ? findLatestLicense(licenses, companyId) : null
   const packageItem = license ? packages.find(item => item.id === license.packageId) || null : null
+  const tenantId = getTenantIdForOnboarding(company, setup, user)
+  const tenantSettings = tenantId ? loadTenantSettings().find(settings => settings.tenantId === tenantId) || null : null
   const required = Boolean(company && setup && setup.adminUserId === user.id && isApplicationSetup(setup) && !completed)
 
   return {
@@ -107,19 +181,26 @@ export const getFirstLoginOnboardingState = (user: User): FirstLoginOnboardingSt
     branch,
     companyUser,
     license,
-    packageItem
+    packageItem,
+    tenantSettings,
+    systemModules: SYSTEM_MODULES,
+    businessModules: resolveBusinessModules(packageItem?.id)
   }
 }
 
 export const completeFirstLoginOnboarding = ({
   state,
-  company: companyForm,
-  branch: branchForm,
-  profile
+  password,
+  workspace,
+  branch: branchForm
 }: CompleteFirstLoginOnboardingInput): CompleteFirstLoginOnboardingResult => {
   if(!state.company || !state.completionKey){
     throw new Error('Onboarding için firma kaydı bulunamadı.')
   }
+
+  // Placeholder: password fields prepare the future password-change service.
+  // This phase deliberately does not persist password changes.
+  void password
 
   const now = new Date().toISOString()
   const allCompanies = loadCompanies({ allTenants: true })
@@ -127,20 +208,20 @@ export const completeFirstLoginOnboarding = ({
   const allUsers = loadUsers({ allTenants: true })
   const allCompanyUsers = loadCompanyUsers({ allTenants: true })
   const allSetups = loadCompanySetups({ allTenants: true })
+  const allTenants = loadTenants()
+  const allTenantSettings = loadTenantSettings()
   const companyId = state.company.id
-  const tenantId = state.company.tenantId || state.currentUser.tenantId
+  const tenantId = getTenantIdForOnboarding(state.company, state.setup, state.currentUser)
+  const workspaceName = workspace.workspaceName.trim() || state.company.companyName
+  const workspaceLogoUrl = workspace.logoUrl.trim()
+  const workspaceCurrency = workspace.currency.trim().toLocaleUpperCase('tr-TR') || DEFAULT_WORKSPACE_CURRENCY
+  const workspaceLanguage = workspace.language.trim() || DEFAULT_WORKSPACE_LANGUAGE
+  const workspaceTimezone = workspace.timezone.trim() || DEFAULT_WORKSPACE_TIMEZONE
 
   const updatedCompany: Company = {
     ...state.company,
-    companyName: companyForm.companyName.trim() || state.company.companyName,
-    phone: companyForm.phone.trim(),
-    email: companyForm.email.trim(),
-    taxOffice: companyForm.taxOffice.trim(),
-    taxNumber: companyForm.taxNumber.trim(),
-    address: companyForm.address.trim(),
-    city: companyForm.city.trim(),
-    district: companyForm.district.trim(),
-    logoUrl: companyForm.logoUrl.trim(),
+    companyName: workspaceName,
+    logoUrl: workspaceLogoUrl,
     updatedAt: now
   }
 
@@ -154,8 +235,9 @@ export const completeFirstLoginOnboarding = ({
     phone: branchForm.phone.trim(),
     email: existingBranch?.email || updatedCompany.email,
     address: branchForm.address.trim(),
-    city: updatedCompany.city,
-    managerName: profile.fullName.trim() || state.currentUser.fullName,
+    city: branchForm.city.trim() || updatedCompany.city,
+    district: branchForm.district.trim() || updatedCompany.district,
+    managerName: state.currentUser.fullName,
     isActive: true,
     createdAt: existingBranch?.createdAt || now,
     updatedAt: now
@@ -164,23 +246,49 @@ export const completeFirstLoginOnboarding = ({
   const updatedUser: User = {
     ...state.currentUser,
     tenantId,
-    companyId,
-    fullName: profile.fullName.trim() || state.currentUser.fullName,
-    phone: profile.phone.trim(),
-    profilePhotoUrl: profile.profilePhotoUrl.trim()
+    companyId
   }
 
-  const existingCompanyUser = state.companyUser
-  const updatedCompanyUser: CompanyUser | null = existingCompanyUser
+  const updatedCompanyUser: CompanyUser | null = state.companyUser
     ? {
-      ...existingCompanyUser,
+      ...state.companyUser,
       fullName: updatedUser.fullName,
-      phone: profile.phone.trim() || existingCompanyUser.phone,
       updatedAt: now
     }
     : null
 
   saveCompanies(allCompanies.map(item => item.id === companyId ? updatedCompany : item))
+  if(tenantId){
+    saveTenants(allTenants.map(tenant => tenant.id === tenantId || tenant.companyId === companyId
+      ? { ...tenant, companyName: workspaceName, updatedAt: now }
+      : tenant))
+
+    const existingTenantSettings = allTenantSettings.find(settings => settings.tenantId === tenantId)
+    const updatedTenantSettings = {
+      id: existingTenantSettings?.id || `tenant_settings_${tenantId}`,
+      tenantId,
+      timezone: workspaceTimezone,
+      currency: workspaceCurrency,
+      language: workspaceLanguage,
+      dateFormat: existingTenantSettings?.dateFormat || 'DD.MM.YYYY',
+      theme: existingTenantSettings?.theme || 'Varsayılan',
+      createdAt: existingTenantSettings?.createdAt || now,
+      updatedAt: now
+    }
+
+    saveTenantSettings([
+      updatedTenantSettings,
+      ...allTenantSettings.filter(settings => settings.tenantId !== tenantId)
+    ])
+  }
+
+  const currentSettings = loadSettings()
+  saveSettings({
+    ...currentSettings,
+    restaurantName: workspaceName,
+    logoUrl: workspaceLogoUrl,
+    currency: workspaceCurrency
+  })
   saveBranches(existingBranch
     ? allBranches.map(item => item.id === existingBranch.id ? updatedBranch : item)
     : [updatedBranch, ...allBranches])

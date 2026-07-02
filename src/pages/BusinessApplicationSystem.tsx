@@ -1,5 +1,6 @@
 import React from 'react'
 import { ApplicationNote, ApplicationStatus, BusinessApplication, User } from '../types'
+import FirstLoginCredentialsCard from '../components/FirstLoginCredentialsCard'
 import {
   BUSINESS_APPLICATION_PACKAGES,
   addApplicationNote,
@@ -9,6 +10,7 @@ import {
   markBusinessApplicationInReview,
   rejectBusinessApplication
 } from '../storage'
+import type { FirstLoginCredentialDelivery } from '../storage'
 
 type Props = {
   currentUser: User
@@ -80,6 +82,7 @@ export default function BusinessApplicationSystem({ currentUser }: Props){
   const [noteDraft, setNoteDraft] = React.useState('')
   const [message, setMessage] = React.useState('')
   const [error, setError] = React.useState('')
+  const [approvalCredentials, setApprovalCredentials] = React.useState<FirstLoginCredentialDelivery | null>(null)
 
   const refresh = (selectedId = selectedApplicationId) => {
     const nextApplications = loadBusinessApplications()
@@ -131,6 +134,7 @@ export default function BusinessApplicationSystem({ currentUser }: Props){
   const runAction = (action: () => void) => {
     setError('')
     setMessage('')
+    setApprovalCredentials(null)
     try {
       action()
     } catch (actionError) {
@@ -149,10 +153,11 @@ export default function BusinessApplicationSystem({ currentUser }: Props){
     runAction(() => {
       const result = approveBusinessApplication(selectedApplication.id, approvalNote, currentUser)
       refresh(result.application.id)
+      setApprovalCredentials(result.firstLoginCredentials)
       setApprovalNote('')
       setRejectionReason('')
       setNoteDraft('')
-      setMessage(`${result.company.companyName} onaylandı. Tenant: ${result.tenant.tenantCode}, kullanıcı: ${result.ownerUser.username}, geçici şifre: ${result.temporaryPassword}.`)
+      setMessage(`${result.company.companyName} onaylandı. Tenant: ${result.tenant.tenantCode}. İlk giriş bilgileri aşağıdaki kartta hazırlandı.`)
     })
   }
 
@@ -187,6 +192,7 @@ export default function BusinessApplicationSystem({ currentUser }: Props){
 
       {message && <div className="form-success">{message}</div>}
       {error && <div className="form-error">{error}</div>}
+      {approvalCredentials && <FirstLoginCredentialsCard credentials={approvalCredentials} />}
 
       <div className="metric-grid">
         <div className="metric-card"><span>Toplam Başvuru</span><strong>{formatNumber(totalCount)}</strong></div>

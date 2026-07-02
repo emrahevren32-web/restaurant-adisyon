@@ -1,5 +1,13 @@
 import React from 'react'
 import { Branch, User } from '../types'
+import {
+  Evren360Notification,
+  ensureEvren360NotificationPlaceholders,
+  loadEvren360Notifications,
+  markAllEvren360NotificationsRead,
+  markEvren360NotificationRead,
+  subscribeEvren360Notifications
+} from '../notifications/evren360-notification.service'
 
 export type ShellNavItem<Route extends string, NavKey extends string> = {
   key: NavKey
@@ -57,6 +65,17 @@ const getUserInitials = (user: User) => {
     .join('') || 'U'
 }
 
+const formatNotificationTime = (value: string) => {
+  const date = new Date(value)
+  if(Number.isNaN(date.getTime())) return '-'
+  return date.toLocaleString('tr-TR', {
+    day: '2-digit',
+    month: 'short',
+    hour: '2-digit',
+    minute: '2-digit'
+  })
+}
+
 export default function AppShell<
   Route extends string,
   NavKey extends string,
@@ -82,6 +101,42 @@ export default function AppShell<
   const activeBranches = branches.filter(branch => branch.isActive)
   const selectableBranches = activeBranches.length > 0 ? activeBranches : branches
   const hasSelectableBranch = selectableBranches.length > 0
+  const [notificationPanelOpen, setNotificationPanelOpen] = React.useState(false)
+  const [notifications, setNotifications] = React.useState<Evren360Notification[]>([])
+  const unreadNotifications = React.useMemo(() => (
+    notifications.filter(notification => !notification.readAt)
+  ), [notifications])
+  const unreadNotificationCount = unreadNotifications.length
+
+  const refreshNotifications = React.useCallback(() => {
+    if(!isPlatformAdmin){
+      setNotifications([])
+      return
+    }
+
+    ensureEvren360NotificationPlaceholders()
+    setNotifications(loadEvren360Notifications())
+  }, [isPlatformAdmin])
+
+  React.useEffect(() => {
+    refreshNotifications()
+    if(!isPlatformAdmin) return undefined
+    return subscribeEvren360Notifications(refreshNotifications)
+  }, [isPlatformAdmin, refreshNotifications])
+
+  React.useEffect(() => {
+    setNotificationPanelOpen(false)
+  }, [activeNavKey])
+
+  const markNotificationRead = (notificationId: string) => {
+    markEvren360NotificationRead(notificationId)
+    setNotifications(loadEvren360Notifications())
+  }
+
+  const markAllNotificationsRead = () => {
+    markAllEvren360NotificationsRead()
+    setNotifications(loadEvren360Notifications())
+  }
 
   return (
     <div className="app-shell">
@@ -170,9 +225,58 @@ export default function AppShell<
                   </select>
                 )}
               </label>
-              <div className="topbar-notification" aria-label="Bildirimler" title="Bildirimler">
-                <span className="topbar-bell" aria-hidden="true"></span>
-                <span className="notification-dot" aria-hidden="true"></span>
+              <div className="topbar-notification-wrap">
+                <button
+                  className={`topbar-notification ${notificationPanelOpen ? 'active' : ''}`}
+                  type="button"
+                  aria-label={`Bildirimler${unreadNotificationCount > 0 ? `, ${unreadNotificationCount} okunmamış` : ''}`}
+                  aria-expanded={notificationPanelOpen}
+                  title="Bildirimler"
+                  onClick={() => setNotificationPanelOpen(current => !current)}
+                >
+                  <span className="topbar-bell" aria-hidden="true"></span>
+                  {unreadNotificationCount > 0 && (
+                    <span className="notification-badge" aria-hidden="true">{unreadNotificationCount > 99 ? '99+' : unreadNotificationCount}</span>
+                  )}
+                </button>
+                {notificationPanelOpen && (
+                  <section className="notification-panel" aria-label="Okunmamış bildirimler">
+                    <div className="notification-panel-header">
+                      <div>
+                        <span>EVREN360</span>
+                        <h3>Bildirim Merkezi</h3>
+                      </div>
+                      {unreadNotificationCount > 0 && (
+                        <button className="btn" type="button" onClick={markAllNotificationsRead}>Tümünü Okundu Yap</button>
+                      )}
+                    </div>
+                    <div className="notification-list">
+                      {unreadNotifications.map(notification => (
+                        <button
+                          className={`notification-item ${notification.severity}`}
+                          key={notification.id}
+                          type="button"
+                          onClick={() => markNotificationRead(notification.id)}
+                        >
+                          <span className="notification-item-icon" aria-hidden="true">
+                            {notification.type === 'business_application' ? 'B' : notification.type === 'support_request' ? 'D' : 'L'}
+                          </span>
+                          <span className="notification-item-copy">
+                            <strong>{notification.title}</strong>
+                            <span>{notification.description}</span>
+                            <small>{notification.targetLabel || 'EVREN360'} · {formatNotificationTime(notification.createdAt)}</small>
+                          </span>
+                        </button>
+                      ))}
+                      {unreadNotifications.length === 0 && (
+                        <div className="notification-empty">
+                          <strong>Okunmamış bildirim yok</strong>
+                          <span>Yeni başvuru, destek talebi ve lisans uyarıları burada görünecek.</span>
+                        </div>
+                      )}
+                    </div>
+                  </section>
+                )}
               </div>
               <div className="topbar-user-card" aria-label="Kullanıcı bilgisi" title="Kullanıcı bilgisi">
                 <span className="topbar-user-avatar">{getUserInitials(currentUser)}</span>

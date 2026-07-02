@@ -255,7 +255,7 @@ export default function CompanyManagement(){
         <div className="evren360-kpi warning">
           <span>Aktif Modül</span>
           <strong>{formatNumber(activeModuleCount)}</strong>
-          <p>Paket kapsamındaki modüller.</p>
+          <p>Aktif modül kapsamı.</p>
         </div>
         <div className="evren360-kpi muted">
           <span>Lisans Durumu</span>

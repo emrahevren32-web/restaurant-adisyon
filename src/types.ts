@@ -916,6 +916,7 @@ export type Branch = {
   email: string
   address: string
   city: string
+  district?: string
   managerName: string
   isActive: boolean
   createdAt: string
@@ -1431,7 +1432,7 @@ export type SystemUsageModuleName =
   | 'Cari Yönetimi'
   | 'Finans Yönetimi'
   | 'Personel Yönetimi'
-  | 'Patron Dashboard'
+  | 'Yönetici Merkezi'
   | 'Çoklu Şube Yönetimi'
   | 'Sistem'
 

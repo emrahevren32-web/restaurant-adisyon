@@ -125,6 +125,7 @@ import {
   WaiterCallHistory,
   WaiterCallStatus
 } from './types'
+import { recordBusinessApplicationNotification } from './notifications/evren360-notification.service'
 import {
   normalizeProductAllergens,
   normalizeProductNutrition,
@@ -273,14 +274,14 @@ export const LICENSE_MODULE_CATALOG: Array<{ key: LicenseModuleKey; name: string
   { key: 'credit', name: 'Veresiye' },
   { key: 'finance', name: 'Finans' },
   { key: 'personnel', name: 'Personel' },
-  { key: 'boss-dashboard', name: 'Patron Dashboard' },
+  { key: 'boss-dashboard', name: 'Yönetici Merkezi' },
   { key: 'multi-branch', name: 'Çoklu Şube' },
   { key: 'analytics', name: 'Analitik' },
   { key: 'ai-consultant', name: 'AI Danışman' },
   { key: 'task-management', name: 'Görev Yönetimi' },
   { key: 'calendar', name: 'Takvim' }
 ]
-const SYSTEM_USAGE_MODULE_NAMES: SystemUsageModuleName[] = ['Adisyon', 'Masa Yönetimi', 'Ürün Yönetimi', 'Stok Yönetimi', 'Cari Yönetimi', 'Finans Yönetimi', 'Personel Yönetimi', 'Patron Dashboard', 'Çoklu Şube Yönetimi', 'Sistem']
+const SYSTEM_USAGE_MODULE_NAMES: SystemUsageModuleName[] = ['Adisyon', 'Masa Yönetimi', 'Ürün Yönetimi', 'Stok Yönetimi', 'Cari Yönetimi', 'Finans Yönetimi', 'Personel Yönetimi', 'Yönetici Merkezi', 'Çoklu Şube Yönetimi', 'Sistem']
 const SYSTEM_USAGE_ACTION_TYPES: SystemUsageActionType[] = ['Görüntüleme', 'Oluşturma', 'Güncelleme', 'Silme', 'Giriş Yapma', 'Çıkış Yapma', 'Onaylama', 'İptal Etme']
 
 export const DEFAULT_SETTINGS: SystemSettings = {
@@ -2346,6 +2347,7 @@ const normalizeBranch = (item: Partial<Branch>): Branch => {
     email: String(item.email || '').trim(),
     address: String(item.address || '').trim(),
     city: String(item.city || '').trim(),
+    district: String(item.district || '').trim(),
     managerName: String(item.managerName || '').trim(),
     isActive: item.isActive !== false,
     createdAt: timestamp,
@@ -4449,7 +4451,7 @@ export const canUserAccessLicensedModule = (user: User | null | undefined, modul
   return canAccessModule(companyId, moduleKey, referenceDate).allowed
 }
 
-export const LICENSE_ACCESS_DENIED_MESSAGE = 'Bu modül mevcut lisans paketinizde bulunmamaktadır.'
+export const LICENSE_ACCESS_DENIED_MESSAGE = 'Bu modül aktif modüllerinizde bulunmamaktadır.'
 
 export type LicenseLimitResource = 'users' | 'branches' | 'tables'
 
@@ -4607,7 +4609,7 @@ export const checkCompanyUserLicenseLimit = (companyId: string, nextUsage?: numb
   const check = checkCompanyLicenseLimit(companyId, 'users', nextUsage, referenceDate)
   return check.allowed ? check : {
     ...check,
-    message: 'Paketinizde tanımlı maksimum kullanıcı sayısına ulaştınız.'
+    message: 'Aktif lisans kullanıcı limitine ulaştınız.'
   }
 }
 
@@ -5442,6 +5444,12 @@ const createUniqueCompanyAdminUsername = (baseValue: string, users: User[]) => {
   return username
 }
 
+const createBusinessApplicationOwnerUsername = (email: string) => {
+  const username = email.trim().toLowerCase()
+  if(!username) throw createBusinessApplicationError('Firma sahibi e-postası zorunludur.')
+  return username
+}
+
 export const generateTemporaryCompanyPassword = () => {
   return `MIYOP-${Math.floor(1000 + Math.random() * 9000)}`
 }
@@ -5617,6 +5625,18 @@ export type BusinessApplicationApprovalResult = {
   subscription: UserSubscription
   setup: CompanySetup
   temporaryPassword: string
+  firstLoginCredentials: FirstLoginCredentialDelivery
+}
+
+export type FirstLoginCredentialDelivery = {
+  username: string
+  temporaryPassword: string
+  recipientEmail: string
+  recipientName: string
+  deliveryChannel: 'screen'
+  emailDeliveryReady: boolean
+  emailSubject: string
+  emailBodyPreview: string
 }
 
 const publicApplicationUser: User = {
@@ -5725,6 +5745,12 @@ export const submitBusinessApplication = (input: BusinessApplicationFormInput) =
     tableName: application.companyName,
     description: `${application.companyName} işletme başvurusu dış form üzerinden oluşturuldu. Paket: ${application.requestedPackage}.`
   })
+  recordBusinessApplicationNotification({
+    id: application.id,
+    companyName: application.companyName,
+    ownerName: application.ownerName,
+    requestedPackage: application.requestedPackage
+  })
 
   return application
 }
@@ -5812,6 +5838,11 @@ export const approveBusinessApplication = (applicationId: string, approvalNote: 
   const licenseId = createCompanySetupStorageId('company_license')
   const subscriptionId = createCompanySetupStorageId('user_subscription')
   const temporaryPassword = generateTemporaryCompanyPassword()
+  const ownerUsername = createBusinessApplicationOwnerUsername(application.email)
+  const allUsers = loadUsers({ allTenants: true })
+  if(allUsers.some(item => item.username.toLowerCase() === ownerUsername)){
+    throw createBusinessApplicationError('Bu e-posta ile kullanıcı zaten mevcut.')
+  }
   const packages = loadLicensePackages()
   const packageItem = resolvePackageForApplication(application.requestedPackage, packages)
   const startDate = new Date(now).toLocaleDateString('sv-SE')
@@ -5856,6 +5887,7 @@ export const approveBusinessApplication = (applicationId: string, approvalNote: 
     email: application.email,
     address: application.address,
     city: application.city,
+    district: application.district,
     managerName: ownerName,
     isActive: true,
     createdAt: now,
@@ -5866,7 +5898,7 @@ export const approveBusinessApplication = (applicationId: string, approvalNote: 
     tenantId,
     companyId,
     fullName: ownerName,
-    username: createUniqueCompanyAdminUsername(application.email.split('@')[0] || application.companyName, loadUsers({ allTenants: true })),
+    username: ownerUsername,
     password: temporaryPassword,
     role: 'Admin',
     active: true
@@ -5931,11 +5963,22 @@ export const approveBusinessApplication = (applicationId: string, approvalNote: 
     updatedAt: now
   })
 
+  const firstLoginCredentials: FirstLoginCredentialDelivery = {
+    username: ownerUser.username,
+    temporaryPassword,
+    recipientEmail: application.email,
+    recipientName: ownerName,
+    deliveryChannel: 'screen',
+    emailDeliveryReady: false,
+    emailSubject: 'MIYOP Business Workspace ilk giriş bilgileriniz',
+    emailBodyPreview: `${ownerName} için MIYOP ilk giriş bilgileri hazır. Kullanıcı adı: ${ownerUser.username}. Geçici şifre: ${temporaryPassword}.`
+  }
+
   saveTenants([tenant, ...tenants])
   saveTenantSettings([createDefaultTenantSettings(tenant.id, now), ...loadTenantSettings().filter(settings => settings.tenantId !== tenant.id)])
   saveCompanies([company, ...companies])
   saveBranches([branch, ...loadBranches()])
-  saveUsers([ownerUser, ...loadUsers({ allTenants: true })])
+  saveUsers([ownerUser, ...allUsers])
   saveCompanyUsers([companyUser, ...loadCompanyUsers()])
   saveCompanyLicenses([license, ...loadCompanyLicenses()])
   saveUserSubscriptions([subscription, ...loadUserSubscriptions()])
@@ -5986,7 +6029,8 @@ export const approveBusinessApplication = (applicationId: string, approvalNote: 
     license,
     subscription,
     setup,
-    temporaryPassword
+    temporaryPassword,
+    firstLoginCredentials
   }
 }
 

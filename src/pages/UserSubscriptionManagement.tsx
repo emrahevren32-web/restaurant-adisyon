@@ -438,7 +438,7 @@ export default function UserSubscriptionManagement({ currentUser }: Props){
     }).length
 
     if(packageItem && packageItem.maxUsers > 0 && activeSubscriptionCount >= packageItem.maxUsers){
-      setFormError('Paketinizde tanımlı maksimum kullanıcı sayısına ulaştınız.')
+      setFormError('Aktif lisans kullanıcı limitine ulaştınız.')
       setFormMessage('')
       return
     }

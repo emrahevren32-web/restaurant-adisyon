@@ -1,5 +1,6 @@
 import React from 'react'
 import { ApplicationNote, ApplicationStatus, BusinessApplication, User } from '../types'
+import FirstLoginCredentialsCard from '../components/FirstLoginCredentialsCard'
 import {
   addApplicationNote,
   approveBusinessApplication,
@@ -8,6 +9,7 @@ import {
   markBusinessApplicationInReview,
   rejectBusinessApplication
 } from '../storage'
+import type { FirstLoginCredentialDelivery } from '../storage'
 
 type Props = {
   currentUser: User
@@ -87,6 +89,7 @@ export default function PendingApplications({ currentUser }: Props){
   const [detailMode, setDetailMode] = React.useState<DetailMode>('review')
   const [message, setMessage] = React.useState('')
   const [error, setError] = React.useState('')
+  const [approvalCredentials, setApprovalCredentials] = React.useState<FirstLoginCredentialDelivery | null>(null)
 
   const refresh = (selectedId = selectedApplicationId) => {
     const nextApplications = loadBusinessApplications()
@@ -143,6 +146,7 @@ export default function PendingApplications({ currentUser }: Props){
   const runAction = (action: () => void) => {
     setMessage('')
     setError('')
+    setApprovalCredentials(null)
     try {
       action()
     } catch (actionError) {
@@ -166,7 +170,8 @@ export default function PendingApplications({ currentUser }: Props){
     const approvalNote = window.prompt('Onay notu', application.approvalNote || '') || ''
     const result = approveBusinessApplication(application.id, approvalNote, currentUser)
     refresh()
-    setMessage(`${result.company.companyName} onaylandı. Tenant: ${result.tenant.tenantCode}, kullanıcı: ${result.ownerUser.username}.`)
+    setApprovalCredentials(result.firstLoginCredentials)
+    setMessage(`${result.company.companyName} onaylandı. Tenant: ${result.tenant.tenantCode}. İlk giriş bilgileri aşağıdaki kartta hazırlandı.`)
   })
 
   const rejectApplication = (application: BusinessApplication) => runAction(() => {
@@ -202,6 +207,7 @@ export default function PendingApplications({ currentUser }: Props){
 
       {message && <div className="evren360-feedback">{message}</div>}
       {error && <div className="evren360-feedback error">{error}</div>}
+      {approvalCredentials && <FirstLoginCredentialsCard credentials={approvalCredentials} />}
 
       <div className="evren360-kpi-grid">
         <div className="evren360-kpi warning">
