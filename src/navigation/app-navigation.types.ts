@@ -53,6 +53,7 @@ export type BusinessWorkspaceRoute =
   | 'collection-transactions'
   | 'current-account-movements'
   | 'settings'
+  | 'marketplace'
 
 export type PlatformRoute =
   | 'business-registration-system'
@@ -93,6 +94,7 @@ export type BusinessWorkspaceNavKey =
   | 'license'
   | 'subscription'
   | 'settings'
+  | 'marketplace'
   | 'support'
   | 'ai-center'
   | 'action-history'

@@ -184,6 +184,28 @@ export const BUSINESS_WORKSPACE_MODULE_REGISTRY: BusinessWorkspaceModule[] = def
     ]
   },
   {
+    id: 'system-marketplace',
+    code: 'marketplace',
+    name: 'Marketplace',
+    description: 'Business Workspace için iş ve entegrasyon modül kataloğunu gösterir.',
+    category: 'system',
+    icon: 'MP',
+    route: 'marketplace',
+    permissions: ['company.read'],
+    isCoreModule: true,
+    isBusinessModule: false,
+    isEnabled: true,
+    isVisible: true,
+    displayOrder: 18,
+    dependencies: ['workspace', 'license'],
+    tags: ['system', 'marketplace', 'module-catalog'],
+    pricing: includedPricing,
+    marketplace: coreSystemMarketplace,
+    menuItems: [
+      menuItem({ key: 'marketplace', label: 'Marketplace', route: 'marketplace', icon: 'MP', adminOnly: true, displayOrder: 18 })
+    ]
+  },
+  {
     id: 'system-executive-center',
     code: 'executive-center',
     name: 'Yönetici Merkezi',

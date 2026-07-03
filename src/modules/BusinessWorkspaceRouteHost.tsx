@@ -53,6 +53,7 @@ import IncomeExpenseManagement from '../pages/IncomeExpenseManagement'
 import CashClosingPage from '../pages/CashClosing'
 import FinancialReports from '../pages/FinancialReports'
 import CashTransfers from '../pages/CashTransfers'
+import ModuleMarketplace from '../pages/ModuleMarketplace'
 import type {
   BusinessWorkspaceNavKey,
   BusinessWorkspaceRoute
@@ -101,6 +102,7 @@ export default function BusinessWorkspaceRouteHost({
 
   if(!isAdmin) return null
 
+  if(route === 'marketplace') return <ModuleMarketplace currentUser={currentUser} />
   if(route === 'stock-cards'){
     return (
       <StockCards
