@@ -58,7 +58,7 @@ const whyItems: WhyItem[] = [
   },
   {
     title: 'Modüler Yapı',
-    description: 'Adisyon, QR Menü, stok, cari, finans ve personel modülleri paket bazlı büyür.'
+    description: 'Adisyon, QR Menü, stok, cari, finans ve personel modülleri ihtiyaca göre aktif edilir.'
   },
   {
     title: 'Çoklu Şube',
@@ -74,7 +74,7 @@ const whyItems: WhyItem[] = [
   },
   {
     title: 'Ölçeklenebilir Mimari',
-    description: 'RestaurantOS bugün platform modülü olarak çalışır; yeni sektör uygulamaları eklenebilir.'
+    description: 'Business Workspace bugün modül tabanlı çalışır; yeni sektör uygulamaları eklenebilir.'
   }
 ]
 
@@ -157,9 +157,9 @@ export default function Login({ onLogin }: Props){
             <div className="unified-login-hero-copy">
               <span className="unified-login-eyebrow">Unified Login Portal</span>
               <h1>MIYOP</h1>
-              <p className="unified-login-slogan">Restoran operasyonlarından SaaS platform yönetimine uzanan tek merkez.</p>
+              <p className="unified-login-slogan">İşletme operasyonlarından SaaS platform yönetimine uzanan tek merkez.</p>
               <p className="unified-login-description">
-                EVREN360, RestaurantOS ve gelecek sektör uygulamaları için ortak giriş, duyuru, başvuru ve platform vitrinini tek portalda birleştirir.
+                EVREN360, Business Workspace ve gelecek sektör uygulamaları için ortak giriş, duyuru, başvuru ve platform vitrinini tek portalda birleştirir.
               </p>
               <div className="unified-login-hero-actions">
                 <button className="btn primary" type="button" onClick={scrollToLogin}>Hemen Giriş Yap</button>
@@ -221,8 +221,8 @@ export default function Login({ onLogin }: Props){
               <span>Super Admin yönetim merkezi</span>
             </article>
             <article>
-              <strong>RestaurantOS</strong>
-              <span>İşletme operasyon modülü</span>
+              <strong>Business Workspace</strong>
+              <span>Modül tabanlı işletme çalışma alanı</span>
             </article>
             <article>
               <strong>Başvuru Merkezi</strong>
@@ -311,7 +311,7 @@ export default function Login({ onLogin }: Props){
 
       <footer className="unified-login-footer">
         <strong>MIYOP</strong>
-        <span>EVREN360 ve RestaurantOS için birleşik platform giriş deneyimi.</span>
+        <span>EVREN360 ve Business Workspace için birleşik platform giriş deneyimi.</span>
       </footer>
     </div>
   )

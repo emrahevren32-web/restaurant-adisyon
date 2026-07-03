@@ -285,7 +285,7 @@ const SYSTEM_USAGE_MODULE_NAMES: SystemUsageModuleName[] = ['Adisyon', 'Masa Yö
 const SYSTEM_USAGE_ACTION_TYPES: SystemUsageActionType[] = ['Görüntüleme', 'Oluşturma', 'Güncelleme', 'Silme', 'Giriş Yapma', 'Çıkış Yapma', 'Onaylama', 'İptal Etme']
 
 export const DEFAULT_SETTINGS: SystemSettings = {
-  restaurantName: 'Restaurant Adisyon',
+  restaurantName: 'MIYOP Workspace',
   logoUrl: '',
   vatRate: 10,
   currency: 'TRY'

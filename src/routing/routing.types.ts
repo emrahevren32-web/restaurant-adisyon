@@ -2,8 +2,8 @@ import { UserType } from '../identity/identity.types'
 
 export const LOGIN_ROUTE_TARGETS = {
   EVREN360: '/evren360',
-  RESTAURANTOS_ADMIN: 'restaurantos-admin',
-  RESTAURANTOS_USER: 'restaurantos-user',
+  BUSINESS_WORKSPACE_ADMIN: 'business-workspace-admin',
+  BUSINESS_WORKSPACE_USER: 'business-workspace-user',
   PUBLIC_APPLICATION: '/apply'
 } as const
 

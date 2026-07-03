@@ -33,7 +33,7 @@ type DistributionItem = {
 const customerStatuses: CustomerStatus[] = ['Aktif', 'Pasif', 'Askıda', 'Deneme']
 const distributionColors = ['#0891b2', '#16a34a', '#d97706', '#dc2626', '#7c3aed', '#475569']
 const moduleLabels: Partial<Record<LicenseModuleKey, string>> = {
-  adisyon: 'RestaurantOS',
+  adisyon: 'Adisyon',
   'qr-menu': 'QR Menü',
   stock: 'Stok',
   current: 'Cari',

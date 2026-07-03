@@ -115,7 +115,7 @@ export default function Settings({ currentUser, onSettingsChange }: Props){
       <div className="page-title">
         <div>
           <h2>Ayarlar</h2>
-          <p className="muted">Restoran bilgileri, yedekleme, geri yükleme ve demo veri işlemlerini yönetin.</p>
+          <p className="muted">Workspace bilgileri, yedekleme, geri yükleme ve demo veri işlemlerini yönetin.</p>
         </div>
       </div>
 
@@ -129,11 +129,11 @@ export default function Settings({ currentUser, onSettingsChange }: Props){
 
           <form className="settings-form" onSubmit={saveGeneralSettings}>
             <div className="form-field">
-              <label>Restoran adı</label>
+              <label>Workspace adı</label>
               <input
                 value={settings.restaurantName}
                 onChange={event => updateField('restaurantName', event.target.value)}
-                placeholder="Restoran adı"
+                placeholder="Workspace adı"
               />
             </div>
 
@@ -149,7 +149,7 @@ export default function Settings({ currentUser, onSettingsChange }: Props){
             {settings.logoUrl && (
               <div className="logo-preview">
                 <span>Logo Önizleme</span>
-                <img src={settings.logoUrl} alt="Restoran logosu" />
+                <img src={settings.logoUrl} alt="Workspace logosu" />
               </div>
             )}
 

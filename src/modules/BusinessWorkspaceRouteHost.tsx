@@ -1,0 +1,170 @@
+import React from 'react'
+import Products from '../pages/Products'
+import TableManagement from '../pages/TableManagement'
+import BusinessSummary from '../pages/BusinessSummary'
+import SalesRevenueAnalysis from '../pages/SalesRevenueAnalysis'
+import ProductPerformanceAnalysis from '../pages/ProductPerformanceAnalysis'
+import StockRiskCenter from '../pages/StockRiskCenter'
+import CurrentFinanceCenter from '../pages/CurrentFinanceCenter'
+import PersonnelPerformanceCenter from '../pages/PersonnelPerformanceCenter'
+import ManagerAlertCenter from '../pages/ManagerAlertCenter'
+import DailySummary from '../pages/DailySummary'
+import BillHistory from '../pages/BillHistory'
+import ActionHistory from '../pages/ActionHistory'
+import SystemUsageLogs from '../pages/SystemUsageLogs'
+import UserActivityTracking from '../pages/UserActivityTracking'
+import ModuleUsageAnalysis from '../pages/ModuleUsageAnalysis'
+import BusinessUsageStats from '../pages/BusinessUsageStats'
+import UsagePerformanceAnalysis from '../pages/UsagePerformanceAnalysis'
+import AnalyticsDashboard from '../pages/AnalyticsDashboard'
+import SystemHealthTelemetry from '../pages/SystemHealthTelemetry'
+import StaffTracking from '../pages/StaffTracking'
+import EmployeeCards from '../pages/EmployeeCards'
+import ShiftManagement from '../pages/ShiftManagement'
+import AttendanceTracking from '../pages/AttendanceTracking'
+import EmployeePerformanceTracking from '../pages/EmployeePerformanceTracking'
+import EmployeeBonusSystem from '../pages/EmployeeBonusSystem'
+import EmployeeAuditRecords from '../pages/EmployeeAuditRecords'
+import EmployeeReports from '../pages/EmployeeReports'
+import Reports from '../pages/Reports'
+import CurrentReport from '../pages/CurrentReport'
+import RiskyCurrentAccounts from '../pages/RiskyCurrentAccounts'
+import Kitchen from '../pages/Kitchen'
+import QROrders from '../pages/QROrders'
+import QRCodes from '../pages/QRCodes'
+import StockCards from '../pages/StockCards'
+import StockMovements from '../pages/StockMovements'
+import Recipes from '../pages/Recipes'
+import Users from '../pages/Users'
+import Settings from '../pages/Settings'
+import BranchManagement from '../pages/BranchManagement'
+import BranchPermissions from '../pages/BranchPermissions'
+import BranchReporting from '../pages/BranchReporting'
+import BranchStockTransfers from '../pages/BranchStockTransfers'
+import HeadOfficeManagement from '../pages/HeadOfficeManagement'
+import CurrentAccounts from '../pages/CurrentAccounts'
+import CreditTransactions from '../pages/CreditTransactions'
+import CollectionTransactions from '../pages/CollectionTransactions'
+import CurrentAccountMovements from '../pages/CurrentAccountMovements'
+import SupplierDebts from '../pages/SupplierDebts'
+import SupplierPayments from '../pages/SupplierPayments'
+import CashTransactions from '../pages/CashTransactions'
+import IncomeExpenseManagement from '../pages/IncomeExpenseManagement'
+import CashClosingPage from '../pages/CashClosing'
+import FinancialReports from '../pages/FinancialReports'
+import CashTransfers from '../pages/CashTransfers'
+import type {
+  BusinessWorkspaceNavKey,
+  BusinessWorkspaceRoute
+} from '../navigation/app-navigation.types'
+import type { Branch, User } from '../types'
+
+type Props = {
+  route: BusinessWorkspaceRoute
+  activeNavKey: BusinessWorkspaceNavKey
+  currentUser: User
+  onBranchesChange: (nextBranches?: Branch[]) => void
+  onSettingsChange: () => void
+}
+
+export default function BusinessWorkspaceRouteHost({
+  route,
+  activeNavKey,
+  currentUser,
+  onBranchesChange,
+  onSettingsChange
+}: Props){
+  const isAdmin = currentUser.role === 'Admin'
+
+  if(route === 'tables'){
+    return (
+      <TableManagement
+        currentUser={currentUser}
+        focus={activeNavKey === 'tables-management' ? 'tables' : 'billing'}
+      />
+    )
+  }
+
+  if(route === 'products') return <Products currentUser={currentUser} />
+  if(route === 'summary') return <DailySummary currentUser={currentUser} />
+  if(route === 'history') return <BillHistory />
+  if(route === 'kitchen') return <Kitchen currentUser={currentUser} />
+
+  if(route === 'qr-orders'){
+    return (
+      <QROrders
+        currentUser={currentUser}
+        focus={activeNavKey === 'waiter-calls' ? 'calls' : 'orders'}
+      />
+    )
+  }
+
+  if(!isAdmin) return null
+
+  if(route === 'stock-cards'){
+    return (
+      <StockCards
+        currentUser={currentUser}
+        focus={activeNavKey === 'critical-stock' ? 'critical' : activeNavKey === 'expiry-lots' ? 'expiry' : 'cards'}
+      />
+    )
+  }
+
+  if(route === 'stock-movements'){
+    return (
+      <StockMovements
+        currentUser={currentUser}
+        focus={activeNavKey === 'waste' ? 'waste' : 'movements'}
+      />
+    )
+  }
+
+  if(route === 'recipes') return <Recipes currentUser={currentUser} />
+  if(route === 'supplier-debts') return <SupplierDebts currentUser={currentUser} />
+  if(route === 'supplier-payments') return <SupplierPayments currentUser={currentUser} />
+  if(route === 'cash-transactions') return <CashTransactions currentUser={currentUser} />
+  if(route === 'income-expense') return <IncomeExpenseManagement currentUser={currentUser} />
+  if(route === 'cash-closing') return <CashClosingPage currentUser={currentUser} />
+  if(route === 'financial-reports') return <FinancialReports />
+  if(route === 'cash-transfers') return <CashTransfers currentUser={currentUser} />
+  if(route === 'business-summary') return <BusinessSummary />
+  if(route === 'sales-revenue-analysis') return <SalesRevenueAnalysis />
+  if(route === 'product-performance-analysis') return <ProductPerformanceAnalysis />
+  if(route === 'stock-risk-center') return <StockRiskCenter />
+  if(route === 'current-finance-center') return <CurrentFinanceCenter />
+  if(route === 'personnel-performance-center') return <PersonnelPerformanceCenter />
+  if(route === 'manager-alert-center') return <ManagerAlertCenter />
+  if(route === 'qr-codes') return <QRCodes />
+  if(route === 'actions') return <ActionHistory />
+  if(route === 'analytics-dashboard') return <AnalyticsDashboard />
+  if(route === 'system-health-telemetry') return <SystemHealthTelemetry />
+  if(route === 'system-usage-logs') return <SystemUsageLogs />
+  if(route === 'user-activity-tracking') return <UserActivityTracking />
+  if(route === 'module-usage-analysis') return <ModuleUsageAnalysis />
+  if(route === 'business-usage-stats') return <BusinessUsageStats />
+  if(route === 'usage-performance-analysis') return <UsagePerformanceAnalysis />
+  if(route === 'employee-cards') return <EmployeeCards currentUser={currentUser} />
+  if(route === 'shift-management') return <ShiftManagement currentUser={currentUser} />
+  if(route === 'attendance-tracking') return <AttendanceTracking currentUser={currentUser} />
+  if(route === 'employee-performance') return <EmployeePerformanceTracking currentUser={currentUser} />
+  if(route === 'employee-bonus') return <EmployeeBonusSystem currentUser={currentUser} />
+  if(route === 'employee-audit') return <EmployeeAuditRecords currentUser={currentUser} />
+  if(route === 'employee-reports') return <EmployeeReports />
+  if(route === 'staff') return <StaffTracking />
+  if(route === 'reports') return <Reports />
+  if(route === 'current-report') return <CurrentReport />
+  if(route === 'risky-current') return <RiskyCurrentAccounts />
+  if(route === 'branches') return <BranchManagement currentUser={currentUser} onBranchesChange={onBranchesChange} />
+  if(route === 'branch-permissions') return <BranchPermissions currentUser={currentUser} />
+  if(route === 'branch-reporting') return <BranchReporting />
+  if(route === 'branch-stock-transfers') return <BranchStockTransfers currentUser={currentUser} />
+  if(route === 'head-office-management') return <HeadOfficeManagement />
+  if(route === 'users') return <Users currentUser={currentUser} />
+  if(route === 'current-accounts') return <CurrentAccounts currentUser={currentUser} />
+  if(route === 'credit-transactions') return <CreditTransactions currentUser={currentUser} />
+  if(route === 'collection-transactions') return <CollectionTransactions currentUser={currentUser} />
+  if(route === 'current-account-movements') return <CurrentAccountMovements />
+  if(route === 'settings') return <Settings currentUser={currentUser} onSettingsChange={onSettingsChange} />
+
+  return null
+}

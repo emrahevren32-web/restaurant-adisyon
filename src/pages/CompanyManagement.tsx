@@ -31,7 +31,7 @@ type ManagedModule = {
 }
 
 const managementModuleKeys: Array<{ key: LicenseModuleKey; label: string }> = [
-  { key: 'adisyon', label: 'RestaurantOS' },
+  { key: 'adisyon', label: 'Adisyon' },
   { key: 'qr-menu', label: 'QR Menü' },
   { key: 'stock', label: 'Stok' },
   { key: 'current', label: 'Cari' },

@@ -68,12 +68,12 @@ export const resolveSecurityTargetForPath = (
 ): LoginRouteTarget => {
   if(/^\/(?:evren360|platform)(?:\/|$)/.test(path)) return LOGIN_ROUTE_TARGETS.EVREN360
   if(/^\/(?:basvuru|apply)(?:\/|$)/.test(path)) return LOGIN_ROUTE_TARGETS.PUBLIC_APPLICATION
-  if(/^\/restaurant-admin(?:\/|$)/.test(path)) return LOGIN_ROUTE_TARGETS.RESTAURANTOS_ADMIN
-  if(/^\/restaurant-user(?:\/|$)/.test(path)) return LOGIN_ROUTE_TARGETS.RESTAURANTOS_USER
-  if(/^\/(?:restaurant|restaurantos)(?:\/|$)/.test(path)){
+  if(/^\/workspace-admin(?:\/|$)/.test(path)) return LOGIN_ROUTE_TARGETS.BUSINESS_WORKSPACE_ADMIN
+  if(/^\/workspace-user(?:\/|$)/.test(path)) return LOGIN_ROUTE_TARGETS.BUSINESS_WORKSPACE_USER
+  if(/^\/(?:workspace|business-workspace)(?:\/|$)/.test(path)){
     return identity.userType === USER_TYPES.COMPANY_USER
-      ? LOGIN_ROUTE_TARGETS.RESTAURANTOS_USER
-      : LOGIN_ROUTE_TARGETS.RESTAURANTOS_ADMIN
+      ? LOGIN_ROUTE_TARGETS.BUSINESS_WORKSPACE_USER
+      : LOGIN_ROUTE_TARGETS.BUSINESS_WORKSPACE_ADMIN
   }
 
   return resolveSecurityTargetForIdentity(identity)
@@ -81,8 +81,8 @@ export const resolveSecurityTargetForPath = (
 
 export const resolveSecurityTargetForIdentity = (identity: IdentityResult): LoginRouteTarget => {
   if(identity.userType === USER_TYPES.SUPER_ADMIN) return LOGIN_ROUTE_TARGETS.EVREN360
-  if(identity.userType === USER_TYPES.COMPANY_ADMIN) return LOGIN_ROUTE_TARGETS.RESTAURANTOS_ADMIN
-  if(identity.userType === USER_TYPES.COMPANY_USER) return LOGIN_ROUTE_TARGETS.RESTAURANTOS_USER
+  if(identity.userType === USER_TYPES.COMPANY_ADMIN) return LOGIN_ROUTE_TARGETS.BUSINESS_WORKSPACE_ADMIN
+  if(identity.userType === USER_TYPES.COMPANY_USER) return LOGIN_ROUTE_TARGETS.BUSINESS_WORKSPACE_USER
   return LOGIN_ROUTE_TARGETS.PUBLIC_APPLICATION
 }
 

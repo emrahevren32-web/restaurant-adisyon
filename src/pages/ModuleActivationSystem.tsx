@@ -247,7 +247,7 @@ export default function ModuleActivationSystem({ currentUser }: Props){
       <div className="page-title">
         <div>
           <h2>Modül Aktivasyon Sistemi</h2>
-          <p>Paket bazlı modül erişimlerini yönetin.</p>
+          <p>Modül bazlı erişimleri ve aktivasyon durumlarını yönetin.</p>
         </div>
       </div>
 
