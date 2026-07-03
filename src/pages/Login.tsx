@@ -14,7 +14,7 @@ type PortalUpdate = {
 type ReferenceCustomer = {
   initials: string
   companyName: string
-  sector: string
+  workspaceProfile: string
 }
 
 type WhyItem = {
@@ -36,7 +36,7 @@ const portalUpdates: PortalUpdate[] = [
   {
     type: 'Performans Güncellemesi',
     title: 'Operasyon ekranları sadeleşti',
-    description: 'Restoran yönetimi, stok, finans ve raporlama akışları daha hızlı taranabilir hale getirildi.'
+    description: 'İşletme yönetimi, stok, finans ve raporlama akışları daha hızlı taranabilir hale getirildi.'
   },
   {
     type: 'Güvenlik Güncellemesi',
@@ -46,9 +46,9 @@ const portalUpdates: PortalUpdate[] = [
 ]
 
 const referenceCustomers: ReferenceCustomer[] = [
-  { initials: 'AC', companyName: 'ABC Cafe', sector: 'Cafe & Hızlı Servis' },
-  { initials: 'LR', companyName: 'Lezzet Restoran', sector: 'Restoran Zinciri' },
-  { initials: 'KD', companyName: 'Kahve Durağı', sector: 'Kahve & Paket Servis' }
+  { initials: 'AW', companyName: 'Aster Workspace', workspaceProfile: 'Çok şubeli işletme' },
+  { initials: 'NG', companyName: 'Nova Grup', workspaceProfile: 'Finans ve operasyon odaklı workspace' },
+  { initials: 'OM', companyName: 'Orion Merkez', workspaceProfile: 'Modül tabanlı yönetim yapısı' }
 ]
 
 const whyItems: WhyItem[] = [
@@ -74,7 +74,7 @@ const whyItems: WhyItem[] = [
   },
   {
     title: 'Ölçeklenebilir Mimari',
-    description: 'Business Workspace bugün modül tabanlı çalışır; yeni sektör uygulamaları eklenebilir.'
+    description: 'Business Workspace bugün modül tabanlı çalışır; yeni uygulama modülleri eklenebilir.'
   }
 ]
 
@@ -159,7 +159,7 @@ export default function Login({ onLogin }: Props){
               <h1>MIYOP</h1>
               <p className="unified-login-slogan">İşletme operasyonlarından SaaS platform yönetimine uzanan tek merkez.</p>
               <p className="unified-login-description">
-                EVREN360, Business Workspace ve gelecek sektör uygulamaları için ortak giriş, duyuru, başvuru ve platform vitrinini tek portalda birleştirir.
+                EVREN360, Business Workspace ve gelecek modüler uygulamalar için ortak giriş, duyuru, başvuru ve platform vitrinini tek portalda birleştirir.
               </p>
               <div className="unified-login-hero-actions">
                 <button className="btn primary" type="button" onClick={scrollToLogin}>Hemen Giriş Yap</button>
@@ -286,7 +286,7 @@ export default function Login({ onLogin }: Props){
                 <span>{customer.initials}</span>
                 <div>
                   <h3>{customer.companyName}</h3>
-                  <p>{customer.sector}</p>
+                  <p>{customer.workspaceProfile}</p>
                 </div>
               </article>
             ))}

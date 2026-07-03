@@ -27,14 +27,14 @@ export const DEFAULT_ROLES: RoleModel[] = [
       'finance.write',
       'personnel.read',
       'personnel.manage',
-      'restaurant.read',
-      'restaurant.write'
+      'operations.read',
+      'operations.write'
     ]
   },
   {
     roleName: USER_TYPES.COMPANY_USER,
     permissions: [
-      'restaurant.read',
+      'operations.read',
       'products.read'
     ]
   },

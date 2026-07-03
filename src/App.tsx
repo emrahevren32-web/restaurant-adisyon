@@ -45,7 +45,6 @@ import { getFirstLoginOnboardingState } from './onboarding/onboarding.service'
 import { Branch, LicenseModuleKey, User } from './types'
 import BusinessWorkspaceRouteHost from './modules/BusinessWorkspaceRouteHost'
 import {
-  MODULE_MENU_CONTROL_MODE,
   createBusinessWorkspaceNavGroups,
   createLicensedNavModuleMap,
   createLicensedRouteModuleMap
@@ -63,7 +62,7 @@ type NavGroup = ShellNavGroup<Route, NavKey, NavGroupKey>
 
 const licensedNavModules: Partial<Record<NavKey, LicenseModuleKey>> = createLicensedNavModuleMap()
 const licensedRouteModules: Partial<Record<Route, LicenseModuleKey>> = createLicensedRouteModuleMap()
-const businessWorkspaceNavGroups = createBusinessWorkspaceNavGroups() as NavGroup[]
+const allBusinessWorkspaceNavGroups = createBusinessWorkspaceNavGroups() as NavGroup[]
 
 const platformNavGroups: NavGroup[] = [
   {
@@ -94,11 +93,35 @@ const platformNavGroups: NavGroup[] = [
 ]
 
 const businessWorkspaceRouteSet = new Set<Route>(
-  businessWorkspaceNavGroups.flatMap(group => group.items.map(item => item.route))
+  allBusinessWorkspaceNavGroups.flatMap(group => group.items.map(item => item.route))
 )
 
 const isBusinessWorkspaceRoute = (nextRoute: Route): nextRoute is BusinessWorkspaceRoute => {
   return businessWorkspaceRouteSet.has(nextRoute)
+}
+
+const createWorkspaceNavGroupsForUser = (user: User | null) => (
+  createBusinessWorkspaceNavGroups({
+    isModuleEnabled: module => {
+      if(module.isCoreModule || module.isAlwaysActive) return true
+      if(module.isBusinessModule){
+        return Boolean(module.licenseModuleKey && canUserAccessLicensedModule(user, module.licenseModuleKey))
+      }
+      if(module.isIntegrationModule){
+        if(module.lifecycle.activationPolicy === 'license-controlled'){
+          return Boolean(module.licenseModuleKey && canUserAccessLicensedModule(user, module.licenseModuleKey))
+        }
+        return module.isEnabled && module.isVisible
+      }
+      return module.isEnabled && module.isVisible
+    }
+  }) as NavGroup[]
+)
+
+const getFirstVisibleWorkspaceNavItem = (user: User | null) => {
+  return createWorkspaceNavGroupsForUser(user)
+    .flatMap(group => group.items.map(item => ({ item, groupKey: group.key })))
+    .find(({ item }) => !item.adminOnly || user?.role === 'Admin')
 }
 
 const isPlatformAdminUser = (user?: User | null) => {
@@ -136,10 +159,11 @@ const getDefaultNavigation = (user: User | null, loginRedirect: LoginRedirectRes
     }
   }
 
+  const firstWorkspaceItem = getFirstVisibleWorkspaceNavItem(user)
   return {
-    route: 'tables' as Route,
-    activeNavKey: 'adisyon' as NavKey,
-    openGroupKey: 'business-modules' as NavGroupKey
+    route: (firstWorkspaceItem?.item.route || 'tables') as Route,
+    activeNavKey: (firstWorkspaceItem?.item.key || 'adisyon') as NavKey,
+    openGroupKey: (firstWorkspaceItem?.groupKey || 'business-modules') as NavGroupKey
   }
 }
 
@@ -299,7 +323,7 @@ export default function App(){
   const navGroupsForCurrentUser = React.useMemo<NavGroup[]>(() => {
     const scopedGroups = isPlatformAdmin
       ? platformNavGroups
-      : businessWorkspaceNavGroups
+      : createWorkspaceNavGroupsForUser(currentUser)
 
     return scopedGroups.map(group => ({
       ...group,
@@ -307,19 +331,7 @@ export default function App(){
         if(item.platformAdminOnly && !isPlatformAdmin){
           return { ...item, hidden: true }
         }
-
-        const requiredModule = licensedNavModules[item.key]
-        if(!requiredModule) return item
-
-        const allowed = canUserAccessLicensedModule(currentUser, requiredModule)
-        if(allowed) return { ...item, locked: false, hidden: false, disabledReason: '' }
-
-        return {
-          ...item,
-          locked: MODULE_MENU_CONTROL_MODE === 'locked',
-          hidden: MODULE_MENU_CONTROL_MODE === 'hidden',
-          disabledReason: LICENSE_ACCESS_DENIED_MESSAGE
-        }
+        return item
       })
     }))
   }, [currentUser, isPlatformAdmin])
