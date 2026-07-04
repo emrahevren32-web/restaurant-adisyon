@@ -64,18 +64,20 @@ import {
   savePlatformSettings,
   savePlatformSupportTickets,
   saveTenantSettings,
-  saveTenants,
   saveUserSubscriptions,
   saveUsers
 } from '../storage'
 import type { FirstLoginCredentialDelivery } from '../storage'
-import { createTenantStorageId } from '../tenant'
 import {
   activateCompany,
   archiveCompany,
   deactivateCompany,
   updateCompany
 } from '../companies/company.service'
+import {
+  createTenant,
+  updateTenant
+} from '../tenant/tenant.service'
 
 export type SaasManagementView =
   | 'dashboard'
@@ -337,7 +339,7 @@ export default function SaasManagementCenter({ currentUser, view }: Props){
   }, [view])
 
   const companyMap = React.useMemo(() => new Map(companies.map(company => [company.id, company])), [companies])
-  const tenantMapByCompany = React.useMemo(() => new Map(tenants.map(tenant => [tenant.companyId, tenant])), [tenants])
+  const tenantMapByCompany = React.useMemo(() => new Map(tenants.map(tenant => [tenant.ownerCompanyId || tenant.companyId, tenant])), [tenants])
   const packageMap = React.useMemo(() => new Map(packages.map(packageItem => [packageItem.id, packageItem])), [packages])
   const licenseMap = React.useMemo(() => new Map(licenses.map(license => [license.id, license])), [licenses])
   const companyUserMap = React.useMemo(() => new Map(companyUsers.map(user => [user.id, user])), [companyUsers])
@@ -390,25 +392,23 @@ export default function SaasManagementCenter({ currentUser, view }: Props){
   }
 
   const ensureTenantForCompany = (company: Company, now: string) => {
-    const latestTenants = loadTenants()
-    const existingTenant = latestTenants.find(tenant => tenant.companyId === company.id)
+    const latestTenants = loadTenants({ includeDeleted: true })
+    const existingTenant = latestTenants.find(tenant => !tenant.deletedAt && (tenant.ownerCompanyId === company.id || tenant.companyId === company.id))
 
     if(existingTenant){
       saveTenantSettings(loadTenantSettings())
       return existingTenant
     }
 
-    const tenant: Tenant = {
-      id: createTenantStorageId('tenant'),
+    const tenant = createTenant({
       tenantCode: createTenantCode(company.companyName, latestTenants),
-      companyId: company.id,
-      companyName: company.companyName,
+      tenantName: company.companyName,
+      ownerCompanyId: company.id,
+      workspaceIds: [company.workspaceId],
       status: 'Aktif',
-      createdAt: now,
-      updatedAt: now
-    }
+      createdAt: now
+    }, { user: currentUser })
 
-    saveTenants([tenant, ...latestTenants])
     saveTenantSettings(loadTenantSettings())
     logPlatformAction('Tenant oluşturuldu', `${company.companyName} için ${tenant.tenantCode} tenant oluşturuldu.`, tenant.id, company.companyName, tenant.id)
     return tenant
@@ -619,6 +619,10 @@ export default function SaasManagementCenter({ currentUser, view }: Props){
       const companyUser = ensureCompanyUserForLifecycle(company, setup, tenant, registration, now)
       const license = ensureCompanyLicenseForLifecycle(company, tenant, now)
       const subscription = ensureSubscriptionForLifecycle(companyUser, license, tenant, company, now)
+      updateTenant(tenant.id, {
+        workspaceIds: Array.from(new Set([...(tenant.workspaceIds || []), company.workspaceId].filter(Boolean))),
+        subscriptionIds: Array.from(new Set([...(tenant.subscriptionIds || []), subscription.id].filter(Boolean)))
+      }, { user: currentUser })
       refreshSaasData()
       setSelectedCompanyId(company.id)
       setSelectedLicenseId(license.id)

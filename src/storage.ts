@@ -127,13 +127,13 @@ import {
 } from './types'
 import { recordBusinessApplicationNotification } from './notifications/evren360-notification.service'
 import { recordCompanyAuditEvent } from './companies/company-audit.service'
+import { recordTenantAuditEvent } from './tenant/tenant-audit.service'
 import {
   normalizeProductAllergens,
   normalizeProductNutrition,
   normalizeServingSize
 } from './productNutrition'
 import {
-  DEFAULT_TENANT_ID,
   TENANT_ISOLATION_DENIED_MESSAGE,
   assertTenantAccess,
   createDefaultTenantSettings,
@@ -3772,10 +3772,10 @@ export const saveCategories = (items: ProductCategory[]) => {
     categories.unshift(addTenantScope(createDefaultCategory(), currentUser))
   }
 
-  const tenantIds = new Set(categories.map(category => category.tenantId || DEFAULT_TENANT_ID))
+  const tenantIds = new Set(categories.map(category => category.tenantId || ''))
   const preservedCategories = readJson<Partial<ProductCategory>[]>(KEY_CATEGORIES, [])
     .map(normalizeCategory)
-    .filter(category => !tenantIds.has(category.tenantId || DEFAULT_TENANT_ID))
+    .filter(category => !tenantIds.has(category.tenantId || ''))
 
   localStorage.setItem(KEY_CATEGORIES, JSON.stringify([...categories, ...preservedCategories]))
 }
@@ -3801,10 +3801,10 @@ export const saveStockCategories = (items: StockCategory[]) => {
     categories.unshift(addTenantScope(createDefaultStockCategory(), currentUser))
   }
 
-  const tenantIds = new Set(categories.map(category => category.tenantId || DEFAULT_TENANT_ID))
+  const tenantIds = new Set(categories.map(category => category.tenantId || ''))
   const preservedCategories = readJson<Partial<StockCategory>[]>(KEY_STOCK_CATEGORIES, [])
     .map(normalizeStockCategory)
-    .filter(category => !tenantIds.has(category.tenantId || DEFAULT_TENANT_ID))
+    .filter(category => !tenantIds.has(category.tenantId || ''))
 
   localStorage.setItem(KEY_STOCK_CATEGORIES, JSON.stringify([...categories, ...preservedCategories]))
 }
@@ -4200,8 +4200,8 @@ export const saveCompanySetups = (items: CompanySetup[]) => {
   localStorage.setItem(KEY_COMPANY_SETUPS, JSON.stringify(items.map(normalizeCompanySetup)))
 }
 
-export const loadTenants = (): Tenant[] => {
-  return loadTenantsFromHelper()
+export const loadTenants = (options: { includeDeleted?: boolean } = {}): Tenant[] => {
+  return loadTenantsFromHelper(options)
 }
 
 export const saveTenants = (items: Tenant[]) => {
@@ -5570,18 +5570,22 @@ export const completeCompanySetupFromRegistration = ({
   }
 
   const companies = loadCompanies()
+  const tenants = loadTenants({ includeDeleted: true })
   const branches = loadBranches()
   const users = loadUsers({ allTenants: true })
   const now = new Date().toISOString()
   const temporaryPassword = generateTemporaryCompanyPassword()
   const companyId = createCompanySetupStorageId('company')
+  const tenantId = createTenantStorageId('tenant')
   const branchId = createCompanySetupStorageId('branch')
   const adminUserId = createCompanySetupStorageId('user')
   const adminName = adminFullName.trim() || registration.ownerName
   const adminUsername = createUniqueCompanyAdminUsername(username.trim() || adminEmail.split('@')[0] || registration.businessName, users)
+  const workspaceId = `workspace_${companyId}`
 
   const company: Company = normalizeCompany({
     id: companyId,
+    tenantId,
     companyName: registration.businessName,
     legalName: registration.businessName,
     ownerName: registration.ownerName,
@@ -5599,14 +5603,27 @@ export const completeCompanySetupFromRegistration = ({
     isApproved: true,
     approvedAt: now,
     approvedBy: user.id,
-    workspaceId: `workspace_${companyId}`,
+    workspaceId,
     defaultBranchId: branchId,
     createdAt: now,
     updatedAt: now
   })
+  const tenant = normalizeTenant({
+    id: tenantId,
+    tenantCode: createTenantCodeForApplication(registration.businessName, tenants),
+    tenantName: registration.businessName,
+    ownerCompanyId: company.id,
+    workspaceIds: [workspaceId],
+    subscriptionIds: [],
+    status: 'Aktif',
+    createdAt: now,
+    updatedAt: now,
+    deletedAt: ''
+  })
 
   const branch: Branch = normalizeBranch({
     id: branchId,
+    tenantId,
     companyId: company.id,
     code: createNextBranchCode(branches),
     name: 'Merkez Şube',
@@ -5622,6 +5639,7 @@ export const completeCompanySetupFromRegistration = ({
 
   const adminUser: User = {
     id: adminUserId,
+    tenantId,
     companyId: company.id,
     fullName: adminName,
     username: adminUsername,
@@ -5632,6 +5650,7 @@ export const completeCompanySetupFromRegistration = ({
 
   const setup: CompanySetup = normalizeCompanySetup({
     id: createCompanySetupStorageId('company_setup'),
+    tenantId,
     registrationId: registration.id,
     companyId: company.id,
     branchId: branch.id,
@@ -5643,6 +5662,8 @@ export const completeCompanySetupFromRegistration = ({
     updatedAt: now
   })
 
+  saveTenants([tenant, ...tenants])
+  saveTenantSettings([createDefaultTenantSettings(tenant.id, now), ...loadTenantSettings().filter(settings => settings.tenantId !== tenant.id)])
   saveCompanies([company, ...companies])
   saveBranches([branch, ...branches])
   saveUsers([adminUser, ...users])
@@ -5653,6 +5674,13 @@ export const completeCompanySetupFromRegistration = ({
     actorUserId: user.id,
     actorName: user.fullName || user.username,
     description: `${company.companyName} Company kaydı legacy kurulum sihirbazı ile oluşturuldu.`
+  })
+  recordTenantAuditEvent({
+    tenant,
+    eventType: 'TENANT_CREATED',
+    actorUserId: user.id,
+    actorName: user.fullName || user.username,
+    description: `${tenant.tenantName} Tenant kaydı legacy kurulum sihirbazı ile oluşturuldu.`
   })
 
   addActionLog({
@@ -5981,9 +6009,10 @@ export const approveBusinessApplication = (applicationId: string, approvalNote: 
   if(!existingCompany){
     assertUniqueCompanyTaxNumberForApplication(application.taxNumber, companies)
   }
-  const tenants = loadTenants()
-  const tenantId = createTenantStorageId('tenant')
   const companyId = existingCompany?.id || createCompanySetupStorageId('company')
+  const tenants = loadTenants({ includeDeleted: true })
+  const existingTenant = tenants.find(tenant => !tenant.deletedAt && (tenant.ownerCompanyId === companyId || tenant.companyId === companyId))
+  const tenantId = existingTenant?.id || createTenantStorageId('tenant')
   const branchId = createCompanySetupStorageId('branch')
   const authUserId = createCompanySetupStorageId('user')
   const companyUserId = createCompanySetupStorageId('company_user')
@@ -5999,7 +6028,7 @@ export const approveBusinessApplication = (applicationId: string, approvalNote: 
   const trialEndDate = ''
   const endDate = addLicenseDays(startDate, 365)
   const ownerName = application.ownerName || application.companyName
-  const tenantCode = createTenantCodeForApplication(application.companyName, tenants)
+  const tenantCode = existingTenant?.tenantCode || createTenantCodeForApplication(application.companyName, tenants)
   const workspaceId = existingCompany?.workspaceId || `workspace_${companyId}`
 
   const company = normalizeCompany({
@@ -6033,12 +6062,16 @@ export const approveBusinessApplication = (applicationId: string, approvalNote: 
     updatedAt: now
   })
   const tenant = normalizeTenant({
+    ...existingTenant,
     id: tenantId,
     tenantCode,
-    companyId,
-    companyName: application.companyName,
+    tenantName: application.companyName,
+    ownerCompanyId: companyId,
+    workspaceIds: [workspaceId],
+    subscriptionIds: [subscriptionId],
     status: 'Aktif',
-    createdAt: now,
+    deletedAt: '',
+    createdAt: existingTenant?.createdAt || now,
     updatedAt: now
   })
   const branch = normalizeBranch({
@@ -6139,7 +6172,18 @@ export const approveBusinessApplication = (applicationId: string, approvalNote: 
     emailBodyPreview: `${ownerName} için MIYOP ilk giriş bilgileri hazır. Kullanıcı adı: ${ownerUser.username}. Geçici şifre: ${temporaryPassword}.`
   }
 
-  saveTenants([tenant, ...tenants])
+  saveTenants(existingTenant
+    ? tenants.map(item => item.id === existingTenant.id ? tenant : item)
+    : [tenant, ...tenants])
+  recordTenantAuditEvent({
+    tenant,
+    eventType: existingTenant ? 'TENANT_UPDATED' : 'TENANT_CREATED',
+    actorUserId: user.id,
+    actorName: user.fullName || user.username,
+    description: existingTenant
+      ? `${tenant.tenantName} Tenant kaydı başvuru onayı sırasında güncellendi.`
+      : `${tenant.tenantName} Tenant kaydı başvuru onayı sırasında oluşturuldu.`
+  })
   saveTenantSettings([createDefaultTenantSettings(tenant.id, now), ...loadTenantSettings().filter(settings => settings.tenantId !== tenant.id)])
   saveCompanies(existingCompany
     ? companies.map(item => item.id === existingCompany.id ? company : item)
@@ -6190,8 +6234,8 @@ export const approveBusinessApplication = (applicationId: string, approvalNote: 
     user,
     tenantId,
     tableId: tenant.id,
-    tableName: tenant.companyName,
-    description: `${tenant.companyName} için ${tenant.tenantCode} tenant kaydı otomatik oluşturuldu.`
+    tableName: tenant.tenantName,
+    description: `${tenant.tenantName} için ${tenant.tenantCode} tenant kaydı otomatik oluşturuldu.`
   })
   addActionLog({
     operationType: 'Lisans otomatik oluşturuldu',
@@ -7846,6 +7890,7 @@ export const createDemoData = () => {
   saveCompanyLicenses(companyLicenses)
   saveCompanyUsers(companyUsers)
   saveUserSubscriptions(userSubscriptions)
+  loadTenants({ includeDeleted: true })
   saveTables(tables)
   saveKitchenOrders([])
   saveQRRequests([])

@@ -266,8 +266,16 @@ export const completeFirstLoginOnboarding = ({
 
   saveCompanies(allCompanies.map(item => item.id === companyId ? updatedCompany : item))
   if(tenantId){
-    saveTenants(allTenants.map(tenant => tenant.id === tenantId || tenant.companyId === companyId
-      ? { ...tenant, companyName: workspaceName, updatedAt: now }
+    saveTenants(allTenants.map(tenant => tenant.id === tenantId || tenant.ownerCompanyId === companyId || tenant.companyId === companyId
+      ? {
+          ...tenant,
+          tenantName: workspaceName,
+          companyName: workspaceName,
+          ownerCompanyId: companyId,
+          companyId,
+          workspaceIds: Array.from(new Set([...(tenant.workspaceIds || []), updatedCompany.workspaceId].filter(Boolean))),
+          updatedAt: now
+        }
       : tenant))
 
     const existingTenantSettings = allTenantSettings.find(settings => settings.tenantId === tenantId)

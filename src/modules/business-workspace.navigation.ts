@@ -5,10 +5,13 @@ import type {
 } from '../navigation/app-navigation.types'
 import type { ShellNavGroup, ShellNavItem } from '../components/AppShell'
 import type { LicenseModuleKey } from '../types'
-import type { BusinessWorkspaceModule } from './business-workspace.registry'
 import {
-  BUSINESS_WORKSPACE_MODULE_REGISTRY,
-  getBusinessWorkspaceModules
+  createWorkspaceNavigationRegistry,
+  type WorkspaceModuleActivationResolver,
+  type WorkspaceNavigationNode
+} from '../navigation/workspace-navigation.registry'
+import {
+  BUSINESS_WORKSPACE_MODULE_REGISTRY
 } from './business-workspace.registry'
 import { WORKSPACE_MODULE_TYPES } from './module-registry.types'
 
@@ -19,20 +22,25 @@ export type BusinessWorkspaceNavGroup = ShellNavGroup<
   BusinessWorkspaceNavGroupKey
 >
 
-export type WorkspaceModuleActivationResolver = (module: BusinessWorkspaceModule) => boolean
-
 type CreateBusinessWorkspaceNavGroupsOptions = {
   isModuleEnabled?: WorkspaceModuleActivationResolver
   isCoreModuleVisible?: WorkspaceModuleActivationResolver
 }
 
 const toShellNavItem = (
-  item: BusinessWorkspaceNavItem
+  item: WorkspaceNavigationNode
 ): BusinessWorkspaceNavItem => ({
   key: item.key,
-  label: item.label,
+  label: item.title,
   route: item.route,
   icon: item.icon,
+  moduleId: item.moduleId,
+  parent: item.parent,
+  order: item.order,
+  children: item.children?.map(toShellNavItem),
+  requiredPermission: item.requiredPermission,
+  visible: item.visible,
+  expandedByDefault: item.expandedByDefault,
   adminOnly: item.adminOnly,
   platformAdminOnly: item.platformAdminOnly,
   badge: item.badge,
@@ -41,56 +49,50 @@ const toShellNavItem = (
   disabledReason: item.disabledReason
 })
 
-const getModuleMenuItems = (
-  moduleType: BusinessWorkspaceModule['moduleType'],
-  isModuleEnabled?: WorkspaceModuleActivationResolver,
-  isCoreModuleVisible?: WorkspaceModuleActivationResolver
-) => {
-  return getBusinessWorkspaceModules(moduleType)
-    .filter(module => {
-      if(module.isCoreModule && isCoreModuleVisible && !isCoreModuleVisible(module)) return false
-      if(module.isCoreModule || module.isAlwaysActive) return true
-      return isModuleEnabled ? isModuleEnabled(module) : true
-    })
-    .flatMap(module => module.menuItems
-      .filter(item => !item.hidden)
-      .sort((first, second) => (first.displayOrder || 0) - (second.displayOrder || 0))
-    )
-    .map(toShellNavItem)
-}
+export const flattenBusinessWorkspaceNavItems = (
+  items: BusinessWorkspaceNavItem[]
+): BusinessWorkspaceNavItem[] => (
+  items.flatMap(item => [
+    item,
+    ...flattenBusinessWorkspaceNavItems(item.children || [])
+  ])
+)
 
-export const createBusinessWorkspaceNavGroups = ({
-  isModuleEnabled,
-  isCoreModuleVisible
-}: CreateBusinessWorkspaceNavGroupsOptions = {}): BusinessWorkspaceNavGroup[] => [
-  {
-    key: 'system-modules',
-    title: 'SİSTEM MODÜLLERİ',
-    icon: 'SM',
-    items: getModuleMenuItems(WORKSPACE_MODULE_TYPES.CORE_SYSTEM, isModuleEnabled, isCoreModuleVisible)
-  },
-  {
-    key: 'business-modules',
-    title: 'İŞ MODÜLLERİ',
-    icon: 'IM',
-    emptyTitle: 'Henüz modül yüklenmedi.',
-    emptyDescription: "Marketplace'ten ilk modülünüzü kurabilirsiniz.",
-    emptyAction: {
-      key: 'marketplace',
-      label: "Marketplace'e Git",
-      route: 'marketplace',
-      icon: 'MP',
-      adminOnly: true
+export const createBusinessWorkspaceNavGroups = (
+  options: CreateBusinessWorkspaceNavGroupsOptions = {}
+): BusinessWorkspaceNavGroup[] => {
+  const registry = createWorkspaceNavigationRegistry(options)
+
+  return [
+    {
+      key: 'system-modules',
+      title: 'SİSTEM MODÜLLERİ',
+      icon: 'SM',
+      items: registry.systemModules.map(toShellNavItem)
     },
-    items: getModuleMenuItems(WORKSPACE_MODULE_TYPES.BUSINESS, isModuleEnabled, isCoreModuleVisible)
-  },
-  {
-    key: 'integration-modules',
-    title: 'ENTEGRASYON MODÜLLERİ',
-    icon: 'EN',
-    items: getModuleMenuItems(WORKSPACE_MODULE_TYPES.INTEGRATION, isModuleEnabled, isCoreModuleVisible)
-  }
-]
+    {
+      key: 'business-modules',
+      title: 'İŞ MODÜLLERİ',
+      icon: 'IM',
+      emptyTitle: 'Henüz modül yüklenmedi.',
+      emptyDescription: "Marketplace'ten ilk modülünüzü kurabilirsiniz.",
+      emptyAction: {
+        key: 'marketplace',
+        label: "Marketplace'e Git",
+        route: 'marketplace',
+        icon: 'MP',
+        adminOnly: true
+      },
+      items: registry.businessModules.map(toShellNavItem)
+    },
+    {
+      key: 'integration-modules',
+      title: 'ENTEGRASYON MODÜLLERİ',
+      icon: 'EN',
+      items: registry.integrationModules.map(toShellNavItem)
+    }
+  ]
+}
 
 export const createLicensedNavModuleMap = () => {
   const licensedNavModules: Partial<Record<BusinessWorkspaceNavKey, LicenseModuleKey>> = {}

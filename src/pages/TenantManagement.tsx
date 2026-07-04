@@ -7,15 +7,20 @@ import {
   loadTenantSettings,
   loadTenants,
   runTenantIsolationTest,
-  saveTenantSettings,
-  saveTenants
+  saveTenantSettings
 } from '../storage'
 import {
   DEFAULT_TENANT_SETTINGS,
   TENANT_STATUSES,
-  createDefaultTenantSettings,
-  createTenantStorageId
+  createDefaultTenantSettings
 } from '../tenant'
+import {
+  activateTenant,
+  archiveTenant,
+  createTenant,
+  deactivateTenant,
+  updateTenant
+} from '../tenant/tenant.service'
 
 type Props = {
   currentUser: User
@@ -64,6 +69,7 @@ const getStatusClassName = (status: TenantStatus) => {
   if(status === 'Aktif') return 'success'
   if(status === 'Pasif') return 'muted-pill'
   if(status === 'Askıda') return 'warning-pill'
+  if(status === 'Arşivlendi') return 'muted-pill'
   return 'danger-pill'
 }
 
@@ -91,13 +97,13 @@ const createTenantForm = (companies: Company[], tenants: Tenant[], tenant?: Tena
     return {
       id: tenant.id,
       tenantCode: tenant.tenantCode,
-      companyId: tenant.companyId,
-      companyName: tenant.companyName,
+      companyId: tenant.ownerCompanyId || tenant.companyId,
+      companyName: tenant.tenantName || tenant.companyName,
       status: tenant.status
     }
   }
 
-  const tenantCompanyIds = new Set(tenants.map(item => item.companyId))
+  const tenantCompanyIds = new Set(tenants.map(item => item.ownerCompanyId || item.companyId))
   const company = companies.find(item => !tenantCompanyIds.has(item.id)) || companies[0]
 
   return {
@@ -153,7 +159,7 @@ export default function TenantManagement({ currentUser }: Props){
       .filter(tenant => {
         const createdDate = getDateKey(tenant.createdAt)
         const matchesTenant = tenantFilter === 'all' || tenant.id === tenantFilter
-        const matchesCompany = companyFilter === 'all' || tenant.companyId === companyFilter
+        const matchesCompany = companyFilter === 'all' || (tenant.ownerCompanyId || tenant.companyId) === companyFilter
         const matchesStatus = statusFilter === 'all' || tenant.status === statusFilter
         const matchesStart = !startDate || createdDate >= startDate
         const matchesEnd = !endDate || createdDate <= endDate
@@ -161,14 +167,14 @@ export default function TenantManagement({ currentUser }: Props){
       })
   }, [companyFilter, endDate, startDate, statusFilter, tenantFilter, tenants])
 
-  const tenantCompanyIds = new Set(tenants.filter(tenant => tenant.status !== 'Silinmiş').map(tenant => tenant.companyId))
+  const tenantCompanyIds = new Set(tenants.filter(tenant => !tenant.deletedAt && tenant.status !== 'Silinmiş').map(tenant => tenant.ownerCompanyId || tenant.companyId))
   const activeTenants = tenants.filter(tenant => tenant.status === 'Aktif')
   const passiveTenants = tenants.filter(tenant => tenant.status === 'Pasif')
   const suspendedTenants = tenants.filter(tenant => tenant.status === 'Askıda')
   const todayTenants = tenants.filter(tenant => getDateKey(tenant.createdAt) === today)
   const tenantIssueCompanies = companies.filter(company => !tenantCompanyIds.has(company.id))
   const missingSettingsCompanies = companies.filter(company => {
-    const tenant = tenants.find(item => item.companyId === company.id && item.status !== 'Silinmiş')
+    const tenant = tenants.find(item => (item.ownerCompanyId === company.id || item.companyId === company.id) && !item.deletedAt && item.status !== 'Silinmiş')
     return Boolean(tenant && !tenantSettings.some(settings => settings.tenantId === tenant.id))
   })
 
@@ -229,41 +235,39 @@ export default function TenantManagement({ currentUser }: Props){
       return
     }
 
-    const duplicateCode = tenants.some(tenant => tenant.id !== tenantForm.id && tenant.tenantCode.toLocaleUpperCase('tr-TR') === tenantCode)
-    if(duplicateCode){
-      setFormError('Tenant kodu benzersiz olmalıdır.')
-      setFormMessage('')
-      return
-    }
-
-    const duplicateCompany = tenants.some(tenant => tenant.id !== tenantForm.id && tenant.companyId === company.id && tenant.status !== 'Silinmiş')
-    if(duplicateCompany){
-      setFormError('Bu firma için aktif bir tenant zaten var.')
-      setFormMessage('')
-      return
-    }
-
     const now = new Date().toISOString()
     const existingTenant = tenants.find(tenant => tenant.id === tenantForm.id)
-    const nextTenant: Tenant = {
-      id: existingTenant?.id || createTenantStorageId('tenant'),
-      tenantCode,
-      companyId: company.id,
-      companyName: company.companyName,
-      status: tenantForm.status,
-      createdAt: existingTenant?.createdAt || now,
-      updatedAt: now
+    let nextTenant: Tenant
+
+    try {
+      nextTenant = existingTenant
+        ? updateTenant(existingTenant.id, {
+            tenantCode,
+            tenantName: tenantForm.companyName.trim() || company.companyName,
+            ownerCompanyId: company.id,
+            status: tenantForm.status
+          }, { user: currentUser })
+        : createTenant({
+            tenantCode,
+            tenantName: tenantForm.companyName.trim() || company.companyName,
+            ownerCompanyId: company.id,
+            status: tenantForm.status,
+            createdAt: now
+          }, { user: currentUser })
+    } catch(error) {
+      setFormError(error instanceof Error ? error.message : 'Tenant kaydedilemedi.')
+      setFormMessage('')
+      return
     }
-    const nextTenants = existingTenant
-      ? tenants.map(tenant => tenant.id === nextTenant.id ? nextTenant : tenant)
-      : [nextTenant, ...tenants]
-    const hasSettings = tenantSettings.some(settings => settings.tenantId === nextTenant.id)
+
+    const nextTenants = loadTenants()
+    const latestTenantSettings = loadTenantSettings()
+    const hasSettings = latestTenantSettings.some(settings => settings.tenantId === nextTenant.id)
     const nextSettings = hasSettings
-      ? tenantSettings
-      : [createDefaultTenantSettings(nextTenant.id, now), ...tenantSettings]
+      ? latestTenantSettings
+      : [createDefaultTenantSettings(nextTenant.id, now), ...latestTenantSettings]
 
     setTenants(nextTenants)
-    saveTenants(nextTenants)
     setTenantSettings(nextSettings)
     saveTenantSettings(nextSettings)
     setSelectedTenantId(nextTenant.id)
@@ -282,20 +286,40 @@ export default function TenantManagement({ currentUser }: Props){
   }
 
   const updateTenantStatus = (tenant: Tenant, status: TenantStatus) => {
-    const nextTenant = { ...tenant, status, updatedAt: new Date().toISOString() }
-    const nextTenants = tenants.map(item => item.id === tenant.id ? nextTenant : item)
+    let nextTenant: Tenant
+
+    try {
+      nextTenant = status === 'Aktif'
+        ? activateTenant(tenant.id, { user: currentUser })
+        : status === 'Pasif'
+          ? deactivateTenant(tenant.id, { user: currentUser })
+          : status === 'Arşivlendi' || status === 'Silinmiş'
+            ? archiveTenant(tenant.id, { user: currentUser })
+            : updateTenant(tenant.id, { status }, { user: currentUser })
+    } catch(error) {
+      setFormError(error instanceof Error ? error.message : 'Tenant durumu güncellenemedi.')
+      setFormMessage('')
+      return
+    }
+
+    const nextTenants = loadTenants()
     setTenants(nextTenants)
-    saveTenants(nextTenants)
     if(selectedTenantId === tenant.id) setTenantForm(createTenantForm(companies, nextTenants, nextTenant))
     setFormError('')
-    setFormMessage(`${tenant.companyName} tenant durumu ${status} olarak güncellendi.`)
+    setFormMessage(`${tenant.tenantName || tenant.companyName} tenant durumu ${nextTenant.status} olarak güncellendi.`)
     addActionLog({
-      operationType: status === 'Pasif' ? 'Tenant pasife alındı' : status === 'Aktif' ? 'Tenant aktif edildi' : 'Tenant güncellendi',
+      operationType: nextTenant.status === 'Pasif'
+        ? 'Tenant pasife alındı'
+        : nextTenant.status === 'Aktif'
+          ? 'Tenant aktif edildi'
+          : nextTenant.status === 'Arşivlendi'
+            ? 'Tenant arşivlendi'
+            : 'Tenant güncellendi',
       user: currentUser,
       tenantId: tenant.id,
       tableId: tenant.id,
-      tableName: tenant.companyName,
-      description: `${tenant.companyName} tenant durumu ${tenant.status} -> ${status} olarak güncellendi.`
+      tableName: tenant.tenantName || tenant.companyName,
+      description: `${tenant.tenantName || tenant.companyName} tenant durumu ${tenant.status} -> ${nextTenant.status} olarak güncellendi.`
     })
   }
 
@@ -327,14 +351,14 @@ export default function TenantManagement({ currentUser }: Props){
     saveTenantSettings(nextSettings)
     setSettingsForm(toSettingsForm(nextSettingsItem))
     setFormError('')
-    setFormMessage(`${selectedTenant.companyName} tenant ayarları kaydedildi.`)
+    setFormMessage(`${selectedTenant.tenantName || selectedTenant.companyName} tenant ayarları kaydedildi.`)
     addActionLog({
       operationType: 'Tenant güncellendi',
       user: currentUser,
       tenantId: selectedTenant.id,
       tableId: selectedTenant.id,
-      tableName: selectedTenant.companyName,
-      description: `${selectedTenant.companyName} tenant ayarları güncellendi. Saat dilimi: ${nextSettingsItem.timezone}, para birimi: ${nextSettingsItem.currency}.`
+      tableName: selectedTenant.tenantName || selectedTenant.companyName,
+      description: `${selectedTenant.tenantName || selectedTenant.companyName} tenant ayarları güncellendi. Saat dilimi: ${nextSettingsItem.timezone}, para birimi: ${nextSettingsItem.currency}.`
     })
   }
 
@@ -401,7 +425,7 @@ export default function TenantManagement({ currentUser }: Props){
             </select>
             <select value={statusFilter} onChange={event => setStatusFilter(event.target.value as StatusFilter)}>
               <option value="all">Tüm durumlar</option>
-              {TENANT_STATUSES.map(status => <option key={status} value={status}>{status}</option>)}
+              {TENANT_STATUSES.filter(status => status !== 'Silinmiş').map(status => <option key={status} value={status}>{status}</option>)}
             </select>
             <input type="date" value={startDate} onChange={event => setStartDate(event.target.value)} />
             <input type="date" value={endDate} onChange={event => setEndDate(event.target.value)} />
@@ -427,8 +451,8 @@ export default function TenantManagement({ currentUser }: Props){
               {visibleTenants.map(tenant => (
                 <tr key={tenant.id} className={selectedTenantId === tenant.id ? 'selected-row' : ''}>
                   <td>
-                    <strong>{tenant.companyName}</strong>
-                    <div className="muted small-text">{companyMap.get(tenant.companyId)?.city || '-'}</div>
+                    <strong>{tenant.tenantName || tenant.companyName}</strong>
+                    <div className="muted small-text">{companyMap.get(tenant.ownerCompanyId || tenant.companyId)?.city || '-'}</div>
                   </td>
                   <td><span className="license-key">{tenant.tenantCode}</span></td>
                   <td><span className={`status-pill ${getStatusClassName(tenant.status)}`}>{tenant.status}</span></td>
@@ -439,6 +463,7 @@ export default function TenantManagement({ currentUser }: Props){
                     {tenant.status === 'Aktif'
                       ? <button className="btn" type="button" onClick={() => updateTenantStatus(tenant, 'Pasif')}>Tenant Pasife Al</button>
                       : <button className="btn" type="button" onClick={() => updateTenantStatus(tenant, 'Aktif')}>Tenant Aktif Et</button>}
+                    <button className="btn" type="button" onClick={() => updateTenantStatus(tenant, 'Arşivlendi')}>Tenant Arşivle</button>
                     <button className="btn" type="button" onClick={() => selectTenant(tenant)}>Tenant Ayarları</button>
                     <button
                       className="btn"
@@ -494,7 +519,7 @@ export default function TenantManagement({ currentUser }: Props){
               <div className="form-field">
                 <label>Durum</label>
                 <select value={tenantForm.status} onChange={event => updateTenantForm('status', event.target.value as TenantStatus)}>
-                  {TENANT_STATUSES.map(status => <option key={status} value={status}>{status}</option>)}
+                  {TENANT_STATUSES.filter(status => status !== 'Silinmiş').map(status => <option key={status} value={status}>{status}</option>)}
                 </select>
               </div>
             </div>
@@ -512,7 +537,7 @@ export default function TenantManagement({ currentUser }: Props){
               </div>
               <div>
                 <span>Firma ID</span>
-                <strong>{selectedTenant.companyId}</strong>
+                <strong>{selectedTenant.ownerCompanyId || selectedTenant.companyId}</strong>
               </div>
               <div>
                 <span>Durum</span>
@@ -530,7 +555,7 @@ export default function TenantManagement({ currentUser }: Props){
           <div className="section-header compact">
             <div>
               <h3>Tenant Ayarları</h3>
-              <p className="muted">{selectedTenant?.companyName || 'Tenant seçin'}</p>
+              <p className="muted">{selectedTenant?.tenantName || selectedTenant?.companyName || 'Tenant seçin'}</p>
             </div>
           </div>
 
@@ -601,13 +626,13 @@ export default function TenantManagement({ currentUser }: Props){
             <div className="form-field">
               <label>Kaynak Tenant</label>
               <select value={testSourceTenantId} onChange={event => setTestSourceTenantId(event.target.value)}>
-                {tenants.map(tenant => <option key={tenant.id} value={tenant.id}>{tenant.tenantCode} - {tenant.companyName}</option>)}
+                {tenants.map(tenant => <option key={tenant.id} value={tenant.id}>{tenant.tenantCode} - {tenant.tenantName || tenant.companyName}</option>)}
               </select>
             </div>
             <div className="form-field">
               <label>Hedef Tenant</label>
               <select value={testTargetTenantId} onChange={event => setTestTargetTenantId(event.target.value)}>
-                {tenants.map(tenant => <option key={tenant.id} value={tenant.id}>{tenant.tenantCode} - {tenant.companyName}</option>)}
+                {tenants.map(tenant => <option key={tenant.id} value={tenant.id}>{tenant.tenantCode} - {tenant.tenantName || tenant.companyName}</option>)}
               </select>
             </div>
             <button className="btn primary" type="button" onClick={() => runIsolationForSelection()}>Veri İzolasyonunu Test Et</button>

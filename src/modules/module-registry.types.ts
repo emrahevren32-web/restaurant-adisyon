@@ -48,6 +48,12 @@ export type WorkspaceModuleMenuItem<Route extends string, NavKey extends string>
   label: string
   route: Route
   icon: string
+  parent?: NavKey
+  order?: number
+  children?: WorkspaceModuleMenuItem<Route, NavKey>[]
+  requiredPermission?: PermissionName
+  visible?: boolean
+  expandedByDefault?: boolean
   adminOnly?: boolean
   platformAdminOnly?: boolean
   badge?: number

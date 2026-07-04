@@ -1,4 +1,4 @@
-import { Branch, Tenant, TenantSettings, TenantStatus, User } from './types'
+import { Branch, Company, CompanyLicense, Tenant, TenantSettings, TenantStatus, User, UserSubscription } from './types'
 
 const KEY_TENANTS = 'ra_tenants'
 const KEY_TENANT_SETTINGS = 'ra_tenant_settings'
@@ -6,11 +6,12 @@ const KEY_ACTIVE_TENANT = 'ra_active_tenant_id'
 const KEY_AUTH = 'ra_auth'
 const KEY_COMPANY_SETUPS = 'ra_company_setups'
 const KEY_BRANCHES = 'ra_branches'
+const KEY_COMPANIES = 'ra_companies'
+const KEY_COMPANY_LICENSES = 'ra_company_licenses'
+const KEY_USER_SUBSCRIPTIONS = 'ra_user_subscriptions'
 
-export const DEFAULT_TENANT_ID = 'tenant_abc_cafe_demo'
-export const DEFAULT_TENANT_CODE = 'ABC001'
 export const TENANT_ISOLATION_DENIED_MESSAGE = 'Tenant erişimi engellendi.'
-export const TENANT_STATUSES: TenantStatus[] = ['Aktif', 'Pasif', 'Askıda', 'Silinmiş']
+export const TENANT_STATUSES: TenantStatus[] = ['Aktif', 'Pasif', 'Askıda', 'Arşivlendi', 'Silinmiş']
 
 export const DEFAULT_TENANT_SETTINGS = {
   timezone: 'Europe/Istanbul',
@@ -43,32 +44,15 @@ type StoredCompanySetup = {
   companyId?: string
 }
 
-const demoTenantSpecs: Tenant[] = [
-  {
-    id: DEFAULT_TENANT_ID,
-    tenantCode: DEFAULT_TENANT_CODE,
-    companyId: 'company_abc_cafe_demo',
-    companyName: 'ABC Cafe',
-    status: 'Aktif',
-    createdAt: '',
-    updatedAt: ''
-  },
-  {
-    id: 'tenant_lezzet_restoran_demo',
-    tenantCode: 'LZZ001',
-    companyId: 'company_lezzet_restoran_demo',
-    companyName: 'Lezzet Restoran',
-    status: 'Aktif',
-    createdAt: '',
-    updatedAt: ''
-  }
-]
-
-const demoBranchTenantIds: Record<string, string> = {
-  branch_merkez: DEFAULT_TENANT_ID,
-  branch_istanbul: DEFAULT_TENANT_ID,
-  branch_ankara: 'tenant_lezzet_restoran_demo',
-  branch_lezzet_restoran_merkez_demo: 'tenant_lezzet_restoran_demo'
+type CompanyMigrationRecord = Partial<Company> & {
+  id?: string
+  companyName?: string
+  workspaceId?: string
+  subscriptionId?: string
+  tenantId?: string
+  createdAt?: string
+  updatedAt?: string
+  deletedAt?: string
 }
 
 const readJson = <T,>(key: string, fallback: T): T => {
@@ -101,44 +85,164 @@ export const normalizeTenantStatus = (value: unknown): TenantStatus => {
   return TENANT_STATUSES.includes(value as TenantStatus) ? value as TenantStatus : 'Aktif'
 }
 
+const uniqueValues = (items: unknown[]) => Array.from(new Set(
+  items.map(item => String(item || '').trim()).filter(Boolean)
+))
+
+const normalizeTenantCodePart = (value: string) => value
+  .toLocaleUpperCase('tr-TR')
+  .normalize('NFD')
+  .replace(/[\u0300-\u036f]/g, '')
+  .replace(/İ/g, 'I')
+  .replace(/[^A-Z0-9]+/g, '')
+
+const createTenantCodeFromName = (name: string, existingCodes: Set<string>, seed = Date.now()) => {
+  const prefix = (normalizeTenantCodePart(name) || 'TNT').slice(0, 3).padEnd(3, 'X')
+  let index = Math.max(1, existingCodes.size + 1)
+  let code = `${prefix}${String(index).padStart(3, '0')}`
+
+  while(existingCodes.has(code)){
+    index += 1
+    code = `${prefix}${String(index).padStart(3, '0')}`
+  }
+
+  existingCodes.add(code)
+  return code || `TNT${String(seed).slice(-5)}`
+}
+
+const readCompaniesForTenantMigration = () => {
+  return readJson<CompanyMigrationRecord[]>(KEY_COMPANIES, [])
+    .filter(company => String(company.id || '').trim())
+}
+
+const readCompanyLicensesForTenantMigration = () => {
+  return readJson<Partial<CompanyLicense>[]>(KEY_COMPANY_LICENSES, [])
+}
+
+const readUserSubscriptionsForTenantMigration = () => {
+  return readJson<Partial<UserSubscription>[]>(KEY_USER_SUBSCRIPTIONS, [])
+}
+
+const getSubscriptionIdsForCompany = (
+  companyId: string,
+  company: CompanyMigrationRecord,
+  licenses = readCompanyLicensesForTenantMigration(),
+  subscriptions = readUserSubscriptionsForTenantMigration()
+) => {
+  const licenseIds = new Set(licenses
+    .filter(license => String(license.companyId || '').trim() === companyId)
+    .map(license => String(license.id || '').trim())
+    .filter(Boolean))
+
+  return uniqueValues([
+    company.subscriptionId,
+    ...subscriptions
+      .filter(subscription => licenseIds.has(String(subscription.companyLicenseId || '').trim()))
+      .map(subscription => subscription.id)
+  ])
+}
+
 export const normalizeTenant = (item: Partial<Tenant>): Tenant => {
   const timestamp = item.createdAt || new Date().toISOString()
   const tenantCode = String(item.tenantCode || '').trim().toLocaleUpperCase('tr-TR')
+  const ownerCompanyId = String(item.ownerCompanyId || item.companyId || '').trim()
+  const tenantName = String(item.tenantName || item.companyName || 'İsimsiz Tenant').trim() || 'İsimsiz Tenant'
+  const status = normalizeTenantStatus(item.status)
+  const deletedAt = String(item.deletedAt || '').trim()
+    || (status === 'Silinmiş' || status === 'Arşivlendi' ? timestamp : '')
 
   return {
     id: String(item.id || createTenantStorageId('tenant')),
     tenantCode: tenantCode || `TNT${Date.now().toString().slice(-5)}`,
-    companyId: String(item.companyId || '').trim(),
-    companyName: String(item.companyName || 'İsimsiz Firma').trim() || 'İsimsiz Firma',
-    status: normalizeTenantStatus(item.status),
+    tenantName,
+    status,
+    ownerCompanyId,
+    workspaceIds: uniqueValues(item.workspaceIds || []),
+    subscriptionIds: uniqueValues(item.subscriptionIds || []),
     createdAt: timestamp,
-    updatedAt: item.updatedAt || timestamp
+    updatedAt: item.updatedAt || timestamp,
+    deletedAt,
+    companyId: ownerCompanyId,
+    companyName: tenantName
   }
 }
 
 export const createDemoTenants = (now = new Date().toISOString()) => {
-  return demoTenantSpecs.map(tenant => normalizeTenant({
-    ...tenant,
-    createdAt: tenant.createdAt || now,
-    updatedAt: tenant.updatedAt || now
-  }))
+  void now
+  return []
 }
 
-export const loadTenants = (): Tenant[] => {
-  const defaultTenants = createDemoTenants()
-  const source = localStorage.getItem(KEY_TENANTS) === null
-    ? defaultTenants
-    : readJson<Partial<Tenant>[]>(KEY_TENANTS, []).map(normalizeTenant)
-  const sourceMap = new Map(source.map(tenant => [tenant.id, tenant]))
-  const defaultIds = new Set(defaultTenants.map(tenant => tenant.id))
-  const mergedDefaults = defaultTenants.map(tenant => sourceMap.get(tenant.id) || tenant)
-  const customTenants = source.filter(tenant => !defaultIds.has(tenant.id))
+const createTenantFromCompany = (
+  company: CompanyMigrationRecord,
+  existingCodes: Set<string>,
+  existingTenants: Tenant[],
+  now = new Date().toISOString()
+) => {
+  const companyId = String(company.id || '').trim()
+  const tenantId = String(company.tenantId || '').trim() || createTenantStorageId('tenant')
+  const tenantName = String(company.companyName || company.legalName || 'İsimsiz Tenant').trim() || 'İsimsiz Tenant'
+  const existingTenant = existingTenants.find(tenant => tenant.id === tenantId || tenant.ownerCompanyId === companyId || tenant.companyId === companyId)
+  const tenantCode = existingTenant?.tenantCode || createTenantCodeFromName(tenantName, existingCodes)
 
-  return [...mergedDefaults, ...customTenants]
+  return normalizeTenant({
+    ...existingTenant,
+    id: existingTenant?.id || tenantId,
+    tenantCode,
+    tenantName,
+    ownerCompanyId: companyId,
+    workspaceIds: uniqueValues([...(existingTenant?.workspaceIds || []), company.workspaceId]),
+    subscriptionIds: uniqueValues([
+      ...(existingTenant?.subscriptionIds || []),
+      ...getSubscriptionIdsForCompany(companyId, company)
+    ]),
+    status: existingTenant?.status || (company.deletedAt ? 'Arşivlendi' : company.isApproved === false ? 'Pasif' : 'Aktif'),
+    createdAt: existingTenant?.createdAt || company.createdAt || now,
+    updatedAt: existingTenant?.updatedAt || company.updatedAt || now,
+    deletedAt: existingTenant?.deletedAt || String(company.deletedAt || '').trim()
+  })
+}
+
+const mergeTenantMigrations = (sourceTenants: Tenant[]) => {
+  const existingCodes = new Set(sourceTenants.map(tenant => tenant.tenantCode.toLocaleUpperCase('tr-TR')))
+  const tenantByCompany = new Map(sourceTenants
+    .filter(tenant => tenant.ownerCompanyId)
+    .map(tenant => [tenant.ownerCompanyId, tenant]))
+  const companies = readCompaniesForTenantMigration()
+  const migratedTenants = companies
+    .filter(company => String(company.id || '').trim())
+    .map(company => createTenantFromCompany(company, existingCodes, sourceTenants))
+
+  migratedTenants.forEach(tenant => tenantByCompany.set(tenant.ownerCompanyId, tenant))
+  sourceTenants.forEach(tenant => {
+    if(!tenantByCompany.has(tenant.ownerCompanyId)) tenantByCompany.set(tenant.ownerCompanyId || tenant.id, tenant)
+  })
+
+  return Array.from(tenantByCompany.values())
+}
+
+export const loadTenants = (options: { includeDeleted?: boolean } = {}): Tenant[] => {
+  const storedTenants = localStorage.getItem(KEY_TENANTS)
+  const source = storedTenants === null
+    ? []
+    : readJson<Partial<Tenant>[]>(KEY_TENANTS, []).map(normalizeTenant)
+  const tenants = mergeTenantMigrations(source)
+  const migratedPayload = JSON.stringify(tenants)
+
+  if(storedTenants !== migratedPayload){
+    localStorage.setItem(KEY_TENANTS, migratedPayload)
+  }
+
+  return options.includeDeleted ? tenants : tenants.filter(tenant => !tenant.deletedAt)
 }
 
 export const saveTenants = (items: Tenant[]) => {
-  localStorage.setItem(KEY_TENANTS, JSON.stringify(items.map(normalizeTenant)))
+  const normalizedItems = items.map(normalizeTenant)
+  const nextIds = new Set(normalizedItems.map(tenant => tenant.id))
+  const archivedTenants = readJson<Partial<Tenant>[]>(KEY_TENANTS, [])
+    .map(normalizeTenant)
+    .filter(tenant => tenant.deletedAt && !nextIds.has(tenant.id))
+
+  localStorage.setItem(KEY_TENANTS, JSON.stringify([...normalizedItems, ...archivedTenants]))
 }
 
 export const createDefaultTenantSettings = (tenantId: string, now = new Date().toISOString()): TenantSettings => ({
@@ -188,12 +292,12 @@ export const setCurrentTenant = (tenantId: string) => {
 }
 
 export const getTenantByCompanyId = (companyId: string, tenants = loadTenants()) => {
-  return tenants.find(tenant => tenant.companyId === companyId)
+  return tenants.find(tenant => tenant.ownerCompanyId === companyId || tenant.companyId === companyId)
 }
 
 export const resolveTenantIdForCompany = (companyId?: string, tenants = loadTenants()) => {
   const normalizedCompanyId = String(companyId || '').trim()
-  if(!normalizedCompanyId) return DEFAULT_TENANT_ID
+  if(!normalizedCompanyId) return ''
 
   return getTenantByCompanyId(normalizedCompanyId, tenants)?.id || ''
 }
@@ -212,15 +316,13 @@ export const getCurrentTenant = (context: Pick<TenantContext, 'user' | 'companyI
 
   const storedTenantId = String(localStorage.getItem(KEY_ACTIVE_TENANT) || '').trim()
   return tenants.find(tenant => tenant.id === storedTenantId)
-    || tenants.find(tenant => tenant.id === DEFAULT_TENANT_ID)
-    || tenants[0]
 }
 
 export const isTenantOwner = (user?: User | null, tenant = getCurrentTenant({ user })) => {
   if(!user || !tenant) return false
   if(isPlatformAdmin(user)) return true
 
-  return getStoredCompanyIdForUser(user) === tenant.companyId
+  return getStoredCompanyIdForUser(user) === tenant.ownerCompanyId
 }
 
 const getStoredBranches = (): Array<Pick<Branch, 'id' | 'companyId' | 'tenantId'>> => {
@@ -231,7 +333,7 @@ const getBranchTenantId = (branchId: string, context: TenantContext) => {
   const branch = (context.branches || getStoredBranches()).find(item => item.id === branchId)
   if(branch?.tenantId) return branch.tenantId
   if(branch?.companyId) return resolveTenantIdForCompany(branch.companyId)
-  return demoBranchTenantIds[branchId] || ''
+  return ''
 }
 
 const getUserTenantId = (userId: string, context: TenantContext) => {
@@ -259,7 +361,7 @@ export const resolveTenantIdForRecord = (
   const userTenantId = userId ? getUserTenantId(userId, context) : ''
   if(userTenantId) return userTenantId
 
-  return context.tenantId || DEFAULT_TENANT_ID
+  return context.tenantId || getCurrentTenant({ user: context.user })?.id || ''
 }
 
 const getContextTenantId = (context: TenantContext = {}) => {

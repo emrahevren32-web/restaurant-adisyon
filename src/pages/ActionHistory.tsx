@@ -181,6 +181,7 @@ operationTypes.push(
   'Tenant güncellendi',
   'Tenant pasife alındı',
   'Tenant aktif edildi',
+  'Tenant arşivlendi',
   'Tenant erişimi engellendi',
   'Veri izolasyonu doğrulandı'
 )

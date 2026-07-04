@@ -1,5 +1,6 @@
 import React from 'react'
 import { Branch, User } from '../types'
+import type { PermissionName } from '../authorization/permission.types'
 import {
   Evren360Notification,
   ensureEvren360NotificationPlaceholders,
@@ -12,8 +13,15 @@ import {
 export type ShellNavItem<Route extends string, NavKey extends string> = {
   key: NavKey
   label: string
-  route: Route
+  route?: Route
   icon: string
+  moduleId?: string
+  parent?: NavKey
+  order?: number
+  children?: ShellNavItem<Route, NavKey>[]
+  requiredPermission?: PermissionName
+  visible?: boolean
+  expandedByDefault?: boolean
   adminOnly?: boolean
   platformAdminOnly?: boolean
   badge?: number
@@ -80,6 +88,90 @@ const formatNotificationTime = (value: string) => {
   })
 }
 
+const isNavItemVisible = <
+  Route extends string,
+  NavKey extends string
+>(
+  item: ShellNavItem<Route, NavKey>,
+  currentUser: User,
+  isPlatformAdmin: boolean
+) => (
+  item.visible !== false
+  && !item.hidden
+  && (!item.adminOnly || currentUser.role === 'Admin')
+  && (!item.platformAdminOnly || isPlatformAdmin)
+)
+
+const filterVisibleNavItems = <
+  Route extends string,
+  NavKey extends string
+>(
+  items: ShellNavItem<Route, NavKey>[],
+  currentUser: User,
+  isPlatformAdmin: boolean
+): ShellNavItem<Route, NavKey>[] => (
+  items
+    .filter(item => isNavItemVisible(item, currentUser, isPlatformAdmin))
+    .map(item => ({
+      ...item,
+      children: item.children
+        ? filterVisibleNavItems(item.children, currentUser, isPlatformAdmin)
+        : undefined
+    }))
+    .filter(item => Boolean(item.route || !item.children || item.children.length > 0))
+)
+
+const flattenNavItems = <
+  Route extends string,
+  NavKey extends string
+>(
+  items: ShellNavItem<Route, NavKey>[]
+): ShellNavItem<Route, NavKey>[] => (
+  items.flatMap(item => [
+    item,
+    ...flattenNavItems(item.children || [])
+  ])
+)
+
+const navItemHasActiveDescendant = <
+  Route extends string,
+  NavKey extends string
+>(
+  item: ShellNavItem<Route, NavKey>,
+  activeNavKey: NavKey
+): boolean => Boolean(item.children?.some(child => (
+  child.key === activeNavKey || navItemHasActiveDescendant(child, activeNavKey)
+)))
+
+const collectDefaultExpandedKeys = <
+  Route extends string,
+  NavKey extends string
+>(
+  items: ShellNavItem<Route, NavKey>[]
+): string[] => (
+  items.flatMap(item => [
+    ...(item.expandedByDefault ? [String(item.key)] : []),
+    ...collectDefaultExpandedKeys(item.children || [])
+  ])
+)
+
+const collectActiveAncestorKeys = <
+  Route extends string,
+  NavKey extends string
+>(
+  items: ShellNavItem<Route, NavKey>[],
+  activeNavKey: NavKey,
+  ancestors: string[] = []
+): string[] => {
+  for(const item of items){
+    const childAncestors = [...ancestors, String(item.key)]
+    if(item.key === activeNavKey) return ancestors
+    const childMatch = collectActiveAncestorKeys(item.children || [], activeNavKey, childAncestors)
+    if(childMatch.length > 0) return childMatch
+  }
+  return []
+}
+
 export default function AppShell<
   Route extends string,
   NavKey extends string,
@@ -102,12 +194,23 @@ export default function AppShell<
   onLogout,
   children
 }: AppShellProps<Route, NavKey, GroupKey>){
-  const activeGroupKey = navGroups.find(group => group.items.some(item => item.key === activeNavKey))?.key
+  const visibleNavGroups = React.useMemo(() => (
+    navGroups.map(group => ({
+      ...group,
+      items: filterVisibleNavItems(group.items, currentUser, isPlatformAdmin)
+    }))
+  ), [currentUser, isPlatformAdmin, navGroups])
+  const activeGroupKey = visibleNavGroups.find(group => (
+    flattenNavItems(group.items).some(item => item.key === activeNavKey)
+  ))?.key
   const activeBranches = branches.filter(branch => branch.isActive)
   const selectableBranches = activeBranches.length > 0 ? activeBranches : branches
   const hasSelectableBranch = selectableBranches.length > 0
   const [notificationPanelOpen, setNotificationPanelOpen] = React.useState(false)
   const [notifications, setNotifications] = React.useState<Evren360Notification[]>([])
+  const [openTreeKeys, setOpenTreeKeys] = React.useState<Set<string>>(() => new Set(
+    navGroups.flatMap(group => collectDefaultExpandedKeys(group.items))
+  ))
   const unreadNotifications = React.useMemo(() => (
     notifications.filter(notification => !notification.readAt)
   ), [notifications])
@@ -133,6 +236,20 @@ export default function AppShell<
     setNotificationPanelOpen(false)
   }, [activeNavKey])
 
+  React.useEffect(() => {
+    const keysToOpen = visibleNavGroups.flatMap(group => [
+      ...collectDefaultExpandedKeys(group.items),
+      ...collectActiveAncestorKeys(group.items, activeNavKey)
+    ])
+    if(keysToOpen.length === 0) return
+
+    setOpenTreeKeys(current => {
+      const next = new Set(current)
+      keysToOpen.forEach(key => next.add(key))
+      return next
+    })
+  }, [activeNavKey, visibleNavGroups])
+
   const openNotification = (notification: Evren360Notification) => {
     markEvren360NotificationRead(notification.id)
     setNotifications(loadEvren360Notifications())
@@ -143,6 +260,74 @@ export default function AppShell<
     markAllEvren360NotificationsRead()
     setNotifications(loadEvren360Notifications())
   }
+
+  const toggleTreeItem = (key: NavKey) => {
+    setOpenTreeKeys(current => {
+      const next = new Set(current)
+      const normalizedKey = String(key)
+      if(next.has(normalizedKey)) next.delete(normalizedKey)
+      else next.add(normalizedKey)
+      return next
+    })
+  }
+
+  const renderNavItems = (
+    items: ShellNavItem<Route, NavKey>[],
+    depth = 0
+  ): React.ReactNode => items.map(item => {
+    const children = item.children || []
+    const hasChildren = children.length > 0
+    const isOpen = hasChildren && openTreeKeys.has(String(item.key))
+    const isActive = activeNavKey === item.key
+    const isActiveBranch = isActive || navItemHasActiveDescendant(item, activeNavKey)
+    const buttonClassName = [
+      'side-nav-item',
+      hasChildren ? 'tree-parent' : '',
+      isActive ? 'active' : '',
+      isActiveBranch && !isActive ? 'active-branch' : '',
+      item.badge ? 'nav-alert-btn' : '',
+      item.locked ? 'locked' : ''
+    ].filter(Boolean).join(' ')
+
+    return (
+      <div
+        className={`side-nav-tree-node depth-${Math.min(depth, 3)}`}
+        style={{ '--nav-depth': depth } as React.CSSProperties}
+        key={item.key}
+      >
+        <button
+          type="button"
+          className={buttonClassName}
+          aria-current={isActive ? 'page' : undefined}
+          aria-expanded={hasChildren ? isOpen : undefined}
+          aria-disabled={item.locked ? true : undefined}
+          title={item.locked ? item.disabledReason : item.label}
+          onClick={() => {
+            if(hasChildren){
+              toggleTreeItem(item.key)
+              return
+            }
+            onOpenNavItem(item)
+          }}
+        >
+          <span className="side-nav-item-main">
+            <span className="side-nav-icon" aria-hidden="true">{item.icon}</span>
+            <span className="side-nav-label">{item.label}</span>
+          </span>
+          <span className="side-nav-item-meta">
+            {item.locked && <span className="side-nav-lock" aria-hidden="true">K</span>}
+            {Boolean(item.badge) && <span className="nav-badge">{item.badge}</span>}
+            {hasChildren && <span className="side-nav-node-chevron" aria-hidden="true">{isOpen ? '▾' : '▸'}</span>}
+          </span>
+        </button>
+        {hasChildren && (
+          <div className="side-nav-children" hidden={!isOpen}>
+            {renderNavItems(children, depth + 1)}
+          </div>
+        )}
+      </div>
+    )
+  })
 
   return (
     <div className="app-shell">
@@ -157,17 +342,11 @@ export default function AppShell<
           </div>
 
           <div className="side-nav-groups">
-            {navGroups.map(group => {
-              const visibleItems = group.items.filter(item => (
-                !item.hidden
-                && (!item.adminOnly || currentUser.role === 'Admin')
-                && (!item.platformAdminOnly || isPlatformAdmin)
-              ))
+            {visibleNavGroups.map(group => {
+              const visibleItems = group.items
               const emptyAction = group.emptyAction
               const visibleEmptyAction = emptyAction
-                && !emptyAction.hidden
-                && (!emptyAction.adminOnly || currentUser.role === 'Admin')
-                && (!emptyAction.platformAdminOnly || isPlatformAdmin)
+                && isNavItemVisible(emptyAction, currentUser, isPlatformAdmin)
                 ? emptyAction
                 : null
               const hasEmptyState = visibleItems.length === 0 && Boolean(group.emptyTitle || group.emptyDescription)
@@ -192,24 +371,7 @@ export default function AppShell<
                     <span className="side-nav-chevron" aria-hidden="true">{isOpen ? '▼' : '▶'}</span>
                   </button>
                   <div className="side-nav-items" id={groupPanelId} hidden={!isOpen}>
-                    {visibleItems.map(item => (
-                      <button
-                        key={item.key}
-                        type="button"
-                        className={`side-nav-item ${activeNavKey === item.key ? 'active' : ''} ${item.badge ? 'nav-alert-btn' : ''} ${item.locked ? 'locked' : ''}`}
-                        aria-current={activeNavKey === item.key ? 'page' : undefined}
-                        aria-disabled={item.locked ? true : undefined}
-                        title={item.locked ? item.disabledReason : item.label}
-                        onClick={() => onOpenNavItem(item)}
-                      >
-                        <span className="side-nav-item-main">
-                          <span className="side-nav-icon" aria-hidden="true">{item.icon}</span>
-                          <span className="side-nav-label">{item.label}</span>
-                        </span>
-                        {item.locked && <span className="side-nav-lock" aria-hidden="true">K</span>}
-                        {Boolean(item.badge) && <span className="nav-badge">{item.badge}</span>}
-                      </button>
-                    ))}
+                    {renderNavItems(visibleItems)}
                     {hasEmptyState && (
                       <div className="side-nav-empty">
                         {group.emptyTitle && <strong>{group.emptyTitle}</strong>}

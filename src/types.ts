@@ -1,13 +1,20 @@
-export type TenantStatus = 'Aktif' | 'Pasif' | 'Askıda' | 'Silinmiş'
+export type TenantStatus = 'Aktif' | 'Pasif' | 'Askıda' | 'Arşivlendi' | 'Silinmiş'
 
 export type Tenant = {
   id: string
   tenantCode: string
-  companyId: string
-  companyName: string
+  tenantName: string
   status: TenantStatus
+  ownerCompanyId: string
+  workspaceIds: string[]
+  subscriptionIds: string[]
   createdAt: string
   updatedAt: string
+  deletedAt: string
+  /** @deprecated Use ownerCompanyId instead. */
+  companyId: string
+  /** @deprecated Use tenantName instead. */
+  companyName: string
 }
 
 export type TenantSettings = {
@@ -1424,6 +1431,7 @@ export type ActionLogType =
   | 'Tenant güncellendi'
   | 'Tenant pasife alındı'
   | 'Tenant aktif edildi'
+  | 'Tenant arşivlendi'
   | 'Tenant erişimi engellendi'
   | 'Veri izolasyonu doğrulandı'
 

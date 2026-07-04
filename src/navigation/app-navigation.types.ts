@@ -154,6 +154,7 @@ export type BusinessWorkspaceNavKey =
   | 'business-usage-stats'
   | 'usage-performance-analysis'
   | 'manager-alert-center'
+  | (string & {})
 
 export type PlatformNavKey =
   | 'business-registration-system'

@@ -70,6 +70,13 @@ import type { Evren360Notification } from './notifications/evren360-notification
 type NavItem = ShellNavItem<Route, NavKey>
 type NavGroup = ShellNavGroup<Route, NavKey, NavGroupKey>
 
+const flattenAppNavItems = (items: NavItem[]): NavItem[] => (
+  items.flatMap(item => [
+    item,
+    ...flattenAppNavItems((item.children || []) as NavItem[])
+  ])
+)
+
 const licensedNavModules: Partial<Record<NavKey, LicenseModuleKey>> = createLicensedNavModuleMap()
 const licensedRouteModules: Partial<Record<Route, LicenseModuleKey>> = createLicensedRouteModuleMap()
 const allBusinessWorkspaceNavGroups = createBusinessWorkspaceNavGroups() as NavGroup[]
@@ -104,7 +111,10 @@ const platformNavGroups: NavGroup[] = [
 ]
 
 const businessWorkspaceRouteSet = new Set<Route>(
-  allBusinessWorkspaceNavGroups.flatMap(group => group.items.map(item => item.route))
+  allBusinessWorkspaceNavGroups
+    .flatMap(group => flattenAppNavItems(group.items))
+    .map(item => item.route)
+    .filter(Boolean) as Route[]
 )
 
 const isBusinessWorkspaceRoute = (nextRoute: Route): nextRoute is BusinessWorkspaceRoute => {
@@ -137,8 +147,8 @@ const createWorkspaceNavGroupsForUser = (user: User | null) => (
 
 const getFirstVisibleWorkspaceNavItem = (user: User | null) => {
   return createWorkspaceNavGroupsForUser(user)
-    .flatMap(group => group.items.map(item => ({ item, groupKey: group.key })))
-    .find(({ item }) => !item.adminOnly || user?.role === 'Admin')
+    .flatMap(group => flattenAppNavItems(group.items).map(item => ({ item, groupKey: group.key })))
+    .find(({ item }) => item.route && (!item.adminOnly || user?.role === 'Admin'))
 }
 
 const isPlatformAdminUser = (user?: User | null) => {
@@ -437,7 +447,7 @@ export default function App(){
     }))
   }, [currentUser, isPlatformAdmin, moduleInstallRefreshKey])
   const activeNavLabel = navGroupsForCurrentUser
-    .flatMap(group => group.items)
+    .flatMap(group => flattenAppNavItems(group.items))
     .find(item => item.key === activeNavKey)?.label || 'Dashboard'
   const activeRouteModule = licensedNavModules[activeNavKey] || licensedRouteModules[route]
   const activeRouteLicenseDenied = Boolean(
@@ -466,6 +476,8 @@ export default function App(){
   }, [activeNavLabel, activeNavKey, activeRouteLicenseDenied, activeRouteModule, currentUser, route])
 
   const openNavItem = (item: NavItem) => {
+    if(!item.route) return
+
     if(item.locked){
       setLicenseAccessError(item.disabledReason || LICENSE_ACCESS_DENIED_MESSAGE)
       return
@@ -493,7 +505,9 @@ export default function App(){
     setLicenseAccessError('')
     setRoute(item.route)
     setActiveNavKey(item.key)
-    const group = navGroupsForCurrentUser.find(navGroup => navGroup.items.some(groupItem => groupItem.key === item.key))
+    const group = navGroupsForCurrentUser.find(navGroup => (
+      flattenAppNavItems(navGroup.items).some(groupItem => groupItem.key === item.key)
+    ))
     if(group) setOpenGroupKey(group.key)
   }
 
