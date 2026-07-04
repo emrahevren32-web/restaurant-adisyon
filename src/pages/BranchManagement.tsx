@@ -1,6 +1,13 @@
 import React from 'react'
 import { Branch, User } from '../types'
-import { addActionLog, checkUserLicenseLimit, loadBranches, saveBranches } from '../storage'
+import {
+  addActionLog,
+  checkUserLicenseLimit,
+  getCompanyIdForUser,
+  getVisibleBranchesForUser,
+  loadBranches,
+  saveBranches
+} from '../storage'
 
 type Props = {
   currentUser: User
@@ -79,7 +86,7 @@ const sortBranches = (branches: Branch[]) => {
 }
 
 export default function BranchManagement({ currentUser, onBranchesChange }: Props){
-  const [items, setItems] = React.useState<Branch[]>(() => loadBranches())
+  const [items, setItems] = React.useState<Branch[]>(() => getVisibleBranchesForUser(currentUser))
   const [editingBranch, setEditingBranch] = React.useState<Branch | null>(null)
   const [search, setSearch] = React.useState('')
   const [statusFilter, setStatusFilter] = React.useState<StatusFilter>('all')
@@ -87,8 +94,16 @@ export default function BranchManagement({ currentUser, onBranchesChange }: Prop
   const [formError, setFormError] = React.useState('')
 
   React.useEffect(() => {
-    saveBranches(items)
-  }, [items])
+    setItems(getVisibleBranchesForUser(currentUser))
+    setEditingBranch(null)
+  }, [currentUser])
+
+  const persistScopedBranches = (nextItems: Branch[]) => {
+    const companyId = getCompanyIdForUser(currentUser)
+    const otherTenantBranches = loadBranches().filter(branch => branch.companyId !== companyId)
+    saveBranches([...nextItems, ...otherTenantBranches])
+    onBranchesChange?.(nextItems)
+  }
 
   const cityOptions = React.useMemo(() => {
     return Array.from(new Set(items.map(item => item.city).filter(Boolean)))
@@ -165,8 +180,7 @@ export default function BranchManagement({ currentUser, onBranchesChange }: Prop
 
       const nextItems = items.map(item => item.id === editingBranch.id ? updatedBranch : item)
       setItems(nextItems)
-      saveBranches(nextItems)
-      onBranchesChange?.(nextItems)
+      persistScopedBranches(nextItems)
       setEditingBranch(null)
       setFormError('')
       addActionLog({
@@ -185,7 +199,8 @@ export default function BranchManagement({ currentUser, onBranchesChange }: Prop
 
     const branch: Branch = {
       id: createId(),
-      companyId: limitCheck.companyId || undefined,
+      tenantId: currentUser.tenantId,
+      companyId: limitCheck.companyId || getCompanyIdForUser(currentUser) || undefined,
       ...normalized,
       createdAt: now,
       updatedAt: now
@@ -193,8 +208,7 @@ export default function BranchManagement({ currentUser, onBranchesChange }: Prop
 
     const nextItems = [branch, ...items]
     setItems(nextItems)
-    saveBranches(nextItems)
-    onBranchesChange?.(nextItems)
+    persistScopedBranches(nextItems)
     setFormError('')
     addActionLog({
       operationType: 'Şube oluşturuldu',
@@ -213,8 +227,7 @@ export default function BranchManagement({ currentUser, onBranchesChange }: Prop
 
     const nextItems = items.map(item => item.id === branch.id ? updatedBranch : item)
     setItems(nextItems)
-    saveBranches(nextItems)
-    onBranchesChange?.(nextItems)
+    persistScopedBranches(nextItems)
     if(editingBranch?.id === branch.id) setEditingBranch(updatedBranch)
 
     addActionLog({
@@ -229,8 +242,7 @@ export default function BranchManagement({ currentUser, onBranchesChange }: Prop
 
     const nextItems = items.filter(item => item.id !== branch.id)
     setItems(nextItems)
-    saveBranches(nextItems)
-    onBranchesChange?.(nextItems)
+    persistScopedBranches(nextItems)
     if(editingBranch?.id === branch.id) setEditingBranch(null)
     addActionLog({
       operationType: 'Şube silindi',

@@ -26,7 +26,7 @@ const coreSystemLifecycle: WorkspaceModuleLifecycle = {
   availability: 'mandatory',
   activationPolicy: 'always-on',
   canBeDisabled: false,
-  canBeDeleted: false,
+  canBeDetachedFromWorkspace: false,
   canBePurchased: false,
   canBeActivatedManually: false
 }
@@ -34,7 +34,7 @@ const businessModuleLifecycle: WorkspaceModuleLifecycle = {
   availability: 'optional',
   activationPolicy: 'license-controlled',
   canBeDisabled: true,
-  canBeDeleted: false,
+  canBeDetachedFromWorkspace: true,
   canBePurchased: true,
   canBeActivatedManually: true
 }
@@ -42,7 +42,7 @@ const integrationModuleLifecycle: WorkspaceModuleLifecycle = {
   availability: 'optional',
   activationPolicy: 'external-controlled',
   canBeDisabled: true,
-  canBeDeleted: true,
+  canBeDetachedFromWorkspace: true,
   canBePurchased: true,
   canBeActivatedManually: true
 }
@@ -140,6 +140,28 @@ const defineModuleRegistry = (modules: BusinessWorkspaceModuleInput[]): Business
 
 export const BUSINESS_WORKSPACE_MODULE_REGISTRY: BusinessWorkspaceModule[] = defineModuleRegistry([
   {
+    id: 'system-workspace-welcome',
+    code: 'workspace-welcome',
+    name: 'Workspace Welcome',
+    description: 'Yeni Business Workspace ilk açılış deneyimini ve Marketplace başlangıç yönlendirmesini gösterir.',
+    category: 'system',
+    icon: 'WW',
+    route: 'workspace-welcome',
+    permissions: ['company.read'],
+    isCoreModule: true,
+    isBusinessModule: false,
+    isEnabled: true,
+    isVisible: true,
+    displayOrder: 5,
+    dependencies: ['workspace'],
+    tags: ['system', 'workspace', 'welcome', 'marketplace'],
+    pricing: includedPricing,
+    marketplace: coreSystemMarketplace,
+    menuItems: [
+      menuItem({ key: 'workspace-welcome', label: 'Welcome', route: 'workspace-welcome', icon: 'WW', adminOnly: true, displayOrder: 5 })
+    ]
+  },
+  {
     id: 'system-dashboard',
     code: 'dashboard',
     name: 'Dashboard',
@@ -203,6 +225,28 @@ export const BUSINESS_WORKSPACE_MODULE_REGISTRY: BusinessWorkspaceModule[] = def
     marketplace: coreSystemMarketplace,
     menuItems: [
       menuItem({ key: 'marketplace', label: 'Marketplace', route: 'marketplace', icon: 'MP', adminOnly: true, displayOrder: 18 })
+    ]
+  },
+  {
+    id: 'system-integration-center',
+    code: 'integration-center',
+    name: 'Entegrasyon Merkezi',
+    description: 'Business Workspace ile dış sistemler arasındaki soyut entegrasyon kataloğunu ve bağlantı altyapısını yönetir.',
+    category: 'system',
+    icon: 'EN',
+    route: 'integration-center',
+    permissions: ['company.read'],
+    isCoreModule: true,
+    isBusinessModule: false,
+    isEnabled: true,
+    isVisible: true,
+    displayOrder: 19,
+    dependencies: ['workspace', 'marketplace'],
+    tags: ['system', 'integration', 'external-systems', 'registry'],
+    pricing: includedPricing,
+    marketplace: coreSystemMarketplace,
+    menuItems: [
+      menuItem({ key: 'integration-center', label: 'Entegrasyon Merkezi', route: 'integration-center', icon: 'EN', adminOnly: true, displayOrder: 19 })
     ]
   },
   {
@@ -759,6 +803,10 @@ export const getIntegrationModules = () => getBusinessWorkspaceModules(WORKSPACE
 
 export const getBusinessWorkspaceModuleByCode = (code: string) => {
   return BUSINESS_WORKSPACE_MODULE_REGISTRY.find(module => module.code === code)
+}
+
+export const getBusinessWorkspaceModuleById = (id: string) => {
+  return BUSINESS_WORKSPACE_MODULE_REGISTRY.find(module => module.id === id)
 }
 
 export const getBusinessWorkspaceModuleByLicenseKey = (moduleKey: LicenseModuleKey) => {

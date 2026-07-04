@@ -27,8 +27,8 @@ import {
 } from './auth/authentication.service'
 import { LOGIN_ROUTE_TARGETS, LoginRedirectResult } from './routing/routing.types'
 import {
-  loadProducts,
   ensureDefaultAdmin,
+  loadCompanies,
   loadSettings,
   loadUsers,
   getVisibleBranchesForUser,
@@ -37,7 +37,6 @@ import {
   migrateBranchScopedData,
   LICENSE_MODULE_CATALOG,
   addLicenseAccessFailureLog,
-  canUserAccessLicensedModule,
   getCompanyIdForUser,
   LICENSE_ACCESS_DENIED_MESSAGE
 } from './storage'
@@ -56,6 +55,17 @@ import type {
   BusinessWorkspaceNavKey,
   BusinessWorkspaceRoute
 } from './navigation/app-navigation.types'
+import {
+  getWorkspaceModuleLifecycleStateByLicenseKeyForUser,
+  isWorkspaceLicenseModuleActiveForUser,
+  isWorkspaceModuleActiveForUser,
+  WORKSPACE_MODULE_LIFECYCLE_STATES
+} from './workspace/workspace-module-lifecycle.service'
+import type { WorkspaceModuleLifecycleResult } from './workspace/workspace-module-lifecycle.service'
+import {
+  hasInstalledWorkspaceModulesForUser
+} from './workspace/workspace-module-installation.service'
+import type { Evren360Notification } from './notifications/evren360-notification.service'
 
 type NavItem = ShellNavItem<Route, NavKey>
 type NavGroup = ShellNavGroup<Route, NavKey, NavGroupKey>
@@ -63,6 +73,7 @@ type NavGroup = ShellNavGroup<Route, NavKey, NavGroupKey>
 const licensedNavModules: Partial<Record<NavKey, LicenseModuleKey>> = createLicensedNavModuleMap()
 const licensedRouteModules: Partial<Record<Route, LicenseModuleKey>> = createLicensedRouteModuleMap()
 const allBusinessWorkspaceNavGroups = createBusinessWorkspaceNavGroups() as NavGroup[]
+const bootstrapCoreModuleCodes = new Set(['workspace-welcome', 'workspace', 'marketplace', 'integration-center'])
 
 const platformNavGroups: NavGroup[] = [
   {
@@ -100,18 +111,24 @@ const isBusinessWorkspaceRoute = (nextRoute: Route): nextRoute is BusinessWorksp
   return businessWorkspaceRouteSet.has(nextRoute)
 }
 
+const isWorkspaceBootstrapRoute = (nextRoute: Route) => {
+  return nextRoute === 'workspace-welcome' || nextRoute === 'settings' || nextRoute === 'marketplace' || nextRoute === 'integration-center'
+}
+
 const createWorkspaceNavGroupsForUser = (user: User | null) => (
   createBusinessWorkspaceNavGroups({
+    isCoreModuleVisible: module => {
+      const hasInstalledModules = hasInstalledWorkspaceModulesForUser(user)
+      if(hasInstalledModules) return module.code !== 'workspace-welcome'
+      return bootstrapCoreModuleCodes.has(module.code)
+    },
     isModuleEnabled: module => {
       if(module.isCoreModule || module.isAlwaysActive) return true
       if(module.isBusinessModule){
-        return Boolean(module.licenseModuleKey && canUserAccessLicensedModule(user, module.licenseModuleKey))
+        return isWorkspaceModuleActiveForUser(user, module)
       }
       if(module.isIntegrationModule){
-        if(module.lifecycle.activationPolicy === 'license-controlled'){
-          return Boolean(module.licenseModuleKey && canUserAccessLicensedModule(user, module.licenseModuleKey))
-        }
-        return module.isEnabled && module.isVisible
+        return isWorkspaceModuleActiveForUser(user, module)
       }
       return module.isEnabled && module.isVisible
     }
@@ -126,6 +143,15 @@ const getFirstVisibleWorkspaceNavItem = (user: User | null) => {
 
 const isPlatformAdminUser = (user?: User | null) => {
   return user?.role === 'Admin' && !getCompanyIdForUser(user)
+}
+
+const canUserAccessWorkspaceModule = (
+  user: User | null | undefined,
+  moduleKey: LicenseModuleKey
+) => {
+  const lifecycleState = getWorkspaceModuleLifecycleStateByLicenseKeyForUser(user, moduleKey)
+  return lifecycleState === WORKSPACE_MODULE_LIFECYCLE_STATES.ACTIVE
+    && isWorkspaceLicenseModuleActiveForUser(user, moduleKey)
 }
 
 const evren360RouteViews: Partial<Record<Route, SaasManagementView>> = {
@@ -152,18 +178,26 @@ const getDefaultNavigation = (user: User | null, loginRedirect: LoginRedirectRes
   }
 
   if(loginRedirect.target === LOGIN_ROUTE_TARGETS.BUSINESS_WORKSPACE_ADMIN && user?.role === 'Admin'){
+    if(hasInstalledWorkspaceModulesForUser(user)){
+      return {
+        route: 'summary' as Route,
+        activeNavKey: 'dashboard' as NavKey,
+        openGroupKey: 'system-modules' as NavGroupKey
+      }
+    }
+
     return {
-      route: 'summary' as Route,
-      activeNavKey: 'dashboard' as NavKey,
+      route: 'workspace-welcome' as Route,
+      activeNavKey: 'workspace-welcome' as NavKey,
       openGroupKey: 'system-modules' as NavGroupKey
     }
   }
 
   const firstWorkspaceItem = getFirstVisibleWorkspaceNavItem(user)
   return {
-    route: (firstWorkspaceItem?.item.route || 'tables') as Route,
-    activeNavKey: (firstWorkspaceItem?.item.key || 'adisyon') as NavKey,
-    openGroupKey: (firstWorkspaceItem?.groupKey || 'business-modules') as NavGroupKey
+    route: (firstWorkspaceItem?.item.route || 'workspace-welcome') as Route,
+    activeNavKey: (firstWorkspaceItem?.item.key || 'workspace-welcome') as NavKey,
+    openGroupKey: (firstWorkspaceItem?.groupKey || 'system-modules') as NavGroupKey
   }
 }
 
@@ -224,14 +258,37 @@ export default function App(){
   const [activeBranchId, setActiveBranchState] = React.useState(() => getActiveBranchId())
   const [licenseAccessError, setLicenseAccessError] = React.useState('')
   const [selectedCustomerId, setSelectedCustomerId] = React.useState('')
+  const [selectedPendingApplicationId, setSelectedPendingApplicationId] = React.useState('')
   const [onboardingRefreshKey, setOnboardingRefreshKey] = React.useState(0)
+  const [moduleInstallRefreshKey, setModuleInstallRefreshKey] = React.useState(0)
   const isPlatformAdmin = isPlatformAdminUser(currentUser)
   const evren360View = evren360RouteViews[route]
+  const workspaceChrome = React.useMemo(() => {
+    if(!currentUser || isPlatformAdmin){
+      return {
+        name: 'EVREN360',
+        logoUrl: ''
+      }
+    }
+
+    const companyId = getCompanyIdForUser(currentUser)
+    const company = companyId
+      ? loadCompanies({ allTenants: true }).find(item => item.id === companyId) || null
+      : null
+
+    return {
+      name: company?.companyName || settings.restaurantName,
+      logoUrl: company?.logoUrl || settings.logoUrl
+    }
+  }, [currentUser, isPlatformAdmin, settings.logoUrl, settings.restaurantName, onboardingRefreshKey])
   const firstLoginOnboardingState = React.useMemo(() => {
     if(!currentUser || isPlatformAdmin) return null
     return getFirstLoginOnboardingState(currentUser)
   }, [currentUser, isPlatformAdmin, onboardingRefreshKey])
   const firstLoginOnboardingRequired = Boolean(firstLoginOnboardingState?.required)
+  const workspaceHasInstalledModules = React.useMemo(() => (
+    !isPlatformAdmin && hasInstalledWorkspaceModulesForUser(currentUser)
+  ), [currentUser, isPlatformAdmin, moduleInstallRefreshKey])
 
   const updateAuthenticationState = (state: AuthenticationState) => {
     authStateRef.current = state
@@ -245,18 +302,30 @@ export default function App(){
   }
 
   React.useEffect(()=>{
-    loadProducts()
     ensureDefaultAdmin()
     if(currentUser) migrateBranchScopedData(currentUser)
     setBranches(getVisibleBranchesForUser(currentUser))
     setActiveBranchState(getActiveBranchId())
   }, [currentUser])
   React.useEffect(() => {
-    document.title = settings.restaurantName
-  }, [settings.restaurantName])
+    document.title = workspaceChrome.name
+  }, [workspaceChrome.name])
   React.useEffect(() => {
     evaluateCurrentRouteSecurity(route)
   }, [route])
+  React.useEffect(() => {
+    if(!currentUser || isPlatformAdmin || !workspaceHasInstalledModules || route !== 'workspace-welcome') return
+    setRoute('summary')
+    setActiveNavKey('dashboard')
+    setOpenGroupKey('system-modules')
+  }, [currentUser, isPlatformAdmin, route, workspaceHasInstalledModules])
+  React.useEffect(() => {
+    if(!currentUser || isPlatformAdmin || workspaceHasInstalledModules) return
+    if(!isBusinessWorkspaceRoute(route) || isWorkspaceBootstrapRoute(route)) return
+    setRoute('workspace-welcome')
+    setActiveNavKey('workspace-welcome')
+    setOpenGroupKey('system-modules')
+  }, [currentUser, isPlatformAdmin, route, workspaceHasInstalledModules])
 
   const onLogin = (nextAuthState: AuthenticationState) => {
     const u = nextAuthState.currentUser
@@ -306,17 +375,49 @@ export default function App(){
     setActiveNavKey('evren360-customer-list')
     setOpenGroupKey('evren360-admin')
   }
+  const openEvren360NotificationTarget = (notification: Evren360Notification) => {
+    if(notification.type !== 'business_application' || !notification.targetId) return
+
+    setSelectedPendingApplicationId(notification.targetId)
+    setLicenseAccessError('')
+    setRoute('evren360-pending-applications')
+    setActiveNavKey('evren360-pending-applications')
+    setOpenGroupKey('evren360-admin')
+  }
+  const openMarketplaceFromWelcome = () => {
+    setLicenseAccessError('')
+    setRoute('marketplace')
+    setActiveNavKey('marketplace')
+    setOpenGroupKey('system-modules')
+  }
+  const openIntegrationCenterFromWelcome = () => {
+    setLicenseAccessError('')
+    setRoute('integration-center')
+    setActiveNavKey('integration-center')
+    setOpenGroupKey('system-modules')
+  }
+  const openWorkspaceSettingsFromWelcome = () => {
+    setLicenseAccessError('')
+    setRoute('settings')
+    setActiveNavKey('workspace')
+    setOpenGroupKey('system-modules')
+  }
+  const handleWorkspaceModuleLifecycleChanged = (result: WorkspaceModuleLifecycleResult) => {
+    setModuleInstallRefreshKey(current => current + 1)
+    setLicenseAccessError('')
+  }
   const completeFirstLoginOnboarding = () => {
     const refreshedUser = currentUser
       ? loadUsers({ allTenants: true }).find(user => user.id === currentUser.id) || currentUser
       : currentUser
 
     setOnboardingRefreshKey(current => current + 1)
+    setModuleInstallRefreshKey(current => current + 1)
     setUserState(refreshedUser)
     setBranches(getVisibleBranchesForUser(refreshedUser))
     setActiveBranchState(getActiveBranchId())
-    setRoute('summary')
-    setActiveNavKey('dashboard')
+    setRoute('workspace-welcome')
+    setActiveNavKey('workspace-welcome')
     setOpenGroupKey('system-modules')
     setLicenseAccessError('')
   }
@@ -334,7 +435,7 @@ export default function App(){
         return item
       })
     }))
-  }, [currentUser, isPlatformAdmin])
+  }, [currentUser, isPlatformAdmin, moduleInstallRefreshKey])
   const activeNavLabel = navGroupsForCurrentUser
     .flatMap(group => group.items)
     .find(item => item.key === activeNavKey)?.label || 'Dashboard'
@@ -342,7 +443,7 @@ export default function App(){
   const activeRouteLicenseDenied = Boolean(
     currentUser
     && activeRouteModule
-    && !canUserAccessLicensedModule(currentUser, activeRouteModule)
+    && !canUserAccessWorkspaceModule(currentUser, activeRouteModule)
   )
   const lastDeniedRouteLogKey = React.useRef('')
 
@@ -376,7 +477,7 @@ export default function App(){
     }
 
     const requiredModule = licensedNavModules[item.key]
-    if(requiredModule && !canUserAccessLicensedModule(currentUser, requiredModule)){
+    if(requiredModule && !canUserAccessWorkspaceModule(currentUser, requiredModule)){
       setLicenseAccessError(LICENSE_ACCESS_DENIED_MESSAGE)
       if(currentUser){
         addLicenseAccessFailureLog({
@@ -418,8 +519,8 @@ export default function App(){
 
   return (
     <AppShell
-      restaurantName={isPlatformAdmin ? 'EVREN360' : settings.restaurantName}
-      logoUrl={isPlatformAdmin ? '' : settings.logoUrl}
+      restaurantName={workspaceChrome.name}
+      logoUrl={workspaceChrome.logoUrl}
       currentUser={currentUser}
       navGroups={navGroupsForCurrentUser}
       activeNavKey={activeNavKey}
@@ -430,6 +531,7 @@ export default function App(){
       openGroupKey={openGroupKey}
       onToggleGroup={toggleNavGroup}
       onOpenNavItem={openNavItem}
+      onOpenNotification={openEvren360NotificationTarget}
       onActiveBranchChange={changeActiveBranch}
       onLogout={logout}
     >
@@ -454,6 +556,10 @@ export default function App(){
           currentUser={currentUser}
           onBranchesChange={refreshBranches}
           onSettingsChange={refreshSettings}
+          onOpenMarketplace={openMarketplaceFromWelcome}
+          onOpenIntegrationCenter={openIntegrationCenterFromWelcome}
+          onOpenWorkspaceSettings={openWorkspaceSettingsFromWelcome}
+          onModuleLifecycleChanged={handleWorkspaceModuleLifecycleChanged}
         />
       )}
       {route === 'business-registration-system' && currentUser.role === 'Admin' && (
@@ -481,7 +587,7 @@ export default function App(){
         isPlatformAdmin ? <CustomerDetail customerId={selectedCustomerId} onBack={returnToCustomerList} /> : <PlatformAccessDenied />
       )}
       {route === 'evren360-pending-applications' && currentUser.role === 'Admin' && (
-        isPlatformAdmin ? <PendingApplications currentUser={currentUser} /> : <PlatformAccessDenied />
+        isPlatformAdmin ? <PendingApplications currentUser={currentUser} initialApplicationId={selectedPendingApplicationId} /> : <PlatformAccessDenied />
       )}
       {route === 'evren360-system-announcements' && currentUser.role === 'Admin' && (
         isPlatformAdmin ? <SystemAnnouncements currentUserName={currentUser.fullName || currentUser.username} /> : <PlatformAccessDenied />

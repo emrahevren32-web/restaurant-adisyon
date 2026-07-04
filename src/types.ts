@@ -705,6 +705,7 @@ export type ApplicationStatus = 'Beklemede' | 'İnceleniyor' | 'Onaylandı' | 'R
 
 export type BusinessApplication = {
   id: string
+  companyId: string
   companyName: string
   ownerName: string
   phone: string
@@ -714,7 +715,6 @@ export type BusinessApplication = {
   city: string
   district: string
   address: string
-  requestedPackage: string
   status: ApplicationStatus
   approvalNote: string
   createdAt: string
@@ -729,24 +729,40 @@ export type ApplicationNote = {
   createdAt: string
 }
 
-export type CompanyStatus = 'Aktif' | 'Pasif' | 'Askıda' | 'Silindi'
+export type CompanyStatus = 'Başvuru Bekliyor' | 'Aktif' | 'Pasif' | 'Askıda' | 'Arşivlendi' | 'Silindi'
 
 export type Company = {
   id: string
-  tenantId?: string
+  companyCode: string
   companyName: string
-  ownerName: string
+  legalName: string
+  taxOffice: string
+  taxNumber: string
   phone: string
   email: string
-  logoUrl?: string
   city: string
   district: string
-  taxNumber: string
-  taxOffice: string
   address: string
+  authorizedPerson: string
+  authorizedPhone: string
+  authorizedEmail: string
   status: CompanyStatus
+  isApproved: boolean
+  approvedAt: string
+  approvedBy: string
+  workspaceId: string
+  defaultBranchId: string
+  tenantId: string
+  subscriptionId: string
+  licenseStart: string
+  licenseEnd: string
   createdAt: string
   updatedAt: string
+  deletedAt: string
+  /** @deprecated Use authorizedPerson instead. */
+  ownerName: string
+  /** @deprecated Workspace branding will move under workspace settings. */
+  logoUrl?: string
 }
 
 export type CompanySetup = {
@@ -1395,6 +1411,7 @@ export type ActionLogType =
   | 'EVREN360 firma güncellendi'
   | 'EVREN360 firma pasife alındı'
   | 'EVREN360 firma askıya alındı'
+  | 'EVREN360 firma arşivlendi'
   | 'EVREN360 firma silindi'
   | 'EVREN360 başvuru notu eklendi'
   | 'EVREN360 paket silindi'

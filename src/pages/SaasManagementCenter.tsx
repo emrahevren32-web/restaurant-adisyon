@@ -70,6 +70,12 @@ import {
 } from '../storage'
 import type { FirstLoginCredentialDelivery } from '../storage'
 import { createTenantStorageId } from '../tenant'
+import {
+  activateCompany,
+  archiveCompany,
+  deactivateCompany,
+  updateCompany
+} from '../companies/company.service'
 
 export type SaasManagementView =
   | 'dashboard'
@@ -104,7 +110,7 @@ type PackageFormValues = {
   modules: Record<LicenseModuleKey, boolean>
 }
 
-const companyStatuses: CompanyStatus[] = ['Aktif', 'Pasif', 'Askıda', 'Silindi']
+const companyStatuses: CompanyStatus[] = ['Başvuru Bekliyor', 'Aktif', 'Pasif', 'Askıda', 'Arşivlendi']
 const applicationStatuses: ApplicationStatus[] = ['Beklemede', 'İnceleniyor', 'Onaylandı', 'Reddedildi']
 const licenseStatuses: LicenseStatus[] = ['Deneme', 'Aktif', 'Süresi Yaklaşıyor', 'Süresi Doldu', 'Askıya Alındı', 'İptal Edildi']
 const subscriptionStatuses: UserSubscriptionStatus[] = ['Aktif', 'Pasif', 'Beklemede', 'Süresi Doldu']
@@ -238,18 +244,10 @@ const createTenantCode = (companyName: string, tenants: Tenant[]) => {
   return code
 }
 
-const createLicenseKey = (company: Company, packageItem: LicensePackage) => {
+const createCoreWorkspaceLicenseKey = (company: Company) => {
   const companyPart = normalizeLookup(company.companyName).slice(0, 6).toLocaleUpperCase('tr-TR').padEnd(6, 'X')
-  const packagePart = normalizeLookup(packageItem.name).slice(0, 4).toLocaleUpperCase('tr-TR').padEnd(4, 'X')
   const randomPart = Math.random().toString(36).slice(2, 8).toLocaleUpperCase('tr-TR').padEnd(6, '0')
-  return `EV-${companyPart}-${packagePart}-${randomPart}`
-}
-
-const findPackageForRegistration = (registration: BusinessRegistration, packages: LicensePackage[]) => {
-  const requested = normalizeLookup(registration.requestedPackage)
-  return packages.find(packageItem => normalizeLookup(packageItem.name) === requested)
-    || packages.find(packageItem => normalizeLookup(packageItem.name) === 'baslangic')
-    || packages[0]
+  return `EV-${companyPart}-CORE-${randomPart}`
 }
 
 const createModuleSelection = (enabledKeys: LicenseModuleKey[] = []) => {
@@ -511,8 +509,6 @@ export default function SaasManagementCenter({ currentUser, view }: Props){
   const ensureCompanyLicenseForLifecycle = (
     company: Company,
     tenant: Tenant,
-    registration: BusinessRegistration,
-    packageItem: LicensePackage,
     now: string
   ) => {
     const latestLicenses = loadCompanyLicenses()
@@ -525,8 +521,8 @@ export default function SaasManagementCenter({ currentUser, view }: Props){
           id: createId('company_license'),
           tenantId: tenant.id,
           companyId: company.id,
-          packageId: packageItem.id,
-          licenseKey: createLicenseKey(company, packageItem),
+          packageId: 'core_workspace',
+          licenseKey: createCoreWorkspaceLicenseKey(company),
           status: 'Aktif',
           startDate,
           endDate,
@@ -544,7 +540,7 @@ export default function SaasManagementCenter({ currentUser, view }: Props){
 
     saveCompanyLicenses(nextLicenses)
     if(!existingLicense){
-      logPlatformAction('Lisans atandı', `${company.companyName} için ${packageItem.name} lisansı atandı.`, license.id, company.companyName, tenant.id)
+      logPlatformAction('Lisans atandı', `${company.companyName} için çekirdek Business Workspace lisansı atandı. İş modülü otomatik lisanslanmadı.`, license.id, company.companyName, tenant.id)
     }
     return license
   }
@@ -620,17 +616,14 @@ export default function SaasManagementCenter({ currentUser, view }: Props){
       const tenant = ensureTenantForCompany(company, now)
       attachTenantToCompanyRecords(company, setup, tenant, now)
       moveLifecycleLogsToTenant(company, tenant)
-      const packageItem = findPackageForRegistration(registration, loadLicensePackages())
-      if(!packageItem) throw new Error('Lisans paketi bulunamadı.')
-
       const companyUser = ensureCompanyUserForLifecycle(company, setup, tenant, registration, now)
-      const license = ensureCompanyLicenseForLifecycle(company, tenant, registration, packageItem, now)
+      const license = ensureCompanyLicenseForLifecycle(company, tenant, now)
       const subscription = ensureSubscriptionForLifecycle(companyUser, license, tenant, company, now)
       refreshSaasData()
       setSelectedCompanyId(company.id)
       setSelectedLicenseId(license.id)
       setSelectedSubscriptionId(subscription.id)
-      setFormMessage(`${company.companyName} için Firma → Tenant → Paket → Modül → Abonelik yaşam döngüsü tamamlandı.`)
+      setFormMessage(`${company.companyName} için Firma → Tenant → Çekirdek Workspace Lisansı → Abonelik yaşam döngüsü tamamlandı.`)
     } catch(error) {
       setFormError(error instanceof Error ? error.message : 'Başvuru yaşam döngüsü tamamlanamadı.')
     }
@@ -722,8 +715,8 @@ export default function SaasManagementCenter({ currentUser, view }: Props){
       ? {
           ...item,
           status,
-          approvedBy: status === 'Onaylandı' ? currentUser.fullName || currentUser.username : item.approvedBy,
-          approvedAt: status === 'Onaylandı' ? now : item.approvedAt,
+          approvedBy: item.approvedBy,
+          approvedAt: item.approvedAt,
           rejectedReason: status === 'Reddedildi' ? item.rejectedReason || 'Platform yöneticisi tarafından reddedildi.' : item.rejectedReason,
           updatedAt: now
         }
@@ -731,7 +724,7 @@ export default function SaasManagementCenter({ currentUser, view }: Props){
     setRegistrations(next)
     saveBusinessRegistrations(next)
     logPlatformAction(
-      status === 'Onaylandı' ? 'İşletme başvurusu onaylandı' : 'İşletme başvurusu reddedildi',
+      'İşletme başvurusu reddedildi',
       `${registration.businessName} başvurusu ${status.toLocaleLowerCase('tr-TR')}.`,
       registration.id,
       registration.businessName,
@@ -822,19 +815,30 @@ export default function SaasManagementCenter({ currentUser, view }: Props){
   }
 
   const updateCompanyStatus = (company: Company, status: CompanyStatus) => {
-    const now = new Date().toISOString()
-    const next = companies.map(item => item.id === company.id ? { ...item, status, updatedAt: now } : item)
-    setCompanies(next)
-    saveCompanies(next)
-    const operationType = status === 'Pasif'
-      ? 'EVREN360 firma pasife alındı'
-      : status === 'Askıda'
-        ? 'EVREN360 firma askıya alındı'
-        : status === 'Silindi'
-          ? 'EVREN360 firma silindi'
-          : 'EVREN360 firma güncellendi'
-    logPlatformAction(operationType, `${company.companyName} firma durumu ${status} olarak güncellendi.`, company.id, company.companyName, company.tenantId)
-    setFormMessage(`${company.companyName} durumu ${status} oldu.`)
+    try {
+      setFormError('')
+      const updatedCompany = status === 'Aktif'
+        ? activateCompany(company.id, { user: currentUser })
+        : status === 'Pasif'
+          ? deactivateCompany(company.id, { user: currentUser })
+          : status === 'Arşivlendi' || status === 'Silindi'
+            ? archiveCompany(company.id, { user: currentUser })
+            : updateCompany(company.id, { status }, { user: currentUser })
+
+      const next = loadCompanies()
+      setCompanies(next)
+      const operationType = updatedCompany.status === 'Pasif'
+        ? 'EVREN360 firma pasife alındı'
+        : updatedCompany.status === 'Askıda'
+          ? 'EVREN360 firma askıya alındı'
+          : updatedCompany.status === 'Arşivlendi'
+            ? 'EVREN360 firma arşivlendi'
+            : 'EVREN360 firma güncellendi'
+      logPlatformAction(operationType, `${company.companyName} firma durumu ${updatedCompany.status} olarak güncellendi.`, company.id, company.companyName, company.tenantId)
+      setFormMessage(`${company.companyName} durumu ${updatedCompany.status} oldu.`)
+    } catch(error) {
+      setFormError(error instanceof Error ? error.message : 'Firma durumu güncellenemedi.')
+    }
   }
 
   const saveCompanyEdit = () => {
@@ -844,21 +848,26 @@ export default function SaasManagementCenter({ currentUser, view }: Props){
     const emailInput = document.querySelector<HTMLInputElement>('[data-evren360-company-email]')
     const statusInput = document.querySelector<HTMLSelectElement>('[data-evren360-company-status]')
     const companyName = nameInput?.value.trim() || selectedCompany.companyName
-    const now = new Date().toISOString()
-    const next = companies.map(company => company.id === selectedCompany.id
-      ? {
-          ...company,
+    try {
+      setFormError('')
+      const nextStatus = (statusInput?.value || selectedCompany.status) as CompanyStatus
+      if(nextStatus === 'Arşivlendi' || nextStatus === 'Silindi'){
+        archiveCompany(selectedCompany.id, { user: currentUser })
+      } else {
+        updateCompany(selectedCompany.id, {
           companyName,
-          phone: phoneInput?.value.trim() || company.phone,
-          email: emailInput?.value.trim() || company.email,
-          status: (statusInput?.value || company.status) as CompanyStatus,
-          updatedAt: now
-        }
-      : company)
-    setCompanies(next)
-    saveCompanies(next)
-    logPlatformAction('EVREN360 firma güncellendi', `${companyName} firma bilgileri güncellendi.`, selectedCompany.id, companyName, selectedCompany.tenantId)
-    setFormMessage('Firma bilgileri kaydedildi.')
+          phone: phoneInput?.value.trim() || selectedCompany.phone,
+          email: emailInput?.value.trim() || selectedCompany.email,
+          authorizedPerson: selectedCompany.authorizedPerson || selectedCompany.ownerName,
+          status: nextStatus
+        }, { user: currentUser })
+      }
+      setCompanies(loadCompanies())
+      logPlatformAction('EVREN360 firma güncellendi', `${companyName} firma bilgileri güncellendi.`, selectedCompany.id, companyName, selectedCompany.tenantId)
+      setFormMessage('Firma bilgileri kaydedildi.')
+    } catch(error) {
+      setFormError(error instanceof Error ? error.message : 'Firma bilgileri kaydedilemedi.')
+    }
   }
 
   const selectPackage = (packageId: string) => {
@@ -1098,7 +1107,6 @@ export default function SaasManagementCenter({ currentUser, view }: Props){
               <th>Firma</th>
               <th>Yetkili</th>
               <th>Telefon</th>
-              <th>Paket</th>
               <th>Durum</th>
               <th>Başvuru Tarihi</th>
               <th>İşlemler</th>
@@ -1110,7 +1118,6 @@ export default function SaasManagementCenter({ currentUser, view }: Props){
                 <td><strong>{application.companyName}</strong><span className="muted small-text">{application.email}</span></td>
                 <td>{application.ownerName}</td>
                 <td>{application.phone}</td>
-                <td><span className="status-pill info-pill">{application.requestedPackage}</span></td>
                 <td><span className={`status-pill ${getStatusClassName(application.status)}`}>{application.status}</span></td>
                 <td>{formatDateTime(application.createdAt)}</td>
                 <td className="actions-cell">
@@ -1122,7 +1129,7 @@ export default function SaasManagementCenter({ currentUser, view }: Props){
               </tr>
             ))}
             {filteredApplications.length === 0 && (
-              <tr><td className="empty-cell" colSpan={7}>Başvuru kaydı bulunamadı.</td></tr>
+              <tr><td className="empty-cell" colSpan={6}>Başvuru kaydı bulunamadı.</td></tr>
             )}
           </tbody>
         </table>
@@ -1164,7 +1171,7 @@ export default function SaasManagementCenter({ currentUser, view }: Props){
           <button className="btn primary" type="button" onClick={saveCompanyEdit}>Düzenle</button>
           <button className="btn" type="button" onClick={() => updateCompanyStatus(selectedCompany, 'Pasif')}>Pasife Al</button>
           <button className="btn" type="button" onClick={() => updateCompanyStatus(selectedCompany, 'Askıda')}>Askıya Al</button>
-          <button className="btn" type="button" onClick={() => updateCompanyStatus(selectedCompany, 'Silindi')}>Sil</button>
+          <button className="btn" type="button" onClick={() => updateCompanyStatus(selectedCompany, 'Arşivlendi')}>Arşivle</button>
         </div>
       </div>
     )
@@ -1185,7 +1192,7 @@ export default function SaasManagementCenter({ currentUser, view }: Props){
             <span>Durum</span>
             <select value={statusFilter} onChange={event => setStatusFilter(event.target.value)}>
               <option value="all">Tüm durumlar</option>
-              {companyStatuses.filter(status => status !== 'Silindi').map(status => <option key={status} value={status}>{status}</option>)}
+              {companyStatuses.filter(status => status !== 'Arşivlendi').map(status => <option key={status} value={status}>{status}</option>)}
             </select>
           </label>
         </div>
@@ -1224,7 +1231,7 @@ export default function SaasManagementCenter({ currentUser, view }: Props){
                       <button className="btn" type="button" onClick={() => setSelectedCompanyId(company.id)}>Düzenle</button>
                       <button className="btn" type="button" onClick={() => updateCompanyStatus(company, 'Pasif')}>Pasife Al</button>
                       <button className="btn" type="button" onClick={() => updateCompanyStatus(company, 'Askıda')}>Askıya Al</button>
-                      <button className="btn" type="button" onClick={() => updateCompanyStatus(company, 'Silindi')}>Sil</button>
+                      <button className="btn" type="button" onClick={() => updateCompanyStatus(company, 'Arşivlendi')}>Arşivle</button>
                     </td>
                   </tr>
                 )
@@ -1500,7 +1507,10 @@ export default function SaasManagementCenter({ currentUser, view }: Props){
   )
 
   const renderStats = () => {
-    const activeLogUsers = new Set(initialData.systemUsageLogs.filter(log => log.date === today).map(log => log.userId).filter(Boolean))
+    const activeLogUsers = new Set(initialData.systemUsageLogs
+      .filter(log => getDateKey(log.createdAt) === today)
+      .map(log => log.userId)
+      .filter(Boolean))
     const stats = [
       ['Toplam Firma', activeCompanies.length, 'Silinmemiş firma'],
       ['Toplam Kullanıcı', dashboardStats.totalUsers, 'Firma ve platform kullanıcıları'],

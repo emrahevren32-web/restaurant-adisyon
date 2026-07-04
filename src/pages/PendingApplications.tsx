@@ -13,6 +13,7 @@ import type { FirstLoginCredentialDelivery } from '../storage'
 
 type Props = {
   currentUser: User
+  initialApplicationId?: string
 }
 
 type QueueStatus = Extract<ApplicationStatus, 'Beklemede' | 'İnceleniyor'>
@@ -79,7 +80,7 @@ const sortApplications = (applications: BusinessApplication[]) => {
   return [...applications].sort((first, second) => second.createdAt.localeCompare(first.createdAt))
 }
 
-export default function PendingApplications({ currentUser }: Props){
+export default function PendingApplications({ currentUser, initialApplicationId = '' }: Props){
   const [applications, setApplications] = React.useState<BusinessApplication[]>(() => loadBusinessApplications())
   const [notes, setNotes] = React.useState<ApplicationNote[]>(() => loadApplicationNotes())
   const [search, setSearch] = React.useState('')
@@ -102,6 +103,15 @@ export default function PendingApplications({ currentUser }: Props){
       ? selectedId
       : nextQueue[0]?.id || '')
   }
+
+  React.useEffect(() => {
+    if(!initialApplicationId) return
+    setSearch('')
+    setStatusFilter('all')
+    setApplicationDate('')
+    setDetailMode('review')
+    refresh(initialApplicationId)
+  }, [initialApplicationId])
 
   const queueApplications = React.useMemo(() => {
     return applications.filter(application => queueStatuses.includes(application.status as QueueStatus))
@@ -307,7 +317,7 @@ export default function PendingApplications({ currentUser }: Props){
           <div className="evren360-panel-header">
             <div>
               <h3>{selectedApplication.companyName}</h3>
-              <p>{selectedApplication.requestedPackage} paketi için başvuru.</p>
+              <p>Başlangıç kapsamı çekirdek sistem modülleri olan yeni Business Workspace başvurusu.</p>
             </div>
             <span className={`status-pill ${getStatusClassName(selectedApplication.status)}`}>{selectedApplication.status}</span>
           </div>

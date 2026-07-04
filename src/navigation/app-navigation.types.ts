@@ -1,4 +1,5 @@
 export type BusinessWorkspaceRoute =
+  | 'workspace-welcome'
   | 'tables'
   | 'products'
   | 'stock-cards'
@@ -54,6 +55,7 @@ export type BusinessWorkspaceRoute =
   | 'current-account-movements'
   | 'settings'
   | 'marketplace'
+  | 'integration-center'
 
 export type PlatformRoute =
   | 'business-registration-system'
@@ -84,6 +86,7 @@ export type PlatformRoute =
 export type AppRoute = BusinessWorkspaceRoute | PlatformRoute
 
 export type BusinessWorkspaceNavKey =
+  | 'workspace-welcome'
   | 'dashboard'
   | 'workspace'
   | 'business-summary'
@@ -95,6 +98,7 @@ export type BusinessWorkspaceNavKey =
   | 'subscription'
   | 'settings'
   | 'marketplace'
+  | 'integration-center'
   | 'support'
   | 'ai-center'
   | 'action-history'

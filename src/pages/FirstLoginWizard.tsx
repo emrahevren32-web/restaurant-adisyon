@@ -26,7 +26,7 @@ const wizardSteps: WizardStep[] = [
   { title: 'Business Workspace', description: 'Çalışma alanı' },
   { title: 'İlk Şube', description: 'Operasyon noktası' },
   { title: 'Sistem Modülleri', description: 'Platform temeli' },
-  { title: 'İş Modülleri', description: 'Aktif modüller' },
+  { title: 'İş Modülleri', description: 'İlk kurulum seçimi' },
   { title: 'Tebrikler', description: 'Workspace hazır' }
 ]
 
@@ -87,7 +87,7 @@ const ModuleGrid = ({ modules, emptyText }: { modules: FirstLoginModuleSummary[]
     <div className="first-login-module-grid">
       {modules.map(module => (
         <article className="first-login-module-card" key={module.key}>
-          <span>{module.name.slice(0, 2).toLocaleUpperCase('tr-TR')}</span>
+          <span>{module.icon || module.name.slice(0, 2).toLocaleUpperCase('tr-TR')}</span>
           <div>
             <h3>{module.name}</h3>
             <p>{module.description}</p>
@@ -98,11 +98,75 @@ const ModuleGrid = ({ modules, emptyText }: { modules: FirstLoginModuleSummary[]
   )
 }
 
+const SystemModuleInfoList = ({ modules }: { modules: FirstLoginModuleSummary[] }) => {
+  if(modules.length === 0){
+    return <div className="empty-state">Aktif sistem modülü bulunamadı.</div>
+  }
+
+  return (
+    <div className="first-login-placeholder-note">
+      <strong>Bu modüller her Business Workspace içinde hazır gelir.</strong>
+      <ul>
+        {modules.map(module => (
+          <li key={module.key}>
+            <strong>{module.name}</strong>
+            <span>{module.description}</span>
+          </li>
+        ))}
+      </ul>
+    </div>
+  )
+}
+
+const isSelectableMarketplaceModule = (module: FirstLoginModuleSummary) => {
+  return module.installState === 'AVAILABLE' || module.installState === 'UNINSTALLED'
+}
+
+type SelectableModuleGridProps = {
+  modules: FirstLoginModuleSummary[]
+  selectedModuleIds: string[]
+  onToggle: (moduleId: string) => void
+}
+
+const SelectableModuleGrid = ({ modules, selectedModuleIds, onToggle }: SelectableModuleGridProps) => {
+  if(modules.length === 0){
+    return <div className="empty-state">Marketplace içinde kurulabilir iş modülü bulunamadı.</div>
+  }
+
+  return (
+    <div className="first-login-module-grid selectable">
+      {modules.map(module => {
+        const moduleId = module.moduleId || module.key
+        const selectable = isSelectableMarketplaceModule(module)
+        const selected = selectedModuleIds.includes(moduleId)
+
+        return (
+          <label className={`first-login-module-card selectable ${selected ? 'selected' : ''} ${!selectable ? 'disabled' : ''}`} key={module.key}>
+            <input
+              type="checkbox"
+              checked={selected}
+              disabled={!selectable}
+              onChange={() => onToggle(moduleId)}
+            />
+            <span>{module.icon || module.name.slice(0, 2).toLocaleUpperCase('tr-TR')}</span>
+            <div>
+              <h3>{module.name}</h3>
+              <p>{module.description}</p>
+              <small>{module.category || 'Business'} · v{module.version || '1.0.0'} · {module.developer || 'MIYOP'}</small>
+            </div>
+          </label>
+        )
+      })}
+    </div>
+  )
+}
+
 export default function FirstLoginWizard({ currentUser, onboardingState, onComplete }: Props){
   const [stepIndex, setStepIndex] = React.useState(0)
   const [password, setPassword] = React.useState<FirstLoginPasswordForm>(() => createPasswordForm())
   const [workspace, setWorkspace] = React.useState<FirstLoginWorkspaceForm>(() => createWorkspaceForm(onboardingState))
   const [branch, setBranch] = React.useState<FirstLoginBranchForm>(() => createBranchForm(onboardingState))
+  const [selectedInitialModuleIds, setSelectedInitialModuleIds] = React.useState<string[]>([])
   const [error, setError] = React.useState('')
   const [completed, setCompleted] = React.useState(false)
 
@@ -111,6 +175,27 @@ export default function FirstLoginWizard({ currentUser, onboardingState, onCompl
   const activeBusinessModuleCount = onboardingState.businessModules.length
   const license = onboardingState.license
   const expectedTemporaryPassword = onboardingState.setup?.temporaryPassword || ''
+  const companyName = onboardingState.company?.companyName || '-'
+  const ownerName = onboardingState.company?.authorizedPerson
+    || onboardingState.company?.ownerName
+    || onboardingState.companyUser?.fullName
+    || currentUser.fullName
+    || currentUser.username
+  const workspaceName = workspace.workspaceName.trim() || companyName
+  const licenseStart = onboardingState.company?.licenseStart || license?.startDate || ''
+  const licenseEnd = onboardingState.company?.licenseEnd || license?.endDate || ''
+  const marketplaceBusinessModules = onboardingState.marketplaceBusinessModules
+
+  const toggleInitialModule = (moduleId: string) => {
+    const module = marketplaceBusinessModules.find(item => (item.moduleId || item.key) === moduleId)
+    if(!module || !isSelectableMarketplaceModule(module)) return
+
+    setSelectedInitialModuleIds(current => (
+      current.includes(moduleId)
+        ? current.filter(item => item !== moduleId)
+        : [...current, moduleId]
+    ))
+  }
 
   const updatePassword = <K extends keyof FirstLoginPasswordForm>(key: K, value: FirstLoginPasswordForm[K]) => {
     setPassword(current => ({ ...current, [key]: value }))
@@ -147,7 +232,8 @@ export default function FirstLoginWizard({ currentUser, onboardingState, onCompl
         state: onboardingState,
         password,
         workspace,
-        branch
+        branch,
+        selectedBusinessModuleIds: selectedInitialModuleIds
       })
       setCompleted(true)
       setStepIndex(6)
@@ -216,17 +302,18 @@ export default function FirstLoginWizard({ currentUser, onboardingState, onCompl
           <div className="first-login-welcome">
             <div>
               <span className="status-pill success">Başvuru onaylandı</span>
-              <h3>{onboardingState.company?.companyName || 'Yeni firma'} için hoş geldiniz.</h3>
+              <h3>{companyName} için hoş geldiniz.</h3>
               <p className="muted">
-                {onboardingState.company?.ownerName || currentUser.fullName}, Business Workspace kurulumu birkaç adımda tamamlanacak.
+                {ownerName}, Business Workspace kurulumu birkaç adımda tamamlanacak.
               </p>
             </div>
             <dl className="first-login-summary-list">
-              <div><dt>Firma</dt><dd>{onboardingState.company?.companyName || '-'}</dd></div>
-              <div><dt>Yetkili</dt><dd>{onboardingState.company?.ownerName || currentUser.fullName}</dd></div>
+              <div><dt>Firma</dt><dd>{companyName}</dd></div>
+              <div><dt>Yetkili</dt><dd>{ownerName}</dd></div>
+              <div><dt>Workspace Adı</dt><dd>{workspaceName}</dd></div>
               <div><dt>Aktif İş Modülü</dt><dd>{activeBusinessModuleCount}</dd></div>
-              <div><dt>Lisans Başlangıç</dt><dd>{formatDate(license?.startDate || '')}</dd></div>
-              <div><dt>Lisans Bitiş</dt><dd>{formatDate(license?.endDate || '')}</dd></div>
+              <div><dt>Lisans Başlangıç</dt><dd>{formatDate(licenseStart)}</dd></div>
+              <div><dt>Lisans Bitiş</dt><dd>{formatDate(licenseEnd)}</dd></div>
             </dl>
             <button className="btn primary first-login-large-action" type="button" onClick={goNext}>Kuruluma Başla</button>
           </div>
@@ -299,20 +386,27 @@ export default function FirstLoginWizard({ currentUser, onboardingState, onCompl
             <div>
               <span className="status-pill info-pill">Bilgilendirme</span>
               <h3>Sistem Modülleri</h3>
-              <p className="muted">Bu adımda seçim yapılmaz. Workspace içinde aktif olan sistem modülleri kart halinde gösterilir.</p>
+              <p className="muted">Bu adımda seçim yapılmaz. Sistem modülleri her Workspace için otomatik olarak hazır gelir.</p>
             </div>
-            <ModuleGrid modules={onboardingState.systemModules} emptyText="Aktif sistem modülü bulunamadı." />
+            <SystemModuleInfoList modules={onboardingState.systemModules} />
           </div>
         )}
 
         {stepIndex === 5 && (
           <div className="first-login-module-layout">
             <div>
-              <span className="status-pill success">Aktif Modüller</span>
+              <span className="status-pill success">Marketplace Seçimi</span>
               <h3>İş Modülleri</h3>
-              <p className="muted">Bu fazda modül satın alma yapılmaz. Workspace'inizde aktif olan iş modülleri başlangıç görünümü olarak listelenir.</p>
+              <p className="muted">Bu fazda gerçek satın alma yapılmaz. Seçtiğiniz modüller kurulum tamamlandığında bu Workspace için etkinleştirilir.</p>
             </div>
-            <ModuleGrid modules={onboardingState.businessModules} emptyText="Aktif iş modülü bulunamadı." />
+            <SelectableModuleGrid
+              modules={marketplaceBusinessModules}
+              selectedModuleIds={selectedInitialModuleIds}
+              onToggle={toggleInitialModule}
+            />
+            <div className="first-login-placeholder-note">
+              Seçtiğiniz modüller kurulum tamamlandığında Workspace menünüzde görünecek. Ödeme ve gerçek satın alma adımları sonraki fazda eklenecek.
+            </div>
           </div>
         )}
 

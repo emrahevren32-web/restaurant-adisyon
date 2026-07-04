@@ -95,8 +95,9 @@ const getCompanyRuntimeStatus = (company: Company, license?: CompanyLicense): Co
   const companyStatus = normalizeLookup(company.status)
   const licenseStatus = normalizeLookup(license?.status || '')
 
+  if(!company.isApproved || companyStatus.includes('basvurubekliyor')) return 'Pasif'
   if(companyStatus.startsWith('ask')) return 'Askıda'
-  if(companyStatus.includes('pasif') || companyStatus.includes('silindi')) return 'Pasif'
+  if(companyStatus.includes('pasif') || companyStatus.includes('silindi') || companyStatus.includes('arsiv')) return 'Pasif'
   if(license?.isTrial || licenseStatus.includes('deneme')) return 'Deneme'
   return 'Aktif'
 }

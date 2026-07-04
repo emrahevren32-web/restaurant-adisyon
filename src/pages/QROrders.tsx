@@ -137,6 +137,16 @@ const mergeRequestItemsIntoOrders = (
       name: item.productName,
       price: item.unitPrice,
       categoryId: '',
+      description: '',
+      calories: 0,
+      protein: 0,
+      carbohydrate: 0,
+      fat: 0,
+      fiber: 0,
+      sugar: 0,
+      salt: 0,
+      servingSize: '',
+      allergens: [],
       active: false,
       createdAt: new Date().toISOString()
     }

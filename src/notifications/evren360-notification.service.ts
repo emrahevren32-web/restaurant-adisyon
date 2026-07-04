@@ -21,7 +21,6 @@ type BusinessApplicationNotificationInput = {
   id: string
   companyName: string
   ownerName: string
-  requestedPackage: string
 }
 
 const STORAGE_KEY = 'evren360_notification_center'
@@ -139,7 +138,7 @@ export const recordBusinessApplicationNotification = (input: BusinessApplication
     id: `evren360_business_application_${input.id}`,
     type: 'business_application',
     title: 'Yeni işletme başvurusu',
-    description: `${input.companyName} başvurusu alındı. Yetkili: ${input.ownerName || '-'}, paket: ${input.requestedPackage || '-'}.`,
+    description: `${input.companyName} başvurusu alındı. Yetkili: ${input.ownerName || '-'}. Başlangıç kapsamı: çekirdek sistem modülleri.`,
     targetId: input.id,
     targetLabel: input.companyName,
     severity: 'info',

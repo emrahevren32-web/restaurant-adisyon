@@ -1,13 +1,10 @@
 import {
   getCompanyIdForUser,
-  LICENSE_MODULE_CATALOG,
   loadBranches,
   loadCompanies,
   loadCompanyLicenses,
   loadCompanySetups,
   loadCompanyUsers,
-  loadLicenseModules,
-  loadLicensePackages,
   loadSettings,
   loadTenantSettings,
   loadTenants,
@@ -22,7 +19,22 @@ import {
   saveUsers,
   setCurrentUser
 } from '../storage'
-import { Branch, Company, CompanyLicense, CompanySetup, CompanyUser, LicenseModuleKey, User } from '../types'
+import { Branch, Company, CompanyLicense, CompanySetup, CompanyUser, User } from '../types'
+import { getMarketplaceCatalog } from '../marketplace/module-marketplace.service'
+import type { MarketplaceContext } from '../marketplace/module-marketplace.service'
+import type { MarketplaceModule } from '../marketplace/marketplace.types'
+import {
+  activateWorkspaceModuleForUser,
+  configureWorkspaceModuleForUser,
+  getActiveWorkspaceModulesForUser,
+  getWorkspaceModuleLifecycleStateForUser,
+  installWorkspaceModuleForUser
+} from '../workspace/workspace-module-lifecycle.service'
+import {
+  getCoreSystemModules,
+  type BusinessWorkspaceModule
+} from '../modules/business-workspace.registry'
+import { WORKSPACE_MODULE_TYPES } from '../modules/module-registry.types'
 import {
   CompleteFirstLoginOnboardingInput,
   CompleteFirstLoginOnboardingResult,
@@ -35,42 +47,6 @@ const APPLICATION_SETUP_PREFIX = 'business_application_'
 const DEFAULT_WORKSPACE_TIMEZONE = 'Europe/Istanbul'
 const DEFAULT_WORKSPACE_LANGUAGE = 'tr-TR'
 const DEFAULT_WORKSPACE_CURRENCY = 'TRY'
-
-const SYSTEM_MODULES: FirstLoginModuleSummary[] = [
-  { key: 'user-management', name: 'Kullanıcı Yönetimi', description: 'Firma kullanıcıları ve erişim kayıtları için temel sistem alanı.' },
-  { key: 'roles', name: 'Roller', description: 'Firma sahibi, admin ve operasyon rollerinin yönetim temeli.' },
-  { key: 'notifications', name: 'Bildirimler', description: 'Duyuru ve sistem bilgilendirme akışları için hazır kanal.' },
-  { key: 'license', name: 'Lisans', description: 'Modül erişimi, kullanım limiti ve abonelik görünürlüğü.' },
-  { key: 'branches', name: 'Şubeler', description: 'Aktif şube, şube yetkileri ve çoklu şube temeli.' },
-  { key: 'system-settings', name: 'Sistem Ayarları', description: 'Dil, para birimi, saat dilimi ve workspace tercihleri.' }
-]
-
-const BUSINESS_MODULE_DESCRIPTIONS: Partial<Record<LicenseModuleKey, string>> = {
-  adisyon: 'Masa, sipariş ve ödeme operasyonlarının başlangıç modülü.',
-  'qr-menu': 'QR menü, QR sipariş ve misafir çağrı akışları.',
-  stock: 'Stok kartları, hareketler, kritik stok ve SKT takibi.',
-  recipe: 'Reçete, maliyet ve tüketim temeli.',
-  current: 'Cari kartlar, hesap hareketleri ve müşteri borç takibi.',
-  credit: 'Veresiye ve tahsilat operasyonları.',
-  finance: 'Kasa, gelir-gider, finans raporları ve kapanış işlemleri.',
-  personnel: 'Personel, vardiya, puantaj ve performans modülleri.',
-  'boss-dashboard': 'Patron dashboard ve yönetici uyarı merkezleri.',
-  'multi-branch': 'Şube raporlama, merkez ofis ve şubeler arası işlemler.',
-  analytics: 'Kullanım, performans ve sistem sağlığı analizleri.',
-  'ai-consultant': 'AI danışman özellikleri için paket hazırlığı.',
-  'task-management': 'Görev yönetimi özellikleri için paket hazırlığı.',
-  calendar: 'Takvim özellikleri için paket hazırlığı.'
-}
-
-const FALLBACK_BUSINESS_MODULES: LicenseModuleKey[] = [
-  'adisyon',
-  'qr-menu',
-  'stock',
-  'recipe',
-  'current',
-  'finance',
-  'personnel'
-]
 
 type OnboardingCompletion = {
   key: string
@@ -130,24 +106,47 @@ const getTenantIdForOnboarding = (company: Company | null, setup: CompanySetup |
   return company?.tenantId || setup?.tenantId || user.tenantId || ''
 }
 
-const createModuleSummary = (moduleKey: LicenseModuleKey): FirstLoginModuleSummary => {
-  const catalogItem = LICENSE_MODULE_CATALOG.find(module => module.key === moduleKey)
-  return {
-    key: moduleKey,
-    name: catalogItem?.name || moduleKey,
-    description: BUSINESS_MODULE_DESCRIPTIONS[moduleKey] || 'Workspace içinde aktif olan iş modülü.'
-  }
+const createRegistryModuleSummary = (module: BusinessWorkspaceModule): FirstLoginModuleSummary => ({
+  key: module.code,
+  moduleId: module.id,
+  icon: module.icon,
+  name: module.name,
+  description: module.description,
+  category: module.moduleType,
+  tags: [...module.tags]
+})
+
+const createMarketplaceModuleSummary = (module: MarketplaceModule): FirstLoginModuleSummary => ({
+  key: module.id,
+  moduleId: module.id,
+  icon: module.icon,
+  name: module.name,
+  description: module.shortDescription,
+  category: module.category,
+  tags: [...module.tags],
+  installState: module.installState,
+  version: module.version,
+  developer: module.developer
+})
+
+const resolveSystemModules = (): FirstLoginModuleSummary[] => {
+  return getCoreSystemModules().map(createRegistryModuleSummary)
 }
 
-const resolveBusinessModules = (packageId?: string): FirstLoginModuleSummary[] => {
-  const enabledModuleKeys = packageId
-    ? loadLicenseModules()
-      .filter(module => module.packageId === packageId && module.enabled)
-      .map(module => module.moduleKey)
-    : []
+const resolveActiveBusinessModules = (user: User): FirstLoginModuleSummary[] => {
+  return getActiveWorkspaceModulesForUser(user)
+    .filter(module => module.moduleType === WORKSPACE_MODULE_TYPES.BUSINESS)
+    .map(createRegistryModuleSummary)
+}
 
-  const visibleModuleKeys = enabledModuleKeys.length > 0 ? enabledModuleKeys : FALLBACK_BUSINESS_MODULES
-  return visibleModuleKeys.map(createModuleSummary)
+const resolveMarketplaceBusinessModules = (user: User): FirstLoginModuleSummary[] => {
+  const marketplaceContext: MarketplaceContext = {
+    getLifecycleState: module => getWorkspaceModuleLifecycleStateForUser(user, module)
+  }
+
+  return getMarketplaceCatalog({
+    moduleType: WORKSPACE_MODULE_TYPES.BUSINESS
+  }, marketplaceContext).map(createMarketplaceModuleSummary)
 }
 
 export const getFirstLoginOnboardingState = (user: User): FirstLoginOnboardingState => {
@@ -160,13 +159,11 @@ export const getFirstLoginOnboardingState = (user: User): FirstLoginOnboardingSt
   const branches = loadBranches()
   const companyUsers = loadCompanyUsers({ allTenants: true })
   const licenses = loadCompanyLicenses({ allTenants: true })
-  const packages = loadLicensePackages()
   const company = companies.find(item => item.id === companyId) || null
   const setup = companyId ? findSetupForUser(setups, user, companyId) : null
   const branch = companyId ? findPrimaryBranch(branches, setup, companyId) : null
   const companyUser = companyId ? findCompanyUser(companyUsers, user, companyId) : null
   const license = companyId ? findLatestLicense(licenses, companyId) : null
-  const packageItem = license ? packages.find(item => item.id === license.packageId) || null : null
   const tenantId = getTenantIdForOnboarding(company, setup, user)
   const tenantSettings = tenantId ? loadTenantSettings().find(settings => settings.tenantId === tenantId) || null : null
   const required = Boolean(company && setup && setup.adminUserId === user.id && isApplicationSetup(setup) && !completed)
@@ -181,10 +178,10 @@ export const getFirstLoginOnboardingState = (user: User): FirstLoginOnboardingSt
     branch,
     companyUser,
     license,
-    packageItem,
     tenantSettings,
-    systemModules: SYSTEM_MODULES,
-    businessModules: resolveBusinessModules(packageItem?.id)
+    systemModules: resolveSystemModules(),
+    businessModules: resolveActiveBusinessModules(user),
+    marketplaceBusinessModules: resolveMarketplaceBusinessModules(user)
   }
 }
 
@@ -192,7 +189,8 @@ export const completeFirstLoginOnboarding = ({
   state,
   password,
   workspace,
-  branch: branchForm
+  branch: branchForm,
+  selectedBusinessModuleIds = []
 }: CompleteFirstLoginOnboardingInput): CompleteFirstLoginOnboardingResult => {
   if(!state.company || !state.completionKey){
     throw new Error('Onboarding için firma kaydı bulunamadı.')
@@ -218,7 +216,7 @@ export const completeFirstLoginOnboarding = ({
   const workspaceLanguage = workspace.language.trim() || DEFAULT_WORKSPACE_LANGUAGE
   const workspaceTimezone = workspace.timezone.trim() || DEFAULT_WORKSPACE_TIMEZONE
 
-  const updatedCompany: Company = {
+  const baseUpdatedCompany: Company = {
     ...state.company,
     companyName: workspaceName,
     logoUrl: workspaceLogoUrl,
@@ -233,14 +231,23 @@ export const completeFirstLoginOnboarding = ({
     code: existingBranch?.code || `SUBE-${Date.now().toString().slice(-5)}`,
     name: branchForm.name.trim() || existingBranch?.name || 'Merkez Şube',
     phone: branchForm.phone.trim(),
-    email: existingBranch?.email || updatedCompany.email,
+    email: existingBranch?.email || baseUpdatedCompany.email,
     address: branchForm.address.trim(),
-    city: branchForm.city.trim() || updatedCompany.city,
-    district: branchForm.district.trim() || updatedCompany.district,
+    city: branchForm.city.trim() || baseUpdatedCompany.city,
+    district: branchForm.district.trim() || baseUpdatedCompany.district,
     managerName: state.currentUser.fullName,
     isActive: true,
     createdAt: existingBranch?.createdAt || now,
     updatedAt: now
+  }
+
+  const updatedCompany: Company = {
+    ...baseUpdatedCompany,
+    defaultBranchId: updatedBranch.id,
+    authorizedPerson: baseUpdatedCompany.authorizedPerson || baseUpdatedCompany.ownerName || state.currentUser.fullName,
+    authorizedPhone: baseUpdatedCompany.authorizedPhone || updatedBranch.phone,
+    authorizedEmail: baseUpdatedCompany.authorizedEmail || baseUpdatedCompany.email,
+    ownerName: baseUpdatedCompany.authorizedPerson || baseUpdatedCompany.ownerName || state.currentUser.fullName
   }
 
   const updatedUser: User = {
@@ -313,6 +320,14 @@ export const completeFirstLoginOnboarding = ({
     ...completions.filter(item => item.key !== state.completionKey)
   ])
   setCurrentUser(updatedUser)
+
+  Array.from(new Set(selectedBusinessModuleIds.filter(Boolean))).forEach(moduleId => {
+    const installResult = installWorkspaceModuleForUser(updatedUser, moduleId)
+    if(installResult.alreadyInstalled) return
+
+    configureWorkspaceModuleForUser(updatedUser, moduleId)
+    activateWorkspaceModuleForUser(updatedUser, moduleId)
+  })
 
   return {
     state: getFirstLoginOnboardingState(updatedUser),

@@ -3,18 +3,24 @@ import {
 } from '../modules/business-workspace.registry'
 import type { BusinessWorkspaceModule } from '../modules/business-workspace.registry'
 import { WORKSPACE_MODULE_TYPES } from '../modules/module-registry.types'
+import {
+  WORKSPACE_MODULE_LIFECYCLE_STATES,
+  type WorkspaceModuleLifecycleState
+} from '../workspace/workspace-module-lifecycle.types'
 import type {
   MarketplaceCatalogQuery,
+  MarketplaceCatalogTab,
   MarketplaceFilterOptions,
   MarketplaceLicenseState,
   MarketplaceModule,
+  MarketplaceModuleBadge,
   MarketplaceModuleState,
   MarketplaceModuleVisibility
 } from './marketplace.types'
 
 export type MarketplaceContext = {
+  getLifecycleState?: (module: BusinessWorkspaceModule) => WorkspaceModuleLifecycleState
   isLicensed?: (module: BusinessWorkspaceModule) => boolean
-  isInstalled?: (module: BusinessWorkspaceModule) => boolean
 }
 
 const MARKETPLACE_DEVELOPER = 'MIYOP'
@@ -36,30 +42,81 @@ const resolveVisibility = (module: BusinessWorkspaceModule): MarketplaceModuleVi
   return 'PUBLIC'
 }
 
-const resolveLicenseState = (
+const resolveLifecycleState = (
   module: BusinessWorkspaceModule,
   context: MarketplaceContext
+): WorkspaceModuleLifecycleState => {
+  return context.getLifecycleState?.(module) || WORKSPACE_MODULE_LIFECYCLE_STATES.AVAILABLE
+}
+
+const resolveLicenseState = (
+  module: BusinessWorkspaceModule,
+  lifecycleState: WorkspaceModuleLifecycleState
 ): MarketplaceLicenseState => {
   if(!module.isEnabled || !module.isVisible) return 'DISABLED'
-  if(!module.licenseModuleKey) return 'NOT_REQUIRED'
-  return context.isLicensed?.(module) ? 'LICENSED' : 'UNLICENSED'
+  if(lifecycleState === WORKSPACE_MODULE_LIFECYCLE_STATES.AVAILABLE) return 'UNLICENSED'
+  if(lifecycleState === WORKSPACE_MODULE_LIFECYCLE_STATES.UNINSTALLED) return 'UNLICENSED'
+  return 'LICENSED'
 }
 
 const resolveInstallState = (
   module: BusinessWorkspaceModule,
-  licenseState: MarketplaceLicenseState,
-  context: MarketplaceContext
+  lifecycleState: WorkspaceModuleLifecycleState,
+  licenseState: MarketplaceLicenseState
 ): MarketplaceModuleState => {
   if(!module.isEnabled || licenseState === 'DISABLED') return 'DISABLED'
   if(module.marketplace?.isMarketplaceReady === false) return 'COMING_SOON'
-  if(licenseState === 'LICENSED') return 'LICENSED'
-  if(context.isInstalled?.(module)) return 'INSTALLED'
-  return 'AVAILABLE'
+  return lifecycleState
 }
 
 const resolveCategory = (module: BusinessWorkspaceModule) => {
   if(module.moduleType === WORKSPACE_MODULE_TYPES.INTEGRATION) return 'Entegrasyon'
   return module.tags.find(tag => tag !== 'business') || 'Business'
+}
+
+const resolveBadges = (
+  module: BusinessWorkspaceModule,
+  installState: MarketplaceModuleState
+): MarketplaceModuleBadge[] => {
+  const badges: MarketplaceModuleBadge[] = []
+
+  if(installState === 'ACTIVE'){
+    badges.push({ type: 'active', label: 'Aktif' })
+  }
+
+  if(installState === 'CONFIGURED'){
+    badges.push({ type: 'configured', label: 'Yapılandırıldı' })
+  }
+
+  if(installState === 'INSTALLED'){
+    badges.push({ type: 'installed', label: 'Kurulu' })
+  }
+
+  if(installState === 'SUSPENDED'){
+    badges.push({ type: 'suspended', label: 'Pasif' })
+  }
+
+  if(installState === 'UNINSTALLED'){
+    badges.push({ type: 'uninstalled', label: "Workspace'ten Kaldırıldı" })
+  }
+
+  if(installState === 'AVAILABLE'){
+    badges.push({ type: 'recommended', label: 'Önerilen' })
+  }
+
+  if(installState === 'COMING_SOON'){
+    badges.push({ type: 'coming-soon', label: 'Yakında' })
+  }
+
+  if(installState === 'DISABLED'){
+    badges.push({ type: 'disabled', label: 'Desteklenmiyor' })
+  }
+
+  if(module.tags.includes('new')){
+    badges.push({ type: 'new', label: 'Yeni' })
+  }
+
+  return badges
 }
 
 const normalizeLookup = (value: string) => value
@@ -74,8 +131,9 @@ const createMarketplaceModule = (
   module: BusinessWorkspaceModule,
   context: MarketplaceContext
 ): MarketplaceModule => {
-  const licenseState = resolveLicenseState(module, context)
-  const installState = resolveInstallState(module, licenseState, context)
+  const lifecycleState = resolveLifecycleState(module, context)
+  const licenseState = resolveLicenseState(module, lifecycleState)
+  const installState = resolveInstallState(module, lifecycleState, licenseState)
 
   return {
     id: module.id,
@@ -91,6 +149,7 @@ const createMarketplaceModule = (
     visibility: resolveVisibility(module),
     installState,
     licenseState,
+    badges: resolveBadges(module, installState),
     commercial: {
       pricingReady: Boolean(module.pricing && module.pricing.model !== 'included'),
       currency: module.pricing?.currency,
@@ -123,6 +182,20 @@ const matchesSearch = (module: MarketplaceModule, search?: string) => {
   return haystack.includes(normalizedSearch)
 }
 
+const isInstalledTabState = (state: MarketplaceModuleState) => {
+  return state === 'INSTALLED' || state === 'CONFIGURED' || state === 'ACTIVE' || state === 'SUSPENDED'
+}
+
+const matchesTab = (module: MarketplaceModule, tab?: MarketplaceCatalogTab) => {
+  if(!tab || tab === 'all') return true
+  if(tab === 'recommended') return module.installState === 'AVAILABLE'
+  if(tab === 'installed') return isInstalledTabState(module.installState)
+  if(tab === 'suspended') return module.installState === 'SUSPENDED'
+  if(tab === 'not-installed') return module.installState === 'AVAILABLE' || module.installState === 'UNINSTALLED'
+  if(tab === 'coming-soon') return module.installState === 'COMING_SOON'
+  return true
+}
+
 const matchesQuery = (module: MarketplaceModule, query: MarketplaceCatalogQuery) => {
   const categoryMatches = !query.category || query.category === 'all' || module.category === query.category
   const moduleTypeMatches = !query.moduleType || query.moduleType === 'all' || module.moduleType === query.moduleType
@@ -132,6 +205,7 @@ const matchesQuery = (module: MarketplaceModule, query: MarketplaceCatalogQuery)
     categoryMatches
     && moduleTypeMatches
     && stateMatches
+    && matchesTab(module, query.tab)
     && matchesSearch(module, query.search)
   )
 }

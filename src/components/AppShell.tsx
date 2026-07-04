@@ -31,6 +31,9 @@ export type ShellNavGroup<
   title: string
   icon: string
   items: ShellNavItem<Route, NavKey>[]
+  emptyTitle?: string
+  emptyDescription?: string
+  emptyAction?: ShellNavItem<Route, NavKey>
 }
 
 type AppShellProps<
@@ -50,6 +53,7 @@ type AppShellProps<
   openGroupKey: GroupKey | null
   onToggleGroup: (groupKey: GroupKey) => void
   onOpenNavItem: (item: ShellNavItem<Route, NavKey>) => void
+  onOpenNotification?: (notification: Evren360Notification) => void
   onActiveBranchChange: (branchId: string) => void
   onLogout: () => void
   children: React.ReactNode
@@ -93,6 +97,7 @@ export default function AppShell<
   openGroupKey,
   onToggleGroup,
   onOpenNavItem,
+  onOpenNotification,
   onActiveBranchChange,
   onLogout,
   children
@@ -128,9 +133,10 @@ export default function AppShell<
     setNotificationPanelOpen(false)
   }, [activeNavKey])
 
-  const markNotificationRead = (notificationId: string) => {
-    markEvren360NotificationRead(notificationId)
+  const openNotification = (notification: Evren360Notification) => {
+    markEvren360NotificationRead(notification.id)
     setNotifications(loadEvren360Notifications())
+    onOpenNotification?.(notification)
   }
 
   const markAllNotificationsRead = () => {
@@ -157,7 +163,15 @@ export default function AppShell<
                 && (!item.adminOnly || currentUser.role === 'Admin')
                 && (!item.platformAdminOnly || isPlatformAdmin)
               ))
-              if(visibleItems.length === 0) return null
+              const emptyAction = group.emptyAction
+              const visibleEmptyAction = emptyAction
+                && !emptyAction.hidden
+                && (!emptyAction.adminOnly || currentUser.role === 'Admin')
+                && (!emptyAction.platformAdminOnly || isPlatformAdmin)
+                ? emptyAction
+                : null
+              const hasEmptyState = visibleItems.length === 0 && Boolean(group.emptyTitle || group.emptyDescription)
+              if(visibleItems.length === 0 && !hasEmptyState) return null
               const isOpen = openGroupKey === group.key
               const isActiveGroup = activeGroupKey === group.key
               const groupPanelId = `side-nav-group-${group.key}`
@@ -196,6 +210,17 @@ export default function AppShell<
                         {Boolean(item.badge) && <span className="nav-badge">{item.badge}</span>}
                       </button>
                     ))}
+                    {hasEmptyState && (
+                      <div className="side-nav-empty">
+                        {group.emptyTitle && <strong>{group.emptyTitle}</strong>}
+                        {group.emptyDescription && <span>{group.emptyDescription}</span>}
+                        {visibleEmptyAction && (
+                          <button className="side-nav-empty-action" type="button" onClick={() => onOpenNavItem(visibleEmptyAction)}>
+                            {visibleEmptyAction.label}
+                          </button>
+                        )}
+                      </div>
+                    )}
                   </div>
                 </section>
               )
@@ -240,7 +265,7 @@ export default function AppShell<
                   )}
                 </button>
                 {notificationPanelOpen && (
-                  <section className="notification-panel" aria-label="Okunmamış bildirimler">
+                  <section className="notification-panel" aria-label="Bildirimler">
                     <div className="notification-panel-header">
                       <div>
                         <span>EVREN360</span>
@@ -251,12 +276,12 @@ export default function AppShell<
                       )}
                     </div>
                     <div className="notification-list">
-                      {unreadNotifications.map(notification => (
+                      {notifications.map(notification => (
                         <button
-                          className={`notification-item ${notification.severity}`}
+                          className={`notification-item ${notification.severity} ${notification.readAt ? 'read' : 'unread'}`}
                           key={notification.id}
                           type="button"
-                          onClick={() => markNotificationRead(notification.id)}
+                          onClick={() => openNotification(notification)}
                         >
                           <span className="notification-item-icon" aria-hidden="true">
                             {notification.type === 'business_application' ? 'B' : notification.type === 'support_request' ? 'D' : 'L'}
@@ -264,13 +289,13 @@ export default function AppShell<
                           <span className="notification-item-copy">
                             <strong>{notification.title}</strong>
                             <span>{notification.description}</span>
-                            <small>{notification.targetLabel || 'EVREN360'} · {formatNotificationTime(notification.createdAt)}</small>
+                            <small>{notification.targetLabel || 'EVREN360'} · {formatNotificationTime(notification.createdAt)}{notification.readAt ? ' · Okundu' : ''}</small>
                           </span>
                         </button>
                       ))}
-                      {unreadNotifications.length === 0 && (
+                      {notifications.length === 0 && (
                         <div className="notification-empty">
-                          <strong>Okunmamış bildirim yok</strong>
+                          <strong>Bildirim yok</strong>
                           <span>Yeni başvuru, destek talebi ve lisans uyarıları burada görünecek.</span>
                         </div>
                       )}

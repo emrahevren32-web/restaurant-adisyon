@@ -38,7 +38,7 @@ export type WorkspaceModuleLifecycle = {
   availability: WorkspaceModuleAvailability
   activationPolicy: WorkspaceModuleActivationPolicy
   canBeDisabled: boolean
-  canBeDeleted: boolean
+  canBeDetachedFromWorkspace: boolean
   canBePurchased: boolean
   canBeActivatedManually: boolean
 }

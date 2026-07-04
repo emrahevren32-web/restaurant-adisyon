@@ -1,5 +1,5 @@
 import React from 'react'
-import { Branch, BusinessRegistration, BusinessRegistrationPackage, Company, CompanySetup, User } from '../types'
+import { Branch, BusinessRegistration, Company, CompanySetup, User } from '../types'
 import {
   completeCompanySetupFromRegistration,
   loadBranches,
@@ -15,15 +15,12 @@ type Props = {
 }
 
 type SetupFilter = 'all' | 'pending' | 'completed'
-type PackageFilter = BusinessRegistrationPackage | 'all'
 
 type SetupFormValues = {
   adminFullName: string
   adminEmail: string
   username: string
 }
-
-const registrationPackages: BusinessRegistrationPackage[] = ['Başlangıç', 'Pro', 'Premium', 'Kurumsal']
 
 const getDateKey = (value: string | Date) => {
   const date = typeof value === 'string' ? new Date(value) : value
@@ -95,7 +92,6 @@ export default function CompanySetupWizard({ currentUser, onBranchesChange }: Pr
   const [selectedRegistration, setSelectedRegistration] = React.useState<BusinessRegistration | null>(null)
   const [setupFilter, setSetupFilter] = React.useState<SetupFilter>('all')
   const [cityFilter, setCityFilter] = React.useState('all')
-  const [packageFilter, setPackageFilter] = React.useState<PackageFilter>('all')
   const [startDate, setStartDate] = React.useState('')
   const [endDate, setEndDate] = React.useState('')
   const [formValues, setFormValues] = React.useState<SetupFormValues>(() => createSetupFormValues(null))
@@ -134,13 +130,12 @@ export default function CompanySetupWizard({ currentUser, onBranchesChange }: Pr
         || (setupFilter === 'pending' && !setupCompleted)
         || (setupFilter === 'completed' && setupCompleted)
       const matchesCity = cityFilter === 'all' || registration.city === cityFilter
-      const matchesPackage = packageFilter === 'all' || registration.requestedPackage === packageFilter
       const matchesStart = !startDate || dateKey >= startDate
       const matchesEnd = !endDate || dateKey <= endDate
 
-      return matchesSetup && matchesCity && matchesPackage && matchesStart && matchesEnd
+      return matchesSetup && matchesCity && matchesStart && matchesEnd
     })
-  }, [approvedRegistrations, cityFilter, endDate, packageFilter, setupFilter, setupMap, startDate])
+  }, [approvedRegistrations, cityFilter, endDate, setupFilter, setupMap, startDate])
 
   React.useEffect(() => {
     if(selectedRegistration && approvedRegistrations.some(registration => registration.id === selectedRegistration.id)) return
@@ -285,10 +280,6 @@ export default function CompanySetupWizard({ currentUser, onBranchesChange }: Pr
               <option value="all">Tüm şehirler</option>
               {cityOptions.map(city => <option key={city} value={city}>{city}</option>)}
             </select>
-            <select value={packageFilter} onChange={event => setPackageFilter(event.target.value as PackageFilter)}>
-              <option value="all">Tüm paketler</option>
-              {registrationPackages.map(packageName => <option key={packageName} value={packageName}>{packageName}</option>)}
-            </select>
             <input type="date" value={startDate} onChange={event => setStartDate(event.target.value)} />
             <input type="date" value={endDate} onChange={event => setEndDate(event.target.value)} />
           </div>
@@ -300,7 +291,6 @@ export default function CompanySetupWizard({ currentUser, onBranchesChange }: Pr
               <tr>
                 <th>İşletme</th>
                 <th>Yetkili</th>
-                <th>Paket</th>
                 <th>Başvuru Tarihi</th>
                 <th>Durum</th>
                 <th>Kurulum Durumu</th>
@@ -309,7 +299,7 @@ export default function CompanySetupWizard({ currentUser, onBranchesChange }: Pr
             </thead>
             <tbody>
               {visibleRegistrations.length === 0 && (
-                <tr><td colSpan={7} className="empty-cell">Kurulum için uygun onaylı başvuru bulunamadı.</td></tr>
+                <tr><td colSpan={6} className="empty-cell">Kurulum için uygun onaylı başvuru bulunamadı.</td></tr>
               )}
               {visibleRegistrations.map(registration => {
                 const setup = setupMap.get(registration.id)
@@ -326,7 +316,6 @@ export default function CompanySetupWizard({ currentUser, onBranchesChange }: Pr
                       <strong>{registration.ownerName}</strong>
                       <div className="muted small-text">{registration.email}</div>
                     </td>
-                    <td><span className="status-pill info-pill">{registration.requestedPackage}</span></td>
                     <td>{formatDateTime(registration.createdAt)}</td>
                     <td><span className="status-pill success">Onaylandı</span></td>
                     <td><span className={`status-pill ${getSetupStatusClass(setup)}`}>{getSetupStatusText(setup)}</span></td>

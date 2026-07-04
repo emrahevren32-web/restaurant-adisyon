@@ -1,5 +1,5 @@
 import React from 'react'
-import { BusinessRegistration, BusinessRegistrationPackage, BusinessRegistrationStatus, User } from '../types'
+import { BusinessRegistration, BusinessRegistrationStatus, User } from '../types'
 import { addActionLog, loadBusinessRegistrations, saveBusinessRegistrations } from '../storage'
 
 type Props = {
@@ -7,7 +7,6 @@ type Props = {
 }
 
 type StatusFilter = BusinessRegistrationStatus | 'all'
-type PackageFilter = BusinessRegistrationPackage | 'all'
 
 type RegistrationFormValues = {
   businessName: string
@@ -20,10 +19,9 @@ type RegistrationFormValues = {
   taxOffice: string
   address: string
   branchCount: number
-  requestedPackage: BusinessRegistrationPackage
+  requestedPackage: 'Başlangıç'
 }
 
-const registrationPackages: BusinessRegistrationPackage[] = ['Başlangıç', 'Pro', 'Premium', 'Kurumsal']
 const registrationStatuses: BusinessRegistrationStatus[] = ['Başvuru Bekliyor', 'Onaylandı', 'Reddedildi', 'Pasif']
 
 const createId = () => `business_registration_${Date.now()}_${Math.random().toString(16).slice(2)}`
@@ -96,7 +94,6 @@ export default function BusinessRegistrationSystem({ currentUser }: Props){
   const [selectedRegistration, setSelectedRegistration] = React.useState<BusinessRegistration | null>(null)
   const [statusFilter, setStatusFilter] = React.useState<StatusFilter>('all')
   const [cityFilter, setCityFilter] = React.useState('all')
-  const [packageFilter, setPackageFilter] = React.useState<PackageFilter>('all')
   const [startDate, setStartDate] = React.useState('')
   const [endDate, setEndDate] = React.useState('')
   const [formError, setFormError] = React.useState('')
@@ -115,12 +112,11 @@ export default function BusinessRegistrationSystem({ currentUser }: Props){
       const dateKey = getDateKey(item.createdAt)
       const matchesStatus = statusFilter === 'all' || item.status === statusFilter
       const matchesCity = cityFilter === 'all' || item.city === cityFilter
-      const matchesPackage = packageFilter === 'all' || item.requestedPackage === packageFilter
       const matchesStart = !startDate || dateKey >= startDate
       const matchesEnd = !endDate || dateKey <= endDate
-      return matchesStatus && matchesCity && matchesPackage && matchesStart && matchesEnd
+      return matchesStatus && matchesCity && matchesStart && matchesEnd
     })
-  }, [cityFilter, endDate, packageFilter, registrations, startDate, statusFilter])
+  }, [cityFilter, endDate, registrations, startDate, statusFilter])
 
   const currentMonth = getCurrentMonth()
   const currentWeekStart = getWeekStartKey()
@@ -175,11 +171,6 @@ export default function BusinessRegistrationSystem({ currentUser }: Props){
       return false
     }
 
-    if(!normalized.requestedPackage){
-      setFormError('Paket seçimi zorunludur.')
-      return false
-    }
-
     const now = new Date().toISOString()
     const registration: BusinessRegistration = {
       id: createId(),
@@ -199,7 +190,7 @@ export default function BusinessRegistrationSystem({ currentUser }: Props){
     addActionLog({
       operationType: 'İşletme başvurusu oluşturuldu',
       user: currentUser,
-      description: `${registration.businessName} işletme başvurusu oluşturuldu. Paket: ${registration.requestedPackage}.`
+      description: `${registration.businessName} işletme başvurusu oluşturuldu. Başlangıç kapsamı: çekirdek sistem modülleri.`
     })
     return true
   }
@@ -328,10 +319,6 @@ export default function BusinessRegistrationSystem({ currentUser }: Props){
                 <option value="all">Tüm şehirler</option>
                 {cityOptions.map(city => <option key={city} value={city}>{city}</option>)}
               </select>
-              <select value={packageFilter} onChange={event => setPackageFilter(event.target.value as PackageFilter)}>
-                <option value="all">Tüm paketler</option>
-                {registrationPackages.map(packageName => <option key={packageName} value={packageName}>{packageName}</option>)}
-              </select>
               <input type="date" value={startDate} onChange={event => setStartDate(event.target.value)} />
               <input type="date" value={endDate} onChange={event => setEndDate(event.target.value)} />
             </div>
@@ -346,7 +333,6 @@ export default function BusinessRegistrationSystem({ currentUser }: Props){
                   <th>Telefon</th>
                   <th>E-posta</th>
                   <th>Şehir</th>
-                  <th>Paket</th>
                   <th>Başvuru Tarihi</th>
                   <th>Durum</th>
                   <th>İşlemler</th>
@@ -354,7 +340,7 @@ export default function BusinessRegistrationSystem({ currentUser }: Props){
               </thead>
               <tbody>
                 {visibleRegistrations.length === 0 && (
-                  <tr><td colSpan={9} className="empty-cell">Bu filtrelere uygun işletme başvurusu bulunamadı.</td></tr>
+                  <tr><td colSpan={8} className="empty-cell">Bu filtrelere uygun işletme başvurusu bulunamadı.</td></tr>
                 )}
                 {visibleRegistrations.map(registration => (
                   <tr key={registration.id} className={selectedRegistration?.id === registration.id ? 'selected-row' : ''}>
@@ -366,7 +352,6 @@ export default function BusinessRegistrationSystem({ currentUser }: Props){
                     <td>{registration.phone}</td>
                     <td>{registration.email}</td>
                     <td>{registration.city}</td>
-                    <td><span className="status-pill info-pill">{registration.requestedPackage}</span></td>
                     <td>{formatDateTime(registration.createdAt)}</td>
                     <td><span className={`status-pill ${getStatusClassName(registration.status)}`}>{registration.status}</span></td>
                     <td className="actions-cell">
@@ -405,8 +390,8 @@ export default function BusinessRegistrationSystem({ currentUser }: Props){
                   <strong>{selectedRegistration.status}</strong>
                 </div>
                 <div>
-                  <span>Talep Edilen Paket</span>
-                  <strong>{selectedRegistration.requestedPackage}</strong>
+                  <span>Başlangıç Kapsamı</span>
+                  <strong>Çekirdek Sistem Modülleri</strong>
                 </div>
                 <div>
                   <span>Vergi Bilgisi</span>
@@ -494,12 +479,6 @@ function RegistrationForm({ onSave }: { onSave: (values: RegistrationFormValues)
           value={values.branchCount}
           onChange={event => updateField('branchCount', Number(event.target.value))}
         />
-      </div>
-      <div className="form-field">
-        <label>Talep Edilen Paket</label>
-        <select value={values.requestedPackage} onChange={event => updateField('requestedPackage', event.target.value as BusinessRegistrationPackage)} required>
-          {registrationPackages.map(packageName => <option key={packageName} value={packageName}>{packageName}</option>)}
-        </select>
       </div>
       <div className="form-actions">
         <button className="btn primary" type="submit">Kaydet</button>

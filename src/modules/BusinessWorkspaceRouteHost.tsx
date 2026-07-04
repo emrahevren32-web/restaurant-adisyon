@@ -54,11 +54,14 @@ import CashClosingPage from '../pages/CashClosing'
 import FinancialReports from '../pages/FinancialReports'
 import CashTransfers from '../pages/CashTransfers'
 import ModuleMarketplace from '../pages/ModuleMarketplace'
+import WorkspaceWelcome from '../pages/WorkspaceWelcome'
+import IntegrationCenter from '../pages/IntegrationCenter'
 import type {
   BusinessWorkspaceNavKey,
   BusinessWorkspaceRoute
 } from '../navigation/app-navigation.types'
 import type { Branch, User } from '../types'
+import type { WorkspaceModuleLifecycleResult } from '../workspace/workspace-module-lifecycle.service'
 
 type Props = {
   route: BusinessWorkspaceRoute
@@ -66,6 +69,10 @@ type Props = {
   currentUser: User
   onBranchesChange: (nextBranches?: Branch[]) => void
   onSettingsChange: () => void
+  onOpenMarketplace: () => void
+  onOpenIntegrationCenter: () => void
+  onOpenWorkspaceSettings: () => void
+  onModuleLifecycleChanged: (result: WorkspaceModuleLifecycleResult) => void
 }
 
 export default function BusinessWorkspaceRouteHost({
@@ -73,9 +80,24 @@ export default function BusinessWorkspaceRouteHost({
   activeNavKey,
   currentUser,
   onBranchesChange,
-  onSettingsChange
+  onSettingsChange,
+  onOpenMarketplace,
+  onOpenIntegrationCenter,
+  onOpenWorkspaceSettings,
+  onModuleLifecycleChanged
 }: Props){
   const isAdmin = currentUser.role === 'Admin'
+
+  if(route === 'workspace-welcome'){
+    return (
+      <WorkspaceWelcome
+        currentUser={currentUser}
+        onOpenMarketplace={onOpenMarketplace}
+        onOpenIntegrationCenter={onOpenIntegrationCenter}
+        onOpenWorkspaceSettings={onOpenWorkspaceSettings}
+      />
+    )
+  }
 
   if(route === 'tables'){
     return (
@@ -87,7 +109,7 @@ export default function BusinessWorkspaceRouteHost({
   }
 
   if(route === 'products') return <Products currentUser={currentUser} />
-  if(route === 'summary') return <DailySummary currentUser={currentUser} />
+  if(route === 'summary') return <DailySummary currentUser={currentUser} onOpenMarketplace={onOpenMarketplace} />
   if(route === 'history') return <BillHistory />
   if(route === 'kitchen') return <Kitchen currentUser={currentUser} />
 
@@ -102,7 +124,15 @@ export default function BusinessWorkspaceRouteHost({
 
   if(!isAdmin) return null
 
-  if(route === 'marketplace') return <ModuleMarketplace currentUser={currentUser} />
+  if(route === 'marketplace'){
+    return (
+      <ModuleMarketplace
+        currentUser={currentUser}
+        onModuleLifecycleChanged={onModuleLifecycleChanged}
+      />
+    )
+  }
+  if(route === 'integration-center') return <IntegrationCenter />
   if(route === 'stock-cards'){
     return (
       <StockCards

@@ -4,16 +4,22 @@ import {
   CompanyLicense,
   CompanySetup,
   CompanyUser,
-  LicenseModuleKey,
-  LicensePackage,
   TenantSettings,
   User
 } from '../types'
+import type { MarketplaceModuleState } from '../marketplace/marketplace.types'
 
 export type FirstLoginModuleSummary = {
-  key: LicenseModuleKey | string
+  key: string
+  moduleId?: string
+  icon?: string
   name: string
   description: string
+  category?: string
+  tags?: string[]
+  installState?: MarketplaceModuleState
+  version?: string
+  developer?: string
 }
 
 export type FirstLoginOnboardingState = {
@@ -26,10 +32,10 @@ export type FirstLoginOnboardingState = {
   branch: Branch | null
   companyUser: CompanyUser | null
   license: CompanyLicense | null
-  packageItem: LicensePackage | null
   tenantSettings: TenantSettings | null
   systemModules: FirstLoginModuleSummary[]
   businessModules: FirstLoginModuleSummary[]
+  marketplaceBusinessModules: FirstLoginModuleSummary[]
 }
 
 export type FirstLoginPasswordForm = {
@@ -59,6 +65,7 @@ export type CompleteFirstLoginOnboardingInput = {
   password: FirstLoginPasswordForm
   workspace: FirstLoginWorkspaceForm
   branch: FirstLoginBranchForm
+  selectedBusinessModuleIds?: string[]
 }
 
 export type CompleteFirstLoginOnboardingResult = {

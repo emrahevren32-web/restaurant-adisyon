@@ -2,7 +2,6 @@ import React from 'react'
 import { ApplicationNote, ApplicationStatus, BusinessApplication, User } from '../types'
 import FirstLoginCredentialsCard from '../components/FirstLoginCredentialsCard'
 import {
-  BUSINESS_APPLICATION_PACKAGES,
   addApplicationNote,
   approveBusinessApplication,
   loadApplicationNotes,
@@ -17,7 +16,6 @@ type Props = {
 }
 
 type StatusFilter = ApplicationStatus | 'all'
-type PackageFilter = string | 'all'
 
 const formatNumber = (value: number) => value.toLocaleString('tr-TR')
 
@@ -44,14 +42,6 @@ const sortApplications = (items: BusinessApplication[]) => {
   return [...items].sort((first, second) => second.createdAt.localeCompare(first.createdAt))
 }
 
-const getTopRequestedPackage = (applications: BusinessApplication[]) => {
-  const counts = applications.reduce<Record<string, number>>((acc, application) => {
-    acc[application.requestedPackage] = (acc[application.requestedPackage] || 0) + 1
-    return acc
-  }, {})
-  return Object.entries(counts).sort((first, second) => second[1] - first[1] || first[0].localeCompare(second[0], 'tr-TR'))[0]?.[0] || '-'
-}
-
 const getAverageApprovalTime = (applications: BusinessApplication[]) => {
   const approvedDurations = applications
     .filter(application => application.status === 'Onaylandı')
@@ -73,7 +63,6 @@ export default function BusinessApplicationSystem({ currentUser }: Props){
   const [notes, setNotes] = React.useState<ApplicationNote[]>(() => loadApplicationNotes())
   const [selectedApplicationId, setSelectedApplicationId] = React.useState(() => loadBusinessApplications()[0]?.id || '')
   const [statusFilter, setStatusFilter] = React.useState<StatusFilter>('all')
-  const [packageFilter, setPackageFilter] = React.useState<PackageFilter>('all')
   const [cityFilter, setCityFilter] = React.useState('all')
   const [startDate, setStartDate] = React.useState('')
   const [endDate, setEndDate] = React.useState('')
@@ -105,22 +94,16 @@ export default function BusinessApplicationSystem({ currentUser }: Props){
       .sort((first, second) => first.localeCompare(second, 'tr-TR'))
   }, [applications])
 
-  const packageOptions = React.useMemo(() => {
-    return Array.from(new Set([...BUSINESS_APPLICATION_PACKAGES, ...applications.map(application => application.requestedPackage)]))
-      .filter(Boolean)
-  }, [applications])
-
   const visibleApplications = React.useMemo(() => {
     return sortApplications(applications).filter(application => {
       const dateKey = getDateKey(application.createdAt)
       const matchesStatus = statusFilter === 'all' || application.status === statusFilter
-      const matchesPackage = packageFilter === 'all' || application.requestedPackage === packageFilter
       const matchesCity = cityFilter === 'all' || application.city === cityFilter
       const matchesStart = !startDate || dateKey >= startDate
       const matchesEnd = !endDate || dateKey <= endDate
-      return matchesStatus && matchesPackage && matchesCity && matchesStart && matchesEnd
+      return matchesStatus && matchesCity && matchesStart && matchesEnd
     })
-  }, [applications, cityFilter, endDate, packageFilter, startDate, statusFilter])
+  }, [applications, cityFilter, endDate, startDate, statusFilter])
 
   const todayKey = getDateKey(new Date())
   const currentMonth = todayKey.slice(0, 7)
@@ -204,7 +187,7 @@ export default function BusinessApplicationSystem({ currentUser }: Props){
       <div className="metric-grid compact-metric-grid">
         <div className="metric-card compact-metric-card"><span>Bugünkü Başvurular</span><strong>{formatNumber(todayCount)}</strong></div>
         <div className="metric-card compact-metric-card"><span>Bu Ay Onaylananlar</span><strong>{formatNumber(approvedThisMonth)}</strong></div>
-        <div className="metric-card compact-metric-card"><span>En Çok Talep Edilen Paket</span><strong>{getTopRequestedPackage(applications)}</strong></div>
+        <div className="metric-card compact-metric-card"><span>Başlangıç Kapsamı</span><strong>Çekirdek Modüller</strong></div>
         <div className="metric-card compact-metric-card"><span>Ortalama Onay Süresi</span><strong>{getAverageApprovalTime(applications)}</strong></div>
       </div>
 
@@ -222,10 +205,6 @@ export default function BusinessApplicationSystem({ currentUser }: Props){
                   <option key={status} value={status}>{status}</option>
                 ))}
               </select>
-              <select value={packageFilter} onChange={event => setPackageFilter(event.target.value)}>
-                <option value="all">Tüm paketler</option>
-                {packageOptions.map(packageName => <option key={packageName} value={packageName}>{packageName}</option>)}
-              </select>
               <select value={cityFilter} onChange={event => setCityFilter(event.target.value)}>
                 <option value="all">Tüm şehirler</option>
                 {cityOptions.map(city => <option key={city} value={city}>{city}</option>)}
@@ -242,7 +221,6 @@ export default function BusinessApplicationSystem({ currentUser }: Props){
                   <th>Firma</th>
                   <th>Yetkili</th>
                   <th>Telefon</th>
-                  <th>Paket</th>
                   <th>Başvuru Tarihi</th>
                   <th>Durum</th>
                   <th>İşlemler</th>
@@ -250,7 +228,7 @@ export default function BusinessApplicationSystem({ currentUser }: Props){
               </thead>
               <tbody>
                 {visibleApplications.length === 0 && (
-                  <tr><td colSpan={7} className="empty-cell">Bu filtrelere uygun başvuru bulunamadı.</td></tr>
+                  <tr><td colSpan={6} className="empty-cell">Bu filtrelere uygun başvuru bulunamadı.</td></tr>
                 )}
                 {visibleApplications.map(application => (
                   <tr key={application.id} className={selectedApplication?.id === application.id ? 'selected-row' : ''}>
@@ -260,7 +238,6 @@ export default function BusinessApplicationSystem({ currentUser }: Props){
                     </td>
                     <td>{application.ownerName}</td>
                     <td>{application.phone}</td>
-                    <td><span className="status-pill info-pill">{application.requestedPackage}</span></td>
                     <td>{formatDateTime(application.createdAt)}</td>
                     <td><span className={`status-pill ${getStatusClassName(application.status)}`}>{application.status}</span></td>
                     <td className="actions-cell">
@@ -311,8 +288,8 @@ export default function BusinessApplicationSystem({ currentUser }: Props){
                   <p>{selectedApplication.city} / {selectedApplication.district}</p>
                 </section>
                 <section>
-                  <h4>Talep Edilen Paket</h4>
-                  <p>{selectedApplication.requestedPackage}</p>
+                  <h4>Başlangıç Kapsamı</h4>
+                  <p>Çekirdek Sistem Modülleri</p>
                 </section>
                 <section>
                   <h4>Notlar</h4>

@@ -126,6 +126,7 @@ import {
   WaiterCallStatus
 } from './types'
 import { recordBusinessApplicationNotification } from './notifications/evren360-notification.service'
+import { recordCompanyAuditEvent } from './companies/company-audit.service'
 import {
   normalizeProductAllergens,
   normalizeProductNutrition,
@@ -256,10 +257,9 @@ const EMPLOYEE_AUDIT_RECORD_TYPES: EmployeeAuditRecordType[] = ['Uyarı', 'Tutan
 const EMPLOYEE_AUDIT_SEVERITIES: EmployeeAuditSeverity[] = ['Düşük', 'Orta', 'Yüksek', 'Kritik']
 const BRANCH_STOCK_TRANSFER_STATUSES: BranchStockTransferStatus[] = ['Bekliyor', 'Onaylandı', 'Tamamlandı', 'İptal Edildi']
 const APPLICATION_STATUSES: ApplicationStatus[] = ['Beklemede', 'İnceleniyor', 'Onaylandı', 'Reddedildi']
-export const BUSINESS_APPLICATION_PACKAGES = ['Başlangıç', 'Pro', 'Premium', 'Kurumsal'] as const
 const BUSINESS_REGISTRATION_STATUSES: BusinessRegistrationStatus[] = ['Başvuru Bekliyor', 'Onaylandı', 'Reddedildi', 'Pasif']
 const BUSINESS_REGISTRATION_PACKAGES: BusinessRegistrationPackage[] = ['Başlangıç', 'Pro', 'Premium', 'Kurumsal']
-const COMPANY_STATUSES: CompanyStatus[] = ['Aktif', 'Pasif', 'Askıda', 'Silindi']
+const COMPANY_STATUSES: CompanyStatus[] = ['Başvuru Bekliyor', 'Aktif', 'Pasif', 'Askıda', 'Arşivlendi', 'Silindi']
 const LICENSE_STATUSES: LicenseStatus[] = ['Deneme', 'Aktif', 'Süresi Yaklaşıyor', 'Süresi Doldu', 'Askıya Alındı', 'İptal Edildi']
 const COMPANY_USER_ROLES: CompanyUserRole[] = ['Firma Sahibi', 'Admin', 'Müdür', 'Kasiyer', 'Garson', 'Mutfak', 'Kurye', 'Muhasebe']
 const COMPANY_USER_STATUSES: CompanyUserStatus[] = ['Aktif', 'Pasif', 'Askıya Alındı', 'Silindi']
@@ -435,16 +435,18 @@ export const getVisibleBranchesForUser = (user?: User | null) => {
 
 export function getActiveBranchId(){
   const branches = readBranchesFromStorage()
+  const currentUser = getCurrentUser()
+  const canUseGlobalBranchFallback = isAdminUser(currentUser) && !getCompanyIdForUser(currentUser)
   const visibleBranches = filterBranchesByPermission(branches)
   const storedBranchId = String(localStorage.getItem(KEY_ACTIVE_BRANCH) || '').trim()
   const selectedBranch = visibleBranches.find(branch => branch.id === storedBranchId && branch.isActive)
     || visibleBranches.find(branch => branch.id === DEFAULT_BRANCH_ID && branch.isActive)
     || visibleBranches.find(branch => branch.isActive)
     || visibleBranches[0]
-    || branches.find(branch => branch.id === storedBranchId && branch.isActive && isAdminUser(getCurrentUser()))
-    || branches.find(branch => branch.id === DEFAULT_BRANCH_ID && branch.isActive && isAdminUser(getCurrentUser()))
-    || branches.find(branch => branch.isActive && isAdminUser(getCurrentUser()))
-    || branches[0]
+    || (canUseGlobalBranchFallback ? branches.find(branch => branch.id === storedBranchId && branch.isActive) : undefined)
+    || (canUseGlobalBranchFallback ? branches.find(branch => branch.id === DEFAULT_BRANCH_ID && branch.isActive) : undefined)
+    || (canUseGlobalBranchFallback ? branches.find(branch => branch.isActive) : undefined)
+    || (canUseGlobalBranchFallback ? branches[0] : undefined)
 
   const activeBranchId = selectedBranch?.id || DEFAULT_BRANCH_ID
   localStorage.setItem(KEY_ACTIVE_BRANCH, activeBranchId)
@@ -454,7 +456,11 @@ export function getActiveBranchId(){
 export function getActiveBranch(){
   const branches = readBranchesFromStorage()
   const activeBranchId = getActiveBranchId()
-  return branches.find(branch => branch.id === activeBranchId) || branches[0]
+  const visibleBranches = filterBranchesByPermission(branches)
+  return visibleBranches.find(branch => branch.id === activeBranchId)
+    || visibleBranches[0]
+    || branches.find(branch => branch.id === activeBranchId && isAdminUser(getCurrentUser()) && !getCompanyIdForUser(getCurrentUser()))
+    || undefined
 }
 
 export function setActiveBranchId(branchId: string, user?: User){
@@ -2414,16 +2420,12 @@ const normalizeApplicationStatus = (value: unknown): ApplicationStatus => {
   return APPLICATION_STATUSES.includes(value as ApplicationStatus) ? value as ApplicationStatus : 'Beklemede'
 }
 
-const normalizeBusinessApplicationPackage = (value: unknown) => {
-  const requestedPackage = String(value || '').trim()
-  return requestedPackage || BUSINESS_APPLICATION_PACKAGES[0]
-}
-
 const normalizeBusinessApplication = (item: Partial<BusinessApplication>): BusinessApplication => {
   const timestamp = item.createdAt || new Date().toISOString()
 
   return {
     id: String(item.id || createTenantStorageId('business_application')),
+    companyId: String(item.companyId || '').trim(),
     companyName: String(item.companyName || 'İsimsiz Firma').trim() || 'İsimsiz Firma',
     ownerName: String(item.ownerName || '').trim(),
     phone: String(item.phone || '').trim(),
@@ -2433,7 +2435,6 @@ const normalizeBusinessApplication = (item: Partial<BusinessApplication>): Busin
     city: String(item.city || '').trim(),
     district: String(item.district || '').trim(),
     address: String(item.address || '').trim(),
-    requestedPackage: normalizeBusinessApplicationPackage(item.requestedPackage),
     status: normalizeApplicationStatus(item.status),
     approvalNote: String(item.approvalNote || '').trim(),
     createdAt: timestamp,
@@ -2467,7 +2468,6 @@ const createDemoBusinessApplications = (now = new Date().toISOString()): Busines
       city: 'İstanbul',
       district: 'Kadıköy',
       address: 'Caferağa Mahallesi No: 12',
-      requestedPackage: 'Başlangıç',
       status: 'Beklemede',
       approvalNote: '',
       createdAt: now,
@@ -2484,7 +2484,6 @@ const createDemoBusinessApplications = (now = new Date().toISOString()): Busines
       city: 'Ankara',
       district: 'Çankaya',
       address: 'Kavaklıdere Cad. No: 8',
-      requestedPackage: 'Pro',
       status: 'Onaylandı',
       approvalNote: 'Demo onaylı başvuru.',
       createdAt: approvedDate.toISOString(),
@@ -2501,7 +2500,6 @@ const createDemoBusinessApplications = (now = new Date().toISOString()): Busines
       city: 'İzmir',
       district: 'Konak',
       address: 'Alsancak Mahallesi No: 4',
-      requestedPackage: 'Premium',
       status: 'Reddedildi',
       approvalNote: 'Vergi bilgileri eksik.',
       createdAt: rejectedDate.toISOString(),
@@ -2649,26 +2647,79 @@ const normalizeCompanyStatus = (value: unknown): CompanyStatus => {
     : 'Aktif'
 }
 
+const createCompanyCode = (companyName: string, companyId: string) => {
+  const cleanName = companyName
+    .toLocaleUpperCase('tr-TR')
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '')
+    .replace(/İ/g, 'I')
+    .replace(/[^A-Z0-9]+/g, '')
+    .slice(0, 8) || 'COMPANY'
+  const cleanId = companyId
+    .replace(/[^a-z0-9]/gi, '')
+    .slice(-6)
+    .toLocaleUpperCase('tr-TR') || Date.now().toString().slice(-6)
+
+  return `CMP-${cleanName}-${cleanId}`
+}
+
+const resolveCompanyLicenseDatesForMigration = (companyId: string) => {
+  const licenses = readJson<Partial<CompanyLicense>[]>(KEY_COMPANY_LICENSES, [])
+    .filter(license => String(license.companyId || '').trim() === companyId)
+    .sort((first, second) => String(second.updatedAt || second.createdAt || second.startDate || '')
+      .localeCompare(String(first.updatedAt || first.createdAt || first.startDate || '')))
+  const license = licenses[0]
+
+  return {
+    licenseStart: String(license?.startDate || '').trim(),
+    licenseEnd: String(license?.endDate || '').trim()
+  }
+}
+
 const normalizeCompany = (item: Partial<Company>): Company => {
   const timestamp = item.createdAt || new Date().toISOString()
   const companyId = String(item.id || `company_${Date.now()}`)
+  const companyName = String(item.companyName || 'İsimsiz Firma').trim() || 'İsimsiz Firma'
+  const ownerName = String(item.ownerName || item.authorizedPerson || '').trim()
+  const authorizedPerson = String(item.authorizedPerson || ownerName || companyName).trim() || companyName
+  const phone = String(item.phone || item.authorizedPhone || '').trim()
+  const email = String(item.email || item.authorizedEmail || '').trim()
+  const status = normalizeCompanyStatus(item.status)
+  const isApproved = item.isApproved === true || ['Aktif', 'Askıda'].includes(status)
+  const deletedAt = String(item.deletedAt || '').trim()
+    || (status === 'Silindi' || status === 'Arşivlendi' ? timestamp : '')
+  const migratedLicenseDates = resolveCompanyLicenseDatesForMigration(companyId)
 
   return {
     id: companyId,
-    tenantId: String(item.tenantId || '').trim() || resolveTenantIdForCompany(companyId),
-    companyName: String(item.companyName || 'İsimsiz Firma').trim() || 'İsimsiz Firma',
-    ownerName: String(item.ownerName || '').trim(),
-    phone: String(item.phone || '').trim(),
-    email: String(item.email || '').trim(),
-    logoUrl: String(item.logoUrl || '').trim(),
+    companyCode: String(item.companyCode || '').trim().toLocaleUpperCase('tr-TR') || createCompanyCode(companyName, companyId),
+    companyName,
+    legalName: String(item.legalName || companyName).trim() || companyName,
+    taxOffice: String(item.taxOffice || '').trim(),
+    taxNumber: String(item.taxNumber || '').trim(),
+    phone,
+    email,
     city: String(item.city || '').trim(),
     district: String(item.district || '').trim(),
-    taxNumber: String(item.taxNumber || '').trim(),
-    taxOffice: String(item.taxOffice || '').trim(),
     address: String(item.address || '').trim(),
-    status: normalizeCompanyStatus(item.status),
+    authorizedPerson,
+    authorizedPhone: String(item.authorizedPhone || phone).trim(),
+    authorizedEmail: String(item.authorizedEmail || email).trim(),
+    status,
+    isApproved,
+    approvedAt: String(item.approvedAt || (isApproved ? timestamp : '')).trim(),
+    approvedBy: String(item.approvedBy || (isApproved ? 'migration' : '')).trim(),
+    workspaceId: String(item.workspaceId || `workspace_${companyId}`).trim(),
+    defaultBranchId: String(item.defaultBranchId || '').trim(),
+    tenantId: String(item.tenantId || '').trim() || resolveTenantIdForCompany(companyId),
+    subscriptionId: String(item.subscriptionId || '').trim(),
+    licenseStart: String(item.licenseStart || migratedLicenseDates.licenseStart || '').trim(),
+    licenseEnd: String(item.licenseEnd || migratedLicenseDates.licenseEnd || '').trim(),
     createdAt: timestamp,
-    updatedAt: item.updatedAt || timestamp
+    updatedAt: item.updatedAt || timestamp,
+    deletedAt,
+    ownerName: ownerName || authorizedPerson,
+    logoUrl: String(item.logoUrl || '').trim(),
   }
 }
 
@@ -4104,18 +4155,35 @@ export const saveBusinessRegistrations = (items: BusinessRegistration[]) => {
   localStorage.setItem(KEY_BUSINESS_REGISTRATIONS, JSON.stringify(items.map(normalizeBusinessRegistration)))
 }
 
-export const loadCompanies = (options: { allTenants?: boolean } = {}): Company[] => {
-  const companies = localStorage.getItem(KEY_COMPANIES) === null
+export const loadCompanies = (options: { allTenants?: boolean; includeDeleted?: boolean } = {}): Company[] => {
+  const storedCompanies = localStorage.getItem(KEY_COMPANIES)
+  const companies = storedCompanies === null
     ? createDemoCompanies()
     : readJson<Partial<Company>[]>(KEY_COMPANIES, []).map(normalizeCompany)
-  if(options.allTenants) return companies
+
+  if(storedCompanies !== null){
+    const migratedPayload = JSON.stringify(companies)
+    if(storedCompanies !== migratedPayload){
+      localStorage.setItem(KEY_COMPANIES, migratedPayload)
+    }
+  }
+
+  const visibleCompanies = options.includeDeleted
+    ? companies
+    : companies.filter(company => !company.deletedAt)
+  if(options.allTenants) return visibleCompanies
 
   const currentUser = getCurrentUser()
-  return currentUser ? filterTenantScope(companies, currentUser) : companies
+  return currentUser ? filterTenantScope(visibleCompanies, currentUser) : visibleCompanies
 }
 
 export const saveCompanies = (items: Company[]) => {
-  localStorage.setItem(KEY_COMPANIES, JSON.stringify(items.map(normalizeCompany)))
+  const normalizedItems = items.map(normalizeCompany)
+  const nextIds = new Set(normalizedItems.map(company => company.id))
+  const archivedCompanies = readJson<Partial<Company>[]>(KEY_COMPANIES, [])
+    .map(normalizeCompany)
+    .filter(company => company.deletedAt && !nextIds.has(company.id))
+  localStorage.setItem(KEY_COMPANIES, JSON.stringify([...normalizedItems, ...archivedCompanies]))
 }
 
 export const loadCompanySetups = (options: { allTenants?: boolean } = {}): CompanySetup[] => {
@@ -5515,7 +5583,11 @@ export const completeCompanySetupFromRegistration = ({
   const company: Company = normalizeCompany({
     id: companyId,
     companyName: registration.businessName,
+    legalName: registration.businessName,
     ownerName: registration.ownerName,
+    authorizedPerson: registration.ownerName,
+    authorizedPhone: registration.phone,
+    authorizedEmail: registration.email,
     phone: registration.phone,
     email: registration.email,
     city: registration.city,
@@ -5524,6 +5596,11 @@ export const completeCompanySetupFromRegistration = ({
     taxOffice: registration.taxOffice,
     address: registration.address,
     status: 'Aktif',
+    isApproved: true,
+    approvedAt: now,
+    approvedBy: user.id,
+    workspaceId: `workspace_${companyId}`,
+    defaultBranchId: branchId,
     createdAt: now,
     updatedAt: now
   })
@@ -5570,6 +5647,13 @@ export const completeCompanySetupFromRegistration = ({
   saveBranches([branch, ...branches])
   saveUsers([adminUser, ...users])
   saveCompanySetups([setup, ...existingSetups.filter(item => item.registrationId !== registration.id)])
+  recordCompanyAuditEvent({
+    company,
+    eventType: 'COMPANY_CREATED',
+    actorUserId: user.id,
+    actorName: user.fullName || user.username,
+    description: `${company.companyName} Company kaydı legacy kurulum sihirbazı ile oluşturuldu.`
+  })
 
   addActionLog({
     operationType: 'Firma oluşturuldu',
@@ -5610,7 +5694,6 @@ export type BusinessApplicationFormInput = {
   city: string
   district: string
   address: string
-  requestedPackage: string
   note?: string
 }
 
@@ -5658,7 +5741,6 @@ const normalizeApplicationInput = (input: BusinessApplicationFormInput): Busines
   city: input.city.trim(),
   district: input.district.trim(),
   address: input.address.trim(),
-  requestedPackage: normalizeBusinessApplicationPackage(input.requestedPackage),
   note: String(input.note || '').trim()
 })
 
@@ -5674,7 +5756,6 @@ const validateBusinessApplicationInput = (input: BusinessApplicationFormInput) =
   if(!input.city) throw createBusinessApplicationError('Şehir zorunludur.')
   if(!input.district) throw createBusinessApplicationError('İlçe zorunludur.')
   if(!input.address) throw createBusinessApplicationError('Adres zorunludur.')
-  if(!input.requestedPackage) throw createBusinessApplicationError('Talep edilen paket zorunludur.')
 }
 
 const createTenantCodeForApplication = (companyName: string, tenants: Tenant[]) => {
@@ -5692,14 +5773,6 @@ const createTenantCodeForApplication = (companyName: string, tenants: Tenant[]) 
   return code
 }
 
-const resolvePackageForApplication = (requestedPackage: string, packages: LicensePackage[]) => {
-  const normalizedRequested = requestedPackage.toLocaleLowerCase('tr-TR')
-  return packages.find(packageItem => packageItem.name.toLocaleLowerCase('tr-TR') === normalizedRequested)
-    || packages.find(packageItem => packageItem.id.toLocaleLowerCase('tr-TR').includes(slugifySetupValue(requestedPackage).replace(/\./g, '')))
-    || packages.find(packageItem => packageItem.isActive)
-    || packages[0]
-}
-
 const upsertApplication = (application: BusinessApplication) => {
   const applications = loadBusinessApplications()
   const nextApplications = applications.some(item => item.id === application.id)
@@ -5709,21 +5782,97 @@ const upsertApplication = (application: BusinessApplication) => {
   return nextApplications
 }
 
+const findPendingCompanyForApplication = (application: BusinessApplication, companies = loadCompanies({ allTenants: true, includeDeleted: true })) => {
+  if(application.companyId){
+    const company = companies.find(item => item.id === application.companyId)
+    if(company) return company
+  }
+
+  const taxNumber = application.taxNumber.trim()
+  if(!taxNumber) return undefined
+
+  return companies.find(company => (
+    !company.deletedAt
+    && !company.isApproved
+    && company.taxNumber === taxNumber
+  ))
+}
+
+const assertUniqueCompanyTaxNumberForApplication = (taxNumber: string, companies = loadCompanies({ allTenants: true, includeDeleted: true })) => {
+  const normalizedTaxNumber = taxNumber.trim()
+  if(!normalizedTaxNumber) return
+
+  if(companies.some(company => !company.deletedAt && company.taxNumber === normalizedTaxNumber)){
+    throw createBusinessApplicationError('Bu vergi numarası ile kayıtlı bir işletme zaten mevcut.')
+  }
+}
+
+const createPendingCompanyFromApplication = (
+  application: BusinessApplication,
+  now: string,
+  companies = loadCompanies({ allTenants: true, includeDeleted: true })
+) => {
+  assertUniqueCompanyTaxNumberForApplication(application.taxNumber, companies)
+
+  const companyId = application.companyId || createCompanySetupStorageId('company')
+  return normalizeCompany({
+    id: companyId,
+    companyName: application.companyName,
+    legalName: application.companyName,
+    ownerName: application.ownerName,
+    authorizedPerson: application.ownerName,
+    authorizedPhone: application.phone,
+    authorizedEmail: application.email,
+    phone: application.phone,
+    email: application.email,
+    city: application.city,
+    district: application.district,
+    taxNumber: application.taxNumber,
+    taxOffice: application.taxOffice,
+    address: application.address,
+    status: 'Başvuru Bekliyor',
+    isApproved: false,
+    approvedAt: '',
+    approvedBy: '',
+    workspaceId: `workspace_${companyId}`,
+    defaultBranchId: '',
+    tenantId: '',
+    subscriptionId: '',
+    licenseStart: '',
+    licenseEnd: '',
+    createdAt: now,
+    updatedAt: now,
+    deletedAt: ''
+  })
+}
+
 export const submitBusinessApplication = (input: BusinessApplicationFormInput) => {
   const normalized = normalizeApplicationInput(input)
   validateBusinessApplicationInput(normalized)
 
   const now = new Date().toISOString()
+  const companies = loadCompanies({ allTenants: true, includeDeleted: true })
+  const companyId = createCompanySetupStorageId('company')
   const application = normalizeBusinessApplication({
     id: createTenantStorageId('business_application'),
+    companyId,
     ...normalized,
     status: 'Beklemede',
     approvalNote: '',
     createdAt: now,
     updatedAt: now
   })
+  const company = createPendingCompanyFromApplication(application, now, companies)
 
+  saveCompanies([company, ...companies])
   saveBusinessApplications([application, ...loadBusinessApplications()])
+  recordCompanyAuditEvent({
+    company,
+    eventType: 'COMPANY_CREATED',
+    actorUserId: publicApplicationUser.id,
+    actorName: publicApplicationUser.fullName,
+    description: `${company.companyName} Company kaydı işletme başvurusu ile oluşturuldu.`
+  })
 
   if(normalized.note){
     saveApplicationNotes([
@@ -5743,13 +5892,12 @@ export const submitBusinessApplication = (input: BusinessApplicationFormInput) =
     user: publicApplicationUser,
     tableId: application.id,
     tableName: application.companyName,
-    description: `${application.companyName} işletme başvurusu dış form üzerinden oluşturuldu. Paket: ${application.requestedPackage}.`
+    description: `${application.companyName} işletme başvurusu dış form üzerinden oluşturuldu. Başlangıç kapsamı: çekirdek sistem modülleri.`
   })
   recordBusinessApplicationNotification({
     id: application.id,
     companyName: application.companyName,
-    ownerName: application.ownerName,
-    requestedPackage: application.requestedPackage
+    ownerName: application.ownerName
   })
 
   return application
@@ -5828,10 +5976,14 @@ export const approveBusinessApplication = (applicationId: string, approvalNote: 
   if(application.status === 'Reddedildi') throw createBusinessApplicationError('Reddedilen başvuru onaylanamaz.')
 
   const now = new Date().toISOString()
-  const companies = loadCompanies()
+  const companies = loadCompanies({ allTenants: true, includeDeleted: true })
+  const existingCompany = findPendingCompanyForApplication(application, companies)
+  if(!existingCompany){
+    assertUniqueCompanyTaxNumberForApplication(application.taxNumber, companies)
+  }
   const tenants = loadTenants()
   const tenantId = createTenantStorageId('tenant')
-  const companyId = createCompanySetupStorageId('company')
+  const companyId = existingCompany?.id || createCompanySetupStorageId('company')
   const branchId = createCompanySetupStorageId('branch')
   const authUserId = createCompanySetupStorageId('user')
   const companyUserId = createCompanySetupStorageId('company_user')
@@ -5843,20 +5995,23 @@ export const approveBusinessApplication = (applicationId: string, approvalNote: 
   if(allUsers.some(item => item.username.toLowerCase() === ownerUsername)){
     throw createBusinessApplicationError('Bu e-posta ile kullanıcı zaten mevcut.')
   }
-  const packages = loadLicensePackages()
-  const packageItem = resolvePackageForApplication(application.requestedPackage, packages)
   const startDate = new Date(now).toLocaleDateString('sv-SE')
-  const trialDays = Math.max(0, packageItem?.trialDays || 0)
-  const trialEndDate = trialDays > 0 ? addLicenseDays(startDate, trialDays) : ''
-  const endDate = trialDays > 0 ? trialEndDate : addLicenseDays(startDate, 365)
+  const trialEndDate = ''
+  const endDate = addLicenseDays(startDate, 365)
   const ownerName = application.ownerName || application.companyName
   const tenantCode = createTenantCodeForApplication(application.companyName, tenants)
+  const workspaceId = existingCompany?.workspaceId || `workspace_${companyId}`
 
   const company = normalizeCompany({
+    ...existingCompany,
     id: companyId,
     tenantId,
     companyName: application.companyName,
+    legalName: existingCompany?.legalName || application.companyName,
     ownerName,
+    authorizedPerson: ownerName,
+    authorizedPhone: application.phone,
+    authorizedEmail: application.email,
     phone: application.phone,
     email: application.email,
     city: application.city,
@@ -5865,7 +6020,16 @@ export const approveBusinessApplication = (applicationId: string, approvalNote: 
     taxOffice: application.taxOffice,
     address: application.address,
     status: 'Aktif',
-    createdAt: now,
+    isApproved: true,
+    approvedAt: now,
+    approvedBy: user.id,
+    workspaceId,
+    defaultBranchId: branchId,
+    subscriptionId,
+    licenseStart: startDate,
+    licenseEnd: endDate,
+    deletedAt: '',
+    createdAt: existingCompany?.createdAt || now,
     updatedAt: now
   })
   const tenant = normalizeTenant({
@@ -5921,11 +6085,11 @@ export const approveBusinessApplication = (applicationId: string, approvalNote: 
     id: licenseId,
     tenantId,
     companyId,
-    packageId: packageItem?.id || '',
-    status: trialDays > 0 ? 'Deneme' : 'Aktif',
+    packageId: 'core_workspace',
+    status: 'Aktif',
     startDate,
     endDate,
-    isTrial: trialDays > 0,
+    isTrial: false,
     trialEndDate,
     lastRenewalDate: '',
     nextRenewalDate: endDate,
@@ -5958,6 +6122,7 @@ export const approveBusinessApplication = (applicationId: string, approvalNote: 
   })
   const approvedApplication = normalizeBusinessApplication({
     ...application,
+    companyId,
     status: 'Onaylandı',
     approvalNote: approvalNote.trim(),
     updatedAt: now
@@ -5976,7 +6141,9 @@ export const approveBusinessApplication = (applicationId: string, approvalNote: 
 
   saveTenants([tenant, ...tenants])
   saveTenantSettings([createDefaultTenantSettings(tenant.id, now), ...loadTenantSettings().filter(settings => settings.tenantId !== tenant.id)])
-  saveCompanies([company, ...companies])
+  saveCompanies(existingCompany
+    ? companies.map(item => item.id === existingCompany.id ? company : item)
+    : [company, ...companies])
   saveBranches([branch, ...loadBranches()])
   saveUsers([ownerUser, ...allUsers])
   saveCompanyUsers([companyUser, ...loadCompanyUsers()])
@@ -5992,7 +6159,7 @@ export const approveBusinessApplication = (applicationId: string, approvalNote: 
     tenantId,
     tableId: approvedApplication.id,
     tableName: approvedApplication.companyName,
-    description: `${approvedApplication.companyName} başvurusu onaylandı. Paket: ${approvedApplication.requestedPackage}.`
+    description: `${approvedApplication.companyName} başvurusu onaylandı. Workspace çekirdek sistem modülleri ile oluşturuldu.`
   })
   addActionLog({
     operationType: 'Firma otomatik oluşturuldu',
@@ -6001,6 +6168,22 @@ export const approveBusinessApplication = (applicationId: string, approvalNote: 
     tableId: company.id,
     tableName: company.companyName,
     description: `${company.companyName} firması başvuru onayıyla otomatik oluşturuldu.`
+  })
+  if(!existingCompany){
+    recordCompanyAuditEvent({
+      company,
+      eventType: 'COMPANY_CREATED',
+      actorUserId: user.id,
+      actorName: user.fullName || user.username,
+      description: `${company.companyName} Company kaydı eski başvuru onayı sırasında oluşturuldu.`
+    })
+  }
+  recordCompanyAuditEvent({
+    company,
+    eventType: 'COMPANY_APPROVED',
+    actorUserId: user.id,
+    actorName: user.fullName || user.username,
+    description: `${company.companyName} Company kaydı onaylandı ve tenant/workspace bağlantıları oluşturuldu.`
   })
   addActionLog({
     operationType: 'Tenant otomatik oluşturuldu',
@@ -6016,7 +6199,7 @@ export const approveBusinessApplication = (applicationId: string, approvalNote: 
     tenantId,
     tableId: license.id,
     tableName: company.companyName,
-    description: `${company.companyName} için ${packageItem?.name || approvedApplication.requestedPackage} lisansı otomatik oluşturuldu.`
+    description: `${company.companyName} için çekirdek Business Workspace lisansı otomatik oluşturuldu. İş modülü otomatik lisanslanmadı.`
   })
 
   return {

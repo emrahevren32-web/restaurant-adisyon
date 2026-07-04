@@ -1,11 +1,15 @@
 import React from 'react'
 import { SystemSettings, User } from '../types'
 import {
-  createDemoData,
   createSystemBackup,
+  getCompanyIdForUser,
+  loadCompanies,
   loadSettings,
+  loadTenantSettings,
   restoreSystemBackup,
-  saveSettings
+  saveCompanies,
+  saveSettings,
+  saveTenantSettings
 } from '../storage'
 
 type Props = {
@@ -30,10 +34,32 @@ const createBackupFileName = () => {
   return `restaurant-adisyon-yedek-${date}.json`
 }
 
+const getScopedSettings = (user: User): SystemSettings => {
+  const baseSettings = loadSettings()
+  const companyId = getCompanyIdForUser(user)
+  const company = companyId
+    ? loadCompanies({ allTenants: true }).find(item => item.id === companyId) || null
+    : null
+  const tenantSettings = company?.tenantId
+    ? loadTenantSettings().find(item => item.tenantId === company.tenantId) || null
+    : null
+
+  return {
+    ...baseSettings,
+    restaurantName: company?.companyName || baseSettings.restaurantName,
+    logoUrl: company?.logoUrl || baseSettings.logoUrl,
+    currency: tenantSettings?.currency || baseSettings.currency
+  }
+}
+
 export default function Settings({ currentUser, onSettingsChange }: Props){
-  const [settings, setSettings] = React.useState<SystemSettings>(() => loadSettings())
+  const [settings, setSettings] = React.useState<SystemSettings>(() => getScopedSettings(currentUser))
   const [restoreFile, setRestoreFile] = React.useState<File | null>(null)
   const [message, setMessage] = React.useState<Message>(null)
+
+  React.useEffect(() => {
+    setSettings(getScopedSettings(currentUser))
+  }, [currentUser])
 
   if(currentUser.role !== 'Admin'){
     return (
@@ -52,8 +78,49 @@ export default function Settings({ currentUser, onSettingsChange }: Props){
 
   const saveGeneralSettings = (event: React.FormEvent) => {
     event.preventDefault()
-    saveSettings(settings)
-    setSettings(loadSettings())
+    const companyId = getCompanyIdForUser(currentUser)
+    if(companyId){
+      const now = new Date().toISOString()
+      const companies = loadCompanies({ allTenants: true })
+      const currentCompany = companies.find(company => company.id === companyId) || null
+
+      saveCompanies(companies.map(company => company.id === companyId
+        ? {
+          ...company,
+          companyName: settings.restaurantName.trim() || company.companyName,
+          logoUrl: settings.logoUrl.trim(),
+          updatedAt: now
+        }
+        : company))
+
+      const tenantId = currentCompany?.tenantId || currentUser.tenantId
+      if(tenantId){
+        const tenantSettings = loadTenantSettings()
+        const existingTenantSettings = tenantSettings.find(item => item.tenantId === tenantId)
+        saveTenantSettings([
+          {
+            id: existingTenantSettings?.id || `tenant_settings_${tenantId}`,
+            tenantId,
+            timezone: existingTenantSettings?.timezone || 'Europe/Istanbul',
+            currency: settings.currency,
+            language: existingTenantSettings?.language || 'tr-TR',
+            dateFormat: existingTenantSettings?.dateFormat || 'DD.MM.YYYY',
+            theme: existingTenantSettings?.theme || 'Varsayılan',
+            createdAt: existingTenantSettings?.createdAt || now,
+            updatedAt: now
+          },
+          ...tenantSettings.filter(item => item.tenantId !== tenantId)
+        ])
+      }
+    }
+
+    const baseSettings = loadSettings()
+    saveSettings({
+      ...baseSettings,
+      vatRate: settings.vatRate,
+      currency: settings.currency
+    })
+    setSettings(getScopedSettings(currentUser))
     onSettingsChange?.()
     setMessage({ type: 'success', text: 'Genel ayarlar kaydedildi.' })
   }
@@ -97,17 +164,6 @@ export default function Settings({ currentUser, onSettingsChange }: Props){
         text: error instanceof Error ? error.message : 'Yedek dosyası geri yüklenemedi.'
       })
     }
-  }
-
-  const generateDemoData = () => {
-    const confirmed = window.confirm('Demo veri oluşturmak mevcut masa, ürün, kategori, mutfak ve QR talep verilerini demo setiyle yeniler. Devam etmek istiyor musunuz?')
-    if(!confirmed) return
-
-    const demo = createDemoData()
-    setMessage({
-      type: 'success',
-        text: `Demo veri oluşturuldu: ${demo.tables.length} masa, ${demo.categories.length} kategori, ${demo.products.length} ürün, ${demo.employees.length} personel, ${demo.shifts.length} vardiya, ${demo.attendances.length} puantaj, ${demo.employeePerformances.length} performans kaydı, ${demo.employeeBonuses.length} prim kaydı, ${demo.employeeAudits.length} denetim kaydı, ${demo.currentAccounts.length} cari, ${demo.creditTransactions.length} veresiye kaydı, ${demo.collectionTransactions.length} tahsilat, ${demo.supplierDebts.length} tedarikçi borcu, ${demo.supplierPayments.length} tedarikçi ödemesi, ${demo.cashTransactions.length} manuel kasa hareketi, ${demo.incomeExpenses.length} gelir gider kaydı, ${demo.cashClosings.length} gün sonu kapanışı, ${demo.cashTransfers.length} kasa devri.`
-    })
   }
 
   return (
@@ -208,16 +264,6 @@ export default function Settings({ currentUser, onSettingsChange }: Props){
               onChange={event => setRestoreFile(event.target.files?.[0] || null)}
             />
             <button className="btn primary" disabled={!restoreFile} onClick={restoreBackup} type="button">Yükle</button>
-          </div>
-        </section>
-
-        <section className="card">
-          <div className="section-header compact">
-            <h3>Sistem</h3>
-          </div>
-          <p className="muted">Demo masa, kategori ve ürün setini yeniden oluşturun.</p>
-          <div className="settings-action-box">
-            <button className="btn" onClick={generateDemoData} type="button">Demo Veri Oluştur</button>
           </div>
         </section>
       </div>

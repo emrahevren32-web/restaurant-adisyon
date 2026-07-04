@@ -5,7 +5,10 @@ export type MarketplaceModuleVisibility = 'PUBLIC' | 'PRIVATE' | 'HIDDEN'
 export type MarketplaceModuleState =
   | 'AVAILABLE'
   | 'INSTALLED'
-  | 'LICENSED'
+  | 'CONFIGURED'
+  | 'ACTIVE'
+  | 'SUSPENDED'
+  | 'UNINSTALLED'
   | 'DISABLED'
   | 'COMING_SOON'
 
@@ -14,6 +17,37 @@ export type MarketplaceLicenseState =
   | 'LICENSED'
   | 'NOT_REQUIRED'
   | 'DISABLED'
+
+export type MarketplaceCatalogTab =
+  | 'all'
+  | 'recommended'
+  | 'installed'
+  | 'suspended'
+  | 'not-installed'
+  | 'coming-soon'
+
+export type MarketplaceCatalogTabDefinition = {
+  key: MarketplaceCatalogTab
+  label: string
+  description: string
+  displayOrder: number
+}
+
+export type MarketplaceModuleBadgeType =
+  | 'installed'
+  | 'configured'
+  | 'active'
+  | 'suspended'
+  | 'uninstalled'
+  | 'recommended'
+  | 'coming-soon'
+  | 'new'
+  | 'disabled'
+
+export type MarketplaceModuleBadge = {
+  type: MarketplaceModuleBadgeType
+  label: string
+}
 
 export type MarketplaceCommercialModel = {
   pricingReady: boolean
@@ -45,6 +79,7 @@ export type MarketplaceModule = {
   visibility: MarketplaceModuleVisibility
   installState: MarketplaceModuleState
   licenseState: MarketplaceLicenseState
+  badges: MarketplaceModuleBadge[]
   commercial: MarketplaceCommercialModel
   workspaceConnection: MarketplaceWorkspaceConnection
 }
@@ -54,6 +89,7 @@ export type MarketplaceCatalogQuery = {
   category?: string
   moduleType?: WorkspaceModuleType | 'all'
   state?: MarketplaceModuleState | 'all'
+  tab?: MarketplaceCatalogTab
 }
 
 export type MarketplaceFilterOptions = {

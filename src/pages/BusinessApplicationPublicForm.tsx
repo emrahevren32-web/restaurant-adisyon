@@ -1,5 +1,5 @@
 import React from 'react'
-import { BUSINESS_APPLICATION_PACKAGES, BusinessApplicationFormInput, submitBusinessApplication } from '../storage'
+import { BusinessApplicationFormInput, submitBusinessApplication } from '../storage'
 import type { BusinessApplication } from '../types'
 
 const createEmptyForm = (): BusinessApplicationFormInput => ({
@@ -12,7 +12,6 @@ const createEmptyForm = (): BusinessApplicationFormInput => ({
   city: '',
   district: '',
   address: '',
-  requestedPackage: BUSINESS_APPLICATION_PACKAGES[0],
   note: ''
 })
 
@@ -118,18 +117,11 @@ export default function BusinessApplicationPublicForm(){
             <textarea rows={3} value={values.address} onChange={event => updateField('address', event.target.value)} required />
           </div>
           <div className="form-field">
-            <label>Talep Edilen Paket</label>
-            <select value={values.requestedPackage} onChange={event => updateField('requestedPackage', event.target.value)} required>
-              {BUSINESS_APPLICATION_PACKAGES.map(packageName => (
-                <option key={packageName} value={packageName}>{packageName}</option>
-              ))}
-            </select>
-          </div>
-          <div className="form-field">
             <label>Not</label>
             <textarea rows={4} value={values.note} onChange={event => updateField('note', event.target.value)} />
           </div>
           <div className="form-actions">
+            <button className="btn" type="button" onClick={returnHome}>Ana Sayfaya Dön</button>
             <button className="btn primary" type="submit">Başvuruyu Gönder</button>
           </div>
         </form>

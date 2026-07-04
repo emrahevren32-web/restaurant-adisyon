@@ -23,6 +23,7 @@ export type WorkspaceModuleActivationResolver = (module: BusinessWorkspaceModule
 
 type CreateBusinessWorkspaceNavGroupsOptions = {
   isModuleEnabled?: WorkspaceModuleActivationResolver
+  isCoreModuleVisible?: WorkspaceModuleActivationResolver
 }
 
 const toShellNavItem = (
@@ -42,10 +43,12 @@ const toShellNavItem = (
 
 const getModuleMenuItems = (
   moduleType: BusinessWorkspaceModule['moduleType'],
-  isModuleEnabled?: WorkspaceModuleActivationResolver
+  isModuleEnabled?: WorkspaceModuleActivationResolver,
+  isCoreModuleVisible?: WorkspaceModuleActivationResolver
 ) => {
   return getBusinessWorkspaceModules(moduleType)
     .filter(module => {
+      if(module.isCoreModule && isCoreModuleVisible && !isCoreModuleVisible(module)) return false
       if(module.isCoreModule || module.isAlwaysActive) return true
       return isModuleEnabled ? isModuleEnabled(module) : true
     })
@@ -57,25 +60,35 @@ const getModuleMenuItems = (
 }
 
 export const createBusinessWorkspaceNavGroups = ({
-  isModuleEnabled
+  isModuleEnabled,
+  isCoreModuleVisible
 }: CreateBusinessWorkspaceNavGroupsOptions = {}): BusinessWorkspaceNavGroup[] => [
   {
     key: 'system-modules',
     title: 'SİSTEM MODÜLLERİ',
     icon: 'SM',
-    items: getModuleMenuItems(WORKSPACE_MODULE_TYPES.CORE_SYSTEM, isModuleEnabled)
+    items: getModuleMenuItems(WORKSPACE_MODULE_TYPES.CORE_SYSTEM, isModuleEnabled, isCoreModuleVisible)
   },
   {
     key: 'business-modules',
     title: 'İŞ MODÜLLERİ',
     icon: 'IM',
-    items: getModuleMenuItems(WORKSPACE_MODULE_TYPES.BUSINESS, isModuleEnabled)
+    emptyTitle: 'Henüz modül yüklenmedi.',
+    emptyDescription: "Marketplace'ten ilk modülünüzü kurabilirsiniz.",
+    emptyAction: {
+      key: 'marketplace',
+      label: "Marketplace'e Git",
+      route: 'marketplace',
+      icon: 'MP',
+      adminOnly: true
+    },
+    items: getModuleMenuItems(WORKSPACE_MODULE_TYPES.BUSINESS, isModuleEnabled, isCoreModuleVisible)
   },
   {
     key: 'integration-modules',
     title: 'ENTEGRASYON MODÜLLERİ',
     icon: 'EN',
-    items: getModuleMenuItems(WORKSPACE_MODULE_TYPES.INTEGRATION, isModuleEnabled)
+    items: getModuleMenuItems(WORKSPACE_MODULE_TYPES.INTEGRATION, isModuleEnabled, isCoreModuleVisible)
   }
 ]
 
