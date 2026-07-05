@@ -58,7 +58,7 @@ const whyItems: WhyItem[] = [
   },
   {
     title: 'Modüler Yapı',
-    description: 'Adisyon, QR Menü, stok, cari, finans ve personel modülleri ihtiyaca göre aktif edilir.'
+    description: 'İşlem Yönetimi, Dijital Katalog, stok, cari, finans ve personel modülleri ihtiyaca göre aktif edilir.'
   },
   {
     title: 'Çoklu Şube',

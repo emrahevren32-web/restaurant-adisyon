@@ -31,7 +31,7 @@ const currencyOptions = [
 
 const createBackupFileName = () => {
   const date = new Date().toLocaleDateString('sv-SE')
-  return `restaurant-adisyon-yedek-${date}.json`
+  return `miyop-workspace-yedek-${date}.json`
 }
 
 const getScopedSettings = (user: User): SystemSettings => {

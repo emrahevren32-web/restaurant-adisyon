@@ -128,7 +128,7 @@ export default function StaffTracking(){
 
       <div className="metric-grid">
         <div className="metric-card">
-          <span>En yüksek satış</span>
+          <span>En yüksek gelir</span>
           <strong>{topSales && topSales.totalSales > 0 ? topSales.name : '-'}</strong>
           <p className="muted">{topSales ? formatCurrency(topSales.totalSales) : formatCurrency(0)}</p>
         </div>
@@ -160,9 +160,9 @@ export default function StaffTracking(){
               <tr>
                 <th>Personel</th>
                 <th>Rolü</th>
-                <th>Açtığı Masa</th>
+                <th>Açtığı Alan</th>
                 <th>Kapattığı Hesap</th>
-                <th>Satış</th>
+                <th>Gelir</th>
                 <th>İndirim</th>
                 <th>İkram</th>
                 <th>İşlem</th>
@@ -177,7 +177,7 @@ export default function StaffTracking(){
                   <td>
                     <strong>{item.name}</strong>
                     <div className="muted small-text">
-                      Satış: {formatCurrency(item.totalSales)} · Hesap: {item.closedBillCount} · İşlem: {item.actionCount}
+                      Gelir: {formatCurrency(item.totalSales)} · Hesap: {item.closedBillCount} · İşlem: {item.actionCount}
                     </div>
                   </td>
                   <td>{item.role}</td>

@@ -514,18 +514,18 @@ export default function SalesRevenueAnalysis(){
   ]
 
   const revenueAnalysisItems = [
-    { label: 'Günlük Ciro Listesi', value: formatCurrency(filteredRevenue), detail: `${formatNumber(dailyRows.length)} gün / ${range.label}` },
-    { label: 'Bu Hafta Satışları', value: formatCurrency(getRevenue(weekBills)), detail: `${formatNumber(weekBills.length)} kapanan adisyon` },
-    { label: 'Bu Ay Satışları', value: formatCurrency(getRevenue(monthBills)), detail: `${formatNumber(monthBills.length)} kapanan adisyon` },
-    { label: 'Son 30 Günlük Ciro Özeti', value: formatCurrency(getRevenue(last30Bills)), detail: `${formatNumber(last30Bills.length)} kapanan adisyon` }
+    { label: 'Günlük Gelir Listesi', value: formatCurrency(filteredRevenue), detail: `${formatNumber(dailyRows.length)} gün / ${range.label}` },
+    { label: 'Bu Hafta İşlemleri', value: formatCurrency(getRevenue(weekBills)), detail: `${formatNumber(weekBills.length)} kapanan işlem` },
+    { label: 'Bu Ay İşlemleri', value: formatCurrency(getRevenue(monthBills)), detail: `${formatNumber(monthBills.length)} kapanan işlem` },
+    { label: 'Son 30 Günlük Gelir Özeti', value: formatCurrency(getRevenue(last30Bills)), detail: `${formatNumber(last30Bills.length)} kapanan işlem` }
   ]
 
   return (
     <div className="sales-analysis-page">
       <div className="page-title dashboard-title">
         <div>
-          <h2>Satış ve Ciro Analizleri</h2>
-          <p className="muted">Satış performansınızı ve gelir dağılımınızı analiz edin.</p>
+          <h2>Gelir Analizi</h2>
+          <p className="muted">İşletme performansınızı ve gelir dağılımınızı analiz edin.</p>
         </div>
         <div className="dashboard-title-actions">
           <span className="status-pill info-pill">{range.label}</span>
@@ -537,7 +537,7 @@ export default function SalesRevenueAnalysis(){
         <div className="section-header">
           <div>
             <h3>Filtreler</h3>
-            <p className="muted">Seçili aralık değiştiğinde satış, saat, ödeme, masa ve trend kırılımları güncellenir.</p>
+            <p className="muted">Seçili aralık değiştiğinde işlem, saat, ödeme, alan ve trend kırılımları güncellenir.</p>
           </div>
           <div className="toolbar-controls sales-analysis-filters">
             <select value={rangeMode} onChange={event => setRangeMode(event.target.value as DateRangeMode)}>
@@ -564,24 +564,24 @@ export default function SalesRevenueAnalysis(){
       </section>
 
       <div className="metric-grid dashboard-kpi-grid">
-        <KpiCard label="Bugünkü Ciro" value={formatCurrency(getRevenue(todayBills))} detail={`${formatNumber(todayBills.length)} kapanan adisyon`} />
-        <KpiCard label="Bu Haftaki Ciro" value={formatCurrency(getRevenue(weekBills))} detail={`${weekStart} - ${todayKey}`} />
-        <KpiCard label="Bu Aylık Ciro" value={formatCurrency(getRevenue(monthBills))} detail={`${monthStart} - ${todayKey}`} />
-        <KpiCard label="Toplam Satış Adedi" value={formatNumber(filteredOrderCount)} detail={`${formatNumber(filteredProductVariantCount)} ürün çeşidi / ${range.label}`} />
+        <KpiCard label="Bugünkü Gelir" value={formatCurrency(getRevenue(todayBills))} detail={`${formatNumber(todayBills.length)} kapanan işlem`} />
+        <KpiCard label="Bu Haftaki Gelir" value={formatCurrency(getRevenue(weekBills))} detail={`${weekStart} - ${todayKey}`} />
+        <KpiCard label="Bu Aylık Gelir" value={formatCurrency(getRevenue(monthBills))} detail={`${monthStart} - ${todayKey}`} />
+        <KpiCard label="Toplam İşlem Adedi" value={formatNumber(filteredOrderCount)} detail={`${formatNumber(filteredProductVariantCount)} ürün / hizmet çeşidi / ${range.label}`} />
       </div>
 
       <div className="metric-grid dashboard-panel-kpi-grid sales-analysis-extra-grid">
-        <KpiCard compact label="Ortalama Adisyon Tutarı" value={formatCurrency(averageBill)} detail={`${formatNumber(filteredBills.length)} adisyon`} />
-        <KpiCard compact label="En Yüksek Günlük Ciro" value={formatCurrency(highestDailyRow?.revenue || 0)} detail={highestDailyRow?.date || 'Kayıt yok'} />
-        <KpiCard compact label="En Yoğun Saat" value={busiestHour?.label || '-'} detail={busiestHour ? `${formatNumber(busiestHour.orderCount)} satış / ${formatCurrency(busiestHour.revenue)}` : 'Kayıt yok'} />
-        <KpiCard compact label="Kapanan Adisyon Sayısı" value={formatNumber(filteredBills.length)} detail={`${formatCurrency(filteredRevenue)} seçili ciro`} />
+        <KpiCard compact label="Ortalama İşlem Tutarı" value={formatCurrency(averageBill)} detail={`${formatNumber(filteredBills.length)} işlem`} />
+        <KpiCard compact label="En Yüksek Günlük Gelir" value={formatCurrency(highestDailyRow?.revenue || 0)} detail={highestDailyRow?.date || 'Kayıt yok'} />
+        <KpiCard compact label="En Yoğun Saat" value={busiestHour?.label || '-'} detail={busiestHour ? `${formatNumber(busiestHour.orderCount)} işlem / ${formatCurrency(busiestHour.revenue)}` : 'Kayıt yok'} />
+        <KpiCard compact label="Kapanan İşlem Sayısı" value={formatNumber(filteredBills.length)} detail={`${formatCurrency(filteredRevenue)} seçili gelir`} />
       </div>
 
       <section className="card">
         <div className="section-header compact dashboard-panel-header">
           <div>
-            <h3>Ciro Analizleri</h3>
-            <p className="muted">Günlük liste, hafta, ay ve son 30 günlük satış özeti.</p>
+            <h3>Gelir Analizleri</h3>
+            <p className="muted">Günlük liste, hafta, ay ve son 30 günlük işlem özeti.</p>
           </div>
           <span className={`status-pill ${selectedRangeChange >= 0 ? 'success' : 'danger-pill'}`}>Seçili aralık {formatTrend(selectedRangeChange)}</span>
         </div>
@@ -599,15 +599,15 @@ export default function SalesRevenueAnalysis(){
             <thead>
               <tr>
                 <th>Tarih</th>
-                <th>Adisyon</th>
-                <th>Satış Adedi</th>
-                <th>Ciro</th>
+                <th>İşlem</th>
+                <th>İşlem Adedi</th>
+                <th>Gelir</th>
               </tr>
             </thead>
             <tbody>
               {dailyRows.length === 0 && (
                 <tr>
-                  <td className="empty-cell" colSpan={4}>Seçili aralıkta satış kaydı yok.</td>
+                  <td className="empty-cell" colSpan={4}>Seçili aralıkta işlem kaydı yok.</td>
                 </tr>
               )}
               {dailyRows.slice(0, 12).map(row => (
@@ -627,8 +627,8 @@ export default function SalesRevenueAnalysis(){
         <section className="card">
           <div className="section-header compact dashboard-panel-header">
             <div>
-              <h3>Saatlik Satış Analizi</h3>
-              <p className="muted">00:00 - 23:59 saat bazında satış sayısı ve ciro.</p>
+              <h3>Saatlik İşlem Analizi</h3>
+              <p className="muted">00:00 - 23:59 saat bazında işlem sayısı ve gelir.</p>
             </div>
             <span className="status-pill warning-pill">{busiestHour?.label || '-'}</span>
           </div>
@@ -637,7 +637,7 @@ export default function SalesRevenueAnalysis(){
               <div className="sales-hour-row" key={row.hour}>
                 <div>
                   <strong>{row.label}</strong>
-                  <span>{formatNumber(row.orderCount)} satış / {formatNumber(row.billCount)} adisyon</span>
+                  <span>{formatNumber(row.orderCount)} işlem / {formatNumber(row.billCount)} kayıt</span>
                 </div>
                 <div>
                   <strong>{formatCurrency(row.revenue)}</strong>
@@ -682,29 +682,29 @@ export default function SalesRevenueAnalysis(){
         <section className="card">
           <div className="section-header compact dashboard-panel-header">
             <div>
-              <h3>Masa Analizi</h3>
-              <p className="muted">Masa bazında ciro, sipariş ve kullanım durumu.</p>
+              <h3>Alan Analizi</h3>
+              <p className="muted">Alan bazında gelir, talep ve kullanım durumu.</p>
             </div>
-            <span className="status-pill info-pill">{formatNumber(tableRows.length)} masa</span>
+            <span className="status-pill info-pill">{formatNumber(tableRows.length)} alan</span>
           </div>
           <div className="financial-summary-values">
             <div>
-              <span>En Çok Ciro Üreten Masa</span>
+              <span>En Çok Gelir Üreten Alan</span>
               <strong>{getRowName(topRevenueTable)}</strong>
               <p className="muted small-text">{formatCurrency(topRevenueTable?.revenue || 0)}</p>
             </div>
             <div>
-              <span>En Çok Sipariş Alan Masa</span>
+              <span>En Çok Talep Alan Alan</span>
               <strong>{getRowName(topOrderTable)}</strong>
-              <p className="muted small-text">{formatNumber(topOrderTable?.orderCount || 0)} satış</p>
+              <p className="muted small-text">{formatNumber(topOrderTable?.orderCount || 0)} işlem</p>
             </div>
             <div>
-              <span>En Az Kullanılan Masa</span>
+              <span>En Az Kullanılan Alan</span>
               <strong>{getRowName(leastUsedTable)}</strong>
               <p className="muted small-text">{formatNumber(leastUsedTable?.billCount || 0)} adisyon</p>
             </div>
             <div>
-              <span>Seçili Aralık Cirosu</span>
+              <span>Seçili Aralık Geliri</span>
               <strong>{formatCurrency(filteredRevenue)}</strong>
               <p className="muted small-text">{range.label}</p>
             </div>

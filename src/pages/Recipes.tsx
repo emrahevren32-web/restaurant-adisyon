@@ -186,7 +186,7 @@ export default function Recipes({ currentUser }: Props){
           eventType: 'deactivated',
           before: recipe,
           after: nextRecipe,
-          note: `${draftRecipe.productName} için tek aktif reçete kuralı gereği pasif yapıldı.`
+          note: `${draftRecipe.productName} için tek aktif üretim tanımı kuralı gereği pasif yapıldı.`
         })
 
         return nextRecipe
@@ -243,17 +243,17 @@ export default function Recipes({ currentUser }: Props){
           eventType: 'updated',
           before: editingRecipe,
           after: updatedRecipe,
-          note: `${updatedRecipe.productName} reçetesi güncellendi. Versiyon: ${updatedRecipe.recipeVersion}.`
+          note: `${updatedRecipe.productName} üretim tanımı güncellendi. Versiyon: ${updatedRecipe.recipeVersion}.`
         },
         ...auditEntries
       ])
       addActionLog({
-        operationType: 'Reçete güncellendi',
+        operationType: 'Üretim Tanımı güncellendi',
         user: currentUser,
-        description: `${getUserName(currentUser)} ${updatedRecipe.productName} için ${updatedRecipe.name} reçetesini güncelledi. Versiyon: ${updatedRecipe.recipeVersion}. Maliyet: ${formatCurrency(updatedRecipe.costSnapshot?.totalCost || 0)}.`
+        description: `${getUserName(currentUser)} ${updatedRecipe.productName} için ${updatedRecipe.name} üretim tanımını güncelledi. Versiyon: ${updatedRecipe.recipeVersion}. Maliyet: ${formatCurrency(updatedRecipe.costSnapshot?.totalCost || 0)}.`
       })
       setEditingRecipe(null)
-      setMessage({ type: 'success', text: `${updatedRecipe.productName} reçetesi güncellendi.` })
+      setMessage({ type: 'success', text: `${updatedRecipe.productName} üretim tanımı güncellendi.` })
       return
     }
 
@@ -285,16 +285,16 @@ export default function Recipes({ currentUser }: Props){
         eventType: 'created',
         before: undefined,
         after: recipe,
-        note: `${recipe.productName} için ${recipe.name} reçetesi oluşturuldu.`
+        note: `${recipe.productName} için ${recipe.name} üretim tanımı oluşturuldu.`
       },
       ...auditEntries
     ])
     addActionLog({
-      operationType: 'Reçete oluşturuldu',
+      operationType: 'Üretim Tanımı oluşturuldu',
       user: currentUser,
-      description: `${getUserName(currentUser)} ${recipe.productName} için ${recipe.name} reçetesini oluşturdu. Versiyon: ${recipe.recipeVersion}. Maliyet: ${formatCurrency(recipe.costSnapshot?.totalCost || 0)}.`
+      description: `${getUserName(currentUser)} ${recipe.productName} için ${recipe.name} üretim tanımını oluşturdu. Versiyon: ${recipe.recipeVersion}. Maliyet: ${formatCurrency(recipe.costSnapshot?.totalCost || 0)}.`
     })
-    setMessage({ type: 'success', text: `${recipe.productName} reçetesi oluşturuldu.` })
+    setMessage({ type: 'success', text: `${recipe.productName} üretim tanımı oluşturuldu.` })
   }
 
   const copyRecipe = (recipe: Recipe) => {
@@ -334,15 +334,15 @@ export default function Recipes({ currentUser }: Props){
         eventType: 'copied',
         before: recipe,
         after: copiedRecipe,
-        note: `${recipe.name} reçetesinden kopya oluşturuldu.`
+        note: `${recipe.name} üretim tanımından kopya oluşturuldu.`
       }
     ])
     addActionLog({
-      operationType: 'Reçete kopyalandı',
+      operationType: 'Üretim Tanımı kopyalandı',
       user: currentUser,
-      description: `${getUserName(currentUser)} ${recipe.productName} için ${recipe.name} reçetesini kopyaladı. Yeni versiyon: ${copiedRecipe.recipeVersion}.`
+      description: `${getUserName(currentUser)} ${recipe.productName} için ${recipe.name} üretim tanımını kopyaladı. Yeni versiyon: ${copiedRecipe.recipeVersion}.`
     })
-    setMessage({ type: 'success', text: `${copiedRecipe.productName} reçetesi kopyalandı.` })
+    setMessage({ type: 'success', text: `${copiedRecipe.productName} üretim tanımı kopyalandı.` })
   }
 
   const toggleRecipeStatus = (recipe: Recipe) => {
@@ -366,21 +366,21 @@ export default function Recipes({ currentUser }: Props){
         eventType,
         before: recipe,
         after: nextRecipe,
-        note: `${recipe.productName} reçetesi ${nextRecipe.active ? 'aktif' : 'pasif'} yapıldı.`
+        note: `${recipe.productName} üretim tanımı ${nextRecipe.active ? 'aktif' : 'pasif'} yapıldı.`
       },
       ...auditEntries
     ])
     addActionLog({
-      operationType: nextRecipe.active ? 'Reçete aktif yapıldı' : 'Reçete pasif yapıldı',
+      operationType: nextRecipe.active ? 'Üretim Tanımı aktif yapıldı' : 'Üretim Tanımı pasif yapıldı',
       user: currentUser,
-      description: `${getUserName(currentUser)} ${recipe.productName} için ${recipe.name} reçetesini ${nextRecipe.active ? 'aktif' : 'pasif'} yaptı.`
+      description: `${getUserName(currentUser)} ${recipe.productName} için ${recipe.name} üretim tanımını ${nextRecipe.active ? 'aktif' : 'pasif'} yaptı.`
     })
-    setMessage({ type: 'success', text: `${recipe.productName} reçetesi ${nextRecipe.active ? 'aktif' : 'pasif'} yapıldı.` })
+    setMessage({ type: 'success', text: `${recipe.productName} üretim tanımı ${nextRecipe.active ? 'aktif' : 'pasif'} yapıldı.` })
   }
 
   const deleteRecipe = (recipe: Recipe) => {
     if(!canManageRecipes || recipe.deletedAt) return
-    if(!confirm(`${recipe.productName} için ${recipe.name} reçetesi silinecek. Geçmiş kayıtlar korunacak. Devam etmek istiyor musunuz?`)) return
+    if(!confirm(`${recipe.productName} için ${recipe.name} üretim tanımı silinecek. Geçmiş kayıtlar korunacak. Devam etmek istiyor musunuz?`)) return
 
     const now = new Date().toISOString()
     const deletedRecipe: Recipe = {
@@ -401,16 +401,16 @@ export default function Recipes({ currentUser }: Props){
         eventType: 'deleted',
         before: recipe,
         after: deletedRecipe,
-        note: `${recipe.productName} reçetesi soft-delete olarak işaretlendi.`
+        note: `${recipe.productName} üretim tanımı soft-delete olarak işaretlendi.`
       }
     ])
     addActionLog({
-      operationType: 'Reçete silindi',
+      operationType: 'Üretim Tanımı silindi',
       user: currentUser,
-      description: `${getUserName(currentUser)} ${recipe.productName} için ${recipe.name} reçetesini sildi. Geçmiş korundu.`
+      description: `${getUserName(currentUser)} ${recipe.productName} için ${recipe.name} üretim tanımını sildi. Geçmiş korundu.`
     })
     if(editingRecipe?.id === recipe.id) setEditingRecipe(null)
-    setMessage({ type: 'success', text: `${recipe.productName} reçetesi silindi.` })
+    setMessage({ type: 'success', text: `${recipe.productName} üretim tanımı silindi.` })
   }
 
   if(!canManageRecipes){
@@ -418,7 +418,7 @@ export default function Recipes({ currentUser }: Props){
       <div className="recipes-page">
         <section className="card">
           <h2>Yetkisiz Erişim</h2>
-          <p className="muted">Reçete yönetimi ekranını sadece Yönetici rolündeki kullanıcılar görebilir.</p>
+          <p className="muted">Üretim tanımı ekranını sadece Yönetici rolündeki kullanıcılar görebilir.</p>
         </section>
       </div>
     )
@@ -428,8 +428,8 @@ export default function Recipes({ currentUser }: Props){
     <div className="recipes-page">
       <div className="page-title">
         <div>
-          <h2>Reçete Yönetimi</h2>
-          <p className="muted">Ürünlerin hangi hammaddelerden oluştuğunu, fire oranını, reçete maliyetini ve versiyon geçmişini yönetin.</p>
+          <h2>Üretim Tanımları</h2>
+          <p className="muted">Ürün veya hizmetlerin hangi bileşenlerden oluştuğunu, kayıp oranını, maliyetini ve versiyon geçmişini yönetin.</p>
         </div>
       </div>
 
@@ -437,15 +437,15 @@ export default function Recipes({ currentUser }: Props){
 
       <div className="metric-grid">
         <div className="metric-card">
-          <span>Toplam Reçete</span>
+          <span>Toplam Üretim Tanımı</span>
           <strong>{liveRecipes.length}</strong>
         </div>
         <div className="metric-card">
-          <span>Aktif Reçete</span>
+          <span>Aktif Üretim Tanımı</span>
           <strong>{activeRecipeCount}</strong>
         </div>
         <div className="metric-card">
-          <span>Reçetesiz Ürün</span>
+          <span>Tanımsız Ürün / Hizmet</span>
           <strong>{productsWithoutActiveRecipeCount}</strong>
         </div>
         <div className="metric-card">
@@ -458,13 +458,13 @@ export default function Recipes({ currentUser }: Props){
         <section className="product-main card">
           <div className="section-header">
             <div>
-              <h3>Reçete Listesi</h3>
-              <p className="muted">{visibleRecipes.length} reçete gösteriliyor.</p>
+              <h3>Üretim Tanımı Listesi</h3>
+              <p className="muted">{visibleRecipes.length} üretim tanımı gösteriliyor.</p>
             </div>
             <div className="recipe-filters">
               <input
                 type="search"
-                placeholder="Ürün, reçete veya hammadde ara"
+                placeholder="Ürün, hizmet, üretim tanımı veya bileşen ara"
                 value={search}
                 onChange={event => setSearch(event.target.value)}
               />
@@ -485,10 +485,10 @@ export default function Recipes({ currentUser }: Props){
             <table className="data-table recipe-table">
               <thead>
                 <tr>
-                  <th>Ürün / Reçete</th>
+                  <th>Ürün / Hizmet / Üretim Tanımı</th>
                   <th>Versiyon</th>
                   <th>Durum</th>
-                  <th>Hammaddeler</th>
+                  <th>Bileşenler</th>
                   <th>Maliyet</th>
                   <th>Kullanıcı</th>
                   <th></th>
@@ -496,7 +496,7 @@ export default function Recipes({ currentUser }: Props){
               </thead>
               <tbody>
                 {visibleRecipes.length === 0 && (
-                  <tr><td colSpan={7} className="empty-cell">Filtrelere uygun reçete bulunamadı.</td></tr>
+                  <tr><td colSpan={7} className="empty-cell">Filtrelere uygun üretim tanımı bulunamadı.</td></tr>
                 )}
                 {visibleRecipes.map(recipe => {
                   const history = auditByRecipe[recipe.id] || []
@@ -539,7 +539,7 @@ export default function Recipes({ currentUser }: Props){
                       <td>
                         <strong>{recipe.items.length} satır</strong>
                         <div className="muted small-text">
-                          {recipe.items.slice(0, 3).map(item => `${item.stockItemName}: ${item.qty.toLocaleString('tr-TR', { maximumFractionDigits: 3 })} ${item.unit}${item.wastePercent ? ` +%${item.wastePercent} fire` : ''}`).join(' · ') || '-'}
+                          {recipe.items.slice(0, 3).map(item => `${item.stockItemName}: ${item.qty.toLocaleString('tr-TR', { maximumFractionDigits: 3 })} ${item.unit}${item.wastePercent ? ` +%${item.wastePercent} kayıp` : ''}`).join(' · ') || '-'}
                         </div>
                       </td>
                       <td>
@@ -571,7 +571,7 @@ export default function Recipes({ currentUser }: Props){
         <aside className="product-side">
           <section className="card">
             <div className="section-header compact">
-              <h3>{editingRecipe ? 'Reçete Düzenle' : 'Yeni Reçete'}</h3>
+              <h3>{editingRecipe ? 'Üretim Tanımı Düzenle' : 'Yeni Üretim Tanımı'}</h3>
               {editingRecipe && <span className="status-pill">v{editingRecipe.recipeVersion}</span>}
             </div>
             <RecipeForm

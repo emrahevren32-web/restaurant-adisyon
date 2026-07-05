@@ -615,9 +615,9 @@ export default function PersonnelPerformanceCenter(){
                 <tr>
                   <th>Personel</th>
                   <th>Performans Puanı</th>
-                  <th>Masa Sayısı</th>
-                  <th>Sipariş Sayısı</th>
-                  <th>QR Sipariş</th>
+                  <th>Alan Sayısı</th>
+                  <th>Talep Sayısı</th>
+                  <th>Dijital Talep</th>
                 </tr>
               </thead>
               <tbody>

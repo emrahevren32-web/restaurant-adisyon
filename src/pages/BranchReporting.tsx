@@ -382,7 +382,7 @@ export default function BranchReporting(){
       detail: `${rows.filter(row => row.branch.isActive).length} aktif şube`
     },
     {
-      label: 'En Yüksek Ciro',
+      label: 'En Yüksek Gelir',
       value: highestRevenueRow ? formatCurrency(highestRevenueRow.revenue) : formatCurrency(0),
       detail: highestRevenueRow?.branch.name || '-'
     },
@@ -455,10 +455,10 @@ export default function BranchReporting(){
             <thead>
               <tr>
                 <th>Şube</th>
-                <th>Toplam Ciro</th>
-                <th>Sipariş Sayısı</th>
-                <th>Ortalama Adisyon</th>
-                <th>Aktif Masa</th>
+                <th>Toplam Gelir</th>
+                <th>Talep Sayısı</th>
+                <th>Ortalama İşlem</th>
+                <th>Aktif Alan</th>
                 <th>Personel Sayısı</th>
                 <th>Durum</th>
               </tr>
@@ -489,16 +489,16 @@ export default function BranchReporting(){
       <div className="branch-reporting-grid">
         <section className="card">
           <div className="section-header compact">
-            <h3>Satış Karşılaştırması</h3>
+            <h3>Gelir Karşılaştırması</h3>
           </div>
           <div className="table-wrap compact-table-wrap">
             <table className="data-table branch-reporting-mini-table">
               <thead>
                 <tr>
                   <th>Şube</th>
-                  <th>Günlük Ciro</th>
-                  <th>Haftalık Ciro</th>
-                  <th>Aylık Ciro</th>
+                  <th>Günlük Gelir</th>
+                  <th>Haftalık Gelir</th>
+                  <th>Aylık Gelir</th>
                 </tr>
               </thead>
               <tbody>
@@ -556,8 +556,8 @@ export default function BranchReporting(){
                   <th>Şube</th>
                   <th>Stok Kalemi</th>
                   <th>Kritik Stok</th>
-                  <th>SKT Riski</th>
-                  <th>Fire Sayısı</th>
+                  <th>Geçerlilik Riski</th>
+                  <th>Kayıp Sayısı</th>
                 </tr>
               </thead>
               <tbody>
@@ -610,15 +610,15 @@ export default function BranchReporting(){
         <div className="section-header compact">
           <div>
             <h3>En İyi Şubeler</h3>
-            <p className="muted">Ciro, kârlılık, verimlilik ve personel performansı liderleri.</p>
+            <p className="muted">Gelir, kârlılık, verimlilik ve personel performansı liderleri.</p>
           </div>
         </div>
         <div className="branch-report-best-grid">
           <BestBranchCard
-            title="En Yüksek Ciro"
+            title="En Yüksek Gelir"
             row={bestRows[0]}
             value={row => formatCurrency(row.revenue)}
-            detail={row => `${formatNumber(row.orderCount)} sipariş`}
+            detail={row => `${formatNumber(row.orderCount)} talep`}
           />
           <BestBranchCard
             title="En Yüksek Kârlılık"

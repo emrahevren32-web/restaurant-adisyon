@@ -260,7 +260,7 @@ export default function TableCard({
   const mergeCurrentTable = () => {
     if(!mergeTarget) return
 
-    if(!confirm(`${table.name} içerisindeki tüm siparişler ${mergeTarget.name}'e taşınacak. Devam etmek istiyor musunuz?`)) return
+    if(!confirm(`${table.name} içerisindeki tüm talepler ${mergeTarget.name}'e taşınacak. Devam etmek istiyor musunuz?`)) return
     onMergeTables(table.id, mergeTarget.id)
   }
 
@@ -278,7 +278,7 @@ export default function TableCard({
       <div className="section-header">
         <div>
           <h3>{table.name}</h3>
-          <p className="muted">{table.open ? 'Açık adisyon' : 'Kapalı masa'}</p>
+          <p className="muted">{table.open ? 'Açık işlem' : 'Kapalı alan'}</p>
         </div>
         <div className="table-header-actions">
           <button className="btn" type="button" disabled={!table.open || table.orders.length === 0} onClick={printReceipt}>Yazdır</button>
@@ -288,9 +288,9 @@ export default function TableCard({
 
       {!table.open ? (
         <div className="closed-table-panel">
-          <strong>Bu masa şu anda kapalı.</strong>
-          <p className="muted">Sipariş eklemek için önce masayı açın.</p>
-          <button className="btn primary" onClick={()=>onOpenTable(table.id)}>Masayı Aç</button>
+          <strong>Bu alan şu anda kapalı.</strong>
+          <p className="muted">Talep eklemek için önce alanı açın.</p>
+          <button className="btn primary" onClick={()=>onOpenTable(table.id)}>Alanı Aç</button>
         </div>
       ) : (
         <>
@@ -311,10 +311,10 @@ export default function TableCard({
 
           <div className="adisyon-tools">
             <section className="tool-panel">
-              <label>Adisyon Notu</label>
+              <label>İşlem Notu</label>
               <textarea
                 rows={3}
-                placeholder="Mutfak, servis veya müşteri notu"
+                placeholder="Hazırlık, servis veya müşteri notu"
                 value={table.note || ''}
                 onChange={e=>onUpdateNote(table.id, e.target.value)}
               />
@@ -342,22 +342,22 @@ export default function TableCard({
             </section>
 
             <section className="tool-panel">
-              <label>Masa Taşıma</label>
+              <label>Alan Taşıma</label>
               <div className="discount-controls">
                 <select value={transferTargetId} onChange={e=>setTransferTargetId(e.target.value)} disabled={transferTargets.length === 0}>
-                  {transferTargets.length === 0 && <option value="">Uygun masa yok</option>}
+                  {transferTargets.length === 0 && <option value="">Uygun alan yok</option>}
                   {transferTargets.map(item => <option key={item.id} value={item.id}>{item.name}</option>)}
                 </select>
                 <button className="btn" type="button" disabled={!transferTargetId} onClick={()=>onTransferTable(table.id, transferTargetId)}>Taşı</button>
               </div>
-              <p className="muted small-text">Adisyon sadece kapalı ve boş masaya taşınır.</p>
+              <p className="muted small-text">İşlem sadece kapalı ve boş alana taşınır.</p>
             </section>
 
             <section className="tool-panel">
-              <label>Masa Birleştir</label>
+              <label>Alan Birleştir</label>
               <div className="discount-controls">
                 <select value={mergeTargetId} onChange={e=>setMergeTargetId(e.target.value)} disabled={mergeTargets.length === 0}>
-                  {mergeTargets.length === 0 && <option value="">Açık hedef masa yok</option>}
+                  {mergeTargets.length === 0 && <option value="">Açık hedef alan yok</option>}
                   {mergeTargets.map(item => (
                     <option key={item.id} value={item.id}>
                       {item.name}{item.orders.length === 0 ? ' (boş)' : ` (${item.orders.length} kalem)`}
@@ -366,14 +366,14 @@ export default function TableCard({
                 </select>
                 <button className="btn" type="button" disabled={!canMergeTable} onClick={mergeCurrentTable}>Birleştir</button>
               </div>
-              <p className="muted small-text">Kaynak ve hedef masa açık, siparişli ve farklı olmalıdır. İşlem geri alınamaz.</p>
+              <p className="muted small-text">Kaynak ve hedef alan açık, talepli ve farklı olmalıdır. İşlem geri alınamaz.</p>
             </section>
           </div>
 
           <div className="order-layout">
             <section>
               <div className="section-header compact">
-                <h3>Siparişler</h3>
+                <h3>Talepler</h3>
               </div>
               <div className="table-wrap">
                 <table className="data-table">
@@ -512,7 +512,7 @@ export default function TableCard({
                   <h3>{hasSelection ? 'Seçili Ürün Ödemesi' : 'Hesap Kapatma'}</h3>
                   <p className="muted small-text">
                     {hasSelection
-                      ? 'Seçili ürünler ödendikten sonra kalan ürünler masada kalır.'
+                      ? 'Seçili ürünler ödendikten sonra kalan ürünler alanda kalır.'
                       : 'Hesabın tamamını tek veya çoklu ödeme ile kapatın.'}
                   </p>
                 </div>
@@ -568,10 +568,10 @@ export default function TableCard({
         <div className="print-document">
           <div className="print-header">
             <h2>{settings.restaurantName}</h2>
-            <p>Adisyon Fişi</p>
+            <p>İşlem Fişi</p>
           </div>
           <div className="print-meta">
-            <span>Masa</span>
+            <span>Alan</span>
             <strong>{table.name}</strong>
           </div>
           <div className="print-meta-grid">

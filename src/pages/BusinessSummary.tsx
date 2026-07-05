@@ -358,15 +358,15 @@ export default function BusinessSummary(){
   const criticalDisciplineCount = audits.filter(audit => audit.severity === 'Kritik').length
 
   const mainKpis = [
-    { label: 'Bugünkü Ciro', value: formatCurrency(todayRevenue), detail: `${formatNumber(todayBills.length)} kapanan adisyon` },
-    { label: 'Bu Haftaki Ciro', value: formatCurrency(weekRevenue), detail: `${weekStart} - ${todayKey}` },
-    { label: 'Bu Aylık Ciro', value: formatCurrency(monthRevenue), detail: currentPeriod },
-    { label: 'Açık Adisyon Sayısı', value: formatNumber(openBillCount), detail: `${formatNumber(occupiedTables.length)} dolu masa` }
+    { label: 'Bugünkü Gelir', value: formatCurrency(todayRevenue), detail: `${formatNumber(todayBills.length)} kapanan işlem` },
+    { label: 'Bu Haftaki Gelir', value: formatCurrency(weekRevenue), detail: `${weekStart} - ${todayKey}` },
+    { label: 'Bu Aylık Gelir', value: formatCurrency(monthRevenue), detail: currentPeriod },
+    { label: 'Açık İşlem Sayısı', value: formatNumber(openBillCount), detail: `${formatNumber(occupiedTables.length)} aktif alan` }
   ]
 
   const extraKpis = [
-    { label: 'Toplam Masa', value: formatNumber(tables.length), detail: 'Tanımlı masa' },
-    { label: 'Dolu Masa', value: formatNumber(occupiedTables.length), detail: tables.length > 0 ? `${formatNumber(tables.length - occupiedTables.length)} boş masa` : 'Masa yok' },
+    { label: 'Toplam Alan', value: formatNumber(tables.length), detail: 'Tanımlı alan' },
+    { label: 'Aktif Alan', value: formatNumber(occupiedTables.length), detail: tables.length > 0 ? `${formatNumber(tables.length - occupiedTables.length)} uygun alan` : 'Alan yok' },
     { label: 'Aktif Personel', value: formatNumber(activeEmployees.length), detail: `${formatNumber(employees.length)} toplam personel` },
     { label: 'Toplam Ürün', value: formatNumber(products.length), detail: `${formatNumber(activeProducts.length)} aktif ürün` }
   ]
@@ -383,10 +383,10 @@ export default function BusinessSummary(){
   ]
 
   const operationItems: SummaryItem[] = [
-    { label: 'Bugünkü Sipariş Sayısı', value: formatNumber(todayOrderCount), detail: 'Kapanan ve açık masa siparişleri' },
-    { label: 'Tamamlanan Sipariş', value: formatNumber(completedOrderCount), detail: 'Bugün kapanan adisyonlar' },
-    { label: 'Hazırlanan Sipariş', value: formatNumber(preparedOrderCount), detail: 'Mutfakta hazır durumunda' },
-    { label: 'Bekleyen Sipariş', value: formatNumber(pendingOrderCount), detail: 'Yeni veya hazırlanıyor' }
+    { label: 'Bugünkü Talep Sayısı', value: formatNumber(todayOrderCount), detail: 'Kapanan ve açık işlem talepleri' },
+    { label: 'Tamamlanan Talep', value: formatNumber(completedOrderCount), detail: 'Bugün kapanan işlemler' },
+    { label: 'Hazırlanan Talep', value: formatNumber(preparedOrderCount), detail: 'Hazır durumunda' },
+    { label: 'Bekleyen Talep', value: formatNumber(pendingOrderCount), detail: 'Yeni veya hazırlanıyor' }
   ]
 
   const personnelItems: SummaryItem[] = [
@@ -406,7 +406,7 @@ export default function BusinessSummary(){
 
   const riskItems: SummaryItem[] = [
     { label: 'Kritik Stok Sayısı', value: formatNumber(criticalStockCount), detail: 'Min. seviyede veya altında' },
-    { label: 'SKT Riski', value: formatNumber(expiryRiskCount), detail: 'Yaklaşan veya tarihi geçmiş lot' },
+    { label: 'Geçerlilik Riski', value: formatNumber(expiryRiskCount), detail: 'Yaklaşan veya tarihi geçmiş lot' },
     { label: 'Riskli Cari Sayısı', value: formatNumber(riskyCurrentCount), detail: 'Bakiye veya tahsilat gecikmesi' },
     { label: 'Kritik Disiplin Kaydı', value: formatNumber(criticalDisciplineCount), detail: 'Personel denetim kayıtları' }
   ]
@@ -457,7 +457,7 @@ export default function BusinessSummary(){
 
         <SummaryPanel
           title="Operasyon Özeti"
-          description="Bugünkü sipariş akışı ve mutfak durumları."
+          description="Bugünkü talep akışı ve hazırlık durumları."
           badge={<span className={`status-pill ${pendingOrderCount > 0 ? 'warning-pill' : 'success'}`}>{pendingOrderCount > 0 ? `${formatNumber(pendingOrderCount)} bekleyen` : 'Bekleyen yok'}</span>}
           items={operationItems}
         />
@@ -471,7 +471,7 @@ export default function BusinessSummary(){
 
         <SummaryPanel
           title="Risk Özeti"
-          description="Stok, SKT, cari ve disiplin riskleri."
+          description="Stok, geçerlilik, cari ve disiplin riskleri."
           badge={<span className={`status-pill ${criticalStockCount + expiryRiskCount + riskyCurrentCount + criticalDisciplineCount > 0 ? 'danger-pill' : 'success'}`}>{criticalStockCount + expiryRiskCount + riskyCurrentCount + criticalDisciplineCount > 0 ? 'Risk var' : 'Risk yok'}</span>}
           items={riskItems}
         />

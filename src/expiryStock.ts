@@ -93,7 +93,7 @@ export const formatExpiryStatusLabel = (status: StockExpiryStatus) => {
   if(status === 'expired') return 'Tarihi geçti'
   if(status === 'near_expiry') return 'Yaklaşıyor'
   if(status === 'depleted') return 'Tükendi'
-  if(status === 'unknown') return 'SKT yok'
+  if(status === 'unknown') return 'Geçerlilik yok'
   return 'Geçerli'
 }
 

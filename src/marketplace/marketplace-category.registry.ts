@@ -30,9 +30,9 @@ const MARKETPLACE_WORKSPACE_CATEGORY_REGISTRY: MarketplaceWorkspaceCategoryDefin
   {
     key: 'operation',
     label: 'Operasyon',
-    description: 'Satış, sipariş, masa, QR ve günlük operasyon akışları.',
+    description: 'İşlem, talep, alan, dijital katalog ve günlük operasyon akışları.',
     displayOrder: 10,
-    tags: ['operation', 'sales', 'ordering', 'qr', 'adisyon', 'siparis', 'masa']
+    tags: ['operation', 'workflow', 'request', 'digital-catalog', 'alan']
   },
   {
     key: 'finance',
@@ -58,14 +58,14 @@ const MARKETPLACE_WORKSPACE_CATEGORY_REGISTRY: MarketplaceWorkspaceCategoryDefin
   {
     key: 'inventory',
     label: 'Stok',
-    description: 'Stok, fire, SKT ve envanter yönetimi.',
+    description: 'Stok, kayıp, geçerlilik takibi ve envanter yönetimi.',
     displayOrder: 50,
     tags: ['inventory', 'stock', 'waste', 'skt']
   },
   {
     key: 'production',
     label: 'Üretim',
-    description: 'Reçete, maliyet, üretim ve tüketim süreçleri.',
+    description: 'Üretim tanımları, maliyet, üretim ve tüketim süreçleri.',
     displayOrder: 60,
     tags: ['production', 'recipe', 'cost', 'uretim', 'recete']
   },

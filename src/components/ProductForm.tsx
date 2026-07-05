@@ -180,7 +180,7 @@ export default function ProductForm({ categories, product, onSave, onCancel }: P
         </div>
         <label className="check-row">
           <input type="checkbox" checked={active} onChange={e=>setActive(e.target.checked)} />
-          Ürün satışta aktif
+          Ürün / hizmet işlemde aktif
         </label>
       </>}
 

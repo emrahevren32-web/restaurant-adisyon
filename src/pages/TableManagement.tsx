@@ -184,7 +184,7 @@ export default function TableManagement({ currentUser, focus = 'billing' }: Prop
         id:String(i+1),
         branchId: activeBranchId,
         companyId: companyId || undefined,
-        name:`Masa ${i+1}`,
+        name:`Alan ${i+1}`,
         open:false,
         orders:[] as Order[]
       } as TableState))
@@ -232,18 +232,18 @@ export default function TableManagement({ currentUser, focus = 'billing' }: Prop
   const addTable = (e: React.FormEvent) => {
     e.preventDefault()
     if(!canManageTables){
-      setTableError('Masa yönetimi için Admin yetkisi gereklidir.')
+      setTableError('Alan yönetimi için Admin yetkisi gereklidir.')
       return
     }
 
     const name = newTableName.trim()
     if(!name){
-      setTableError('Masa adı zorunludur.')
+      setTableError('Alan adı zorunludur.')
       return
     }
 
     if(tables.some(table => table.name.toLocaleLowerCase('tr-TR') === name.toLocaleLowerCase('tr-TR'))){
-      setTableError('Bu masa adı zaten mevcut.')
+      setTableError('Bu alan adı zaten mevcut.')
       return
     }
 
@@ -277,7 +277,7 @@ export default function TableManagement({ currentUser, focus = 'billing' }: Prop
 
   const renameTable = (tableId: string) => {
     if(!canManageTables){
-      setTableError('Masa yönetimi için Admin yetkisi gereklidir.')
+      setTableError('Alan yönetimi için Admin yetkisi gereklidir.')
       return
     }
 
@@ -285,15 +285,15 @@ export default function TableManagement({ currentUser, focus = 'billing' }: Prop
     if(!table) return
 
     if(table.open){
-      setTableError('Açık masa yeniden adlandırılamaz. Önce hesabı kapatın.')
+      setTableError('Açık alan yeniden adlandırılamaz. Önce işlemi kapatın.')
       return
     }
 
-    const nextName = prompt('Yeni masa adı', table.name)?.trim()
+    const nextName = prompt('Yeni alan adı', table.name)?.trim()
     if(!nextName) return
 
     if(tables.some(item => item.id !== tableId && item.name.toLocaleLowerCase('tr-TR') === nextName.toLocaleLowerCase('tr-TR'))){
-      setTableError('Bu masa adı zaten mevcut.')
+      setTableError('Bu alan adı zaten mevcut.')
       return
     }
 
@@ -304,13 +304,13 @@ export default function TableManagement({ currentUser, focus = 'billing' }: Prop
       user: currentUser,
       tableId,
       tableName: nextName,
-      description: `${table.name} masa adı ${nextName} olarak değiştirildi.`
+      description: `${table.name} alan adı ${nextName} olarak değiştirildi.`
     })
   }
 
   const deleteTable = (tableId: string) => {
     if(!canManageTables){
-      setTableError('Masa yönetimi için Admin yetkisi gereklidir.')
+      setTableError('Alan yönetimi için Admin yetkisi gereklidir.')
       return
     }
 
@@ -318,7 +318,7 @@ export default function TableManagement({ currentUser, focus = 'billing' }: Prop
     if(!table) return
 
     if(table.open || table.orders.length > 0){
-      setTableError('Açık adisyonu olan masa silinemez.')
+      setTableError('Açık işlemi olan alan silinemez.')
       return
     }
 
@@ -412,7 +412,7 @@ export default function TableManagement({ currentUser, focus = 'billing' }: Prop
       order: draftOrder,
       product,
       tableId,
-      tableName: tableForLog?.name || 'Masa',
+      tableName: tableForLog?.name || 'Alan',
       qty,
       user: currentUser,
       sourceType: existingOrderForLog ? 'Adet Artışı' : 'Masa Siparişi',
@@ -442,7 +442,7 @@ export default function TableManagement({ currentUser, focus = 'billing' }: Prop
     if(tableForLog){
       addKitchenOrder(tableForLog, product, qty, isGift)
       const stockWarning = [...deductionResult.warnings, ...deductionResult.errors].join(' ')
-      setTableError(stockWarning ? `Sipariş eklendi ancak stok uyarısı oluştu: ${stockWarning}` : '')
+      setTableError(stockWarning ? `Talep eklendi ancak stok uyarısı oluştu: ${stockWarning}` : '')
       addActionLog({
         operationType: isGift ? 'İkram eklendi' : existingOrderForLog ? 'Ürün adedi artırıldı' : 'Sipariş eklendi',
         user: currentUser,
@@ -505,7 +505,7 @@ export default function TableManagement({ currentUser, focus = 'billing' }: Prop
       return { ...table, orders: table.orders.map(order => order.id === orderId ? nextOrder : order) }
     }))
 
-    setTableError(stockWarning ? `Sipariş güncellendi ancak stok uyarısı oluştu: ${stockWarning}` : '')
+    setTableError(stockWarning ? `Talep güncellendi ancak stok uyarısı oluştu: ${stockWarning}` : '')
 
     const operationType = qty < 1
       ? 'Sipariş silindi'
@@ -538,13 +538,13 @@ export default function TableManagement({ currentUser, focus = 'billing' }: Prop
 
     setTables(prev => prev.map(table => table.id===tableId ? {...table, orders: table.orders.filter(order=>order.id!==orderId)} : table))
 
-    setTableError(reverseResult.warnings.length > 0 ? `Sipariş silindi ancak stok iadesi uyarısı oluştu: ${reverseResult.warnings.join(' ')}` : '')
+    setTableError(reverseResult.warnings.length > 0 ? `Talep silindi ancak stok iadesi uyarısı oluştu: ${reverseResult.warnings.join(' ')}` : '')
     addActionLog({
       operationType: 'Sipariş silindi',
       user: currentUser,
       tableId: table.id,
       tableName: table.name,
-      description: `${order.productName || 'Ürün'} siparişi silindi.`
+      description: `${order.productName || 'Ürün'} talebi silindi.`
     })
   }
 
@@ -599,7 +599,7 @@ export default function TableManagement({ currentUser, focus = 'billing' }: Prop
     if(!source || !target || !source.open) return
 
     if(target.open || target.orders.length > 0){
-      setTableError('Adisyon sadece kapalı ve boş bir masaya taşınabilir.')
+      setTableError('İşlem sadece kapalı ve boş bir alana taşınabilir.')
       return
     }
 
@@ -621,13 +621,13 @@ export default function TableManagement({ currentUser, focus = 'billing' }: Prop
       user: currentUser,
       tableId: source.id,
       tableName: source.name,
-      description: `${source.name} adisyonu ${target.name} masasına taşındı.`
+      description: `${source.name} işlemi ${target.name} alanına taşındı.`
     })
   }
 
   const mergeTables = (sourceTableId: string, targetTableId: string) => {
     if(sourceTableId === targetTableId){
-      setTableError('Aynı masa ile birleştirme yapılamaz.')
+      setTableError('Aynı alan ile birleştirme yapılamaz.')
       return
     }
 
@@ -635,27 +635,27 @@ export default function TableManagement({ currentUser, focus = 'billing' }: Prop
     const target = tables.find(table => table.id === targetTableId)
 
     if(!source || !target){
-      setTableError('Kaynak veya hedef masa bulunamadı.')
+      setTableError('Kaynak veya hedef alan bulunamadı.')
       return
     }
 
     if(!source.open){
-      setTableError('Kapalı kaynak masa birleştirilemez.')
+      setTableError('Kapalı kaynak alan birleştirilemez.')
       return
     }
 
     if(!target.open){
-      setTableError('Kapalı hedef masaya birleştirme yapılamaz.')
+      setTableError('Kapalı hedef alana birleştirme yapılamaz.')
       return
     }
 
     if(source.orders.length === 0){
-      setTableError('Boş kaynak masa birleştirilemez.')
+      setTableError('Boş kaynak alan birleştirilemez.')
       return
     }
 
     if(target.orders.length === 0){
-      setTableError('Boş hedef masaya birleştirme yapılamaz. Bunun için masa taşıma işlemini kullanın.')
+      setTableError('Boş hedef alana birleştirme yapılamaz. Bunun için alan taşıma işlemini kullanın.')
       return
     }
 
@@ -707,7 +707,7 @@ export default function TableManagement({ currentUser, focus = 'billing' }: Prop
       user: currentUser,
       tableId: source.id,
       tableName: source.name,
-      description: `${source.name} içerisindeki ${sourceItemCount} ürün ${target.name} masasına aktarıldı.`
+      description: `${source.name} içerisindeki ${sourceItemCount} ürün ${target.name} alanına aktarıldı.`
     })
   }
 
@@ -829,12 +829,12 @@ export default function TableManagement({ currentUser, focus = 'billing' }: Prop
   const tablePlanSection = (
         <section className="card table-plan-panel">
           <div className="section-header compact">
-            <h3>Masa Planı</h3>
+            <h3>Alan Planı</h3>
           </div>
 
           {canManageTables && (
             <form className="inline-form" onSubmit={addTable}>
-              <input placeholder="Yeni masa adı" value={newTableName} onChange={e=>setNewTableName(e.target.value)} />
+              <input placeholder="Yeni alan adı" value={newTableName} onChange={e=>setNewTableName(e.target.value)} />
               <button className="btn primary" type="submit">Ekle</button>
             </form>
           )}
@@ -860,9 +860,9 @@ export default function TableManagement({ currentUser, focus = 'billing' }: Prop
 
           {selectedTable && canManageTables && (
             <div className="table-admin-actions">
-              <button className="btn" onClick={()=>renameTable(selectedTable.id)}>Masayı Düzenle</button>
-              <a className="btn" href={`/qr/${selectedTable.id}`} target="_blank" rel="noreferrer">QR Menü</a>
-              <button className="btn" onClick={()=>deleteTable(selectedTable.id)}>Masayı Sil</button>
+              <button className="btn" onClick={()=>renameTable(selectedTable.id)}>Alanı Düzenle</button>
+              <a className="btn" href={`/qr/${selectedTable.id}`} target="_blank" rel="noreferrer">Dijital Katalog</a>
+              <button className="btn" onClick={()=>deleteTable(selectedTable.id)}>Alanı Sil</button>
             </div>
           )}
         </section>
@@ -890,7 +890,7 @@ export default function TableManagement({ currentUser, focus = 'billing' }: Prop
               onMergeTables={mergeTables}
             />
           ) : (
-            <div className="card empty-state">Henüz masa bulunmuyor.</div>
+            <div className="card empty-state">Henüz alan bulunmuyor.</div>
           )}
         </section>
   )
@@ -899,26 +899,26 @@ export default function TableManagement({ currentUser, focus = 'billing' }: Prop
     <div className={`tables-page ${isBillingFocus ? 'billing-focus' : 'tables-focus'}`}>
       <div className="page-title">
         <div>
-          <h2>{isBillingFocus ? 'Adisyonlar' : 'Masalar'}</h2>
+          <h2>{isBillingFocus ? 'İşlemler' : 'Alanlar'}</h2>
           <p className="muted">
             {isBillingFocus
-              ? 'Sipariş ve hesap yönetimine odaklanın; açık adisyonları takip edin, ürün ekleyin ve hesabı kapatın.'
-              : 'Masa planını ve masa durumlarını takip edin; masa seçimi, QR menü ve masa düzenleme işlemlerini yönetin.'}
+              ? 'Talep ve hesap yönetimine odaklanın; açık işlemleri takip edin, ürün ekleyin ve hesabı kapatın.'
+              : 'Alan planını ve alan durumlarını takip edin; alan seçimi, dijital katalog ve alan düzenleme işlemlerini yönetin.'}
           </p>
         </div>
       </div>
 
       <div className="metric-grid">
         <div className="metric-card">
-          <span>Toplam Masa</span>
+          <span>Toplam Alan</span>
           <strong>{tables.length}</strong>
         </div>
         <div className="metric-card">
-          <span>Açık Masa</span>
+          <span>Açık Alan</span>
           <strong>{openTableCount}</strong>
         </div>
         <div className="metric-card">
-          <span>Açık Adisyon</span>
+          <span>Açık İşlem</span>
           <strong>{formatCurrency(activeTotal)}</strong>
         </div>
         <div className="metric-card">

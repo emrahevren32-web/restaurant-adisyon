@@ -312,7 +312,7 @@ const getRecipeStockRiskDetail = ({
   stockItemMap: Map<string, StockItem>
 }) => {
   const recipe = recipeMap.get(productId)
-  if(!recipe) return 'Aktif reçete yok'
+  if(!recipe) return 'Aktif üretim tanımı yok'
 
   const criticalItems = recipe.items.filter(item => {
     const stockItem = stockItemMap.get(item.stockItemId)
@@ -336,7 +336,7 @@ const toRiskItems = (rows: ProductPerformanceRow[], todayKey: string, recipeMap:
     .slice(0, 5)
     .map(row => ({
       productName: row.product.name,
-      detail: `${formatNumber(row.salesQty)} satış / ${getRecipeStockRiskDetail({ productId: row.product.id, recipeMap, stockItemMap })}`,
+      detail: `${formatNumber(row.salesQty)} işlem / ${getRecipeStockRiskDetail({ productId: row.product.id, recipeMap, stockItemMap })}`,
       value: formatCurrency(row.revenue)
     }))
 
@@ -353,7 +353,7 @@ const toRiskItems = (rows: ProductPerformanceRow[], todayKey: string, recipeMap:
       const dayCount = getNoSaleDayCount(row.lastSaleDate, todayKey)
       return {
         productName: row.product.name,
-        detail: row.lastSaleDate ? `Son satış ${row.lastSaleDate}` : 'Hiç satış almadı',
+        detail: row.lastSaleDate ? `Son işlem ${row.lastSaleDate}` : 'Hiç işlem almadı',
         value: Number.isFinite(dayCount) ? `${formatNumber(dayCount)} gün` : 'Yok'
       }
     })
@@ -481,8 +481,8 @@ export default function ProductPerformanceAnalysis(){
     <div className="product-performance-page">
       <div className="page-title dashboard-title">
         <div>
-          <h2>Ürün Performans Analizleri</h2>
-          <p className="muted">Ürün satış ve performans verilerini analiz edin.</p>
+          <h2>Ürün / Hizmet Analizi</h2>
+          <p className="muted">Ürün ve hizmet işlem performansını analiz edin.</p>
         </div>
         <div className="dashboard-title-actions">
           <span className="status-pill info-pill">{range.label}</span>
@@ -521,17 +521,17 @@ export default function ProductPerformanceAnalysis(){
       </section>
 
       <div className="metric-grid dashboard-kpi-grid">
-        <KpiCard label="Toplam Ürün" value={formatNumber(products.length)} detail={`${formatNumber(products.filter(product => product.active).length)} aktif ürün`} />
-        <KpiCard label="Satış Yapan Ürün" value={formatNumber(soldProductRows.length)} detail={`${formatNumber(noSaleProductRows.length)} ürün satış almadı`} />
-        <KpiCard label="En Çok Satan Ürün" value={topSellingProduct?.product.name || '-'} detail={topSellingProduct ? `${formatNumber(topSellingProduct.salesQty)} satış` : 'Kayıt yok'} />
-        <KpiCard label="En Çok Kazandıran Ürün" value={topRevenueProduct?.product.name || '-'} detail={topRevenueProduct ? formatCurrency(topRevenueProduct.revenue) : 'Kayıt yok'} />
+        <KpiCard label="Toplam Ürün / Hizmet" value={formatNumber(products.length)} detail={`${formatNumber(products.filter(product => product.active).length)} aktif ürün / hizmet`} />
+        <KpiCard label="İşlem Gören Ürün / Hizmet" value={formatNumber(soldProductRows.length)} detail={`${formatNumber(noSaleProductRows.length)} kayıt işlem almadı`} />
+        <KpiCard label="En Çok İşlem Gören" value={topSellingProduct?.product.name || '-'} detail={topSellingProduct ? `${formatNumber(topSellingProduct.salesQty)} işlem` : 'Kayıt yok'} />
+        <KpiCard label="En Çok Gelir Üreten" value={topRevenueProduct?.product.name || '-'} detail={topRevenueProduct ? formatCurrency(topRevenueProduct.revenue) : 'Kayıt yok'} />
       </div>
 
       <div className="metric-grid dashboard-panel-kpi-grid product-performance-extra-grid">
-        <KpiCard compact label="Toplam Satış Adedi" value={formatNumber(totalSalesQty)} detail={range.label} />
-        <KpiCard compact label="Toplam Ürün Cirosu" value={formatCurrency(totalRevenue)} detail={`${formatNumber(currentBills.length)} kapanan adisyon`} />
-        <KpiCard compact label="En Aktif Kategori" value={mostActiveCategory?.categoryName || '-'} detail={mostActiveCategory ? `${formatNumber(mostActiveCategory.salesQty)} satış` : 'Kayıt yok'} />
-        <KpiCard compact label="Satış Yapmayan Ürün" value={formatNumber(noSaleProductRows.length)} detail={`${formatNumber(products.length)} toplam ürün`} />
+        <KpiCard compact label="Toplam İşlem Adedi" value={formatNumber(totalSalesQty)} detail={range.label} />
+        <KpiCard compact label="Toplam Ürün / Hizmet Geliri" value={formatCurrency(totalRevenue)} detail={`${formatNumber(currentBills.length)} kapanan işlem`} />
+        <KpiCard compact label="En Aktif Kategori" value={mostActiveCategory?.categoryName || '-'} detail={mostActiveCategory ? `${formatNumber(mostActiveCategory.salesQty)} işlem` : 'Kayıt yok'} />
+        <KpiCard compact label="İşlem Görmeyen Ürün / Hizmet" value={formatNumber(noSaleProductRows.length)} detail={`${formatNumber(products.length)} toplam ürün / hizmet`} />
         <KpiCard compact label="Besin Bilgili Ürün" value={formatNumber(nutritionInfoProducts.length)} detail={`${formatNumber(products.length)} toplam ürün`} />
         <KpiCard compact label="Alerjen İçermez" value={formatNumber(allergenFreeProducts.length)} detail={`${formatNumber(allergenProducts.length)} alerjenli ürün`} />
       </div>
@@ -577,8 +577,8 @@ export default function ProductPerformanceAnalysis(){
         <section className="card">
           <div className="section-header compact dashboard-panel-header">
             <div>
-              <h3>En Çok Satan Ürünler</h3>
-              <p className="muted">İlk 10 ürün satış adedine göre sıralanır.</p>
+              <h3>En Çok İşlem Gören Ürün / Hizmetler</h3>
+              <p className="muted">İlk 10 kayıt işlem adedine göre sıralanır.</p>
             </div>
             <span className="status-pill info-pill">{formatNumber(topSellingRows.length)} ürün</span>
           </div>
@@ -587,13 +587,13 @@ export default function ProductPerformanceAnalysis(){
               <thead>
                 <tr>
                   <th>Ürün</th>
-                  <th>Satış Adedi</th>
+                  <th>İşlem Adedi</th>
                   <th>Ciro</th>
-                  <th>Sipariş Sayısı</th>
+                  <th>Talep Sayısı</th>
                 </tr>
               </thead>
               <tbody>
-                {topSellingRows.length === 0 && <tr><td className="empty-cell" colSpan={4}>Satış kaydı yok.</td></tr>}
+                {topSellingRows.length === 0 && <tr><td className="empty-cell" colSpan={4}>İşlem kaydı yok.</td></tr>}
                 {topSellingRows.map(row => (
                   <tr key={row.product.id}>
                     <td><strong>{row.product.name}</strong><div className="muted small-text">{row.categoryName}</div></td>
@@ -610,8 +610,8 @@ export default function ProductPerformanceAnalysis(){
         <section className="card">
           <div className="section-header compact dashboard-panel-header">
             <div>
-              <h3>En Çok Kazandıran Ürünler</h3>
-              <p className="muted">İlk 10 ürün toplam ciroya göre sıralanır.</p>
+              <h3>En Çok Gelir Üreten Ürün / Hizmetler</h3>
+              <p className="muted">İlk 10 kayıt toplam gelire göre sıralanır.</p>
             </div>
             <span className="status-pill success">{formatCurrency(topRevenueRows.reduce((sum, row) => sum + row.revenue, 0))}</span>
           </div>
@@ -621,12 +621,12 @@ export default function ProductPerformanceAnalysis(){
                 <tr>
                   <th>Ürün</th>
                   <th>Toplam Ciro</th>
-                  <th>Satış Adedi</th>
-                  <th>Ortalama Satış Tutarı</th>
+                  <th>İşlem Adedi</th>
+                  <th>Ortalama İşlem Tutarı</th>
                 </tr>
               </thead>
               <tbody>
-                {topRevenueRows.length === 0 && <tr><td className="empty-cell" colSpan={4}>Satış kaydı yok.</td></tr>}
+                {topRevenueRows.length === 0 && <tr><td className="empty-cell" colSpan={4}>İşlem kaydı yok.</td></tr>}
                 {topRevenueRows.map(row => (
                   <tr key={row.product.id}>
                     <td>
@@ -650,8 +650,8 @@ export default function ProductPerformanceAnalysis(){
         <section className="card">
           <div className="section-header compact dashboard-panel-header">
             <div>
-              <h3>En Az Satan Ürünler</h3>
-              <p className="muted">Satış alan ürünler içinde son 10 ürün.</p>
+              <h3>En Az İşlem Gören Ürün / Hizmetler</h3>
+              <p className="muted">İşlem alan kayıtlar içinde son 10 kayıt.</p>
             </div>
             <span className="status-pill warning-pill">{formatNumber(leastSellingRows.length)} ürün</span>
           </div>
@@ -660,12 +660,12 @@ export default function ProductPerformanceAnalysis(){
               <thead>
                 <tr>
                   <th>Ürün</th>
-                  <th>Satış Adedi</th>
+                  <th>İşlem Adedi</th>
                   <th>Ciro</th>
                 </tr>
               </thead>
               <tbody>
-                {leastSellingRows.length === 0 && <tr><td className="empty-cell" colSpan={3}>Satış kaydı yok.</td></tr>}
+                {leastSellingRows.length === 0 && <tr><td className="empty-cell" colSpan={3}>İşlem kaydı yok.</td></tr>}
                 {leastSellingRows.map(row => (
                   <tr key={row.product.id}>
                     <td><strong>{row.product.name}</strong><div className="muted small-text">{row.categoryName}</div></td>
@@ -692,7 +692,7 @@ export default function ProductPerformanceAnalysis(){
                 <tr>
                   <th>Kategori</th>
                   <th>Ürün Sayısı</th>
-                  <th>Satış Adedi</th>
+                  <th>İşlem Adedi</th>
                   <th>Toplam Ciro</th>
                   <th>Kategori Payı %</th>
                 </tr>
@@ -717,8 +717,8 @@ export default function ProductPerformanceAnalysis(){
       <section className="card">
         <div className="section-header compact dashboard-panel-header">
           <div>
-            <h3>Satış Yapmayan Ürünler</h3>
-            <p className="muted">Seçili aralıkta hiç sipariş almamış ürünler.</p>
+            <h3>İşlem Görmeyen Ürün / Hizmetler</h3>
+            <p className="muted">Seçili aralıkta hiç talep almamış ürün / hizmetler.</p>
           </div>
           <span className={`status-pill ${noSaleProductRows.length > 0 ? 'warning-pill' : 'success'}`}>
             {formatNumber(noSaleProductRows.length)} ürün
@@ -734,7 +734,7 @@ export default function ProductPerformanceAnalysis(){
               </tr>
             </thead>
             <tbody>
-              {noSaleProductRows.length === 0 && <tr><td className="empty-cell" colSpan={3}>Seçili aralıkta satış yapmayan ürün yok.</td></tr>}
+              {noSaleProductRows.length === 0 && <tr><td className="empty-cell" colSpan={3}>Seçili aralıkta işlem görmeyen ürün / hizmet yok.</td></tr>}
               {noSaleProductRows.slice(0, 15).map(row => (
                 <tr key={row.product.id}>
                   <td><strong>{row.product.name}</strong></td>
@@ -749,19 +749,19 @@ export default function ProductPerformanceAnalysis(){
 
       <section className="product-risk-grid">
         <RiskList
-          title="Düşük Satışlı Ürünler"
+          title="Düşük İşlemli Ürün / Hizmetler"
           items={riskItems.lowSellingItems}
-          emptyText="Düşük satış eşiğinde ürün bulunmuyor."
+          emptyText="Düşük işlem eşiğinde ürün / hizmet bulunmuyor."
         />
         <RiskList
-          title="30 Gündür Satış Almayan Ürünler"
+          title="30 Gündür İşlem Almayan Ürün / Hizmetler"
           items={riskItems.noSale30Items}
-          emptyText="Son 30 gün içinde satış almayan ürün bulunmuyor."
+          emptyText="Son 30 gün içinde işlem almayan ürün / hizmet bulunmuyor."
         />
         <RiskList
-          title="Satış Düşüşü Yaşayan Ürünler"
+          title="İşlem Düşüşü Yaşayan Ürün / Hizmetler"
           items={riskItems.decliningItems}
-          emptyText="Önceki aralığa göre satış düşüşü yok."
+          emptyText="Önceki aralığa göre işlem düşüşü yok."
         />
       </section>
     </div>

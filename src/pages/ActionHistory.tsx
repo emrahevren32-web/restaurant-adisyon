@@ -18,15 +18,15 @@ const operationTypes: ActionLogType[] = [
   'Masa birleştirildi',
   'Sipariş Hazırlanıyor',
   'Sipariş Hazır',
-  'Garson çağrıldı',
-  'Garson Çağrısı Sahiplenildi',
-  'Garson Çağrısı Masaya Gidildi',
-  'Garson Çağrısı Kapatıldı',
-  'QR Siparişi Oluşturuldu',
-  'QR Siparişi Düzenlendi',
-  'QR Sipariş Notu Güncellendi',
-  'QR Siparişi Onaylandı',
-  'QR Siparişi Reddedildi',
+  'Görevli çağrıldı',
+  'Görevli Çağrısı Sahiplenildi',
+  'Görevli Çağrısı Masaya Gidildi',
+  'Görevli Çağrısı Kapatıldı',
+  'Dijital Talep Oluşturuldu',
+  'Dijital Talep Düzenlendi',
+  'Dijital Talep Notu Güncellendi',
+  'Dijital Talep Onaylandı',
+  'Dijital Talep Reddedildi',
   'Hesap kapatıldı',
   'Ürün oluşturuldu',
   'Ürün güncellendi',
@@ -58,16 +58,16 @@ const operationTypes: ActionLogType[] = [
   'SKT yaklaşan uyarısı oluştu',
   'SKT tarihi geçti',
   'SKT lot eşleşmesi yapılamadı',
-  'Fire kaydı oluşturuldu',
-  'Fire kaydı terslendi',
-  'Fire lottan düşüldü',
-  'SKT nedeniyle fire oluşturuldu',
-  'Reçete oluşturuldu',
-  'Reçete güncellendi',
-  'Reçete silindi',
-  'Reçete kopyalandı',
-  'Reçete aktif yapıldı',
-  'Reçete pasif yapıldı',
+  'Kayıp kaydı oluşturuldu',
+  'Kayıp kaydı terslendi',
+  'Kayıp lottan düşüldü',
+  'Geçerlilik nedeniyle kayıp oluşturuldu',
+  'Üretim Tanımı oluşturuldu',
+  'Üretim Tanımı güncellendi',
+  'Üretim Tanımı silindi',
+  'Üretim Tanımı kopyalandı',
+  'Üretim Tanımı aktif yapıldı',
+  'Üretim Tanımı pasif yapıldı',
   'Otomatik stok düşümü yapıldı',
   'Otomatik stok düşümü terslendi',
   'Otomatik stok düşümü uyarısı',
@@ -186,6 +186,24 @@ operationTypes.push(
   'Veri izolasyonu doğrulandı'
 )
 
+const getNeutralActionText = (value: string) => value
+  .replace(/Masa/g, 'Alan')
+  .replace(/masa/g, 'alan')
+  .replace(/Sipariş/g, 'Talep')
+  .replace(/sipariş/g, 'talep')
+  .replace(/Adisyon/g, 'İşlem')
+  .replace(/adisyon/g, 'işlem')
+  .replace(/QR Menü/g, 'Dijital Katalog')
+  .replace(/QR Siparişi/g, 'Dijital Talep')
+  .replace(/QR Sipariş/g, 'Dijital Talep')
+  .replace(/Garson/g, 'Görevli')
+  .replace(/garson/g, 'görevli')
+  .replace(/SKT/g, 'Geçerlilik')
+  .replace(/Fire/g, 'Kayıp')
+  .replace(/fire/g, 'kayıp')
+  .replace(/Reçete/g, 'Üretim Tanımı')
+  .replace(/reçete/g, 'üretim tanımı')
+
 export default function ActionHistory(){
   const [logs] = React.useState<ActionLog[]>(() => loadActionLogs())
   const [users] = React.useState(() => loadUsers())
@@ -239,7 +257,7 @@ export default function ActionHistory(){
             </select>
             <select value={operationFilter} onChange={e=>setOperationFilter(e.target.value as 'all' | ActionLogType)}>
               <option value="all">Tüm işlemler</option>
-              {operationTypes.map(type => <option key={type} value={type}>{type}</option>)}
+              {operationTypes.map(type => <option key={type} value={type}>{getNeutralActionText(type)}</option>)}
             </select>
           </div>
         </div>
@@ -252,7 +270,7 @@ export default function ActionHistory(){
                 <th>Saat</th>
                 <th>Kullanıcı</th>
                 <th>İşlem</th>
-                <th>Masa</th>
+                <th>Alan</th>
                 <th>Açıklama</th>
               </tr>
             </thead>
@@ -265,9 +283,9 @@ export default function ActionHistory(){
                   <td>{log.date}</td>
                   <td>{log.time}</td>
                   <td>{log.userName}</td>
-                  <td>{log.operationType}</td>
-                  <td>{log.tableName || '-'}</td>
-                  <td>{log.description}</td>
+                  <td>{getNeutralActionText(log.operationType)}</td>
+                  <td>{getNeutralActionText(log.tableName || '-')}</td>
+                  <td>{getNeutralActionText(log.description)}</td>
                 </tr>
               ))}
             </tbody>

@@ -7,21 +7,21 @@ type Props = {
 const reportDescriptions: Record<ReportTabId, string> = {
   'executive-dashboard': 'Yönetici özeti ve kritik işletme göstergeleri burada listelenecek.',
   'stock-status': 'Stok kartları, mevcut miktarlar ve stok değeri detayları burada listelenecek.',
-  'stock-movements': 'Giriş, çıkış, sayım, fire ve ters hareket kayıtları burada listelenecek.',
+  'stock-movements': 'Giriş, çıkış, sayım, kayıp ve ters hareket kayıtları burada listelenecek.',
   'critical-stock': 'Kritik stok durumları ve kritik olay geçmişi burada listelenecek.',
-  'expiry-near': 'Yaklaşan SKT lotları ve uyarı günleri burada listelenecek.',
+  'expiry-near': 'Yaklaşan geçerlilik lotları ve uyarı günleri burada listelenecek.',
   'expiry-expired': 'Tarihi geçmiş ve kalan miktarı olan lotlar burada listelenecek.',
-  'lot-movements': 'Lot oluşturma, tüketim, fire, iade ve SKT olayları burada listelenecek.',
-  'waste-report': 'Fire kayıtları neden, personel, ürün ve lot kırılımlarıyla burada listelenecek.',
-  'waste-cost': 'Fire maliyeti ve maliyet kırılımları burada listelenecek.',
-  'recipe-consumption': 'Reçete bazlı hammadde tüketimi ve otomatik stok düşümü detayları burada listelenecek.',
-  'product-profitability': 'Ürün satış geliri, reçete maliyeti ve brüt kar kırılımı burada listelenecek.',
-  'sales-revenue': 'Satış adedi, ciro ve adisyon kırılımları burada listelenecek.',
+  'lot-movements': 'Lot oluşturma, tüketim, kayıp, iade ve geçerlilik olayları burada listelenecek.',
+  'waste-report': 'Kayıp kayıtları neden, personel, ürün ve lot kırılımlarıyla burada listelenecek.',
+  'waste-cost': 'Kayıp maliyeti ve maliyet kırılımları burada listelenecek.',
+  'recipe-consumption': 'Üretim tanımı bazlı bileşen tüketimi ve otomatik stok düşümü detayları burada listelenecek.',
+  'product-profitability': 'Ürün / hizmet geliri, üretim tanımı maliyeti ve brüt kar kırılımı burada listelenecek.',
+  'sales-revenue': 'İşlem adedi, gelir ve işlem kırılımları burada listelenecek.',
   'stock-turnover': 'Stok devir hızı, tüketim maliyeti ve yavaş dönen ürün analizi burada listelenecek.',
-  'top-selling-products': 'En çok satan ürünler, ciro ve satış payı kırılımı burada listelenecek.',
+  'top-selling-products': 'En çok işlem gören ürün / hizmetler, gelir ve işlem payı kırılımı burada listelenecek.',
   'low-selling-products': 'Az satan, satılmayan ve riskli ürünler burada listelenecek.',
-  'sales-trend': 'Satış trendleri ve zaman analizi burada listelenecek.',
-  'daily-summary': 'Günlük stok giriş, çıkış, fire ve sayım özeti burada listelenecek.'
+  'sales-trend': 'İşlem trendleri ve zaman analizi burada listelenecek.',
+  'daily-summary': 'Günlük stok giriş, çıkış, kayıp ve sayım özeti burada listelenecek.'
 }
 
 export default function ReportPlaceholder({ activeTab }: Props){

@@ -546,9 +546,9 @@ export type KitchenOrder = {
   updatedAt: string
 }
 
-export type QRRequestStatus = 'Garson Onayı Bekliyor' | 'Onaylandı' | 'Reddedildi'
+export type QRRequestStatus = 'Görevli Onayı Bekliyor' | 'Onaylandı' | 'Reddedildi'
 
-export type QRRejectReason = 'Ürün mevcut değil' | 'Mutfak kapalı' | 'Müşteri iptali' | 'Hatalı masa' | 'Stok yetersiz' | 'Diğer'
+export type QRRejectReason = 'Ürün mevcut değil' | 'Operasyon kapalı' | 'Müşteri iptali' | 'Hatalı alan' | 'Stok yetersiz' | 'Diğer'
 
 export type QRRequestItem = {
   productId: string
@@ -667,7 +667,7 @@ export type ClosedBill = {
   discountTotal?: number
 }
 
-export type Role = 'Admin' | 'Garson'
+export type Role = 'Admin' | 'Personel'
 
 export type User = {
   id: string
@@ -858,11 +858,9 @@ export type CompanyLicense = {
 export type CompanyUserRole =
   | 'Firma Sahibi'
   | 'Admin'
-  | 'Müdür'
-  | 'Kasiyer'
-  | 'Garson'
-  | 'Mutfak'
-  | 'Kurye'
+  | 'Yönetici'
+  | 'Personel'
+  | 'Operasyon'
   | 'Muhasebe'
 
 export type CompanyUserStatus = 'Aktif' | 'Pasif' | 'Askıya Alındı' | 'Silindi'
@@ -983,7 +981,7 @@ export type BranchStockTransfer = {
   items: BranchStockTransferItem[]
 }
 
-export type EmployeePosition = 'Garson' | 'Kasiyer' | 'Aşçı' | 'Kurye' | 'Yönetici' | 'Diğer'
+export type EmployeePosition = string
 
 export type Employee = {
   id: string
@@ -1254,15 +1252,15 @@ export type ActionLogType =
   | 'Masa birleştirildi'
   | 'Sipariş Hazırlanıyor'
   | 'Sipariş Hazır'
-  | 'Garson çağrıldı'
-  | 'Garson Çağrısı Sahiplenildi'
-  | 'Garson Çağrısı Masaya Gidildi'
-  | 'Garson Çağrısı Kapatıldı'
-  | 'QR Siparişi Oluşturuldu'
-  | 'QR Siparişi Düzenlendi'
-  | 'QR Sipariş Notu Güncellendi'
-  | 'QR Siparişi Onaylandı'
-  | 'QR Siparişi Reddedildi'
+  | 'Görevli çağrıldı'
+  | 'Görevli Çağrısı Sahiplenildi'
+  | 'Görevli Çağrısı Masaya Gidildi'
+  | 'Görevli Çağrısı Kapatıldı'
+  | 'Dijital Talep Oluşturuldu'
+  | 'Dijital Talep Düzenlendi'
+  | 'Dijital Talep Notu Güncellendi'
+  | 'Dijital Talep Onaylandı'
+  | 'Dijital Talep Reddedildi'
   | 'Hesap kapatıldı'
   | 'Ürün oluşturuldu'
   | 'Ürün güncellendi'
@@ -1299,16 +1297,16 @@ export type ActionLogType =
   | 'SKT yaklaşan uyarısı oluştu'
   | 'SKT tarihi geçti'
   | 'SKT lot eşleşmesi yapılamadı'
-  | 'Fire kaydı oluşturuldu'
-  | 'Fire kaydı terslendi'
-  | 'Fire lottan düşüldü'
-  | 'SKT nedeniyle fire oluşturuldu'
-  | 'Reçete oluşturuldu'
-  | 'Reçete güncellendi'
-  | 'Reçete silindi'
-  | 'Reçete kopyalandı'
-  | 'Reçete aktif yapıldı'
-  | 'Reçete pasif yapıldı'
+  | 'Kayıp kaydı oluşturuldu'
+  | 'Kayıp kaydı terslendi'
+  | 'Kayıp lottan düşüldü'
+  | 'Geçerlilik nedeniyle kayıp oluşturuldu'
+  | 'Üretim Tanımı oluşturuldu'
+  | 'Üretim Tanımı güncellendi'
+  | 'Üretim Tanımı silindi'
+  | 'Üretim Tanımı kopyalandı'
+  | 'Üretim Tanımı aktif yapıldı'
+  | 'Üretim Tanımı pasif yapıldı'
   | 'Otomatik stok düşümü yapıldı'
   | 'Otomatik stok düşümü terslendi'
   | 'Otomatik stok düşümü uyarısı'
@@ -1450,15 +1448,16 @@ export type ActionLog = {
 }
 
 export type SystemUsageModuleName =
-  | 'Adisyon'
-  | 'Masa Yönetimi'
-  | 'Ürün Yönetimi'
+  | 'İşlem Yönetimi'
+  | 'Alan Yönetimi'
+  | 'Ürün / Hizmet Yönetimi'
   | 'Stok Yönetimi'
   | 'Cari Yönetimi'
   | 'Finans Yönetimi'
   | 'Personel Yönetimi'
   | 'Yönetici Merkezi'
   | 'Çoklu Şube Yönetimi'
+  | 'Üretim Tanımı'
   | 'Sistem'
 
 export type SystemUsageActionType =

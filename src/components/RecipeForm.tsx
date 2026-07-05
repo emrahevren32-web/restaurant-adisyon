@@ -151,7 +151,7 @@ export default function RecipeForm({ products, stockItems, recipe, onSave, onCan
     }
 
     if(items.some(item => item.stockItemId === stockItem.id)){
-      setError('Aynı hammadde reçeteye ikinci kez eklenemez. Mevcut satırı düzenleyin.')
+      setError('Aynı bileşen üretim tanımına ikinci kez eklenemez. Mevcut satırı düzenleyin.')
       return
     }
 
@@ -161,7 +161,7 @@ export default function RecipeForm({ products, stockItems, recipe, onSave, onCan
     }
 
     if(!Number.isFinite(wastePercent) || wastePercent < 0){
-      setError('Fire oranı 0 veya daha büyük olmalıdır.')
+      setError('Kayıp oranı 0 veya daha büyük olmalıdır.')
       return
     }
 
@@ -208,12 +208,12 @@ export default function RecipeForm({ products, stockItems, recipe, onSave, onCan
     }
 
     if(!name.trim()){
-      setError('Reçete adı zorunludur.')
+      setError('Üretim tanımı adı zorunludur.')
       return
     }
 
     if(items.length === 0){
-      setError('Reçetede en az bir hammadde olmalıdır.')
+      setError('Üretim tanımında en az bir bileşen olmalıdır.')
       return
     }
 
@@ -253,8 +253,8 @@ export default function RecipeForm({ products, stockItems, recipe, onSave, onCan
       </div>
 
       <div className="form-field">
-        <label>Reçete adı</label>
-        <input value={name} onChange={event => setName(event.target.value)} placeholder="Örn. Adana Kebap standart reçetesi" />
+        <label>Üretim tanımı adı</label>
+        <input value={name} onChange={event => setName(event.target.value)} placeholder="Örn. Standart üretim tanımı" />
       </div>
 
       <div className="recipe-add-panel">
@@ -282,7 +282,7 @@ export default function RecipeForm({ products, stockItems, recipe, onSave, onCan
             </select>
           </div>
           <div className="form-field">
-            <label>Fire</label>
+            <label>Kayıp</label>
             <input type="number" min="0" step="0.01" value={newWastePercent} onChange={event => setNewWastePercent(event.target.value)} />
           </div>
           <button className="btn primary recipe-add-button" type="button" onClick={addIngredient} disabled={!selectedNewStockItem}>Ekle</button>
@@ -319,7 +319,7 @@ export default function RecipeForm({ products, stockItems, recipe, onSave, onCan
                 </select>
               </div>
               <div className="form-field">
-                <label>Fire %</label>
+                <label>Kayıp %</label>
                 <input
                   type="number"
                   min="0"
@@ -347,7 +347,7 @@ export default function RecipeForm({ products, stockItems, recipe, onSave, onCan
 
       <div className="recipe-cost-box">
         <div>
-          <span>Reçete maliyeti</span>
+          <span>Üretim maliyeti</span>
           <strong>{formatCurrency(costCalculation.totalCost)}</strong>
         </div>
         <div>
@@ -358,18 +358,18 @@ export default function RecipeForm({ products, stockItems, recipe, onSave, onCan
 
       <div className="form-field">
         <label>Açıklama</label>
-        <textarea rows={3} value={note} onChange={event => setNote(event.target.value)} placeholder="Reçete hazırlık, porsiyon veya maliyet notu" />
+        <textarea rows={3} value={note} onChange={event => setNote(event.target.value)} placeholder="Hazırlık, miktar veya maliyet notu" />
       </div>
 
       <label className="check-row">
         <input type="checkbox" checked={active} onChange={event => setActive(event.target.checked)} />
-        Reçete aktif
+        Üretim tanımı aktif
       </label>
 
       {error && <div className="form-error">{error}</div>}
 
       <div className="form-actions">
-        <button className="btn primary" type="submit">{recipe ? 'Reçeteyi Güncelle' : 'Reçete Ekle'}</button>
+        <button className="btn primary" type="submit">{recipe ? 'Üretim Tanımını Güncelle' : 'Üretim Tanımı Ekle'}</button>
         {onCancel && <button className="btn" type="button" onClick={onCancel}>Vazgeç</button>}
       </div>
     </form>

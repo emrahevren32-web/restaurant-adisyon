@@ -19,13 +19,13 @@ const createStep = (
 const MODULE_SETUP_WIZARD_REGISTRY: ModuleSetupWizardDefinition[] = [
   {
     moduleCode: 'adisyon',
-    title: 'Adisyon Başlangıç Sihirbazı',
-    description: 'Adisyon modülünün temel çalışma alanlarını sırayla hazırlayacak kurulum akışı.',
+    title: 'İşlem Yönetimi Başlangıç Sihirbazı',
+    description: 'İşlem Yönetimi modülünün temel çalışma alanlarını sırayla hazırlayacak kurulum akışı.',
     steps: [
-      createStep('venue-area', 'Salon oluştur', 'Çalışma alanı ve salon yapısı bu adımda hazırlanacak.', 10, 'Gerçek salon oluşturma sonraki fazda eklenecek.'),
-      createStep('tables', 'Masaları oluştur', 'Masa planı ve servis alanları bu adımda tanımlanacak.', 20, 'Masa oluşturma şimdilik placeholder.'),
-      createStep('tax', 'KDV', 'Vergi oranları ve satış ayarları bu adımda bağlanacak.', 30, 'KDV kaydı sonraki fazda gerçek ayarlara yazılacak.'),
-      createStep('printer', 'Yazıcı', 'Mutfak ve kasa yazıcı bağlantıları bu adımda hazırlanacak.', 40, 'Yazıcı entegrasyonu bu sürümde çalıştırılmıyor.'),
+      createStep('workspace-area', 'Alan oluştur', 'Çalışma alanı yapısı bu adımda hazırlanacak.', 10, 'Gerçek alan oluşturma sonraki fazda eklenecek.'),
+      createStep('operation-units', 'İşlem alanlarını oluştur', 'İşletmeye özel işlem alanları bu adımda tanımlanacak.', 20, 'Alan oluşturma şimdilik placeholder.'),
+      createStep('tax', 'Vergi', 'Vergi oranları ve gelir ayarları bu adımda bağlanacak.', 30, 'Vergi kaydı sonraki fazda gerçek ayarlara yazılacak.'),
+      createStep('output', 'Çıktı', 'Belge ve çıktı bağlantıları bu adımda hazırlanacak.', 40, 'Çıktı entegrasyonu bu sürümde çalıştırılmıyor.'),
       createStep('done', 'Tamamlandı', 'Modül başlangıç akışı tamamlandıktan sonra Dashboard alanına geçilecek.', 50)
     ]
   }

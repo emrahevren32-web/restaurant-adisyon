@@ -205,7 +205,7 @@ export const deductStockForOrder = ({
   }
 
   if(!snapshot){
-    const warning = `${product.name} için aktif reçete bulunamadı. Stok düşümü yapılmadı.`
+    const warning = `${product.name} için aktif üretim tanımı bulunamadı. Stok düşümü yapılmadı.`
     const batch = buildSkippedBatch({ order, product, tableId, tableName, qty: normalizedQty, sourceType, user, warning })
 
     addStockDeductionBatch(batch)
@@ -215,7 +215,7 @@ export const deductStockForOrder = ({
       user,
       tableId,
       tableName,
-      description: `${tableName} üzerinde ${product.name} x${normalizedQty} için aktif reçete bulunamadı. Siparişe izin verildi, stok düşümü atlandı.`
+      description: `${tableName} üzerinde ${product.name} x${normalizedQty} için aktif üretim tanımı bulunamadı. Talebe izin verildi, stok düşümü atlandı.`
     })
 
     return {
@@ -288,7 +288,7 @@ export const deductStockForOrder = ({
         source: 'Adisyon',
         reason: 'Kullanım',
         qty: stockQty,
-        description: `${tableName} ${product.name} x${normalizedQty} otomatik stok düşümü. Reçete: ${snapshot.recipeName} v${snapshot.recipeVersion}.`,
+        description: `${tableName} ${product.name} x${normalizedQty} otomatik stok düşümü. Üretim tanımı: ${snapshot.recipeName} v${snapshot.recipeVersion}.`,
         user,
         allowNegativeStock: true,
         sourceEntityType: sourceType,
@@ -379,7 +379,7 @@ export const deductStockForOrder = ({
     user,
     tableId,
     tableName,
-    description: `${tableName} üzerinde ${product.name} x${normalizedQty} için otomatik stok düşümü ${status === 'failed' ? 'başarısız oldu' : 'oluşturuldu'}. Reçete: ${snapshot.recipeName} v${snapshot.recipeVersion}.${warnings.length > 0 ? ` Uyarı: ${warnings.join(' | ')}.` : ''}${errors.length > 0 ? ` Hata: ${errors.join(' | ')}.` : ''}`
+    description: `${tableName} üzerinde ${product.name} x${normalizedQty} için otomatik stok düşümü ${status === 'failed' ? 'başarısız oldu' : 'oluşturuldu'}. Üretim tanımı: ${snapshot.recipeName} v${snapshot.recipeVersion}.${warnings.length > 0 ? ` Uyarı: ${warnings.join(' | ')}.` : ''}${errors.length > 0 ? ` Hata: ${errors.join(' | ')}.` : ''}`
   })
 
   return {

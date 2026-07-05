@@ -250,19 +250,19 @@ export default function EmployeePerformanceTracking({ currentUser }: Props){
 
       <div className="metric-grid compact-metric-grid">
         <div className="metric-card compact-metric-card">
-          <span>Toplam Masa Hizmeti</span>
+          <span>Toplam Alan Hizmeti</span>
           <strong>{formatScore(totalServedTables)}</strong>
         </div>
         <div className="metric-card compact-metric-card">
-          <span>Toplam Sipariş</span>
+          <span>Toplam Talep</span>
           <strong>{formatScore(totalApprovedOrders)}</strong>
         </div>
         <div className="metric-card compact-metric-card">
-          <span>Toplam QR Siparişi</span>
+          <span>Toplam Dijital Talep</span>
           <strong>{formatScore(totalQrOrders)}</strong>
         </div>
         <div className="metric-card compact-metric-card">
-          <span>Toplam Garson Çağrısı</span>
+          <span>Toplam Görevli Çağrısı</span>
           <strong>{formatScore(totalCustomerCalls)}</strong>
         </div>
       </div>
@@ -289,10 +289,10 @@ export default function EmployeePerformanceTracking({ currentUser }: Props){
                 <tr>
                   <th>Tarih</th>
                   <th>Personel</th>
-                  <th>Masa</th>
-                  <th>Sipariş</th>
-                  <th>QR Sipariş</th>
-                  <th>Garson Çağrısı</th>
+                  <th>Alan</th>
+                  <th>Talep</th>
+                  <th>Dijital Talep</th>
+                  <th>Görevli Çağrısı</th>
                   <th>Performans</th>
                   <th>İşlemler</th>
                 </tr>
@@ -391,19 +391,19 @@ function PerformanceForm({
         <input type="date" value={values.workDate} onChange={event => updateField('workDate', event.target.value)} required />
       </div>
       <div className="form-field">
-        <label>Masa Sayısı</label>
+        <label>Alan Sayısı</label>
         <input type="number" min="0" step="1" value={values.servedTableCount} onChange={event => updateField('servedTableCount', event.target.value)} />
       </div>
       <div className="form-field">
-        <label>Sipariş Sayısı</label>
+        <label>Talep Sayısı</label>
         <input type="number" min="0" step="1" value={values.approvedOrderCount} onChange={event => updateField('approvedOrderCount', event.target.value)} />
       </div>
       <div className="form-field">
-        <label>QR Sipariş Sayısı</label>
+        <label>Dijital Talep Sayısı</label>
         <input type="number" min="0" step="1" value={values.qrOrderCount} onChange={event => updateField('qrOrderCount', event.target.value)} />
       </div>
       <div className="form-field">
-        <label>Garson Çağrısı</label>
+        <label>Görevli Çağrısı</label>
         <input type="number" min="0" step="1" value={values.customerCallCount} onChange={event => updateField('customerCallCount', event.target.value)} />
       </div>
       <div className="form-field">

@@ -17,15 +17,16 @@ type KpiCardProps = {
 }
 
 const moduleNames: SystemUsageModuleName[] = [
-  'Adisyon',
-  'Masa Yönetimi',
-  'Ürün Yönetimi',
+  'İşlem Yönetimi',
+  'Alan Yönetimi',
+  'Ürün / Hizmet Yönetimi',
   'Stok Yönetimi',
   'Cari Yönetimi',
   'Finans Yönetimi',
   'Personel Yönetimi',
   'Yönetici Merkezi',
   'Çoklu Şube Yönetimi',
+  'Üretim Tanımı',
   'Sistem'
 ]
 

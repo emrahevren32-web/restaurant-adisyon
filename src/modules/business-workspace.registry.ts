@@ -494,8 +494,8 @@ export const BUSINESS_WORKSPACE_MODULE_REGISTRY: BusinessWorkspaceModule[] = def
   {
     id: 'business-adisyon',
     code: 'adisyon',
-    name: 'Adisyon',
-    description: 'Masa, ürün, mutfak ve adisyon operasyonlarını yöneten iş modülü.',
+    name: 'İşlem Yönetimi',
+    description: 'Alan, ürün/hizmet, hazırlık ve işlem akışlarını yöneten iş modülü.',
     category: 'business',
     icon: 'AD',
     route: 'tables',
@@ -511,18 +511,29 @@ export const BUSINESS_WORKSPACE_MODULE_REGISTRY: BusinessWorkspaceModule[] = def
     pricing: { model: 'paid', currency: 'TRY' },
     marketplace: marketplaceReady,
     menuItems: [
-      menuItem({ key: 'adisyon', label: 'Adisyonlar', route: 'tables', icon: 'AD', displayOrder: 10 }),
-      menuItem({ key: 'tables-management', label: 'Masalar', route: 'tables', icon: 'MS', displayOrder: 20 }),
-      menuItem({ key: 'products', label: 'Ürünler', route: 'products', icon: 'UR', displayOrder: 30 }),
+      menuItem({ key: 'tables-management', label: 'Alanlar', route: 'tables', icon: 'AL', displayOrder: 10 }),
+      menuItem({ key: 'adisyon', label: 'İşlemler', route: 'tables', icon: 'IS', displayOrder: 20 }),
+      menuItem({ key: 'products', label: 'Ürün / Hizmetler', route: 'products', icon: 'UH', displayOrder: 30 }),
       menuItem({ key: 'kitchen', label: 'Hazırlık Ekranı', route: 'kitchen', icon: 'HZ', displayOrder: 40 }),
-      menuItem({ key: 'bill-history', label: 'Adisyon Geçmişi', route: 'history', icon: 'AG', adminOnly: true, displayOrder: 50 })
+      menuItem({ key: 'bill-history', label: 'Geçmiş', route: 'history', icon: 'AG', adminOnly: true, displayOrder: 50 }),
+      menuItem({
+        key: 'adisyon-reports',
+        label: 'Raporlar',
+        icon: 'RP',
+        adminOnly: true,
+        displayOrder: 60,
+        children: [
+          menuItem({ key: 'sales-revenue-analysis', label: 'Gelir Analizi', route: 'sales-revenue-analysis', icon: 'GA', adminOnly: true, displayOrder: 10 }),
+          menuItem({ key: 'product-performance-analysis', label: 'Ürün / Hizmet Analizi', route: 'product-performance-analysis', icon: 'UH', adminOnly: true, displayOrder: 20 })
+        ]
+      })
     ]
   },
   {
     id: 'business-qr-menu',
     code: 'qr-menu',
-    name: 'QR Menü',
-    description: 'QR menü, QR sipariş ve servis çağrısı akışlarını yönetir.',
+    name: 'Dijital Katalog',
+    description: 'Dijital katalog, talep ve görevli çağrısı akışlarını yönetir.',
     category: 'business',
     icon: 'QR',
     route: 'qr-orders',
@@ -538,8 +549,8 @@ export const BUSINESS_WORKSPACE_MODULE_REGISTRY: BusinessWorkspaceModule[] = def
     pricing: { model: 'paid', currency: 'TRY' },
     marketplace: marketplaceReady,
     menuItems: [
-      menuItem({ key: 'qr-orders', label: 'QR Siparişler', route: 'qr-orders', icon: 'QR', displayOrder: 10 }),
-      menuItem({ key: 'waiter-calls', label: 'Servis Çağrıları', route: 'qr-orders', icon: 'SC', displayOrder: 20 }),
+      menuItem({ key: 'qr-orders', label: 'Dijital Talepler', route: 'qr-orders', icon: 'DT', displayOrder: 10 }),
+      menuItem({ key: 'waiter-calls', label: 'Görevli Çağrıları', route: 'qr-orders', icon: 'GC', displayOrder: 20 }),
       menuItem({ key: 'qr-codes', label: 'QR Kodlar', route: 'qr-codes', icon: 'QK', adminOnly: true, displayOrder: 30 })
     ]
   },
@@ -547,7 +558,7 @@ export const BUSINESS_WORKSPACE_MODULE_REGISTRY: BusinessWorkspaceModule[] = def
     id: 'business-stock',
     code: 'stock',
     name: 'Stok',
-    description: 'Stok kartları, hareketleri, kritik stok, SKT ve fire yönetimini kapsar.',
+    description: 'Stok kartları, hareketleri, kritik stok, geçerlilik ve kayıp yönetimini kapsar.',
     category: 'business',
     icon: 'SK',
     route: 'stock-cards',
@@ -563,18 +574,28 @@ export const BUSINESS_WORKSPACE_MODULE_REGISTRY: BusinessWorkspaceModule[] = def
     pricing: { model: 'paid', currency: 'TRY' },
     marketplace: marketplaceReady,
     menuItems: [
-      menuItem({ key: 'stock-cards', label: 'Stok Kartları', route: 'stock-cards', icon: 'SK', adminOnly: true, displayOrder: 10 }),
-      menuItem({ key: 'stock-movements', label: 'Stok Hareketleri', route: 'stock-movements', icon: 'SH', adminOnly: true, displayOrder: 20 }),
+      menuItem({ key: 'stock-cards', label: 'Kartlar', route: 'stock-cards', icon: 'SK', adminOnly: true, displayOrder: 10 }),
+      menuItem({ key: 'stock-movements', label: 'Hareketler', route: 'stock-movements', icon: 'SH', adminOnly: true, displayOrder: 20 }),
       menuItem({ key: 'critical-stock', label: 'Kritik Stok', route: 'stock-cards', icon: 'KS', adminOnly: true, displayOrder: 30 }),
-      menuItem({ key: 'expiry-lots', label: 'SKT Yönetimi', route: 'stock-cards', icon: 'ST', adminOnly: true, displayOrder: 40 }),
-      menuItem({ key: 'waste', label: 'Fire Yönetimi', route: 'stock-movements', icon: 'FR', adminOnly: true, displayOrder: 50 })
+      menuItem({ key: 'expiry-lots', label: 'Geçerlilik Takibi', route: 'stock-cards', icon: 'GT', adminOnly: true, displayOrder: 40 }),
+      menuItem({ key: 'waste', label: 'Kayıp Analizi', route: 'stock-movements', icon: 'KA', adminOnly: true, displayOrder: 50 }),
+      menuItem({
+        key: 'stock-reports',
+        label: 'Raporlar',
+        icon: 'RP',
+        adminOnly: true,
+        displayOrder: 60,
+        children: [
+          menuItem({ key: 'stock-risk-center', label: 'Stok ve Risk', route: 'stock-risk-center', icon: 'SR', adminOnly: true, displayOrder: 10 })
+        ]
+      })
     ]
   },
   {
     id: 'business-recipe',
     code: 'recipe',
-    name: 'Reçete',
-    description: 'Ürün reçeteleri ve stok tüketim ilişkisini yöneten iş modülü.',
+    name: 'Üretim Tanımları',
+    description: 'Ürün/hizmet üretim tanımları ve stok tüketim ilişkisini yöneten iş modülü.',
     category: 'business',
     icon: 'RC',
     route: 'recipes',
@@ -590,7 +611,7 @@ export const BUSINESS_WORKSPACE_MODULE_REGISTRY: BusinessWorkspaceModule[] = def
     pricing: { model: 'paid', currency: 'TRY' },
     marketplace: marketplaceReady,
     menuItems: [
-      menuItem({ key: 'recipes', label: 'Reçeteler', route: 'recipes', icon: 'RC', adminOnly: true, displayOrder: 10 })
+      menuItem({ key: 'recipes', label: 'Üretim Tanımları', route: 'recipes', icon: 'UT', adminOnly: true, displayOrder: 10 })
     ]
   },
   {
@@ -613,11 +634,20 @@ export const BUSINESS_WORKSPACE_MODULE_REGISTRY: BusinessWorkspaceModule[] = def
     pricing: { model: 'paid', currency: 'TRY' },
     marketplace: marketplaceReady,
     menuItems: [
-      menuItem({ key: 'current-accounts', label: 'Cari Kartları', route: 'current-accounts', icon: 'CK', adminOnly: true, displayOrder: 10 }),
-      menuItem({ key: 'current-account-movements', label: 'Cari Hareketleri', route: 'current-account-movements', icon: 'CH', adminOnly: true, displayOrder: 20 }),
-      menuItem({ key: 'current-report', label: 'Cari Raporu', route: 'current-report', icon: 'CR', adminOnly: true, displayOrder: 30 }),
-      menuItem({ key: 'risky-current', label: 'Riskli Cari', route: 'risky-current', icon: 'RC', adminOnly: true, displayOrder: 40 }),
-      menuItem({ key: 'current-finance-center', label: 'Cari ve Finans Merkezi', route: 'current-finance-center', icon: 'CF', adminOnly: true, displayOrder: 50 })
+      menuItem({ key: 'current-accounts', label: 'Kartlar', route: 'current-accounts', icon: 'CK', adminOnly: true, displayOrder: 10 }),
+      menuItem({ key: 'current-account-movements', label: 'Hareketler', route: 'current-account-movements', icon: 'CH', adminOnly: true, displayOrder: 20 }),
+      menuItem({
+        key: 'current-reports',
+        label: 'Raporlar',
+        icon: 'CR',
+        adminOnly: true,
+        displayOrder: 30,
+        children: [
+          menuItem({ key: 'current-report', label: 'Cari Raporu', route: 'current-report', icon: 'CR', adminOnly: true, displayOrder: 10 }),
+          menuItem({ key: 'risky-current', label: 'Riskli Cari', route: 'risky-current', icon: 'RC', adminOnly: true, displayOrder: 20 }),
+          menuItem({ key: 'current-finance-center', label: 'Cari Finans Merkezi', route: 'current-finance-center', icon: 'CF', adminOnly: true, displayOrder: 30 })
+        ]
+      })
     ]
   },
   {
@@ -640,8 +670,8 @@ export const BUSINESS_WORKSPACE_MODULE_REGISTRY: BusinessWorkspaceModule[] = def
     pricing: { model: 'paid', currency: 'TRY' },
     marketplace: marketplaceReady,
     menuItems: [
-      menuItem({ key: 'credit-transactions', label: 'Veresiye İşlemleri', route: 'credit-transactions', icon: 'VI', adminOnly: true, displayOrder: 10 }),
-      menuItem({ key: 'collection-transactions', label: 'Tahsilat İşlemleri', route: 'collection-transactions', icon: 'TI', adminOnly: true, displayOrder: 20 })
+      menuItem({ key: 'credit-transactions', label: 'İşlemler', route: 'credit-transactions', icon: 'VI', adminOnly: true, displayOrder: 10 }),
+      menuItem({ key: 'collection-transactions', label: 'Tahsilat', route: 'collection-transactions', icon: 'TI', adminOnly: true, displayOrder: 20 })
     ]
   },
   {
@@ -665,12 +695,21 @@ export const BUSINESS_WORKSPACE_MODULE_REGISTRY: BusinessWorkspaceModule[] = def
     marketplace: marketplaceReady,
     menuItems: [
       menuItem({ key: 'supplier-debts', label: 'Tedarikçi Borçları', route: 'supplier-debts', icon: 'TB', adminOnly: true, displayOrder: 10 }),
-      menuItem({ key: 'supplier-payments', label: 'Tedarikçi Ödeme İşlemleri', route: 'supplier-payments', icon: 'TO', adminOnly: true, displayOrder: 20 }),
+      menuItem({ key: 'supplier-payments', label: 'Tedarikçi Ödemeleri', route: 'supplier-payments', icon: 'TO', adminOnly: true, displayOrder: 20 }),
       menuItem({ key: 'cash-transactions', label: 'Kasa Hareketleri', route: 'cash-transactions', icon: 'KH', adminOnly: true, displayOrder: 30 }),
-      menuItem({ key: 'income-expense', label: 'Gelir Gider Yönetimi', route: 'income-expense', icon: 'GG', adminOnly: true, displayOrder: 40 }),
-      menuItem({ key: 'cash-closing', label: 'Gün Sonu Kasa Kapatma', route: 'cash-closing', icon: 'GS', adminOnly: true, displayOrder: 50 }),
-      menuItem({ key: 'financial-reports', label: 'Finans Raporları', route: 'financial-reports', icon: 'FR', adminOnly: true, displayOrder: 60 }),
-      menuItem({ key: 'cash-transfers', label: 'Kasa Devir İşlemleri', route: 'cash-transfers', icon: 'KD', adminOnly: true, displayOrder: 70 })
+      menuItem({ key: 'income-expense', label: 'Gelir Gider', route: 'income-expense', icon: 'GG', adminOnly: true, displayOrder: 40 }),
+      menuItem({ key: 'cash-closing', label: 'Gün Sonu', route: 'cash-closing', icon: 'GS', adminOnly: true, displayOrder: 50 }),
+      menuItem({ key: 'cash-transfers', label: 'Kasa Devir', route: 'cash-transfers', icon: 'KD', adminOnly: true, displayOrder: 60 }),
+      menuItem({
+        key: 'finance-reports',
+        label: 'Raporlar',
+        icon: 'FR',
+        adminOnly: true,
+        displayOrder: 70,
+        children: [
+          menuItem({ key: 'financial-reports', label: 'Finans Raporları', route: 'financial-reports', icon: 'FR', adminOnly: true, displayOrder: 10 })
+        ]
+      })
     ]
   },
   {
@@ -693,14 +732,23 @@ export const BUSINESS_WORKSPACE_MODULE_REGISTRY: BusinessWorkspaceModule[] = def
     pricing: { model: 'paid', currency: 'TRY' },
     marketplace: marketplaceReady,
     menuItems: [
-      menuItem({ key: 'employee-cards', label: 'Personel Kartları', route: 'employee-cards', icon: 'PK', adminOnly: true, displayOrder: 10 }),
-      menuItem({ key: 'shift-management', label: 'Vardiya Yönetimi', route: 'shift-management', icon: 'VY', adminOnly: true, displayOrder: 20 }),
-      menuItem({ key: 'attendance-tracking', label: 'Puantaj ve Mesai Takibi', route: 'attendance-tracking', icon: 'PM', adminOnly: true, displayOrder: 30 }),
-      menuItem({ key: 'employee-performance', label: 'Personel Performans Takibi', route: 'employee-performance', icon: 'PF', adminOnly: true, displayOrder: 40 }),
-      menuItem({ key: 'employee-bonus', label: 'Prim Sistemi', route: 'employee-bonus', icon: 'PR', adminOnly: true, displayOrder: 50 }),
-      menuItem({ key: 'employee-audit', label: 'Disiplin ve Denetim Kayıtları', route: 'employee-audit', icon: 'DD', adminOnly: true, displayOrder: 60 }),
-      menuItem({ key: 'employee-reports', label: 'Personel Raporları', route: 'employee-reports', icon: 'RA', adminOnly: true, displayOrder: 70 }),
-      menuItem({ key: 'staff', label: 'Personel Takibi', route: 'staff', icon: 'PT', adminOnly: true, displayOrder: 80 })
+      menuItem({ key: 'employee-cards', label: 'Kartlar', route: 'employee-cards', icon: 'PK', adminOnly: true, displayOrder: 10 }),
+      menuItem({ key: 'shift-management', label: 'Vardiya', route: 'shift-management', icon: 'VY', adminOnly: true, displayOrder: 20 }),
+      menuItem({ key: 'attendance-tracking', label: 'Puantaj', route: 'attendance-tracking', icon: 'PM', adminOnly: true, displayOrder: 30 }),
+      menuItem({ key: 'employee-performance', label: 'Performans', route: 'employee-performance', icon: 'PF', adminOnly: true, displayOrder: 40 }),
+      menuItem({ key: 'employee-bonus', label: 'Prim', route: 'employee-bonus', icon: 'PR', adminOnly: true, displayOrder: 50 }),
+      menuItem({ key: 'employee-audit', label: 'Disiplin', route: 'employee-audit', icon: 'DD', adminOnly: true, displayOrder: 60 }),
+      menuItem({
+        key: 'personnel-reports',
+        label: 'Raporlar',
+        icon: 'RA',
+        adminOnly: true,
+        displayOrder: 70,
+        children: [
+          menuItem({ key: 'employee-reports', label: 'Personel Raporları', route: 'employee-reports', icon: 'RA', adminOnly: true, displayOrder: 10 })
+        ]
+      }),
+      menuItem({ key: 'staff', label: 'Takip', route: 'staff', icon: 'PT', adminOnly: true, displayOrder: 80 })
     ]
   },
   {
@@ -741,7 +789,7 @@ export const BUSINESS_WORKSPACE_MODULE_REGISTRY: BusinessWorkspaceModule[] = def
     isCoreModule: false,
     isBusinessModule: true,
     isEnabled: true,
-    isVisible: true,
+    isVisible: false,
     displayOrder: 100,
     dependencies: ['dashboard'],
     tags: ['business', 'reporting', 'analytics'],
@@ -749,17 +797,14 @@ export const BUSINESS_WORKSPACE_MODULE_REGISTRY: BusinessWorkspaceModule[] = def
     pricing: { model: 'paid', currency: 'TRY' },
     marketplace: marketplaceReady,
     menuItems: [
-      menuItem({ key: 'reports', label: 'Rapor Merkezi', route: 'reports', icon: 'RM', adminOnly: true, displayOrder: 10 }),
-      menuItem({ key: 'analytics-dashboard', label: 'Analitik Dashboard', route: 'analytics-dashboard', icon: 'AD', adminOnly: true, displayOrder: 20 }),
-      menuItem({ key: 'sales-revenue-analysis', label: 'Satış ve Ciro Analizleri', route: 'sales-revenue-analysis', icon: 'SC', adminOnly: true, displayOrder: 30 }),
-      menuItem({ key: 'product-performance-analysis', label: 'Ürün Performans Analizleri', route: 'product-performance-analysis', icon: 'UP', adminOnly: true, displayOrder: 40 }),
-      menuItem({ key: 'stock-risk-center', label: 'Stok ve Risk Merkezi', route: 'stock-risk-center', icon: 'SR', adminOnly: true, displayOrder: 50 }),
-      menuItem({ key: 'system-health-telemetry', label: 'Sistem Sağlığı ve Telemetri', route: 'system-health-telemetry', icon: 'ST', adminOnly: true, displayOrder: 60 }),
-      menuItem({ key: 'system-usage-logs', label: 'Sistem Kullanım Logları', route: 'system-usage-logs', icon: 'SL', adminOnly: true, displayOrder: 70 }),
-      menuItem({ key: 'user-activity-tracking', label: 'Kullanıcı Aktivite Takibi', route: 'user-activity-tracking', icon: 'KA', adminOnly: true, displayOrder: 80 }),
-      menuItem({ key: 'module-usage-analysis', label: 'Modül Kullanım Analizleri', route: 'module-usage-analysis', icon: 'MA', adminOnly: true, displayOrder: 90 }),
-      menuItem({ key: 'business-usage-stats', label: 'İşletme Kullanım İstatistikleri', route: 'business-usage-stats', icon: 'IK', adminOnly: true, displayOrder: 100 }),
-      menuItem({ key: 'usage-performance-analysis', label: 'Performans ve Yoğunluk Analizleri', route: 'usage-performance-analysis', icon: 'PY', adminOnly: true, displayOrder: 110 })
+      menuItem({ key: 'reports', label: 'Rapor Merkezi', route: 'reports', icon: 'RM', adminOnly: true, hidden: true, displayOrder: 10 }),
+      menuItem({ key: 'analytics-dashboard', label: 'Analitik Dashboard', route: 'analytics-dashboard', icon: 'AD', adminOnly: true, hidden: true, displayOrder: 20 }),
+      menuItem({ key: 'system-health-telemetry', label: 'Sistem Sağlığı ve Telemetri', route: 'system-health-telemetry', icon: 'ST', adminOnly: true, hidden: true, displayOrder: 60 }),
+      menuItem({ key: 'system-usage-logs', label: 'Sistem Kullanım Logları', route: 'system-usage-logs', icon: 'SL', adminOnly: true, hidden: true, displayOrder: 70 }),
+      menuItem({ key: 'user-activity-tracking', label: 'Kullanıcı Aktivite Takibi', route: 'user-activity-tracking', icon: 'KA', adminOnly: true, hidden: true, displayOrder: 80 }),
+      menuItem({ key: 'module-usage-analysis', label: 'Modül Kullanım Analizleri', route: 'module-usage-analysis', icon: 'MA', adminOnly: true, hidden: true, displayOrder: 90 }),
+      menuItem({ key: 'business-usage-stats', label: 'İşletme Kullanım İstatistikleri', route: 'business-usage-stats', icon: 'IK', adminOnly: true, hidden: true, displayOrder: 100 }),
+      menuItem({ key: 'usage-performance-analysis', label: 'Performans ve Yoğunluk Analizleri', route: 'usage-performance-analysis', icon: 'PY', adminOnly: true, hidden: true, displayOrder: 110 })
     ]
   },
   {
@@ -813,9 +858,18 @@ export const getBusinessWorkspaceModuleByLicenseKey = (moduleKey: LicenseModuleK
   return BUSINESS_WORKSPACE_MODULE_REGISTRY.find(module => module.licenseModuleKey === moduleKey)
 }
 
+const flattenWorkspaceModuleMenuItems = (
+  items: WorkspaceModuleMenuItem<BusinessWorkspaceRoute, BusinessWorkspaceNavKey>[]
+): WorkspaceModuleMenuItem<BusinessWorkspaceRoute, BusinessWorkspaceNavKey>[] => (
+  items.flatMap(item => [
+    item,
+    ...flattenWorkspaceModuleMenuItems(item.children || [])
+  ])
+)
+
 export const getBusinessWorkspaceMenuItems = (moduleType: WorkspaceModuleType) => {
   return getBusinessWorkspaceModules(moduleType)
-    .flatMap(module => module.menuItems
+    .flatMap(module => flattenWorkspaceModuleMenuItems(module.menuItems)
       .filter(item => !item.hidden)
       .sort((first, second) => (first.displayOrder || 0) - (second.displayOrder || 0))
     )

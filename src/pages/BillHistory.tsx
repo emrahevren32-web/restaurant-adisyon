@@ -34,7 +34,7 @@ const getPaymentAmount = (bill: ClosedBill, method: PaymentMethod) => {
     .reduce((sum, payment) => sum + payment.amount, 0)
 }
 const formatPaymentMethods = (bill: ClosedBill) => {
-  if(bill.mergeHistory) return 'Masa birleştirme'
+  if(bill.mergeHistory) return 'Alan birleştirme'
 
   const payments = getBillPayments(bill)
   if(payments.length === 0) return 'Ödeme yok'
@@ -73,18 +73,18 @@ export default function BillHistory(){
     <div className="history-page">
       <div className="page-title">
         <div>
-          <h2>Adisyon Geçmişi</h2>
-          <p className="muted">Kapanan hesapları, bölünmüş ödemeleri ve masa birleştirme kayıtlarını inceleyin.</p>
+          <h2>İşlem Geçmişi</h2>
+          <p className="muted">Kapanan hesapları, bölünmüş ödemeleri ve alan birleştirme kayıtlarını inceleyin.</p>
         </div>
       </div>
 
       <div className="metric-grid">
         <div className="metric-card">
-          <span>Kapanan Adisyon</span>
+          <span>Kapanan İşlem</span>
           <strong>{filteredBills.length}</strong>
         </div>
         <div className="metric-card">
-          <span>Toplam Ciro</span>
+          <span>Toplam Gelir</span>
           <strong>{formatCurrency(totalRevenue)}</strong>
         </div>
         <div className="metric-card">
@@ -104,7 +104,7 @@ export default function BillHistory(){
             <p className="muted">{filteredBills.length} kayıt gösteriliyor.</p>
           </div>
           <div className="history-controls">
-            <input type="search" placeholder="Masa, kapatan veya not ara" value={search} onChange={e=>setSearch(e.target.value)} />
+            <input type="search" placeholder="Alan, kapatan veya not ara" value={search} onChange={e=>setSearch(e.target.value)} />
             <select value={paymentFilter} onChange={e=>setPaymentFilter(e.target.value as PaymentFilter)}>
               {paymentOptions.map(option => (
                 <option key={option} value={option}>{option === 'all' ? 'Tüm ödemeler' : option}</option>
@@ -130,7 +130,7 @@ export default function BillHistory(){
                     <strong>{bill.tableName}</strong>
                     <small>{formatDateTime(bill.timestamp)} · {bill.closedByFullName || 'Kapatan yok'}</small>
                     {bill.splitPayment && <small className="status-pill">Bölünmüş hesap</small>}
-                    {bill.mergeHistory && <small className="status-pill">Masa birleştirme</small>}
+                    {bill.mergeHistory && <small className="status-pill">Alan birleştirme</small>}
                   </span>
                   <span className="history-summary-values">
                     <b>{formatCurrency(bill.total)}</b>
@@ -172,7 +172,7 @@ export default function BillHistory(){
                 {bill.splitPayment && <div className="bill-note">Bölünen hesap bilgisi: {bill.splitLabel || 'Seçili ürün ödemesi'}.</div>}
                 {bill.mergeHistory && (
                   <div className="bill-note">
-                    Birleştirme: {bill.tableName} içerisindeki ürünler {bill.mergeTargetTableName || 'hedef masa'} masasına aktarıldı. Bu kayıt satış toplamlarına dahil edilmez.
+                    Birleştirme: {bill.tableName} içerisindeki ürünler {bill.mergeTargetTableName || 'hedef alan'} alanına aktarıldı. Bu kayıt gelir toplamlarına dahil edilmez.
                   </div>
                 )}
                 {bill.note && <div className="bill-note">Not: {bill.note}</div>}
@@ -187,7 +187,7 @@ export default function BillHistory(){
                         <tr key={order.id}>
                           <td>{order.productName || products.find(product => product.id === order.productId)?.name || 'Bilinmiyor'}</td>
                           <td>{order.qty}</td>
-                          <td>{order.isGift ? 'İkram' : 'Satış'}</td>
+                          <td>{order.isGift ? 'İkram' : 'İşlem'}</td>
                           <td>{formatCurrency(order.isGift ? calculateOrderOriginalTotal(order, products) : calculateOrderPayableTotal(order, products))}</td>
                         </tr>
                       ))}

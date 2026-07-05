@@ -77,10 +77,10 @@ const formatDateTime = (value: string) => {
 const formatLotEventType = (event: StockExpiryEvent) => {
   if(event.eventType === 'lot_created') return 'Oluşturuldu'
   if(event.eventType === 'lot_consumed') return 'Tüketildi'
-  if(event.eventType === 'lot_wasted') return 'Fire düşüldü'
+  if(event.eventType === 'lot_wasted') return 'Kayıp düşüldü'
   if(event.eventType === 'lot_returned') return 'Ters hareketle iade edildi'
   if(event.eventType === 'expired') return 'Tarihi geçti'
-  if(event.eventType === 'near_expiry') return 'SKT yaklaşan uyarısı'
+  if(event.eventType === 'near_expiry') return 'Geçerlilik yaklaşan uyarısı'
   if(event.eventType === 'allocation_missing') return 'Lot eşleşmesi yok'
   return 'Lot güncellendi'
 }
@@ -328,10 +328,10 @@ export default function StockCards({ currentUser, focus = 'cards' }: Props){
 
     if(focus === 'expiry'){
       return {
-        title: 'SKT Yönetimi',
-        description: 'Yaklaşan ve geçmiş SKT riski taşıyan lotları stok kartları üzerinden izleyin.',
-        listTitle: 'SKT Risk Listesi',
-        emptyText: 'Yaklaşan veya geçmiş SKT riski bulunan lot/stok kartı bulunamadı.'
+        title: 'Geçerlilik Yönetimi',
+        description: 'Yaklaşan ve geçmiş geçerlilik riski taşıyan lotları stok kartları üzerinden izleyin.',
+        listTitle: 'Geçerlilik Risk Listesi',
+        emptyText: 'Yaklaşan veya geçmiş geçerlilik riski bulunan lot/stok kartı bulunamadı.'
       }
     }
 
@@ -354,8 +354,8 @@ export default function StockCards({ currentUser, focus = 'cards' }: Props){
 
     if(focus === 'expiry'){
       return [
-        { label: 'Yaklaşan SKT', value: activeExpiryLotStatusCounts.near, detail: 'Uyarı aralığında' },
-        { label: 'Geçmiş SKT', value: activeExpiryLotStatusCounts.expired, detail: 'Müdahale bekler' },
+        { label: 'Yaklaşan Geçerlilik', value: activeExpiryLotStatusCounts.near, detail: 'Uyarı aralığında' },
+        { label: 'Geçmiş Geçerlilik', value: activeExpiryLotStatusCounts.expired, detail: 'Müdahale bekler' },
         { label: 'Riskli Lot', value: activeExpiryLotStatusCounts.risky, detail: 'Yaklaşan veya geçmiş' },
         { label: 'Sağlıklı Lot', value: activeExpiryLotStatusCounts.healthy, detail: 'Aktif geçerli lot' }
       ]
@@ -364,7 +364,7 @@ export default function StockCards({ currentUser, focus = 'cards' }: Props){
     return [
       { label: 'Toplam Kart', value: items.length, detail: `${inactiveItemCount} pasif kart` },
       { label: 'Aktif Kart', value: activeItemCount, detail: `${healthyItemCount} sağlıklı stok` },
-      { label: 'SKT Takibi', value: expiryTrackedItemCount, detail: 'Lot bazlı izlenir' },
+      { label: 'Geçerlilik Takibi', value: expiryTrackedItemCount, detail: 'Lot bazlı izlenir' },
       { label: 'Stok Riski', value: criticalItemCount, detail: `${outOfStockCount} stokta yok` }
     ]
   }, [
@@ -460,7 +460,7 @@ export default function StockCards({ currentUser, focus = 'cards' }: Props){
     addActionLog({
       operationType: 'Stok kartı oluşturuldu',
       user: currentUser,
-      description: `${item.name} stok kartı oluşturuldu. Kritik seviye: ${formatQuantity(item.minQty, item.unit)}. Stok miktarı ve SKT girişleri Stok Hareketleri ekranından yapılır.`
+      description: `${item.name} stok kartı oluşturuldu. Kritik seviye: ${formatQuantity(item.minQty, item.unit)}. Stok miktarı ve geçerlilik girişleri Stok Hareketleri ekranından yapılır.`
     })
     if(item.unitPurchasePrice !== undefined){
       addActionLog({
@@ -683,10 +683,10 @@ export default function StockCards({ currentUser, focus = 'cards' }: Props){
                 <option value="critical">Kritik stok</option>
                 <option value="out">Stokta yok</option>
                 <option value="healthy">Sağlıklı stok</option>
-                <option value="expiry">SKT takipli</option>
-                <option value="expiry-risk">SKT yaklaşan</option>
-                <option value="expired">SKT tarihi geçmiş</option>
-                <option value="expiry-risk-or-expired">Yaklaşan veya geçmiş SKT</option>
+                <option value="expiry">Geçerlilik takipli</option>
+                <option value="expiry-risk">Geçerlilik yaklaşan</option>
+                <option value="expired">Geçerlilik tarihi geçmiş</option>
+                <option value="expiry-risk-or-expired">Yaklaşan veya geçmiş geçerlilik</option>
                 <option value="inactive">Pasif kartlar</option>
                 <option value="all">Tüm durumlar</option>
               </select>
@@ -706,7 +706,7 @@ export default function StockCards({ currentUser, focus = 'cards' }: Props){
                   <th>Birim</th>
                   <th>Kritik</th>
                   <th>Eksik</th>
-                  <th>SKT</th>
+                  <th>Geçerlilik</th>
                   <th>Durum</th>
                   <th>Maliyet Bilgileri</th>
                   <th></th>
@@ -866,7 +866,7 @@ export default function StockCards({ currentUser, focus = 'cards' }: Props){
               <div className="metric-card">
                 <span>Toplam Lot</span>
                 <strong>{selectedLotRows.length}</strong>
-                <p className="muted">{lotPanelItem.tracksExpiry ? 'SKT takibi aktif' : 'SKT takibi kapalı'}</p>
+                <p className="muted">{lotPanelItem.tracksExpiry ? 'Geçerlilik takibi aktif' : 'Geçerlilik takibi kapalı'}</p>
               </div>
               <div className="metric-card">
                 <span>FEFO Adayı</span>
@@ -883,7 +883,7 @@ export default function StockCards({ currentUser, focus = 'cards' }: Props){
             <section className="lot-panel-section">
               <div className="section-header compact">
                 <h4>FEFO Tüketim Önceliği</h4>
-                <span className="status-pill">En yakın SKT önce</span>
+                <span className="status-pill">En yakın geçerlilik önce</span>
               </div>
               <div className="lot-priority-list">
                 {selectedFefoLots.length === 0 && <div className="empty-state">Tüketilebilir FEFO lotu bulunmuyor.</div>}
@@ -894,7 +894,7 @@ export default function StockCards({ currentUser, focus = 'cards' }: Props){
                       <span>{lot.lotCode}</span>
                     </div>
                     <div>
-                      <span>SKT</span>
+                      <span>Geçerlilik</span>
                       <strong>{formatExpiryDate(lot.expiryDate)}</strong>
                     </div>
                     <div>
@@ -916,7 +916,7 @@ export default function StockCards({ currentUser, focus = 'cards' }: Props){
                   <thead>
                     <tr>
                       <th>Lot No</th>
-                      <th>SKT</th>
+                      <th>Geçerlilik</th>
                       <th>Oluşturulma Tarihi</th>
                       <th>İlk Giriş Miktarı</th>
                       <th>Kalan Miktar</th>

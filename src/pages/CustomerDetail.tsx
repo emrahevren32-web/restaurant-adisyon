@@ -31,8 +31,8 @@ type Props = {
 type CustomerStatus = 'Aktif' | 'Pasif' | 'Deneme' | 'Askıda'
 
 const moduleCards: Array<{ key: LicenseModuleKey; label: string }> = [
-  { key: 'adisyon', label: 'Adisyon' },
-  { key: 'qr-menu', label: 'QR Menü' },
+  { key: 'adisyon', label: 'İşlem Yönetimi' },
+  { key: 'qr-menu', label: 'Dijital Katalog' },
   { key: 'stock', label: 'Stok' },
   { key: 'finance', label: 'Finans' },
   { key: 'current', label: 'Cari' },

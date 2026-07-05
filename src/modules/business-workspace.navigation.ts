@@ -58,6 +58,15 @@ export const flattenBusinessWorkspaceNavItems = (
   ])
 )
 
+const flattenModuleMenuItems = (
+  items: typeof BUSINESS_WORKSPACE_MODULE_REGISTRY[number]['menuItems']
+): typeof BUSINESS_WORKSPACE_MODULE_REGISTRY[number]['menuItems'] => (
+  items.flatMap(item => [
+    item,
+    ...flattenModuleMenuItems(item.children || [])
+  ])
+)
+
 export const createBusinessWorkspaceNavGroups = (
   options: CreateBusinessWorkspaceNavGroupsOptions = {}
 ): BusinessWorkspaceNavGroup[] => {
@@ -66,8 +75,8 @@ export const createBusinessWorkspaceNavGroups = (
   return [
     {
       key: 'system-modules',
-      title: 'SİSTEM MODÜLLERİ',
-      icon: 'SM',
+      title: 'WORKSPACE',
+      icon: 'WS',
       items: registry.systemModules.map(toShellNavItem)
     },
     {
@@ -101,7 +110,7 @@ export const createLicensedNavModuleMap = () => {
     if(!module.isEnabled || !module.isVisible) return
     if(!module.licenseModuleKey) return
     if(module.moduleType === WORKSPACE_MODULE_TYPES.CORE_SYSTEM) return
-    module.menuItems.forEach(item => {
+    flattenModuleMenuItems(module.menuItems).forEach(item => {
       licensedNavModules[item.key] = module.licenseModuleKey
     })
   })
@@ -117,8 +126,8 @@ export const createLicensedRouteModuleMap = () => {
     if(!module.licenseModuleKey) return
     if(module.moduleType === WORKSPACE_MODULE_TYPES.CORE_SYSTEM) return
     licensedRouteModules[module.route] = module.licenseModuleKey
-    module.menuItems.forEach(item => {
-      licensedRouteModules[item.route] = module.licenseModuleKey
+    flattenModuleMenuItems(module.menuItems).forEach(item => {
+      if(item.route) licensedRouteModules[item.route] = module.licenseModuleKey
     })
   })
 

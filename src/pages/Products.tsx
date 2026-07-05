@@ -301,7 +301,7 @@ export default function Products({ currentUser }: Props){
       <div className="page-title">
         <div>
           <h2>Ürün Yönetimi</h2>
-          <p className="muted">Menüyü kategorilere ayırın, ürünleri düzenleyin ve satış durumlarını takip edin.</p>
+          <p className="muted">Kataloğu kategorilere ayırın, ürün / hizmetleri düzenleyin ve işlem durumlarını takip edin.</p>
         </div>
         {!canManageCatalog && <span className="status-pill">Görüntüleme Modu</span>}
       </div>

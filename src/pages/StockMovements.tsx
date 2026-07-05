@@ -60,7 +60,7 @@ const formatCriticalStockMessage = (movement: ReturnType<typeof applyStockMoveme
 
 const formatExpiryWarningMessage = (movement: ReturnType<typeof applyStockMovement>) => {
   if(!movement.expiryWarnings?.length) return ''
-  return ` SKT uyarısı: ${movement.expiryWarnings.join(' | ')}`
+  return ` Geçerlilik uyarısı: ${movement.expiryWarnings.join(' | ')}`
 }
 
 const getMovementDirectionClass = (movement: StockMovement) => {
@@ -73,12 +73,12 @@ const getExpiryMovementText = (movement: StockMovement) => {
   const parts: string[] = []
 
   if(movement.expiryDate){
-    parts.push(`SKT: ${formatExpiryDate(movement.expiryDate)}`)
+    parts.push(`Geçerlilik: ${formatExpiryDate(movement.expiryDate)}`)
   }
 
   if(movement.expiryAllocations?.length){
     parts.push(`FEFO: ${movement.expiryAllocations.map(allocation => {
-      const expiry = allocation.expiryDate ? formatExpiryDate(allocation.expiryDate) : 'SKT yok'
+      const expiry = allocation.expiryDate ? formatExpiryDate(allocation.expiryDate) : 'Geçerlilik yok'
       return `${allocation.lotCode} ${formatQuantity(allocation.qty, allocation.unit)} (${expiry})`
     }).join(' | ')}`)
   }
@@ -176,16 +176,16 @@ export default function StockMovements({ currentUser, focus = 'movements' }: Pro
   const pageMeta = React.useMemo(() => {
     if(isWasteFocus){
       return {
-        title: 'Fire Yönetimi',
-        description: 'Fire kayıtlarını, fire kaynaklı stok hareketlerini ve maliyet etkisini takip edin.',
-        listTitle: 'Fire Hareketleri',
-        emptyText: 'Filtrelere uygun fire hareketi bulunamadı.'
+        title: 'Kayıp Yönetimi',
+        description: 'Kayıp kayıtlarını, kayıp kaynaklı stok hareketlerini ve maliyet etkisini takip edin.',
+        listTitle: 'Kayıp Hareketleri',
+        emptyText: 'Filtrelere uygun kayıp hareketi bulunamadı.'
       }
     }
 
     return {
       title: 'Stok Hareketleri',
-      description: 'Stok miktarı, SKT girişleri ve stok hareketleri bu ekran üzerinden yönetilir.',
+      description: 'Stok miktarı, geçerlilik girişleri ve stok hareketleri bu ekran üzerinden yönetilir.',
       listTitle: 'Hareket Geçmişi',
       emptyText: 'Filtrelere uygun stok hareketi bulunamadı.'
     }
@@ -193,10 +193,10 @@ export default function StockMovements({ currentUser, focus = 'movements' }: Pro
   const metricCards = React.useMemo(() => {
     if(isWasteFocus){
       return [
-        { label: 'Bugünkü Fire', value: todaysWasteRecords.length, detail: formatCurrency(todayWasteCost) },
-        { label: 'Bu Ay Fire', value: thisMonthWasteRecords.length, detail: formatCurrency(thisMonthWasteCost) },
-        { label: 'Fire Maliyeti', value: formatCurrency(thisMonthWasteCost), detail: 'Bu ay tahmini maliyet' },
-        { label: 'Fire Adedi', value: activeWasteRecords.length, detail: 'Aktif fire kaydı' }
+        { label: 'Bugünkü Kayıp', value: todaysWasteRecords.length, detail: formatCurrency(todayWasteCost) },
+        { label: 'Bu Ay Kayıp', value: thisMonthWasteRecords.length, detail: formatCurrency(thisMonthWasteCost) },
+        { label: 'Kayıp Maliyeti', value: formatCurrency(thisMonthWasteCost), detail: 'Bu ay tahmini maliyet' },
+        { label: 'Kayıp Adedi', value: activeWasteRecords.length, detail: 'Aktif kayıp kaydı' }
       ]
     }
 
@@ -205,7 +205,7 @@ export default function StockMovements({ currentUser, focus = 'movements' }: Pro
       { label: 'Bugünkü Çıkış Fişi', value: todayExitCount },
       { label: 'Sayım Düzeltme', value: todayCountCorrectionCount },
       { label: 'Ters Hareket', value: reversedMovementCount },
-      { label: 'Bugünkü Fire', value: todaysWasteRecords.length, detail: formatCurrency(todayWasteCost) }
+      { label: 'Bugünkü Kayıp', value: todaysWasteRecords.length, detail: formatCurrency(todayWasteCost) }
     ]
   }, [
     activeWasteRecords.length,
@@ -255,11 +255,11 @@ export default function StockMovements({ currentUser, focus = 'movements' }: Pro
       refreshData()
       setMessage({
         type: result.movement.criticalStockEvent?.eventType === 'entered' ? 'error' : 'success',
-        text: `${result.record.stockItemName} için fire kaydı oluşturuldu. Tahmini maliyet: ${formatCurrency(result.record.estimatedTotalCost || 0)}.${formatCriticalStockMessage(result.movement)}${formatExpiryWarningMessage(result.movement)}`
+        text: `${result.record.stockItemName} için kayıp kaydı oluşturuldu. Tahmini maliyet: ${formatCurrency(result.record.estimatedTotalCost || 0)}.${formatCriticalStockMessage(result.movement)}${formatExpiryWarningMessage(result.movement)}`
       })
       return true
     } catch (error) {
-      setMessage({ type: 'error', text: error instanceof Error ? error.message : 'Fire kaydı oluşturulamadı.' })
+      setMessage({ type: 'error', text: error instanceof Error ? error.message : 'Kayıp kaydı oluşturulamadı.' })
       return false
     }
   }
@@ -339,11 +339,11 @@ export default function StockMovements({ currentUser, focus = 'movements' }: Pro
               <select value={sourceFilter} onChange={event => setSourceFilter(event.target.value as SourceFilter)}>
                 <option value="all">Tüm kaynaklar</option>
                 <option value="Manuel">Manuel</option>
-                <option value="Reçete">Reçete</option>
-                <option value="Adisyon">Adisyon</option>
+                <option value="Reçete">Üretim Tanımı</option>
+                <option value="Adisyon">İşlem</option>
                 <option value="Sayım">Sayım</option>
                 <option value="İade">İade</option>
-                <option value="Fire">Fire</option>
+                <option value="Fire">Kayıp</option>
                 <option value="Transfer">Transfer</option>
               </select>
               <input type="search" placeholder="Stok, sebep, tedarikçi, fatura, kullanıcı ara" value={search} onChange={event => setSearch(event.target.value)} />
@@ -378,14 +378,14 @@ export default function StockMovements({ currentUser, focus = 'movements' }: Pro
                     <td>
                       <strong>{movement.stockItemName}</strong>
                       <div className="muted small-text">
-                        {movement.reason}{movement.source === 'Fire' ? ' · Fire kaydı' : ''}{movement.reversesMovementId ? ' · Ters kayıt' : ''}{movement.reversedByMovementId ? ' · Terslendi' : ''}
+                        {movement.reason === 'Fire' ? 'Kayıp' : movement.reason}{movement.source === 'Fire' ? ' · Kayıp kaydı' : ''}{movement.reversesMovementId ? ' · Ters kayıt' : ''}{movement.reversedByMovementId ? ' · Terslendi' : ''}
                       </div>
                       {getExpiryMovementText(movement) && <div className="muted small-text">{getExpiryMovementText(movement)}</div>}
                       {movement.expiryWarnings?.map(warning => <div className="small-text danger-text" key={warning}>{warning}</div>)}
                     </td>
                     <td><span className={`status-pill ${getMovementDirectionClass(movement)}`}>{movement.type}</span></td>
                     <td>
-                      {movement.source === 'Fire' ? <span className="status-pill warning-pill">Fire</span> : movement.source}
+                      {movement.source === 'Fire' ? <span className="status-pill warning-pill">Kayıp</span> : movement.source === 'Reçete' ? 'Üretim Tanımı' : movement.source === 'Adisyon' ? 'İşlem' : movement.source}
                     </td>
                     <td>{formatQuantity(movement.qty, movement.unit)}</td>
                     <td>
@@ -419,17 +419,17 @@ export default function StockMovements({ currentUser, focus = 'movements' }: Pro
         <aside className="stock-movement-side">
           <section className="card">
             <div className="section-header compact">
-              <h3>Fire Kaydı</h3>
+              <h3>Kayıp Kaydı</h3>
             </div>
             <StockWasteForm stockItems={activeStockItems} users={users} onSave={saveWasteRecord} />
           </section>
 
           <section className="card">
             <div className="section-header compact">
-              <h3>Son Fire Kayıtları</h3>
+              <h3>Son Kayıp Kayıtları</h3>
             </div>
             <div className="waste-mini-list">
-              {recentWasteRecords.length === 0 && <div className="empty-state">Fire kaydı yok.</div>}
+              {recentWasteRecords.length === 0 && <div className="empty-state">Kayıp kaydı yok.</div>}
               {recentWasteRecords.map(record => (
                 <div className="waste-mini-row" key={record.id}>
                   <div>

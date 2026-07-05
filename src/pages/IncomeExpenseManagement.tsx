@@ -22,7 +22,7 @@ type IncomeExpenseFormValues = {
   description: string
 }
 
-const incomeCategories = ['Ürün Satışı', 'Hizmet Geliri', 'Ek Gelir', 'Diğer Gelir']
+const incomeCategories = ['Ürün / Hizmet Geliri', 'Ek Gelir', 'Diğer Gelir']
 const expenseCategories = ['Kira', 'Elektrik', 'Su', 'Doğalgaz', 'Personel', 'Muhasebe', 'Vergi', 'Temizlik', 'Bakım Onarım', 'Yakıt', 'Diğer Gider']
 const paymentMethods: IncomeExpensePaymentMethod[] = ['Nakit', 'Kart', 'Havale/EFT']
 const transactionTypes: IncomeExpenseType[] = ['Gelir', 'Gider']

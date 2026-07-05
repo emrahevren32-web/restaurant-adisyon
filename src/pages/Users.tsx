@@ -13,7 +13,7 @@ export default function Users({ currentUser }: Props){
 
   const startAdd = () => {
     setFormError('')
-    setEditing({ id: Date.now().toString(), fullName:'', username:'', password:'', role:'Garson', active:true })
+    setEditing({ id: Date.now().toString(), fullName:'', username:'', password:'', role:'Personel', active:true })
   }
   const save = (u: User) => {
     const existingUser = users.find(x=>x.id===u.id)
@@ -118,7 +118,7 @@ export default function Users({ currentUser }: Props){
 
 function UserForm({ user, onSave, onCancel }: { user: User, onSave: (u: User)=>void, onCancel: ()=>void }){
   const [u, setU] = React.useState<User>(user)
-  const roles: Role[] = ['Admin','Garson']
+  const roles: Role[] = ['Admin','Personel']
 
   React.useEffect(()=> setU(user), [user])
 

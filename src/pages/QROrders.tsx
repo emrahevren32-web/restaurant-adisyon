@@ -48,7 +48,7 @@ type Feedback = {
   text: string
 } | null
 
-const rejectReasons: QRRejectReason[] = ['Ürün mevcut değil', 'Mutfak kapalı', 'Müşteri iptali', 'Hatalı masa', 'Stok yetersiz', 'Diğer']
+const rejectReasons: QRRejectReason[] = ['Ürün mevcut değil', 'Operasyon kapalı', 'Müşteri iptali', 'Hatalı alan', 'Stok yetersiz', 'Diğer']
 
 const createId = (prefix: string) => `${prefix}_${Date.now()}_${Math.random().toString(16).slice(2)}`
 
@@ -89,7 +89,7 @@ const sortAuditDesc = (items: QRAuditEvent[]) => {
   return [...items].sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime())
 }
 
-const loadSortedQRRequests = () => sortByCreatedAtDesc(loadQRRequests().filter(request => request.status === 'Garson Onayı Bekliyor'))
+const loadSortedQRRequests = () => sortByCreatedAtDesc(loadQRRequests().filter(request => request.status === 'Görevli Onayı Bekliyor'))
 const loadSortedWaiterCalls = () => sortByCreatedAtDesc(loadWaiterCalls().filter(call => call.status !== 'Kapatıldı'))
 const loadSortedAuditEvents = () => sortAuditDesc(loadQRAuditEvents())
 
@@ -281,7 +281,7 @@ const getEventLabel = (event: QRAuditEvent) => {
   if(event.eventType === 'approved') return 'Onaylandı'
   if(event.eventType === 'rejected') return 'Reddedildi'
   if(event.eventType === 'assigned') return 'Sahiplenildi'
-  if(event.eventType === 'visited') return 'Masaya Gidildi'
+  if(event.eventType === 'visited') return 'Alana Gidildi'
   if(event.eventType === 'closed') return 'Kapatıldı'
   return 'Not Güncellendi'
 }
@@ -329,7 +329,7 @@ export default function QROrders({ currentUser, focus = 'orders' }: Props){
   const [closingCallId, setClosingCallId] = React.useState('')
   const [closeNote, setCloseNote] = React.useState('')
 
-  const canProcessRequests = currentUser.role === 'Admin' || currentUser.role === 'Garson'
+  const canProcessRequests = currentUser.role === 'Admin' || currentUser.role === 'Personel'
   const activeProducts = React.useMemo(() => products.filter(product => product.active), [products])
   const isCallsFocus = focus === 'calls'
 
@@ -420,18 +420,18 @@ export default function QROrders({ currentUser, focus = 'orders' }: Props){
 
   const saveRequestEdits = (request: QRRequest) => {
     if(!canProcessRequests){
-      setFeedback({ type: 'error', text: 'QR sipariş talebi düzenlemek için yetkiniz yok.' })
+      setFeedback({ type: 'error', text: 'Dijital talebi düzenlemek için yetkiniz yok.' })
       return
     }
 
     if(editItems.length === 0){
-      setFeedback({ type: 'error', text: 'Düzenlenen siparişte en az bir ürün olmalıdır.' })
+      setFeedback({ type: 'error', text: 'Düzenlenen talepte en az bir ürün olmalıdır.' })
       return
     }
 
     const storedRequest = loadQRRequests().find(item => item.id === request.id)
     if(!storedRequest){
-      setFeedback({ type: 'error', text: 'QR sipariş talebi bulunamadı.' })
+      setFeedback({ type: 'error', text: 'Dijital talep bulunamadı.' })
       return
     }
 
@@ -458,14 +458,14 @@ export default function QROrders({ currentUser, focus = 'orders' }: Props){
       tableName: request.tableName,
       before,
       after,
-      note: `${getUserName(currentUser)} QR siparişini düzenledi.`
+      note: `${getUserName(currentUser)} dijital talebi düzenledi.`
     })
     addActionLog({
-      operationType: 'QR Siparişi Düzenlendi',
+      operationType: 'Dijital Talep Düzenlendi',
       user: currentUser,
       tableId: request.tableId,
       tableName: request.tableName,
-      description: `${getUserName(currentUser)} ${request.tableName} QR siparişini düzenledi. Güncel sipariş: ${summarizeItems(editItems)}.`
+      description: `${getUserName(currentUser)} ${request.tableName} dijital talebi düzenledi. Güncel talep: ${summarizeItems(editItems)}.`
     })
 
     if(noteChanged){
@@ -481,17 +481,17 @@ export default function QROrders({ currentUser, focus = 'orders' }: Props){
         note: `${getUserName(currentUser)} personel notunu güncelledi.`
       })
       addActionLog({
-        operationType: 'QR Sipariş Notu Güncellendi',
+        operationType: 'Dijital Talep Notu Güncellendi',
         user: currentUser,
         tableId: request.tableId,
         tableName: request.tableName,
-        description: `${getUserName(currentUser)} ${request.tableName} QR sipariş personel notunu güncelledi.`
+        description: `${getUserName(currentUser)} ${request.tableName} dijital talep personel notunu güncelledi.`
       })
     }
 
     cancelEditRequest()
     refreshLiveData()
-    setFeedback({ type: 'success', text: `${request.tableName} QR siparişi güncellendi.` })
+    setFeedback({ type: 'success', text: `${request.tableName} dijital talebi güncellendi.` })
   }
 
   const startRejectRequest = (request: QRRequest) => {
@@ -505,7 +505,7 @@ export default function QROrders({ currentUser, focus = 'orders' }: Props){
 
   const rejectRequest = (request: QRRequest) => {
     if(!canProcessRequests){
-      setFeedback({ type: 'error', text: 'QR sipariş talebi işlemek için yetkiniz yok.' })
+      setFeedback({ type: 'error', text: 'Dijital talebi işlemek için yetkiniz yok.' })
       return
     }
 
@@ -516,7 +516,7 @@ export default function QROrders({ currentUser, focus = 'orders' }: Props){
 
     const storedRequest = loadQRRequests().find(item => item.id === request.id)
     if(!storedRequest){
-      setFeedback({ type: 'error', text: 'QR sipariş talebi bulunamadı.' })
+      setFeedback({ type: 'error', text: 'Dijital talep bulunamadı.' })
       return
     }
 
@@ -546,27 +546,27 @@ export default function QROrders({ currentUser, focus = 'orders' }: Props){
       note: `${getUserName(currentUser)} reddetti. Neden: ${rejectReason}${rejectNote.trim() ? ` - ${rejectNote.trim()}` : ''}`
     })
     addActionLog({
-      operationType: 'QR Siparişi Reddedildi',
+      operationType: 'Dijital Talep Reddedildi',
       user: currentUser,
       tableId: request.tableId,
       tableName: request.tableName,
-      description: `${getUserName(currentUser)} ${request.tableName} QR sipariş talebini reddetti. Neden: ${rejectReason}${rejectNote.trim() ? ` - ${rejectNote.trim()}` : ''}. Sipariş: ${summarizeItems(storedRequest.items)}`
+      description: `${getUserName(currentUser)} ${request.tableName} dijital talebi reddetti. Neden: ${rejectReason}${rejectNote.trim() ? ` - ${rejectNote.trim()}` : ''}. Talep: ${summarizeItems(storedRequest.items)}`
     })
 
     setRejectingRequestId('')
     setRejectNote('')
     refreshLiveData()
-    setFeedback({ type: 'success', text: `${request.tableName} QR sipariş talebi reddedildi.` })
+    setFeedback({ type: 'success', text: `${request.tableName} dijital talebi reddedildi.` })
   }
 
   const approveRequest = (request: QRRequest) => {
     if(!canProcessRequests){
-      setFeedback({ type: 'error', text: 'QR sipariş talebi işlemek için yetkiniz yok.' })
+      setFeedback({ type: 'error', text: 'Dijital talebi işlemek için yetkiniz yok.' })
       return
     }
 
     if(request.items.length === 0){
-      setFeedback({ type: 'error', text: 'Bu talepte adisyona eklenecek ürün bulunmuyor.' })
+      setFeedback({ type: 'error', text: 'Bu talepte işleme eklenecek ürün bulunmuyor.' })
       return
     }
 
@@ -574,7 +574,7 @@ export default function QROrders({ currentUser, focus = 'orders' }: Props){
     const table = findTargetTable(request, tables)
 
     if(!table){
-      setFeedback({ type: 'error', text: `${request.tableName} için kayıtlı masa ID bulunamadı. Talep kaldırılmadı.` })
+      setFeedback({ type: 'error', text: `${request.tableName} için kayıtlı alan ID bulunamadı. Talep kaldırılmadı.` })
       return
     }
 
@@ -612,21 +612,21 @@ export default function QROrders({ currentUser, focus = 'orders' }: Props){
       tableName: table.name,
       before: request,
       after: approvedRequest,
-      note: `${getUserName(currentUser)} QR siparişini onayladı.${mergeResult.warnings.length > 0 ? ` Stok uyarısı: ${mergeResult.warnings.join(' | ')}` : ''}`
+      note: `${getUserName(currentUser)} dijital talebi onayladı.${mergeResult.warnings.length > 0 ? ` Stok uyarısı: ${mergeResult.warnings.join(' | ')}` : ''}`
     })
     addActionLog({
-      operationType: 'QR Siparişi Onaylandı',
+      operationType: 'Dijital Talep Onaylandı',
       user: currentUser,
       tableId: table.id,
       tableName: table.name,
-      description: `${getUserName(currentUser)} ${table.name} QR sipariş talebini onayladı. ${summarizeItems(request.items)} adisyona eklendi.${kitchenItemCount > 0 ? ` ${kitchenItemCount} ürün mutfağa gönderildi.` : ''}${mergeResult.warnings.length > 0 ? ` Stok uyarısı: ${mergeResult.warnings.join(' | ')}.` : ''}${request.customerNote?.trim() ? ` Müşteri notu: ${request.customerNote.trim()}.` : ''}${request.staffNote?.trim() ? ` Personel notu: ${request.staffNote.trim()}.` : ''}`
+      description: `${getUserName(currentUser)} ${table.name} dijital talebi onayladı. ${summarizeItems(request.items)} işleme eklendi.${kitchenItemCount > 0 ? ` ${kitchenItemCount} ürün hazırlığa gönderildi.` : ''}${mergeResult.warnings.length > 0 ? ` Stok uyarısı: ${mergeResult.warnings.join(' | ')}.` : ''}${request.customerNote?.trim() ? ` Müşteri notu: ${request.customerNote.trim()}.` : ''}${request.staffNote?.trim() ? ` Personel notu: ${request.staffNote.trim()}.` : ''}`
     })
 
     setFeedback({
       type: 'success',
       text: mergeResult.warnings.length > 0
-        ? `${table.name} QR sipariş talebi onaylandı. Stok uyarısı: ${mergeResult.warnings.join(' | ')}`
-        : `${table.name} QR sipariş talebi onaylandı.`
+        ? `${table.name} dijital talebi onaylandı. Stok uyarısı: ${mergeResult.warnings.join(' | ')}`
+        : `${table.name} dijital talebi onaylandı.`
     })
     refreshLiveData()
   }
@@ -642,14 +642,14 @@ export default function QROrders({ currentUser, focus = 'orders' }: Props){
       tableName: call.tableName,
       before: call,
       after: nextCall,
-      note: `${getUserName(currentUser)} ${call.tableName} garson çağrısını ${eventType === 'assigned' ? 'sahiplendi' : 'masaya gidildi olarak işaretledi'}.`
+      note: `${getUserName(currentUser)} ${call.tableName} görevli çağrısını ${eventType === 'assigned' ? 'sahiplendi' : 'alana gidildi olarak işaretledi'}.`
     })
     refreshLiveData()
   }
 
   const claimWaiterCall = (call: WaiterCall) => {
     if(!canProcessRequests){
-      setFeedback({ type: 'error', text: 'Garson çağrısını sahiplenmek için yetkiniz yok.' })
+      setFeedback({ type: 'error', text: 'Görevli çağrısını sahiplenmek için yetkiniz yok.' })
       return
     }
 
@@ -665,18 +665,18 @@ export default function QROrders({ currentUser, focus = 'orders' }: Props){
 
     updateWaiterCall(call, nextCall, 'assigned')
     addActionLog({
-      operationType: 'Garson Çağrısı Sahiplenildi',
+      operationType: 'Görevli Çağrısı Sahiplenildi',
       user: currentUser,
       tableId: call.tableId,
       tableName: call.tableName,
-      description: `${getUserName(currentUser)} ${call.tableName} garson çağrısını sahiplendi.`
+      description: `${getUserName(currentUser)} ${call.tableName} görevli çağrısını sahiplendi.`
     })
-    setFeedback({ type: 'success', text: `${call.tableName} garson çağrısı sahiplenildi.` })
+    setFeedback({ type: 'success', text: `${call.tableName} görevli çağrısı sahiplenildi.` })
   }
 
   const markWaiterCallVisited = (call: WaiterCall) => {
     if(!canProcessRequests){
-      setFeedback({ type: 'error', text: 'Garson çağrısını güncellemek için yetkiniz yok.' })
+      setFeedback({ type: 'error', text: 'Görevli çağrısını güncellemek için yetkiniz yok.' })
       return
     }
 
@@ -695,24 +695,24 @@ export default function QROrders({ currentUser, focus = 'orders' }: Props){
 
     updateWaiterCall(call, nextCall, 'visited')
     addActionLog({
-      operationType: 'Garson Çağrısı Masaya Gidildi',
+      operationType: 'Görevli Çağrısı Masaya Gidildi',
       user: currentUser,
       tableId: call.tableId,
       tableName: call.tableName,
-      description: `${getUserName(currentUser)} ${call.tableName} garson çağrısını Masaya Gidildi durumuna aldı.`
+      description: `${getUserName(currentUser)} ${call.tableName} görevli çağrısını alana gidildi durumuna aldı.`
     })
-    setFeedback({ type: 'success', text: `${call.tableName} çağrısı Masaya Gidildi olarak işaretlendi.` })
+    setFeedback({ type: 'success', text: `${call.tableName} çağrısı alana gidildi olarak işaretlendi.` })
   }
 
   const closeWaiterCall = (call: WaiterCall) => {
     if(!canProcessRequests){
-      setFeedback({ type: 'error', text: 'Garson çağrısını kapatmak için yetkiniz yok.' })
+      setFeedback({ type: 'error', text: 'Görevli çağrısını kapatmak için yetkiniz yok.' })
       return
     }
 
     const storedCall = loadWaiterCalls().find(item => item.id === call.id)
     if(!storedCall){
-      setFeedback({ type: 'error', text: 'Garson çağrısı bulunamadı.' })
+      setFeedback({ type: 'error', text: 'Görevli çağrısı bulunamadı.' })
       return
     }
 
@@ -742,17 +742,17 @@ export default function QROrders({ currentUser, focus = 'orders' }: Props){
       note: `${getUserName(currentUser)} çağrıyı kapattı. Süre: ${formatDuration(storedCall.createdAt, now)}${closeNote.trim() ? ` - ${closeNote.trim()}` : ''}`
     })
     addActionLog({
-      operationType: 'Garson Çağrısı Kapatıldı',
+      operationType: 'Görevli Çağrısı Kapatıldı',
       user: currentUser,
       tableId: call.tableId,
       tableName: call.tableName,
-      description: `${getUserName(currentUser)} ${call.tableName} garson çağrısını kapattı. Süre: ${formatDuration(storedCall.createdAt, now)}${closeNote.trim() ? ` Not: ${closeNote.trim()}` : ''}.`
+      description: `${getUserName(currentUser)} ${call.tableName} görevli çağrısını kapattı. Süre: ${formatDuration(storedCall.createdAt, now)}${closeNote.trim() ? ` Not: ${closeNote.trim()}` : ''}.`
     })
 
     setClosingCallId('')
     setCloseNote('')
     refreshLiveData()
-    setFeedback({ type: 'success', text: `${call.tableName} garson çağrısı kapatıldı.` })
+    setFeedback({ type: 'success', text: `${call.tableName} görevli çağrısı kapatıldı.` })
   }
 
   const renderAuditList = (events: QRAuditEvent[]) => (
@@ -781,14 +781,14 @@ export default function QROrders({ currentUser, focus = 'orders' }: Props){
       <section className="card qr-focus-section">
         <div className="section-header compact">
           <div>
-            <h3>Garson Çağrıları</h3>
-            <p className="muted">Çağrılar sahiplenme, masaya gidildi ve kapatma adımlarıyla denetlenir.</p>
+            <h3>Görevli Çağrıları</h3>
+            <p className="muted">Çağrılar sahiplenme, alana gidildi ve kapatma adımlarıyla denetlenir.</p>
           </div>
           <span className="status-pill">{waiterCalls.length} aktif çağrı</span>
         </div>
 
         {waiterCalls.length === 0 ? (
-          <div className="empty-state">Bekleyen garson çağrısı yok.</div>
+          <div className="empty-state">Bekleyen görevli çağrısı yok.</div>
         ) : (
           <div className="waiter-call-list">
             {waiterCalls.map(call => {
@@ -799,16 +799,16 @@ export default function QROrders({ currentUser, focus = 'orders' }: Props){
               return (
                 <article className="waiter-call-card" key={call.id}>
                   <div>
-                    <span className="small-text">Garson çağrısı</span>
+                    <span className="small-text">Görevli çağrısı</span>
                     <strong>{call.tableName}</strong>
                     <p className="muted">{createdAt.time} · {createdAt.date} · Geçen süre: {formatDuration(call.createdAt)}</p>
                     {call.assignedByFullName && <p className="muted small-text">Sahiplenen: {call.assignedByFullName} · {assignedAt.time}</p>}
-                    {call.visitedByFullName && <p className="muted small-text">Masaya giden: {call.visitedByFullName} · {visitedAt.time}</p>}
+                    {call.visitedByFullName && <p className="muted small-text">Alana giden: {call.visitedByFullName} · {visitedAt.time}</p>}
                   </div>
                   <div className="row-actions">
                     <span className="status-pill">{call.status}</span>
                     {call.status === 'Bekliyor' && <button className="btn" onClick={() => claimWaiterCall(call)} type="button">Sahiplen</button>}
-                    {call.status !== 'Masaya Gidildi' && <button className="btn" onClick={() => markWaiterCallVisited(call)} type="button">Masaya Gidildi</button>}
+                    {call.status !== 'Masaya Gidildi' && <button className="btn" onClick={() => markWaiterCallVisited(call)} type="button">Alana Gidildi</button>}
                     <button className="btn primary" onClick={() => { setClosingCallId(call.id); setCloseNote('') }} type="button">Kapat</button>
                   </div>
                   {closingCallId === call.id && (
@@ -833,13 +833,13 @@ export default function QROrders({ currentUser, focus = 'orders' }: Props){
       <section className="card qr-focus-section">
         <div className="section-header compact">
           <div>
-            <h3>Sipariş Talepleri</h3>
+            <h3>Dijital Talepler</h3>
             <p className="muted">Düzenleme, karşılaştırma, red nedeni ve audit kayıtları canlı yenilenir.</p>
           </div>
         </div>
 
         {requests.length === 0 ? (
-          <div className="empty-state">Henüz QR sipariş talebi bulunmuyor.</div>
+          <div className="empty-state">Henüz dijital talep bulunmuyor.</div>
         ) : (
           <div className="qr-request-list">
             {requests.map(request => {
@@ -854,7 +854,7 @@ export default function QROrders({ currentUser, focus = 'orders' }: Props){
                 <article className="qr-request-card" key={request.id}>
                   <div className="qr-request-head">
                     <div>
-                      <span className="small-text">Masa adı</span>
+                      <span className="small-text">Alan adı</span>
                       <h3>{request.tableName}</h3>
                     </div>
                     <span className="status-pill">{request.status}</span>
@@ -878,14 +878,14 @@ export default function QROrders({ currentUser, focus = 'orders' }: Props){
 
                   <div className="qr-request-meta">
                     <div>
-                      <span>Sipariş saati</span>
+                      <span>Talep saati</span>
                       <strong>{createdAt.time}</strong>
                       <small>{createdAt.date}</small>
                     </div>
                     <div>
                       <span>Talep tutarı</span>
                       <strong>{formatCurrency(requestTotal(request))}</strong>
-                      <small>Adisyona işlenmedi</small>
+                      <small>İşleme aktarılmadı</small>
                     </div>
                     <div>
                       <span>Düzenleme</span>
@@ -897,7 +897,7 @@ export default function QROrders({ currentUser, focus = 'orders' }: Props){
                   {isEditing && (
                     <div className="qr-inline-panel">
                       <div className="section-header compact">
-                        <h3>QR Siparişi Düzenle</h3>
+                        <h3>Dijital Talep Düzenle</h3>
                         <span className="status-pill">Karşılaştırma</span>
                       </div>
 
@@ -1007,11 +1007,11 @@ export default function QROrders({ currentUser, focus = 'orders' }: Props){
     <div className={`qr-orders-page ${isCallsFocus ? 'calls-focus' : 'orders-focus'}`}>
       <div className="page-title">
         <div>
-          <h2>{isCallsFocus ? 'Garson Çağrıları' : 'QR Siparişler'}</h2>
+          <h2>{isCallsFocus ? 'Görevli Çağrıları' : 'Dijital Talepler'}</h2>
           <p className="muted">
             {isCallsFocus
-              ? 'QR menüden gelen garson çağrılarını sahiplenin, masaya gidildi olarak işaretleyin ve kapatın.'
-              : 'Müşteri QR menüsünden gelen sipariş taleplerini düzenleyin, onaylayın, reddedin ve audit kayıtlarını takip edin.'}
+              ? 'Dijital katalogdan gelen görevli çağrılarını sahiplenin, alana gidildi olarak işaretleyin ve kapatın.'
+              : 'Dijital katalogdan gelen talepleri düzenleyin, onaylayın, reddedin ve audit kayıtlarını takip edin.'}
           </p>
         </div>
         <span className="status-pill">{isCallsFocus ? `${waiterCalls.length} aktif çağrı` : `${requests.length} talep`}</span>

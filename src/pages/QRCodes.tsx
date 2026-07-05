@@ -103,7 +103,7 @@ export default function QRCodes(){
       <div className="page-title">
         <div>
           <h2>QR Kodlar</h2>
-          <p className="muted">Masalara ait QR menü linklerini oluşturun, önizleyin ve yazdırın.</p>
+          <p className="muted">Alanlara ait dijital katalog linklerini oluşturun, önizleyin ve yazdırın.</p>
         </div>
         <button className="btn primary" disabled={!allQRCodesReady} onClick={() => startPrint(tables, 'all')} type="button">
           Tüm QR Kodları Yazdır
@@ -116,7 +116,7 @@ export default function QRCodes(){
         <div className="section-header compact">
           <div>
             <h3>QR Kod Listesi</h3>
-            <p className="muted">{tables.length} masa listeleniyor. Liste otomatik yenilenir.</p>
+            <p className="muted">{tables.length} alan listeleniyor. Liste otomatik yenilenir.</p>
           </div>
         </div>
 
@@ -124,20 +124,20 @@ export default function QRCodes(){
           <table className="data-table">
             <thead>
               <tr>
-                <th>Masa adı</th>
+                <th>Alan adı</th>
                 <th>QR linki</th>
                 <th></th>
               </tr>
             </thead>
             <tbody>
               {tables.length === 0 && (
-                <tr><td colSpan={3} className="empty-cell">Kayıtlı masa bulunmuyor.</td></tr>
+                <tr><td colSpan={3} className="empty-cell">Kayıtlı alan bulunmuyor.</td></tr>
               )}
               {tables.map(table => (
                 <tr key={table.id}>
                   <td>
                     <strong>{table.name}</strong>
-                    <div className="muted small-text">Masa ID: {table.id}</div>
+                    <div className="muted small-text">Alan ID: {table.id}</div>
                   </td>
                   <td>
                     <a className="qr-link" href={getQRPath(table)} target="_blank" rel="noreferrer">{getQRPath(table)}</a>
@@ -159,7 +159,7 @@ export default function QRCodes(){
         </div>
 
         {!previewTable ? (
-          <div className="empty-state">Önizlemek için listeden bir masa seçin.</div>
+          <div className="empty-state">Önizlemek için listeden bir alan seçin.</div>
         ) : (
           <div className="qr-code-preview">
             <div className="qr-print-card">
@@ -174,7 +174,7 @@ export default function QRCodes(){
             </div>
             <div className="qr-preview-actions">
               <button className="btn primary" disabled={!qrImages[previewTable.id]} onClick={() => startPrint([previewTable], 'single')} type="button">Bu QR Kodunu Yazdır</button>
-              <a className="btn" href={getQRPath(previewTable)} target="_blank" rel="noreferrer">Menüyü Aç</a>
+              <a className="btn" href={getQRPath(previewTable)} target="_blank" rel="noreferrer">Kataloğu Aç</a>
             </div>
           </div>
         )}

@@ -37,7 +37,7 @@ const PLATFORM_ASSISTANT_PROMPTS: PlatformAssistantPrompt[] = [
   {
     key: 'module-goals',
     question: 'Öncelikli hedefiniz nedir?',
-    description: 'Satış, stok, finans, operasyon veya raporlama önceliğine göre öneri üretilecek.'
+    description: 'İşletme performansı, stok, finans, operasyon veya raporlama önceliğine göre öneri üretilecek.'
   }
 ]
 

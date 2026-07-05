@@ -248,7 +248,8 @@ const CASH_TRANSACTION_TYPES: CashTransactionType[] = ['Gelir', 'Gider']
 const CASH_PAYMENT_METHODS: CashPaymentMethod[] = ['Nakit', 'Kart', 'Havale/EFT']
 const INCOME_EXPENSE_TYPES: IncomeExpenseType[] = ['Gelir', 'Gider']
 const INCOME_EXPENSE_PAYMENT_METHODS: IncomeExpensePaymentMethod[] = ['Nakit', 'Kart', 'Havale/EFT']
-const EMPLOYEE_POSITIONS: EmployeePosition[] = ['Garson', 'Kasiyer', 'Aşçı', 'Kurye', 'Yönetici', 'Diğer']
+const LEGACY_EMPLOYEE_POSITIONS = ['Garson', 'Kasiyer', 'Aşçı', 'Kurye', 'Mutfak'] as const
+const EMPLOYEE_POSITIONS: EmployeePosition[] = []
 const SHIFT_NAMES: ShiftName[] = ['Sabah', 'Akşam', 'Tam Gün', 'Gece']
 const SHIFT_STATUSES: ShiftStatus[] = ['Planlandı', 'Tamamlandı', 'İptal']
 const ATTENDANCE_STATUSES: AttendanceStatus[] = ['Normal', 'Eksik Mesai', 'Fazla Mesai', 'Devamsız']
@@ -261,15 +262,16 @@ const BUSINESS_REGISTRATION_STATUSES: BusinessRegistrationStatus[] = ['Başvuru 
 const BUSINESS_REGISTRATION_PACKAGES: BusinessRegistrationPackage[] = ['Başlangıç', 'Pro', 'Premium', 'Kurumsal']
 const COMPANY_STATUSES: CompanyStatus[] = ['Başvuru Bekliyor', 'Aktif', 'Pasif', 'Askıda', 'Arşivlendi', 'Silindi']
 const LICENSE_STATUSES: LicenseStatus[] = ['Deneme', 'Aktif', 'Süresi Yaklaşıyor', 'Süresi Doldu', 'Askıya Alındı', 'İptal Edildi']
-const COMPANY_USER_ROLES: CompanyUserRole[] = ['Firma Sahibi', 'Admin', 'Müdür', 'Kasiyer', 'Garson', 'Mutfak', 'Kurye', 'Muhasebe']
+const LEGACY_COMPANY_USER_ROLES = ['Müdür', 'Kasiyer', 'Garson', 'Mutfak', 'Kurye'] as const
+const COMPANY_USER_ROLES: CompanyUserRole[] = ['Firma Sahibi', 'Admin', 'Yönetici', 'Personel', 'Operasyon', 'Muhasebe']
 const COMPANY_USER_STATUSES: CompanyUserStatus[] = ['Aktif', 'Pasif', 'Askıya Alındı', 'Silindi']
 const USER_SUBSCRIPTION_STATUSES: UserSubscriptionStatus[] = ['Aktif', 'Pasif', 'Beklemede', 'Süresi Doldu']
 const PLATFORM_SUPPORT_TICKET_STATUSES: PlatformSupportTicketStatus[] = ['Açık', 'İnceleniyor', 'Çözüldü']
 export const LICENSE_MODULE_CATALOG: Array<{ key: LicenseModuleKey; name: string }> = [
-  { key: 'adisyon', name: 'Adisyon' },
-  { key: 'qr-menu', name: 'QR Menü' },
+  { key: 'adisyon', name: 'İşlem Yönetimi' },
+  { key: 'qr-menu', name: 'Dijital Katalog' },
   { key: 'stock', name: 'Stok' },
-  { key: 'recipe', name: 'Reçete' },
+  { key: 'recipe', name: 'Üretim Tanımları' },
   { key: 'current', name: 'Cari' },
   { key: 'credit', name: 'Veresiye' },
   { key: 'finance', name: 'Finans' },
@@ -281,7 +283,7 @@ export const LICENSE_MODULE_CATALOG: Array<{ key: LicenseModuleKey; name: string
   { key: 'task-management', name: 'Görev Yönetimi' },
   { key: 'calendar', name: 'Takvim' }
 ]
-const SYSTEM_USAGE_MODULE_NAMES: SystemUsageModuleName[] = ['Adisyon', 'Masa Yönetimi', 'Ürün Yönetimi', 'Stok Yönetimi', 'Cari Yönetimi', 'Finans Yönetimi', 'Personel Yönetimi', 'Yönetici Merkezi', 'Çoklu Şube Yönetimi', 'Sistem']
+const SYSTEM_USAGE_MODULE_NAMES: SystemUsageModuleName[] = ['İşlem Yönetimi', 'Alan Yönetimi', 'Ürün / Hizmet Yönetimi', 'Stok Yönetimi', 'Cari Yönetimi', 'Finans Yönetimi', 'Personel Yönetimi', 'Yönetici Merkezi', 'Çoklu Şube Yönetimi', 'Sistem']
 const SYSTEM_USAGE_ACTION_TYPES: SystemUsageActionType[] = ['Görüntüleme', 'Oluşturma', 'Güncelleme', 'Silme', 'Giriş Yapma', 'Çıkış Yapma', 'Onaylama', 'İptal Etme']
 
 export const DEFAULT_SETTINGS: SystemSettings = {
@@ -625,7 +627,11 @@ const normalizeCurrentAccountType = (value: unknown): CurrentAccountType => {
 }
 
 const normalizeEmployeePosition = (value: unknown): EmployeePosition => {
-  return EMPLOYEE_POSITIONS.includes(value as EmployeePosition) ? value as EmployeePosition : 'Diğer'
+  const position = String(value || '').trim()
+  if(!position) return 'Pozisyon'
+  return LEGACY_EMPLOYEE_POSITIONS.includes(position as typeof LEGACY_EMPLOYEE_POSITIONS[number])
+    ? 'Personel'
+    : position
 }
 
 const normalizeEmployee = (item: Partial<Employee>): Employee => {
@@ -847,7 +853,7 @@ const createDemoBranches = (now = new Date().toISOString()): Branch[] => [
     code: 'SUBE-001',
     name: 'Merkez Şube',
     phone: '0212 000 00 01',
-    email: 'merkez@restaurant.local',
+    email: 'merkez@workspace.local',
     city: 'İstanbul',
     address: 'Merkez Mahallesi No: 1',
     managerName: 'Emrah Evren',
@@ -861,7 +867,7 @@ const createDemoBranches = (now = new Date().toISOString()): Branch[] => [
     code: 'SUBE-002',
     name: 'İstanbul Şubesi',
     phone: '0212 000 00 02',
-    email: 'istanbul@restaurant.local',
+    email: 'istanbul@workspace.local',
     city: 'İstanbul',
     address: 'Kadıköy Cad. No: 12',
     managerName: 'Ayşe Yılmaz',
@@ -871,11 +877,11 @@ const createDemoBranches = (now = new Date().toISOString()): Branch[] => [
   }),
   normalizeBranch({
     id: 'branch_ankara',
-    companyId: 'company_lezzet_restoran_demo',
+    companyId: 'company_ornek_isletme_demo',
     code: 'SUBE-003',
     name: 'Ankara Şubesi',
     phone: '0312 000 00 03',
-    email: 'ankara@restaurant.local',
+    email: 'ankara@workspace.local',
     city: 'Ankara',
     address: 'Çankaya Sok. No: 8',
     managerName: 'Mehmet Demir',
@@ -889,7 +895,7 @@ const createDemoBranches = (now = new Date().toISOString()): Branch[] => [
     code: 'SUBE-004',
     name: 'İzmir Şubesi',
     phone: '0232 000 00 04',
-    email: 'izmir@restaurant.local',
+    email: 'izmir@workspace.local',
     city: 'İzmir',
     address: 'Alsancak Bulvarı No: 4',
     managerName: 'Selin Arslan',
@@ -1106,13 +1112,13 @@ const createDemoEmployees = (now = new Date().toISOString()): Employee[] => [
     id: 'employee_ahmet_kaya',
     code: 'PER-001',
     fullName: 'Ahmet Kaya',
-    position: 'Garson',
+    position: 'Operasyon Uzmanı',
     phone: '0532 111 22 33',
     email: 'ahmet.kaya@example.com',
     startDate: new Date().toLocaleDateString('sv-SE'),
     salary: 30000,
     isActive: true,
-    note: 'Demo garson personel kaydı.',
+    note: 'Demo operasyon personeli kaydı.',
     createdAt: now,
     updatedAt: now
   }),
@@ -1120,13 +1126,13 @@ const createDemoEmployees = (now = new Date().toISOString()): Employee[] => [
     id: 'employee_mehmet_demir',
     code: 'PER-002',
     fullName: 'Mehmet Demir',
-    position: 'Kasiyer',
+    position: 'Destek Uzmanı',
     phone: '0532 222 33 44',
     email: 'mehmet.demir@example.com',
     startDate: new Date().toLocaleDateString('sv-SE'),
     salary: 32000,
     isActive: true,
-    note: 'Demo kasiyer personel kaydı.',
+    note: 'Demo destek personeli kaydı.',
     createdAt: now,
     updatedAt: now
   }),
@@ -1259,7 +1265,7 @@ const createDemoEmployeePerformances = (now = new Date().toISOString()): Employe
       approvedOrderCount: 31,
       qrOrderCount: 4,
       customerCallCount: 5,
-      note: 'Demo kasiyer performans kaydı.',
+      note: 'Demo destek performans kaydı.',
       createdAt: now,
       updatedAt: now
     })
@@ -1514,7 +1520,7 @@ const createDemoCashTransfers = (now = new Date().toISOString()): CashTransfer[]
     date: new Date().toLocaleDateString('sv-SE'),
     transferNo: 'DEVIR-0001',
     fromUser: 'Yönetici',
-    toUser: 'Kasiyer',
+    toUser: 'Finans Sorumlusu',
     openingBalance: 0,
     transferredAmount: 5000,
     note: 'Sabah vardiyası devir işlemi.',
@@ -2005,7 +2011,7 @@ const normalizeRecipe = (item: Partial<Recipe>): Recipe => {
     branchId: getBranchIdValue(item),
     productId: String(item.productId || ''),
     productName: String(item.productName || 'Ürün'),
-    name: String(item.name || 'Reçete').trim() || 'Reçete',
+    name: String(item.name || 'Üretim Tanımı').trim() || 'Üretim Tanımı',
     version: Number.isFinite(version) && version > 0 ? Math.floor(version) : 1,
     recipeVersion: Number.isFinite(recipeVersion) && recipeVersion > 0 ? Math.floor(recipeVersion) : (Number.isFinite(version) && version > 0 ? Math.floor(version) : 1),
     active: item.active === true && !item.deletedAt,
@@ -2066,7 +2072,7 @@ const normalizeKitchenOrder = (item: Partial<KitchenOrder>): KitchenOrder => {
     tableId: String(item.tableId || ''),
     tableName: String(item.tableName || 'Masa'),
     waiterId: String(item.waiterId || ''),
-    waiterName: String(item.waiterName || 'Bilinmeyen Garson'),
+    waiterName: String(item.waiterName || 'Bilinmeyen Personel'),
     status: normalizeKitchenStatus(item.status),
     items: (item.items || []).map(orderItem => ({
       productId: String(orderItem.productId || ''),
@@ -2080,8 +2086,9 @@ const normalizeKitchenOrder = (item: Partial<KitchenOrder>): KitchenOrder => {
 }
 
 const normalizeQRRequestStatus = (value: unknown): QRRequestStatus => {
-  if(value === 'Onaylandı' || value === 'Reddedildi' || value === 'Garson Onayı Bekliyor') return value
-  return 'Garson Onayı Bekliyor'
+  if(value === 'Onaylandı' || value === 'Reddedildi' || value === 'Görevli Onayı Bekliyor') return value
+  if(value === 'Garson Onayı Bekliyor') return 'Görevli Onayı Bekliyor'
+  return 'Görevli Onayı Bekliyor'
 }
 
 const normalizeQRRequestItem = (orderItem: Partial<QRRequestItem>): QRRequestItem => ({
@@ -2092,17 +2099,9 @@ const normalizeQRRequestItem = (orderItem: Partial<QRRequestItem>): QRRequestIte
 })
 
 const normalizeQRRejectReason = (value: unknown): QRRejectReason | undefined => {
-  if(
-    value === 'Ürün mevcut değil'
-    || value === 'Mutfak kapalı'
-    || value === 'Müşteri iptali'
-    || value === 'Hatalı masa'
-    || value === 'Stok yetersiz'
-    || value === 'Diğer'
-  ){
-    return value
-  }
-
+  if(value === 'Ürün mevcut değil' || value === 'Müşteri iptali' || value === 'Stok yetersiz' || value === 'Diğer') return value
+  if(value === 'Operasyon kapalı' || value === 'Mutfak kapalı') return 'Operasyon kapalı'
+  if(value === 'Hatalı alan' || value === 'Hatalı masa') return 'Hatalı alan'
   return undefined
 }
 
@@ -2474,11 +2473,11 @@ const createDemoBusinessApplications = (now = new Date().toISOString()): Busines
       updatedAt: now
     }),
     normalizeBusinessApplication({
-      id: 'business_application_lezzet_restoran_demo',
-      companyName: 'Lezzet Restoran',
+      id: 'business_application_ornek_isletme_demo',
+      companyName: 'Örnek İşletme',
       ownerName: 'Mehmet Demir',
       phone: '0532 000 00 02',
-      email: 'yonetim@lezzetrestoran.com',
+      email: 'yonetim@ornekisletme.com',
       taxNumber: '2345678901',
       taxOffice: 'Çankaya',
       city: 'Ankara',
@@ -2518,7 +2517,7 @@ const createDemoApplicationNotes = (now = new Date().toISOString()): Application
   }),
   normalizeApplicationNote({
     id: 'application_note_lezzet_demo',
-    applicationId: 'business_application_lezzet_restoran_demo',
+    applicationId: 'business_application_ornek_isletme_demo',
     note: 'Onay sonrası demo firma kayıtları hazır.',
     createdBy: 'Demo Admin',
     createdAt: now
@@ -2600,11 +2599,11 @@ const createDemoBusinessRegistrations = (now = new Date().toISOString()): Busine
       updatedAt: yesterday.toISOString()
     }),
     normalizeBusinessRegistration({
-      id: 'business_registration_lezzet_restoran_demo',
-      businessName: 'Lezzet Restoran',
+      id: 'business_registration_ornek_isletme_demo',
+      businessName: 'Örnek İşletme',
       ownerName: 'Mehmet Demir',
       phone: '0532 000 00 02',
-      email: 'yonetim@lezzetrestoran.com',
+      email: 'yonetim@ornekisletme.com',
       city: 'Ankara',
       district: 'Çankaya',
       taxNumber: '2345678901',
@@ -2759,11 +2758,11 @@ const createDemoCompanies = (now = new Date().toISOString()): Company[] => [
     updatedAt: now
   }),
   normalizeCompany({
-    id: 'company_lezzet_restoran_demo',
-    companyName: 'Lezzet Restoran',
+    id: 'company_ornek_isletme_demo',
+    companyName: 'Örnek İşletme',
     ownerName: 'Mehmet Demir',
     phone: '0532 000 00 02',
-    email: 'yonetim@lezzetrestoran.com',
+    email: 'yonetim@ornekisletme.com',
     city: 'Ankara',
     district: 'Çankaya',
     taxNumber: '2345678901',
@@ -2804,11 +2803,11 @@ const createDemoCompanySetups = (now = new Date().toISOString()): CompanySetup[]
     updatedAt: now
   }),
   normalizeCompanySetup({
-    id: 'company_setup_lezzet_restoran_demo',
-    registrationId: 'business_registration_lezzet_restoran_demo',
-    companyId: 'company_lezzet_restoran_demo',
-    branchId: 'branch_lezzet_restoran_merkez_demo',
-    adminUserId: 'user_lezzet_restoran_admin_demo',
+    id: 'company_setup_ornek_isletme_demo',
+    registrationId: 'business_registration_ornek_isletme_demo',
+    companyId: 'company_ornek_isletme_demo',
+    branchId: 'branch_ornek_isletme_merkez_demo',
+    adminUserId: 'user_ornek_isletme_admin_demo',
     temporaryPassword: 'MIYOP-4837',
     setupCompleted: true,
     completedAt: now,
@@ -2840,7 +2839,10 @@ const normalizeSaasDateKey = (value: unknown, fallbackDate = new Date()) => {
 }
 
 const normalizeCompanyUserRole = (value: unknown): CompanyUserRole => {
-  return COMPANY_USER_ROLES.includes(value as CompanyUserRole) ? value as CompanyUserRole : 'Garson'
+  if(COMPANY_USER_ROLES.includes(value as CompanyUserRole)) return value as CompanyUserRole
+  if(value === 'Müdür') return 'Yönetici'
+  if(LEGACY_COMPANY_USER_ROLES.includes(value as typeof LEGACY_COMPANY_USER_ROLES[number])) return 'Personel'
+  return 'Personel'
 }
 
 const normalizeCompanyUserStatus = (value: unknown): CompanyUserStatus => {
@@ -2877,7 +2879,7 @@ function resolveTenantIdForUserSubscription(item: Partial<UserSubscription>){
 
   const companyIdByDemoLicense: Record<string, string> = {
     company_license_abc_cafe_demo: 'company_abc_cafe_demo',
-    company_license_lezzet_restoran_demo: 'company_lezzet_restoran_demo',
+    company_license_ornek_isletme_demo: 'company_ornek_isletme_demo',
     company_license_kahve_duragi_demo: 'company_kahve_duragi_demo'
   }
   const companyLicenseId = String(item.companyLicenseId || '')
@@ -2934,39 +2936,39 @@ const createDemoCompanyUsers = (now = new Date().toISOString()): CompanyUser[] =
       updatedAt: now
     }),
     normalizeCompanyUser({
-      id: 'company_user_abc_garson_1_demo',
+      id: 'company_user_abc_personel_1_demo',
       companyId: 'company_abc_cafe_demo',
-      fullName: 'Garson 1',
-      username: 'abc.garson1',
-      email: 'garson1@abccafe.com',
+      fullName: 'Personel 1',
+      username: 'abc.personel1',
+      email: 'personel1@abccafe.com',
       phone: '0532 100 00 02',
-      role: 'Garson',
+      role: 'Personel',
       status: 'Aktif',
       lastLogin: yesterday.toLocaleDateString('sv-SE'),
       createdAt: now,
       updatedAt: now
     }),
     normalizeCompanyUser({
-      id: 'company_user_abc_garson_2_demo',
+      id: 'company_user_abc_personel_2_demo',
       companyId: 'company_abc_cafe_demo',
-      fullName: 'Garson 2',
-      username: 'abc.garson2',
-      email: 'garson2@abccafe.com',
+      fullName: 'Personel 2',
+      username: 'abc.personel2',
+      email: 'personel2@abccafe.com',
       phone: '0532 100 00 03',
-      role: 'Garson',
+      role: 'Personel',
       status: 'Aktif',
       lastLogin: lastWeek.toLocaleDateString('sv-SE'),
       createdAt: now,
       updatedAt: now
     }),
     normalizeCompanyUser({
-      id: 'company_user_abc_kasiyer_demo',
+      id: 'company_user_abc_operasyon_demo',
       companyId: 'company_abc_cafe_demo',
-      fullName: 'Kasiyer',
-      username: 'abc.kasiyer',
-      email: 'kasiyer@abccafe.com',
+      fullName: 'Operasyon',
+      username: 'abc.operasyon',
+      email: 'operasyon@abccafe.com',
       phone: '0532 100 00 04',
-      role: 'Kasiyer',
+      role: 'Operasyon',
       status: 'Aktif',
       lastLogin: '',
       createdAt: now,
@@ -2974,10 +2976,10 @@ const createDemoCompanyUsers = (now = new Date().toISOString()): CompanyUser[] =
     }),
     normalizeCompanyUser({
       id: 'company_user_lezzet_owner_demo',
-      companyId: 'company_lezzet_restoran_demo',
+      companyId: 'company_ornek_isletme_demo',
       fullName: 'Firma Sahibi',
       username: 'lezzet.sahip',
-      email: 'sahip@lezzetrestoran.com',
+      email: 'sahip@ornekisletme.com',
       phone: '0532 200 00 01',
       role: 'Firma Sahibi',
       status: 'Aktif',
@@ -2986,13 +2988,13 @@ const createDemoCompanyUsers = (now = new Date().toISOString()): CompanyUser[] =
       updatedAt: now
     }),
     normalizeCompanyUser({
-      id: 'company_user_lezzet_mudur_demo',
-      companyId: 'company_lezzet_restoran_demo',
-      fullName: 'Müdür',
-      username: 'lezzet.mudur',
-      email: 'mudur@lezzetrestoran.com',
+      id: 'company_user_lezzet_yonetici_demo',
+      companyId: 'company_ornek_isletme_demo',
+      fullName: 'Yönetici',
+      username: 'lezzet.yonetici',
+      email: 'yonetici@ornekisletme.com',
       phone: '0532 200 00 02',
-      role: 'Müdür',
+      role: 'Yönetici',
       status: 'Aktif',
       lastLogin: yesterday.toLocaleDateString('sv-SE'),
       createdAt: now,
@@ -3000,10 +3002,10 @@ const createDemoCompanyUsers = (now = new Date().toISOString()): CompanyUser[] =
     }),
     normalizeCompanyUser({
       id: 'company_user_lezzet_muhasebe_demo',
-      companyId: 'company_lezzet_restoran_demo',
+      companyId: 'company_ornek_isletme_demo',
       fullName: 'Muhasebe',
       username: 'lezzet.muhasebe',
-      email: 'muhasebe@lezzetrestoran.com',
+      email: 'muhasebe@ornekisletme.com',
       phone: '0532 200 00 03',
       role: 'Muhasebe',
       status: 'Aktif',
@@ -3016,7 +3018,7 @@ const createDemoCompanyUsers = (now = new Date().toISOString()): CompanyUser[] =
 
 const normalizeLicenseModuleKey = (value: unknown): LicenseModuleKey => {
   const key = String(value || '').trim() as LicenseModuleKey
-  return LICENSE_MODULE_CATALOG.some(module => module.key === key) ? key : 'adisyon'
+  return LICENSE_MODULE_CATALOG.some(module => module.key === key) ? key : 'task-management'
 }
 
 const normalizeLicenseStatus = (value: unknown): LicenseStatus => {
@@ -3078,7 +3080,7 @@ const createLicenseKey = (companyId: string, packageId: string, seed = Date.now(
 }
 
 const getLicenseModuleName = (moduleKey: LicenseModuleKey) => {
-  return LICENSE_MODULE_CATALOG.find(module => module.key === moduleKey)?.name || 'Adisyon'
+  return LICENSE_MODULE_CATALOG.find(module => module.key === moduleKey)?.name || 'Görev Yönetimi'
 }
 
 const normalizeLicensePackage = (item: Partial<LicensePackage>): LicensePackage => {
@@ -3318,8 +3320,8 @@ const createDemoCompanyLicenses = (now = new Date().toISOString()): CompanyLicen
       updatedAt: now
     }),
     normalizeCompanyLicense({
-      id: 'company_license_lezzet_restoran_demo',
-      companyId: 'company_lezzet_restoran_demo',
+      id: 'company_license_ornek_isletme_demo',
+      companyId: 'company_ornek_isletme_demo',
       packageId: 'license_package_pro',
       licenseKey: 'RA-LEZZET-PRO-DEMO02',
       startDate: paidStartDate.toLocaleDateString('sv-SE'),
@@ -3363,39 +3365,39 @@ const createDemoUserSubscriptions = (
       status: 'Aktif'
     },
     {
-      id: 'user_subscription_abc_garson_1_demo',
-      userId: 'company_user_abc_garson_1_demo',
+      id: 'user_subscription_abc_personel_1_demo',
+      userId: 'company_user_abc_personel_1_demo',
       companyLicenseId: 'company_license_abc_cafe_demo',
       status: 'Aktif'
     },
     {
-      id: 'user_subscription_abc_garson_2_demo',
-      userId: 'company_user_abc_garson_2_demo',
+      id: 'user_subscription_abc_personel_2_demo',
+      userId: 'company_user_abc_personel_2_demo',
       companyLicenseId: 'company_license_abc_cafe_demo',
       status: 'Aktif'
     },
     {
-      id: 'user_subscription_abc_kasiyer_demo',
-      userId: 'company_user_abc_kasiyer_demo',
+      id: 'user_subscription_abc_operasyon_demo',
+      userId: 'company_user_abc_operasyon_demo',
       companyLicenseId: 'company_license_abc_cafe_demo',
       status: 'Beklemede'
     },
     {
       id: 'user_subscription_lezzet_owner_demo',
       userId: 'company_user_lezzet_owner_demo',
-      companyLicenseId: 'company_license_lezzet_restoran_demo',
+      companyLicenseId: 'company_license_ornek_isletme_demo',
       status: 'Aktif'
     },
     {
-      id: 'user_subscription_lezzet_mudur_demo',
-      userId: 'company_user_lezzet_mudur_demo',
-      companyLicenseId: 'company_license_lezzet_restoran_demo',
+      id: 'user_subscription_lezzet_yonetici_demo',
+      userId: 'company_user_lezzet_yonetici_demo',
+      companyLicenseId: 'company_license_ornek_isletme_demo',
       status: 'Aktif'
     },
     {
       id: 'user_subscription_lezzet_muhasebe_demo',
       userId: 'company_user_lezzet_muhasebe_demo',
-      companyLicenseId: 'company_license_lezzet_restoran_demo',
+      companyLicenseId: 'company_license_ornek_isletme_demo',
       status: 'Aktif'
     }
   ]
@@ -3486,9 +3488,9 @@ const createDemoPlatformSupportTickets = (now = new Date().toISOString()): Platf
     }),
     normalizePlatformSupportTicket({
       id: 'platform_support_ticket_lezzet_demo',
-      companyId: 'company_lezzet_restoran_demo',
+      companyId: 'company_ornek_isletme_demo',
       subject: 'Çoklu şube raporu',
-      message: 'Lezzet Restoran şube raporunda tarih filtresi doğrulaması istedi.',
+      message: 'Örnek İşletme şube raporunda tarih filtresi doğrulaması istedi.',
       status: 'İnceleniyor',
       priority: 'Yüksek',
       createdAt: secondDate.toISOString(),
@@ -3582,10 +3584,11 @@ const inferSystemUsageModuleName = (operationType: ActionLogType): SystemUsageMo
   if(actionTextHas(text, ['personel', 'vardiya', 'puantaj', 'performans', 'prim', 'denetim'])) return 'Personel Yönetimi'
   if(actionTextHas(text, ['tedarikçi', 'kasa', 'gelir', 'gider'])) return 'Finans Yönetimi'
   if(actionTextHas(text, ['cari', 'veresiye', 'tahsilat'])) return 'Cari Yönetimi'
-  if(actionTextHas(text, ['stok', 'skt', 'fire', 'reçete', 'maliyet', 'alış'])) return 'Stok Yönetimi'
-  if(actionTextHas(text, ['ürün', 'kategori'])) return 'Ürün Yönetimi'
-  if(text.startsWith('masa ') && actionTextHas(text, ['oluşturuldu', 'silindi', 'adı değiştirildi', 'taşındı', 'birleştirildi'])) return 'Masa Yönetimi'
-  if(actionTextHas(text, ['masa', 'sipariş', 'hesap', 'ikram', 'indirim', 'qr', 'garson'])) return 'Adisyon'
+  if(actionTextHas(text, ['stok', 'skt', 'fire', 'kayıp', 'maliyet', 'alış'])) return 'Stok Yönetimi'
+  if(actionTextHas(text, ['üretim tanımı', 'reçete'])) return 'Üretim Tanımı'
+  if(actionTextHas(text, ['ürün', 'hizmet', 'kategori'])) return 'Ürün / Hizmet Yönetimi'
+  if(text.startsWith('alan ') || (text.startsWith('masa ') && actionTextHas(text, ['oluşturuldu', 'silindi', 'adı değiştirildi', 'taşındı', 'birleştirildi']))) return 'Alan Yönetimi'
+  if(actionTextHas(text, ['alan', 'masa', 'sipariş', 'talep', 'hesap', 'ikram', 'indirim', 'qr', 'görevli', 'garson'])) return 'İşlem Yönetimi'
   if(actionTextHas(text, ['modül', 'lisans erişim'])) return 'Sistem'
   if(actionTextHas(text, ['kullanıcı', 'giriş', 'çıkış', 'sistem'])) return 'Sistem'
   return 'Sistem'
@@ -3622,7 +3625,7 @@ const inferSystemUsageEntityType = (operationType: ActionLogType) => {
   if(actionTextHas(text, ['veresiye'])) return 'Veresiye'
   if(actionTextHas(text, ['tahsilat'])) return 'Tahsilat'
   if(actionTextHas(text, ['stok', 'skt', 'fire'])) return 'Stok'
-  if(actionTextHas(text, ['reçete'])) return 'Reçete'
+  if(actionTextHas(text, ['üretim tanımı', 'reçete'])) return 'Üretim Tanımı'
   if(actionTextHas(text, ['ürün'])) return 'Ürün'
   if(actionTextHas(text, ['kategori'])) return 'Kategori'
   if(actionTextHas(text, ['masa'])) return 'Masa'
@@ -4070,6 +4073,7 @@ export const saveSettings = (settings: SystemSettings) => {
 
 const normalizeUser = (item: Partial<User>): User => {
   const companyId = String(item.companyId || '').trim()
+  const role = String(item.role || '').trim()
 
   return {
     id: String(item.id || `user_${Date.now()}`),
@@ -4080,7 +4084,7 @@ const normalizeUser = (item: Partial<User>): User => {
     profilePhotoUrl: String(item.profilePhotoUrl || '').trim(),
     username: String(item.username || '').trim(),
     password: String(item.password || ''),
-    role: item.role === 'Garson' ? 'Garson' : 'Admin',
+    role: role === 'Personel' || role === 'Garson' ? 'Personel' : 'Admin',
     active: item.active !== false
   }
 }
@@ -6748,7 +6752,7 @@ const getExpiryTriggerFromMovement = (movement: StockMovement): StockExpiryTrigg
 
 const getExpiryActionLogType = (eventType: StockExpiryEventType): ActionLogType => {
   if(eventType === 'lot_consumed') return 'SKT lotu tüketildi'
-  if(eventType === 'lot_wasted') return 'Fire lottan düşüldü'
+  if(eventType === 'lot_wasted') return 'Kayıp lottan düşüldü'
   if(eventType === 'lot_returned') return 'SKT lotu iade edildi'
   if(eventType === 'lot_adjusted') return 'SKT lotu güncellendi'
   if(eventType === 'near_expiry') return 'SKT yaklaşan uyarısı oluştu'
@@ -7581,7 +7585,7 @@ const markLinkedStockWasteRecordReversed = (movement: StockMovement, reversedMov
 
   saveStockWasteRecords(records.map(item => item.id === record.id ? nextRecord : item))
   addActionLog({
-    operationType: 'Fire kaydı terslendi',
+    operationType: 'Kayıp kaydı terslendi',
     user,
     description: `${record.stockItemName} fire kaydı terslendi. Neden: ${record.reasonCategory}. Miktar: ${formatStockQty(record.qty, record.unit)}. Ters hareket: ${reversedMovement.id}.`
   })
@@ -7729,7 +7733,7 @@ export const createStockWasteRecord = ({
 
   addStockWasteRecord(record)
   addActionLog({
-    operationType: isExpiryWaste ? 'SKT nedeniyle fire oluşturuldu' : 'Fire kaydı oluşturuldu',
+    operationType: isExpiryWaste ? 'Geçerlilik nedeniyle kayıp oluşturuldu' : 'Kayıp kaydı oluşturuldu',
     user,
     description: `${stockItem.name} için fire kaydı oluşturuldu. Neden: ${reasonCategory}. Miktar: ${formatStockQty(normalizedQty, stockItem.unit)}. Sorumlu: ${normalizedResponsibleName || '-'}. Tahmini maliyet: ${formatWasteCost(estimatedTotalCost)}.${movement.expiryAllocations?.length ? ` Lotlar: ${movement.expiryAllocations.map(allocation => `${allocation.lotCode} ${formatStockQty(allocation.qty, allocation.unit)}`).join(' | ')}.` : ''}${movement.expiryWarnings?.length ? ` Uyarı: ${movement.expiryWarnings.join(' | ')}.` : ''}${normalizedReasonNote ? ` Not: ${normalizedReasonNote}.` : ''}`
   })
@@ -7741,7 +7745,7 @@ export const reverseStockWasteRecord = (wasteRecordId: string, user: User) => {
   const record = loadStockWasteRecords().find(item => item.id === wasteRecordId)
 
   if(!record){
-    throw new Error('Fire kaydı bulunamadı.')
+    throw new Error('Kayıp kaydı bulunamadı.')
   }
 
   if(record.status === 'reversed'){
@@ -7750,7 +7754,7 @@ export const reverseStockWasteRecord = (wasteRecordId: string, user: User) => {
 
   const movement = loadStockMovements().find(item => item.id === record.stockMovementId)
   if(!movement){
-    throw new Error('Fire kaydına bağlı stok hareketi bulunamadı.')
+    throw new Error('Kayıp kaydına bağlı stok hareketi bulunamadı.')
   }
 
   const reversedMovement = reverseStockMovement(movement.id, user)
@@ -7774,7 +7778,7 @@ export const createSystemBackup = () => {
   }, {})
 
   return {
-    app: 'restaurant-adisyon',
+    app: 'miyop-business-workspace',
     version: 1,
     exportedAt: new Date().toISOString(),
     data

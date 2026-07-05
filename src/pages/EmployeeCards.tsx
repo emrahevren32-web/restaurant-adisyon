@@ -17,7 +17,6 @@ type EmployeeFormValues = {
   note: string
 }
 
-const employeePositions: EmployeePosition[] = ['Garson', 'Kasiyer', 'Aşçı', 'Kurye', 'Yönetici', 'Diğer']
 const createId = (prefix: string) => `${prefix}_${Date.now()}`
 
 const getLocalDateKey = (value: string | Date) => {
@@ -29,7 +28,7 @@ const roundMoney = (value: number) => Math.round(value * 100) / 100
 
 const createEmptyValues = (): EmployeeFormValues => ({
   fullName: '',
-  position: 'Garson',
+  position: '',
   phone: '',
   email: '',
   startDate: getLocalDateKey(new Date()),
@@ -108,7 +107,10 @@ export default function EmployeeCards({ currentUser }: Props){
 
   const activeCount = items.filter(item => item.isActive).length
   const inactiveCount = items.filter(item => !item.isActive).length
-  const managerCount = items.filter(item => item.position === 'Yönetici').length
+  const positionCount = new Set(items.map(item => item.position).filter(Boolean)).size
+  const employeePositions = React.useMemo(() => (
+    Array.from(new Set(items.map(item => item.position).filter(Boolean))).sort((first, second) => first.localeCompare(second, 'tr-TR'))
+  ), [items])
 
   const startEdit = (employee: Employee) => {
     setEditingEmployee(employee)
@@ -244,8 +246,8 @@ export default function EmployeeCards({ currentUser }: Props){
           <strong>{inactiveCount}</strong>
         </div>
         <div className="metric-card">
-          <span>Yönetici Sayısı</span>
-          <strong>{managerCount}</strong>
+          <span>Pozisyon Çeşidi</span>
+          <strong>{positionCount}</strong>
         </div>
       </div>
 
@@ -380,9 +382,12 @@ function EmployeeForm({
       </div>
       <div className="form-field">
         <label>Pozisyon</label>
-        <select value={values.position} onChange={event => updateField('position', event.target.value as EmployeePosition)} required>
-          {employeePositions.map(position => <option key={position} value={position}>{position}</option>)}
-        </select>
+        <input
+          value={values.position}
+          onChange={event => updateField('position', event.target.value)}
+          placeholder="Pozisyon"
+          required
+        />
       </div>
       <div className="form-field">
         <label>Telefon</label>

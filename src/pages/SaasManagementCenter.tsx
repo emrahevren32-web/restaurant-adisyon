@@ -162,7 +162,7 @@ const viewCopy: Record<SaasManagementView, { title: string; description: string 
   },
   stats: {
     title: 'İstatistikler',
-    description: 'Platform geneli firma, kullanıcı, şube, sipariş ve aktif kullanıcı özetlerini görün.'
+    description: 'Platform geneli firma, kullanıcı, şube, talep ve aktif kullanıcı özetlerini görün.'
   },
   settings: {
     title: 'Sistem Ayarları',
@@ -1288,7 +1288,7 @@ export default function SaasManagementCenter({ currentUser, view }: Props){
           <label><span>Deneme Günü</span><input type="number" value={packageForm.trialDays} onChange={event => setPackageForm(current => ({ ...current, trialDays: Number(event.target.value) }))} /></label>
           <label><span>Maks. Kullanıcı</span><input type="number" value={packageForm.maxUsers} onChange={event => setPackageForm(current => ({ ...current, maxUsers: Number(event.target.value) }))} /></label>
           <label><span>Maks. Şube</span><input type="number" value={packageForm.maxBranches} onChange={event => setPackageForm(current => ({ ...current, maxBranches: Number(event.target.value) }))} /></label>
-          <label><span>Maks. Masa</span><input type="number" value={packageForm.maxTables} onChange={event => setPackageForm(current => ({ ...current, maxTables: Number(event.target.value) }))} /></label>
+          <label><span>Maks. Alan</span><input type="number" value={packageForm.maxTables} onChange={event => setPackageForm(current => ({ ...current, maxTables: Number(event.target.value) }))} /></label>
           <label><span>Depolama GB</span><input type="number" value={packageForm.maxStorageGB} onChange={event => setPackageForm(current => ({ ...current, maxStorageGB: Number(event.target.value) }))} /></label>
           <label className="evren360-wide-field"><span>Açıklama</span><textarea rows={3} value={packageForm.description} onChange={event => setPackageForm(current => ({ ...current, description: event.target.value }))} /></label>
           <label className="evren360-check-row"><input type="checkbox" checked={packageForm.isActive} onChange={event => setPackageForm(current => ({ ...current, isActive: event.target.checked }))} /> <span>Paket aktif</span></label>
@@ -1519,7 +1519,7 @@ export default function SaasManagementCenter({ currentUser, view }: Props){
       ['Toplam Firma', activeCompanies.length, 'Silinmemiş firma'],
       ['Toplam Kullanıcı', dashboardStats.totalUsers, 'Firma ve platform kullanıcıları'],
       ['Toplam Şube', branches.length, 'Kayıtlı şube'],
-      ['Toplam Sipariş', initialData.closedBills.length, 'Kapanmış adisyon'],
+      ['Toplam Talep', initialData.closedBills.length, 'Kapanmış işlem'],
       ['Günlük Aktif Kullanıcı', activeLogUsers.size, 'Bugünkü işlem loglarından']
     ] as const
     return (

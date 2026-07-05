@@ -32,7 +32,7 @@ const qrCustomerUser: User = {
   fullName: 'QR Müşteri',
   username: 'qr_customer',
   password: '',
-  role: 'Garson',
+  role: 'Personel',
   active: true
 }
 
@@ -53,7 +53,7 @@ export default function QRMenu({ tableId }: Props){
 
   const decodedTableId = React.useMemo(() => decodeURIComponent(tableId), [tableId])
   const table = React.useMemo(() => tables.find(item => item.id === decodedTableId), [decodedTableId, tables])
-  const tableName = table?.name || 'Masa bulunamadı'
+  const tableName = table?.name || 'Alan bulunamadı'
 
   const activeCategoryIds = React.useMemo(() => {
     return new Set(categories.filter(category => category.active).map(category => category.id))
@@ -131,7 +131,7 @@ export default function QRMenu({ tableId }: Props){
 
   const callWaiter = () => {
     if(!table){
-      setMessage({ type: 'error', text: 'Bu QR kod kayıtlı bir masaya bağlı değil.' })
+      setMessage({ type: 'error', text: 'Bu QR kod kayıtlı bir alana bağlı değil.' })
       return
     }
 
@@ -147,11 +147,11 @@ export default function QRMenu({ tableId }: Props){
     saveWaiterCalls([call, ...loadWaiterCalls()])
 
     addActionLog({
-      operationType: 'Garson çağrıldı',
+      operationType: 'Görevli çağrıldı',
       user: qrCustomerUser,
       tableId: table.id,
       tableName: table.name,
-      description: `${table.name} garson çağırdı.`
+      description: `${table.name} görevli çağırdı.`
     })
     addQRAuditEvent({
       entityType: 'WaiterCall',
@@ -161,19 +161,19 @@ export default function QRMenu({ tableId }: Props){
       tableId: table.id,
       tableName: table.name,
       after: call,
-      note: `${table.name} garson çağırdı.`
+      note: `${table.name} görevli çağırdı.`
     })
-    setMessage({ type: 'success', text: 'Garson çağrınız iletildi.' })
+    setMessage({ type: 'success', text: 'Görevli çağrınız iletildi.' })
   }
 
   const sendOrderRequest = () => {
     if(!table){
-      setMessage({ type: 'error', text: 'Bu QR kod kayıtlı bir masaya bağlı değil.' })
+      setMessage({ type: 'error', text: 'Bu QR kod kayıtlı bir alana bağlı değil.' })
       return
     }
 
     if(cartItems.length === 0){
-      setMessage({ type: 'error', text: 'Sipariş göndermek için sepete ürün ekleyin.' })
+      setMessage({ type: 'error', text: 'Talep göndermek için sepete ürün ekleyin.' })
       return
     }
 
@@ -184,7 +184,7 @@ export default function QRMenu({ tableId }: Props){
       tableName: table.name,
       items: cartItems,
       originalItems: cartItems,
-      status: 'Garson Onayı Bekliyor' as const,
+      status: 'Görevli Onayı Bekliyor' as const,
       customerNote: customerNote.trim(),
       staffNote: '',
       createdAt: new Date().toISOString()
@@ -192,11 +192,11 @@ export default function QRMenu({ tableId }: Props){
 
     saveQRRequests([request, ...loadQRRequests()])
     addActionLog({
-      operationType: 'QR Siparişi Oluşturuldu',
+      operationType: 'Dijital Talep Oluşturuldu',
       user: qrCustomerUser,
       tableId: table.id,
       tableName: table.name,
-      description: `${table.name} QR sipariş talebi oluşturdu. ${cartItems.map(item => `${item.productName} x${item.qty}`).join(', ')}${customerNote.trim() ? ` Not: ${customerNote.trim()}` : ''}`
+      description: `${table.name} dijital talep oluşturdu. ${cartItems.map(item => `${item.productName} x${item.qty}`).join(', ')}${customerNote.trim() ? ` Not: ${customerNote.trim()}` : ''}`
     })
     addQRAuditEvent({
       entityType: 'QRRequest',
@@ -206,11 +206,11 @@ export default function QRMenu({ tableId }: Props){
       tableId: table.id,
       tableName: table.name,
       after: request,
-      note: customerNote.trim() || 'QR sipariş talebi oluşturuldu.'
+      note: customerNote.trim() || 'Dijital talep oluşturuldu.'
     })
     setCart({})
     setCustomerNote('')
-    setMessage({ type: 'success', text: 'Sipariş talebiniz garson onayına gönderildi.' })
+    setMessage({ type: 'success', text: 'Talebiniz görevli onayına gönderildi.' })
   }
 
   return (
@@ -220,19 +220,19 @@ export default function QRMenu({ tableId }: Props){
           {settings.logoUrl && <img src={settings.logoUrl} alt={`${settings.restaurantName} logosu`} />}
           <div>
             <strong>{settings.restaurantName}</strong>
-            <span>QR Menü</span>
+            <span>Dijital Katalog</span>
           </div>
         </div>
         <h1>{tableName}</h1>
-        <p>Menüyü inceleyin, ürünleri sepete ekleyin ve garson onayı için talep gönderin.</p>
+        <p>Dijital kataloğu inceleyin, ürünleri sepete ekleyin ve görevli onayı için talep gönderin.</p>
       </header>
 
       {message && <div className={`qr-message ${message.type}`}>{message.text}</div>}
 
       {!table && (
         <section className="card qr-invalid-card">
-          <h2>Masa bulunamadı</h2>
-          <p className="muted">Bu QR bağlantısı geçerli bir masa ID değerine bağlı değil. Lütfen işletme personelinden güncel QR kodu isteyin.</p>
+          <h2>Alan bulunamadı</h2>
+          <p className="muted">Bu QR bağlantısı geçerli bir alan ID değerine bağlı değil. Lütfen işletme personelinden güncel QR kodu isteyin.</p>
         </section>
       )}
 
@@ -259,7 +259,7 @@ export default function QRMenu({ tableId }: Props){
 
           <div className="qr-product-list">
             {visibleProducts.length === 0 && (
-              <div className="empty-state">Aktif menü ürünü bulunamadı.</div>
+              <div className="empty-state">Aktif katalog ürünü bulunamadı.</div>
             )}
             {visibleProducts.map(product => {
               const detailsOpen = selectedProductId === product.id
@@ -353,7 +353,7 @@ export default function QRMenu({ tableId }: Props){
             </div>
 
             <div className="form-field qr-note-field">
-              <label>Sipariş notu</label>
+              <label>Talep notu</label>
               <textarea
                 rows={3}
                 placeholder="Alerji, pişirme tercihi veya servis notu"
@@ -363,8 +363,8 @@ export default function QRMenu({ tableId }: Props){
             </div>
 
             <div className="qr-sticky-actions">
-              <button className="btn" onClick={callWaiter}>Garson Çağır</button>
-              <button className="btn primary" disabled={cartItems.length === 0} onClick={sendOrderRequest}>Sipariş Gönder</button>
+              <button className="btn" onClick={callWaiter}>Görevli Çağır</button>
+              <button className="btn primary" disabled={cartItems.length === 0} onClick={sendOrderRequest}>Talep Gönder</button>
             </div>
           </section>
         </aside>

@@ -194,7 +194,7 @@ const createDemoAnnouncements = (context: DemoAnnouncementContext): SystemAnnoun
       startAt: addDays(4),
       endAt: addDays(14),
       status: 'Planlandı',
-      createdBy: 'Satış',
+      createdBy: 'Operasyon',
       createdAt: addDays(-1),
       updatedAt: addDays(-1)
     }),

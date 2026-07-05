@@ -404,9 +404,9 @@ export default function HeadOfficeManagement(){
 
       <div className="metric-grid dashboard-kpi-grid">
         <KpiCard label="Toplam Şube" value={formatNumber(reportData.branches.length)} detail={`${reportData.branches.filter(branch => branch.isActive).length} aktif şube`} />
-        <KpiCard label="Toplam Ciro" value={formatCurrency(totalRevenue)} detail={range.label} />
+        <KpiCard label="Toplam Gelir" value={formatCurrency(totalRevenue)} detail={range.label} />
         <KpiCard label="Toplam Personel" value={formatNumber(totalStaff)} detail="Aktif personel" />
-        <KpiCard label="Toplam Aktif Masa" value={formatNumber(totalActiveTables)} detail="Açık masa" />
+        <KpiCard label="Toplam Aktif Alan" value={formatNumber(totalActiveTables)} detail="Açık alan" />
       </div>
 
       <div className="metric-grid dashboard-panel-kpi-grid">
@@ -428,10 +428,10 @@ export default function HeadOfficeManagement(){
             <thead>
               <tr>
                 <th>Şube Adı</th>
-                <th>Günlük Ciro</th>
-                <th>Aylık Ciro</th>
+                <th>Günlük Gelir</th>
+                <th>Aylık Gelir</th>
                 <th>Personel Sayısı</th>
-                <th>Aktif Masa</th>
+                <th>Aktif Alan</th>
                 <th>Risk Durumu</th>
               </tr>
             </thead>
@@ -498,11 +498,11 @@ export default function HeadOfficeManagement(){
         <div className="section-header compact">
           <div>
             <h3>Performans Liderleri</h3>
-            <p className="muted">Ciro, kârlılık, performans ve risk liderleri.</p>
+            <p className="muted">Gelir, kârlılık, performans ve risk liderleri.</p>
           </div>
         </div>
         <div className="branch-report-best-grid">
-          <LeaderCard title="En Yüksek Ciro Üreten Şube" row={highestRevenueRow} value={row => formatCurrency(row.rangeRevenue)} detail={row => `${formatCurrency(row.dailyRevenue)} günlük ciro`} />
+          <LeaderCard title="En Yüksek Gelir Üreten Şube" row={highestRevenueRow} value={row => formatCurrency(row.rangeRevenue)} detail={row => `${formatCurrency(row.dailyRevenue)} günlük gelir`} />
           <LeaderCard title="En Yüksek Kârlı Şube" row={highestProfitRow} value={row => formatCurrency(row.profit)} detail={row => `Prim toplamı ${formatCurrency(bonusTotal)}`} />
           <LeaderCard title="En Yüksek Performanslı Şube" row={highestPerformanceRow} value={row => formatScore(row.averagePerformance)} detail={() => `Genel ortalama ${formatScore(averagePerformance)}`} />
           <LeaderCard title="En Düşük Riskli Şube" row={lowestRiskRow} value={row => `${row.riskLevel} · ${formatNumber(row.riskScore)}`} detail={row => `${formatNumber(row.criticalStockCount)} kritik stok`} />

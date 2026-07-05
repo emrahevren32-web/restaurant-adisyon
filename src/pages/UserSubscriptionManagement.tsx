@@ -47,7 +47,7 @@ type UserFormValues = {
   status: CompanyUserStatus
 }
 
-const companyUserRoles: CompanyUserRole[] = ['Firma Sahibi', 'Admin', 'Müdür', 'Kasiyer', 'Garson', 'Mutfak', 'Kurye', 'Muhasebe']
+const companyUserRoles: CompanyUserRole[] = ['Firma Sahibi', 'Admin', 'Yönetici', 'Personel', 'Operasyon', 'Muhasebe']
 const companyUserStatuses: CompanyUserStatus[] = ['Aktif', 'Pasif', 'Askıya Alındı', 'Silindi']
 const subscriptionStatuses: UserSubscriptionStatus[] = ['Aktif', 'Pasif', 'Beklemede', 'Süresi Doldu']
 
@@ -104,7 +104,7 @@ const createEmptyForm = (companies: Company[]): UserFormValues => ({
   username: '',
   email: '',
   phone: '',
-  role: 'Garson',
+  role: 'Personel',
   temporaryPassword: generateTemporaryCompanyPassword(),
   status: 'Aktif'
 })
@@ -124,9 +124,9 @@ const toFormValues = (user: CompanyUser, companies: Company[]): UserFormValues =
 const normalizeSearch = (value: string) => value.toLocaleLowerCase('tr-TR')
 
 const mapCompanyRoleToSystemRole = (role: CompanyUserRole): User['role'] => {
-  return role === 'Firma Sahibi' || role === 'Admin' || role === 'Müdür' || role === 'Muhasebe'
+  return role === 'Firma Sahibi' || role === 'Admin' || role === 'Yönetici' || role === 'Muhasebe'
     ? 'Admin'
-    : 'Garson'
+    : 'Personel'
 }
 
 export default function UserSubscriptionManagement({ currentUser }: Props){

@@ -1,4 +1,4 @@
-# Restaurant Adisyon
+# MIYOP Business Workspace
 
 Simple React + TypeScript Vite app for table/product/order management using LocalStorage.
 

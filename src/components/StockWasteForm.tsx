@@ -80,12 +80,12 @@ export default function StockWasteForm({ stockItems, users, onSave }: Props){
     }
 
     if(!Number.isFinite(parsedQty) || parsedQty <= 0){
-      setError('Fire miktarı 0’dan büyük olmalıdır.')
+      setError('Kayıp miktarı 0’dan büyük olmalıdır.')
       return null
     }
 
     if(parsedQty > selectedItem.currentQty){
-      setError('Fire miktarı mevcut stoktan büyük olamaz.')
+      setError('Kayıp miktarı mevcut stoktan büyük olamaz.')
       return null
     }
 
@@ -135,11 +135,11 @@ export default function StockWasteForm({ stockItems, users, onSave }: Props){
 
       <div className="form-row stock-movement-type-row">
         <div className="form-field">
-          <label>Fire miktarı</label>
+          <label>Kayıp miktarı</label>
           <input type="number" min="0" step="0.001" value={qty} onChange={event => setQty(event.target.value)} />
         </div>
         <div className="form-field">
-          <label>Fire nedeni</label>
+          <label>Kayıp nedeni</label>
           <select value={reasonCategory} onChange={event => setReasonCategory(event.target.value as StockWasteReasonCategory)}>
             {STOCK_WASTE_REASONS.map(reason => <option key={reason} value={reason}>{reason}</option>)}
           </select>
@@ -150,7 +150,7 @@ export default function StockWasteForm({ stockItems, users, onSave }: Props){
         <div className="stock-current-hint">
           <span>Mevcut stok</span>
           <strong>{formatQty(selectedItem.currentQty, selectedItem.unit)}</strong>
-          {selectedItem.tracksExpiry && <em>{reasonCategory === 'SKT Geçmesi' ? 'Tarihi geçmiş lotlardan düşer' : 'FEFO lot düşümü yapılır'}</em>}
+          {selectedItem.tracksExpiry && <em>{reasonCategory === 'SKT Geçmesi' ? 'Geçerliliği geçmiş lotlardan düşer' : 'FEFO lot düşümü yapılır'}</em>}
         </div>
       )}
 
@@ -163,26 +163,26 @@ export default function StockWasteForm({ stockItems, users, onSave }: Props){
           </select>
         </div>
         <div className="form-field">
-          <label>Fire tarihi</label>
+          <label>Kayıp tarihi</label>
           <input type="datetime-local" value={occurredAt} onChange={event => setOccurredAt(event.target.value)} />
         </div>
       </div>
 
       <div className="form-field">
         <label>Açıklama</label>
-        <textarea rows={3} value={reasonNote} onChange={event => setReasonNote(event.target.value)} placeholder="Fire açıklaması" />
+        <textarea rows={3} value={reasonNote} onChange={event => setReasonNote(event.target.value)} placeholder="Kayıp açıklaması" />
       </div>
 
       <div className="stock-current-hint waste-cost-hint">
-        <span>Tahmini fire maliyeti</span>
+        <span>Tahmini kayıp maliyeti</span>
         <strong>{estimatedTotal !== undefined ? formatCurrency(estimatedTotal) : '-'}</strong>
         <em>Birim maliyet ortalama maliyet, son alış fiyatı veya kart maliyetinden hesaplanır</em>
       </div>
 
       {pendingApproval && (
         <div className="approval-panel">
-          <strong>Yüksek maliyetli fire onayı</strong>
-          <span>{selectedItem?.name} için tahmini fire maliyeti {formatCurrency(estimatedTotal || 0)}.</span>
+          <strong>Yüksek maliyetli kayıp onayı</strong>
+          <span>{selectedItem?.name} için tahmini kayıp maliyeti {formatCurrency(estimatedTotal || 0)}.</span>
           <div className="form-actions">
             <button className="btn danger" type="button" onClick={() => submitValues(pendingApproval)}>Onayla</button>
             <button className="btn" type="button" onClick={() => setPendingApproval(null)}>Vazgeç</button>
@@ -193,7 +193,7 @@ export default function StockWasteForm({ stockItems, users, onSave }: Props){
       {error && <div className="form-error">{error}</div>}
 
       <div className="form-actions">
-        <button className="btn primary" type="submit" disabled={stockItems.length === 0}>Fire Kaydı Oluştur</button>
+        <button className="btn primary" type="submit" disabled={stockItems.length === 0}>Kayıp Kaydı Oluştur</button>
       </div>
     </form>
   )

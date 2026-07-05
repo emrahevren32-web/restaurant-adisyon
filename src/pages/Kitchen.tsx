@@ -20,7 +20,7 @@ const VIEW_MODE_KEY = 'ra_kitchen_view_mode'
 
 const filters: { value: KitchenFilter; label: string }[] = [
   { value: 'all', label: 'Tümü' },
-  { value: 'Yeni Sipariş', label: 'Yeni Sipariş' },
+  { value: 'Yeni Sipariş', label: 'Yeni Talep' },
   { value: 'Hazırlanıyor', label: 'Hazırlanıyor' },
   { value: 'Hazır', label: 'Hazır' }
 ]
@@ -102,7 +102,7 @@ const groupOrdersByTable = (orders: KitchenOrder[]): KitchenTableGroup[] => {
 
     return {
       tableId,
-      tableName: sortedOrders[0]?.tableName || 'Masa',
+      tableName: sortedOrders[0]?.tableName || 'Alan',
       waiterNames,
       statuses,
       items: mergeKitchenItems(sortedOrders),
@@ -153,7 +153,7 @@ export default function Kitchen({ currentUser }: Props){
         user: currentUser,
         tableId: order.tableId,
         tableName: order.tableName,
-        description: `${order.tableName} siparişi ${nextStatus} durumuna alındı.`
+        description: `${order.tableName} talebi ${nextStatus} durumuna alındı.`
       })
     })
   }
@@ -166,8 +166,8 @@ export default function Kitchen({ currentUser }: Props){
     <div className="kitchen-page">
       <div className="page-title">
         <div>
-          <h2>Mutfak Ekranı</h2>
-          <p className="muted">İçecek dışındaki siparişleri mutfak durumuna göre takip edin.</p>
+          <h2>Hazırlık Ekranı</h2>
+          <p className="muted">Hazırlık gerektiren talepleri operasyon durumuna göre takip edin.</p>
         </div>
         <div className="kitchen-filters">
           {filters.map(item => (
@@ -189,27 +189,27 @@ export default function Kitchen({ currentUser }: Props){
           onClick={()=>setViewMode('order')}
           type="button"
         >
-          Sipariş Bazlı
+          Talep Bazlı
         </button>
         <button
           className={`btn ${viewMode === 'table' ? 'primary' : ''}`}
           onClick={()=>setViewMode('table')}
           type="button"
         >
-          Masa Bazlı
+          Alan Bazlı
         </button>
       </div>
 
       <div className="kitchen-grid">
         {viewMode === 'order' ? (
           <>
-            {filteredOrders.length === 0 && <div className="card empty-state">Filtreye uygun mutfak siparişi bulunmuyor.</div>}
+            {filteredOrders.length === 0 && <div className="card empty-state">Filtreye uygun hazırlık talebi bulunmuyor.</div>}
             {filteredOrders.map(order => (
               <section className={`kitchen-card ${getStatusClass(order.status)}`} key={order.id}>
                 <div className="section-header compact">
                   <div>
                     <h3>{order.tableName}</h3>
-                    <p className="muted small-text">Sipariş Saati: {formatTime(order.createdAt)}</p>
+                    <p className="muted small-text">Talep Saati: {formatTime(order.createdAt)}</p>
                   </div>
                   <span className={`kitchen-status ${getStatusClass(order.status)}`}>{order.status}</span>
                 </div>
@@ -225,7 +225,7 @@ export default function Kitchen({ currentUser }: Props){
                 </ul>
 
                 <div className="kitchen-meta">
-                  <span>Garson</span>
+                  <span>Görevli</span>
                   <strong>{order.waiterName}</strong>
                 </div>
 
@@ -252,7 +252,7 @@ export default function Kitchen({ currentUser }: Props){
           </>
         ) : (
           <>
-            {tableGroups.length === 0 && <div className="card empty-state">Filtreye uygun mutfak siparişi bulunmuyor.</div>}
+            {tableGroups.length === 0 && <div className="card empty-state">Filtreye uygun hazırlık talebi bulunmuyor.</div>}
             {tableGroups.map(group => {
               const groupStatus = getGroupStatus(group.statuses)
 
@@ -261,7 +261,7 @@ export default function Kitchen({ currentUser }: Props){
                   <div className="section-header compact">
                     <div>
                       <h3>{group.tableName}</h3>
-                      <p className="muted small-text">İlk Sipariş Saati: {formatTime(group.createdAt)}</p>
+                      <p className="muted small-text">İlk Talep Saati: {formatTime(group.createdAt)}</p>
                     </div>
                     <span className={`kitchen-status ${getStatusClass(groupStatus)}`}>{groupStatus}</span>
                   </div>
@@ -277,11 +277,11 @@ export default function Kitchen({ currentUser }: Props){
                   </ul>
 
                   <div className="kitchen-meta">
-                    <span>Garson</span>
+                    <span>Görevli</span>
                     <strong>{group.waiterNames.join(', ')}</strong>
                   </div>
                   <div className="kitchen-meta">
-                    <span>Sipariş Sayısı</span>
+                    <span>Talep Sayısı</span>
                     <strong>{group.orders.length}</strong>
                   </div>
 

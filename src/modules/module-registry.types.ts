@@ -46,7 +46,7 @@ export type WorkspaceModuleLifecycle = {
 export type WorkspaceModuleMenuItem<Route extends string, NavKey extends string> = {
   key: NavKey
   label: string
-  route: Route
+  route?: Route
   icon: string
   parent?: NavKey
   order?: number

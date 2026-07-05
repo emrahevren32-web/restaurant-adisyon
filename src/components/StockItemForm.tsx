@@ -89,7 +89,7 @@ export default function StockItemForm({ categories, item, onSave, onCancel }: Pr
     }
 
     if(!Number.isFinite(parsedExpiryWarningDays) || parsedExpiryWarningDays < 0){
-      setError('SKT uyarı günü 0 veya daha büyük olmalıdır.')
+      setError('Geçerlilik uyarı günü 0 veya daha büyük olmalıdır.')
       return
     }
 
@@ -128,11 +128,11 @@ export default function StockItemForm({ categories, item, onSave, onCancel }: Pr
 
   return (
     <form onSubmit={submit} className="stacked-form">
-      <p className="muted small-text">Stok miktarı ve SKT girişleri Stok Hareketleri ekranından yapılır.</p>
+      <p className="muted small-text">Stok miktarı ve geçerlilik girişleri Stok Hareketleri ekranından yapılır.</p>
 
       <div className="form-field">
         <label>Stok kartı adı</label>
-        <input placeholder="Örn. Dana kıyma" value={name} onChange={event => setName(event.target.value)} />
+        <input placeholder="Örn. Örnek Stok" value={name} onChange={event => setName(event.target.value)} />
       </div>
 
       <div className="form-row">
@@ -176,12 +176,12 @@ export default function StockItemForm({ categories, item, onSave, onCancel }: Pr
         <div className="form-check-field">
           <label className="check-row">
             <input type="checkbox" checked={tracksExpiry} onChange={event => setTracksExpiry(event.target.checked)} />
-            SKT takibi aktif
+            Geçerlilik takibi aktif
           </label>
           <p className="muted small-text">Son kullanma tarihleri lot bazında Stok Hareketleri ekranından girilir.</p>
         </div>
         <div className="form-field">
-          <label>SKT uyarı günü</label>
+          <label>Geçerlilik uyarı günü</label>
           <input type="number" min="0" step="1" value={expiryWarningDays} onChange={event => setExpiryWarningDays(event.target.value)} disabled={!tracksExpiry} />
         </div>
       </div>

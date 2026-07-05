@@ -24,6 +24,17 @@ type Props = {
 const movementTypes: StockMovementType[] = ['Giriş', 'Çıkış', 'Sayım Düzeltme']
 const movementSources: StockMovementSource[] = ['Manuel', 'Reçete', 'Adisyon', 'Sayım', 'İade']
 const movementReasons: StockMovementReason[] = ['Satın Alma', 'İade', 'Fire', 'Kullanım', 'Sayım Fazlası', 'Sayım Eksiği', 'Diğer']
+const sourceLabels: Partial<Record<StockMovementSource, string>> = {
+  Reçete: 'Üretim Tanımı',
+  Adisyon: 'İşlem',
+  Fire: 'Kayıp'
+}
+const reasonLabels: Record<string, string> = {
+  Fire: 'Kayıp',
+  'SKT Kontrolü': 'Geçerlilik Kontrolü',
+  'SKT Geçmesi': 'Geçerlilik Süresi',
+  'Yanlış Sipariş': 'Hatalı Talep'
+}
 
 const isEntryMovementType = (value: string) => value.includes('Giri')
 const isCountMovementType = (value: string) => value.includes('Say')
@@ -110,12 +121,12 @@ export default function StockMovementForm({ stockItems, onSave }: Props){
     }
 
     if(selectedItem?.tracksExpiry && type === 'Giriş' && !expiryDate){
-      setError('SKT takipli stok girişlerinde son kullanma tarihi zorunludur.')
+      setError('Geçerlilik takipli stok girişlerinde tarih zorunludur.')
       return
     }
 
     if(selectedItem?.tracksExpiry && type === 'Sayım Düzeltme' && parsedQty > selectedItem.currentQty && !expiryDate){
-      setError('SKT takipli sayım fazlası girişlerinde son kullanma tarihi zorunludur.')
+      setError('Geçerlilik takipli sayım fazlası girişlerinde tarih zorunludur.')
       return
     }
 
@@ -155,7 +166,7 @@ export default function StockMovementForm({ stockItems, onSave }: Props){
         <div className="form-field">
           <label>Hareket kaynağı</label>
           <select value={source} onChange={event => setSource(event.target.value as StockMovementSource)}>
-            {movementSources.map(item => <option key={item} value={item}>{item}</option>)}
+            {movementSources.map(item => <option key={item} value={item}>{sourceLabels[item] || item}</option>)}
           </select>
         </div>
       </div>
@@ -180,7 +191,7 @@ export default function StockMovementForm({ stockItems, onSave }: Props){
         <div className="form-field">
           <label>Sebep</label>
           <select value={reason} onChange={event => setReason(event.target.value as StockMovementReason)}>
-            {movementReasons.map(item => <option key={item} value={item}>{item}</option>)}
+            {movementReasons.map(item => <option key={item} value={item}>{reasonLabels[item] || item}</option>)}
           </select>
         </div>
       </div>
@@ -189,7 +200,7 @@ export default function StockMovementForm({ stockItems, onSave }: Props){
         <div className="stock-current-hint">
           <span>Mevcut stok</span>
           <strong>{selectedItem.currentQty.toLocaleString('tr-TR', { maximumFractionDigits: 3 })} {selectedItem.unit}</strong>
-          {selectedItem.tracksExpiry && <em>SKT takibi aktif</em>}
+          {selectedItem.tracksExpiry && <em>Geçerlilik takibi aktif</em>}
           <em>Ort. maliyet {formatStockMoney(getStockAverageCost(selectedItem), getStockCurrency(selectedItem))} · Son alış {formatStockMoney(getStockLastPurchasePrice(selectedItem), getStockCurrency(selectedItem))}</em>
         </div>
       )}

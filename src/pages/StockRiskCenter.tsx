@@ -489,7 +489,7 @@ export default function StockRiskCenter(){
   const riskyRecipeItems: RiskListItem[] = riskyRecipes.slice(0, 5).map(recipe => ({
     id: recipe.id,
     title: getProductName(products, recipe),
-    detail: `${formatNumber(recipe.items.length)} reçete bileşeni`,
+    detail: `${formatNumber(recipe.items.length)} üretim tanımı bileşeni`,
     value: recipe.items.some(item => {
       const stockItem = stockItemMap.get(item.stockItemId)
       return stockItem ? isOutOfStock(stockItem) : true
@@ -511,7 +511,7 @@ export default function StockRiskCenter(){
     expiry: expiryRows.slice(0, 5).map<RiskListItem>(row => ({
       id: row.lot.id,
       title: row.lot.stockItemName,
-      detail: `${row.lot.lotCode} / SKT ${formatExpiryDate(row.lot.expiryDate)}`,
+      detail: `${row.lot.lotCode} / Geçerlilik ${formatExpiryDate(row.lot.expiryDate)}`,
       value: row.daysUntilExpiry === null ? '-' : `${formatNumber(row.daysUntilExpiry)} gün`
     })),
     waste: highWasteRows.map<RiskListItem>(row => ({
@@ -540,7 +540,7 @@ export default function StockRiskCenter(){
         <div className="section-header">
           <div>
             <h3>Filtreler</h3>
-            <p className="muted">Tarih aralığı ve kategori değiştiğinde stok hareketleri, SKT, fire ve risk analizleri güncellenir.</p>
+            <p className="muted">Tarih aralığı ve kategori değiştiğinde stok hareketleri, geçerlilik, kayıp ve risk analizleri güncellenir.</p>
           </div>
           <div className="toolbar-controls stock-risk-filters">
             <select value={rangeMode} onChange={event => setRangeMode(event.target.value as DateRangeMode)}>
@@ -575,15 +575,15 @@ export default function StockRiskCenter(){
       <div className="metric-grid dashboard-kpi-grid">
         <KpiCard label="Toplam Stok Kalemi" value={formatNumber(categoryItems.length)} detail={`${formatNumber(activeCategoryItems.length)} aktif stok kartı`} />
         <KpiCard label="Kritik Stok Sayısı" value={formatNumber(criticalRows.length)} detail={`${formatNumber(filteredCriticalEvents.length)} kritik geçiş kaydı`} />
-        <KpiCard label="SKT Riski Olan Ürün" value={formatNumber(expiryRiskStockIds.size)} detail={`${formatNumber(expiryRows.length)} riskli lot`} />
-        <KpiCard label="Fireli Ürün" value={formatNumber(wasteProductCount)} detail={`${formatNumber(filteredWasteRecords.length)} fire kaydı`} />
+        <KpiCard label="Geçerlilik Riski Olan Ürün" value={formatNumber(expiryRiskStockIds.size)} detail={`${formatNumber(expiryRows.length)} riskli lot`} />
+        <KpiCard label="Kayıplı Ürün" value={formatNumber(wasteProductCount)} detail={`${formatNumber(filteredWasteRecords.length)} kayıp kaydı`} />
       </div>
 
       <div className="metric-grid dashboard-panel-kpi-grid stock-risk-extra-grid">
         <KpiCard compact label="Toplam Stok Değeri" value={formatCurrency(totalStockValue)} detail="Mevcut miktar x tüketim maliyeti" />
         <KpiCard compact label="Tükenen Ürün" value={formatNumber(outOfStockItems.length)} detail="Stok miktarı 0 veya altında" />
-        <KpiCard compact label="Bu Ay Fire" value={formatCurrency(thisMonthWasteCost)} detail={`${formatNumber(thisMonthWasteRecords.length)} fire kaydı`} />
-        <KpiCard compact label="Riskli Reçete Sayısı" value={formatNumber(riskyRecipes.length)} detail="Kritik, SKT veya maliyet riski" />
+        <KpiCard compact label="Bu Ay Kayıp" value={formatCurrency(thisMonthWasteCost)} detail={`${formatNumber(thisMonthWasteRecords.length)} kayıp kaydı`} />
+        <KpiCard compact label="Riskli Üretim Tanımı Sayısı" value={formatNumber(riskyRecipes.length)} detail="Kritik, geçerlilik veya maliyet riski" />
       </div>
 
       <section className="stock-risk-grid">
@@ -627,7 +627,7 @@ export default function StockRiskCenter(){
         <section className="card">
           <div className="section-header compact dashboard-panel-header">
             <div>
-              <h3>SKT Risk Merkezi</h3>
+              <h3>Geçerlilik Risk Merkezi</h3>
               <p className="muted">Yaklaşan, geçmiş ve riskli lotlar seçili tarih aralığına göre listelenir.</p>
             </div>
             <span className={`status-pill ${expiryRows.length > 0 ? 'danger-pill' : 'success'}`}>
@@ -640,13 +640,13 @@ export default function StockRiskCenter(){
                 <tr>
                   <th>Ürün</th>
                   <th>Lot</th>
-                  <th>SKT</th>
+                  <th>Geçerlilik</th>
                   <th>Kalan Gün</th>
                   <th>Durum</th>
                 </tr>
               </thead>
               <tbody>
-                {expiryRows.length === 0 && <tr><td className="empty-cell" colSpan={5}>SKT riski olan lot bulunmuyor.</td></tr>}
+                {expiryRows.length === 0 && <tr><td className="empty-cell" colSpan={5}>Geçerlilik riski olan lot bulunmuyor.</td></tr>}
                 {expiryRows.slice(0, 12).map(row => (
                   <tr key={row.lot.id}>
                     <td><strong>{row.lot.stockItemName}</strong><div className="muted small-text">{row.item ? getStockCategoryName(stockCategoryMap, row.item) : '-'}</div></td>
@@ -666,8 +666,8 @@ export default function StockRiskCenter(){
         <section className="card">
           <div className="section-header compact dashboard-panel-header">
             <div>
-              <h3>Fire Analizi</h3>
-              <p className="muted">En çok fire veren ürünler miktar, maliyet ve işlem sayısıyla izlenir.</p>
+              <h3>Kayıp Analizi</h3>
+              <p className="muted">En çok kayıp veren ürünler miktar, maliyet ve işlem sayısıyla izlenir.</p>
             </div>
             <span className="status-pill warning-pill">{formatCurrency(wasteRows.reduce((sum, row) => sum + row.cost, 0))}</span>
           </div>
@@ -676,13 +676,13 @@ export default function StockRiskCenter(){
               <thead>
                 <tr>
                   <th>Ürün</th>
-                  <th>Fire Miktarı</th>
-                  <th>Fire Maliyeti</th>
+                  <th>Kayıp Miktarı</th>
+                  <th>Kayıp Maliyeti</th>
                   <th>İşlem Sayısı</th>
                 </tr>
               </thead>
               <tbody>
-                {wasteRows.length === 0 && <tr><td className="empty-cell" colSpan={4}>Seçili aralıkta fire kaydı yok.</td></tr>}
+                {wasteRows.length === 0 && <tr><td className="empty-cell" colSpan={4}>Seçili aralıkta kayıp kaydı yok.</td></tr>}
                 {wasteRows.slice(0, 10).map(row => (
                   <tr key={row.stockItemId}>
                     <td><strong>{row.stockItemName}</strong></td>
@@ -700,7 +700,7 @@ export default function StockRiskCenter(){
           <div className="section-header compact dashboard-panel-header">
             <div>
               <h3>Stok Hareket Özeti</h3>
-              <p className="muted">Giriş, çıkış, fire ve net değişim maliyet etkisine göre özetlenir.</p>
+              <p className="muted">Giriş, çıkış, kayıp ve net değişim maliyet etkisine göre özetlenir.</p>
             </div>
             <span className={`status-pill ${movementSummary.netValue >= 0 ? 'success' : 'danger-pill'}`}>
               Net {formatCurrency(movementSummary.netValue)}
@@ -718,9 +718,9 @@ export default function StockRiskCenter(){
               <p className="muted small-text">{formatNumber(movementSummary.exitCount)} işlem</p>
             </div>
             <div>
-              <span>Fire</span>
+              <span>Kayıp</span>
               <strong>{formatCurrency(movementSummary.wasteValue)}</strong>
-              <p className="muted small-text">{formatNumber(movementSummary.wasteCount)} fire hareketi</p>
+              <p className="muted small-text">{formatNumber(movementSummary.wasteCount)} kayıp hareketi</p>
             </div>
             <div>
               <span>Net Değişim</span>
@@ -743,19 +743,19 @@ export default function StockRiskCenter(){
           emptyText="Kritik stok riski bulunmuyor."
         />
         <RiskList
-          title="SKT Riski Olanlar"
+          title="Geçerlilik Riski Olanlar"
           items={riskListItems.expiry}
-          emptyText="Yaklaşan veya geçmiş SKT riski yok."
+          emptyText="Yaklaşan veya geçmiş geçerlilik riski yok."
         />
         <RiskList
-          title="Yüksek Fireli Ürünler"
+          title="Yüksek Kayıplı Ürünler"
           items={riskListItems.waste}
-          emptyText="Seçili aralıkta yüksek fire kaydı yok."
+          emptyText="Seçili aralıkta yüksek kayıp kaydı yok."
         />
         <RiskList
-          title="Riskli Reçeteler"
+          title="Riskli Üretim Tanımları"
           items={riskListItems.recipes}
-          emptyText="Kritik reçete bileşeni bulunmuyor."
+          emptyText="Kritik üretim tanımı bileşeni bulunmuyor."
         />
       </section>
     </div>
