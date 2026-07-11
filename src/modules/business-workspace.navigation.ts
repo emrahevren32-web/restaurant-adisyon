@@ -76,7 +76,7 @@ export const createBusinessWorkspaceNavGroups = (
   return [
     {
       key: 'system-modules',
-      title: 'WORKSPACE',
+      title: 'ÇALIŞMA ALANI',
       icon: 'WS',
       items: registry.systemModules.map(toShellNavItem)
     },
@@ -85,10 +85,10 @@ export const createBusinessWorkspaceNavGroups = (
       title: 'İŞ MODÜLLERİ',
       icon: 'IM',
       emptyTitle: 'Henüz modül yüklenmedi.',
-      emptyDescription: "Marketplace'ten ilk modülünüzü kurabilirsiniz.",
+      emptyDescription: 'İş modülleri eklendiğinde menüde burada görünecek. İlk modülünüzü Modül Mağazası üzerinden keşfedebilirsiniz.',
       emptyAction: options.showBusinessModuleEmptyAction ? {
         key: 'marketplace',
-        label: "Marketplace'e Git",
+        label: 'Modül Mağazasına Git',
         route: 'marketplace',
         icon: 'MP',
         adminOnly: true

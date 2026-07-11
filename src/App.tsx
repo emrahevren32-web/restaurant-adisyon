@@ -18,6 +18,7 @@ import BillingManagement from './pages/BillingManagement'
 import QRMenu from './pages/QRMenu'
 import Login from './pages/Login'
 import AppShell, { ShellNavGroup, ShellNavItem } from './components/AppShell'
+import OnboardingExperience from './components/OnboardingExperience'
 import { resolveSecurityTargetForIdentity } from './auth/authentication-pipeline'
 import {
   AuthenticationState,
@@ -245,6 +246,7 @@ export default function App(){
   const [selectedPendingApplicationId, setSelectedPendingApplicationId] = React.useState('')
   const [onboardingRefreshKey, setOnboardingRefreshKey] = React.useState(0)
   const [moduleInstallRefreshKey, setModuleInstallRefreshKey] = React.useState(0)
+  const [onboardingExperienceStartSignal, setOnboardingExperienceStartSignal] = React.useState(0)
   const isPlatformAdmin = isPlatformAdminUser(currentUser)
   const evren360View = evren360RouteViews[route]
   const workspaceChrome = React.useMemo(() => {
@@ -381,6 +383,16 @@ export default function App(){
     setRoute('marketplace')
     setActiveNavKey('marketplace')
     setOpenGroupKey('system-modules')
+  }
+  const openDashboardFromOnboarding = () => {
+    if(!isWorkspaceSetupCompletedForUser(currentUser)) return
+    setLicenseAccessError('')
+    setRoute('summary')
+    setActiveNavKey('dashboard')
+    setOpenGroupKey('system-modules')
+  }
+  const startOnboardingExperience = () => {
+    setOnboardingExperienceStartSignal(current => current + 1)
   }
   const openIntegrationCenterFromWelcome = () => {
     if(!hasConnectedWorkspaceIntegrationsForUser(currentUser)) return
@@ -529,6 +541,7 @@ export default function App(){
       onToggleGroup={toggleNavGroup}
       onOpenNavItem={openNavItem}
       onOpenNotification={openEvren360NotificationTarget}
+      onStartOnboarding={!isPlatformAdmin && workspaceSetupCompleted ? startOnboardingExperience : undefined}
       onActiveBranchChange={changeActiveBranch}
       onLogout={logout}
     >
@@ -608,6 +621,15 @@ export default function App(){
         </>
       )}
       </React.Fragment>
+      {currentUser && !isPlatformAdmin && !firstLoginOnboardingRequired && workspaceSetupCompleted && (
+        <OnboardingExperience
+          currentUser={currentUser}
+          enabled
+          startSignal={onboardingExperienceStartSignal}
+          onOpenDashboard={openDashboardFromOnboarding}
+          onOpenModuleStore={openMarketplaceFromWelcome}
+        />
+      )}
     </AppShell>
   )
 }

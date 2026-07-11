@@ -137,7 +137,7 @@ export default function DailySummary({ currentUser, onOpenMarketplace }: Props){
 
   return (
     <div className="summary-page dashboard-widget-page">
-      <div className="page-title dashboard-title">
+      <div className="page-title dashboard-title" data-onboarding-target="control-panel">
         <div>
           <h2>Kontrol Paneli</h2>
           <p className="muted">
@@ -157,27 +157,32 @@ export default function DailySummary({ currentUser, onOpenMarketplace }: Props){
       {widgetMessage && <div className="form-success">{widgetMessage}</div>}
 
       {container.isEmpty ? (
-        <section className="dashboard-widget-empty dashboard-widget-empty-simple">
-          <div className="dashboard-widget-empty-actions">
-            <button
-              className="btn primary"
-              type="button"
-              onClick={() => {
-                setWidgetPanelOpen(true)
-                setWidgetMessage('')
-              }}
-            >
-              + Widget Ekle
-            </button>
-            {!hasBusinessModules && (
-              <button className="btn" type="button" onClick={onOpenMarketplace}>
-                Modül Mağazasına Git
+        <section className="dashboard-widget-empty" data-onboarding-target="widget-area">
+          <span className="dashboard-widget-empty-icon" aria-hidden="true">KP</span>
+          <div>
+            <h3>İlk widgetınızı ekleyin</h3>
+            <p>Kontrol paneliniz, takip etmek istediğiniz özetleri tek alanda toplar.</p>
+            <div className="dashboard-widget-empty-actions">
+              <button
+                className="btn primary"
+                type="button"
+                onClick={() => {
+                  setWidgetPanelOpen(true)
+                  setWidgetMessage('')
+                }}
+              >
+                Widget Ekle
               </button>
-            )}
+              {!hasBusinessModules && (
+                <button className="btn" type="button" onClick={onOpenMarketplace}>
+                  Modül Mağazasına Git
+                </button>
+              )}
+            </div>
           </div>
         </section>
       ) : (
-        <section className="dashboard-widget-container-shell dashboard-widget-container-clean">
+        <section className="dashboard-widget-container-shell dashboard-widget-container-clean" data-onboarding-target="widget-area">
           <div className="dashboard-widget-toolbar">
             <button
               className="btn"

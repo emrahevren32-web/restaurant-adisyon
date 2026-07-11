@@ -62,6 +62,7 @@ type AppShellProps<
   onToggleGroup: (groupKey: GroupKey) => void
   onOpenNavItem: (item: ShellNavItem<Route, NavKey>) => void
   onOpenNotification?: (notification: Evren360Notification) => void
+  onStartOnboarding?: () => void
   onActiveBranchChange: (branchId: string) => void
   onLogout: () => void
   children: React.ReactNode
@@ -133,6 +134,11 @@ const flattenNavItems = <
   ])
 )
 
+const getOnboardingTargetForNavItem = (key: string) => {
+  if(key === 'marketplace') return 'module-store'
+  return undefined
+}
+
 const navItemHasActiveDescendant = <
   Route extends string,
   NavKey extends string
@@ -190,6 +196,7 @@ export default function AppShell<
   onToggleGroup,
   onOpenNavItem,
   onOpenNotification,
+  onStartOnboarding,
   onActiveBranchChange,
   onLogout,
   children
@@ -280,6 +287,7 @@ export default function AppShell<
     const isOpen = hasChildren && openTreeKeys.has(String(item.key))
     const isActive = activeNavKey === item.key
     const isActiveBranch = isActive || navItemHasActiveDescendant(item, activeNavKey)
+    const onboardingTarget = getOnboardingTargetForNavItem(String(item.key))
     const buttonClassName = [
       'side-nav-item',
       hasChildren ? 'tree-parent' : '',
@@ -302,6 +310,7 @@ export default function AppShell<
           aria-expanded={hasChildren ? isOpen : undefined}
           aria-disabled={item.locked ? true : undefined}
           title={item.locked ? item.disabledReason : item.label}
+          data-onboarding-target={onboardingTarget}
           onClick={() => {
             if(hasChildren){
               toggleTreeItem(item.key)
@@ -332,7 +341,7 @@ export default function AppShell<
   return (
     <div className="app-shell">
       <div className="app-layout">
-        <aside className="side-nav" aria-label="Ana menü">
+        <aside className="side-nav" aria-label="Ana menü" data-onboarding-target="side-menu">
           <div className="app-brand side-brand">
             {logoUrl && <img src={logoUrl} alt={`${restaurantName} logosu`} />}
             <div className="side-brand-copy">
@@ -465,7 +474,12 @@ export default function AppShell<
                   </section>
                 )}
               </div>
-              <div className="topbar-user-card" aria-label="Kullanıcı bilgisi" title="Kullanıcı bilgisi">
+              {onStartOnboarding && (
+                <button className="btn topbar-help" type="button" onClick={onStartOnboarding}>
+                  Yardım
+                </button>
+              )}
+              <div className="topbar-user-card" aria-label="Kullanıcı bilgisi" title="Kullanıcı bilgisi" data-onboarding-target="profile">
                 <span className="topbar-user-avatar">{getUserInitials(currentUser)}</span>
                 <span className="topbar-user-meta">
                   <strong>{currentUser.fullName || currentUser.username}</strong>

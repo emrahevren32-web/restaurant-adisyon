@@ -47,7 +47,7 @@ const portalUpdates: PortalUpdate[] = [
 
 const referenceCustomers: ReferenceCustomer[] = [
   { initials: 'AW', companyName: 'Aster Workspace', workspaceProfile: 'Çok şubeli işletme' },
-  { initials: 'NG', companyName: 'Nova Grup', workspaceProfile: 'Finans ve operasyon odaklı workspace' },
+  { initials: 'NG', companyName: 'Nova Grup', workspaceProfile: 'Finans ve operasyon odaklı çalışma alanı' },
   { initials: 'OM', companyName: 'Orion Merkez', workspaceProfile: 'Modül tabanlı yönetim yapısı' }
 ]
 
