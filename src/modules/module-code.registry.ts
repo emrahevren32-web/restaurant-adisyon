@@ -29,6 +29,7 @@ export const WORKSPACE_MODULE_CODES = {
 
 export const SECTOR_TEMPLATE_MODULE_CODES = {
   PRODUCT: 'product',
+  ORDER: 'order',
   WAREHOUSE: 'warehouse',
   PRODUCTION: 'production',
   PURCHASE: 'purchase',
@@ -107,6 +108,12 @@ export const SECTOR_TEMPLATE_MODULE_METADATA: Record<SectorTemplateModuleCode, S
     name: 'Ürün',
     description: 'Ürün ve hizmet katalog tanımlarını temsil eden sektör şablonu modülü.',
     icon: 'UR'
+  },
+  [SECTOR_TEMPLATE_MODULE_CODES.ORDER]: {
+    code: SECTOR_TEMPLATE_MODULE_CODES.ORDER,
+    name: 'Sipariş',
+    description: 'Sipariş alma, takip ve operasyon akışını temsil eden sektör şablonu modülü.',
+    icon: 'SP'
   },
   [SECTOR_TEMPLATE_MODULE_CODES.WAREHOUSE]: {
     code: SECTOR_TEMPLATE_MODULE_CODES.WAREHOUSE,
