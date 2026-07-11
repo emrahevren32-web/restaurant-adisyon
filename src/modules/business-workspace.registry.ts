@@ -10,6 +10,7 @@ import type {
   WorkspaceModuleRegistryItem,
   WorkspaceModuleType
 } from './module-registry.types'
+import { LICENSE_MODULE_CODES, WORKSPACE_MODULE_CODES } from './module-code.registry'
 import { MODULE_SCOPES, WORKSPACE_MODULE_TYPES } from './module-registry.types'
 
 const includedPricing = { model: 'included' as const }
@@ -147,7 +148,7 @@ const defineModuleRegistry = (modules: BusinessWorkspaceModuleInput[]): Business
 export const BUSINESS_WORKSPACE_MODULE_REGISTRY: BusinessWorkspaceModule[] = defineModuleRegistry([
   {
     id: 'system-workspace-welcome',
-    code: 'workspace-welcome',
+    code: WORKSPACE_MODULE_CODES.WORKSPACE_WELCOME,
     name: 'Workspace Welcome',
     description: 'Yeni Business Workspace ilk açılış deneyimini ve Marketplace başlangıç yönlendirmesini gösterir.',
     category: 'system',
@@ -159,7 +160,7 @@ export const BUSINESS_WORKSPACE_MODULE_REGISTRY: BusinessWorkspaceModule[] = def
     isEnabled: true,
     isVisible: true,
     displayOrder: 5,
-    dependencies: ['workspace'],
+    dependencies: [WORKSPACE_MODULE_CODES.WORKSPACE],
     tags: ['system', 'workspace', 'welcome', 'marketplace'],
     pricing: includedPricing,
     marketplace: coreSystemMarketplace,
@@ -169,7 +170,7 @@ export const BUSINESS_WORKSPACE_MODULE_REGISTRY: BusinessWorkspaceModule[] = def
   },
   {
     id: 'system-dashboard',
-    code: 'dashboard',
+    code: WORKSPACE_MODULE_CODES.DASHBOARD,
     name: 'Dashboard',
     description: 'Business Workspace genel durum ve günlük operasyon özetini gösterir.',
     category: 'system',
@@ -206,7 +207,7 @@ export const BUSINESS_WORKSPACE_MODULE_REGISTRY: BusinessWorkspaceModule[] = def
   },
   {
     id: 'system-workspace',
-    code: 'workspace',
+    code: WORKSPACE_MODULE_CODES.WORKSPACE,
     name: 'Workspace',
     description: 'Business Workspace kimliği, temel profil bilgisi ve çalışma alanı bağlamını yönetir.',
     category: 'system',
@@ -228,7 +229,7 @@ export const BUSINESS_WORKSPACE_MODULE_REGISTRY: BusinessWorkspaceModule[] = def
   },
   {
     id: 'system-marketplace',
-    code: 'marketplace',
+    code: WORKSPACE_MODULE_CODES.MARKETPLACE,
     name: 'Marketplace',
     description: 'Business Workspace için iş ve entegrasyon modül kataloğunu gösterir.',
     category: 'system',
@@ -240,7 +241,7 @@ export const BUSINESS_WORKSPACE_MODULE_REGISTRY: BusinessWorkspaceModule[] = def
     isEnabled: true,
     isVisible: true,
     displayOrder: 18,
-    dependencies: ['workspace', 'license'],
+    dependencies: [WORKSPACE_MODULE_CODES.WORKSPACE, WORKSPACE_MODULE_CODES.LICENSE],
     tags: ['system', 'marketplace', 'module-catalog'],
     pricing: includedPricing,
     marketplace: coreSystemMarketplace,
@@ -250,7 +251,7 @@ export const BUSINESS_WORKSPACE_MODULE_REGISTRY: BusinessWorkspaceModule[] = def
   },
   {
     id: 'system-integration-center',
-    code: 'integration-center',
+    code: WORKSPACE_MODULE_CODES.INTEGRATION_CENTER,
     name: 'Entegrasyon Merkezi',
     description: 'Business Workspace ile dış sistemler arasındaki soyut entegrasyon kataloğunu ve bağlantı altyapısını yönetir.',
     category: 'system',
@@ -262,7 +263,7 @@ export const BUSINESS_WORKSPACE_MODULE_REGISTRY: BusinessWorkspaceModule[] = def
     isEnabled: true,
     isVisible: true,
     displayOrder: 19,
-    dependencies: ['workspace', 'marketplace'],
+    dependencies: [WORKSPACE_MODULE_CODES.WORKSPACE, WORKSPACE_MODULE_CODES.MARKETPLACE],
     tags: ['system', 'integration', 'external-systems', 'registry'],
     pricing: includedPricing,
     marketplace: coreSystemMarketplace,
@@ -272,7 +273,7 @@ export const BUSINESS_WORKSPACE_MODULE_REGISTRY: BusinessWorkspaceModule[] = def
   },
   {
     id: 'system-executive-center',
-    code: 'executive-center',
+    code: WORKSPACE_MODULE_CODES.EXECUTIVE_CENTER,
     name: 'Yönetici Merkezi',
     description: 'İşletme sahibi için yönetim özeti, uyarılar ve karar destek merkezi.',
     category: 'system',
@@ -284,7 +285,7 @@ export const BUSINESS_WORKSPACE_MODULE_REGISTRY: BusinessWorkspaceModule[] = def
     isEnabled: true,
     isVisible: true,
     displayOrder: 20,
-    dependencies: ['dashboard'],
+    dependencies: [WORKSPACE_MODULE_CODES.DASHBOARD],
     tags: ['system', 'executive', 'owner'],
     pricing: includedPricing,
     marketplace: coreSystemMarketplace,
@@ -294,7 +295,7 @@ export const BUSINESS_WORKSPACE_MODULE_REGISTRY: BusinessWorkspaceModule[] = def
   },
   {
     id: 'system-users',
-    code: 'users',
+    code: WORKSPACE_MODULE_CODES.USERS,
     name: 'Kullanıcılar',
     description: 'Workspace kullanıcılarının yönetildiği zorunlu sistem modülü.',
     category: 'system',
@@ -316,7 +317,7 @@ export const BUSINESS_WORKSPACE_MODULE_REGISTRY: BusinessWorkspaceModule[] = def
   },
   {
     id: 'system-roles',
-    code: 'roles',
+    code: WORKSPACE_MODULE_CODES.ROLES,
     name: 'Roller',
     description: 'Rol ve yetki modelinin Business Workspace içinde yönetilmesini sağlar.',
     category: 'system',
@@ -328,7 +329,7 @@ export const BUSINESS_WORKSPACE_MODULE_REGISTRY: BusinessWorkspaceModule[] = def
     isEnabled: true,
     isVisible: true,
     displayOrder: 40,
-    dependencies: ['users'],
+    dependencies: [WORKSPACE_MODULE_CODES.USERS],
     tags: ['system', 'authorization', 'roles'],
     pricing: includedPricing,
     marketplace: coreSystemMarketplace,
@@ -338,7 +339,7 @@ export const BUSINESS_WORKSPACE_MODULE_REGISTRY: BusinessWorkspaceModule[] = def
   },
   {
     id: 'system-branches',
-    code: 'branches',
+    code: WORKSPACE_MODULE_CODES.BRANCHES,
     name: 'Şubeler',
     description: 'Her işletmenin temel şube yapısını yöneten sistem modülü.',
     category: 'system',
@@ -360,7 +361,7 @@ export const BUSINESS_WORKSPACE_MODULE_REGISTRY: BusinessWorkspaceModule[] = def
   },
   {
     id: 'system-notifications',
-    code: 'notifications',
+    code: WORKSPACE_MODULE_CODES.NOTIFICATIONS,
     name: 'Bildirimler',
     description: 'Workspace bildirimleri için merkezi sistem modülü.',
     category: 'system',
@@ -382,7 +383,7 @@ export const BUSINESS_WORKSPACE_MODULE_REGISTRY: BusinessWorkspaceModule[] = def
   },
   {
     id: 'system-license',
-    code: 'license',
+    code: WORKSPACE_MODULE_CODES.LICENSE,
     name: 'Lisans',
     description: 'Workspace lisans kapsamını ve modül erişim temelini gösterir.',
     category: 'system',
@@ -404,7 +405,7 @@ export const BUSINESS_WORKSPACE_MODULE_REGISTRY: BusinessWorkspaceModule[] = def
   },
   {
     id: 'system-subscription',
-    code: 'subscription',
+    code: WORKSPACE_MODULE_CODES.SUBSCRIPTION,
     name: 'Abonelik',
     description: 'Abonelik ve kullanım haklarının yönetileceği sistem modülü.',
     category: 'system',
@@ -416,7 +417,7 @@ export const BUSINESS_WORKSPACE_MODULE_REGISTRY: BusinessWorkspaceModule[] = def
     isEnabled: true,
     isVisible: true,
     displayOrder: 80,
-    dependencies: ['license'],
+    dependencies: [WORKSPACE_MODULE_CODES.LICENSE],
     tags: ['system', 'subscription', 'billing'],
     pricing: includedPricing,
     marketplace: coreSystemMarketplace,
@@ -426,7 +427,7 @@ export const BUSINESS_WORKSPACE_MODULE_REGISTRY: BusinessWorkspaceModule[] = def
   },
   {
     id: 'system-audit',
-    code: 'audit',
+    code: WORKSPACE_MODULE_CODES.AUDIT,
     name: 'Audit',
     description: 'Workspace içindeki kritik kullanıcı işlemlerinin denetlendiği çekirdek audit kaydı.',
     category: 'system',
@@ -448,7 +449,7 @@ export const BUSINESS_WORKSPACE_MODULE_REGISTRY: BusinessWorkspaceModule[] = def
   },
   {
     id: 'system-settings',
-    code: 'settings',
+    code: WORKSPACE_MODULE_CODES.SETTINGS,
     name: 'Sistem Ayarları',
     description: 'Workspace profil, görünüm ve veri yönetimi ayarlarını toplar.',
     category: 'system',
@@ -470,7 +471,7 @@ export const BUSINESS_WORKSPACE_MODULE_REGISTRY: BusinessWorkspaceModule[] = def
   },
   {
     id: 'system-support',
-    code: 'support',
+    code: WORKSPACE_MODULE_CODES.SUPPORT,
     name: 'Destek',
     description: 'Destek taleplerinin workspace içinden yönetileceği sistem modülü.',
     category: 'system',
@@ -492,7 +493,7 @@ export const BUSINESS_WORKSPACE_MODULE_REGISTRY: BusinessWorkspaceModule[] = def
   },
   {
     id: 'system-ai-center',
-    code: 'ai-center',
+    code: WORKSPACE_MODULE_CODES.AI_CENTER,
     name: 'AI Merkezi',
     description: 'AI destekli sistem önerileri ve otomasyonlar için hazırlanmış modül yuvası.',
     category: 'system',
@@ -504,7 +505,7 @@ export const BUSINESS_WORKSPACE_MODULE_REGISTRY: BusinessWorkspaceModule[] = def
     isEnabled: true,
     isVisible: true,
     displayOrder: 120,
-    dependencies: ['dashboard'],
+    dependencies: [WORKSPACE_MODULE_CODES.DASHBOARD],
     tags: ['system', 'ai', 'future'],
     pricing: includedPricing,
     marketplace: coreSystemMarketplace,
@@ -529,7 +530,7 @@ export const BUSINESS_WORKSPACE_MODULE_REGISTRY: BusinessWorkspaceModule[] = def
   },
   {
     id: 'business-adisyon',
-    code: 'adisyon',
+    code: WORKSPACE_MODULE_CODES.ADISYON,
     name: 'İşlem Yönetimi',
     description: 'Alan, ürün/hizmet, hazırlık ve işlem akışlarını yöneten iş modülü.',
     category: 'business',
@@ -543,7 +544,7 @@ export const BUSINESS_WORKSPACE_MODULE_REGISTRY: BusinessWorkspaceModule[] = def
     displayOrder: 10,
     dependencies: [],
     tags: ['business', 'operation', 'sales'],
-    licenseModuleKey: 'adisyon',
+    licenseModuleKey: LICENSE_MODULE_CODES.ADISYON,
     pricing: { model: 'paid', currency: 'TRY' },
     marketplace: marketplaceReady,
     dashboardWidgets: [
@@ -595,7 +596,7 @@ export const BUSINESS_WORKSPACE_MODULE_REGISTRY: BusinessWorkspaceModule[] = def
   },
   {
     id: 'business-qr-menu',
-    code: 'qr-menu',
+    code: WORKSPACE_MODULE_CODES.QR_MENU,
     name: 'Dijital Katalog',
     description: 'Dijital katalog, talep ve görevli çağrısı akışlarını yönetir.',
     category: 'business',
@@ -607,9 +608,9 @@ export const BUSINESS_WORKSPACE_MODULE_REGISTRY: BusinessWorkspaceModule[] = def
     isEnabled: true,
     isVisible: true,
     displayOrder: 20,
-    dependencies: ['adisyon'],
+    dependencies: [WORKSPACE_MODULE_CODES.ADISYON],
     tags: ['business', 'qr', 'ordering'],
-    licenseModuleKey: 'qr-menu',
+    licenseModuleKey: LICENSE_MODULE_CODES.QR_MENU,
     pricing: { model: 'paid', currency: 'TRY' },
     marketplace: marketplaceReady,
     dashboardWidgets: [
@@ -635,7 +636,7 @@ export const BUSINESS_WORKSPACE_MODULE_REGISTRY: BusinessWorkspaceModule[] = def
   },
   {
     id: 'business-stock',
-    code: 'stock',
+    code: WORKSPACE_MODULE_CODES.STOCK,
     name: 'Stok',
     description: 'Stok kartları, hareketleri, kritik stok, geçerlilik ve kayıp yönetimini kapsar.',
     category: 'business',
@@ -649,7 +650,7 @@ export const BUSINESS_WORKSPACE_MODULE_REGISTRY: BusinessWorkspaceModule[] = def
     displayOrder: 30,
     dependencies: [],
     tags: ['business', 'inventory'],
-    licenseModuleKey: 'stock',
+    licenseModuleKey: LICENSE_MODULE_CODES.STOCK,
     pricing: { model: 'paid', currency: 'TRY' },
     marketplace: marketplaceReady,
     dashboardWidgets: [
@@ -726,7 +727,7 @@ export const BUSINESS_WORKSPACE_MODULE_REGISTRY: BusinessWorkspaceModule[] = def
   },
   {
     id: 'business-recipe',
-    code: 'recipe',
+    code: WORKSPACE_MODULE_CODES.RECIPE,
     name: 'Üretim Tanımları',
     description: 'Ürün/hizmet üretim tanımları ve stok tüketim ilişkisini yöneten iş modülü.',
     category: 'business',
@@ -738,9 +739,9 @@ export const BUSINESS_WORKSPACE_MODULE_REGISTRY: BusinessWorkspaceModule[] = def
     isEnabled: true,
     isVisible: true,
     displayOrder: 40,
-    dependencies: ['stock', 'adisyon'],
+    dependencies: [WORKSPACE_MODULE_CODES.STOCK, WORKSPACE_MODULE_CODES.ADISYON],
     tags: ['business', 'recipe', 'cost'],
-    licenseModuleKey: 'recipe',
+    licenseModuleKey: LICENSE_MODULE_CODES.RECIPE,
     pricing: { model: 'paid', currency: 'TRY' },
     marketplace: marketplaceReady,
     dashboardWidgets: [
@@ -764,7 +765,7 @@ export const BUSINESS_WORKSPACE_MODULE_REGISTRY: BusinessWorkspaceModule[] = def
   },
   {
     id: 'business-current',
-    code: 'current',
+    code: WORKSPACE_MODULE_CODES.CURRENT,
     name: 'Cari',
     description: 'Cari kart, cari hareket, risk ve cari raporlama süreçlerini yönetir.',
     category: 'business',
@@ -778,7 +779,7 @@ export const BUSINESS_WORKSPACE_MODULE_REGISTRY: BusinessWorkspaceModule[] = def
     displayOrder: 50,
     dependencies: [],
     tags: ['business', 'account', 'current'],
-    licenseModuleKey: 'current',
+    licenseModuleKey: LICENSE_MODULE_CODES.CURRENT,
     pricing: { model: 'paid', currency: 'TRY' },
     marketplace: marketplaceReady,
     dashboardWidgets: [
@@ -828,7 +829,7 @@ export const BUSINESS_WORKSPACE_MODULE_REGISTRY: BusinessWorkspaceModule[] = def
   },
   {
     id: 'business-credit',
-    code: 'credit',
+    code: WORKSPACE_MODULE_CODES.CREDIT,
     name: 'Veresiye',
     description: 'Veresiye işlem ve tahsilat takiplerini Cari modülünün tamamlayıcı parçası olarak sunar.',
     category: 'business',
@@ -840,9 +841,9 @@ export const BUSINESS_WORKSPACE_MODULE_REGISTRY: BusinessWorkspaceModule[] = def
     isEnabled: true,
     isVisible: true,
     displayOrder: 60,
-    dependencies: ['current'],
+    dependencies: [WORKSPACE_MODULE_CODES.CURRENT],
     tags: ['business', 'credit', 'collections'],
-    licenseModuleKey: 'credit',
+    licenseModuleKey: LICENSE_MODULE_CODES.CREDIT,
     pricing: { model: 'paid', currency: 'TRY' },
     marketplace: marketplaceReady,
     dashboardWidgets: [
@@ -867,7 +868,7 @@ export const BUSINESS_WORKSPACE_MODULE_REGISTRY: BusinessWorkspaceModule[] = def
   },
   {
     id: 'business-finance',
-    code: 'finance',
+    code: WORKSPACE_MODULE_CODES.FINANCE,
     name: 'Finans',
     description: 'Kasa, tedarikçi, gelir-gider, gün sonu ve finans raporlarını yönetir.',
     category: 'business',
@@ -881,7 +882,7 @@ export const BUSINESS_WORKSPACE_MODULE_REGISTRY: BusinessWorkspaceModule[] = def
     displayOrder: 70,
     dependencies: [],
     tags: ['business', 'finance', 'cash'],
-    licenseModuleKey: 'finance',
+    licenseModuleKey: LICENSE_MODULE_CODES.FINANCE,
     pricing: { model: 'paid', currency: 'TRY' },
     marketplace: marketplaceReady,
     dashboardWidgets: [
@@ -933,7 +934,7 @@ export const BUSINESS_WORKSPACE_MODULE_REGISTRY: BusinessWorkspaceModule[] = def
   },
   {
     id: 'business-personnel',
-    code: 'personnel',
+    code: WORKSPACE_MODULE_CODES.PERSONNEL,
     name: 'Personel',
     description: 'Personel kartları, vardiya, puantaj, performans ve denetim süreçlerini yönetir.',
     category: 'business',
@@ -947,7 +948,7 @@ export const BUSINESS_WORKSPACE_MODULE_REGISTRY: BusinessWorkspaceModule[] = def
     displayOrder: 80,
     dependencies: [],
     tags: ['business', 'personnel', 'hr'],
-    licenseModuleKey: 'personnel',
+    licenseModuleKey: LICENSE_MODULE_CODES.PERSONNEL,
     pricing: { model: 'paid', currency: 'TRY' },
     marketplace: marketplaceReady,
     dashboardWidgets: [
@@ -1026,7 +1027,7 @@ export const BUSINESS_WORKSPACE_MODULE_REGISTRY: BusinessWorkspaceModule[] = def
   },
   {
     id: 'business-multi-branch',
-    code: 'multi-branch',
+    code: WORKSPACE_MODULE_CODES.MULTI_BRANCH,
     name: 'Çoklu Şube',
     description: 'Şube raporlama, şubeler arası stok transferi ve merkez ofis yönetimini kapsar.',
     category: 'business',
@@ -1038,9 +1039,9 @@ export const BUSINESS_WORKSPACE_MODULE_REGISTRY: BusinessWorkspaceModule[] = def
     isEnabled: true,
     isVisible: true,
     displayOrder: 90,
-    dependencies: ['branches'],
+    dependencies: [WORKSPACE_MODULE_CODES.BRANCHES],
     tags: ['business', 'branch', 'multi-location'],
-    licenseModuleKey: 'multi-branch',
+    licenseModuleKey: LICENSE_MODULE_CODES.MULTI_BRANCH,
     pricing: { model: 'paid', currency: 'TRY' },
     marketplace: marketplaceReady,
     dashboardWidgets: [
@@ -1067,7 +1068,7 @@ export const BUSINESS_WORKSPACE_MODULE_REGISTRY: BusinessWorkspaceModule[] = def
   },
   {
     id: 'business-manager-alerts',
-    code: 'manager-alerts',
+    code: WORKSPACE_MODULE_CODES.MANAGER_ALERTS,
     name: 'Yönetici Uyarı Merkezi',
     description: 'İşletme yöneticisi için kritik uyarı ve aksiyon önerilerini gösterir.',
     category: 'business',
@@ -1079,9 +1080,9 @@ export const BUSINESS_WORKSPACE_MODULE_REGISTRY: BusinessWorkspaceModule[] = def
     isEnabled: true,
     isVisible: true,
     displayOrder: 110,
-    dependencies: ['dashboard'],
+    dependencies: [WORKSPACE_MODULE_CODES.DASHBOARD],
     tags: ['business', 'alerts', 'executive'],
-    licenseModuleKey: 'boss-dashboard',
+    licenseModuleKey: LICENSE_MODULE_CODES.BOSS_DASHBOARD,
     pricing: { model: 'paid', currency: 'TRY' },
     marketplace: marketplaceReady,
     dashboardWidgets: [
