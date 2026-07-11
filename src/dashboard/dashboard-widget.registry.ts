@@ -29,7 +29,7 @@ export const DASHBOARD_WIDGET_CATEGORIES: DashboardWidgetCategory[] = [
 const fallbackModuleWidget = (module: BusinessWorkspaceModule): DashboardWidgetModuleContribution => ({
   id: `${module.code}.overview`,
   title: `${module.name} Özeti`,
-  description: `${module.name} modülünün Dashboard üzerinde kullanabileceği özet alanı.`,
+  description: `${module.name} modülünün kontrol paneli üzerinde kullanabileceği özet alanı.`,
   icon: module.icon,
   category: 'Kurulu Modüller',
   order: module.displayOrder,

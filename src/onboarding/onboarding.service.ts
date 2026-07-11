@@ -25,11 +25,8 @@ import { getMarketplaceCatalog } from '../marketplace/module-marketplace.service
 import type { MarketplaceContext } from '../marketplace/module-marketplace.service'
 import type { MarketplaceModule } from '../marketplace/marketplace.types'
 import {
-  activateWorkspaceModuleForUser,
-  configureWorkspaceModuleForUser,
   getActiveWorkspaceModulesForUser,
-  getWorkspaceModuleLifecycleStateForUser,
-  installWorkspaceModuleForUser
+  getWorkspaceModuleLifecycleStateForUser
 } from '../workspace/workspace-module-lifecycle.service'
 import {
   getCoreSystemModules,
@@ -194,17 +191,16 @@ export const getFirstLoginOnboardingState = (user: User): FirstLoginOnboardingSt
 export const completeFirstLoginOnboarding = ({
   state,
   password,
-  workspace,
-  branch: branchForm,
-  selectedBusinessModuleIds = []
+  businessInfo
 }: CompleteFirstLoginOnboardingInput): CompleteFirstLoginOnboardingResult => {
   if(!state.company || !state.completionKey){
     throw new Error('Onboarding için firma kaydı bulunamadı.')
   }
 
-  // Placeholder: password fields prepare the future password-change service.
-  // This phase deliberately does not persist password changes.
-  void password
+  const newPassword = password.newPassword.trim()
+  if(!newPassword){
+    throw new Error('Yeni şifre zorunludur.')
+  }
 
   const now = new Date().toISOString()
   const allCompanies = loadCompanies({ allTenants: true })
@@ -216,15 +212,27 @@ export const completeFirstLoginOnboarding = ({
   const allTenantSettings = loadTenantSettings()
   const companyId = state.company.id
   const tenantId = getTenantIdForOnboarding(state.company, state.setup, state.currentUser)
-  const workspaceName = workspace.workspaceName.trim() || state.company.companyName
-  const workspaceLogoUrl = workspace.logoUrl.trim()
-  const workspaceCurrency = workspace.currency.trim().toLocaleUpperCase('tr-TR') || DEFAULT_WORKSPACE_CURRENCY
-  const workspaceLanguage = workspace.language.trim() || DEFAULT_WORKSPACE_LANGUAGE
-  const workspaceTimezone = workspace.timezone.trim() || DEFAULT_WORKSPACE_TIMEZONE
+  const companyName = businessInfo.companyName.trim() || state.company.companyName
+  const primarySectorId = businessInfo.primarySectorId.trim() || state.company.primarySectorId
+  const city = businessInfo.city.trim() || state.company.city
+  const district = businessInfo.district.trim() || state.company.district
+  const phone = businessInfo.phone.trim() || state.company.phone
+  const address = businessInfo.address.trim() || state.company.address
+  const branchName = businessInfo.branchName.trim() || state.branch?.name || 'Merkez Şube'
+  const workspaceLogoUrl = state.company.logoUrl || ''
+  const workspaceCurrency = businessInfo.currency.trim().toLocaleUpperCase('tr-TR') || DEFAULT_WORKSPACE_CURRENCY
+  const workspaceLanguage = businessInfo.language.trim() || DEFAULT_WORKSPACE_LANGUAGE
+  const workspaceTimezone = businessInfo.timezone.trim() || DEFAULT_WORKSPACE_TIMEZONE
 
   const baseUpdatedCompany: Company = {
     ...state.company,
-    companyName: workspaceName,
+    companyName,
+    legalName: state.company.legalName || companyName,
+    primarySectorId,
+    city,
+    district,
+    phone,
+    address,
     logoUrl: workspaceLogoUrl,
     updatedAt: now
   }
@@ -235,12 +243,12 @@ export const completeFirstLoginOnboarding = ({
     tenantId,
     companyId,
     code: existingBranch?.code || `SUBE-${Date.now().toString().slice(-5)}`,
-    name: branchForm.name.trim() || existingBranch?.name || 'Merkez Şube',
-    phone: branchForm.phone.trim(),
+    name: branchName,
+    phone,
     email: existingBranch?.email || baseUpdatedCompany.email,
-    address: branchForm.address.trim(),
-    city: branchForm.city.trim() || baseUpdatedCompany.city,
-    district: branchForm.district.trim() || baseUpdatedCompany.district,
+    address,
+    city,
+    district,
     managerName: state.currentUser.fullName,
     isActive: true,
     createdAt: existingBranch?.createdAt || now,
@@ -259,7 +267,8 @@ export const completeFirstLoginOnboarding = ({
   const updatedUser: User = {
     ...state.currentUser,
     tenantId,
-    companyId
+    companyId,
+    password: newPassword
   }
 
   const updatedCompanyUser: CompanyUser | null = state.companyUser
@@ -275,8 +284,8 @@ export const completeFirstLoginOnboarding = ({
     saveTenants(allTenants.map(tenant => tenant.id === tenantId || tenant.ownerCompanyId === companyId || tenant.companyId === companyId
       ? {
           ...tenant,
-          tenantName: workspaceName,
-          companyName: workspaceName,
+          tenantName: companyName,
+          companyName,
           ownerCompanyId: companyId,
           companyId,
           workspaceIds: Array.from(new Set([...(tenant.workspaceIds || []), updatedCompany.workspaceId].filter(Boolean))),
@@ -306,7 +315,7 @@ export const completeFirstLoginOnboarding = ({
   const currentSettings = loadSettings()
   saveSettings({
     ...currentSettings,
-    restaurantName: workspaceName,
+    restaurantName: companyName,
     logoUrl: workspaceLogoUrl,
     currency: workspaceCurrency
   })
@@ -319,7 +328,7 @@ export const completeFirstLoginOnboarding = ({
   }
   if(state.setup){
     saveCompanySetups(allSetups.map(item => item.id === state.setup?.id
-      ? { ...item, setupCompleted: true, completedAt: now, updatedAt: now }
+      ? { ...item, temporaryPassword: '', setupCompleted: true, completedAt: now, updatedAt: now }
       : item))
   }
 
@@ -334,14 +343,6 @@ export const completeFirstLoginOnboarding = ({
     ...completions.filter(item => item.key !== state.completionKey)
   ])
   setCurrentUser(updatedUser)
-
-  Array.from(new Set(selectedBusinessModuleIds.filter(Boolean))).forEach(moduleId => {
-    const installResult = installWorkspaceModuleForUser(updatedUser, moduleId)
-    if(installResult.alreadyInstalled) return
-
-    configureWorkspaceModuleForUser(updatedUser, moduleId)
-    activateWorkspaceModuleForUser(updatedUser, moduleId)
-  })
 
   return {
     state: getFirstLoginOnboardingState(updatedUser),

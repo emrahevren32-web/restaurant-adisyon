@@ -190,7 +190,7 @@ export default function ModuleMarketplace({ currentUser, onModuleLifecycleChange
 
         completeModuleSetupWizardSession(currentUser, startModuleSetupWizardForInstallResult(currentUser, installResult))
         const activationResult = activateWorkspaceModuleForUser(currentUser, module.id)
-        refreshLifecycle(activationResult, `${module.name} kuruldu ve Workspace'e eklendi.`)
+        refreshLifecycle(activationResult, `${module.name} kuruldu ve çalışma alanına eklendi.`)
         setManagedModule({ ...module, installState: 'ACTIVE' })
         return
       }
@@ -209,8 +209,8 @@ export default function ModuleMarketplace({ currentUser, onModuleLifecycleChange
       if(action.key === 'activate' || action.key === 'reactivate'){
         const result = activateWorkspaceModuleForUser(currentUser, module.id)
         refreshLifecycle(result, action.key === 'reactivate'
-          ? `${module.name} yeniden aktifleştirildi. Menü ve Dashboard widget kataloğu güncellendi.`
-          : `${module.name} aktifleştirildi. Menü ve Dashboard widget kataloğu güncellendi.`
+          ? `${module.name} yeniden aktifleştirildi. Menü ve kontrol paneli widget kataloğu güncellendi.`
+          : `${module.name} aktifleştirildi. Menü ve kontrol paneli widget kataloğu güncellendi.`
         )
         setManagedModule(current => current?.id === module.id ? { ...current, installState: 'ACTIVE' } : current)
         return
@@ -218,7 +218,7 @@ export default function ModuleMarketplace({ currentUser, onModuleLifecycleChange
 
       if(action.key === 'suspend'){
         const result = suspendWorkspaceModuleForUser(currentUser, module.id)
-        refreshLifecycle(result, `${module.name} pasife alındı. Menüden ve Dashboard seçeneklerinden kaldırıldı.`)
+        refreshLifecycle(result, `${module.name} pasife alındı. Menüden ve kontrol paneli seçeneklerinden kaldırıldı.`)
         setManagedModule(current => current?.id === module.id ? { ...current, installState: 'SUSPENDED' } : current)
         return
       }
@@ -227,7 +227,7 @@ export default function ModuleMarketplace({ currentUser, onModuleLifecycleChange
         const result = detachWorkspaceModuleFromWorkspaceForUser(currentUser, module.id)
         setActiveSetupSession(current => current?.module.id === module.id ? null : current)
         setManagedModule(current => current?.id === module.id ? null : current)
-        refreshLifecycle(result, `${module.name} verileri silinmeden bu Workspace'ten kaldırıldı.`)
+        refreshLifecycle(result, `${module.name} verileri silinmeden bu çalışma alanından kaldırıldı.`)
       }
     } catch(lifecycleError) {
       setError(lifecycleError instanceof Error ? lifecycleError.message : 'Modül yaşam döngüsü güncellenemedi.')
@@ -242,7 +242,7 @@ export default function ModuleMarketplace({ currentUser, onModuleLifecycleChange
     setActiveSetupSession(null)
     refreshLifecycle(
       activationResult,
-      `${activeSetupSession.module.name} yapılandırıldı ve Workspace menüsüne eklendi.`
+      `${activeSetupSession.module.name} yapılandırıldı ve çalışma alanı menüsüne eklendi.`
     )
   }
 
@@ -250,9 +250,9 @@ export default function ModuleMarketplace({ currentUser, onModuleLifecycleChange
     <div className="module-marketplace-page">
       <section className="marketplace-hero">
         <div>
-          <span className="status-pill info-pill">MIYOP Marketplace</span>
-          <h2>Business Workspace yönetim merkezi</h2>
-          <p>İhtiyacınız olan modülleri keşfedin, kurun ve Workspace içinde yönetin.</p>
+          <span className="status-pill info-pill">MIYOP Modül Mağazası</span>
+          <h2>İşletme çalışma alanı yönetim merkezi</h2>
+          <p>İhtiyacınız olan modülleri keşfedin, kurun ve çalışma alanı içinde yönetin.</p>
         </div>
         <div className="marketplace-hero-stats">
           <span>{allModules.length} modül</span>
@@ -274,7 +274,7 @@ export default function ModuleMarketplace({ currentUser, onModuleLifecycleChange
             <div>
               <span className="status-pill success">Kurulu</span>
               <h3>{managedModule.name} Yönetimi</h3>
-              <p>{managedModule.name} bu Workspace'e bağlı. Modülü pasife alabilir, tekrar aktif edebilir veya Workspace'ten kaldırabilirsiniz.</p>
+              <p>{managedModule.name} bu çalışma alanına bağlı. Modülü pasife alabilir, tekrar aktif edebilir veya çalışma alanından kaldırabilirsiniz.</p>
             </div>
           </div>
           <div className="marketplace-card-meta">
@@ -299,7 +299,7 @@ export default function ModuleMarketplace({ currentUser, onModuleLifecycleChange
         </section>
       )}
 
-      <section className="marketplace-category-section" aria-label="Marketplace kategorileri">
+      <section className="marketplace-category-section" aria-label="Modül mağazası kategorileri">
         <div className="marketplace-section-heading">
           <div>
             <h3>Kategori Seçimi</h3>
@@ -346,7 +346,7 @@ export default function ModuleMarketplace({ currentUser, onModuleLifecycleChange
         </div>
       </div>
 
-      <div className="marketplace-tabs" role="tablist" aria-label="Marketplace sekmeleri">
+      <div className="marketplace-tabs" role="tablist" aria-label="Modül mağazası sekmeleri">
         {catalogTabs.map(tab => (
           <button
             key={tab.key}
@@ -393,12 +393,12 @@ export default function ModuleMarketplace({ currentUser, onModuleLifecycleChange
       <div className="marketplace-section-heading">
         <div>
           <h3>{activeWorkspaceCategory.label}</h3>
-          <p className="muted">Seçtiğiniz modüller Workspace menüsüne ve Dashboard seçeneklerinize bağlanır.</p>
+          <p className="muted">Seçtiğiniz modüller çalışma alanı menüsüne ve kontrol paneli seçeneklerinize bağlanır.</p>
         </div>
         <span className="status-pill muted-pill">{modules.length} sonuç</span>
       </div>
 
-      <section className="marketplace-grid" aria-label="Marketplace modül kataloğu">
+      <section className="marketplace-grid" aria-label="Modül mağazası kataloğu">
         {modules.map(module => {
           const actions = getMarketplaceModuleActions(module)
           const displayState = getCardDisplayState(module)
@@ -433,7 +433,7 @@ export default function ModuleMarketplace({ currentUser, onModuleLifecycleChange
               )}
               <div className="marketplace-card-footer">
                 <span>{module.developer}</span>
-                <span>{module.workspaceConnection.autoMenuActivationReady ? 'Workspace bağlantısı hazır' : 'Bağlantı yakında'}</span>
+                <span>{module.workspaceConnection.autoMenuActivationReady ? 'Çalışma alanı bağlantısı hazır' : 'Bağlantı yakında'}</span>
               </div>
               <div className="marketplace-card-actions">
                 {actions.map(action => (

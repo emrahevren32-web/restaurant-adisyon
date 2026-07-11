@@ -160,7 +160,7 @@ export default function BusinessApplicationSystem({ currentUser }: Props){
       addApplicationNote(selectedApplication.id, noteDraft, currentUser)
       refresh(selectedApplication.id)
       setNoteDraft('')
-      setMessage('Başvuru notu eklendi.')
+      setMessage('Ek not kaydedildi.')
     })
   }
 
@@ -169,7 +169,7 @@ export default function BusinessApplicationSystem({ currentUser }: Props){
       <div className="page-title">
         <div>
           <h2>İşletme Başvuru Sistemi</h2>
-          <p className="muted">Dış başvuruları inceleyin, onay sonrası firma, tenant, lisans ve ilk kullanıcı kurulumunu otomatik tamamlayın.</p>
+          <p className="muted">Dış başvuruları inceleyin, onay sonrası firma, tenant, lisans ve ilk kullanıcı hazırlığını otomatik tamamlayın.</p>
         </div>
       </div>
 
@@ -327,8 +327,8 @@ export default function BusinessApplicationSystem({ currentUser }: Props){
                   Başvuruyu İncele
                 </button>
                 <div className="form-field">
-                  <label>Onay Notu</label>
-                  <textarea rows={3} value={approvalNote} onChange={event => setApprovalNote(event.target.value)} />
+                <label>Onay Notu (yalnızca EVREN360)</label>
+                <textarea rows={3} value={approvalNote} onChange={event => setApprovalNote(event.target.value)} />
                 </div>
                 <button className="btn primary" type="button" disabled={selectedApplication.status === 'Onaylandı' || selectedApplication.status === 'Reddedildi'} onClick={approveSelectedApplication}>
                   Onayla
@@ -341,10 +341,10 @@ export default function BusinessApplicationSystem({ currentUser }: Props){
                   Reddet
                 </button>
                 <div className="form-field">
-                  <label>Not Ekle</label>
+                  <label>Ek Notlar (Opsiyonel)</label>
                   <textarea rows={3} value={noteDraft} onChange={event => setNoteDraft(event.target.value)} />
                 </div>
-                <button className="btn" type="button" onClick={addNoteToSelectedApplication}>Not Ekle</button>
+                <button className="btn" type="button" onClick={addNoteToSelectedApplication}>Ek Not Ekle</button>
               </div>
             </section>
           )}

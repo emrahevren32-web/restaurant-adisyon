@@ -23,7 +23,7 @@ export default function WorkspaceWelcome({
       .filter(module => module.moduleType === WORKSPACE_MODULE_TYPES.BUSINESS)
   ), [currentUser])
 
-  const workspaceName = company?.companyName || 'Business Workspace'
+  const workspaceName = company?.companyName || 'İşletme Çalışma Alanı'
   const ownerName = company?.authorizedPerson || company?.ownerName || currentUser.fullName || currentUser.username
   const hasBusinessModules = managedBusinessModules.length > 0
 
@@ -31,11 +31,11 @@ export default function WorkspaceWelcome({
     <div className="workspace-welcome-page">
       <section className="workspace-welcome-hero">
         <div>
-          <span className="status-pill success">Workspace hazır</span>
+          <span className="status-pill success">Çalışma alanı hazır</span>
           <h2>Hoş geldiniz, {ownerName}</h2>
           <p>
             {workspaceName} kurulum bilgileri hazır. {hasBusinessModules
-              ? 'Kurulu iş modülleriniz Dashboard deneyimini zenginleştirebilir.'
+              ? 'Kurulu iş modülleriniz kontrol paneli deneyimini zenginleştirebilir.'
               : 'Henüz iş modülü yüklenmedi.'}
           </p>
         </div>
@@ -47,10 +47,10 @@ export default function WorkspaceWelcome({
       <section className="workspace-welcome-grid single">
         <article className="workspace-welcome-panel action-card">
           <span>WS</span>
-          <h3>Workspace Ayarları</h3>
-          <p>Workspace adı, logo, para birimi, dil ve temel çalışma alanı tercihlerinizi yönetin.</p>
+          <h3>Çalışma Alanı Ayarları</h3>
+          <p>Çalışma alanı adı, logo, para birimi, dil ve temel tercihlerinizi yönetin.</p>
           <button className="btn primary workspace-welcome-button" type="button" onClick={onOpenWorkspaceSettings}>
-            Workspace Ayarları
+            Çalışma Alanı Ayarları
           </button>
         </article>
       </section>
@@ -58,11 +58,11 @@ export default function WorkspaceWelcome({
       <section className="workspace-welcome-action">
         <div>
           <h3>Kurulum bilgileri</h3>
-          <p>Bu ekran normal menüde gösterilmez. Workspace başlangıcı tamamlandıktan sonra ana ekran Dashboard olur.</p>
+          <p>Bu ekran normal menüde gösterilmez. Çalışma alanı başlangıcı tamamlandıktan sonra ana ekran kontrol paneli olur.</p>
         </div>
         <div className="workspace-welcome-actions">
           <button className="btn primary workspace-welcome-button" type="button" onClick={onOpenWorkspaceSettings}>
-            Workspace Ayarları
+            Çalışma Alanı Ayarları
           </button>
         </div>
       </section>

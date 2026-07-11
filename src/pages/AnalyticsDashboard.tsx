@@ -379,7 +379,7 @@ export default function AnalyticsDashboard(){
     <div className="analytics-dashboard-page">
       <div className="page-title dashboard-title">
         <div>
-          <h2>Analitik Dashboard</h2>
+          <h2>Analitik Kontrol Paneli</h2>
           <p className="muted">Sistem kullanım verilerini ve analitik sonuçları tek ekrandan yönetin.</p>
         </div>
       </div>

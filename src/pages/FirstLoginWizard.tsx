@@ -1,12 +1,23 @@
 import React from 'react'
+import {
+  createBusinessSetupWizardPlan,
+  getBusinessSetupModuleCategory,
+  type BusinessSetupModuleGroup
+} from '../onboarding/business-setup-wizard.service'
 import { completeFirstLoginOnboarding } from '../onboarding/onboarding.service'
 import {
-  FirstLoginBranchForm,
-  FirstLoginModuleSummary,
+  FirstLoginBusinessInfoForm,
   FirstLoginOnboardingState,
-  FirstLoginPasswordForm,
-  FirstLoginWorkspaceForm
+  FirstLoginPasswordForm
 } from '../onboarding/onboarding.types'
+import {
+  MODULE_DEPENDENCY_RELATION_TYPES,
+  type ModuleDependencyPlanItem
+} from '../modules/module-dependency.service'
+import type { ModuleRecommendationPlanItem } from '../modules/module-recommendation.service'
+import { MODULE_RECOMMENDATION_TEMPLATE_SOURCES } from '../modules/module-recommendation.service'
+import { DEFAULT_SECTOR_ID } from '../sector/sector.registry'
+import { loadSectors } from '../storage'
 import { User } from '../types'
 
 type Props = {
@@ -21,13 +32,13 @@ type WizardStep = {
 }
 
 const wizardSteps: WizardStep[] = [
-  { title: 'Hoş Geldiniz', description: 'Firma ve lisans özeti' },
-  { title: 'Şifrenizi Oluşturun', description: 'Güvenlik hazırlığı' },
-  { title: 'Business Workspace', description: 'Çalışma alanı' },
-  { title: 'İlk Şube', description: 'Operasyon noktası' },
-  { title: 'Sistem Modülleri', description: 'Platform temeli' },
-  { title: 'İş Modülleri', description: 'İlk kurulum seçimi' },
-  { title: 'Tebrikler', description: 'Workspace hazır' }
+  { title: 'Hoş Geldiniz', description: 'Kurulum özeti' },
+  { title: 'Şifrenizi Belirleyin', description: 'Güvenlik' },
+  { title: 'İşletme Bilgileri', description: 'Firma ve sektör' },
+  { title: 'Önerilen Modüller', description: 'Sektör önerileri' },
+  { title: 'Opsiyonel Modüller', description: 'Ek ihtiyaçlar' },
+  { title: 'Kurulum Özeti', description: 'Plan kontrolü' },
+  { title: 'Kurulum Tamamlandı', description: 'Kontrol paneli' }
 ]
 
 const currencyOptions = ['TRY', 'USD', 'EUR']
@@ -37,176 +48,208 @@ const languageOptions = [
 ]
 const timezoneOptions = ['Europe/Istanbul', 'Europe/London', 'Europe/Berlin', 'UTC']
 
-const formatDate = (value: string) => {
-  if(!value) return '-'
-  const date = new Date(`${value}T12:00:00`)
-  if(Number.isNaN(date.getTime())) return value
-  return date.toLocaleDateString('tr-TR')
-}
-
-const readImageFile = (file: File | undefined, onLoad: (dataUrl: string) => void) => {
-  if(!file) return
-  const reader = new FileReader()
-  reader.onload = () => onLoad(String(reader.result || ''))
-  reader.readAsDataURL(file)
-}
-
 const createPasswordForm = (): FirstLoginPasswordForm => ({
   temporaryPassword: '',
   newPassword: '',
   repeatPassword: ''
 })
 
-const createWorkspaceForm = (state: FirstLoginOnboardingState): FirstLoginWorkspaceForm => ({
-  workspaceName: state.company?.companyName || '',
-  logoUrl: state.company?.logoUrl || '',
+const createBusinessInfoForm = (state: FirstLoginOnboardingState): FirstLoginBusinessInfoForm => ({
+  companyName: state.company?.companyName || '',
+  primarySectorId: state.company?.primarySectorId || state.primarySector?.id || DEFAULT_SECTOR_ID,
+  city: state.branch?.city || state.company?.city || '',
+  district: state.branch?.district || state.company?.district || '',
+  branchName: state.branch?.name || 'Merkez Şube',
+  phone: state.branch?.phone || state.company?.phone || '',
+  address: state.branch?.address || state.company?.address || '',
   currency: state.tenantSettings?.currency || 'TRY',
   language: state.tenantSettings?.language || 'tr-TR',
   timezone: state.tenantSettings?.timezone || 'Europe/Istanbul'
 })
 
-const createBranchForm = (state: FirstLoginOnboardingState): FirstLoginBranchForm => ({
-  name: state.branch?.name || 'Merkez Şube',
-  address: state.branch?.address || state.company?.address || '',
-  phone: state.branch?.phone || state.company?.phone || '',
-  city: state.branch?.city || state.company?.city || '',
-  district: state.branch?.district || state.company?.district || ''
-})
+const formatModuleCategory = (moduleCode: string) => getBusinessSetupModuleCategory(moduleCode)
 
-const getInitials = (value: string, fallback: string) => {
-  const clean = value.trim()
-  return (clean ? clean.slice(0, 2) : fallback).toLocaleUpperCase('tr-TR')
+const getDependencyRelationLabel = (relation: ModuleDependencyPlanItem['relation']) => {
+  if(relation === MODULE_DEPENDENCY_RELATION_TYPES.REQUIRED) return 'Zorunlu bağımlılık'
+  if(relation === MODULE_DEPENDENCY_RELATION_TYPES.RECOMMENDED) return 'Önerilen bağımlılık'
+  if(relation === MODULE_DEPENDENCY_RELATION_TYPES.OPTIONAL) return 'Opsiyonel bağımlılık'
+  return 'Seçim'
 }
 
-const ModuleGrid = ({ modules, emptyText }: { modules: FirstLoginModuleSummary[]; emptyText: string }) => {
-  if(modules.length === 0){
-    return <div className="empty-state">{emptyText}</div>
-  }
+const createModuleCodeSet = (modules: ModuleRecommendationPlanItem[]) => (
+  modules.map(module => module.moduleCode)
+)
+
+const ModuleCard = ({
+  module,
+  selected,
+  disabled,
+  future,
+  badge,
+  onToggle
+}: {
+  module: ModuleRecommendationPlanItem
+  selected?: boolean
+  disabled?: boolean
+  future?: boolean
+  badge?: string
+  onToggle?: (moduleCode: string) => void
+}) => {
+  const selectable = Boolean(onToggle) && !disabled && !future
+  const category = formatModuleCategory(module.moduleCode)
 
   return (
-    <div className="first-login-module-grid">
-      {modules.map(module => (
-        <article className="first-login-module-card" key={module.key}>
-          <span>{module.icon || module.name.slice(0, 2).toLocaleUpperCase('tr-TR')}</span>
-          <div>
-            <h3>{module.name}</h3>
-            <p>{module.description}</p>
-          </div>
-        </article>
+    <label className={`first-login-module-card selectable ${selected ? 'selected' : ''} ${!selectable ? 'disabled' : ''} ${future ? 'future' : ''}`}>
+      {onToggle ? (
+        <input
+          type="checkbox"
+          checked={Boolean(selected)}
+          disabled={!selectable}
+          onChange={() => onToggle(module.moduleCode)}
+        />
+      ) : (
+        <span className="first-login-module-marker" aria-hidden="true" />
+      )}
+      <span>{module.icon || module.name.slice(0, 2).toLocaleUpperCase('tr-TR')}</span>
+      <div>
+        <h3>{module.name}</h3>
+        <p>{module.description}</p>
+        <div className="first-login-module-badges">
+          <small>{category}</small>
+          {badge && <small>{badge}</small>}
+          {future && <small>Gelecek</small>}
+        </div>
+      </div>
+    </label>
+  )
+}
+
+const DependencyCard = ({ module }: { module: ModuleDependencyPlanItem }) => (
+  <article className={`first-login-module-card dependency ${module.isFuture ? 'future' : ''}`}>
+    <span>{module.icon || module.name.slice(0, 2).toLocaleUpperCase('tr-TR')}</span>
+    <div>
+      <h3>{module.name}</h3>
+      <p>{module.description}</p>
+      <div className="first-login-module-badges">
+        <small>{getDependencyRelationLabel(module.relation)}</small>
+        {module.requestedBy.length > 0 && <small>{module.requestedBy.join(', ')}</small>}
+        {module.isFuture && <small>Gelecek</small>}
+      </div>
+    </div>
+  </article>
+)
+
+const EmptyModuleState = ({ children }: { children: React.ReactNode }) => (
+  <div className="empty-state">{children}</div>
+)
+
+const OptionalModuleGroup = ({
+  group,
+  selectedModuleCodes,
+  onToggle
+}: {
+  group: BusinessSetupModuleGroup
+  selectedModuleCodes: string[]
+  onToggle: (moduleCode: string) => void
+}) => (
+  <section className="first-login-module-category-group">
+    <div className="first-login-module-section-header">
+      <h4>{group.category}</h4>
+      <span>{group.modules.length}</span>
+    </div>
+    <div className="first-login-module-grid selectable">
+      {group.modules.map(module => (
+        <ModuleCard
+          key={module.moduleCode}
+          module={module}
+          selected={selectedModuleCodes.includes(module.moduleCode)}
+          onToggle={onToggle}
+        />
       ))}
     </div>
-  )
-}
-
-const SystemModuleInfoList = ({ modules }: { modules: FirstLoginModuleSummary[] }) => {
-  if(modules.length === 0){
-    return <div className="empty-state">Aktif sistem modülü bulunamadı.</div>
-  }
-
-  return (
-    <div className="first-login-placeholder-note">
-      <strong>Bu modüller her Business Workspace içinde hazır gelir.</strong>
-      <ul>
-        {modules.map(module => (
-          <li key={module.key}>
-            <strong>{module.name}</strong>
-            <span>{module.description}</span>
-          </li>
-        ))}
-      </ul>
-    </div>
-  )
-}
-
-const isSelectableMarketplaceModule = (module: FirstLoginModuleSummary) => {
-  return module.installState === 'AVAILABLE' || module.installState === 'UNINSTALLED'
-}
-
-type SelectableModuleGridProps = {
-  modules: FirstLoginModuleSummary[]
-  selectedModuleIds: string[]
-  onToggle: (moduleId: string) => void
-}
-
-const SelectableModuleGrid = ({ modules, selectedModuleIds, onToggle }: SelectableModuleGridProps) => {
-  if(modules.length === 0){
-    return <div className="empty-state">Marketplace içinde kurulabilir iş modülü bulunamadı.</div>
-  }
-
-  return (
-    <div className="first-login-module-grid selectable">
-      {modules.map(module => {
-        const moduleId = module.moduleId || module.key
-        const selectable = isSelectableMarketplaceModule(module)
-        const selected = selectedModuleIds.includes(moduleId)
-
-        return (
-          <label className={`first-login-module-card selectable ${selected ? 'selected' : ''} ${!selectable ? 'disabled' : ''}`} key={module.key}>
-            <input
-              type="checkbox"
-              checked={selected}
-              disabled={!selectable}
-              onChange={() => onToggle(moduleId)}
-            />
-            <span>{module.icon || module.name.slice(0, 2).toLocaleUpperCase('tr-TR')}</span>
-            <div>
-              <h3>{module.name}</h3>
-              <p>{module.description}</p>
-              <small>{module.category || 'Business'} · v{module.version || '1.0.0'} · {module.developer || 'MIYOP'}</small>
-            </div>
-          </label>
-        )
-      })}
-    </div>
-  )
-}
+  </section>
+)
 
 export default function FirstLoginWizard({ currentUser, onboardingState, onComplete }: Props){
+  const sectors = React.useMemo(() => loadSectors(), [])
   const [stepIndex, setStepIndex] = React.useState(0)
   const [password, setPassword] = React.useState<FirstLoginPasswordForm>(() => createPasswordForm())
-  const [workspace, setWorkspace] = React.useState<FirstLoginWorkspaceForm>(() => createWorkspaceForm(onboardingState))
-  const [branch, setBranch] = React.useState<FirstLoginBranchForm>(() => createBranchForm(onboardingState))
-  const [selectedInitialModuleIds, setSelectedInitialModuleIds] = React.useState<string[]>([])
+  const [businessInfo, setBusinessInfo] = React.useState<FirstLoginBusinessInfoForm>(() => createBusinessInfoForm(onboardingState))
+  const [selectedRecommendedModuleCodes, setSelectedRecommendedModuleCodes] = React.useState<string[]>(() => (
+    createModuleCodeSet(createBusinessSetupWizardPlan({
+      sectorIdOrCode: createBusinessInfoForm(onboardingState).primarySectorId
+    }).recommendedModules)
+  ))
+  const [selectedOptionalModuleCodes, setSelectedOptionalModuleCodes] = React.useState<string[]>([])
   const [error, setError] = React.useState('')
   const [completed, setCompleted] = React.useState(false)
 
+  const basePlan = React.useMemo(() => createBusinessSetupWizardPlan({
+    sectorIdOrCode: businessInfo.primarySectorId
+  }), [businessInfo.primarySectorId])
+  const setupPlan = React.useMemo(() => createBusinessSetupWizardPlan({
+    sectorIdOrCode: businessInfo.primarySectorId,
+    selectedRecommendedModuleCodes,
+    selectedOptionalModuleCodes
+  }), [businessInfo.primarySectorId, selectedOptionalModuleCodes, selectedRecommendedModuleCodes])
+
+  React.useEffect(() => {
+    setSelectedRecommendedModuleCodes(createModuleCodeSet(basePlan.recommendedModules))
+    setSelectedOptionalModuleCodes([])
+  }, [basePlan.sectorId])
+
   const activeStep = wizardSteps[stepIndex]
   const progressValue = Math.round(((stepIndex + 1) / wizardSteps.length) * 100)
-  const activeBusinessModuleCount = onboardingState.businessModules.length
-  const license = onboardingState.license
   const expectedTemporaryPassword = onboardingState.setup?.temporaryPassword || ''
-  const companyName = onboardingState.company?.companyName || '-'
+  const selectedSector = sectors.find(sector => sector.id === businessInfo.primarySectorId)
+    || onboardingState.primarySector
+    || sectors.find(sector => sector.id === DEFAULT_SECTOR_ID)
+    || null
+  const originalSectorId = onboardingState.company?.primarySectorId || onboardingState.primarySector?.id || DEFAULT_SECTOR_ID
+  const sectorChanged = businessInfo.primarySectorId !== originalSectorId
   const ownerName = onboardingState.company?.authorizedPerson
     || onboardingState.company?.ownerName
     || onboardingState.companyUser?.fullName
     || currentUser.fullName
     || currentUser.username
-  const workspaceName = workspace.workspaceName.trim() || companyName
-  const licenseStart = onboardingState.company?.licenseStart || license?.startDate || ''
-  const licenseEnd = onboardingState.company?.licenseEnd || license?.endDate || ''
-  const marketplaceBusinessModules = onboardingState.marketplaceBusinessModules
-
-  const toggleInitialModule = (moduleId: string) => {
-    const module = marketplaceBusinessModules.find(item => (item.moduleId || item.key) === moduleId)
-    if(!module || !isSelectableMarketplaceModule(module)) return
-
-    setSelectedInitialModuleIds(current => (
-      current.includes(moduleId)
-        ? current.filter(item => item !== moduleId)
-        : [...current, moduleId]
-    ))
-  }
+  const recommendedFutureDefaults = basePlan.futureRecommendedModules
+  const futureOptionalModules = basePlan.futureOptionalModules
+  const selectedOptionalModules = basePlan.optionalModules
+    .filter(module => selectedOptionalModuleCodes.includes(module.moduleCode))
+  const selectedRecommendedModules = basePlan.recommendedModules
+    .filter(module => selectedRecommendedModuleCodes.includes(module.moduleCode))
+  const requiredDependencyModules = setupPlan.requiredDependencyModules
+  const additionalDependencyModules = setupPlan.installationPlan.addedByDependency
+    .filter(module => module.relation !== MODULE_DEPENDENCY_RELATION_TYPES.REQUIRED)
 
   const updatePassword = <K extends keyof FirstLoginPasswordForm>(key: K, value: FirstLoginPasswordForm[K]) => {
     setPassword(current => ({ ...current, [key]: value }))
   }
 
-  const updateWorkspace = <K extends keyof FirstLoginWorkspaceForm>(key: K, value: FirstLoginWorkspaceForm[K]) => {
-    setWorkspace(current => ({ ...current, [key]: value }))
+  const updateBusinessInfo = <K extends keyof FirstLoginBusinessInfoForm>(key: K, value: FirstLoginBusinessInfoForm[K]) => {
+    setBusinessInfo(current => ({ ...current, [key]: value }))
   }
 
-  const updateBranch = <K extends keyof FirstLoginBranchForm>(key: K, value: FirstLoginBranchForm[K]) => {
-    setBranch(current => ({ ...current, [key]: value }))
+  const toggleRecommendedModule = (moduleCode: string) => {
+    const module = basePlan.recommendedModules.find(item => item.moduleCode === moduleCode)
+    if(!module || !module.isRegistryBacked) return
+
+    setSelectedRecommendedModuleCodes(current => (
+      current.includes(moduleCode)
+        ? current.filter(item => item !== moduleCode)
+        : [...current, moduleCode]
+    ))
+  }
+
+  const toggleOptionalModule = (moduleCode: string) => {
+    const module = basePlan.optionalModules.find(item => item.moduleCode === moduleCode)
+    if(!module || !module.isRegistryBacked) return
+
+    setSelectedOptionalModuleCodes(current => (
+      current.includes(moduleCode)
+        ? current.filter(item => item !== moduleCode)
+        : [...current, moduleCode]
+    ))
   }
 
   const validateCurrentStep = () => {
@@ -217,11 +260,15 @@ export default function FirstLoginWizard({ currentUser, onboardingState, onCompl
       if(password.newPassword.length < 6) return 'Yeni şifre en az 6 karakter olmalıdır.'
       if(password.newPassword !== password.repeatPassword) return 'Yeni şifre tekrarı eşleşmiyor.'
     }
-    if(stepIndex === 2 && !workspace.workspaceName.trim()) return 'Workspace adı zorunludur.'
-    if(stepIndex === 2 && !workspace.currency.trim()) return 'Para birimi zorunludur.'
-    if(stepIndex === 2 && !workspace.language.trim()) return 'Dil zorunludur.'
-    if(stepIndex === 2 && !workspace.timezone.trim()) return 'Saat dilimi zorunludur.'
-    if(stepIndex === 3 && !branch.name.trim()) return 'İlk şube adı zorunludur.'
+    if(stepIndex === 2){
+      if(!businessInfo.companyName.trim()) return 'Firma adı zorunludur.'
+      if(!businessInfo.primarySectorId.trim()) return 'Sektör seçimi zorunludur.'
+      if(!businessInfo.city.trim()) return 'Şehir zorunludur.'
+      if(!businessInfo.branchName.trim()) return 'İlk şube adı zorunludur.'
+      if(!businessInfo.currency.trim()) return 'Para birimi zorunludur.'
+      if(!businessInfo.language.trim()) return 'Dil zorunludur.'
+      if(!businessInfo.timezone.trim()) return 'Saat dilimi zorunludur.'
+    }
     return ''
   }
 
@@ -231,9 +278,7 @@ export default function FirstLoginWizard({ currentUser, onboardingState, onCompl
       completeFirstLoginOnboarding({
         state: onboardingState,
         password,
-        workspace,
-        branch,
-        selectedBusinessModuleIds: selectedInitialModuleIds
+        businessInfo
       })
       setCompleted(true)
       setStepIndex(6)
@@ -266,9 +311,9 @@ export default function FirstLoginWizard({ currentUser, onboardingState, onCompl
     <div className="first-login-page">
       <section className="first-login-hero">
         <div>
-          <span className="status-pill info-pill">First Login Wizard</span>
-          <h2>Business Workspace'inizi hazırlayın</h2>
-          <p className="muted">Business Workspace ana ekranına geçmeden önce çalışma alanı, ilk şube ve modül görünümü netleşir.</p>
+          <span className="status-pill info-pill">İşletme Kurulum Sihirbazı</span>
+          <h2>İşletmenizi kullanıma hazırlayın</h2>
+          <p className="muted">Sektörünüzden gelen öneriler, opsiyonel modüller ve bağımlılık planı kurulumdan önce netleşir.</p>
         </div>
         <div className="first-login-progress-summary">
           <strong>{progressValue}%</strong>
@@ -302,18 +347,16 @@ export default function FirstLoginWizard({ currentUser, onboardingState, onCompl
           <div className="first-login-welcome">
             <div>
               <span className="status-pill success">Başvuru onaylandı</span>
-              <h3>{companyName} için hoş geldiniz.</h3>
-              <p className="muted">
-                {ownerName}, Business Workspace kurulumu birkaç adımda tamamlanacak.
-              </p>
+              <h3>{businessInfo.companyName || '-'} için hoş geldiniz.</h3>
+              <p className="muted">{ownerName}, işletme kurulumunuz birkaç adımda tamamlanacak.</p>
             </div>
             <dl className="first-login-summary-list">
-              <div><dt>Firma</dt><dd>{companyName}</dd></div>
+              <div><dt>Firma Adı</dt><dd>{businessInfo.companyName || '-'}</dd></div>
               <div><dt>Yetkili</dt><dd>{ownerName}</dd></div>
-              <div><dt>Workspace Adı</dt><dd>{workspaceName}</dd></div>
-              <div><dt>Aktif İş Modülü</dt><dd>{activeBusinessModuleCount}</dd></div>
-              <div><dt>Lisans Başlangıç</dt><dd>{formatDate(licenseStart)}</dd></div>
-              <div><dt>Lisans Bitiş</dt><dd>{formatDate(licenseEnd)}</dd></div>
+              <div><dt>Seçilen Sektör</dt><dd>{selectedSector?.name || '-'}</dd></div>
+              <div><dt>Kurulum Süresi</dt><dd>5-7 dakika</dd></div>
+              <div><dt>Önerilen Modül</dt><dd>{basePlan.recommendedModules.length}</dd></div>
+              <div><dt>Opsiyonel Modül</dt><dd>{basePlan.optionalModules.length}</dd></div>
             </dl>
             <button className="btn primary first-login-large-action" type="button" onClick={goNext}>Kuruluma Başla</button>
           </div>
@@ -322,104 +365,235 @@ export default function FirstLoginWizard({ currentUser, onboardingState, onCompl
         {stepIndex === 1 && (
           <div className="first-login-password-layout">
             <div>
-              <span className="status-pill warning-pill">Placeholder</span>
-              <h3>Şifrenizi oluşturun</h3>
-              <p className="muted">Geçici şifre kontrolü ve yeni şifre alanları hazırlandı. Gerçek şifre değiştirme işlemi sonraki servis fazında bağlanacaktır.</p>
+              <span className="status-pill info-pill">Güvenlik</span>
+              <h3>Şifrenizi belirleyin</h3>
+              <p className="muted">Geçici şifreniz doğrulanır ve yeni şifreniz hesabınıza kaydedilir.</p>
             </div>
             <div className="first-login-form-grid">
-              <label><span>Geçici Şifre</span><input type="password" value={password.temporaryPassword} onChange={event => updatePassword('temporaryPassword', event.target.value)} /></label>
-              <label><span>Yeni Şifre</span><input type="password" value={password.newPassword} onChange={event => updatePassword('newPassword', event.target.value)} /></label>
-              <label><span>Yeni Şifre Tekrar</span><input type="password" value={password.repeatPassword} onChange={event => updatePassword('repeatPassword', event.target.value)} /></label>
-            </div>
-            <div className="first-login-placeholder-note">
-              Bu adımda şifre alanları doğrulanır, ancak kullanıcı şifresi henüz kaydedilmez.
+              <label><span>Geçici Şifre</span><input type="password" autoComplete="current-password" value={password.temporaryPassword} onChange={event => updatePassword('temporaryPassword', event.target.value)} /></label>
+              <label><span>Yeni Şifre</span><input type="password" autoComplete="new-password" value={password.newPassword} onChange={event => updatePassword('newPassword', event.target.value)} /></label>
+              <label><span>Yeni Şifre Tekrar</span><input type="password" autoComplete="new-password" value={password.repeatPassword} onChange={event => updatePassword('repeatPassword', event.target.value)} /></label>
             </div>
           </div>
         )}
 
         {stepIndex === 2 && (
-          <div className="first-login-workspace-layout">
-            <div className="first-login-upload-preview">
-              {workspace.logoUrl ? <img src={workspace.logoUrl} alt="Workspace logosu" /> : <span>{getInitials(workspace.workspaceName, 'MI')}</span>}
+          <div className="first-login-business-layout">
+            <div>
+              <span className="status-pill info-pill">İşletme Bilgileri</span>
+              <h3>Firma ve sektör bilgileri</h3>
+              <p className="muted">Başvurudan gelen temel bilgiler bu kurulum için kullanılacaktır.</p>
             </div>
+            {sectorChanged && (
+              <div className="first-login-warning-note">
+                Kurulum önerileri sektörünüze göre yeniden hesaplanacaktır.
+              </div>
+            )}
             <div className="first-login-form-grid">
-              <label><span>Workspace Adı</span><input value={workspace.workspaceName} onChange={event => updateWorkspace('workspaceName', event.target.value)} /></label>
+              <label><span>Firma</span><input value={businessInfo.companyName} onChange={event => updateBusinessInfo('companyName', event.target.value)} /></label>
+              <label>
+                <span>Sektör</span>
+                <select value={businessInfo.primarySectorId} onChange={event => updateBusinessInfo('primarySectorId', event.target.value)}>
+                  {sectors.map(sector => (
+                    <option key={sector.id} value={sector.id}>{sector.name}</option>
+                  ))}
+                </select>
+              </label>
+              <label><span>Şehir</span><input value={businessInfo.city} onChange={event => updateBusinessInfo('city', event.target.value)} /></label>
+              <label><span>İlçe</span><input value={businessInfo.district} onChange={event => updateBusinessInfo('district', event.target.value)} /></label>
+              <label><span>İlk Şube</span><input value={businessInfo.branchName} onChange={event => updateBusinessInfo('branchName', event.target.value)} /></label>
+              <label><span>Telefon</span><input value={businessInfo.phone} onChange={event => updateBusinessInfo('phone', event.target.value)} /></label>
+              <label className="first-login-wide"><span>Adres</span><textarea rows={3} value={businessInfo.address} onChange={event => updateBusinessInfo('address', event.target.value)} /></label>
               <label>
                 <span>Para Birimi</span>
-                <select value={workspace.currency} onChange={event => updateWorkspace('currency', event.target.value)}>
+                <select value={businessInfo.currency} onChange={event => updateBusinessInfo('currency', event.target.value)}>
                   {currencyOptions.map(currency => <option key={currency} value={currency}>{currency}</option>)}
                 </select>
               </label>
               <label>
                 <span>Dil</span>
-                <select value={workspace.language} onChange={event => updateWorkspace('language', event.target.value)}>
+                <select value={businessInfo.language} onChange={event => updateBusinessInfo('language', event.target.value)}>
                   {languageOptions.map(language => <option key={language.value} value={language.value}>{language.label}</option>)}
                 </select>
               </label>
               <label>
                 <span>Saat Dilimi</span>
-                <select value={workspace.timezone} onChange={event => updateWorkspace('timezone', event.target.value)}>
+                <select value={businessInfo.timezone} onChange={event => updateBusinessInfo('timezone', event.target.value)}>
                   {timezoneOptions.map(timezone => <option key={timezone} value={timezone}>{timezone}</option>)}
                 </select>
-              </label>
-              <label className="first-login-wide">
-                <span>Logo</span>
-                <input type="file" accept="image/*" onChange={event => readImageFile(event.target.files?.[0], value => updateWorkspace('logoUrl', value))} />
-                <small className="first-login-field-note">Placeholder: gerçek medya servisi yerine bu fazda local önizleme kullanılır.</small>
               </label>
             </div>
           </div>
         )}
 
         {stepIndex === 3 && (
-          <div className="first-login-form-grid">
-            <label><span>Şube Adı</span><input value={branch.name} onChange={event => updateBranch('name', event.target.value)} /></label>
-            <label><span>Telefon</span><input value={branch.phone} onChange={event => updateBranch('phone', event.target.value)} /></label>
-            <label><span>Şehir</span><input value={branch.city} onChange={event => updateBranch('city', event.target.value)} /></label>
-            <label><span>İlçe</span><input value={branch.district} onChange={event => updateBranch('district', event.target.value)} /></label>
-            <label className="first-login-wide"><span>Adres</span><textarea rows={4} value={branch.address} onChange={event => updateBranch('address', event.target.value)} /></label>
+          <div className="first-login-module-layout">
+            <div>
+              <span className="status-pill success">Önerilen</span>
+              <h3>{selectedSector?.name || 'Sektör'} için önerilen modüller</h3>
+              <p className="muted">Bu liste Sector Template ve Recommendation Planner çıktısından hazırlanır.</p>
+            </div>
+            {basePlan.recommendedModules.length === 0 ? (
+              <EmptyModuleState>Bu sektör için önerilen iş modülü bulunmuyor.</EmptyModuleState>
+            ) : (
+              <div className="first-login-module-grid selectable">
+                {basePlan.recommendedModules.map(module => (
+                  <ModuleCard
+                    key={module.moduleCode}
+                    module={module}
+                    selected={selectedRecommendedModuleCodes.includes(module.moduleCode)}
+                    onToggle={toggleRecommendedModule}
+                  />
+                ))}
+              </div>
+            )}
+            {recommendedFutureDefaults.length > 0 && (
+              <section className="first-login-module-section">
+                <div className="first-login-module-section-header">
+                  <h4>Gelecek öneriler</h4>
+                  <span>{recommendedFutureDefaults.length}</span>
+                </div>
+                <div className="first-login-module-grid selectable">
+                  {recommendedFutureDefaults.map(module => (
+                    <ModuleCard key={module.moduleCode} module={module} future disabled />
+                  ))}
+                </div>
+              </section>
+            )}
+            {requiredDependencyModules.length > 0 && (
+              <section className="first-login-module-section">
+                <div className="first-login-module-section-header">
+                  <h4>Zorunlu bağımlılıklar</h4>
+                  <span>{requiredDependencyModules.length}</span>
+                </div>
+                <div className="first-login-module-grid">
+                  {requiredDependencyModules.map(module => (
+                    <DependencyCard key={`${module.moduleCode}:${module.dependencyPath.join('>')}`} module={module} />
+                  ))}
+                </div>
+              </section>
+            )}
           </div>
         )}
 
         {stepIndex === 4 && (
           <div className="first-login-module-layout">
             <div>
-              <span className="status-pill info-pill">Bilgilendirme</span>
-              <h3>Sistem Modülleri</h3>
-              <p className="muted">Bu adımda seçim yapılmaz. Sistem modülleri her Workspace için otomatik olarak hazır gelir.</p>
+              <span className="status-pill info-pill">Opsiyonel</span>
+              <h3>Opsiyonel modüller</h3>
+              <p className="muted">Opsiyonel modüller kategori bazlı listelenir; geliştirilmemiş modüller gelecek etiketiyle kalır.</p>
             </div>
-            <SystemModuleInfoList modules={onboardingState.systemModules} />
+            {basePlan.groupedOptionalModules.length === 0 ? (
+              <EmptyModuleState>Bu sektör için opsiyonel modül bulunmuyor.</EmptyModuleState>
+            ) : (
+              basePlan.groupedOptionalModules.map(group => (
+                <OptionalModuleGroup
+                  key={group.category}
+                  group={group}
+                  selectedModuleCodes={selectedOptionalModuleCodes}
+                  onToggle={toggleOptionalModule}
+                />
+              ))
+            )}
+            {futureOptionalModules.length > 0 && (
+              <section className="first-login-module-category-group">
+                <div className="first-login-module-section-header">
+                  <h4>Gelecek</h4>
+                  <span>{futureOptionalModules.length}</span>
+                </div>
+                <div className="first-login-module-grid selectable">
+                  {futureOptionalModules.map(module => (
+                    <ModuleCard
+                      key={module.moduleCode}
+                      module={module}
+                      future
+                      disabled
+                      badge={module.source === MODULE_RECOMMENDATION_TEMPLATE_SOURCES.OPTIONAL ? 'Opsiyonel' : undefined}
+                    />
+                  ))}
+                </div>
+              </section>
+            )}
           </div>
         )}
 
         {stepIndex === 5 && (
-          <div className="first-login-module-layout">
+          <div className="first-login-summary-layout">
             <div>
-              <span className="status-pill success">Marketplace Seçimi</span>
-              <h3>İş Modülleri</h3>
-              <p className="muted">Bu fazda gerçek satın alma yapılmaz. Seçtiğiniz modüller kurulum tamamlandığında bu Workspace için etkinleştirilir.</p>
+              <span className="status-pill success">Kurulum Planı</span>
+              <h3>Kurulum özeti</h3>
+              <p className="muted">Bu fazda gerçek modül kurulumu yapılmaz; plan sonraki Installation Engine fazına hazırlık olarak gösterilir.</p>
             </div>
-            <SelectableModuleGrid
-              modules={marketplaceBusinessModules}
-              selectedModuleIds={selectedInitialModuleIds}
-              onToggle={toggleInitialModule}
-            />
-            <div className="first-login-placeholder-note">
-              Seçtiğiniz modüller kurulum tamamlandığında Workspace menünüzde görünecek. Ödeme ve gerçek satın alma adımları sonraki fazda eklenecek.
+            <dl className="first-login-summary-list">
+              <div><dt>Seçilen Sektör</dt><dd>{selectedSector?.name || '-'}</dd></div>
+              <div><dt>Önerilen Seçim</dt><dd>{selectedRecommendedModules.length}</dd></div>
+              <div><dt>Opsiyonel Seçim</dt><dd>{selectedOptionalModules.length}</dd></div>
+              <div><dt>Otomatik Bağımlılık</dt><dd>{setupPlan.installationPlan.addedByDependency.length}</dd></div>
+              <div><dt>Gelecek Modül</dt><dd>{setupPlan.installationPlan.futureModules.length}</dd></div>
+              <div><dt>Plan Uyarısı</dt><dd>{setupPlan.installationPlan.issues.length}</dd></div>
+            </dl>
+
+            <div className="first-login-summary-columns">
+              <section className="first-login-summary-card">
+                <h4>Kurulacak Modüller</h4>
+                <div className="first-login-plan-list">
+                  {setupPlan.installationPlan.resolvedModules.length === 0 && <span>İş modülü seçilmedi.</span>}
+                  {setupPlan.installationPlan.resolvedModules.map(module => <span key={module.moduleCode}>{module.name}</span>)}
+                </div>
+              </section>
+              <section className="first-login-summary-card">
+                <h4>Otomatik Eklenen Bağımlılıklar</h4>
+                <div className="first-login-plan-list">
+                  {setupPlan.installationPlan.addedByDependency.length === 0 && <span>Ek bağımlılık yok.</span>}
+                  {setupPlan.installationPlan.addedByDependency.map(module => (
+                    <span key={`${module.moduleCode}:${module.relation}`}>{module.name} · {getDependencyRelationLabel(module.relation)}</span>
+                  ))}
+                </div>
+              </section>
+              <section className="first-login-summary-card">
+                <h4>Opsiyonel Modüller</h4>
+                <div className="first-login-plan-list">
+                  {selectedOptionalModules.length === 0 && <span>Opsiyonel modül seçilmedi.</span>}
+                  {selectedOptionalModules.map(module => <span key={module.moduleCode}>{module.name}</span>)}
+                </div>
+              </section>
+              <section className="first-login-summary-card">
+                <h4>Hazırlanacak Alanlar</h4>
+                <div className="first-login-plan-list">
+                  <span>Kontrol Paneli: sonraki faz</span>
+                  <span>Roller: sonraki faz</span>
+                  <span>Menü: sonraki faz</span>
+                  <span>Widget Grupları: sonraki faz</span>
+                </div>
+              </section>
             </div>
+
+            {(setupPlan.installationPlan.futureModules.length > 0 || setupPlan.installationPlan.issues.length > 0) && (
+              <section className="first-login-summary-card first-login-wide-summary">
+                <h4>Plan Uyarıları</h4>
+                <div className="first-login-issue-list">
+                  {setupPlan.installationPlan.futureModules.map(module => (
+                    <span key={`future:${module.moduleCode}`}>{module.name}: Gelecek modül olarak bekletilecek.</span>
+                  ))}
+                  {setupPlan.installationPlan.issues.map(issue => (
+                    <span key={`${issue.type}:${issue.moduleCode}:${issue.relatedModuleCode || ''}:${issue.dependencyPath.join('>')}`}>{issue.message}</span>
+                  ))}
+                </div>
+              </section>
+            )}
           </div>
         )}
 
         {stepIndex === 6 && (
           <div className="first-login-complete">
             <span className="first-login-success-icon" aria-hidden="true">✓</span>
-            <h3>Tebrikler!</h3>
+            <h3>Kurulum Tamamlandı</h3>
             <p className="muted">
-              Business Workspace'iniz başarıyla oluşturuldu.
+              İşletmeniz artık kullanıma hazır.
               <br />
-              Artık MIYOP platformunu kullanmaya hazırsınız.
+              Kontrol panelinden devam edebilirsiniz.
             </p>
-            <button className="btn primary first-login-large-action" type="button" onClick={onComplete}>Business Workspace'e Git</button>
+            <button className="btn primary first-login-large-action" type="button" onClick={onComplete}>Kontrol Paneline Git</button>
           </div>
         )}
 

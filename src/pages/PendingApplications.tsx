@@ -177,7 +177,7 @@ export default function PendingApplications({ currentUser, initialApplicationId 
   })
 
   const approveApplication = (application: BusinessApplication) => runAction(() => {
-    const approvalNote = window.prompt('Onay notu', application.approvalNote || '') || ''
+    const approvalNote = window.prompt('Onay notu (yalnızca EVREN360)', application.approvalNote || '') || ''
     const result = approveBusinessApplication(application.id, approvalNote, currentUser)
     refresh()
     setApprovalCredentials(result.firstLoginCredentials)
@@ -193,12 +193,12 @@ export default function PendingApplications({ currentUser, initialApplicationId 
   })
 
   const addNoteToApplication = (application: BusinessApplication) => runAction(() => {
-    const note = window.prompt('Başvuru notu', '')
+    const note = window.prompt('Ek Notlar (Opsiyonel)', '')
     if(note === null) return
     addApplicationNote(application.id, note, currentUser)
     refresh(application.id)
     setDetailMode('notes')
-    setMessage('Başvuru notu eklendi.')
+    setMessage('Ek not kaydedildi.')
   })
 
   return (
@@ -317,7 +317,7 @@ export default function PendingApplications({ currentUser, initialApplicationId 
           <div className="evren360-panel-header">
             <div>
               <h3>{selectedApplication.companyName}</h3>
-              <p>Başlangıç kapsamı çekirdek sistem modülleri olan yeni Business Workspace başvurusu.</p>
+              <p>Başlangıç kapsamı çekirdek sistem modülleri olan yeni işletme çalışma alanı başvurusu.</p>
             </div>
             <span className={`status-pill ${getStatusClassName(selectedApplication.status)}`}>{selectedApplication.status}</span>
           </div>

@@ -166,8 +166,8 @@ export const createDashboardWidgetContainer = (user?: User | null): DashboardWid
 
   return {
     id: 'business-workspace-dashboard',
-    title: 'Dashboard',
-    description: "Henüz Dashboard'unuzu oluşturmadınız. Widget ekleyerek çalışma alanınızı kişiselleştirebilirsiniz.",
+    title: 'Kontrol Paneli',
+    description: 'Henüz kontrol panelinizi oluşturmadınız. Widget ekleyerek çalışma alanınızı kişiselleştirebilirsiniz.',
     widgets,
     visibleWidgets,
     hiddenWidgets,
@@ -186,7 +186,7 @@ export const getDashboardWidgetContainer = (user?: User | null) => {
 export const addDashboardWidget = (user: User | null | undefined, widgetId: string) => {
   const definitions = getDashboardWidgetRegistryForUser(user)
   const definition = definitions.find(item => item.id === widgetId)
-  if(!definition) throw new Error('Widget kaydı bu Workspace için kullanılabilir değil.')
+  if(!definition) throw new Error('Widget kaydı bu çalışma alanı için kullanılabilir değil.')
 
   const instances = readInstances(user, definitions)
   const existingInstance = instances.find(instance => instance.widgetId === widgetId)

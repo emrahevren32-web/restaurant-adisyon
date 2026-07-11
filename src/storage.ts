@@ -299,7 +299,7 @@ const SYSTEM_USAGE_MODULE_NAMES: SystemUsageModuleName[] = ['İşlem Yönetimi',
 const SYSTEM_USAGE_ACTION_TYPES: SystemUsageActionType[] = ['Görüntüleme', 'Oluşturma', 'Güncelleme', 'Silme', 'Giriş Yapma', 'Çıkış Yapma', 'Onaylama', 'İptal Etme']
 
 export const DEFAULT_SETTINGS: SystemSettings = {
-  restaurantName: 'MIYOP Workspace',
+  restaurantName: 'MIYOP İşletme Çalışma Alanı',
   logoUrl: '',
   vatRate: 10,
   currency: 'TRY'
@@ -6285,7 +6285,7 @@ export const approveBusinessApplication = (applicationId: string, approvalNote: 
     recipientName: ownerName,
     deliveryChannel: 'screen',
     emailDeliveryReady: false,
-    emailSubject: 'MIYOP Business Workspace ilk giriş bilgileriniz',
+    emailSubject: 'MIYOP İşletme Çalışma Alanı ilk giriş bilgileriniz',
     emailBodyPreview: `${ownerName} için MIYOP ilk giriş bilgileri hazır. Kullanıcı adı: ${ownerUser.username}. Geçici şifre: ${temporaryPassword}.`
   }
 
@@ -6320,7 +6320,7 @@ export const approveBusinessApplication = (applicationId: string, approvalNote: 
     tenantId,
     tableId: approvedApplication.id,
     tableName: approvedApplication.companyName,
-    description: `${approvedApplication.companyName} başvurusu onaylandı. Workspace çekirdek sistem modülleri ile oluşturuldu.`
+    description: `${approvedApplication.companyName} başvurusu onaylandı. Çalışma alanı çekirdek sistem modülleri ile oluşturuldu.`
   })
   addActionLog({
     operationType: 'Firma otomatik oluşturuldu',
@@ -6360,7 +6360,7 @@ export const approveBusinessApplication = (applicationId: string, approvalNote: 
     tenantId,
     tableId: license.id,
     tableName: company.companyName,
-    description: `${company.companyName} için çekirdek Business Workspace lisansı otomatik oluşturuldu. İş modülü otomatik lisanslanmadı.`
+    description: `${company.companyName} için çekirdek işletme çalışma alanı lisansı otomatik oluşturuldu. İş modülü otomatik lisanslanmadı.`
   })
 
   return {

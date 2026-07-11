@@ -67,7 +67,7 @@ export default function ModuleSetupWizard({ session, onComplete }: Props){
           Geri
         </button>
         <button className="btn primary" type="button" onClick={goNext}>
-          {isLastStep ? "Dashboard'a Git" : 'İleri'}
+          {isLastStep ? 'Kontrol Paneline Git' : 'İleri'}
         </button>
       </div>
     </section>

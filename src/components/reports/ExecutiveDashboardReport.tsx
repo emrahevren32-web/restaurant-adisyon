@@ -317,7 +317,7 @@ export default function ExecutiveDashboardReport({ report, onOpenReport }: Execu
     <section className="card report-center-card executive-dashboard-report">
       <div className="section-header compact">
         <div>
-          <h3>Yönetici Özeti Dashboard</h3>
+          <h3>Yönetici Özeti Kontrol Paneli</h3>
           <p className="muted">Ciro, kârlılık, stok riski, SKT ve fire durumunu tek ekranda özetler.</p>
         </div>
         <span className="status-pill success">Gerçek Veri</span>

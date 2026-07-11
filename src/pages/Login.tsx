@@ -31,7 +31,7 @@ const portalUpdates: PortalUpdate[] = [
   {
     type: 'Yeni Özellik',
     title: 'Unified Identity Foundation',
-    description: 'SUPER_ADMIN, COMPANY_ADMIN ve COMPANY_USER ayrımı merkezi login mimarisiyle hazırlandı.'
+    description: 'SUPER_ADMIN, COMPANY_ADMIN ve COMPANY_USER ayrımı merkezi giriş mimarisiyle hazırlandı.'
   },
   {
     type: 'Performans Güncellemesi',
@@ -74,7 +74,7 @@ const whyItems: WhyItem[] = [
   },
   {
     title: 'Ölçeklenebilir Mimari',
-    description: 'Business Workspace bugün modül tabanlı çalışır; yeni uygulama modülleri eklenebilir.'
+    description: 'İşletme çalışma alanı bugün modül tabanlı çalışır; yeni uygulama modülleri eklenebilir.'
   }
 ]
 
@@ -159,7 +159,7 @@ export default function Login({ onLogin }: Props){
               <h1>MIYOP</h1>
               <p className="unified-login-slogan">İşletme operasyonlarından SaaS platform yönetimine uzanan tek merkez.</p>
               <p className="unified-login-description">
-                EVREN360, Business Workspace ve gelecek modüler uygulamalar için ortak giriş, duyuru, başvuru ve platform vitrinini tek portalda birleştirir.
+                EVREN360, işletme çalışma alanı ve gelecek modüler uygulamalar için ortak giriş, duyuru, başvuru ve platform vitrinini tek portalda birleştirir.
               </p>
               <div className="unified-login-hero-actions">
                 <button className="btn primary" type="button" onClick={scrollToLogin}>Hemen Giriş Yap</button>
@@ -221,7 +221,7 @@ export default function Login({ onLogin }: Props){
               <span>Super Admin yönetim merkezi</span>
             </article>
             <article>
-              <strong>Business Workspace</strong>
+              <strong>İşletme Çalışma Alanı</strong>
               <span>Modül tabanlı işletme çalışma alanı</span>
             </article>
             <article>
@@ -311,7 +311,7 @@ export default function Login({ onLogin }: Props){
 
       <footer className="unified-login-footer">
         <strong>MIYOP</strong>
-        <span>EVREN360 ve Business Workspace için birleşik platform giriş deneyimi.</span>
+        <span>EVREN360 ve işletme çalışma alanı için birleşik platform giriş deneyimi.</span>
       </footer>
     </div>
   )

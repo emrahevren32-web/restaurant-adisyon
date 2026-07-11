@@ -125,7 +125,7 @@ const ticketStatuses: PlatformSupportTicketStatus[] = ['Açık', 'İnceleniyor',
 // TODO: Modül fiyatları EVREN360 üzerinden yönetilebilir olacaktır.
 const viewCopy: Record<SaasManagementView, { title: string; description: string }> = {
   dashboard: {
-    title: 'Dashboard',
+    title: 'Kontrol Paneli',
     description: 'Platform sağlığını, firma durumlarını ve son hareketleri tek ekranda izleyin.'
   },
   applications: {
@@ -540,7 +540,7 @@ export default function SaasManagementCenter({ currentUser, view }: Props){
 
     saveCompanyLicenses(nextLicenses)
     if(!existingLicense){
-      logPlatformAction('Lisans atandı', `${company.companyName} için çekirdek Business Workspace lisansı atandı. İş modülü otomatik lisanslanmadı.`, license.id, company.companyName, tenant.id)
+      logPlatformAction('Lisans atandı', `${company.companyName} için çekirdek işletme çalışma alanı lisansı atandı. İş modülü otomatik lisanslanmadı.`, license.id, company.companyName, tenant.id)
     }
     return license
   }
@@ -627,7 +627,7 @@ export default function SaasManagementCenter({ currentUser, view }: Props){
       setSelectedCompanyId(company.id)
       setSelectedLicenseId(license.id)
       setSelectedSubscriptionId(subscription.id)
-      setFormMessage(`${company.companyName} için Firma → Tenant → Çekirdek Workspace Lisansı → Abonelik yaşam döngüsü tamamlandı.`)
+      setFormMessage(`${company.companyName} için Firma → Tenant → Çekirdek Çalışma Alanı Lisansı → Abonelik yaşam döngüsü tamamlandı.`)
     } catch(error) {
       setFormError(error instanceof Error ? error.message : 'Başvuru yaşam döngüsü tamamlanamadı.')
     }
@@ -738,7 +738,7 @@ export default function SaasManagementCenter({ currentUser, view }: Props){
   }
 
   const addRegistrationNote = (registration: BusinessRegistration) => {
-    const note = window.prompt('Başvuru notu', registration.notes || '')
+    const note = window.prompt('Ek Notlar (Opsiyonel)', registration.notes || '')
     if(note === null) return
 
     const now = new Date().toISOString()
@@ -748,7 +748,7 @@ export default function SaasManagementCenter({ currentUser, view }: Props){
     setRegistrations(next)
     saveBusinessRegistrations(next)
     logPlatformAction('EVREN360 başvuru notu eklendi', `${registration.businessName} başvurusuna not eklendi.`, registration.id, registration.businessName, registration.tenantId)
-    setFormMessage('Başvuru notu kaydedildi.')
+    setFormMessage('Ek not kaydedildi.')
   }
 
   const inspectApplication = (application: BusinessApplication) => {
@@ -800,7 +800,7 @@ export default function SaasManagementCenter({ currentUser, view }: Props){
   }
 
   const addNoteToApplication = (application: BusinessApplication) => {
-    const note = window.prompt('Başvuru notu')
+    const note = window.prompt('Ek Notlar (Opsiyonel)')
     if(note === null) return
     if(!note.trim()){
       setFormError('Not zorunludur.')
@@ -812,9 +812,9 @@ export default function SaasManagementCenter({ currentUser, view }: Props){
       setFormMessage('')
       addApplicationNote(application.id, note.trim(), currentUser)
       refreshSaasData()
-      setFormMessage('Başvuru notu kaydedildi.')
+      setFormMessage('Ek not kaydedildi.')
     } catch(error) {
-      setFormError(error instanceof Error ? error.message : 'Başvuru notu eklenemedi.')
+      setFormError(error instanceof Error ? error.message : 'Ek not eklenemedi.')
     }
   }
 

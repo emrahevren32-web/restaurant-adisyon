@@ -46,28 +46,23 @@ export type FirstLoginPasswordForm = {
   repeatPassword: string
 }
 
-export type FirstLoginWorkspaceForm = {
-  workspaceName: string
-  logoUrl: string
+export type FirstLoginBusinessInfoForm = {
+  companyName: string
+  primarySectorId: string
+  city: string
+  district: string
+  branchName: string
+  phone: string
+  address: string
   currency: string
   language: string
   timezone: string
 }
 
-export type FirstLoginBranchForm = {
-  name: string
-  address: string
-  phone: string
-  city: string
-  district: string
-}
-
 export type CompleteFirstLoginOnboardingInput = {
   state: FirstLoginOnboardingState
   password: FirstLoginPasswordForm
-  workspace: FirstLoginWorkspaceForm
-  branch: FirstLoginBranchForm
-  selectedBusinessModuleIds?: string[]
+  businessInfo: FirstLoginBusinessInfoForm
 }
 
 export type CompleteFirstLoginOnboardingResult = {

@@ -118,8 +118,8 @@ export default function DailySummary({ currentUser, onOpenMarketplace }: Props){
 
     setContainer(nextContainer)
     setWidgetMessage(widget.added
-      ? `${widget.title} yeniden Dashboard üzerinde gösteriliyor.`
-      : `${widget.title} Dashboard'a eklendi.`
+      ? `${widget.title} yeniden kontrol panelinde gösteriliyor.`
+      : `${widget.title} kontrol paneline eklendi.`
     )
   }
 
@@ -132,17 +132,17 @@ export default function DailySummary({ currentUser, onOpenMarketplace }: Props){
   const handleRemoveWidget = (widgetId: string) => {
     const nextContainer = removeDashboardWidget(currentUser, widgetId)
     setContainer(nextContainer)
-    setWidgetMessage('Widget Dashboard yerleşiminden kaldırıldı.')
+    setWidgetMessage('Widget kontrol paneli yerleşiminden kaldırıldı.')
   }
 
   return (
     <div className="summary-page dashboard-widget-page">
       <div className="page-title dashboard-title">
         <div>
-          <h2>Dashboard</h2>
+          <h2>Kontrol Paneli</h2>
           <p className="muted">
             {container.isEmpty
-              ? "Henüz Dashboard'unuzu oluşturmadınız. Widget ekleyerek çalışma alanınızı kişiselleştirebilirsiniz."
+              ? 'Henüz kontrol panelinizi oluşturmadınız. Widget ekleyerek çalışma alanınızı kişiselleştirebilirsiniz.'
               : 'Eklediğiniz widgetlarla çalışma alanınızı hızlıca takip edebilirsiniz.'}
           </p>
         </div>
@@ -171,7 +171,7 @@ export default function DailySummary({ currentUser, onOpenMarketplace }: Props){
             </button>
             {!hasBusinessModules && (
               <button className="btn" type="button" onClick={onOpenMarketplace}>
-                Marketplace'e Git
+                Modül Mağazasına Git
               </button>
             )}
           </div>
@@ -251,7 +251,7 @@ export default function DailySummary({ currentUser, onOpenMarketplace }: Props){
                             <h4>{widget.title}</h4>
                             <p>{widget.description}</p>
                             <div className="dashboard-widget-catalog-meta">
-                              <span>{widget.added ? (widget.visibleInDashboard ? 'Dashboard’da' : 'Gizli') : 'Eklenebilir'}</span>
+                              <span>{widget.added ? (widget.visibleInDashboard ? 'Kontrol panelinde' : 'Gizli') : 'Eklenebilir'}</span>
                             </div>
                           </div>
                           <button
@@ -271,7 +271,7 @@ export default function DailySummary({ currentUser, onOpenMarketplace }: Props){
             ) : (
               <div className="dashboard-widget-placeholder">
                 <strong>Widget kataloğu boş.</strong>
-                <span>Marketplace üzerinden modül kurduğunuzda widget seçenekleri burada listelenecek.</span>
+                <span>Modül mağazası üzerinden modül kurduğunuzda widget seçenekleri burada listelenecek.</span>
               </div>
             )}
           </aside>

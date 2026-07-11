@@ -68,9 +68,9 @@ export default function IntegrationCenter(){
     <div className="integration-center-page">
       <section className="integration-center-hero">
         <div>
-          <span className="status-pill info-pill">Integration Center</span>
+          <span className="status-pill info-pill">Entegrasyon Merkezi</span>
           <h2>Entegrasyon Merkezi</h2>
-          <p>Business Workspace'in dış sistem bağlantılarını tek merkezden izleyin ve ileride yapılandırın.</p>
+          <p>İşletme çalışma alanının dış sistem bağlantılarını tek merkezden izleyin ve ileride yapılandırın.</p>
         </div>
         <div className="integration-center-hero-meta">
           <span>{foundation.catalogSource}</span>

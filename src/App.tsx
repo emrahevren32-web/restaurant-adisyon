@@ -431,7 +431,7 @@ export default function App(){
   }, [currentUser, isPlatformAdmin, moduleInstallRefreshKey, onboardingRefreshKey])
   const activeNavLabel = navGroupsForCurrentUser
     .flatMap(group => flattenAppNavItems(group.items))
-    .find(item => item.key === activeNavKey)?.label || 'Dashboard'
+    .find(item => item.key === activeNavKey)?.label || 'Kontrol Paneli'
   const activeRouteModule = licensedNavModules[activeNavKey] || licensedRouteModules[route]
   const activeRouteLicenseDenied = Boolean(
     currentUser

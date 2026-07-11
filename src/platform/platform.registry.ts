@@ -26,7 +26,7 @@ export const PLATFORM_MODULE_REGISTRY: PlatformRegistryItem[] = [
   {
     id: 'platform-dashboard',
     code: 'platform-dashboard',
-    name: 'Dashboard',
+    name: 'Kontrol Paneli',
     description: 'EVREN360 platform genel durum ekranı.',
     icon: 'DB',
     route: 'evren360-dashboard',
@@ -148,7 +148,7 @@ export const PLATFORM_MODULE_REGISTRY: PlatformRegistryItem[] = [
   {
     id: 'platform-company-setup',
     code: 'platform-company-setup',
-    name: 'Workspace Kurulumu',
+    name: 'Çalışma Alanı Kurulumu',
     description: 'Platform şirket kurulum aracı için eski route kaydı.',
     icon: 'KW',
     route: 'company-setup-wizard',

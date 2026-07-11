@@ -149,8 +149,8 @@ export const BUSINESS_WORKSPACE_MODULE_REGISTRY: BusinessWorkspaceModule[] = def
   {
     id: 'system-workspace-welcome',
     code: WORKSPACE_MODULE_CODES.WORKSPACE_WELCOME,
-    name: 'Workspace Welcome',
-    description: 'Yeni Business Workspace ilk açılış deneyimini ve Marketplace başlangıç yönlendirmesini gösterir.',
+    name: 'Çalışma Alanı Karşılama',
+    description: 'Yeni işletme çalışma alanı ilk açılış deneyimini ve modül mağazası başlangıç yönlendirmesini gösterir.',
     category: 'system',
     icon: 'WW',
     route: 'workspace-welcome',
@@ -165,14 +165,14 @@ export const BUSINESS_WORKSPACE_MODULE_REGISTRY: BusinessWorkspaceModule[] = def
     pricing: includedPricing,
     marketplace: coreSystemMarketplace,
     menuItems: [
-      menuItem({ key: 'workspace-welcome', label: 'Welcome', route: 'workspace-welcome', icon: 'WW', adminOnly: true, displayOrder: 5 })
+      menuItem({ key: 'workspace-welcome', label: 'Karşılama', route: 'workspace-welcome', icon: 'WW', adminOnly: true, displayOrder: 5 })
     ]
   },
   {
     id: 'system-dashboard',
     code: WORKSPACE_MODULE_CODES.DASHBOARD,
-    name: 'Dashboard',
-    description: 'Business Workspace genel durum ve günlük operasyon özetini gösterir.',
+    name: 'Kontrol Paneli',
+    description: 'İşletme çalışma alanı genel durum ve günlük operasyon özetini gösterir.',
     category: 'system',
     icon: 'DB',
     route: 'summary',
@@ -189,8 +189,8 @@ export const BUSINESS_WORKSPACE_MODULE_REGISTRY: BusinessWorkspaceModule[] = def
     dashboardWidgets: [
       dashboardWidget({
         id: 'dashboard.workspace-status',
-        title: 'Dashboard Durumu',
-        description: 'Workspace Dashboard yerleşimi, kullanılabilir widget kaynakları ve kurulu modül bağlantılarını özetler.',
+        title: 'Kontrol Paneli Durumu',
+        description: 'Kontrol paneli yerleşimi, kullanılabilir widget kaynakları ve kurulu modül bağlantılarını özetler.',
         icon: 'DB',
         category: 'Sistem',
         order: 10,
@@ -202,14 +202,14 @@ export const BUSINESS_WORKSPACE_MODULE_REGISTRY: BusinessWorkspaceModule[] = def
       })
     ],
     menuItems: [
-      menuItem({ key: 'dashboard', label: 'Dashboard', route: 'summary', icon: 'DB', adminOnly: true, displayOrder: 10 })
+      menuItem({ key: 'dashboard', label: 'Kontrol Paneli', route: 'summary', icon: 'DB', adminOnly: true, displayOrder: 10 })
     ]
   },
   {
     id: 'system-workspace',
     code: WORKSPACE_MODULE_CODES.WORKSPACE,
-    name: 'Workspace',
-    description: 'Business Workspace kimliği, temel profil bilgisi ve çalışma alanı bağlamını yönetir.',
+    name: 'İşletme Çalışma Alanı',
+    description: 'İşletme çalışma alanı kimliği, temel profil bilgisi ve çalışma alanı bağlamını yönetir.',
     category: 'system',
     icon: 'WS',
     route: 'settings',
@@ -224,14 +224,14 @@ export const BUSINESS_WORKSPACE_MODULE_REGISTRY: BusinessWorkspaceModule[] = def
     pricing: includedPricing,
     marketplace: coreSystemMarketplace,
     menuItems: [
-      menuItem({ key: 'workspace', label: 'Workspace', route: 'settings', icon: 'WS', adminOnly: true, displayOrder: 15 })
+      menuItem({ key: 'workspace', label: 'Çalışma Alanı', route: 'settings', icon: 'WS', adminOnly: true, displayOrder: 15 })
     ]
   },
   {
     id: 'system-marketplace',
     code: WORKSPACE_MODULE_CODES.MARKETPLACE,
-    name: 'Marketplace',
-    description: 'Business Workspace için iş ve entegrasyon modül kataloğunu gösterir.',
+    name: 'Modül Mağazası',
+    description: 'İşletme çalışma alanı için iş ve entegrasyon modül kataloğunu gösterir.',
     category: 'system',
     icon: 'MP',
     route: 'marketplace',
@@ -246,14 +246,14 @@ export const BUSINESS_WORKSPACE_MODULE_REGISTRY: BusinessWorkspaceModule[] = def
     pricing: includedPricing,
     marketplace: coreSystemMarketplace,
     menuItems: [
-      menuItem({ key: 'marketplace', label: 'Marketplace', route: 'marketplace', icon: 'MP', adminOnly: true, displayOrder: 18 })
+      menuItem({ key: 'marketplace', label: 'Modül Mağazası', route: 'marketplace', icon: 'MP', adminOnly: true, displayOrder: 18 })
     ]
   },
   {
     id: 'system-integration-center',
     code: WORKSPACE_MODULE_CODES.INTEGRATION_CENTER,
     name: 'Entegrasyon Merkezi',
-    description: 'Business Workspace ile dış sistemler arasındaki soyut entegrasyon kataloğunu ve bağlantı altyapısını yönetir.',
+    description: 'İşletme çalışma alanı ile dış sistemler arasındaki soyut entegrasyon kataloğunu ve bağlantı altyapısını yönetir.',
     category: 'system',
     icon: 'EN',
     route: 'integration-center',
@@ -297,7 +297,7 @@ export const BUSINESS_WORKSPACE_MODULE_REGISTRY: BusinessWorkspaceModule[] = def
     id: 'system-users',
     code: WORKSPACE_MODULE_CODES.USERS,
     name: 'Kullanıcılar',
-    description: 'Workspace kullanıcılarının yönetildiği zorunlu sistem modülü.',
+    description: 'Çalışma alanı kullanıcılarının yönetildiği zorunlu sistem modülü.',
     category: 'system',
     icon: 'KU',
     route: 'users',
@@ -319,7 +319,7 @@ export const BUSINESS_WORKSPACE_MODULE_REGISTRY: BusinessWorkspaceModule[] = def
     id: 'system-roles',
     code: WORKSPACE_MODULE_CODES.ROLES,
     name: 'Roller',
-    description: 'Rol ve yetki modelinin Business Workspace içinde yönetilmesini sağlar.',
+    description: 'Rol ve yetki modelinin işletme çalışma alanı içinde yönetilmesini sağlar.',
     category: 'system',
     icon: 'RL',
     route: 'users',
@@ -363,7 +363,7 @@ export const BUSINESS_WORKSPACE_MODULE_REGISTRY: BusinessWorkspaceModule[] = def
     id: 'system-notifications',
     code: WORKSPACE_MODULE_CODES.NOTIFICATIONS,
     name: 'Bildirimler',
-    description: 'Workspace bildirimleri için merkezi sistem modülü.',
+    description: 'Çalışma alanı bildirimleri için merkezi sistem modülü.',
     category: 'system',
     icon: 'BD',
     route: 'settings',
@@ -385,7 +385,7 @@ export const BUSINESS_WORKSPACE_MODULE_REGISTRY: BusinessWorkspaceModule[] = def
     id: 'system-license',
     code: WORKSPACE_MODULE_CODES.LICENSE,
     name: 'Lisans',
-    description: 'Workspace lisans kapsamını ve modül erişim temelini gösterir.',
+    description: 'Çalışma alanı lisans kapsamını ve modül erişim temelini gösterir.',
     category: 'system',
     icon: 'LS',
     route: 'settings',
@@ -429,7 +429,7 @@ export const BUSINESS_WORKSPACE_MODULE_REGISTRY: BusinessWorkspaceModule[] = def
     id: 'system-audit',
     code: WORKSPACE_MODULE_CODES.AUDIT,
     name: 'Audit',
-    description: 'Workspace içindeki kritik kullanıcı işlemlerinin denetlendiği çekirdek audit kaydı.',
+    description: 'Çalışma alanı içindeki kritik kullanıcı işlemlerinin denetlendiği çekirdek audit kaydı.',
     category: 'system',
     icon: 'AU',
     route: 'actions',
@@ -451,7 +451,7 @@ export const BUSINESS_WORKSPACE_MODULE_REGISTRY: BusinessWorkspaceModule[] = def
     id: 'system-settings',
     code: WORKSPACE_MODULE_CODES.SETTINGS,
     name: 'Sistem Ayarları',
-    description: 'Workspace profil, görünüm ve veri yönetimi ayarlarını toplar.',
+    description: 'Çalışma alanı profil, görünüm ve veri yönetimi ayarlarını toplar.',
     category: 'system',
     icon: 'SA',
     route: 'settings',
@@ -512,8 +512,8 @@ export const BUSINESS_WORKSPACE_MODULE_REGISTRY: BusinessWorkspaceModule[] = def
     dashboardWidgets: [
       dashboardWidget({
         id: 'ai.platform-assistant',
-        title: 'Workspace Asistanı',
-        description: 'AI destekli öneri ve yönlendirme alanı için Dashboard başlangıç noktasıdır.',
+        title: 'Çalışma Alanı Asistanı',
+        description: 'AI destekli öneri ve yönlendirme alanı için kontrol paneli başlangıç noktasıdır.',
         icon: 'AI',
         category: 'AI',
         order: 10,
@@ -617,7 +617,7 @@ export const BUSINESS_WORKSPACE_MODULE_REGISTRY: BusinessWorkspaceModule[] = def
       dashboardWidget({
         id: 'digital-requests.summary',
         title: 'Dijital Talepler',
-        description: 'Dijital kanallardan gelen taleplerin Dashboard üzerinde izlenebileceği widget alanı.',
+        description: 'Dijital kanallardan gelen taleplerin kontrol panelinde izlenebileceği widget alanı.',
         icon: 'DT',
         category: 'Operasyon',
         order: 10,
@@ -670,7 +670,7 @@ export const BUSINESS_WORKSPACE_MODULE_REGISTRY: BusinessWorkspaceModule[] = def
       dashboardWidget({
         id: 'stock.movements',
         title: 'Son Hareketler',
-        description: 'Son stok hareketlerinin Dashboard üzerinde özetlenebileceği widget alanı.',
+        description: 'Son stok hareketlerinin kontrol panelinde özetlenebileceği widget alanı.',
         icon: 'SH',
         category: 'Stok',
         order: 20,
@@ -683,7 +683,7 @@ export const BUSINESS_WORKSPACE_MODULE_REGISTRY: BusinessWorkspaceModule[] = def
       dashboardWidget({
         id: 'stock.locations',
         title: 'Depolar',
-        description: 'Depo ve stok alanı görünümü için hazırlanmış Dashboard widget alanı.',
+        description: 'Depo ve stok alanı görünümü için hazırlanmış kontrol paneli widget alanı.',
         icon: 'DP',
         category: 'Stok',
         order: 30,
@@ -696,7 +696,7 @@ export const BUSINESS_WORKSPACE_MODULE_REGISTRY: BusinessWorkspaceModule[] = def
       dashboardWidget({
         id: 'stock.validity',
         title: 'Geçerlilik',
-        description: 'Geçerlilik takibi yapılan kayıtların Dashboard üzerinde izlenebileceği widget alanı.',
+        description: 'Geçerlilik takibi yapılan kayıtların kontrol panelinde izlenebileceği widget alanı.',
         icon: 'GT',
         category: 'Stok',
         order: 40,
@@ -748,7 +748,7 @@ export const BUSINESS_WORKSPACE_MODULE_REGISTRY: BusinessWorkspaceModule[] = def
       dashboardWidget({
         id: 'production.definitions',
         title: 'Üretim Tanımları',
-        description: 'Üretim tanımları ve bağlı stok ilişkileri için Dashboard widget alanı.',
+        description: 'Üretim tanımları ve bağlı stok ilişkileri için kontrol paneli widget alanı.',
         icon: 'UT',
         category: 'Operasyon',
         order: 10,
@@ -786,7 +786,7 @@ export const BUSINESS_WORKSPACE_MODULE_REGISTRY: BusinessWorkspaceModule[] = def
       dashboardWidget({
         id: 'current.summary',
         title: 'Cari Özeti',
-        description: 'Cari kart ve hareketlerinin Dashboard üzerinde izlenebileceği özet widget alanı.',
+        description: 'Cari kart ve hareketlerinin kontrol panelinde izlenebileceği özet widget alanı.',
         icon: 'CK',
         category: 'Cari',
         order: 10,
@@ -799,7 +799,7 @@ export const BUSINESS_WORKSPACE_MODULE_REGISTRY: BusinessWorkspaceModule[] = def
       dashboardWidget({
         id: 'current.risk',
         title: 'Riskli Cari',
-        description: 'Riskli cari kayıtları için hazırlanmış Dashboard takip widget alanı.',
+        description: 'Riskli cari kayıtları için hazırlanmış kontrol paneli takip widget alanı.',
         icon: 'RC',
         category: 'Cari',
         order: 20,
@@ -850,7 +850,7 @@ export const BUSINESS_WORKSPACE_MODULE_REGISTRY: BusinessWorkspaceModule[] = def
       dashboardWidget({
         id: 'credit.collections',
         title: 'Tahsilat Takibi',
-        description: 'Tahsilat bekleyen kayıtlar için Dashboard widget alanı.',
+        description: 'Tahsilat bekleyen kayıtlar için kontrol paneli widget alanı.',
         icon: 'TH',
         category: 'Cari',
         order: 10,
@@ -889,7 +889,7 @@ export const BUSINESS_WORKSPACE_MODULE_REGISTRY: BusinessWorkspaceModule[] = def
       dashboardWidget({
         id: 'finance.cash-status',
         title: 'Kasa Durumu',
-        description: 'Kasa hareketleri ve güncel finans görünümü için Dashboard widget alanı.',
+        description: 'Kasa hareketleri ve güncel finans görünümü için kontrol paneli widget alanı.',
         icon: 'KH',
         category: 'Finans',
         order: 10,
@@ -902,7 +902,7 @@ export const BUSINESS_WORKSPACE_MODULE_REGISTRY: BusinessWorkspaceModule[] = def
       dashboardWidget({
         id: 'finance.income-expense',
         title: 'Gelir Gider Özeti',
-        description: 'Gelir ve gider kayıtlarının Dashboard üzerinde özetlenebileceği widget alanı.',
+        description: 'Gelir ve gider kayıtlarının kontrol panelinde özetlenebileceği widget alanı.',
         icon: 'GG',
         category: 'Finans',
         order: 20,
@@ -955,7 +955,7 @@ export const BUSINESS_WORKSPACE_MODULE_REGISTRY: BusinessWorkspaceModule[] = def
       dashboardWidget({
         id: 'personnel.total',
         title: 'Toplam Personel',
-        description: 'Workspace personel kayıtları için Dashboard özet widget alanı.',
+        description: 'Çalışma alanı personel kayıtları için kontrol paneli özet widget alanı.',
         icon: 'TP',
         category: 'Personel',
         order: 10,
@@ -968,7 +968,7 @@ export const BUSINESS_WORKSPACE_MODULE_REGISTRY: BusinessWorkspaceModule[] = def
       dashboardWidget({
         id: 'personnel.leave-today',
         title: 'Bugün İzinli',
-        description: 'Günlük izin durumlarını Dashboard üzerinde izlemek için widget alanı.',
+        description: 'Günlük izin durumlarını kontrol panelinde izlemek için widget alanı.',
         icon: 'IZ',
         category: 'Personel',
         order: 20,
@@ -981,7 +981,7 @@ export const BUSINESS_WORKSPACE_MODULE_REGISTRY: BusinessWorkspaceModule[] = def
       dashboardWidget({
         id: 'personnel.shift-summary',
         title: 'Mesai Özeti',
-        description: 'Vardiya ve puantaj durumları için Dashboard widget alanı.',
+        description: 'Vardiya ve puantaj durumları için kontrol paneli widget alanı.',
         icon: 'MO',
         category: 'Personel',
         order: 30,
@@ -994,7 +994,7 @@ export const BUSINESS_WORKSPACE_MODULE_REGISTRY: BusinessWorkspaceModule[] = def
       dashboardWidget({
         id: 'personnel.new-records',
         title: 'Yeni Personeller',
-        description: 'Son eklenen personel kayıtları için hazırlanmış Dashboard widget alanı.',
+        description: 'Son eklenen personel kayıtları için hazırlanmış kontrol paneli widget alanı.',
         icon: 'YP',
         category: 'Personel',
         order: 40,
@@ -1048,7 +1048,7 @@ export const BUSINESS_WORKSPACE_MODULE_REGISTRY: BusinessWorkspaceModule[] = def
       dashboardWidget({
         id: 'branches.summary',
         title: 'Şube Özeti',
-        description: 'Çoklu lokasyon görünümü ve merkez yönetim özetleri için Dashboard widget alanı.',
+        description: 'Çoklu lokasyon görünümü ve merkez yönetim özetleri için kontrol paneli widget alanı.',
         icon: 'SO',
         category: 'Sistem',
         order: 10,
@@ -1089,7 +1089,7 @@ export const BUSINESS_WORKSPACE_MODULE_REGISTRY: BusinessWorkspaceModule[] = def
       dashboardWidget({
         id: 'manager.alerts',
         title: 'Yönetici Uyarıları',
-        description: 'Kritik uyarı ve aksiyon önerilerinin Dashboard üzerinde izlenebileceği widget alanı.',
+        description: 'Kritik uyarı ve aksiyon önerilerinin kontrol panelinde izlenebileceği widget alanı.',
         icon: 'YU',
         category: 'Sistem',
         order: 10,

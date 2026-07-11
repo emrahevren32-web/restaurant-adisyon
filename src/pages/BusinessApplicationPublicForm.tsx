@@ -128,7 +128,7 @@ export default function BusinessApplicationPublicForm(){
             <textarea rows={3} value={values.address} onChange={event => updateField('address', event.target.value)} required />
           </div>
           <div className="form-field">
-            <label>Not</label>
+            <label>Ek Notlar (Opsiyonel)</label>
             <textarea rows={4} value={values.note} onChange={event => updateField('note', event.target.value)} />
           </div>
           <div className="form-actions">
