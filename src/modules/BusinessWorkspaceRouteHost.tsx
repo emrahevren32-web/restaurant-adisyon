@@ -11,13 +11,6 @@ import ManagerAlertCenter from '../pages/ManagerAlertCenter'
 import DailySummary from '../pages/DailySummary'
 import BillHistory from '../pages/BillHistory'
 import ActionHistory from '../pages/ActionHistory'
-import SystemUsageLogs from '../pages/SystemUsageLogs'
-import UserActivityTracking from '../pages/UserActivityTracking'
-import ModuleUsageAnalysis from '../pages/ModuleUsageAnalysis'
-import BusinessUsageStats from '../pages/BusinessUsageStats'
-import UsagePerformanceAnalysis from '../pages/UsagePerformanceAnalysis'
-import AnalyticsDashboard from '../pages/AnalyticsDashboard'
-import SystemHealthTelemetry from '../pages/SystemHealthTelemetry'
 import StaffTracking from '../pages/StaffTracking'
 import EmployeeCards from '../pages/EmployeeCards'
 import ShiftManagement from '../pages/ShiftManagement'
@@ -26,7 +19,6 @@ import EmployeePerformanceTracking from '../pages/EmployeePerformanceTracking'
 import EmployeeBonusSystem from '../pages/EmployeeBonusSystem'
 import EmployeeAuditRecords from '../pages/EmployeeAuditRecords'
 import EmployeeReports from '../pages/EmployeeReports'
-import Reports from '../pages/Reports'
 import CurrentReport from '../pages/CurrentReport'
 import RiskyCurrentAccounts from '../pages/RiskyCurrentAccounts'
 import Kitchen from '../pages/Kitchen'
@@ -92,8 +84,6 @@ export default function BusinessWorkspaceRouteHost({
     return (
       <WorkspaceWelcome
         currentUser={currentUser}
-        onOpenMarketplace={onOpenMarketplace}
-        onOpenIntegrationCenter={onOpenIntegrationCenter}
         onOpenWorkspaceSettings={onOpenWorkspaceSettings}
       />
     )
@@ -168,13 +158,6 @@ export default function BusinessWorkspaceRouteHost({
   if(route === 'manager-alert-center') return <ManagerAlertCenter />
   if(route === 'qr-codes') return <QRCodes />
   if(route === 'actions') return <ActionHistory />
-  if(route === 'analytics-dashboard') return <AnalyticsDashboard />
-  if(route === 'system-health-telemetry') return <SystemHealthTelemetry />
-  if(route === 'system-usage-logs') return <SystemUsageLogs />
-  if(route === 'user-activity-tracking') return <UserActivityTracking />
-  if(route === 'module-usage-analysis') return <ModuleUsageAnalysis />
-  if(route === 'business-usage-stats') return <BusinessUsageStats />
-  if(route === 'usage-performance-analysis') return <UsagePerformanceAnalysis />
   if(route === 'employee-cards') return <EmployeeCards currentUser={currentUser} />
   if(route === 'shift-management') return <ShiftManagement currentUser={currentUser} />
   if(route === 'attendance-tracking') return <AttendanceTracking currentUser={currentUser} />
@@ -183,7 +166,6 @@ export default function BusinessWorkspaceRouteHost({
   if(route === 'employee-audit') return <EmployeeAuditRecords currentUser={currentUser} />
   if(route === 'employee-reports') return <EmployeeReports />
   if(route === 'staff') return <StaffTracking />
-  if(route === 'reports') return <Reports />
   if(route === 'current-report') return <CurrentReport />
   if(route === 'risky-current') return <RiskyCurrentAccounts />
   if(route === 'branches') return <BranchManagement currentUser={currentUser} onBranchesChange={onBranchesChange} />

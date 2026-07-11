@@ -1,4 +1,5 @@
 import type { PermissionName } from '../authorization/permission.types'
+import type { DashboardWidgetModuleContribution } from '../dashboard/dashboard-widget.types'
 import type { LicenseModuleKey } from '../types'
 
 export const WORKSPACE_MODULE_TYPES = {
@@ -7,7 +8,14 @@ export const WORKSPACE_MODULE_TYPES = {
   INTEGRATION: 'integration'
 } as const
 
+export const MODULE_SCOPES = {
+  SYSTEM: 'SYSTEM',
+  BUSINESS: 'BUSINESS',
+  PLATFORM: 'PLATFORM'
+} as const
+
 export type WorkspaceModuleType = typeof WORKSPACE_MODULE_TYPES[keyof typeof WORKSPACE_MODULE_TYPES]
+export type ModuleScope = typeof MODULE_SCOPES[keyof typeof MODULE_SCOPES]
 export type WorkspaceModuleCategory = WorkspaceModuleType
 export type WorkspaceModuleAvailability = 'mandatory' | 'optional'
 export type WorkspaceModuleActivationPolicy = 'always-on' | 'license-controlled' | 'external-controlled'
@@ -70,6 +78,7 @@ export type WorkspaceModuleRegistryItem<Route extends string, NavKey extends str
   description: string
   category: WorkspaceModuleCategory
   moduleType: WorkspaceModuleType
+  scope: ModuleScope
   icon: string
   route: Route
   permissions: PermissionName[]
@@ -89,4 +98,5 @@ export type WorkspaceModuleRegistryItem<Route extends string, NavKey extends str
   pricing?: WorkspaceModulePricing
   marketplace?: WorkspaceModuleMarketplace
   menuItems: WorkspaceModuleMenuItem<Route, NavKey>[]
+  dashboardWidgets?: DashboardWidgetModuleContribution[]
 }

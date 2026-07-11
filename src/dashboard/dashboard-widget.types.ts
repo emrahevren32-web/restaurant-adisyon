@@ -1,47 +1,89 @@
+import type { PermissionName } from '../authorization/permission.types'
 import type { LicenseModuleKey } from '../types'
 
+export type DashboardWidgetCategory =
+  | 'Operasyon'
+  | 'Personel'
+  | 'Finans'
+  | 'Stok'
+  | 'Cari'
+  | 'AI'
+  | 'Takvim'
+  | 'Sistem'
+  | 'Kurulu Modüller'
+  | (string & {})
+
 export type DashboardWidgetSize = 'small' | 'medium' | 'large'
-
+export type DashboardWidgetLayout = 'compact' | 'standard' | 'wide'
 export type DashboardWidgetState = 'available' | 'empty' | 'disabled'
-export type DashboardWidgetSource = 'module-provided'
+export type DashboardWidgetSource = 'module-provided' | 'system-provided'
+export type DashboardWidgetScope = 'SYSTEM' | 'BUSINESS' | 'PLATFORM'
 
-export type DashboardWidgetRegistryItem = {
+export type DashboardWidgetModuleContribution = {
   id: string
+  title: string
+  description: string
+  icon: string
+  category: DashboardWidgetCategory
+  order: number
+  defaultVisible: boolean
+  defaultSize: DashboardWidgetSize
+  supportedLayouts: DashboardWidgetLayout[]
+  requiredPermission?: PermissionName
+  renderComponent: string
+}
+
+export type DashboardWidgetRegistryItem = DashboardWidgetModuleContribution & {
   moduleId: string
   moduleCode: string
   moduleName: string
   moduleIcon: string
-  title: string
-  description: string
   moduleKey?: LicenseModuleKey
-  size: DashboardWidgetSize
+  moduleType: string
+  scope: DashboardWidgetScope
   state: DashboardWidgetState
   source: DashboardWidgetSource
-  renderKey: string
   displayOrder: number
 }
 
-export type DashboardWidgetDefinition = {
+export type DashboardWidgetDefinition = DashboardWidgetRegistryItem
+
+export type DashboardWidgetInstance = {
   id: string
-  moduleId: string
-  moduleCode: string
-  moduleName: string
-  moduleIcon: string
-  title: string
-  description: string
-  moduleKey?: LicenseModuleKey
+  widgetId: string
+  order: number
+  visible: boolean
   size: DashboardWidgetSize
-  state: DashboardWidgetState
-  source: DashboardWidgetSource
-  renderKey: string
-  displayOrder: number
+  layout: DashboardWidgetLayout
+  createdAt: string
+  updatedAt: string
+}
+
+export type DashboardWidgetViewModel = DashboardWidgetInstance & {
+  definition: DashboardWidgetDefinition
+}
+
+export type DashboardWidgetCatalogItem = DashboardWidgetDefinition & {
+  added: boolean
+  instanceId?: string
+  visibleInDashboard: boolean
+}
+
+export type DashboardWidgetGroup<TWidget> = {
+  category: DashboardWidgetCategory
+  widgets: TWidget[]
 }
 
 export type DashboardWidgetContainer = {
   id: string
   title: string
   description: string
-  widgets: DashboardWidgetDefinition[]
-  availableWidgets: DashboardWidgetDefinition[]
+  widgets: DashboardWidgetViewModel[]
+  visibleWidgets: DashboardWidgetViewModel[]
+  hiddenWidgets: DashboardWidgetViewModel[]
+  groupedWidgets: Array<DashboardWidgetGroup<DashboardWidgetViewModel>>
+  availableWidgets: DashboardWidgetCatalogItem[]
+  catalogGroups: Array<DashboardWidgetGroup<DashboardWidgetCatalogItem>>
   widgetSystemReady: boolean
+  isEmpty: boolean
 }

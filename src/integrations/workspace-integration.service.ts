@@ -1,4 +1,6 @@
 import { getIntegrationRegistry } from './integration.registry'
+import { getCompanyIdForUser } from '../storage'
+import type { User } from '../types'
 import {
   INTEGRATION_STATUSES,
   type IntegrationStatus,
@@ -7,6 +9,27 @@ import {
   type WorkspaceIntegrationFilterOptions,
   type WorkspaceIntegrationQuery
 } from './integration-registry.types'
+
+const WORKSPACE_INTEGRATION_CONNECTION_KEY = 'miyop_workspace_integration_connections'
+
+type WorkspaceIntegrationConnectionRecord = {
+  companyId: string
+  integrationId: string
+  status: typeof INTEGRATION_STATUSES.CONNECTED
+}
+
+const readWorkspaceIntegrationConnections = (): WorkspaceIntegrationConnectionRecord[] => {
+  if(typeof localStorage === 'undefined') return []
+
+  try {
+    const parsed = JSON.parse(localStorage.getItem(WORKSPACE_INTEGRATION_CONNECTION_KEY) || '[]')
+    return Array.isArray(parsed)
+      ? parsed.filter(item => item?.companyId && item?.integrationId && item?.status === INTEGRATION_STATUSES.CONNECTED)
+      : []
+  } catch {
+    return []
+  }
+}
 
 const normalizeLookup = (value: string) => value
   .toLocaleLowerCase('tr-TR')
@@ -70,3 +93,11 @@ export const getWorkspaceIntegrationFoundation = () => ({
   webhookDispatcherReady: false,
   catalogSource: 'Integration Registry'
 })
+
+export const hasConnectedWorkspaceIntegrationsForUser = (user: User | null | undefined) => {
+  const companyId = getCompanyIdForUser(user)
+  if(!companyId) return false
+
+  return readWorkspaceIntegrationConnections()
+    .some(item => item.companyId === companyId && item.status === INTEGRATION_STATUSES.CONNECTED)
+}

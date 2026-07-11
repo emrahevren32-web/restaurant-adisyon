@@ -6,15 +6,11 @@ import type { User } from '../types'
 
 type Props = {
   currentUser: User
-  onOpenMarketplace: () => void
-  onOpenIntegrationCenter: () => void
   onOpenWorkspaceSettings: () => void
 }
 
 export default function WorkspaceWelcome({
   currentUser,
-  onOpenMarketplace,
-  onOpenIntegrationCenter,
   onOpenWorkspaceSettings
 }: Props){
   const company = React.useMemo(() => {
@@ -36,11 +32,11 @@ export default function WorkspaceWelcome({
       <section className="workspace-welcome-hero">
         <div>
           <span className="status-pill success">Workspace hazır</span>
-          <h2>Hoşgeldiniz, {ownerName}</h2>
+          <h2>Hoş geldiniz, {ownerName}</h2>
           <p>
-            {workspaceName} başarıyla oluşturuldu. {hasBusinessModules
-              ? 'Kurulu modüllerinizle Dashboard deneyimi hazırlanabilir.'
-              : 'Henüz modül yüklenmedi.'}
+            {workspaceName} kurulum bilgileri hazır. {hasBusinessModules
+              ? 'Kurulu iş modülleriniz Dashboard deneyimini zenginleştirebilir.'
+              : 'Henüz iş modülü yüklenmedi.'}
           </p>
         </div>
         <div className="workspace-welcome-mark">
@@ -48,28 +44,12 @@ export default function WorkspaceWelcome({
         </div>
       </section>
 
-      <section className="workspace-welcome-grid">
-        <article className="workspace-welcome-panel action-card">
-          <span>MP</span>
-          <h3>Marketplace'e Git</h3>
-          <p>Platformu kullanmaya başlamak için ilk iş modülünüzü seçin ve kurulum akışını başlatın.</p>
-          <button className="btn primary workspace-welcome-button" type="button" onClick={onOpenMarketplace}>
-            Marketplace'e Git
-          </button>
-        </article>
-        <article className="workspace-welcome-panel action-card">
-          <span>EN</span>
-          <h3>Entegrasyon Merkezi</h3>
-          <p>Dış sistem bağlantılarını inceleyin. Bağlantı kurma adımları sonraki fazlarda açılacak.</p>
-          <button className="btn workspace-welcome-button" type="button" onClick={onOpenIntegrationCenter}>
-            Entegrasyon Merkezi
-          </button>
-        </article>
+      <section className="workspace-welcome-grid single">
         <article className="workspace-welcome-panel action-card">
           <span>WS</span>
           <h3>Workspace Ayarları</h3>
           <p>Workspace adı, logo, para birimi, dil ve temel çalışma alanı tercihlerinizi yönetin.</p>
-          <button className="btn workspace-welcome-button" type="button" onClick={onOpenWorkspaceSettings}>
+          <button className="btn primary workspace-welcome-button" type="button" onClick={onOpenWorkspaceSettings}>
             Workspace Ayarları
           </button>
         </article>
@@ -77,14 +57,12 @@ export default function WorkspaceWelcome({
 
       <section className="workspace-welcome-action">
         <div>
-          <h3>{hasBusinessModules ? 'Dashboard deneyimi hazır' : 'Henüz modül yüklenmedi.'}</h3>
-          <p>{hasBusinessModules
-            ? 'Kurulu iş modüllerinizle normal Dashboard başlangıcına geçebilirsiniz.'
-            : 'Business Workspace yalnızca çekirdek sistem modülleriyle başladı. İş modülleri Marketplace üzerinden eklenir.'}</p>
+          <h3>Kurulum bilgileri</h3>
+          <p>Bu ekran normal menüde gösterilmez. Workspace başlangıcı tamamlandıktan sonra ana ekran Dashboard olur.</p>
         </div>
         <div className="workspace-welcome-actions">
-          <button className="btn primary workspace-welcome-button" type="button" onClick={onOpenMarketplace}>
-            Marketplace'e Git
+          <button className="btn primary workspace-welcome-button" type="button" onClick={onOpenWorkspaceSettings}>
+            Workspace Ayarları
           </button>
         </div>
       </section>

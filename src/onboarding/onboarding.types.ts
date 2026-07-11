@@ -4,6 +4,7 @@ import {
   CompanyLicense,
   CompanySetup,
   CompanyUser,
+  Sector,
   TenantSettings,
   User
 } from '../types'
@@ -28,6 +29,7 @@ export type FirstLoginOnboardingState = {
   completionKey: string
   currentUser: User
   company: Company | null
+  primarySector: Sector | null
   setup: CompanySetup | null
   branch: Branch | null
   companyUser: CompanyUser | null

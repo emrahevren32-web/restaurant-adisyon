@@ -1,8 +1,10 @@
 import React from 'react'
-import { BusinessApplicationFormInput, submitBusinessApplication } from '../storage'
+import { BusinessApplicationFormInput, loadSectors, submitBusinessApplication } from '../storage'
+import { DEFAULT_SECTOR_ID } from '../sector/sector.registry'
 import type { BusinessApplication } from '../types'
 
 const createEmptyForm = (): BusinessApplicationFormInput => ({
+  primarySectorId: DEFAULT_SECTOR_ID,
   companyName: '',
   ownerName: '',
   phone: '',
@@ -19,6 +21,7 @@ export default function BusinessApplicationPublicForm(){
   const [values, setValues] = React.useState<BusinessApplicationFormInput>(() => createEmptyForm())
   const [submittedApplication, setSubmittedApplication] = React.useState<BusinessApplication | null>(null)
   const [error, setError] = React.useState('')
+  const sectors = React.useMemo(() => loadSectors(), [])
 
   const updateField = <K extends keyof BusinessApplicationFormInput>(key: K, value: BusinessApplicationFormInput[K]) => {
     setValues(prev => ({ ...prev, [key]: value }))
@@ -81,6 +84,14 @@ export default function BusinessApplicationPublicForm(){
           <div className="form-field">
             <label>Yetkili Ad Soyad</label>
             <input value={values.ownerName} onChange={event => updateField('ownerName', event.target.value)} required />
+          </div>
+          <div className="form-field">
+            <label>Sektör</label>
+            <select value={values.primarySectorId} onChange={event => updateField('primarySectorId', event.target.value)} required>
+              {sectors.map(sector => (
+                <option key={sector.id} value={sector.id}>{sector.name}</option>
+              ))}
+            </select>
           </div>
           <div className="form-row">
             <div className="form-field">

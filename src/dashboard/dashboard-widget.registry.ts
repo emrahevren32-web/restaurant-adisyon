@@ -2,36 +2,106 @@ import type { User } from '../types'
 import { getBusinessWorkspaceModules } from '../modules/business-workspace.registry'
 import type { BusinessWorkspaceModule } from '../modules/business-workspace.registry'
 import { WORKSPACE_MODULE_TYPES } from '../modules/module-registry.types'
-import { getInstalledWorkspaceModulesForUser } from '../workspace/workspace-module-installation.service'
+import {
+  getWorkspaceModuleLifecycleStateForUser,
+  WORKSPACE_MODULE_LIFECYCLE_STATES
+} from '../workspace/workspace-module-lifecycle.service'
 import type {
+  DashboardWidgetCategory,
   DashboardWidgetDefinition,
-  DashboardWidgetRegistryItem
+  DashboardWidgetModuleContribution,
+  DashboardWidgetRegistryItem,
+  DashboardWidgetScope
 } from './dashboard-widget.types'
 
-const createModuleWidgetCandidate = (module: BusinessWorkspaceModule): DashboardWidgetRegistryItem => ({
-  id: `dashboard_widget_${module.id}_overview`,
+export const DASHBOARD_WIDGET_CATEGORIES: DashboardWidgetCategory[] = [
+  'Operasyon',
+  'Personel',
+  'Finans',
+  'Stok',
+  'Cari',
+  'AI',
+  'Takvim',
+  'Sistem',
+  'Kurulu Modüller'
+]
+
+const fallbackModuleWidget = (module: BusinessWorkspaceModule): DashboardWidgetModuleContribution => ({
+  id: `${module.code}.overview`,
+  title: `${module.name} Özeti`,
+  description: `${module.name} modülünün Dashboard üzerinde kullanabileceği özet alanı.`,
+  icon: module.icon,
+  category: 'Kurulu Modüller',
+  order: module.displayOrder,
+  defaultVisible: false,
+  defaultSize: 'medium',
+  supportedLayouts: ['standard', 'wide'],
+  requiredPermission: module.permissions[0],
+  renderComponent: `${module.code}.overview.placeholder`
+})
+
+const getModuleWidgetContributions = (module: BusinessWorkspaceModule) => {
+  if(module.dashboardWidgets?.length) return module.dashboardWidgets
+
+  return module.moduleType === WORKSPACE_MODULE_TYPES.BUSINESS
+    || module.moduleType === WORKSPACE_MODULE_TYPES.INTEGRATION
+    ? [fallbackModuleWidget(module)]
+    : []
+}
+
+const createWidgetRegistryItem = (
+  module: BusinessWorkspaceModule,
+  widget: DashboardWidgetModuleContribution
+): DashboardWidgetRegistryItem => ({
+  ...widget,
+  id: `${module.id}:${widget.id}`,
   moduleId: module.id,
   moduleCode: module.code,
   moduleName: module.name,
   moduleIcon: module.icon,
-  title: `${module.name} Özeti`,
-  description: `${module.name} modülünden Dashboard'a eklenebilecek özet alanı. Canlı veri gösterimi sonraki fazda bağlanacak.`,
   moduleKey: module.licenseModuleKey,
-  size: 'medium',
+  moduleType: module.moduleType,
+  scope: module.scope as DashboardWidgetScope,
   state: 'available',
-  source: 'module-provided',
-  renderKey: `${module.code}.overview.placeholder`,
-  displayOrder: module.displayOrder
+  source: module.isCoreModule ? 'system-provided' : 'module-provided',
+  displayOrder: module.displayOrder * 1000 + widget.order
 })
 
-const DASHBOARD_WIDGET_REGISTRY: DashboardWidgetRegistryItem[] = [
-  ...getBusinessWorkspaceModules(WORKSPACE_MODULE_TYPES.BUSINESS).map(createModuleWidgetCandidate),
-  ...getBusinessWorkspaceModules(WORKSPACE_MODULE_TYPES.INTEGRATION).map(createModuleWidgetCandidate)
-]
+const createDashboardWidgetRegistry = (): DashboardWidgetRegistryItem[] => (
+  getBusinessWorkspaceModules()
+    .flatMap(module => getModuleWidgetContributions(module)
+      .map(widget => createWidgetRegistryItem(module, widget))
+    )
+)
+
+const getCategoryOrder = (category: DashboardWidgetCategory) => {
+  const categoryIndex = DASHBOARD_WIDGET_CATEGORIES.indexOf(category)
+  return categoryIndex === -1 ? DASHBOARD_WIDGET_CATEGORIES.length : categoryIndex
+}
+
+const compareDashboardWidgets = (
+  first: DashboardWidgetDefinition,
+  second: DashboardWidgetDefinition
+) => {
+  const categoryDiff = getCategoryOrder(first.category) - getCategoryOrder(second.category)
+  if(categoryDiff !== 0) return categoryDiff
+  return first.displayOrder - second.displayOrder
+}
+
+const isLifecycleWidgetVisible = (
+  user: User | null | undefined,
+  module: BusinessWorkspaceModule
+) => {
+  if(module.moduleType === WORKSPACE_MODULE_TYPES.CORE_SYSTEM) return true
+
+  const state = getWorkspaceModuleLifecycleStateForUser(user, module)
+  return state === WORKSPACE_MODULE_LIFECYCLE_STATES.INSTALLED
+    || state === WORKSPACE_MODULE_LIFECYCLE_STATES.CONFIGURED
+    || state === WORKSPACE_MODULE_LIFECYCLE_STATES.ACTIVE
+}
 
 export const getDashboardWidgetRegistry = () => {
-  return [...DASHBOARD_WIDGET_REGISTRY]
-    .sort((first, second) => first.displayOrder - second.displayOrder)
+  return createDashboardWidgetRegistry().sort(compareDashboardWidgets)
 }
 
 export const getDashboardWidgetRegistryForModule = (module: BusinessWorkspaceModule) => {
@@ -39,10 +109,18 @@ export const getDashboardWidgetRegistryForModule = (module: BusinessWorkspaceMod
     .filter(item => item.moduleId === module.id)
 }
 
-export const getDashboardWidgetRegistryForUser = (user: User | null | undefined): DashboardWidgetDefinition[] => {
-  const activeModuleIds = new Set(getInstalledWorkspaceModulesForUser(user).map(module => module.id))
+export const getDashboardWidgetRegistryForUser = (
+  user: User | null | undefined,
+  scope: DashboardWidgetScope = 'BUSINESS'
+): DashboardWidgetDefinition[] => {
+  const modulesById = new Map(getBusinessWorkspaceModules().map(module => [module.id, module]))
 
   return getDashboardWidgetRegistry()
-    .filter(item => activeModuleIds.has(item.moduleId))
+    .filter(item => item.scope === scope)
+    .filter(item => {
+      const module = modulesById.get(item.moduleId)
+      if(scope === 'BUSINESS' && module && !module.isBusinessModule) return false
+      return module ? isLifecycleWidgetVisible(user, module) : false
+    })
     .map(item => ({ ...item }))
 }

@@ -2,6 +2,7 @@ import type {
   BusinessWorkspaceNavKey,
   BusinessWorkspaceRoute
 } from '../navigation/app-navigation.types'
+import type { DashboardWidgetModuleContribution } from '../dashboard/dashboard-widget.types'
 import type { LicenseModuleKey } from '../types'
 import type {
   WorkspaceModuleLifecycle,
@@ -9,7 +10,7 @@ import type {
   WorkspaceModuleRegistryItem,
   WorkspaceModuleType
 } from './module-registry.types'
-import { WORKSPACE_MODULE_TYPES } from './module-registry.types'
+import { MODULE_SCOPES, WORKSPACE_MODULE_TYPES } from './module-registry.types'
 
 const includedPricing = { model: 'included' as const }
 const marketplaceReady = {
@@ -51,6 +52,8 @@ const menuItem = (
   item: WorkspaceModuleMenuItem<BusinessWorkspaceRoute, BusinessWorkspaceNavKey>
 ) => item
 
+const dashboardWidget = (widget: DashboardWidgetModuleContribution) => widget
+
 export type BusinessWorkspaceModule = WorkspaceModuleRegistryItem<
   BusinessWorkspaceRoute,
   BusinessWorkspaceNavKey
@@ -67,6 +70,7 @@ type BusinessWorkspaceModuleInput = Omit<
   | 'isAlwaysActive'
   | 'isMarketplaceEligible'
   | 'lifecycle'
+  | 'scope'
 > & Partial<Pick<
   BusinessWorkspaceModule,
   | 'moduleType'
@@ -75,6 +79,7 @@ type BusinessWorkspaceModuleInput = Omit<
   | 'isAlwaysActive'
   | 'isMarketplaceEligible'
   | 'lifecycle'
+  | 'scope'
 >> & {
   category: LegacyWorkspaceModuleCategory
 }
@@ -120,6 +125,7 @@ const normalizeModuleRegistryItem = (module: BusinessWorkspaceModuleInput): Busi
     isMarketplaceEligible: !isCoreSystem,
     isEnabled: isCoreSystem ? true : module.isEnabled,
     isVisible: isCoreSystem ? true : module.isVisible,
+    scope: isCoreSystem ? MODULE_SCOPES.SYSTEM : MODULE_SCOPES.BUSINESS,
     lifecycle,
     pricing: isCoreSystem ? includedPricing : module.pricing,
     marketplace: isCoreSystem ? coreSystemMarketplace : module.marketplace,
@@ -179,6 +185,21 @@ export const BUSINESS_WORKSPACE_MODULE_REGISTRY: BusinessWorkspaceModule[] = def
     tags: ['system', 'overview', 'workspace'],
     pricing: includedPricing,
     marketplace: coreSystemMarketplace,
+    dashboardWidgets: [
+      dashboardWidget({
+        id: 'dashboard.workspace-status',
+        title: 'Dashboard Durumu',
+        description: 'Workspace Dashboard yerleşimi, kullanılabilir widget kaynakları ve kurulu modül bağlantılarını özetler.',
+        icon: 'DB',
+        category: 'Sistem',
+        order: 10,
+        defaultVisible: false,
+        defaultSize: 'medium',
+        supportedLayouts: ['standard', 'wide'],
+        requiredPermission: 'dashboard.read',
+        renderComponent: 'system.dashboard.workspaceStatus'
+      })
+    ],
     menuItems: [
       menuItem({ key: 'dashboard', label: 'Dashboard', route: 'summary', icon: 'DB', adminOnly: true, displayOrder: 10 })
     ]
@@ -487,6 +508,21 @@ export const BUSINESS_WORKSPACE_MODULE_REGISTRY: BusinessWorkspaceModule[] = def
     tags: ['system', 'ai', 'future'],
     pricing: includedPricing,
     marketplace: coreSystemMarketplace,
+    dashboardWidgets: [
+      dashboardWidget({
+        id: 'ai.platform-assistant',
+        title: 'Workspace Asistanı',
+        description: 'AI destekli öneri ve yönlendirme alanı için Dashboard başlangıç noktasıdır.',
+        icon: 'AI',
+        category: 'AI',
+        order: 10,
+        defaultVisible: false,
+        defaultSize: 'medium',
+        supportedLayouts: ['standard', 'wide'],
+        requiredPermission: 'dashboard.read',
+        renderComponent: 'system.ai.platformAssistant'
+      })
+    ],
     menuItems: [
       menuItem({ key: 'ai-center', label: 'AI Merkezi', route: 'settings', icon: 'AI', adminOnly: true, displayOrder: 120 })
     ]
@@ -510,6 +546,34 @@ export const BUSINESS_WORKSPACE_MODULE_REGISTRY: BusinessWorkspaceModule[] = def
     licenseModuleKey: 'adisyon',
     pricing: { model: 'paid', currency: 'TRY' },
     marketplace: marketplaceReady,
+    dashboardWidgets: [
+      dashboardWidget({
+        id: 'operations.today',
+        title: 'Bugünkü İşler',
+        description: 'Gün içindeki açık işler ve tamamlanan akışlar için özet widget alanı.',
+        icon: 'BI',
+        category: 'Operasyon',
+        order: 10,
+        defaultVisible: false,
+        defaultSize: 'medium',
+        supportedLayouts: ['compact', 'standard'],
+        requiredPermission: 'operations.read',
+        renderComponent: 'operations.today.placeholder'
+      }),
+      dashboardWidget({
+        id: 'operations.pending',
+        title: 'Bekleyen İşler',
+        description: 'Henüz tamamlanmamış operasyon kayıtları için takip widget alanı.',
+        icon: 'BE',
+        category: 'Operasyon',
+        order: 20,
+        defaultVisible: false,
+        defaultSize: 'small',
+        supportedLayouts: ['compact', 'standard'],
+        requiredPermission: 'operations.read',
+        renderComponent: 'operations.pending.placeholder'
+      })
+    ],
     menuItems: [
       menuItem({ key: 'tables-management', label: 'Alanlar', route: 'tables', icon: 'AL', displayOrder: 10 }),
       menuItem({ key: 'adisyon', label: 'İşlemler', route: 'tables', icon: 'IS', displayOrder: 20 }),
@@ -548,6 +612,21 @@ export const BUSINESS_WORKSPACE_MODULE_REGISTRY: BusinessWorkspaceModule[] = def
     licenseModuleKey: 'qr-menu',
     pricing: { model: 'paid', currency: 'TRY' },
     marketplace: marketplaceReady,
+    dashboardWidgets: [
+      dashboardWidget({
+        id: 'digital-requests.summary',
+        title: 'Dijital Talepler',
+        description: 'Dijital kanallardan gelen taleplerin Dashboard üzerinde izlenebileceği widget alanı.',
+        icon: 'DT',
+        category: 'Operasyon',
+        order: 10,
+        defaultVisible: false,
+        defaultSize: 'medium',
+        supportedLayouts: ['standard', 'wide'],
+        requiredPermission: 'operations.read',
+        renderComponent: 'digitalCatalog.requests.placeholder'
+      })
+    ],
     menuItems: [
       menuItem({ key: 'qr-orders', label: 'Dijital Talepler', route: 'qr-orders', icon: 'DT', displayOrder: 10 }),
       menuItem({ key: 'waiter-calls', label: 'Görevli Çağrıları', route: 'qr-orders', icon: 'GC', displayOrder: 20 }),
@@ -573,6 +652,60 @@ export const BUSINESS_WORKSPACE_MODULE_REGISTRY: BusinessWorkspaceModule[] = def
     licenseModuleKey: 'stock',
     pricing: { model: 'paid', currency: 'TRY' },
     marketplace: marketplaceReady,
+    dashboardWidgets: [
+      dashboardWidget({
+        id: 'stock.critical',
+        title: 'Kritik Stok',
+        description: 'Kritik seviyeye yaklaşan stok kayıtları için izleme widget alanı.',
+        icon: 'KS',
+        category: 'Stok',
+        order: 10,
+        defaultVisible: false,
+        defaultSize: 'medium',
+        supportedLayouts: ['compact', 'standard'],
+        requiredPermission: 'stock.read',
+        renderComponent: 'stock.critical.placeholder'
+      }),
+      dashboardWidget({
+        id: 'stock.movements',
+        title: 'Son Hareketler',
+        description: 'Son stok hareketlerinin Dashboard üzerinde özetlenebileceği widget alanı.',
+        icon: 'SH',
+        category: 'Stok',
+        order: 20,
+        defaultVisible: false,
+        defaultSize: 'medium',
+        supportedLayouts: ['standard', 'wide'],
+        requiredPermission: 'stock.read',
+        renderComponent: 'stock.movements.placeholder'
+      }),
+      dashboardWidget({
+        id: 'stock.locations',
+        title: 'Depolar',
+        description: 'Depo ve stok alanı görünümü için hazırlanmış Dashboard widget alanı.',
+        icon: 'DP',
+        category: 'Stok',
+        order: 30,
+        defaultVisible: false,
+        defaultSize: 'small',
+        supportedLayouts: ['compact', 'standard'],
+        requiredPermission: 'stock.read',
+        renderComponent: 'stock.locations.placeholder'
+      }),
+      dashboardWidget({
+        id: 'stock.validity',
+        title: 'Geçerlilik',
+        description: 'Geçerlilik takibi yapılan kayıtların Dashboard üzerinde izlenebileceği widget alanı.',
+        icon: 'GT',
+        category: 'Stok',
+        order: 40,
+        defaultVisible: false,
+        defaultSize: 'medium',
+        supportedLayouts: ['standard', 'wide'],
+        requiredPermission: 'stock.read',
+        renderComponent: 'stock.validity.placeholder'
+      })
+    ],
     menuItems: [
       menuItem({ key: 'stock-cards', label: 'Kartlar', route: 'stock-cards', icon: 'SK', adminOnly: true, displayOrder: 10 }),
       menuItem({ key: 'stock-movements', label: 'Hareketler', route: 'stock-movements', icon: 'SH', adminOnly: true, displayOrder: 20 }),
@@ -610,6 +743,21 @@ export const BUSINESS_WORKSPACE_MODULE_REGISTRY: BusinessWorkspaceModule[] = def
     licenseModuleKey: 'recipe',
     pricing: { model: 'paid', currency: 'TRY' },
     marketplace: marketplaceReady,
+    dashboardWidgets: [
+      dashboardWidget({
+        id: 'production.definitions',
+        title: 'Üretim Tanımları',
+        description: 'Üretim tanımları ve bağlı stok ilişkileri için Dashboard widget alanı.',
+        icon: 'UT',
+        category: 'Operasyon',
+        order: 10,
+        defaultVisible: false,
+        defaultSize: 'medium',
+        supportedLayouts: ['standard', 'wide'],
+        requiredPermission: 'products.read',
+        renderComponent: 'production.definitions.placeholder'
+      })
+    ],
     menuItems: [
       menuItem({ key: 'recipes', label: 'Üretim Tanımları', route: 'recipes', icon: 'UT', adminOnly: true, displayOrder: 10 })
     ]
@@ -633,6 +781,34 @@ export const BUSINESS_WORKSPACE_MODULE_REGISTRY: BusinessWorkspaceModule[] = def
     licenseModuleKey: 'current',
     pricing: { model: 'paid', currency: 'TRY' },
     marketplace: marketplaceReady,
+    dashboardWidgets: [
+      dashboardWidget({
+        id: 'current.summary',
+        title: 'Cari Özeti',
+        description: 'Cari kart ve hareketlerinin Dashboard üzerinde izlenebileceği özet widget alanı.',
+        icon: 'CK',
+        category: 'Cari',
+        order: 10,
+        defaultVisible: false,
+        defaultSize: 'medium',
+        supportedLayouts: ['standard', 'wide'],
+        requiredPermission: 'finance.read',
+        renderComponent: 'current.summary.placeholder'
+      }),
+      dashboardWidget({
+        id: 'current.risk',
+        title: 'Riskli Cari',
+        description: 'Riskli cari kayıtları için hazırlanmış Dashboard takip widget alanı.',
+        icon: 'RC',
+        category: 'Cari',
+        order: 20,
+        defaultVisible: false,
+        defaultSize: 'medium',
+        supportedLayouts: ['compact', 'standard'],
+        requiredPermission: 'finance.read',
+        renderComponent: 'current.risk.placeholder'
+      })
+    ],
     menuItems: [
       menuItem({ key: 'current-accounts', label: 'Kartlar', route: 'current-accounts', icon: 'CK', adminOnly: true, displayOrder: 10 }),
       menuItem({ key: 'current-account-movements', label: 'Hareketler', route: 'current-account-movements', icon: 'CH', adminOnly: true, displayOrder: 20 }),
@@ -669,6 +845,21 @@ export const BUSINESS_WORKSPACE_MODULE_REGISTRY: BusinessWorkspaceModule[] = def
     licenseModuleKey: 'credit',
     pricing: { model: 'paid', currency: 'TRY' },
     marketplace: marketplaceReady,
+    dashboardWidgets: [
+      dashboardWidget({
+        id: 'credit.collections',
+        title: 'Tahsilat Takibi',
+        description: 'Tahsilat bekleyen kayıtlar için Dashboard widget alanı.',
+        icon: 'TH',
+        category: 'Cari',
+        order: 10,
+        defaultVisible: false,
+        defaultSize: 'medium',
+        supportedLayouts: ['standard', 'wide'],
+        requiredPermission: 'finance.read',
+        renderComponent: 'credit.collections.placeholder'
+      })
+    ],
     menuItems: [
       menuItem({ key: 'credit-transactions', label: 'İşlemler', route: 'credit-transactions', icon: 'VI', adminOnly: true, displayOrder: 10 }),
       menuItem({ key: 'collection-transactions', label: 'Tahsilat', route: 'collection-transactions', icon: 'TI', adminOnly: true, displayOrder: 20 })
@@ -693,6 +884,34 @@ export const BUSINESS_WORKSPACE_MODULE_REGISTRY: BusinessWorkspaceModule[] = def
     licenseModuleKey: 'finance',
     pricing: { model: 'paid', currency: 'TRY' },
     marketplace: marketplaceReady,
+    dashboardWidgets: [
+      dashboardWidget({
+        id: 'finance.cash-status',
+        title: 'Kasa Durumu',
+        description: 'Kasa hareketleri ve güncel finans görünümü için Dashboard widget alanı.',
+        icon: 'KH',
+        category: 'Finans',
+        order: 10,
+        defaultVisible: false,
+        defaultSize: 'medium',
+        supportedLayouts: ['compact', 'standard'],
+        requiredPermission: 'finance.read',
+        renderComponent: 'finance.cashStatus.placeholder'
+      }),
+      dashboardWidget({
+        id: 'finance.income-expense',
+        title: 'Gelir Gider Özeti',
+        description: 'Gelir ve gider kayıtlarının Dashboard üzerinde özetlenebileceği widget alanı.',
+        icon: 'GG',
+        category: 'Finans',
+        order: 20,
+        defaultVisible: false,
+        defaultSize: 'medium',
+        supportedLayouts: ['standard', 'wide'],
+        requiredPermission: 'finance.read',
+        renderComponent: 'finance.incomeExpense.placeholder'
+      })
+    ],
     menuItems: [
       menuItem({ key: 'supplier-debts', label: 'Tedarikçi Borçları', route: 'supplier-debts', icon: 'TB', adminOnly: true, displayOrder: 10 }),
       menuItem({ key: 'supplier-payments', label: 'Tedarikçi Ödemeleri', route: 'supplier-payments', icon: 'TO', adminOnly: true, displayOrder: 20 }),
@@ -731,6 +950,60 @@ export const BUSINESS_WORKSPACE_MODULE_REGISTRY: BusinessWorkspaceModule[] = def
     licenseModuleKey: 'personnel',
     pricing: { model: 'paid', currency: 'TRY' },
     marketplace: marketplaceReady,
+    dashboardWidgets: [
+      dashboardWidget({
+        id: 'personnel.total',
+        title: 'Toplam Personel',
+        description: 'Workspace personel kayıtları için Dashboard özet widget alanı.',
+        icon: 'TP',
+        category: 'Personel',
+        order: 10,
+        defaultVisible: false,
+        defaultSize: 'small',
+        supportedLayouts: ['compact', 'standard'],
+        requiredPermission: 'personnel.read',
+        renderComponent: 'personnel.total.placeholder'
+      }),
+      dashboardWidget({
+        id: 'personnel.leave-today',
+        title: 'Bugün İzinli',
+        description: 'Günlük izin durumlarını Dashboard üzerinde izlemek için widget alanı.',
+        icon: 'IZ',
+        category: 'Personel',
+        order: 20,
+        defaultVisible: false,
+        defaultSize: 'small',
+        supportedLayouts: ['compact', 'standard'],
+        requiredPermission: 'personnel.read',
+        renderComponent: 'personnel.leaveToday.placeholder'
+      }),
+      dashboardWidget({
+        id: 'personnel.shift-summary',
+        title: 'Mesai Özeti',
+        description: 'Vardiya ve puantaj durumları için Dashboard widget alanı.',
+        icon: 'MO',
+        category: 'Personel',
+        order: 30,
+        defaultVisible: false,
+        defaultSize: 'medium',
+        supportedLayouts: ['standard', 'wide'],
+        requiredPermission: 'personnel.read',
+        renderComponent: 'personnel.shiftSummary.placeholder'
+      }),
+      dashboardWidget({
+        id: 'personnel.new-records',
+        title: 'Yeni Personeller',
+        description: 'Son eklenen personel kayıtları için hazırlanmış Dashboard widget alanı.',
+        icon: 'YP',
+        category: 'Personel',
+        order: 40,
+        defaultVisible: false,
+        defaultSize: 'medium',
+        supportedLayouts: ['standard', 'wide'],
+        requiredPermission: 'personnel.read',
+        renderComponent: 'personnel.newRecords.placeholder'
+      })
+    ],
     menuItems: [
       menuItem({ key: 'employee-cards', label: 'Kartlar', route: 'employee-cards', icon: 'PK', adminOnly: true, displayOrder: 10 }),
       menuItem({ key: 'shift-management', label: 'Vardiya', route: 'shift-management', icon: 'VY', adminOnly: true, displayOrder: 20 }),
@@ -770,41 +1043,26 @@ export const BUSINESS_WORKSPACE_MODULE_REGISTRY: BusinessWorkspaceModule[] = def
     licenseModuleKey: 'multi-branch',
     pricing: { model: 'paid', currency: 'TRY' },
     marketplace: marketplaceReady,
+    dashboardWidgets: [
+      dashboardWidget({
+        id: 'branches.summary',
+        title: 'Şube Özeti',
+        description: 'Çoklu lokasyon görünümü ve merkez yönetim özetleri için Dashboard widget alanı.',
+        icon: 'SO',
+        category: 'Sistem',
+        order: 10,
+        defaultVisible: false,
+        defaultSize: 'medium',
+        supportedLayouts: ['standard', 'wide'],
+        requiredPermission: 'company.read',
+        renderComponent: 'branches.summary.placeholder'
+      })
+    ],
     menuItems: [
       menuItem({ key: 'branch-permissions', label: 'Şube Yetkilendirme', route: 'branch-permissions', icon: 'SY', adminOnly: true, displayOrder: 10 }),
       menuItem({ key: 'branch-reporting', label: 'Şubeler Arası Raporlama', route: 'branch-reporting', icon: 'SR', adminOnly: true, displayOrder: 20 }),
       menuItem({ key: 'branch-stock-transfers', label: 'Şubeler Arası Stok Transferi', route: 'branch-stock-transfers', icon: 'ST', adminOnly: true, displayOrder: 30 }),
       menuItem({ key: 'head-office-management', label: 'Merkez Ofis Yönetimi', route: 'head-office-management', icon: 'MO', adminOnly: true, displayOrder: 40 })
-    ]
-  },
-  {
-    id: 'business-reporting',
-    code: 'reporting-analytics',
-    name: 'Raporlama',
-    description: 'Rapor merkezi, analitik dashboard ve performans analizlerini tek modül altında toplar.',
-    category: 'business',
-    icon: 'RP',
-    route: 'reports',
-    permissions: ['dashboard.read'],
-    isCoreModule: false,
-    isBusinessModule: true,
-    isEnabled: true,
-    isVisible: false,
-    displayOrder: 100,
-    dependencies: ['dashboard'],
-    tags: ['business', 'reporting', 'analytics'],
-    licenseModuleKey: 'analytics',
-    pricing: { model: 'paid', currency: 'TRY' },
-    marketplace: marketplaceReady,
-    menuItems: [
-      menuItem({ key: 'reports', label: 'Rapor Merkezi', route: 'reports', icon: 'RM', adminOnly: true, hidden: true, displayOrder: 10 }),
-      menuItem({ key: 'analytics-dashboard', label: 'Analitik Dashboard', route: 'analytics-dashboard', icon: 'AD', adminOnly: true, hidden: true, displayOrder: 20 }),
-      menuItem({ key: 'system-health-telemetry', label: 'Sistem Sağlığı ve Telemetri', route: 'system-health-telemetry', icon: 'ST', adminOnly: true, hidden: true, displayOrder: 60 }),
-      menuItem({ key: 'system-usage-logs', label: 'Sistem Kullanım Logları', route: 'system-usage-logs', icon: 'SL', adminOnly: true, hidden: true, displayOrder: 70 }),
-      menuItem({ key: 'user-activity-tracking', label: 'Kullanıcı Aktivite Takibi', route: 'user-activity-tracking', icon: 'KA', adminOnly: true, hidden: true, displayOrder: 80 }),
-      menuItem({ key: 'module-usage-analysis', label: 'Modül Kullanım Analizleri', route: 'module-usage-analysis', icon: 'MA', adminOnly: true, hidden: true, displayOrder: 90 }),
-      menuItem({ key: 'business-usage-stats', label: 'İşletme Kullanım İstatistikleri', route: 'business-usage-stats', icon: 'IK', adminOnly: true, hidden: true, displayOrder: 100 }),
-      menuItem({ key: 'usage-performance-analysis', label: 'Performans ve Yoğunluk Analizleri', route: 'usage-performance-analysis', icon: 'PY', adminOnly: true, hidden: true, displayOrder: 110 })
     ]
   },
   {
@@ -826,6 +1084,21 @@ export const BUSINESS_WORKSPACE_MODULE_REGISTRY: BusinessWorkspaceModule[] = def
     licenseModuleKey: 'boss-dashboard',
     pricing: { model: 'paid', currency: 'TRY' },
     marketplace: marketplaceReady,
+    dashboardWidgets: [
+      dashboardWidget({
+        id: 'manager.alerts',
+        title: 'Yönetici Uyarıları',
+        description: 'Kritik uyarı ve aksiyon önerilerinin Dashboard üzerinde izlenebileceği widget alanı.',
+        icon: 'YU',
+        category: 'Sistem',
+        order: 10,
+        defaultVisible: false,
+        defaultSize: 'large',
+        supportedLayouts: ['standard', 'wide'],
+        requiredPermission: 'dashboard.read',
+        renderComponent: 'manager.alerts.placeholder'
+      })
+    ],
     menuItems: [
       menuItem({ key: 'manager-alert-center', label: 'Yönetici Uyarı Merkezi', route: 'manager-alert-center', icon: 'YU', adminOnly: true, displayOrder: 10 })
     ]

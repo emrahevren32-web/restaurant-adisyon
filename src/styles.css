@@ -56,6 +56,8 @@ textarea { resize:vertical }
 .btn:focus-visible, .side-nav-title:focus-visible, .side-nav-item:focus-visible, .report-tab-btn:focus-visible, .topbar-notification:focus-visible, .notification-item:focus-visible { outline:2px solid var(--accent); outline-offset:2px }
 .btn.primary { background:var(--accent); color:#fff; border-color:var(--accent); box-shadow:0 7px 16px rgba(37,99,235,.18) }
 .btn.primary:hover:not(:disabled) { background:var(--accent-hover); color:#fff; border-color:var(--accent-hover); box-shadow:0 9px 20px rgba(37,99,235,.22) }
+.btn.ghost { background:var(--surface); color:var(--muted-strong); border-color:var(--line); box-shadow:var(--shadow-xs) }
+.btn.ghost:hover:not(:disabled) { background:var(--surface-muted); color:var(--text); border-color:var(--line-strong) }
 .btn.warning { background:var(--warning-soft); color:var(--warning); border-color:var(--warning-line); box-shadow:0 7px 16px rgba(146,64,14,.08) }
 .btn.warning:hover:not(:disabled) { background:#fef3c7; color:#78350f; border-color:#fcd34d }
 .btn.danger { background:var(--danger-soft); color:var(--danger); border-color:var(--danger-line); box-shadow:0 7px 16px rgba(180,35,24,.08) }
@@ -823,6 +825,7 @@ th { color:var(--muted-strong); font-size:13px; font-weight:750 }
 .workspace-welcome-mark { display:flex; justify-content:flex-end }
 .workspace-welcome-mark span { display:inline-flex; align-items:center; justify-content:center; width:92px; height:92px; border:1px solid var(--accent-line); border-radius:var(--radius-md); background:var(--accent-soft); color:var(--accent); font-size:24px; font-weight:950; box-shadow:var(--shadow-xs) }
 .workspace-welcome-grid { display:grid; grid-template-columns:repeat(3, minmax(0, 1fr)); gap:14px }
+.workspace-welcome-grid.single { grid-template-columns:minmax(0, 1fr); max-width:520px }
 .workspace-welcome-panel { min-width:0; border:1px solid var(--line); border-radius:var(--radius-md); padding:16px; background:var(--surface); box-shadow:var(--shadow-xs) }
 .workspace-welcome-panel.attention { border-color:var(--warning-line); background:var(--warning-soft) }
 .workspace-welcome-panel span { display:inline-flex; align-items:center; justify-content:center; width:34px; height:28px; border:1px solid var(--line); border-radius:var(--radius-sm); background:var(--surface-muted); color:var(--muted-strong); font-size:12px; font-weight:950 }
@@ -836,12 +839,17 @@ th { color:var(--muted-strong); font-size:13px; font-weight:750 }
 .workspace-welcome-actions { display:flex; flex-wrap:wrap; gap:10px; justify-content:flex-end }
 .workspace-welcome-button { min-height:52px; min-width:190px; font-size:15px }
 .dashboard-widget-empty { display:grid; grid-template-columns:78px minmax(0, 1fr); gap:16px; align-items:center; border:1px solid var(--line); border-radius:var(--radius-md); padding:22px; background:var(--surface); box-shadow:var(--card-shadow); min-width:0 }
+.dashboard-widget-empty-simple { display:flex; align-items:center; justify-content:flex-start; border:0; border-radius:0; padding:0; background:transparent; box-shadow:none }
 .dashboard-widget-empty-icon { display:inline-flex; align-items:center; justify-content:center; width:78px; height:78px; border:1px solid var(--line); border-radius:var(--radius-md); background:var(--surface-muted); color:var(--accent); font-size:20px; font-weight:950 }
 .dashboard-widget-empty h3 { margin:9px 0 7px; color:var(--text); font-size:22px; line-height:1.2; font-weight:950; overflow-wrap:anywhere }
 .dashboard-widget-empty p { margin:0; color:var(--text-soft); font-size:14px; font-weight:780; line-height:1.45; overflow-wrap:anywhere }
 .dashboard-widget-empty-actions { display:flex; flex-wrap:wrap; gap:10px; margin-top:16px }
+.dashboard-widget-empty-simple .dashboard-widget-empty-actions { margin-top:0 }
 .dashboard-widget-empty-actions .btn { min-height:50px; min-width:160px }
 .dashboard-widget-container-shell { border:1px dashed var(--line); border-radius:var(--radius-md); padding:16px; background:var(--surface-muted); min-width:0 }
+.dashboard-widget-container-clean { display:grid; gap:16px; border:0; padding:0; background:transparent }
+.dashboard-widget-toolbar { display:flex; flex-wrap:wrap; gap:10px; align-items:center; justify-content:flex-end; min-width:0 }
+.dashboard-widget-toolbar .btn { min-width:150px }
 .dashboard-widget-add-panel { display:grid; gap:14px; border:1px solid var(--accent-line); border-radius:var(--radius-md); padding:16px; background:var(--accent-soft); min-width:0; box-shadow:var(--shadow-xs) }
 .dashboard-widget-flow { display:grid; grid-template-columns:repeat(3, minmax(0, 1fr)); gap:8px }
 .dashboard-widget-flow span { position:relative; display:flex; align-items:center; justify-content:center; min-height:38px; border:1px solid var(--accent-line); border-radius:var(--radius-md); padding:8px 10px; background:var(--surface); color:var(--accent); font-size:12px; font-weight:950; line-height:1.2; text-align:center }
@@ -849,18 +857,49 @@ th { color:var(--muted-strong); font-size:13px; font-weight:750 }
 .dashboard-widget-placeholder { display:grid; gap:5px; justify-items:center; min-height:150px; align-content:center; border:1px solid var(--line-soft); border-radius:var(--radius-md); background:var(--surface); text-align:center; padding:18px }
 .dashboard-widget-placeholder strong { color:var(--text); font-size:16px; line-height:1.25; font-weight:950 }
 .dashboard-widget-placeholder span { color:var(--muted); font-size:13px; line-height:1.4; font-weight:800 }
-.dashboard-widget-grid { display:grid; grid-template-columns:repeat(auto-fit, minmax(230px, 1fr)); gap:12px }
-.dashboard-widget-catalog-grid { display:grid; grid-template-columns:repeat(auto-fit, minmax(260px, 1fr)); gap:12px }
-.dashboard-widget-card { display:grid; grid-template-columns:46px minmax(0, 1fr); gap:12px; align-items:start; min-width:0; border:1px solid var(--line); border-radius:var(--radius-md); padding:14px; background:var(--surface); box-shadow:var(--shadow-xs) }
+.dashboard-widget-group-stack,
+.dashboard-widget-catalog-stack { display:grid; gap:16px; min-width:0 }
+.dashboard-widget-group,
+.dashboard-widget-catalog-group { display:grid; gap:10px; min-width:0 }
+.dashboard-widget-group-title { display:flex; align-items:center; justify-content:flex-start; gap:12px; min-width:0 }
+.dashboard-widget-group-title::after { content:''; flex:1 1 auto; min-width:24px; height:1px; background:var(--line) }
+.dashboard-widget-group-title h3 { margin:0; color:var(--muted-strong); font-size:13px; line-height:1.25; font-weight:950; text-transform:uppercase; overflow-wrap:anywhere }
+.dashboard-widget-group-title span { display:inline-flex; align-items:center; min-height:28px; border:1px solid var(--line); border-radius:var(--radius-sm); padding:4px 9px; background:var(--surface); color:var(--muted-strong); font-size:12px; line-height:1.2; font-weight:900; white-space:nowrap }
+.dashboard-widget-group-title.compact { gap:10px }
+.dashboard-widget-group-title.compact::after { min-width:16px }
+.dashboard-widget-grid { display:grid; grid-template-columns:repeat(4, minmax(0, 1fr)); gap:12px; align-items:stretch }
+.dashboard-widget-catalog-grid { display:grid; grid-template-columns:repeat(auto-fit, minmax(220px, 1fr)); gap:10px }
+.dashboard-widget-card { display:grid; grid-template-columns:46px minmax(0, 1fr); gap:12px; align-items:start; min-width:0; min-height:190px; border:1px solid var(--line); border-radius:var(--radius-md); padding:14px; background:var(--surface); box-shadow:var(--shadow-xs) }
+.dashboard-widget-card.small { grid-column:span 1 }
+.dashboard-widget-card.medium { grid-column:span 2 }
+.dashboard-widget-card.large { grid-column:1 / -1 }
 .dashboard-widget-catalog-card { display:grid; grid-template-columns:46px minmax(0, 1fr); gap:12px; align-items:start; min-width:0; border:1px solid var(--line); border-radius:var(--radius-md); padding:14px; background:var(--surface); box-shadow:var(--shadow-xs) }
+.dashboard-widget-catalog-card.compact { grid-template-columns:40px minmax(0, 1fr); gap:10px; padding:12px }
 .dashboard-widget-card-icon { display:inline-flex; align-items:center; justify-content:center; width:46px; height:46px; border:1px solid var(--accent-line); border-radius:var(--radius-md); background:var(--accent-soft); color:var(--accent); font-size:13px; font-weight:950 }
+.dashboard-widget-catalog-card.compact .dashboard-widget-card-icon { width:40px; height:40px; font-size:12px }
+.dashboard-widget-card-body { display:grid; gap:8px; min-width:0 }
+.dashboard-widget-card-meta { display:flex; flex-wrap:wrap; gap:6px; align-items:center; min-width:0 }
+.dashboard-widget-card-meta strong { color:var(--accent); font-size:12px; line-height:1.2; font-weight:950 }
+.dashboard-widget-card-meta span,
+.dashboard-widget-catalog-meta span { display:inline-flex; align-items:center; min-height:24px; border:1px solid var(--line); border-radius:var(--radius-sm); padding:3px 7px; background:var(--surface-muted); color:var(--muted-strong); font-size:11px; line-height:1.2; font-weight:900 }
 .dashboard-widget-card h4,
 .dashboard-widget-catalog-card h4 { margin:0 0 6px; color:var(--text); font-size:16px; line-height:1.25; font-weight:950; overflow-wrap:anywhere }
 .dashboard-widget-catalog-card strong { display:block; margin-bottom:4px; color:var(--accent); font-size:12px; line-height:1.2; font-weight:950 }
 .dashboard-widget-card p,
 .dashboard-widget-catalog-card p { margin:0; color:var(--text-soft); font-size:13px; line-height:1.4; font-weight:760; overflow-wrap:anywhere }
 .dashboard-widget-card em { grid-column:1 / -1; justify-self:start; font-style:normal }
+.dashboard-widget-render-placeholder { display:grid; gap:4px; border:1px dashed var(--line); border-radius:var(--radius-md); padding:10px; background:var(--surface-muted); min-width:0 }
+.dashboard-widget-render-placeholder span { color:var(--muted-strong); font-size:12px; font-weight:950; overflow-wrap:anywhere }
+.dashboard-widget-render-placeholder small { color:var(--muted); font-size:12px; line-height:1.35; font-weight:760 }
+.dashboard-widget-card-actions { grid-column:1 / -1; display:flex; flex-wrap:wrap; gap:8px; justify-content:flex-end; align-self:end }
+.dashboard-widget-card-actions .btn { min-height:38px }
+.dashboard-widget-catalog-meta { display:flex; flex-wrap:wrap; gap:6px; margin-top:10px }
 .dashboard-widget-catalog-card .btn { grid-column:1 / -1; min-height:44px }
+.dashboard-widget-drawer-overlay { position:fixed; inset:0; z-index:90; display:flex; justify-content:flex-end; padding:14px; background:rgba(15,23,42,.36); backdrop-filter:blur(2px) }
+.dashboard-widget-drawer { display:flex; flex-direction:column; gap:16px; width:min(560px, 100%); height:100%; overflow:auto; border:1px solid var(--line); border-radius:var(--radius-md); padding:18px; background:var(--surface); box-shadow:0 22px 60px rgba(15,23,42,.24); min-width:0 }
+.dashboard-widget-drawer-header { display:flex; justify-content:space-between; align-items:flex-start; gap:14px; min-width:0; padding-bottom:14px; border-bottom:1px solid var(--line-soft) }
+.dashboard-widget-drawer-header h3 { margin:0 0 5px; color:var(--text); font-size:20px; line-height:1.2; font-weight:950; overflow-wrap:anywhere }
+.dashboard-widget-drawer-header p { margin:0; color:var(--text-soft); font-size:13px; line-height:1.4; font-weight:780; overflow-wrap:anywhere }
 .tenant-management-page { display:flex; flex-direction:column; gap:18px; min-width:0; max-width:100% }
 .tenant-management-filters { grid-template-columns:minmax(150px, .85fr) minmax(180px, 1fr) minmax(130px, .7fr) minmax(136px, .65fr) minmax(136px, .65fr); width:100%; max-width:100%; min-width:0 }
 .tenant-management-table { min-width:1180px }
@@ -1995,7 +2034,18 @@ th { color:var(--muted-strong); font-size:13px; font-weight:750 }
   .integration-foundation-grid,
   .integration-toolbar,
   .dashboard-widget-catalog-grid,
+  .dashboard-widget-grid,
   .dashboard-widget-flow { grid-template-columns:1fr }
+  .dashboard-widget-card.small,
+  .dashboard-widget-card.medium,
+  .dashboard-widget-card.large { grid-column:auto }
+  .dashboard-widget-toolbar,
+  .dashboard-widget-group-title { align-items:stretch; flex-direction:column }
+  .dashboard-widget-group-title::after { width:100%; min-width:0; flex-basis:auto }
+  .dashboard-widget-drawer-overlay { padding:0 }
+  .dashboard-widget-drawer { width:100%; max-width:none; border-radius:0; border-right:0; border-top:0; border-bottom:0 }
+  .dashboard-widget-drawer-header { flex-direction:column }
+  .dashboard-widget-drawer-header .btn { width:100% }
   .dashboard-widget-flow span + span::before { display:none }
   .kitchen-grid { grid-template-columns:1fr }
   .form-row, .stock-movement-type-row, .recipe-add-controls, .recipe-item-row, .recipe-cost-box, .inline-form, .category-row, .category-edit-form, .order-summary, .picker-controls, .checkout-panel, .checkout-total-grid, .payment-grid, .credit-payment-summary, .cash-closing-preview, .cash-transfer-preview, .table-grid, .discount-controls, .product-pick-row, .history-controls, .history-detail-grid, .report-highlight-grid, .report-center-kpi-grid, .waste-reason-summary-grid, .current-report-summary-grid, .risky-current-summary-grid, .employee-report-summary-grid, .employee-report-risk-grid, .financial-summary-grid, .business-summary-grid, .sales-analysis-grid, .product-performance-grid, .product-risk-grid, .stock-risk-grid, .stock-risk-list-grid, .current-finance-summary-grid, .finance-risk-grid, .personnel-performance-grid, .personnel-summary-grid, .personnel-risk-grid, .manager-alert-score-grid, .manager-alert-grid, .manager-alert-category-grid, .branch-reporting-grid, .branch-report-best-grid, .head-office-grid, .head-office-transfer-grid, .system-usage-analysis-grid, .user-activity-analysis-grid, .user-activity-detail-grid, .module-usage-analysis-grid, .module-usage-detail-grid, .business-usage-analysis-grid, .business-usage-detail-grid, .usage-performance-density-grid, .usage-performance-analysis-grid, .usage-performance-detail-grid, .usage-performance-summary-grid, .analytics-dashboard-summary-grid, .analytics-dashboard-trend-grid, .analytics-dashboard-detail-grid, .system-health-telemetry-grid, .system-health-risk-grid, .system-health-values, .company-setup-detail-grid, .company-setup-step-grid, .company-setup-result-values, .package-license-detail-grid, .package-default-grid, .user-subscription-detail-grid, .user-subscription-form-grid, .user-subscription-summary, .module-activation-detail-grid, .module-activation-summary, .module-activation-access-columns, .module-activation-test-form, .module-activation-operation-list, .module-activation-module-row, .package-license-form-grid, .package-license-access-summary, .package-license-access-grid, .license-module-grid, .system-usage-analysis-list > div, .sales-hour-row, .payment-analysis-row, .trend-analysis-row, .financial-summary-values, .financial-report-list-grid, .executive-mini-grid, .executive-quick-links, .qr-product-card, .qr-request-list, .qr-request-meta, .qr-edit-row, .qr-edit-add-row, .qr-reject-row, .waiter-call-list, .critical-stock-row, .settings-form-grid { grid-template-columns:1fr }

@@ -6,6 +6,7 @@ import {
   loadCompanySetups,
   loadCompanyUsers,
   loadSettings,
+  loadSectors,
   loadTenantSettings,
   loadTenants,
   loadUsers,
@@ -160,6 +161,10 @@ export const getFirstLoginOnboardingState = (user: User): FirstLoginOnboardingSt
   const companyUsers = loadCompanyUsers({ allTenants: true })
   const licenses = loadCompanyLicenses({ allTenants: true })
   const company = companies.find(item => item.id === companyId) || null
+  const sectors = loadSectors({ includeInactive: true })
+  const primarySector = company
+    ? sectors.find(sector => sector.id === company.primarySectorId) || null
+    : null
   const setup = companyId ? findSetupForUser(setups, user, companyId) : null
   const branch = companyId ? findPrimaryBranch(branches, setup, companyId) : null
   const companyUser = companyId ? findCompanyUser(companyUsers, user, companyId) : null
@@ -174,6 +179,7 @@ export const getFirstLoginOnboardingState = (user: User): FirstLoginOnboardingSt
     completionKey,
     currentUser: user,
     company,
+    primarySector,
     setup,
     branch,
     companyUser,

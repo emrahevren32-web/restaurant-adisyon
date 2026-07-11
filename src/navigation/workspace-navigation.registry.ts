@@ -8,6 +8,7 @@ import {
   getBusinessWorkspaceModules
 } from '../modules/business-workspace.registry'
 import {
+  MODULE_SCOPES,
   WORKSPACE_MODULE_TYPES,
   type WorkspaceModuleType
 } from '../modules/module-registry.types'
@@ -38,6 +39,7 @@ const shouldIncludeModule = (
   module: BusinessWorkspaceModule,
   options: CreateWorkspaceNavigationTreeOptions
 ) => {
+  if(module.scope !== MODULE_SCOPES.SYSTEM && module.scope !== MODULE_SCOPES.BUSINESS) return false
   if(module.isCoreModule && options.isCoreModuleVisible && !options.isCoreModuleVisible(module)) return false
   if(module.isCoreModule || module.isAlwaysActive) return true
   return options.isModuleEnabled ? options.isModuleEnabled(module) : true

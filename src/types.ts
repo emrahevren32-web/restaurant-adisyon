@@ -29,6 +29,17 @@ export type TenantSettings = {
   updatedAt: string
 }
 
+export type Sector = {
+  id: string
+  code: string
+  name: string
+  description: string
+  icon: string
+  color: string
+  isActive: boolean
+  sortOrder: number
+}
+
 export type ProductCategory = {
   id: string
   tenantId?: string
@@ -713,6 +724,7 @@ export type ApplicationStatus = 'Beklemede' | 'İnceleniyor' | 'Onaylandı' | 'R
 export type BusinessApplication = {
   id: string
   companyId: string
+  primarySectorId: string
   companyName: string
   ownerName: string
   phone: string
@@ -755,6 +767,7 @@ export type Company = {
   authorizedEmail: string
   status: CompanyStatus
   isApproved: boolean
+  primarySectorId: string
   approvedAt: string
   approvedBy: string
   workspaceId: string

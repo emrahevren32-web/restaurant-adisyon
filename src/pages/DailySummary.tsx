@@ -1,5 +1,20 @@
 import React from 'react'
-import { getDashboardWidgetContainer } from '../dashboard/dashboard-widget.service'
+import {
+  addDashboardWidget,
+  DASHBOARD_WIDGET_LAYOUT_EVENT,
+  getDashboardWidgetContainer,
+  removeDashboardWidget,
+  setDashboardWidgetVisibility
+} from '../dashboard/dashboard-widget.service'
+import type {
+  DashboardWidgetCatalogItem,
+  DashboardWidgetContainer,
+  DashboardWidgetViewModel
+} from '../dashboard/dashboard-widget.types'
+import {
+  getManagedWorkspaceModulesForUser,
+  WORKSPACE_MODULE_LIFECYCLE_EVENT
+} from '../workspace/workspace-module-lifecycle.service'
 import type { User } from '../types'
 
 type Props = {
@@ -7,109 +22,261 @@ type Props = {
   onOpenMarketplace: () => void
 }
 
+const getCatalogActionLabel = (widget: DashboardWidgetCatalogItem) => {
+  if(widget.added && widget.visibleInDashboard) return 'Eklendi'
+  if(widget.added && !widget.visibleInDashboard) return 'Göster'
+  return 'Ekle'
+}
+
+const hasManagedBusinessModules = (user: User) => (
+  getManagedWorkspaceModulesForUser(user).some(module => module.isBusinessModule)
+)
+
+const WidgetCard = ({
+  widget,
+  onHide,
+  onRemove
+}: {
+  widget: DashboardWidgetViewModel
+  onHide: (widgetId: string) => void
+  onRemove: (widgetId: string) => void
+}) => (
+  <article className={`dashboard-widget-card ${widget.size}`}>
+    <span className="dashboard-widget-card-icon" aria-hidden="true">
+      {widget.definition.icon || widget.definition.moduleIcon}
+    </span>
+    <div className="dashboard-widget-card-body">
+      <div className="dashboard-widget-card-meta">
+        <strong>{widget.definition.moduleName}</strong>
+      </div>
+      <h4>{widget.definition.title}</h4>
+      <p>{widget.definition.description}</p>
+      <div className="dashboard-widget-render-placeholder">
+        <span>Henüz veri oluşmadı.</span>
+        <small>Bu widget veri üretmeye başladığında burada gösterilecek.</small>
+      </div>
+    </div>
+    <div className="dashboard-widget-card-actions">
+      <button className="btn ghost" type="button" onClick={() => onHide(widget.id)}>
+        Gizle
+      </button>
+      <button className="btn danger" type="button" onClick={() => onRemove(widget.id)}>
+        Kaldır
+      </button>
+    </div>
+  </article>
+)
+
 export default function DailySummary({ currentUser, onOpenMarketplace }: Props){
   const [widgetPanelOpen, setWidgetPanelOpen] = React.useState(false)
   const [widgetMessage, setWidgetMessage] = React.useState('')
-  const container = React.useMemo(() => getDashboardWidgetContainer(currentUser), [currentUser])
+  const [hasBusinessModules, setHasBusinessModules] = React.useState(() => (
+    hasManagedBusinessModules(currentUser)
+  ))
+  const [container, setContainer] = React.useState<DashboardWidgetContainer>(() => (
+    getDashboardWidgetContainer(currentUser)
+  ))
+
+  const refreshContainer = React.useCallback(() => {
+    setContainer(getDashboardWidgetContainer(currentUser))
+    setHasBusinessModules(hasManagedBusinessModules(currentUser))
+  }, [currentUser])
+
+  React.useEffect(() => {
+    refreshContainer()
+  }, [refreshContainer])
+
+  React.useEffect(() => {
+    const refresh = () => refreshContainer()
+
+    window.addEventListener('storage', refresh)
+    window.addEventListener(DASHBOARD_WIDGET_LAYOUT_EVENT, refresh)
+    window.addEventListener(WORKSPACE_MODULE_LIFECYCLE_EVENT, refresh)
+
+    return () => {
+      window.removeEventListener('storage', refresh)
+      window.removeEventListener(DASHBOARD_WIDGET_LAYOUT_EVENT, refresh)
+      window.removeEventListener(WORKSPACE_MODULE_LIFECYCLE_EVENT, refresh)
+    }
+  }, [refreshContainer])
+
+  React.useEffect(() => {
+    if(!widgetPanelOpen) return undefined
+
+    const closeOnEscape = (event: KeyboardEvent) => {
+      if(event.key === 'Escape') setWidgetPanelOpen(false)
+    }
+
+    window.addEventListener('keydown', closeOnEscape)
+    return () => window.removeEventListener('keydown', closeOnEscape)
+  }, [widgetPanelOpen])
+
+  const handleAddWidget = (widget: DashboardWidgetCatalogItem) => {
+    const nextContainer = widget.added
+      ? setDashboardWidgetVisibility(currentUser, widget.instanceId || widget.id, true)
+      : addDashboardWidget(currentUser, widget.id)
+
+    setContainer(nextContainer)
+    setWidgetMessage(widget.added
+      ? `${widget.title} yeniden Dashboard üzerinde gösteriliyor.`
+      : `${widget.title} Dashboard'a eklendi.`
+    )
+  }
+
+  const handleHideWidget = (widgetId: string) => {
+    const nextContainer = setDashboardWidgetVisibility(currentUser, widgetId, false)
+    setContainer(nextContainer)
+    setWidgetMessage('Widget gizlendi. Katalog üzerinden tekrar görünür hale getirebilirsiniz.')
+  }
+
+  const handleRemoveWidget = (widgetId: string) => {
+    const nextContainer = removeDashboardWidget(currentUser, widgetId)
+    setContainer(nextContainer)
+    setWidgetMessage('Widget Dashboard yerleşiminden kaldırıldı.')
+  }
 
   return (
     <div className="summary-page dashboard-widget-page">
       <div className="page-title dashboard-title">
         <div>
-          <h2>{container.title}</h2>
-          <p className="muted">Dashboard, kurduğunuz modüllerle birlikte şekillenecek kişisel çalışma alanınızdır.</p>
+          <h2>Dashboard</h2>
+          <p className="muted">
+            {container.isEmpty
+              ? "Henüz Dashboard'unuzu oluşturmadınız. Widget ekleyerek çalışma alanınızı kişiselleştirebilirsiniz."
+              : 'Eklediğiniz widgetlarla çalışma alanınızı hızlıca takip edebilirsiniz.'}
+          </p>
         </div>
-        <div className="dashboard-title-actions">
-          <span className="status-pill info-pill">Dashboard</span>
-          <span className="dashboard-date-pill">{currentUser.role === 'Admin' ? 'Yönetici' : 'Kullanıcı'}</span>
-        </div>
+        {!container.isEmpty && (
+          <div className="dashboard-title-actions">
+            <span className="status-pill info-pill">{container.visibleWidgets.length} widget</span>
+            <span className="dashboard-date-pill">{currentUser.role === 'Admin' ? 'Yönetici' : 'Kullanıcı'}</span>
+          </div>
+        )}
       </div>
 
       {widgetMessage && <div className="form-success">{widgetMessage}</div>}
 
-      <section className="dashboard-widget-empty">
-        <div className="dashboard-widget-empty-icon" aria-hidden="true">DW</div>
-        <div>
-          <span className="status-pill warning-pill">Boş Dashboard</span>
-          <h3>Henüz Dashboard widget'ı eklenmedi.</h3>
-          <p>Kurduğunuz modüller, ihtiyaç duyduğunuz özet alanlarını burada gösterebilecek.</p>
+      {container.isEmpty ? (
+        <section className="dashboard-widget-empty dashboard-widget-empty-simple">
           <div className="dashboard-widget-empty-actions">
+            <button
+              className="btn primary"
+              type="button"
+              onClick={() => {
+                setWidgetPanelOpen(true)
+                setWidgetMessage('')
+              }}
+            >
+              + Widget Ekle
+            </button>
+            {!hasBusinessModules && (
+              <button className="btn" type="button" onClick={onOpenMarketplace}>
+                Marketplace'e Git
+              </button>
+            )}
+          </div>
+        </section>
+      ) : (
+        <section className="dashboard-widget-container-shell dashboard-widget-container-clean">
+          <div className="dashboard-widget-toolbar">
             <button
               className="btn"
               type="button"
               onClick={() => {
-                setWidgetPanelOpen(current => !current)
+                setWidgetPanelOpen(true)
                 setWidgetMessage('')
               }}
             >
-              Widget Ekle
-            </button>
-            <button className="btn primary" type="button" onClick={onOpenMarketplace}>
-              Marketplace'e Git
+              + Widget Ekle
             </button>
           </div>
-        </div>
-      </section>
 
-      {widgetPanelOpen && (
-        <section className="dashboard-widget-add-panel">
-          <div className="section-header compact">
-            <div>
-              <h3>Widget Ekle</h3>
-              <p className="muted">Kurulu modüllerin Dashboard'a ekleyebileceği özet alanları burada listelenir.</p>
-            </div>
-            <span className="status-pill muted-pill">{container.availableWidgets.length} seçenek</span>
+          <div className="dashboard-widget-group-stack">
+            {container.groupedWidgets.map(group => (
+              <section className="dashboard-widget-group" key={group.category}>
+                <div className="dashboard-widget-group-title">
+                  <h3>{group.category}</h3>
+                </div>
+                <div className="dashboard-widget-grid">
+                  {group.widgets.map(widget => (
+                    <WidgetCard
+                      key={widget.id}
+                      widget={widget}
+                      onHide={handleHideWidget}
+                      onRemove={handleRemoveWidget}
+                    />
+                  ))}
+                </div>
+              </section>
+            ))}
           </div>
-
-          <div className="dashboard-widget-flow" aria-label="Widget ekleme akışı">
-            <span>Kurulu Modüller</span>
-            <span>Modül Özetleri</span>
-            <span>Dashboard</span>
-          </div>
-
-          {container.availableWidgets.length > 0 ? (
-            <div className="dashboard-widget-catalog-grid">
-              {container.availableWidgets.map(widget => (
-                <article className="dashboard-widget-catalog-card" key={widget.id}>
-                  <span className="dashboard-widget-card-icon" aria-hidden="true">{widget.moduleIcon}</span>
-                  <div>
-                    <strong>{widget.moduleName}</strong>
-                    <h4>{widget.title}</h4>
-                    <p>{widget.description}</p>
-                  </div>
-                  <button
-                    className="btn"
-                    type="button"
-                    onClick={() => setWidgetMessage('Gerçek widget ekleme işlemi sonraki Dashboard Widget fazında etkinleştirilecek.')}
-                  >
-                    Hazırla
-                  </button>
-                </article>
-              ))}
-            </div>
-          ) : (
-            <div className="dashboard-widget-placeholder">
-              <strong>Henüz Dashboard widget'ı eklenmedi.</strong>
-              <span>Marketplace üzerinden bir modül kurduğunuzda eklenebilir özet alanları burada görünecek.</span>
-            </div>
-          )}
         </section>
       )}
 
-      <section className="dashboard-widget-container-shell">
-        <div className="section-header compact">
-          <div>
-            <h3>Dashboard</h3>
-            <p className="muted">Bu alan Dashboard özetleriniz için ayrıldı. İçeriği siz ekledikçe dolacak.</p>
-          </div>
-          <span className="status-pill muted-pill">{container.widgets.length} widget</span>
-        </div>
+      {widgetPanelOpen && (
+        <div className="dashboard-widget-drawer-overlay" role="presentation" onClick={() => setWidgetPanelOpen(false)}>
+          <aside
+            className="dashboard-widget-drawer"
+            role="dialog"
+            aria-modal="true"
+            aria-label="Widget ekle"
+            onClick={event => event.stopPropagation()}
+          >
+            <div className="dashboard-widget-drawer-header">
+              <div>
+                <h3>Widget Ekle</h3>
+                <p>Kategorilerden ihtiyacınız olan widgetları seçin.</p>
+              </div>
+              <button className="btn ghost" type="button" onClick={() => setWidgetPanelOpen(false)}>
+                Kapat
+              </button>
+            </div>
 
-        <div className="dashboard-widget-placeholder">
-          <strong>Henüz Dashboard widget'ı eklenmedi.</strong>
-          <span>Dashboard içeriği yalnızca Widget Ekle akışı üzerinden oluşturulacak.</span>
+            {container.catalogGroups.length > 0 ? (
+              <div className="dashboard-widget-catalog-stack">
+                {container.catalogGroups.map(group => (
+                  <section className="dashboard-widget-catalog-group" key={group.category}>
+                    <div className="dashboard-widget-group-title compact">
+                      <h3>{group.category}</h3>
+                      <span>{group.widgets.length} seçenek</span>
+                    </div>
+                    <div className="dashboard-widget-catalog-grid">
+                      {group.widgets.map(widget => (
+                        <article className="dashboard-widget-catalog-card compact" key={widget.id}>
+                          <span className="dashboard-widget-card-icon" aria-hidden="true">
+                            {widget.icon || widget.moduleIcon}
+                          </span>
+                          <div>
+                            <strong>{widget.moduleName}</strong>
+                            <h4>{widget.title}</h4>
+                            <p>{widget.description}</p>
+                            <div className="dashboard-widget-catalog-meta">
+                              <span>{widget.added ? (widget.visibleInDashboard ? 'Dashboard’da' : 'Gizli') : 'Eklenebilir'}</span>
+                            </div>
+                          </div>
+                          <button
+                            className={widget.added && widget.visibleInDashboard ? 'btn ghost' : 'btn primary'}
+                            type="button"
+                            disabled={widget.added && widget.visibleInDashboard}
+                            onClick={() => handleAddWidget(widget)}
+                          >
+                            {getCatalogActionLabel(widget)}
+                          </button>
+                        </article>
+                      ))}
+                    </div>
+                  </section>
+                ))}
+              </div>
+            ) : (
+              <div className="dashboard-widget-placeholder">
+                <strong>Widget kataloğu boş.</strong>
+                <span>Marketplace üzerinden modül kurduğunuzda widget seçenekleri burada listelenecek.</span>
+              </div>
+            )}
+          </aside>
         </div>
-      </section>
+      )}
     </div>
   )
 }

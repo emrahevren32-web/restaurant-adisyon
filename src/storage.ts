@@ -107,6 +107,7 @@ import {
   StockWasteReasonCategory,
   StockWasteRecord,
   StockWasteStatus,
+  Sector,
   Tenant,
   TenantSettings,
   SystemHealthMetric,
@@ -171,6 +172,16 @@ import {
   normalizeCostValue,
   roundCost
 } from './stockCost'
+import {
+  DEFAULT_SECTOR_CODE,
+  DEFAULT_SECTOR_ID,
+  FALLBACK_SECTOR_ICON,
+  FALLBACK_SECTOR_SORT_ORDER,
+  SECTOR_CODES,
+  SECTOR_ID_PREFIX,
+  createSectorId,
+  getDefaultSectors
+} from './sector/sector.registry'
 
 const KEY_PRODUCTS = 'ra_products'
 const KEY_CATEGORIES = 'ra_categories'
@@ -231,6 +242,7 @@ const KEY_USER_SUBSCRIPTIONS = 'ra_user_subscriptions'
 const KEY_PLATFORM_MODULES = 'ra_platform_modules'
 const KEY_PLATFORM_SUPPORT_TICKETS = 'ra_platform_support_tickets'
 const KEY_PLATFORM_SETTINGS = 'ra_platform_settings'
+const KEY_SECTORS = 'ra_sectors'
 
 export const DEFAULT_BRANCH_ID = 'branch_merkez'
 const DEFAULT_CATEGORY_ID = 'cat_general'
@@ -313,6 +325,84 @@ const readJson = <T,>(key: string, fallback: T): T => {
   } catch {
     return fallback
   }
+}
+
+const compareSectors = (first: Sector, second: Sector) => {
+  const orderDiff = first.sortOrder - second.sortOrder
+  if(orderDiff !== 0) return orderDiff
+  return first.name.localeCompare(second.name, 'tr')
+}
+
+const normalizeSectorCode = (value: unknown) => {
+  return String(value || '')
+    .trim()
+    .toLocaleLowerCase('tr-TR')
+    .replace(/[^a-z0-9]+/gi, '-')
+    .replace(/^-+|-+$/g, '')
+}
+
+const normalizeSector = (item: Partial<Sector>): Sector => {
+  const defaultSector = getDefaultSectors().find(sector => sector.id === DEFAULT_SECTOR_ID)
+  const code = normalizeSectorCode(item.code || item.id || item.name) || DEFAULT_SECTOR_CODE
+  const id = String(item.id || createSectorId(code)).trim() || createSectorId(code)
+  const sortOrder = Number(item.sortOrder)
+
+  return {
+    id,
+    code,
+    name: String(item.name || defaultSector?.name || code).trim() || code,
+    description: String(item.description || defaultSector?.description || '').trim(),
+    icon: String(item.icon || code.slice(0, 2).toLocaleUpperCase('tr-TR')).trim() || FALLBACK_SECTOR_ICON,
+    color: String(item.color || defaultSector?.color || '').trim() || defaultSector?.color || '',
+    isActive: item.isActive !== false,
+    sortOrder: Number.isFinite(sortOrder) ? sortOrder : FALLBACK_SECTOR_SORT_ORDER
+  }
+}
+
+const mergeDefaultSectors = (storedSectors: Sector[]) => {
+  const sectorMap = new Map<string, Sector>()
+
+  getDefaultSectors().forEach(sector => {
+    sectorMap.set(sector.id, normalizeSector(sector))
+  })
+
+  storedSectors.forEach(sector => {
+    sectorMap.set(sector.id, normalizeSector(sector))
+  })
+
+  return Array.from(sectorMap.values()).sort(compareSectors)
+}
+
+export const loadSectors = (options: { includeInactive?: boolean } = {}) => {
+  const storedSectors = localStorage.getItem(KEY_SECTORS)
+  const sectors = storedSectors === null
+    ? getDefaultSectors()
+    : mergeDefaultSectors(readJson<Partial<Sector>[]>(KEY_SECTORS, []).map(normalizeSector))
+  const normalizedSectors = sectors.map(normalizeSector).sort(compareSectors)
+  const payload = JSON.stringify(normalizedSectors)
+
+  if(storedSectors !== payload){
+    localStorage.setItem(KEY_SECTORS, payload)
+  }
+
+  return options.includeInactive
+    ? normalizedSectors
+    : normalizedSectors.filter(sector => sector.isActive)
+}
+
+export const saveSectors = (items: Sector[]) => {
+  localStorage.setItem(KEY_SECTORS, JSON.stringify(mergeDefaultSectors(items.map(normalizeSector))))
+}
+
+const normalizePrimarySectorId = (value: unknown) => {
+  const sectorId = String(value || '').trim()
+  if(!sectorId) return DEFAULT_SECTOR_ID
+
+  const knownSectorIds = new Set(loadSectors({ includeInactive: true }).map(sector => sector.id))
+  if(knownSectorIds.has(sectorId)) return sectorId
+
+  const legacySectorId = sectorId.startsWith(SECTOR_ID_PREFIX) ? sectorId : createSectorId(sectorId)
+  return knownSectorIds.has(legacySectorId) ? legacySectorId : DEFAULT_SECTOR_ID
 }
 
 const getAppStorageKeys = () => {
@@ -2425,6 +2515,7 @@ const normalizeBusinessApplication = (item: Partial<BusinessApplication>): Busin
   return {
     id: String(item.id || createTenantStorageId('business_application')),
     companyId: String(item.companyId || '').trim(),
+    primarySectorId: normalizePrimarySectorId(item.primarySectorId),
     companyName: String(item.companyName || 'İsimsiz Firma').trim() || 'İsimsiz Firma',
     ownerName: String(item.ownerName || '').trim(),
     phone: String(item.phone || '').trim(),
@@ -2458,6 +2549,7 @@ const createDemoBusinessApplications = (now = new Date().toISOString()): Busines
   return [
     normalizeBusinessApplication({
       id: 'business_application_abc_cafe_demo',
+      primarySectorId: createSectorId(SECTOR_CODES.CAFE),
       companyName: 'ABC Cafe',
       ownerName: 'Ahmet Kaya',
       phone: '0532 000 00 01',
@@ -2474,6 +2566,7 @@ const createDemoBusinessApplications = (now = new Date().toISOString()): Busines
     }),
     normalizeBusinessApplication({
       id: 'business_application_ornek_isletme_demo',
+      primarySectorId: DEFAULT_SECTOR_ID,
       companyName: 'Örnek İşletme',
       ownerName: 'Mehmet Demir',
       phone: '0532 000 00 02',
@@ -2490,6 +2583,7 @@ const createDemoBusinessApplications = (now = new Date().toISOString()): Busines
     }),
     normalizeBusinessApplication({
       id: 'business_application_kahve_duragi_demo',
+      primarySectorId: createSectorId(SECTOR_CODES.CAFE),
       companyName: 'Kahve Durağı',
       ownerName: 'Ayşe Yılmaz',
       phone: '0532 000 00 03',
@@ -2706,6 +2800,7 @@ const normalizeCompany = (item: Partial<Company>): Company => {
     authorizedEmail: String(item.authorizedEmail || email).trim(),
     status,
     isApproved,
+    primarySectorId: normalizePrimarySectorId(item.primarySectorId),
     approvedAt: String(item.approvedAt || (isApproved ? timestamp : '')).trim(),
     approvedBy: String(item.approvedBy || (isApproved ? 'migration' : '')).trim(),
     workspaceId: String(item.workspaceId || `workspace_${companyId}`).trim(),
@@ -2744,6 +2839,7 @@ const normalizeCompanySetup = (item: Partial<CompanySetup>): CompanySetup => {
 const createDemoCompanies = (now = new Date().toISOString()): Company[] => [
   normalizeCompany({
     id: 'company_abc_cafe_demo',
+    primarySectorId: createSectorId(SECTOR_CODES.CAFE),
     companyName: 'ABC Cafe',
     ownerName: 'Ahmet Kaya',
     phone: '0532 000 00 01',
@@ -2759,6 +2855,7 @@ const createDemoCompanies = (now = new Date().toISOString()): Company[] => [
   }),
   normalizeCompany({
     id: 'company_ornek_isletme_demo',
+    primarySectorId: DEFAULT_SECTOR_ID,
     companyName: 'Örnek İşletme',
     ownerName: 'Mehmet Demir',
     phone: '0532 000 00 02',
@@ -2774,6 +2871,7 @@ const createDemoCompanies = (now = new Date().toISOString()): Company[] => [
   }),
   normalizeCompany({
     id: 'company_kahve_duragi_demo',
+    primarySectorId: createSectorId(SECTOR_CODES.CAFE),
     companyName: 'Kahve Durağı',
     ownerName: 'Ayşe Yılmaz',
     phone: '0532 000 00 03',
@@ -4128,9 +4226,19 @@ export const saveBranchStockTransfers = (items: BranchStockTransfer[]) => {
 }
 
 export const loadBusinessApplications = (): BusinessApplication[] => {
-  return localStorage.getItem(KEY_BUSINESS_APPLICATIONS) === null
+  const storedApplications = localStorage.getItem(KEY_BUSINESS_APPLICATIONS)
+  const applications = storedApplications === null
     ? createDemoBusinessApplications()
     : readJson<Partial<BusinessApplication>[]>(KEY_BUSINESS_APPLICATIONS, []).map(normalizeBusinessApplication)
+
+  if(storedApplications !== null){
+    const migratedPayload = JSON.stringify(applications)
+    if(storedApplications !== migratedPayload){
+      localStorage.setItem(KEY_BUSINESS_APPLICATIONS, migratedPayload)
+    }
+  }
+
+  return applications
 }
 
 export const saveBusinessApplications = (items: BusinessApplication[]) => {
@@ -4914,6 +5022,7 @@ export const runTenantIsolationTest = ({
 }
 
 export const ensureDefaultAdmin = () => {
+  loadSectors({ includeInactive: true })
   const users = loadUsers({ allTenants: true })
   if(!users.find(u => u.username === 'admin')){
     const admin: User = { id: 'u_admin', fullName: 'Yönetici', username: 'admin', password: 'admin123', role: 'Admin', active: true }
@@ -5717,6 +5826,7 @@ export const completeCompanySetupFromRegistration = ({
 }
 
 export type BusinessApplicationFormInput = {
+  primarySectorId: string
   companyName: string
   ownerName: string
   phone: string
@@ -5764,6 +5874,7 @@ const publicApplicationUser: User = {
 }
 
 const normalizeApplicationInput = (input: BusinessApplicationFormInput): BusinessApplicationFormInput => ({
+  primarySectorId: normalizePrimarySectorId(input.primarySectorId),
   companyName: input.companyName.trim(),
   ownerName: input.ownerName.trim(),
   phone: input.phone.trim(),
@@ -5849,6 +5960,7 @@ const createPendingCompanyFromApplication = (
   const companyId = application.companyId || createCompanySetupStorageId('company')
   return normalizeCompany({
     id: companyId,
+    primarySectorId: application.primarySectorId,
     companyName: application.companyName,
     legalName: application.companyName,
     ownerName: application.ownerName,
@@ -6039,6 +6151,7 @@ export const approveBusinessApplication = (applicationId: string, approvalNote: 
     ...existingCompany,
     id: companyId,
     tenantId,
+    primarySectorId: application.primarySectorId,
     companyName: application.companyName,
     legalName: existingCompany?.legalName || application.companyName,
     ownerName,

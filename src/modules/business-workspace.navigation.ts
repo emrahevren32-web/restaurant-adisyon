@@ -25,6 +25,7 @@ export type BusinessWorkspaceNavGroup = ShellNavGroup<
 type CreateBusinessWorkspaceNavGroupsOptions = {
   isModuleEnabled?: WorkspaceModuleActivationResolver
   isCoreModuleVisible?: WorkspaceModuleActivationResolver
+  showBusinessModuleEmptyAction?: boolean
 }
 
 const toShellNavItem = (
@@ -85,13 +86,13 @@ export const createBusinessWorkspaceNavGroups = (
       icon: 'IM',
       emptyTitle: 'Henüz modül yüklenmedi.',
       emptyDescription: "Marketplace'ten ilk modülünüzü kurabilirsiniz.",
-      emptyAction: {
+      emptyAction: options.showBusinessModuleEmptyAction ? {
         key: 'marketplace',
         label: "Marketplace'e Git",
         route: 'marketplace',
         icon: 'MP',
         adminOnly: true
-      },
+      } : undefined,
       items: registry.businessModules.map(toShellNavItem)
     },
     {

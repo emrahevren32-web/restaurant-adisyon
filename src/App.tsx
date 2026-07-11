@@ -62,10 +62,9 @@ import {
   WORKSPACE_MODULE_LIFECYCLE_STATES
 } from './workspace/workspace-module-lifecycle.service'
 import type { WorkspaceModuleLifecycleResult } from './workspace/workspace-module-lifecycle.service'
-import {
-  hasInstalledWorkspaceModulesForUser
-} from './workspace/workspace-module-installation.service'
 import type { Evren360Notification } from './notifications/evren360-notification.service'
+import { hasConnectedWorkspaceIntegrationsForUser } from './integrations/workspace-integration.service'
+import { createPlatformNavGroups, getPlatformRoutes } from './platform/platform.registry'
 
 type NavItem = ShellNavItem<Route, NavKey>
 type NavGroup = ShellNavGroup<Route, NavKey, NavGroupKey>
@@ -80,35 +79,8 @@ const flattenAppNavItems = (items: NavItem[]): NavItem[] => (
 const licensedNavModules: Partial<Record<NavKey, LicenseModuleKey>> = createLicensedNavModuleMap()
 const licensedRouteModules: Partial<Record<Route, LicenseModuleKey>> = createLicensedRouteModuleMap()
 const allBusinessWorkspaceNavGroups = createBusinessWorkspaceNavGroups() as NavGroup[]
-const bootstrapCoreModuleCodes = new Set(['workspace-welcome', 'workspace', 'marketplace', 'integration-center'])
-
-const platformNavGroups: NavGroup[] = [
-  {
-    key: 'evren360-admin',
-    title: 'EVREN360 Yönetici Paneli',
-    icon: 'E3',
-    items: [
-      { key: 'evren360-dashboard', label: 'Dashboard', route: 'evren360-dashboard', icon: 'DB', adminOnly: true, platformAdminOnly: true },
-      { key: 'evren360-customer-list', label: 'Müşteri Listesi', route: 'evren360-customer-list', icon: 'ML', adminOnly: true, platformAdminOnly: true },
-      { key: 'evren360-customer-detail', label: 'Müşteri Detayı', route: 'evren360-customer-detail', icon: 'MD', adminOnly: true, platformAdminOnly: true, hidden: true },
-      { key: 'evren360-pending-applications', label: 'Onay Bekleyen İşletmeler', route: 'evren360-pending-applications', icon: 'OB', adminOnly: true, platformAdminOnly: true },
-      { key: 'evren360-system-announcements', label: 'Sistem Duyuruları', route: 'evren360-system-announcements', icon: 'SD', adminOnly: true, platformAdminOnly: true },
-      { key: 'evren360-customer-statistics', label: 'Müşteri İstatistikleri', route: 'evren360-customer-statistics', icon: 'MI', adminOnly: true, platformAdminOnly: true },
-      { key: 'evren360-company-management', label: 'İşletme Yönetimi', route: 'evren360-company-management', icon: 'IY', adminOnly: true, platformAdminOnly: true },
-      { key: 'evren360-billing-management', label: 'Fatura ve Tahsilat Takibi', route: 'evren360-billing-management', icon: 'FT', adminOnly: true, platformAdminOnly: true },
-      { key: 'evren360-applications', label: 'Başvurular', route: 'evren360-applications', icon: 'BV', adminOnly: true, platformAdminOnly: true },
-      { key: 'evren360-companies', label: 'Firmalar', route: 'evren360-companies', icon: 'FR', adminOnly: true, platformAdminOnly: true },
-      { key: 'evren360-packages', label: 'Paketler', route: 'evren360-packages', icon: 'PK', adminOnly: true, platformAdminOnly: true },
-      { key: 'evren360-modules', label: 'Modüller', route: 'evren360-modules', icon: 'MD', adminOnly: true, platformAdminOnly: true },
-      { key: 'evren360-licenses', label: 'Lisanslar', route: 'evren360-licenses', icon: 'LS', adminOnly: true, platformAdminOnly: true },
-      { key: 'evren360-subscriptions', label: 'Abonelikler', route: 'evren360-subscriptions', icon: 'AB', adminOnly: true, platformAdminOnly: true },
-      { key: 'evren360-users', label: 'Kullanıcılar', route: 'evren360-users', icon: 'KU', adminOnly: true, platformAdminOnly: true },
-      { key: 'evren360-support', label: 'Destek Talepleri', route: 'evren360-support', icon: 'DT', adminOnly: true, platformAdminOnly: true },
-      { key: 'evren360-stats', label: 'İstatistikler', route: 'evren360-stats', icon: 'IS', adminOnly: true, platformAdminOnly: true },
-      { key: 'evren360-settings', label: 'Sistem Ayarları', route: 'evren360-settings', icon: 'SA', adminOnly: true, platformAdminOnly: true }
-    ]
-  }
-]
+const platformRouteSet = getPlatformRoutes() as Set<Route>
+const platformNavGroups: NavGroup[] = createPlatformNavGroups() as NavGroup[]
 
 const businessWorkspaceRouteSet = new Set<Route>(
   allBusinessWorkspaceNavGroups
@@ -122,15 +94,25 @@ const isBusinessWorkspaceRoute = (nextRoute: Route): nextRoute is BusinessWorksp
 }
 
 const isWorkspaceBootstrapRoute = (nextRoute: Route) => {
-  return nextRoute === 'workspace-welcome' || nextRoute === 'settings' || nextRoute === 'marketplace' || nextRoute === 'integration-center'
+  return nextRoute === 'workspace-welcome'
+}
+
+const isWorkspaceSetupCompletedForUser = (user: User | null) => {
+  if(!user) return false
+
+  const onboardingState = getFirstLoginOnboardingState(user)
+  return !onboardingState.required
+    && Boolean(onboardingState.completed || onboardingState.setup?.setupCompleted || !onboardingState.setup)
 }
 
 const createWorkspaceNavGroupsForUser = (user: User | null) => (
   createBusinessWorkspaceNavGroups({
     isCoreModuleVisible: module => {
-      const hasInstalledModules = hasInstalledWorkspaceModulesForUser(user)
-      if(hasInstalledModules) return module.code !== 'workspace-welcome'
-      return bootstrapCoreModuleCodes.has(module.code)
+      const setupCompleted = isWorkspaceSetupCompletedForUser(user)
+      if(module.code === 'workspace-welcome') return !setupCompleted
+      if(module.code === 'marketplace') return setupCompleted
+      if(module.code === 'integration-center') return setupCompleted && hasConnectedWorkspaceIntegrationsForUser(user)
+      return module.code === 'dashboard' || module.code === 'workspace'
     },
     isModuleEnabled: module => {
       if(module.isCoreModule || module.isAlwaysActive) return true
@@ -141,7 +123,8 @@ const createWorkspaceNavGroupsForUser = (user: User | null) => (
         return isWorkspaceModuleActiveForUser(user, module)
       }
       return module.isEnabled && module.isVisible
-    }
+    },
+    showBusinessModuleEmptyAction: isWorkspaceSetupCompletedForUser(user)
   }) as NavGroup[]
 )
 
@@ -188,7 +171,7 @@ const getDefaultNavigation = (user: User | null, loginRedirect: LoginRedirectRes
   }
 
   if(loginRedirect.target === LOGIN_ROUTE_TARGETS.BUSINESS_WORKSPACE_ADMIN && user?.role === 'Admin'){
-    if(hasInstalledWorkspaceModulesForUser(user)){
+    if(isWorkspaceSetupCompletedForUser(user)){
       return {
         route: 'summary' as Route,
         activeNavKey: 'dashboard' as NavKey,
@@ -235,16 +218,7 @@ const PlatformAccessDenied = () => (
 )
 
 const getRouteSecurityTarget = (route: Route, authState: AuthenticationState) => {
-  if(
-    evren360RouteViews[route]
-    || route === 'evren360-customer-list'
-    || route === 'evren360-customer-detail'
-    || route === 'evren360-pending-applications'
-    || route === 'evren360-system-announcements'
-    || route === 'evren360-customer-statistics'
-    || route === 'evren360-company-management'
-    || route === 'evren360-billing-management'
-  ) return LOGIN_ROUTE_TARGETS.EVREN360
+  if(platformRouteSet.has(route)) return LOGIN_ROUTE_TARGETS.EVREN360
   return resolveSecurityTargetForIdentity(authState.pipeline.identity)
 }
 
@@ -296,9 +270,9 @@ export default function App(){
     return getFirstLoginOnboardingState(currentUser)
   }, [currentUser, isPlatformAdmin, onboardingRefreshKey])
   const firstLoginOnboardingRequired = Boolean(firstLoginOnboardingState?.required)
-  const workspaceHasInstalledModules = React.useMemo(() => (
-    !isPlatformAdmin && hasInstalledWorkspaceModulesForUser(currentUser)
-  ), [currentUser, isPlatformAdmin, moduleInstallRefreshKey])
+  const workspaceSetupCompleted = React.useMemo(() => (
+    !isPlatformAdmin && isWorkspaceSetupCompletedForUser(currentUser)
+  ), [currentUser, isPlatformAdmin, onboardingRefreshKey])
 
   const updateAuthenticationState = (state: AuthenticationState) => {
     authStateRef.current = state
@@ -324,18 +298,25 @@ export default function App(){
     evaluateCurrentRouteSecurity(route)
   }, [route])
   React.useEffect(() => {
-    if(!currentUser || isPlatformAdmin || !workspaceHasInstalledModules || route !== 'workspace-welcome') return
+    if(!currentUser || isPlatformAdmin || !workspaceSetupCompleted || route !== 'workspace-welcome') return
     setRoute('summary')
     setActiveNavKey('dashboard')
     setOpenGroupKey('system-modules')
-  }, [currentUser, isPlatformAdmin, route, workspaceHasInstalledModules])
+  }, [currentUser, isPlatformAdmin, route, workspaceSetupCompleted])
   React.useEffect(() => {
-    if(!currentUser || isPlatformAdmin || workspaceHasInstalledModules) return
+    if(!currentUser || isPlatformAdmin || workspaceSetupCompleted) return
     if(!isBusinessWorkspaceRoute(route) || isWorkspaceBootstrapRoute(route)) return
     setRoute('workspace-welcome')
     setActiveNavKey('workspace-welcome')
     setOpenGroupKey('system-modules')
-  }, [currentUser, isPlatformAdmin, route, workspaceHasInstalledModules])
+  }, [currentUser, isPlatformAdmin, route, workspaceSetupCompleted])
+  React.useEffect(() => {
+    if(!currentUser || isPlatformAdmin || route !== 'integration-center') return
+    if(hasConnectedWorkspaceIntegrationsForUser(currentUser)) return
+    setRoute(workspaceSetupCompleted ? 'summary' : 'workspace-welcome')
+    setActiveNavKey(workspaceSetupCompleted ? 'dashboard' : 'workspace-welcome')
+    setOpenGroupKey('system-modules')
+  }, [currentUser, isPlatformAdmin, route, workspaceSetupCompleted])
 
   const onLogin = (nextAuthState: AuthenticationState) => {
     const u = nextAuthState.currentUser
@@ -395,12 +376,14 @@ export default function App(){
     setOpenGroupKey('evren360-admin')
   }
   const openMarketplaceFromWelcome = () => {
+    if(!isWorkspaceSetupCompletedForUser(currentUser)) return
     setLicenseAccessError('')
     setRoute('marketplace')
     setActiveNavKey('marketplace')
     setOpenGroupKey('system-modules')
   }
   const openIntegrationCenterFromWelcome = () => {
+    if(!hasConnectedWorkspaceIntegrationsForUser(currentUser)) return
     setLicenseAccessError('')
     setRoute('integration-center')
     setActiveNavKey('integration-center')
@@ -426,8 +409,8 @@ export default function App(){
     setUserState(refreshedUser)
     setBranches(getVisibleBranchesForUser(refreshedUser))
     setActiveBranchState(getActiveBranchId())
-    setRoute('workspace-welcome')
-    setActiveNavKey('workspace-welcome')
+    setRoute('summary')
+    setActiveNavKey('dashboard')
     setOpenGroupKey('system-modules')
     setLicenseAccessError('')
   }
@@ -445,7 +428,7 @@ export default function App(){
         return item
       })
     }))
-  }, [currentUser, isPlatformAdmin, moduleInstallRefreshKey])
+  }, [currentUser, isPlatformAdmin, moduleInstallRefreshKey, onboardingRefreshKey])
   const activeNavLabel = navGroupsForCurrentUser
     .flatMap(group => flattenAppNavItems(group.items))
     .find(item => item.key === activeNavKey)?.label || 'Dashboard'

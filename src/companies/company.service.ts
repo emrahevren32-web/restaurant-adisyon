@@ -3,6 +3,7 @@ import {
   saveCompanies
 } from '../storage'
 import type { Company, CompanyStatus, User } from '../types'
+import { DEFAULT_SECTOR_ID } from '../sector/sector.registry'
 import {
   recordCompanyAuditEvent,
   type CompanyAuditEventType
@@ -23,6 +24,7 @@ export type CompanyCreateInput = {
   authorizedPhone?: string
   authorizedEmail?: string
   status?: CompanyStatus
+  primarySectorId?: string
   tenantId?: string
   workspaceId?: string
   defaultBranchId?: string
@@ -132,6 +134,7 @@ const createCompanyRecord = (input: CompanyCreateInput, now = new Date().toISOSt
     authorizedEmail: String(input.authorizedEmail || email).trim(),
     status,
     isApproved,
+    primarySectorId: input.primarySectorId || DEFAULT_SECTOR_ID,
     approvedAt: isApproved ? now : '',
     approvedBy: '',
     workspaceId: String(input.workspaceId || `workspace_${companyId}`).trim(),
@@ -240,6 +243,7 @@ export const updateCompany = (companyId: string, input: CompanyUpdateInput, cont
     authorizedEmail: String(input.authorizedEmail ?? existingCompany.authorizedEmail ?? email).trim(),
     status: input.status ?? existingCompany.status,
     isApproved: input.isApproved ?? existingCompany.isApproved,
+    primarySectorId: input.primarySectorId ?? existingCompany.primarySectorId,
     approvedAt: String(input.approvedAt ?? existingCompany.approvedAt).trim(),
     approvedBy: String(input.approvedBy ?? existingCompany.approvedBy).trim(),
     workspaceId: String(input.workspaceId ?? existingCompany.workspaceId).trim(),
