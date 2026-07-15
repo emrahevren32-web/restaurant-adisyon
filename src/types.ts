@@ -794,6 +794,7 @@ export type CompanySetup = {
   adminUserId: string
   temporaryPassword: string
   setupCompleted: boolean
+  installationCompleted: boolean
   completedAt: string
   createdAt: string
   updatedAt: string

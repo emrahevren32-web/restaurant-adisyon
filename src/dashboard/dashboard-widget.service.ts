@@ -1,5 +1,12 @@
 import { getCompanyIdForUser } from '../storage'
 import type { User } from '../types'
+import { getWorkspaceProvisionedStateForUser } from '../workspace-provisioning/workspace-provisioning.service'
+import type { ProvisionedDashboardWidget } from '../workspace-provisioning/workspace-provisioning.types'
+import { getWorkspaceTemplateViewForUser } from '../workspace-template/workspace-template.service'
+import type {
+  WorkspaceTemplateView,
+  WorkspaceTemplateWidget
+} from '../workspace-template/workspace-template.types'
 import { getDashboardWidgetRegistryForUser } from './dashboard-widget.registry'
 import type {
   DashboardWidgetCatalogItem,
@@ -14,6 +21,8 @@ import type {
 
 const STORAGE_KEY_PREFIX = 'miyop_dashboard_widget_layout'
 export const DASHBOARD_WIDGET_LAYOUT_EVENT = 'miyop-dashboard-widget-layout-updated'
+const WORKSPACE_TEMPLATE_WIDGET_MODULE_ID = 'workspace-template'
+const WORKSPACE_TEMPLATE_WIDGET_MODULE_TYPE = 'workspace-template'
 
 const isBrowser = () => typeof window !== 'undefined' && typeof localStorage !== 'undefined'
 
@@ -24,6 +33,10 @@ const getWorkspaceKeyForUser = (user?: User | null) => {
 
 const getStorageKey = (user?: User | null) => (
   `${STORAGE_KEY_PREFIX}_${getWorkspaceKeyForUser(user)}`
+)
+
+const hasStoredLayout = (user?: User | null) => (
+  isBrowser() && localStorage.getItem(getStorageKey(user)) !== null
 )
 
 const createInstanceId = (widgetId: string, workspaceKey: string) => (
@@ -103,9 +116,192 @@ const readInstances = (
   }
 }
 
+const createTemplateWidgetId = (
+  template: WorkspaceTemplateView,
+  widget: WorkspaceTemplateWidget
+) => (
+  `workspace-template.${template.id}.${widget.id}`.replace(/[^a-z0-9_.-]/gi, '_')
+)
+
+const toTemplateDashboardWidgetDefinition = (
+  template: WorkspaceTemplateView,
+  widget: WorkspaceTemplateWidget
+): DashboardWidgetDefinition => ({
+  id: createTemplateWidgetId(template, widget),
+  title: widget.title,
+  description: widget.description,
+  icon: widget.icon,
+  category: widget.category,
+  order: widget.order,
+  defaultVisible: widget.defaultVisible,
+  defaultSize: widget.defaultSize,
+  supportedLayouts: widget.supportedLayouts,
+  renderComponent: widget.renderComponent,
+  moduleId: WORKSPACE_TEMPLATE_WIDGET_MODULE_ID,
+  moduleCode: widget.moduleCode || template.id,
+  moduleName: template.name,
+  moduleIcon: template.dashboardTemplate.icon,
+  moduleType: WORKSPACE_TEMPLATE_WIDGET_MODULE_TYPE,
+  scope: 'BUSINESS',
+  state: 'empty',
+  source: 'template-provided',
+  displayOrder: widget.order,
+  emptyTitle: widget.emptyTitle,
+  emptyDescription: widget.emptyDescription
+})
+
+const toProvisionedDashboardWidgetDefinition = (
+  template: WorkspaceTemplateView,
+  widget: ProvisionedDashboardWidget
+): DashboardWidgetDefinition => ({
+  id: widget.id,
+  title: widget.title,
+  description: widget.description,
+  icon: widget.icon,
+  category: widget.category,
+  order: widget.order,
+  defaultVisible: widget.defaultVisible,
+  defaultSize: widget.defaultSize,
+  supportedLayouts: widget.supportedLayouts,
+  renderComponent: widget.renderComponent,
+  moduleId: WORKSPACE_TEMPLATE_WIDGET_MODULE_ID,
+  moduleCode: widget.moduleCode || template.id,
+  moduleName: template.name,
+  moduleIcon: template.dashboardTemplate.icon,
+  moduleType: WORKSPACE_TEMPLATE_WIDGET_MODULE_TYPE,
+  scope: 'BUSINESS',
+  state: 'empty',
+  source: 'template-provided',
+  displayOrder: widget.order,
+  emptyTitle: widget.emptyTitle,
+  emptyDescription: widget.emptyDescription,
+  provisionedAt: widget.provisionedAt
+})
+
+const getTemplateDashboardWidgetDefinitions = (
+  template: WorkspaceTemplateView
+): DashboardWidgetDefinition[] => (
+  template.visibleWidgets
+    .filter(widget => widget.defaultVisible)
+    .map(widget => toTemplateDashboardWidgetDefinition(template, widget))
+)
+
+const mergeDefinitions = (definitions: DashboardWidgetDefinition[]): DashboardWidgetDefinition[] => {
+  const definitionMap = new Map<string, DashboardWidgetDefinition>()
+
+  definitions.forEach(definition => {
+    if(definitionMap.has(definition.id)) return
+    definitionMap.set(definition.id, definition)
+  })
+
+  return Array.from(definitionMap.values()).sort((first, second) => (
+    first.displayOrder - second.displayOrder
+    || first.title.localeCompare(second.title, 'tr')
+  ))
+}
+
+const getDashboardWidgetDefinitionsForUser = (user?: User | null) => {
+  const workspaceTemplate = getWorkspaceTemplateViewForUser(user)
+  const provisionedState = getWorkspaceProvisionedStateForUser(user)
+  const templateDefinitions = provisionedState?.dashboard.widgets.length
+    ? provisionedState.dashboard.widgets.map(widget => toProvisionedDashboardWidgetDefinition(workspaceTemplate, widget))
+    : getTemplateDashboardWidgetDefinitions(workspaceTemplate)
+  const registryDefinitions = provisionedState ? [] : getDashboardWidgetRegistryForUser(user)
+
+  return {
+    workspaceTemplate,
+    provisionedState,
+    definitions: mergeDefinitions([
+      ...templateDefinitions,
+      ...registryDefinitions
+    ])
+  }
+}
+
+const createTemplateDefaultInstances = (
+  user: User | null | undefined,
+  definitions: DashboardWidgetDefinition[]
+): DashboardWidgetInstance[] => {
+  const workspaceKey = getWorkspaceKeyForUser(user)
+  const now = new Date().toISOString()
+
+  return definitions
+    .filter(definition => definition.source === 'template-provided' && definition.defaultVisible)
+    .sort((first, second) => first.displayOrder - second.displayOrder)
+    .map(definition => ({
+      id: createInstanceId(definition.id, workspaceKey),
+      widgetId: definition.id,
+      order: definition.displayOrder,
+      visible: true,
+      size: definition.defaultSize,
+      layout: definition.supportedLayouts[0] || 'standard',
+      createdAt: now,
+      updatedAt: now
+    }))
+}
+
+const getLatestInstanceUpdateTime = (instances: DashboardWidgetInstance[]) => (
+  Math.max(0, ...instances.map(instance => new Date(instance.updatedAt || instance.createdAt).getTime()).filter(Number.isFinite))
+)
+
+const mergeNewProvisionedInstances = (
+  user: User | null | undefined,
+  savedInstances: DashboardWidgetInstance[],
+  definitions: DashboardWidgetDefinition[]
+) => {
+  const workspaceKey = getWorkspaceKeyForUser(user)
+  const existingWidgetIds = new Set(savedInstances.map(instance => instance.widgetId))
+  const latestLayoutTime = getLatestInstanceUpdateTime(savedInstances)
+  const now = new Date().toISOString()
+  const newProvisionedInstances = definitions
+    .filter(definition => {
+      if(definition.source !== 'template-provided' || !definition.defaultVisible || !definition.provisionedAt) return false
+      if(existingWidgetIds.has(definition.id)) return false
+      return new Date(definition.provisionedAt).getTime() > latestLayoutTime
+    })
+    .map(definition => ({
+      id: createInstanceId(definition.id, workspaceKey),
+      widgetId: definition.id,
+      order: definition.displayOrder,
+      visible: true,
+      size: definition.defaultSize,
+      layout: definition.supportedLayouts[0] || 'standard',
+      createdAt: now,
+      updatedAt: now
+    }))
+
+  return newProvisionedInstances.length > 0
+    ? [...savedInstances, ...newProvisionedInstances].sort((first, second) => first.order - second.order)
+    : savedInstances
+}
+
+const readDashboardInstances = (
+  user: User | null | undefined,
+  definitions: DashboardWidgetDefinition[]
+) => {
+  const savedInstances = readInstances(user, definitions)
+  return hasStoredLayout(user)
+    ? mergeNewProvisionedInstances(user, savedInstances, definitions)
+    : createTemplateDefaultInstances(user, definitions)
+}
+
 const saveInstances = (user: User | null | undefined, instances: DashboardWidgetInstance[]) => {
   if(!isBrowser()) return
   localStorage.setItem(getStorageKey(user), JSON.stringify(instances))
+  dispatchLayoutEvent()
+}
+
+export const clearDashboardWidgetLayoutForUser = (user: User | null | undefined) => {
+  if(!isBrowser()) return
+  localStorage.removeItem(getStorageKey(user))
+  dispatchLayoutEvent()
+}
+
+export const clearAllDashboardWidgetLayouts = () => {
+  if(!isBrowser()) return
+  Object.keys(localStorage)
+    .filter(key => key.startsWith(`${STORAGE_KEY_PREFIX}_`))
+    .forEach(key => localStorage.removeItem(key))
   dispatchLayoutEvent()
 }
 
@@ -157,8 +353,8 @@ const toCatalogItems = (
 }
 
 export const createDashboardWidgetContainer = (user?: User | null): DashboardWidgetContainer => {
-  const availableDefinitions = getDashboardWidgetRegistryForUser(user)
-  const instances = readInstances(user, availableDefinitions)
+  const { workspaceTemplate, provisionedState, definitions: availableDefinitions } = getDashboardWidgetDefinitionsForUser(user)
+  const instances = readDashboardInstances(user, availableDefinitions)
   const widgets = toViewModels(instances, availableDefinitions)
   const visibleWidgets = widgets.filter(widget => widget.visible)
   const hiddenWidgets = widgets.filter(widget => !widget.visible)
@@ -166,8 +362,8 @@ export const createDashboardWidgetContainer = (user?: User | null): DashboardWid
 
   return {
     id: 'business-workspace-dashboard',
-    title: 'Kontrol Paneli',
-    description: 'Henüz kontrol panelinizi oluşturmadınız. Widget ekleyerek çalışma alanınızı kişiselleştirebilirsiniz.',
+    title: provisionedState?.dashboard.title || workspaceTemplate.dashboardTemplate.title,
+    description: provisionedState?.dashboard.description || workspaceTemplate.dashboardTemplate.description,
     widgets,
     visibleWidgets,
     hiddenWidgets,
@@ -175,7 +371,24 @@ export const createDashboardWidgetContainer = (user?: User | null): DashboardWid
     availableWidgets,
     catalogGroups: groupWidgets(availableWidgets),
     widgetSystemReady: true,
-    isEmpty: visibleWidgets.length === 0
+    isEmpty: visibleWidgets.length === 0,
+    workspaceTemplate: {
+      id: workspaceTemplate.id,
+      sectorId: workspaceTemplate.sectorId,
+      name: workspaceTemplate.name,
+      description: workspaceTemplate.description,
+      defaultRoute: workspaceTemplate.defaultRoute,
+      defaultNavKey: workspaceTemplate.defaultNavKey
+    },
+    quickActions: workspaceTemplate.visibleQuickActions,
+    emptyStates: provisionedState?.emptyStates.length
+      ? provisionedState.emptyStates.map(emptyState => ({
+        key: emptyState.key as typeof workspaceTemplate.emptyStates[number]['key'],
+        title: emptyState.title,
+        description: emptyState.description,
+        icon: emptyState.icon
+      }))
+      : workspaceTemplate.emptyStates
   }
 }
 
@@ -184,11 +397,11 @@ export const getDashboardWidgetContainer = (user?: User | null) => {
 }
 
 export const addDashboardWidget = (user: User | null | undefined, widgetId: string) => {
-  const definitions = getDashboardWidgetRegistryForUser(user)
+  const { definitions } = getDashboardWidgetDefinitionsForUser(user)
   const definition = definitions.find(item => item.id === widgetId)
   if(!definition) throw new Error('Widget kaydı bu çalışma alanı için kullanılabilir değil.')
 
-  const instances = readInstances(user, definitions)
+  const instances = readDashboardInstances(user, definitions)
   const existingInstance = instances.find(instance => instance.widgetId === widgetId)
   const now = new Date().toISOString()
 
@@ -216,10 +429,13 @@ export const addDashboardWidget = (user: User | null | undefined, widgetId: stri
 }
 
 export const removeDashboardWidget = (user: User | null | undefined, widgetOrInstanceId: string) => {
-  const definitions = getDashboardWidgetRegistryForUser(user)
-  const instances = readInstances(user, definitions)
-  const nextInstances = instances.filter(instance => (
-    instance.id !== widgetOrInstanceId && instance.widgetId !== widgetOrInstanceId
+  const { definitions } = getDashboardWidgetDefinitionsForUser(user)
+  const instances = readDashboardInstances(user, definitions)
+  const now = new Date().toISOString()
+  const nextInstances = instances.map(instance => (
+    instance.id === widgetOrInstanceId || instance.widgetId === widgetOrInstanceId
+      ? { ...instance, visible: false, updatedAt: now }
+      : instance
   ))
 
   saveInstances(user, nextInstances)
@@ -231,8 +447,8 @@ export const setDashboardWidgetVisibility = (
   widgetOrInstanceId: string,
   visible: boolean
 ) => {
-  const definitions = getDashboardWidgetRegistryForUser(user)
-  const instances = readInstances(user, definitions)
+  const { definitions } = getDashboardWidgetDefinitionsForUser(user)
+  const instances = readDashboardInstances(user, definitions)
   const now = new Date().toISOString()
   const nextInstances = instances.map(instance => (
     instance.id === widgetOrInstanceId || instance.widgetId === widgetOrInstanceId
@@ -248,8 +464,8 @@ export const toggleDashboardWidgetVisibility = (
   user: User | null | undefined,
   widgetOrInstanceId: string
 ) => {
-  const definitions = getDashboardWidgetRegistryForUser(user)
-  const instances = readInstances(user, definitions)
+  const { definitions } = getDashboardWidgetDefinitionsForUser(user)
+  const instances = readDashboardInstances(user, definitions)
   const target = instances.find(instance => instance.id === widgetOrInstanceId || instance.widgetId === widgetOrInstanceId)
   return setDashboardWidgetVisibility(user, widgetOrInstanceId, !(target?.visible ?? true))
 }

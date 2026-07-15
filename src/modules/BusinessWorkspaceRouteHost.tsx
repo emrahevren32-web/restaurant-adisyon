@@ -26,6 +26,7 @@ import QROrders from '../pages/QROrders'
 import QRCodes from '../pages/QRCodes'
 import StockCards from '../pages/StockCards'
 import StockMovements from '../pages/StockMovements'
+import ProductionWorkOrders from '../pages/ProductionWorkOrders'
 import Recipes from '../pages/Recipes'
 import Users from '../pages/Users'
 import Settings from '../pages/Settings'
@@ -99,7 +100,15 @@ export default function BusinessWorkspaceRouteHost({
   }
 
   if(route === 'products') return <Products currentUser={currentUser} />
-  if(route === 'summary') return <DailySummary currentUser={currentUser} onOpenMarketplace={onOpenMarketplace} />
+  if(route === 'summary'){
+    return (
+      <DailySummary
+        currentUser={currentUser}
+        onOpenMarketplace={onOpenMarketplace}
+        onOpenWorkspaceSettings={onOpenWorkspaceSettings}
+      />
+    )
+  }
   if(route === 'history') return <BillHistory />
   if(route === 'kitchen') return <Kitchen currentUser={currentUser} />
 
@@ -141,6 +150,7 @@ export default function BusinessWorkspaceRouteHost({
     )
   }
 
+  if(route === 'production-work-orders') return <ProductionWorkOrders currentUser={currentUser} />
   if(route === 'recipes') return <Recipes currentUser={currentUser} />
   if(route === 'supplier-debts') return <SupplierDebts currentUser={currentUser} />
   if(route === 'supplier-payments') return <SupplierPayments currentUser={currentUser} />

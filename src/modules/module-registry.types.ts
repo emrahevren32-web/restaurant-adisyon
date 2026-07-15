@@ -1,6 +1,7 @@
 import type { PermissionName } from '../authorization/permission.types'
 import type { DashboardWidgetModuleContribution } from '../dashboard/dashboard-widget.types'
 import type { LicenseModuleKey } from '../types'
+import type { ProvisionManifest } from '../workspace-provisioning/provision-manifest.types'
 
 export const WORKSPACE_MODULE_TYPES = {
   CORE_SYSTEM: 'core-system',
@@ -93,10 +94,12 @@ export type WorkspaceModuleRegistryItem<Route extends string, NavKey extends str
   displayOrder: number
   dependencies: string[]
   tags: string[]
+  supportedSectorIds?: string[]
   lifecycle: WorkspaceModuleLifecycle
   licenseModuleKey?: LicenseModuleKey
   pricing?: WorkspaceModulePricing
   marketplace?: WorkspaceModuleMarketplace
   menuItems: WorkspaceModuleMenuItem<Route, NavKey>[]
   dashboardWidgets?: DashboardWidgetModuleContribution[]
+  provisionManifest: ProvisionManifest
 }

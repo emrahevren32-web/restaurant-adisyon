@@ -2820,16 +2820,22 @@ const normalizeCompany = (item: Partial<Company>): Company => {
 const normalizeCompanySetup = (item: Partial<CompanySetup>): CompanySetup => {
   const timestamp = item.createdAt || new Date().toISOString()
   const companyId = String(item.companyId || '')
+  const registrationId = String(item.registrationId || '')
+  const setupCompleted = item.setupCompleted === true
+  const isFirstLoginApplicationSetup = registrationId.startsWith('business_application_')
+  const installationCompleted = item.installationCompleted === true
+    || (setupCompleted && !isFirstLoginApplicationSetup)
 
   return {
     id: String(item.id || `company_setup_${Date.now()}`),
     tenantId: String(item.tenantId || '').trim() || resolveTenantIdForCompany(companyId),
-    registrationId: String(item.registrationId || ''),
+    registrationId,
     companyId,
     branchId: String(item.branchId || ''),
     adminUserId: String(item.adminUserId || ''),
     temporaryPassword: String(item.temporaryPassword || ''),
-    setupCompleted: item.setupCompleted === true,
+    setupCompleted,
+    installationCompleted,
     completedAt: String(item.completedAt || ''),
     createdAt: timestamp,
     updatedAt: item.updatedAt || timestamp
@@ -2896,6 +2902,7 @@ const createDemoCompanySetups = (now = new Date().toISOString()): CompanySetup[]
     adminUserId: 'user_abc_cafe_admin_demo',
     temporaryPassword: 'MIYOP-1024',
     setupCompleted: true,
+    installationCompleted: true,
     completedAt: now,
     createdAt: now,
     updatedAt: now
@@ -2908,6 +2915,7 @@ const createDemoCompanySetups = (now = new Date().toISOString()): CompanySetup[]
     adminUserId: 'user_ornek_isletme_admin_demo',
     temporaryPassword: 'MIYOP-4837',
     setupCompleted: true,
+    installationCompleted: true,
     completedAt: now,
     createdAt: now,
     updatedAt: now
@@ -2920,6 +2928,7 @@ const createDemoCompanySetups = (now = new Date().toISOString()): CompanySetup[]
     adminUserId: 'user_kahve_duragi_admin_demo',
     temporaryPassword: 'MIYOP-9142',
     setupCompleted: true,
+    installationCompleted: true,
     completedAt: now,
     createdAt: now,
     updatedAt: now
@@ -5770,6 +5779,7 @@ export const completeCompanySetupFromRegistration = ({
     adminUserId: adminUser.id,
     temporaryPassword,
     setupCompleted: true,
+    installationCompleted: true,
     completedAt: now,
     createdAt: now,
     updatedAt: now
@@ -6266,6 +6276,7 @@ export const approveBusinessApplication = (applicationId: string, approvalNote: 
     adminUserId: ownerUser.id,
     temporaryPassword,
     setupCompleted: true,
+    installationCompleted: false,
     completedAt: now,
     createdAt: now,
     updatedAt: now

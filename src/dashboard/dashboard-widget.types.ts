@@ -1,5 +1,10 @@
 import type { PermissionName } from '../authorization/permission.types'
 import type { LicenseModuleKey } from '../types'
+import type {
+  WorkspaceTemplateEmptyState,
+  WorkspaceTemplateQuickAction,
+  WorkspaceTemplateSummary
+} from '../workspace-template/workspace-template.types'
 
 export type DashboardWidgetCategory =
   | 'Operasyon'
@@ -16,7 +21,7 @@ export type DashboardWidgetCategory =
 export type DashboardWidgetSize = 'small' | 'medium' | 'large'
 export type DashboardWidgetLayout = 'compact' | 'standard' | 'wide'
 export type DashboardWidgetState = 'available' | 'empty' | 'disabled'
-export type DashboardWidgetSource = 'module-provided' | 'system-provided'
+export type DashboardWidgetSource = 'module-provided' | 'system-provided' | 'template-provided'
 export type DashboardWidgetScope = 'SYSTEM' | 'BUSINESS' | 'PLATFORM'
 
 export type DashboardWidgetModuleContribution = {
@@ -44,6 +49,9 @@ export type DashboardWidgetRegistryItem = DashboardWidgetModuleContribution & {
   state: DashboardWidgetState
   source: DashboardWidgetSource
   displayOrder: number
+  emptyTitle?: string
+  emptyDescription?: string
+  provisionedAt?: string
 }
 
 export type DashboardWidgetDefinition = DashboardWidgetRegistryItem
@@ -86,4 +94,7 @@ export type DashboardWidgetContainer = {
   catalogGroups: Array<DashboardWidgetGroup<DashboardWidgetCatalogItem>>
   widgetSystemReady: boolean
   isEmpty: boolean
+  workspaceTemplate?: WorkspaceTemplateSummary
+  quickActions: WorkspaceTemplateQuickAction[]
+  emptyStates: WorkspaceTemplateEmptyState[]
 }

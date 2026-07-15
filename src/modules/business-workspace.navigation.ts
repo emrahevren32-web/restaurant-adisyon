@@ -26,6 +26,11 @@ type CreateBusinessWorkspaceNavGroupsOptions = {
   isModuleEnabled?: WorkspaceModuleActivationResolver
   isCoreModuleVisible?: WorkspaceModuleActivationResolver
   showBusinessModuleEmptyAction?: boolean
+  businessModuleEmptyState?: {
+    title?: string
+    description?: string
+    actionLabel?: string
+  }
 }
 
 const toShellNavItem = (
@@ -84,11 +89,11 @@ export const createBusinessWorkspaceNavGroups = (
       key: 'business-modules',
       title: 'İŞ MODÜLLERİ',
       icon: 'IM',
-      emptyTitle: 'Henüz modül yüklenmedi.',
-      emptyDescription: 'İş modülleri eklendiğinde menüde burada görünecek. İlk modülünüzü Modül Mağazası üzerinden keşfedebilirsiniz.',
+      emptyTitle: options.businessModuleEmptyState?.title || 'Henüz modül yüklenmedi.',
+      emptyDescription: options.businessModuleEmptyState?.description || 'İş modülleri eklendiğinde menüde burada görünecek. İlk modülünüzü Modül Mağazası üzerinden keşfedebilirsiniz.',
       emptyAction: options.showBusinessModuleEmptyAction ? {
         key: 'marketplace',
-        label: 'Modül Mağazasına Git',
+        label: options.businessModuleEmptyState?.actionLabel || 'Modül Mağazasına Git',
         route: 'marketplace',
         icon: 'MP',
         adminOnly: true

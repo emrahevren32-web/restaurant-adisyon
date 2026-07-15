@@ -26,6 +26,7 @@ export type FirstLoginModuleSummary = {
 export type FirstLoginOnboardingState = {
   required: boolean
   completed: boolean
+  installationCompleted: boolean
   completionKey: string
   currentUser: User
   company: Company | null
@@ -63,6 +64,8 @@ export type CompleteFirstLoginOnboardingInput = {
   state: FirstLoginOnboardingState
   password: FirstLoginPasswordForm
   businessInfo: FirstLoginBusinessInfoForm
+  selectedRecommendedModuleCodes?: string[]
+  selectedOptionalModuleCodes?: string[]
 }
 
 export type CompleteFirstLoginOnboardingResult = {

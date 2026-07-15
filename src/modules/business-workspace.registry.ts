@@ -10,8 +10,13 @@ import type {
   WorkspaceModuleRegistryItem,
   WorkspaceModuleType
 } from './module-registry.types'
-import { LICENSE_MODULE_CODES, WORKSPACE_MODULE_CODES } from './module-code.registry'
+import { LICENSE_MODULE_CODES, SECTOR_TEMPLATE_MODULE_CODES, WORKSPACE_MODULE_CODES } from './module-code.registry'
 import { MODULE_SCOPES, WORKSPACE_MODULE_TYPES } from './module-registry.types'
+import { SECTOR_CODES, createSectorId } from '../sector/sector.registry'
+import type {
+  ProvisionManifest,
+  ProvisionManifestMenuItem
+} from '../workspace-provisioning/provision-manifest.types'
 
 const includedPricing = { model: 'included' as const }
 const marketplaceReady = {
@@ -48,6 +53,7 @@ const integrationModuleLifecycle: WorkspaceModuleLifecycle = {
   canBePurchased: true,
   canBeActivatedManually: true
 }
+const industrialKitchenSectorIds = [createSectorId(SECTOR_CODES.INDUSTRIAL_KITCHEN)]
 
 const menuItem = (
   item: WorkspaceModuleMenuItem<BusinessWorkspaceRoute, BusinessWorkspaceNavKey>
@@ -72,6 +78,7 @@ type BusinessWorkspaceModuleInput = Omit<
   | 'isMarketplaceEligible'
   | 'lifecycle'
   | 'scope'
+  | 'provisionManifest'
 > & Partial<Pick<
   BusinessWorkspaceModule,
   | 'moduleType'
@@ -81,9 +88,45 @@ type BusinessWorkspaceModuleInput = Omit<
   | 'isMarketplaceEligible'
   | 'lifecycle'
   | 'scope'
+  | 'provisionManifest'
 >> & {
   category: LegacyWorkspaceModuleCategory
 }
+
+const cloneProvisionMenuItems = (
+  items: BusinessWorkspaceModule['menuItems']
+): ProvisionManifestMenuItem[] => (
+  items.map(item => ({
+    key: item.key,
+    label: item.label,
+    route: item.route,
+    icon: item.icon,
+    order: item.order,
+    displayOrder: item.displayOrder,
+    adminOnly: item.adminOnly,
+    children: item.children ? cloneProvisionMenuItems(item.children) : undefined
+  }))
+)
+
+const createDefaultProvisionManifest = (module: Omit<BusinessWorkspaceModule, 'provisionManifest'>): ProvisionManifest => ({
+  moduleId: module.id,
+  moduleCode: module.code,
+  moduleName: module.name,
+  manifestVersion: '1.0.0',
+  menuItems: cloneProvisionMenuItems(module.menuItems),
+  dashboardWidgets: [...(module.dashboardWidgets || [])],
+  roles: [],
+  permissions: [...module.permissions],
+  settings: [],
+  emptyStates: module.menuItems.map(item => ({
+    key: `${module.code}.${item.key}.empty`,
+    title: `${item.label} için henüz kayıt bulunmuyor.`,
+    description: 'İlk kaydınızı oluşturduğunuzda bu alan kullanılabilir verilerle dolacak.',
+    icon: item.icon,
+    moduleCode: module.code
+  })),
+  defaultConfig: {}
+})
 
 const resolveModuleType = (module: BusinessWorkspaceModuleInput): WorkspaceModuleType => {
   if(module.moduleType) return module.moduleType
@@ -114,7 +157,7 @@ const normalizeModuleRegistryItem = (module: BusinessWorkspaceModuleInput): Busi
       canBeActivatedManually: module.marketplace?.canBeActivated ?? baseLifecycle.canBeActivatedManually
     }
 
-  return {
+  const normalizedModule = {
     ...module,
     category: moduleType,
     moduleType,
@@ -138,6 +181,11 @@ const normalizeModuleRegistryItem = (module: BusinessWorkspaceModuleInput): Busi
         disabledReason: ''
       }))
       : module.menuItems
+  } satisfies Omit<BusinessWorkspaceModule, 'provisionManifest'>
+
+  return {
+    ...normalizedModule,
+    provisionManifest: module.provisionManifest || createDefaultProvisionManifest(normalizedModule)
   }
 }
 
@@ -764,6 +812,44 @@ export const BUSINESS_WORKSPACE_MODULE_REGISTRY: BusinessWorkspaceModule[] = def
     ]
   },
   {
+    id: 'business-production-work-orders',
+    code: SECTOR_TEMPLATE_MODULE_CODES.PRODUCTION,
+    name: 'Üretim',
+    description: 'Endüstriyel mutfak üretim iş emirleri için UI, domain modeli ve örnek veri hazırlığı.',
+    category: 'business',
+    icon: 'UR',
+    route: 'production-work-orders',
+    permissions: ['operations.read', 'operations.write', 'products.read'],
+    isCoreModule: false,
+    isBusinessModule: true,
+    isEnabled: true,
+    isVisible: true,
+    displayOrder: 45,
+    dependencies: [],
+    tags: ['business', 'production', 'operation', 'industrial-kitchen', 'work-order'],
+    supportedSectorIds: industrialKitchenSectorIds,
+    pricing: { model: 'paid', currency: 'TRY' },
+    marketplace: marketplaceReady,
+    dashboardWidgets: [
+      dashboardWidget({
+        id: 'production.workOrders',
+        title: 'Üretim Emirleri',
+        description: 'Endüstriyel mutfak üretim iş emirleri için kontrol paneli başlangıç alanı.',
+        icon: 'UE',
+        category: 'Operasyon',
+        order: 20,
+        defaultVisible: false,
+        defaultSize: 'medium',
+        supportedLayouts: ['standard', 'wide'],
+        requiredPermission: 'operations.read',
+        renderComponent: 'production.workOrders.placeholder'
+      })
+    ],
+    menuItems: [
+      menuItem({ key: 'production-work-orders', label: 'Üretim Emirleri', route: 'production-work-orders', icon: 'UE', adminOnly: true, displayOrder: 10 })
+    ]
+  },
+  {
     id: 'business-current',
     code: WORKSPACE_MODULE_CODES.CURRENT,
     name: 'Cari',
@@ -1114,6 +1200,14 @@ export const getBusinessWorkspaceModules = (moduleType?: WorkspaceModuleType) =>
   return BUSINESS_WORKSPACE_MODULE_REGISTRY
     .filter(module => module.isEnabled && module.isVisible && (!moduleType || module.moduleType === moduleType))
     .sort(compareByDisplayOrder)
+}
+
+export const isBusinessWorkspaceModuleAvailableForSector = (
+  module: BusinessWorkspaceModule,
+  sectorId?: string
+) => {
+  if(!module.supportedSectorIds || module.supportedSectorIds.length === 0) return true
+  return Boolean(sectorId && module.supportedSectorIds.includes(sectorId))
 }
 
 export const getCoreSystemModules = () => getBusinessWorkspaceModules(WORKSPACE_MODULE_TYPES.CORE_SYSTEM)

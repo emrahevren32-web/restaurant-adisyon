@@ -12,6 +12,13 @@ import type {
   DashboardWidgetViewModel
 } from '../dashboard/dashboard-widget.types'
 import {
+  WORKSPACE_TEMPLATE_ACTION_TYPES,
+  WORKSPACE_TEMPLATE_EMPTY_STATE_KEYS,
+  type WorkspaceTemplateEmptyState,
+  type WorkspaceTemplateQuickAction
+} from '../workspace-template/workspace-template.types'
+import { WORKSPACE_PROVISIONING_EVENT } from '../workspace-provisioning/workspace-provisioning.service'
+import {
   getManagedWorkspaceModulesForUser,
   WORKSPACE_MODULE_LIFECYCLE_EVENT
 } from '../workspace/workspace-module-lifecycle.service'
@@ -20,6 +27,7 @@ import type { User } from '../types'
 type Props = {
   currentUser: User
   onOpenMarketplace: () => void
+  onOpenWorkspaceSettings?: () => void
 }
 
 const getCatalogActionLabel = (widget: DashboardWidgetCatalogItem) => {
@@ -30,6 +38,15 @@ const getCatalogActionLabel = (widget: DashboardWidgetCatalogItem) => {
 
 const hasManagedBusinessModules = (user: User) => (
   getManagedWorkspaceModulesForUser(user).some(module => module.isBusinessModule)
+)
+
+const getEmptyState = (
+  container: DashboardWidgetContainer,
+  key: WorkspaceTemplateEmptyState['key']
+) => container.emptyStates.find(state => state.key === key)
+
+const getQuickActionButtonClassName = (action: WorkspaceTemplateQuickAction) => (
+  action.actionType === WORKSPACE_TEMPLATE_ACTION_TYPES.OPEN_MARKETPLACE ? 'btn primary' : 'btn'
 )
 
 const WidgetCard = ({
@@ -52,8 +69,8 @@ const WidgetCard = ({
       <h4>{widget.definition.title}</h4>
       <p>{widget.definition.description}</p>
       <div className="dashboard-widget-render-placeholder">
-        <span>Henüz veri oluşmadı.</span>
-        <small>Bu widget veri üretmeye başladığında burada gösterilecek.</small>
+        <span>{widget.definition.emptyTitle || 'Henüz veri oluşmadı.'}</span>
+        <small>{widget.definition.emptyDescription || 'Bu widget veri üretmeye başladığında burada gösterilecek.'}</small>
       </div>
     </div>
     <div className="dashboard-widget-card-actions">
@@ -67,7 +84,7 @@ const WidgetCard = ({
   </article>
 )
 
-export default function DailySummary({ currentUser, onOpenMarketplace }: Props){
+export default function DailySummary({ currentUser, onOpenMarketplace, onOpenWorkspaceSettings }: Props){
   const [widgetPanelOpen, setWidgetPanelOpen] = React.useState(false)
   const [widgetMessage, setWidgetMessage] = React.useState('')
   const [hasBusinessModules, setHasBusinessModules] = React.useState(() => (
@@ -91,11 +108,13 @@ export default function DailySummary({ currentUser, onOpenMarketplace }: Props){
 
     window.addEventListener('storage', refresh)
     window.addEventListener(DASHBOARD_WIDGET_LAYOUT_EVENT, refresh)
+    window.addEventListener(WORKSPACE_PROVISIONING_EVENT, refresh)
     window.addEventListener(WORKSPACE_MODULE_LIFECYCLE_EVENT, refresh)
 
     return () => {
       window.removeEventListener('storage', refresh)
       window.removeEventListener(DASHBOARD_WIDGET_LAYOUT_EVENT, refresh)
+      window.removeEventListener(WORKSPACE_PROVISIONING_EVENT, refresh)
       window.removeEventListener(WORKSPACE_MODULE_LIFECYCLE_EVENT, refresh)
     }
   }, [refreshContainer])
@@ -135,15 +154,34 @@ export default function DailySummary({ currentUser, onOpenMarketplace }: Props){
     setWidgetMessage('Widget kontrol paneli yerleşiminden kaldırıldı.')
   }
 
+  const dashboardEmptyState = getEmptyState(container, WORKSPACE_TEMPLATE_EMPTY_STATE_KEYS.DASHBOARD)
+  const widgetCatalogEmptyState = getEmptyState(container, WORKSPACE_TEMPLATE_EMPTY_STATE_KEYS.WIDGET_CATALOG)
+
+  const handleQuickAction = (action: WorkspaceTemplateQuickAction) => {
+    setWidgetMessage('')
+
+    if(action.actionType === WORKSPACE_TEMPLATE_ACTION_TYPES.OPEN_WIDGET_DRAWER){
+      setWidgetPanelOpen(true)
+      return
+    }
+
+    if(action.actionType === WORKSPACE_TEMPLATE_ACTION_TYPES.OPEN_MARKETPLACE){
+      onOpenMarketplace()
+      return
+    }
+
+    if(action.actionType === WORKSPACE_TEMPLATE_ACTION_TYPES.OPEN_WORKSPACE_SETTINGS){
+      onOpenWorkspaceSettings?.()
+    }
+  }
+
   return (
     <div className="summary-page dashboard-widget-page">
       <div className="page-title dashboard-title" data-onboarding-target="control-panel">
         <div>
-          <h2>Kontrol Paneli</h2>
+          <h2>{container.title}</h2>
           <p className="muted">
-            {container.isEmpty
-              ? 'Henüz kontrol panelinizi oluşturmadınız. Widget ekleyerek çalışma alanınızı kişiselleştirebilirsiniz.'
-              : 'Eklediğiniz widgetlarla çalışma alanınızı hızlıca takip edebilirsiniz.'}
+            {container.description}
           </p>
         </div>
         {!container.isEmpty && (
@@ -156,12 +194,29 @@ export default function DailySummary({ currentUser, onOpenMarketplace }: Props){
 
       {widgetMessage && <div className="form-success">{widgetMessage}</div>}
 
+      {container.quickActions.length > 0 && (
+        <section className="dashboard-template-actions" aria-label="Hızlı işlemler">
+          {container.quickActions.map(action => (
+            <button
+              className={getQuickActionButtonClassName(action)}
+              type="button"
+              key={action.id}
+              title={action.description}
+              onClick={() => handleQuickAction(action)}
+            >
+              <span className="dashboard-template-action-icon" aria-hidden="true">{action.icon}</span>
+              <span>{action.label}</span>
+            </button>
+          ))}
+        </section>
+      )}
+
       {container.isEmpty ? (
         <section className="dashboard-widget-empty" data-onboarding-target="widget-area">
-          <span className="dashboard-widget-empty-icon" aria-hidden="true">KP</span>
+          <span className="dashboard-widget-empty-icon" aria-hidden="true">{dashboardEmptyState?.icon || 'KP'}</span>
           <div>
-            <h3>İlk widgetınızı ekleyin</h3>
-            <p>Kontrol paneliniz, takip etmek istediğiniz özetleri tek alanda toplar.</p>
+            <h3>{dashboardEmptyState?.title || 'İlk widgetınızı ekleyin'}</h3>
+            <p>{dashboardEmptyState?.description || 'Kontrol paneliniz, takip etmek istediğiniz özetleri tek alanda toplar.'}</p>
             <div className="dashboard-widget-empty-actions">
               <button
                 className="btn primary"
@@ -171,7 +226,7 @@ export default function DailySummary({ currentUser, onOpenMarketplace }: Props){
                   setWidgetMessage('')
                 }}
               >
-                Widget Ekle
+                {dashboardEmptyState?.actionLabel || 'Widget Ekle'}
               </button>
               {!hasBusinessModules && (
                 <button className="btn" type="button" onClick={onOpenMarketplace}>
@@ -275,8 +330,8 @@ export default function DailySummary({ currentUser, onOpenMarketplace }: Props){
               </div>
             ) : (
               <div className="dashboard-widget-placeholder">
-                <strong>Widget kataloğu boş.</strong>
-                <span>Modül mağazası üzerinden modül kurduğunuzda widget seçenekleri burada listelenecek.</span>
+                <strong>{widgetCatalogEmptyState?.title || 'Widget kataloğu boş.'}</strong>
+                <span>{widgetCatalogEmptyState?.description || 'Modül mağazası üzerinden modül kurduğunuzda widget seçenekleri burada listelenecek.'}</span>
               </div>
             )}
           </aside>

@@ -1,5 +1,6 @@
 import {
-  BUSINESS_WORKSPACE_MODULE_REGISTRY
+  BUSINESS_WORKSPACE_MODULE_REGISTRY,
+  isBusinessWorkspaceModuleAvailableForSector
 } from '../modules/business-workspace.registry'
 import type { BusinessWorkspaceModule } from '../modules/business-workspace.registry'
 import { WORKSPACE_MODULE_TYPES } from '../modules/module-registry.types'
@@ -21,6 +22,7 @@ import type {
 export type MarketplaceContext = {
   getLifecycleState?: (module: BusinessWorkspaceModule) => WorkspaceModuleLifecycleState
   isLicensed?: (module: BusinessWorkspaceModule) => boolean
+  sectorId?: string
 }
 
 const MARKETPLACE_DEVELOPER = 'MIYOP'
@@ -216,6 +218,7 @@ export const getMarketplaceCatalog = (
 ): MarketplaceModule[] => {
   return BUSINESS_WORKSPACE_MODULE_REGISTRY
     .filter(isMarketplaceModule)
+    .filter(module => isBusinessWorkspaceModuleAvailableForSector(module, context.sectorId))
     .map(module => createMarketplaceModule(module, context))
     .filter(module => module.visibility !== 'HIDDEN')
     .filter(module => matchesQuery(module, query))

@@ -133,6 +133,18 @@ export const PLATFORM_MODULE_REGISTRY: PlatformRegistryItem[] = [
     tags: ['platform', 'billing']
   },
   {
+    id: 'platform-sector-management',
+    code: 'platform-sector-management',
+    name: 'Sector Management',
+    description: 'Sektör tanımları, template bağlantıları ve kurulum konfigurasyonlarının EVREN360 yönetim merkezi.',
+    icon: 'SC',
+    route: 'evren360-sector-management',
+    navKey: 'evren360-sector-management',
+    scope: MODULE_SCOPES.PLATFORM,
+    displayOrder: 72,
+    tags: ['platform', 'sector', 'template']
+  },
+  {
     id: 'platform-business-registration',
     code: 'platform-business-registration',
     name: 'İşletme Başvuruları',

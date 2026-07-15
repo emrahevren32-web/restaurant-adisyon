@@ -18,6 +18,7 @@ import {
   saveTenantSettings,
   saveTenants,
   saveUsers,
+  setActiveBranchId,
   setCurrentUser
 } from '../storage'
 import { Branch, Company, CompanyLicense, CompanySetup, CompanyUser, User } from '../types'
@@ -25,14 +26,21 @@ import { getMarketplaceCatalog } from '../marketplace/module-marketplace.service
 import type { MarketplaceContext } from '../marketplace/module-marketplace.service'
 import type { MarketplaceModule } from '../marketplace/marketplace.types'
 import {
+  activateWorkspaceModuleForUser,
+  configureWorkspaceModuleForUser,
   getActiveWorkspaceModulesForUser,
-  getWorkspaceModuleLifecycleStateForUser
+  getWorkspaceModuleLifecycleStateForUser,
+  installWorkspaceModuleForUser,
+  WORKSPACE_MODULE_LIFECYCLE_STATES
 } from '../workspace/workspace-module-lifecycle.service'
 import {
   getCoreSystemModules,
   type BusinessWorkspaceModule
 } from '../modules/business-workspace.registry'
 import { WORKSPACE_MODULE_TYPES } from '../modules/module-registry.types'
+import { createBusinessSetupWizardPlan } from './business-setup-wizard.service'
+import { provisionWorkspaceForInitialSetup } from '../workspace-provisioning/workspace-provisioning.service'
+import { clearAllDashboardWidgetLayouts, clearDashboardWidgetLayoutForUser } from '../dashboard/dashboard-widget.service'
 import {
   CompleteFirstLoginOnboardingInput,
   CompleteFirstLoginOnboardingResult,
@@ -50,6 +58,7 @@ type OnboardingCompletion = {
   key: string
   userId: string
   companyId: string
+  installationCompleted?: boolean
   completedAt: string
 }
 
@@ -147,11 +156,54 @@ const resolveMarketplaceBusinessModules = (user: User): FirstLoginModuleSummary[
   }, marketplaceContext).map(createMarketplaceModuleSummary)
 }
 
+const provisionInitialWorkspace = (
+  user: User,
+  primarySectorId: string,
+  selectedRecommendedModuleCodes: readonly string[] | undefined,
+  selectedOptionalModuleCodes: readonly string[] | undefined
+) => {
+  const setupPlan = createBusinessSetupWizardPlan({
+    sectorIdOrCode: primarySectorId,
+    selectedRecommendedModuleCodes,
+    selectedOptionalModuleCodes
+  })
+
+  setupPlan.installationPlan.resolvedModules.forEach(planItem => {
+    if(!planItem.module || planItem.isFuture || planItem.isUnsupported) return
+
+    let lifecycleState = getWorkspaceModuleLifecycleStateForUser(user, planItem.module)
+
+    if(
+      lifecycleState === WORKSPACE_MODULE_LIFECYCLE_STATES.AVAILABLE
+      || lifecycleState === WORKSPACE_MODULE_LIFECYCLE_STATES.UNINSTALLED
+    ){
+      installWorkspaceModuleForUser(user, planItem.module.id)
+      lifecycleState = getWorkspaceModuleLifecycleStateForUser(user, planItem.module)
+    }
+
+    if(lifecycleState === WORKSPACE_MODULE_LIFECYCLE_STATES.INSTALLED){
+      configureWorkspaceModuleForUser(user, planItem.module.id)
+      lifecycleState = getWorkspaceModuleLifecycleStateForUser(user, planItem.module)
+    }
+
+    if(
+      lifecycleState === WORKSPACE_MODULE_LIFECYCLE_STATES.CONFIGURED
+      || lifecycleState === WORKSPACE_MODULE_LIFECYCLE_STATES.SUSPENDED
+    ){
+      activateWorkspaceModuleForUser(user, planItem.module.id)
+    }
+  })
+
+  return provisionWorkspaceForInitialSetup(user, {
+    sectorIdOrCode: primarySectorId,
+    installationPlan: setupPlan.installationPlan
+  })
+}
+
 export const getFirstLoginOnboardingState = (user: User): FirstLoginOnboardingState => {
   const companyId = getCompanyIdForUser(user)
   const completionKey = companyId ? createCompletionKey(companyId, user.id) : ''
   const completions = readCompletions()
-  const completed = Boolean(completionKey && completions.some(item => item.key === completionKey))
   const companies = loadCompanies({ allTenants: true })
   const setups = loadCompanySetups({ allTenants: true })
   const branches = loadBranches()
@@ -168,11 +220,20 @@ export const getFirstLoginOnboardingState = (user: User): FirstLoginOnboardingSt
   const license = companyId ? findLatestLicense(licenses, companyId) : null
   const tenantId = getTenantIdForOnboarding(company, setup, user)
   const tenantSettings = tenantId ? loadTenantSettings().find(settings => settings.tenantId === tenantId) || null : null
-  const required = Boolean(company && setup && setup.adminUserId === user.id && isApplicationSetup(setup) && !completed)
+  const completed = Boolean(completionKey && completions.some(item => item.key === completionKey))
+  const installationCompleted = Boolean(completed || setup?.installationCompleted)
+  const required = Boolean(
+    company
+    && setup
+    && setup.adminUserId === user.id
+    && isApplicationSetup(setup)
+    && !installationCompleted
+  )
 
   return {
     required,
-    completed,
+    completed: installationCompleted,
+    installationCompleted,
     completionKey,
     currentUser: user,
     company,
@@ -191,7 +252,9 @@ export const getFirstLoginOnboardingState = (user: User): FirstLoginOnboardingSt
 export const completeFirstLoginOnboarding = ({
   state,
   password,
-  businessInfo
+  businessInfo,
+  selectedRecommendedModuleCodes,
+  selectedOptionalModuleCodes
 }: CompleteFirstLoginOnboardingInput): CompleteFirstLoginOnboardingResult => {
   if(!state.company || !state.completionKey){
     throw new Error('Onboarding için firma kaydı bulunamadı.')
@@ -219,7 +282,7 @@ export const completeFirstLoginOnboarding = ({
   const phone = businessInfo.phone.trim() || state.company.phone
   const address = businessInfo.address.trim() || state.company.address
   const branchName = businessInfo.branchName.trim() || state.branch?.name || 'Merkez Şube'
-  const workspaceLogoUrl = state.company.logoUrl || ''
+  const workspaceLogoUrl = ''
   const workspaceCurrency = businessInfo.currency.trim().toLocaleUpperCase('tr-TR') || DEFAULT_WORKSPACE_CURRENCY
   const workspaceLanguage = businessInfo.language.trim() || DEFAULT_WORKSPACE_LANGUAGE
   const workspaceTimezone = businessInfo.timezone.trim() || DEFAULT_WORKSPACE_TIMEZONE
@@ -268,6 +331,7 @@ export const completeFirstLoginOnboarding = ({
     ...state.currentUser,
     tenantId,
     companyId,
+    profilePhotoUrl: '',
     password: newPassword
   }
 
@@ -322,15 +386,25 @@ export const completeFirstLoginOnboarding = ({
   saveBranches(existingBranch
     ? allBranches.map(item => item.id === existingBranch.id ? updatedBranch : item)
     : [updatedBranch, ...allBranches])
-  saveUsers(allUsers.map(item => item.id === updatedUser.id ? updatedUser : item))
+  saveUsers(allUsers.some(item => item.id === updatedUser.id)
+    ? allUsers.map(item => item.id === updatedUser.id ? updatedUser : item)
+    : [updatedUser, ...allUsers])
   if(updatedCompanyUser){
     saveCompanyUsers(allCompanyUsers.map(item => item.id === updatedCompanyUser.id ? updatedCompanyUser : item))
   }
   if(state.setup){
     saveCompanySetups(allSetups.map(item => item.id === state.setup?.id
-      ? { ...item, temporaryPassword: '', setupCompleted: true, completedAt: now, updatedAt: now }
+      ? {
+          ...item,
+          temporaryPassword: '',
+          setupCompleted: true,
+          installationCompleted: true,
+          completedAt: now,
+          updatedAt: now
+        }
       : item))
   }
+  setActiveBranchId(updatedBranch.id, updatedUser)
 
   const completions = readCompletions()
   saveCompletions([
@@ -338,10 +412,19 @@ export const completeFirstLoginOnboarding = ({
       key: state.completionKey,
       userId: updatedUser.id,
       companyId,
+      installationCompleted: true,
       completedAt: now
     },
     ...completions.filter(item => item.key !== state.completionKey)
   ])
+  clearAllDashboardWidgetLayouts()
+  clearDashboardWidgetLayoutForUser(updatedUser)
+  provisionInitialWorkspace(
+    updatedUser,
+    primarySectorId,
+    selectedRecommendedModuleCodes,
+    selectedOptionalModuleCodes
+  )
   setCurrentUser(updatedUser)
 
   return {

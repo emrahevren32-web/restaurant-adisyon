@@ -1,12 +1,15 @@
-import { getCompanyIdForUser } from '../storage'
+import { getCompanyIdForUser, loadCompanies } from '../storage'
 import type { LicenseModuleKey, User } from '../types'
 import {
   BUSINESS_WORKSPACE_MODULE_REGISTRY,
   getBusinessWorkspaceModuleById,
-  getBusinessWorkspaceModuleByLicenseKey
+  getBusinessWorkspaceModuleByLicenseKey,
+  isBusinessWorkspaceModuleAvailableForSector
 } from '../modules/business-workspace.registry'
 import type { BusinessWorkspaceModule } from '../modules/business-workspace.registry'
 import { WORKSPACE_MODULE_TYPES } from '../modules/module-registry.types'
+import { getModuleDependencyRule } from '../modules/module-dependency.registry'
+import type { ModuleCode } from '../modules/module-code.registry'
 import { recordWorkspaceAuditEvent } from './workspace-audit.service'
 import {
   WORKSPACE_MODULE_LIFECYCLE_STATES,
@@ -302,6 +305,13 @@ const assertModule = (moduleId: string) => {
   return module
 }
 
+const assertModuleAvailableForCompanySector = (companyId: string, module: BusinessWorkspaceModule) => {
+  const sectorId = loadCompanies({ allTenants: true }).find(company => company.id === companyId)?.primarySectorId || ''
+  if(isBusinessWorkspaceModuleAvailableForSector(module, sectorId)) return
+
+  throw new Error('Bu modül yalnızca Endüstriyel Mutfak sektöründeki çalışma alanlarında kullanılabilir.')
+}
+
 const assertExistingRecord = (
   user: User,
   moduleId: string
@@ -313,6 +323,22 @@ const assertExistingRecord = (
     throw new Error('Bu modül Business Workspace içinde kurulu değil.')
   }
   return { companyId, module, record }
+}
+
+const assertModuleCanBeDetached = (
+  companyId: string,
+  module: BusinessWorkspaceModule
+) => {
+  const dependentModules = getActiveWorkspaceModules(companyId)
+    .filter(activeModule => activeModule.id !== module.id)
+    .filter(activeModule => {
+      const rule = getModuleDependencyRule(activeModule.code as ModuleCode)
+      return Boolean(rule?.requires.includes(module.code as ModuleCode))
+    })
+
+  if(dependentModules.length === 0) return
+
+  throw new Error(`${module.name} kaldırılamaz. ${dependentModules.map(item => item.name).join(', ')} bu modüle bağlı çalışıyor.`)
 }
 
 export const getWorkspaceModuleLifecycleRecords = (companyId: string) => {
@@ -400,6 +426,7 @@ export const installWorkspaceModuleForUser = (
 ): WorkspaceModuleLifecycleResult => {
   const companyId = assertCompanyId(user)
   const module = assertModule(moduleId)
+  assertModuleAvailableForCompanySector(companyId, module)
   const records = readLifecycleRecords()
   const companyManagedRecords = records.filter(item => item.companyId === companyId && isLifecycleManagedState(item.lifecycleState))
   const existingRecord = records.find(item => item.companyId === companyId && item.moduleId === module.id)
@@ -432,7 +459,8 @@ export const configureWorkspaceModuleForUser = (
   user: User,
   moduleId: string
 ) => {
-  const { module, record } = assertExistingRecord(user, moduleId)
+  const { companyId, module, record } = assertExistingRecord(user, moduleId)
+  assertModuleAvailableForCompanySector(companyId, module)
   const previousState = record.lifecycleState
   const nextRecord = updateLifecycleRecord(record, user, WORKSPACE_MODULE_LIFECYCLE_STATES.CONFIGURED)
 
@@ -454,7 +482,8 @@ export const activateWorkspaceModuleForUser = (
   user: User,
   moduleId: string
 ) => {
-  const { module, record } = assertExistingRecord(user, moduleId)
+  const { companyId, module, record } = assertExistingRecord(user, moduleId)
+  assertModuleAvailableForCompanySector(companyId, module)
   const previousState = record.lifecycleState
   const nextRecord = updateLifecycleRecord(record, user, WORKSPACE_MODULE_LIFECYCLE_STATES.ACTIVE)
 
@@ -506,7 +535,8 @@ export const detachWorkspaceModuleFromWorkspaceForUser = (
   user: User,
   moduleId: string
 ) => {
-  const { module, record } = assertExistingRecord(user, moduleId)
+  const { companyId, module, record } = assertExistingRecord(user, moduleId)
+  assertModuleCanBeDetached(companyId, module)
   const previousState = record.lifecycleState
   const nextRecord = updateLifecycleRecord(record, user, WORKSPACE_MODULE_LIFECYCLE_STATES.UNINSTALLED)
 

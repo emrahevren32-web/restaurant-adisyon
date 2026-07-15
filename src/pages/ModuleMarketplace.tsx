@@ -25,6 +25,7 @@ import type {
 import { getBusinessWorkspaceModuleById } from '../modules/business-workspace.registry'
 import type { WorkspaceModuleType } from '../modules/module-registry.types'
 import type { User } from '../types'
+import { getCompanyIdForUser, loadCompanies } from '../storage'
 import {
   activateWorkspaceModuleForUser,
   detachWorkspaceModuleFromWorkspaceForUser,
@@ -39,6 +40,7 @@ import {
   startModuleSetupWizardForModule
 } from '../workspace/module-setup-wizard.service'
 import type { ModuleSetupWizardSession } from '../workspace/module-setup-wizard.types'
+import { provisionWorkspaceForModuleLifecycleResult } from '../workspace-provisioning/workspace-provisioning.service'
 
 type Props = {
   currentUser: User
@@ -101,6 +103,13 @@ const getActionButtonClassName = (action: MarketplaceModuleActionDefinition) => 
   return ''
 }
 
+const getPrimarySectorIdForUser = (user: User) => {
+  const companyId = getCompanyIdForUser(user)
+  if(!companyId) return ''
+
+  return loadCompanies({ allTenants: true }).find(company => company.id === companyId)?.primarySectorId || ''
+}
+
 export default function ModuleMarketplace({ currentUser, onModuleLifecycleChanged }: Props){
   const [search, setSearch] = React.useState('')
   const [workspaceCategory, setWorkspaceCategory] = React.useState<MarketplaceWorkspaceCategoryKey>('all')
@@ -112,10 +121,12 @@ export default function ModuleMarketplace({ currentUser, onModuleLifecycleChange
   const [error, setError] = React.useState('')
   const [activeSetupSession, setActiveSetupSession] = React.useState<ModuleSetupWizardSession | null>(null)
   const [managedModule, setManagedModule] = React.useState<MarketplaceModule | null>(null)
+  const primarySectorId = React.useMemo(() => getPrimarySectorIdForUser(currentUser), [currentUser])
 
   const marketplaceContext = React.useMemo<MarketplaceContext>(() => ({
-    getLifecycleState: module => getWorkspaceModuleLifecycleStateForUser(currentUser, module)
-  }), [currentUser, refreshKey])
+    getLifecycleState: module => getWorkspaceModuleLifecycleStateForUser(currentUser, module),
+    sectorId: primarySectorId
+  }), [currentUser, primarySectorId, refreshKey])
 
   const allModules = React.useMemo(() => (
     getMarketplaceCatalog({}, marketplaceContext)
@@ -190,6 +201,7 @@ export default function ModuleMarketplace({ currentUser, onModuleLifecycleChange
 
         completeModuleSetupWizardSession(currentUser, startModuleSetupWizardForInstallResult(currentUser, installResult))
         const activationResult = activateWorkspaceModuleForUser(currentUser, module.id)
+        provisionWorkspaceForModuleLifecycleResult(currentUser, activationResult)
         refreshLifecycle(activationResult, `${module.name} kuruldu ve çalışma alanına eklendi.`)
         setManagedModule({ ...module, installState: 'ACTIVE' })
         return
@@ -208,6 +220,7 @@ export default function ModuleMarketplace({ currentUser, onModuleLifecycleChange
 
       if(action.key === 'activate' || action.key === 'reactivate'){
         const result = activateWorkspaceModuleForUser(currentUser, module.id)
+        provisionWorkspaceForModuleLifecycleResult(currentUser, result)
         refreshLifecycle(result, action.key === 'reactivate'
           ? `${module.name} yeniden aktifleştirildi. Menü ve kontrol paneli widget kataloğu güncellendi.`
           : `${module.name} aktifleştirildi. Menü ve kontrol paneli widget kataloğu güncellendi.`
@@ -218,6 +231,7 @@ export default function ModuleMarketplace({ currentUser, onModuleLifecycleChange
 
       if(action.key === 'suspend'){
         const result = suspendWorkspaceModuleForUser(currentUser, module.id)
+        provisionWorkspaceForModuleLifecycleResult(currentUser, result)
         refreshLifecycle(result, `${module.name} pasife alındı. Menüden ve kontrol paneli seçeneklerinden kaldırıldı.`)
         setManagedModule(current => current?.id === module.id ? { ...current, installState: 'SUSPENDED' } : current)
         return
@@ -225,6 +239,7 @@ export default function ModuleMarketplace({ currentUser, onModuleLifecycleChange
 
       if(action.key === 'detach-from-workspace'){
         const result = detachWorkspaceModuleFromWorkspaceForUser(currentUser, module.id)
+        provisionWorkspaceForModuleLifecycleResult(currentUser, result)
         setActiveSetupSession(current => current?.module.id === module.id ? null : current)
         setManagedModule(current => current?.id === module.id ? null : current)
         refreshLifecycle(result, `${module.name} verileri silinmeden bu çalışma alanından kaldırıldı.`)
@@ -239,6 +254,7 @@ export default function ModuleMarketplace({ currentUser, onModuleLifecycleChange
 
     completeModuleSetupWizardSession(currentUser, activeSetupSession)
     const activationResult = activateWorkspaceModuleForUser(currentUser, activeSetupSession.module.id)
+    provisionWorkspaceForModuleLifecycleResult(currentUser, activationResult)
     setActiveSetupSession(null)
     refreshLifecycle(
       activationResult,

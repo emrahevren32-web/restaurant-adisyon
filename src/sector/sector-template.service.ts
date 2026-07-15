@@ -1,5 +1,6 @@
 import {
   getBusinessWorkspaceModuleByCode,
+  isBusinessWorkspaceModuleAvailableForSector,
   type BusinessWorkspaceModule
 } from '../modules/business-workspace.registry'
 import type { SectorTemplateAssignableModuleCode } from '../modules/module-code.registry'
@@ -41,37 +42,44 @@ export const getOptionalModules = (sectorIdOrCode: string): SectorTemplateAssign
 }
 
 export const resolveSectorTemplateModules = (
-  modules: readonly SectorTemplateAssignableModuleCode[]
+  modules: readonly SectorTemplateAssignableModuleCode[],
+  sectorIdOrCode?: string
 ): SectorTemplateModuleResolution[] => (
   modules.map(moduleCode => {
+    const sectorId = sectorIdOrCode ? normalizeSectorTemplateId(sectorIdOrCode) : ''
     const module = getBusinessWorkspaceModuleByCode(moduleCode) || null
+    const isAvailableForSector = module ? isBusinessWorkspaceModuleAvailableForSector(module, sectorId) : false
+
     return {
       moduleCode,
-      module,
-      isRegistered: Boolean(module)
+      module: isAvailableForSector ? module : null,
+      isRegistered: Boolean(module && isAvailableForSector)
     }
   })
 )
 
-const getResolvedWorkspaceModules = (modules: readonly SectorTemplateAssignableModuleCode[]): BusinessWorkspaceModule[] => (
-  resolveSectorTemplateModules(modules)
+const getResolvedWorkspaceModules = (
+  modules: readonly SectorTemplateAssignableModuleCode[],
+  sectorIdOrCode: string
+): BusinessWorkspaceModule[] => (
+  resolveSectorTemplateModules(modules, sectorIdOrCode)
     .map(result => result.module)
     .filter(Boolean) as BusinessWorkspaceModule[]
 )
 
 export const getDefaultWorkspaceModules = (sectorIdOrCode: string): BusinessWorkspaceModule[] => {
-  return getResolvedWorkspaceModules(getDefaultModules(sectorIdOrCode))
+  return getResolvedWorkspaceModules(getDefaultModules(sectorIdOrCode), sectorIdOrCode)
 }
 
 export const getOptionalWorkspaceModules = (sectorIdOrCode: string): BusinessWorkspaceModule[] => {
-  return getResolvedWorkspaceModules(getOptionalModules(sectorIdOrCode))
+  return getResolvedWorkspaceModules(getOptionalModules(sectorIdOrCode), sectorIdOrCode)
 }
 
 export const getSectorTemplateModuleResolution = (sectorIdOrCode: string) => {
   const template = getSectorTemplate(sectorIdOrCode)
   return {
     sectorId: template.sectorId,
-    defaultModules: resolveSectorTemplateModules(template.defaultModules),
-    optionalModules: resolveSectorTemplateModules(template.optionalModules)
+    defaultModules: resolveSectorTemplateModules(template.defaultModules, template.sectorId),
+    optionalModules: resolveSectorTemplateModules(template.optionalModules, template.sectorId)
   }
 }

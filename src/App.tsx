@@ -15,6 +15,7 @@ import SystemAnnouncements from './pages/SystemAnnouncements'
 import CustomerStatistics from './pages/CustomerStatistics'
 import CompanyManagement from './pages/CompanyManagement'
 import BillingManagement from './pages/BillingManagement'
+import SectorManagementCenter from './pages/SectorManagementCenter'
 import QRMenu from './pages/QRMenu'
 import Login from './pages/Login'
 import AppShell, { ShellNavGroup, ShellNavItem } from './components/AppShell'
@@ -66,9 +67,16 @@ import type { WorkspaceModuleLifecycleResult } from './workspace/workspace-modul
 import type { Evren360Notification } from './notifications/evren360-notification.service'
 import { hasConnectedWorkspaceIntegrationsForUser } from './integrations/workspace-integration.service'
 import { createPlatformNavGroups, getPlatformRoutes } from './platform/platform.registry'
+import { getBusinessMenuEmptyState, getWorkspaceTemplateViewForUser } from './workspace-template/workspace-template.service'
+import { WORKSPACE_MODULE_CODES } from './modules/module-code.registry'
+import { isBusinessWorkspaceModuleAvailableForSector } from './modules/business-workspace.registry'
 
 type NavItem = ShellNavItem<Route, NavKey>
 type NavGroup = ShellNavGroup<Route, NavKey, NavGroupKey>
+
+const INSTALLATION_LOCK_MESSAGE = 'Kurulum tamamlanmadan Kontrol Paneli, Çalışma Alanı ve Modül Mağazası kullanılamaz. Lütfen Business Setup Wizard adımlarını tamamlayın.'
+const INSTALLATION_LOCKED_NAV_KEYS = new Set<NavKey>(['dashboard', 'workspace', 'marketplace'])
+const INSTALLATION_LOCKED_ROUTES = new Set<Route>(['summary', 'settings', 'marketplace'])
 
 const flattenAppNavItems = (items: NavItem[]): NavItem[] => (
   items.flatMap(item => [
@@ -102,20 +110,60 @@ const isWorkspaceSetupCompletedForUser = (user: User | null) => {
   if(!user) return false
 
   const onboardingState = getFirstLoginOnboardingState(user)
-  return !onboardingState.required
-    && Boolean(onboardingState.completed || onboardingState.setup?.setupCompleted || !onboardingState.setup)
+  return Boolean(onboardingState.installationCompleted || !onboardingState.setup)
 }
 
-const createWorkspaceNavGroupsForUser = (user: User | null) => (
-  createBusinessWorkspaceNavGroups({
+const getPrimarySectorIdForUser = (user: User | null | undefined) => {
+  const companyId = getCompanyIdForUser(user)
+  if(!companyId) return ''
+
+  return loadCompanies({ allTenants: true }).find(company => company.id === companyId)?.primarySectorId || ''
+}
+
+const lockInstallationNavItems = (items: NavItem[]): NavItem[] => (
+  items.map(item => {
+    const children = item.children ? lockInstallationNavItems(item.children as NavItem[]) : undefined
+    const locked = INSTALLATION_LOCKED_NAV_KEYS.has(item.key)
+
+    return locked
+      ? {
+          ...item,
+          children,
+          locked: true,
+          disabledReason: INSTALLATION_LOCK_MESSAGE
+        }
+      : {
+          ...item,
+          children
+        }
+  })
+)
+
+const lockWorkspaceNavGroupsUntilInstallation = (groups: NavGroup[], setupCompleted: boolean): NavGroup[] => {
+  if(setupCompleted) return groups
+
+  return groups.map(group => ({
+    ...group,
+    items: lockInstallationNavItems(group.items as NavItem[])
+  }))
+}
+
+const createWorkspaceNavGroupsForUser = (user: User | null) => {
+  const setupCompleted = isWorkspaceSetupCompletedForUser(user)
+  const primarySectorId = getPrimarySectorIdForUser(user)
+  const businessMenuEmptyState = setupCompleted
+    ? getBusinessMenuEmptyState(getWorkspaceTemplateViewForUser(user))
+    : undefined
+
+  const groups = createBusinessWorkspaceNavGroups({
     isCoreModuleVisible: module => {
-      const setupCompleted = isWorkspaceSetupCompletedForUser(user)
-      if(module.code === 'workspace-welcome') return !setupCompleted
-      if(module.code === 'marketplace') return setupCompleted
-      if(module.code === 'integration-center') return setupCompleted && hasConnectedWorkspaceIntegrationsForUser(user)
-      return module.code === 'dashboard' || module.code === 'workspace'
+      if(module.code === WORKSPACE_MODULE_CODES.WORKSPACE_WELCOME) return !setupCompleted
+      if(module.code === WORKSPACE_MODULE_CODES.MARKETPLACE) return true
+      if(module.code === WORKSPACE_MODULE_CODES.INTEGRATION_CENTER) return setupCompleted && hasConnectedWorkspaceIntegrationsForUser(user)
+      return module.code === WORKSPACE_MODULE_CODES.DASHBOARD || module.code === WORKSPACE_MODULE_CODES.WORKSPACE
     },
     isModuleEnabled: module => {
+      if(!isBusinessWorkspaceModuleAvailableForSector(module, primarySectorId)) return false
       if(module.isCoreModule || module.isAlwaysActive) return true
       if(module.isBusinessModule){
         return isWorkspaceModuleActiveForUser(user, module)
@@ -125,8 +173,25 @@ const createWorkspaceNavGroupsForUser = (user: User | null) => (
       }
       return module.isEnabled && module.isVisible
     },
-    showBusinessModuleEmptyAction: isWorkspaceSetupCompletedForUser(user)
+    showBusinessModuleEmptyAction: setupCompleted,
+    businessModuleEmptyState: businessMenuEmptyState ? {
+      title: businessMenuEmptyState.title,
+      description: businessMenuEmptyState.description,
+      actionLabel: businessMenuEmptyState.actionLabel
+    } : undefined
   }) as NavGroup[]
+
+  return lockWorkspaceNavGroupsUntilInstallation(groups, setupCompleted)
+}
+
+const isInstallationLockedRoute = (
+  user: User | null,
+  isPlatformAdmin: boolean,
+  nextRoute: Route
+) => (
+  !isPlatformAdmin
+  && !isWorkspaceSetupCompletedForUser(user)
+  && INSTALLATION_LOCKED_ROUTES.has(nextRoute)
 )
 
 const getFirstVisibleWorkspaceNavItem = (user: User | null) => {
@@ -378,14 +443,20 @@ export default function App(){
     setOpenGroupKey('evren360-admin')
   }
   const openMarketplaceFromWelcome = () => {
-    if(!isWorkspaceSetupCompletedForUser(currentUser)) return
+    if(!isWorkspaceSetupCompletedForUser(currentUser)){
+      setLicenseAccessError(INSTALLATION_LOCK_MESSAGE)
+      return
+    }
     setLicenseAccessError('')
     setRoute('marketplace')
     setActiveNavKey('marketplace')
     setOpenGroupKey('system-modules')
   }
   const openDashboardFromOnboarding = () => {
-    if(!isWorkspaceSetupCompletedForUser(currentUser)) return
+    if(!isWorkspaceSetupCompletedForUser(currentUser)){
+      setLicenseAccessError(INSTALLATION_LOCK_MESSAGE)
+      return
+    }
     setLicenseAccessError('')
     setRoute('summary')
     setActiveNavKey('dashboard')
@@ -473,6 +544,11 @@ export default function App(){
   const openNavItem = (item: NavItem) => {
     if(!item.route) return
 
+    if(isInstallationLockedRoute(currentUser, isPlatformAdmin, item.route)){
+      setLicenseAccessError(INSTALLATION_LOCK_MESSAGE)
+      return
+    }
+
     if(item.locked){
       setLicenseAccessError(item.disabledReason || LICENSE_ACCESS_DENIED_MESSAGE)
       return
@@ -546,6 +622,7 @@ export default function App(){
       onLogout={logout}
     >
       <React.Fragment key={`${activeBranchId}:${onboardingRefreshKey}`}>
+      {licenseAccessError && <div className="form-error license-access-error">{licenseAccessError}</div>}
       {firstLoginOnboardingRequired && firstLoginOnboardingState ? (
         <FirstLoginWizard
           currentUser={currentUser}
@@ -554,7 +631,6 @@ export default function App(){
         />
       ) : (
         <>
-      {licenseAccessError && <div className="form-error license-access-error">{licenseAccessError}</div>}
       {activeRouteLicenseDenied ? (
         <LicenseAccessDenied moduleKey={activeRouteModule} />
       ) : (
@@ -610,6 +686,9 @@ export default function App(){
       )}
       {route === 'evren360-billing-management' && currentUser.role === 'Admin' && (
         isPlatformAdmin ? <BillingManagement /> : <PlatformAccessDenied />
+      )}
+      {route === 'evren360-sector-management' && currentUser.role === 'Admin' && (
+        isPlatformAdmin ? <SectorManagementCenter currentUser={currentUser} /> : <PlatformAccessDenied />
       )}
       {evren360View && (
         isPlatformAdmin

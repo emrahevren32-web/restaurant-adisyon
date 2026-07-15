@@ -76,10 +76,6 @@ const getDependencyRelationLabel = (relation: ModuleDependencyPlanItem['relation
   return 'Seçim'
 }
 
-const createModuleCodeSet = (modules: ModuleRecommendationPlanItem[]) => (
-  modules.map(module => module.moduleCode)
-)
-
 const ModuleCard = ({
   module,
   selected,
@@ -175,11 +171,7 @@ export default function FirstLoginWizard({ currentUser, onboardingState, onCompl
   const [stepIndex, setStepIndex] = React.useState(0)
   const [password, setPassword] = React.useState<FirstLoginPasswordForm>(() => createPasswordForm())
   const [businessInfo, setBusinessInfo] = React.useState<FirstLoginBusinessInfoForm>(() => createBusinessInfoForm(onboardingState))
-  const [selectedRecommendedModuleCodes, setSelectedRecommendedModuleCodes] = React.useState<string[]>(() => (
-    createModuleCodeSet(createBusinessSetupWizardPlan({
-      sectorIdOrCode: createBusinessInfoForm(onboardingState).primarySectorId
-    }).recommendedModules)
-  ))
+  const [selectedRecommendedModuleCodes, setSelectedRecommendedModuleCodes] = React.useState<string[]>([])
   const [selectedOptionalModuleCodes, setSelectedOptionalModuleCodes] = React.useState<string[]>([])
   const [error, setError] = React.useState('')
   const [completed, setCompleted] = React.useState(false)
@@ -194,7 +186,7 @@ export default function FirstLoginWizard({ currentUser, onboardingState, onCompl
   }), [businessInfo.primarySectorId, selectedOptionalModuleCodes, selectedRecommendedModuleCodes])
 
   React.useEffect(() => {
-    setSelectedRecommendedModuleCodes(createModuleCodeSet(basePlan.recommendedModules))
+    setSelectedRecommendedModuleCodes([])
     setSelectedOptionalModuleCodes([])
   }, [basePlan.sectorId])
 
@@ -278,7 +270,9 @@ export default function FirstLoginWizard({ currentUser, onboardingState, onCompl
       completeFirstLoginOnboarding({
         state: onboardingState,
         password,
-        businessInfo
+        businessInfo,
+        selectedRecommendedModuleCodes,
+        selectedOptionalModuleCodes
       })
       setCompleted(true)
       setStepIndex(6)
@@ -522,7 +516,7 @@ export default function FirstLoginWizard({ currentUser, onboardingState, onCompl
             <div>
               <span className="status-pill success">Kurulum Planı</span>
               <h3>Kurulum özeti</h3>
-              <p className="muted">Bu fazda gerçek modül kurulumu yapılmaz; plan sonraki Installation Engine fazına hazırlık olarak gösterilir.</p>
+              <p className="muted">Seçilen modüller gerçek iş verisi oluşturmadan Kurulum Motoru ile çalışma alanına hazırlanır.</p>
             </div>
             <dl className="first-login-summary-list">
               <div><dt>Seçilen Sektör</dt><dd>{selectedSector?.name || '-'}</dd></div>
@@ -560,10 +554,10 @@ export default function FirstLoginWizard({ currentUser, onboardingState, onCompl
               <section className="first-login-summary-card">
                 <h4>Hazırlanacak Alanlar</h4>
                 <div className="first-login-plan-list">
-                  <span>Kontrol Paneli: sonraki faz</span>
-                  <span>Roller: sonraki faz</span>
-                  <span>Menü: sonraki faz</span>
-                  <span>Widget Grupları: sonraki faz</span>
+                  <span>Kontrol Paneli: Kurulum Motoru</span>
+                  <span>Roller: Kurulum Motoru</span>
+                  <span>Menü: Kurulum Motoru</span>
+                  <span>Widget Grupları: Kurulum Motoru</span>
                 </div>
               </section>
             </div>

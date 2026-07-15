@@ -42,12 +42,11 @@ export const MODULE_DEPENDENCY_REGISTRY: ModuleDependencyRule[] = [
   }),
   defineDependencyRule({
     moduleCode: MODULE_CODES.PRODUCTION,
-    requires: [
+    requires: [],
+    recommended: [
       MODULE_CODES.WAREHOUSE,
       MODULE_CODES.STOCK,
-      MODULE_CODES.RECIPE
-    ],
-    recommended: [
+      MODULE_CODES.RECIPE,
       MODULE_CODES.PURCHASE
     ],
     optionalDependencies: [
@@ -55,7 +54,7 @@ export const MODULE_DEPENDENCY_REGISTRY: ModuleDependencyRule[] = [
       MODULE_CODES.MAINTENANCE
     ],
     conflicts: [],
-    description: 'Üretim akışı depo, stok ve reçete temeli olmadan planlanamaz.'
+    description: 'Üretim iş emirleri bu fazda bağımsız UI/domain hazırlığıdır; depo, stok, reçete ve satın alma sonraki fazlar için önerilen temel modüllerdir.'
   }),
   defineDependencyRule({
     moduleCode: MODULE_CODES.COURIER,
