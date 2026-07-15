@@ -826,7 +826,7 @@ export const BUSINESS_WORKSPACE_MODULE_REGISTRY: BusinessWorkspaceModule[] = def
     isVisible: true,
     displayOrder: 45,
     dependencies: [],
-    tags: ['business', 'production', 'operation', 'industrial-kitchen', 'work-order', 'production-line', 'intermediate-product', 'final-product', 'blast-chiller', 'packaging'],
+    tags: ['business', 'production', 'operation', 'industrial-kitchen', 'work-order', 'production-line', 'intermediate-product', 'final-product', 'blast-chiller', 'packaging', 'labeling'],
     supportedSectorIds: industrialKitchenSectorIds,
     pricing: { model: 'paid', currency: 'TRY' },
     marketplace: marketplaceReady,
@@ -908,6 +908,19 @@ export const BUSINESS_WORKSPACE_MODULE_REGISTRY: BusinessWorkspaceModule[] = def
         supportedLayouts: ['standard', 'wide'],
         requiredPermission: 'operations.read',
         renderComponent: 'production.packaging.placeholder'
+      }),
+      dashboardWidget({
+        id: 'production.labeling',
+        title: 'Etiketleme',
+        description: 'Endüstriyel mutfak etiketleme süreçleri için kontrol paneli başlangıç alanı.',
+        icon: 'ET',
+        category: 'Operasyon',
+        order: 50,
+        defaultVisible: false,
+        defaultSize: 'medium',
+        supportedLayouts: ['standard', 'wide'],
+        requiredPermission: 'operations.read',
+        renderComponent: 'production.labeling.placeholder'
       })
     ],
     menuItems: [
@@ -916,7 +929,8 @@ export const BUSINESS_WORKSPACE_MODULE_REGISTRY: BusinessWorkspaceModule[] = def
       menuItem({ key: 'intermediate-products', label: 'Ara Ürünler', route: 'intermediate-products', icon: 'AU', adminOnly: true, displayOrder: 30 }),
       menuItem({ key: 'final-products', label: 'Son Ürünler', route: 'final-products', icon: 'SU', adminOnly: true, displayOrder: 40 }),
       menuItem({ key: 'blast-chiller-processes', label: 'Şoklama Süreçleri', route: 'blast-chiller-processes', icon: 'SS', adminOnly: true, displayOrder: 50 }),
-      menuItem({ key: 'packaging-processes', label: 'Paketleme', route: 'packaging-processes', icon: 'PK', adminOnly: true, displayOrder: 60 })
+      menuItem({ key: 'packaging-processes', label: 'Paketleme', route: 'packaging-processes', icon: 'PK', adminOnly: true, displayOrder: 60 }),
+      menuItem({ key: 'labeling-processes', label: 'Etiketleme', route: 'labeling-processes', icon: 'ET', adminOnly: true, displayOrder: 70 })
     ]
   },
   {

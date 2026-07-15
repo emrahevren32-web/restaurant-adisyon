@@ -32,6 +32,7 @@ import IntermediateProducts from '../pages/IntermediateProducts'
 import FinalProducts from '../pages/FinalProducts'
 import BlastChillerProcesses from '../pages/BlastChillerProcesses'
 import PackagingProcesses from '../pages/PackagingProcesses'
+import LabelingProcesses from '../pages/LabelingProcesses'
 import Recipes from '../pages/Recipes'
 import Users from '../pages/Users'
 import Settings from '../pages/Settings'
@@ -161,6 +162,7 @@ export default function BusinessWorkspaceRouteHost({
   if(route === 'final-products') return <FinalProducts />
   if(route === 'blast-chiller-processes') return <BlastChillerProcesses />
   if(route === 'packaging-processes') return <PackagingProcesses />
+  if(route === 'labeling-processes') return <LabelingProcesses />
   if(route === 'recipes') return <Recipes currentUser={currentUser} />
   if(route === 'supplier-debts') return <SupplierDebts currentUser={currentUser} />
   if(route === 'supplier-payments') return <SupplierPayments currentUser={currentUser} />
