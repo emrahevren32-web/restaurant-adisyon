@@ -815,7 +815,7 @@ export const BUSINESS_WORKSPACE_MODULE_REGISTRY: BusinessWorkspaceModule[] = def
     id: 'business-production-work-orders',
     code: SECTOR_TEMPLATE_MODULE_CODES.PRODUCTION,
     name: 'Üretim',
-    description: 'Endüstriyel mutfak üretim iş emirleri, üretim hatları, ara ürünler, son ürünler ve şoklama süreçleri için UI, domain modeli ve örnek veri hazırlığı.',
+    description: 'Endüstriyel mutfak üretim iş emirleri, üretim hatları, ara ürünler, son ürünler, şoklama ve paketleme süreçleri için UI, domain modeli ve örnek veri hazırlığı.',
     category: 'business',
     icon: 'UR',
     route: 'production-work-orders',
@@ -826,7 +826,7 @@ export const BUSINESS_WORKSPACE_MODULE_REGISTRY: BusinessWorkspaceModule[] = def
     isVisible: true,
     displayOrder: 45,
     dependencies: [],
-    tags: ['business', 'production', 'operation', 'industrial-kitchen', 'work-order', 'production-line', 'intermediate-product', 'final-product', 'blast-chiller'],
+    tags: ['business', 'production', 'operation', 'industrial-kitchen', 'work-order', 'production-line', 'intermediate-product', 'final-product', 'blast-chiller', 'packaging'],
     supportedSectorIds: industrialKitchenSectorIds,
     pricing: { model: 'paid', currency: 'TRY' },
     marketplace: marketplaceReady,
@@ -895,6 +895,19 @@ export const BUSINESS_WORKSPACE_MODULE_REGISTRY: BusinessWorkspaceModule[] = def
         supportedLayouts: ['standard', 'wide'],
         requiredPermission: 'operations.read',
         renderComponent: 'production.blastChiller.placeholder'
+      }),
+      dashboardWidget({
+        id: 'production.packaging',
+        title: 'Paketleme',
+        description: 'Endüstriyel mutfak paketleme süreçleri için kontrol paneli başlangıç alanı.',
+        icon: 'PK',
+        category: 'Operasyon',
+        order: 45,
+        defaultVisible: false,
+        defaultSize: 'medium',
+        supportedLayouts: ['standard', 'wide'],
+        requiredPermission: 'operations.read',
+        renderComponent: 'production.packaging.placeholder'
       })
     ],
     menuItems: [
@@ -902,7 +915,8 @@ export const BUSINESS_WORKSPACE_MODULE_REGISTRY: BusinessWorkspaceModule[] = def
       menuItem({ key: 'production-lines', label: 'Üretim Hatları', route: 'production-lines', icon: 'UH', adminOnly: true, displayOrder: 20 }),
       menuItem({ key: 'intermediate-products', label: 'Ara Ürünler', route: 'intermediate-products', icon: 'AU', adminOnly: true, displayOrder: 30 }),
       menuItem({ key: 'final-products', label: 'Son Ürünler', route: 'final-products', icon: 'SU', adminOnly: true, displayOrder: 40 }),
-      menuItem({ key: 'blast-chiller-processes', label: 'Şoklama Süreçleri', route: 'blast-chiller-processes', icon: 'SS', adminOnly: true, displayOrder: 50 })
+      menuItem({ key: 'blast-chiller-processes', label: 'Şoklama Süreçleri', route: 'blast-chiller-processes', icon: 'SS', adminOnly: true, displayOrder: 50 }),
+      menuItem({ key: 'packaging-processes', label: 'Paketleme', route: 'packaging-processes', icon: 'PK', adminOnly: true, displayOrder: 60 })
     ]
   },
   {
