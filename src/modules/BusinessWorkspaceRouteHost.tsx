@@ -27,6 +27,7 @@ import QRCodes from '../pages/QRCodes'
 import StockCards from '../pages/StockCards'
 import StockMovements from '../pages/StockMovements'
 import ProductionWorkOrders from '../pages/ProductionWorkOrders'
+import ProductionLines from '../pages/ProductionLines'
 import Recipes from '../pages/Recipes'
 import Users from '../pages/Users'
 import Settings from '../pages/Settings'
@@ -151,6 +152,7 @@ export default function BusinessWorkspaceRouteHost({
   }
 
   if(route === 'production-work-orders') return <ProductionWorkOrders currentUser={currentUser} />
+  if(route === 'production-lines') return <ProductionLines currentUser={currentUser} />
   if(route === 'recipes') return <Recipes currentUser={currentUser} />
   if(route === 'supplier-debts') return <SupplierDebts currentUser={currentUser} />
   if(route === 'supplier-payments') return <SupplierPayments currentUser={currentUser} />

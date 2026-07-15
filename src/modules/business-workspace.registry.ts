@@ -815,7 +815,7 @@ export const BUSINESS_WORKSPACE_MODULE_REGISTRY: BusinessWorkspaceModule[] = def
     id: 'business-production-work-orders',
     code: SECTOR_TEMPLATE_MODULE_CODES.PRODUCTION,
     name: 'Üretim',
-    description: 'Endüstriyel mutfak üretim iş emirleri için UI, domain modeli ve örnek veri hazırlığı.',
+    description: 'Endüstriyel mutfak üretim iş emirleri ve üretim hatları için UI, domain modeli ve örnek veri hazırlığı.',
     category: 'business',
     icon: 'UR',
     route: 'production-work-orders',
@@ -826,7 +826,7 @@ export const BUSINESS_WORKSPACE_MODULE_REGISTRY: BusinessWorkspaceModule[] = def
     isVisible: true,
     displayOrder: 45,
     dependencies: [],
-    tags: ['business', 'production', 'operation', 'industrial-kitchen', 'work-order'],
+    tags: ['business', 'production', 'operation', 'industrial-kitchen', 'work-order', 'production-line'],
     supportedSectorIds: industrialKitchenSectorIds,
     pricing: { model: 'paid', currency: 'TRY' },
     marketplace: marketplaceReady,
@@ -843,10 +843,24 @@ export const BUSINESS_WORKSPACE_MODULE_REGISTRY: BusinessWorkspaceModule[] = def
         supportedLayouts: ['standard', 'wide'],
         requiredPermission: 'operations.read',
         renderComponent: 'production.workOrders.placeholder'
+      }),
+      dashboardWidget({
+        id: 'production.lines',
+        title: 'Üretim Hatları',
+        description: 'Endüstriyel mutfak üretim hatları için kontrol paneli başlangıç alanı.',
+        icon: 'UH',
+        category: 'Operasyon',
+        order: 25,
+        defaultVisible: false,
+        defaultSize: 'medium',
+        supportedLayouts: ['standard', 'wide'],
+        requiredPermission: 'operations.read',
+        renderComponent: 'production.lines.placeholder'
       })
     ],
     menuItems: [
-      menuItem({ key: 'production-work-orders', label: 'Üretim Emirleri', route: 'production-work-orders', icon: 'UE', adminOnly: true, displayOrder: 10 })
+      menuItem({ key: 'production-work-orders', label: 'Üretim Emirleri', route: 'production-work-orders', icon: 'UE', adminOnly: true, displayOrder: 10 }),
+      menuItem({ key: 'production-lines', label: 'Üretim Hatları', route: 'production-lines', icon: 'UH', adminOnly: true, displayOrder: 20 })
     ]
   },
   {
