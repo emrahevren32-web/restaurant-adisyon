@@ -815,7 +815,7 @@ export const BUSINESS_WORKSPACE_MODULE_REGISTRY: BusinessWorkspaceModule[] = def
     id: 'business-production-work-orders',
     code: SECTOR_TEMPLATE_MODULE_CODES.PRODUCTION,
     name: 'Üretim',
-    description: 'Endüstriyel mutfak üretim iş emirleri, üretim hatları, ara ürünler ve son ürünler için UI, domain modeli ve örnek veri hazırlığı.',
+    description: 'Endüstriyel mutfak üretim iş emirleri, üretim hatları, ara ürünler, son ürünler ve şoklama süreçleri için UI, domain modeli ve örnek veri hazırlığı.',
     category: 'business',
     icon: 'UR',
     route: 'production-work-orders',
@@ -826,7 +826,7 @@ export const BUSINESS_WORKSPACE_MODULE_REGISTRY: BusinessWorkspaceModule[] = def
     isVisible: true,
     displayOrder: 45,
     dependencies: [],
-    tags: ['business', 'production', 'operation', 'industrial-kitchen', 'work-order', 'production-line', 'intermediate-product', 'final-product'],
+    tags: ['business', 'production', 'operation', 'industrial-kitchen', 'work-order', 'production-line', 'intermediate-product', 'final-product', 'blast-chiller'],
     supportedSectorIds: industrialKitchenSectorIds,
     pricing: { model: 'paid', currency: 'TRY' },
     marketplace: marketplaceReady,
@@ -882,13 +882,27 @@ export const BUSINESS_WORKSPACE_MODULE_REGISTRY: BusinessWorkspaceModule[] = def
         supportedLayouts: ['standard', 'wide'],
         requiredPermission: 'operations.read',
         renderComponent: 'production.finalProducts.placeholder'
+      }),
+      dashboardWidget({
+        id: 'production.blastChiller',
+        title: 'Şoklama Süreçleri',
+        description: 'Endüstriyel mutfak şoklama süreçleri için kontrol paneli başlangıç alanı.',
+        icon: 'SS',
+        category: 'Operasyon',
+        order: 40,
+        defaultVisible: false,
+        defaultSize: 'medium',
+        supportedLayouts: ['standard', 'wide'],
+        requiredPermission: 'operations.read',
+        renderComponent: 'production.blastChiller.placeholder'
       })
     ],
     menuItems: [
       menuItem({ key: 'production-work-orders', label: 'Üretim Emirleri', route: 'production-work-orders', icon: 'UE', adminOnly: true, displayOrder: 10 }),
       menuItem({ key: 'production-lines', label: 'Üretim Hatları', route: 'production-lines', icon: 'UH', adminOnly: true, displayOrder: 20 }),
       menuItem({ key: 'intermediate-products', label: 'Ara Ürünler', route: 'intermediate-products', icon: 'AU', adminOnly: true, displayOrder: 30 }),
-      menuItem({ key: 'final-products', label: 'Son Ürünler', route: 'final-products', icon: 'SU', adminOnly: true, displayOrder: 40 })
+      menuItem({ key: 'final-products', label: 'Son Ürünler', route: 'final-products', icon: 'SU', adminOnly: true, displayOrder: 40 }),
+      menuItem({ key: 'blast-chiller-processes', label: 'Şoklama Süreçleri', route: 'blast-chiller-processes', icon: 'SS', adminOnly: true, displayOrder: 50 })
     ]
   },
   {
