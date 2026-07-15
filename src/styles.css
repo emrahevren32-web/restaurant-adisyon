@@ -362,6 +362,7 @@ th { color:var(--muted-strong); font-size:13px; font-weight:750 }
 .section-header .stock-movement-filters select,
 .section-header .recipe-filters input,
 .section-header .recipe-filters select,
+.section-header .recipe-filters .btn,
 .section-header .production-work-order-toolbar input,
 .section-header .production-work-order-toolbar select,
 .section-header .production-work-order-toolbar .btn,
@@ -1650,8 +1651,60 @@ th { color:var(--muted-strong); font-size:13px; font-weight:750 }
 .stock-current-hint { display:flex; justify-content:space-between; gap:12px; align-items:center; border:1px solid var(--line); border-radius:var(--radius-md); padding:10px 12px; background:var(--surface-muted) }
 .stock-current-hint span { color:var(--muted); font-size:12px; font-weight:700 }
 .stock-current-hint em { color:var(--text-soft); font-size:12px; font-style:normal; font-weight:700 }
-.recipe-layout { grid-template-columns:minmax(0, 1fr) 440px }
-.recipe-filters { display:grid; grid-template-columns:minmax(220px, 1fr) 180px 140px; gap:8px; width:min(100%, 680px); min-width:0 }
+.recipe-layout { grid-template-columns:minmax(0, 1fr) 420px }
+.recipe-side { display:flex; flex-direction:column; gap:12px }
+.recipe-filters { display:grid; grid-template-columns:auto minmax(220px, 1fr) minmax(150px, .6fr); gap:8px; width:min(100%, 780px); min-width:0 }
+.recipe-filters .btn { white-space:nowrap }
+.recipe-table { min-width:1140px }
+.recipe-table tbody tr { cursor:pointer }
+.recipe-table tbody tr:hover td { background:#f1f7ff }
+.recipe-table tbody tr.selected-row:hover td,
+.recipe-table tbody tr.selected-row td { background:var(--accent-subtle); box-shadow:inset 5px 0 0 var(--accent) }
+.recipe-table .recipe-col-code { width:120px }
+.recipe-table .recipe-col-name { width:220px }
+.recipe-table .recipe-col-type { width:130px }
+.recipe-table .recipe-col-product { width:180px }
+.recipe-table .recipe-col-portion { width:110px }
+.recipe-table .recipe-col-ingredients { width:130px }
+.recipe-table .recipe-col-status { width:110px }
+.recipe-table .recipe-col-actions { width:240px }
+.recipe-summary-grid { display:grid; grid-template-columns:repeat(2, minmax(0, 1fr)); gap:10px; margin-bottom:14px }
+.recipe-summary-grid > div { min-width:0; border:1px solid var(--line); border-radius:var(--radius-md); padding:12px; background:var(--surface-muted) }
+.recipe-summary-grid span,
+.recipe-summary-grid strong { display:block; line-height:1.25; overflow-wrap:anywhere }
+.recipe-summary-grid span { color:var(--muted); font-size:12px; font-weight:850 }
+.recipe-summary-grid strong { margin-top:5px; color:var(--text); font-size:15px; font-weight:900; font-variant-numeric:tabular-nums }
+.recipe-side-actions { display:grid; grid-template-columns:repeat(3, minmax(0, 1fr)); gap:8px; margin-top:14px }
+.recipe-management-form .form-row { grid-template-columns:repeat(2, minmax(0, 1fr)) }
+.recipe-form-ingredients { display:flex; flex-direction:column; gap:10px; min-width:0; border:1px solid var(--line); border-radius:var(--radius-md); padding:12px; background:var(--surface-muted) }
+.recipe-form-ingredients .section-header { margin-bottom:0 }
+.recipe-form-ingredient-list { display:flex; flex-direction:column; gap:8px; min-width:0 }
+.recipe-form-ingredient-empty { border:1px dashed var(--line); border-radius:var(--radius-md); padding:10px 12px; background:var(--surface); color:var(--muted); font-size:13px; font-weight:800; text-align:center }
+.recipe-form-ingredient-row { display:flex; align-items:center; justify-content:space-between; gap:10px; min-width:0; border:1px solid var(--line); border-radius:var(--radius-md); padding:10px 12px; background:var(--surface) }
+.recipe-form-ingredient-row > div { min-width:0 }
+.recipe-form-ingredient-row > div:last-child { display:flex; gap:6px; flex-wrap:wrap; justify-content:flex-end; flex:0 0 auto }
+.recipe-form-ingredient-row strong,
+.recipe-form-ingredient-row span { display:block; min-width:0; line-height:1.25; overflow-wrap:anywhere }
+.recipe-form-ingredient-row strong { color:var(--text); font-size:13px; font-weight:900 }
+.recipe-form-ingredient-row span { margin-top:3px; color:var(--muted); font-size:12px; font-weight:800 }
+.recipe-inline-ingredient-form { display:grid; grid-template-columns:minmax(160px, 1fr) minmax(100px, .45fr) minmax(92px, .35fr); gap:8px; align-items:end; min-width:0 }
+.recipe-inline-ingredient-actions { display:flex; grid-column:1 / -1; gap:8px; justify-content:flex-end; flex-wrap:wrap; min-width:0 }
+.recipe-toast { position:fixed; top:84px; right:24px; z-index:80; max-width:min(360px, calc(100vw - 32px)); border:1px solid var(--success-line); border-radius:var(--radius-md); padding:11px 14px; background:var(--success-soft); color:var(--success); box-shadow:var(--shadow-md); font-size:13px; font-weight:900; line-height:1.35 }
+.recipe-toast.info { border-color:var(--accent-line); background:var(--accent-soft); color:var(--accent) }
+.recipe-empty-list { display:flex; flex-direction:column; align-items:center; justify-content:center; gap:8px; min-height:180px; padding:20px; text-align:center }
+.recipe-empty-list strong,
+.recipe-empty-list span { display:block; line-height:1.35; overflow-wrap:anywhere }
+.recipe-empty-list strong { color:var(--text); font-size:16px; font-weight:900 }
+.recipe-empty-list span { max-width:360px; color:var(--muted); font-size:13px; font-weight:750 }
+.recipe-detail-title { align-items:flex-start }
+.recipe-detail-actions { display:flex; gap:8px; flex-wrap:wrap; justify-content:flex-end; margin-left:auto }
+.recipe-detail-grid { display:grid; grid-template-columns:minmax(0, 1fr) 390px; gap:18px; align-items:start }
+.recipe-detail-summary { position:sticky; top:12px }
+.recipe-ingredient-table { min-width:760px }
+.recipe-ingredient-form { display:grid; grid-template-columns:minmax(220px, 1fr) minmax(120px, .45fr) minmax(110px, .35fr) auto; gap:8px; align-items:end; border:1px solid var(--line); border-radius:var(--radius-md); padding:12px; background:var(--surface-muted); margin-top:14px }
+.recipe-ingredient-form-actions { display:flex; gap:8px; flex-wrap:wrap; justify-content:flex-end; min-width:0 }
+.recipe-ingredient-error { grid-column:1 / -1 }
+.recipe-ingredient-add-row { display:flex; justify-content:flex-start; margin-top:14px }
 .recipe-add-panel { display:flex; flex-direction:column; gap:8px }
 .recipe-add-controls { display:grid; grid-template-columns:minmax(0, 1fr) 84px 72px auto; gap:8px; align-items:end }
 .recipe-add-controls .form-field { min-width:0 }
@@ -1998,7 +2051,7 @@ th { color:var(--muted-strong); font-size:13px; font-weight:750 }
 .report-table th, .report-table td { white-space:nowrap }
 .report-table td:first-child, .report-table th:first-child { white-space:normal; min-width:160px }
 .table-wrap .stock-cards-table { min-width:1120px }
-.table-wrap .recipe-table { min-width:940px }
+.table-wrap .recipe-table { min-width:1140px }
 .table-wrap .stock-movement-table { min-width:920px }
 .table-wrap .current-account-movement-table { min-width:920px }
 .table-wrap .current-report-table { min-width:920px }
@@ -2290,6 +2343,7 @@ th { color:var(--muted-strong); font-size:13px; font-weight:750 }
   .stock-movement-layout.movements-focus { grid-template-columns:minmax(0, 1fr) 360px }
   .stock-movement-layout.waste-focus { grid-template-columns:360px minmax(0, 1fr) }
   .recipe-layout { grid-template-columns:minmax(0, 1fr) 390px }
+  .recipe-detail-grid { grid-template-columns:minmax(0, 1fr) 360px }
   .tables-layout, .tables-layout.tables-focus { grid-template-columns:310px minmax(0, 1fr) }
   .tables-layout.billing-focus { grid-template-columns:minmax(0, 1fr) 310px }
   .users-layout { grid-template-columns:minmax(0, 1fr) 330px }
@@ -2343,6 +2397,7 @@ th { color:var(--muted-strong); font-size:13px; font-weight:750 }
   .dispatch-layout,
   .stock-movement-layout,
   .recipe-layout,
+  .recipe-detail-grid,
   .users-layout,
   .package-license-detail-grid,
   .evren360-detail-grid { grid-template-columns:1fr }
@@ -2394,7 +2449,7 @@ th { color:var(--muted-strong); font-size:13px; font-weight:750 }
   .users-side { position:static }
   .metric-grid { grid-template-columns:repeat(2, minmax(0, 1fr)) }
   .kitchen-grid { grid-template-columns:repeat(2, minmax(0, 1fr)) }
-  .toolbar-controls, .stock-movement-filters, .recipe-filters, .production-work-order-toolbar, .production-line-toolbar, .intermediate-product-toolbar, .final-product-toolbar, .blast-chiller-toolbar, .packaging-toolbar, .labeling-toolbar, .dispatch-toolbar, .production-work-order-summary-grid, .production-line-summary-grid, .intermediate-product-summary-grid, .final-product-summary-grid, .blast-chiller-summary-grid, .packaging-summary-grid, .labeling-summary-grid, .dispatch-summary-grid, .adisyon-tools, .action-log-filters, .stock-report-filters, .report-filter-grid, .report-sort-controls, .report-panel-grid.three, .waste-reason-summary-grid, .current-report-summary-grid, .risky-current-summary-grid, .employee-report-summary-grid, .employee-report-risk-grid, .financial-summary-grid, .business-summary-grid, .sales-analysis-grid, .product-performance-grid, .product-risk-grid, .stock-risk-grid, .stock-risk-list-grid, .current-finance-summary-grid, .finance-risk-grid, .personnel-performance-grid, .personnel-summary-grid, .personnel-risk-grid, .manager-alert-score-grid, .manager-alert-grid, .branch-reporting-grid, .branch-report-best-grid, .head-office-grid, .system-usage-analysis-grid, .user-activity-analysis-grid, .user-activity-detail-grid, .module-usage-analysis-grid, .module-usage-detail-grid, .business-usage-analysis-grid, .business-usage-detail-grid, .usage-performance-density-grid, .usage-performance-analysis-grid, .usage-performance-detail-grid, .usage-performance-summary-grid, .analytics-dashboard-summary-grid, .analytics-dashboard-trend-grid, .analytics-dashboard-detail-grid, .system-health-telemetry-grid, .system-health-risk-grid, .company-setup-detail-grid, .package-license-detail-grid, .package-default-grid, .user-subscription-detail-grid, .module-activation-detail-grid, .module-activation-filters, .module-activation-test-form, .financial-report-list-grid, .customer-list-controls, .customer-detail-grid, .customer-detail-info-grid, .customer-detail-license-grid, .customer-detail-module-grid, .pending-applications-controls, .pending-applications-detail-grid, .pending-applications-history, .system-announcements-layout, .system-announcements-form, .system-announcements-foundation-grid, .system-announcements-controls, .customer-statistics-filters, .customer-statistics-chart-grid, .customer-statistics-table-grid, .customer-statistics-donut-layout, .customer-module-usage-list > div, .company-management-quick-grid, .company-management-info-grid, .company-management-license-grid, .company-management-tenant-grid, .company-management-grid, .company-management-module-grid, .company-management-module-card, .billing-management-filters, .billing-management-kpi-grid, .billing-management-grid, .billing-management-chart-grid, .billing-management-foundation-grid, .billing-management-bar-row, .billing-management-donut-layout { grid-template-columns:1fr; width:100% }
+  .toolbar-controls, .stock-movement-filters, .recipe-filters, .recipe-summary-grid, .recipe-ingredient-form, .recipe-inline-ingredient-form, .production-work-order-toolbar, .production-line-toolbar, .intermediate-product-toolbar, .final-product-toolbar, .blast-chiller-toolbar, .packaging-toolbar, .labeling-toolbar, .dispatch-toolbar, .production-work-order-summary-grid, .production-line-summary-grid, .intermediate-product-summary-grid, .final-product-summary-grid, .blast-chiller-summary-grid, .packaging-summary-grid, .labeling-summary-grid, .dispatch-summary-grid, .adisyon-tools, .action-log-filters, .stock-report-filters, .report-filter-grid, .report-sort-controls, .report-panel-grid.three, .waste-reason-summary-grid, .current-report-summary-grid, .risky-current-summary-grid, .employee-report-summary-grid, .employee-report-risk-grid, .financial-summary-grid, .business-summary-grid, .sales-analysis-grid, .product-performance-grid, .product-risk-grid, .stock-risk-grid, .stock-risk-list-grid, .current-finance-summary-grid, .finance-risk-grid, .personnel-performance-grid, .personnel-summary-grid, .personnel-risk-grid, .manager-alert-score-grid, .manager-alert-grid, .branch-reporting-grid, .branch-report-best-grid, .head-office-grid, .system-usage-analysis-grid, .user-activity-analysis-grid, .user-activity-detail-grid, .module-usage-analysis-grid, .module-usage-detail-grid, .business-usage-analysis-grid, .business-usage-detail-grid, .usage-performance-density-grid, .usage-performance-analysis-grid, .usage-performance-detail-grid, .usage-performance-summary-grid, .analytics-dashboard-summary-grid, .analytics-dashboard-trend-grid, .analytics-dashboard-detail-grid, .system-health-telemetry-grid, .system-health-risk-grid, .company-setup-detail-grid, .package-license-detail-grid, .package-default-grid, .user-subscription-detail-grid, .module-activation-detail-grid, .module-activation-filters, .module-activation-test-form, .financial-report-list-grid, .customer-list-controls, .customer-detail-grid, .customer-detail-info-grid, .customer-detail-license-grid, .customer-detail-module-grid, .pending-applications-controls, .pending-applications-detail-grid, .pending-applications-history, .system-announcements-layout, .system-announcements-form, .system-announcements-foundation-grid, .system-announcements-controls, .customer-statistics-filters, .customer-statistics-chart-grid, .customer-statistics-table-grid, .customer-statistics-donut-layout, .customer-module-usage-list > div, .company-management-quick-grid, .company-management-info-grid, .company-management-license-grid, .company-management-tenant-grid, .company-management-grid, .company-management-module-grid, .company-management-module-card, .billing-management-filters, .billing-management-kpi-grid, .billing-management-grid, .billing-management-chart-grid, .billing-management-foundation-grid, .billing-management-bar-row, .billing-management-donut-layout { grid-template-columns:1fr; width:100% }
   .current-finance-summary-grid > .financial-summary-card:last-child { grid-column:auto }
   .card:has(.table-wrap) > .section-header > :last-child { flex:1 1 100%; width:100% }
   .table-wrap table { min-width:100% }
@@ -2493,7 +2548,7 @@ th { color:var(--muted-strong); font-size:13px; font-weight:750 }
   .dashboard-widget-drawer-header .btn { width:100% }
   .dashboard-widget-flow span + span::before { display:none }
   .kitchen-grid { grid-template-columns:1fr }
-  .form-row, .stock-movement-type-row, .recipe-add-controls, .recipe-item-row, .recipe-cost-box, .inline-form, .category-row, .category-edit-form, .order-summary, .picker-controls, .checkout-panel, .checkout-total-grid, .payment-grid, .credit-payment-summary, .cash-closing-preview, .cash-transfer-preview, .table-grid, .discount-controls, .product-pick-row, .history-controls, .history-detail-grid, .report-highlight-grid, .report-center-kpi-grid, .waste-reason-summary-grid, .current-report-summary-grid, .risky-current-summary-grid, .employee-report-summary-grid, .employee-report-risk-grid, .financial-summary-grid, .business-summary-grid, .sales-analysis-grid, .product-performance-grid, .product-risk-grid, .stock-risk-grid, .stock-risk-list-grid, .current-finance-summary-grid, .finance-risk-grid, .personnel-performance-grid, .personnel-summary-grid, .personnel-risk-grid, .manager-alert-score-grid, .manager-alert-grid, .manager-alert-category-grid, .branch-reporting-grid, .branch-report-best-grid, .head-office-grid, .head-office-transfer-grid, .system-usage-analysis-grid, .user-activity-analysis-grid, .user-activity-detail-grid, .module-usage-analysis-grid, .module-usage-detail-grid, .business-usage-analysis-grid, .business-usage-detail-grid, .usage-performance-density-grid, .usage-performance-analysis-grid, .usage-performance-detail-grid, .usage-performance-summary-grid, .analytics-dashboard-summary-grid, .analytics-dashboard-trend-grid, .analytics-dashboard-detail-grid, .system-health-telemetry-grid, .system-health-risk-grid, .system-health-values, .company-setup-detail-grid, .company-setup-step-grid, .company-setup-result-values, .package-license-detail-grid, .package-default-grid, .user-subscription-detail-grid, .user-subscription-form-grid, .user-subscription-summary, .module-activation-detail-grid, .module-activation-summary, .module-activation-access-columns, .module-activation-test-form, .module-activation-operation-list, .module-activation-module-row, .package-license-form-grid, .package-license-access-summary, .package-license-access-grid, .license-module-grid, .system-usage-analysis-list > div, .sales-hour-row, .payment-analysis-row, .trend-analysis-row, .financial-summary-values, .financial-report-list-grid, .executive-mini-grid, .executive-quick-links, .qr-product-card, .qr-request-list, .qr-request-meta, .qr-edit-row, .qr-edit-add-row, .qr-reject-row, .waiter-call-list, .critical-stock-row, .settings-form-grid { grid-template-columns:1fr }
+  .form-row, .stock-movement-type-row, .recipe-add-controls, .recipe-item-row, .recipe-cost-box, .recipe-inline-ingredient-form, .inline-form, .category-row, .category-edit-form, .order-summary, .picker-controls, .checkout-panel, .checkout-total-grid, .payment-grid, .credit-payment-summary, .cash-closing-preview, .cash-transfer-preview, .table-grid, .discount-controls, .product-pick-row, .history-controls, .history-detail-grid, .report-highlight-grid, .report-center-kpi-grid, .waste-reason-summary-grid, .current-report-summary-grid, .risky-current-summary-grid, .employee-report-summary-grid, .employee-report-risk-grid, .financial-summary-grid, .business-summary-grid, .sales-analysis-grid, .product-performance-grid, .product-risk-grid, .stock-risk-grid, .stock-risk-list-grid, .current-finance-summary-grid, .finance-risk-grid, .personnel-performance-grid, .personnel-summary-grid, .personnel-risk-grid, .manager-alert-score-grid, .manager-alert-grid, .manager-alert-category-grid, .branch-reporting-grid, .branch-report-best-grid, .head-office-grid, .head-office-transfer-grid, .system-usage-analysis-grid, .user-activity-analysis-grid, .user-activity-detail-grid, .module-usage-analysis-grid, .module-usage-detail-grid, .business-usage-analysis-grid, .business-usage-detail-grid, .usage-performance-density-grid, .usage-performance-analysis-grid, .usage-performance-detail-grid, .usage-performance-summary-grid, .analytics-dashboard-summary-grid, .analytics-dashboard-trend-grid, .analytics-dashboard-detail-grid, .system-health-telemetry-grid, .system-health-risk-grid, .system-health-values, .company-setup-detail-grid, .company-setup-step-grid, .company-setup-result-values, .package-license-detail-grid, .package-default-grid, .user-subscription-detail-grid, .user-subscription-form-grid, .user-subscription-summary, .module-activation-detail-grid, .module-activation-summary, .module-activation-access-columns, .module-activation-test-form, .module-activation-operation-list, .module-activation-module-row, .package-license-form-grid, .package-license-access-summary, .package-license-access-grid, .license-module-grid, .system-usage-analysis-list > div, .sales-hour-row, .payment-analysis-row, .trend-analysis-row, .financial-summary-values, .financial-report-list-grid, .executive-mini-grid, .executive-quick-links, .qr-product-card, .qr-request-list, .qr-request-meta, .qr-edit-row, .qr-edit-add-row, .qr-reject-row, .waiter-call-list, .critical-stock-row, .settings-form-grid { grid-template-columns:1fr }
   .evren360-kpi-grid,
   .evren360-toolbar,
   .evren360-form-grid,
@@ -2647,6 +2702,8 @@ th { color:var(--muted-strong); font-size:13px; font-weight:750 }
   .products-page .toolbar-controls,
   .nutrition-form-grid,
   .qr-product-detail,
+  .recipe-side-actions,
+  .recipe-detail-actions,
   .production-work-order-toolbar,
   .production-line-toolbar,
   .intermediate-product-toolbar,

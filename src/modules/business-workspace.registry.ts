@@ -776,46 +776,47 @@ export const BUSINESS_WORKSPACE_MODULE_REGISTRY: BusinessWorkspaceModule[] = def
   {
     id: 'business-recipe',
     code: WORKSPACE_MODULE_CODES.RECIPE,
-    name: 'Üretim Tanımları',
-    description: 'Ürün/hizmet üretim tanımları ve stok tüketim ilişkisini yöneten iş modülü.',
+    name: 'Reçete Yönetimi',
+    description: 'Endüstriyel mutfak standart reçete kartları ve malzeme satırlarını yöneten iş modülü.',
     category: 'business',
     icon: 'RC',
     route: 'recipes',
-    permissions: ['products.read', 'products.write', 'stock.read'],
+    permissions: ['operations.read', 'operations.write'],
     isCoreModule: false,
     isBusinessModule: true,
     isEnabled: true,
-    isVisible: true,
+    isVisible: false,
     displayOrder: 40,
-    dependencies: [WORKSPACE_MODULE_CODES.STOCK, WORKSPACE_MODULE_CODES.ADISYON],
-    tags: ['business', 'recipe', 'cost'],
+    dependencies: [],
+    tags: ['business', 'recipe-management', 'industrial-kitchen'],
+    supportedSectorIds: industrialKitchenSectorIds,
     licenseModuleKey: LICENSE_MODULE_CODES.RECIPE,
     pricing: { model: 'paid', currency: 'TRY' },
     marketplace: marketplaceReady,
     dashboardWidgets: [
       dashboardWidget({
-        id: 'production.definitions',
-        title: 'Üretim Tanımları',
-        description: 'Üretim tanımları ve bağlı stok ilişkileri için kontrol paneli widget alanı.',
-        icon: 'UT',
+        id: 'recipe.recipeManagement',
+        title: 'Reçete Yönetimi',
+        description: 'Endüstriyel mutfak reçete yönetimi için kontrol paneli başlangıç alanı.',
+        icon: 'RC',
         category: 'Operasyon',
         order: 10,
         defaultVisible: false,
         defaultSize: 'medium',
         supportedLayouts: ['standard', 'wide'],
-        requiredPermission: 'products.read',
-        renderComponent: 'production.definitions.placeholder'
+        requiredPermission: 'operations.read',
+        renderComponent: 'recipe.recipeManagement.placeholder'
       })
     ],
     menuItems: [
-      menuItem({ key: 'recipes', label: 'Üretim Tanımları', route: 'recipes', icon: 'UT', adminOnly: true, displayOrder: 10 })
+      menuItem({ key: 'recipes', label: 'Reçete Yönetimi', route: 'recipes', icon: 'RC', adminOnly: true, displayOrder: 10 })
     ]
   },
   {
     id: 'business-production-work-orders',
     code: SECTOR_TEMPLATE_MODULE_CODES.PRODUCTION,
     name: 'Üretim',
-    description: 'Endüstriyel mutfak üretim iş emirleri, üretim hatları, ara ürünler, son ürünler, şoklama, paketleme, etiketleme ve sevkiyat süreçleri için UI, domain modeli ve örnek veri hazırlığı.',
+    description: 'Endüstriyel mutfak üretim iş emirleri, üretim hatları, ara ürünler, son ürünler, şoklama, paketleme, etiketleme, sevkiyat ve reçete yönetimi süreçleri için UI, domain modeli ve örnek veri hazırlığı.',
     category: 'business',
     icon: 'UR',
     route: 'production-work-orders',
@@ -826,7 +827,7 @@ export const BUSINESS_WORKSPACE_MODULE_REGISTRY: BusinessWorkspaceModule[] = def
     isVisible: true,
     displayOrder: 45,
     dependencies: [],
-    tags: ['business', 'production', 'operation', 'industrial-kitchen', 'work-order', 'production-line', 'intermediate-product', 'final-product', 'blast-chiller', 'packaging', 'labeling', 'dispatch'],
+    tags: ['business', 'production', 'operation', 'industrial-kitchen', 'work-order', 'production-line', 'intermediate-product', 'final-product', 'blast-chiller', 'packaging', 'labeling', 'dispatch', 'recipe-management'],
     supportedSectorIds: industrialKitchenSectorIds,
     pricing: { model: 'paid', currency: 'TRY' },
     marketplace: marketplaceReady,
@@ -934,6 +935,19 @@ export const BUSINESS_WORKSPACE_MODULE_REGISTRY: BusinessWorkspaceModule[] = def
         supportedLayouts: ['standard', 'wide'],
         requiredPermission: 'operations.read',
         renderComponent: 'production.dispatch.placeholder'
+      }),
+      dashboardWidget({
+        id: 'production.recipeManagement',
+        title: 'Reçete Yönetimi',
+        description: 'Endüstriyel mutfak reçete yönetimi için kontrol paneli başlangıç alanı.',
+        icon: 'RC',
+        category: 'Operasyon',
+        order: 60,
+        defaultVisible: false,
+        defaultSize: 'medium',
+        supportedLayouts: ['standard', 'wide'],
+        requiredPermission: 'operations.read',
+        renderComponent: 'production.recipeManagement.placeholder'
       })
     ],
     menuItems: [
@@ -944,7 +958,8 @@ export const BUSINESS_WORKSPACE_MODULE_REGISTRY: BusinessWorkspaceModule[] = def
       menuItem({ key: 'blast-chiller-processes', label: 'Şoklama Süreçleri', route: 'blast-chiller-processes', icon: 'SS', adminOnly: true, displayOrder: 50 }),
       menuItem({ key: 'packaging-processes', label: 'Paketleme', route: 'packaging-processes', icon: 'PK', adminOnly: true, displayOrder: 60 }),
       menuItem({ key: 'labeling-processes', label: 'Etiketleme', route: 'labeling-processes', icon: 'ET', adminOnly: true, displayOrder: 70 }),
-      menuItem({ key: 'dispatch-processes', label: 'Sevkiyat', route: 'dispatch-processes', icon: 'SV', adminOnly: true, displayOrder: 80 })
+      menuItem({ key: 'dispatch-processes', label: 'Sevkiyat', route: 'dispatch-processes', icon: 'SV', adminOnly: true, displayOrder: 80 }),
+      menuItem({ key: 'recipes', label: 'Reçete Yönetimi', route: 'recipes', icon: 'RC', adminOnly: true, displayOrder: 90 })
     ]
   },
   {

@@ -165,7 +165,7 @@ export default function BusinessWorkspaceRouteHost({
   if(route === 'packaging-processes') return <PackagingProcesses />
   if(route === 'labeling-processes') return <LabelingProcesses />
   if(route === 'dispatch-processes') return <DispatchProcesses />
-  if(route === 'recipes') return <Recipes currentUser={currentUser} />
+  if(route === 'recipes') return <Recipes />
   if(route === 'supplier-debts') return <SupplierDebts currentUser={currentUser} />
   if(route === 'supplier-payments') return <SupplierPayments currentUser={currentUser} />
   if(route === 'cash-transactions') return <CashTransactions currentUser={currentUser} />
