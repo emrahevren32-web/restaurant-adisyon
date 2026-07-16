@@ -19,13 +19,15 @@ export const RECIPE_MANAGEMENT_STATUSES: RecipeManagementStatus[] = [
 ]
 
 export const RECIPE_INGREDIENT_UNITS: RecipeIngredientUnit[] = [
-  'kg',
   'gr',
-  'lt',
+  'kg',
   'ml',
+  'lt',
   'adet',
   'paket',
-  'koli'
+  'koli',
+  'çuval',
+  'kasa'
 ]
 
 export const RECIPE_PRODUCT_OPTIONS = [
@@ -62,11 +64,12 @@ const normalizeRecipeStatus = (value: unknown, active?: unknown): RecipeManageme
 const normalizeIngredientUnit = (value: unknown): RecipeIngredientUnit => (
   RECIPE_INGREDIENT_UNITS.includes(value as RecipeIngredientUnit)
     ? value as RecipeIngredientUnit
-    : 'kg'
+    : 'gr'
 )
 
 const normalizeIngredient = (
   item: Partial<RecipeIngredient> & {
+    rawMaterial?: unknown
     stockItemId?: unknown
     stockItemName?: unknown
     qty?: unknown
@@ -74,10 +77,11 @@ const normalizeIngredient = (
   index: number
 ): RecipeIngredient => {
   const quantity = Number(item.quantity ?? item.qty)
+  const materialName = String(item.materialName || item.rawMaterial || item.stockItemName || '').trim()
 
   return {
     id: String(item.id || item.stockItemId || `recipe_ing_${String(index + 1).padStart(3, '0')}`),
-    rawMaterial: String(item.rawMaterial || item.stockItemName || '').trim(),
+    materialName,
     quantity: Number.isFinite(quantity) ? quantity : 0,
     unit: normalizeIngredientUnit(item.unit)
   }
@@ -87,7 +91,7 @@ const normalizeIngredients = (item: Partial<RecipeManagementRecord> & { items?: 
   const recipeIngredients = Array.isArray(item.ingredients)
     ? item.ingredients
       .map((ingredient, index) => normalizeIngredient(ingredient as Partial<RecipeIngredient>, index))
-      .filter(ingredient => ingredient.rawMaterial && ingredient.quantity > 0)
+      .filter(ingredient => ingredient.materialName && ingredient.quantity > 0)
     : []
 
   if(recipeIngredients.length > 0) return recipeIngredients
@@ -96,7 +100,7 @@ const normalizeIngredients = (item: Partial<RecipeManagementRecord> & { items?: 
 
   return sourceItems
     .map((ingredient, index) => normalizeIngredient(ingredient as Partial<RecipeIngredient>, index))
-    .filter(ingredient => ingredient.rawMaterial && ingredient.quantity > 0)
+    .filter(ingredient => ingredient.materialName && ingredient.quantity > 0)
 }
 
 const normalizeStoredRecipe = (
@@ -132,12 +136,12 @@ const normalizeStoredRecipe = (
 }
 
 const ingredient = (
-  rawMaterial: string,
+  materialName: string,
   quantity: number,
   unit: RecipeIngredientUnit
 ): RecipeIngredient => ({
   id: `recipe_ing_${Math.random().toString(16).slice(2)}`,
-  rawMaterial,
+  materialName,
   quantity,
   unit
 })
@@ -184,7 +188,7 @@ const serializeRecipeForStorage = (record: RecipeManagementRecord, index: number
     items: normalizedRecord.ingredients.map((ingredient, ingredientIndex) => ({
       id: ingredient.id || `${normalizedRecord.id}_item_${ingredientIndex + 1}`,
       stockItemId: ingredient.id || `${normalizedRecord.id}_stock_${ingredientIndex + 1}`,
-      stockItemName: ingredient.rawMaterial,
+      stockItemName: ingredient.materialName,
       qty: ingredient.quantity,
       unit: ingredient.unit,
       wastePercent: 0,
@@ -198,20 +202,20 @@ export const createRecipeManagementMockData = (): RecipeManagementRecord[] => [
     ingredient('Kırmızı Mercimek', 12, 'kg'),
     ingredient('Kuru Soğan', 3, 'kg'),
     ingredient('Havuç', 2, 'kg'),
-    ingredient('Domates Salçası', 1.5, 'kg'),
+    ingredient('Domates Salçası', 1500, 'gr'),
     ingredient('Un', 1, 'kg'),
     ingredient('Tereyağı', 2, 'kg'),
     ingredient('Su', 85, 'lt'),
-    ingredient('Tuz', 0.6, 'kg')
+    ingredient('Tuz', 600, 'gr')
   ], '2026-07-15T08:10:00.000Z'),
   recipe('recipe_mgmt_002', 'RC-002', 'Ezogelin Çorbası', 'Ana Ürün', 'Ezogelin', 100, 'Aktif', 'Toplu yemek üretimi için ezogelin reçetesi.', [
     ingredient('Kırmızı Mercimek', 9, 'kg'),
     ingredient('Pirinç', 2, 'kg'),
     ingredient('Bulgur', 2, 'kg'),
     ingredient('Kuru Soğan', 3, 'kg'),
-    ingredient('Domates Salçası', 1.6, 'kg'),
-    ingredient('Nane', 0.25, 'kg'),
-    ingredient('Pul Biber', 0.2, 'kg'),
+    ingredient('Domates Salçası', 1600, 'gr'),
+    ingredient('Nane', 250, 'gr'),
+    ingredient('Pul Biber', 200, 'gr'),
     ingredient('Su', 88, 'lt')
   ], '2026-07-15T08:35:00.000Z'),
   recipe('recipe_mgmt_003', 'RC-003', 'Pilav Ana Reçete', 'Ana Ürün', 'Pilav', 120, 'Aktif', 'Endüstriyel kazan pilav üretimi için baz reçete.', [
@@ -220,24 +224,24 @@ export const createRecipeManagementMockData = (): RecipeManagementRecord[] => [
     ingredient('Ayçiçek Yağı', 1.5, 'lt'),
     ingredient('Tavuk Suyu', 20, 'lt'),
     ingredient('Su', 16, 'lt'),
-    ingredient('Tuz', 0.55, 'kg')
+    ingredient('Tuz', 550, 'gr')
   ], '2026-07-15T09:00:00.000Z'),
   recipe('recipe_mgmt_004', 'RC-004', 'Patates Püresi', 'Ara Ürün', 'Patates Püresi', 90, 'Aktif', 'Paketleme ve tabaklama için ara ürün püre reçetesi.', [
     ingredient('Patates', 45, 'kg'),
     ingredient('Süt', 12, 'lt'),
     ingredient('Tereyağı', 3, 'kg'),
     ingredient('Krema', 4, 'lt'),
-    ingredient('Tuz', 0.45, 'kg'),
-    ingredient('Beyaz Biber', 0.08, 'kg')
+    ingredient('Tuz', 450, 'gr'),
+    ingredient('Beyaz Biber', 80, 'gr')
   ], '2026-07-15T09:25:00.000Z'),
   recipe('recipe_mgmt_005', 'RC-005', 'Köfte Harcı', 'Ara Ürün', 'Köfte', 140, 'Aktif', 'Köfte şekillendirme öncesi standart harç reçetesi.', [
     ingredient('Dana Kıyma', 35, 'kg'),
     ingredient('Kuru Soğan', 5, 'kg'),
     ingredient('Galeta Unu', 4, 'kg'),
     ingredient('Yumurta', 60, 'adet'),
-    ingredient('Tuz', 0.65, 'kg'),
-    ingredient('Karabiber', 0.18, 'kg'),
-    ingredient('Kimyon', 0.22, 'kg'),
+    ingredient('Tuz', 650, 'gr'),
+    ingredient('Karabiber', 180, 'gr'),
+    ingredient('Kimyon', 220, 'gr'),
     ingredient('Maydanoz', 1.2, 'kg')
   ], '2026-07-15T09:50:00.000Z'),
   recipe('recipe_mgmt_006', 'RC-006', 'Pizza Tepsi Reçetesi', 'Ana Ürün', 'Pizza', 80, 'Pasif', 'Pilot üretim reçetesi, kullanıcı testi için pasif tutuluyor.', [
@@ -255,17 +259,17 @@ export const createRecipeManagementMockData = (): RecipeManagementRecord[] => [
     ingredient('Beşamel Sos', 18, 'kg'),
     ingredient('Kaşar Peyniri', 7, 'kg'),
     ingredient('Domates Sosu', 8, 'kg'),
-    ingredient('Tuz', 0.3, 'kg')
+    ingredient('Tuz', 300, 'gr')
   ], '2026-07-15T10:40:00.000Z'),
   recipe('recipe_mgmt_008', 'RC-008', 'Tavuk Döner Marinasyon', 'Ara Ürün', 'Tavuk Döner', 150, 'Aktif', 'Döner hattı öncesi tavuk marinasyon reçetesi.', [
     ingredient('Tavuk But', 60, 'kg'),
     ingredient('Yoğurt', 8, 'kg'),
     ingredient('Ayçiçek Yağı', 4, 'lt'),
-    ingredient('Domates Salçası', 3, 'kg'),
+    ingredient('Domates Salçası', 3000, 'gr'),
     ingredient('Sarımsak', 1.5, 'kg'),
-    ingredient('Tuz', 0.9, 'kg'),
-    ingredient('Kekik', 0.25, 'kg'),
-    ingredient('Toz Biber', 0.35, 'kg')
+    ingredient('Tuz', 900, 'gr'),
+    ingredient('Kekik', 250, 'gr'),
+    ingredient('Toz Biber', 350, 'gr')
   ], '2026-07-15T11:05:00.000Z'),
   recipe('recipe_mgmt_009', 'RC-009', 'Et Döner Hazırlık', 'Ara Ürün', 'Et Döner', 120, 'Aktif', 'Et döner şiş dizimi öncesi hazırlık reçetesi.', [
     ingredient('Dana Eti', 55, 'kg'),
@@ -273,19 +277,19 @@ export const createRecipeManagementMockData = (): RecipeManagementRecord[] => [
     ingredient('Soğan Suyu', 5, 'lt'),
     ingredient('Süt', 4, 'lt'),
     ingredient('Zeytinyağı', 3, 'lt'),
-    ingredient('Tuz', 0.8, 'kg'),
-    ingredient('Karabiber', 0.22, 'kg'),
-    ingredient('Kimyon', 0.18, 'kg')
+    ingredient('Tuz', 800, 'gr'),
+    ingredient('Karabiber', 220, 'gr'),
+    ingredient('Kimyon', 180, 'gr')
   ], '2026-07-15T11:30:00.000Z'),
   recipe('recipe_mgmt_010', 'RC-010', 'Domates Sosu Bazı', 'Ara Ürün', 'Domates Sosu', 100, 'Aktif', 'Pizza, lazanya ve sıcak yemeklerde kullanılacak sos bazı.', [
     ingredient('Domates Püresi', 45, 'kg'),
-    ingredient('Domates Salçası', 6, 'kg'),
+    ingredient('Domates Salçası', 6000, 'gr'),
     ingredient('Kuru Soğan', 4, 'kg'),
     ingredient('Sarımsak', 1.2, 'kg'),
     ingredient('Zeytinyağı', 3, 'lt'),
-    ingredient('Şeker', 0.8, 'kg'),
-    ingredient('Tuz', 0.55, 'kg'),
-    ingredient('Fesleğen', 0.18, 'kg')
+    ingredient('Şeker', 800, 'gr'),
+    ingredient('Tuz', 550, 'gr'),
+    ingredient('Fesleğen', 180, 'gr')
   ], '2026-07-15T11:55:00.000Z')
 ]
 
@@ -308,7 +312,10 @@ export const loadRecipeManagementRecords = () => {
     const parsed = JSON.parse(storedRecords)
     if(Array.isArray(parsed)){
       const normalizedRecords = parsed.map(normalizeStoredRecipe)
-      if(normalizedRecords.length > 0) return normalizedRecords
+      if(normalizedRecords.length > 0){
+        saveRecipeManagementRecords(normalizedRecords)
+        return normalizedRecords
+      }
       saveRecipeManagementRecords(seedRecords)
       return seedRecords
     }

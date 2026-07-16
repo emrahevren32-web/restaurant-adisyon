@@ -31,7 +31,7 @@ type RecipeFormState = {
 }
 
 type IngredientFormState = {
-  rawMaterial: string
+  materialName: string
   quantity: string
   unit: RecipeIngredientUnit
 }
@@ -42,11 +42,21 @@ type ToastState = {
   tone: ToastTone
 }
 
+const MAX_INGREDIENT_QUANTITY = 100000
+
 const createId = (prefix: string) => `${prefix}_${Date.now()}_${Math.random().toString(16).slice(2)}`
 
 const formatNumber = (value: number) => value.toLocaleString('tr-TR', {
-  maximumFractionDigits: 2
+  maximumFractionDigits: 3
 })
+
+const calculateTotalGrams = (ingredients: RecipeIngredient[]) => (
+  ingredients.reduce((sum, ingredient) => {
+    if(ingredient.unit === 'gr') return sum + ingredient.quantity
+    if(ingredient.unit === 'kg') return sum + (ingredient.quantity * 1000)
+    return sum
+  }, 0)
+)
 
 const formatDateTime = (value?: string) => {
   if(!value) return '-'
@@ -96,13 +106,13 @@ const createRecipeFormFromRecord = (record: RecipeManagementRecord): RecipeFormS
 })
 
 const createInitialIngredientForm = (): IngredientFormState => ({
-  rawMaterial: '',
+  materialName: '',
   quantity: '1',
-  unit: 'kg'
+  unit: 'gr'
 })
 
 const createIngredientFormFromRecord = (ingredient: RecipeIngredient): IngredientFormState => ({
-  rawMaterial: ingredient.rawMaterial,
+  materialName: ingredient.materialName,
   quantity: String(ingredient.quantity),
   unit: ingredient.unit
 })
@@ -124,6 +134,14 @@ const validateRecipeForm = (
   if(portions <= 0) return 'Porsiyon 0 veya negatif olamaz.'
   if(portions > 100000) return 'Porsiyon 100000 üzerinde olamaz.'
   if(ingredients.length === 0) return 'En az 1 malzeme eklenmelidir.'
+  if(ingredients.some(ingredient => (
+    !ingredient.materialName.trim()
+    || ingredient.quantity <= 0
+    || ingredient.quantity > MAX_INGREDIENT_QUANTITY
+    || !RECIPE_INGREDIENT_UNITS.includes(ingredient.unit)
+  ))){
+    return 'Tüm malzemelerde hammadde, miktar ve birim geçerli olmalıdır.'
+  }
 
   const normalizedCode = form.code.trim().toLocaleLowerCase('tr-TR')
   const duplicateCode = records.some(record => (
@@ -136,12 +154,14 @@ const validateRecipeForm = (
 }
 
 const validateIngredientForm = (form: IngredientFormState) => {
-  if(!form.rawMaterial.trim()) return 'Malzeme boş olamaz.'
+  if(!form.materialName.trim()) return 'Malzeme adı zorunludur.'
 
   const quantity = Number(form.quantity)
   if(!form.quantity.trim()) return 'Miktar boş bırakılamaz.'
   if(!Number.isFinite(quantity)) return 'Miktar için geçerli bir sayı girilmelidir.'
   if(quantity <= 0) return 'Miktar 0 veya negatif olamaz.'
+  if(quantity > MAX_INGREDIENT_QUANTITY) return 'Miktar 100000 değerini geçemez.'
+  if(!RECIPE_INGREDIENT_UNITS.includes(form.unit)) return 'Birim zorunludur.'
 
   return ''
 }
@@ -306,7 +326,7 @@ export default function Recipes(){
 
     const nextIngredient: RecipeIngredient = {
       id: recipeIngredientEditingId || createId('recipe_ing'),
-      rawMaterial: recipeIngredientForm.rawMaterial.trim(),
+      materialName: recipeIngredientForm.materialName.trim(),
       quantity: Number(recipeIngredientForm.quantity),
       unit: recipeIngredientForm.unit
     }
@@ -466,7 +486,7 @@ export default function Recipes(){
 
     const nextIngredient: RecipeIngredient = {
       id: editingIngredientId || createId('recipe_ing'),
-      rawMaterial: ingredientForm.rawMaterial.trim(),
+      materialName: ingredientForm.materialName.trim(),
       quantity,
       unit: ingredientForm.unit
     }
@@ -604,7 +624,7 @@ export default function Recipes(){
             {recipeFormIngredients.map(ingredient => (
               <div key={ingredient.id} className="recipe-form-ingredient-row">
                 <div>
-                  <strong>{ingredient.rawMaterial}</strong>
+                  <strong>{ingredient.materialName}</strong>
                   <span>{formatNumber(ingredient.quantity)} {ingredient.unit}</span>
                 </div>
                 <div>
@@ -618,13 +638,14 @@ export default function Recipes(){
           <div className="recipe-inline-ingredient-form">
             <div className="form-field">
               <label>Hammadde</label>
-              <input value={recipeIngredientForm.rawMaterial} onChange={event => updateRecipeIngredientForm('rawMaterial', event.target.value)} />
+              <input value={recipeIngredientForm.materialName} onChange={event => updateRecipeIngredientForm('materialName', event.target.value)} />
             </div>
             <div className="form-field">
               <label>Miktar</label>
               <input
                 type="number"
                 min="0"
+                max={MAX_INGREDIENT_QUANTITY}
                 step="0.001"
                 value={recipeIngredientForm.quantity}
                 onChange={event => updateRecipeIngredientForm('quantity', event.target.value)}
@@ -680,6 +701,7 @@ export default function Recipes(){
           <div><span>Ürün</span><strong>{selectedRecord.productName}</strong></div>
           <div><span>Porsiyon</span><strong>{formatNumber(selectedRecord.portions)}</strong></div>
           <div><span>Malzeme Sayısı</span><strong>{selectedRecord.ingredients.length}</strong></div>
+          <div><span>Toplam Gramaj</span><strong>{formatNumber(calculateTotalGrams(selectedRecord.ingredients))} gr</strong></div>
           <div><span>Tahmini Toplam Maliyet</span><strong>Hesaplanmadı</strong></div>
           <div><span>Son Güncelleme</span><strong>{formatDateTime(selectedRecord.updatedAt || selectedRecord.createdAt)}</strong></div>
           <div><span>Açıklama</span><strong>{selectedRecord.description || '-'}</strong></div>
@@ -698,13 +720,14 @@ export default function Recipes(){
     <form className="recipe-ingredient-form" onSubmit={submitIngredientForm}>
       <div className="form-field">
         <label>Hammadde</label>
-        <input value={ingredientForm.rawMaterial} onChange={event => updateIngredientForm('rawMaterial', event.target.value)} />
+        <input value={ingredientForm.materialName} onChange={event => updateIngredientForm('materialName', event.target.value)} />
       </div>
       <div className="form-field">
         <label>Miktar</label>
         <input
           type="number"
           min="0"
+          max={MAX_INGREDIENT_QUANTITY}
           step="0.001"
           value={ingredientForm.quantity}
           onChange={event => updateIngredientForm('quantity', event.target.value)}
@@ -783,7 +806,7 @@ export default function Recipes(){
                   )}
                   {selectedRecord.ingredients.map(ingredient => (
                     <tr key={ingredient.id}>
-                      <td><strong>{ingredient.rawMaterial}</strong></td>
+                      <td><strong>{ingredient.materialName}</strong></td>
                       <td>{formatNumber(ingredient.quantity)}</td>
                       <td>{ingredient.unit}</td>
                       <td className="actions-cell">
@@ -815,6 +838,7 @@ export default function Recipes(){
               <div><span>Ürün</span><strong>{selectedRecord.productName}</strong></div>
               <div><span>Porsiyon</span><strong>{formatNumber(selectedRecord.portions)}</strong></div>
               <div><span>Malzeme Sayısı</span><strong>{selectedRecord.ingredients.length}</strong></div>
+              <div><span>Toplam Gramaj</span><strong>{formatNumber(calculateTotalGrams(selectedRecord.ingredients))} gr</strong></div>
               <div><span>Tahmini Toplam Maliyet</span><strong>Hesaplanmadı</strong></div>
               <div><span>Son Güncelleme</span><strong>{formatDateTime(selectedRecord.updatedAt || selectedRecord.createdAt)}</strong></div>
               <div><span>Açıklama</span><strong>{selectedRecord.description || '-'}</strong></div>

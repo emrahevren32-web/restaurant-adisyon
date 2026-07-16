@@ -7,17 +7,19 @@ export type RecipeManagementStatus =
   | 'Pasif'
 
 export type RecipeIngredientUnit =
-  | 'kg'
   | 'gr'
-  | 'lt'
+  | 'kg'
   | 'ml'
+  | 'lt'
   | 'adet'
   | 'paket'
   | 'koli'
+  | 'çuval'
+  | 'kasa'
 
 export type RecipeIngredient = {
   id: string
-  rawMaterial: string
+  materialName: string
   quantity: number
   unit: RecipeIngredientUnit
 }
