@@ -17,11 +17,22 @@ export type RecipeIngredientUnit =
   | 'çuval'
   | 'kasa'
 
+export type RecipeIngredientBaseUnit =
+  | 'gr'
+  | 'ml'
+  | 'adet'
+  | 'paket'
+  | 'koli'
+  | 'çuval'
+  | 'kasa'
+
 export type RecipeIngredient = {
   id: string
   materialName: string
   quantity: number
   unit: RecipeIngredientUnit
+  baseQuantity: number
+  baseUnit: RecipeIngredientBaseUnit
 }
 
 export type RecipeManagementRecord = {

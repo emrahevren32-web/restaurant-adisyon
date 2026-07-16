@@ -7,6 +7,10 @@ import {
   loadRecipeManagementRecords,
   saveRecipeManagementRecords
 } from '../recipe-management/recipe-management.mock'
+import {
+  calculateTotalBaseQuantity,
+  convertToBaseUnit
+} from '../recipe-management/recipe-unit-converter'
 import type {
   RecipeIngredient,
   RecipeIngredientUnit,
@@ -43,6 +47,7 @@ type ToastState = {
 }
 
 const MAX_INGREDIENT_QUANTITY = 100000
+const TOTAL_GRAMAJ_BASE_UNIT = 'gr'
 
 const createId = (prefix: string) => `${prefix}_${Date.now()}_${Math.random().toString(16).slice(2)}`
 
@@ -51,12 +56,20 @@ const formatNumber = (value: number) => value.toLocaleString('tr-TR', {
 })
 
 const calculateTotalGrams = (ingredients: RecipeIngredient[]) => (
-  ingredients.reduce((sum, ingredient) => {
-    if(ingredient.unit === 'gr') return sum + ingredient.quantity
-    if(ingredient.unit === 'kg') return sum + (ingredient.quantity * 1000)
-    return sum
-  }, 0)
+  calculateTotalBaseQuantity(ingredients, TOTAL_GRAMAJ_BASE_UNIT)
 )
+
+const createIngredientFromForm = (id: string, form: IngredientFormState): RecipeIngredient => {
+  const quantity = Number(form.quantity)
+
+  return {
+    id,
+    materialName: form.materialName.trim(),
+    quantity,
+    unit: form.unit,
+    ...convertToBaseUnit(quantity, form.unit)
+  }
+}
 
 const formatDateTime = (value?: string) => {
   if(!value) return '-'
@@ -324,12 +337,10 @@ export default function Recipes(){
       return
     }
 
-    const nextIngredient: RecipeIngredient = {
-      id: recipeIngredientEditingId || createId('recipe_ing'),
-      materialName: recipeIngredientForm.materialName.trim(),
-      quantity: Number(recipeIngredientForm.quantity),
-      unit: recipeIngredientForm.unit
-    }
+    const nextIngredient = createIngredientFromForm(
+      recipeIngredientEditingId || createId('recipe_ing'),
+      recipeIngredientForm
+    )
 
     setRecipeFormIngredients(prev => (
       recipeIngredientEditingId
@@ -482,14 +493,10 @@ export default function Recipes(){
     }
 
     const now = new Date().toISOString()
-    const quantity = Number(ingredientForm.quantity)
-
-    const nextIngredient: RecipeIngredient = {
-      id: editingIngredientId || createId('recipe_ing'),
-      materialName: ingredientForm.materialName.trim(),
-      quantity,
-      unit: ingredientForm.unit
-    }
+    const nextIngredient = createIngredientFromForm(
+      editingIngredientId || createId('recipe_ing'),
+      ingredientForm
+    )
 
     const recipeId = selectedRecord.id
     const editedIngredientId = editingIngredientId

@@ -5,6 +5,7 @@ import type {
   RecipeManagementStatus,
   RecipeManagementType
 } from './recipe-management.types'
+import { convertToBaseUnit } from './recipe-unit-converter'
 
 const RECIPE_MANAGEMENT_STORAGE_KEY = 'ra_recipes'
 
@@ -77,13 +78,18 @@ const normalizeIngredient = (
   index: number
 ): RecipeIngredient => {
   const quantity = Number(item.quantity ?? item.qty)
+  const normalizedQuantity = Number.isFinite(quantity) ? quantity : 0
+  const unit = normalizeIngredientUnit(item.unit)
+  const baseConversion = convertToBaseUnit(normalizedQuantity, unit)
   const materialName = String(item.materialName || item.rawMaterial || item.stockItemName || '').trim()
 
   return {
     id: String(item.id || item.stockItemId || `recipe_ing_${String(index + 1).padStart(3, '0')}`),
     materialName,
-    quantity: Number.isFinite(quantity) ? quantity : 0,
-    unit: normalizeIngredientUnit(item.unit)
+    quantity: normalizedQuantity,
+    unit,
+    baseQuantity: baseConversion.baseQuantity,
+    baseUnit: baseConversion.baseUnit
   }
 }
 
@@ -143,7 +149,8 @@ const ingredient = (
   id: `recipe_ing_${Math.random().toString(16).slice(2)}`,
   materialName,
   quantity,
-  unit
+  unit,
+  ...convertToBaseUnit(quantity, unit)
 })
 
 const recipe = (
@@ -191,6 +198,8 @@ const serializeRecipeForStorage = (record: RecipeManagementRecord, index: number
       stockItemName: ingredient.materialName,
       qty: ingredient.quantity,
       unit: ingredient.unit,
+      baseQuantity: ingredient.baseQuantity,
+      baseUnit: ingredient.baseUnit,
       wastePercent: 0,
       note: ''
     }))
