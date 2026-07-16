@@ -1671,11 +1671,14 @@ th { color:var(--muted-strong); font-size:13px; font-weight:750 }
 .recipe-table .recipe-col-status { width:110px }
 .recipe-table .recipe-col-actions { width:240px }
 .recipe-summary-grid { display:grid; grid-template-columns:repeat(2, minmax(0, 1fr)); gap:10px; margin-bottom:14px }
-.recipe-summary-grid > div { min-width:0; border:1px solid var(--line); border-radius:var(--radius-md); padding:12px; background:var(--surface-muted) }
+.recipe-summary-grid > div,
+.recipe-summary-grid > button { min-width:0; border:1px solid var(--line); border-radius:var(--radius-md); padding:12px; background:var(--surface-muted) }
 .recipe-summary-grid span,
 .recipe-summary-grid strong { display:block; line-height:1.25; overflow-wrap:anywhere }
 .recipe-summary-grid span { color:var(--muted); font-size:12px; font-weight:850 }
 .recipe-summary-grid strong { margin-top:5px; color:var(--text); font-size:15px; font-weight:900; font-variant-numeric:tabular-nums }
+.recipe-summary-action { width:100%; text-align:left; cursor:pointer; font:inherit; box-shadow:none }
+.recipe-summary-action:hover { border-color:var(--accent-line); background:var(--accent-soft) }
 .recipe-side-actions { display:grid; grid-template-columns:repeat(3, minmax(0, 1fr)); gap:8px; margin-top:14px }
 .recipe-management-form .form-row { grid-template-columns:repeat(2, minmax(0, 1fr)) }
 .recipe-form-ingredients { display:flex; flex-direction:column; gap:10px; min-width:0; border:1px solid var(--line); border-radius:var(--radius-md); padding:12px; background:var(--surface-muted) }
@@ -1703,7 +1706,26 @@ th { color:var(--muted-strong); font-size:13px; font-weight:750 }
 .recipe-detail-title { align-items:flex-start }
 .recipe-detail-actions { display:flex; gap:8px; flex-wrap:wrap; justify-content:flex-end; margin-left:auto }
 .recipe-detail-grid { display:grid; grid-template-columns:minmax(0, 1fr) 390px; gap:18px; align-items:start }
-.recipe-detail-summary { position:sticky; top:12px }
+.recipe-detail-side { position:sticky; top:12px; display:flex; flex-direction:column; gap:12px; min-width:0 }
+.recipe-detail-summary { min-width:0 }
+.recipe-relation-card { min-width:0 }
+.recipe-navigation-list { display:flex; flex-direction:column; gap:10px; min-width:0 }
+.recipe-navigation-row { display:grid; grid-template-columns:minmax(0, 1fr) minmax(112px, auto) auto auto; align-items:center; gap:9px; min-width:0; border:1px solid var(--line); border-radius:var(--radius-md); padding:10px; background:var(--surface-muted) }
+.recipe-navigation-title,
+.recipe-navigation-cost { min-width:0 }
+.recipe-navigation-title strong,
+.recipe-navigation-title span,
+.recipe-navigation-cost span,
+.recipe-navigation-cost strong { display:block; line-height:1.25; overflow-wrap:anywhere }
+.recipe-navigation-title strong { color:var(--text); font-size:13px; font-weight:950 }
+.recipe-navigation-title span { margin-top:3px; color:var(--muted); font-size:12px; font-weight:800 }
+.recipe-navigation-cost { text-align:right }
+.recipe-navigation-cost span { color:var(--muted); font-size:11px; font-weight:850 }
+.recipe-navigation-cost strong { margin-top:3px; color:var(--text); font-size:13px; font-weight:950; font-variant-numeric:tabular-nums }
+.recipe-navigation-row .status-pill,
+.recipe-navigation-row .btn { justify-self:end }
+.recipe-relation-empty { border:1px dashed var(--line); border-radius:var(--radius-md); padding:12px; background:var(--surface-muted); color:var(--muted); font-size:13px; font-weight:850; line-height:1.35; text-align:center }
+.recipe-relation-empty.warning { border-color:var(--warning-line); background:var(--warning-soft); color:var(--warning) }
 .recipe-ingredient-table { min-width:0; table-layout:fixed }
 .recipe-ingredient-table th,
 .recipe-ingredient-table td { overflow-wrap:anywhere; vertical-align:middle }
@@ -2428,7 +2450,8 @@ th { color:var(--muted-strong); font-size:13px; font-weight:750 }
   .labeling-side,
   .dispatch-side,
   .stock-movement-side,
-  .users-side { position:static; margin-top:14px }
+  .users-side,
+  .recipe-detail-side { position:static; margin-top:14px }
 }
 
 @media (max-width: 980px){
@@ -2486,6 +2509,10 @@ th { color:var(--muted-strong); font-size:13px; font-weight:750 }
 }
 
 @media (max-width: 560px){
+  .recipe-navigation-row { grid-template-columns:1fr; align-items:flex-start }
+  .recipe-navigation-cost { text-align:left }
+  .recipe-navigation-row .status-pill,
+  .recipe-navigation-row .btn { justify-self:start }
   .recipe-form-ingredient-row { grid-template-columns:1fr }
   .recipe-form-ingredient-row > div:last-child { justify-content:flex-start }
   .recipe-ingredient-table tbody tr,

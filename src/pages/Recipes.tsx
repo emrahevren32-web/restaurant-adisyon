@@ -116,8 +116,10 @@ const findParentRecipe = (record: RecipeManagementRecord, records: RecipeManagem
 )
 
 const formatParentRecipe = (record: RecipeManagementRecord, records: RecipeManagementRecord[]) => {
+  if(record.recipeRole === 'PRIMARY') return '-'
+
   const parentRecipe = findParentRecipe(record, records)
-  return parentRecipe ? `${parentRecipe.code} · ${parentRecipe.recipeName}` : '-'
+  return parentRecipe ? `${parentRecipe.code} · ${parentRecipe.recipeName}` : 'Bağlı ana reçete bulunamadı.'
 }
 
 const countAlternativeRecipes = (record: RecipeManagementRecord, records: RecipeManagementRecord[]) => (
@@ -281,6 +283,8 @@ export default function Recipes(){
   const [editingIngredientId, setEditingIngredientId] = React.useState('')
   const [ingredientFormError, setIngredientFormError] = React.useState('')
   const [toast, setToast] = React.useState<ToastState | null>(null)
+  const [pendingAlternativeScroll, setPendingAlternativeScroll] = React.useState(false)
+  const alternativeSectionRef = React.useRef<HTMLElement | null>(null)
 
   const commitRecords = React.useCallback((updater: React.SetStateAction<RecipeManagementRecord[]>) => {
     setRecords(prev => {
@@ -334,7 +338,47 @@ export default function Recipes(){
     return () => window.clearTimeout(timeoutId)
   }, [toast])
 
-  const selectedRecord = records.find(record => record.id === selectedRecordId) || null
+  React.useEffect(() => {
+    if(!pendingAlternativeScroll || viewMode !== 'detail') return undefined
+
+    const timeoutId = window.setTimeout(() => {
+      alternativeSectionRef.current?.scrollIntoView({
+        behavior: 'smooth',
+        block: 'start'
+      })
+      setPendingAlternativeScroll(false)
+    }, 0)
+
+    return () => window.clearTimeout(timeoutId)
+  }, [pendingAlternativeScroll, viewMode])
+
+  const recordsById = React.useMemo(() => {
+    const nextRecordsById = new Map<string, RecipeManagementRecord>()
+    records.forEach(record => nextRecordsById.set(record.id, record))
+    return nextRecordsById
+  }, [records])
+  const alternativeRecipesByParentId = React.useMemo(() => {
+    const nextAlternativesByParentId = new Map<string, RecipeManagementRecord[]>()
+    records.forEach(record => {
+      if(record.recipeRole !== 'ALTERNATIVE' || !record.parentRecipeId) return
+
+      const parentAlternatives = nextAlternativesByParentId.get(record.parentRecipeId) || []
+      parentAlternatives.push(record)
+      nextAlternativesByParentId.set(record.parentRecipeId, parentAlternatives)
+    })
+    return nextAlternativesByParentId
+  }, [records])
+  const selectedRecord = recordsById.get(selectedRecordId) || null
+  const selectedAlternativeRecipes = React.useMemo(() => (
+    selectedRecord?.recipeRole === 'PRIMARY'
+      ? alternativeRecipesByParentId.get(selectedRecord.id) || []
+      : []
+  ), [alternativeRecipesByParentId, selectedRecord])
+  const selectedParentRecord = React.useMemo(() => (
+    selectedRecord?.recipeRole === 'ALTERNATIVE' && selectedRecord.parentRecipeId
+      ? recordsById.get(selectedRecord.parentRecipeId) || null
+      : null
+  ), [recordsById, selectedRecord])
   const isEditingRecipe = Boolean(editingRecipeId)
   const totalRecipes = records.length
   const activeRecipes = records.filter(record => record.status === 'Aktif').length
@@ -474,6 +518,22 @@ export default function Recipes(){
     setIngredientFormVisible(false)
     setEditingIngredientId('')
     setIngredientFormError('')
+    setPendingAlternativeScroll(false)
+  }
+
+  const scrollToAlternativeRecipes = () => {
+    if(!selectedRecord || selectedRecord.recipeRole !== 'PRIMARY') return
+
+    if(viewMode !== 'detail'){
+      openDetail(selectedRecord)
+      setPendingAlternativeScroll(true)
+      return
+    }
+
+    alternativeSectionRef.current?.scrollIntoView({
+      behavior: 'smooth',
+      block: 'start'
+    })
   }
 
   const backToList = () => {
@@ -481,10 +541,11 @@ export default function Recipes(){
     setIngredientFormVisible(false)
     setEditingIngredientId('')
     setIngredientFormError('')
+    setPendingAlternativeScroll(false)
   }
 
   const deleteRecipe = (record: RecipeManagementRecord) => {
-    if(record.recipeRole === 'PRIMARY' && countAlternativeRecipes(record, records) > 0){
+    if(record.recipeRole === 'PRIMARY' && (alternativeRecipesByParentId.get(record.id)?.length || 0) > 0){
       showToast('Bu reçeteye bağlı alternatif reçeteler bulunmaktadır.', 'info')
       return
     }
@@ -836,6 +897,78 @@ export default function Recipes(){
     </section>
   )
 
+  const renderAlternativeCountSummary = (
+    record: RecipeManagementRecord,
+    alternativeCount: number
+  ) => (
+    record.recipeRole === 'PRIMARY'
+      ? (
+          <button className="recipe-summary-action" type="button" onClick={scrollToAlternativeRecipes}>
+            <span>Alternatif Reçete Sayısı</span>
+            <strong>{alternativeCount}</strong>
+          </button>
+        )
+      : (
+          <div><span>Alternatif Reçete Sayısı</span><strong>{alternativeCount}</strong></div>
+        )
+  )
+
+  const renderRecipeNavigationRow = (record: RecipeManagementRecord) => {
+    const recipeCost = calculateRecipeCost(record)
+
+    return (
+      <div key={record.id} className="recipe-navigation-row">
+        <div className="recipe-navigation-title">
+          <strong>{record.code}</strong>
+          <span>{record.recipeName}</span>
+        </div>
+        <div className="recipe-navigation-cost">
+          <span>Toplam Maliyet</span>
+          <strong>{formatRecipeCostAmount(recipeCost.recipeCost)}</strong>
+        </div>
+        <span className={`status-pill ${getStatusClass(record.status)}`}>{record.status}</span>
+        <button className="btn" type="button" onClick={() => openDetail(record)}>Detay</button>
+      </div>
+    )
+  }
+
+  const renderRecipeRelationCard = () => {
+    if(!selectedRecord) return null
+
+    if(selectedRecord.recipeRole === 'PRIMARY'){
+      return (
+        <section ref={alternativeSectionRef} className="card recipe-relation-card">
+          <div className="section-header compact">
+            <h3>Alternatif Reçeteler</h3>
+            <span className="status-pill info-pill">{selectedAlternativeRecipes.length}</span>
+          </div>
+          {selectedAlternativeRecipes.length === 0 ? (
+            <div className="recipe-relation-empty">Henüz alternatif reçete bulunmuyor.</div>
+          ) : (
+            <div className="recipe-navigation-list">
+              {selectedAlternativeRecipes.map(renderRecipeNavigationRow)}
+            </div>
+          )}
+        </section>
+      )
+    }
+
+    return (
+      <section className="card recipe-relation-card">
+        <div className="section-header compact">
+          <h3>Bağlı Ana Reçete</h3>
+        </div>
+        {selectedParentRecord ? (
+          <div className="recipe-navigation-list">
+            {renderRecipeNavigationRow(selectedParentRecord)}
+          </div>
+        ) : (
+          <div className="recipe-relation-empty warning">Bağlı ana reçete bulunamadı.</div>
+        )}
+      </section>
+    )
+  }
+
   const renderSummaryPanel = () => {
     if(!selectedRecord){
       return (
@@ -846,7 +979,7 @@ export default function Recipes(){
     }
 
     const selectedRecipeCost = calculateRecipeCost(selectedRecord)
-    const selectedAlternativeCount = countAlternativeRecipes(selectedRecord, records)
+    const selectedAlternativeCount = selectedRecord.recipeRole === 'PRIMARY' ? selectedAlternativeRecipes.length : 0
     const selectedParentRecipe = formatParentRecipe(selectedRecord, records)
 
     return (
@@ -865,7 +998,7 @@ export default function Recipes(){
           <div><span>Reçete Türü</span><strong>{selectedRecord.recipeType}</strong></div>
           <div><span>Rol</span><strong>{getRecipeRoleLabel(selectedRecord.recipeRole)}</strong></div>
           <div><span>Bağlı Ana Reçete</span><strong>{selectedParentRecipe}</strong></div>
-          <div><span>Alternatif Reçete Sayısı</span><strong>{selectedAlternativeCount}</strong></div>
+          {renderAlternativeCountSummary(selectedRecord, selectedAlternativeCount)}
           <div><span>Ürün</span><strong>{selectedRecord.productName}</strong></div>
           <div><span>Porsiyon</span><strong>{formatNumber(selectedRecord.portions)}</strong></div>
           <div><span>Malzeme Sayısı</span><strong>{selectedRecord.ingredients.length}</strong></div>
@@ -942,7 +1075,7 @@ export default function Recipes(){
     }
 
     const selectedRecipeCost = calculateRecipeCost(selectedRecord)
-    const selectedAlternativeCount = countAlternativeRecipes(selectedRecord, records)
+    const selectedAlternativeCount = selectedRecord.recipeRole === 'PRIMARY' ? selectedAlternativeRecipes.length : 0
     const selectedParentRecipe = formatParentRecipe(selectedRecord, records)
     const selectedIngredientCostMap = new Map(
       selectedRecipeCost.ingredientCost.map(ingredientCost => [ingredientCost.ingredientId, ingredientCost])
@@ -1025,27 +1158,30 @@ export default function Recipes(){
             )}
           </section>
 
-          <aside className="card recipe-detail-summary">
-            <div className="section-header compact">
-              <h3>Reçete Kartı</h3>
-              <span className={`status-pill ${getStatusClass(selectedRecord.status)}`}>{selectedRecord.status}</span>
-            </div>
-            <div className="recipe-summary-grid">
-              <div><span>Kod</span><strong>{selectedRecord.code}</strong></div>
-              <div><span>Reçete Adı</span><strong>{selectedRecord.recipeName}</strong></div>
-              <div><span>Reçete Türü</span><strong>{selectedRecord.recipeType}</strong></div>
-              <div><span>Rol</span><strong>{getRecipeRoleLabel(selectedRecord.recipeRole)}</strong></div>
-              <div><span>Bağlı Ana Reçete</span><strong>{selectedParentRecipe}</strong></div>
-              <div><span>Alternatif Reçete Sayısı</span><strong>{selectedAlternativeCount}</strong></div>
-              <div><span>Ürün</span><strong>{selectedRecord.productName}</strong></div>
-              <div><span>Porsiyon</span><strong>{formatNumber(selectedRecord.portions)}</strong></div>
-              <div><span>Malzeme Sayısı</span><strong>{selectedRecord.ingredients.length}</strong></div>
-              <div><span>Toplam Gramaj</span><strong>{formatNumber(calculateTotalGrams(selectedRecord.ingredients))} gr</strong></div>
-              <div><span>Toplam Maliyet</span><strong>{formatRecipeCostAmount(selectedRecipeCost.recipeCost)}</strong></div>
-              <div><span>Porsiyon Maliyeti</span><strong>{formatRecipeCostAmount(selectedRecipeCost.portionCost)}</strong></div>
-              <div><span>Son Güncelleme</span><strong>{formatDateTime(selectedRecord.updatedAt || selectedRecord.createdAt)}</strong></div>
-              <div><span>Açıklama</span><strong>{selectedRecord.description || '-'}</strong></div>
-            </div>
+          <aside className="recipe-detail-side">
+            <section className="card recipe-detail-summary">
+              <div className="section-header compact">
+                <h3>Reçete Kartı</h3>
+                <span className={`status-pill ${getStatusClass(selectedRecord.status)}`}>{selectedRecord.status}</span>
+              </div>
+              <div className="recipe-summary-grid">
+                <div><span>Kod</span><strong>{selectedRecord.code}</strong></div>
+                <div><span>Reçete Adı</span><strong>{selectedRecord.recipeName}</strong></div>
+                <div><span>Reçete Türü</span><strong>{selectedRecord.recipeType}</strong></div>
+                <div><span>Rol</span><strong>{getRecipeRoleLabel(selectedRecord.recipeRole)}</strong></div>
+                <div><span>Bağlı Ana Reçete</span><strong>{selectedParentRecipe}</strong></div>
+                {renderAlternativeCountSummary(selectedRecord, selectedAlternativeCount)}
+                <div><span>Ürün</span><strong>{selectedRecord.productName}</strong></div>
+                <div><span>Porsiyon</span><strong>{formatNumber(selectedRecord.portions)}</strong></div>
+                <div><span>Malzeme Sayısı</span><strong>{selectedRecord.ingredients.length}</strong></div>
+                <div><span>Toplam Gramaj</span><strong>{formatNumber(calculateTotalGrams(selectedRecord.ingredients))} gr</strong></div>
+                <div><span>Toplam Maliyet</span><strong>{formatRecipeCostAmount(selectedRecipeCost.recipeCost)}</strong></div>
+                <div><span>Porsiyon Maliyeti</span><strong>{formatRecipeCostAmount(selectedRecipeCost.portionCost)}</strong></div>
+                <div><span>Son Güncelleme</span><strong>{formatDateTime(selectedRecord.updatedAt || selectedRecord.createdAt)}</strong></div>
+                <div><span>Açıklama</span><strong>{selectedRecord.description || '-'}</strong></div>
+              </div>
+            </section>
+            {renderRecipeRelationCard()}
           </aside>
         </div>
       </div>
