@@ -1,0 +1,68 @@
+import type {
+  RecipeIngredient,
+  RecipeManagementRecord
+} from './recipe-management.types'
+
+export type RecipeIngredientCostLine = {
+  ingredientId: string
+  materialName: string
+  baseQuantity: number
+  baseUnit: string
+  unitCost: number
+  cost: number
+}
+
+export type RecipeCostCalculation = {
+  ingredientCost: RecipeIngredientCostLine[]
+  recipeCost: number
+  portionCost: number
+}
+
+const ZERO_COST = 0
+const MONEY_DECIMAL_FACTOR = 100
+const TL_SUFFIX = ' TL'
+
+const toNonNegativeNumber = (value: unknown) => {
+  const numericValue = Number(value)
+  return Number.isFinite(numericValue) && numericValue > 0 ? numericValue : ZERO_COST
+}
+
+const roundCost = (value: number) => (
+  Math.round((value + Number.EPSILON) * MONEY_DECIMAL_FACTOR) / MONEY_DECIMAL_FACTOR
+)
+
+const calculateIngredientCost = (ingredient: RecipeIngredient): RecipeIngredientCostLine => {
+  const baseQuantity = toNonNegativeNumber(ingredient.baseQuantity)
+  const unitCost = toNonNegativeNumber(ingredient.unitCost)
+
+  return {
+    ingredientId: ingredient.id,
+    materialName: ingredient.materialName,
+    baseQuantity,
+    baseUnit: ingredient.baseUnit,
+    unitCost,
+    cost: roundCost(baseQuantity * unitCost)
+  }
+}
+
+export const calculateRecipeCost = (recipe: RecipeManagementRecord): RecipeCostCalculation => {
+  const ingredientCost = recipe.ingredients.map(calculateIngredientCost)
+  const recipeCost = roundCost(ingredientCost.reduce((sum, ingredient) => sum + ingredient.cost, ZERO_COST))
+  const portions = toNonNegativeNumber(recipe.portions)
+
+  return {
+    ingredientCost,
+    recipeCost,
+    portionCost: portions > ZERO_COST ? roundCost(recipeCost / portions) : ZERO_COST
+  }
+}
+
+export const formatRecipeCostAmount = (value: number) => {
+  const numericValue = Number(value)
+  const safeValue = Number.isFinite(numericValue) ? numericValue : ZERO_COST
+
+  return `${safeValue.toLocaleString('tr-TR', {
+    minimumFractionDigits: 2,
+    maximumFractionDigits: 2
+  })}${TL_SUFFIX}`
+}

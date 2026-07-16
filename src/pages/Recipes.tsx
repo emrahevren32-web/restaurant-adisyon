@@ -1,12 +1,17 @@
 import React from 'react'
 import {
   RECIPE_INGREDIENT_UNITS,
+  RECIPE_MANAGEMENT_ROLES,
   RECIPE_MANAGEMENT_STATUSES,
   RECIPE_MANAGEMENT_TYPES,
   RECIPE_PRODUCT_OPTIONS,
   loadRecipeManagementRecords,
   saveRecipeManagementRecords
 } from '../recipe-management/recipe-management.mock'
+import {
+  calculateRecipeCost,
+  formatRecipeCostAmount
+} from '../recipe-management/recipe-cost-engine'
 import {
   calculateTotalBaseQuantity,
   convertToBaseUnit
@@ -15,11 +20,13 @@ import type {
   RecipeIngredient,
   RecipeIngredientUnit,
   RecipeManagementRecord,
+  RecipeManagementRole,
   RecipeManagementStatus,
   RecipeManagementType
 } from '../recipe-management/recipe-management.types'
 
 type StatusFilter = RecipeManagementStatus | 'all'
+type RoleFilter = RecipeManagementRole | 'all'
 type PanelMode = 'summary' | 'form'
 type ViewMode = 'list' | 'detail'
 type ToastTone = 'success' | 'info'
@@ -28,6 +35,8 @@ type RecipeFormState = {
   code: string
   recipeName: string
   recipeType: RecipeManagementType
+  recipeRole: RecipeManagementRole
+  parentRecipeId: string
   productName: string
   portions: string
   status: RecipeManagementStatus
@@ -38,6 +47,7 @@ type IngredientFormState = {
   materialName: string
   quantity: string
   unit: RecipeIngredientUnit
+  unitCost: string
 }
 
 type ToastState = {
@@ -47,6 +57,7 @@ type ToastState = {
 }
 
 const MAX_INGREDIENT_QUANTITY = 100000
+const MAX_INGREDIENT_UNIT_COST = 1000000
 const TOTAL_GRAMAJ_BASE_UNIT = 'gr'
 
 const createId = (prefix: string) => `${prefix}_${Date.now()}_${Math.random().toString(16).slice(2)}`
@@ -67,7 +78,8 @@ const createIngredientFromForm = (id: string, form: IngredientFormState): Recipe
     materialName: form.materialName.trim(),
     quantity,
     unit: form.unit,
-    ...convertToBaseUnit(quantity, form.unit)
+    ...convertToBaseUnit(quantity, form.unit),
+    unitCost: Number(form.unitCost)
   }
 }
 
@@ -89,6 +101,31 @@ const getStatusClass = (status: RecipeManagementStatus) => (
   status === 'Aktif' ? 'success' : 'muted-pill'
 )
 
+const getRecipeRoleLabel = (role: RecipeManagementRole) => (
+  role === 'PRIMARY' ? 'Ana' : 'Alternatif'
+)
+
+const getRecipeRoleClass = (role: RecipeManagementRole) => (
+  role === 'PRIMARY' ? 'success' : 'info-pill'
+)
+
+const findParentRecipe = (record: RecipeManagementRecord, records: RecipeManagementRecord[]) => (
+  record.parentRecipeId
+    ? records.find(item => item.id === record.parentRecipeId) || null
+    : null
+)
+
+const formatParentRecipe = (record: RecipeManagementRecord, records: RecipeManagementRecord[]) => {
+  const parentRecipe = findParentRecipe(record, records)
+  return parentRecipe ? `${parentRecipe.code} · ${parentRecipe.recipeName}` : '-'
+}
+
+const countAlternativeRecipes = (record: RecipeManagementRecord, records: RecipeManagementRecord[]) => (
+  record.recipeRole === 'PRIMARY'
+    ? records.filter(item => item.parentRecipeId === record.id && item.recipeRole === 'ALTERNATIVE').length
+    : 0
+)
+
 const getNextRecipeCode = (records: RecipeManagementRecord[]) => {
   const maxNo = records.reduce((max, record) => {
     const match = record.code.match(/(\d+)$/)
@@ -102,6 +139,8 @@ const createInitialRecipeForm = (records: RecipeManagementRecord[]): RecipeFormS
   code: getNextRecipeCode(records),
   recipeName: '',
   recipeType: 'Ana Ürün',
+  recipeRole: 'PRIMARY',
+  parentRecipeId: '',
   productName: '',
   portions: '1',
   status: 'Aktif',
@@ -112,6 +151,8 @@ const createRecipeFormFromRecord = (record: RecipeManagementRecord): RecipeFormS
   code: record.code,
   recipeName: record.recipeName,
   recipeType: record.recipeType,
+  recipeRole: record.recipeRole,
+  parentRecipeId: record.parentRecipeId || '',
   productName: record.productName,
   portions: String(record.portions),
   status: record.status,
@@ -121,13 +162,15 @@ const createRecipeFormFromRecord = (record: RecipeManagementRecord): RecipeFormS
 const createInitialIngredientForm = (): IngredientFormState => ({
   materialName: '',
   quantity: '1',
-  unit: 'gr'
+  unit: 'gr',
+  unitCost: '1'
 })
 
 const createIngredientFormFromRecord = (ingredient: RecipeIngredient): IngredientFormState => ({
   materialName: ingredient.materialName,
   quantity: String(ingredient.quantity),
-  unit: ingredient.unit
+  unit: ingredient.unit,
+  unitCost: String(Number.isFinite(ingredient.unitCost) ? ingredient.unitCost : 0)
 })
 
 const validateRecipeForm = (
@@ -140,6 +183,36 @@ const validateRecipeForm = (
   if(!form.recipeName.trim()) return 'Reçete adı zorunludur.'
   if(!form.productName.trim()) return 'Ürün zorunludur.'
   if(!form.recipeType.trim()) return 'Reçete türü zorunludur.'
+  if(!RECIPE_MANAGEMENT_ROLES.includes(form.recipeRole)) return 'Reçete rolü zorunludur.'
+
+  const existingRecord = editingRecipeId
+    ? records.find(record => record.id === editingRecipeId) || null
+    : null
+  if(existingRecord?.recipeRole === 'PRIMARY' && form.recipeRole === 'ALTERNATIVE'){
+    const alternativeCount = countAlternativeRecipes(existingRecord, records)
+    if(alternativeCount > 0) return 'Bağlı alternatifleri olan ana reçetenin rolü değiştirilemez.'
+  }
+
+  const normalizedProductName = form.productName.trim().toLocaleLowerCase('tr-TR')
+  if(form.recipeRole === 'PRIMARY'){
+    const duplicatePrimaryProduct = records.some(record => (
+      record.id !== editingRecipeId
+      && record.recipeRole === 'PRIMARY'
+      && record.productName.trim().toLocaleLowerCase('tr-TR') === normalizedProductName
+    ))
+    if(duplicatePrimaryProduct) return 'Bu ürün için zaten bir ana reçete tanımlı.'
+  }
+
+  if(form.recipeRole === 'ALTERNATIVE'){
+    if(!form.parentRecipeId) return 'Alternatif reçete için bağlı ana reçete seçilmelidir.'
+
+    const parentRecipe = records.find(record => record.id === form.parentRecipeId && record.recipeRole === 'PRIMARY')
+    if(!parentRecipe) return 'Bağlı ana reçete geçerli olmalıdır.'
+    if(parentRecipe.id === editingRecipeId) return 'Reçete kendisine bağlı alternatif olamaz.'
+    if(parentRecipe.productName.trim().toLocaleLowerCase('tr-TR') !== normalizedProductName){
+      return 'Alternatif reçetenin ürünü bağlı ana reçete ile aynı olmalıdır.'
+    }
+  }
 
   const portions = Number(form.portions)
   if(!form.portions.trim()) return 'Porsiyon boş bırakılamaz.'
@@ -152,8 +225,11 @@ const validateRecipeForm = (
     || ingredient.quantity <= 0
     || ingredient.quantity > MAX_INGREDIENT_QUANTITY
     || !RECIPE_INGREDIENT_UNITS.includes(ingredient.unit)
+    || !Number.isFinite(ingredient.unitCost)
+    || ingredient.unitCost <= 0
+    || ingredient.unitCost > MAX_INGREDIENT_UNIT_COST
   ))){
-    return 'Tüm malzemelerde hammadde, miktar ve birim geçerli olmalıdır.'
+    return 'Tüm malzemelerde hammadde, miktar, birim ve birim maliyet geçerli olmalıdır.'
   }
 
   const normalizedCode = form.code.trim().toLocaleLowerCase('tr-TR')
@@ -176,6 +252,12 @@ const validateIngredientForm = (form: IngredientFormState) => {
   if(quantity > MAX_INGREDIENT_QUANTITY) return 'Miktar 100000 değerini geçemez.'
   if(!RECIPE_INGREDIENT_UNITS.includes(form.unit)) return 'Birim zorunludur.'
 
+  const unitCost = Number(form.unitCost)
+  if(!form.unitCost.trim()) return 'Birim maliyet boş bırakılamaz.'
+  if(!Number.isFinite(unitCost)) return 'Birim maliyet için geçerli bir sayı girilmelidir.'
+  if(unitCost <= 0) return 'Birim maliyet 0 veya negatif olamaz.'
+  if(unitCost > MAX_INGREDIENT_UNIT_COST) return 'Birim maliyet 1000000 değerini geçemez.'
+
   return ''
 }
 
@@ -183,6 +265,7 @@ export default function Recipes(){
   const [records, setRecords] = React.useState<RecipeManagementRecord[]>(() => loadRecipeManagementRecords())
   const [search, setSearch] = React.useState('')
   const [statusFilter, setStatusFilter] = React.useState<StatusFilter>('all')
+  const [roleFilter, setRoleFilter] = React.useState<RoleFilter>('all')
   const [selectedRecordId, setSelectedRecordId] = React.useState('recipe_mgmt_001')
   const [panelMode, setPanelMode] = React.useState<PanelMode>('summary')
   const [viewMode, setViewMode] = React.useState<ViewMode>('list')
@@ -221,15 +304,22 @@ export default function Recipes(){
     const normalizedSearch = search.trim().toLocaleLowerCase('tr-TR')
 
     return records.filter(record => {
+      const roleLabel = getRecipeRoleLabel(record.recipeRole)
+      const roleText = record.recipeRole === 'PRIMARY' ? 'Ana Reçete' : 'Alternatif Reçete'
+      const parentRecipeText = formatParentRecipe(record, records)
       const matchesSearch = !normalizedSearch
         || record.code.toLocaleLowerCase('tr-TR').includes(normalizedSearch)
         || record.recipeName.toLocaleLowerCase('tr-TR').includes(normalizedSearch)
         || record.productName.toLocaleLowerCase('tr-TR').includes(normalizedSearch)
+        || roleLabel.toLocaleLowerCase('tr-TR').includes(normalizedSearch)
+        || roleText.toLocaleLowerCase('tr-TR').includes(normalizedSearch)
+        || parentRecipeText.toLocaleLowerCase('tr-TR').includes(normalizedSearch)
       const matchesStatus = statusFilter === 'all' || record.status === statusFilter
+      const matchesRole = roleFilter === 'all' || record.recipeRole === roleFilter
 
-      return matchesSearch && matchesStatus
+      return matchesSearch && matchesStatus && matchesRole
     })
-  }, [records, search, statusFilter])
+  }, [records, roleFilter, search, statusFilter])
 
   React.useEffect(() => {
     if(panelMode === 'form' || viewMode === 'detail') return
@@ -258,6 +348,9 @@ export default function Recipes(){
     if(recipeForm.productName.trim()) options.add(recipeForm.productName.trim())
     return Array.from(options)
   }, [records, recipeForm.productName])
+  const primaryRecipeOptions = React.useMemo(() => (
+    records.filter(record => record.recipeRole === 'PRIMARY' && record.id !== editingRecipeId)
+  ), [editingRecipeId, records])
 
   const startNewRecipe = () => {
     setViewMode('list')
@@ -302,6 +395,24 @@ export default function Recipes(){
     value: RecipeFormState[TKey]
   ) => {
     setRecipeForm(prev => ({ ...prev, [key]: value }))
+  }
+
+  const updateRecipeRole = (recipeRole: RecipeManagementRole) => {
+    setRecipeForm(prev => ({
+      ...prev,
+      recipeRole,
+      parentRecipeId: recipeRole === 'PRIMARY' ? '' : prev.parentRecipeId
+    }))
+  }
+
+  const updateParentRecipe = (parentRecipeId: string) => {
+    const parentRecipe = records.find(record => record.id === parentRecipeId && record.recipeRole === 'PRIMARY')
+
+    setRecipeForm(prev => ({
+      ...prev,
+      parentRecipeId,
+      productName: parentRecipe?.productName || prev.productName
+    }))
   }
 
   const updateIngredientForm = <TKey extends keyof IngredientFormState>(
@@ -373,6 +484,11 @@ export default function Recipes(){
   }
 
   const deleteRecipe = (record: RecipeManagementRecord) => {
+    if(record.recipeRole === 'PRIMARY' && countAlternativeRecipes(record, records) > 0){
+      showToast('Bu reçeteye bağlı alternatif reçeteler bulunmaktadır.', 'info')
+      return
+    }
+
     if(!window.confirm('Bu reçeteyi silmek istediğinize emin misiniz?')) return
 
     const nextRecords = records.filter(item => item.id !== record.id)
@@ -417,6 +533,8 @@ export default function Recipes(){
         code: normalizedCode,
         recipeName: recipeForm.recipeName.trim(),
         recipeType: recipeForm.recipeType,
+        recipeRole: recipeForm.recipeRole,
+        parentRecipeId: recipeForm.recipeRole === 'ALTERNATIVE' ? recipeForm.parentRecipeId : undefined,
         productName: recipeForm.productName.trim(),
         portions,
         status: recipeForm.status,
@@ -442,6 +560,8 @@ export default function Recipes(){
       code: normalizedCode,
       recipeName: recipeForm.recipeName.trim(),
       recipeType: recipeForm.recipeType,
+      recipeRole: recipeForm.recipeRole,
+      parentRecipeId: recipeForm.recipeRole === 'ALTERNATIVE' ? recipeForm.parentRecipeId : undefined,
       productName: recipeForm.productName.trim(),
       portions,
       status: recipeForm.status,
@@ -567,6 +687,29 @@ export default function Recipes(){
           </div>
         </div>
 
+        <div className="form-row">
+          <div className="form-field">
+            <label>Reçete Rolü</label>
+            <select value={recipeForm.recipeRole} onChange={event => updateRecipeRole(event.target.value as RecipeManagementRole)}>
+              <option value="PRIMARY">Ana Reçete</option>
+              <option value="ALTERNATIVE">Alternatif Reçete</option>
+            </select>
+          </div>
+          {recipeForm.recipeRole === 'ALTERNATIVE' && (
+            <div className="form-field">
+              <label>Bağlı Ana Reçete</label>
+              <select value={recipeForm.parentRecipeId} onChange={event => updateParentRecipe(event.target.value)}>
+                <option value="">Ana reçete seçin</option>
+                {primaryRecipeOptions.map(parentRecipe => (
+                  <option key={parentRecipe.id} value={parentRecipe.id}>
+                    {parentRecipe.code} · {parentRecipe.recipeName}
+                  </option>
+                ))}
+              </select>
+            </div>
+          )}
+        </div>
+
         <div className="form-field">
           <label>Reçete Adı</label>
           <input value={recipeForm.recipeName} onChange={event => updateRecipeForm('recipeName', event.target.value)} />
@@ -632,7 +775,7 @@ export default function Recipes(){
               <div key={ingredient.id} className="recipe-form-ingredient-row">
                 <div>
                   <strong>{ingredient.materialName}</strong>
-                  <span>{formatNumber(ingredient.quantity)} {ingredient.unit}</span>
+                  <span>{formatNumber(ingredient.quantity)} {ingredient.unit} · {formatRecipeCostAmount(ingredient.unitCost)} / {ingredient.baseUnit}</span>
                 </div>
                 <div>
                   <button className="btn" type="button" onClick={() => startEditRecipeFormIngredient(ingredient)}>Düzenle</button>
@@ -666,6 +809,17 @@ export default function Recipes(){
                 ))}
               </select>
             </div>
+            <div className="form-field">
+              <label>Birim Maliyet</label>
+              <input
+                type="number"
+                min="0"
+                max={MAX_INGREDIENT_UNIT_COST}
+                step="0.001"
+                value={recipeIngredientForm.unitCost}
+                onChange={event => updateRecipeIngredientForm('unitCost', event.target.value)}
+              />
+            </div>
             <div className="recipe-inline-ingredient-actions">
               {recipeIngredientEditingId && <button className="btn" type="button" onClick={resetRecipeIngredientForm}>Vazgeç</button>}
               <button className="btn primary" type="button" onClick={saveRecipeFormIngredient}>{recipeIngredientEditingId ? 'Malzemeyi Kaydet' : 'Malzeme Ekle'}</button>
@@ -691,6 +845,10 @@ export default function Recipes(){
       )
     }
 
+    const selectedRecipeCost = calculateRecipeCost(selectedRecord)
+    const selectedAlternativeCount = countAlternativeRecipes(selectedRecord, records)
+    const selectedParentRecipe = formatParentRecipe(selectedRecord, records)
+
     return (
       <section className="card recipe-management-summary">
         <div className="section-header compact">
@@ -705,11 +863,15 @@ export default function Recipes(){
           <div><span>Kod</span><strong>{selectedRecord.code}</strong></div>
           <div><span>Reçete Adı</span><strong>{selectedRecord.recipeName}</strong></div>
           <div><span>Reçete Türü</span><strong>{selectedRecord.recipeType}</strong></div>
+          <div><span>Rol</span><strong>{getRecipeRoleLabel(selectedRecord.recipeRole)}</strong></div>
+          <div><span>Bağlı Ana Reçete</span><strong>{selectedParentRecipe}</strong></div>
+          <div><span>Alternatif Reçete Sayısı</span><strong>{selectedAlternativeCount}</strong></div>
           <div><span>Ürün</span><strong>{selectedRecord.productName}</strong></div>
           <div><span>Porsiyon</span><strong>{formatNumber(selectedRecord.portions)}</strong></div>
           <div><span>Malzeme Sayısı</span><strong>{selectedRecord.ingredients.length}</strong></div>
           <div><span>Toplam Gramaj</span><strong>{formatNumber(calculateTotalGrams(selectedRecord.ingredients))} gr</strong></div>
-          <div><span>Tahmini Toplam Maliyet</span><strong>Hesaplanmadı</strong></div>
+          <div><span>Toplam Maliyet</span><strong>{formatRecipeCostAmount(selectedRecipeCost.recipeCost)}</strong></div>
+          <div><span>Porsiyon Maliyeti</span><strong>{formatRecipeCostAmount(selectedRecipeCost.portionCost)}</strong></div>
           <div><span>Son Güncelleme</span><strong>{formatDateTime(selectedRecord.updatedAt || selectedRecord.createdAt)}</strong></div>
           <div><span>Açıklama</span><strong>{selectedRecord.description || '-'}</strong></div>
         </div>
@@ -748,6 +910,17 @@ export default function Recipes(){
           ))}
         </select>
       </div>
+      <div className="form-field">
+        <label>Birim Maliyet</label>
+        <input
+          type="number"
+          min="0"
+          max={MAX_INGREDIENT_UNIT_COST}
+          step="0.001"
+          value={ingredientForm.unitCost}
+          onChange={event => updateIngredientForm('unitCost', event.target.value)}
+        />
+      </div>
       <div className="recipe-ingredient-form-actions">
         <button className="btn" type="button" onClick={cancelIngredientForm}>Vazgeç</button>
         <button className="btn primary" type="submit">{editingIngredientId ? 'Kaydet' : 'Malzeme Ekle'}</button>
@@ -767,6 +940,13 @@ export default function Recipes(){
         </div>
       )
     }
+
+    const selectedRecipeCost = calculateRecipeCost(selectedRecord)
+    const selectedAlternativeCount = countAlternativeRecipes(selectedRecord, records)
+    const selectedParentRecipe = formatParentRecipe(selectedRecord, records)
+    const selectedIngredientCostMap = new Map(
+      selectedRecipeCost.ingredientCost.map(ingredientCost => [ingredientCost.ingredientId, ingredientCost])
+    )
 
     return (
       <div className="recipes-page recipe-detail-page">
@@ -797,31 +977,43 @@ export default function Recipes(){
               <button className="btn primary" type="button" onClick={startAddIngredient}>+ Malzeme Ekle</button>
             </div>
 
-            <div className="table-wrap">
+            <div className="table-wrap recipe-ingredient-table-wrap">
               <table className="data-table recipe-ingredient-table">
                 <thead>
                   <tr>
                     <th>Hammadde</th>
                     <th>Miktar</th>
                     <th>Birim</th>
+                    <th>Birim Maliyet</th>
+                    <th>Satır Maliyeti</th>
                     <th>İşlemler</th>
                   </tr>
                 </thead>
                 <tbody>
                   {selectedRecord.ingredients.length === 0 && (
-                    <tr><td colSpan={4} className="empty-cell">Henüz malzeme bulunmuyor.</td></tr>
+                    <tr><td colSpan={6} className="empty-cell">Henüz malzeme bulunmuyor.</td></tr>
                   )}
-                  {selectedRecord.ingredients.map(ingredient => (
-                    <tr key={ingredient.id}>
-                      <td><strong>{ingredient.materialName}</strong></td>
-                      <td>{formatNumber(ingredient.quantity)}</td>
-                      <td>{ingredient.unit}</td>
-                      <td className="actions-cell">
-                        <button className="btn" type="button" onClick={() => startEditIngredient(ingredient)}>Düzenle</button>
-                        <button className="btn danger" type="button" onClick={() => deleteIngredient(ingredient)}>Sil</button>
-                      </td>
-                    </tr>
-                  ))}
+                  {selectedRecord.ingredients.map(ingredient => {
+                    const ingredientCost = selectedIngredientCostMap.get(ingredient.id)
+
+                    return (
+                      <tr key={ingredient.id}>
+                        <td data-label="Hammadde"><strong>{ingredient.materialName}</strong></td>
+                        <td data-label="Miktar">{formatNumber(ingredient.quantity)}</td>
+                        <td data-label="Birim">{ingredient.unit}</td>
+                        <td data-label="Birim Maliyet">
+                          <strong>{formatRecipeCostAmount(ingredient.unitCost)}</strong>
+                        </td>
+                        <td data-label="Satır Maliyeti">
+                          <strong>{formatRecipeCostAmount(ingredientCost?.cost || 0)}</strong>
+                        </td>
+                        <td className="actions-cell" data-label="İşlemler">
+                          <button className="btn" type="button" onClick={() => startEditIngredient(ingredient)}>Düzenle</button>
+                          <button className="btn danger" type="button" onClick={() => deleteIngredient(ingredient)}>Sil</button>
+                        </td>
+                      </tr>
+                    )
+                  })}
                 </tbody>
               </table>
             </div>
@@ -842,11 +1034,15 @@ export default function Recipes(){
               <div><span>Kod</span><strong>{selectedRecord.code}</strong></div>
               <div><span>Reçete Adı</span><strong>{selectedRecord.recipeName}</strong></div>
               <div><span>Reçete Türü</span><strong>{selectedRecord.recipeType}</strong></div>
+              <div><span>Rol</span><strong>{getRecipeRoleLabel(selectedRecord.recipeRole)}</strong></div>
+              <div><span>Bağlı Ana Reçete</span><strong>{selectedParentRecipe}</strong></div>
+              <div><span>Alternatif Reçete Sayısı</span><strong>{selectedAlternativeCount}</strong></div>
               <div><span>Ürün</span><strong>{selectedRecord.productName}</strong></div>
               <div><span>Porsiyon</span><strong>{formatNumber(selectedRecord.portions)}</strong></div>
               <div><span>Malzeme Sayısı</span><strong>{selectedRecord.ingredients.length}</strong></div>
               <div><span>Toplam Gramaj</span><strong>{formatNumber(calculateTotalGrams(selectedRecord.ingredients))} gr</strong></div>
-              <div><span>Tahmini Toplam Maliyet</span><strong>Hesaplanmadı</strong></div>
+              <div><span>Toplam Maliyet</span><strong>{formatRecipeCostAmount(selectedRecipeCost.recipeCost)}</strong></div>
+              <div><span>Porsiyon Maliyeti</span><strong>{formatRecipeCostAmount(selectedRecipeCost.portionCost)}</strong></div>
               <div><span>Son Güncelleme</span><strong>{formatDateTime(selectedRecord.updatedAt || selectedRecord.createdAt)}</strong></div>
               <div><span>Açıklama</span><strong>{selectedRecord.description || '-'}</strong></div>
             </div>
@@ -905,7 +1101,7 @@ export default function Recipes(){
               <button className="btn primary" type="button" onClick={startNewRecipe}>Yeni Reçete</button>
               <input
                 type="search"
-                placeholder="Kod, reçete veya ürün ara"
+                placeholder="Kod, reçete, ürün, rol veya ana reçete ara"
                 value={search}
                 onChange={event => setSearch(event.target.value)}
               />
@@ -914,6 +1110,11 @@ export default function Recipes(){
                 {RECIPE_MANAGEMENT_STATUSES.map(status => (
                   <option key={status} value={status}>{status}</option>
                 ))}
+              </select>
+              <select value={roleFilter} onChange={event => setRoleFilter(event.target.value as RoleFilter)}>
+                <option value="all">Tümü</option>
+                <option value="PRIMARY">Ana Reçeteler</option>
+                <option value="ALTERNATIVE">Alternatif Reçeteler</option>
               </select>
             </div>
           </div>
@@ -924,9 +1125,11 @@ export default function Recipes(){
                 <col className="recipe-col-code" />
                 <col className="recipe-col-name" />
                 <col className="recipe-col-type" />
+                <col className="recipe-col-role" />
                 <col className="recipe-col-product" />
                 <col className="recipe-col-portion" />
                 <col className="recipe-col-ingredients" />
+                <col className="recipe-col-cost" />
                 <col className="recipe-col-status" />
                 <col className="recipe-col-actions" />
               </colgroup>
@@ -935,9 +1138,11 @@ export default function Recipes(){
                   <th>Kod</th>
                   <th>Reçete Adı</th>
                   <th>Reçete Türü</th>
+                  <th>Rol</th>
                   <th>Ürün</th>
                   <th>Porsiyon</th>
                   <th>Malzeme Sayısı</th>
+                  <th>Toplam Maliyet</th>
                   <th>Durum</th>
                   <th>İşlemler</th>
                 </tr>
@@ -945,7 +1150,7 @@ export default function Recipes(){
               <tbody>
                 {records.length === 0 && (
                   <tr>
-                    <td colSpan={8} className="empty-cell">
+                    <td colSpan={10} className="empty-cell">
                       <div className="recipe-empty-list">
                         <strong>Henüz reçete bulunmuyor.</strong>
                         <span>İlk reçeteyi oluşturmak için "Yeni Reçete" butonunu kullanabilirsiniz.</span>
@@ -955,62 +1160,72 @@ export default function Recipes(){
                   </tr>
                 )}
                 {records.length > 0 && visibleRecords.length === 0 && (
-                  <tr><td colSpan={8} className="empty-cell">Filtrelere uygun reçete bulunamadı.</td></tr>
+                  <tr><td colSpan={10} className="empty-cell">Filtrelere uygun reçete bulunamadı.</td></tr>
                 )}
-                {visibleRecords.map(record => (
-                  <tr
-                    key={record.id}
-                    className={record.id === selectedRecordId ? 'selected-row' : ''}
-                    onClick={() => {
-                      setSelectedRecordId(record.id)
-                      setPanelMode('summary')
-                    }}
-                    onDoubleClick={() => openDetail(record)}
-                  >
-                    <td><strong>{record.code}</strong></td>
-                    <td>
-                      <strong>{record.recipeName}</strong>
-                      {record.description && <div className="muted small-text">{record.description}</div>}
-                    </td>
-                    <td>{record.recipeType}</td>
-                    <td>{record.productName}</td>
-                    <td>{formatNumber(record.portions)}</td>
-                    <td>{record.ingredients.length}</td>
-                    <td><span className={`status-pill ${getStatusClass(record.status)}`}>{record.status}</span></td>
-                    <td className="actions-cell">
-                      <button
-                        className="btn"
-                        type="button"
-                        onClick={event => {
-                          event.stopPropagation()
-                          openDetail(record)
-                        }}
-                      >
-                        Detay
-                      </button>
-                      <button
-                        className="btn"
-                        type="button"
-                        onClick={event => {
-                          event.stopPropagation()
-                          startEditRecipe(record)
-                        }}
-                      >
-                        Düzenle
-                      </button>
-                      <button
-                        className="btn danger"
-                        type="button"
-                        onClick={event => {
-                          event.stopPropagation()
-                          deleteRecipe(record)
-                        }}
-                      >
-                        Sil
-                      </button>
-                    </td>
-                  </tr>
-                ))}
+                {visibleRecords.map(record => {
+                  const recipeCost = calculateRecipeCost(record)
+
+                  return (
+                    <tr
+                      key={record.id}
+                      className={record.id === selectedRecordId ? 'selected-row' : ''}
+                      onClick={() => {
+                        setSelectedRecordId(record.id)
+                        setPanelMode('summary')
+                      }}
+                      onDoubleClick={() => openDetail(record)}
+                    >
+                      <td><strong>{record.code}</strong></td>
+                      <td>
+                        <strong>{record.recipeName}</strong>
+                        {record.description && <div className="muted small-text">{record.description}</div>}
+                      </td>
+                      <td>{record.recipeType}</td>
+                      <td>
+                        <span className={`status-pill ${getRecipeRoleClass(record.recipeRole)}`}>
+                          {getRecipeRoleLabel(record.recipeRole)}
+                        </span>
+                      </td>
+                      <td>{record.productName}</td>
+                      <td>{formatNumber(record.portions)}</td>
+                      <td>{record.ingredients.length}</td>
+                      <td>{formatRecipeCostAmount(recipeCost.recipeCost)}</td>
+                      <td><span className={`status-pill ${getStatusClass(record.status)}`}>{record.status}</span></td>
+                      <td className="actions-cell">
+                        <button
+                          className="btn"
+                          type="button"
+                          onClick={event => {
+                            event.stopPropagation()
+                            openDetail(record)
+                          }}
+                        >
+                          Detay
+                        </button>
+                        <button
+                          className="btn"
+                          type="button"
+                          onClick={event => {
+                            event.stopPropagation()
+                            startEditRecipe(record)
+                          }}
+                        >
+                          Düzenle
+                        </button>
+                        <button
+                          className="btn danger"
+                          type="button"
+                          onClick={event => {
+                            event.stopPropagation()
+                            deleteRecipe(record)
+                          }}
+                        >
+                          Sil
+                        </button>
+                      </td>
+                    </tr>
+                  )
+                })}
               </tbody>
             </table>
           </div>

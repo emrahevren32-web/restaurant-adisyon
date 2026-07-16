@@ -2,6 +2,7 @@ import type {
   RecipeIngredient,
   RecipeIngredientUnit,
   RecipeManagementRecord,
+  RecipeManagementRole,
   RecipeManagementStatus,
   RecipeManagementType
 } from './recipe-management.types'
@@ -17,6 +18,11 @@ export const RECIPE_MANAGEMENT_TYPES: RecipeManagementType[] = [
 export const RECIPE_MANAGEMENT_STATUSES: RecipeManagementStatus[] = [
   'Aktif',
   'Pasif'
+]
+
+export const RECIPE_MANAGEMENT_ROLES: RecipeManagementRole[] = [
+  'PRIMARY',
+  'ALTERNATIVE'
 ]
 
 export const RECIPE_INGREDIENT_UNITS: RecipeIngredientUnit[] = [
@@ -48,6 +54,75 @@ const isBrowserStorageAvailable = () => (
   typeof window !== 'undefined' && typeof localStorage !== 'undefined'
 )
 
+const DEMO_ALTERNATIVE_RECIPE_IDS = [
+  'recipe_mgmt_010_alt_001',
+  'recipe_mgmt_010_alt_002',
+  'recipe_mgmt_011',
+  'recipe_mgmt_011_alt_001'
+]
+
+const DEFAULT_INGREDIENT_UNIT_COST = 0
+
+const DEMO_INGREDIENT_UNIT_COSTS: Record<string, number> = {
+  'ayçiçek yağı': 0.12,
+  'baldo pirinç': 0.08,
+  'beşamel sos': 0.11,
+  'beyaz biber': 0.3,
+  'biber': 0.04,
+  'bulgur': 0.055,
+  'dana eti': 0.58,
+  'dana kıyma': 0.5,
+  'domates püresi': 0.035,
+  'domates salçası': 0.09,
+  'domates sosu': 0.045,
+  'fesleğen': 0.24,
+  'galeta unu': 0.05,
+  'havuç': 0.018,
+  'kaşar peyniri': 0.26,
+  'karabiber': 0.28,
+  'kekik': 0.2,
+  'krema': 0.12,
+  'kuru soğan': 0.025,
+  'kuyruk yağı': 0.2,
+  'kırmızı mercimek': 0.08,
+  'kıymalı sos': 0.34,
+  'kimyon': 0.24,
+  'lazanya yaprağı': 0.09,
+  'mantar': 0.07,
+  'maydanoz': 0.035,
+  'mozzarella': 0.28,
+  'nane': 0.18,
+  'patates': 0.022,
+  'pirinç': 0.075,
+  'pizza hamuru': 0.045,
+  'pizza sosu': 0.055,
+  'pul biber': 0.22,
+  'sarımsak': 0.09,
+  'soğan suyu': 0.018,
+  'su': 0.001,
+  'sucuk': 0.32,
+  'süt': 0.035,
+  'tavuk but': 0.18,
+  'tavuk suyu': 0.03,
+  'tereyağı': 0.24,
+  'toz biber': 0.21,
+  'tuz': 0.02,
+  'un': 0.025,
+  'yoğurt': 0.045,
+  'yumurta': 5,
+  'zeytin': 0.16,
+  'zeytinyağı': 0.22,
+  'şeker': 0.035
+}
+
+const normalizeMaterialCostKey = (value: string) => (
+  value.trim().toLocaleLowerCase('tr-TR')
+)
+
+const getDemoIngredientUnitCost = (materialName: string) => (
+  DEMO_INGREDIENT_UNIT_COSTS[normalizeMaterialCostKey(materialName)] ?? DEFAULT_INGREDIENT_UNIT_COST
+)
+
 const normalizeRecipeType = (value: unknown): RecipeManagementType => (
   RECIPE_MANAGEMENT_TYPES.includes(value as RecipeManagementType)
     ? value as RecipeManagementType
@@ -62,11 +137,22 @@ const normalizeRecipeStatus = (value: unknown, active?: unknown): RecipeManageme
   return active === false ? 'Pasif' : 'Aktif'
 }
 
+const normalizeRecipeRole = (value: unknown): RecipeManagementRole => (
+  RECIPE_MANAGEMENT_ROLES.includes(value as RecipeManagementRole)
+    ? value as RecipeManagementRole
+    : 'PRIMARY'
+)
+
 const normalizeIngredientUnit = (value: unknown): RecipeIngredientUnit => (
   RECIPE_INGREDIENT_UNITS.includes(value as RecipeIngredientUnit)
     ? value as RecipeIngredientUnit
     : 'gr'
 )
+
+const normalizeIngredientUnitCost = (value: unknown) => {
+  const unitCost = Number(value)
+  return Number.isFinite(unitCost) && unitCost >= 0 ? unitCost : DEFAULT_INGREDIENT_UNIT_COST
+}
 
 const normalizeIngredient = (
   item: Partial<RecipeIngredient> & {
@@ -82,6 +168,7 @@ const normalizeIngredient = (
   const unit = normalizeIngredientUnit(item.unit)
   const baseConversion = convertToBaseUnit(normalizedQuantity, unit)
   const materialName = String(item.materialName || item.rawMaterial || item.stockItemName || '').trim()
+  const unitCost = normalizeIngredientUnitCost(item.unitCost)
 
   return {
     id: String(item.id || item.stockItemId || `recipe_ing_${String(index + 1).padStart(3, '0')}`),
@@ -89,7 +176,8 @@ const normalizeIngredient = (
     quantity: normalizedQuantity,
     unit,
     baseQuantity: baseConversion.baseQuantity,
-    baseUnit: baseConversion.baseUnit
+    baseUnit: baseConversion.baseUnit,
+    unitCost
   }
 }
 
@@ -125,12 +213,18 @@ const normalizeStoredRecipe = (
   const productName = String(item.productName || item.product || RECIPE_PRODUCT_OPTIONS[index % RECIPE_PRODUCT_OPTIONS.length]).trim()
   const recipeName = String(item.recipeName || item.name || productName || `Reçete ${index + 1}`).trim()
   const createdAt = String(item.createdAt || now)
+  const recipeRole = normalizeRecipeRole(item.recipeRole)
+  const parentRecipeId = recipeRole === 'ALTERNATIVE' && item.parentRecipeId
+    ? String(item.parentRecipeId)
+    : undefined
 
   return {
     id: String(item.id || `recipe_mgmt_${String(index + 1).padStart(3, '0')}`),
     code: String(item.code || `RC-${String(index + 1).padStart(3, '0')}`).trim(),
     recipeName: recipeName || `Reçete ${index + 1}`,
     recipeType: normalizeRecipeType(item.recipeType),
+    recipeRole,
+    parentRecipeId,
     productName: productName || recipeName || RECIPE_PRODUCT_OPTIONS[0],
     portions: Number.isFinite(portions) && portions > 0 ? portions : 1,
     status: normalizeRecipeStatus(item.status, item.active),
@@ -144,13 +238,15 @@ const normalizeStoredRecipe = (
 const ingredient = (
   materialName: string,
   quantity: number,
-  unit: RecipeIngredientUnit
+  unit: RecipeIngredientUnit,
+  unitCost = getDemoIngredientUnitCost(materialName)
 ): RecipeIngredient => ({
   id: `recipe_ing_${Math.random().toString(16).slice(2)}`,
   materialName,
   quantity,
   unit,
-  ...convertToBaseUnit(quantity, unit)
+  ...convertToBaseUnit(quantity, unit),
+  unitCost
 })
 
 const recipe = (
@@ -163,12 +259,16 @@ const recipe = (
   status: RecipeManagementStatus,
   description: string,
   ingredients: RecipeIngredient[],
-  updatedAt: string
+  updatedAt: string,
+  recipeRole: RecipeManagementRole = 'PRIMARY',
+  parentRecipeId?: string
 ): RecipeManagementRecord => normalizeStoredRecipe({
   id,
   code,
   recipeName,
   recipeType,
+  recipeRole,
+  parentRecipeId,
   productName,
   portions,
   status,
@@ -200,6 +300,7 @@ const serializeRecipeForStorage = (record: RecipeManagementRecord, index: number
       unit: ingredient.unit,
       baseQuantity: ingredient.baseQuantity,
       baseUnit: ingredient.baseUnit,
+      unitCost: ingredient.unitCost,
       wastePercent: 0,
       note: ''
     }))
@@ -299,8 +400,66 @@ export const createRecipeManagementMockData = (): RecipeManagementRecord[] => [
     ingredient('Şeker', 800, 'gr'),
     ingredient('Tuz', 550, 'gr'),
     ingredient('Fesleğen', 180, 'gr')
-  ], '2026-07-15T11:55:00.000Z')
+  ], '2026-07-15T11:55:00.000Z'),
+  recipe('recipe_mgmt_010_alt_001', 'RC-010-A', 'Domates Sosu Alternatif-1', 'Ara Ürün', 'Domates Sosu', 100, 'Aktif', 'Kuru soğan azaltılmış, daha yoğun salçalı alternatif domates sosu.', [
+    ingredient('Domates Püresi', 42, 'kg'),
+    ingredient('Domates Salçası', 8000, 'gr'),
+    ingredient('Kuru Soğan', 2.5, 'kg'),
+    ingredient('Sarımsak', 1.4, 'kg'),
+    ingredient('Ayçiçek Yağı', 2.5, 'lt'),
+    ingredient('Şeker', 700, 'gr'),
+    ingredient('Tuz', 520, 'gr'),
+    ingredient('Kekik', 160, 'gr')
+  ], '2026-07-15T12:10:00.000Z', 'ALTERNATIVE', 'recipe_mgmt_010'),
+  recipe('recipe_mgmt_010_alt_002', 'RC-010-B', 'Domates Sosu Alternatif-2', 'Ara Ürün', 'Domates Sosu', 100, 'Aktif', 'Zeytinyağı yerine ayçiçek yağı kullanılan ekonomik alternatif sos.', [
+    ingredient('Domates Püresi', 48, 'kg'),
+    ingredient('Domates Salçası', 5000, 'gr'),
+    ingredient('Kuru Soğan', 4.5, 'kg'),
+    ingredient('Sarımsak', 1, 'kg'),
+    ingredient('Ayçiçek Yağı', 3.5, 'lt'),
+    ingredient('Şeker', 900, 'gr'),
+    ingredient('Tuz', 600, 'gr'),
+    ingredient('Fesleğen', 120, 'gr')
+  ], '2026-07-15T12:25:00.000Z', 'ALTERNATIVE', 'recipe_mgmt_010'),
+  recipe('recipe_mgmt_011', 'RC-011', 'Pizza Hamuru Standart', 'Ara Ürün', 'Pizza Hamuru', 80, 'Aktif', 'Pizza üretimi için standart tepsi hamuru reçetesi.', [
+    ingredient('Un', 35, 'kg'),
+    ingredient('Su', 20, 'lt'),
+    ingredient('Ayçiçek Yağı', 2, 'lt'),
+    ingredient('Tuz', 700, 'gr'),
+    ingredient('Şeker', 600, 'gr')
+  ], '2026-07-15T12:40:00.000Z'),
+  recipe('recipe_mgmt_011_alt_001', 'RC-011-A', 'Pizza Hamuru Alternatif', 'Ara Ürün', 'Pizza Hamuru', 80, 'Aktif', 'Daha yüksek hidrasyonlu alternatif pizza hamuru reçetesi.', [
+    ingredient('Un', 34, 'kg'),
+    ingredient('Su', 22, 'lt'),
+    ingredient('Zeytinyağı', 1.5, 'lt'),
+    ingredient('Tuz', 680, 'gr'),
+    ingredient('Şeker', 550, 'gr')
+  ], '2026-07-15T12:55:00.000Z', 'ALTERNATIVE', 'recipe_mgmt_011')
 ]
+
+const mergeDemoAlternativeRecipes = (
+  records: RecipeManagementRecord[],
+  seedRecords: RecipeManagementRecord[]
+) => {
+  const existingIds = new Set(records.map(record => record.id))
+  const existingCodes = new Set(records.map(record => record.code.trim().toLocaleLowerCase('tr-TR')))
+  const mergedRecords = [...records]
+
+  seedRecords
+    .filter(record => DEMO_ALTERNATIVE_RECIPE_IDS.includes(record.id))
+    .forEach(record => {
+      const parentExists = !record.parentRecipeId || existingIds.has(record.parentRecipeId)
+      const codeExists = existingCodes.has(record.code.trim().toLocaleLowerCase('tr-TR'))
+
+      if(existingIds.has(record.id) || codeExists || !parentExists) return
+
+      mergedRecords.push(record)
+      existingIds.add(record.id)
+      existingCodes.add(record.code.trim().toLocaleLowerCase('tr-TR'))
+    })
+
+  return mergedRecords
+}
 
 export const saveRecipeManagementRecords = (records: RecipeManagementRecord[]) => {
   if(!isBrowserStorageAvailable()) return
@@ -320,7 +479,7 @@ export const loadRecipeManagementRecords = () => {
   try {
     const parsed = JSON.parse(storedRecords)
     if(Array.isArray(parsed)){
-      const normalizedRecords = parsed.map(normalizeStoredRecipe)
+      const normalizedRecords = mergeDemoAlternativeRecipes(parsed.map(normalizeStoredRecipe), seedRecords)
       if(normalizedRecords.length > 0){
         saveRecipeManagementRecords(normalizedRecords)
         return normalizedRecords

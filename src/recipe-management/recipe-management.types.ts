@@ -6,6 +6,10 @@ export type RecipeManagementStatus =
   | 'Aktif'
   | 'Pasif'
 
+export type RecipeManagementRole =
+  | 'PRIMARY'
+  | 'ALTERNATIVE'
+
 export type RecipeIngredientUnit =
   | 'gr'
   | 'kg'
@@ -33,6 +37,7 @@ export type RecipeIngredient = {
   unit: RecipeIngredientUnit
   baseQuantity: number
   baseUnit: RecipeIngredientBaseUnit
+  unitCost: number
 }
 
 export type RecipeManagementRecord = {
@@ -40,6 +45,8 @@ export type RecipeManagementRecord = {
   code: string
   recipeName: string
   recipeType: RecipeManagementType
+  recipeRole: RecipeManagementRole
+  parentRecipeId?: string
   productName: string
   portions: number
   status: RecipeManagementStatus

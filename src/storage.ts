@@ -2063,16 +2063,25 @@ const normalizeStockDeductionAuditEvent = (item: Partial<StockDeductionAuditEven
   note: item.note || ''
 })
 
-const normalizeRecipeItem = (item: Partial<RecipeItem>): RecipeItem => {
+const normalizeRecipeItemUnit = (value: unknown): RecipeItem['unit'] => {
+  if(value === 'çuval' || value === 'kasa'){
+    return value as RecipeItem['unit']
+  }
+
+  return normalizeStockUnit(value)
+}
+
+const normalizeRecipeItem = (item: Partial<RecipeItem> & Record<string, unknown>): RecipeItem => {
   const qty = Number(item.qty)
   const wastePercent = Number(item.wastePercent)
 
   return {
+    ...item,
     id: String(item.id || `recipe_item_${Date.now()}`),
     stockItemId: String(item.stockItemId || ''),
     stockItemName: String(item.stockItemName || 'Stok Kartı'),
     qty: Number.isFinite(qty) ? Math.max(0, qty) : 0,
-    unit: normalizeStockUnit(item.unit),
+    unit: normalizeRecipeItemUnit(item.unit),
     wastePercent: Number.isFinite(wastePercent) ? Math.max(0, wastePercent) : 0,
     note: item.note || ''
   }
@@ -2091,12 +2100,13 @@ const normalizeRecipeCostSnapshot = (item?: Partial<RecipeCostSnapshot>): Recipe
   }
 }
 
-const normalizeRecipe = (item: Partial<Recipe>): Recipe => {
+const normalizeRecipe = (item: Partial<Recipe> & Record<string, unknown>): Recipe => {
   const timestamp = item.createdAt || new Date().toISOString()
   const version = Number(item.version)
   const recipeVersion = Number(item.recipeVersion)
 
   return {
+    ...item,
     id: String(item.id || `recipe_${Date.now()}`),
     branchId: getBranchIdValue(item),
     productId: String(item.productId || ''),
