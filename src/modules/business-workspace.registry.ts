@@ -813,6 +813,45 @@ export const BUSINESS_WORKSPACE_MODULE_REGISTRY: BusinessWorkspaceModule[] = def
     ]
   },
   {
+    id: 'business-purchase',
+    code: WORKSPACE_MODULE_CODES.PURCHASE,
+    name: 'Satın Alma',
+    description: 'Endüstriyel mutfak tedarikçi kartları ve satın alma hazırlık süreçlerini yöneten iş modülü.',
+    category: 'business',
+    icon: 'SA',
+    route: 'suppliers',
+    permissions: ['finance.read', 'finance.write'],
+    isCoreModule: false,
+    isBusinessModule: true,
+    isEnabled: true,
+    isVisible: true,
+    displayOrder: 42,
+    dependencies: [],
+    tags: ['business', 'purchase', 'procurement', 'supplier-management', 'industrial-kitchen'],
+    supportedSectorIds: industrialKitchenSectorIds,
+    licenseModuleKey: LICENSE_MODULE_CODES.PURCHASE,
+    pricing: { model: 'paid', currency: 'TRY' },
+    marketplace: marketplaceReady,
+    dashboardWidgets: [
+      dashboardWidget({
+        id: 'purchase.suppliers',
+        title: 'Tedarikçiler',
+        description: 'Satın alma tedarikçi kartları için kontrol paneli başlangıç alanı.',
+        icon: 'TD',
+        category: 'Satın Alma',
+        order: 10,
+        defaultVisible: false,
+        defaultSize: 'medium',
+        supportedLayouts: ['standard', 'wide'],
+        requiredPermission: 'finance.read',
+        renderComponent: 'purchase.suppliers.placeholder'
+      })
+    ],
+    menuItems: [
+      menuItem({ key: 'suppliers', label: 'Tedarikçiler', route: 'suppliers', icon: 'TD', adminOnly: true, displayOrder: 10 })
+    ]
+  },
+  {
     id: 'business-production-work-orders',
     code: SECTOR_TEMPLATE_MODULE_CODES.PRODUCTION,
     name: 'Üretim',

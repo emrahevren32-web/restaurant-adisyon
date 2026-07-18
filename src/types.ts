@@ -805,6 +805,7 @@ export type LicenseModuleKey =
   | 'qr-menu'
   | 'stock'
   | 'recipe'
+  | 'purchase'
   | 'current'
   | 'credit'
   | 'finance'

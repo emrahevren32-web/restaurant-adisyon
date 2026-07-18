@@ -49,6 +49,7 @@ export type RecipeManagementRecord = {
   parentRecipeId?: string
   productName: string
   portions: number
+  firePercent: number
   status: RecipeManagementStatus
   description: string
   ingredients: RecipeIngredient[]

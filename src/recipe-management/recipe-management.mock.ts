@@ -62,6 +62,8 @@ const DEMO_ALTERNATIVE_RECIPE_IDS = [
 ]
 
 const DEFAULT_INGREDIENT_UNIT_COST = 0
+const DEFAULT_FIRE_PERCENT = 0
+const MAX_FIRE_PERCENT = 100
 
 const DEMO_INGREDIENT_UNIT_COSTS: Record<string, number> = {
   'ayçiçek yağı': 0.12,
@@ -154,6 +156,13 @@ const normalizeIngredientUnitCost = (value: unknown) => {
   return Number.isFinite(unitCost) && unitCost >= 0 ? unitCost : DEFAULT_INGREDIENT_UNIT_COST
 }
 
+const normalizeFirePercent = (value: unknown) => {
+  const firePercent = Number(value)
+  if(!Number.isFinite(firePercent)) return DEFAULT_FIRE_PERCENT
+
+  return Math.min(MAX_FIRE_PERCENT, Math.max(DEFAULT_FIRE_PERCENT, firePercent))
+}
+
 const normalizeIngredient = (
   item: Partial<RecipeIngredient> & {
     rawMaterial?: unknown
@@ -217,6 +226,7 @@ const normalizeStoredRecipe = (
   const parentRecipeId = recipeRole === 'ALTERNATIVE' && item.parentRecipeId
     ? String(item.parentRecipeId)
     : undefined
+  const firePercent = normalizeFirePercent(item.firePercent)
 
   return {
     id: String(item.id || `recipe_mgmt_${String(index + 1).padStart(3, '0')}`),
@@ -227,6 +237,7 @@ const normalizeStoredRecipe = (
     parentRecipeId,
     productName: productName || recipeName || RECIPE_PRODUCT_OPTIONS[0],
     portions: Number.isFinite(portions) && portions > 0 ? portions : 1,
+    firePercent,
     status: normalizeRecipeStatus(item.status, item.active),
     description: String(item.description ?? item.note ?? '').trim(),
     ingredients: normalizeIngredients(item),
@@ -261,7 +272,8 @@ const recipe = (
   ingredients: RecipeIngredient[],
   updatedAt: string,
   recipeRole: RecipeManagementRole = 'PRIMARY',
-  parentRecipeId?: string
+  parentRecipeId?: string,
+  firePercent = DEFAULT_FIRE_PERCENT
 ): RecipeManagementRecord => normalizeStoredRecipe({
   id,
   code,
@@ -271,6 +283,7 @@ const recipe = (
   parentRecipeId,
   productName,
   portions,
+  firePercent,
   status,
   description,
   ingredients,

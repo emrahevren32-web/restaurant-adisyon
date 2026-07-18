@@ -2,6 +2,7 @@ import type {
   RecipeIngredient,
   RecipeManagementRecord
 } from './recipe-management.types'
+import { calculateFireCost } from './recipe-fire-engine'
 
 export type RecipeIngredientCostLine = {
   ingredientId: string
@@ -14,6 +15,8 @@ export type RecipeIngredientCostLine = {
 
 export type RecipeCostCalculation = {
   ingredientCost: RecipeIngredientCostLine[]
+  baseRecipeCost: number
+  fireAmount: number
   recipeCost: number
   portionCost: number
 }
@@ -47,11 +50,15 @@ const calculateIngredientCost = (ingredient: RecipeIngredient): RecipeIngredient
 
 export const calculateRecipeCost = (recipe: RecipeManagementRecord): RecipeCostCalculation => {
   const ingredientCost = recipe.ingredients.map(calculateIngredientCost)
-  const recipeCost = roundCost(ingredientCost.reduce((sum, ingredient) => sum + ingredient.cost, ZERO_COST))
+  const baseRecipeCost = roundCost(ingredientCost.reduce((sum, ingredient) => sum + ingredient.cost, ZERO_COST))
+  const fireCost = calculateFireCost(baseRecipeCost, recipe.firePercent)
+  const recipeCost = fireCost.effectiveCost
   const portions = toNonNegativeNumber(recipe.portions)
 
   return {
     ingredientCost,
+    baseRecipeCost,
+    fireAmount: fireCost.fireAmount,
     recipeCost,
     portionCost: portions > ZERO_COST ? roundCost(recipeCost / portions) : ZERO_COST
   }

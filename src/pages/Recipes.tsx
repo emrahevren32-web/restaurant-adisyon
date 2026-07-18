@@ -39,6 +39,7 @@ type RecipeFormState = {
   parentRecipeId: string
   productName: string
   portions: string
+  firePercent: string
   status: RecipeManagementStatus
   description: string
 }
@@ -58,12 +59,18 @@ type ToastState = {
 
 const MAX_INGREDIENT_QUANTITY = 100000
 const MAX_INGREDIENT_UNIT_COST = 1000000
+const MIN_FIRE_PERCENT = 0
+const MAX_FIRE_PERCENT = 100
 const TOTAL_GRAMAJ_BASE_UNIT = 'gr'
 
 const createId = (prefix: string) => `${prefix}_${Date.now()}_${Math.random().toString(16).slice(2)}`
 
 const formatNumber = (value: number) => value.toLocaleString('tr-TR', {
   maximumFractionDigits: 3
+})
+
+const formatFirePercent = (value: number) => value.toLocaleString('tr-TR', {
+  maximumFractionDigits: 2
 })
 
 const calculateTotalGrams = (ingredients: RecipeIngredient[]) => (
@@ -145,6 +152,7 @@ const createInitialRecipeForm = (records: RecipeManagementRecord[]): RecipeFormS
   parentRecipeId: '',
   productName: '',
   portions: '1',
+  firePercent: '0',
   status: 'Aktif',
   description: ''
 })
@@ -157,6 +165,7 @@ const createRecipeFormFromRecord = (record: RecipeManagementRecord): RecipeFormS
   parentRecipeId: record.parentRecipeId || '',
   productName: record.productName,
   portions: String(record.portions),
+  firePercent: String(Number.isFinite(record.firePercent) ? record.firePercent : 0),
   status: record.status,
   description: record.description
 })
@@ -221,6 +230,13 @@ const validateRecipeForm = (
   if(!Number.isFinite(portions)) return 'Porsiyon için geçerli bir sayı girilmelidir.'
   if(portions <= 0) return 'Porsiyon 0 veya negatif olamaz.'
   if(portions > 100000) return 'Porsiyon 100000 üzerinde olamaz.'
+
+  const firePercent = Number(form.firePercent)
+  if(!form.firePercent.trim()) return 'Fire yüzdesi boş bırakılamaz.'
+  if(!Number.isFinite(firePercent)) return 'Fire yüzdesi için geçerli bir sayı girilmelidir.'
+  if(firePercent < MIN_FIRE_PERCENT) return 'Fire yüzdesi negatif olamaz.'
+  if(firePercent > MAX_FIRE_PERCENT) return 'Fire yüzdesi 100 değerini geçemez.'
+
   if(ingredients.length === 0) return 'En az 1 malzeme eklenmelidir.'
   if(ingredients.some(ingredient => (
     !ingredient.materialName.trim()
@@ -580,6 +596,7 @@ export default function Recipes(){
 
     const now = new Date().toISOString()
     const portions = Number(recipeForm.portions)
+    const firePercent = Number(recipeForm.firePercent)
     const normalizedCode = recipeForm.code.trim().toLocaleUpperCase('tr-TR')
 
     if(isEditingRecipe){
@@ -598,6 +615,7 @@ export default function Recipes(){
         parentRecipeId: recipeForm.recipeRole === 'ALTERNATIVE' ? recipeForm.parentRecipeId : undefined,
         productName: recipeForm.productName.trim(),
         portions,
+        firePercent,
         status: recipeForm.status,
         description: recipeForm.description.trim(),
         ingredients: recipeFormIngredients,
@@ -625,6 +643,7 @@ export default function Recipes(){
       parentRecipeId: recipeForm.recipeRole === 'ALTERNATIVE' ? recipeForm.parentRecipeId : undefined,
       productName: recipeForm.productName.trim(),
       portions,
+      firePercent,
       status: recipeForm.status,
       description: recipeForm.description.trim(),
       ingredients: recipeFormIngredients,
@@ -807,6 +826,18 @@ export default function Recipes(){
                 <option key={status} value={status}>{status}</option>
               ))}
             </select>
+          </div>
+          <div className="form-field">
+            <label>Fire (%)</label>
+            <input
+              type="number"
+              min={MIN_FIRE_PERCENT}
+              max={MAX_FIRE_PERCENT}
+              step="0.01"
+              placeholder="0"
+              value={recipeForm.firePercent}
+              onChange={event => updateRecipeForm('firePercent', event.target.value)}
+            />
           </div>
         </div>
 
@@ -1004,6 +1035,8 @@ export default function Recipes(){
           <div><span>Malzeme Sayısı</span><strong>{selectedRecord.ingredients.length}</strong></div>
           <div><span>Toplam Gramaj</span><strong>{formatNumber(calculateTotalGrams(selectedRecord.ingredients))} gr</strong></div>
           <div><span>Toplam Maliyet</span><strong>{formatRecipeCostAmount(selectedRecipeCost.recipeCost)}</strong></div>
+          <div><span>Fire Maliyeti</span><strong>{formatRecipeCostAmount(selectedRecipeCost.fireAmount)}</strong></div>
+          <div><span>Fire</span><strong>{formatFirePercent(selectedRecord.firePercent)} %</strong></div>
           <div><span>Porsiyon Maliyeti</span><strong>{formatRecipeCostAmount(selectedRecipeCost.portionCost)}</strong></div>
           <div><span>Son Güncelleme</span><strong>{formatDateTime(selectedRecord.updatedAt || selectedRecord.createdAt)}</strong></div>
           <div><span>Açıklama</span><strong>{selectedRecord.description || '-'}</strong></div>
@@ -1176,6 +1209,8 @@ export default function Recipes(){
                 <div><span>Malzeme Sayısı</span><strong>{selectedRecord.ingredients.length}</strong></div>
                 <div><span>Toplam Gramaj</span><strong>{formatNumber(calculateTotalGrams(selectedRecord.ingredients))} gr</strong></div>
                 <div><span>Toplam Maliyet</span><strong>{formatRecipeCostAmount(selectedRecipeCost.recipeCost)}</strong></div>
+                <div><span>Fire Maliyeti</span><strong>{formatRecipeCostAmount(selectedRecipeCost.fireAmount)}</strong></div>
+                <div><span>Fire</span><strong>{formatFirePercent(selectedRecord.firePercent)} %</strong></div>
                 <div><span>Porsiyon Maliyeti</span><strong>{formatRecipeCostAmount(selectedRecipeCost.portionCost)}</strong></div>
                 <div><span>Son Güncelleme</span><strong>{formatDateTime(selectedRecord.updatedAt || selectedRecord.createdAt)}</strong></div>
                 <div><span>Açıklama</span><strong>{selectedRecord.description || '-'}</strong></div>

@@ -69,7 +69,10 @@ import { hasConnectedWorkspaceIntegrationsForUser } from './integrations/workspa
 import { createPlatformNavGroups, getPlatformRoutes } from './platform/platform.registry'
 import { getBusinessMenuEmptyState, getWorkspaceTemplateViewForUser } from './workspace-template/workspace-template.service'
 import { WORKSPACE_MODULE_CODES } from './modules/module-code.registry'
-import { isBusinessWorkspaceModuleAvailableForSector } from './modules/business-workspace.registry'
+import {
+  getBusinessWorkspaceModuleByLicenseKey,
+  isBusinessWorkspaceModuleAvailableForSector
+} from './modules/business-workspace.registry'
 
 type NavItem = ShellNavItem<Route, NavKey>
 type NavGroup = ShellNavGroup<Route, NavKey, NavGroupKey>
@@ -120,6 +123,14 @@ const getPrimarySectorIdForUser = (user: User | null | undefined) => {
   return loadCompanies({ allTenants: true }).find(company => company.id === companyId)?.primarySectorId || ''
 }
 
+const isWorkspaceNavigationBaseModule = (
+  moduleCode: string,
+  primarySectorId: string
+) => (
+  moduleCode === WORKSPACE_MODULE_CODES.PURCHASE
+  && Boolean(primarySectorId)
+)
+
 const lockInstallationNavItems = (items: NavItem[]): NavItem[] => (
   items.map(item => {
     const children = item.children ? lockInstallationNavItems(item.children as NavItem[]) : undefined
@@ -164,6 +175,7 @@ const createWorkspaceNavGroupsForUser = (user: User | null) => {
     },
     isModuleEnabled: module => {
       if(!isBusinessWorkspaceModuleAvailableForSector(module, primarySectorId)) return false
+      if(isWorkspaceNavigationBaseModule(module.code, primarySectorId)) return true
       if(module.isCoreModule || module.isAlwaysActive) return true
       if(module.isBusinessModule){
         return isWorkspaceModuleActiveForUser(user, module)
@@ -208,6 +220,13 @@ const canUserAccessWorkspaceModule = (
   user: User | null | undefined,
   moduleKey: LicenseModuleKey
 ) => {
+  const module = getBusinessWorkspaceModuleByLicenseKey(moduleKey)
+  const primarySectorId = getPrimarySectorIdForUser(user)
+
+  if(module && isBusinessWorkspaceModuleAvailableForSector(module, primarySectorId) && isWorkspaceNavigationBaseModule(module.code, primarySectorId)){
+    return true
+  }
+
   const lifecycleState = getWorkspaceModuleLifecycleStateByLicenseKeyForUser(user, moduleKey)
   return lifecycleState === WORKSPACE_MODULE_LIFECYCLE_STATES.ACTIVE
     && isWorkspaceLicenseModuleActiveForUser(user, moduleKey)

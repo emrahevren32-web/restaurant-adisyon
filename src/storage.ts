@@ -284,6 +284,7 @@ export const LICENSE_MODULE_CATALOG: Array<{ key: LicenseModuleKey; name: string
   { key: 'qr-menu', name: 'Dijital Katalog' },
   { key: 'stock', name: 'Stok' },
   { key: 'recipe', name: 'Üretim Tanımları' },
+  { key: 'purchase', name: 'Satın Alma' },
   { key: 'current', name: 'Cari' },
   { key: 'credit', name: 'Veresiye' },
   { key: 'finance', name: 'Finans' },
