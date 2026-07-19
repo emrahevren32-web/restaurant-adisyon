@@ -129,6 +129,76 @@ const createSeedRecords = (): ApprovalSeed[] => [
     approvalNote: '',
     rejectionReason: '',
     revisionReason: ''
+  },
+  {
+    status: 'APPROVED',
+    approvalDate: '2026-07-19',
+    approvedBy: 'Satın Alma Müdürü',
+    rejectedBy: '',
+    revisionRequestedBy: '',
+    approvalNote: 'Sebze grubu sevkiyat planı ile uyumlu.',
+    rejectionReason: '',
+    revisionReason: ''
+  },
+  {
+    status: 'APPROVED',
+    approvalDate: '2026-07-19',
+    approvedBy: 'Operasyon Direktörü',
+    rejectedBy: '',
+    revisionRequestedBy: '',
+    approvalNote: 'Kuru gıda alımı bütçe limitleri içinde.',
+    rejectionReason: '',
+    revisionReason: ''
+  },
+  {
+    status: 'APPROVED',
+    approvalDate: '2026-07-19',
+    approvedBy: 'Finans Kontrol',
+    rejectedBy: '',
+    revisionRequestedBy: '',
+    approvalNote: 'İçecek grubu vade koşulları uygun.',
+    rejectionReason: '',
+    revisionReason: ''
+  },
+  {
+    status: 'APPROVED',
+    approvalDate: '2026-07-19',
+    approvedBy: 'Satın Alma Müdürü',
+    rejectedBy: '',
+    revisionRequestedBy: '',
+    approvalNote: 'Baharat grubu kalite standardı ile uyumlu.',
+    rejectionReason: '',
+    revisionReason: ''
+  },
+  {
+    status: 'APPROVED',
+    approvalDate: '2026-07-19',
+    approvedBy: 'Operasyon Direktörü',
+    rejectedBy: '',
+    revisionRequestedBy: '',
+    approvalNote: 'Ambalaj ek ihtiyacı onaylandı.',
+    rejectionReason: '',
+    revisionReason: ''
+  },
+  {
+    status: 'APPROVED',
+    approvalDate: '2026-07-19',
+    approvedBy: 'Finans Kontrol',
+    rejectedBy: '',
+    revisionRequestedBy: '',
+    approvalNote: 'Et grubu tamamlayıcı alımı onaylandı.',
+    rejectionReason: '',
+    revisionReason: ''
+  },
+  {
+    status: 'APPROVED',
+    approvalDate: '2026-07-19',
+    approvedBy: 'Satın Alma Müdürü',
+    rejectedBy: '',
+    revisionRequestedBy: '',
+    approvalNote: 'Unlu mamul grubu tedarik planına alındı.',
+    rejectionReason: '',
+    revisionReason: ''
   }
 ]
 
@@ -164,7 +234,7 @@ export const createPurchaseApprovalMockData = (
   if(eligibleRfqs.length === 0) return []
 
   return createSeedRecords()
-    .slice(0, 8)
+    .slice(0, 15)
     .map((seed, index) => {
       const rfq = eligibleRfqs[index % eligibleRfqs.length]
       const createdAt = `2026-07-${String(17 + Math.floor(index / 3)).padStart(2, '0')}T10:${String(index * 5).padStart(2, '0')}:00.000Z`

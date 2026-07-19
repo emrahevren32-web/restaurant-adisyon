@@ -3128,3 +3128,93 @@ th { color:var(--muted-strong); font-size:13px; font-weight:750 }
   .rfq-comparison-table .btn { width:100% }
   .purchase-approval-winner-row { grid-template-columns:1fr }
 }
+
+.purchase-order-page { display:grid; gap:18px }
+.purchase-order-toolbar { display:grid; grid-template-columns:minmax(220px, 1.5fr) repeat(3, minmax(140px, 1fr)); gap:10px; align-items:center }
+.purchase-order-detail-card { margin-bottom:14px }
+.purchase-order-side-actions { display:grid; grid-template-columns:repeat(3, minmax(0, 1fr)); gap:8px; align-items:center }
+.purchase-order-detail-grid { display:grid; grid-template-columns:repeat(2, minmax(0, 1fr)); gap:10px }
+.purchase-order-detail-grid div,
+.purchase-order-form-summary div { min-width:0; border:1px solid var(--line); border-radius:var(--radius-md); padding:10px 11px; background:var(--surface-muted) }
+.purchase-order-detail-grid span,
+.purchase-order-form-summary span { display:block; color:var(--muted); font-size:12px; font-weight:850; line-height:1.2 }
+.purchase-order-detail-grid strong,
+.purchase-order-form-summary strong { display:block; margin-top:4px; color:var(--text); font-size:14px; font-weight:900; overflow-wrap:anywhere }
+.purchase-order-form { gap:14px }
+.purchase-order-form-section { display:grid; gap:10px }
+.purchase-order-form-section h4 { margin:0; color:var(--text); font-size:14px; font-weight:900 }
+.purchase-order-form-grid { display:grid; grid-template-columns:repeat(2, minmax(0, 1fr)); gap:12px }
+.purchase-order-form-summary { display:grid; grid-template-columns:repeat(2, minmax(0, 1fr)); gap:10px }
+.purchase-order-lines-table td:first-child strong,
+.purchase-order-lines-table td:first-child span,
+.purchase-order-lines-table td:nth-child(4) strong,
+.purchase-order-lines-table td:nth-child(4) span { display:block; overflow-wrap:anywhere }
+.purchase-order-lines-table td:first-child span,
+.purchase-order-lines-table td:nth-child(4) span { margin-top:3px; color:var(--muted); font-size:12px; font-weight:800 }
+.purchase-order-notes { margin:0; color:var(--text); line-height:1.5; overflow-wrap:anywhere }
+
+@media (max-width: 980px){
+  .purchase-order-layout { display:block }
+  .purchase-order-side { margin-top:14px }
+  .purchase-order-toolbar,
+  .purchase-order-form-grid,
+  .purchase-order-detail-grid,
+  .purchase-order-side-actions { grid-template-columns:1fr; width:100% }
+  .purchase-order-form-summary { grid-template-columns:repeat(2, minmax(0, 1fr)) }
+  .purchase-order-table-wrap,
+  .purchase-order-lines-wrap { overflow:visible; border:0; background:transparent; box-shadow:none }
+  .purchase-order-table-wrap .purchase-order-table,
+  .purchase-order-lines-wrap .purchase-order-lines-table { min-width:0 }
+  .purchase-order-table,
+  .purchase-order-table thead,
+  .purchase-order-table tbody,
+  .purchase-order-table tr,
+  .purchase-order-table td,
+  .purchase-order-lines-table,
+  .purchase-order-lines-table thead,
+  .purchase-order-lines-table tbody,
+  .purchase-order-lines-table tr,
+  .purchase-order-lines-table td { display:block; width:100%; min-width:0 }
+  .purchase-order-table thead,
+  .purchase-order-lines-table thead { display:none }
+  .purchase-order-table tbody,
+  .purchase-order-lines-table tbody { display:grid; gap:10px }
+  .purchase-order-table tbody tr,
+  .purchase-order-table tbody tr:nth-child(even),
+  .purchase-order-table tbody tr:hover,
+  .purchase-order-lines-table tbody tr,
+  .purchase-order-lines-table tbody tr:nth-child(even),
+  .purchase-order-lines-table tbody tr:hover { display:grid; grid-template-columns:repeat(2, minmax(0, 1fr)); gap:9px; border:1px solid var(--line); border-radius:var(--radius-md); padding:11px 12px; background:var(--surface); box-shadow:var(--shadow-xs) }
+  .purchase-order-table tbody tr td,
+  .purchase-order-table tbody tr:nth-child(even) td,
+  .purchase-order-table tbody tr:hover td,
+  .purchase-order-lines-table tbody tr td,
+  .purchase-order-lines-table tbody tr:nth-child(even) td,
+  .purchase-order-lines-table tbody tr:hover td { height:auto; min-height:0; border:0; padding:0; background:transparent; box-shadow:none; text-align:right }
+  .purchase-order-table tbody td::before,
+  .purchase-order-lines-table tbody td::before { content:attr(data-label); display:block; margin-bottom:3px; color:var(--muted); font-size:11px; font-weight:850; line-height:1.2; text-align:left }
+  .purchase-order-table tbody td:nth-child(3),
+  .purchase-order-table tbody td.empty-cell,
+  .purchase-order-lines-table tbody td:first-child,
+  .purchase-order-lines-table tbody td.empty-cell { grid-column:1 / -1; text-align:left }
+  .purchase-order-table tbody td:nth-child(3) strong,
+  .purchase-order-lines-table tbody td:first-child strong { text-align:left }
+  .purchase-order-table tbody td.empty-cell,
+  .purchase-order-lines-table tbody td.empty-cell { text-align:center }
+}
+
+@media (max-width: 560px){
+  .purchase-order-form-summary,
+  .purchase-order-table tbody tr,
+  .purchase-order-table tbody tr:nth-child(even),
+  .purchase-order-table tbody tr:hover,
+  .purchase-order-lines-table tbody tr,
+  .purchase-order-lines-table tbody tr:nth-child(even),
+  .purchase-order-lines-table tbody tr:hover { grid-template-columns:1fr }
+  .purchase-order-table tbody tr td,
+  .purchase-order-table tbody tr:nth-child(even) td,
+  .purchase-order-table tbody tr:hover td,
+  .purchase-order-lines-table tbody tr td,
+  .purchase-order-lines-table tbody tr:nth-child(even) td,
+  .purchase-order-lines-table tbody tr:hover td { text-align:left }
+}
