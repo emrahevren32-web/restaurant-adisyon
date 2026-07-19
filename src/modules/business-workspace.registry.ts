@@ -775,6 +775,44 @@ export const BUSINESS_WORKSPACE_MODULE_REGISTRY: BusinessWorkspaceModule[] = def
     ]
   },
   {
+    id: 'business-warehouse',
+    code: SECTOR_TEMPLATE_MODULE_CODES.WAREHOUSE,
+    name: 'Depo',
+    description: 'Endüstriyel mutfak depo süreçleri, kimyasal ürün güvenliği ve depo bazlı ürün yönetimi için iş modülü.',
+    category: 'business',
+    icon: 'DP',
+    route: 'chemical-products',
+    permissions: ['stock.read', 'stock.write'],
+    isCoreModule: false,
+    isBusinessModule: true,
+    isEnabled: true,
+    isVisible: true,
+    displayOrder: 35,
+    dependencies: [WORKSPACE_MODULE_CODES.STOCK, WORKSPACE_MODULE_CODES.PURCHASE],
+    tags: ['business', 'warehouse', 'chemical-products', 'msds', 'ppe', 'safety', 'industrial-kitchen'],
+    supportedSectorIds: industrialKitchenSectorIds,
+    pricing: { model: 'paid', currency: 'TRY' },
+    marketplace: marketplaceReady,
+    dashboardWidgets: [
+      dashboardWidget({
+        id: 'warehouse.chemicalProducts',
+        title: 'Kimyasal Ürünler',
+        description: 'Kimyasal ürün kartları, tehlike sınıfları ve güvenli kullanım bilgileri için kontrol paneli başlangıç alanı.',
+        icon: 'KM',
+        category: 'Depo',
+        order: 10,
+        defaultVisible: false,
+        defaultSize: 'medium',
+        supportedLayouts: ['standard', 'wide'],
+        requiredPermission: 'stock.read',
+        renderComponent: 'warehouse.chemicalProducts.placeholder'
+      })
+    ],
+    menuItems: [
+      menuItem({ key: 'chemical-products', label: 'Kimyasal Ürünler', route: 'chemical-products', icon: 'KM', adminOnly: true, displayOrder: 10 })
+    ]
+  },
+  {
     id: 'business-recipe',
     code: WORKSPACE_MODULE_CODES.RECIPE,
     name: 'Reçete Yönetimi',

@@ -3614,3 +3614,61 @@ th { color:var(--muted-strong); font-size:13px; font-weight:750 }
   .supplier-return-table tbody tr:nth-child(even) td,
   .supplier-return-table tbody tr:hover td { text-align:left }
 }
+
+.chemical-product-page { display:grid; gap:18px }
+.chemical-product-toolbar { display:grid; grid-template-columns:minmax(220px, 1.4fr) repeat(4, minmax(125px, 1fr)); gap:10px; align-items:center }
+.chemical-product-side { display:flex; flex-direction:column; gap:12px; min-width:0 }
+.chemical-product-detail-card { margin-bottom:0 }
+.chemical-product-side-actions { display:grid; grid-template-columns:repeat(2, minmax(0, 1fr)); gap:8px; align-items:center; margin-top:12px }
+.chemical-product-detail-grid { display:grid; grid-template-columns:repeat(2, minmax(0, 1fr)); gap:10px }
+.chemical-product-detail-grid div { min-width:0; border:1px solid var(--line); border-radius:var(--radius-md); padding:10px 11px; background:var(--surface-muted) }
+.chemical-product-detail-grid span { display:block; color:var(--muted); font-size:12px; font-weight:850; line-height:1.2 }
+.chemical-product-detail-grid strong { display:block; margin-top:4px; color:var(--text); font-size:14px; font-weight:900; overflow-wrap:anywhere }
+.chemical-product-form { gap:14px }
+.chemical-product-form-section { display:grid; gap:10px }
+.chemical-product-form-section h4 { margin:0; color:var(--text); font-size:14px; font-weight:900 }
+.chemical-product-form-grid { display:grid; grid-template-columns:repeat(2, minmax(0, 1fr)); gap:12px }
+.chemical-product-form-wide { grid-column:1 / -1 }
+.chemical-product-table td:nth-child(2),
+.chemical-product-table td:nth-child(5),
+.chemical-product-table td:nth-child(6) { overflow-wrap:anywhere }
+.chemical-product-notes { margin:0; color:var(--text); line-height:1.5; overflow-wrap:anywhere; white-space:pre-wrap }
+
+@media (max-width: 980px){
+  .chemical-product-layout { display:block }
+  .chemical-product-side { margin-top:14px }
+  .chemical-product-toolbar,
+  .chemical-product-form-grid,
+  .chemical-product-detail-grid,
+  .chemical-product-side-actions { grid-template-columns:1fr; width:100% }
+  .chemical-product-form-wide { grid-column:auto }
+  .chemical-product-table-wrap { overflow:visible; border:0; background:transparent; box-shadow:none }
+  .chemical-product-table-wrap .chemical-product-table { min-width:0 }
+  .chemical-product-table,
+  .chemical-product-table thead,
+  .chemical-product-table tbody,
+  .chemical-product-table tr,
+  .chemical-product-table td { display:block; width:100%; min-width:0 }
+  .chemical-product-table thead { display:none }
+  .chemical-product-table tbody { display:grid; gap:10px }
+  .chemical-product-table tbody tr,
+  .chemical-product-table tbody tr:nth-child(even),
+  .chemical-product-table tbody tr:hover { display:grid; grid-template-columns:repeat(2, minmax(0, 1fr)); gap:9px; border:1px solid var(--line); border-radius:var(--radius-md); padding:11px 12px; background:var(--surface); box-shadow:var(--shadow-xs) }
+  .chemical-product-table tbody tr td,
+  .chemical-product-table tbody tr:nth-child(even) td,
+  .chemical-product-table tbody tr:hover td { height:auto; min-height:0; border:0; padding:0; background:transparent; box-shadow:none; text-align:right }
+  .chemical-product-table tbody td::before { content:attr(data-label); display:block; margin-bottom:3px; color:var(--muted); font-size:11px; font-weight:850; line-height:1.2; text-align:left }
+  .chemical-product-table tbody td:nth-child(2),
+  .chemical-product-table tbody td.empty-cell { grid-column:1 / -1; text-align:left }
+  .chemical-product-table tbody td:nth-child(2) strong { text-align:left }
+  .chemical-product-table tbody td.empty-cell { text-align:center }
+}
+
+@media (max-width: 560px){
+  .chemical-product-table tbody tr,
+  .chemical-product-table tbody tr:nth-child(even),
+  .chemical-product-table tbody tr:hover { grid-template-columns:1fr }
+  .chemical-product-table tbody tr td,
+  .chemical-product-table tbody tr:nth-child(even) td,
+  .chemical-product-table tbody tr:hover td { text-align:left }
+}
