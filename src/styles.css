@@ -3218,3 +3218,96 @@ th { color:var(--muted-strong); font-size:13px; font-weight:750 }
   .purchase-order-lines-table tbody tr:nth-child(even) td,
   .purchase-order-lines-table tbody tr:hover td { text-align:left }
 }
+
+.goods-receipt-page { display:grid; gap:18px }
+.goods-receipt-toolbar { display:grid; grid-template-columns:minmax(220px, 1.4fr) repeat(4, minmax(130px, 1fr)); gap:10px; align-items:center }
+.goods-receipt-detail-card { margin-bottom:14px }
+.goods-receipt-side-actions { display:grid; grid-template-columns:1fr; gap:8px; align-items:center }
+.goods-receipt-detail-grid { display:grid; grid-template-columns:repeat(2, minmax(0, 1fr)); gap:10px }
+.goods-receipt-detail-grid div { min-width:0; border:1px solid var(--line); border-radius:var(--radius-md); padding:10px 11px; background:var(--surface-muted) }
+.goods-receipt-detail-grid span { display:block; color:var(--muted); font-size:12px; font-weight:850; line-height:1.2 }
+.goods-receipt-detail-grid strong { display:block; margin-top:4px; color:var(--text); font-size:14px; font-weight:900; overflow-wrap:anywhere }
+.goods-receipt-form { gap:14px }
+.goods-receipt-form-section { display:grid; gap:10px }
+.goods-receipt-form-section h4 { margin:0; color:var(--text); font-size:14px; font-weight:900 }
+.goods-receipt-form-grid { display:grid; grid-template-columns:repeat(2, minmax(0, 1fr)); gap:12px }
+.goods-receipt-item-editor-list { display:grid; gap:10px }
+.goods-receipt-item-editor { display:grid; grid-template-columns:minmax(180px, 1.2fr) repeat(3, minmax(90px, .7fr)); gap:10px; align-items:end; border:1px solid var(--line); border-radius:var(--radius-md); padding:11px; background:var(--surface-muted) }
+.goods-receipt-item-title { min-width:0 }
+.goods-receipt-item-title strong,
+.goods-receipt-item-title span,
+.goods-receipt-lines-table td:first-child strong,
+.goods-receipt-lines-table td:first-child span,
+.goods-receipt-lines-table td:nth-child(3) strong,
+.goods-receipt-lines-table td:nth-child(3) span { display:block; overflow-wrap:anywhere }
+.goods-receipt-item-title span,
+.goods-receipt-lines-table td:first-child span,
+.goods-receipt-lines-table td:nth-child(3) span { margin-top:3px; color:var(--muted); font-size:12px; font-weight:800 }
+.goods-receipt-item-editor label { display:grid; gap:5px; min-width:0 }
+.goods-receipt-item-editor label span { color:var(--muted); font-size:12px; font-weight:850 }
+.goods-receipt-item-note { grid-column:1 / -1 }
+.goods-receipt-notes { margin:0; color:var(--text); line-height:1.5; overflow-wrap:anywhere }
+
+@media (max-width: 980px){
+  .goods-receipt-layout { display:block }
+  .goods-receipt-side { margin-top:14px }
+  .goods-receipt-toolbar,
+  .goods-receipt-form-grid,
+  .goods-receipt-detail-grid,
+  .goods-receipt-item-editor { grid-template-columns:1fr; width:100% }
+  .goods-receipt-table-wrap,
+  .goods-receipt-lines-wrap { overflow:visible; border:0; background:transparent; box-shadow:none }
+  .goods-receipt-table-wrap .goods-receipt-table,
+  .goods-receipt-lines-wrap .goods-receipt-lines-table { min-width:0 }
+  .goods-receipt-table,
+  .goods-receipt-table thead,
+  .goods-receipt-table tbody,
+  .goods-receipt-table tr,
+  .goods-receipt-table td,
+  .goods-receipt-lines-table,
+  .goods-receipt-lines-table thead,
+  .goods-receipt-lines-table tbody,
+  .goods-receipt-lines-table tr,
+  .goods-receipt-lines-table td { display:block; width:100%; min-width:0 }
+  .goods-receipt-table thead,
+  .goods-receipt-lines-table thead { display:none }
+  .goods-receipt-table tbody,
+  .goods-receipt-lines-table tbody { display:grid; gap:10px }
+  .goods-receipt-table tbody tr,
+  .goods-receipt-table tbody tr:nth-child(even),
+  .goods-receipt-table tbody tr:hover,
+  .goods-receipt-lines-table tbody tr,
+  .goods-receipt-lines-table tbody tr:nth-child(even),
+  .goods-receipt-lines-table tbody tr:hover { display:grid; grid-template-columns:repeat(2, minmax(0, 1fr)); gap:9px; border:1px solid var(--line); border-radius:var(--radius-md); padding:11px 12px; background:var(--surface); box-shadow:var(--shadow-xs) }
+  .goods-receipt-table tbody tr td,
+  .goods-receipt-table tbody tr:nth-child(even) td,
+  .goods-receipt-table tbody tr:hover td,
+  .goods-receipt-lines-table tbody tr td,
+  .goods-receipt-lines-table tbody tr:nth-child(even) td,
+  .goods-receipt-lines-table tbody tr:hover td { height:auto; min-height:0; border:0; padding:0; background:transparent; box-shadow:none; text-align:right }
+  .goods-receipt-table tbody td::before,
+  .goods-receipt-lines-table tbody td::before { content:attr(data-label); display:block; margin-bottom:3px; color:var(--muted); font-size:11px; font-weight:850; line-height:1.2; text-align:left }
+  .goods-receipt-table tbody td:nth-child(2),
+  .goods-receipt-table tbody td.empty-cell,
+  .goods-receipt-lines-table tbody td:first-child,
+  .goods-receipt-lines-table tbody td.empty-cell { grid-column:1 / -1; text-align:left }
+  .goods-receipt-table tbody td:nth-child(2) strong,
+  .goods-receipt-lines-table tbody td:first-child strong { text-align:left }
+  .goods-receipt-table tbody td.empty-cell,
+  .goods-receipt-lines-table tbody td.empty-cell { text-align:center }
+}
+
+@media (max-width: 560px){
+  .goods-receipt-table tbody tr,
+  .goods-receipt-table tbody tr:nth-child(even),
+  .goods-receipt-table tbody tr:hover,
+  .goods-receipt-lines-table tbody tr,
+  .goods-receipt-lines-table tbody tr:nth-child(even),
+  .goods-receipt-lines-table tbody tr:hover { grid-template-columns:1fr }
+  .goods-receipt-table tbody tr td,
+  .goods-receipt-table tbody tr:nth-child(even) td,
+  .goods-receipt-table tbody tr:hover td,
+  .goods-receipt-lines-table tbody tr td,
+  .goods-receipt-lines-table tbody tr:nth-child(even) td,
+  .goods-receipt-lines-table tbody tr:hover td { text-align:left }
+}

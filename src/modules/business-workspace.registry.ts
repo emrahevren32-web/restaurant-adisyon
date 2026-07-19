@@ -827,7 +827,7 @@ export const BUSINESS_WORKSPACE_MODULE_REGISTRY: BusinessWorkspaceModule[] = def
     isVisible: true,
     displayOrder: 42,
     dependencies: [],
-    tags: ['business', 'purchase', 'procurement', 'purchase-request', 'rfq', 'purchase-approval', 'purchase-order', 'supplier-management', 'industrial-kitchen'],
+    tags: ['business', 'purchase', 'procurement', 'purchase-request', 'rfq', 'purchase-approval', 'purchase-order', 'goods-receipt', 'supplier-management', 'industrial-kitchen'],
     supportedSectorIds: industrialKitchenSectorIds,
     licenseModuleKey: LICENSE_MODULE_CODES.PURCHASE,
     pricing: { model: 'paid', currency: 'TRY' },
@@ -897,6 +897,19 @@ export const BUSINESS_WORKSPACE_MODULE_REGISTRY: BusinessWorkspaceModule[] = def
         supportedLayouts: ['standard', 'wide'],
         requiredPermission: 'finance.read',
         renderComponent: 'purchase.orders.placeholder'
+      }),
+      dashboardWidget({
+        id: 'purchase.goodsReceipts',
+        title: 'Mal Kabul',
+        description: 'Purchase Order teslimatlarının depo girişini takip etmek için kontrol paneli başlangıç alanı.',
+        icon: 'MK',
+        category: 'Satın Alma',
+        order: 30,
+        defaultVisible: false,
+        defaultSize: 'medium',
+        supportedLayouts: ['standard', 'wide'],
+        requiredPermission: 'finance.read',
+        renderComponent: 'purchase.goodsReceipts.placeholder'
       })
     ],
     menuItems: [
@@ -904,7 +917,8 @@ export const BUSINESS_WORKSPACE_MODULE_REGISTRY: BusinessWorkspaceModule[] = def
       menuItem({ key: 'request-for-quotations', label: 'Teklif Yönetimi', route: 'request-for-quotations', icon: 'TK', adminOnly: true, displayOrder: 20 }),
       menuItem({ key: 'purchase-approvals', label: 'Satın Alma Onayları', route: 'purchase-approvals', icon: 'OA', adminOnly: true, displayOrder: 30 }),
       menuItem({ key: 'purchase-orders', label: 'Satın Alma Siparişleri', route: 'purchase-orders', icon: 'PO', adminOnly: true, displayOrder: 40 }),
-      menuItem({ key: 'suppliers', label: 'Tedarikçiler', route: 'suppliers', icon: 'TD', adminOnly: true, displayOrder: 50 })
+      menuItem({ key: 'goods-receipts', label: 'Mal Kabul', route: 'goods-receipts', icon: 'MK', adminOnly: true, displayOrder: 50 }),
+      menuItem({ key: 'suppliers', label: 'Tedarikçiler', route: 'suppliers', icon: 'TD', adminOnly: true, displayOrder: 60 })
     ]
   },
   {
