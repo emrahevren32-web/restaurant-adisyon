@@ -923,6 +923,44 @@ export const BUSINESS_WORKSPACE_MODULE_REGISTRY: BusinessWorkspaceModule[] = def
     ]
   },
   {
+    id: 'business-quality',
+    code: SECTOR_TEMPLATE_MODULE_CODES.QUALITY,
+    name: 'Kalite',
+    description: 'Endüstriyel mutfak inventory lot kalite kontrol kararlarını ve kabul, red, karantina süreçlerini yöneten iş modülü.',
+    category: 'business',
+    icon: 'KL',
+    route: 'quality-controls',
+    permissions: ['operations.read', 'operations.write', 'stock.read'],
+    isCoreModule: false,
+    isBusinessModule: true,
+    isEnabled: true,
+    isVisible: true,
+    displayOrder: 44,
+    dependencies: [WORKSPACE_MODULE_CODES.STOCK, WORKSPACE_MODULE_CODES.PURCHASE],
+    tags: ['business', 'quality', 'quality-control', 'inventory-lot', 'traceability', 'industrial-kitchen'],
+    supportedSectorIds: industrialKitchenSectorIds,
+    pricing: { model: 'paid', currency: 'TRY' },
+    marketplace: marketplaceReady,
+    dashboardWidgets: [
+      dashboardWidget({
+        id: 'quality.controls',
+        title: 'Kalite Kontrol',
+        description: 'Inventory Lot kalite kararlarını ve kontrol statülerini takip etmek için kontrol paneli başlangıç alanı.',
+        icon: 'KL',
+        category: 'Kalite',
+        order: 10,
+        defaultVisible: false,
+        defaultSize: 'medium',
+        supportedLayouts: ['standard', 'wide'],
+        requiredPermission: 'operations.read',
+        renderComponent: 'quality.controls.placeholder'
+      })
+    ],
+    menuItems: [
+      menuItem({ key: 'quality-controls', label: 'Kalite Kontrol', route: 'quality-controls', icon: 'KL', adminOnly: true, displayOrder: 10 })
+    ]
+  },
+  {
     id: 'business-production-work-orders',
     code: SECTOR_TEMPLATE_MODULE_CODES.PRODUCTION,
     name: 'Üretim',

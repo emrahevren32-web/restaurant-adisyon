@@ -41,6 +41,7 @@ import RequestForQuotations from '../pages/RequestForQuotations'
 import PurchaseApprovals from '../pages/PurchaseApprovals'
 import PurchaseOrders from '../pages/PurchaseOrders'
 import GoodsReceipts from '../pages/GoodsReceipts'
+import QualityControls from '../pages/QualityControls'
 import SupplierManagement from '../pages/SupplierManagement'
 import Users from '../pages/Users'
 import Settings from '../pages/Settings'
@@ -179,6 +180,7 @@ export default function BusinessWorkspaceRouteHost({
   if(route === 'purchase-approvals') return <PurchaseApprovals currentUser={currentUser} />
   if(route === 'purchase-orders') return <PurchaseOrders currentUser={currentUser} />
   if(route === 'goods-receipts') return <GoodsReceipts currentUser={currentUser} />
+  if(route === 'quality-controls') return <QualityControls currentUser={currentUser} />
   if(route === 'suppliers') return <SupplierManagement />
   if(route === 'supplier-debts') return <SupplierDebts currentUser={currentUser} />
   if(route === 'supplier-payments') return <SupplierPayments currentUser={currentUser} />

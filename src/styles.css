@@ -3267,22 +3267,48 @@ th { color:var(--muted-strong); font-size:13px; font-weight:750 }
 .inventory-lot-table td:nth-child(6) span { margin-top:4px }
 .inventory-lot-notes { margin:0; color:var(--text); line-height:1.5; overflow-wrap:anywhere }
 
+.quality-control-page { display:grid; gap:18px }
+.quality-control-toolbar { display:grid; grid-template-columns:minmax(220px, 1.4fr) repeat(5, minmax(125px, 1fr)); gap:10px; align-items:center }
+.quality-control-side { display:flex; flex-direction:column; gap:12px; min-width:0 }
+.quality-control-detail-card { margin-bottom:0 }
+.quality-control-side-actions { display:grid; grid-template-columns:repeat(2, minmax(0, 1fr)); gap:8px; align-items:center; margin-top:12px }
+.quality-control-detail-grid { display:grid; grid-template-columns:repeat(2, minmax(0, 1fr)); gap:10px }
+.quality-control-detail-grid div { min-width:0; border:1px solid var(--line); border-radius:var(--radius-md); padding:10px 11px; background:var(--surface-muted) }
+.quality-control-detail-grid span { display:block; color:var(--muted); font-size:12px; font-weight:850; line-height:1.2 }
+.quality-control-detail-grid strong { display:block; margin-top:4px; color:var(--text); font-size:14px; font-weight:900; overflow-wrap:anywhere }
+.quality-control-form { gap:14px }
+.quality-control-form-section { display:grid; gap:10px }
+.quality-control-form-section h4 { margin:0; color:var(--text); font-size:14px; font-weight:900 }
+.quality-control-form-grid { display:grid; grid-template-columns:repeat(2, minmax(0, 1fr)); gap:12px }
+.quality-control-table td:nth-child(2),
+.quality-control-table td:nth-child(3),
+.quality-control-table td:nth-child(4) { overflow-wrap:anywhere }
+.quality-control-notes { margin:0; color:var(--text); line-height:1.5; overflow-wrap:anywhere; white-space:pre-wrap }
+
 @media (max-width: 980px){
   .goods-receipt-layout { display:block }
   .goods-receipt-side { margin-top:14px }
+  .quality-control-layout { display:block }
+  .quality-control-side { margin-top:14px }
   .goods-receipt-toolbar,
   .goods-receipt-form-grid,
   .goods-receipt-detail-grid,
   .goods-receipt-item-editor,
   .goods-receipt-lot-split-row,
   .inventory-lot-toolbar,
-  .inventory-lot-detail-grid { grid-template-columns:1fr; width:100% }
+  .inventory-lot-detail-grid,
+  .quality-control-toolbar,
+  .quality-control-form-grid,
+  .quality-control-detail-grid,
+  .quality-control-side-actions { grid-template-columns:1fr; width:100% }
   .goods-receipt-table-wrap,
   .goods-receipt-lines-wrap,
-  .inventory-lot-table-wrap { overflow:visible; border:0; background:transparent; box-shadow:none }
+  .inventory-lot-table-wrap,
+  .quality-control-table-wrap { overflow:visible; border:0; background:transparent; box-shadow:none }
   .goods-receipt-table-wrap .goods-receipt-table,
   .goods-receipt-lines-wrap .goods-receipt-lines-table,
-  .inventory-lot-table-wrap .inventory-lot-table { min-width:0 }
+  .inventory-lot-table-wrap .inventory-lot-table,
+  .quality-control-table-wrap .quality-control-table { min-width:0 }
   .goods-receipt-table,
   .goods-receipt-table thead,
   .goods-receipt-table tbody,
@@ -3297,13 +3323,20 @@ th { color:var(--muted-strong); font-size:13px; font-weight:750 }
   .inventory-lot-table thead,
   .inventory-lot-table tbody,
   .inventory-lot-table tr,
-  .inventory-lot-table td { display:block; width:100%; min-width:0 }
+  .inventory-lot-table td,
+  .quality-control-table,
+  .quality-control-table thead,
+  .quality-control-table tbody,
+  .quality-control-table tr,
+  .quality-control-table td { display:block; width:100%; min-width:0 }
   .goods-receipt-table thead,
   .goods-receipt-lines-table thead,
-  .inventory-lot-table thead { display:none }
+  .inventory-lot-table thead,
+  .quality-control-table thead { display:none }
   .goods-receipt-table tbody,
   .goods-receipt-lines-table tbody,
-  .inventory-lot-table tbody { display:grid; gap:10px }
+  .inventory-lot-table tbody,
+  .quality-control-table tbody { display:grid; gap:10px }
   .goods-receipt-table tbody tr,
   .goods-receipt-table tbody tr:nth-child(even),
   .goods-receipt-table tbody tr:hover,
@@ -3312,7 +3345,10 @@ th { color:var(--muted-strong); font-size:13px; font-weight:750 }
   .goods-receipt-lines-table tbody tr:hover,
   .inventory-lot-table tbody tr,
   .inventory-lot-table tbody tr:nth-child(even),
-  .inventory-lot-table tbody tr:hover { display:grid; grid-template-columns:repeat(2, minmax(0, 1fr)); gap:9px; border:1px solid var(--line); border-radius:var(--radius-md); padding:11px 12px; background:var(--surface); box-shadow:var(--shadow-xs) }
+  .inventory-lot-table tbody tr:hover,
+  .quality-control-table tbody tr,
+  .quality-control-table tbody tr:nth-child(even),
+  .quality-control-table tbody tr:hover { display:grid; grid-template-columns:repeat(2, minmax(0, 1fr)); gap:9px; border:1px solid var(--line); border-radius:var(--radius-md); padding:11px 12px; background:var(--surface); box-shadow:var(--shadow-xs) }
   .goods-receipt-table tbody tr td,
   .goods-receipt-table tbody tr:nth-child(even) td,
   .goods-receipt-table tbody tr:hover td,
@@ -3321,22 +3357,30 @@ th { color:var(--muted-strong); font-size:13px; font-weight:750 }
   .goods-receipt-lines-table tbody tr:hover td,
   .inventory-lot-table tbody tr td,
   .inventory-lot-table tbody tr:nth-child(even) td,
-  .inventory-lot-table tbody tr:hover td { height:auto; min-height:0; border:0; padding:0; background:transparent; box-shadow:none; text-align:right }
+  .inventory-lot-table tbody tr:hover td,
+  .quality-control-table tbody tr td,
+  .quality-control-table tbody tr:nth-child(even) td,
+  .quality-control-table tbody tr:hover td { height:auto; min-height:0; border:0; padding:0; background:transparent; box-shadow:none; text-align:right }
   .goods-receipt-table tbody td::before,
   .goods-receipt-lines-table tbody td::before,
-  .inventory-lot-table tbody td::before { content:attr(data-label); display:block; margin-bottom:3px; color:var(--muted); font-size:11px; font-weight:850; line-height:1.2; text-align:left }
+  .inventory-lot-table tbody td::before,
+  .quality-control-table tbody td::before { content:attr(data-label); display:block; margin-bottom:3px; color:var(--muted); font-size:11px; font-weight:850; line-height:1.2; text-align:left }
   .goods-receipt-table tbody td:nth-child(2),
   .goods-receipt-table tbody td.empty-cell,
   .goods-receipt-lines-table tbody td:first-child,
   .goods-receipt-lines-table tbody td.empty-cell,
   .inventory-lot-table tbody td:nth-child(2),
-  .inventory-lot-table tbody td.empty-cell { grid-column:1 / -1; text-align:left }
+  .inventory-lot-table tbody td.empty-cell,
+  .quality-control-table tbody td:nth-child(3),
+  .quality-control-table tbody td.empty-cell { grid-column:1 / -1; text-align:left }
   .goods-receipt-table tbody td:nth-child(2) strong,
   .goods-receipt-lines-table tbody td:first-child strong,
-  .inventory-lot-table tbody td:nth-child(2) strong { text-align:left }
+  .inventory-lot-table tbody td:nth-child(2) strong,
+  .quality-control-table tbody td:nth-child(3) strong { text-align:left }
   .goods-receipt-table tbody td.empty-cell,
   .goods-receipt-lines-table tbody td.empty-cell,
-  .inventory-lot-table tbody td.empty-cell { text-align:center }
+  .inventory-lot-table tbody td.empty-cell,
+  .quality-control-table tbody td.empty-cell { text-align:center }
 }
 
 @media (max-width: 560px){
@@ -3348,7 +3392,10 @@ th { color:var(--muted-strong); font-size:13px; font-weight:750 }
   .goods-receipt-lines-table tbody tr:hover,
   .inventory-lot-table tbody tr,
   .inventory-lot-table tbody tr:nth-child(even),
-  .inventory-lot-table tbody tr:hover { grid-template-columns:1fr }
+  .inventory-lot-table tbody tr:hover,
+  .quality-control-table tbody tr,
+  .quality-control-table tbody tr:nth-child(even),
+  .quality-control-table tbody tr:hover { grid-template-columns:1fr }
   .goods-receipt-table tbody tr td,
   .goods-receipt-table tbody tr:nth-child(even) td,
   .goods-receipt-table tbody tr:hover td,
@@ -3357,5 +3404,8 @@ th { color:var(--muted-strong); font-size:13px; font-weight:750 }
   .goods-receipt-lines-table tbody tr:hover td,
   .inventory-lot-table tbody tr td,
   .inventory-lot-table tbody tr:nth-child(even) td,
-  .inventory-lot-table tbody tr:hover td { text-align:left }
+  .inventory-lot-table tbody tr:hover td,
+  .quality-control-table tbody tr td,
+  .quality-control-table tbody tr:nth-child(even) td,
+  .quality-control-table tbody tr:hover td { text-align:left }
 }
