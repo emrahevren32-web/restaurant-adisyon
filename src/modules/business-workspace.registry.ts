@@ -816,10 +816,10 @@ export const BUSINESS_WORKSPACE_MODULE_REGISTRY: BusinessWorkspaceModule[] = def
     id: 'business-purchase',
     code: WORKSPACE_MODULE_CODES.PURCHASE,
     name: 'Satın Alma',
-    description: 'Endüstriyel mutfak tedarikçi kartları ve satın alma hazırlık süreçlerini yöneten iş modülü.',
+    description: 'Endüstriyel mutfak satın alma talepleri, tedarikçi kartları ve satın alma hazırlık süreçlerini yöneten iş modülü.',
     category: 'business',
     icon: 'SA',
-    route: 'suppliers',
+    route: 'purchase-requests',
     permissions: ['finance.read', 'finance.write'],
     isCoreModule: false,
     isBusinessModule: true,
@@ -827,12 +827,25 @@ export const BUSINESS_WORKSPACE_MODULE_REGISTRY: BusinessWorkspaceModule[] = def
     isVisible: true,
     displayOrder: 42,
     dependencies: [],
-    tags: ['business', 'purchase', 'procurement', 'supplier-management', 'industrial-kitchen'],
+    tags: ['business', 'purchase', 'procurement', 'purchase-request', 'supplier-management', 'industrial-kitchen'],
     supportedSectorIds: industrialKitchenSectorIds,
     licenseModuleKey: LICENSE_MODULE_CODES.PURCHASE,
     pricing: { model: 'paid', currency: 'TRY' },
     marketplace: marketplaceReady,
     dashboardWidgets: [
+      dashboardWidget({
+        id: 'purchase.requests',
+        title: 'Satın Alma Talepleri',
+        description: 'İşletme içi satın alma ihtiyaçlarını takip etmek için kontrol paneli başlangıç alanı.',
+        icon: 'ST',
+        category: 'Satın Alma',
+        order: 5,
+        defaultVisible: false,
+        defaultSize: 'medium',
+        supportedLayouts: ['standard', 'wide'],
+        requiredPermission: 'finance.read',
+        renderComponent: 'purchase.requests.placeholder'
+      }),
       dashboardWidget({
         id: 'purchase.suppliers',
         title: 'Tedarikçiler',
@@ -848,7 +861,8 @@ export const BUSINESS_WORKSPACE_MODULE_REGISTRY: BusinessWorkspaceModule[] = def
       })
     ],
     menuItems: [
-      menuItem({ key: 'suppliers', label: 'Tedarikçiler', route: 'suppliers', icon: 'TD', adminOnly: true, displayOrder: 10 })
+      menuItem({ key: 'purchase-requests', label: 'Satın Alma Talepleri', route: 'purchase-requests', icon: 'ST', adminOnly: true, displayOrder: 10 }),
+      menuItem({ key: 'suppliers', label: 'Tedarikçiler', route: 'suppliers', icon: 'TD', adminOnly: true, displayOrder: 20 })
     ]
   },
   {

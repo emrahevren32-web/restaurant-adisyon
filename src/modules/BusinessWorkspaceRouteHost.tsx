@@ -35,6 +35,7 @@ import PackagingProcesses from '../pages/PackagingProcesses'
 import LabelingProcesses from '../pages/LabelingProcesses'
 import DispatchProcesses from '../pages/DispatchProcesses'
 import Recipes from '../pages/Recipes'
+import PurchaseRequests from '../pages/PurchaseRequests'
 import SupplierManagement from '../pages/SupplierManagement'
 import Users from '../pages/Users'
 import Settings from '../pages/Settings'
@@ -167,6 +168,7 @@ export default function BusinessWorkspaceRouteHost({
   if(route === 'labeling-processes') return <LabelingProcesses />
   if(route === 'dispatch-processes') return <DispatchProcesses />
   if(route === 'recipes') return <Recipes />
+  if(route === 'purchase-requests') return <PurchaseRequests currentUser={currentUser} />
   if(route === 'suppliers') return <SupplierManagement />
   if(route === 'supplier-debts') return <SupplierDebts currentUser={currentUser} />
   if(route === 'supplier-payments') return <SupplierPayments currentUser={currentUser} />
