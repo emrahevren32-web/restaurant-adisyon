@@ -3672,3 +3672,51 @@ th { color:var(--muted-strong); font-size:13px; font-weight:750 }
   .chemical-product-table tbody tr:nth-child(even) td,
   .chemical-product-table tbody tr:hover td { text-align:left }
 }
+
+.supplier-performance-page { display:grid; gap:18px }
+.supplier-performance-toolbar { display:grid; grid-template-columns:minmax(220px, 1.4fr) repeat(3, minmax(125px, 1fr)); gap:10px; align-items:center }
+.supplier-performance-side { display:flex; flex-direction:column; gap:12px; min-width:0 }
+.supplier-performance-detail-card { margin-bottom:0 }
+.supplier-performance-detail-grid { display:grid; grid-template-columns:repeat(2, minmax(0, 1fr)); gap:10px }
+.supplier-performance-detail-grid div { min-width:0; border:1px solid var(--line); border-radius:var(--radius-md); padding:10px 11px; background:var(--surface-muted) }
+.supplier-performance-detail-grid span { display:block; color:var(--muted); font-size:12px; font-weight:850; line-height:1.2 }
+.supplier-performance-detail-grid strong { display:block; margin-top:4px; color:var(--text); font-size:14px; font-weight:900; overflow-wrap:anywhere }
+.supplier-performance-table td:first-child,
+.supplier-performance-table td:nth-child(8) { overflow-wrap:anywhere }
+.supplier-performance-notes { margin:0; color:var(--text); line-height:1.5; overflow-wrap:anywhere; white-space:pre-wrap }
+
+@media (max-width: 980px){
+  .supplier-performance-layout { display:block }
+  .supplier-performance-side { margin-top:14px }
+  .supplier-performance-toolbar,
+  .supplier-performance-detail-grid { grid-template-columns:1fr; width:100% }
+  .supplier-performance-table-wrap { overflow:visible; border:0; background:transparent; box-shadow:none }
+  .supplier-performance-table-wrap .supplier-performance-table { min-width:0 }
+  .supplier-performance-table,
+  .supplier-performance-table thead,
+  .supplier-performance-table tbody,
+  .supplier-performance-table tr,
+  .supplier-performance-table td { display:block; width:100%; min-width:0 }
+  .supplier-performance-table thead { display:none }
+  .supplier-performance-table tbody { display:grid; gap:10px }
+  .supplier-performance-table tbody tr,
+  .supplier-performance-table tbody tr:nth-child(even),
+  .supplier-performance-table tbody tr:hover { display:grid; grid-template-columns:repeat(2, minmax(0, 1fr)); gap:9px; border:1px solid var(--line); border-radius:var(--radius-md); padding:11px 12px; background:var(--surface); box-shadow:var(--shadow-xs) }
+  .supplier-performance-table tbody tr td,
+  .supplier-performance-table tbody tr:nth-child(even) td,
+  .supplier-performance-table tbody tr:hover td { height:auto; min-height:0; border:0; padding:0; background:transparent; box-shadow:none; text-align:right }
+  .supplier-performance-table tbody td::before { content:attr(data-label); display:block; margin-bottom:3px; color:var(--muted); font-size:11px; font-weight:850; line-height:1.2; text-align:left }
+  .supplier-performance-table tbody td:first-child,
+  .supplier-performance-table tbody td.empty-cell { grid-column:1 / -1; text-align:left }
+  .supplier-performance-table tbody td:first-child strong { text-align:left }
+  .supplier-performance-table tbody td.empty-cell { text-align:center }
+}
+
+@media (max-width: 560px){
+  .supplier-performance-table tbody tr,
+  .supplier-performance-table tbody tr:nth-child(even),
+  .supplier-performance-table tbody tr:hover { grid-template-columns:1fr }
+  .supplier-performance-table tbody tr td,
+  .supplier-performance-table tbody tr:nth-child(even) td,
+  .supplier-performance-table tbody tr:hover td { text-align:left }
+}
