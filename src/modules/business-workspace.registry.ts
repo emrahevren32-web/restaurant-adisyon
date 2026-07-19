@@ -866,7 +866,7 @@ export const BUSINESS_WORKSPACE_MODULE_REGISTRY: BusinessWorkspaceModule[] = def
     isVisible: true,
     displayOrder: 42,
     dependencies: [],
-    tags: ['business', 'purchase', 'procurement', 'purchase-request', 'rfq', 'purchase-approval', 'purchase-order', 'goods-receipt', 'supplier-management', 'supplier-performance', 'industrial-kitchen'],
+    tags: ['business', 'purchase', 'procurement', 'purchase-request', 'rfq', 'purchase-approval', 'purchase-order', 'goods-receipt', 'supplier-management', 'supplier-performance', 'procurement-analytics', 'industrial-kitchen'],
     supportedSectorIds: industrialKitchenSectorIds,
     licenseModuleKey: LICENSE_MODULE_CODES.PURCHASE,
     pricing: { model: 'paid', currency: 'TRY' },
@@ -958,7 +958,8 @@ export const BUSINESS_WORKSPACE_MODULE_REGISTRY: BusinessWorkspaceModule[] = def
       menuItem({ key: 'purchase-orders', label: 'Satın Alma Siparişleri', route: 'purchase-orders', icon: 'PO', adminOnly: true, displayOrder: 40 }),
       menuItem({ key: 'goods-receipts', label: 'Mal Kabul', route: 'goods-receipts', icon: 'MK', adminOnly: true, displayOrder: 50 }),
       menuItem({ key: 'suppliers', label: 'Tedarikçiler', route: 'suppliers', icon: 'TD', adminOnly: true, displayOrder: 60 }),
-      menuItem({ key: 'supplier-performances', label: 'Tedarikçi Performansı', route: 'supplier-performances', icon: 'TP', adminOnly: true, displayOrder: 70 })
+      menuItem({ key: 'supplier-performances', label: 'Tedarikçi Performansı', route: 'supplier-performances', icon: 'TP', adminOnly: true, displayOrder: 70 }),
+      menuItem({ key: 'procurement-analytics', label: 'Procurement Analytics', route: 'procurement-analytics', icon: 'PA', adminOnly: true, displayOrder: 80 })
     ]
   },
   {

@@ -43,6 +43,7 @@ import PurchaseApprovals from '../pages/PurchaseApprovals'
 import PurchaseOrders from '../pages/PurchaseOrders'
 import GoodsReceipts from '../pages/GoodsReceipts'
 import SupplierPerformances from '../pages/SupplierPerformances'
+import ProcurementAnalytics from '../pages/ProcurementAnalytics'
 import QualityControls from '../pages/QualityControls'
 import QualityControlForms from '../pages/QualityControlForms'
 import ReturnProcesses from '../pages/ReturnProcesses'
@@ -187,6 +188,7 @@ export default function BusinessWorkspaceRouteHost({
   if(route === 'purchase-orders') return <PurchaseOrders currentUser={currentUser} />
   if(route === 'goods-receipts') return <GoodsReceipts currentUser={currentUser} />
   if(route === 'supplier-performances') return <SupplierPerformances />
+  if(route === 'procurement-analytics') return <ProcurementAnalytics />
   if(route === 'quality-controls') return <QualityControls currentUser={currentUser} />
   if(route === 'quality-control-forms') return <QualityControlForms />
   if(route === 'return-processes') return <ReturnProcesses currentUser={currentUser} />
