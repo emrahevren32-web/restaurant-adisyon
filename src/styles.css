@@ -1905,6 +1905,37 @@ th { color:var(--muted-strong); font-size:13px; font-weight:750 }
 .rfq-comparison-title span { display:block; margin-top:4px; color:var(--muted); font-size:12px; font-weight:750; line-height:1.3 }
 .rfq-comparison-table input,
 .rfq-comparison-table select { width:100%; min-width:0 }
+.purchase-approval-page { display:flex; flex-direction:column; gap:18px; min-width:0; max-width:100% }
+.purchase-approval-layout { grid-template-columns:minmax(0, 1fr) 410px }
+.purchase-approval-side { display:flex; flex-direction:column; gap:12px; min-width:0 }
+.purchase-approval-toolbar { display:grid; grid-template-columns:minmax(220px, 1fr) repeat(3, minmax(132px, .5fr)); gap:8px; width:100%; min-width:0; margin:0 0 14px }
+.purchase-approval-toolbar input,
+.purchase-approval-toolbar select { min-width:0 }
+.purchase-approval-table-wrap .purchase-approval-table { min-width:1080px }
+.purchase-approval-table tbody tr { cursor:pointer }
+.purchase-approval-table tbody tr:focus { outline:2px solid var(--accent); outline-offset:-2px }
+.purchase-approval-table td { vertical-align:middle }
+.purchase-approval-detail-card { min-width:0 }
+.purchase-approval-side-actions { display:grid; grid-template-columns:repeat(auto-fit, minmax(96px, 1fr)); gap:8px; margin-top:14px }
+.purchase-approval-detail-grid { display:grid; grid-template-columns:repeat(2, minmax(0, 1fr)); gap:10px }
+.purchase-approval-detail-grid > div { min-width:0; border:1px solid var(--line); border-radius:var(--radius-md); padding:10px 12px; background:var(--surface-muted) }
+.purchase-approval-detail-grid span { display:block; color:var(--muted); font-size:12px; font-weight:850; line-height:1.25 }
+.purchase-approval-detail-grid strong { display:block; margin-top:5px; color:var(--text); font-size:14px; font-weight:900; line-height:1.3; overflow-wrap:anywhere }
+.purchase-approval-winner-list { display:flex; flex-direction:column; gap:10px; min-width:0 }
+.purchase-approval-winner-row { display:grid; grid-template-columns:minmax(0, 1fr) auto; gap:12px; align-items:start; min-width:0; border:1px solid var(--line); border-radius:var(--radius-md); padding:10px 12px; background:var(--surface-muted) }
+.purchase-approval-winner-row strong { color:var(--text); font-weight:900; line-height:1.3; overflow-wrap:anywhere }
+.purchase-approval-winner-row span { display:block; margin-top:4px; color:var(--muted); font-size:12px; font-weight:750; line-height:1.3; overflow-wrap:anywhere }
+.purchase-approval-notes { display:flex; flex-direction:column; gap:8px; min-width:0 }
+.purchase-approval-notes p { margin:0; border:1px solid var(--line); border-radius:var(--radius-md); padding:10px 12px; background:var(--surface-muted) }
+.purchase-approval-notes strong,
+.purchase-approval-notes span { display:block; overflow-wrap:anywhere }
+.purchase-approval-notes strong { color:var(--text); font-size:13px; font-weight:900 }
+.purchase-approval-notes span { margin-top:4px; color:var(--muted); font-size:12px; line-height:1.35 }
+.purchase-approval-form-section { display:flex; flex-direction:column; gap:10px; min-width:0; border:1px solid var(--line); border-radius:var(--radius-md); padding:12px; background:var(--surface-muted) }
+.purchase-approval-form-section h4 { margin:0; color:var(--text); font-size:14px; font-weight:900; line-height:1.25 }
+.purchase-approval-form-grid { display:grid; grid-template-columns:repeat(2, minmax(0, 1fr)); gap:10px; min-width:0 }
+.purchase-approval-form-grid .form-field { min-width:0 }
+.purchase-approval-form textarea { resize:vertical }
 .credit-transaction-table td.actions-cell { min-width:390px }
 .collection-transaction-table td.actions-cell { min-width:170px }
 .supplier-debt-table td.actions-cell { min-width:390px }
@@ -3001,16 +3032,24 @@ th { color:var(--muted-strong); font-size:13px; font-weight:750 }
 
 @media (max-width: 980px){
   .rfq-layout { display:block }
+  .purchase-approval-layout { display:block }
   .rfq-side { margin-top:14px }
+  .purchase-approval-side { margin-top:14px }
   .rfq-toolbar,
   .rfq-form-grid,
   .rfq-detail-grid,
   .rfq-side-actions,
-  .rfq-supplier-picker { grid-template-columns:1fr; width:100% }
+  .rfq-supplier-picker,
+  .purchase-approval-toolbar,
+  .purchase-approval-form-grid,
+  .purchase-approval-detail-grid,
+  .purchase-approval-side-actions { grid-template-columns:1fr; width:100% }
   .rfq-table-wrap,
-  .rfq-comparison-table-wrap { overflow:visible; border:0; background:transparent; box-shadow:none }
+  .rfq-comparison-table-wrap,
+  .purchase-approval-table-wrap { overflow:visible; border:0; background:transparent; box-shadow:none }
   .rfq-table-wrap .rfq-table,
-  .rfq-comparison-table-wrap .rfq-comparison-table { min-width:0 }
+  .rfq-comparison-table-wrap .rfq-comparison-table,
+  .purchase-approval-table-wrap .purchase-approval-table { min-width:0 }
   .rfq-table,
   .rfq-table thead,
   .rfq-table tbody,
@@ -3020,33 +3059,51 @@ th { color:var(--muted-strong); font-size:13px; font-weight:750 }
   .rfq-comparison-table thead,
   .rfq-comparison-table tbody,
   .rfq-comparison-table tr,
-  .rfq-comparison-table td { display:block; width:100%; min-width:0 }
+  .rfq-comparison-table td,
+  .purchase-approval-table,
+  .purchase-approval-table thead,
+  .purchase-approval-table tbody,
+  .purchase-approval-table tr,
+  .purchase-approval-table td { display:block; width:100%; min-width:0 }
   .rfq-table thead,
-  .rfq-comparison-table thead { display:none }
+  .rfq-comparison-table thead,
+  .purchase-approval-table thead { display:none }
   .rfq-table tbody,
-  .rfq-comparison-table tbody { display:grid; gap:10px }
+  .rfq-comparison-table tbody,
+  .purchase-approval-table tbody { display:grid; gap:10px }
   .rfq-table tbody tr,
   .rfq-table tbody tr:nth-child(even),
   .rfq-table tbody tr:hover,
   .rfq-comparison-table tbody tr,
   .rfq-comparison-table tbody tr:nth-child(even),
-  .rfq-comparison-table tbody tr:hover { display:grid; grid-template-columns:repeat(2, minmax(0, 1fr)); gap:9px; border:1px solid var(--line); border-radius:var(--radius-md); padding:11px 12px; background:var(--surface); box-shadow:var(--shadow-xs) }
+  .rfq-comparison-table tbody tr:hover,
+  .purchase-approval-table tbody tr,
+  .purchase-approval-table tbody tr:nth-child(even),
+  .purchase-approval-table tbody tr:hover { display:grid; grid-template-columns:repeat(2, minmax(0, 1fr)); gap:9px; border:1px solid var(--line); border-radius:var(--radius-md); padding:11px 12px; background:var(--surface); box-shadow:var(--shadow-xs) }
   .rfq-table tbody tr td,
   .rfq-table tbody tr:nth-child(even) td,
   .rfq-table tbody tr:hover td,
   .rfq-comparison-table tbody tr td,
   .rfq-comparison-table tbody tr:nth-child(even) td,
-  .rfq-comparison-table tbody tr:hover td { height:auto; min-height:0; border:0; padding:0; background:transparent; box-shadow:none; text-align:right }
+  .rfq-comparison-table tbody tr:hover td,
+  .purchase-approval-table tbody tr td,
+  .purchase-approval-table tbody tr:nth-child(even) td,
+  .purchase-approval-table tbody tr:hover td { height:auto; min-height:0; border:0; padding:0; background:transparent; box-shadow:none; text-align:right }
   .rfq-table tbody td::before,
-  .rfq-comparison-table tbody td::before { content:attr(data-label); display:block; margin-bottom:3px; color:var(--muted); font-size:11px; font-weight:850; line-height:1.2; text-align:left }
+  .rfq-comparison-table tbody td::before,
+  .purchase-approval-table tbody td::before { content:attr(data-label); display:block; margin-bottom:3px; color:var(--muted); font-size:11px; font-weight:850; line-height:1.2; text-align:left }
   .rfq-table tbody td:nth-child(2),
   .rfq-table tbody td.empty-cell,
   .rfq-comparison-table tbody td:first-child,
-  .rfq-comparison-table tbody td.empty-cell { grid-column:1 / -1; text-align:left }
+  .rfq-comparison-table tbody td.empty-cell,
+  .purchase-approval-table tbody td:nth-child(3),
+  .purchase-approval-table tbody td.empty-cell { grid-column:1 / -1; text-align:left }
   .rfq-table tbody td:nth-child(2) strong,
-  .rfq-comparison-table tbody td:first-child strong { text-align:left }
+  .rfq-comparison-table tbody td:first-child strong,
+  .purchase-approval-table tbody td:nth-child(3) strong { text-align:left }
   .rfq-table tbody td.empty-cell,
-  .rfq-comparison-table tbody td.empty-cell { text-align:center }
+  .rfq-comparison-table tbody td.empty-cell,
+  .purchase-approval-table tbody td.empty-cell { text-align:center }
 }
 
 @media (max-width: 560px){
@@ -3055,12 +3112,19 @@ th { color:var(--muted-strong); font-size:13px; font-weight:750 }
   .rfq-table tbody tr:hover,
   .rfq-comparison-table tbody tr,
   .rfq-comparison-table tbody tr:nth-child(even),
-  .rfq-comparison-table tbody tr:hover { grid-template-columns:1fr }
+  .rfq-comparison-table tbody tr:hover,
+  .purchase-approval-table tbody tr,
+  .purchase-approval-table tbody tr:nth-child(even),
+  .purchase-approval-table tbody tr:hover { grid-template-columns:1fr }
   .rfq-table tbody tr td,
   .rfq-table tbody tr:nth-child(even) td,
   .rfq-table tbody tr:hover td,
   .rfq-comparison-table tbody tr td,
   .rfq-comparison-table tbody tr:nth-child(even) td,
-  .rfq-comparison-table tbody tr:hover td { text-align:left }
+  .rfq-comparison-table tbody tr:hover td,
+  .purchase-approval-table tbody tr td,
+  .purchase-approval-table tbody tr:nth-child(even) td,
+  .purchase-approval-table tbody tr:hover td { text-align:left }
   .rfq-comparison-table .btn { width:100% }
+  .purchase-approval-winner-row { grid-template-columns:1fr }
 }

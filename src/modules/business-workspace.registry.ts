@@ -816,7 +816,7 @@ export const BUSINESS_WORKSPACE_MODULE_REGISTRY: BusinessWorkspaceModule[] = def
     id: 'business-purchase',
     code: WORKSPACE_MODULE_CODES.PURCHASE,
     name: 'Satın Alma',
-    description: 'Endüstriyel mutfak satın alma talepleri, tedarikçi kartları ve satın alma hazırlık süreçlerini yöneten iş modülü.',
+    description: 'Endüstriyel mutfak satın alma talepleri, teklif yönetimi, onay süreçleri ve tedarikçi kartlarını yöneten iş modülü.',
     category: 'business',
     icon: 'SA',
     route: 'purchase-requests',
@@ -827,7 +827,7 @@ export const BUSINESS_WORKSPACE_MODULE_REGISTRY: BusinessWorkspaceModule[] = def
     isVisible: true,
     displayOrder: 42,
     dependencies: [],
-    tags: ['business', 'purchase', 'procurement', 'purchase-request', 'supplier-management', 'industrial-kitchen'],
+    tags: ['business', 'purchase', 'procurement', 'purchase-request', 'rfq', 'purchase-approval', 'supplier-management', 'industrial-kitchen'],
     supportedSectorIds: industrialKitchenSectorIds,
     licenseModuleKey: LICENSE_MODULE_CODES.PURCHASE,
     pricing: { model: 'paid', currency: 'TRY' },
@@ -871,12 +871,26 @@ export const BUSINESS_WORKSPACE_MODULE_REGISTRY: BusinessWorkspaceModule[] = def
         supportedLayouts: ['standard', 'wide'],
         requiredPermission: 'finance.read',
         renderComponent: 'purchase.rfq.placeholder'
+      }),
+      dashboardWidget({
+        id: 'purchase.approvals',
+        title: 'Satın Alma Onayları',
+        description: 'RFQ kazanan tekliflerini satın alma onay sürecinde takip etmek için kontrol paneli başlangıç alanı.',
+        icon: 'OA',
+        category: 'Satın Alma',
+        order: 20,
+        defaultVisible: false,
+        defaultSize: 'medium',
+        supportedLayouts: ['standard', 'wide'],
+        requiredPermission: 'finance.read',
+        renderComponent: 'purchase.approvals.placeholder'
       })
     ],
     menuItems: [
       menuItem({ key: 'purchase-requests', label: 'Satın Alma Talepleri', route: 'purchase-requests', icon: 'ST', adminOnly: true, displayOrder: 10 }),
       menuItem({ key: 'request-for-quotations', label: 'Teklif Yönetimi', route: 'request-for-quotations', icon: 'TK', adminOnly: true, displayOrder: 20 }),
-      menuItem({ key: 'suppliers', label: 'Tedarikçiler', route: 'suppliers', icon: 'TD', adminOnly: true, displayOrder: 30 })
+      menuItem({ key: 'purchase-approvals', label: 'Satın Alma Onayları', route: 'purchase-approvals', icon: 'OA', adminOnly: true, displayOrder: 30 }),
+      menuItem({ key: 'suppliers', label: 'Tedarikçiler', route: 'suppliers', icon: 'TD', adminOnly: true, displayOrder: 40 })
     ]
   },
   {
