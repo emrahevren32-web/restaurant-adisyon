@@ -858,11 +858,25 @@ export const BUSINESS_WORKSPACE_MODULE_REGISTRY: BusinessWorkspaceModule[] = def
         supportedLayouts: ['standard', 'wide'],
         requiredPermission: 'finance.read',
         renderComponent: 'purchase.suppliers.placeholder'
+      }),
+      dashboardWidget({
+        id: 'purchase.rfq',
+        title: 'Teklif Yönetimi',
+        description: 'Satın alma taleplerini tedarikçi tekliflerine dönüştürmek için kontrol paneli başlangıç alanı.',
+        icon: 'TK',
+        category: 'Satın Alma',
+        order: 15,
+        defaultVisible: false,
+        defaultSize: 'medium',
+        supportedLayouts: ['standard', 'wide'],
+        requiredPermission: 'finance.read',
+        renderComponent: 'purchase.rfq.placeholder'
       })
     ],
     menuItems: [
       menuItem({ key: 'purchase-requests', label: 'Satın Alma Talepleri', route: 'purchase-requests', icon: 'ST', adminOnly: true, displayOrder: 10 }),
-      menuItem({ key: 'suppliers', label: 'Tedarikçiler', route: 'suppliers', icon: 'TD', adminOnly: true, displayOrder: 20 })
+      menuItem({ key: 'request-for-quotations', label: 'Teklif Yönetimi', route: 'request-for-quotations', icon: 'TK', adminOnly: true, displayOrder: 20 }),
+      menuItem({ key: 'suppliers', label: 'Tedarikçiler', route: 'suppliers', icon: 'TD', adminOnly: true, displayOrder: 30 })
     ]
   },
   {
