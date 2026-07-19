@@ -6,6 +6,7 @@ export type InventoryLotStatus =
   | 'BLOCKED'
   | 'EXPIRED'
   | 'CONSUMED'
+  | 'RETURNED'
 
 export type InventoryLot = {
   id: string

@@ -9,7 +9,8 @@ export const INVENTORY_LOT_STATUSES: InventoryLotStatus[] = [
   'QUARANTINE',
   'BLOCKED',
   'EXPIRED',
-  'CONSUMED'
+  'CONSUMED',
+  'RETURNED'
 ]
 
 export const INVENTORY_LOT_STATUS_LABELS: Record<InventoryLotStatus, string> = {
@@ -17,7 +18,8 @@ export const INVENTORY_LOT_STATUS_LABELS: Record<InventoryLotStatus, string> = {
   QUARANTINE: 'Karantina',
   BLOCKED: 'Blokeli',
   EXPIRED: 'SKT Geçmiş',
-  CONSUMED: 'Tükendi'
+  CONSUMED: 'Tükendi',
+  RETURNED: 'İade Edildi'
 }
 
 export type InventoryLotExpirySignal =
@@ -128,6 +130,7 @@ export const resolveInventoryLotStatus = (
   remainingQuantity: number,
   expiryDate: string
 ): InventoryLotStatus => {
+  if(status === 'RETURNED') return remainingQuantity <= 0 ? 'RETURNED' : 'ACTIVE'
   if(remainingQuantity <= 0) return 'CONSUMED'
   if(getInventoryLotExpirySignal({ expiryDate }) === 'EXPIRED') return 'EXPIRED'
   return status === 'EXPIRED' || status === 'CONSUMED' ? 'ACTIVE' : status

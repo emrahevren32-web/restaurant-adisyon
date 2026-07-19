@@ -926,7 +926,7 @@ export const BUSINESS_WORKSPACE_MODULE_REGISTRY: BusinessWorkspaceModule[] = def
     id: 'business-quality',
     code: SECTOR_TEMPLATE_MODULE_CODES.QUALITY,
     name: 'Kalite',
-    description: 'Endüstriyel mutfak inventory lot kalite kontrol kararlarını ve kabul, red, karantina süreçlerini yöneten iş modülü.',
+    description: 'Endüstriyel mutfak inventory lot kalite kontrol kararlarını, checklist şablonlarını, red sonrası iade süreçlerini ve tedarikçi iade sevklerini yöneten iş modülü.',
     category: 'business',
     icon: 'KL',
     route: 'quality-controls',
@@ -937,7 +937,7 @@ export const BUSINESS_WORKSPACE_MODULE_REGISTRY: BusinessWorkspaceModule[] = def
     isVisible: true,
     displayOrder: 44,
     dependencies: [WORKSPACE_MODULE_CODES.STOCK, WORKSPACE_MODULE_CODES.PURCHASE],
-    tags: ['business', 'quality', 'quality-control', 'inventory-lot', 'traceability', 'industrial-kitchen'],
+    tags: ['business', 'quality', 'quality-control', 'quality-form', 'return-process', 'supplier-return', 'supplier-return-shipment', 'checklist', 'inventory-lot', 'traceability', 'industrial-kitchen'],
     supportedSectorIds: industrialKitchenSectorIds,
     pricing: { model: 'paid', currency: 'TRY' },
     marketplace: marketplaceReady,
@@ -954,10 +954,52 @@ export const BUSINESS_WORKSPACE_MODULE_REGISTRY: BusinessWorkspaceModule[] = def
         supportedLayouts: ['standard', 'wide'],
         requiredPermission: 'operations.read',
         renderComponent: 'quality.controls.placeholder'
+      }),
+      dashboardWidget({
+        id: 'quality.forms',
+        title: 'Kalite Kontrol Formları',
+        description: 'Quality Control kayıtlarına bağlı checklist form sonuçlarını takip etmek için kontrol paneli başlangıç alanı.',
+        icon: 'KF',
+        category: 'Kalite',
+        order: 20,
+        defaultVisible: false,
+        defaultSize: 'medium',
+        supportedLayouts: ['standard', 'wide'],
+        requiredPermission: 'operations.read',
+        renderComponent: 'quality.forms.placeholder'
+      }),
+      dashboardWidget({
+        id: 'quality.returns',
+        title: 'Red ve İade Süreci',
+        description: 'REJECTED kalite kararlarından oluşan tedarikçi iade süreçlerini takip etmek için kontrol paneli başlangıç alanı.',
+        icon: 'RI',
+        category: 'Kalite',
+        order: 30,
+        defaultVisible: false,
+        defaultSize: 'medium',
+        supportedLayouts: ['standard', 'wide'],
+        requiredPermission: 'operations.read',
+        renderComponent: 'quality.returns.placeholder'
+      }),
+      dashboardWidget({
+        id: 'quality.supplierReturns',
+        title: 'Tedarikçi İade Süreci',
+        description: 'Return Process kayıtlarının tedarikçiye fiziksel sevk, teslim ve kapanış adımlarını takip etmek için kontrol paneli başlangıç alanı.',
+        icon: 'TI',
+        category: 'Kalite',
+        order: 40,
+        defaultVisible: false,
+        defaultSize: 'medium',
+        supportedLayouts: ['standard', 'wide'],
+        requiredPermission: 'operations.read',
+        renderComponent: 'quality.supplierReturns.placeholder'
       })
     ],
     menuItems: [
-      menuItem({ key: 'quality-controls', label: 'Kalite Kontrol', route: 'quality-controls', icon: 'KL', adminOnly: true, displayOrder: 10 })
+      menuItem({ key: 'quality-controls', label: 'Kalite Kontrol', route: 'quality-controls', icon: 'KL', adminOnly: true, displayOrder: 10 }),
+      menuItem({ key: 'quality-control-forms', label: 'Kalite Kontrol Formları', route: 'quality-control-forms', icon: 'KF', adminOnly: true, displayOrder: 20 }),
+      menuItem({ key: 'return-processes', label: 'Red ve İade Süreci', route: 'return-processes', icon: 'RI', adminOnly: true, displayOrder: 30 }),
+      menuItem({ key: 'supplier-returns', label: 'Tedarikçi İade Süreci', route: 'supplier-returns', icon: 'TI', adminOnly: true, displayOrder: 40 })
     ]
   },
   {

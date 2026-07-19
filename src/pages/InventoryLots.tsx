@@ -60,6 +60,7 @@ const getStatusClass = (status: InventoryLotStatus) => {
   if(status === 'ACTIVE') return 'success'
   if(status === 'QUARANTINE') return 'warning-pill'
   if(status === 'BLOCKED' || status === 'EXPIRED') return 'danger-pill'
+  if(status === 'RETURNED') return 'info-pill'
   return 'muted-pill'
 }
 
