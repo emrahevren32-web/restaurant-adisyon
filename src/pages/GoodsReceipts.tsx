@@ -18,6 +18,15 @@ import type {
   GoodsReceiptStatus
 } from '../goods-receipts/goods-receipt.types'
 import {
+  createInventoryLotsFromGoodsReceipt,
+  getNextInventoryLotNo,
+  loadInventoryLotRecords,
+  saveInventoryLotRecords,
+  validateInventoryLotCreateInputs
+} from '../inventory-lots/inventory-lot.mock'
+import type { InventoryLotCreateInput } from '../inventory-lots/inventory-lot.mock'
+import type { InventoryLot } from '../inventory-lots/inventory-lot.types'
+import {
   PURCHASE_ORDER_STATUS_LABELS,
   loadPurchaseOrderRecords,
   savePurchaseOrderRecords
@@ -46,6 +55,15 @@ type FilterValue = 'all'
 type StatusFilter = GoodsReceiptStatus | FilterValue
 type PanelMode = 'detail' | 'form'
 
+type GoodsReceiptLotFormState = {
+  id: string
+  lotNo: string
+  quantity: number
+  productionDate: string
+  expiryDate: string
+  notes: string
+}
+
 type GoodsReceiptFormItemState = {
   purchaseOrderItemId: string
   stockItemId: string
@@ -55,6 +73,7 @@ type GoodsReceiptFormItemState = {
   rejectedQuantity: number
   unit: StockUnit
   notes: string
+  lots: GoodsReceiptLotFormState[]
 }
 
 type GoodsReceiptFormState = {
@@ -77,6 +96,7 @@ type GoodsReceiptInitialData = {
   rfqRecords: RequestForQuotationRecord[]
   purchaseOrders: PurchaseOrder[]
   goodsReceipts: GoodsReceiptRecord[]
+  inventoryLots: InventoryLot[]
 }
 
 const createId = (prefix: string) => `${prefix}_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`
@@ -92,6 +112,8 @@ const normalizeQuantity = (value: string) => {
 }
 
 const roundQuantity = (value: number) => Math.round((value + Number.EPSILON) * 1000) / 1000
+
+const createLotFormId = () => `lot_form_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`
 
 const formatDate = (value: string) => {
   if(!value) return '-'
@@ -123,6 +145,7 @@ const loadInitialData = (): GoodsReceiptInitialData => {
   const approvalRecords = loadPurchaseApprovalRecords(rfqRecords)
   const purchaseOrders = loadPurchaseOrderRecords(approvalRecords, rfqRecords)
   const goodsReceipts = loadGoodsReceiptRecords(purchaseOrders, rfqRecords, purchaseRequests)
+  const inventoryLots = loadInventoryLotRecords(goodsReceipts)
 
   return {
     branches,
@@ -132,7 +155,8 @@ const loadInitialData = (): GoodsReceiptInitialData => {
     supplierProducts,
     rfqRecords,
     purchaseOrders,
-    goodsReceipts
+    goodsReceipts,
+    inventoryLots
   }
 }
 
@@ -198,6 +222,7 @@ const getReceivableOrders = (
 const createFormItems = (
   purchaseOrder: PurchaseOrder | null,
   receiptRecords: GoodsReceiptRecord[],
+  inventoryLots: InventoryLot[],
   rfqMap: Map<string, RequestForQuotationRecord>,
   purchaseRequestMap: Map<string, PurchaseRequestRecord>
 ): GoodsReceiptFormItemState[] => {
@@ -206,7 +231,7 @@ const createFormItems = (
     ? getGoodsReceiptTotalsByOrderItem(receiptRecords, purchaseOrder.id)
     : new Map()
 
-  return lines.map(line => {
+  return lines.map((line, index) => {
     const previousAccepted = previousTotals.get(line.purchaseOrderItemId)?.acceptedQuantity || 0
     const remainingQuantity = roundQuantity(Math.max(0, line.orderedQuantity - previousAccepted))
 
@@ -218,13 +243,24 @@ const createFormItems = (
       acceptedQuantity: remainingQuantity,
       rejectedQuantity: 0,
       unit: line.unit,
-      notes: ''
+      notes: '',
+      lots: remainingQuantity > 0
+        ? [{
+          id: createLotFormId(),
+          lotNo: getNextInventoryLotNo(inventoryLots, index),
+          quantity: remainingQuantity,
+          productionDate: getTodayKey(),
+          expiryDate: '',
+          notes: ''
+        }]
+        : []
     }
   })
 }
 
 const createEmptyForm = (
   receiptRecords: GoodsReceiptRecord[],
+  inventoryLots: InventoryLot[],
   purchaseOrders: PurchaseOrder[],
   rfqMap: Map<string, RequestForQuotationRecord>,
   purchaseRequestMap: Map<string, PurchaseRequestRecord>,
@@ -241,7 +277,7 @@ const createEmptyForm = (
     receiptDate: getTodayKey(),
     receivedBy: getUserName(currentUser),
     notes: '',
-    items: createFormItems(purchaseOrder, receiptRecords, rfqMap, purchaseRequestMap)
+    items: createFormItems(purchaseOrder, receiptRecords, inventoryLots, rfqMap, purchaseRequestMap)
   }
 }
 
@@ -249,6 +285,7 @@ const validateForm = (
   form: GoodsReceiptFormState,
   purchaseOrders: PurchaseOrder[],
   receiptRecords: GoodsReceiptRecord[],
+  inventoryLots: InventoryLot[],
   rfqMap: Map<string, RequestForQuotationRecord>,
   purchaseRequestMap: Map<string, PurchaseRequestRecord>
 ) => {
@@ -271,13 +308,45 @@ const validateForm = (
     if(item.receivedQuantity < 0 || item.acceptedQuantity < 0 || item.rejectedQuantity < 0){
       return 'Received Quantity negatif olamaz.'
     }
+    if(item.acceptedQuantity > 0 && item.lots.length === 0){
+      return 'Accepted Quantity için en az bir lot oluşturulmalıdır.'
+    }
+    if(item.lots.some(lot => !Number.isFinite(lot.quantity))){
+      return 'Lot miktarları geçerli sayı olmalıdır.'
+    }
+    const lotQuantityTotal = roundQuantity(item.lots.reduce((total, lot) => total + lot.quantity, 0))
+    if(roundQuantity(Math.abs(lotQuantityTotal - item.acceptedQuantity)) > 0.001){
+      return 'Lot miktarları Accepted Quantity toplamına eşit olmalıdır.'
+    }
     if(roundQuantity(item.acceptedQuantity + item.rejectedQuantity) > item.receivedQuantity){
       return 'Accepted + Rejected, Received Quantity değerini geçemez.'
     }
   }
 
+  const lotValidationError = validateInventoryLotCreateInputs(createInventoryLotInputsFromForm(form), inventoryLots)
+  if(lotValidationError) return lotValidationError
+
   return ''
 }
+
+const createInventoryLotInputsFromForm = (
+  form: GoodsReceiptFormState
+): InventoryLotCreateInput[] => (
+  form.items.flatMap(item => (
+    item.lots
+      .filter(lot => lot.quantity > 0)
+      .map(lot => ({
+        lotNo: lot.lotNo,
+        goodsReceiptItemId: item.purchaseOrderItemId,
+        stockItemId: item.stockItemId,
+        productionDate: lot.productionDate,
+        expiryDate: lot.expiryDate,
+        quantity: lot.quantity,
+        unit: item.unit,
+        notes: lot.notes
+      }))
+  ))
+)
 
 const createReceiptPayload = (
   form: GoodsReceiptFormState,
@@ -319,6 +388,7 @@ export default function GoodsReceipts({ currentUser }: Props){
   const [records, setRecords] = React.useState<GoodsReceiptRecord[]>(initialData.goodsReceipts)
   const [purchaseOrders, setPurchaseOrders] = React.useState<PurchaseOrder[]>(initialData.purchaseOrders)
   const [stockItems, setStockItems] = React.useState<StockItem[]>(initialData.stockItems)
+  const [inventoryLots, setInventoryLots] = React.useState<InventoryLot[]>(initialData.inventoryLots)
   const [selectedRecordId, setSelectedRecordId] = React.useState('')
   const [panelMode, setPanelMode] = React.useState<PanelMode>('detail')
   const [formError, setFormError] = React.useState('')
@@ -346,6 +416,7 @@ export default function GoodsReceipts({ currentUser }: Props){
 
   const [form, setForm] = React.useState<GoodsReceiptFormState>(() => createEmptyForm(
     initialData.goodsReceipts,
+    initialData.inventoryLots,
     initialData.purchaseOrders,
     new Map(initialData.rfqRecords.map(rfq => [rfq.id, rfq])),
     new Map(initialData.purchaseRequests.map(request => [request.id, request])),
@@ -375,6 +446,11 @@ export default function GoodsReceipts({ currentUser }: Props){
   const commitStockItems = React.useCallback((nextItems: StockItem[]) => {
     setStockItems(nextItems)
     saveStockItems(nextItems)
+  }, [])
+
+  const commitInventoryLots = React.useCallback((nextLots: InventoryLot[]) => {
+    setInventoryLots(nextLots)
+    saveInventoryLotRecords(nextLots)
   }, [])
 
   const visibleRecords = React.useMemo(() => {
@@ -408,13 +484,13 @@ export default function GoodsReceipts({ currentUser }: Props){
   ), 0)
 
   const startCreate = () => {
-    setForm(createEmptyForm(records, purchaseOrders, rfqMap, purchaseRequestMap, branches, currentUser))
+    setForm(createEmptyForm(records, inventoryLots, purchaseOrders, rfqMap, purchaseRequestMap, branches, currentUser))
     setFormError('')
     setPanelMode('form')
   }
 
   const cancelForm = () => {
-    setForm(createEmptyForm(records, purchaseOrders, rfqMap, purchaseRequestMap, branches, currentUser))
+    setForm(createEmptyForm(records, inventoryLots, purchaseOrders, rfqMap, purchaseRequestMap, branches, currentUser))
     setFormError('')
     setPanelMode('detail')
   }
@@ -433,7 +509,7 @@ export default function GoodsReceipts({ currentUser }: Props){
       purchaseOrderId,
       supplierId: purchaseOrder?.supplierId || '',
       warehouseId: getOrderWarehouseId(purchaseOrder, rfqMap, purchaseRequestMap, branches),
-      items: createFormItems(purchaseOrder, records, rfqMap, purchaseRequestMap)
+      items: createFormItems(purchaseOrder, records, inventoryLots, rfqMap, purchaseRequestMap)
     }))
   }
 
@@ -452,10 +528,21 @@ export default function GoodsReceipts({ currentUser }: Props){
         const nextItem = { ...item, [field]: nextQuantity }
 
         if(field === 'receivedQuantity'){
+          const acceptedQuantity = Math.min(nextItem.acceptedQuantity, Math.max(0, nextQuantity))
           return {
             ...nextItem,
-            acceptedQuantity: Math.min(nextItem.acceptedQuantity, Math.max(0, nextQuantity)),
-            rejectedQuantity: Math.min(nextItem.rejectedQuantity, Math.max(0, nextQuantity - nextItem.acceptedQuantity))
+            acceptedQuantity,
+            rejectedQuantity: Math.min(nextItem.rejectedQuantity, Math.max(0, nextQuantity - acceptedQuantity)),
+            lots: item.lots.length <= 1
+              ? item.lots.map(lot => ({ ...lot, quantity: acceptedQuantity }))
+              : item.lots
+          }
+        }
+
+        if(field === 'acceptedQuantity' && item.lots.length <= 1){
+          return {
+            ...nextItem,
+            lots: item.lots.map(lot => ({ ...lot, quantity: Math.max(0, nextQuantity) }))
           }
         }
 
@@ -464,8 +551,70 @@ export default function GoodsReceipts({ currentUser }: Props){
     }))
   }
 
+  const addLotSplit = (purchaseOrderItemId: string) => {
+    setForm(current => {
+      const existingFormLotCount = current.items.reduce((total, item) => total + item.lots.length, 0)
+
+      return {
+        ...current,
+        items: current.items.map(item => (
+          item.purchaseOrderItemId === purchaseOrderItemId
+            ? {
+              ...item,
+              lots: [
+                ...item.lots,
+                {
+                  id: createLotFormId(),
+                  lotNo: getNextInventoryLotNo(inventoryLots, existingFormLotCount),
+                  quantity: 0,
+                  productionDate: getTodayKey(),
+                  expiryDate: '',
+                  notes: ''
+                }
+              ]
+            }
+            : item
+        ))
+      }
+    })
+  }
+
+  const removeLotSplit = (purchaseOrderItemId: string, lotId: string) => {
+    setForm(current => ({
+      ...current,
+      items: current.items.map(item => (
+        item.purchaseOrderItemId === purchaseOrderItemId
+          ? { ...item, lots: item.lots.filter(lot => lot.id !== lotId) }
+          : item
+      ))
+    }))
+  }
+
+  const updateLotSplit = (
+    purchaseOrderItemId: string,
+    lotId: string,
+    field: keyof Omit<GoodsReceiptLotFormState, 'id'>,
+    value: string
+  ) => {
+    setForm(current => ({
+      ...current,
+      items: current.items.map(item => (
+        item.purchaseOrderItemId === purchaseOrderItemId
+          ? {
+            ...item,
+            lots: item.lots.map(lot => (
+              lot.id === lotId
+                ? { ...lot, [field]: field === 'quantity' ? normalizeQuantity(value) : value }
+                : lot
+            ))
+          }
+          : item
+      ))
+    }))
+  }
+
   const submitReceipt = () => {
-    const validationError = validateForm(form, purchaseOrders, records, rfqMap, purchaseRequestMap)
+    const validationError = validateForm(form, purchaseOrders, records, inventoryLots, rfqMap, purchaseRequestMap)
     if(validationError){
       setFormError(validationError)
       return
@@ -498,8 +647,14 @@ export default function GoodsReceipts({ currentUser }: Props){
 
     const status = calculateGoodsReceiptStatus(lines, previousTotals, previewItems)
     const payload = createReceiptPayload(form, purchaseOrder, status)
+    const createdInventoryLots = createInventoryLotsFromGoodsReceipt(
+      payload,
+      createInventoryLotInputsFromForm(form),
+      inventoryLots
+    )
     const nextRecords = [payload, ...records]
     const nextStockItems = applyGoodsReceiptStockQuantities(stockItems, payload.items)
+    const nextInventoryLots = [...createdInventoryLots, ...inventoryLots]
     const nextOrderStatus = calculatePurchaseOrderStatusAfterReceipt(purchaseOrder, lines, nextRecords)
     const nextPurchaseOrders = purchaseOrders.map(order => (
       order.id === purchaseOrder.id
@@ -509,9 +664,10 @@ export default function GoodsReceipts({ currentUser }: Props){
 
     commitRecords(nextRecords)
     commitStockItems(nextStockItems)
+    commitInventoryLots(nextInventoryLots)
     commitPurchaseOrders(nextPurchaseOrders)
     setSelectedRecordId(payload.id)
-    setForm(createEmptyForm(nextRecords, nextPurchaseOrders, rfqMap, purchaseRequestMap, branches, currentUser))
+    setForm(createEmptyForm(nextRecords, nextInventoryLots, nextPurchaseOrders, rfqMap, purchaseRequestMap, branches, currentUser))
     setFormError('')
     setPanelMode('detail')
   }
@@ -647,6 +803,9 @@ export default function GoodsReceipts({ currentUser }: Props){
                 onPurchaseOrderChange={updateFormPurchaseOrder}
                 onChange={setForm}
                 onItemChange={updateFormItem}
+                onLotAdd={addLotSplit}
+                onLotRemove={removeLotSplit}
+                onLotChange={updateLotSplit}
                 onSubmit={submitReceipt}
                 onCancel={cancelForm}
               />
@@ -683,6 +842,9 @@ function GoodsReceiptForm({
   onPurchaseOrderChange,
   onChange,
   onItemChange,
+  onLotAdd,
+  onLotRemove,
+  onLotChange,
   onSubmit,
   onCancel
 }: {
@@ -699,6 +861,14 @@ function GoodsReceiptForm({
   onItemChange: (
     purchaseOrderItemId: string,
     field: keyof Pick<GoodsReceiptFormItemState, 'receivedQuantity' | 'acceptedQuantity' | 'rejectedQuantity' | 'notes'>,
+    value: string
+  ) => void
+  onLotAdd: (purchaseOrderItemId: string) => void
+  onLotRemove: (purchaseOrderItemId: string, lotId: string) => void
+  onLotChange: (
+    purchaseOrderItemId: string,
+    lotId: string,
+    field: keyof Omit<GoodsReceiptLotFormState, 'id'>,
     value: string
   ) => void
   onSubmit: () => void
@@ -800,6 +970,49 @@ function GoodsReceiptForm({
                 <span>Not</span>
                 <input value={item.notes} onChange={event => onItemChange(item.purchaseOrderItemId, 'notes', event.target.value)} />
               </label>
+              <div className="goods-receipt-lot-split-panel">
+                <div className="section-header compact">
+                  <div>
+                    <h4>Lot / Batch</h4>
+                    <p className="muted">Kabul miktarı: {formatQuantity(item.acceptedQuantity, item.unit)}</p>
+                  </div>
+                  <button className="btn" type="button" onClick={() => onLotAdd(item.purchaseOrderItemId)}>Lot Ekle</button>
+                </div>
+                <div className="goods-receipt-lot-split-list">
+                  {item.lots.length === 0 && <p className="muted">Bu kalem için lot satırı bulunmuyor.</p>}
+                  {item.lots.map(lot => (
+                    <div className="goods-receipt-lot-split-row" key={lot.id}>
+                      <label>
+                        <span>Lot No</span>
+                        <input value={lot.lotNo} onChange={event => onLotChange(item.purchaseOrderItemId, lot.id, 'lotNo', event.target.value)} />
+                      </label>
+                      <label>
+                        <span>Miktar</span>
+                        <input
+                          type="number"
+                          min="0"
+                          step="0.001"
+                          value={Number.isNaN(lot.quantity) ? '' : lot.quantity}
+                          onChange={event => onLotChange(item.purchaseOrderItemId, lot.id, 'quantity', event.target.value)}
+                        />
+                      </label>
+                      <label>
+                        <span>Production Date</span>
+                        <input type="date" value={lot.productionDate} onChange={event => onLotChange(item.purchaseOrderItemId, lot.id, 'productionDate', event.target.value)} />
+                      </label>
+                      <label>
+                        <span>Expiry Date</span>
+                        <input type="date" value={lot.expiryDate} onChange={event => onLotChange(item.purchaseOrderItemId, lot.id, 'expiryDate', event.target.value)} />
+                      </label>
+                      <label className="goods-receipt-lot-note">
+                        <span>Lot Notu</span>
+                        <input value={lot.notes} onChange={event => onLotChange(item.purchaseOrderItemId, lot.id, 'notes', event.target.value)} />
+                      </label>
+                      <button className="btn" type="button" onClick={() => onLotRemove(item.purchaseOrderItemId, lot.id)}>Sil</button>
+                    </div>
+                  ))}
+                </div>
+              </div>
             </div>
           ))}
         </div>

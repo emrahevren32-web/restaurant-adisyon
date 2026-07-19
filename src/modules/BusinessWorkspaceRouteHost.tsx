@@ -26,6 +26,7 @@ import QROrders from '../pages/QROrders'
 import QRCodes from '../pages/QRCodes'
 import StockCards from '../pages/StockCards'
 import StockMovements from '../pages/StockMovements'
+import InventoryLots from '../pages/InventoryLots'
 import ProductionWorkOrders from '../pages/ProductionWorkOrders'
 import ProductionLines from '../pages/ProductionLines'
 import IntermediateProducts from '../pages/IntermediateProducts'
@@ -163,6 +164,7 @@ export default function BusinessWorkspaceRouteHost({
     )
   }
 
+  if(route === 'inventory-lots') return <InventoryLots />
   if(route === 'production-work-orders') return <ProductionWorkOrders currentUser={currentUser} />
   if(route === 'production-lines') return <ProductionLines currentUser={currentUser} />
   if(route === 'intermediate-products') return <IntermediateProducts />

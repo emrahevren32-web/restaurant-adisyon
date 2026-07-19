@@ -697,7 +697,7 @@ export const BUSINESS_WORKSPACE_MODULE_REGISTRY: BusinessWorkspaceModule[] = def
     isVisible: true,
     displayOrder: 30,
     dependencies: [],
-    tags: ['business', 'inventory'],
+    tags: ['business', 'inventory', 'lot', 'batch', 'traceability'],
     licenseModuleKey: LICENSE_MODULE_CODES.STOCK,
     pricing: { model: 'paid', currency: 'TRY' },
     marketplace: marketplaceReady,
@@ -760,13 +760,14 @@ export const BUSINESS_WORKSPACE_MODULE_REGISTRY: BusinessWorkspaceModule[] = def
       menuItem({ key: 'stock-movements', label: 'Hareketler', route: 'stock-movements', icon: 'SH', adminOnly: true, displayOrder: 20 }),
       menuItem({ key: 'critical-stock', label: 'Kritik Stok', route: 'stock-cards', icon: 'KS', adminOnly: true, displayOrder: 30 }),
       menuItem({ key: 'expiry-lots', label: 'Geçerlilik Takibi', route: 'stock-cards', icon: 'GT', adminOnly: true, displayOrder: 40 }),
-      menuItem({ key: 'waste', label: 'Kayıp Analizi', route: 'stock-movements', icon: 'KA', adminOnly: true, displayOrder: 50 }),
+      menuItem({ key: 'inventory-lots', label: 'Lot / Batch Yönetimi', route: 'inventory-lots', icon: 'LB', adminOnly: true, displayOrder: 50 }),
+      menuItem({ key: 'waste', label: 'Kayıp Analizi', route: 'stock-movements', icon: 'KA', adminOnly: true, displayOrder: 60 }),
       menuItem({
         key: 'stock-reports',
         label: 'Raporlar',
         icon: 'RP',
         adminOnly: true,
-        displayOrder: 60,
+        displayOrder: 70,
         children: [
           menuItem({ key: 'stock-risk-center', label: 'Stok ve Risk', route: 'stock-risk-center', icon: 'SR', adminOnly: true, displayOrder: 10 })
         ]
