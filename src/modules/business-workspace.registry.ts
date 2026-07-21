@@ -1207,7 +1207,7 @@ export const BUSINESS_WORKSPACE_MODULE_REGISTRY: BusinessWorkspaceModule[] = def
     isVisible: true,
     displayOrder: 46,
     dependencies: [WORKSPACE_MODULE_CODES.STOCK],
-    tags: ['business', 'logistics', 'shipment', 'warehouse', 'branch', 'inventory-lot', 'industrial-kitchen'],
+    tags: ['business', 'logistics', 'shipment', 'shipment-execution', 'warehouse', 'branch', 'inventory-lot', 'industrial-kitchen'],
     supportedSectorIds: industrialKitchenSectorIds,
     pricing: { model: 'paid', currency: 'TRY' },
     marketplace: marketplaceReady,
@@ -1224,10 +1224,24 @@ export const BUSINESS_WORKSPACE_MODULE_REGISTRY: BusinessWorkspaceModule[] = def
         supportedLayouts: ['standard', 'wide'],
         requiredPermission: 'operations.read',
         renderComponent: 'logistics.shipments.placeholder'
+      }),
+      dashboardWidget({
+        id: 'logistics.shipmentExecutions',
+        title: 'Sevkiyat Operasyonu',
+        description: 'Picking, packing, shipping ve teslim operasyonlarını takip etmek için kontrol paneli başlangıç alanı.',
+        icon: 'SO',
+        category: 'Lojistik',
+        order: 20,
+        defaultVisible: false,
+        defaultSize: 'medium',
+        supportedLayouts: ['standard', 'wide'],
+        requiredPermission: 'operations.read',
+        renderComponent: 'logistics.shipmentExecutions.placeholder'
       })
     ],
     menuItems: [
-      menuItem({ key: 'shipments', label: 'Sevkiyatlar', route: 'shipments', icon: 'SV', adminOnly: true, displayOrder: 10 })
+      menuItem({ key: 'shipments', label: 'Sevkiyatlar', route: 'shipments', icon: 'SV', adminOnly: true, displayOrder: 10 }),
+      menuItem({ key: 'shipment-executions', label: 'Sevkiyat Operasyonu', route: 'shipment-executions', icon: 'SO', adminOnly: true, displayOrder: 20 })
     ]
   },
   {

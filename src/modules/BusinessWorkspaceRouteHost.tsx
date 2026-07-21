@@ -29,6 +29,7 @@ import StockMovements from '../pages/StockMovements'
 import InventoryLots from '../pages/InventoryLots'
 import ChemicalProducts from '../pages/ChemicalProducts'
 import Shipments from '../pages/Shipments'
+import ShipmentExecutions from '../pages/ShipmentExecutions'
 import ProductionWorkOrders from '../pages/ProductionWorkOrders'
 import ProductionLines from '../pages/ProductionLines'
 import IntermediateProducts from '../pages/IntermediateProducts'
@@ -175,6 +176,7 @@ export default function BusinessWorkspaceRouteHost({
   if(route === 'inventory-lots') return <InventoryLots />
   if(route === 'chemical-products') return <ChemicalProducts />
   if(route === 'shipments') return <Shipments currentUser={currentUser} />
+  if(route === 'shipment-executions') return <ShipmentExecutions currentUser={currentUser} />
   if(route === 'production-work-orders') return <ProductionWorkOrders currentUser={currentUser} />
   if(route === 'production-lines') return <ProductionLines currentUser={currentUser} />
   if(route === 'intermediate-products') return <IntermediateProducts />

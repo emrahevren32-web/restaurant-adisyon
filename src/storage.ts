@@ -3948,7 +3948,7 @@ export const saveStockItems = (items: StockItem[]) => {
   saveBranchScopedItems(KEY_STOCK_ITEMS, items, item => normalizeStockItem(item, fallbackCategoryId))
 }
 
-const saveAllStockItems = (items: StockItem[]) => {
+export const saveAllStockItems = (items: StockItem[]) => {
   const categories = loadStockCategories()
   const fallbackCategoryId = categories.find(c => c.id === DEFAULT_STOCK_CATEGORY_ID)?.id || categories[0]?.id || DEFAULT_STOCK_CATEGORY_ID
   saveAllBranchScopedItems(KEY_STOCK_ITEMS, items, item => normalizeStockItem(item, fallbackCategoryId))
@@ -3962,11 +3962,11 @@ export const saveStockMovements = (items: StockMovement[]) => {
   saveBranchScopedItems(KEY_STOCK_MOVEMENTS, items, normalizeStockMovement)
 }
 
-const loadAllStockMovements = (): StockMovement[] => {
+export const loadAllStockMovements = (): StockMovement[] => {
   return loadAllBranchScopedItems<StockMovement>(KEY_STOCK_MOVEMENTS, normalizeStockMovement)
 }
 
-const saveAllStockMovements = (items: StockMovement[]) => {
+export const saveAllStockMovements = (items: StockMovement[]) => {
   saveAllBranchScopedItems(KEY_STOCK_MOVEMENTS, items, normalizeStockMovement)
 }
 

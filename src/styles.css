@@ -3855,3 +3855,77 @@ th { color:var(--muted-strong); font-size:13px; font-weight:750 }
   .shipment-table tbody tr:hover td,
   .shipment-product-row div:nth-child(2) { text-align:left }
 }
+
+.shipment-execution-page { display:grid; gap:18px }
+.shipment-execution-create-card { display:grid; grid-template-columns:minmax(220px, 1fr) auto; gap:10px; align-items:center; margin-bottom:12px }
+.shipment-execution-toolbar { display:grid; grid-template-columns:minmax(220px, 1.4fr) repeat(4, minmax(125px, 1fr)); gap:10px; align-items:center }
+.shipment-execution-side { display:flex; flex-direction:column; gap:12px; min-width:0 }
+.shipment-execution-detail-card { margin-bottom:0 }
+.shipment-execution-action-grid { display:grid; grid-template-columns:repeat(2, minmax(0, 1fr)); gap:8px; align-items:center; margin-top:12px }
+.shipment-execution-detail-grid { display:grid; grid-template-columns:repeat(2, minmax(0, 1fr)); gap:10px }
+.shipment-execution-detail-grid div { min-width:0; border:1px solid var(--line); border-radius:var(--radius-md); padding:10px 11px; background:var(--surface-muted) }
+.shipment-execution-detail-grid span { display:block; color:var(--muted); font-size:12px; font-weight:850; line-height:1.2 }
+.shipment-execution-detail-grid strong { display:block; margin-top:4px; color:var(--text); font-size:14px; font-weight:900; overflow-wrap:anywhere }
+.shipment-execution-item-list { display:grid; gap:10px; min-width:0 }
+.shipment-execution-item-row { display:grid; gap:10px; border:1px solid var(--line); border-radius:var(--radius-md); padding:10px 11px; background:var(--surface-muted); min-width:0 }
+.shipment-execution-item-title { min-width:0 }
+.shipment-execution-item-title strong,
+.shipment-execution-item-title span { display:block; overflow-wrap:anywhere }
+.shipment-execution-item-title strong { color:var(--text); font-size:14px; font-weight:900 }
+.shipment-execution-item-title span { margin-top:3px; color:var(--muted); font-size:12px; font-weight:800 }
+.shipment-execution-quantity-grid,
+.shipment-execution-input-grid { display:grid; grid-template-columns:repeat(3, minmax(0, 1fr)); gap:8px; min-width:0 }
+.shipment-execution-quantity-grid div { min-width:0; border:1px solid var(--line); border-radius:var(--radius-sm); padding:8px; background:var(--surface) }
+.shipment-execution-quantity-grid span,
+.shipment-execution-input-grid label span,
+.shipment-execution-notes-field span { display:block; color:var(--muted); font-size:11px; font-weight:850; line-height:1.2; margin-bottom:4px }
+.shipment-execution-quantity-grid strong { display:block; color:var(--text); font-size:13px; font-weight:900; overflow-wrap:anywhere }
+.shipment-execution-table td:first-child strong,
+.shipment-execution-table td:first-child span { display:block }
+.shipment-execution-table td:first-child,
+.shipment-execution-table td:nth-child(2),
+.shipment-execution-table td:nth-child(3),
+.shipment-execution-table td:nth-child(4) { overflow-wrap:anywhere }
+.shipment-execution-notes { margin:10px 0 0; color:var(--text); line-height:1.5; overflow-wrap:anywhere; white-space:pre-wrap }
+
+@media (max-width: 980px){
+  .shipment-execution-layout { display:block }
+  .shipment-execution-side { margin-top:14px }
+  .shipment-execution-create-card,
+  .shipment-execution-toolbar,
+  .shipment-execution-action-grid,
+  .shipment-execution-detail-grid,
+  .shipment-execution-quantity-grid,
+  .shipment-execution-input-grid { grid-template-columns:1fr; width:100% }
+  .shipment-execution-table-wrap { overflow:visible; border:0; background:transparent; box-shadow:none }
+  .shipment-execution-table-wrap .shipment-execution-table { min-width:0 }
+  .shipment-execution-table,
+  .shipment-execution-table thead,
+  .shipment-execution-table tbody,
+  .shipment-execution-table tr,
+  .shipment-execution-table td { display:block; width:100%; min-width:0 }
+  .shipment-execution-table thead { display:none }
+  .shipment-execution-table tbody { display:grid; gap:10px }
+  .shipment-execution-table tbody tr,
+  .shipment-execution-table tbody tr:nth-child(even),
+  .shipment-execution-table tbody tr:hover { display:grid; grid-template-columns:repeat(2, minmax(0, 1fr)); gap:9px; border:1px solid var(--line); border-radius:var(--radius-md); padding:11px 12px; background:var(--surface); box-shadow:var(--shadow-xs) }
+  .shipment-execution-table tbody tr td,
+  .shipment-execution-table tbody tr:nth-child(even) td,
+  .shipment-execution-table tbody tr:hover td { height:auto; min-height:0; border:0; padding:0; background:transparent; box-shadow:none; text-align:right }
+  .shipment-execution-table tbody td::before { content:attr(data-label); display:block; margin-bottom:3px; color:var(--muted); font-size:11px; font-weight:850; line-height:1.2; text-align:left }
+  .shipment-execution-table tbody td:first-child,
+  .shipment-execution-table tbody td:nth-child(4),
+  .shipment-execution-table tbody td.empty-cell { grid-column:1 / -1; text-align:left }
+  .shipment-execution-table tbody td:first-child strong,
+  .shipment-execution-table tbody td:nth-child(4) { text-align:left }
+  .shipment-execution-table tbody td.empty-cell { text-align:center }
+}
+
+@media (max-width: 560px){
+  .shipment-execution-table tbody tr,
+  .shipment-execution-table tbody tr:nth-child(even),
+  .shipment-execution-table tbody tr:hover { grid-template-columns:1fr }
+  .shipment-execution-table tbody tr td,
+  .shipment-execution-table tbody tr:nth-child(even) td,
+  .shipment-execution-table tbody tr:hover td { text-align:left }
+}
