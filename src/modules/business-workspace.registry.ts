@@ -1193,6 +1193,44 @@ export const BUSINESS_WORKSPACE_MODULE_REGISTRY: BusinessWorkspaceModule[] = def
     ]
   },
   {
+    id: 'business-logistics',
+    code: SECTOR_TEMPLATE_MODULE_CODES.COURIER,
+    name: 'Lojistik',
+    description: 'Merkez depo, üretim, şube ve depo arası sevkiyat emirlerini lot bazında planlayan iş modülü.',
+    category: 'business',
+    icon: 'LJ',
+    route: 'shipments',
+    permissions: ['stock.read', 'operations.read', 'operations.write'],
+    isCoreModule: false,
+    isBusinessModule: true,
+    isEnabled: true,
+    isVisible: true,
+    displayOrder: 46,
+    dependencies: [WORKSPACE_MODULE_CODES.STOCK],
+    tags: ['business', 'logistics', 'shipment', 'warehouse', 'branch', 'inventory-lot', 'industrial-kitchen'],
+    supportedSectorIds: industrialKitchenSectorIds,
+    pricing: { model: 'paid', currency: 'TRY' },
+    marketplace: marketplaceReady,
+    dashboardWidgets: [
+      dashboardWidget({
+        id: 'logistics.shipments',
+        title: 'Sevkiyatlar',
+        description: 'Depo, üretim ve şube arası sevkiyat planlarını takip etmek için kontrol paneli başlangıç alanı.',
+        icon: 'SV',
+        category: 'Lojistik',
+        order: 10,
+        defaultVisible: false,
+        defaultSize: 'medium',
+        supportedLayouts: ['standard', 'wide'],
+        requiredPermission: 'operations.read',
+        renderComponent: 'logistics.shipments.placeholder'
+      })
+    ],
+    menuItems: [
+      menuItem({ key: 'shipments', label: 'Sevkiyatlar', route: 'shipments', icon: 'SV', adminOnly: true, displayOrder: 10 })
+    ]
+  },
+  {
     id: 'business-current',
     code: WORKSPACE_MODULE_CODES.CURRENT,
     name: 'Cari',
