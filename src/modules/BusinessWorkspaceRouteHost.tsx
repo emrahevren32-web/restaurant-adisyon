@@ -30,6 +30,7 @@ import InventoryLots from '../pages/InventoryLots'
 import ChemicalProducts from '../pages/ChemicalProducts'
 import ShipmentWorkOrders from '../pages/ShipmentWorkOrders'
 import ShipmentPallets from '../pages/ShipmentPallets'
+import ShipmentVehicles from '../pages/ShipmentVehicles'
 import Shipments from '../pages/Shipments'
 import ShipmentExecutions from '../pages/ShipmentExecutions'
 import TransferReceipts from '../pages/TransferReceipts'
@@ -180,6 +181,7 @@ export default function BusinessWorkspaceRouteHost({
   if(route === 'chemical-products') return <ChemicalProducts />
   if(route === 'shipment-work-orders') return <ShipmentWorkOrders currentUser={currentUser} />
   if(route === 'shipment-pallets') return <ShipmentPallets currentUser={currentUser} />
+  if(route === 'shipment-vehicles') return <ShipmentVehicles currentUser={currentUser} />
   if(route === 'shipments') return <Shipments currentUser={currentUser} />
   if(route === 'shipment-executions') return <ShipmentExecutions currentUser={currentUser} />
   if(route === 'transfer-receipts') return <TransferReceipts currentUser={currentUser} />
