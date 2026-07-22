@@ -3929,3 +3929,74 @@ th { color:var(--muted-strong); font-size:13px; font-weight:750 }
   .shipment-execution-table tbody tr:nth-child(even) td,
   .shipment-execution-table tbody tr:hover td { text-align:left }
 }
+
+.transfer-receipt-page { display:grid; gap:18px }
+.transfer-receipt-create-card { display:grid; grid-template-columns:minmax(220px, 1fr) auto; gap:10px; align-items:center; margin-bottom:12px }
+.transfer-receipt-toolbar { display:grid; grid-template-columns:minmax(220px, 1.4fr) repeat(4, minmax(125px, 1fr)); gap:10px; align-items:center }
+.transfer-receipt-side { display:flex; flex-direction:column; gap:12px; min-width:0 }
+.transfer-receipt-detail-card { margin-bottom:0 }
+.transfer-receipt-action-grid { display:grid; grid-template-columns:repeat(2, minmax(0, 1fr)); gap:8px; align-items:center; margin-top:12px }
+.transfer-receipt-detail-grid { display:grid; grid-template-columns:repeat(2, minmax(0, 1fr)); gap:10px }
+.transfer-receipt-detail-grid div { min-width:0; border:1px solid var(--line); border-radius:var(--radius-md); padding:10px 11px; background:var(--surface-muted) }
+.transfer-receipt-detail-grid span { display:block; color:var(--muted); font-size:12px; font-weight:850; line-height:1.2 }
+.transfer-receipt-detail-grid strong { display:block; margin-top:4px; color:var(--text); font-size:14px; font-weight:900; overflow-wrap:anywhere }
+.transfer-receipt-item-list { display:grid; gap:10px; min-width:0 }
+.transfer-receipt-item-row { display:grid; gap:10px; border:1px solid var(--line); border-radius:var(--radius-md); padding:10px 11px; background:var(--surface-muted); min-width:0 }
+.transfer-receipt-item-title { min-width:0 }
+.transfer-receipt-item-title strong,
+.transfer-receipt-item-title span { display:block; overflow-wrap:anywhere }
+.transfer-receipt-item-title strong { color:var(--text); font-size:14px; font-weight:900 }
+.transfer-receipt-item-title span { margin-top:3px; color:var(--muted); font-size:12px; font-weight:800 }
+.transfer-receipt-quantity-grid,
+.transfer-receipt-input-grid { display:grid; grid-template-columns:repeat(3, minmax(0, 1fr)); gap:8px; min-width:0 }
+.transfer-receipt-quantity-grid div { min-width:0; border:1px solid var(--line); border-radius:var(--radius-sm); padding:8px; background:var(--surface) }
+.transfer-receipt-quantity-grid span,
+.transfer-receipt-input-grid label span,
+.transfer-receipt-notes-field span { display:block; color:var(--muted); font-size:11px; font-weight:850; line-height:1.2; margin-bottom:4px }
+.transfer-receipt-quantity-grid strong { display:block; color:var(--text); font-size:13px; font-weight:900; overflow-wrap:anywhere }
+.transfer-receipt-table td:first-child strong,
+.transfer-receipt-table td:first-child span { display:block }
+.transfer-receipt-table td:first-child,
+.transfer-receipt-table td:nth-child(2),
+.transfer-receipt-table td:nth-child(3) { overflow-wrap:anywhere }
+.transfer-receipt-notes { margin:10px 0 0; color:var(--text); line-height:1.5; overflow-wrap:anywhere; white-space:pre-wrap }
+
+@media (max-width: 980px){
+  .transfer-receipt-layout { display:block }
+  .transfer-receipt-side { margin-top:14px }
+  .transfer-receipt-create-card,
+  .transfer-receipt-toolbar,
+  .transfer-receipt-action-grid,
+  .transfer-receipt-detail-grid,
+  .transfer-receipt-quantity-grid,
+  .transfer-receipt-input-grid { grid-template-columns:1fr; width:100% }
+  .transfer-receipt-table-wrap { overflow:visible; border:0; background:transparent; box-shadow:none }
+  .transfer-receipt-table-wrap .transfer-receipt-table { min-width:0 }
+  .transfer-receipt-table,
+  .transfer-receipt-table thead,
+  .transfer-receipt-table tbody,
+  .transfer-receipt-table tr,
+  .transfer-receipt-table td { display:block; width:100%; min-width:0 }
+  .transfer-receipt-table thead { display:none }
+  .transfer-receipt-table tbody { display:grid; gap:10px }
+  .transfer-receipt-table tbody tr,
+  .transfer-receipt-table tbody tr:nth-child(even),
+  .transfer-receipt-table tbody tr:hover { display:grid; grid-template-columns:repeat(2, minmax(0, 1fr)); gap:9px; border:1px solid var(--line); border-radius:var(--radius-md); padding:11px 12px; background:var(--surface); box-shadow:var(--shadow-xs) }
+  .transfer-receipt-table tbody tr td,
+  .transfer-receipt-table tbody tr:nth-child(even) td,
+  .transfer-receipt-table tbody tr:hover td { height:auto; min-height:0; border:0; padding:0; background:transparent; box-shadow:none; text-align:right }
+  .transfer-receipt-table tbody td::before { content:attr(data-label); display:block; margin-bottom:3px; color:var(--muted); font-size:11px; font-weight:850; line-height:1.2; text-align:left }
+  .transfer-receipt-table tbody td:first-child,
+  .transfer-receipt-table tbody td.empty-cell { grid-column:1 / -1; text-align:left }
+  .transfer-receipt-table tbody td:first-child strong { text-align:left }
+  .transfer-receipt-table tbody td.empty-cell { text-align:center }
+}
+
+@media (max-width: 560px){
+  .transfer-receipt-table tbody tr,
+  .transfer-receipt-table tbody tr:nth-child(even),
+  .transfer-receipt-table tbody tr:hover { grid-template-columns:1fr }
+  .transfer-receipt-table tbody tr td,
+  .transfer-receipt-table tbody tr:nth-child(even) td,
+  .transfer-receipt-table tbody tr:hover td { text-align:left }
+}
