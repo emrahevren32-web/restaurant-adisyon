@@ -3813,17 +3813,24 @@ th { color:var(--muted-strong); font-size:13px; font-weight:750 }
 .shipment-work-order-page .shipment-item-editor { grid-template-columns:minmax(180px, 1.4fr) repeat(3, minmax(90px, .6fr)) }
 .shipment-work-order-link-toolbar { display:grid; grid-template-columns:minmax(0, 1fr) auto; gap:8px; align-items:center }
 .shipment-work-order-page .shipment-product-row button { grid-column:1 / -1; justify-self:start }
+.shipment-pallet-toolbar { display:grid; grid-template-columns:minmax(220px, 1.4fr) repeat(2, minmax(135px, .8fr)); gap:10px; align-items:center }
+.shipment-pallet-page .shipment-form-grid > div { min-width:0; border:1px solid var(--line); border-radius:var(--radius-md); padding:10px 11px; background:var(--surface-muted) }
+.shipment-pallet-page .shipment-form-grid > div span { display:block; color:var(--muted); font-size:12px; font-weight:850; line-height:1.2 }
+.shipment-pallet-page .shipment-form-grid > div strong { display:block; margin-top:4px; color:var(--text); font-size:14px; font-weight:900; overflow-wrap:anywhere }
+.shipment-pallet-page .shipment-item-editor { grid-template-columns:minmax(190px, 1.4fr) minmax(95px, .65fr) minmax(120px, 1fr) }
 
 @media (max-width: 980px){
   .shipment-layout { display:block }
   .shipment-side { margin-top:14px }
   .shipment-toolbar,
+  .shipment-pallet-toolbar,
   .shipment-form-grid,
   .shipment-detail-grid,
   .shipment-side-actions,
   .shipment-work-order-link-toolbar,
   .shipment-item-editor { grid-template-columns:1fr; width:100% }
   .shipment-work-order-page .shipment-item-editor { grid-template-columns:1fr; width:100% }
+  .shipment-pallet-page .shipment-item-editor { grid-template-columns:1fr; width:100% }
   .shipment-form-wide,
   .shipment-item-meta { grid-column:auto }
   .shipment-table-wrap { overflow:visible; border:0; background:transparent; box-shadow:none }
