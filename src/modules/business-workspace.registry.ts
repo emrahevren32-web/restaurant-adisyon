@@ -1207,7 +1207,7 @@ export const BUSINESS_WORKSPACE_MODULE_REGISTRY: BusinessWorkspaceModule[] = def
     isVisible: true,
     displayOrder: 46,
     dependencies: [WORKSPACE_MODULE_CODES.STOCK],
-    tags: ['business', 'logistics', 'shipment-work-order', 'shipment-pallet', 'shipment-vehicle', 'vehicle-planning', 'shipment', 'shipment-execution', 'transfer-receipt', 'warehouse', 'branch', 'inventory-lot', 'industrial-kitchen'],
+    tags: ['business', 'logistics', 'shipment-work-order', 'shipment-pallet', 'shipment-vehicle', 'vehicle-planning', 'shipment-plan', 'shipment', 'shipment-execution', 'transfer-receipt', 'warehouse', 'branch', 'inventory-lot', 'industrial-kitchen'],
     supportedSectorIds: industrialKitchenSectorIds,
     pricing: { model: 'paid', currency: 'TRY' },
     marketplace: marketplaceReady,
@@ -1265,6 +1265,19 @@ export const BUSINESS_WORKSPACE_MODULE_REGISTRY: BusinessWorkspaceModule[] = def
         renderComponent: 'logistics.shipmentVehicles.placeholder'
       }),
       dashboardWidget({
+        id: 'logistics.shipmentPlans',
+        title: 'Sevkiyat Planı',
+        description: 'READY araçları teslim duraklarına göre gerçek sevkiyat turuna dönüştürmek için kontrol paneli başlangıç alanı.',
+        icon: 'SP',
+        category: 'Lojistik',
+        order: 19,
+        defaultVisible: false,
+        defaultSize: 'medium',
+        supportedLayouts: ['standard', 'wide'],
+        requiredPermission: 'operations.read',
+        renderComponent: 'logistics.shipmentPlans.placeholder'
+      }),
+      dashboardWidget({
         id: 'logistics.shipmentExecutions',
         title: 'Sevkiyat Operasyonu',
         description: 'Picking, packing, shipping ve teslim operasyonlarını takip etmek için kontrol paneli başlangıç alanı.',
@@ -1295,6 +1308,7 @@ export const BUSINESS_WORKSPACE_MODULE_REGISTRY: BusinessWorkspaceModule[] = def
       menuItem({ key: 'shipment-work-orders', label: 'İş Emirleri', route: 'shipment-work-orders', icon: 'IE', adminOnly: true, displayOrder: 5 }),
       menuItem({ key: 'shipment-pallets', label: 'Paletleme', route: 'shipment-pallets', icon: 'PL', adminOnly: true, displayOrder: 7 }),
       menuItem({ key: 'shipment-vehicles', label: 'Araç Planlama', route: 'shipment-vehicles', icon: 'AP', adminOnly: true, displayOrder: 8 }),
+      menuItem({ key: 'shipment-plans', label: 'Sevkiyat Planı', route: 'shipment-plans', icon: 'SP', adminOnly: true, displayOrder: 9 }),
       menuItem({ key: 'shipments', label: 'Sevkiyatlar', route: 'shipments', icon: 'SV', adminOnly: true, displayOrder: 10 }),
       menuItem({ key: 'shipment-executions', label: 'Sevkiyat Operasyonu', route: 'shipment-executions', icon: 'SO', adminOnly: true, displayOrder: 20 }),
       menuItem({ key: 'transfer-receipts', label: 'Depoya Kabul', route: 'transfer-receipts', icon: 'DK', adminOnly: true, displayOrder: 30 })
