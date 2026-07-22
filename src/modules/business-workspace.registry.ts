@@ -1207,11 +1207,24 @@ export const BUSINESS_WORKSPACE_MODULE_REGISTRY: BusinessWorkspaceModule[] = def
     isVisible: true,
     displayOrder: 46,
     dependencies: [WORKSPACE_MODULE_CODES.STOCK],
-    tags: ['business', 'logistics', 'shipment', 'shipment-execution', 'transfer-receipt', 'warehouse', 'branch', 'inventory-lot', 'industrial-kitchen'],
+    tags: ['business', 'logistics', 'shipment-work-order', 'shipment', 'shipment-execution', 'transfer-receipt', 'warehouse', 'branch', 'inventory-lot', 'industrial-kitchen'],
     supportedSectorIds: industrialKitchenSectorIds,
     pricing: { model: 'paid', currency: 'TRY' },
     marketplace: marketplaceReady,
     dashboardWidgets: [
+      dashboardWidget({
+        id: 'logistics.shipmentWorkOrders',
+        title: 'İş Emirleri',
+        description: 'Şube taleplerini lojistik iş emrine dönüştürmek ve picking başlangıcını takip etmek için kontrol paneli başlangıç alanı.',
+        icon: 'IE',
+        category: 'Lojistik',
+        order: 5,
+        defaultVisible: false,
+        defaultSize: 'medium',
+        supportedLayouts: ['standard', 'wide'],
+        requiredPermission: 'operations.read',
+        renderComponent: 'logistics.shipmentWorkOrders.placeholder'
+      }),
       dashboardWidget({
         id: 'logistics.shipments',
         title: 'Sevkiyatlar',
@@ -1253,6 +1266,7 @@ export const BUSINESS_WORKSPACE_MODULE_REGISTRY: BusinessWorkspaceModule[] = def
       })
     ],
     menuItems: [
+      menuItem({ key: 'shipment-work-orders', label: 'İş Emirleri', route: 'shipment-work-orders', icon: 'IE', adminOnly: true, displayOrder: 5 }),
       menuItem({ key: 'shipments', label: 'Sevkiyatlar', route: 'shipments', icon: 'SV', adminOnly: true, displayOrder: 10 }),
       menuItem({ key: 'shipment-executions', label: 'Sevkiyat Operasyonu', route: 'shipment-executions', icon: 'SO', adminOnly: true, displayOrder: 20 }),
       menuItem({ key: 'transfer-receipts', label: 'Depoya Kabul', route: 'transfer-receipts', icon: 'DK', adminOnly: true, displayOrder: 30 })

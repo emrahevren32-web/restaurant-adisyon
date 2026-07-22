@@ -3810,6 +3810,9 @@ th { color:var(--muted-strong); font-size:13px; font-weight:750 }
 .shipment-table td:nth-child(3) { overflow-wrap:anywhere }
 .shipment-notes,
 .shipment-empty-state { margin:0; color:var(--text); line-height:1.5; overflow-wrap:anywhere; white-space:pre-wrap }
+.shipment-work-order-page .shipment-item-editor { grid-template-columns:minmax(180px, 1.4fr) repeat(3, minmax(90px, .6fr)) }
+.shipment-work-order-link-toolbar { display:grid; grid-template-columns:minmax(0, 1fr) auto; gap:8px; align-items:center }
+.shipment-work-order-page .shipment-product-row button { grid-column:1 / -1; justify-self:start }
 
 @media (max-width: 980px){
   .shipment-layout { display:block }
@@ -3818,7 +3821,9 @@ th { color:var(--muted-strong); font-size:13px; font-weight:750 }
   .shipment-form-grid,
   .shipment-detail-grid,
   .shipment-side-actions,
+  .shipment-work-order-link-toolbar,
   .shipment-item-editor { grid-template-columns:1fr; width:100% }
+  .shipment-work-order-page .shipment-item-editor { grid-template-columns:1fr; width:100% }
   .shipment-form-wide,
   .shipment-item-meta { grid-column:auto }
   .shipment-table-wrap { overflow:visible; border:0; background:transparent; box-shadow:none }
