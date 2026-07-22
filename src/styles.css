@@ -3841,6 +3841,14 @@ th { color:var(--muted-strong); font-size:13px; font-weight:750 }
 .shipment-return-page .shipment-item-editor > button { justify-self:start }
 .shipment-return-table td:first-child strong,
 .shipment-return-table td:first-child span { display:block }
+.shipment-waybill-toolbar { display:grid; grid-template-columns:minmax(220px, 1.4fr) repeat(3, minmax(135px, .8fr)); gap:10px; align-items:center }
+.shipment-waybill-page .shipment-form-grid > div { min-width:0; border:1px solid var(--line); border-radius:var(--radius-md); padding:10px 11px; background:var(--surface-muted) }
+.shipment-waybill-page .shipment-form-grid > div span { display:block; color:var(--muted); font-size:12px; font-weight:850; line-height:1.2 }
+.shipment-waybill-page .shipment-form-grid > div strong { display:block; margin-top:4px; color:var(--text); font-size:14px; font-weight:900; overflow-wrap:anywhere }
+.shipment-waybill-page .shipment-item-editor { grid-template-columns:repeat(2, minmax(0, 1fr)) }
+.shipment-waybill-page .shipment-item-editor > button { justify-self:start }
+.shipment-waybill-table td:first-child strong,
+.shipment-waybill-table td:first-child span { display:block }
 
 @media (max-width: 980px){
   .shipment-layout { display:block }
@@ -3850,6 +3858,7 @@ th { color:var(--muted-strong); font-size:13px; font-weight:750 }
   .shipment-vehicle-toolbar,
   .shipment-plan-toolbar,
   .shipment-return-toolbar,
+  .shipment-waybill-toolbar,
   .shipment-form-grid,
   .shipment-detail-grid,
   .shipment-side-actions,
@@ -3860,6 +3869,7 @@ th { color:var(--muted-strong); font-size:13px; font-weight:750 }
   .shipment-vehicle-page .shipment-item-editor { grid-template-columns:1fr; width:100% }
   .shipment-plan-page .shipment-item-editor { grid-template-columns:1fr; width:100% }
   .shipment-return-page .shipment-item-editor { grid-template-columns:1fr; width:100% }
+  .shipment-waybill-page .shipment-item-editor { grid-template-columns:1fr; width:100% }
   .shipment-form-wide,
   .shipment-item-meta { grid-column:auto }
   .shipment-table-wrap { overflow:visible; border:0; background:transparent; box-shadow:none }

@@ -1207,7 +1207,7 @@ export const BUSINESS_WORKSPACE_MODULE_REGISTRY: BusinessWorkspaceModule[] = def
     isVisible: true,
     displayOrder: 46,
     dependencies: [WORKSPACE_MODULE_CODES.STOCK],
-    tags: ['business', 'logistics', 'shipment-work-order', 'shipment-pallet', 'shipment-vehicle', 'vehicle-planning', 'shipment-plan', 'shipment-return', 'shipment', 'shipment-execution', 'transfer-receipt', 'warehouse', 'branch', 'inventory-lot', 'industrial-kitchen'],
+    tags: ['business', 'logistics', 'shipment-work-order', 'shipment-pallet', 'shipment-vehicle', 'vehicle-planning', 'shipment-plan', 'shipment-return', 'shipment-waybill', 'waybill', 'shipment', 'shipment-execution', 'transfer-receipt', 'warehouse', 'branch', 'inventory-lot', 'industrial-kitchen'],
     supportedSectorIds: industrialKitchenSectorIds,
     pricing: { model: 'paid', currency: 'TRY' },
     marketplace: marketplaceReady,
@@ -1315,6 +1315,19 @@ export const BUSINESS_WORKSPACE_MODULE_REGISTRY: BusinessWorkspaceModule[] = def
         supportedLayouts: ['standard', 'wide'],
         requiredPermission: 'operations.read',
         renderComponent: 'logistics.shipmentReturns.placeholder'
+      }),
+      dashboardWidget({
+        id: 'logistics.shipmentWaybills',
+        title: 'İrsaliye Süreci',
+        description: 'Tamamlanan sevkiyatların resmi sevk evraklarını delivery ve return referanslarıyla yönetmek için kontrol paneli başlangıç alanı.',
+        icon: 'IR',
+        category: 'Lojistik',
+        order: 50,
+        defaultVisible: false,
+        defaultSize: 'medium',
+        supportedLayouts: ['standard', 'wide'],
+        requiredPermission: 'operations.read',
+        renderComponent: 'logistics.shipmentWaybills.placeholder'
       })
     ],
     menuItems: [
@@ -1325,7 +1338,8 @@ export const BUSINESS_WORKSPACE_MODULE_REGISTRY: BusinessWorkspaceModule[] = def
       menuItem({ key: 'shipments', label: 'Sevkiyatlar', route: 'shipments', icon: 'SV', adminOnly: true, displayOrder: 10 }),
       menuItem({ key: 'shipment-executions', label: 'Sevkiyat Operasyonu', route: 'shipment-executions', icon: 'SO', adminOnly: true, displayOrder: 20 }),
       menuItem({ key: 'transfer-receipts', label: 'Depoya Kabul', route: 'transfer-receipts', icon: 'DK', adminOnly: true, displayOrder: 30 }),
-      menuItem({ key: 'shipment-returns', label: 'İade Süreci', route: 'shipment-returns', icon: 'IS', adminOnly: true, displayOrder: 40 })
+      menuItem({ key: 'shipment-returns', label: 'İade Süreci', route: 'shipment-returns', icon: 'IS', adminOnly: true, displayOrder: 40 }),
+      menuItem({ key: 'shipment-waybills', label: 'İrsaliye Süreci', route: 'shipment-waybills', icon: 'IR', adminOnly: true, displayOrder: 50 })
     ]
   },
   {
