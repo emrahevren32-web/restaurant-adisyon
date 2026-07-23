@@ -3267,6 +3267,24 @@ th { color:var(--muted-strong); font-size:13px; font-weight:750 }
 .inventory-lot-table td:nth-child(6) span { margin-top:4px }
 .inventory-lot-notes { margin:0; color:var(--text); line-height:1.5; overflow-wrap:anywhere }
 
+.lot-system-page { display:grid; gap:18px }
+.lot-system-header-actions { display:flex; flex-wrap:wrap; gap:10px; align-items:center; justify-content:flex-end }
+.lot-system-toolbar { display:grid; grid-template-columns:minmax(220px, 1.4fr) repeat(4, minmax(130px, 1fr)); gap:10px; align-items:center }
+.lot-system-side { display:flex; flex-direction:column; gap:12px; min-width:0 }
+.lot-system-detail-card { margin-bottom:0 }
+.lot-system-side-actions { display:grid; grid-template-columns:repeat(2, minmax(0, 1fr)); gap:8px; align-items:center; margin-top:12px }
+.lot-system-detail-grid { display:grid; grid-template-columns:repeat(2, minmax(0, 1fr)); gap:10px }
+.lot-system-detail-grid div { min-width:0; border:1px solid var(--line); border-radius:var(--radius-md); padding:10px 11px; background:var(--surface-muted) }
+.lot-system-detail-grid span { display:block; color:var(--muted); font-size:12px; font-weight:850; line-height:1.2 }
+.lot-system-detail-grid strong { display:block; margin-top:4px; color:var(--text); font-size:14px; font-weight:900; overflow-wrap:anywhere }
+.lot-system-form { gap:14px }
+.lot-system-form-grid { display:grid; grid-template-columns:repeat(2, minmax(0, 1fr)); gap:12px }
+.lot-system-form-wide { grid-column:1 / -1 }
+.lot-system-table td:nth-child(2),
+.lot-system-table td:nth-child(3),
+.lot-system-table td:nth-child(4) { overflow-wrap:anywhere }
+.lot-system-notes { margin:0; color:var(--text); line-height:1.5; overflow-wrap:anywhere; white-space:pre-wrap }
+
 .quality-control-page { display:grid; gap:18px }
 .quality-control-toolbar { display:grid; grid-template-columns:minmax(220px, 1.4fr) repeat(5, minmax(125px, 1fr)); gap:10px; align-items:center }
 .quality-control-side { display:flex; flex-direction:column; gap:12px; min-width:0 }
@@ -3330,6 +3348,49 @@ th { color:var(--muted-strong); font-size:13px; font-weight:750 }
 .quality-form-table td:nth-child(2),
 .quality-form-table td:nth-child(3) { overflow-wrap:anywhere }
 .quality-form-notes { margin:0; color:var(--text); line-height:1.5; overflow-wrap:anywhere; white-space:pre-wrap }
+
+@media (max-width: 980px){
+  .lot-system-layout { display:block }
+  .lot-system-side { margin-top:14px }
+  .lot-system-header-actions { justify-content:flex-start; width:100% }
+  .lot-system-toolbar,
+  .lot-system-form-grid,
+  .lot-system-detail-grid,
+  .lot-system-side-actions { grid-template-columns:1fr; width:100% }
+  .lot-system-table-wrap { overflow:visible; border:0; background:transparent; box-shadow:none }
+  .lot-system-table-wrap .lot-system-table { min-width:0 }
+  .lot-system-table,
+  .lot-system-table thead,
+  .lot-system-table tbody,
+  .lot-system-table tr,
+  .lot-system-table td { display:block; width:100%; min-width:0 }
+  .lot-system-table thead { display:none }
+  .lot-system-table tbody { display:grid; gap:10px }
+  .lot-system-table tbody tr,
+  .lot-system-table tbody tr:nth-child(even),
+  .lot-system-table tbody tr:hover { display:grid; grid-template-columns:repeat(2, minmax(0, 1fr)); gap:9px; border:1px solid var(--line); border-radius:var(--radius-md); padding:11px 12px; background:var(--surface); box-shadow:var(--shadow-xs) }
+  .lot-system-table tbody tr td,
+  .lot-system-table tbody tr:nth-child(even) td,
+  .lot-system-table tbody tr:hover td { height:auto; min-height:0; border:0; padding:0; background:transparent; box-shadow:none; text-align:right }
+  .lot-system-table tbody td::before { content:attr(data-label); display:block; margin-bottom:3px; color:var(--muted); font-size:11px; font-weight:850; line-height:1.2; text-align:left }
+  .lot-system-table tbody td:nth-child(2),
+  .lot-system-table tbody td:nth-child(3),
+  .lot-system-table tbody td.empty-cell { grid-column:1 / -1; text-align:left }
+  .lot-system-table tbody td:nth-child(2) strong,
+  .lot-system-table tbody td:nth-child(3) strong { text-align:left }
+  .lot-system-table tbody td.empty-cell { text-align:center }
+  .lot-system-form-wide { grid-column:auto }
+}
+
+@media (max-width: 560px){
+  .lot-system-header-actions .btn { width:100% }
+  .lot-system-table tbody tr,
+  .lot-system-table tbody tr:nth-child(even),
+  .lot-system-table tbody tr:hover { grid-template-columns:1fr }
+  .lot-system-table tbody tr td,
+  .lot-system-table tbody tr:nth-child(even) td,
+  .lot-system-table tbody tr:hover td { text-align:left }
+}
 
 @media (max-width: 980px){
   .goods-receipt-layout { display:block }

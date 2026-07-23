@@ -1,27 +1,33 @@
 import type { StockUnit } from '../types'
 
 export type InventoryLotStatus =
+  | 'PLANNED'
   | 'ACTIVE'
   | 'QUARANTINE'
-  | 'BLOCKED'
-  | 'EXPIRED'
+  | 'RELEASED'
   | 'CONSUMED'
+  | 'EXPIRED'
+  | 'DISPOSED'
+  | 'BLOCKED'
   | 'RETURNED'
 
 export type InventoryLot = {
   id: string
   lotNo: string
-  stockItemId: string
-  goodsReceiptId: string
-  supplierId: string
+  productionOrderId: string
+  productId: string
   warehouseId: string
   productionDate: string
   expiryDate: string
-  receivedQuantity: number
-  remainingQuantity: number
+  quantity: number
   unit: StockUnit
   status: InventoryLotStatus
   notes: string
   createdAt: string
   updatedAt: string
+  stockItemId: string
+  goodsReceiptId: string
+  supplierId: string
+  receivedQuantity: number
+  remainingQuantity: number
 }

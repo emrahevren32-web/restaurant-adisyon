@@ -141,12 +141,15 @@ const createAcceptedInventoryLot = ({
 }): InventoryLot => ({
   id: createId('transfer_receipt_lot'),
   lotNo: `${receipt.receiptNo}-LOT-${String(index + 1).padStart(2, '0')}`,
+  productionOrderId: sourceLot.productionOrderId,
+  productId: sourceLot.productId || stockItemId,
   stockItemId,
   goodsReceiptId: '',
   supplierId: sourceLot.supplierId,
   warehouseId,
   productionDate: sourceLot.productionDate,
   expiryDate: sourceLot.expiryDate,
+  quantity,
   receivedQuantity: quantity,
   remainingQuantity: quantity,
   unit: sourceLot.unit,
@@ -194,6 +197,7 @@ const applyAcceptedInventoryLots = ({
     if(existingLot){
       const updatedLot: InventoryLot = {
         ...existingLot,
+        quantity: receiptItem.acceptedQuantity,
         receivedQuantity: receiptItem.acceptedQuantity,
         remainingQuantity: receiptItem.acceptedQuantity,
         status: resolveInventoryLotStatus(existingLot.status, receiptItem.acceptedQuantity, existingLot.expiryDate),
