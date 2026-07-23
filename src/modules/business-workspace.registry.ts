@@ -966,7 +966,7 @@ export const BUSINESS_WORKSPACE_MODULE_REGISTRY: BusinessWorkspaceModule[] = def
     id: 'business-quality',
     code: SECTOR_TEMPLATE_MODULE_CODES.QUALITY,
     name: 'Kalite ve İzlenebilirlik',
-    description: 'Endüstriyel mutfak lot izlenebilirliği, inventory lot kalite kontrol kararları, checklist şablonları, red sonrası iade süreçleri ve tedarikçi iade sevklerini yöneten iş modülü.',
+    description: 'Endüstriyel mutfak lot izlenebilirliği, numune takibi, inventory lot kalite kontrol kararları, checklist şablonları, red sonrası iade süreçleri ve tedarikçi iade sevklerini yöneten iş modülü.',
     category: 'business',
     icon: 'KL',
     route: 'lot-system',
@@ -977,7 +977,7 @@ export const BUSINESS_WORKSPACE_MODULE_REGISTRY: BusinessWorkspaceModule[] = def
     isVisible: true,
     displayOrder: 44,
     dependencies: [WORKSPACE_MODULE_CODES.STOCK, WORKSPACE_MODULE_CODES.PURCHASE],
-    tags: ['business', 'quality', 'lot-system', 'quality-control', 'quality-form', 'return-process', 'supplier-return', 'supplier-return-shipment', 'checklist', 'inventory-lot', 'traceability', 'industrial-kitchen'],
+    tags: ['business', 'quality', 'lot-system', 'sample-tracking', 'quality-sample', 'quality-control', 'quality-form', 'return-process', 'supplier-return', 'supplier-return-shipment', 'checklist', 'inventory-lot', 'traceability', 'industrial-kitchen'],
     supportedSectorIds: industrialKitchenSectorIds,
     pricing: { model: 'paid', currency: 'TRY' },
     marketplace: marketplaceReady,
@@ -994,6 +994,19 @@ export const BUSINESS_WORKSPACE_MODULE_REGISTRY: BusinessWorkspaceModule[] = def
         supportedLayouts: ['standard', 'wide'],
         requiredPermission: 'operations.read',
         renderComponent: 'quality.lotSystem.placeholder'
+      }),
+      dashboardWidget({
+        id: 'quality.sampleTracking',
+        title: 'Numune Takibi',
+        description: 'Inventory Lot kaynaklı kalite numunelerini, saklama sürelerini ve numune durumlarını takip etmek için kontrol paneli başlangıç alanı.',
+        icon: 'NT',
+        category: 'Kalite',
+        order: 6,
+        defaultVisible: false,
+        defaultSize: 'medium',
+        supportedLayouts: ['standard', 'wide'],
+        requiredPermission: 'operations.read',
+        renderComponent: 'quality.sampleTracking.placeholder'
       }),
       dashboardWidget({
         id: 'quality.controls',
@@ -1050,6 +1063,7 @@ export const BUSINESS_WORKSPACE_MODULE_REGISTRY: BusinessWorkspaceModule[] = def
     ],
     menuItems: [
       menuItem({ key: 'lot-system', label: 'Lot Sistemi', route: 'lot-system', icon: 'LS', adminOnly: true, displayOrder: 5 }),
+      menuItem({ key: 'sample-tracking', label: 'Numune Takibi', route: 'sample-tracking', icon: 'NT', adminOnly: true, displayOrder: 6 }),
       menuItem({ key: 'quality-controls', label: 'Kalite Kontrol', route: 'quality-controls', icon: 'KL', adminOnly: true, displayOrder: 10 }),
       menuItem({ key: 'quality-control-forms', label: 'Kalite Kontrol Formları', route: 'quality-control-forms', icon: 'KF', adminOnly: true, displayOrder: 20 }),
       menuItem({ key: 'return-processes', label: 'Red ve İade Süreci', route: 'return-processes', icon: 'RI', adminOnly: true, displayOrder: 30 }),
