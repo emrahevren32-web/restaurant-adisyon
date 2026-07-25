@@ -4558,3 +4558,83 @@ th { color:var(--muted-strong); font-size:13px; font-weight:750 }
   .kpi-export-actions .btn { width:100% }
   .kpi-line-chart { grid-auto-columns:minmax(30px, 1fr) }
 }
+
+.decision-support-page { display:grid; gap:18px }
+.decision-header-actions { display:flex; flex-wrap:wrap; gap:10px; align-items:center; justify-content:flex-end }
+.decision-metrics { grid-template-columns:repeat(5, minmax(0, 1fr)) }
+.decision-metric { border-top:3px solid var(--line) }
+.decision-metric.success { border-top-color:#059669 }
+.decision-metric.warning { border-top-color:#f97316 }
+.decision-metric.danger { border-top-color:#dc2626 }
+.decision-filter-card { margin-bottom:0 }
+.decision-filter-grid { display:grid; grid-template-columns:repeat(5, minmax(130px, 1fr)); gap:10px; align-items:end }
+.decision-layout { align-items:start }
+.decision-side { display:flex; flex-direction:column; gap:12px; min-width:0 }
+.decision-table-wrap { min-width:0 }
+.decision-table { min-width:920px }
+.decision-table td:nth-child(2) strong,
+.decision-table td:nth-child(2) span { display:block; overflow-wrap:anywhere }
+.decision-table td:nth-child(2) strong { color:var(--text); font-weight:950 }
+.decision-table td:nth-child(2) span { margin-top:3px; color:var(--muted); font-size:12px; font-weight:800; line-height:1.35 }
+.decision-table td:nth-child(5) { overflow-wrap:anywhere }
+.decision-detail-card { margin-bottom:0 }
+.decision-detail-grid { display:grid; grid-template-columns:repeat(2, minmax(0, 1fr)); gap:10px; margin-bottom:12px }
+.decision-detail-grid div,
+.decision-explain-list div,
+.decision-rule-row { min-width:0; border:1px solid var(--line); border-radius:var(--radius-md); padding:10px 11px; background:var(--surface-muted) }
+.decision-detail-grid span { display:block; color:var(--muted); font-size:12px; font-weight:850; line-height:1.2 }
+.decision-detail-grid strong { display:block; margin-top:4px; color:var(--text); font-size:14px; font-weight:900; overflow-wrap:anywhere }
+.decision-explain-list,
+.decision-rule-list,
+.decision-risk-list { display:grid; gap:9px; min-width:0 }
+.decision-explain-list strong,
+.decision-rule-row strong { display:block; color:var(--text); font-weight:950; overflow-wrap:anywhere }
+.decision-explain-list span,
+.decision-rule-row span { display:block; margin-top:4px; color:var(--muted); font-size:12px; font-weight:800; line-height:1.35; overflow-wrap:anywhere }
+.decision-risk-row { display:grid; grid-template-columns:minmax(0, 1fr) auto; gap:10px; align-items:center; border:1px solid var(--line); border-radius:var(--radius-md); padding:10px 11px; background:var(--surface-muted) }
+.decision-risk-row strong { color:var(--text); font-size:18px; font-weight:950 }
+
+@media (max-width: 1200px){
+  .decision-metrics,
+  .decision-filter-grid { grid-template-columns:repeat(3, minmax(0, 1fr)) }
+}
+
+@media (max-width: 980px){
+  .decision-layout { display:block }
+  .decision-side { margin-top:14px }
+  .decision-header-actions { justify-content:flex-start; width:100% }
+  .decision-metrics,
+  .decision-filter-grid,
+  .decision-detail-grid { grid-template-columns:1fr }
+  .decision-table-wrap { overflow:visible; border:0; background:transparent; box-shadow:none }
+  .decision-table-wrap .decision-table { min-width:0 }
+  .decision-table,
+  .decision-table thead,
+  .decision-table tbody,
+  .decision-table tr,
+  .decision-table td { display:block; width:100%; min-width:0 }
+  .decision-table thead { display:none }
+  .decision-table tbody { display:grid; gap:10px }
+  .decision-table tbody tr,
+  .decision-table tbody tr:nth-child(even),
+  .decision-table tbody tr:hover { display:grid; grid-template-columns:repeat(2, minmax(0, 1fr)); gap:9px; border:1px solid var(--line); border-radius:var(--radius-md); padding:11px 12px; background:var(--surface); box-shadow:var(--shadow-xs) }
+  .decision-table tbody tr td,
+  .decision-table tbody tr:nth-child(even) td,
+  .decision-table tbody tr:hover td { height:auto; min-height:0; border:0; padding:0; background:transparent; box-shadow:none; text-align:right }
+  .decision-table tbody td::before { content:attr(data-label); display:block; margin-bottom:3px; color:var(--muted); font-size:11px; font-weight:850; line-height:1.2; text-align:left }
+  .decision-table tbody td:nth-child(2),
+  .decision-table tbody td:nth-child(5),
+  .decision-table tbody td.empty-cell { grid-column:1 / -1; text-align:left }
+  .decision-table tbody td:nth-child(2) strong,
+  .decision-table tbody td:nth-child(5) { text-align:left }
+  .decision-table tbody td.empty-cell { text-align:center }
+}
+
+@media (max-width: 560px){
+  .decision-table tbody tr,
+  .decision-table tbody tr:nth-child(even),
+  .decision-table tbody tr:hover { grid-template-columns:1fr }
+  .decision-table tbody tr td,
+  .decision-table tbody tr:nth-child(even) td,
+  .decision-table tbody tr:hover td { text-align:left }
+}

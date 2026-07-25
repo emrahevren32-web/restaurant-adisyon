@@ -994,10 +994,24 @@ export const BUSINESS_WORKSPACE_MODULE_REGISTRY: BusinessWorkspaceModule[] = def
         supportedLayouts: ['standard', 'wide'],
         requiredPermission: 'dashboard.read',
         renderComponent: 'reporting.kpiDashboard.placeholder'
+      }),
+      dashboardWidget({
+        id: 'reporting.decisionSupport',
+        title: 'Decision Support',
+        description: 'ERP read-model verilerinden rule, risk ve recommendation engine ile yonetim onerileri uretmek icin kontrol paneli baslangic alani.',
+        icon: 'DS',
+        category: 'Raporlama',
+        order: 20,
+        defaultVisible: false,
+        defaultSize: 'large',
+        supportedLayouts: ['standard', 'wide'],
+        requiredPermission: 'dashboard.read',
+        renderComponent: 'reporting.decisionSupport.placeholder'
       })
     ],
     menuItems: [
-      menuItem({ key: 'kpi-dashboard', label: 'KPI Dashboard', route: 'kpi-dashboard', icon: 'KP', adminOnly: true, displayOrder: 10 })
+      menuItem({ key: 'kpi-dashboard', label: 'KPI Dashboard', route: 'kpi-dashboard', icon: 'KP', adminOnly: true, displayOrder: 10 }),
+      menuItem({ key: 'decision-support', label: 'Decision Support', route: 'decision-support', icon: 'DS', adminOnly: true, displayOrder: 20 })
     ]
   },
   {
