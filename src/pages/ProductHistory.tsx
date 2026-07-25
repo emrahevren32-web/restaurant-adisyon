@@ -3,6 +3,18 @@ import { loadFinalProducts } from '../final-products/final-product.mock'
 import type { FinalProduct } from '../final-products/final-product.types'
 import { loadGoodsReceiptRecords } from '../goods-receipts/goods-receipt.mock'
 import {
+  HACCP_ACTION_STATUS_LABELS,
+  HACCP_VERIFICATION_RESULT_LABELS,
+  loadHACCPRecords
+} from '../haccp/haccp.mock'
+import type {
+  CorrectiveAction,
+  CriticalControlPoint,
+  HACCPPlanRecord,
+  MonitoringRecord,
+  VerificationRecord
+} from '../haccp/haccp.types'
+import {
   INVENTORY_LOT_STATUS_LABELS,
   isProductionInventoryLot,
   loadLotSystemInventoryLotRecords
@@ -62,6 +74,7 @@ type ProductHistoryInitialData = {
   productionOrders: ProductionWorkOrder[]
   qualitySamples: QualitySample[]
   recalls: ProductRecall[]
+  haccpRecords: HACCPPlanRecord[]
   stockItems: StockItem[]
   witnessSamples: WitnessSample[]
 }
@@ -155,6 +168,7 @@ const loadInitialData = (): ProductHistoryInitialData => {
     traceableLotIds,
     recall => recall.inventoryLotId
   )
+  const haccpRecords = loadHACCPRecords(productionOrders, traceableLots, qualitySamples)
 
   return {
     branches,
@@ -163,6 +177,7 @@ const loadInitialData = (): ProductHistoryInitialData => {
     productionOrders,
     qualitySamples,
     recalls,
+    haccpRecords,
     stockItems,
     witnessSamples
   }
@@ -175,6 +190,7 @@ const buildTimeline = (initialData: ProductHistoryInitialData) => (
     qualitySamples: initialData.qualitySamples,
     witnessSamples: initialData.witnessSamples,
     recalls: initialData.recalls,
+    haccpRecords: initialData.haccpRecords,
     products: initialData.productRefs,
     stockItems: initialData.stockItems
   })
@@ -254,6 +270,7 @@ export default function ProductHistory({ currentUser }: { currentUser: User }){
   const sampleEventCount = timeline.events.filter(event => event.eventType === 'SAMPLE_COLLECTED').length
   const witnessEventCount = timeline.events.filter(event => event.eventType === 'WITNESS_SAMPLE_CREATED').length
   const recallEventCount = timeline.events.filter(event => event.eventType === 'RECALL_OPENED').length
+  const haccpEventCount = timeline.events.filter(event => event.eventType.startsWith('HACCP_')).length
 
   return (
     <div className="product-history-page">
@@ -287,6 +304,10 @@ export default function ProductHistory({ currentUser }: { currentUser: User }){
         <div className="metric-card">
           <span>Recall</span>
           <strong>{recallEventCount}</strong>
+        </div>
+        <div className="metric-card">
+          <span>HACCP</span>
+          <strong>{haccpEventCount}</strong>
         </div>
       </div>
 
@@ -424,6 +445,21 @@ function ProductHistoryDetailPanel({
   const recall = event.recallId
     ? timeline.index.recallMap.get(event.recallId) || null
     : null
+  const haccpPlan = event.haccpPlanId
+    ? timeline.index.haccpPlanMap.get(event.haccpPlanId) || null
+    : null
+  const haccpCCP = event.criticalControlPointId
+    ? haccpPlan?.criticalControlPoints.find(ccp => ccp.id === event.criticalControlPointId) || null
+    : null
+  const haccpMonitoring = event.monitoringRecordId
+    ? haccpPlan?.monitoringRecords.find(record => record.id === event.monitoringRecordId) || null
+    : null
+  const haccpAction = event.correctiveActionId
+    ? haccpPlan?.correctiveActions.find(action => action.id === event.correctiveActionId) || null
+    : null
+  const haccpVerification = event.verificationRecordId
+    ? haccpPlan?.verificationRecords.find(record => record.id === event.verificationRecordId) || null
+    : null
   const relatedSamples = lot ? timeline.index.samplesByLotId.get(lot.id) || [] : []
   const relatedWitnessSamples = relatedSamples.flatMap(relatedSample => (
     timeline.index.witnessSamplesBySampleId.get(relatedSample.id) || []
@@ -455,6 +491,8 @@ function ProductHistoryDetailPanel({
           <div><span>Quality Sample</span><strong>{sample?.sampleNo || event.sampleNo || '-'}</strong></div>
           <div><span>Witness Sample</span><strong>{witnessSample?.witnessNo || event.witnessNo || '-'}</strong></div>
           <div><span>Recall</span><strong>{recall?.recallNo || event.recallNo || '-'}</strong></div>
+          <div><span>HACCP Plan</span><strong>{haccpPlan?.code || '-'}</strong></div>
+          <div><span>CCP</span><strong>{haccpCCP?.name || '-'}</strong></div>
           <div><span>Tarih</span><strong>{formatDate(event.dateKey)} {event.timeKey}</strong></div>
         </div>
       </section>
@@ -465,6 +503,11 @@ function ProductHistoryDetailPanel({
         recall={recall}
         sample={sample}
         witnessSample={witnessSample}
+        haccpAction={haccpAction}
+        haccpCCP={haccpCCP}
+        haccpMonitoring={haccpMonitoring}
+        haccpPlan={haccpPlan}
+        haccpVerification={haccpVerification}
       />
 
       <section className="card product-history-detail-card">
@@ -506,12 +549,22 @@ function ProductHistoryDetailPanel({
 }
 
 function ProductHistorySourcePanel({
+  haccpAction,
+  haccpCCP,
+  haccpMonitoring,
+  haccpPlan,
+  haccpVerification,
   lot,
   productionOrder,
   recall,
   sample,
   witnessSample
 }: {
+  haccpAction: CorrectiveAction | null
+  haccpCCP: CriticalControlPoint | null
+  haccpMonitoring: MonitoringRecord | null
+  haccpPlan: HACCPPlanRecord | null
+  haccpVerification: VerificationRecord | null
   lot: InventoryLot | null
   productionOrder: ProductionWorkOrder | null
   recall: ProductRecall | null
@@ -550,6 +603,24 @@ function ProductHistorySourcePanel({
           <div className="product-history-source-row">
             <strong>{recall.recallNo}</strong>
             <span>{PRODUCT_RECALL_REASON_LABELS[recall.reason]} · {PRODUCT_RECALL_RISK_LEVEL_LABELS[recall.riskLevel]} · {PRODUCT_RECALL_STATUS_LABELS[recall.status]}</span>
+          </div>
+        )}
+        {haccpMonitoring && (
+          <div className="product-history-source-row">
+            <strong>{haccpPlan?.code || 'HACCP'} · {haccpCCP?.name || 'CCP'}</strong>
+            <span>Monitoring {haccpMonitoring.result} · Ölçüm {haccpMonitoring.measuredValue} · Limit {haccpMonitoring.criticalLimit}</span>
+          </div>
+        )}
+        {haccpAction && (
+          <div className="product-history-source-row">
+            <strong>{haccpAction.id}</strong>
+            <span>{HACCP_ACTION_STATUS_LABELS[haccpAction.status]} · {haccpAction.assignedTo}</span>
+          </div>
+        )}
+        {haccpVerification && (
+          <div className="product-history-source-row">
+            <strong>{haccpVerification.id}</strong>
+            <span>{HACCP_VERIFICATION_RESULT_LABELS[haccpVerification.result]} · {haccpVerification.verifiedBy} · {formatDate(haccpVerification.verifiedAt)}</span>
           </div>
         )}
       </div>

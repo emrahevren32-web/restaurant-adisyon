@@ -1,4 +1,11 @@
 import type { InventoryLot } from '../inventory-lots/inventory-lot.types'
+import type {
+  CorrectiveAction,
+  CriticalControlPoint,
+  HACCPPlanRecord,
+  MonitoringRecord,
+  VerificationRecord
+} from '../haccp/haccp.types'
 import type { ProductionWorkOrder, ProductionWorkOrderLine } from '../production-work-orders/production-work-order.types'
 import type { ProductRecall } from '../product-recalls/product-recall.types'
 import type { QualitySample } from '../quality-samples/quality-sample.types'
@@ -17,7 +24,11 @@ export const PRODUCT_HISTORY_EVENT_TYPES: ProductHistoryEventType[] = [
   'LOT_CREATED',
   'SAMPLE_COLLECTED',
   'WITNESS_SAMPLE_CREATED',
-  'RECALL_OPENED'
+  'RECALL_OPENED',
+  'HACCP_MONITORING',
+  'HACCP_FAILURE',
+  'HACCP_CORRECTIVE_ACTION',
+  'HACCP_VERIFIED'
 ]
 
 export const PRODUCT_HISTORY_EVENT_TYPE_LABELS: Record<ProductHistoryEventType, string> = {
@@ -25,7 +36,11 @@ export const PRODUCT_HISTORY_EVENT_TYPE_LABELS: Record<ProductHistoryEventType, 
   LOT_CREATED: 'Lot',
   SAMPLE_COLLECTED: 'Numune',
   WITNESS_SAMPLE_CREATED: 'Şahit Numune',
-  RECALL_OPENED: 'Recall'
+  RECALL_OPENED: 'Recall',
+  HACCP_MONITORING: 'HACCP Monitoring',
+  HACCP_FAILURE: 'HACCP Failure',
+  HACCP_CORRECTIVE_ACTION: 'HACCP Corrective Action',
+  HACCP_VERIFIED: 'HACCP Verification'
 }
 
 export const PRODUCT_HISTORY_EVENT_TYPE_CLASS_NAMES: Record<ProductHistoryEventType, string> = {
@@ -33,7 +48,11 @@ export const PRODUCT_HISTORY_EVENT_TYPE_CLASS_NAMES: Record<ProductHistoryEventT
   LOT_CREATED: 'lot-created',
   SAMPLE_COLLECTED: 'sample-collected',
   WITNESS_SAMPLE_CREATED: 'witness-sample-created',
-  RECALL_OPENED: 'recall-opened'
+  RECALL_OPENED: 'recall-opened',
+  HACCP_MONITORING: 'haccp-monitoring',
+  HACCP_FAILURE: 'haccp-failure',
+  HACCP_CORRECTIVE_ACTION: 'haccp-corrective-action',
+  HACCP_VERIFIED: 'haccp-verified'
 }
 
 const normalizeText = (value: unknown) => String(value || '').trim()
@@ -115,6 +134,7 @@ const createIndex = ({
   qualitySamples,
   witnessSamples,
   recalls,
+  haccpRecords,
   products,
   stockItems
 }: ProductHistoryBuildInput): ProductHistoryIndex => ({
@@ -127,6 +147,7 @@ const createIndex = ({
   witnessSampleMap: new Map(witnessSamples.map(sample => [sample.id, sample])),
   recallsByLotId: groupBy(recalls, recall => recall.inventoryLotId),
   recallMap: new Map(recalls.map(recall => [recall.id, recall])),
+  haccpPlanMap: new Map(haccpRecords.map(plan => [plan.id, plan])),
   productMap: new Map(products.map(product => [product.id, product])),
   stockItemMap: new Map(stockItems.map(item => [item.id, item]))
 })
@@ -199,6 +220,11 @@ const createEvent = (
     event.sampleNo,
     event.witnessNo,
     event.recallNo,
+    event.haccpPlanId || '',
+    event.criticalControlPointId || '',
+    event.monitoringRecordId || '',
+    event.correctiveActionId || '',
+    event.verificationRecordId || '',
     event.description
   ]
 
@@ -352,6 +378,176 @@ const createRecallEvent = (
   })
 }
 
+const flattenHACCPCCPs = (
+  records: HACCPPlanRecord[]
+) => records.flatMap(record => record.criticalControlPoints.map(ccp => ({ plan: record, ccp })))
+
+const flattenHACCPMonitoringRecords = (
+  records: HACCPPlanRecord[]
+) => records.flatMap(record => record.monitoringRecords)
+
+const flattenHACCPCorrectiveActions = (
+  records: HACCPPlanRecord[]
+) => records.flatMap(record => record.correctiveActions)
+
+const flattenHACCPVerificationRecords = (
+  records: HACCPPlanRecord[]
+) => records.flatMap(record => record.verificationRecords)
+
+const createHACCPMaps = (
+  records: HACCPPlanRecord[]
+) => {
+  const ccpEntries = flattenHACCPCCPs(records)
+  const ccpMap = new Map<string, CriticalControlPoint>()
+  const ccpPlanMap = new Map<string, HACCPPlanRecord>()
+
+  ccpEntries.forEach(({ plan, ccp }) => {
+    ccpMap.set(ccp.id, ccp)
+    ccpPlanMap.set(ccp.id, plan)
+  })
+
+  return {
+    ccpMap,
+    ccpPlanMap,
+    monitoringMap: new Map(flattenHACCPMonitoringRecords(records).map(record => [record.id, record])),
+    correctiveActionMap: new Map(flattenHACCPCorrectiveActions(records).map(record => [record.id, record])),
+    verificationMap: new Map(flattenHACCPVerificationRecords(records).map(record => [record.id, record]))
+  }
+}
+
+const getHACCPProductIds = (
+  monitoringRecord: MonitoringRecord,
+  index: ProductHistoryIndex
+) => {
+  const lot = index.lotMap.get(monitoringRecord.inventoryLotId) || null
+  return lot ? unique([lot.productId || lot.stockItemId]) : []
+}
+
+const createHACCPBaseFields = (
+  monitoringRecord: MonitoringRecord,
+  ccp: CriticalControlPoint | null,
+  plan: HACCPPlanRecord | null,
+  index: ProductHistoryIndex
+) => {
+  const lot = index.lotMap.get(monitoringRecord.inventoryLotId) || null
+  const productionOrder = monitoringRecord.productionOrderId
+    ? index.productionOrderMap.get(monitoringRecord.productionOrderId) || null
+    : lot ? index.productionOrderMap.get(lot.productionOrderId) || null : null
+
+  return {
+    productIds: getHACCPProductIds(monitoringRecord, index),
+    productName: getLotProductName(lot, index),
+    productionOrderId: monitoringRecord.productionOrderId || lot?.productionOrderId || '',
+    productionOrderNo: productionOrder?.workOrderNo || '',
+    inventoryLotId: lot?.id || monitoringRecord.inventoryLotId,
+    lotNo: lot?.lotNo || '',
+    qualitySampleId: monitoringRecord.qualitySampleId,
+    sampleNo: monitoringRecord.qualitySampleId ? index.sampleMap.get(monitoringRecord.qualitySampleId)?.sampleNo || '' : '',
+    witnessSampleId: '',
+    witnessNo: '',
+    recallId: '',
+    recallNo: '',
+    haccpPlanId: plan?.id || '',
+    criticalControlPointId: ccp?.id || '',
+    monitoringRecordId: monitoringRecord.id
+  }
+}
+
+const createHACCPMonitoringEvent = (
+  monitoringRecord: MonitoringRecord,
+  ccp: CriticalControlPoint | null,
+  plan: HACCPPlanRecord | null,
+  index: ProductHistoryIndex
+) => createEvent({
+  id: `product_history_haccp_monitoring_${monitoringRecord.id}`,
+  eventType: 'HACCP_MONITORING',
+  occurredAt: toOccurrenceIso(monitoringRecord.checkedAt, monitoringRecord.checkedAt, 12),
+  referenceNo: monitoringRecord.id,
+  ...createHACCPBaseFields(monitoringRecord, ccp, plan, index),
+  description: `${ccp?.name || 'CCP'} monitoring kaydı oluşturuldu. Ölçüm: ${monitoringRecord.measuredValue}, limit: ${monitoringRecord.criticalLimit}, sonuç: ${monitoringRecord.result}.`
+})
+
+const createHACCPFailureEvent = (
+  monitoringRecord: MonitoringRecord,
+  ccp: CriticalControlPoint | null,
+  plan: HACCPPlanRecord | null,
+  index: ProductHistoryIndex
+) => createEvent({
+  id: `product_history_haccp_failure_${monitoringRecord.id}`,
+  eventType: 'HACCP_FAILURE',
+  occurredAt: toOccurrenceIso(monitoringRecord.checkedAt, monitoringRecord.checkedAt, 12),
+  referenceNo: monitoringRecord.id,
+  ...createHACCPBaseFields(monitoringRecord, ccp, plan, index),
+  description: `${ccp?.name || 'CCP'} kritik limit sapması tespit edildi. Corrective Action zorunlu.`
+})
+
+const createHACCPCorrectiveActionEvent = (
+  action: CorrectiveAction,
+  monitoringRecord: MonitoringRecord,
+  ccp: CriticalControlPoint | null,
+  plan: HACCPPlanRecord | null,
+  index: ProductHistoryIndex
+) => createEvent({
+  id: `product_history_haccp_action_${action.id}`,
+  eventType: 'HACCP_CORRECTIVE_ACTION',
+  occurredAt: toOccurrenceIso(action.completedAt, monitoringRecord.checkedAt, 14),
+  referenceNo: action.id,
+  ...createHACCPBaseFields(monitoringRecord, ccp, plan, index),
+  correctiveActionId: action.id,
+  description: `Corrective Action ${action.status}: ${action.description}`
+})
+
+const createHACCPVerificationEvent = (
+  verificationRecord: VerificationRecord,
+  monitoringRecord: MonitoringRecord,
+  ccp: CriticalControlPoint | null,
+  plan: HACCPPlanRecord | null,
+  index: ProductHistoryIndex
+) => createEvent({
+  id: `product_history_haccp_verification_${verificationRecord.id}`,
+  eventType: 'HACCP_VERIFIED',
+  occurredAt: toOccurrenceIso(verificationRecord.verifiedAt, verificationRecord.verifiedAt, 15),
+  referenceNo: verificationRecord.id,
+  ...createHACCPBaseFields(monitoringRecord, ccp, plan, index),
+  verificationRecordId: verificationRecord.id,
+  description: `HACCP verification ${verificationRecord.result}: ${verificationRecord.notes || ccp?.name || 'CCP'}`
+})
+
+const createHACCPEvents = (
+  records: HACCPPlanRecord[],
+  index: ProductHistoryIndex
+) => {
+  const haccpMaps = createHACCPMaps(records)
+  const events: ProductHistoryEvent[] = []
+
+  flattenHACCPMonitoringRecords(records).forEach(monitoringRecord => {
+    const ccp = haccpMaps.ccpMap.get(monitoringRecord.ccpId) || null
+    const plan = ccp ? haccpMaps.ccpPlanMap.get(ccp.id) || null : null
+    events.push(createHACCPMonitoringEvent(monitoringRecord, ccp, plan, index))
+    if(monitoringRecord.result === 'FAIL'){
+      events.push(createHACCPFailureEvent(monitoringRecord, ccp, plan, index))
+    }
+  })
+
+  flattenHACCPCorrectiveActions(records).forEach(action => {
+    const monitoringRecord = haccpMaps.monitoringMap.get(action.monitoringRecordId)
+    if(!monitoringRecord) return
+    const ccp = haccpMaps.ccpMap.get(monitoringRecord.ccpId) || null
+    const plan = ccp ? haccpMaps.ccpPlanMap.get(ccp.id) || null : null
+    events.push(createHACCPCorrectiveActionEvent(action, monitoringRecord, ccp, plan, index))
+  })
+
+  flattenHACCPVerificationRecords(records).forEach(verificationRecord => {
+    const monitoringRecord = haccpMaps.monitoringMap.get(verificationRecord.monitoringRecordId)
+    if(!monitoringRecord) return
+    const ccp = haccpMaps.ccpMap.get(monitoringRecord.ccpId) || null
+    const plan = ccp ? haccpMaps.ccpPlanMap.get(ccp.id) || null : null
+    events.push(createHACCPVerificationEvent(verificationRecord, monitoringRecord, ccp, plan, index))
+  })
+
+  return events
+}
+
 const sortEvents = (events: ProductHistoryEvent[]) => (
   [...events].sort((firstEvent, secondEvent) => {
     const firstTime = new Date(firstEvent.occurredAt).getTime()
@@ -388,7 +584,8 @@ export const buildProductHistoryTimeline = (
     ...input.inventoryLots.map(lot => createLotEvent(lot, index)),
     ...input.qualitySamples.map(sample => createSampleEvent(sample, index)),
     ...input.witnessSamples.map(witnessSample => createWitnessSampleEvent(witnessSample, index)),
-    ...input.recalls.map(recall => createRecallEvent(recall, index))
+    ...input.recalls.map(recall => createRecallEvent(recall, index)),
+    ...createHACCPEvents(input.haccpRecords, index)
   ])
 
   return {

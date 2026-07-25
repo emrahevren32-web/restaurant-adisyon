@@ -3346,7 +3346,7 @@ th { color:var(--muted-strong); font-size:13px; font-weight:750 }
 
 .product-history-page { display:grid; gap:18px }
 .product-history-header-actions { display:flex; flex-wrap:wrap; gap:10px; align-items:center; justify-content:flex-end }
-.product-history-metrics { grid-template-columns:repeat(5, minmax(0, 1fr)) }
+.product-history-metrics { grid-template-columns:repeat(6, minmax(0, 1fr)) }
 .product-history-toolbar { display:grid; grid-template-columns:minmax(240px, 1.5fr) repeat(4, minmax(130px, 1fr)); gap:10px; align-items:center }
 .product-history-side { display:flex; flex-direction:column; gap:12px; min-width:0 }
 .product-history-detail-card { margin-bottom:0 }
@@ -3363,6 +3363,10 @@ th { color:var(--muted-strong); font-size:13px; font-weight:750 }
 .product-history-event-pill.sample-collected { color:#c2410c; border-color:#fed7aa; background:#ffedd5 }
 .product-history-event-pill.witness-sample-created { color:#047857; border-color:#bbf7d0; background:#dcfce7 }
 .product-history-event-pill.recall-opened { color:#b91c1c; border-color:#fecaca; background:#fee2e2 }
+.product-history-event-pill.haccp-monitoring { color:#1d4ed8; border-color:#bfdbfe; background:#dbeafe }
+.product-history-event-pill.haccp-failure { color:#b91c1c; border-color:#fecaca; background:#fee2e2 }
+.product-history-event-pill.haccp-corrective-action { color:#c2410c; border-color:#fed7aa; background:#ffedd5 }
+.product-history-event-pill.haccp-verified { color:#047857; border-color:#bbf7d0; background:#dcfce7 }
 .product-history-related-list { display:grid; grid-template-columns:repeat(3, minmax(0, 1fr)); gap:9px }
 .product-history-related-row { min-width:0; border:1px solid var(--line); border-radius:var(--radius-md); padding:10px 11px; background:var(--surface-muted) }
 .product-history-related-row strong { display:block; color:var(--text); font-size:18px; font-weight:950; overflow-wrap:anywhere }
@@ -3379,11 +3383,45 @@ th { color:var(--muted-strong); font-size:13px; font-weight:750 }
 .product-history-timeline-item.sample-collected::before { background:#f97316 }
 .product-history-timeline-item.witness-sample-created::before { background:#10b981 }
 .product-history-timeline-item.recall-opened::before { background:#dc2626 }
+.product-history-timeline-item.haccp-monitoring::before { background:#2563eb }
+.product-history-timeline-item.haccp-failure::before { background:#dc2626 }
+.product-history-timeline-item.haccp-corrective-action::before { background:#f97316 }
+.product-history-timeline-item.haccp-verified::before { background:#10b981 }
 .product-history-timeline-item.active { border-color:var(--accent); background:var(--accent-subtle) }
 .product-history-timeline-item span { display:block; color:var(--muted); font-size:12px; font-weight:900 }
 .product-history-timeline-item strong { display:block; margin-top:2px; color:var(--text); font-weight:950; overflow-wrap:anywhere }
 .product-history-timeline-item small { display:block; margin-top:3px; color:var(--muted); font-size:11px; font-weight:900 }
 .product-history-timeline-item p { margin:6px 0 0; color:var(--text); font-size:13px; line-height:1.35; overflow-wrap:anywhere }
+
+.haccp-page { display:grid; gap:18px }
+.haccp-header-actions { display:flex; flex-wrap:wrap; gap:10px; align-items:center; justify-content:flex-end }
+.haccp-metrics { grid-template-columns:repeat(5, minmax(0, 1fr)) }
+.haccp-tabs { display:flex; flex-wrap:wrap; gap:8px; align-items:center }
+.haccp-tabs button { min-height:var(--touch-target); border:1px solid var(--line); border-radius:var(--radius-sm); padding:8px 11px; color:var(--muted); background:var(--surface); font-weight:900; cursor:pointer }
+.haccp-tabs button.active { border-color:var(--accent-line); color:var(--accent); background:var(--accent-soft) }
+.haccp-toolbar { display:grid; grid-template-columns:minmax(220px, 1.6fr) repeat(8, minmax(120px, 1fr)); gap:10px; align-items:center }
+.haccp-side { display:flex; flex-direction:column; gap:12px; min-width:0 }
+.haccp-detail-card,
+.haccp-form-card { margin-bottom:0 }
+.haccp-detail-grid { display:grid; grid-template-columns:repeat(2, minmax(0, 1fr)); gap:10px; margin-bottom:12px }
+.haccp-detail-grid div { min-width:0; border:1px solid var(--line); border-radius:var(--radius-md); padding:10px 11px; background:var(--surface-muted) }
+.haccp-detail-grid span { display:block; color:var(--muted); font-size:12px; font-weight:850; line-height:1.2 }
+.haccp-detail-grid strong { display:block; margin-top:4px; color:var(--text); font-size:14px; font-weight:900; overflow-wrap:anywhere }
+.haccp-related-list { display:grid; gap:9px; min-width:0; margin-top:10px }
+.haccp-related-row { min-width:0; border:1px solid var(--line); border-radius:var(--radius-md); padding:10px 11px; background:var(--surface-muted) }
+.haccp-related-row strong { display:block; color:var(--text); font-weight:900; overflow-wrap:anywhere }
+.haccp-related-row span { display:block; margin-top:4px; color:var(--muted); font-size:12px; font-weight:800; line-height:1.35; overflow-wrap:anywhere }
+.haccp-detail-card h4 { margin:14px 0 0; color:var(--text); font-size:14px; font-weight:950 }
+.haccp-form-grid { display:grid; grid-template-columns:repeat(2, minmax(0, 1fr)); gap:12px }
+.haccp-form-wide { grid-column:1 / -1 }
+.haccp-form-card .btn { margin-top:12px; width:100% }
+.haccp-table-wrap { min-width:0 }
+.haccp-table { min-width:880px }
+.haccp-table td:nth-child(1),
+.haccp-table td:nth-child(2),
+.haccp-table td:nth-child(3),
+.haccp-table td:nth-child(4),
+.haccp-table td:nth-child(6) { overflow-wrap:anywhere }
 
 .quality-control-page { display:grid; gap:18px }
 .quality-control-toolbar { display:grid; grid-template-columns:minmax(220px, 1.4fr) repeat(5, minmax(125px, 1fr)); gap:10px; align-items:center }
@@ -3670,6 +3708,58 @@ th { color:var(--muted-strong); font-size:13px; font-weight:750 }
   .product-history-table tbody tr td,
   .product-history-table tbody tr:nth-child(even) td,
   .product-history-table tbody tr:hover td { text-align:left }
+}
+
+@media (max-width: 1180px){
+  .haccp-metrics { grid-template-columns:repeat(3, minmax(0, 1fr)) }
+  .haccp-toolbar { grid-template-columns:repeat(3, minmax(0, 1fr)) }
+  .haccp-toolbar input[type="search"] { grid-column:1 / -1 }
+}
+
+@media (max-width: 980px){
+  .haccp-layout { display:block }
+  .haccp-side { margin-top:14px }
+  .haccp-header-actions { justify-content:flex-start; width:100% }
+  .haccp-toolbar,
+  .haccp-form-grid,
+  .haccp-detail-grid { grid-template-columns:1fr; width:100% }
+  .haccp-toolbar input[type="search"],
+  .haccp-form-wide { grid-column:auto }
+  .haccp-table-wrap { overflow:visible; border:0; background:transparent; box-shadow:none }
+  .haccp-table-wrap .haccp-table { min-width:0 }
+  .haccp-table,
+  .haccp-table thead,
+  .haccp-table tbody,
+  .haccp-table tr,
+  .haccp-table td { display:block; width:100%; min-width:0 }
+  .haccp-table thead { display:none }
+  .haccp-table tbody { display:grid; gap:10px }
+  .haccp-table tbody tr,
+  .haccp-table tbody tr:nth-child(even),
+  .haccp-table tbody tr:hover { display:grid; grid-template-columns:repeat(2, minmax(0, 1fr)); gap:9px; border:1px solid var(--line); border-radius:var(--radius-md); padding:11px 12px; background:var(--surface); box-shadow:var(--shadow-xs) }
+  .haccp-table tbody tr td,
+  .haccp-table tbody tr:nth-child(even) td,
+  .haccp-table tbody tr:hover td { height:auto; min-height:0; border:0; padding:0; background:transparent; box-shadow:none; text-align:right }
+  .haccp-table tbody td::before { content:attr(data-label); display:block; margin-bottom:3px; color:var(--muted); font-size:11px; font-weight:850; line-height:1.2; text-align:left }
+  .haccp-table tbody td:nth-child(1),
+  .haccp-table tbody td:nth-child(2),
+  .haccp-table tbody td:nth-child(3),
+  .haccp-table tbody td.empty-cell { grid-column:1 / -1; text-align:left }
+  .haccp-table tbody td:nth-child(1) strong,
+  .haccp-table tbody td:nth-child(2) strong,
+  .haccp-table tbody td:nth-child(3) strong { text-align:left }
+  .haccp-table tbody td.empty-cell { text-align:center }
+}
+
+@media (max-width: 560px){
+  .haccp-metrics { grid-template-columns:1fr }
+  .haccp-tabs button { width:100% }
+  .haccp-table tbody tr,
+  .haccp-table tbody tr:nth-child(even),
+  .haccp-table tbody tr:hover { grid-template-columns:1fr }
+  .haccp-table tbody tr td,
+  .haccp-table tbody tr:nth-child(even) td,
+  .haccp-table tbody tr:hover td { text-align:left }
 }
 
 @media (max-width: 980px){

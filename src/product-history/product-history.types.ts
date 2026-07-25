@@ -1,4 +1,5 @@
 import type { InventoryLot } from '../inventory-lots/inventory-lot.types'
+import type { HACCPPlanRecord } from '../haccp/haccp.types'
 import type { ProductionWorkOrder } from '../production-work-orders/production-work-order.types'
 import type { ProductRecall } from '../product-recalls/product-recall.types'
 import type { QualitySample } from '../quality-samples/quality-sample.types'
@@ -11,6 +12,10 @@ export type ProductHistoryEventType =
   | 'SAMPLE_COLLECTED'
   | 'WITNESS_SAMPLE_CREATED'
   | 'RECALL_OPENED'
+  | 'HACCP_MONITORING'
+  | 'HACCP_FAILURE'
+  | 'HACCP_CORRECTIVE_ACTION'
+  | 'HACCP_VERIFIED'
 
 export type ProductHistoryProductReference = {
   id: string
@@ -24,6 +29,7 @@ export type ProductHistoryBuildInput = {
   qualitySamples: QualitySample[]
   witnessSamples: WitnessSample[]
   recalls: ProductRecall[]
+  haccpRecords: HACCPPlanRecord[]
   products: ProductHistoryProductReference[]
   stockItems: Pick<StockItem, 'id' | 'name'>[]
 }
@@ -47,6 +53,11 @@ export type ProductHistoryEvent = {
   witnessNo: string
   recallId: string
   recallNo: string
+  haccpPlanId?: string
+  criticalControlPointId?: string
+  monitoringRecordId?: string
+  correctiveActionId?: string
+  verificationRecordId?: string
   description: string
   searchText: string
 }
@@ -61,6 +72,7 @@ export type ProductHistoryIndex = {
   witnessSampleMap: Map<string, WitnessSample>
   recallsByLotId: Map<string, ProductRecall[]>
   recallMap: Map<string, ProductRecall>
+  haccpPlanMap: Map<string, HACCPPlanRecord>
   productMap: Map<string, ProductHistoryProductReference>
   stockItemMap: Map<string, Pick<StockItem, 'id' | 'name'>>
 }
