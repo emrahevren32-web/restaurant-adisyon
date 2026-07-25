@@ -53,6 +53,7 @@ import PurchaseOrders from '../pages/PurchaseOrders'
 import GoodsReceipts from '../pages/GoodsReceipts'
 import SupplierPerformances from '../pages/SupplierPerformances'
 import ProcurementAnalytics from '../pages/ProcurementAnalytics'
+import KPIDashboard from '../pages/KPIDashboard'
 import LotSystem from '../pages/LotSystem'
 import SampleTracking from '../pages/SampleTracking'
 import WitnessSamples from '../pages/WitnessSamples'
@@ -213,6 +214,7 @@ export default function BusinessWorkspaceRouteHost({
   if(route === 'goods-receipts') return <GoodsReceipts currentUser={currentUser} />
   if(route === 'supplier-performances') return <SupplierPerformances />
   if(route === 'procurement-analytics') return <ProcurementAnalytics />
+  if(route === 'kpi-dashboard') return <KPIDashboard currentUser={currentUser} />
   if(route === 'lot-system') return <LotSystem currentUser={currentUser} />
   if(route === 'sample-tracking') return <SampleTracking currentUser={currentUser} />
   if(route === 'witness-samples') return <WitnessSamples currentUser={currentUser} />

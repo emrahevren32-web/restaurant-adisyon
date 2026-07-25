@@ -963,6 +963,44 @@ export const BUSINESS_WORKSPACE_MODULE_REGISTRY: BusinessWorkspaceModule[] = def
     ]
   },
   {
+    id: 'business-kpi-reporting',
+    code: 'kpi-reporting',
+    name: 'Raporlama',
+    description: 'Industrial Kitchen KPI Dashboard, executive summary ve domain bazli read-model raporlama motoru.',
+    category: 'business',
+    icon: 'KP',
+    route: 'kpi-dashboard',
+    permissions: ['dashboard.read', 'operations.read', 'stock.read', 'finance.read'],
+    isCoreModule: false,
+    isBusinessModule: true,
+    isEnabled: true,
+    isVisible: true,
+    displayOrder: 43,
+    dependencies: [WORKSPACE_MODULE_CODES.DASHBOARD, WORKSPACE_MODULE_CODES.STOCK, WORKSPACE_MODULE_CODES.PURCHASE],
+    tags: ['business', 'reporting', 'kpi', 'dashboard', 'executive-dashboard', 'production-kpi', 'inventory-kpi', 'quality-kpi', 'purchasing-kpi', 'shipment-kpi', 'decision-support', 'industrial-kitchen'],
+    supportedSectorIds: industrialKitchenSectorIds,
+    pricing: { model: 'paid', currency: 'TRY' },
+    marketplace: marketplaceReady,
+    dashboardWidgets: [
+      dashboardWidget({
+        id: 'reporting.kpiDashboard',
+        title: 'KPI Dashboard',
+        description: 'Executive, Production, Inventory, Quality, Purchasing ve Shipment KPI degerlerini tek read-model panelinde izlemek icin kontrol paneli baslangic alani.',
+        icon: 'KP',
+        category: 'Raporlama',
+        order: 10,
+        defaultVisible: false,
+        defaultSize: 'large',
+        supportedLayouts: ['standard', 'wide'],
+        requiredPermission: 'dashboard.read',
+        renderComponent: 'reporting.kpiDashboard.placeholder'
+      })
+    ],
+    menuItems: [
+      menuItem({ key: 'kpi-dashboard', label: 'KPI Dashboard', route: 'kpi-dashboard', icon: 'KP', adminOnly: true, displayOrder: 10 })
+    ]
+  },
+  {
     id: 'business-quality',
     code: SECTOR_TEMPLATE_MODULE_CODES.QUALITY,
     name: 'Kalite ve İzlenebilirlik',
