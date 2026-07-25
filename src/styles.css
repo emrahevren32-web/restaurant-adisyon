@@ -3303,6 +3303,47 @@ th { color:var(--muted-strong); font-size:13px; font-weight:750 }
 .sample-tracking-table td:nth-child(4) { overflow-wrap:anywhere }
 .sample-tracking-notes { margin:0; color:var(--text); line-height:1.5; overflow-wrap:anywhere; white-space:pre-wrap }
 
+.witness-sample-page { display:grid; gap:18px }
+.witness-sample-header-actions { display:flex; flex-wrap:wrap; gap:10px; align-items:center; justify-content:flex-end }
+.witness-sample-toolbar { display:grid; grid-template-columns:minmax(220px, 1.4fr) repeat(3, minmax(130px, 1fr)); gap:10px; align-items:center }
+.witness-sample-side { display:flex; flex-direction:column; gap:12px; min-width:0 }
+.witness-sample-detail-card { margin-bottom:0 }
+.witness-sample-side-actions { display:grid; grid-template-columns:repeat(2, minmax(0, 1fr)); gap:8px; align-items:center; margin-top:12px }
+.witness-sample-detail-grid { display:grid; grid-template-columns:repeat(2, minmax(0, 1fr)); gap:10px }
+.witness-sample-detail-grid div { min-width:0; border:1px solid var(--line); border-radius:var(--radius-md); padding:10px 11px; background:var(--surface-muted) }
+.witness-sample-detail-grid span { display:block; color:var(--muted); font-size:12px; font-weight:850; line-height:1.2 }
+.witness-sample-detail-grid strong { display:block; margin-top:4px; color:var(--text); font-size:14px; font-weight:900; overflow-wrap:anywhere }
+.witness-sample-form { gap:14px }
+.witness-sample-form-grid { display:grid; grid-template-columns:repeat(2, minmax(0, 1fr)); gap:12px }
+.witness-sample-form-wide { grid-column:1 / -1 }
+.witness-sample-table td:nth-child(2),
+.witness-sample-table td:nth-child(3),
+.witness-sample-table td:nth-child(4),
+.witness-sample-table td:nth-child(5) { overflow-wrap:anywhere }
+.witness-sample-notes { margin:0; color:var(--text); line-height:1.5; overflow-wrap:anywhere; white-space:pre-wrap }
+
+.product-recall-page { display:grid; gap:18px }
+.product-recall-header-actions { display:flex; flex-wrap:wrap; gap:10px; align-items:center; justify-content:flex-end }
+.product-recall-toolbar { display:grid; grid-template-columns:minmax(220px, 1.4fr) repeat(4, minmax(130px, 1fr)); gap:10px; align-items:center }
+.product-recall-side { display:flex; flex-direction:column; gap:12px; min-width:0 }
+.product-recall-detail-card { margin-bottom:0 }
+.product-recall-side-actions { display:grid; grid-template-columns:repeat(2, minmax(0, 1fr)); gap:8px; align-items:center; margin-top:12px }
+.product-recall-detail-grid { display:grid; grid-template-columns:repeat(2, minmax(0, 1fr)); gap:10px }
+.product-recall-detail-grid div { min-width:0; border:1px solid var(--line); border-radius:var(--radius-md); padding:10px 11px; background:var(--surface-muted) }
+.product-recall-detail-grid span { display:block; color:var(--muted); font-size:12px; font-weight:850; line-height:1.2 }
+.product-recall-detail-grid strong { display:block; margin-top:4px; color:var(--text); font-size:14px; font-weight:900; overflow-wrap:anywhere }
+.product-recall-form { gap:14px }
+.product-recall-form-grid { display:grid; grid-template-columns:repeat(2, minmax(0, 1fr)); gap:12px }
+.product-recall-form-wide { grid-column:1 / -1 }
+.product-recall-table td:nth-child(2),
+.product-recall-table td:nth-child(3),
+.product-recall-table td:nth-child(4) { overflow-wrap:anywhere }
+.product-recall-notes { margin:0; color:var(--text); line-height:1.5; overflow-wrap:anywhere; white-space:pre-wrap }
+.product-recall-related-list { display:grid; gap:9px }
+.product-recall-related-row { min-width:0; border:1px solid var(--line); border-radius:var(--radius-md); padding:10px 11px; background:var(--surface-muted) }
+.product-recall-related-row strong { display:block; color:var(--text); font-weight:900; overflow-wrap:anywhere }
+.product-recall-related-row span { display:block; margin-top:4px; color:var(--muted); font-size:12px; font-weight:800; line-height:1.35; overflow-wrap:anywhere }
+
 .quality-control-page { display:grid; gap:18px }
 .quality-control-toolbar { display:grid; grid-template-columns:minmax(220px, 1.4fr) repeat(5, minmax(125px, 1fr)); gap:10px; align-items:center }
 .quality-control-side { display:flex; flex-direction:column; gap:12px; min-width:0 }
@@ -3451,6 +3492,94 @@ th { color:var(--muted-strong); font-size:13px; font-weight:750 }
   .sample-tracking-table tbody tr td,
   .sample-tracking-table tbody tr:nth-child(even) td,
   .sample-tracking-table tbody tr:hover td { text-align:left }
+}
+
+@media (max-width: 980px){
+  .witness-sample-layout { display:block }
+  .witness-sample-side { margin-top:14px }
+  .witness-sample-header-actions { justify-content:flex-start; width:100% }
+  .witness-sample-toolbar,
+  .witness-sample-form-grid,
+  .witness-sample-detail-grid,
+  .witness-sample-side-actions { grid-template-columns:1fr; width:100% }
+  .witness-sample-table-wrap { overflow:visible; border:0; background:transparent; box-shadow:none }
+  .witness-sample-table-wrap .witness-sample-table { min-width:0 }
+  .witness-sample-table,
+  .witness-sample-table thead,
+  .witness-sample-table tbody,
+  .witness-sample-table tr,
+  .witness-sample-table td { display:block; width:100%; min-width:0 }
+  .witness-sample-table thead { display:none }
+  .witness-sample-table tbody { display:grid; gap:10px }
+  .witness-sample-table tbody tr,
+  .witness-sample-table tbody tr:nth-child(even),
+  .witness-sample-table tbody tr:hover { display:grid; grid-template-columns:repeat(2, minmax(0, 1fr)); gap:9px; border:1px solid var(--line); border-radius:var(--radius-md); padding:11px 12px; background:var(--surface); box-shadow:var(--shadow-xs) }
+  .witness-sample-table tbody tr td,
+  .witness-sample-table tbody tr:nth-child(even) td,
+  .witness-sample-table tbody tr:hover td { height:auto; min-height:0; border:0; padding:0; background:transparent; box-shadow:none; text-align:right }
+  .witness-sample-table tbody td::before { content:attr(data-label); display:block; margin-bottom:3px; color:var(--muted); font-size:11px; font-weight:850; line-height:1.2; text-align:left }
+  .witness-sample-table tbody td:nth-child(2),
+  .witness-sample-table tbody td:nth-child(3),
+  .witness-sample-table tbody td:nth-child(4),
+  .witness-sample-table tbody td.empty-cell { grid-column:1 / -1; text-align:left }
+  .witness-sample-table tbody td:nth-child(2) strong,
+  .witness-sample-table tbody td:nth-child(3) strong,
+  .witness-sample-table tbody td:nth-child(4) strong { text-align:left }
+  .witness-sample-table tbody td.empty-cell { text-align:center }
+  .witness-sample-form-wide { grid-column:auto }
+}
+
+@media (max-width: 560px){
+  .witness-sample-header-actions .btn { width:100% }
+  .witness-sample-table tbody tr,
+  .witness-sample-table tbody tr:nth-child(even),
+  .witness-sample-table tbody tr:hover { grid-template-columns:1fr }
+  .witness-sample-table tbody tr td,
+  .witness-sample-table tbody tr:nth-child(even) td,
+  .witness-sample-table tbody tr:hover td { text-align:left }
+}
+
+@media (max-width: 980px){
+  .product-recall-layout { display:block }
+  .product-recall-side { margin-top:14px }
+  .product-recall-header-actions { justify-content:flex-start; width:100% }
+  .product-recall-toolbar,
+  .product-recall-form-grid,
+  .product-recall-detail-grid,
+  .product-recall-side-actions { grid-template-columns:1fr; width:100% }
+  .product-recall-table-wrap { overflow:visible; border:0; background:transparent; box-shadow:none }
+  .product-recall-table-wrap .product-recall-table { min-width:0 }
+  .product-recall-table,
+  .product-recall-table thead,
+  .product-recall-table tbody,
+  .product-recall-table tr,
+  .product-recall-table td { display:block; width:100%; min-width:0 }
+  .product-recall-table thead { display:none }
+  .product-recall-table tbody { display:grid; gap:10px }
+  .product-recall-table tbody tr,
+  .product-recall-table tbody tr:nth-child(even),
+  .product-recall-table tbody tr:hover { display:grid; grid-template-columns:repeat(2, minmax(0, 1fr)); gap:9px; border:1px solid var(--line); border-radius:var(--radius-md); padding:11px 12px; background:var(--surface); box-shadow:var(--shadow-xs) }
+  .product-recall-table tbody tr td,
+  .product-recall-table tbody tr:nth-child(even) td,
+  .product-recall-table tbody tr:hover td { height:auto; min-height:0; border:0; padding:0; background:transparent; box-shadow:none; text-align:right }
+  .product-recall-table tbody td::before { content:attr(data-label); display:block; margin-bottom:3px; color:var(--muted); font-size:11px; font-weight:850; line-height:1.2; text-align:left }
+  .product-recall-table tbody td:nth-child(2),
+  .product-recall-table tbody td:nth-child(3),
+  .product-recall-table tbody td.empty-cell { grid-column:1 / -1; text-align:left }
+  .product-recall-table tbody td:nth-child(2) strong,
+  .product-recall-table tbody td:nth-child(3) strong { text-align:left }
+  .product-recall-table tbody td.empty-cell { text-align:center }
+  .product-recall-form-wide { grid-column:auto }
+}
+
+@media (max-width: 560px){
+  .product-recall-header-actions .btn { width:100% }
+  .product-recall-table tbody tr,
+  .product-recall-table tbody tr:nth-child(even),
+  .product-recall-table tbody tr:hover { grid-template-columns:1fr }
+  .product-recall-table tbody tr td,
+  .product-recall-table tbody tr:nth-child(even) td,
+  .product-recall-table tbody tr:hover td { text-align:left }
 }
 
 @media (max-width: 980px){
