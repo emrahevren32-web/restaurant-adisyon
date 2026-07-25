@@ -977,7 +977,7 @@ export const BUSINESS_WORKSPACE_MODULE_REGISTRY: BusinessWorkspaceModule[] = def
     isVisible: true,
     displayOrder: 44,
     dependencies: [WORKSPACE_MODULE_CODES.STOCK, WORKSPACE_MODULE_CODES.PURCHASE],
-    tags: ['business', 'quality', 'lot-system', 'sample-tracking', 'quality-sample', 'witness-sample', 'witness-samples', 'product-recall', 'product-recalls', 'recall-management', 'quality-control', 'quality-form', 'return-process', 'supplier-return', 'supplier-return-shipment', 'checklist', 'inventory-lot', 'traceability', 'industrial-kitchen'],
+    tags: ['business', 'quality', 'lot-system', 'sample-tracking', 'quality-sample', 'witness-sample', 'witness-samples', 'product-recall', 'product-recalls', 'recall-management', 'product-history', 'traceability-timeline', 'quality-control', 'quality-form', 'return-process', 'supplier-return', 'supplier-return-shipment', 'checklist', 'inventory-lot', 'traceability', 'industrial-kitchen'],
     supportedSectorIds: industrialKitchenSectorIds,
     pricing: { model: 'paid', currency: 'TRY' },
     marketplace: marketplaceReady,
@@ -1033,6 +1033,19 @@ export const BUSINESS_WORKSPACE_MODULE_REGISTRY: BusinessWorkspaceModule[] = def
         supportedLayouts: ['standard', 'wide'],
         requiredPermission: 'operations.read',
         renderComponent: 'quality.productRecalls.placeholder'
+      }),
+      dashboardWidget({
+        id: 'quality.productHistory',
+        title: 'Ürün Geçmişi',
+        description: 'Production Order, Inventory Lot, Quality Sample, Şahit Numune ve Recall olaylarını tek traceability timeline üzerinde izlemek için kontrol paneli başlangıç alanı.',
+        icon: 'UG',
+        category: 'Kalite',
+        order: 9,
+        defaultVisible: false,
+        defaultSize: 'medium',
+        supportedLayouts: ['standard', 'wide'],
+        requiredPermission: 'operations.read',
+        renderComponent: 'quality.productHistory.placeholder'
       }),
       dashboardWidget({
         id: 'quality.controls',
@@ -1092,6 +1105,7 @@ export const BUSINESS_WORKSPACE_MODULE_REGISTRY: BusinessWorkspaceModule[] = def
       menuItem({ key: 'sample-tracking', label: 'Numune Takibi', route: 'sample-tracking', icon: 'NT', adminOnly: true, displayOrder: 6 }),
       menuItem({ key: 'witness-samples', label: 'Şahit Numune', route: 'witness-samples', icon: 'SN', adminOnly: true, displayOrder: 7 }),
       menuItem({ key: 'product-recalls', label: 'Recall Management', route: 'product-recalls', icon: 'RC', adminOnly: true, displayOrder: 8 }),
+      menuItem({ key: 'product-history', label: 'Ürün Geçmişi', route: 'product-history', icon: 'UG', adminOnly: true, displayOrder: 9 }),
       menuItem({ key: 'quality-controls', label: 'Kalite Kontrol', route: 'quality-controls', icon: 'KL', adminOnly: true, displayOrder: 10 }),
       menuItem({ key: 'quality-control-forms', label: 'Kalite Kontrol Formları', route: 'quality-control-forms', icon: 'KF', adminOnly: true, displayOrder: 20 }),
       menuItem({ key: 'return-processes', label: 'Red ve İade Süreci', route: 'return-processes', icon: 'RI', adminOnly: true, displayOrder: 30 }),
