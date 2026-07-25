@@ -138,7 +138,12 @@ const getSeedSuppliers = (
   supplierCount: number,
   seedIndex: number
 ) => {
-  const activeSuppliers = suppliers.filter(supplier => supplier.status !== 'BLOCKED')
+  const activeSuppliers = suppliers.filter(supplier => (
+    supplier.status !== 'BLOCKED'
+    && supplier.status !== 'BLACKLISTED'
+    && supplier.status !== 'SUSPENDED'
+    && supplier.status !== 'PASSIVE'
+  ))
   const sourceSuppliers = activeSuppliers.length > 0 ? activeSuppliers : suppliers
 
   return Array.from({ length: Math.min(supplierCount, sourceSuppliers.length) }, (_, index) => (

@@ -7,8 +7,10 @@ import {
   SUPPLIER_CURRENCIES,
   SUPPLIER_STATUS_LABELS,
   SUPPLIER_STATUSES,
-  loadSupplierManagementRecords,
-  saveSupplierManagementRecords
+  SUPPLIER_TYPE_LABELS,
+  SUPPLIER_TYPES,
+  SUPPLIER_WORKING_STATUS_LABELS,
+  SUPPLIER_WORKING_STATUSES
 } from '../supplier-management/supplier-management.mock'
 import {
   SUPPLIER_PRODUCT_STATUS_LABELS,
@@ -17,6 +19,11 @@ import {
   loadSupplierProductRecords,
   saveSupplierProductRecords
 } from '../supplier-management/supplier-product-mapping.mock'
+import { SupplierAddressService } from '../supplier-management/supplier-address.service'
+import { SupplierCategoryService } from '../supplier-management/supplier-category.service'
+import { SupplierContactService } from '../supplier-management/supplier-contact.service'
+import { SupplierService } from '../supplier-management/supplier.service'
+import { SupplierStatisticsService } from '../supplier-management/supplier-statistics.service'
 import type {
   Supplier,
   SupplierApprovalStatus,
@@ -24,15 +31,21 @@ import type {
   SupplierProduct,
   SupplierProductStatus,
   SupplierProductUnit,
-  SupplierStatus
+  SupplierStatistics,
+  SupplierStatus,
+  SupplierType,
+  SupplierWorkingStatus
 } from '../supplier-management/supplier-management.types'
 import type { StockItem } from '../types'
 import { loadStockItems } from '../storage'
+import { loadKpiSourceData } from '../kpi-reporting/kpi-source.service'
 
 type SupplierFilterValue = 'all'
 type SupplierStatusFilter = SupplierStatus | SupplierFilterValue
 type SupplierApprovalFilter = SupplierApprovalStatus | SupplierFilterValue
 type SupplierCompanyTypeFilter = SupplierCompanyType | SupplierFilterValue
+type SupplierTypeFilter = SupplierType | SupplierFilterValue
+type SupplierWorkingStatusFilter = SupplierWorkingStatus | SupplierFilterValue
 type SupplierPanelMode = 'detail' | 'form'
 type SupplierManagementView = 'suppliers' | 'supplier-products'
 type SupplierProductStatusFilter = SupplierProductStatus | SupplierFilterValue
@@ -44,18 +57,25 @@ type SupplierFormState = {
   taxOffice: string
   taxNumber: string
   companyType: SupplierCompanyType
+  type: SupplierType
+  categoryId: string
   status: SupplierStatus
   approvalStatus: SupplierApprovalStatus
+  workingStatus: SupplierWorkingStatus
   defaultCurrency: string
   paymentTermDays: string
   leadTimeDays: string
   minimumOrderAmount: string
+  currentAccountCode: string
   contactName: string
   contactPhone: string
+  mobilePhone: string
   contactEmail: string
   website: string
   address: string
   city: string
+  district: string
+  postalCode: string
   country: string
   notes: string
 }
@@ -87,8 +107,9 @@ type SupplierProductFormField = keyof SupplierProductFormState
 const EMAIL_PATTERN = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
 const DEFAULT_COUNTRY = 'Türkiye'
 const DEFAULT_CURRENCY = 'TRY'
+const DEFAULT_SUPPLIER_CATEGORY_ID = SupplierCategoryService.listCategories()[0]?.id || ''
 
-const createId = () => `supplier_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`
+const createId = () => SupplierService.createId()
 
 const toSearchText = (value: string) => value.trim().toLocaleLowerCase('tr-TR')
 
@@ -126,7 +147,8 @@ const formatQuantity = (value: number, unit: string) => (
 
 const getStatusClass = (status: SupplierStatus) => {
   if(status === 'ACTIVE') return 'success'
-  if(status === 'BLOCKED') return 'danger-pill'
+  if(status === 'BLACKLISTED' || status === 'BLOCKED') return 'danger-pill'
+  if(status === 'SUSPENDED' || status === 'PENDING_APPROVAL') return 'warning-pill'
   return 'muted-pill'
 }
 
@@ -136,14 +158,7 @@ const getApprovalStatusClass = (status: SupplierApprovalStatus) => {
   return 'warning-pill'
 }
 
-const getNextSupplierCode = (records: Supplier[]) => {
-  const maxNo = records.reduce((max, supplier) => {
-    const match = supplier.supplierCode.match(/(\d+)$/)
-    return match ? Math.max(max, Number(match[1])) : max
-  }, 0)
-
-  return `TD-${String(maxNo + 1).padStart(3, '0')}`
-}
+const getNextSupplierCode = (records: Supplier[]) => SupplierService.getNextSupplierCode(records)
 
 const createEmptySupplierForm = (records: Supplier[]): SupplierFormState => ({
   supplierCode: getNextSupplierCode(records),
@@ -152,18 +167,25 @@ const createEmptySupplierForm = (records: Supplier[]): SupplierFormState => ({
   taxOffice: '',
   taxNumber: '',
   companyType: 'LOCAL_SUPPLIER',
+  type: 'RAW_MATERIAL',
+  categoryId: DEFAULT_SUPPLIER_CATEGORY_ID,
   status: 'ACTIVE',
   approvalStatus: 'PENDING',
+  workingStatus: 'ACTIVE_WORKING',
   defaultCurrency: DEFAULT_CURRENCY,
   paymentTermDays: '0',
   leadTimeDays: '0',
   minimumOrderAmount: '0',
+  currentAccountCode: '',
   contactName: '',
   contactPhone: '',
+  mobilePhone: '',
   contactEmail: '',
   website: '',
   address: '',
   city: '',
+  district: '',
+  postalCode: '',
   country: DEFAULT_COUNTRY,
   notes: ''
 })
@@ -175,18 +197,25 @@ const createSupplierFormFromRecord = (supplier: Supplier): SupplierFormState => 
   taxOffice: supplier.taxOffice,
   taxNumber: supplier.taxNumber,
   companyType: supplier.companyType,
+  type: supplier.type,
+  categoryId: supplier.categoryIds[0] || SupplierCategoryService.getCategoryByType(supplier.type)?.id || DEFAULT_SUPPLIER_CATEGORY_ID,
   status: supplier.status,
   approvalStatus: supplier.approvalStatus,
+  workingStatus: supplier.workingStatus,
   defaultCurrency: supplier.defaultCurrency,
   paymentTermDays: String(supplier.paymentTermDays),
   leadTimeDays: String(supplier.leadTimeDays),
   minimumOrderAmount: String(supplier.minimumOrderAmount),
+  currentAccountCode: supplier.currentAccountCode,
   contactName: supplier.contactName,
   contactPhone: supplier.contactPhone,
+  mobilePhone: supplier.mobilePhone,
   contactEmail: supplier.contactEmail,
   website: supplier.website,
   address: supplier.address,
   city: supplier.city,
+  district: supplier.district,
+  postalCode: supplier.postalCode,
   country: supplier.country,
   notes: supplier.notes
 })
@@ -279,6 +308,7 @@ const createSupplierProductPayload = (
     id: previousRecord?.id || createId(),
     supplierId: form.supplierId,
     stockItemId: form.stockItemId,
+    categoryId: stockItem?.categoryId,
     supplierSku: form.supplierSku.trim(),
     supplierProductName: form.supplierProductName.trim(),
     brand: form.brand.trim(),
@@ -338,23 +368,31 @@ const createSupplierPayload = (
   return {
     id: previousSupplier?.id || createId(),
     supplierCode: form.supplierCode.trim(),
+    code: form.supplierCode.trim(),
     name: form.name.trim(),
     tradeName: form.tradeName.trim(),
     taxOffice: form.taxOffice.trim(),
     taxNumber: form.taxNumber.trim(),
     companyType: form.companyType,
+    type: form.type,
+    categoryIds: [form.categoryId || SupplierCategoryService.getCategoryByType(form.type)?.id || DEFAULT_SUPPLIER_CATEGORY_ID].filter(Boolean),
     status: form.status,
     approvalStatus: form.approvalStatus,
+    workingStatus: form.workingStatus,
     defaultCurrency: form.defaultCurrency.trim() || DEFAULT_CURRENCY,
     paymentTermDays: normalizeNumberInput(form.paymentTermDays),
     leadTimeDays: normalizeNumberInput(form.leadTimeDays),
     minimumOrderAmount: normalizeNumberInput(form.minimumOrderAmount),
+    currentAccountCode: form.currentAccountCode.trim(),
     contactName: form.contactName.trim(),
     contactPhone: form.contactPhone.trim(),
+    mobilePhone: form.mobilePhone.trim(),
     contactEmail: form.contactEmail.trim(),
     website: form.website.trim(),
     address: form.address.trim(),
     city: form.city.trim(),
+    district: form.district.trim(),
+    postalCode: form.postalCode.trim(),
     country: form.country.trim() || DEFAULT_COUNTRY,
     notes: form.notes.trim(),
     createdAt: previousSupplier?.createdAt || now,
@@ -363,19 +401,25 @@ const createSupplierPayload = (
 }
 
 export default function SupplierManagement(){
-  const [suppliers, setSuppliers] = React.useState<Supplier[]>(() => loadSupplierManagementRecords())
+  const [suppliers, setSuppliers] = React.useState<Supplier[]>(() => SupplierService.listSuppliers())
   const [stockItems] = React.useState<StockItem[]>(() => loadStockItems())
+  const [sourceData] = React.useState(() => loadKpiSourceData())
+  const [supplierProducts, setSupplierProducts] = React.useState<SupplierProduct[]>(() => loadSupplierProductRecords(suppliers, stockItems))
   const [activeView, setActiveView] = React.useState<SupplierManagementView>('suppliers')
   const [selectedSupplierId, setSelectedSupplierId] = React.useState('')
   const [panelMode, setPanelMode] = React.useState<SupplierPanelMode>('detail')
   const [editingSupplierId, setEditingSupplierId] = React.useState('')
-  const [form, setForm] = React.useState<SupplierFormState>(() => createEmptySupplierForm(loadSupplierManagementRecords()))
+  const [form, setForm] = React.useState<SupplierFormState>(() => createEmptySupplierForm(SupplierService.listSuppliers()))
   const [formError, setFormError] = React.useState('')
   const [search, setSearch] = React.useState('')
   const [statusFilter, setStatusFilter] = React.useState<SupplierStatusFilter>('all')
   const [approvalFilter, setApprovalFilter] = React.useState<SupplierApprovalFilter>('all')
+  const [categoryFilter, setCategoryFilter] = React.useState('all')
   const [cityFilter, setCityFilter] = React.useState('all')
+  const [districtFilter, setDistrictFilter] = React.useState('all')
   const [companyTypeFilter, setCompanyTypeFilter] = React.useState<SupplierCompanyTypeFilter>('all')
+  const [supplierTypeFilter, setSupplierTypeFilter] = React.useState<SupplierTypeFilter>('all')
+  const [workingStatusFilter, setWorkingStatusFilter] = React.useState<SupplierWorkingStatusFilter>('all')
 
   const selectedSupplier = React.useMemo(() => (
     suppliers.find(supplier => supplier.id === selectedSupplierId) || suppliers[0] || null
@@ -388,11 +432,27 @@ export default function SupplierManagement(){
 
   const commitSuppliers = React.useCallback((nextSuppliers: Supplier[]) => {
     setSuppliers(nextSuppliers)
-    saveSupplierManagementRecords(nextSuppliers)
+    SupplierService.saveSuppliers(nextSuppliers)
   }, [])
+
+  const supplierCategories = React.useMemo(() => SupplierCategoryService.listCategories(), [])
+
+  const statisticsMap = React.useMemo(() => (
+    SupplierStatisticsService.createStatisticsMap(
+      suppliers,
+      sourceData.purchaseOrders,
+      sourceData.goodsReceipts,
+      supplierProducts
+    )
+  ), [sourceData.goodsReceipts, sourceData.purchaseOrders, supplierProducts, suppliers])
 
   const cityOptions = React.useMemo(() => {
     return Array.from(new Set(suppliers.map(supplier => supplier.city).filter(Boolean)))
+      .sort((first, second) => first.localeCompare(second, 'tr-TR'))
+  }, [suppliers])
+
+  const districtOptions = React.useMemo(() => {
+    return Array.from(new Set(suppliers.map(supplier => supplier.district).filter(Boolean)))
       .sort((first, second) => first.localeCompare(second, 'tr-TR'))
   }, [suppliers])
 
@@ -407,26 +467,46 @@ export default function SupplierManagement(){
         supplier.taxNumber,
         supplier.contactName,
         supplier.contactPhone,
-        supplier.city
+        supplier.mobilePhone,
+        SupplierCategoryService.getCategoryNames(supplier).join(' '),
+        supplier.city,
+        supplier.district
       ]
 
       const matchesSearch = !normalizedSearch
         || searchFields.some(field => toSearchText(field).includes(normalizedSearch))
       const matchesStatus = statusFilter === 'all' || supplier.status === statusFilter
       const matchesApproval = approvalFilter === 'all' || supplier.approvalStatus === approvalFilter
+      const matchesCategory = categoryFilter === 'all' || supplier.categoryIds.includes(categoryFilter)
       const matchesCity = cityFilter === 'all' || supplier.city === cityFilter
+      const matchesDistrict = districtFilter === 'all' || supplier.district === districtFilter
       const matchesCompanyType = companyTypeFilter === 'all' || supplier.companyType === companyTypeFilter
+      const matchesSupplierType = supplierTypeFilter === 'all' || supplier.type === supplierTypeFilter
+      const matchesWorkingStatus = workingStatusFilter === 'all' || supplier.workingStatus === workingStatusFilter
 
-      return matchesSearch && matchesStatus && matchesApproval && matchesCity && matchesCompanyType
+      return matchesSearch && matchesStatus && matchesApproval && matchesCategory && matchesCity && matchesDistrict && matchesCompanyType && matchesSupplierType && matchesWorkingStatus
     })
-  }, [approvalFilter, cityFilter, companyTypeFilter, search, statusFilter, suppliers])
+  }, [approvalFilter, categoryFilter, cityFilter, companyTypeFilter, districtFilter, search, statusFilter, supplierTypeFilter, suppliers, workingStatusFilter])
 
   const activeCount = suppliers.filter(supplier => supplier.status === 'ACTIVE').length
+  const passiveCount = suppliers.filter(supplier => supplier.status === 'PASSIVE').length
+  const pendingCount = suppliers.filter(supplier => supplier.status === 'PENDING_APPROVAL' || supplier.approvalStatus === 'PENDING').length
+  const blacklistedCount = suppliers.filter(supplier => supplier.status === 'BLACKLISTED' || supplier.status === 'BLOCKED').length
   const approvedCount = suppliers.filter(supplier => supplier.approvalStatus === 'APPROVED').length
-  const blockedCount = suppliers.filter(supplier => supplier.status === 'BLOCKED').length
+  const blockedCount = blacklistedCount
+  const mostOrderedSupplier = SupplierStatisticsService.getMostOrderedSupplier(suppliers, statisticsMap)
+  const highestPurchaseSupplier = SupplierStatisticsService.getHighestPurchaseSupplier(suppliers, statisticsMap)
 
   const updateFormField = <K extends SupplierFormField>(field: K, value: SupplierFormState[K]) => {
-    setForm(prev => ({ ...prev, [field]: value }))
+    setForm(prev => {
+      if(field !== 'type') return { ...prev, [field]: value }
+      const nextType = value as SupplierType
+      return {
+        ...prev,
+        type: nextType,
+        categoryId: SupplierCategoryService.getCategoryByType(nextType)?.id || prev.categoryId
+      }
+    })
   }
 
   const startCreate = () => {
@@ -524,7 +604,7 @@ export default function SupplierManagement(){
 
       {activeView === 'suppliers' ? (
         <>
-      <div className="metric-grid">
+      <div className="metric-grid supplier-dashboard-grid">
         <div className="metric-card">
           <span>Toplam Tedarikçi</span>
           <strong>{suppliers.length}</strong>
@@ -540,6 +620,28 @@ export default function SupplierManagement(){
         <div className="metric-card">
           <span>Blokeli Tedarikçi</span>
           <strong>{blockedCount}</strong>
+        </div>
+        <div className="metric-card">
+          <span>Pasif</span>
+          <strong>{passiveCount}</strong>
+        </div>
+        <div className="metric-card">
+          <span>Onay Bekleyen</span>
+          <strong>{pendingCount}</strong>
+        </div>
+        <div className="metric-card">
+          <span>Kara Liste</span>
+          <strong>{blacklistedCount}</strong>
+        </div>
+        <div className="metric-card">
+          <span>En Ã‡ok SipariÅŸ</span>
+          <strong>{mostOrderedSupplier?.name || '-'}</strong>
+          <small>{mostOrderedSupplier ? `${statisticsMap.get(mostOrderedSupplier.id)?.totalPurchaseOrders || 0} PO` : 'KayÄ±t yok'}</small>
+        </div>
+        <div className="metric-card">
+          <span>En Ã‡ok AlÄ±m</span>
+          <strong>{highestPurchaseSupplier?.name || '-'}</strong>
+          <small>{highestPurchaseSupplier ? formatCurrency(statisticsMap.get(highestPurchaseSupplier.id)?.totalPurchaseAmount || 0, highestPurchaseSupplier.defaultCurrency) : 'KayÄ±t yok'}</small>
         </div>
       </div>
 
@@ -563,6 +665,10 @@ export default function SupplierManagement(){
                   <option key={status} value={status}>{SUPPLIER_STATUS_LABELS[status]}</option>
                 ))}
               </select>
+              <select value={categoryFilter} onChange={event => setCategoryFilter(event.target.value)}>
+                <option value="all">TÃ¼m Kategoriler</option>
+                {supplierCategories.map(category => <option key={category.id} value={category.id}>{category.name}</option>)}
+              </select>
               <select value={approvalFilter} onChange={event => setApprovalFilter(event.target.value as SupplierApprovalFilter)}>
                 <option value="all">Tüm Onaylar</option>
                 {SUPPLIER_APPROVAL_STATUSES.map(status => (
@@ -573,10 +679,26 @@ export default function SupplierManagement(){
                 <option value="all">Tüm Şehirler</option>
                 {cityOptions.map(city => <option key={city} value={city}>{city}</option>)}
               </select>
+              <select value={districtFilter} onChange={event => setDistrictFilter(event.target.value)}>
+                <option value="all">TÃ¼m Ä°lÃ§eler</option>
+                {districtOptions.map(district => <option key={district} value={district}>{district}</option>)}
+              </select>
               <select value={companyTypeFilter} onChange={event => setCompanyTypeFilter(event.target.value as SupplierCompanyTypeFilter)}>
                 <option value="all">Tüm Firma Tipleri</option>
                 {SUPPLIER_COMPANY_TYPES.map(type => (
                   <option key={type} value={type}>{SUPPLIER_COMPANY_TYPE_LABELS[type]}</option>
+                ))}
+              </select>
+              <select value={supplierTypeFilter} onChange={event => setSupplierTypeFilter(event.target.value as SupplierTypeFilter)}>
+                <option value="all">TÃ¼m Tedarik Tipleri</option>
+                {SUPPLIER_TYPES.map(type => (
+                  <option key={type} value={type}>{SUPPLIER_TYPE_LABELS[type]}</option>
+                ))}
+              </select>
+              <select value={workingStatusFilter} onChange={event => setWorkingStatusFilter(event.target.value as SupplierWorkingStatusFilter)}>
+                <option value="all">TÃ¼m Ã‡alÄ±ÅŸma DurumlarÄ±</option>
+                {SUPPLIER_WORKING_STATUSES.map(status => (
+                  <option key={status} value={status}>{SUPPLIER_WORKING_STATUS_LABELS[status]}</option>
                 ))}
               </select>
             </div>
@@ -588,6 +710,7 @@ export default function SupplierManagement(){
                 <tr>
                   <th>Kod</th>
                   <th>Firma</th>
+                  <th>Kategori</th>
                   <th>Yetkili</th>
                   <th>Telefon</th>
                   <th>Şehir</th>
@@ -595,11 +718,12 @@ export default function SupplierManagement(){
                   <th>Onay</th>
                   <th>Teslim Süresi</th>
                   <th>Vade</th>
+                  <th>Son SipariÅŸ</th>
                 </tr>
               </thead>
               <tbody>
                 {visibleSuppliers.length === 0 && (
-                  <tr><td colSpan={9} className="empty-cell">Bu filtrelere uygun tedarikçi bulunamadı.</td></tr>
+                  <tr><td colSpan={11} className="empty-cell">Bu filtrelere uygun tedarikçi bulunamadı.</td></tr>
                 )}
                 {visibleSuppliers.map(supplier => (
                   <tr
@@ -620,8 +744,9 @@ export default function SupplierManagement(){
                         {[supplier.tradeName, supplier.taxNumber && `Vergi No: ${supplier.taxNumber}`].filter(Boolean).join(' · ') || '-'}
                       </div>
                     </td>
+                    <td data-label="Kategori">{SupplierCategoryService.getCategoryNames(supplier).join(', ') || '-'}</td>
                     <td data-label="Yetkili">{supplier.contactName || '-'}</td>
-                    <td data-label="Telefon">{supplier.contactPhone || '-'}</td>
+                    <td data-label="Telefon">{supplier.contactPhone || supplier.mobilePhone || '-'}</td>
                     <td data-label="Şehir">{supplier.city || '-'}</td>
                     <td data-label="Durum">
                       <span className={`status-pill ${getStatusClass(supplier.status)}`}>
@@ -635,6 +760,7 @@ export default function SupplierManagement(){
                     </td>
                     <td data-label="Teslim Süresi">{formatDays(supplier.leadTimeDays)}</td>
                     <td data-label="Vade">{formatDays(supplier.paymentTermDays)}</td>
+                    <td data-label="Son SipariÅŸ">{statisticsMap.get(supplier.id)?.lastOrderDate || '-'}</td>
                   </tr>
                 ))}
               </tbody>
@@ -660,6 +786,9 @@ export default function SupplierManagement(){
           ) : (
             <SupplierDetailPanel
               supplier={selectedSupplier}
+              supplierProducts={supplierProducts.filter(product => product.supplierId === selectedSupplier?.id)}
+              statistics={selectedSupplier ? statisticsMap.get(selectedSupplier.id) || null : null}
+              stockItems={stockItems}
               onCreate={startCreate}
               onEdit={startEdit}
               onDelete={deleteSupplier}
@@ -669,7 +798,7 @@ export default function SupplierManagement(){
       </div>
         </>
       ) : (
-        <SupplierProductManagement suppliers={suppliers} stockItems={stockItems} />
+        <SupplierProductManagement suppliers={suppliers} stockItems={stockItems} initialRecords={supplierProducts} onRecordsChange={setSupplierProducts} />
       )}
     </div>
   )
@@ -677,11 +806,17 @@ export default function SupplierManagement(){
 
 function SupplierDetailPanel({
   supplier,
+  supplierProducts,
+  statistics,
+  stockItems,
   onCreate,
   onEdit,
   onDelete
 }: {
   supplier: Supplier | null
+  supplierProducts: SupplierProduct[]
+  statistics: SupplierStatistics | null
+  stockItems: StockItem[]
   onCreate: () => void
   onEdit: (supplier: Supplier) => void
   onDelete: (supplier: Supplier) => void
@@ -722,7 +857,10 @@ function SupplierDetailPanel({
         <div className="supplier-detail-grid">
           <div><span>Firma</span><strong>{supplier.name}</strong></div>
           <div><span>Ticari Ünvan</span><strong>{supplier.tradeName || '-'}</strong></div>
+          <div><span>Tedarikçi Tipi</span><strong>{SUPPLIER_TYPE_LABELS[supplier.type]}</strong></div>
+          <div><span>Kategori</span><strong>{SupplierCategoryService.getCategoryNames(supplier).join(', ') || '-'}</strong></div>
           <div><span>Firma Tipi</span><strong>{SUPPLIER_COMPANY_TYPE_LABELS[supplier.companyType]}</strong></div>
+          <div><span>Çalışma Durumu</span><strong>{SUPPLIER_WORKING_STATUS_LABELS[supplier.workingStatus]}</strong></div>
           <div><span>Onay</span><strong>{SUPPLIER_APPROVAL_STATUS_LABELS[supplier.approvalStatus]}</strong></div>
           <div><span>Vergi Dairesi</span><strong>{supplier.taxOffice || '-'}</strong></div>
           <div><span>Vergi No</span><strong>{supplier.taxNumber || '-'}</strong></div>
@@ -734,15 +872,19 @@ function SupplierDetailPanel({
         <div className="supplier-detail-grid">
           <div><span>Yetkili</span><strong>{supplier.contactName || '-'}</strong></div>
           <div><span>Telefon</span><strong>{supplier.contactPhone || '-'}</strong></div>
+          <div><span>Cep Telefonu</span><strong>{supplier.mobilePhone || '-'}</strong></div>
           <div><span>E-posta</span><strong>{supplier.contactEmail || '-'}</strong></div>
           <div><span>Website</span><strong>{supplier.website || '-'}</strong></div>
           <div><span>Şehir</span><strong>{supplier.city || '-'}</strong></div>
+          <div><span>İlçe</span><strong>{supplier.district || '-'}</strong></div>
+          <div><span>Posta Kodu</span><strong>{supplier.postalCode || '-'}</strong></div>
           <div><span>Ülke</span><strong>{supplier.country || '-'}</strong></div>
         </div>
         <div className="supplier-address-block">
           <span>Adres</span>
-          <strong>{supplier.address || '-'}</strong>
+          <strong>{SupplierAddressService.getAddressLabel(supplier)}</strong>
         </div>
+        <p className="muted small-text">{SupplierContactService.getContactLabel(supplier)}</p>
       </section>
 
       <section className="card supplier-detail-card">
@@ -752,8 +894,45 @@ function SupplierDetailPanel({
           <div><span>Teslim Süresi</span><strong>{formatDays(supplier.leadTimeDays)}</strong></div>
           <div><span>Vade</span><strong>{formatDays(supplier.paymentTermDays)}</strong></div>
           <div><span>Minimum Sipariş</span><strong>{formatCurrency(supplier.minimumOrderAmount, supplier.defaultCurrency)}</strong></div>
+          <div><span>Cari Kod</span><strong>{supplier.currentAccountCode || '-'}</strong></div>
           <div><span>Oluşturma</span><strong>{formatDateTime(supplier.createdAt)}</strong></div>
           <div><span>Güncelleme</span><strong>{formatDateTime(supplier.updatedAt)}</strong></div>
+        </div>
+      </section>
+
+      {statistics && (
+        <section className="card supplier-detail-card">
+          <h3>İstatistikler</h3>
+          <div className="supplier-detail-grid">
+            <div><span>Toplam Purchase Order</span><strong>{statistics.totalPurchaseOrders}</strong></div>
+            <div><span>Toplam Alım Tutarı</span><strong>{formatCurrency(statistics.totalPurchaseAmount, supplier.defaultCurrency)}</strong></div>
+            <div><span>Toplam Teslimat</span><strong>{statistics.totalDeliveries}</strong></div>
+            <div><span>Geciken Teslimat</span><strong>{statistics.delayedDeliveries}</strong></div>
+            <div><span>Kalite Reddi</span><strong>{statistics.qualityRejections}</strong></div>
+            <div><span>Aktif Sipariş</span><strong>{statistics.activeOrders}</strong></div>
+            <div><span>Son Sipariş Tarihi</span><strong>{statistics.lastOrderDate || '-'}</strong></div>
+            <div><span>Tedarik Ürünü</span><strong>{statistics.suppliedProductCount}</strong></div>
+          </div>
+        </section>
+      )}
+
+      <section className="card supplier-detail-card">
+        <h3>Tedarik Ettiği Ürünler</h3>
+        <div className="supplier-product-mini-list">
+          {supplierProducts.length === 0 && <div className="empty-cell">Tedarikçi ürünü bulunmuyor.</div>}
+          {supplierProducts.slice(0, 8).map(product => {
+            const stockItem = stockItems.find(item => item.id === product.stockItemId)
+            const categoryName = SupplierCategoryService.getCategoryById(product.categoryId || supplier.categoryIds[0])?.name
+              || SupplierCategoryService.getCategoryNames(supplier)[0]
+              || '-'
+
+            return (
+              <div className="supplier-product-mini-row" key={product.id}>
+                <strong>{product.supplierProductName}</strong>
+                <span>{categoryName} / {stockItem?.name || '-'} / {product.brand || '-'} / {product.isPreferred ? 'Varsayılan' : 'Alternatif'}</span>
+              </div>
+            )
+          })}
         </div>
       </section>
 
@@ -802,6 +981,22 @@ function SupplierForm({
             </select>
           </div>
           <div className="form-field">
+            <label>TedarikÃ§i Tipi</label>
+            <select value={form.type} onChange={event => onChange('type', event.target.value as SupplierType)}>
+              {SUPPLIER_TYPES.map(type => (
+                <option key={type} value={type}>{SUPPLIER_TYPE_LABELS[type]}</option>
+              ))}
+            </select>
+          </div>
+          <div className="form-field">
+            <label>Kategori</label>
+            <select value={form.categoryId} onChange={event => onChange('categoryId', event.target.value)}>
+              {SupplierCategoryService.listCategories().map(category => (
+                <option key={category.id} value={category.id}>{category.name}</option>
+              ))}
+            </select>
+          </div>
+          <div className="form-field">
             <label>Durum</label>
             <select value={form.status} onChange={event => onChange('status', event.target.value as SupplierStatus)}>
               {SUPPLIER_STATUSES.map(status => (
@@ -814,6 +1009,14 @@ function SupplierForm({
             <select value={form.approvalStatus} onChange={event => onChange('approvalStatus', event.target.value as SupplierApprovalStatus)}>
               {SUPPLIER_APPROVAL_STATUSES.map(status => (
                 <option key={status} value={status}>{SUPPLIER_APPROVAL_STATUS_LABELS[status]}</option>
+              ))}
+            </select>
+          </div>
+          <div className="form-field">
+            <label>Ã‡alÄ±ÅŸma Durumu</label>
+            <select value={form.workingStatus} onChange={event => onChange('workingStatus', event.target.value as SupplierWorkingStatus)}>
+              {SUPPLIER_WORKING_STATUSES.map(status => (
+                <option key={status} value={status}>{SUPPLIER_WORKING_STATUS_LABELS[status]}</option>
               ))}
             </select>
           </div>
@@ -846,6 +1049,10 @@ function SupplierForm({
             <input value={form.contactPhone} onChange={event => onChange('contactPhone', event.target.value)} />
           </div>
           <div className="form-field">
+            <label>Cep Telefonu</label>
+            <input value={form.mobilePhone} onChange={event => onChange('mobilePhone', event.target.value)} />
+          </div>
+          <div className="form-field">
             <label>E-posta</label>
             <input type="email" value={form.contactEmail} onChange={event => onChange('contactEmail', event.target.value)} />
           </div>
@@ -862,6 +1069,14 @@ function SupplierForm({
           <div className="form-field">
             <label>Şehir</label>
             <input value={form.city} onChange={event => onChange('city', event.target.value)} />
+          </div>
+          <div className="form-field">
+            <label>İlçe</label>
+            <input value={form.district} onChange={event => onChange('district', event.target.value)} />
+          </div>
+          <div className="form-field">
+            <label>Posta Kodu</label>
+            <input value={form.postalCode} onChange={event => onChange('postalCode', event.target.value)} />
           </div>
           <div className="form-field">
             <label>Ülke</label>
@@ -895,6 +1110,10 @@ function SupplierForm({
             <label>Minimum Sipariş</label>
             <input min="0" step="0.01" type="number" value={form.minimumOrderAmount} onChange={event => onChange('minimumOrderAmount', event.target.value)} />
           </div>
+          <div className="form-field">
+            <label>Cari Kod</label>
+            <input value={form.currentAccountCode} onChange={event => onChange('currentAccountCode', event.target.value)} />
+          </div>
         </div>
       </div>
 
@@ -915,13 +1134,17 @@ function SupplierForm({
 }
 
 function SupplierProductManagement({
+  initialRecords,
+  onRecordsChange,
   suppliers,
   stockItems
 }: {
+  initialRecords: SupplierProduct[]
+  onRecordsChange: (records: SupplierProduct[]) => void
   suppliers: Supplier[]
   stockItems: StockItem[]
 }){
-  const [records, setRecords] = React.useState<SupplierProduct[]>(() => loadSupplierProductRecords(suppliers, stockItems))
+  const [records, setRecords] = React.useState<SupplierProduct[]>(initialRecords)
   const [selectedRecordId, setSelectedRecordId] = React.useState('')
   const [panelMode, setPanelMode] = React.useState<SupplierPanelMode>('detail')
   const [editingRecordId, setEditingRecordId] = React.useState('')
@@ -947,8 +1170,9 @@ function SupplierProductManagement({
 
   const commitRecords = React.useCallback((nextRecords: SupplierProduct[]) => {
     setRecords(nextRecords)
+    onRecordsChange(nextRecords)
     saveSupplierProductRecords(nextRecords)
-  }, [])
+  }, [onRecordsChange])
 
   const brandOptions = React.useMemo(() => {
     return Array.from(new Set(records.map(record => record.brand).filter(Boolean)))
