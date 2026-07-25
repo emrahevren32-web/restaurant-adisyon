@@ -9,6 +9,7 @@ import type { PurchaseApproval } from '../purchase-approvals/purchase-approval.t
 import type { PurchaseOrder } from '../purchase-orders/purchase-order.types'
 import type { PurchaseRequestRecord } from '../purchase-requests/purchase-request.types'
 import type { QualitySample } from '../quality-samples/quality-sample.types'
+import type { RecipeManagementRecord } from '../recipe-management/recipe-management.types'
 import type { RequestForQuotationRecord } from '../request-for-quotations/request-for-quotation.types'
 import type { ShipmentExecutionRecord } from '../shipment-executions/shipment-execution.types'
 import type { ShipmentPalletRecord } from '../shipment-pallets/shipment-pallet.types'
@@ -163,6 +164,7 @@ export type KpiSourceData = {
   stockItems: StockItem[]
   stockMovements: StockMovement[]
   stockWasteRecords: StockWasteRecord[]
+  recipeRecords: RecipeManagementRecord[]
   productRefs: InventoryLotProductReference[]
   purchaseRequests: PurchaseRequestRecord[]
   suppliers: Supplier[]

@@ -1,20 +1,16 @@
+import { createDefaultFireAnalysisFilters, createFireAnalysisView } from '../fire-impact/fire-analysis.service'
 import type { KpiSourceData } from '../kpi-reporting/kpi.types'
-import { percent, sumBy } from '../kpi-reporting/kpi.utils'
+import { formatCurrency, formatPercent, sumBy } from '../kpi-reporting/kpi.utils'
 import { createDecisionSuggestion } from './recommendation-engine.service'
 import type { DecisionSuggestion } from './decision-support.types'
 import {
   getDateKey,
-  getProductLabel,
   getTodayKey,
   isCancelledProductionOrder,
   isCompletedProductionOrder
 } from './decision-support.utils'
 
 const MAX_ENTITY_SUGGESTIONS = 6
-
-const getOrderQuantity = (order: KpiSourceData['productionOrders'][number]) => (
-  sumBy(order.lines, line => line.quantity)
-)
 
 const isWithinLastDays = (dateValue: string, days: number) => {
   const dateKey = getDateKey(dateValue)
@@ -109,25 +105,27 @@ const createCapacitySuggestions = (
 const createFireSuggestion = (
   sourceData: KpiSourceData
 ): DecisionSuggestion[] => {
-  const recentWaste = sourceData.stockWasteRecords.filter(record => record.status === 'active' && isWithinLastDays(record.occurredAt || record.createdAt, 30))
-  const recentProduction = sourceData.productionOrders.filter(order => isWithinLastDays(order.createdAt || order.deliveryDate, 30))
-  const wasteQuantity = sumBy(recentWaste, record => record.qty)
-  const productionQuantity = sumBy(recentProduction, getOrderQuantity)
-  const fireRate = percent(wasteQuantity, productionQuantity)
+  const fireView = createFireAnalysisView(sourceData, createDefaultFireAnalysisFilters())
+  const fireRate = fireView.statistics.fireRate
+  const highImpact = [...fireView.filteredImpacts].sort((first, second) => second.impactScore - first.impactScore || second.cost.totalCost - first.cost.totalCost)[0]
 
-  if(fireRate <= 3) return []
+  if(fireRate <= 3 && fireView.statistics.highRiskImpactCount === 0) return []
 
   return [createDecisionSuggestion({
     category: 'Production',
     title: 'Fire orani icin kok neden analizi',
-    description: 'Son 30 gunde fire orani uretim miktarina gore yuksek.',
-    reason: `Fire orani ${fireRate.toLocaleString('tr-TR')}%, fire miktari ${wasteQuantity.toLocaleString('tr-TR')}.`,
+    description: 'Fire Impact Analysis read-model sonucu uretim, recete ve maliyet etkisi yuksek.',
+    reason: `Fire orani ${formatPercent(fireRate)}, toplam maliyet ${formatCurrency(fireView.statistics.totalCost)}. En riskli kayit: ${highImpact?.productName || 'genel fire'} / score ${highImpact?.impactScore || fireView.statistics.highRiskImpactCount}.`,
     ruleId: 'production-fire-root-cause',
     relatedEntityType: 'StockWasteRecord',
-    relatedEntityId: recentWaste[0]?.id || 'stock-waste',
-    branchId: recentWaste[0]?.branchId || '',
-    evidenceScore: Math.min(30, fireRate * 3),
-    createdAt: recentWaste[0]?.occurredAt || new Date().toISOString(),
+    relatedEntityId: highImpact?.stockWasteRecordId || 'stock-waste',
+    relatedProductId: highImpact?.productId || '',
+    relatedLotId: highImpact?.lotId || '',
+    relatedWorkOrderId: highImpact?.productionOrderId || '',
+    branchId: highImpact?.branchId || '',
+    warehouseId: highImpact?.warehouseId || '',
+    evidenceScore: Math.min(30, fireRate * 3 + fireView.statistics.highRiskImpactCount * 2 + fireView.statistics.totalCost / 1000),
+    createdAt: highImpact?.occurredAt || new Date().toISOString(),
     recommendationAction: 'Recete, operator, proses sicakligi ve paketleme kayiplarini birlikte analiz et.',
     expectedImpact: 'Fire maliyetini ve tekrar eden proses hatalarini azaltir.',
     ownerRole: 'Uretim Muduru'

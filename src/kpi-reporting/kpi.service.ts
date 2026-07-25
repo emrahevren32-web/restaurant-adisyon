@@ -46,6 +46,12 @@ const KPI_REPORTS: KpiReportDefinition[] = [
     owner: 'Production'
   },
   {
+    id: 'fire-impact-report',
+    title: 'Fire Impact Report',
+    description: 'Fire miktari, fire %, maliyet, urun, lot, kategori ve departman etkisi raporu.',
+    owner: 'Production'
+  },
+  {
     id: 'inventory-report',
     title: 'Inventory Report',
     description: 'Stok seviyesi, kritik stok, lot, SKT ve depo doluluk raporu.',

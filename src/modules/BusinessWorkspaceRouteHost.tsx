@@ -46,6 +46,7 @@ import PackagingProcesses from '../pages/PackagingProcesses'
 import LabelingProcesses from '../pages/LabelingProcesses'
 import DispatchProcesses from '../pages/DispatchProcesses'
 import Recipes from '../pages/Recipes'
+import FireImpactAnalysis from '../pages/FireImpactAnalysis'
 import PurchaseRequests from '../pages/PurchaseRequests'
 import RequestForQuotations from '../pages/RequestForQuotations'
 import PurchaseApprovals from '../pages/PurchaseApprovals'
@@ -208,6 +209,7 @@ export default function BusinessWorkspaceRouteHost({
   if(route === 'labeling-processes') return <LabelingProcesses />
   if(route === 'dispatch-processes') return <DispatchProcesses />
   if(route === 'recipes') return <Recipes />
+  if(route === 'fire-analysis') return <FireImpactAnalysis currentUser={currentUser} />
   if(route === 'purchase-requests') return <PurchaseRequests currentUser={currentUser} />
   if(route === 'request-for-quotations') return <RequestForQuotations currentUser={currentUser} />
   if(route === 'purchase-approvals') return <PurchaseApprovals currentUser={currentUser} />

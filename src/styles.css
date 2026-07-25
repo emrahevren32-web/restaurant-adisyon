@@ -4638,3 +4638,79 @@ th { color:var(--muted-strong); font-size:13px; font-weight:750 }
   .decision-table tbody tr:nth-child(even) td,
   .decision-table tbody tr:hover td { text-align:left }
 }
+
+.fire-analysis-page { display:grid; gap:18px }
+.fire-header-actions { display:flex; flex-wrap:wrap; gap:10px; align-items:center; justify-content:flex-end }
+.fire-filter-card { margin-bottom:0 }
+.fire-filter-grid { display:grid; grid-template-columns:repeat(6, minmax(125px, 1fr)); gap:10px; align-items:end }
+.fire-card-grid { grid-template-columns:repeat(6, minmax(0, 1fr)) }
+.fire-card { min-width:0; border-top:3px solid var(--line) }
+.fire-card.success { border-top-color:#059669 }
+.fire-card.warning { border-top-color:#f97316 }
+.fire-card.danger { border-top-color:#dc2626 }
+.fire-card small { display:block; margin-top:6px; color:var(--muted); font-size:12px; font-weight:800; line-height:1.35; overflow-wrap:anywhere }
+.fire-chart-grid { display:grid; grid-template-columns:repeat(2, minmax(0, 1fr)); gap:12px }
+.fire-insight-grid { display:grid; grid-template-columns:repeat(3, minmax(0, 1fr)); gap:12px }
+.fire-layout { align-items:start }
+.fire-side { display:flex; flex-direction:column; gap:12px; min-width:0 }
+.fire-detail-card { margin-bottom:0 }
+.fire-detail-grid { display:grid; grid-template-columns:repeat(2, minmax(0, 1fr)); gap:10px; margin-bottom:12px }
+.fire-detail-grid div,
+.fire-impact-list div { min-width:0; border:1px solid var(--line); border-radius:var(--radius-md); padding:10px 11px; background:var(--surface-muted) }
+.fire-detail-grid span { display:block; color:var(--muted); font-size:12px; font-weight:850; line-height:1.2 }
+.fire-detail-grid strong { display:block; margin-top:4px; color:var(--text); font-size:14px; font-weight:900; overflow-wrap:anywhere }
+.fire-impact-list { display:grid; gap:9px; min-width:0 }
+.fire-impact-list strong { display:block; color:var(--text); font-weight:950; overflow-wrap:anywhere }
+.fire-impact-list span { display:block; margin-top:4px; color:var(--muted); font-size:12px; font-weight:800; line-height:1.35; overflow-wrap:anywhere }
+.fire-table-wrap { min-width:0 }
+.fire-table { min-width:920px }
+.fire-table td:nth-child(2) strong,
+.fire-table td:nth-child(2) span { display:block; overflow-wrap:anywhere }
+.fire-table td:nth-child(2) strong { color:var(--text); font-weight:950 }
+.fire-table td:nth-child(2) span { margin-top:3px; color:var(--muted); font-size:12px; font-weight:800; line-height:1.35 }
+
+@media (max-width: 1200px){
+  .fire-card-grid,
+  .fire-filter-grid,
+  .fire-insight-grid { grid-template-columns:repeat(3, minmax(0, 1fr)) }
+}
+
+@media (max-width: 980px){
+  .fire-header-actions { justify-content:flex-start; width:100% }
+  .fire-card-grid,
+  .fire-filter-grid,
+  .fire-chart-grid,
+  .fire-insight-grid,
+  .fire-detail-grid { grid-template-columns:1fr }
+  .fire-layout { display:block }
+  .fire-side { margin-top:14px }
+  .fire-table-wrap { overflow:visible; border:0; background:transparent; box-shadow:none }
+  .fire-table-wrap .fire-table { min-width:0 }
+  .fire-table,
+  .fire-table thead,
+  .fire-table tbody,
+  .fire-table tr,
+  .fire-table td { display:block; width:100%; min-width:0 }
+  .fire-table thead { display:none }
+  .fire-table tbody { display:grid; gap:10px }
+  .fire-table tbody tr,
+  .fire-table tbody tr:nth-child(even),
+  .fire-table tbody tr:hover { display:grid; grid-template-columns:repeat(2, minmax(0, 1fr)); gap:9px; border:1px solid var(--line); border-radius:var(--radius-md); padding:11px 12px; background:var(--surface); box-shadow:var(--shadow-xs) }
+  .fire-table tbody tr td,
+  .fire-table tbody tr:nth-child(even) td,
+  .fire-table tbody tr:hover td { height:auto; min-height:0; border:0; padding:0; background:transparent; box-shadow:none; text-align:right }
+  .fire-table tbody td::before { content:attr(data-label); display:block; margin-bottom:3px; color:var(--muted); font-size:11px; font-weight:850; line-height:1.2; text-align:left }
+  .fire-table tbody td:nth-child(2),
+  .fire-table tbody td.empty-cell { grid-column:1 / -1; text-align:left }
+  .fire-table tbody td:nth-child(2) strong { text-align:left }
+  .fire-table tbody td.empty-cell { text-align:center }
+}
+
+@media (max-width: 560px){
+  .fire-table tbody tr,
+  .fire-table tbody tr:nth-child(even),
+  .fire-table tbody tr:hover { grid-template-columns:1fr }
+  .fire-table tbody tr td,
+  .fire-table tbody tr:nth-child(even) td,
+  .fire-table tbody tr:hover td { text-align:left }
+}

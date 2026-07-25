@@ -1193,7 +1193,7 @@ export const BUSINESS_WORKSPACE_MODULE_REGISTRY: BusinessWorkspaceModule[] = def
     isVisible: true,
     displayOrder: 45,
     dependencies: [],
-    tags: ['business', 'production', 'operation', 'industrial-kitchen', 'work-order', 'production-line', 'intermediate-product', 'final-product', 'blast-chiller', 'packaging', 'labeling', 'dispatch', 'recipe-management'],
+    tags: ['business', 'production', 'operation', 'industrial-kitchen', 'work-order', 'production-line', 'intermediate-product', 'final-product', 'blast-chiller', 'packaging', 'labeling', 'dispatch', 'recipe-management', 'fire-analysis', 'cost-analysis'],
     supportedSectorIds: industrialKitchenSectorIds,
     pricing: { model: 'paid', currency: 'TRY' },
     marketplace: marketplaceReady,
@@ -1314,6 +1314,19 @@ export const BUSINESS_WORKSPACE_MODULE_REGISTRY: BusinessWorkspaceModule[] = def
         supportedLayouts: ['standard', 'wide'],
         requiredPermission: 'operations.read',
         renderComponent: 'production.recipeManagement.placeholder'
+      }),
+      dashboardWidget({
+        id: 'production.fireImpactAnalysis',
+        title: 'Fire Analizi',
+        description: 'Fire kayitlarinin stok, maliyet, recete, uretim, KPI ve karar destek etkisini analiz eden read-model paneli.',
+        icon: 'FA',
+        category: 'Operasyon',
+        order: 65,
+        defaultVisible: false,
+        defaultSize: 'large',
+        supportedLayouts: ['standard', 'wide'],
+        requiredPermission: 'operations.read',
+        renderComponent: 'production.fireImpactAnalysis.placeholder'
       })
     ],
     menuItems: [
@@ -1325,7 +1338,17 @@ export const BUSINESS_WORKSPACE_MODULE_REGISTRY: BusinessWorkspaceModule[] = def
       menuItem({ key: 'packaging-processes', label: 'Paketleme', route: 'packaging-processes', icon: 'PK', adminOnly: true, displayOrder: 60 }),
       menuItem({ key: 'labeling-processes', label: 'Etiketleme', route: 'labeling-processes', icon: 'ET', adminOnly: true, displayOrder: 70 }),
       menuItem({ key: 'dispatch-processes', label: 'Sevkiyat', route: 'dispatch-processes', icon: 'SV', adminOnly: true, displayOrder: 80 }),
-      menuItem({ key: 'recipes', label: 'Reçete Yönetimi', route: 'recipes', icon: 'RC', adminOnly: true, displayOrder: 90 })
+      menuItem({
+        key: 'recipe-cost',
+        label: 'Reçete ve Maliyet',
+        icon: 'RM',
+        adminOnly: true,
+        displayOrder: 90,
+        children: [
+          menuItem({ key: 'recipes', label: 'Reçete Yönetimi', route: 'recipes', icon: 'RC', adminOnly: true, displayOrder: 10 }),
+          menuItem({ key: 'fire-analysis', label: 'Fire Analizi', route: 'fire-analysis', icon: 'FA', adminOnly: true, displayOrder: 20 })
+        ]
+      })
     ]
   },
   {

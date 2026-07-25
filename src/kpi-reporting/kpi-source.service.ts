@@ -16,6 +16,7 @@ import { loadPurchaseApprovalRecords } from '../purchase-approvals/purchase-appr
 import { loadPurchaseOrderRecords } from '../purchase-orders/purchase-order.mock'
 import { loadPurchaseRequestRecords } from '../purchase-requests/purchase-request.mock'
 import { loadQualitySampleRecords } from '../quality-samples/quality-sample.mock'
+import { loadRecipeManagementRecords } from '../recipe-management/recipe-management.mock'
 import { loadRequestForQuotationRecords } from '../request-for-quotations/request-for-quotation.mock'
 import { loadShipmentExecutionRecords } from '../shipment-executions/shipment-execution.mock'
 import { loadShipmentPalletRecords } from '../shipment-pallets/shipment-pallet.mock'
@@ -77,6 +78,7 @@ export const loadKpiSourceData = (): KpiSourceData => {
   const stockItems = loadStockItems()
   const stockMovements = loadStockMovements()
   const stockWasteRecords = loadStockWasteRecords()
+  const recipeRecords = loadRecipeManagementRecords()
   const suppliers = loadSupplierManagementRecords()
   const supplierProducts = loadSupplierProductRecords(suppliers, stockItems)
   const purchaseRequests = loadPurchaseRequestRecords(stockItems, branches)
@@ -110,6 +112,7 @@ export const loadKpiSourceData = (): KpiSourceData => {
     stockItems,
     stockMovements,
     stockWasteRecords,
+    recipeRecords,
     productRefs,
     purchaseRequests,
     suppliers,
