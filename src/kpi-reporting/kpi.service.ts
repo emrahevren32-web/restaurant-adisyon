@@ -52,6 +52,12 @@ const KPI_REPORTS: KpiReportDefinition[] = [
     owner: 'Production'
   },
   {
+    id: 'cost-engine-report',
+    title: 'Cost Engine Report',
+    description: 'Recete, hammadde, satin alma, fire, uretim, depolama ve sevkiyat maliyet raporu.',
+    owner: 'Production'
+  },
+  {
     id: 'inventory-report',
     title: 'Inventory Report',
     description: 'Stok seviyesi, kritik stok, lot, SKT ve depo doluluk raporu.',
@@ -181,6 +187,7 @@ const createExecutiveSummary = (
       createCard('executive-open-production', 'Acik Uretim Emirleri', formatNumber(getOpenProductionOrderCount(sourceData, filters)), 'Tamamlanmamis uretim emirleri', 'warning'),
       createCard('executive-completed-work-orders', 'Tamamlanan Is Emirleri', formatNumber(getCompletedShipmentWorkOrderCount(sourceData, filters)), 'Shipment Work Order tamamlananlar', 'success'),
       createCard('executive-total-lots', 'Toplam Lot', formatNumber(sourceData.inventoryLots.length), 'Inventory Lot kayitlari', 'neutral'),
+      createCard('executive-cost-engine', 'Cost Engine Maliyeti', getCard(dashboard.production.cards, 'production-cost-total'), 'Read-model urun maliyeti', 'neutral'),
       createCard('executive-active-recall', 'Aktif Recall', formatNumber(activeRecallCount), 'Acik veya devam eden recall', activeRecallCount > 0 ? 'danger' : 'success'),
       createCard('executive-open-action', 'Acik Corrective Action', formatNumber(openCorrectiveActionCount), 'OPEN / IN_PROGRESS faaliyetler', openCorrectiveActionCount > 0 ? 'warning' : 'success'),
       createCard('executive-critical-stock', 'Kritik Stok', formatNumber(getCriticalStockCount(sourceData)), 'Min seviyenin altindaki stoklar', getCriticalStockCount(sourceData) > 0 ? 'danger' : 'success'),

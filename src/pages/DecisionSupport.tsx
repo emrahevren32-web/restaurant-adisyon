@@ -91,6 +91,11 @@ const getRelatedEntityLabel = (
     const record = sourceData.stockWasteRecords.find(item => item.id === suggestion.relatedEntityId)
     return record ? `${record.stockItemName} / ${record.reasonCategory}` : suggestion.relatedEntityId
   }
+  if(suggestion.relatedEntityType === 'CostEngine'){
+    return sourceData.productRefs.find(product => product.id === suggestion.relatedProductId)?.name
+      || suggestion.relatedProductId
+      || suggestion.relatedEntityId
+  }
   if(suggestion.relatedEntityType === 'Supplier'){
     return sourceData.suppliers.find(supplier => supplier.id === suggestion.relatedEntityId)?.name || suggestion.relatedEntityId
   }

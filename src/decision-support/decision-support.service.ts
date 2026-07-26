@@ -3,6 +3,7 @@ import { createDefaultKpiFilters } from '../kpi-reporting/kpi.service'
 import type { KpiSourceData } from '../kpi-reporting/kpi.types'
 import { ALL_FILTER } from '../kpi-reporting/kpi.utils'
 import { DECISION_RULES } from './decision-rules'
+import { createCostEngineDecisionSuggestions } from './cost-engine-decision.service'
 import { createInventoryDecisionSuggestions } from './inventory-decision.service'
 import { createDecisionSuggestion, dedupeSuggestions } from './recommendation-engine.service'
 import { createProductionDecisionSuggestions } from './production-decision.service'
@@ -54,6 +55,7 @@ export const createDecisionSuggestions = (
 ) => {
   const baseSuggestions = [
     ...createProductionDecisionSuggestions(sourceData),
+    ...createCostEngineDecisionSuggestions(sourceData),
     ...createInventoryDecisionSuggestions(sourceData),
     ...createQualityDecisionSuggestions(sourceData),
     ...createPurchasingDecisionSuggestions(sourceData),
@@ -101,7 +103,7 @@ const getDashboardSummary = (
     .filter(action => action.status === 'OPEN' || action.status === 'IN_PROGRESS')
     .length,
   criticalStocks: getCriticalStockCount(sourceData),
-  highFire: suggestions.filter(suggestion => suggestion.ruleId === 'production-fire-root-cause').length,
+  highFire: suggestions.filter(suggestion => suggestion.ruleId === 'production-fire-root-cause' || suggestion.ruleId === 'cost-engine-fire-cost').length,
   riskySuppliers: suggestions.filter(suggestion => suggestion.category === 'Purchasing' && (suggestion.risk === 'HIGH' || suggestion.risk === 'CRITICAL')).length,
   riskyCcps: suggestions.filter(suggestion => suggestion.ruleId === 'quality-ccp-failure-risk').length,
   delayedProduction: suggestions.filter(suggestion => suggestion.ruleId === 'production-delay-shift').length,

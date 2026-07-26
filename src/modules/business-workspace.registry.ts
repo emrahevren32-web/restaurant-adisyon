@@ -1327,6 +1327,19 @@ export const BUSINESS_WORKSPACE_MODULE_REGISTRY: BusinessWorkspaceModule[] = def
         supportedLayouts: ['standard', 'wide'],
         requiredPermission: 'operations.read',
         renderComponent: 'production.fireImpactAnalysis.placeholder'
+      }),
+      dashboardWidget({
+        id: 'production.costEngine',
+        title: 'Cost Engine',
+        description: 'Recete, hammadde, satin alma, fire, uretim, depolama ve sevkiyat verilerinden maliyet hesaplayan read-model paneli.',
+        icon: 'CE',
+        category: 'Operasyon',
+        order: 70,
+        defaultVisible: false,
+        defaultSize: 'large',
+        supportedLayouts: ['standard', 'wide'],
+        requiredPermission: 'operations.read',
+        renderComponent: 'production.costEngine.placeholder'
       })
     ],
     menuItems: [
@@ -1346,7 +1359,8 @@ export const BUSINESS_WORKSPACE_MODULE_REGISTRY: BusinessWorkspaceModule[] = def
         displayOrder: 90,
         children: [
           menuItem({ key: 'recipes', label: 'Reçete Yönetimi', route: 'recipes', icon: 'RC', adminOnly: true, displayOrder: 10 }),
-          menuItem({ key: 'fire-analysis', label: 'Fire Analizi', route: 'fire-analysis', icon: 'FA', adminOnly: true, displayOrder: 20 })
+          menuItem({ key: 'fire-analysis', label: 'Fire Analizi', route: 'fire-analysis', icon: 'FA', adminOnly: true, displayOrder: 20 }),
+          menuItem({ key: 'cost-engine', label: 'Cost Engine', route: 'cost-engine', icon: 'CE', adminOnly: true, displayOrder: 30 })
         ]
       })
     ]

@@ -164,6 +164,33 @@ export const DECISION_RULES: DecisionRule[] = [
     thresholdLabel: 'Return count / completed shipment count > 15%'
   },
   {
+    id: 'cost-engine-raw-material-increase',
+    category: 'Production',
+    title: 'Cost Engine hammadde maliyeti artisi',
+    description: 'Hammadde veya satin alma fiyat farki urun maliyetini anlamli sekilde artiriyorsa tedarik ve recete alternatifi degerlendirilmelidir.',
+    baseRisk: 'HIGH',
+    priority: 'HIGH',
+    thresholdLabel: 'Hammadde maliyet etkisi >= 18%'
+  },
+  {
+    id: 'cost-engine-recipe-revision',
+    category: 'Production',
+    title: 'Cost Engine recete revizyonu oner',
+    description: 'Recete fire orani veya fire maliyet payi yuksekse gramaj, proses ve toleranslar revize edilmelidir.',
+    baseRisk: 'HIGH',
+    priority: 'HIGH',
+    thresholdLabel: 'Standart fire >= 5% veya fire maliyet payi >= 7%'
+  },
+  {
+    id: 'cost-engine-fire-cost',
+    category: 'Production',
+    title: 'Cost Engine fire maliyet etkisi',
+    description: 'Fire component toplam urun maliyetinin kritik bir payina ulastiginda kok neden analizi gerekir.',
+    baseRisk: 'HIGH',
+    priority: 'HIGH',
+    thresholdLabel: 'Fire maliyet payi >= 7%'
+  },
+  {
     id: 'management-critical-cluster',
     category: 'Management',
     title: 'Kritik risk kumesi icin yonetici aksiyon toplantisi oner',
