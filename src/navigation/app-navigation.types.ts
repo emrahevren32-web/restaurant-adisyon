@@ -89,6 +89,7 @@ export type BusinessWorkspaceRoute =
   | 'settings'
   | 'marketplace'
   | 'integration-center'
+  | 'excel-center'
 
 export type PlatformRoute =
   | 'business-registration-system'
@@ -133,6 +134,7 @@ export type BusinessWorkspaceNavKey =
   | 'settings'
   | 'marketplace'
   | 'integration-center'
+  | 'excel-center'
   | 'support'
   | 'ai-center'
   | 'action-history'

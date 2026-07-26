@@ -320,6 +320,37 @@ export const BUSINESS_WORKSPACE_MODULE_REGISTRY: BusinessWorkspaceModule[] = def
     ]
   },
   {
+    id: 'system-tools',
+    code: WORKSPACE_MODULE_CODES.TOOLS,
+    name: 'Araclar',
+    description: 'Workspace genelinde kullanilan veri aktarimi ve toplu operasyon araclarini toplar.',
+    category: 'system',
+    icon: 'AR',
+    route: 'excel-center',
+    permissions: ['company.read'],
+    isCoreModule: true,
+    isBusinessModule: false,
+    isEnabled: true,
+    isVisible: true,
+    displayOrder: 21,
+    dependencies: [WORKSPACE_MODULE_CODES.WORKSPACE],
+    tags: ['system', 'tools', 'excel', 'import', 'export'],
+    pricing: includedPricing,
+    marketplace: coreSystemMarketplace,
+    menuItems: [
+      menuItem({
+        key: 'tools',
+        label: 'Araclar',
+        icon: 'AR',
+        adminOnly: true,
+        displayOrder: 21,
+        children: [
+          menuItem({ key: 'excel-center', label: 'Excel Merkezi', route: 'excel-center', icon: 'XL', adminOnly: true, displayOrder: 10 })
+        ]
+      })
+    ]
+  },
+  {
     id: 'system-executive-center',
     code: WORKSPACE_MODULE_CODES.EXECUTIVE_CENTER,
     name: 'Yönetici Merkezi',

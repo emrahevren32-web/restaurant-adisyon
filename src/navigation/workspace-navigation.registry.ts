@@ -30,7 +30,8 @@ const CORE_WORKSPACE_MODULE_CODES = [
   'dashboard',
   'workspace',
   'marketplace',
-  'integration-center'
+  'integration-center',
+  'tools'
 ]
 
 const compareByOrder = <T extends { order: number }>(first: T, second: T) => first.order - second.order

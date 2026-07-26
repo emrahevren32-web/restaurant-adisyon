@@ -4863,3 +4863,121 @@ th { color:var(--muted-strong); font-size:13px; font-weight:750 }
   .cost-table tbody tr:nth-child(even) td,
   .cost-table tbody tr:hover td { text-align:left }
 }
+
+.excel-center-page { display:grid; gap:18px }
+.excel-header-actions { display:flex; flex-wrap:wrap; gap:10px; align-items:center; justify-content:flex-end }
+.excel-card-grid { grid-template-columns:repeat(5, minmax(0, 1fr)) }
+.excel-card { min-width:0; border-top:3px solid var(--line) }
+.excel-card.success { border-top-color:#059669 }
+.excel-card.warning { border-top-color:#f97316 }
+.excel-card.danger { border-top-color:#dc2626 }
+.excel-card small { display:block; margin-top:6px; color:var(--muted); font-size:12px; font-weight:800; line-height:1.35; overflow-wrap:anywhere }
+.excel-work-grid { display:grid; grid-template-columns:minmax(0, 1fr) minmax(0, 1fr); gap:12px; align-items:start }
+.excel-insight-grid { display:grid; grid-template-columns:minmax(320px, .75fr) minmax(0, 1.25fr); gap:12px; align-items:start }
+.excel-panel { margin-bottom:0; min-width:0 }
+.excel-import-grid,
+.excel-export-controls,
+.excel-history-filter-grid { display:grid; grid-template-columns:repeat(4, minmax(0, 1fr)); gap:10px; align-items:end }
+.excel-export-controls { grid-template-columns:minmax(140px, .7fr) minmax(0, 1fr) auto; margin-top:12px }
+.excel-export-modules,
+.excel-selection-list,
+.excel-template-grid,
+.excel-summary-list,
+.excel-error-list { display:grid; gap:9px; min-width:0 }
+.excel-export-modules { grid-template-columns:repeat(2, minmax(0, 1fr)) }
+.excel-check-row,
+.excel-template-row,
+.excel-summary-row,
+.excel-error-list div,
+.excel-import-status div { min-width:0; border:1px solid var(--line); border-radius:var(--radius-md); padding:10px 11px; background:var(--surface-muted) }
+.excel-check-row { display:flex; gap:8px; align-items:center; color:var(--text); font-size:13px; font-weight:900; line-height:1.25; cursor:pointer }
+.excel-check-row input { width:16px; height:16px; flex:0 0 auto }
+.excel-template-row,
+.excel-summary-row { display:grid; grid-template-columns:minmax(0, 1fr) auto; gap:10px; align-items:center }
+.excel-summary-row { grid-template-columns:minmax(0, 1fr) auto auto }
+.excel-template-row strong,
+.excel-summary-row strong,
+.excel-error-list strong,
+.excel-import-status strong { display:block; color:var(--text); font-weight:950; overflow-wrap:anywhere }
+.excel-template-row span,
+.excel-summary-row span,
+.excel-error-list span,
+.excel-import-status span { display:block; margin-top:4px; color:var(--muted); font-size:12px; font-weight:800; line-height:1.35; overflow-wrap:anywhere }
+.excel-summary-row em { color:var(--text); font-style:normal; font-size:12px; font-weight:950; white-space:nowrap }
+.excel-import-status { display:grid; grid-template-columns:repeat(4, minmax(0, 1fr)); gap:9px; margin-top:12px }
+.excel-preview-grid { display:grid; grid-template-columns:minmax(0, 1fr) minmax(220px, .55fr); gap:12px; margin-top:12px; align-items:start }
+.excel-preview-table-wrap,
+.excel-history-table-wrap { min-width:0 }
+.excel-preview-table { min-width:760px }
+.excel-history-table { min-width:840px }
+.excel-message { margin:10px 0 0; color:var(--muted); font-size:13px; font-weight:850; line-height:1.4 }
+
+@media (max-width: 1200px){
+  .excel-card-grid { grid-template-columns:repeat(3, minmax(0, 1fr)) }
+  .excel-work-grid,
+  .excel-insight-grid,
+  .excel-preview-grid { grid-template-columns:1fr }
+  .excel-import-grid,
+  .excel-history-filter-grid { grid-template-columns:repeat(2, minmax(0, 1fr)) }
+}
+
+@media (max-width: 980px){
+  .excel-header-actions { justify-content:flex-start; width:100% }
+  .excel-card-grid,
+  .excel-import-grid,
+  .excel-export-controls,
+  .excel-history-filter-grid,
+  .excel-import-status,
+  .excel-export-modules,
+  .excel-template-row,
+  .excel-summary-row { grid-template-columns:1fr }
+  .excel-preview-table-wrap,
+  .excel-history-table-wrap { overflow:visible; border:0; background:transparent; box-shadow:none }
+  .excel-preview-table-wrap .excel-preview-table,
+  .excel-history-table-wrap .excel-history-table { min-width:0 }
+  .excel-preview-table,
+  .excel-preview-table thead,
+  .excel-preview-table tbody,
+  .excel-preview-table tr,
+  .excel-preview-table td,
+  .excel-history-table,
+  .excel-history-table thead,
+  .excel-history-table tbody,
+  .excel-history-table tr,
+  .excel-history-table td { display:block; width:100%; min-width:0 }
+  .excel-preview-table thead,
+  .excel-history-table thead { display:none }
+  .excel-preview-table tbody,
+  .excel-history-table tbody { display:grid; gap:10px }
+  .excel-preview-table tbody tr,
+  .excel-preview-table tbody tr:nth-child(even),
+  .excel-preview-table tbody tr:hover,
+  .excel-history-table tbody tr,
+  .excel-history-table tbody tr:nth-child(even),
+  .excel-history-table tbody tr:hover { display:grid; grid-template-columns:repeat(2, minmax(0, 1fr)); gap:9px; border:1px solid var(--line); border-radius:var(--radius-md); padding:11px 12px; background:var(--surface); box-shadow:var(--shadow-xs) }
+  .excel-preview-table tbody tr td,
+  .excel-preview-table tbody tr:nth-child(even) td,
+  .excel-preview-table tbody tr:hover td,
+  .excel-history-table tbody tr td,
+  .excel-history-table tbody tr:nth-child(even) td,
+  .excel-history-table tbody tr:hover td { height:auto; min-height:0; border:0; padding:0; background:transparent; box-shadow:none; text-align:right }
+  .excel-preview-table tbody td::before,
+  .excel-history-table tbody td::before { content:attr(data-label); display:block; margin-bottom:3px; color:var(--muted); font-size:11px; font-weight:850; line-height:1.2; text-align:left }
+  .excel-preview-table tbody td.empty-cell,
+  .excel-history-table tbody td.empty-cell { grid-column:1 / -1; text-align:center }
+}
+
+@media (max-width: 560px){
+  .excel-preview-table tbody tr,
+  .excel-preview-table tbody tr:nth-child(even),
+  .excel-preview-table tbody tr:hover,
+  .excel-history-table tbody tr,
+  .excel-history-table tbody tr:nth-child(even),
+  .excel-history-table tbody tr:hover { grid-template-columns:1fr }
+  .excel-preview-table tbody tr td,
+  .excel-preview-table tbody tr:nth-child(even) td,
+  .excel-preview-table tbody tr:hover td,
+  .excel-history-table tbody tr td,
+  .excel-history-table tbody tr:nth-child(even) td,
+  .excel-history-table tbody tr:hover td { text-align:left }
+}

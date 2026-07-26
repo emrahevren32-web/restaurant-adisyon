@@ -4,6 +4,7 @@ export const WORKSPACE_MODULE_CODES = {
   WORKSPACE: 'workspace',
   MARKETPLACE: 'marketplace',
   INTEGRATION_CENTER: 'integration-center',
+  TOOLS: 'tools',
   EXECUTIVE_CENTER: 'executive-center',
   USERS: 'users',
   ROLES: 'roles',

@@ -89,6 +89,7 @@ import CashTransfers from '../pages/CashTransfers'
 import ModuleMarketplace from '../pages/ModuleMarketplace'
 import WorkspaceWelcome from '../pages/WorkspaceWelcome'
 import IntegrationCenter from '../pages/IntegrationCenter'
+import ExcelCenter from '../pages/ExcelCenter'
 import type {
   BusinessWorkspaceNavKey,
   BusinessWorkspaceRoute
@@ -172,6 +173,7 @@ export default function BusinessWorkspaceRouteHost({
     )
   }
   if(route === 'integration-center') return <IntegrationCenter />
+  if(route === 'excel-center') return <ExcelCenter currentUser={currentUser} />
   if(route === 'stock-cards'){
     return (
       <StockCards
