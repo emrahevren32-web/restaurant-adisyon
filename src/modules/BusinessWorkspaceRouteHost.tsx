@@ -34,6 +34,7 @@ import ShipmentVehicles from '../pages/ShipmentVehicles'
 import ShipmentPlans from '../pages/ShipmentPlans'
 import ShipmentReturns from '../pages/ShipmentReturns'
 import ShipmentWaybills from '../pages/ShipmentWaybills'
+import DeliveryNotes from '../pages/DeliveryNotes'
 import Shipments from '../pages/Shipments'
 import ShipmentExecutions from '../pages/ShipmentExecutions'
 import TransferReceipts from '../pages/TransferReceipts'
@@ -198,6 +199,7 @@ export default function BusinessWorkspaceRouteHost({
   if(route === 'shipment-pallets') return <ShipmentPallets currentUser={currentUser} />
   if(route === 'shipment-vehicles') return <ShipmentVehicles currentUser={currentUser} />
   if(route === 'shipment-plans') return <ShipmentPlans currentUser={currentUser} />
+  if(route === 'delivery-notes') return <DeliveryNotes currentUser={currentUser} />
   if(route === 'shipment-returns') return <ShipmentReturns currentUser={currentUser} />
   if(route === 'shipment-waybills') return <ShipmentWaybills currentUser={currentUser} />
   if(route === 'shipments') return <Shipments currentUser={currentUser} />

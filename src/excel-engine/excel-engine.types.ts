@@ -11,6 +11,7 @@ export type ExcelModuleKey =
   | 'production-orders'
   | 'quality'
   | 'shipments'
+  | 'delivery-notes'
   | 'kpi'
   | 'cost-engine'
 

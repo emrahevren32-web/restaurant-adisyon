@@ -1,4 +1,5 @@
 import { createCostEngineView, createDefaultCostEngineFilters } from '../cost-engine/cost-engine.service'
+import { DeliveryNoteService, DELIVERY_NOTE_STATUS_LABELS } from '../delivery-notes/delivery-note.service'
 import { createKpiDashboardView, createDefaultKpiFilters } from '../kpi-reporting/kpi.service'
 import { loadKpiSourceData } from '../kpi-reporting/kpi-source.service'
 import {
@@ -236,6 +237,60 @@ const getShipmentRows = (): ExcelRow[] => {
   })
 }
 
+const getDeliveryNoteRows = (): ExcelRow[] => {
+  const sourceData = loadKpiSourceData()
+  const records = DeliveryNoteService.list(sourceData)
+
+  return records.flatMap(record => {
+    if(record.items.length === 0){
+      return [{
+        id: record.id,
+        deliveryNoteNo: record.deliveryNoteNo,
+        date: record.date,
+        customerName: record.customerName,
+        branchName: record.branchName,
+        warehouseName: record.warehouseName,
+        vehicleNo: record.vehicleNo,
+        driverName: record.driverName,
+        shipmentPlanNo: record.shipmentPlanNo,
+        status: DELIVERY_NOTE_STATUS_LABELS[record.status],
+        productName: '',
+        lotNo: '',
+        quantity: 0,
+        unit: '',
+        boxCount: 0,
+        palletCount: 0,
+        netWeight: 0,
+        grossWeight: 0,
+        totalCost: 0
+      }]
+    }
+
+    return record.items.map(item => ({
+      id: record.id,
+      lineId: item.id,
+      deliveryNoteNo: record.deliveryNoteNo,
+      date: record.date,
+      customerName: record.customerName,
+      branchName: record.branchName,
+      warehouseName: record.warehouseName,
+      vehicleNo: `${record.vehicleNo} ${record.vehiclePlate}`.trim(),
+      driverName: record.driverName,
+      shipmentPlanNo: record.shipmentPlanNo,
+      status: DELIVERY_NOTE_STATUS_LABELS[record.status],
+      productName: item.productName,
+      lotNo: item.lotNo,
+      quantity: item.quantity,
+      unit: item.unit,
+      boxCount: item.boxCount,
+      palletCount: item.palletCount,
+      netWeight: item.netWeight,
+      grossWeight: item.grossWeight,
+      totalCost: item.totalCost
+    }))
+  })
+}
+
 const getKpiRows = (): ExcelRow[] => {
   const sourceData = loadKpiSourceData()
   const dashboard = createKpiDashboardView(sourceData, createDefaultKpiFilters())
@@ -287,6 +342,7 @@ const getRowsForModule = (
   if(moduleKey === 'production-orders') return getProductionOrderRows()
   if(moduleKey === 'quality') return getQualityRows()
   if(moduleKey === 'shipments') return getShipmentRows()
+  if(moduleKey === 'delivery-notes') return getDeliveryNoteRows()
   if(moduleKey === 'kpi') return getKpiRows()
   if(moduleKey === 'cost-engine') return getCostEngineRows()
   return []

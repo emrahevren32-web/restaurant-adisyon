@@ -4337,6 +4337,36 @@ th { color:var(--muted-strong); font-size:13px; font-weight:750 }
 .shipment-waybill-page .shipment-item-editor > button { justify-self:start }
 .shipment-waybill-table td:first-child strong,
 .shipment-waybill-table td:first-child span { display:block }
+.delivery-note-header-actions { display:grid; grid-template-columns:minmax(220px, 1fr) auto; gap:10px; align-items:center; min-width:min(100%, 520px) }
+.delivery-note-card-grid { grid-template-columns:repeat(5, minmax(0, 1fr)) }
+.delivery-note-toolbar { display:grid; grid-template-columns:minmax(220px, 1.3fr) repeat(7, minmax(118px, .75fr)); gap:10px; align-items:center; margin-bottom:12px }
+.delivery-note-table td:first-child strong,
+.delivery-note-table td:first-child span,
+.delivery-note-table td:nth-child(5) strong,
+.delivery-note-table td:nth-child(5) span { display:block }
+.delivery-note-detail-card { display:grid; gap:12px }
+.delivery-note-output-actions,
+.delivery-note-status-actions { display:grid; grid-template-columns:repeat(3, minmax(0, 1fr)); gap:8px; align-items:center }
+.delivery-note-status-actions { grid-template-columns:repeat(4, minmax(0, 1fr)) }
+.delivery-note-detail-grid { grid-template-columns:repeat(2, minmax(0, 1fr)) }
+.delivery-note-item-list,
+.delivery-note-history-list { display:grid; gap:10px; min-width:0 }
+.delivery-note-item-row,
+.delivery-note-history-list div { min-width:0; border:1px solid var(--line); border-radius:var(--radius-md); padding:10px 11px; background:var(--surface-muted) }
+.delivery-note-item-row { display:grid; gap:10px }
+.delivery-note-item-row strong,
+.delivery-note-item-row span,
+.delivery-note-history-list strong,
+.delivery-note-history-list span { display:block; overflow-wrap:anywhere }
+.delivery-note-item-row > div:first-child strong { color:var(--text); font-size:14px; font-weight:900 }
+.delivery-note-item-row > div:first-child span { margin-top:3px; color:var(--muted); font-size:12px; font-weight:800 }
+.delivery-note-item-metrics { display:grid; grid-template-columns:repeat(3, minmax(0, 1fr)); gap:8px }
+.delivery-note-item-metrics div { min-width:0; border:1px solid var(--line); border-radius:var(--radius-sm); padding:8px; background:var(--surface) }
+.delivery-note-item-metrics span,
+.delivery-note-history-list span { color:var(--muted); font-size:11px; font-weight:850; line-height:1.2 }
+.delivery-note-item-metrics strong,
+.delivery-note-history-list strong { margin-top:3px; color:var(--text); font-size:13px; font-weight:900 }
+.delivery-note-history-list p { margin:6px 0 0; color:var(--text-soft); font-size:12px; font-weight:750; line-height:1.4; overflow-wrap:anywhere }
 
 @media (max-width: 980px){
   .shipment-layout { display:block }
@@ -4347,6 +4377,10 @@ th { color:var(--muted-strong); font-size:13px; font-weight:750 }
   .shipment-plan-toolbar,
   .shipment-return-toolbar,
   .shipment-waybill-toolbar,
+  .delivery-note-header-actions,
+  .delivery-note-toolbar,
+  .delivery-note-output-actions,
+  .delivery-note-status-actions,
   .shipment-form-grid,
   .shipment-detail-grid,
   .shipment-side-actions,
@@ -4358,6 +4392,8 @@ th { color:var(--muted-strong); font-size:13px; font-weight:750 }
   .shipment-plan-page .shipment-item-editor { grid-template-columns:1fr; width:100% }
   .shipment-return-page .shipment-item-editor { grid-template-columns:1fr; width:100% }
   .shipment-waybill-page .shipment-item-editor { grid-template-columns:1fr; width:100% }
+  .delivery-note-card-grid { grid-template-columns:repeat(2, minmax(0, 1fr)) }
+  .delivery-note-item-metrics { grid-template-columns:repeat(2, minmax(0, 1fr)) }
   .shipment-form-wide,
   .shipment-item-meta { grid-column:auto }
   .shipment-table-wrap { overflow:visible; border:0; background:transparent; box-shadow:none }
@@ -4388,7 +4424,9 @@ th { color:var(--muted-strong); font-size:13px; font-weight:750 }
   .shipment-table tbody tr,
   .shipment-table tbody tr:nth-child(even),
   .shipment-table tbody tr:hover,
-  .shipment-product-row { grid-template-columns:1fr }
+  .shipment-product-row,
+  .delivery-note-card-grid,
+  .delivery-note-item-metrics { grid-template-columns:1fr }
   .shipment-table tbody tr td,
   .shipment-table tbody tr:nth-child(even) td,
   .shipment-table tbody tr:hover td,

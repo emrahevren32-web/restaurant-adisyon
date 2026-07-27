@@ -17,6 +17,7 @@ export const EXCEL_MODULE_LABELS: Record<ExcelModuleKey, string> = {
   'production-orders': 'Uretim Emirleri',
   quality: 'Kalite',
   shipments: 'Sevkiyat',
+  'delivery-notes': 'Irsaliyeler',
   kpi: 'KPI',
   'cost-engine': 'Cost Engine'
 }
@@ -34,6 +35,7 @@ export const EXCEL_EXPORT_MODULES: ExcelModuleKey[] = [
   'production-orders',
   'quality',
   'shipments',
+  'delivery-notes',
   'kpi',
   'cost-engine'
 ]
@@ -174,6 +176,26 @@ const TEMPLATE_COLUMNS: Record<ExcelModuleKey, ExcelColumnDefinition[]> = {
     column('shipmentDate', 'Sevkiyat Tarihi', 'date', false, '2026-07-26'),
     column('status', 'Status', 'string', false, 'PLANNED'),
     column('quantity', 'Miktar', 'number', false, 40)
+  ],
+  'delivery-notes': [
+    column('deliveryNoteNo', 'Irsaliye No', 'string', true, 'DN-2026-000001'),
+    column('date', 'Tarih', 'date', false, '2026-07-27'),
+    column('customerName', 'Musteri', 'string', false, 'Merkez Sube'),
+    column('branchName', 'Sube', 'string', false, 'Merkez'),
+    column('warehouseName', 'Depo', 'string', false, 'Merkez Depo'),
+    column('vehicleNo', 'Arac', 'string', false, 'VH-000001'),
+    column('driverName', 'Sofor', 'string', false, 'Murat Kaya'),
+    column('shipmentPlanNo', 'Sevkiyat Plani', 'string', false, 'SP-000001'),
+    column('status', 'Durum', 'string', false, 'READY'),
+    column('productName', 'Urun', 'string', false, 'Mercimek Corbasi'),
+    column('lotNo', 'Lot', 'string', false, 'LOT-20260727-0001'),
+    column('quantity', 'Miktar', 'number', false, 40),
+    column('unit', 'Birim', 'string', false, 'kg'),
+    column('boxCount', 'Koli', 'number', false, 4),
+    column('palletCount', 'Palet', 'number', false, 1),
+    column('netWeight', 'Net', 'number', false, 40),
+    column('grossWeight', 'Brut', 'number', false, 44),
+    column('totalCost', 'Toplam Maliyet', 'number', false, 2500)
   ],
   kpi: [
     column('area', 'Alan', 'string', true, 'Production'),

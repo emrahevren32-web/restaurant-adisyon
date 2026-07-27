@@ -1411,7 +1411,7 @@ export const BUSINESS_WORKSPACE_MODULE_REGISTRY: BusinessWorkspaceModule[] = def
     isVisible: true,
     displayOrder: 46,
     dependencies: [WORKSPACE_MODULE_CODES.STOCK],
-    tags: ['business', 'logistics', 'shipment-work-order', 'shipment-pallet', 'shipment-vehicle', 'vehicle-planning', 'shipment-plan', 'shipment-return', 'shipment-waybill', 'waybill', 'shipment', 'shipment-execution', 'transfer-receipt', 'warehouse', 'branch', 'inventory-lot', 'industrial-kitchen'],
+    tags: ['business', 'logistics', 'shipment-work-order', 'shipment-pallet', 'shipment-vehicle', 'vehicle-planning', 'shipment-plan', 'delivery-note', 'shipment-return', 'shipment-waybill', 'waybill', 'shipment', 'shipment-execution', 'transfer-receipt', 'warehouse', 'branch', 'inventory-lot', 'industrial-kitchen'],
     supportedSectorIds: industrialKitchenSectorIds,
     pricing: { model: 'paid', currency: 'TRY' },
     marketplace: marketplaceReady,
@@ -1495,6 +1495,19 @@ export const BUSINESS_WORKSPACE_MODULE_REGISTRY: BusinessWorkspaceModule[] = def
         renderComponent: 'logistics.shipmentExecutions.placeholder'
       }),
       dashboardWidget({
+        id: 'logistics.deliveryNotes',
+        title: 'Irsaliyeler',
+        description: 'Sevkiyat planlarindan kurumsal delivery note read modelini, lotlari, arac bilgisini ve cikti surecini takip etmek icin kontrol paneli alani.',
+        icon: 'DN',
+        category: 'Lojistik',
+        order: 24,
+        defaultVisible: false,
+        defaultSize: 'medium',
+        supportedLayouts: ['standard', 'wide'],
+        requiredPermission: 'operations.read',
+        renderComponent: 'logistics.deliveryNotes.placeholder'
+      }),
+      dashboardWidget({
         id: 'logistics.transferReceipts',
         title: 'Depoya Kabul',
         description: 'Gelen sevkiyatların depo kabul, hasar, eksik ve red süreçlerini takip etmek için kontrol paneli başlangıç alanı.',
@@ -1540,6 +1553,7 @@ export const BUSINESS_WORKSPACE_MODULE_REGISTRY: BusinessWorkspaceModule[] = def
       menuItem({ key: 'shipment-vehicles', label: 'Araç Planlama', route: 'shipment-vehicles', icon: 'AP', adminOnly: true, displayOrder: 8 }),
       menuItem({ key: 'shipment-plans', label: 'Sevkiyat Planı', route: 'shipment-plans', icon: 'SP', adminOnly: true, displayOrder: 9 }),
       menuItem({ key: 'shipments', label: 'Sevkiyatlar', route: 'shipments', icon: 'SV', adminOnly: true, displayOrder: 10 }),
+      menuItem({ key: 'delivery-notes', label: 'Irsaliyeler', route: 'delivery-notes', icon: 'DN', adminOnly: true, displayOrder: 12 }),
       menuItem({ key: 'shipment-executions', label: 'Sevkiyat Operasyonu', route: 'shipment-executions', icon: 'SO', adminOnly: true, displayOrder: 20 }),
       menuItem({ key: 'transfer-receipts', label: 'Depoya Kabul', route: 'transfer-receipts', icon: 'DK', adminOnly: true, displayOrder: 30 }),
       menuItem({ key: 'shipment-returns', label: 'İade Süreci', route: 'shipment-returns', icon: 'IS', adminOnly: true, displayOrder: 40 }),
