@@ -191,6 +191,33 @@ export const DECISION_RULES: DecisionRule[] = [
     thresholdLabel: 'Return count / completed shipment count > 15%'
   },
   {
+    id: 'shipment-form-vehicle-return-increase',
+    category: 'Shipment',
+    title: 'Shipment Forms arac iade orani artisi',
+    description: 'Ayni aracla yapilan sevkiyatlarda iade orani artiyorsa rota, yukleme ve teslim kontrolleri incelenmelidir.',
+    baseRisk: 'HIGH',
+    priority: 'HIGH',
+    thresholdLabel: 'Son 30 gun arac iade orani onceki periyoda gore >= 10 puan'
+  },
+  {
+    id: 'shipment-form-cold-chain-deviation',
+    category: 'Shipment',
+    title: 'Shipment Forms soguk zincir sapmasi',
+    description: 'Sicaklik loglarinda WARNING veya FAIL artarsa sogutucu sistem ve yukleme sureci kontrol edilmelidir.',
+    baseRisk: 'HIGH',
+    priority: 'HIGH',
+    thresholdLabel: 'Son 30 gun sicaklik sapmasi >= 2'
+  },
+  {
+    id: 'shipment-form-driver-delay',
+    category: 'Shipment',
+    title: 'Shipment Forms sofor teslim gecikmesi',
+    description: 'Sofor bazli teslim sureleri genel ortalamanin uzerindeyse rota ve durak planlari revize edilmelidir.',
+    baseRisk: 'MEDIUM',
+    priority: 'NORMAL',
+    thresholdLabel: 'Sofor ortalama teslim suresi genel ortalama + 0.5 gun'
+  },
+  {
     id: 'cost-engine-raw-material-increase',
     category: 'Production',
     title: 'Cost Engine hammadde maliyeti artisi',

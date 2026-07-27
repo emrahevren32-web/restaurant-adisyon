@@ -26,6 +26,13 @@ import {
   QUALITY_STATUS_LABELS,
   QualityFormService
 } from '../quality-forms/quality-form.service'
+import { SHIPMENT_TEMPERATURE_STAGE_LABELS } from '../shipment-forms/shipment-checklist.service'
+import {
+  SHIPMENT_CHECKLIST_STATUS_LABELS,
+  SHIPMENT_FORM_STATUS_LABELS,
+  SHIPMENT_FORM_TYPE_LABELS,
+  ShipmentFormService
+} from '../shipment-forms/shipment-form.service'
 import {
   WASTE_REASON_LABELS,
   WASTE_STATUS_LABELS,
@@ -448,6 +455,62 @@ const getDeliveryNoteRows = (): ExcelRow[] => {
   })
 }
 
+const getShipmentFormRows = (): ExcelRow[] => {
+  const sourceData = loadKpiSourceData()
+  const records = ShipmentFormService.list(sourceData)
+
+  return records.flatMap(record => {
+    const baseRow = {
+      id: record.id,
+      formNo: record.formNo,
+      formType: SHIPMENT_FORM_TYPE_LABELS[record.formType],
+      status: SHIPMENT_FORM_STATUS_LABELS[record.status],
+      shipmentNo: record.shipmentNo,
+      deliveryNoteNo: record.deliveryNoteNo,
+      shipmentPlanNo: record.shipmentPlanNo,
+      vehicleNo: record.vehicleNo,
+      vehiclePlate: record.vehiclePlate,
+      driverName: record.driverName,
+      warehouseName: record.warehouseName,
+      branchName: record.branchName,
+      customerName: record.customerName,
+      loadingDate: record.loadingDate,
+      deliveryDate: record.deliveryDate,
+      sourceType: record.sourceType
+    }
+    const itemRows = record.items.length > 0
+      ? record.items.map(item => ({
+        ...baseRow,
+        lineId: item.id,
+        productName: item.productName || item.stockItemName,
+        lotNo: item.lotNo,
+        labelNo: item.labelNo,
+        quantity: item.quantity,
+        unit: item.unit,
+        boxCount: item.boxCount,
+        palletCount: item.palletCount
+      }))
+      : [baseRow]
+    const checklistRows = record.checklist.map(item => ({
+      ...baseRow,
+      lineId: item.id,
+      checklistLabel: item.label,
+      checklistStatus: SHIPMENT_CHECKLIST_STATUS_LABELS[item.status],
+      checklistNotes: item.notes || item.description
+    }))
+    const temperatureRows = record.temperatureLogs.map(log => ({
+      ...baseRow,
+      lineId: log.id,
+      temperatureStage: SHIPMENT_TEMPERATURE_STAGE_LABELS[log.stage],
+      temperatureC: log.temperatureC,
+      temperatureResult: SHIPMENT_CHECKLIST_STATUS_LABELS[log.result],
+      temperatureNotes: log.notes
+    }))
+
+    return [...itemRows, ...checklistRows, ...temperatureRows]
+  })
+}
+
 const getLabelRows = (): ExcelRow[] => {
   const sourceData = loadKpiSourceData()
   const labels = LabelService.list(sourceData)
@@ -532,6 +595,7 @@ const getRowsForModule = (
   if(moduleKey === 'production-orders') return getProductionOrderRows()
   if(moduleKey === 'quality') return getQualityRows()
   if(moduleKey === 'shipments') return getShipmentRows()
+  if(moduleKey === 'shipment-forms') return getShipmentFormRows()
   if(moduleKey === 'delivery-notes') return getDeliveryNoteRows()
   if(moduleKey === 'labels') return getLabelRows()
   if(moduleKey === 'kpi') return getKpiRows()

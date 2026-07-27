@@ -4454,6 +4454,48 @@ th { color:var(--muted-strong); font-size:13px; font-weight:750 }
 .delivery-note-item-metrics strong,
 .delivery-note-history-list strong { margin-top:3px; color:var(--text); font-size:13px; font-weight:900 }
 .delivery-note-history-list p { margin:6px 0 0; color:var(--text-soft); font-size:12px; font-weight:750; line-height:1.4; overflow-wrap:anywhere }
+.shipment-forms-page { display:grid; gap:18px }
+.shipment-forms-metric-grid { grid-template-columns:repeat(5, minmax(0, 1fr)) }
+.shipment-forms-create-card,
+.shipment-forms-filter-card,
+.shipment-forms-detail-card { margin-bottom:0 }
+.shipment-forms-create-grid { display:grid; grid-template-columns:repeat(4, minmax(140px, 1fr)); gap:10px; align-items:end }
+.shipment-forms-filter-grid { display:grid; grid-template-columns:repeat(auto-fit, minmax(150px, 1fr)); gap:10px; align-items:end }
+.shipment-forms-chart-grid { display:grid; grid-template-columns:repeat(4, minmax(0, 1fr)); gap:16px; align-items:stretch }
+.shipment-forms-chart-grid .kpi-chart-card:last-child { grid-column:1 / -1 }
+.shipment-forms-layout { grid-template-columns:minmax(0, 1fr) 430px }
+.shipment-forms-side { display:flex; flex-direction:column; gap:12px; min-width:0 }
+.shipment-forms-detail-card { display:grid; gap:12px }
+.shipment-forms-output-actions,
+.shipment-forms-status-actions { display:grid; grid-template-columns:repeat(3, minmax(0, 1fr)); gap:8px; align-items:center }
+.shipment-forms-detail-grid { display:grid; grid-template-columns:repeat(2, minmax(0, 1fr)); gap:10px }
+.shipment-forms-detail-grid div { min-width:0; border:1px solid var(--line); border-radius:var(--radius-md); padding:10px 11px; background:var(--surface-muted) }
+.shipment-forms-detail-grid span { display:block; color:var(--muted); font-size:12px; font-weight:850; line-height:1.2 }
+.shipment-forms-detail-grid strong { display:block; margin-top:4px; color:var(--text); font-size:14px; font-weight:900; overflow-wrap:anywhere }
+.shipment-forms-list { display:grid; gap:10px; min-width:0 }
+.shipment-forms-list-row { display:grid; grid-template-columns:minmax(0, 1fr) auto auto; gap:8px 10px; align-items:center; min-width:0; border:1px solid var(--line); border-radius:var(--radius-md); padding:10px 11px; background:var(--surface-muted) }
+.shipment-forms-list-row div { min-width:0 }
+.shipment-forms-list-row strong,
+.shipment-forms-list-row span { display:block; overflow-wrap:anywhere }
+.shipment-forms-list-row strong { color:var(--text); font-size:14px; font-weight:900; line-height:1.25 }
+.shipment-forms-list-row span { color:var(--muted); font-size:12px; font-weight:800; line-height:1.3 }
+.shipment-forms-list-row em { color:var(--text); font-size:13px; font-style:normal; font-weight:900; font-variant-numeric:tabular-nums; white-space:nowrap }
+.shipment-forms-list-row .status-pill { justify-self:end; max-width:100%; white-space:normal; text-align:center }
+.shipment-forms-list-row p,
+.shipment-forms-notes { margin:0; color:var(--text-soft); font-size:12px; font-weight:750; line-height:1.45; overflow-wrap:anywhere; white-space:pre-wrap }
+.shipment-forms-list-row p { grid-column:1 / -1 }
+.shipment-forms-notes { padding:10px 11px; border:1px solid var(--line); border-radius:var(--radius-md); background:var(--surface-muted) }
+.shipment-forms-wide { grid-column:1 / -1 }
+.shipment-forms-table-wrap { min-width:0 }
+.shipment-forms-table { min-width:1120px }
+.shipment-forms-table td:first-child strong,
+.shipment-forms-table td:first-child span,
+.shipment-forms-table td:nth-child(3) strong,
+.shipment-forms-table td:nth-child(3) span,
+.shipment-forms-table td:nth-child(4) strong,
+.shipment-forms-table td:nth-child(4) span,
+.shipment-forms-table td:nth-child(5) strong,
+.shipment-forms-table td:nth-child(5) span { display:block }
 
 @media (max-width: 980px){
   .shipment-layout { display:block }
@@ -4479,6 +4521,16 @@ th { color:var(--muted-strong); font-size:13px; font-weight:750 }
   .shipment-plan-page .shipment-item-editor { grid-template-columns:1fr; width:100% }
   .shipment-return-page .shipment-item-editor { grid-template-columns:1fr; width:100% }
   .shipment-waybill-page .shipment-item-editor { grid-template-columns:1fr; width:100% }
+  .shipment-forms-layout { display:block }
+  .shipment-forms-side { margin-top:14px }
+  .shipment-forms-create-grid,
+  .shipment-forms-filter-grid,
+  .shipment-forms-chart-grid,
+  .shipment-forms-output-actions,
+  .shipment-forms-status-actions,
+  .shipment-forms-detail-grid { grid-template-columns:1fr; width:100% }
+  .shipment-forms-metric-grid { grid-template-columns:repeat(2, minmax(0, 1fr)) }
+  .shipment-forms-wide { grid-column:auto }
   .delivery-note-card-grid { grid-template-columns:repeat(2, minmax(0, 1fr)) }
   .delivery-note-item-metrics { grid-template-columns:repeat(2, minmax(0, 1fr)) }
   .shipment-form-wide,
@@ -4505,19 +4557,51 @@ th { color:var(--muted-strong); font-size:13px; font-weight:750 }
   .shipment-table tbody td:first-child strong,
   .shipment-table tbody td:nth-child(3) { text-align:left }
   .shipment-table tbody td.empty-cell { text-align:center }
+  .shipment-forms-table-wrap { overflow:visible; border:0; background:transparent; box-shadow:none }
+  .shipment-forms-table-wrap .shipment-forms-table { min-width:0 }
+  .shipment-forms-table,
+  .shipment-forms-table thead,
+  .shipment-forms-table tbody,
+  .shipment-forms-table tr,
+  .shipment-forms-table td { display:block; width:100%; min-width:0 }
+  .shipment-forms-table thead { display:none }
+  .shipment-forms-table tbody { display:grid; gap:10px }
+  .shipment-forms-table tbody tr,
+  .shipment-forms-table tbody tr:nth-child(even),
+  .shipment-forms-table tbody tr:hover { display:grid; grid-template-columns:repeat(2, minmax(0, 1fr)); gap:9px; border:1px solid var(--line); border-radius:var(--radius-md); padding:11px 12px; background:var(--surface); box-shadow:var(--shadow-xs) }
+  .shipment-forms-table tbody tr td,
+  .shipment-forms-table tbody tr:nth-child(even) td,
+  .shipment-forms-table tbody tr:hover td { height:auto; min-height:0; border:0; padding:0; background:transparent; box-shadow:none; text-align:right }
+  .shipment-forms-table tbody td::before { content:attr(data-label); display:block; margin-bottom:3px; color:var(--muted); font-size:11px; font-weight:850; line-height:1.2; text-align:left }
+  .shipment-forms-table tbody td:first-child,
+  .shipment-forms-table tbody td:nth-child(4),
+  .shipment-forms-table tbody td.empty-cell { grid-column:1 / -1; text-align:left }
+  .shipment-forms-table tbody td:first-child strong,
+  .shipment-forms-table tbody td:nth-child(4) { text-align:left }
+  .shipment-forms-table tbody td.empty-cell { text-align:center }
 }
 
 @media (max-width: 560px){
   .shipment-table tbody tr,
   .shipment-table tbody tr:nth-child(even),
   .shipment-table tbody tr:hover,
+  .shipment-forms-table tbody tr,
+  .shipment-forms-table tbody tr:nth-child(even),
+  .shipment-forms-table tbody tr:hover,
+  .shipment-forms-list-row,
   .shipment-product-row,
   .delivery-note-card-grid,
   .delivery-note-item-metrics { grid-template-columns:1fr }
   .shipment-table tbody tr td,
   .shipment-table tbody tr:nth-child(even) td,
   .shipment-table tbody tr:hover td,
+  .shipment-forms-table tbody tr td,
+  .shipment-forms-table tbody tr:nth-child(even) td,
+  .shipment-forms-table tbody tr:hover td,
+  .shipment-forms-list-row .status-pill,
   .shipment-product-row div:nth-child(2) { text-align:left }
+  .shipment-forms-metric-grid { grid-template-columns:1fr }
+  .shipment-forms-list-row .status-pill { justify-self:start }
 }
 
 .shipment-execution-page { display:grid; gap:18px }

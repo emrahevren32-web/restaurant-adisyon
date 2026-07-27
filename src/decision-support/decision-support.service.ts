@@ -11,6 +11,7 @@ import { createPurchasingDecisionSuggestions } from './purchasing-decision.servi
 import { createQualityDecisionSuggestions } from './quality-decision.service'
 import { createQualityFormDecisionSuggestions } from './quality-form-decision.service'
 import { createShipmentDecisionSuggestions } from './shipment-decision.service'
+import { createShipmentFormDecisionSuggestions } from './shipment-form-decision.service'
 import { createWasteDecisionSuggestions } from './waste-decision.service'
 import type {
   DecisionDashboardSummary,
@@ -63,6 +64,7 @@ export const createDecisionSuggestions = (
     ...createQualityFormDecisionSuggestions(sourceData),
     ...createPurchasingDecisionSuggestions(sourceData),
     ...createShipmentDecisionSuggestions(sourceData),
+    ...createShipmentFormDecisionSuggestions(sourceData),
     ...createWasteDecisionSuggestions(sourceData)
   ]
 
@@ -118,7 +120,10 @@ const getDashboardSummary = (
     || suggestion.ruleId.startsWith('quality-form-')
   )).length,
   delayedProduction: suggestions.filter(suggestion => suggestion.ruleId === 'production-delay-shift').length,
-  delayedShipments: suggestions.filter(suggestion => suggestion.ruleId === 'shipment-delay-revision').length
+  delayedShipments: suggestions.filter(suggestion => (
+    suggestion.ruleId === 'shipment-delay-revision'
+    || suggestion.ruleId.startsWith('shipment-form-')
+  )).length
 })
 
 const toRiskItems = (suggestions: DecisionSuggestion[]): RiskItem[] => (
