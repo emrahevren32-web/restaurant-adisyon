@@ -20,6 +20,11 @@ export const GOODS_RECEIPT_STATUS_LABELS: Record<GoodsReceiptStatus, string> = {
   RECEIVED: 'Teslim Alındı',
   PARTIALLY_RECEIVED: 'Kısmi Teslim',
   COMPLETED: 'Tamamlandı',
+  WAITING: 'Bekliyor',
+  INSPECTING: 'Kontrol Ediliyor',
+  ACCEPTED: 'Kabul Edildi',
+  PARTIAL_ACCEPTED: 'Kısmi Kabul',
+  REJECTED: 'Reddedildi',
   CANCELLED: 'İptal'
 }
 

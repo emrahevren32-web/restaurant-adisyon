@@ -728,7 +728,7 @@ export const BUSINESS_WORKSPACE_MODULE_REGISTRY: BusinessWorkspaceModule[] = def
     isVisible: true,
     displayOrder: 30,
     dependencies: [],
-    tags: ['business', 'inventory', 'lot', 'batch', 'traceability'],
+    tags: ['business', 'inventory', 'lot', 'batch', 'traceability', 'goods-receipt', 'receiving'],
     licenseModuleKey: LICENSE_MODULE_CODES.STOCK,
     pricing: { model: 'paid', currency: 'TRY' },
     marketplace: marketplaceReady,
@@ -784,6 +784,19 @@ export const BUSINESS_WORKSPACE_MODULE_REGISTRY: BusinessWorkspaceModule[] = def
         supportedLayouts: ['standard', 'wide'],
         requiredPermission: 'stock.read',
         renderComponent: 'stock.validity.placeholder'
+      }),
+      dashboardWidget({
+        id: 'stock.goodsReceipts',
+        title: 'Mal Kabul',
+        description: 'PO, supplier, lot, kalite ve HACCP kaynaklarindan mal kabul read-model ozetini izlemek icin kontrol paneli alani.',
+        icon: 'MK',
+        category: 'Stok',
+        order: 50,
+        defaultVisible: false,
+        defaultSize: 'medium',
+        supportedLayouts: ['standard', 'wide'],
+        requiredPermission: 'stock.read',
+        renderComponent: 'stock.goodsReceipts.placeholder'
       })
     ],
     menuItems: [
@@ -792,13 +805,14 @@ export const BUSINESS_WORKSPACE_MODULE_REGISTRY: BusinessWorkspaceModule[] = def
       menuItem({ key: 'critical-stock', label: 'Kritik Stok', route: 'stock-cards', icon: 'KS', adminOnly: true, displayOrder: 30 }),
       menuItem({ key: 'expiry-lots', label: 'Geçerlilik Takibi', route: 'stock-cards', icon: 'GT', adminOnly: true, displayOrder: 40 }),
       menuItem({ key: 'inventory-lots', label: 'Lot / Batch Yönetimi', route: 'inventory-lots', icon: 'LB', adminOnly: true, displayOrder: 50 }),
-      menuItem({ key: 'waste', label: 'Kayıp Analizi', route: 'stock-movements', icon: 'KA', adminOnly: true, displayOrder: 60 }),
+      menuItem({ key: 'goods-receipts', label: 'Mal Kabul', route: 'goods-receipts', icon: 'MK', adminOnly: true, displayOrder: 60 }),
+      menuItem({ key: 'waste', label: 'Kayıp Analizi', route: 'stock-movements', icon: 'KA', adminOnly: true, displayOrder: 70 }),
       menuItem({
         key: 'stock-reports',
         label: 'Raporlar',
         icon: 'RP',
         adminOnly: true,
-        displayOrder: 70,
+        displayOrder: 80,
         children: [
           menuItem({ key: 'stock-risk-center', label: 'Stok ve Risk', route: 'stock-risk-center', icon: 'SR', adminOnly: true, displayOrder: 10 })
         ]
@@ -967,19 +981,6 @@ export const BUSINESS_WORKSPACE_MODULE_REGISTRY: BusinessWorkspaceModule[] = def
         supportedLayouts: ['standard', 'wide'],
         requiredPermission: 'finance.read',
         renderComponent: 'purchase.orders.placeholder'
-      }),
-      dashboardWidget({
-        id: 'purchase.goodsReceipts',
-        title: 'Mal Kabul',
-        description: 'Purchase Order teslimatlarının depo girişini takip etmek için kontrol paneli başlangıç alanı.',
-        icon: 'MK',
-        category: 'Satın Alma',
-        order: 30,
-        defaultVisible: false,
-        defaultSize: 'medium',
-        supportedLayouts: ['standard', 'wide'],
-        requiredPermission: 'finance.read',
-        renderComponent: 'purchase.goodsReceipts.placeholder'
       })
     ],
     menuItems: [
@@ -987,10 +988,9 @@ export const BUSINESS_WORKSPACE_MODULE_REGISTRY: BusinessWorkspaceModule[] = def
       menuItem({ key: 'request-for-quotations', label: 'Teklif Yönetimi', route: 'request-for-quotations', icon: 'TK', adminOnly: true, displayOrder: 20 }),
       menuItem({ key: 'purchase-approvals', label: 'Satın Alma Onayları', route: 'purchase-approvals', icon: 'OA', adminOnly: true, displayOrder: 30 }),
       menuItem({ key: 'purchase-orders', label: 'Satın Alma Siparişleri', route: 'purchase-orders', icon: 'PO', adminOnly: true, displayOrder: 40 }),
-      menuItem({ key: 'goods-receipts', label: 'Mal Kabul', route: 'goods-receipts', icon: 'MK', adminOnly: true, displayOrder: 50 }),
-      menuItem({ key: 'suppliers', label: 'Tedarikçiler', route: 'suppliers', icon: 'TD', adminOnly: true, displayOrder: 60 }),
-      menuItem({ key: 'supplier-performances', label: 'Tedarikçi Performansı', route: 'supplier-performances', icon: 'TP', adminOnly: true, displayOrder: 70 }),
-      menuItem({ key: 'procurement-analytics', label: 'Procurement Analytics', route: 'procurement-analytics', icon: 'PA', adminOnly: true, displayOrder: 80 })
+      menuItem({ key: 'suppliers', label: 'Tedarikçiler', route: 'suppliers', icon: 'TD', adminOnly: true, displayOrder: 50 }),
+      menuItem({ key: 'supplier-performances', label: 'Tedarikçi Performansı', route: 'supplier-performances', icon: 'TP', adminOnly: true, displayOrder: 60 }),
+      menuItem({ key: 'procurement-analytics', label: 'Procurement Analytics', route: 'procurement-analytics', icon: 'PA', adminOnly: true, displayOrder: 70 })
     ]
   },
   {

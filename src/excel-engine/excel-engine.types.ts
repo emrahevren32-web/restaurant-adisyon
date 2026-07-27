@@ -5,6 +5,7 @@ export type ExcelModuleKey =
   | 'suppliers'
   | 'purchase-requests'
   | 'purchase-orders'
+  | 'goods-receipts'
   | 'stock'
   | 'lots'
   | 'waste'

@@ -1,5 +1,9 @@
 import { createCostEngineView, createDefaultCostEngineFilters } from '../cost-engine/cost-engine.service'
 import { DeliveryNoteService, DELIVERY_NOTE_STATUS_LABELS } from '../delivery-notes/delivery-note.service'
+import {
+  GOODS_RECEIPT_MANAGEMENT_STATUS_LABELS,
+  GoodsReceiptService
+} from '../goods-receipts/goods-receipt.service'
 import { LabelService, LABEL_STATUS_LABELS } from '../label-management/label.service'
 import { LABEL_TYPE_LABELS } from '../label-management/label-template.service'
 import { createKpiDashboardView, createDefaultKpiFilters } from '../kpi-reporting/kpi.service'
@@ -151,6 +155,70 @@ const getPurchaseOrderRows = (): ExcelRow[] => {
     status: order.status,
     grandTotal: order.grandTotal
   }))
+}
+
+const getGoodsReceiptRows = (): ExcelRow[] => {
+  const sourceData = loadKpiSourceData()
+  const records = GoodsReceiptService.list(sourceData)
+
+  return records.flatMap(record => {
+    if(record.items.length === 0){
+      return [{
+        id: record.id,
+        receiptNo: record.receiptNo,
+        receiptDate: record.receiptDate,
+        purchaseOrderNo: record.purchaseOrderNo || record.purchaseOrderId,
+        supplierName: record.supplierName || record.supplierId,
+        warehouseName: record.warehouseName || record.warehouseId,
+        vehiclePlate: record.vehiclePlate || '',
+        deliveredBy: record.deliveredBy || '',
+        receivedByName: record.receivedByName || record.receivedBy,
+        status: GOODS_RECEIPT_MANAGEMENT_STATUS_LABELS[record.status as keyof typeof GOODS_RECEIPT_MANAGEMENT_STATUS_LABELS] || record.status,
+        productName: '',
+        lotNo: '',
+        batchNo: '',
+        receivedQuantity: 0,
+        acceptedQuantity: 0,
+        rejectedQuantity: 0,
+        unit: '',
+        packageType: '',
+        netWeight: 0,
+        grossWeight: 0,
+        temperatureC: record.inspection?.temperatureC || 0,
+        inspectionResult: record.inspection?.result || '',
+        correctiveActionNote: record.inspection?.correctiveActionNote || '',
+        totalCost: 0
+      }]
+    }
+
+    return record.items.map(item => ({
+      id: record.id,
+      lineId: item.id,
+      receiptNo: record.receiptNo,
+      receiptDate: record.receiptDate,
+      purchaseOrderNo: record.purchaseOrderNo || record.purchaseOrderId,
+      supplierName: record.supplierName || record.supplierId,
+      warehouseName: record.warehouseName || record.warehouseId,
+      vehiclePlate: record.vehiclePlate || '',
+      deliveredBy: record.deliveredBy || '',
+      receivedByName: record.receivedByName || record.receivedBy,
+      status: GOODS_RECEIPT_MANAGEMENT_STATUS_LABELS[record.status as keyof typeof GOODS_RECEIPT_MANAGEMENT_STATUS_LABELS] || record.status,
+      productName: item.productName || item.stockItemName || item.stockItemId,
+      lotNo: item.lotNo || item.lotId || '',
+      batchNo: item.batchNo || '',
+      receivedQuantity: item.receivedQuantity,
+      acceptedQuantity: item.acceptedQuantity,
+      rejectedQuantity: item.rejectedQuantity,
+      unit: item.unit,
+      packageType: item.packageType || '',
+      netWeight: item.netWeight || 0,
+      grossWeight: item.grossWeight || 0,
+      temperatureC: record.inspection?.temperatureC || 0,
+      inspectionResult: record.inspection?.result || '',
+      correctiveActionNote: record.inspection?.correctiveActionNote || '',
+      totalCost: item.totalCost || 0
+    }))
+  })
 }
 
 const getLotRows = (): ExcelRow[] => {
@@ -370,6 +438,7 @@ const getRowsForModule = (
   if(moduleKey === 'suppliers') return getSupplierRows()
   if(moduleKey === 'purchase-requests') return getPurchaseRequestRows()
   if(moduleKey === 'purchase-orders') return getPurchaseOrderRows()
+  if(moduleKey === 'goods-receipts') return getGoodsReceiptRows()
   if(moduleKey === 'stock') return getStockRows()
   if(moduleKey === 'lots') return getLotRows()
   if(moduleKey === 'waste') return getWasteRows()

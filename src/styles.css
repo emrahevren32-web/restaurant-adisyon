@@ -3277,27 +3277,69 @@ th { color:var(--muted-strong); font-size:13px; font-weight:750 }
 }
 
 .goods-receipt-page { display:grid; gap:18px }
+.goods-receipt-header-actions { display:grid; grid-template-columns:minmax(220px, 1fr) auto; gap:10px; align-items:center; min-width:min(100%, 520px) }
+.goods-receipt-card-grid { grid-template-columns:repeat(5, minmax(0, 1fr)) }
 .goods-receipt-toolbar { display:grid; grid-template-columns:minmax(220px, 1.4fr) repeat(4, minmax(130px, 1fr)); gap:10px; align-items:center }
-.goods-receipt-detail-card { margin-bottom:14px }
+.goods-receipt-detail-card { display:grid; gap:12px; margin-bottom:14px }
 .goods-receipt-side-actions { display:grid; grid-template-columns:1fr; gap:8px; align-items:center }
+.goods-receipt-output-actions,
+.goods-receipt-status-actions { display:grid; grid-template-columns:repeat(3, minmax(0, 1fr)); gap:8px; align-items:center }
+.goods-receipt-status-actions { grid-template-columns:repeat(5, minmax(0, 1fr)) }
 .goods-receipt-detail-grid { display:grid; grid-template-columns:repeat(2, minmax(0, 1fr)); gap:10px }
 .goods-receipt-detail-grid div { min-width:0; border:1px solid var(--line); border-radius:var(--radius-md); padding:10px 11px; background:var(--surface-muted) }
 .goods-receipt-detail-grid span { display:block; color:var(--muted); font-size:12px; font-weight:850; line-height:1.2 }
 .goods-receipt-detail-grid strong { display:block; margin-top:4px; color:var(--text); font-size:14px; font-weight:900; overflow-wrap:anywhere }
+.goods-receipt-detail-section { display:grid; gap:10px }
+.goods-receipt-detail-section h4 { margin:0; color:var(--text); font-size:14px; font-weight:900 }
 .goods-receipt-form { gap:14px }
 .goods-receipt-form-section { display:grid; gap:10px }
 .goods-receipt-form-section h4 { margin:0; color:var(--text); font-size:14px; font-weight:900 }
 .goods-receipt-form-grid { display:grid; grid-template-columns:repeat(2, minmax(0, 1fr)); gap:12px }
+.goods-receipt-item-list,
+.goods-receipt-lot-list,
+.goods-receipt-history-list { display:grid; gap:10px; min-width:0 }
+.goods-receipt-item-row,
+.goods-receipt-lot-list div,
+.goods-receipt-history-list div { min-width:0; border:1px solid var(--line); border-radius:var(--radius-md); padding:10px 11px; background:var(--surface-muted) }
+.goods-receipt-item-row { display:grid; gap:10px }
+.goods-receipt-item-row strong,
+.goods-receipt-item-row span,
+.goods-receipt-lot-list strong,
+.goods-receipt-lot-list span,
+.goods-receipt-history-list strong,
+.goods-receipt-history-list span { display:block; overflow-wrap:anywhere }
+.goods-receipt-item-row > div:first-child strong,
+.goods-receipt-lot-list strong,
+.goods-receipt-history-list strong { color:var(--text); font-size:14px; font-weight:950; line-height:1.2 }
+.goods-receipt-item-row > div:first-child span,
+.goods-receipt-lot-list span,
+.goods-receipt-history-list span { margin-top:4px; color:var(--muted); font-size:12px; font-weight:800; line-height:1.35 }
+.goods-receipt-item-metrics { display:grid; grid-template-columns:repeat(3, minmax(0, 1fr)); gap:8px }
+.goods-receipt-item-metrics div,
+.goods-receipt-inspection-result { min-width:0; border:1px solid var(--line); border-radius:var(--radius-sm); padding:8px; background:var(--surface) }
+.goods-receipt-item-metrics span,
+.goods-receipt-inspection-result span { display:block; color:var(--muted); font-size:11px; font-weight:850; line-height:1.2 }
+.goods-receipt-item-metrics strong,
+.goods-receipt-inspection-result strong { display:block; margin-top:3px; color:var(--text); font-size:13px; font-weight:900; overflow-wrap:anywhere }
+.goods-receipt-inspection-grid { display:grid; grid-template-columns:repeat(3, minmax(0, 1fr)); gap:10px; align-items:end }
+.goods-receipt-inspection-grid label { display:grid; gap:5px; min-width:0 }
+.goods-receipt-inspection-grid label span { color:var(--muted); font-size:12px; font-weight:850; line-height:1.2 }
+.goods-receipt-form-wide { grid-column:1 / -1 }
+.goods-receipt-lot-list p,
+.goods-receipt-history-list p { margin:7px 0 0; color:var(--text-soft); font-size:12px; font-weight:750; line-height:1.4; overflow-wrap:anywhere }
 .goods-receipt-item-editor-list { display:grid; gap:10px }
 .goods-receipt-item-editor { display:grid; grid-template-columns:minmax(180px, 1.2fr) repeat(3, minmax(90px, .7fr)); gap:10px; align-items:end; border:1px solid var(--line); border-radius:var(--radius-md); padding:11px; background:var(--surface-muted) }
 .goods-receipt-item-title { min-width:0 }
 .goods-receipt-item-title strong,
 .goods-receipt-item-title span,
+.goods-receipt-table td:first-child strong,
+.goods-receipt-table td:first-child span,
 .goods-receipt-lines-table td:first-child strong,
 .goods-receipt-lines-table td:first-child span,
 .goods-receipt-lines-table td:nth-child(3) strong,
 .goods-receipt-lines-table td:nth-child(3) span { display:block; overflow-wrap:anywhere }
 .goods-receipt-item-title span,
+.goods-receipt-table td:first-child span,
 .goods-receipt-lines-table td:first-child span,
 .goods-receipt-lines-table td:nth-child(3) span { margin-top:3px; color:var(--muted); font-size:12px; font-weight:800 }
 .goods-receipt-item-editor label { display:grid; gap:5px; min-width:0 }
@@ -3825,8 +3867,12 @@ th { color:var(--muted-strong); font-size:13px; font-weight:750 }
   .quality-control-layout { display:block }
   .quality-control-side { margin-top:14px }
   .goods-receipt-toolbar,
+  .goods-receipt-header-actions,
+  .goods-receipt-output-actions,
+  .goods-receipt-status-actions,
   .goods-receipt-form-grid,
   .goods-receipt-detail-grid,
+  .goods-receipt-inspection-grid,
   .goods-receipt-item-editor,
   .goods-receipt-lot-split-row,
   .inventory-lot-toolbar,
@@ -3839,6 +3885,9 @@ th { color:var(--muted-strong); font-size:13px; font-weight:750 }
   .goods-receipt-lines-wrap,
   .inventory-lot-table-wrap,
   .quality-control-table-wrap { overflow:visible; border:0; background:transparent; box-shadow:none }
+  .goods-receipt-card-grid,
+  .goods-receipt-item-metrics { grid-template-columns:repeat(2, minmax(0, 1fr)) }
+  .goods-receipt-form-wide { grid-column:auto }
   .goods-receipt-table-wrap .goods-receipt-table,
   .goods-receipt-lines-wrap .goods-receipt-lines-table,
   .inventory-lot-table-wrap .inventory-lot-table,
@@ -3877,6 +3926,8 @@ th { color:var(--muted-strong); font-size:13px; font-weight:750 }
   .goods-receipt-lines-table tbody tr,
   .goods-receipt-lines-table tbody tr:nth-child(even),
   .goods-receipt-lines-table tbody tr:hover,
+  .goods-receipt-card-grid,
+  .goods-receipt-item-metrics,
   .inventory-lot-table tbody tr,
   .inventory-lot-table tbody tr:nth-child(even),
   .inventory-lot-table tbody tr:hover,
@@ -3899,7 +3950,7 @@ th { color:var(--muted-strong); font-size:13px; font-weight:750 }
   .goods-receipt-lines-table tbody td::before,
   .inventory-lot-table tbody td::before,
   .quality-control-table tbody td::before { content:attr(data-label); display:block; margin-bottom:3px; color:var(--muted); font-size:11px; font-weight:850; line-height:1.2; text-align:left }
-  .goods-receipt-table tbody td:nth-child(2),
+  .goods-receipt-table tbody td:first-child,
   .goods-receipt-table tbody td.empty-cell,
   .goods-receipt-lines-table tbody td:first-child,
   .goods-receipt-lines-table tbody td.empty-cell,
@@ -3907,7 +3958,7 @@ th { color:var(--muted-strong); font-size:13px; font-weight:750 }
   .inventory-lot-table tbody td.empty-cell,
   .quality-control-table tbody td:nth-child(3),
   .quality-control-table tbody td.empty-cell { grid-column:1 / -1; text-align:left }
-  .goods-receipt-table tbody td:nth-child(2) strong,
+  .goods-receipt-table tbody td:first-child strong,
   .goods-receipt-lines-table tbody td:first-child strong,
   .inventory-lot-table tbody td:nth-child(2) strong,
   .quality-control-table tbody td:nth-child(3) strong { text-align:left }
