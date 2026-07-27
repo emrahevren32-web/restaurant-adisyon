@@ -191,6 +191,33 @@ export const DECISION_RULES: DecisionRule[] = [
     thresholdLabel: 'Fire maliyet payi >= 7%'
   },
   {
+    id: 'waste-product-increase',
+    category: 'Production',
+    title: 'Waste Management urun fire artisi',
+    description: 'Son 30 gunde urun bazli fire artisi belirginse recete, lot ve proses kok nedeni incelenmelidir.',
+    baseRisk: 'HIGH',
+    priority: 'HIGH',
+    thresholdLabel: 'Son 30 gun fire miktari onceki periyoda gore >= 20%'
+  },
+  {
+    id: 'waste-blast-chilling-review',
+    category: 'Quality',
+    title: 'Soklama kaynakli fire icin proses kontrolu',
+    description: 'Soklama veya sicaklik kaynakli fire varsa HACCP monitoring, bekleme suresi ve soguk zincir kontrolu birlikte incelenmelidir.',
+    baseRisk: 'HIGH',
+    priority: 'HIGH',
+    thresholdLabel: 'Soklama veya sicaklik kaynakli fire miktari > 0'
+  },
+  {
+    id: 'waste-warehouse-above-average',
+    category: 'Inventory',
+    title: 'Depo fire orani ortalamanin uzerinde',
+    description: 'Depo bazli fire yogunlasmasi FEFO, SKT, ambalaj veya raf kontrol sorunu olusturabilir.',
+    baseRisk: 'HIGH',
+    priority: 'HIGH',
+    thresholdLabel: 'Depo fire miktari depo ortalamasinin uzerinde'
+  },
+  {
     id: 'management-critical-cluster',
     category: 'Management',
     title: 'Kritik risk kumesi icin yonetici aksiyon toplantisi oner',

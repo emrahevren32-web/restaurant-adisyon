@@ -10,6 +10,7 @@ import type { RecipeIngredient, RecipeManagementRecord } from '../recipe-managem
 import { calculateTotalBaseQuantity } from '../recipe-management/recipe-unit-converter'
 import { DEFAULT_STOCK_CURRENCY, getStockConsumptionUnitCost, getStockCurrency } from '../stockCost'
 import type { Branch, StockCategory, StockItem, StockUnit } from '../types'
+import { WasteService } from '../waste-management/waste.service'
 import { createCostBreakdown, createCostComponent } from './cost-breakdown.service'
 import { createDefaultCostScenarios } from './cost-simulation.service'
 import type {
@@ -198,17 +199,21 @@ const getRelatedWasteCost = (
 ) => {
   const stockItemIds = new Set(ingredientRows.map(row => row.stockItem?.id).filter(Boolean))
   const materialNames = recipe.ingredients.map(ingredient => ingredient.materialName)
+  const activeWasteRecords = WasteService.list(sourceData).filter(record => (
+    record.status !== 'CANCELLED'
+    && record.status !== 'REJECTED'
+  ))
 
   return sumBy(
-    sourceData.stockWasteRecords.filter(record => (
-      record.status === 'active'
-      && (
-        stockItemIds.has(record.stockItemId)
-        || materialNames.some(materialName => textMatches(record.stockItemName, materialName))
-        || textMatches(record.stockItemName, recipe.productName)
-      )
+    activeWasteRecords.filter(record => (
+      stockItemIds.has(record.stockItemId)
+      || materialNames.some(materialName => textMatches(record.stockItemName, materialName))
+      || textMatches(record.productName, recipe.productName)
+      || textMatches(record.stockItemName, recipe.productName)
+      || textMatches(record.recipeName, recipe.recipeName)
+      || record.recipeId === recipe.id
     )),
-    record => record.estimatedTotalCost || (record.qty * (record.estimatedUnitCost || 0))
+    record => record.totalCost
   )
 }
 

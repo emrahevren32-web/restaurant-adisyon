@@ -27,6 +27,7 @@ import {
   percent,
   sumBy
 } from './kpi.utils'
+import { WasteService } from '../waste-management/waste.service'
 
 export const createDefaultKpiFilters = (): KpiFilters => ({
   period: 'MONTH',
@@ -139,11 +140,12 @@ const getHaccpSuccessRate = (sourceData: KpiSourceData, filters: KpiFilters) => 
 
 const getFireRate = (sourceData: KpiSourceData, filters: KpiFilters) => {
   const wasteQuantity = sumBy(
-    sourceData.stockWasteRecords.filter(record => (
-      record.status === 'active'
-      && matchesPeriod(record.occurredAt || record.createdAt, filters.period)
+    WasteService.list(sourceData).filter(record => (
+      record.status !== 'CANCELLED'
+      && record.status !== 'REJECTED'
+      && matchesPeriod(record.date || record.createdAt, filters.period)
     )),
-    record => record.qty
+    record => record.quantity
   )
   const productionQuantity = sumBy(
     sourceData.productionOrders.filter(order => matchesPeriod(order.createdAt || order.deliveryDate, filters.period)),
@@ -162,12 +164,16 @@ const createExecutiveSummary = (
   const openCorrectiveActionCount = getOpenCorrectiveActionCount(sourceData)
   const haccpSuccessRate = getHaccpSuccessRate(sourceData, filters)
   const fireRate = getFireRate(sourceData, filters)
+  const activeWasteRecords = WasteService.list(sourceData).filter(record => (
+    record.status !== 'CANCELLED'
+    && record.status !== 'REJECTED'
+  ))
 
   const fireTrend = createTrend(
-    sourceData.stockWasteRecords.filter(record => record.status === 'active'),
+    activeWasteRecords,
     filters.period,
-    record => record.occurredAt || record.createdAt,
-    record => record.qty,
+    record => record.date || record.createdAt,
+    record => record.quantity,
     'Fire Trend',
     KPI_COLORS[2]
   )

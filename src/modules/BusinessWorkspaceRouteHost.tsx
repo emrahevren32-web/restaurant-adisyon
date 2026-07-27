@@ -67,6 +67,7 @@ import ProductHistory from '../pages/ProductHistory'
 import HACCPManagement from '../pages/HACCPManagement'
 import QualityControls from '../pages/QualityControls'
 import QualityControlForms from '../pages/QualityControlForms'
+import WasteManagement from '../pages/WasteManagement'
 import ReturnProcesses from '../pages/ReturnProcesses'
 import SupplierReturns from '../pages/SupplierReturns'
 import SupplierManagement from '../pages/SupplierManagement'
@@ -235,6 +236,7 @@ export default function BusinessWorkspaceRouteHost({
   if(route === 'haccp-management') return <HACCPManagement currentUser={currentUser} />
   if(route === 'quality-controls') return <QualityControls currentUser={currentUser} />
   if(route === 'quality-control-forms') return <QualityControlForms />
+  if(route === 'waste-management') return <WasteManagement currentUser={currentUser} />
   if(route === 'return-processes') return <ReturnProcesses currentUser={currentUser} />
   if(route === 'supplier-returns') return <SupplierReturns currentUser={currentUser} />
   if(route === 'suppliers') return <SupplierManagement />

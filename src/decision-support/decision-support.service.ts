@@ -10,6 +10,7 @@ import { createProductionDecisionSuggestions } from './production-decision.servi
 import { createPurchasingDecisionSuggestions } from './purchasing-decision.service'
 import { createQualityDecisionSuggestions } from './quality-decision.service'
 import { createShipmentDecisionSuggestions } from './shipment-decision.service'
+import { createWasteDecisionSuggestions } from './waste-decision.service'
 import type {
   DecisionDashboardSummary,
   DecisionRisk,
@@ -59,7 +60,8 @@ export const createDecisionSuggestions = (
     ...createInventoryDecisionSuggestions(sourceData),
     ...createQualityDecisionSuggestions(sourceData),
     ...createPurchasingDecisionSuggestions(sourceData),
-    ...createShipmentDecisionSuggestions(sourceData)
+    ...createShipmentDecisionSuggestions(sourceData),
+    ...createWasteDecisionSuggestions(sourceData)
   ]
 
   return dedupeSuggestions([
@@ -103,7 +105,11 @@ const getDashboardSummary = (
     .filter(action => action.status === 'OPEN' || action.status === 'IN_PROGRESS')
     .length,
   criticalStocks: getCriticalStockCount(sourceData),
-  highFire: suggestions.filter(suggestion => suggestion.ruleId === 'production-fire-root-cause' || suggestion.ruleId === 'cost-engine-fire-cost').length,
+  highFire: suggestions.filter(suggestion => (
+    suggestion.ruleId === 'production-fire-root-cause'
+    || suggestion.ruleId === 'cost-engine-fire-cost'
+    || suggestion.ruleId.startsWith('waste-')
+  )).length,
   riskySuppliers: suggestions.filter(suggestion => suggestion.category === 'Purchasing' && (suggestion.risk === 'HIGH' || suggestion.risk === 'CRITICAL')).length,
   riskyCcps: suggestions.filter(suggestion => suggestion.ruleId === 'quality-ccp-failure-risk').length,
   delayedProduction: suggestions.filter(suggestion => suggestion.ruleId === 'production-delay-shift').length,

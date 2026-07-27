@@ -180,11 +180,25 @@ const TEMPLATE_COLUMNS: Record<ExcelModuleKey, ExcelColumnDefinition[]> = {
     column('expiryDate', 'SKT', 'date', false, '2026-08-15')
   ],
   waste: [
-    column('stockItemName', 'Stok', 'string', true, 'Dana Eti'),
-    column('qty', 'Fire Miktari', 'number', true, 2),
+    column('wasteNo', 'Fire No', 'string', true, 'WS-2026-000001'),
+    column('date', 'Tarih', 'date', false, '2026-07-27'),
+    column('status', 'Durum', 'string', false, 'Onaylandi'),
+    column('wasteType', 'Fire Turu', 'string', true, 'Uretim Firesi'),
+    column('wasteReason', 'Fire Nedeni', 'string', true, 'Uretim Hatasi'),
+    column('productName', 'Urun', 'string', true, 'Dana Eti'),
+    column('lotNo', 'Lot', 'string', true, 'LOT-20260727-0001'),
+    column('batchNo', 'Batch', 'string', false, 'BATCH-001'),
+    column('quantity', 'Fire Miktari', 'number', true, 2),
     column('unit', 'Birim', 'string', false, 'kg'),
-    column('reasonCategory', 'Neden', 'string', false, 'Hazirlik Kaybi'),
-    column('estimatedTotalCost', 'Tahmini Maliyet', 'number', false, 360)
+    column('warehouseName', 'Depo', 'string', false, 'Merkez Depo'),
+    column('branchName', 'Sube', 'string', false, 'Merkez'),
+    column('productionOrderNo', 'Uretim Emri', 'string', false, 'WO-100'),
+    column('recipeName', 'Recete', 'string', false, 'Standart Recete'),
+    column('supplierName', 'Supplier', 'string', false, 'Et Tedarik'),
+    column('qualityDecision', 'Kalite Karari', 'string', false, 'REJECTED'),
+    column('haccpReference', 'HACCP Referansi', 'string', false, 'Soguk Zincir / PASS'),
+    column('correctiveAction', 'Duzeltici Faaliyet', 'string', false, 'Kok neden analizi'),
+    column('totalCost', 'Toplam Maliyet', 'number', false, 360)
   ],
   'production-orders': [
     column('workOrderNo', 'Is Emri No', 'string', true, 'WO-100'),

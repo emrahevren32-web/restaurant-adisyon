@@ -19,6 +19,12 @@ import {
   loadStockCategories,
   loadStockItems
 } from '../storage'
+import {
+  WASTE_REASON_LABELS,
+  WASTE_STATUS_LABELS,
+  WASTE_TYPE_LABELS,
+  WasteService
+} from '../waste-management/waste.service'
 import type { ExcelDataSet, ExcelExportOptions, ExcelModuleKey, ExcelRow } from './excel-engine.types'
 import {
   EXCEL_MODULE_LABELS,
@@ -237,15 +243,46 @@ const getLotRows = (): ExcelRow[] => {
 
 const getWasteRows = (): ExcelRow[] => {
   const sourceData = loadKpiSourceData()
+  const records = WasteService.list(sourceData)
 
-  return sourceData.stockWasteRecords.map(record => ({
-    id: record.id,
-    stockItemName: record.stockItemName,
-    qty: record.qty,
-    unit: record.unit,
-    reasonCategory: record.reasonCategory,
-    estimatedTotalCost: record.estimatedTotalCost || 0
-  }))
+  return records.flatMap(record => {
+    const baseRow = {
+      id: record.id,
+      wasteNo: record.wasteNo,
+      date: record.date,
+      status: WASTE_STATUS_LABELS[record.status],
+      wasteType: WASTE_TYPE_LABELS[record.wasteType],
+      wasteReason: WASTE_REASON_LABELS[record.wasteReason],
+      productName: record.productName || record.stockItemName,
+      lotNo: record.lotNo,
+      batchNo: record.batchNo,
+      quantity: record.quantity,
+      unit: record.unit,
+      warehouseName: record.warehouseName,
+      branchName: record.branchName,
+      productionOrderNo: record.productionOrderNo,
+      recipeName: record.recipeName,
+      supplierName: record.supplierName,
+      qualityDecision: record.qualityDecision,
+      haccpReference: record.haccpReference,
+      correctiveAction: record.correctiveAction,
+      totalCost: record.totalCost,
+      sourceType: record.sourceType
+    }
+
+    if(record.items.length === 0) return [baseRow]
+
+    return record.items.map(item => ({
+      ...baseRow,
+      lineId: item.id,
+      productName: item.productName || baseRow.productName,
+      lotNo: item.lotNo || baseRow.lotNo,
+      batchNo: item.batchNo || baseRow.batchNo,
+      quantity: item.quantity,
+      unit: item.unit,
+      totalCost: item.totalCost
+    }))
+  })
 }
 
 const getProductionOrderRows = (): ExcelRow[] => {
