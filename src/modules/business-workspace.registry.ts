@@ -1060,11 +1060,24 @@ export const BUSINESS_WORKSPACE_MODULE_REGISTRY: BusinessWorkspaceModule[] = def
     isVisible: true,
     displayOrder: 44,
     dependencies: [WORKSPACE_MODULE_CODES.STOCK, WORKSPACE_MODULE_CODES.PURCHASE],
-    tags: ['business', 'quality', 'lot-system', 'sample-tracking', 'quality-sample', 'witness-sample', 'witness-samples', 'product-recall', 'product-recalls', 'recall-management', 'product-history', 'traceability-timeline', 'haccp', 'critical-control-point', 'quality-control', 'quality-form', 'return-process', 'supplier-return', 'supplier-return-shipment', 'checklist', 'inventory-lot', 'traceability', 'industrial-kitchen'],
+    tags: ['business', 'quality', 'label-management', 'barcode', 'qr-code', 'lot-system', 'sample-tracking', 'quality-sample', 'witness-sample', 'witness-samples', 'product-recall', 'product-recalls', 'recall-management', 'product-history', 'traceability-timeline', 'haccp', 'critical-control-point', 'quality-control', 'quality-form', 'return-process', 'supplier-return', 'supplier-return-shipment', 'checklist', 'inventory-lot', 'traceability', 'industrial-kitchen'],
     supportedSectorIds: industrialKitchenSectorIds,
     pricing: { model: 'paid', currency: 'TRY' },
     marketplace: marketplaceReady,
     dashboardWidgets: [
+      dashboardWidget({
+        id: 'quality.labelManagement',
+        title: 'Etiket Yonetimi',
+        description: 'Lot, uretim, sample, witness sample, HACCP ve sevkiyat verilerinden QR ve Code-128 etiketleri uretmek icin kontrol paneli alani.',
+        icon: 'ET',
+        category: 'Kalite',
+        order: 4,
+        defaultVisible: false,
+        defaultSize: 'medium',
+        supportedLayouts: ['standard', 'wide'],
+        requiredPermission: 'operations.read',
+        renderComponent: 'quality.labelManagement.placeholder'
+      }),
       dashboardWidget({
         id: 'quality.lotSystem',
         title: 'Lot Sistemi',
@@ -1197,6 +1210,7 @@ export const BUSINESS_WORKSPACE_MODULE_REGISTRY: BusinessWorkspaceModule[] = def
       })
     ],
     menuItems: [
+      menuItem({ key: 'label-management', label: 'Etiket Yönetimi', route: 'label-management', icon: 'ET', adminOnly: true, displayOrder: 4 }),
       menuItem({ key: 'lot-system', label: 'Lot Sistemi', route: 'lot-system', icon: 'LS', adminOnly: true, displayOrder: 5 }),
       menuItem({ key: 'sample-tracking', label: 'Numune Takibi', route: 'sample-tracking', icon: 'NT', adminOnly: true, displayOrder: 6 }),
       menuItem({ key: 'witness-samples', label: 'Şahit Numune', route: 'witness-samples', icon: 'SN', adminOnly: true, displayOrder: 7 }),

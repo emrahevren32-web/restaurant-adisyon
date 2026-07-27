@@ -5019,3 +5019,113 @@ th { color:var(--muted-strong); font-size:13px; font-weight:750 }
   .excel-history-table tbody tr:nth-child(even) td,
   .excel-history-table tbody tr:hover td { text-align:left }
 }
+
+.label-management-page { display:grid; gap:18px }
+.label-create-actions { display:grid; grid-template-columns:minmax(220px, 1.3fr) minmax(150px, .8fr) minmax(170px, .9fr) auto; gap:10px; align-items:center; min-width:min(100%, 760px) }
+.label-card-grid { grid-template-columns:repeat(5, minmax(0, 1fr)) }
+.label-layout { align-items:start }
+.label-side { display:flex; flex-direction:column; gap:12px; min-width:0 }
+.label-toolbar { display:grid; grid-template-columns:minmax(220px, 1.4fr) repeat(4, minmax(130px, .8fr)); gap:10px; align-items:center; margin-bottom:12px }
+.label-table-wrap { min-width:0 }
+.label-table { min-width:940px }
+.label-table td:first-child strong,
+.label-table td:first-child span,
+.label-table td:nth-child(3) strong,
+.label-table td:nth-child(3) span,
+.label-table td:nth-child(4) strong,
+.label-table td:nth-child(4) span { display:block; overflow-wrap:anywhere }
+.label-detail-card { display:grid; gap:12px; margin-bottom:0 }
+.label-preview-grid { display:grid; grid-template-columns:minmax(180px, .7fr) minmax(0, 1fr); gap:12px; align-items:start }
+.label-preview-card { min-width:0; border:1px solid var(--line); border-radius:var(--radius-md); padding:12px; background:var(--surface-muted); text-align:center }
+.label-preview-card strong,
+.label-preview-card span { display:block; overflow-wrap:anywhere }
+.label-preview-card strong { color:var(--text); font-size:15px; font-weight:950; line-height:1.2 }
+.label-preview-card span { margin-top:4px; color:var(--muted); font-size:12px; font-weight:850 }
+.label-preview-card img { display:block; max-width:160px; width:100%; height:auto; margin:10px auto 0 }
+.label-preview-card .label-barcode-preview { max-width:260px; height:64px; object-fit:fill }
+.label-preview-meta,
+.label-detail-grid,
+.label-item-grid { display:grid; grid-template-columns:repeat(2, minmax(0, 1fr)); gap:10px; min-width:0 }
+.label-preview-meta div,
+.label-detail-grid div { min-width:0; border:1px solid var(--line); border-radius:var(--radius-md); padding:10px 11px; background:var(--surface-muted) }
+.label-preview-meta span,
+.label-detail-grid span { display:block; color:var(--muted); font-size:12px; font-weight:850; line-height:1.2 }
+.label-preview-meta strong,
+.label-detail-grid strong { display:block; margin-top:4px; color:var(--text); font-size:13px; font-weight:900; line-height:1.25; overflow-wrap:anywhere }
+.label-print-actions { display:grid; grid-template-columns:minmax(90px, .6fr) repeat(6, minmax(100px, 1fr)); gap:8px; align-items:end }
+.label-detail-section { display:grid; gap:10px }
+.label-detail-section h4 { margin:0; color:var(--text); font-size:14px; font-weight:900 }
+.label-template-list,
+.label-history-list,
+.label-print-job-list { display:grid; gap:10px; min-width:0 }
+.label-template-list { grid-template-columns:repeat(5, minmax(0, 1fr)) }
+.label-template-list.compact { grid-template-columns:1fr }
+.label-template-list div,
+.label-history-list div,
+.label-print-job-list div { min-width:0; border:1px solid var(--line); border-radius:var(--radius-md); padding:10px 11px; background:var(--surface-muted) }
+.label-template-list div[aria-selected="true"] { border-color:var(--accent); background:var(--accent-soft) }
+.label-template-list strong,
+.label-template-list span,
+.label-template-list em,
+.label-history-list strong,
+.label-history-list span,
+.label-print-job-list strong,
+.label-print-job-list span { display:block; overflow-wrap:anywhere }
+.label-template-list strong,
+.label-history-list strong,
+.label-print-job-list strong { color:var(--text); font-size:14px; font-weight:950; line-height:1.2 }
+.label-template-list span,
+.label-template-list em,
+.label-history-list span,
+.label-print-job-list span { margin-top:4px; color:var(--muted); font-size:12px; font-weight:800; line-height:1.35; font-style:normal }
+.label-template-list p,
+.label-history-list p,
+.label-print-job-list p { margin:7px 0 0; color:var(--text-soft); font-size:12px; font-weight:750; line-height:1.4; overflow-wrap:anywhere }
+
+@media (max-width: 1200px){
+  .label-card-grid,
+  .label-template-list { grid-template-columns:repeat(3, minmax(0, 1fr)) }
+  .label-print-actions { grid-template-columns:repeat(3, minmax(0, 1fr)) }
+}
+
+@media (max-width: 980px){
+  .label-create-actions,
+  .label-toolbar,
+  .label-preview-grid,
+  .label-preview-meta,
+  .label-detail-grid,
+  .label-print-actions,
+  .label-template-list { grid-template-columns:1fr; width:100% }
+  .label-card-grid { grid-template-columns:repeat(2, minmax(0, 1fr)) }
+  .label-table-wrap { overflow:visible; border:0; background:transparent; box-shadow:none }
+  .label-table-wrap .label-table { min-width:0 }
+  .label-table,
+  .label-table thead,
+  .label-table tbody,
+  .label-table tr,
+  .label-table td { display:block; width:100%; min-width:0 }
+  .label-table thead { display:none }
+  .label-table tbody { display:grid; gap:10px }
+  .label-table tbody tr,
+  .label-table tbody tr:nth-child(even),
+  .label-table tbody tr:hover { display:grid; grid-template-columns:repeat(2, minmax(0, 1fr)); gap:9px; border:1px solid var(--line); border-radius:var(--radius-md); padding:11px 12px; background:var(--surface); box-shadow:var(--shadow-xs) }
+  .label-table tbody tr td,
+  .label-table tbody tr:nth-child(even) td,
+  .label-table tbody tr:hover td { height:auto; min-height:0; border:0; padding:0; background:transparent; box-shadow:none; text-align:right }
+  .label-table tbody td::before { content:attr(data-label); display:block; margin-bottom:3px; color:var(--muted); font-size:11px; font-weight:850; line-height:1.2; text-align:left }
+  .label-table tbody td:first-child,
+  .label-table tbody td:nth-child(3),
+  .label-table tbody td.empty-cell { grid-column:1 / -1; text-align:left }
+  .label-table tbody td:first-child strong,
+  .label-table tbody td:nth-child(3) strong { text-align:left }
+}
+
+@media (max-width: 560px){
+  .label-card-grid,
+  .label-table tbody tr,
+  .label-table tbody tr:nth-child(even),
+  .label-table tbody tr:hover { grid-template-columns:1fr }
+  .label-table tbody tr td,
+  .label-table tbody tr:nth-child(even) td,
+  .label-table tbody tr:hover td { text-align:left }
+}

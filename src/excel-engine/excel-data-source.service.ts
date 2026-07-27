@@ -1,5 +1,7 @@
 import { createCostEngineView, createDefaultCostEngineFilters } from '../cost-engine/cost-engine.service'
 import { DeliveryNoteService, DELIVERY_NOTE_STATUS_LABELS } from '../delivery-notes/delivery-note.service'
+import { LabelService, LABEL_STATUS_LABELS } from '../label-management/label.service'
+import { LABEL_TYPE_LABELS } from '../label-management/label-template.service'
 import { createKpiDashboardView, createDefaultKpiFilters } from '../kpi-reporting/kpi.service'
 import { loadKpiSourceData } from '../kpi-reporting/kpi-source.service'
 import {
@@ -291,6 +293,38 @@ const getDeliveryNoteRows = (): ExcelRow[] => {
   })
 }
 
+const getLabelRows = (): ExcelRow[] => {
+  const sourceData = loadKpiSourceData()
+  const labels = LabelService.list(sourceData)
+
+  return labels.map(label => ({
+    id: label.id,
+    labelNo: label.labelNo,
+    labelType: LABEL_TYPE_LABELS[label.labelType],
+    status: LABEL_STATUS_LABELS[label.status],
+    templateName: label.templateName,
+    productName: label.productName,
+    productCode: label.productCode,
+    lotNo: label.lotNo,
+    batchNo: label.batchNo,
+    productionDate: label.productionDate,
+    expiryDate: label.expiryDate,
+    netWeight: label.netWeight,
+    grossWeight: label.grossWeight,
+    unit: label.unit,
+    warehouseName: label.warehouseName,
+    branchName: label.branchName,
+    productionOrderNo: label.productionOrderNo,
+    recipeName: label.recipeName,
+    shipmentNo: label.shipmentNo,
+    sampleNo: label.sampleNo,
+    witnessNo: label.witnessNo,
+    haccpPlanName: label.haccpPlanName,
+    barcodeValue: label.barcodeValue,
+    qrPayload: label.qrPayload
+  }))
+}
+
 const getKpiRows = (): ExcelRow[] => {
   const sourceData = loadKpiSourceData()
   const dashboard = createKpiDashboardView(sourceData, createDefaultKpiFilters())
@@ -343,6 +377,7 @@ const getRowsForModule = (
   if(moduleKey === 'quality') return getQualityRows()
   if(moduleKey === 'shipments') return getShipmentRows()
   if(moduleKey === 'delivery-notes') return getDeliveryNoteRows()
+  if(moduleKey === 'labels') return getLabelRows()
   if(moduleKey === 'kpi') return getKpiRows()
   if(moduleKey === 'cost-engine') return getCostEngineRows()
   return []

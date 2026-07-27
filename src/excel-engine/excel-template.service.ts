@@ -18,6 +18,7 @@ export const EXCEL_MODULE_LABELS: Record<ExcelModuleKey, string> = {
   quality: 'Kalite',
   shipments: 'Sevkiyat',
   'delivery-notes': 'Irsaliyeler',
+  labels: 'Etiket Yonetimi',
   kpi: 'KPI',
   'cost-engine': 'Cost Engine'
 }
@@ -36,6 +37,7 @@ export const EXCEL_EXPORT_MODULES: ExcelModuleKey[] = [
   'quality',
   'shipments',
   'delivery-notes',
+  'labels',
   'kpi',
   'cost-engine'
 ]
@@ -196,6 +198,25 @@ const TEMPLATE_COLUMNS: Record<ExcelModuleKey, ExcelColumnDefinition[]> = {
     column('netWeight', 'Net', 'number', false, 40),
     column('grossWeight', 'Brut', 'number', false, 44),
     column('totalCost', 'Toplam Maliyet', 'number', false, 2500)
+  ],
+  labels: [
+    column('labelNo', 'Etiket No', 'string', true, 'LBL-2026-000001'),
+    column('labelType', 'Etiket Turu', 'string', true, 'LOT'),
+    column('templateName', 'Sablon', 'string', false, '70x50 Koli'),
+    column('productName', 'Urun Adi', 'string', true, 'Mercimek Corbasi'),
+    column('productCode', 'Urun Kodu', 'string', false, 'SKU-100'),
+    column('lotNo', 'Lot No', 'string', true, 'LOT-20260727-0001'),
+    column('batchNo', 'Batch No', 'string', false, 'LOT-20260727-0001'),
+    column('productionDate', 'Uretim Tarihi', 'date', false, '2026-07-27'),
+    column('expiryDate', 'SKT', 'date', false, '2026-07-30'),
+    column('netWeight', 'Net Agirlik', 'number', false, 40),
+    column('grossWeight', 'Brut Agirlik', 'number', false, 42),
+    column('warehouseName', 'Depo', 'string', false, 'Merkez Depo'),
+    column('branchName', 'Sube', 'string', false, 'Merkez'),
+    column('productionOrderNo', 'Uretim Emri', 'string', false, 'WO-100'),
+    column('recipeName', 'Recete', 'string', false, 'Standart'),
+    column('barcodeValue', 'Code-128', 'string', false, 'LBL-2026-000001|LOT-20260727-0001|SKU-100'),
+    column('qrPayload', 'QR Payload', 'string', false, 'lot/product/erpId')
   ],
   kpi: [
     column('area', 'Alan', 'string', true, 'Production'),
