@@ -1,542 +1,527 @@
 import React from 'react'
+import { ExcelExportService } from '../excel-engine/excel-export.service'
+import { loadKpiSourceData } from '../kpi-reporting/kpi-source.service'
+import type { BarChartRow, ChartSeries } from '../kpi-reporting/kpi.types'
 import {
-  QUALITY_CONTROL_FORM_RESULTS,
-  QUALITY_CONTROL_FORM_RESULT_LABELS,
-  calculateQualityControlOverallScore,
-  formatQualityControlScore,
-  getQualityControlFormDisplayNo,
-  loadQualityControlFormRecords,
-  loadQualityControlTemplateRecords,
-  saveQualityControlFormRecords,
-  saveQualityControlTemplateRecords
-} from '../quality-controls/quality-control-form.mock'
+  ALL_FILTER,
+  formatNumber,
+  formatPercent,
+  formatQuantity
+} from '../kpi-reporting/kpi.utils'
+import { QualityFormPrintService } from '../quality-forms/quality-form-print.service'
+import {
+  QUALITY_CRITERION_STATUSES,
+  QUALITY_FORM_STATUSES,
+  QUALITY_FORM_STATUS_LABELS,
+  QUALITY_FORM_TYPES,
+  QUALITY_FORM_TYPE_LABELS,
+  QUALITY_INSPECTION_RESULTS,
+  QUALITY_INSPECTION_RESULT_LABELS,
+  QUALITY_STATUS_LABELS,
+  QualityFormService
+} from '../quality-forms/quality-form.service'
 import type {
-  QualityControlFormItem,
-  QualityControlFormRecord,
-  QualityControlFormResult,
-  QualityControlTemplateRecord
-} from '../quality-controls/quality-control-form.types'
-import { loadQualityControlRecords } from '../quality-controls/quality-control.mock'
-import type { QualityControl } from '../quality-controls/quality-control.types'
-import { loadInventoryLotRecords } from '../inventory-lots/inventory-lot.mock'
-import { loadGoodsReceiptRecords } from '../goods-receipts/goods-receipt.mock'
-import { loadPurchaseOrderRecords } from '../purchase-orders/purchase-order.mock'
-import { loadPurchaseApprovalRecords } from '../purchase-approvals/purchase-approval.mock'
-import { loadRequestForQuotationRecords } from '../request-for-quotations/request-for-quotation.mock'
-import { loadPurchaseRequestRecords } from '../purchase-requests/purchase-request.mock'
-import { loadSupplierManagementRecords } from '../supplier-management/supplier-management.mock'
-import { loadSupplierProductRecords } from '../supplier-management/supplier-product-mapping.mock'
-import { loadBranches, loadStockItems } from '../storage'
+  QualityCriterionKey,
+  QualityCriterionStatus,
+  QualityForm,
+  QualityFormCreateInput,
+  QualityFormFilters,
+  QualityFormStatus,
+  QualityHistoryAction,
+  QualityInspectionResult
+} from '../quality-forms/quality-form.types'
+import type { User } from '../types'
 
-type FilterValue = 'all'
-type ResultFilter = QualityControlFormResult | FilterValue
-type PanelMode = 'detail' | 'form' | 'template'
-
-type QualityControlFormsInitialData = {
-  qualityControls: QualityControl[]
-  templates: QualityControlTemplateRecord[]
-  forms: QualityControlFormRecord[]
+type Message = {
+  type: 'success' | 'error'
+  text: string
 }
 
-type FormBuilderItem = {
-  templateItemId: string
-  title: string
+type CreateFormState = {
+  lotId: string
+  formType: QualityFormCreateInput['formType']
+  inspectionDate: string
+  inspector: string
+  result: QualityInspectionResult
   description: string
-  isRequired: boolean
-  result: QualityControlFormResult | ''
-  notes: string
+  inspectionStatuses: Partial<Record<QualityCriterionKey, QualityCriterionStatus>>
+  inspectionNotes: Partial<Record<QualityCriterionKey, string>>
 }
 
-type FormBuilderState = {
-  qualityControlId: string
-  templateId: string
-  notes: string
-  items: FormBuilderItem[]
-}
-
-type TemplateBuilderItem = {
-  id: string
-  title: string
-  description: string
-  isRequired: boolean
-}
-
-type TemplateBuilderState = {
-  name: string
-  description: string
-  isActive: boolean
-  items: TemplateBuilderItem[]
-}
-
-const createId = (prefix: string) => `${prefix}_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`
-
-const getTodayIso = () => new Date().toISOString()
-
-const toSearchText = (value: string) => value.trim().toLocaleLowerCase('tr-TR')
+const getTodayKey = () => new Date().toLocaleDateString('sv-SE')
+const getUserName = (currentUser: User) => currentUser.fullName || currentUser.username
 
 const formatDate = (value: string) => {
   if(!value) return '-'
-  const date = new Date(value)
-  if(Number.isNaN(date.getTime())) return value
-  return date.toLocaleDateString('tr-TR', { year: 'numeric', month: '2-digit', day: '2-digit' })
+  const date = new Date(value.includes('T') ? value : `${value}T00:00:00`)
+  return Number.isNaN(date.getTime())
+    ? value
+    : date.toLocaleDateString('tr-TR', { year: 'numeric', month: '2-digit', day: '2-digit' })
 }
 
-const getResultClass = (result: QualityControlFormResult) => {
-  if(result === 'PASS') return 'success'
-  if(result === 'FAIL') return 'danger-pill'
+const formatDateTime = (value: string) => {
+  if(!value) return '-'
+  const date = new Date(value)
+  return Number.isNaN(date.getTime())
+    ? value
+    : date.toLocaleString('tr-TR', {
+      year: 'numeric',
+      month: '2-digit',
+      day: '2-digit',
+      hour: '2-digit',
+      minute: '2-digit'
+    })
+}
+
+const getStatusClass = (status: QualityFormStatus) => {
+  if(status === 'APPROVED') return 'success'
+  if(status === 'CONDITIONAL_APPROVED' || status === 'INSPECTING') return 'warning-pill'
+  if(status === 'REJECTED' || status === 'CANCELLED') return 'danger-pill'
   return 'muted-pill'
 }
 
-const getScoreClass = (score: number) => {
-  if(score >= 90) return 'success'
-  if(score >= 70) return 'warning-pill'
+const getResultClass = (result: QualityInspectionResult) => {
+  if(result === 'PASS') return 'success'
+  if(result === 'CONDITIONAL') return 'warning-pill'
   return 'danger-pill'
 }
 
-const getQualityControlLabel = (
-  qualityControlId: string,
-  qualityControlMap: Map<string, QualityControl>
-) => {
-  const qualityControl = qualityControlMap.get(qualityControlId)
-  return qualityControl ? qualityControl.qcNo : 'QC bulunamadı'
-}
-
-const getTemplateLabel = (
-  templateId: string,
-  templateMap: Map<string, QualityControlTemplateRecord>
-) => {
-  const template = templateMap.get(templateId)
-  return template ? template.name : 'Template bulunamadı'
-}
-
-const loadInitialData = (): QualityControlFormsInitialData => {
-  const branches = loadBranches()
-  const stockItems = loadStockItems()
-  const suppliers = loadSupplierManagementRecords()
-  const supplierProducts = loadSupplierProductRecords(suppliers, stockItems)
-  const purchaseRequests = loadPurchaseRequestRecords(stockItems, branches)
-  const rfqRecords = loadRequestForQuotationRecords(purchaseRequests, suppliers, supplierProducts, branches)
-  const approvalRecords = loadPurchaseApprovalRecords(rfqRecords)
-  const purchaseOrders = loadPurchaseOrderRecords(approvalRecords, rfqRecords)
-  const goodsReceipts = loadGoodsReceiptRecords(purchaseOrders, rfqRecords, purchaseRequests)
-  const inventoryLots = loadInventoryLotRecords(goodsReceipts)
-  const qualityControls = loadQualityControlRecords(inventoryLots)
-  const templates = loadQualityControlTemplateRecords()
-  const forms = loadQualityControlFormRecords(qualityControls, templates)
-
-  return {
-    qualityControls,
-    templates,
-    forms
+const getHistoryLabel = (action: QualityHistoryAction) => {
+  const labels: Record<QualityHistoryAction, string> = {
+    CREATED: 'Olusturuldu',
+    UPDATED: 'Guncellendi',
+    INSPECTION_STARTED: 'Kontrol Ediliyor',
+    APPROVED: 'Onaylandi',
+    CONDITIONAL_APPROVED: 'Sartli Onay',
+    REJECTED: 'Reddedildi',
+    CANCELLED: 'Iptal',
+    REVISED: 'Revizyon',
+    PRINTED: 'Yazdirildi',
+    PDF: 'PDF',
+    EXCEL: 'Excel',
+    VALIDATION: 'Validation'
   }
+
+  return labels[action] || action
 }
 
-const createFormBuilderItems = (
-  template: QualityControlTemplateRecord | null
-): FormBuilderItem[] => (
-  template
-    ? template.items.map(item => ({
-      templateItemId: item.id,
-      title: item.title,
-      description: item.description,
-      isRequired: item.isRequired,
-      result: '',
-      notes: ''
-    }))
-    : []
-)
+const uniqueOptions = (
+  records: Array<{ id: string; name: string }>
+) => Array.from(new Map(records.filter(record => record.id).map(record => [record.id, record.name || record.id])).entries())
+  .map(([id, name]) => ({ id, name }))
+  .sort((first, second) => first.name.localeCompare(second.name, 'tr-TR'))
 
-const createEmptyFormBuilder = (
-  qualityControls: QualityControl[],
-  templates: QualityControlTemplateRecord[],
-  forms: QualityControlFormRecord[]
-): FormBuilderState => {
-  const usedQualityControlIds = new Set(forms.map(form => form.qualityControlId))
-  const qualityControl = qualityControls.find(record => !usedQualityControlIds.has(record.id)) || null
-  const template = templates.find(item => item.isActive) || null
-
-  return {
-    qualityControlId: qualityControl?.id || '',
-    templateId: template?.id || '',
-    notes: '',
-    items: createFormBuilderItems(template)
-  }
+const getDefaultCriterionStatus = (
+  result: QualityInspectionResult
+): QualityCriterionStatus => {
+  if(result === 'FAIL') return 'FAIL'
+  if(result === 'CONDITIONAL') return 'WARNING'
+  return 'PASS'
 }
 
-const createEmptyTemplateBuilder = (): TemplateBuilderState => ({
-  name: '',
+const createInitialForm = (
+  inspector: string,
+  lotId = ''
+): CreateFormState => ({
+  lotId,
+  formType: 'GOODS_RECEIPT_CONTROL',
+  inspectionDate: getTodayKey(),
+  inspector,
+  result: 'PASS',
   description: '',
-  isActive: true,
-  items: [
-    {
-      id: createId('quality_template_item_draft'),
-      title: '',
-      description: '',
-      isRequired: true
-    }
-  ]
+  inspectionStatuses: {},
+  inspectionNotes: {}
 })
 
-const validateTemplateBuilder = (template: TemplateBuilderState) => {
-  if(!template.name.trim()) return 'Template adı zorunludur.'
-  if(template.items.length === 0) return 'En az bir kontrol maddesi eklenmelidir.'
-  if(template.items.some(item => !item.title.trim())) return 'Kontrol maddesi başlığı zorunludur.'
-
-  return ''
-}
-
-const validateFormBuilder = (
-  form: FormBuilderState,
-  qualityControls: QualityControl[],
-  templates: QualityControlTemplateRecord[],
-  forms: QualityControlFormRecord[]
+const getActionDisabled = (
+  record: QualityForm | null,
+  status: QualityFormStatus
 ) => {
-  const qualityControl = qualityControls.find(record => record.id === form.qualityControlId)
-  if(!qualityControl) return 'Quality Control zorunludur.'
-
-  const template = templates.find(record => record.id === form.templateId)
-  if(!template) return 'Template zorunludur.'
-
-  if(forms.some(record => record.qualityControlId === qualityControl.id)){
-    return 'Bu Quality Control kaydı için daha önce form oluşturulmuş.'
-  }
-
-  const requiredTemplateItemIds = new Set(template.items.filter(item => item.isRequired).map(item => item.id))
-  const missingRequiredItem = form.items.some(item => (
-    requiredTemplateItemIds.has(item.templateItemId) && !item.result
-  ))
-  if(missingRequiredItem) return 'Required kontrol maddeleri boş bırakılamaz.'
-
-  return ''
+  if(!record) return true
+  if(record.status === 'CANCELLED') return true
+  return record.status === status
 }
 
-const getFormBuilderScore = (items: FormBuilderItem[]) => (
-  calculateQualityControlOverallScore(items
-    .filter(item => item.result)
-    .map(item => ({
-      result: item.result as QualityControlFormResult
-    })))
-)
-
-export default function QualityControlForms(){
-  const initialData = React.useMemo(loadInitialData, [])
-  const [qualityControls] = React.useState<QualityControl[]>(initialData.qualityControls)
-  const [templates, setTemplates] = React.useState<QualityControlTemplateRecord[]>(initialData.templates)
-  const [forms, setForms] = React.useState<QualityControlFormRecord[]>(initialData.forms)
-  const [selectedFormId, setSelectedFormId] = React.useState('')
-  const [panelMode, setPanelMode] = React.useState<PanelMode>('detail')
-  const [formBuilder, setFormBuilder] = React.useState<FormBuilderState>(() => createEmptyFormBuilder(
-    initialData.qualityControls,
-    initialData.templates,
-    initialData.forms
-  ))
-  const [templateBuilder, setTemplateBuilder] = React.useState<TemplateBuilderState>(createEmptyTemplateBuilder)
-  const [formError, setFormError] = React.useState('')
-  const [templateError, setTemplateError] = React.useState('')
-  const [search, setSearch] = React.useState('')
-  const [templateFilter, setTemplateFilter] = React.useState('all')
-  const [resultFilter, setResultFilter] = React.useState<ResultFilter>('all')
-
-  const qualityControlMap = React.useMemo(() => (
-    new Map(qualityControls.map(record => [record.id, record]))
-  ), [qualityControls])
-
-  const templateMap = React.useMemo(() => (
-    new Map(templates.map(template => [template.id, template]))
-  ), [templates])
-
-  const selectedForm = React.useMemo(() => (
-    forms.find(form => form.id === selectedFormId) || forms[0] || null
-  ), [forms, selectedFormId])
-
-  const formNoMap = React.useMemo(() => (
-    new Map(forms.map(form => [form.id, getQualityControlFormDisplayNo(forms, form.id)]))
-  ), [forms])
+export default function QualityControlForms({ currentUser }: { currentUser: User }){
+  const userName = getUserName(currentUser)
+  const sourceData = React.useMemo(loadKpiSourceData, [])
+  const templates = React.useMemo(() => QualityFormService.templates(), [])
+  const lotOptions = React.useMemo(() => sourceData.inventoryLots
+    .filter(lot => lot.status !== 'DISPOSED' && lot.status !== 'RETURNED')
+    .slice(0, 120), [sourceData])
+  const [records, setRecords] = React.useState<QualityForm[]>(() => QualityFormService.list(sourceData))
+  const [filters, setFilters] = React.useState<QualityFormFilters>(() => QualityFormService.createDefaultFilters())
+  const [selectedRecordId, setSelectedRecordId] = React.useState('')
+  const [form, setForm] = React.useState<CreateFormState>(() => createInitialForm(userName, lotOptions[0]?.id || ''))
+  const [message, setMessage] = React.useState<Message | null>(null)
+  const filteredRecords = React.useMemo(() => QualityFormService.filter(records, filters), [records, filters])
+  const statistics = React.useMemo(() => QualityFormService.statistics(records), [records])
+  const selectedRecord = filteredRecords.find(record => record.id === selectedRecordId)
+    || records.find(record => record.id === selectedRecordId)
+    || filteredRecords[0]
+    || records[0]
+    || null
+  const selectedTemplate = React.useMemo(() => templates.find(template => template.formType === form.formType) || templates[0], [form.formType, templates])
+  const branchOptions = React.useMemo(() => uniqueOptions(records.map(record => ({ id: record.branchId, name: record.branchName }))), [records])
+  const warehouseOptions = React.useMemo(() => uniqueOptions(records.map(record => ({ id: record.warehouseId, name: record.warehouseName }))), [records])
+  const productOptions = React.useMemo(() => uniqueOptions(records.map(record => ({ id: record.productId || record.stockItemId, name: record.productName || record.stockItemName }))), [records])
+  const lotFilterOptions = React.useMemo(() => uniqueOptions(records.map(record => ({ id: record.lotId, name: record.lotNo }))), [records])
+  const supplierOptions = React.useMemo(() => uniqueOptions(records.map(record => ({ id: record.supplierId, name: record.supplierName }))), [records])
 
   React.useEffect(() => {
-    if(selectedFormId && forms.some(form => form.id === selectedFormId)) return
-    setSelectedFormId(forms[0]?.id || '')
-  }, [forms, selectedFormId])
+    if(selectedRecordId && records.some(record => record.id === selectedRecordId)) return
+    setSelectedRecordId(filteredRecords[0]?.id || records[0]?.id || '')
+  }, [filteredRecords, records, selectedRecordId])
 
-  const commitForms = React.useCallback((nextForms: QualityControlFormRecord[]) => {
-    setForms(nextForms)
-    saveQualityControlFormRecords(nextForms)
-  }, [])
+  React.useEffect(() => {
+    if(form.lotId || lotOptions.length === 0) return
+    setForm(prev => ({ ...prev, lotId: lotOptions[0]?.id || '' }))
+  }, [form.lotId, lotOptions])
 
-  const commitTemplates = React.useCallback((nextTemplates: QualityControlTemplateRecord[]) => {
-    setTemplates(nextTemplates)
-    saveQualityControlTemplateRecords(nextTemplates)
-  }, [])
-
-  const visibleForms = React.useMemo(() => {
-    const normalizedSearch = toSearchText(search)
-
-    return forms.filter(form => {
-      const qualityControl = qualityControlMap.get(form.qualityControlId)
-      const template = templateMap.get(form.templateId)
-      const searchFields = [
-        qualityControl?.qcNo || '',
-        template?.name || ''
-      ]
-
-      const matchesSearch = !normalizedSearch || searchFields.some(field => toSearchText(field).includes(normalizedSearch))
-      const matchesTemplate = templateFilter === 'all' || form.templateId === templateFilter
-      const matchesResult = resultFilter === 'all' || form.items.some(item => item.result === resultFilter)
-
-      return matchesSearch && matchesTemplate && matchesResult
-    })
-  }, [forms, qualityControlMap, resultFilter, search, templateFilter, templateMap])
-
-  const averageScore = forms.length === 0
-    ? 0
-    : forms.reduce((total, form) => total + form.overallScore, 0) / forms.length
-  const failFormCount = forms.filter(form => form.items.some(item => item.result === 'FAIL')).length
-  const unusedQualityControlCount = qualityControls.filter(qualityControl => (
-    !forms.some(form => form.qualityControlId === qualityControl.id)
-  )).length
-
-  const startCreateForm = () => {
-    setFormBuilder(createEmptyFormBuilder(qualityControls, templates, forms))
-    setFormError('')
-    setPanelMode('form')
+  const refreshRecords = (targetRecordId?: string) => {
+    const nextRecords = QualityFormService.list(sourceData)
+    setRecords(nextRecords)
+    if(targetRecordId) setSelectedRecordId(targetRecordId)
   }
 
-  const startCreateTemplate = () => {
-    setTemplateBuilder(createEmptyTemplateBuilder())
-    setTemplateError('')
-    setPanelMode('template')
+  const updateFilter = <TKey extends keyof QualityFormFilters>(key: TKey, value: QualityFormFilters[TKey]) => {
+    setFilters(prev => ({ ...prev, [key]: value }))
   }
 
-  const cancelPanel = () => {
-    setFormError('')
-    setTemplateError('')
-    setPanelMode('detail')
+  const updateForm = <TKey extends keyof CreateFormState>(key: TKey, value: CreateFormState[TKey]) => {
+    setForm(prev => ({ ...prev, [key]: value }))
   }
 
-  const updateFormTemplate = (templateId: string) => {
-    const template = templateMap.get(templateId) || null
-    setFormBuilder(current => ({
-      ...current,
-      templateId,
-      items: createFormBuilderItems(template)
+  const updateCriterionStatus = (criterionKey: QualityCriterionKey, status: QualityCriterionStatus) => {
+    setForm(prev => ({
+      ...prev,
+      inspectionStatuses: {
+        ...prev.inspectionStatuses,
+        [criterionKey]: status
+      }
     }))
   }
 
-  const updateFormItem = (
-    templateItemId: string,
-    changes: Partial<Pick<FormBuilderItem, 'result' | 'notes'>>
-  ) => {
-    setFormBuilder(current => ({
-      ...current,
-      items: current.items.map(item => (
-        item.templateItemId === templateItemId ? { ...item, ...changes } : item
-      ))
+  const updateCriterionNote = (criterionKey: QualityCriterionKey, note: string) => {
+    setForm(prev => ({
+      ...prev,
+      inspectionNotes: {
+        ...prev.inspectionNotes,
+        [criterionKey]: note
+      }
     }))
   }
 
-  const addTemplateItem = () => {
-    setTemplateBuilder(current => ({
-      ...current,
-      items: [
-        ...current.items,
-        {
-          id: createId('quality_template_item_draft'),
-          title: '',
-          description: '',
-          isRequired: true
-        }
-      ]
+  const changeResult = (result: QualityInspectionResult) => {
+    const defaultStatus = getDefaultCriterionStatus(result)
+    setForm(prev => ({
+      ...prev,
+      result,
+      inspectionStatuses: Object.fromEntries((selectedTemplate?.criteria || []).map(criterion => [
+        criterion.criterionKey,
+        prev.inspectionStatuses[criterion.criterionKey] || defaultStatus
+      ]))
     }))
   }
 
-  const updateTemplateItem = (
-    itemId: string,
-    changes: Partial<Pick<TemplateBuilderItem, 'title' | 'description' | 'isRequired'>>
-  ) => {
-    setTemplateBuilder(current => ({
-      ...current,
-      items: current.items.map(item => item.id === itemId ? { ...item, ...changes } : item)
-    }))
-  }
-
-  const removeTemplateItem = (itemId: string) => {
-    setTemplateBuilder(current => ({
-      ...current,
-      items: current.items.filter(item => item.id !== itemId)
-    }))
-  }
-
-  const submitTemplate = () => {
-    const validationError = validateTemplateBuilder(templateBuilder)
-    if(validationError){
-      setTemplateError(validationError)
-      return
+  const createQualityForm = () => {
+    try{
+      const record = QualityFormService.addFromLot({
+        lotId: form.lotId,
+        formType: form.formType,
+        inspectionDate: form.inspectionDate,
+        inspector: form.inspector,
+        result: form.result,
+        description: form.description,
+        inspectionStatuses: form.inspectionStatuses,
+        inspectionNotes: form.inspectionNotes
+      }, sourceData, userName)
+      refreshRecords(record.id)
+      setForm(createInitialForm(userName, form.lotId))
+      setMessage({ type: 'success', text: `${record.formNo} olusturuldu.` })
+    } catch (error) {
+      setMessage({ type: 'error', text: error instanceof Error ? error.message : 'Kalite formu olusturulamadi.' })
     }
-
-    const now = getTodayIso()
-    const templateId = createId('quality_control_template')
-    const payload: QualityControlTemplateRecord = {
-      id: templateId,
-      name: templateBuilder.name.trim(),
-      description: templateBuilder.description.trim(),
-      isActive: templateBuilder.isActive,
-      createdAt: now,
-      updatedAt: now,
-      items: templateBuilder.items.map((item, index) => ({
-        id: createId('quality_control_template_item'),
-        templateId,
-        title: item.title.trim(),
-        description: item.description.trim(),
-        displayOrder: index + 1,
-        isRequired: item.isRequired
-      }))
-    }
-
-    const nextTemplates = [...templates, payload]
-    commitTemplates(nextTemplates)
-    setTemplateBuilder(createEmptyTemplateBuilder())
-    setTemplateError('')
-    setFormBuilder(createEmptyFormBuilder(qualityControls, nextTemplates, forms))
-    setPanelMode('detail')
   }
 
-  const submitForm = () => {
-    const validationError = validateFormBuilder(formBuilder, qualityControls, templates, forms)
-    if(validationError){
-      setFormError(validationError)
-      return
+  const changeStatus = (status: QualityFormStatus) => {
+    if(!selectedRecord) return
+    try{
+      const record = QualityFormService.updateStatus(selectedRecord.id, status, sourceData, userName)
+      refreshRecords(record.id)
+      setMessage({ type: 'success', text: `${record.formNo} ${QUALITY_FORM_STATUS_LABELS[status]} durumuna alindi.` })
+    } catch (error) {
+      setMessage({ type: 'error', text: error instanceof Error ? error.message : 'Durum guncellenemedi.' })
     }
+  }
 
-    const now = getTodayIso()
-    const formId = createId('quality_control_form')
-    const items: QualityControlFormItem[] = formBuilder.items.map(item => ({
-      id: createId('quality_control_form_item'),
-      formId,
-      templateItemId: item.templateItemId,
-      result: item.result || 'NOT_APPLICABLE',
-      notes: item.notes.trim()
-    }))
-    const payload: QualityControlFormRecord = {
-      id: formId,
-      qualityControlId: formBuilder.qualityControlId,
-      templateId: formBuilder.templateId,
-      overallScore: calculateQualityControlOverallScore(items),
-      notes: formBuilder.notes.trim(),
-      createdAt: now,
-      updatedAt: now,
-      items
+  const recordOutput = (action: Extract<QualityHistoryAction, 'PRINTED' | 'PDF' | 'EXCEL'>) => {
+    if(!selectedRecord) return
+
+    try{
+      if(action === 'PRINTED') QualityFormPrintService.openPrintWindow(selectedRecord, 'A4')
+      if(action === 'PDF') QualityFormPrintService.openPrintWindow(selectedRecord, 'PDF')
+      if(action === 'EXCEL'){
+        ExcelExportService.exportModules({
+          moduleKeys: ['quality'],
+          scope: 'SELECTED',
+          filterText: '',
+          selectedRecordIds: [selectedRecord.id],
+          userName
+        })
+      }
+
+      const record = QualityFormService.recordOutput(selectedRecord.id, action, sourceData, userName)
+      refreshRecords(record.id)
+      setMessage({
+        type: 'success',
+        text: action === 'EXCEL'
+          ? `${record.formNo} Excel export edildi.`
+          : `${record.formNo} cikti penceresi acildi.`
+      })
+    } catch (error) {
+      setMessage({ type: 'error', text: error instanceof Error ? error.message : 'Cikti alinamadi.' })
     }
-
-    const nextForms = [payload, ...forms]
-    commitForms(nextForms)
-    setSelectedFormId(payload.id)
-    setFormBuilder(createEmptyFormBuilder(qualityControls, templates, nextForms))
-    setFormError('')
-    setPanelMode('detail')
   }
 
   return (
     <div className="quality-form-page">
       <div className="page-header">
         <div>
-          <h2>Kalite Kontrol Formları</h2>
-          <p className="muted">Quality Control kayıtlarını standart checklist şablonlarıyla değerlendirin.</p>
-        </div>
-        <div className="quality-form-header-actions">
-          <button className="btn" type="button" onClick={startCreateTemplate}>Şablon Oluştur</button>
-          <button className="btn primary" type="button" onClick={startCreateForm}>Form Oluştur</button>
+          <h2>Kalite Formlari</h2>
+          <p className="muted">Goods Receipt, Production, Lot, HACCP, Sample, Witness Sample ve Waste verilerini standart kalite formlarinda birlestirir.</p>
         </div>
       </div>
 
-      <div className="metric-grid">
+      {message && <div className={`settings-message ${message.type}`}>{message.text}</div>}
+
+      <div className="metric-grid quality-form-metric-grid">
         <div className="metric-card">
-          <span>Template</span>
-          <strong>{templates.length}</strong>
+          <span>Bugunku Kontroller</span>
+          <strong>{formatNumber(statistics.todayControls)}</strong>
+          <small>Bugun kontrol edilen formlar</small>
         </div>
         <div className="metric-card">
-          <span>Form</span>
-          <strong>{forms.length}</strong>
+          <span>Basarili</span>
+          <strong>{formatNumber(statistics.passed)}</strong>
+          <small>PASS orani {formatPercent(statistics.passRate)}</small>
+        </div>
+        <div className="metric-card warning">
+          <span>Sartli Onay</span>
+          <strong>{formatNumber(statistics.conditionalApproved)}</strong>
+          <small>Takip gerektiren formlar</small>
+        </div>
+        <div className="metric-card danger">
+          <span>Basarisiz</span>
+          <strong>{formatNumber(statistics.failed)}</strong>
+          <small>FAIL orani {formatPercent(statistics.failRate)}</small>
         </div>
         <div className="metric-card">
-          <span>Ortalama Puan</span>
-          <strong>{formatQualityControlScore(averageScore)}</strong>
+          <span>Bekleyen</span>
+          <strong>{formatNumber(statistics.pending)}</strong>
+          <small>Taslak / kontrol edilen</small>
         </div>
-        <div className="metric-card">
-          <span>Formsuz QC</span>
-          <strong>{unusedQualityControlCount}</strong>
+      </div>
+
+      <section className="card quality-form-create-card">
+        <div className="section-header compact">
+          <div>
+            <h3>Yeni Form</h3>
+            <p className="muted">Lot kaynakli read-model kalite formu olusturur; stok hareketi veya resmi dokuman uretmez.</p>
+          </div>
+          <button className="primary-button" type="button" disabled={!form.lotId} onClick={createQualityForm}>Form Olustur</button>
         </div>
+        <div className="quality-form-create-grid">
+          <label className="form-field">
+            <span>Lot</span>
+            <select value={form.lotId} onChange={event => updateForm('lotId', event.target.value)}>
+              {lotOptions.length === 0 && <option value="">Uygun lot yok</option>}
+              {lotOptions.map(lot => <option key={lot.id} value={lot.id}>{lot.lotNo}</option>)}
+            </select>
+          </label>
+          <label className="form-field">
+            <span>Form Turu</span>
+            <select value={form.formType} onChange={event => updateForm('formType', event.target.value as CreateFormState['formType'])}>
+              {QUALITY_FORM_TYPES.map(type => <option key={type} value={type}>{QUALITY_FORM_TYPE_LABELS[type]}</option>)}
+            </select>
+          </label>
+          <label className="form-field">
+            <span>Kontrol Tarihi</span>
+            <input type="date" value={form.inspectionDate} onChange={event => updateForm('inspectionDate', event.target.value)} />
+          </label>
+          <label className="form-field">
+            <span>Kontrol Personeli</span>
+            <input value={form.inspector} onChange={event => updateForm('inspector', event.target.value)} />
+          </label>
+          <label className="form-field">
+            <span>Sonuc</span>
+            <select value={form.result} onChange={event => changeResult(event.target.value as QualityInspectionResult)}>
+              {QUALITY_INSPECTION_RESULTS.map(result => <option key={result} value={result}>{QUALITY_INSPECTION_RESULT_LABELS[result]}</option>)}
+            </select>
+          </label>
+          <label className="form-field quality-form-wide">
+            <span>Aciklama</span>
+            <input value={form.description} onChange={event => updateForm('description', event.target.value)} placeholder="Kontrol notu" />
+          </label>
+        </div>
+        <div className="quality-form-checklist">
+          {(selectedTemplate?.criteria || []).map(criterion => (
+            <div className="quality-form-checklist-item" key={criterion.id}>
+              <div>
+                <strong>{criterion.label}</strong>
+                <span>{criterion.limit}</span>
+                {criterion.required && <small>Zorunlu</small>}
+              </div>
+              <label>
+                <span>Durum</span>
+                <select value={form.inspectionStatuses[criterion.criterionKey] || getDefaultCriterionStatus(form.result)} onChange={event => updateCriterionStatus(criterion.criterionKey, event.target.value as QualityCriterionStatus)}>
+                  {QUALITY_CRITERION_STATUSES.map(status => <option key={status} value={status}>{QUALITY_STATUS_LABELS[status]}</option>)}
+                </select>
+              </label>
+              <label className="quality-form-item-notes">
+                <span>Not</span>
+                <input value={form.inspectionNotes[criterion.criterionKey] || ''} onChange={event => updateCriterionNote(criterion.criterionKey, event.target.value)} />
+              </label>
+            </div>
+          ))}
+        </div>
+      </section>
+
+      <section className="card quality-form-filter-card">
+        <div className="section-header compact">
+          <div>
+            <h3>Filtreler</h3>
+            <p className="muted">{formatNumber(filteredRecords.length)} / {formatNumber(records.length)} kalite formu listeleniyor.</p>
+          </div>
+          <button className="btn" type="button" onClick={() => setFilters(QualityFormService.createDefaultFilters())}>Sifirla</button>
+        </div>
+        <div className="quality-form-filter-grid">
+          <label className="form-field">
+            <span>Form Turu</span>
+            <select value={filters.formType} onChange={event => updateFilter('formType', event.target.value as QualityFormFilters['formType'])}>
+              <option value={ALL_FILTER}>Tum Turler</option>
+              {QUALITY_FORM_TYPES.map(type => <option key={type} value={type}>{QUALITY_FORM_TYPE_LABELS[type]}</option>)}
+            </select>
+          </label>
+          <label className="form-field">
+            <span>Durum</span>
+            <select value={filters.status} onChange={event => updateFilter('status', event.target.value as QualityFormFilters['status'])}>
+              <option value={ALL_FILTER}>Tum Durumlar</option>
+              {QUALITY_FORM_STATUSES.map(status => <option key={status} value={status}>{QUALITY_FORM_STATUS_LABELS[status]}</option>)}
+            </select>
+          </label>
+          <label className="form-field">
+            <span>Sonuc</span>
+            <select value={filters.result} onChange={event => updateFilter('result', event.target.value as QualityFormFilters['result'])}>
+              <option value={ALL_FILTER}>Tum Sonuclar</option>
+              {QUALITY_INSPECTION_RESULTS.map(result => <option key={result} value={result}>{QUALITY_INSPECTION_RESULT_LABELS[result]}</option>)}
+            </select>
+          </label>
+          <label className="form-field">
+            <span>Urun</span>
+            <select value={filters.productId} onChange={event => updateFilter('productId', event.target.value)}>
+              <option value={ALL_FILTER}>Tum Urunler</option>
+              {productOptions.map(option => <option key={option.id} value={option.id}>{option.name}</option>)}
+            </select>
+          </label>
+          <label className="form-field">
+            <span>Lot</span>
+            <select value={filters.lotId} onChange={event => updateFilter('lotId', event.target.value)}>
+              <option value={ALL_FILTER}>Tum Lotlar</option>
+              {lotFilterOptions.map(option => <option key={option.id} value={option.id}>{option.name}</option>)}
+            </select>
+          </label>
+          <label className="form-field">
+            <span>Supplier</span>
+            <select value={filters.supplierId} onChange={event => updateFilter('supplierId', event.target.value)}>
+              <option value={ALL_FILTER}>Tum Supplier</option>
+              {supplierOptions.map(option => <option key={option.id} value={option.id}>{option.name}</option>)}
+            </select>
+          </label>
+          <label className="form-field">
+            <span>Sube</span>
+            <select value={filters.branchId} onChange={event => updateFilter('branchId', event.target.value)}>
+              <option value={ALL_FILTER}>Tum Subeler</option>
+              {branchOptions.map(option => <option key={option.id} value={option.id}>{option.name}</option>)}
+            </select>
+          </label>
+          <label className="form-field">
+            <span>Depo</span>
+            <select value={filters.warehouseId} onChange={event => updateFilter('warehouseId', event.target.value)}>
+              <option value={ALL_FILTER}>Tum Depolar</option>
+              {warehouseOptions.map(option => <option key={option.id} value={option.id}>{option.name}</option>)}
+            </select>
+          </label>
+          <label className="form-field">
+            <span>Tarih</span>
+            <input type="date" value={filters.date} onChange={event => updateFilter('date', event.target.value)} />
+          </label>
+          <label className="form-field">
+            <span>Arama</span>
+            <input type="search" value={filters.search} onChange={event => updateFilter('search', event.target.value)} placeholder="Form No, urun, lot, batch" />
+          </label>
+        </div>
+      </section>
+
+      <div className="quality-form-chart-grid">
+        <BarChartCard title="Urun Bazli" rows={statistics.productRows} />
+        <BarChartCard title="Supplier Bazli" rows={statistics.supplierRows} />
+        <BarChartCard title="Sube Bazli" rows={statistics.branchRows} />
+        <BarChartCard title="Form Turu Bazli" rows={statistics.typeRows} />
+        <BarChartCard title="Sonuc Bazli" rows={statistics.resultRows} />
+        <LineChartCard series={statistics.monthlyTrend} />
       </div>
 
       <div className="product-layout quality-form-layout">
         <section className="product-main card">
           <div className="section-header">
             <div>
-              <h3>Form Listesi</h3>
-              <p className="muted">{visibleForms.length} kayıt gösteriliyor. FAIL içeren form sayısı: {failFormCount}</p>
+              <h3>Quality Form Listesi</h3>
+              <p className="muted">Standart ve versiyonlu kalite formlari read-model olarak izlenir.</p>
             </div>
+            <span className="status-pill">{formatNumber(templates.length)} template</span>
           </div>
-
-          <div className="quality-form-toolbar">
-            <input
-              type="search"
-              placeholder="QC No veya Template ara"
-              value={search}
-              onChange={event => setSearch(event.target.value)}
-            />
-            <select value={templateFilter} onChange={event => setTemplateFilter(event.target.value)}>
-              <option value="all">Tüm Template</option>
-              {templates.map(template => (
-                <option key={template.id} value={template.id}>{template.name}</option>
-              ))}
-            </select>
-            <select value={resultFilter} onChange={event => setResultFilter(event.target.value as ResultFilter)}>
-              <option value="all">Tüm Sonuçlar</option>
-              {QUALITY_CONTROL_FORM_RESULTS.map(result => (
-                <option key={result} value={result}>{QUALITY_CONTROL_FORM_RESULT_LABELS[result]}</option>
-              ))}
-            </select>
-          </div>
-
           <div className="table-wrap quality-form-table-wrap">
             <table className="data-table quality-form-table">
               <thead>
                 <tr>
                   <th>Form No</th>
-                  <th>QC No</th>
-                  <th>Template</th>
-                  <th>Overall Score</th>
-                  <th>Created Date</th>
+                  <th>Tarih</th>
+                  <th>Form Turu</th>
+                  <th>Urun / Lot</th>
+                  <th>Supplier</th>
+                  <th>Skor</th>
+                  <th>Sonuc</th>
+                  <th>Durum</th>
                 </tr>
               </thead>
               <tbody>
-                {visibleForms.length === 0 && (
-                  <tr><td colSpan={5} className="empty-cell">Bu filtrelere uygun kalite kontrol formu bulunamadı.</td></tr>
+                {filteredRecords.length === 0 && (
+                  <tr><td className="empty-cell" colSpan={8}>Filtrelere uygun kalite formu bulunamadi.</td></tr>
                 )}
-                {visibleForms.map(form => (
+                {filteredRecords.map(record => (
                   <tr
-                    key={form.id}
-                    className={selectedForm?.id === form.id ? 'selected' : ''}
+                    key={record.id}
+                    aria-selected={selectedRecord?.id === record.id}
                     tabIndex={0}
                     onClick={() => {
-                      setSelectedFormId(form.id)
-                      setPanelMode('detail')
+                      setSelectedRecordId(record.id)
+                      setMessage(null)
                     }}
                     onKeyDown={event => {
                       if(event.key !== 'Enter' && event.key !== ' ') return
                       event.preventDefault()
-                      setSelectedFormId(form.id)
-                      setPanelMode('detail')
+                      setSelectedRecordId(record.id)
                     }}
                   >
-                    <td data-label="Form No"><strong>{formNoMap.get(form.id)}</strong></td>
-                    <td data-label="QC No">{getQualityControlLabel(form.qualityControlId, qualityControlMap)}</td>
-                    <td data-label="Template">{getTemplateLabel(form.templateId, templateMap)}</td>
-                    <td data-label="Overall Score">
-                      <span className={`status-pill ${getScoreClass(form.overallScore)}`}>
-                        {formatQualityControlScore(form.overallScore)}
-                      </span>
-                    </td>
-                    <td data-label="Created Date">{formatDate(form.createdAt)}</td>
+                    <td data-label="Form No"><strong>{record.formNo}</strong><span>Rev {record.revisionNo}</span></td>
+                    <td data-label="Tarih">{formatDate(record.inspectionDate)}</td>
+                    <td data-label="Form Turu"><strong>{QUALITY_FORM_TYPE_LABELS[record.formType]}</strong><span>{record.sourceType}</span></td>
+                    <td data-label="Urun / Lot"><strong>{record.productName || record.stockItemName}</strong><span>{record.lotNo || record.batchNo}</span></td>
+                    <td data-label="Supplier">{record.supplierName || '-'}</td>
+                    <td data-label="Skor">{formatNumber(record.score, 1)}</td>
+                    <td data-label="Sonuc"><span className={`status-pill ${getResultClass(record.result)}`}>{QUALITY_INSPECTION_RESULT_LABELS[record.result]}</span></td>
+                    <td data-label="Durum"><span className={`status-pill ${getStatusClass(record.status)}`}>{QUALITY_FORM_STATUS_LABELS[record.status]}</span></td>
                   </tr>
                 ))}
               </tbody>
@@ -545,62 +530,17 @@ export default function QualityControlForms(){
         </section>
 
         <aside className="product-side quality-form-side">
-          {panelMode === 'form' && (
-            <section className="card">
-              <div className="section-header compact">
-                <div>
-                  <h3>Form Oluştur</h3>
-                  <p className="muted">Quality Control kaydına tek checklist formu bağlanır.</p>
-                </div>
-              </div>
-              {formError && <div className="form-error">{formError}</div>}
-              <QualityControlFormEditor
-                form={formBuilder}
-                qualityControls={qualityControls}
-                templates={templates}
-                forms={forms}
-                qualityControlMap={qualityControlMap}
-                onChange={setFormBuilder}
-                onTemplateChange={updateFormTemplate}
-                onItemChange={updateFormItem}
-                onSubmit={submitForm}
-                onCancel={cancelPanel}
-              />
-            </section>
-          )}
-
-          {panelMode === 'template' && (
-            <section className="card">
-              <div className="section-header compact">
-                <div>
-                  <h3>Şablon Oluştur</h3>
-                  <p className="muted">Kontrol maddelerini standartlaştırın.</p>
-                </div>
-              </div>
-              {templateError && <div className="form-error">{templateError}</div>}
-              <QualityControlTemplateEditor
-                template={templateBuilder}
-                onChange={setTemplateBuilder}
-                onItemChange={updateTemplateItem}
-                onAddItem={addTemplateItem}
-                onRemoveItem={removeTemplateItem}
-                onSubmit={submitTemplate}
-                onCancel={cancelPanel}
-              />
-            </section>
-          )}
-
-          {panelMode === 'detail' && (
-            <QualityControlFormDetailPanel
-              form={selectedForm}
-              forms={forms}
-              templates={templates}
-              formNoMap={formNoMap}
-              qualityControlMap={qualityControlMap}
-              templateMap={templateMap}
-              onCreateForm={startCreateForm}
-              onCreateTemplate={startCreateTemplate}
+          {selectedRecord ? (
+            <QualityFormDetailPanel
+              record={selectedRecord}
+              onStatusChange={changeStatus}
+              onOutput={recordOutput}
             />
+          ) : (
+            <section className="card quality-form-detail-card">
+              <h3>Form Detayi</h3>
+              <p className="muted">Detay gormek icin bir kalite formu secin.</p>
+            </section>
           )}
         </aside>
       </div>
@@ -608,308 +548,165 @@ export default function QualityControlForms(){
   )
 }
 
-function QualityControlFormEditor({
-  form,
-  qualityControls,
-  templates,
-  forms,
-  qualityControlMap,
-  onChange,
-  onTemplateChange,
-  onItemChange,
-  onSubmit,
-  onCancel
+function QualityFormDetailPanel({
+  onOutput,
+  onStatusChange,
+  record
 }: {
-  form: FormBuilderState
-  qualityControls: QualityControl[]
-  templates: QualityControlTemplateRecord[]
-  forms: QualityControlFormRecord[]
-  qualityControlMap: Map<string, QualityControl>
-  onChange: (form: FormBuilderState) => void
-  onTemplateChange: (templateId: string) => void
-  onItemChange: (templateItemId: string, changes: Partial<Pick<FormBuilderItem, 'result' | 'notes'>>) => void
-  onSubmit: () => void
-  onCancel: () => void
+  onOutput: (action: Extract<QualityHistoryAction, 'PRINTED' | 'PDF' | 'EXCEL'>) => void
+  onStatusChange: (status: QualityFormStatus) => void
+  record: QualityForm
 }){
-  const usedQualityControlIds = new Set(forms.map(record => record.qualityControlId))
-  const activeTemplates = templates.filter(template => template.isActive)
-  const previewScore = getFormBuilderScore(form.items)
-
-  return (
-    <form className="stacked-form quality-form-editor" onSubmit={event => event.preventDefault()}>
-      <div className="quality-form-section">
-        <h4>Genel Bilgiler</h4>
-        <div className="quality-form-editor-grid">
-          <div className="form-field">
-            <label>Quality Control</label>
-            <select value={form.qualityControlId} onChange={event => onChange({ ...form, qualityControlId: event.target.value })} required>
-              <option value="">QC seçin</option>
-              {qualityControls.map(qualityControl => {
-                const disabled = usedQualityControlIds.has(qualityControl.id)
-
-                return (
-                  <option key={qualityControl.id} value={qualityControl.id} disabled={disabled}>
-                    {qualityControl.qcNo}{disabled ? ' · Form var' : ''}
-                  </option>
-                )
-              })}
-            </select>
-          </div>
-          <div className="form-field">
-            <label>Template</label>
-            <select value={form.templateId} onChange={event => onTemplateChange(event.target.value)} required>
-              <option value="">Template seçin</option>
-              {activeTemplates.map(template => (
-                <option key={template.id} value={template.id}>{template.name}</option>
-              ))}
-            </select>
-          </div>
-          <div className="form-field">
-            <label>QC No</label>
-            <input value={form.qualityControlId ? getQualityControlLabel(form.qualityControlId, qualityControlMap) : ''} readOnly />
-          </div>
-          <div className="form-field">
-            <label>Overall Score</label>
-            <input value={formatQualityControlScore(previewScore)} readOnly />
-          </div>
-        </div>
-      </div>
-
-      <div className="quality-form-section">
-        <div className="section-header compact">
-          <h4>Kontrol Maddeleri</h4>
-          <span className="status-pill muted-pill">{form.items.length} madde</span>
-        </div>
-        <div className="quality-form-checklist">
-          {form.items.length === 0 && <p className="muted">Template seçildiğinde kontrol maddeleri burada görünür.</p>}
-          {form.items.map(item => (
-            <div className="quality-form-checklist-item" key={item.templateItemId}>
-              <div>
-                <strong>{item.title}</strong>
-                <span>{item.description || '-'}</span>
-                {item.isRequired && <small>Required</small>}
-              </div>
-              <label>
-                <span>Sonuç</span>
-                <select value={item.result} onChange={event => onItemChange(item.templateItemId, { result: event.target.value as QualityControlFormResult | '' })}>
-                  <option value="">Sonuç seçin</option>
-                  {QUALITY_CONTROL_FORM_RESULTS.map(result => (
-                    <option key={result} value={result}>{QUALITY_CONTROL_FORM_RESULT_LABELS[result]}</option>
-                  ))}
-                </select>
-              </label>
-              <label className="quality-form-item-notes">
-                <span>Not</span>
-                <input value={item.notes} onChange={event => onItemChange(item.templateItemId, { notes: event.target.value })} />
-              </label>
-            </div>
-          ))}
-        </div>
-      </div>
-
-      <div className="quality-form-section">
-        <h4>Notlar</h4>
-        <div className="form-field">
-          <label>Form Notu</label>
-          <textarea rows={4} value={form.notes} onChange={event => onChange({ ...form, notes: event.target.value })} />
-        </div>
-      </div>
-
-      <div className="form-actions">
-        <button className="btn primary" type="button" onClick={onSubmit}>Form Kaydet</button>
-        <button className="btn" type="button" onClick={onCancel}>İptal</button>
-      </div>
-    </form>
-  )
-}
-
-function QualityControlTemplateEditor({
-  template,
-  onChange,
-  onItemChange,
-  onAddItem,
-  onRemoveItem,
-  onSubmit,
-  onCancel
-}: {
-  template: TemplateBuilderState
-  onChange: (template: TemplateBuilderState) => void
-  onItemChange: (itemId: string, changes: Partial<Pick<TemplateBuilderItem, 'title' | 'description' | 'isRequired'>>) => void
-  onAddItem: () => void
-  onRemoveItem: (itemId: string) => void
-  onSubmit: () => void
-  onCancel: () => void
-}){
-  return (
-    <form className="stacked-form quality-template-editor" onSubmit={event => event.preventDefault()}>
-      <div className="quality-form-section">
-        <h4>Template Bilgileri</h4>
-        <div className="quality-form-editor-grid">
-          <div className="form-field">
-            <label>Template Adı</label>
-            <input value={template.name} onChange={event => onChange({ ...template, name: event.target.value })} required />
-          </div>
-          <label className="toggle-row">
-            <input
-              type="checkbox"
-              checked={template.isActive}
-              onChange={event => onChange({ ...template, isActive: event.target.checked })}
-            />
-            <span>Aktif</span>
-          </label>
-          <div className="form-field quality-form-wide">
-            <label>Açıklama</label>
-            <textarea rows={3} value={template.description} onChange={event => onChange({ ...template, description: event.target.value })} />
-          </div>
-        </div>
-      </div>
-
-      <div className="quality-form-section">
-        <div className="section-header compact">
-          <h4>Checklist Yönetimi</h4>
-          <button className="btn" type="button" onClick={onAddItem}>Madde Ekle</button>
-        </div>
-        <div className="quality-template-item-list">
-          {template.items.map((item, index) => (
-            <div className="quality-template-item-editor" key={item.id}>
-              <div className="quality-template-item-order">{index + 1}</div>
-              <div className="form-field">
-                <label>Başlık</label>
-                <input value={item.title} onChange={event => onItemChange(item.id, { title: event.target.value })} />
-              </div>
-              <div className="form-field">
-                <label>Açıklama</label>
-                <input value={item.description} onChange={event => onItemChange(item.id, { description: event.target.value })} />
-              </div>
-              <label className="toggle-row">
-                <input
-                  type="checkbox"
-                  checked={item.isRequired}
-                  onChange={event => onItemChange(item.id, { isRequired: event.target.checked })}
-                />
-                <span>Required</span>
-              </label>
-              <button className="btn" type="button" onClick={() => onRemoveItem(item.id)} disabled={template.items.length === 1}>Sil</button>
-            </div>
-          ))}
-        </div>
-      </div>
-
-      <div className="form-actions">
-        <button className="btn primary" type="button" onClick={onSubmit}>Template Kaydet</button>
-        <button className="btn" type="button" onClick={onCancel}>İptal</button>
-      </div>
-    </form>
-  )
-}
-
-function QualityControlFormDetailPanel({
-  form,
-  forms,
-  templates,
-  formNoMap,
-  qualityControlMap,
-  templateMap,
-  onCreateForm,
-  onCreateTemplate
-}: {
-  form: QualityControlFormRecord | null
-  forms: QualityControlFormRecord[]
-  templates: QualityControlTemplateRecord[]
-  formNoMap: Map<string, string>
-  qualityControlMap: Map<string, QualityControl>
-  templateMap: Map<string, QualityControlTemplateRecord>
-  onCreateForm: () => void
-  onCreateTemplate: () => void
-}){
-  const template = form ? templateMap.get(form.templateId) || null : null
-  const templateItemMap = React.useMemo(() => (
-    new Map(templates.flatMap(record => record.items.map(item => [item.id, item])))
-  ), [templates])
-
   return (
     <>
       <section className="card quality-form-detail-card">
         <div className="section-header compact">
           <div>
-            <h3>{form ? formNoMap.get(form.id) : 'Form Detayı'}</h3>
-            <p className="muted">{form ? getQualityControlLabel(form.qualityControlId, qualityControlMap) : 'Bir form kaydı seçin.'}</p>
+            <h3>{record.formNo}</h3>
+            <p className="muted">{QUALITY_FORM_TYPE_LABELS[record.formType]} / {record.templateVersion}</p>
           </div>
-          {form && (
-            <span className={`status-pill ${getScoreClass(form.overallScore)}`}>
-              {formatQualityControlScore(form.overallScore)}
-            </span>
-          )}
+          <span className={`status-pill ${getStatusClass(record.status)}`}>{QUALITY_FORM_STATUS_LABELS[record.status]}</span>
         </div>
-        <div className="quality-form-side-actions">
-          <button className="btn" type="button" onClick={onCreateTemplate}>Şablon Oluştur</button>
-          <button className="btn primary" type="button" onClick={onCreateForm}>Form Oluştur</button>
+
+        <div className="quality-form-output-actions">
+          <button className="btn" type="button" onClick={() => onOutput('PRINTED')}>Yazdir</button>
+          <button className="btn" type="button" onClick={() => onOutput('PDF')}>PDF</button>
+          <button className="btn" type="button" onClick={() => onOutput('EXCEL')}>Excel</button>
+        </div>
+
+        <div className="quality-form-status-actions">
+          <button className="btn" type="button" disabled={getActionDisabled(record, 'INSPECTING')} onClick={() => onStatusChange('INSPECTING')}>Kontrol</button>
+          <button className="btn" type="button" disabled={getActionDisabled(record, 'APPROVED')} onClick={() => onStatusChange('APPROVED')}>Onayla</button>
+          <button className="btn" type="button" disabled={getActionDisabled(record, 'CONDITIONAL_APPROVED')} onClick={() => onStatusChange('CONDITIONAL_APPROVED')}>Sartli</button>
+          <button className="btn danger" type="button" disabled={getActionDisabled(record, 'REJECTED')} onClick={() => onStatusChange('REJECTED')}>Reddet</button>
+          <button className="btn danger" type="button" disabled={getActionDisabled(record, 'CANCELLED')} onClick={() => onStatusChange('CANCELLED')}>Iptal</button>
+        </div>
+
+        <div className="quality-form-detail-grid">
+          <div><span>Urun</span><strong>{record.productName || record.stockItemName}</strong></div>
+          <div><span>Lot / Batch</span><strong>{record.lotNo || '-'} / {record.batchNo || '-'}</strong></div>
+          <div><span>Supplier</span><strong>{record.supplierName || '-'}</strong></div>
+          <div><span>Depo / Sube</span><strong>{record.warehouseName} / {record.branchName}</strong></div>
+          <div><span>Uretim Emri</span><strong>{record.productionOrderNo || '-'}</strong></div>
+          <div><span>Goods Receipt</span><strong>{record.goodsReceiptNo || record.goodsReceiptId || '-'}</strong></div>
+          <div><span>Kontrol Personeli</span><strong>{record.inspector}</strong></div>
+          <div><span>Skor / Sonuc</span><strong>{formatNumber(record.score, 1)} / {record.result}</strong></div>
+        </div>
+        <p className="quality-form-notes">{record.description || '-'}</p>
+      </section>
+
+      <section className="card quality-form-detail-card">
+        <h3>Inspection</h3>
+        <div className="quality-form-result-list">
+          {record.inspections.map(inspection => (
+            <div className="quality-form-result-row" key={inspection.id}>
+              <div>
+                <strong>{inspection.label}</strong>
+                <span>{inspection.unit || '-'}</span>
+              </div>
+              <span className={`status-pill ${inspection.status === 'PASS' ? 'success' : inspection.status === 'FAIL' ? 'danger-pill' : 'warning-pill'}`}>{QUALITY_STATUS_LABELS[inspection.status]}</span>
+              <div>
+                <strong>{inspection.value || '-'}</strong>
+                <span>{inspection.result}</span>
+              </div>
+              {inspection.notes && <p>{inspection.notes}</p>}
+            </div>
+          ))}
         </div>
       </section>
 
-      {form && (
-        <>
-          <section className="card quality-form-detail-card">
-            <h3>Detay</h3>
-            <div className="quality-form-detail-grid">
-              <div><span>Kalite Kontrol</span><strong>{getQualityControlLabel(form.qualityControlId, qualityControlMap)}</strong></div>
-              <div><span>Template</span><strong>{template?.name || 'Template bulunamadı'}</strong></div>
-              <div><span>Kontrol Maddesi</span><strong>{form.items.length}</strong></div>
-              <div><span>Genel Puan</span><strong>{formatQualityControlScore(form.overallScore)}</strong></div>
-              <div><span>Created Date</span><strong>{formatDate(form.createdAt)}</strong></div>
-              <div><span>Updated Date</span><strong>{formatDate(form.updatedAt)}</strong></div>
-            </div>
-          </section>
-
-          <section className="card quality-form-detail-card">
-            <h3>Kontrol Maddeleri</h3>
-            <div className="quality-form-result-list">
-              {form.items.map(item => {
-                const templateItem = templateItemMap.get(item.templateItemId)
-
-                return (
-                  <div className="quality-form-result-row" key={item.id}>
-                    <div>
-                      <strong>{templateItem?.title || 'Kontrol maddesi bulunamadı'}</strong>
-                      <span>{templateItem?.description || '-'}</span>
-                      {item.notes && <p>{item.notes}</p>}
-                    </div>
-                    <span className={`status-pill ${getResultClass(item.result)}`}>
-                      {QUALITY_CONTROL_FORM_RESULT_LABELS[item.result]}
-                    </span>
-                  </div>
-                )
-              })}
-            </div>
-          </section>
-
-          <section className="card quality-form-detail-card">
-            <h3>Notlar</h3>
-            <p className="quality-form-notes">{form.notes || '-'}</p>
-          </section>
-        </>
-      )}
+      <section className="card quality-form-detail-card">
+        <h3>Entegrasyonlar</h3>
+        <div className="quality-form-detail-grid">
+          <div><span>Recipe</span><strong>{record.recipeName || '-'}</strong></div>
+          <div><span>HACCP</span><strong>{record.haccpReference || '-'}</strong></div>
+          <div><span>Sample</span><strong>{record.sampleNo || '-'}</strong></div>
+          <div><span>Witness Sample</span><strong>{record.witnessNo || '-'}</strong></div>
+        </div>
+      </section>
 
       <section className="card quality-form-detail-card">
-        <h3>Template Kütüphanesi</h3>
-        <div className="quality-template-library">
-          {templates.map(templateRecord => {
-            const usageCount = forms.filter(record => record.templateId === templateRecord.id).length
+        <h3>Decision</h3>
+        <div className="quality-form-result-list">
+          <div className="quality-form-result-row">
+            <div>
+              <strong>{record.decision.decisionType}</strong>
+              <span>{record.decision.decidedBy} / {formatDateTime(record.decision.decidedAt)}</span>
+            </div>
+            <span className={`status-pill ${getResultClass(record.decision.result)}`}>{record.decision.result}</span>
+            <p>{record.decision.summary}</p>
+          </div>
+        </div>
+      </section>
 
-            return (
-              <div className="quality-template-library-row" key={templateRecord.id}>
-                <div>
-                  <strong>{templateRecord.name}</strong>
-                  <span>{templateRecord.items.length} madde · {usageCount} form</span>
-                </div>
-                <span className={`status-pill ${templateRecord.isActive ? 'success' : 'muted-pill'}`}>
-                  {templateRecord.isActive ? 'Aktif' : 'Pasif'}
-                </span>
+      <section className="card quality-form-detail-card">
+        <h3>History</h3>
+        <div className="quality-form-result-list">
+          {[...record.history].reverse().map(history => (
+            <div className="quality-form-result-row" key={history.id}>
+              <div>
+                <strong>{getHistoryLabel(history.action)} - {history.actorName}</strong>
+                <span>{formatDateTime(history.createdAt)} / Rev {history.revisionNo}</span>
               </div>
-            )
-          })}
+              <p>{history.description}</p>
+            </div>
+          ))}
         </div>
       </section>
     </>
+  )
+}
+
+function BarChartCard({ rows, title }: { rows: BarChartRow[]; title: string }){
+  const maxValue = Math.max(1, ...rows.map(row => row.value))
+
+  return (
+    <section className="card kpi-chart-card">
+      <div className="section-header compact">
+        <div>
+          <h3>{title}</h3>
+          <p className="muted">{formatNumber(rows.length)} kirilim</p>
+        </div>
+      </div>
+      <div className="kpi-bar-list">
+        {rows.length === 0 && <div className="empty-cell">Kayit bulunamadi.</div>}
+        {rows.map(row => (
+          <div className="kpi-bar-row" key={row.id}>
+            <div>
+              <strong>{row.label}</strong>
+              <span>{row.detail || row.formattedValue}</span>
+            </div>
+            <div className="kpi-bar-track">
+              <span style={{ width: `${Math.max(3, (row.value / maxValue) * 100)}%` }} />
+            </div>
+            <em>{row.formattedValue}</em>
+          </div>
+        ))}
+      </div>
+    </section>
+  )
+}
+
+function LineChartCard({ series }: { series: ChartSeries }){
+  const maxValue = Math.max(1, ...series.points.map(point => point.value))
+
+  return (
+    <section className="card kpi-chart-card">
+      <div className="section-header compact">
+        <div>
+          <h3>{series.label}</h3>
+          <p className="muted">{formatNumber(series.points.length)} period</p>
+        </div>
+      </div>
+      <div className="kpi-line-chart">
+        {series.points.map(point => (
+          <div className="kpi-line-point" key={point.dateKey}>
+            <span style={{ height: `${Math.max(4, (point.value / maxValue) * 100)}%`, background: series.color }} />
+            <strong>{formatNumber(point.value, 1)}</strong>
+            <small>{point.label}</small>
+          </div>
+        ))}
+      </div>
+    </section>
   )
 }

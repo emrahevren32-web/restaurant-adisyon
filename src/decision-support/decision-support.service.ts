@@ -9,6 +9,7 @@ import { createDecisionSuggestion, dedupeSuggestions } from './recommendation-en
 import { createProductionDecisionSuggestions } from './production-decision.service'
 import { createPurchasingDecisionSuggestions } from './purchasing-decision.service'
 import { createQualityDecisionSuggestions } from './quality-decision.service'
+import { createQualityFormDecisionSuggestions } from './quality-form-decision.service'
 import { createShipmentDecisionSuggestions } from './shipment-decision.service'
 import { createWasteDecisionSuggestions } from './waste-decision.service'
 import type {
@@ -59,6 +60,7 @@ export const createDecisionSuggestions = (
     ...createCostEngineDecisionSuggestions(sourceData),
     ...createInventoryDecisionSuggestions(sourceData),
     ...createQualityDecisionSuggestions(sourceData),
+    ...createQualityFormDecisionSuggestions(sourceData),
     ...createPurchasingDecisionSuggestions(sourceData),
     ...createShipmentDecisionSuggestions(sourceData),
     ...createWasteDecisionSuggestions(sourceData)
@@ -111,7 +113,10 @@ const getDashboardSummary = (
     || suggestion.ruleId.startsWith('waste-')
   )).length,
   riskySuppliers: suggestions.filter(suggestion => suggestion.category === 'Purchasing' && (suggestion.risk === 'HIGH' || suggestion.risk === 'CRITICAL')).length,
-  riskyCcps: suggestions.filter(suggestion => suggestion.ruleId === 'quality-ccp-failure-risk').length,
+  riskyCcps: suggestions.filter(suggestion => (
+    suggestion.ruleId === 'quality-ccp-failure-risk'
+    || suggestion.ruleId.startsWith('quality-form-')
+  )).length,
   delayedProduction: suggestions.filter(suggestion => suggestion.ruleId === 'production-delay-shift').length,
   delayedShipments: suggestions.filter(suggestion => suggestion.ruleId === 'shipment-delay-revision').length
 })

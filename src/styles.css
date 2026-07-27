@@ -3543,6 +3543,18 @@ th { color:var(--muted-strong); font-size:13px; font-weight:750 }
 .quality-form-page { display:grid; gap:18px }
 .quality-form-header-actions { display:flex; flex-wrap:wrap; gap:8px; justify-content:flex-end }
 .quality-form-toolbar { display:grid; grid-template-columns:minmax(220px, 1.4fr) repeat(2, minmax(130px, .8fr)); gap:10px; align-items:center }
+.quality-form-metric-grid { grid-template-columns:repeat(5, minmax(0, 1fr)) }
+.quality-form-create-card,
+.quality-form-filter-card { margin-bottom:0 }
+.quality-form-create-grid { display:grid; grid-template-columns:repeat(5, minmax(128px, 1fr)); gap:10px; align-items:end; margin-bottom:12px }
+.quality-form-filter-grid { display:grid; grid-template-columns:repeat(10, minmax(112px, 1fr)); gap:10px; align-items:end }
+.quality-form-chart-grid { display:grid; grid-template-columns:repeat(3, minmax(0, 1fr)); gap:12px }
+.quality-form-output-actions,
+.quality-form-status-actions { display:grid; gap:8px; margin-bottom:10px }
+.quality-form-output-actions { grid-template-columns:repeat(3, minmax(0, 1fr)) }
+.quality-form-status-actions { grid-template-columns:repeat(5, minmax(0, 1fr)) }
+.quality-form-output-actions .btn,
+.quality-form-status-actions .btn { width:100%; min-width:0; padding-inline:8px }
 .quality-form-side { display:flex; flex-direction:column; gap:12px; min-width:0 }
 .quality-form-detail-card { margin-bottom:0 }
 .quality-form-side-actions { display:grid; grid-template-columns:repeat(2, minmax(0, 1fr)); gap:8px; margin-top:12px }
@@ -3583,8 +3595,25 @@ th { color:var(--muted-strong); font-size:13px; font-weight:750 }
 .quality-template-library-row { display:grid; grid-template-columns:minmax(0, 1fr) auto; gap:10px; align-items:start; min-width:0; border:1px solid var(--line); border-radius:var(--radius-md); padding:10px 11px; background:var(--surface-muted) }
 .quality-form-result-row p { grid-column:1 / -1; margin:6px 0 0; color:var(--muted); font-size:12px; line-height:1.35; overflow-wrap:anywhere }
 .quality-form-table td:nth-child(2),
-.quality-form-table td:nth-child(3) { overflow-wrap:anywhere }
+.quality-form-table td:nth-child(3),
+.quality-form-table td:nth-child(4) { overflow-wrap:anywhere }
+.quality-form-table td:first-child strong,
+.quality-form-table td:first-child span,
+.quality-form-table td:nth-child(3) strong,
+.quality-form-table td:nth-child(3) span,
+.quality-form-table td:nth-child(4) strong,
+.quality-form-table td:nth-child(4) span { display:block; overflow-wrap:anywhere }
+.quality-form-table td:first-child span,
+.quality-form-table td:nth-child(3) span,
+.quality-form-table td:nth-child(4) span { margin-top:3px; color:var(--muted); font-size:12px; font-weight:800; line-height:1.35 }
 .quality-form-notes { margin:0; color:var(--text); line-height:1.5; overflow-wrap:anywhere; white-space:pre-wrap }
+
+@media (max-width: 1280px){
+  .quality-form-metric-grid,
+  .quality-form-create-grid,
+  .quality-form-filter-grid,
+  .quality-form-chart-grid { grid-template-columns:repeat(3, minmax(0, 1fr)) }
+}
 
 @media (max-width: 980px){
   .lot-system-layout { display:block }
@@ -4000,9 +4029,15 @@ th { color:var(--muted-strong); font-size:13px; font-weight:750 }
   .quality-form-side { margin-top:14px }
   .quality-form-header-actions { justify-content:flex-start; width:100% }
   .quality-form-toolbar,
+  .quality-form-metric-grid,
+  .quality-form-create-grid,
+  .quality-form-filter-grid,
+  .quality-form-chart-grid,
   .quality-form-editor-grid,
   .quality-form-detail-grid,
   .quality-form-side-actions,
+  .quality-form-output-actions,
+  .quality-form-status-actions,
   .quality-form-checklist-item,
   .quality-template-item-editor { grid-template-columns:1fr; width:100% }
   .quality-form-table-wrap { overflow:visible; border:0; background:transparent; box-shadow:none }
@@ -4022,6 +4057,7 @@ th { color:var(--muted-strong); font-size:13px; font-weight:750 }
   .quality-form-table tbody tr:hover td { height:auto; min-height:0; border:0; padding:0; background:transparent; box-shadow:none; text-align:right }
   .quality-form-table tbody td::before { content:attr(data-label); display:block; margin-bottom:3px; color:var(--muted); font-size:11px; font-weight:850; line-height:1.2; text-align:left }
   .quality-form-table tbody td:nth-child(3),
+  .quality-form-table tbody td:nth-child(4),
   .quality-form-table tbody td.empty-cell { grid-column:1 / -1; text-align:left }
   .quality-form-table tbody td:nth-child(3) strong { text-align:left }
   .quality-form-table tbody td.empty-cell { text-align:center }

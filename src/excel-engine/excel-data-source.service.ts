@@ -20,6 +20,13 @@ import {
   loadStockItems
 } from '../storage'
 import {
+  QUALITY_FORM_STATUS_LABELS,
+  QUALITY_FORM_TYPE_LABELS,
+  QUALITY_INSPECTION_RESULT_LABELS,
+  QUALITY_STATUS_LABELS,
+  QualityFormService
+} from '../quality-forms/quality-form.service'
+import {
   WASTE_REASON_LABELS,
   WASTE_STATUS_LABELS,
   WASTE_TYPE_LABELS,
@@ -300,24 +307,67 @@ const getProductionOrderRows = (): ExcelRow[] => {
 
 const getQualityRows = (): ExcelRow[] => {
   const sourceData = loadKpiSourceData()
+  const qualityFormRows = QualityFormService.list(sourceData).flatMap(form => {
+    const baseRow = {
+      id: form.id,
+      formNo: form.formNo,
+      formType: QUALITY_FORM_TYPE_LABELS[form.formType],
+      status: QUALITY_FORM_STATUS_LABELS[form.status],
+      result: QUALITY_INSPECTION_RESULT_LABELS[form.result],
+      inspectionDate: form.inspectionDate,
+      inspector: form.inspector,
+      productName: form.productName || form.stockItemName,
+      lotNo: form.lotNo,
+      batchNo: form.batchNo,
+      supplierName: form.supplierName,
+      warehouseName: form.warehouseName,
+      branchName: form.branchName,
+      productionOrderNo: form.productionOrderNo,
+      goodsReceiptNo: form.goodsReceiptNo,
+      recipeName: form.recipeName,
+      sampleNo: form.sampleNo,
+      witnessNo: form.witnessNo,
+      haccpReference: form.haccpReference,
+      score: form.score,
+      decisionSummary: form.decision.summary,
+      module: 'Quality Form'
+    }
+
+    if(form.inspections.length === 0) return [baseRow]
+
+    return form.inspections.map(inspection => ({
+      ...baseRow,
+      lineId: inspection.id,
+      criterionLabel: inspection.label,
+      criterionStatus: QUALITY_STATUS_LABELS[inspection.status],
+      criterionValue: inspection.value,
+      criterionNotes: inspection.notes
+    }))
+  })
   const sampleRows = sourceData.qualitySamples.map(sample => ({
     id: sample.id,
-    recordNo: sample.sampleNo,
+    formNo: sample.sampleNo,
+    formType: 'Quality Sample',
     module: 'Quality Sample',
     status: sample.status,
-    date: sample.sampleDate || sample.createdAt,
+    result: sample.status === 'DISCARDED' ? 'FAIL' : sample.status === 'UNDER_REVIEW' ? 'CONDITIONAL' : 'PASS',
+    inspectionDate: sample.sampleDate || sample.createdAt,
+    inspector: sample.takenBy,
     productName: sourceData.inventoryLots.find(lot => lot.id === sample.inventoryLotId)?.lotNo || sample.inventoryLotId
   }))
   const recallRows = sourceData.productRecalls.map(recall => ({
     id: recall.id,
-    recordNo: recall.recallNo,
+    formNo: recall.recallNo,
+    formType: 'Product Recall',
     module: 'Product Recall',
     status: recall.status,
-    date: recall.reportedDate || recall.createdAt,
+    result: recall.status === 'CANCELLED' || recall.status === 'COMPLETED' ? 'PASS' : 'CONDITIONAL',
+    inspectionDate: recall.reportedDate || recall.createdAt,
+    inspector: recall.createdBy,
     productName: sourceData.inventoryLots.find(lot => lot.id === recall.inventoryLotId)?.lotNo || recall.inventoryLotId
   }))
 
-  return [...sampleRows, ...recallRows]
+  return [...qualityFormRows, ...sampleRows, ...recallRows]
 }
 
 const getShipmentRows = (): ExcelRow[] => {

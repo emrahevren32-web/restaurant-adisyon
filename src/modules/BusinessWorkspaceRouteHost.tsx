@@ -235,7 +235,7 @@ export default function BusinessWorkspaceRouteHost({
   if(route === 'product-history') return <ProductHistory currentUser={currentUser} />
   if(route === 'haccp-management') return <HACCPManagement currentUser={currentUser} />
   if(route === 'quality-controls') return <QualityControls currentUser={currentUser} />
-  if(route === 'quality-control-forms') return <QualityControlForms />
+  if(route === 'quality-control-forms') return <QualityControlForms currentUser={currentUser} />
   if(route === 'waste-management') return <WasteManagement currentUser={currentUser} />
   if(route === 'return-processes') return <ReturnProcesses currentUser={currentUser} />
   if(route === 'supplier-returns') return <SupplierReturns currentUser={currentUser} />

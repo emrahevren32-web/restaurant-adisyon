@@ -110,6 +110,33 @@ export const DECISION_RULES: DecisionRule[] = [
     thresholdLabel: 'OPEN / IN_PROGRESS corrective action'
   },
   {
+    id: 'quality-form-product-fail-increase',
+    category: 'Quality',
+    title: 'Quality Forms urun FAIL orani artisi',
+    description: 'Son kalite formlarinda ayni urunde FAIL orani artiyorsa kalite kok neden analizi gerekir.',
+    baseRisk: 'HIGH',
+    priority: 'HIGH',
+    thresholdLabel: 'Son 30 gun FAIL orani onceki periyoda gore >= 10 puan'
+  },
+  {
+    id: 'quality-form-supplier-problem',
+    category: 'Quality',
+    title: 'Quality Forms supplier kalite problemi',
+    description: 'Ayni supplier son teslimatlarda tekrar eden kalite problemi olusturuyorsa satin alma ve kalite birlikte aksiyon almalidir.',
+    baseRisk: 'HIGH',
+    priority: 'HIGH',
+    thresholdLabel: 'Son 5 mal kabul kalite formunda >= 3 problem'
+  },
+  {
+    id: 'quality-form-conditional-review',
+    category: 'Quality',
+    title: 'Quality Forms sartli onay takibi',
+    description: 'Sartli onay verilen urunler serbest birakma oncesi HACCP, sample ve witness sample ile tekrar incelenmelidir.',
+    baseRisk: 'MEDIUM',
+    priority: 'NORMAL',
+    thresholdLabel: 'CONDITIONAL veya Sartli Onay form sayisi > 0'
+  },
+  {
     id: 'purchasing-late-supplier',
     category: 'Purchasing',
     title: 'Teslim suresi uzayan tedarikci icin alternatif supplier oner',
