@@ -40,6 +40,12 @@ import {
   ChecklistService
 } from '../operation-checklists/checklist.service'
 import {
+  PRODUCTION_PLAN_PRIORITY_LABELS,
+  PRODUCTION_PLAN_STATUS_LABELS,
+  PRODUCTION_PLAN_TYPE_LABELS,
+  ProductionPlanningService
+} from '../production-planning/production-planning.service'
+import {
   WASTE_REASON_LABELS,
   WASTE_STATUS_LABELS,
   WASTE_TYPE_LABELS,
@@ -316,6 +322,56 @@ const getProductionOrderRows = (): ExcelRow[] => {
     productName: line.productName,
     quantity: line.quantity
   })))
+}
+
+const getProductionPlanningRows = (): ExcelRow[] => {
+  const sourceData = loadKpiSourceData()
+  const plans = ProductionPlanningService.list(sourceData)
+
+  return plans.flatMap(plan => {
+    const baseRow = {
+      id: plan.id,
+      planNo: plan.planNo,
+      planType: PRODUCTION_PLAN_TYPE_LABELS[plan.planType],
+      status: PRODUCTION_PLAN_STATUS_LABELS[plan.status],
+      planDate: plan.planDate,
+      startDate: plan.startDate,
+      endDate: plan.endDate,
+      branchName: plan.branchName,
+      facilityName: plan.facilityName,
+      shift: plan.shift,
+      responsiblePerson: plan.responsiblePerson,
+      recommendationCount: plan.recommendations.length,
+      sourceType: plan.sourceType
+    }
+
+    if(plan.items.length === 0) return [baseRow]
+
+    return plan.items.map(item => ({
+      ...baseRow,
+      lineId: item.id,
+      productName: item.productName,
+      productCode: item.productCode,
+      recipeName: item.recipeName,
+      demandQuantity: item.demandQuantity,
+      currentStock: item.currentStock,
+      minimumStock: item.minimumStock,
+      safetyStock: item.safetyStock,
+      pendingProduction: item.pendingProduction,
+      pendingOrderQuantity: item.pendingOrderQuantity,
+      branchDemandQuantity: item.branchDemandQuantity,
+      customerOrderQuantity: item.customerOrderQuantity,
+      forecastQuantity: item.forecastQuantity,
+      wastePercent: item.wastePercent,
+      produceQuantity: item.produceQuantity,
+      unit: item.unit,
+      priority: PRODUCTION_PLAN_PRIORITY_LABELS[item.priority],
+      estimatedMinutes: item.estimatedMinutes,
+      productionLineName: item.productionLineName,
+      capacityUsagePercent: item.capacityUsagePercent,
+      recommendations: item.recommendations.join(' | ')
+    }))
+  })
 }
 
 const getQualityRows = (): ExcelRow[] => {
@@ -642,6 +698,7 @@ const getRowsForModule = (
   if(moduleKey === 'stock') return getStockRows()
   if(moduleKey === 'lots') return getLotRows()
   if(moduleKey === 'waste') return getWasteRows()
+  if(moduleKey === 'production-planning') return getProductionPlanningRows()
   if(moduleKey === 'production-orders') return getProductionOrderRows()
   if(moduleKey === 'quality') return getQualityRows()
   if(moduleKey === 'shipments') return getShipmentRows()

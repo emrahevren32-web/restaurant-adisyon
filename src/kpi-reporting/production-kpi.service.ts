@@ -1,6 +1,7 @@
 import type { ProductionWorkOrder } from '../production-work-orders/production-work-order.types'
 import { createCostEngineView, mapKpiFiltersToCostEngineFilters } from '../cost-engine/cost-engine.service'
 import { createFireAnalysisView } from '../fire-impact/fire-analysis.service'
+import { ProductionPlanningService } from '../production-planning/production-planning.service'
 import type { KpiFilters, KpiSourceData, ProductionKpiView } from './kpi.types'
 import {
   ALL_FILTER,
@@ -100,6 +101,11 @@ export const createProductionKpiView = (
   const averageProductionMinutes = averageBy(completedOrders.length > 0 ? completedOrders : activeOrders, order => order.estimatedMinutes)
   const fireView = createFireAnalysisView(sourceData, { ...filters, category: ALL_FILTER, department: ALL_FILTER })
   const costView = createCostEngineView(sourceData, mapKpiFiltersToCostEngineFilters(filters))
+  const planningRecords = ProductionPlanningService.list(sourceData).filter(plan => (
+    matchesPeriod(plan.planDate, filters.period)
+    && (filters.branchId === ALL_FILTER || plan.branchId === filters.branchId)
+  ))
+  const planningStatistics = ProductionPlanningService.statistics(planningRecords)
 
   const productBuckets = new Map<string, number>()
   activeOrders.forEach(order => {
@@ -133,6 +139,9 @@ export const createProductionKpiView = (
       createCard('production-cost-average-kg', 'Ortalama Maliyet / kg', formatCurrency(costView.statistics.averageCostPerKg), 'Cost Engine kg maliyeti', 'neutral'),
       createCard('production-cost-fire-impact', 'Cost Fire Etkisi', formatCurrency(costView.statistics.fireImpact), formatPercent(costView.statistics.fireImpactPercent), costView.statistics.fireImpactPercent > 7 ? 'danger' : costView.statistics.fireImpactPercent > 3 ? 'warning' : 'success'),
       createCard('production-cost-purchase-impact', 'Cost Satin Alma Etkisi', formatCurrency(costView.statistics.purchaseImpact), formatPercent(costView.statistics.purchaseImpactPercent), costView.statistics.purchaseImpactPercent > 12 ? 'danger' : costView.statistics.purchaseImpactPercent > 6 ? 'warning' : 'success'),
+      createCard('production-planning-total', 'Uretim Planlari', formatNumber(planningStatistics.totalPlans), `${formatNumber(planningStatistics.totalProducts)} planlanan urun`, 'neutral'),
+      createCard('production-planning-pending', 'Bekleyen Plan', formatNumber(planningStatistics.pendingPlans), 'Production Planning read-model', planningStatistics.pendingPlans > 0 ? 'warning' : 'success'),
+      createCard('production-planning-quantity', 'Planlanan Uretim', formatQuantity(planningStatistics.totalProduction), `${formatNumber(planningStatistics.estimatedMinutes)} dk tahmini sure`, 'neutral'),
       createCard('production-fire-total', 'Toplam Fire', formatQuantity(fireView.statistics.totalQuantity), 'Fire Impact Analysis read-model', fireView.statistics.totalQuantity > 0 ? 'warning' : 'success'),
       createCard('production-fire-cost', 'Fire Maliyeti', formatCurrency(fireView.statistics.totalCost), 'Tahmini maliyet etkisi', fireView.statistics.totalCost > 0 ? 'warning' : 'success'),
       createCard('production-fire-rate', 'Fire Orani', formatPercent(fireView.statistics.fireRate), 'Fire / uretim miktari', fireView.statistics.fireRate > 3 ? 'danger' : fireView.statistics.fireRate > 1 ? 'warning' : 'success')

@@ -38,6 +38,42 @@ export const DECISION_RULES: DecisionRule[] = [
     thresholdLabel: 'Fire / uretim > 3%'
   },
   {
+    id: 'production-planning-critical-stock',
+    category: 'Production',
+    title: 'Production Planning kritik stok uyarisi',
+    description: 'Planlama read-modeli mevcut stok minimum seviyeye dustugunde oncelikli uretim onerir.',
+    baseRisk: 'HIGH',
+    priority: 'HIGH',
+    thresholdLabel: 'Mevcut stok <= minimum stok veya oncelik CRITICAL'
+  },
+  {
+    id: 'production-planning-quantity-increase',
+    category: 'Production',
+    title: 'Production Planning uretim miktari artisi',
+    description: 'Talep ve forecast planlanan uretimi asarsa miktar revizyonu onerilir.',
+    baseRisk: 'HIGH',
+    priority: 'HIGH',
+    thresholdLabel: 'Talep acigi / planlanan uretim >= 15%'
+  },
+  {
+    id: 'production-planning-waste-revision',
+    category: 'Production',
+    title: 'Production Planning fire kaynakli revizyon',
+    description: 'Fire orani yuksek urunlerde plan miktari ve recete toleransi yeniden degerlendirilmelidir.',
+    baseRisk: 'HIGH',
+    priority: 'HIGH',
+    thresholdLabel: 'Fire orani >= 7%'
+  },
+  {
+    id: 'production-planning-branch-demand-gap',
+    category: 'Production',
+    title: 'Production Planning sube talep acigi',
+    description: 'Sube veya musteri talebi mevcut plan ve stokla karsilanamiyorsa plan revizyonu gerekir.',
+    baseRisk: 'HIGH',
+    priority: 'HIGH',
+    thresholdLabel: 'Sube + musteri talebi > planlanan uretim + mevcut stok'
+  },
+  {
     id: 'inventory-critical-purchase',
     category: 'Inventory',
     title: 'Kritik stok icin satin alma oner',

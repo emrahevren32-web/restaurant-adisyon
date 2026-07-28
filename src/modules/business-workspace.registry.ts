@@ -1266,11 +1266,24 @@ export const BUSINESS_WORKSPACE_MODULE_REGISTRY: BusinessWorkspaceModule[] = def
     isVisible: true,
     displayOrder: 45,
     dependencies: [],
-    tags: ['business', 'production', 'operation', 'industrial-kitchen', 'work-order', 'production-line', 'intermediate-product', 'final-product', 'blast-chiller', 'packaging', 'labeling', 'dispatch', 'recipe-management', 'fire-analysis', 'cost-analysis'],
+    tags: ['business', 'production', 'production-planning', 'planning', 'forecast', 'capacity', 'operation', 'industrial-kitchen', 'work-order', 'production-line', 'intermediate-product', 'final-product', 'blast-chiller', 'packaging', 'labeling', 'dispatch', 'recipe-management', 'fire-analysis', 'cost-analysis'],
     supportedSectorIds: industrialKitchenSectorIds,
     pricing: { model: 'paid', currency: 'TRY' },
     marketplace: marketplaceReady,
     dashboardWidgets: [
+      dashboardWidget({
+        id: 'production.planning',
+        title: 'Uretim Planlama',
+        description: 'Production Orders, recete, stok, forecast, sube talepleri, fire ve kapasite sinyallerinden read-model uretim plani olusturmak icin kontrol paneli alani.',
+        icon: 'PP',
+        category: 'Operasyon',
+        order: 15,
+        defaultVisible: false,
+        defaultSize: 'large',
+        supportedLayouts: ['standard', 'wide'],
+        requiredPermission: 'operations.read',
+        renderComponent: 'production.planning.placeholder'
+      }),
       dashboardWidget({
         id: 'production.workOrders',
         title: 'Üretim Emirleri',
@@ -1416,6 +1429,7 @@ export const BUSINESS_WORKSPACE_MODULE_REGISTRY: BusinessWorkspaceModule[] = def
       })
     ],
     menuItems: [
+      menuItem({ key: 'production-planning', label: 'Uretim Planlama', route: 'production-planning', icon: 'PP', adminOnly: true, displayOrder: 5 }),
       menuItem({ key: 'production-work-orders', label: 'Üretim Emirleri', route: 'production-work-orders', icon: 'UE', adminOnly: true, displayOrder: 10 }),
       menuItem({ key: 'production-lines', label: 'Üretim Hatları', route: 'production-lines', icon: 'UH', adminOnly: true, displayOrder: 20 }),
       menuItem({ key: 'intermediate-products', label: 'Ara Ürünler', route: 'intermediate-products', icon: 'AU', adminOnly: true, displayOrder: 30 }),

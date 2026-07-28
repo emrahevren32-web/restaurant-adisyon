@@ -9,6 +9,7 @@ export type ExcelModuleKey =
   | 'stock'
   | 'lots'
   | 'waste'
+  | 'production-planning'
   | 'production-orders'
   | 'quality'
   | 'shipments'
