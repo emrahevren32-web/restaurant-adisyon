@@ -34,6 +34,12 @@ import {
   ShipmentFormService
 } from '../shipment-forms/shipment-form.service'
 import {
+  CHECKLIST_ITEM_STATUS_LABELS,
+  CHECKLIST_STATUS_LABELS,
+  CHECKLIST_TYPE_LABELS,
+  ChecklistService
+} from '../operation-checklists/checklist.service'
+import {
   WASTE_REASON_LABELS,
   WASTE_STATUS_LABELS,
   WASTE_TYPE_LABELS,
@@ -511,6 +517,50 @@ const getShipmentFormRows = (): ExcelRow[] => {
   })
 }
 
+const getOperationChecklistRows = (): ExcelRow[] => {
+  const sourceData = loadKpiSourceData()
+  const records = ChecklistService.list(sourceData)
+
+  return records.flatMap(record => {
+    const baseRow = {
+      id: record.id,
+      checklistNo: record.checklistNo,
+      checklistType: CHECKLIST_TYPE_LABELS[record.checklistType],
+      status: CHECKLIST_STATUS_LABELS[record.status],
+      templateName: record.templateName,
+      templateVersion: record.templateVersion,
+      branchName: record.branchName,
+      warehouseName: record.warehouseName,
+      department: record.department,
+      shift: record.shift,
+      responsiblePerson: record.responsiblePerson,
+      startAt: record.startAt,
+      endAt: record.endAt,
+      sourceType: record.sourceType,
+      sourceNo: record.sourceNo,
+      haccpReference: record.haccpReference,
+      equipmentName: record.equipmentName,
+      completionRate: record.execution.completionRate,
+      completionRateText: formatPercent(record.execution.completionRate),
+      failCount: record.execution.failCount,
+      warningCount: record.execution.warningCount,
+      passCount: record.execution.passCount
+    }
+
+    if(record.items.length === 0) return [baseRow]
+
+    return record.items.map(item => ({
+      ...baseRow,
+      lineId: item.id,
+      itemTitle: item.title,
+      itemStatus: CHECKLIST_ITEM_STATUS_LABELS[item.status],
+      itemNote: item.note,
+      photoPlaceholder: item.photoPlaceholder,
+      correctiveAction: item.correctiveAction
+    }))
+  })
+}
+
 const getLabelRows = (): ExcelRow[] => {
   const sourceData = loadKpiSourceData()
   const labels = LabelService.list(sourceData)
@@ -596,6 +646,7 @@ const getRowsForModule = (
   if(moduleKey === 'quality') return getQualityRows()
   if(moduleKey === 'shipments') return getShipmentRows()
   if(moduleKey === 'shipment-forms') return getShipmentFormRows()
+  if(moduleKey === 'operation-checklists') return getOperationChecklistRows()
   if(moduleKey === 'delivery-notes') return getDeliveryNoteRows()
   if(moduleKey === 'labels') return getLabelRows()
   if(moduleKey === 'kpi') return getKpiRows()

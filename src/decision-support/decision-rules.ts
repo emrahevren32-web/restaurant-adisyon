@@ -137,6 +137,33 @@ export const DECISION_RULES: DecisionRule[] = [
     thresholdLabel: 'CONDITIONAL veya Sartli Onay form sayisi > 0'
   },
   {
+    id: 'operation-checklist-equipment-fail-increase',
+    category: 'Production',
+    title: 'Operations Checklists ekipman FAIL artisi',
+    description: 'Ayni ekipman veya bakim checklistlerinde FAIL orani artiyorsa plansiz durus riski olusur.',
+    baseRisk: 'HIGH',
+    priority: 'HIGH',
+    thresholdLabel: 'Son 15 gun ekipman checklist FAIL orani >= 25%'
+  },
+  {
+    id: 'operation-checklist-cleaning-incomplete',
+    category: 'Quality',
+    title: 'Operations Checklists temizlik tamamlanmama',
+    description: 'Temizlik checklistleri duzenli tamamlanmiyorsa hijyen ve kalite riski artar.',
+    baseRisk: 'HIGH',
+    priority: 'HIGH',
+    thresholdLabel: 'Son 15 gun temizlik tamamlama < 80% veya madde tamamlama < 90%'
+  },
+  {
+    id: 'operation-checklist-cold-room-deviation',
+    category: 'Quality',
+    title: 'Operations Checklists soguk oda sapmasi',
+    description: 'Soguk oda checklistlerinde sicaklik veya depo duzeni sapmalari artiyorsa soguk zincir riski olusur.',
+    baseRisk: 'HIGH',
+    priority: 'HIGH',
+    thresholdLabel: 'Son 30 gun soguk oda WARNING/FAIL checklist sayisi >= 2'
+  },
+  {
     id: 'purchasing-late-supplier',
     category: 'Purchasing',
     title: 'Teslim suresi uzayan tedarikci icin alternatif supplier oner',

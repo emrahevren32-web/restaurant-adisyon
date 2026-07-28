@@ -1060,7 +1060,7 @@ export const BUSINESS_WORKSPACE_MODULE_REGISTRY: BusinessWorkspaceModule[] = def
     isVisible: true,
     displayOrder: 44,
     dependencies: [WORKSPACE_MODULE_CODES.STOCK, WORKSPACE_MODULE_CODES.PURCHASE],
-    tags: ['business', 'quality', 'label-management', 'barcode', 'qr-code', 'lot-system', 'sample-tracking', 'quality-sample', 'witness-sample', 'witness-samples', 'product-recall', 'product-recalls', 'recall-management', 'product-history', 'traceability-timeline', 'haccp', 'critical-control-point', 'quality-control', 'quality-form', 'waste-management', 'fire-management', 'waste', 'fire', 'return-process', 'supplier-return', 'supplier-return-shipment', 'checklist', 'inventory-lot', 'traceability', 'industrial-kitchen'],
+    tags: ['business', 'quality', 'label-management', 'barcode', 'qr-code', 'operation-checklist', 'operation-checklists', 'operations-checklist', 'lot-system', 'sample-tracking', 'quality-sample', 'witness-sample', 'witness-samples', 'product-recall', 'product-recalls', 'recall-management', 'product-history', 'traceability-timeline', 'haccp', 'critical-control-point', 'quality-control', 'quality-form', 'waste-management', 'fire-management', 'waste', 'fire', 'return-process', 'supplier-return', 'supplier-return-shipment', 'checklist', 'inventory-lot', 'traceability', 'industrial-kitchen'],
     supportedSectorIds: industrialKitchenSectorIds,
     pricing: { model: 'paid', currency: 'TRY' },
     marketplace: marketplaceReady,
@@ -1183,6 +1183,19 @@ export const BUSINESS_WORKSPACE_MODULE_REGISTRY: BusinessWorkspaceModule[] = def
         renderComponent: 'quality.wasteManagement.placeholder'
       }),
       dashboardWidget({
+        id: 'quality.operationChecklists',
+        title: 'Operasyon Kontrol Listeleri',
+        description: 'Gunluk operasyon, vardiya, temizlik, HACCP, depo, uretim, sevkiyat ve bakim kontrollerini versiyonlu checklistlerle izlemek icin kontrol paneli alani.',
+        icon: 'OC',
+        category: 'Kalite',
+        order: 13,
+        defaultVisible: false,
+        defaultSize: 'large',
+        supportedLayouts: ['standard', 'wide'],
+        requiredPermission: 'operations.read',
+        renderComponent: 'quality.operationChecklists.placeholder'
+      }),
+      dashboardWidget({
         id: 'quality.forms',
         title: 'Kalite Kontrol Formları',
         description: 'Quality Control kayıtlarına bağlı checklist form sonuçlarını takip etmek için kontrol paneli başlangıç alanı.',
@@ -1232,6 +1245,7 @@ export const BUSINESS_WORKSPACE_MODULE_REGISTRY: BusinessWorkspaceModule[] = def
       menuItem({ key: 'haccp-management', label: 'HACCP', route: 'haccp-management', icon: 'HC', adminOnly: true, displayOrder: 10 }),
       menuItem({ key: 'quality-controls', label: 'Kalite Kontrol', route: 'quality-controls', icon: 'KL', adminOnly: true, displayOrder: 11 }),
       menuItem({ key: 'waste-management', label: 'Fire Yonetimi', route: 'waste-management', icon: 'FY', adminOnly: true, displayOrder: 12 }),
+      menuItem({ key: 'operation-checklists', label: 'Operasyon Kontrol Listeleri', route: 'operation-checklists', icon: 'OC', adminOnly: true, displayOrder: 13 }),
       menuItem({ key: 'quality-control-forms', label: 'Kalite Kontrol Formları', route: 'quality-control-forms', icon: 'KF', adminOnly: true, displayOrder: 20 }),
       menuItem({ key: 'return-processes', label: 'Red ve İade Süreci', route: 'return-processes', icon: 'RI', adminOnly: true, displayOrder: 30 }),
       menuItem({ key: 'supplier-returns', label: 'Tedarikçi İade Süreci', route: 'supplier-returns', icon: 'TI', adminOnly: true, displayOrder: 40 })

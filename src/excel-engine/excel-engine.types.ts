@@ -13,6 +13,7 @@ export type ExcelModuleKey =
   | 'quality'
   | 'shipments'
   | 'shipment-forms'
+  | 'operation-checklists'
   | 'delivery-notes'
   | 'labels'
   | 'kpi'

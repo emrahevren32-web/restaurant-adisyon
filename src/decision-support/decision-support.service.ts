@@ -5,6 +5,7 @@ import { ALL_FILTER } from '../kpi-reporting/kpi.utils'
 import { DECISION_RULES } from './decision-rules'
 import { createCostEngineDecisionSuggestions } from './cost-engine-decision.service'
 import { createInventoryDecisionSuggestions } from './inventory-decision.service'
+import { createOperationChecklistDecisionSuggestions } from './operation-checklist-decision.service'
 import { createDecisionSuggestion, dedupeSuggestions } from './recommendation-engine.service'
 import { createProductionDecisionSuggestions } from './production-decision.service'
 import { createPurchasingDecisionSuggestions } from './purchasing-decision.service'
@@ -62,6 +63,7 @@ export const createDecisionSuggestions = (
     ...createInventoryDecisionSuggestions(sourceData),
     ...createQualityDecisionSuggestions(sourceData),
     ...createQualityFormDecisionSuggestions(sourceData),
+    ...createOperationChecklistDecisionSuggestions(sourceData),
     ...createPurchasingDecisionSuggestions(sourceData),
     ...createShipmentDecisionSuggestions(sourceData),
     ...createShipmentFormDecisionSuggestions(sourceData),
@@ -118,6 +120,7 @@ const getDashboardSummary = (
   riskyCcps: suggestions.filter(suggestion => (
     suggestion.ruleId === 'quality-ccp-failure-risk'
     || suggestion.ruleId.startsWith('quality-form-')
+    || suggestion.ruleId.startsWith('operation-checklist-')
   )).length,
   delayedProduction: suggestions.filter(suggestion => suggestion.ruleId === 'production-delay-shift').length,
   delayedShipments: suggestions.filter(suggestion => (
