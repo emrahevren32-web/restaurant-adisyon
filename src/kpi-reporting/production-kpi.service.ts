@@ -1,5 +1,6 @@
 import type { ProductionWorkOrder } from '../production-work-orders/production-work-order.types'
 import { createCostEngineView, mapKpiFiltersToCostEngineFilters } from '../cost-engine/cost-engine.service'
+import { CapacityPlanningService } from '../capacity-planning/capacity-planning.service'
 import { createFireAnalysisView } from '../fire-impact/fire-analysis.service'
 import { ProductionPlanningService } from '../production-planning/production-planning.service'
 import type { KpiFilters, KpiSourceData, ProductionKpiView } from './kpi.types'
@@ -106,6 +107,10 @@ export const createProductionKpiView = (
     && (filters.branchId === ALL_FILTER || plan.branchId === filters.branchId)
   ))
   const planningStatistics = ProductionPlanningService.statistics(planningRecords)
+  const capacityRecords = CapacityPlanningService.list(sourceData).filter(plan => (
+    matchesPeriod(plan.planDate, filters.period)
+  ))
+  const capacityStatistics = CapacityPlanningService.statistics(capacityRecords)
 
   const productBuckets = new Map<string, number>()
   activeOrders.forEach(order => {
@@ -142,6 +147,9 @@ export const createProductionKpiView = (
       createCard('production-planning-total', 'Uretim Planlari', formatNumber(planningStatistics.totalPlans), `${formatNumber(planningStatistics.totalProducts)} planlanan urun`, 'neutral'),
       createCard('production-planning-pending', 'Bekleyen Plan', formatNumber(planningStatistics.pendingPlans), 'Production Planning read-model', planningStatistics.pendingPlans > 0 ? 'warning' : 'success'),
       createCard('production-planning-quantity', 'Planlanan Uretim', formatQuantity(planningStatistics.totalProduction), `${formatNumber(planningStatistics.estimatedMinutes)} dk tahmini sure`, 'neutral'),
+      createCard('capacity-planning-utilization', 'Kapasite Doluluk', formatPercent(capacityStatistics.utilizationPercent), `${formatNumber(capacityStatistics.totalMachines)} makine / ${formatNumber(capacityStatistics.totalLines)} hat`, capacityStatistics.utilizationPercent > 100 ? 'danger' : capacityStatistics.utilizationPercent > 85 ? 'warning' : 'success'),
+      createCard('capacity-planning-bottleneck', 'Kapasite Darbogaz', formatNumber(capacityStatistics.bottleneckCount), `${formatNumber(capacityStatistics.overloadMinutes)} dk asiri yuk`, capacityStatistics.bottleneckCount > 0 ? 'warning' : 'success'),
+      createCard('capacity-planning-idle', 'Bos Kapasite', `${formatNumber(capacityStatistics.idleCapacityMinutes)} dk`, 'Capacity Planning read-model', 'neutral'),
       createCard('production-fire-total', 'Toplam Fire', formatQuantity(fireView.statistics.totalQuantity), 'Fire Impact Analysis read-model', fireView.statistics.totalQuantity > 0 ? 'warning' : 'success'),
       createCard('production-fire-cost', 'Fire Maliyeti', formatCurrency(fireView.statistics.totalCost), 'Tahmini maliyet etkisi', fireView.statistics.totalCost > 0 ? 'warning' : 'success'),
       createCard('production-fire-rate', 'Fire Orani', formatPercent(fireView.statistics.fireRate), 'Fire / uretim miktari', fireView.statistics.fireRate > 3 ? 'danger' : fireView.statistics.fireRate > 1 ? 'warning' : 'success')

@@ -74,6 +74,42 @@ export const DECISION_RULES: DecisionRule[] = [
     thresholdLabel: 'Sube + musteri talebi > planlanan uretim + mevcut stok'
   },
   {
+    id: 'capacity-planning-line-overload',
+    category: 'Production',
+    title: 'Capacity Planning hat asiri yuk',
+    description: 'Kapasite planinda hat veya makine kullanimi %100 uzerine cikarsa ek kapasite onerilir.',
+    baseRisk: 'HIGH',
+    priority: 'HIGH',
+    thresholdLabel: 'Doluluk >= 100% veya asiri yuk > 0 dk'
+  },
+  {
+    id: 'capacity-planning-maintenance-impact',
+    category: 'Production',
+    title: 'Capacity Planning maintenance etkisi',
+    description: 'Bakim sinyali kullanilabilir kapasiteyi dusuruyorsa operasyon ve bakim koordinasyonu onerilir.',
+    baseRisk: 'HIGH',
+    priority: 'HIGH',
+    thresholdLabel: 'Maintenance kapali makine veya hat mevcut'
+  },
+  {
+    id: 'capacity-planning-third-shift-needed',
+    category: 'Production',
+    title: 'Capacity Planning ek vardiya onerisi',
+    description: 'Toplam asiri yuk mevcut vardiyada kapanamiyorsa 3. vardiya manuel senaryosu onerilir.',
+    baseRisk: 'MEDIUM',
+    priority: 'HIGH',
+    thresholdLabel: 'Toplam asiri yuk > 0 dk'
+  },
+  {
+    id: 'capacity-planning-low-utilization',
+    category: 'Production',
+    title: 'Capacity Planning dusuk kullanim',
+    description: 'Hat iki veya daha fazla planda dusuk dolulukta calisiyorsa plan kaydirma firsati vardir.',
+    baseRisk: 'MEDIUM',
+    priority: 'NORMAL',
+    thresholdLabel: 'Doluluk < 45% ve yuk > 0'
+  },
+  {
     id: 'inventory-critical-purchase',
     category: 'Inventory',
     title: 'Kritik stok icin satin alma oner',

@@ -73,6 +73,7 @@ import WasteManagement from '../pages/WasteManagement'
 import ReturnProcesses from '../pages/ReturnProcesses'
 import SupplierReturns from '../pages/SupplierReturns'
 import ProductionPlanning from '../pages/ProductionPlanning'
+import CapacityPlanning from '../pages/CapacityPlanning'
 import SupplierManagement from '../pages/SupplierManagement'
 import Users from '../pages/Users'
 import Settings from '../pages/Settings'
@@ -213,6 +214,7 @@ export default function BusinessWorkspaceRouteHost({
   if(route === 'transfer-receipts') return <TransferReceipts currentUser={currentUser} />
   if(route === 'production-work-orders') return <ProductionWorkOrders currentUser={currentUser} />
   if(route === 'production-planning') return <ProductionPlanning currentUser={currentUser} />
+  if(route === 'capacity-planning') return <CapacityPlanning currentUser={currentUser} />
   if(route === 'production-lines') return <ProductionLines currentUser={currentUser} />
   if(route === 'intermediate-products') return <IntermediateProducts />
   if(route === 'final-products') return <FinalProducts />

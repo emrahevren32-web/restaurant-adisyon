@@ -46,6 +46,11 @@ import {
   ProductionPlanningService
 } from '../production-planning/production-planning.service'
 import {
+  CAPACITY_PLAN_STATUS_LABELS,
+  CAPACITY_RISK_LABELS,
+  CapacityPlanningService
+} from '../capacity-planning/capacity-planning.service'
+import {
   WASTE_REASON_LABELS,
   WASTE_STATUS_LABELS,
   WASTE_TYPE_LABELS,
@@ -374,6 +379,88 @@ const getProductionPlanningRows = (): ExcelRow[] => {
   })
 }
 
+const getCapacityPlanningRows = (): ExcelRow[] => {
+  const sourceData = loadKpiSourceData()
+  const plans = CapacityPlanningService.list(sourceData)
+
+  return plans.flatMap(plan => {
+    const baseRow = {
+      id: plan.id,
+      capacityPlanNo: plan.capacityPlanNo,
+      status: CAPACITY_PLAN_STATUS_LABELS[plan.status],
+      planDate: plan.planDate,
+      startDate: plan.startDate,
+      endDate: plan.endDate,
+      productionLineName: plan.productionLineName,
+      workCenterName: plan.workCenterName,
+      shift: plan.shift,
+      responsiblePerson: plan.responsiblePerson,
+      recommendationCount: plan.recommendations.length,
+      sourceType: plan.sourceType
+    }
+
+    if(plan.items.length === 0){
+      return plan.productionCapacities.map(capacity => ({
+        ...baseRow,
+        lineId: capacity.productionLineId,
+        productionLineName: capacity.productionLineName,
+        workCenterName: capacity.workCenterName,
+        workingMinutes: capacity.workingMinutes,
+        availableMinutes: capacity.availableMinutes,
+        plannedProductionMinutes: capacity.plannedProductionMinutes,
+        recipePreparationMinutes: capacity.recipePreparationMinutes,
+        setupMinutes: capacity.setupMinutes,
+        cleaningMinutes: capacity.cleaningMinutes,
+        warehousePreparationMinutes: capacity.warehousePreparationMinutes,
+        maintenanceMinutes: capacity.maintenanceMinutes,
+        netProductionMinutes: capacity.netProductionMinutes,
+        totalLoadMinutes: capacity.totalLoadMinutes,
+        idleMinutes: capacity.idleMinutes,
+        overloadMinutes: capacity.overloadMinutes,
+        utilizationPercent: capacity.utilizationPercent,
+        riskLevel: CAPACITY_RISK_LABELS[capacity.riskLevel],
+        bottleneck: capacity.bottleneck,
+        maintenanceClosed: capacity.maintenanceClosed,
+        recommendations: capacity.recommendations.join(' | ')
+      }))
+    }
+
+    return plan.items.map(item => {
+      const machine = plan.machineCapacities.find(record => record.machineId === item.machineId)
+      return {
+        ...baseRow,
+        lineId: item.id,
+        sourceNo: item.sourceNo,
+        productName: item.productName,
+        recipeName: item.recipeName,
+        plannedQuantity: item.plannedQuantity,
+        unit: item.unit,
+        productionLineName: item.productionLineName,
+        workCenterName: item.workCenterName,
+        machineCode: item.machineCode,
+        machineName: item.machineName,
+        workingMinutes: machine?.workingMinutes || 0,
+        availableMinutes: item.availableMinutes,
+        plannedProductionMinutes: item.plannedProductionMinutes,
+        recipePreparationMinutes: item.recipePreparationMinutes,
+        setupMinutes: item.setupMinutes,
+        cleaningMinutes: item.cleaningMinutes,
+        warehousePreparationMinutes: item.warehousePreparationMinutes,
+        maintenanceMinutes: item.maintenanceMinutes,
+        netProductionMinutes: item.netProductionMinutes,
+        totalLoadMinutes: item.totalLoadMinutes,
+        idleMinutes: item.idleMinutes,
+        overloadMinutes: item.overloadMinutes,
+        utilizationPercent: item.utilizationPercent,
+        riskLevel: CAPACITY_RISK_LABELS[item.riskLevel],
+        bottleneck: item.overloadMinutes > 0 || item.utilizationPercent >= 95,
+        maintenanceClosed: machine?.maintenanceClosed || false,
+        recommendations: item.recommendations.join(' | ')
+      }
+    })
+  })
+}
+
 const getQualityRows = (): ExcelRow[] => {
   const sourceData = loadKpiSourceData()
   const qualityFormRows = QualityFormService.list(sourceData).flatMap(form => {
@@ -699,6 +786,7 @@ const getRowsForModule = (
   if(moduleKey === 'lots') return getLotRows()
   if(moduleKey === 'waste') return getWasteRows()
   if(moduleKey === 'production-planning') return getProductionPlanningRows()
+  if(moduleKey === 'capacity-planning') return getCapacityPlanningRows()
   if(moduleKey === 'production-orders') return getProductionOrderRows()
   if(moduleKey === 'quality') return getQualityRows()
   if(moduleKey === 'shipments') return getShipmentRows()

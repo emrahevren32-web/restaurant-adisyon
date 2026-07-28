@@ -1285,6 +1285,19 @@ export const BUSINESS_WORKSPACE_MODULE_REGISTRY: BusinessWorkspaceModule[] = def
         renderComponent: 'production.planning.placeholder'
       }),
       dashboardWidget({
+        id: 'production.capacityPlanning',
+        title: 'Kapasite Planlama',
+        description: 'Uretim planlari, is emirleri, hatlar, makineler, work center, vardiya ve maintenance sinyallerinden kapasite read-modeli ureten kontrol paneli alani.',
+        icon: 'CP',
+        category: 'Operasyon',
+        order: 18,
+        defaultVisible: false,
+        defaultSize: 'large',
+        supportedLayouts: ['standard', 'wide'],
+        requiredPermission: 'operations.read',
+        renderComponent: 'production.capacityPlanning.placeholder'
+      }),
+      dashboardWidget({
         id: 'production.workOrders',
         title: 'Üretim Emirleri',
         description: 'Endüstriyel mutfak üretim iş emirleri için kontrol paneli başlangıç alanı.',
@@ -1430,6 +1443,7 @@ export const BUSINESS_WORKSPACE_MODULE_REGISTRY: BusinessWorkspaceModule[] = def
     ],
     menuItems: [
       menuItem({ key: 'production-planning', label: 'Uretim Planlama', route: 'production-planning', icon: 'PP', adminOnly: true, displayOrder: 5 }),
+      menuItem({ key: 'capacity-planning', label: 'Kapasite Planlama', route: 'capacity-planning', icon: 'CP', adminOnly: true, displayOrder: 7 }),
       menuItem({ key: 'production-work-orders', label: 'Üretim Emirleri', route: 'production-work-orders', icon: 'UE', adminOnly: true, displayOrder: 10 }),
       menuItem({ key: 'production-lines', label: 'Üretim Hatları', route: 'production-lines', icon: 'UH', adminOnly: true, displayOrder: 20 }),
       menuItem({ key: 'intermediate-products', label: 'Ara Ürünler', route: 'intermediate-products', icon: 'AU', adminOnly: true, displayOrder: 30 }),

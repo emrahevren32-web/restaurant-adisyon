@@ -4,6 +4,7 @@ import type { KpiSourceData } from '../kpi-reporting/kpi.types'
 import { ALL_FILTER } from '../kpi-reporting/kpi.utils'
 import { DECISION_RULES } from './decision-rules'
 import { createCostEngineDecisionSuggestions } from './cost-engine-decision.service'
+import { createCapacityPlanningDecisionSuggestions } from './capacity-planning-decision.service'
 import { createInventoryDecisionSuggestions } from './inventory-decision.service'
 import { createOperationChecklistDecisionSuggestions } from './operation-checklist-decision.service'
 import { createDecisionSuggestion, dedupeSuggestions } from './recommendation-engine.service'
@@ -61,6 +62,7 @@ export const createDecisionSuggestions = (
   const baseSuggestions = [
     ...createProductionDecisionSuggestions(sourceData),
     ...createProductionPlanningDecisionSuggestions(sourceData),
+    ...createCapacityPlanningDecisionSuggestions(sourceData),
     ...createCostEngineDecisionSuggestions(sourceData),
     ...createInventoryDecisionSuggestions(sourceData),
     ...createQualityDecisionSuggestions(sourceData),
@@ -127,6 +129,7 @@ const getDashboardSummary = (
   delayedProduction: suggestions.filter(suggestion => (
     suggestion.ruleId === 'production-delay-shift'
     || suggestion.ruleId.startsWith('production-planning-')
+    || suggestion.ruleId.startsWith('capacity-planning-')
   )).length,
   delayedShipments: suggestions.filter(suggestion => (
     suggestion.ruleId === 'shipment-delay-revision'

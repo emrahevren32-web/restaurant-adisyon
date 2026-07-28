@@ -5236,6 +5236,123 @@ th { color:var(--muted-strong); font-size:13px; font-weight:750 }
   .production-planning-table tbody tr:hover td { text-align:left }
 }
 
+.capacity-planning-page { display:flex; flex-direction:column; gap:18px; min-width:0; max-width:100% }
+.capacity-planning-metric-grid { grid-template-columns:repeat(5, minmax(0, 1fr)) }
+.capacity-planning-create-card,
+.capacity-planning-filter-card,
+.capacity-planning-detail-card { margin-bottom:0; min-width:0 }
+.capacity-planning-create-grid,
+.capacity-planning-filter-grid { display:grid; grid-template-columns:repeat(4, minmax(0, 1fr)); gap:10px; align-items:end }
+.capacity-planning-wide { grid-column:span 2 }
+.capacity-planning-chart-grid { display:grid; grid-template-columns:repeat(2, minmax(0, 1fr)); gap:12px }
+.capacity-planning-chart-grid .kpi-chart-card:last-child { grid-column:1 / -1 }
+.capacity-planning-layout { grid-template-columns:minmax(0, 1fr) minmax(340px, 430px); align-items:start }
+.capacity-planning-side { display:flex; flex-direction:column; gap:12px; min-width:0 }
+.capacity-planning-table-wrap { min-width:0 }
+.capacity-planning-table { min-width:1080px }
+.capacity-planning-table tbody tr { cursor:pointer }
+.capacity-planning-table tbody tr:hover td { background:#f1f7ff }
+.capacity-planning-table tbody tr[aria-selected="true"] td,
+.capacity-planning-table tbody tr[aria-selected="true"]:hover td { background:var(--accent-subtle); box-shadow:inset 5px 0 0 var(--accent) }
+.capacity-planning-table td strong,
+.capacity-planning-table td span { display:block; min-width:0; line-height:1.28; overflow-wrap:anywhere }
+.capacity-planning-table td strong { color:var(--text); font-weight:950 }
+.capacity-planning-table td span { margin-top:3px; color:var(--muted); font-size:12px; font-weight:800 }
+.capacity-planning-output-actions,
+.capacity-planning-status-actions { display:grid; gap:8px; margin-bottom:12px; min-width:0 }
+.capacity-planning-output-actions { grid-template-columns:repeat(3, minmax(0, 1fr)) }
+.capacity-planning-status-actions { grid-template-columns:repeat(5, minmax(0, 1fr)) }
+.capacity-planning-output-actions .btn,
+.capacity-planning-status-actions .btn { width:100%; min-height:var(--touch-target); padding-inline:10px; white-space:normal }
+.capacity-planning-detail-grid { display:grid; grid-template-columns:repeat(2, minmax(0, 1fr)); gap:10px; margin:12px 0 }
+.capacity-planning-detail-grid > div,
+.capacity-planning-recommendation-list > div,
+.capacity-planning-history-list > div { min-width:0; border:1px solid var(--line); border-radius:var(--radius-md); padding:10px 11px; background:var(--surface-muted) }
+.capacity-planning-detail-grid span,
+.capacity-planning-detail-grid strong,
+.capacity-planning-list-row strong,
+.capacity-planning-list-row span,
+.capacity-planning-list-row p,
+.capacity-planning-recommendation-list strong,
+.capacity-planning-recommendation-list span,
+.capacity-planning-history-list strong,
+.capacity-planning-history-list span,
+.capacity-planning-history-list p { display:block; min-width:0; line-height:1.35; overflow-wrap:anywhere }
+.capacity-planning-detail-grid span { color:var(--muted); font-size:12px; font-weight:850 }
+.capacity-planning-detail-grid strong { margin-top:4px; color:var(--text); font-size:14px; font-weight:950; font-variant-numeric:tabular-nums }
+.capacity-planning-notes { margin:0; color:var(--text-soft); font-size:13px; font-weight:750; line-height:1.55; overflow-wrap:anywhere }
+.capacity-planning-list,
+.capacity-planning-recommendation-list,
+.capacity-planning-history-list { display:grid; gap:9px; min-width:0 }
+.capacity-planning-list-row { display:grid; grid-template-columns:minmax(0, 1fr) auto auto; gap:8px 10px; align-items:center; min-width:0; border:1px solid var(--line); border-radius:var(--radius-md); padding:10px 11px; background:var(--surface-muted) }
+.capacity-planning-list-row strong { color:var(--text); font-size:13px; font-weight:950 }
+.capacity-planning-list-row span,
+.capacity-planning-list-row p,
+.capacity-planning-recommendation-list span,
+.capacity-planning-history-list span,
+.capacity-planning-history-list p { color:var(--muted); font-size:12px; font-weight:800 }
+.capacity-planning-list-row p { grid-column:1 / -1; margin:0 }
+.capacity-planning-list-row em { color:var(--text); font-style:normal; font-size:12px; font-weight:950; white-space:nowrap }
+.capacity-planning-recommendation-list strong,
+.capacity-planning-history-list strong { color:var(--text); font-size:13px; font-weight:950 }
+.capacity-planning-history-list p { margin:5px 0 0 }
+
+@media (max-width: 1200px){
+  .capacity-planning-metric-grid,
+  .capacity-planning-create-grid,
+  .capacity-planning-filter-grid,
+  .capacity-planning-chart-grid { grid-template-columns:repeat(2, minmax(0, 1fr)) }
+  .capacity-planning-chart-grid .kpi-chart-card:last-child,
+  .capacity-planning-wide { grid-column:1 / -1 }
+}
+
+@media (max-width: 980px){
+  .capacity-planning-layout { display:block }
+  .capacity-planning-side { margin-top:14px }
+  .capacity-planning-status-actions { grid-template-columns:repeat(3, minmax(0, 1fr)) }
+  .capacity-planning-table-wrap { overflow:visible; border:0; background:transparent; box-shadow:none }
+  .capacity-planning-table-wrap .capacity-planning-table { min-width:0 }
+  .capacity-planning-table,
+  .capacity-planning-table thead,
+  .capacity-planning-table tbody,
+  .capacity-planning-table tr,
+  .capacity-planning-table td { display:block; width:100%; min-width:0 }
+  .capacity-planning-table thead { display:none }
+  .capacity-planning-table tbody { display:grid; gap:10px }
+  .capacity-planning-table tbody tr,
+  .capacity-planning-table tbody tr:nth-child(even),
+  .capacity-planning-table tbody tr:hover { display:grid; grid-template-columns:repeat(2, minmax(0, 1fr)); gap:9px; border:1px solid var(--line); border-radius:var(--radius-md); padding:11px 12px; background:var(--surface); box-shadow:var(--shadow-xs) }
+  .capacity-planning-table tbody tr td,
+  .capacity-planning-table tbody tr:nth-child(even) td,
+  .capacity-planning-table tbody tr:hover td,
+  .capacity-planning-table tbody tr[aria-selected="true"] td,
+  .capacity-planning-table tbody tr[aria-selected="true"]:hover td { height:auto; min-height:0; border:0; padding:0; background:transparent; box-shadow:none; text-align:right }
+  .capacity-planning-table tbody td::before { content:attr(data-label); display:block; margin-bottom:3px; color:var(--muted); font-size:11px; font-weight:850; line-height:1.2; text-align:left }
+  .capacity-planning-table tbody td:first-child,
+  .capacity-planning-table tbody td.empty-cell { grid-column:1 / -1; text-align:left }
+  .capacity-planning-table tbody td:first-child strong { text-align:left }
+  .capacity-planning-table tbody td.empty-cell { text-align:center }
+}
+
+@media (max-width: 560px){
+  .capacity-planning-metric-grid,
+  .capacity-planning-create-grid,
+  .capacity-planning-filter-grid,
+  .capacity-planning-chart-grid,
+  .capacity-planning-output-actions,
+  .capacity-planning-status-actions,
+  .capacity-planning-detail-grid,
+  .capacity-planning-list-row { grid-template-columns:1fr }
+  .capacity-planning-chart-grid .kpi-chart-card:last-child,
+  .capacity-planning-wide { grid-column:auto }
+  .capacity-planning-table tbody tr,
+  .capacity-planning-table tbody tr:nth-child(even),
+  .capacity-planning-table tbody tr:hover { grid-template-columns:1fr }
+  .capacity-planning-table tbody tr td,
+  .capacity-planning-table tbody tr:nth-child(even) td,
+  .capacity-planning-table tbody tr:hover td { text-align:left }
+}
+
 .cost-engine-page { display:grid; gap:18px }
 .cost-header-actions { display:flex; flex-wrap:wrap; gap:10px; align-items:center; justify-content:flex-end }
 .cost-filter-card { margin-bottom:0 }
