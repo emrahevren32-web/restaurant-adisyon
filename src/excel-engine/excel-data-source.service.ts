@@ -51,6 +51,11 @@ import {
   CapacityPlanningService
 } from '../capacity-planning/capacity-planning.service'
 import {
+  MACHINE_SCHEDULE_ITEM_STATUS_LABELS,
+  MACHINE_SCHEDULE_STATUS_LABELS,
+  MachineSchedulingService
+} from '../machine-scheduling/machine-scheduling.service'
+import {
   WASTE_REASON_LABELS,
   WASTE_STATUS_LABELS,
   WASTE_TYPE_LABELS,
@@ -461,6 +466,82 @@ const getCapacityPlanningRows = (): ExcelRow[] => {
   })
 }
 
+const getMachineSchedulingRows = (): ExcelRow[] => {
+  const sourceData = loadKpiSourceData()
+  const schedules = MachineSchedulingService.list(sourceData)
+
+  return schedules.flatMap((schedule): ExcelRow[] => {
+    const baseRow: ExcelRow = {
+      id: schedule.id,
+      scheduleNo: schedule.scheduleNo,
+      status: MACHINE_SCHEDULE_STATUS_LABELS[schedule.status],
+      scheduleDate: schedule.scheduleDate,
+      startDate: schedule.startDate,
+      endDate: schedule.endDate,
+      machineCode: schedule.machineCode,
+      machineName: schedule.machineName,
+      productionLineName: schedule.productionLineName,
+      workCenterName: schedule.workCenterName,
+      shift: schedule.shift,
+      responsiblePerson: schedule.responsiblePerson,
+      itemCount: schedule.items.length,
+      queueCount: schedule.queues.length,
+      timelineCount: schedule.timelines.length,
+      conflictCount: schedule.items.filter(item => item.conflict).length,
+      sourceType: schedule.sourceType,
+      sourceCapacityPlanIds: schedule.sourceCapacityPlanIds.join(' | '),
+      sourceProductionPlanIds: schedule.sourceProductionPlanIds.join(' | '),
+      recommendations: schedule.recommendations.join(' | ')
+    }
+
+    if(schedule.items.length === 0){
+      return schedule.timelines.map(timeline => ({
+        ...baseRow,
+        lineId: timeline.id,
+        machineCode: timeline.machineCode,
+        machineName: timeline.machineName,
+        productionLineName: timeline.productionLineName,
+        workCenterName: timeline.workCenterName,
+        availableStartAt: timeline.availableStartAt,
+        availableEndAt: timeline.availableEndAt,
+        availableMinutes: timeline.availableMinutes,
+        totalWorkingMinutes: timeline.busyMinutes,
+        idleBeforeMinutes: timeline.idleMinutes,
+        utilizationPercent: timeline.utilizationPercent,
+        conflict: timeline.segments.some(segment => segment.conflict),
+        itemStatus: 'Timeline'
+      }))
+    }
+
+    return schedule.items.map(item => ({
+      ...baseRow,
+      lineId: item.id,
+      sourceCapacityPlanNo: item.sourceCapacityPlanNo,
+      productName: item.productName,
+      recipeName: item.recipeName,
+      plannedQuantity: item.plannedQuantity,
+      unit: item.unit,
+      machineCode: item.machineCode,
+      machineName: item.machineName,
+      productionLineName: item.productionLineName,
+      workCenterName: item.workCenterName,
+      startAt: item.startAt,
+      endAt: item.endAt,
+      estimatedMinutes: item.estimatedMinutes,
+      setupMinutes: item.setupMinutes,
+      cleaningMinutes: item.cleaningMinutes,
+      waitingMinutes: item.waitingMinutes,
+      totalWorkingMinutes: item.totalWorkingMinutes,
+      idleBeforeMinutes: item.idleBeforeMinutes,
+      conflict: item.conflict,
+      conflictReason: item.conflictReason,
+      itemStatus: MACHINE_SCHEDULE_ITEM_STATUS_LABELS[item.status],
+      sequenceNo: item.sequenceNo,
+      recommendations: item.recommendations.length > 0 ? item.recommendations.join(' | ') : schedule.recommendations.join(' | ')
+    }))
+  })
+}
+
 const getQualityRows = (): ExcelRow[] => {
   const sourceData = loadKpiSourceData()
   const qualityFormRows = QualityFormService.list(sourceData).flatMap(form => {
@@ -787,6 +868,7 @@ const getRowsForModule = (
   if(moduleKey === 'waste') return getWasteRows()
   if(moduleKey === 'production-planning') return getProductionPlanningRows()
   if(moduleKey === 'capacity-planning') return getCapacityPlanningRows()
+  if(moduleKey === 'machine-scheduling') return getMachineSchedulingRows()
   if(moduleKey === 'production-orders') return getProductionOrderRows()
   if(moduleKey === 'quality') return getQualityRows()
   if(moduleKey === 'shipments') return getShipmentRows()

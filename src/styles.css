@@ -5353,6 +5353,132 @@ th { color:var(--muted-strong); font-size:13px; font-weight:750 }
   .capacity-planning-table tbody tr:hover td { text-align:left }
 }
 
+.machine-scheduling-page { display:flex; flex-direction:column; gap:18px; min-width:0; max-width:100% }
+.machine-scheduling-metric-grid { grid-template-columns:repeat(5, minmax(0, 1fr)) }
+.machine-scheduling-create-card,
+.machine-scheduling-filter-card,
+.machine-scheduling-detail-card { margin-bottom:0; min-width:0 }
+.machine-scheduling-create-grid,
+.machine-scheduling-filter-grid { display:grid; grid-template-columns:repeat(4, minmax(0, 1fr)); gap:10px; align-items:end }
+.machine-scheduling-wide { grid-column:span 2 }
+.machine-scheduling-chart-grid { display:grid; grid-template-columns:repeat(2, minmax(0, 1fr)); gap:12px }
+.machine-scheduling-chart-grid .kpi-chart-card:last-child { grid-column:1 / -1 }
+.machine-scheduling-layout { grid-template-columns:minmax(0, 1fr) minmax(360px, 460px); align-items:start }
+.machine-scheduling-side { display:flex; flex-direction:column; gap:12px; min-width:0 }
+.machine-scheduling-table-wrap { min-width:0 }
+.machine-scheduling-table { min-width:1120px }
+.machine-scheduling-table tbody tr { cursor:pointer }
+.machine-scheduling-table tbody tr:hover td { background:#f1f7ff }
+.machine-scheduling-table tbody tr[aria-selected="true"] td,
+.machine-scheduling-table tbody tr[aria-selected="true"]:hover td { background:var(--accent-subtle); box-shadow:inset 5px 0 0 var(--accent) }
+.machine-scheduling-table td strong,
+.machine-scheduling-table td span { display:block; min-width:0; line-height:1.28; overflow-wrap:anywhere }
+.machine-scheduling-table td strong { color:var(--text); font-weight:950 }
+.machine-scheduling-table td span { margin-top:3px; color:var(--muted); font-size:12px; font-weight:800 }
+.machine-scheduling-output-actions,
+.machine-scheduling-status-actions { display:grid; gap:8px; margin-bottom:12px; min-width:0 }
+.machine-scheduling-output-actions { grid-template-columns:repeat(3, minmax(0, 1fr)) }
+.machine-scheduling-status-actions { grid-template-columns:repeat(3, minmax(0, 1fr)) }
+.machine-scheduling-output-actions .btn,
+.machine-scheduling-status-actions .btn { width:100%; min-height:var(--touch-target); padding-inline:10px; white-space:normal }
+.machine-scheduling-detail-grid { display:grid; grid-template-columns:repeat(2, minmax(0, 1fr)); gap:10px; margin:12px 0 }
+.machine-scheduling-detail-grid > div,
+.machine-scheduling-recommendation-list > div,
+.machine-scheduling-history-list > div { min-width:0; border:1px solid var(--line); border-radius:var(--radius-md); padding:10px 11px; background:var(--surface-muted) }
+.machine-scheduling-detail-grid span,
+.machine-scheduling-detail-grid strong,
+.machine-scheduling-list-row strong,
+.machine-scheduling-list-row span,
+.machine-scheduling-list-row p,
+.machine-scheduling-recommendation-list strong,
+.machine-scheduling-recommendation-list span,
+.machine-scheduling-history-list strong,
+.machine-scheduling-history-list span,
+.machine-scheduling-history-list p,
+.machine-scheduling-timeline-row strong,
+.machine-scheduling-timeline-row span { display:block; min-width:0; line-height:1.35; overflow-wrap:anywhere }
+.machine-scheduling-detail-grid span { color:var(--muted); font-size:12px; font-weight:850 }
+.machine-scheduling-detail-grid strong { margin-top:4px; color:var(--text); font-size:14px; font-weight:950; font-variant-numeric:tabular-nums }
+.machine-scheduling-notes { margin:0; color:var(--text-soft); font-size:13px; font-weight:750; line-height:1.55; overflow-wrap:anywhere }
+.machine-scheduling-list,
+.machine-scheduling-recommendation-list,
+.machine-scheduling-history-list { display:grid; gap:9px; min-width:0 }
+.machine-scheduling-list-row,
+.machine-scheduling-timeline-row { display:grid; grid-template-columns:minmax(0, 1fr) auto auto; gap:8px 10px; align-items:center; min-width:0; border:1px solid var(--line); border-radius:var(--radius-md); padding:10px 11px; background:var(--surface-muted) }
+.machine-scheduling-list-row strong,
+.machine-scheduling-timeline-row strong { color:var(--text); font-size:13px; font-weight:950 }
+.machine-scheduling-list-row span,
+.machine-scheduling-list-row p,
+.machine-scheduling-recommendation-list span,
+.machine-scheduling-history-list span,
+.machine-scheduling-history-list p,
+.machine-scheduling-timeline-row span { color:var(--muted); font-size:12px; font-weight:800 }
+.machine-scheduling-list-row p { grid-column:1 / -1; margin:0 }
+.machine-scheduling-list-row em { color:var(--text); font-style:normal; font-size:12px; font-weight:950; white-space:nowrap }
+.machine-scheduling-recommendation-list strong,
+.machine-scheduling-history-list strong { color:var(--text); font-size:13px; font-weight:950 }
+.machine-scheduling-history-list p { margin:5px 0 0 }
+.machine-scheduling-timeline-row { grid-template-columns:minmax(0, 1fr); align-items:stretch }
+.machine-scheduling-timeline-track { display:flex; gap:3px; align-items:stretch; min-width:0; width:100%; height:22px; padding:3px; border:1px solid var(--line); border-radius:var(--radius-sm); background:#eef2f7; overflow:hidden }
+.machine-scheduling-timeline-track span { display:block; min-width:6px; border-radius:4px; background:#0f766e }
+.machine-scheduling-timeline-track span.conflict { background:#dc2626 }
+.machine-scheduling-timeline-track span.empty-segment { width:100%; min-width:100%; background:#cbd5e1 }
+
+@media (max-width: 1200px){
+  .machine-scheduling-metric-grid,
+  .machine-scheduling-create-grid,
+  .machine-scheduling-filter-grid,
+  .machine-scheduling-chart-grid { grid-template-columns:repeat(2, minmax(0, 1fr)) }
+  .machine-scheduling-chart-grid .kpi-chart-card:last-child,
+  .machine-scheduling-wide { grid-column:1 / -1 }
+}
+
+@media (max-width: 980px){
+  .machine-scheduling-layout { display:block }
+  .machine-scheduling-side { margin-top:14px }
+  .machine-scheduling-table-wrap { overflow:visible; border:0; background:transparent; box-shadow:none }
+  .machine-scheduling-table-wrap .machine-scheduling-table { min-width:0 }
+  .machine-scheduling-table,
+  .machine-scheduling-table thead,
+  .machine-scheduling-table tbody,
+  .machine-scheduling-table tr,
+  .machine-scheduling-table td { display:block; width:100%; min-width:0 }
+  .machine-scheduling-table thead { display:none }
+  .machine-scheduling-table tbody { display:grid; gap:10px }
+  .machine-scheduling-table tbody tr,
+  .machine-scheduling-table tbody tr:nth-child(even),
+  .machine-scheduling-table tbody tr:hover { display:grid; grid-template-columns:repeat(2, minmax(0, 1fr)); gap:9px; border:1px solid var(--line); border-radius:var(--radius-md); padding:11px 12px; background:var(--surface); box-shadow:var(--shadow-xs) }
+  .machine-scheduling-table tbody tr td,
+  .machine-scheduling-table tbody tr:nth-child(even) td,
+  .machine-scheduling-table tbody tr:hover td,
+  .machine-scheduling-table tbody tr[aria-selected="true"] td,
+  .machine-scheduling-table tbody tr[aria-selected="true"]:hover td { height:auto; min-height:0; border:0; padding:0; background:transparent; box-shadow:none; text-align:right }
+  .machine-scheduling-table tbody td::before { content:attr(data-label); display:block; margin-bottom:3px; color:var(--muted); font-size:11px; font-weight:850; line-height:1.2; text-align:left }
+  .machine-scheduling-table tbody td:first-child,
+  .machine-scheduling-table tbody td.empty-cell { grid-column:1 / -1; text-align:left }
+  .machine-scheduling-table tbody td:first-child strong { text-align:left }
+  .machine-scheduling-table tbody td.empty-cell { text-align:center }
+}
+
+@media (max-width: 560px){
+  .machine-scheduling-metric-grid,
+  .machine-scheduling-create-grid,
+  .machine-scheduling-filter-grid,
+  .machine-scheduling-chart-grid,
+  .machine-scheduling-output-actions,
+  .machine-scheduling-status-actions,
+  .machine-scheduling-detail-grid,
+  .machine-scheduling-list-row { grid-template-columns:1fr }
+  .machine-scheduling-chart-grid .kpi-chart-card:last-child,
+  .machine-scheduling-wide { grid-column:auto }
+  .machine-scheduling-table tbody tr,
+  .machine-scheduling-table tbody tr:nth-child(even),
+  .machine-scheduling-table tbody tr:hover { grid-template-columns:1fr }
+  .machine-scheduling-table tbody tr td,
+  .machine-scheduling-table tbody tr:nth-child(even) td,
+  .machine-scheduling-table tbody tr:hover td { text-align:left }
+}
+
 .cost-engine-page { display:grid; gap:18px }
 .cost-header-actions { display:flex; flex-wrap:wrap; gap:10px; align-items:center; justify-content:flex-end }
 .cost-filter-card { margin-bottom:0 }

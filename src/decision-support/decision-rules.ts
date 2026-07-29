@@ -110,6 +110,42 @@ export const DECISION_RULES: DecisionRule[] = [
     thresholdLabel: 'Doluluk < 45% ve yuk > 0'
   },
   {
+    id: 'machine-scheduling-conflict',
+    category: 'Production',
+    title: 'Machine Scheduling zaman cakismasi',
+    description: 'Makine uygunlugu veya gorev zaman penceresi cakistiginda manuel revizyon onerilir.',
+    baseRisk: 'HIGH',
+    priority: 'HIGH',
+    thresholdLabel: 'Satir conflict true veya gorev kullanilabilir zaman disinda'
+  },
+  {
+    id: 'machine-scheduling-waiting',
+    category: 'Production',
+    title: 'Machine Scheduling yuksek bekleme',
+    description: 'Makine kuyrugunda bekleme suresi arttiginda plan, vardiya veya makine sirasi tekrar degerlendirilmelidir.',
+    baseRisk: 'HIGH',
+    priority: 'HIGH',
+    thresholdLabel: 'Toplam bekleme >= 180 dk'
+  },
+  {
+    id: 'machine-scheduling-setup-heavy',
+    category: 'Production',
+    title: 'Machine Scheduling setup yuksek',
+    description: 'Setup ve temizlik payi toplam uretim suresini belirgin artiriyorsa recete bloklama veya manuel siralama onerilir.',
+    baseRisk: 'MEDIUM',
+    priority: 'HIGH',
+    thresholdLabel: 'Setup + temizlik / toplam calisma >= 25%'
+  },
+  {
+    id: 'machine-scheduling-idle-machine',
+    category: 'Production',
+    title: 'Machine Scheduling bos makine',
+    description: 'Makine timeline boslugu yuksekse uygun islerin manuel olarak kaydirilmasi kapasite kullanimini artirabilir.',
+    baseRisk: 'MEDIUM',
+    priority: 'NORMAL',
+    thresholdLabel: 'Bos zaman / kullanilabilir zaman >= 25%'
+  },
+  {
     id: 'inventory-critical-purchase',
     category: 'Inventory',
     title: 'Kritik stok icin satin alma oner',

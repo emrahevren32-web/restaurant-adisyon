@@ -2,6 +2,7 @@ import type { ProductionWorkOrder } from '../production-work-orders/production-w
 import { createCostEngineView, mapKpiFiltersToCostEngineFilters } from '../cost-engine/cost-engine.service'
 import { CapacityPlanningService } from '../capacity-planning/capacity-planning.service'
 import { createFireAnalysisView } from '../fire-impact/fire-analysis.service'
+import { MachineSchedulingService } from '../machine-scheduling/machine-scheduling.service'
 import { ProductionPlanningService } from '../production-planning/production-planning.service'
 import type { KpiFilters, KpiSourceData, ProductionKpiView } from './kpi.types'
 import {
@@ -111,6 +112,10 @@ export const createProductionKpiView = (
     matchesPeriod(plan.planDate, filters.period)
   ))
   const capacityStatistics = CapacityPlanningService.statistics(capacityRecords)
+  const schedulingRecords = MachineSchedulingService.list(sourceData).filter(schedule => (
+    matchesPeriod(schedule.scheduleDate, filters.period)
+  ))
+  const schedulingStatistics = MachineSchedulingService.statistics(schedulingRecords)
 
   const productBuckets = new Map<string, number>()
   activeOrders.forEach(order => {
@@ -150,6 +155,9 @@ export const createProductionKpiView = (
       createCard('capacity-planning-utilization', 'Kapasite Doluluk', formatPercent(capacityStatistics.utilizationPercent), `${formatNumber(capacityStatistics.totalMachines)} makine / ${formatNumber(capacityStatistics.totalLines)} hat`, capacityStatistics.utilizationPercent > 100 ? 'danger' : capacityStatistics.utilizationPercent > 85 ? 'warning' : 'success'),
       createCard('capacity-planning-bottleneck', 'Kapasite Darbogaz', formatNumber(capacityStatistics.bottleneckCount), `${formatNumber(capacityStatistics.overloadMinutes)} dk asiri yuk`, capacityStatistics.bottleneckCount > 0 ? 'warning' : 'success'),
       createCard('capacity-planning-idle', 'Bos Kapasite', `${formatNumber(capacityStatistics.idleCapacityMinutes)} dk`, 'Capacity Planning read-model', 'neutral'),
+      createCard('machine-scheduling-utilization', 'Makine Doluluk', formatPercent(schedulingStatistics.machineUtilizationPercent), `${formatNumber(schedulingStatistics.runningMachines)} calisan / ${formatNumber(schedulingStatistics.idleMachines)} bos makine`, schedulingStatistics.machineUtilizationPercent > 95 ? 'warning' : 'success'),
+      createCard('machine-scheduling-pending', 'Makine Bekleyen Is', formatNumber(schedulingStatistics.pendingJobs), `${formatNumber(schedulingStatistics.totalWaitingMinutes)} dk bekleme`, schedulingStatistics.pendingJobs > 0 ? 'warning' : 'success'),
+      createCard('machine-scheduling-conflict', 'Makine Cakisma', formatNumber(schedulingStatistics.conflictCount), 'Machine Scheduling read-model', schedulingStatistics.conflictCount > 0 ? 'danger' : 'success'),
       createCard('production-fire-total', 'Toplam Fire', formatQuantity(fireView.statistics.totalQuantity), 'Fire Impact Analysis read-model', fireView.statistics.totalQuantity > 0 ? 'warning' : 'success'),
       createCard('production-fire-cost', 'Fire Maliyeti', formatCurrency(fireView.statistics.totalCost), 'Tahmini maliyet etkisi', fireView.statistics.totalCost > 0 ? 'warning' : 'success'),
       createCard('production-fire-rate', 'Fire Orani', formatPercent(fireView.statistics.fireRate), 'Fire / uretim miktari', fireView.statistics.fireRate > 3 ? 'danger' : fireView.statistics.fireRate > 1 ? 'warning' : 'success')

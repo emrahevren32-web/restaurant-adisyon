@@ -6,6 +6,7 @@ import { DECISION_RULES } from './decision-rules'
 import { createCostEngineDecisionSuggestions } from './cost-engine-decision.service'
 import { createCapacityPlanningDecisionSuggestions } from './capacity-planning-decision.service'
 import { createInventoryDecisionSuggestions } from './inventory-decision.service'
+import { createMachineSchedulingDecisionSuggestions } from './machine-scheduling-decision.service'
 import { createOperationChecklistDecisionSuggestions } from './operation-checklist-decision.service'
 import { createDecisionSuggestion, dedupeSuggestions } from './recommendation-engine.service'
 import { createProductionPlanningDecisionSuggestions } from './production-planning-decision.service'
@@ -63,6 +64,7 @@ export const createDecisionSuggestions = (
     ...createProductionDecisionSuggestions(sourceData),
     ...createProductionPlanningDecisionSuggestions(sourceData),
     ...createCapacityPlanningDecisionSuggestions(sourceData),
+    ...createMachineSchedulingDecisionSuggestions(sourceData),
     ...createCostEngineDecisionSuggestions(sourceData),
     ...createInventoryDecisionSuggestions(sourceData),
     ...createQualityDecisionSuggestions(sourceData),
@@ -130,6 +132,7 @@ const getDashboardSummary = (
     suggestion.ruleId === 'production-delay-shift'
     || suggestion.ruleId.startsWith('production-planning-')
     || suggestion.ruleId.startsWith('capacity-planning-')
+    || suggestion.ruleId.startsWith('machine-scheduling-')
   )).length,
   delayedShipments: suggestions.filter(suggestion => (
     suggestion.ruleId === 'shipment-delay-revision'
