@@ -227,6 +227,51 @@ export const DECISION_RULES: DecisionRule[] = [
     thresholdLabel: 'Maintenance minutes > 0 veya MAINTENANCE tipi bottleneck'
   },
   {
+    id: 'continuous-improvement-setup-reduction',
+    category: 'Production',
+    title: 'Continuous Improvement setup azaltma',
+    description: 'Setup ve temizlik sureleri belirgin kazanc firsati olusturuyorsa manuel iyilestirme onerisi uretilir.',
+    baseRisk: 'MEDIUM',
+    priority: 'HIGH',
+    thresholdLabel: 'Expected setup gain >= 12%'
+  },
+  {
+    id: 'continuous-improvement-machine-utilization',
+    category: 'Production',
+    title: 'Continuous Improvement makine kullanim artisi',
+    description: 'Makine bos sure, bekleme veya doluluk sapmasi fayda skoru uretirse kullanim artisi onerilir.',
+    baseRisk: 'MEDIUM',
+    priority: 'NORMAL',
+    thresholdLabel: 'Machine opportunity benefit score >= 60'
+  },
+  {
+    id: 'continuous-improvement-shift-waiting',
+    category: 'Production',
+    title: 'Continuous Improvement vardiya bekleme azaltma',
+    description: 'Vardiya veya personel dagilimi bekleme suresini artiriyorsa manuel dagilim incelemesi onerilir.',
+    baseRisk: 'HIGH',
+    priority: 'HIGH',
+    thresholdLabel: 'Personnel or shift waiting >= 60 dk'
+  },
+  {
+    id: 'continuous-improvement-maintenance-capacity',
+    category: 'Production',
+    title: 'Continuous Improvement bakim kapasite etkisi',
+    description: 'Bakim sureleri kapasite kazanci firsati olusturuyorsa bakim penceresi gozden gecirilmelidir.',
+    baseRisk: 'HIGH',
+    priority: 'HIGH',
+    thresholdLabel: 'Maintenance minutes > 0'
+  },
+  {
+    id: 'continuous-improvement-urgent-opportunity',
+    category: 'Production',
+    title: 'Continuous Improvement acil firsat',
+    description: 'Fayda ve risk skoru acil seviyeye ciktiginda yonetim gorunurlugu gerekir.',
+    baseRisk: 'HIGH',
+    priority: 'URGENT',
+    thresholdLabel: 'Opportunity priority URGENT'
+  },
+  {
     id: 'inventory-critical-purchase',
     category: 'Inventory',
     title: 'Kritik stok icin satin alma oner',

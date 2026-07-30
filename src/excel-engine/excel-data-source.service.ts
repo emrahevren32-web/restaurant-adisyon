@@ -67,6 +67,13 @@ import {
   BOTTLENECK_TYPE_LABELS
 } from '../bottleneck-analysis/bottleneck-analysis.service'
 import {
+  ContinuousImprovementService,
+  IMPROVEMENT_AREA_LABELS,
+  IMPROVEMENT_PRIORITY_LABELS,
+  IMPROVEMENT_REPORT_STATUS_LABELS,
+  IMPROVEMENT_RISK_LABELS
+} from '../continuous-improvement/continuous-improvement.service'
+import {
   WASTE_REASON_LABELS,
   WASTE_STATUS_LABELS,
   WASTE_TYPE_LABELS,
@@ -699,6 +706,68 @@ const getBottleneckAnalysisRows = (): ExcelRow[] => {
   })
 }
 
+const getContinuousImprovementRows = (): ExcelRow[] => {
+  const sourceData = loadKpiSourceData()
+  const reports = ContinuousImprovementService.list(sourceData)
+
+  return reports.flatMap((report): ExcelRow[] => {
+    const baseRow: ExcelRow = {
+      id: report.id,
+      reportNo: report.reportNo,
+      status: IMPROVEMENT_REPORT_STATUS_LABELS[report.status],
+      reportDate: report.reportDate,
+      startDate: report.startDate,
+      endDate: report.endDate,
+      area: report.area === 'all' ? 'Tum Alanlar' : IMPROVEMENT_AREA_LABELS[report.area],
+      productionLineName: report.productionLineName,
+      machineCode: report.machineCode,
+      machineName: report.machineName,
+      employeeName: report.employeeName,
+      opportunityCount: report.opportunities.length,
+      recommendationCount: report.recommendations.length,
+      expectedGainMinutes: report.opportunities.reduce((total, opportunity) => total + opportunity.expectedGainMinutes, 0)
+    }
+
+    if(report.opportunities.length === 0) return [baseRow]
+
+    return report.opportunities.map(opportunity => {
+      const recommendation = report.recommendations.find(item => item.opportunityId === opportunity.id)
+      return {
+        ...baseRow,
+        lineId: opportunity.id,
+        area: IMPROVEMENT_AREA_LABELS[opportunity.area],
+        priority: IMPROVEMENT_PRIORITY_LABELS[opportunity.priority],
+        riskLevel: IMPROVEMENT_RISK_LABELS[opportunity.riskLevel],
+        expectedBenefitScore: opportunity.expectedBenefitScore,
+        expectedGainMinutes: opportunity.expectedGainMinutes,
+        expectedGainPercent: opportunity.expectedGainPercent,
+        entityCode: opportunity.entityCode,
+        entityName: opportunity.entityName,
+        productionLineName: opportunity.productionLineName,
+        machineCode: opportunity.machineCode,
+        machineName: opportunity.machineName,
+        employeeName: opportunity.employeeName,
+        department: opportunity.department,
+        shiftName: opportunity.shiftName,
+        waitingMinutes: opportunity.waitingMinutes,
+        idleMinutes: opportunity.idleMinutes,
+        utilizationPercent: opportunity.utilizationPercent,
+        setupMinutes: opportunity.setupMinutes,
+        cleaningMinutes: opportunity.cleaningMinutes,
+        maintenanceMinutes: opportunity.maintenanceMinutes,
+        capacityUtilizationPercent: opportunity.capacityUtilizationPercent,
+        personnelUtilizationPercent: opportunity.personnelUtilizationPercent,
+        summary: opportunity.summary,
+        recommendationAction: recommendation?.action || '',
+        expectedImpact: recommendation?.expectedImpact || '',
+        ownerRole: recommendation?.ownerRole || '',
+        sourceType: opportunity.sourceType,
+        sourceNo: opportunity.sourceNo
+      }
+    })
+  })
+}
+
 const getQualityRows = (): ExcelRow[] => {
   const sourceData = loadKpiSourceData()
   const qualityFormRows = QualityFormService.list(sourceData).flatMap(form => {
@@ -1028,6 +1097,7 @@ const getRowsForModule = (
   if(moduleKey === 'machine-scheduling') return getMachineSchedulingRows()
   if(moduleKey === 'workforce-planning') return getWorkforcePlanningRows()
   if(moduleKey === 'bottleneck-analysis') return getBottleneckAnalysisRows()
+  if(moduleKey === 'continuous-improvement') return getContinuousImprovementRows()
   if(moduleKey === 'production-orders') return getProductionOrderRows()
   if(moduleKey === 'quality') return getQualityRows()
   if(moduleKey === 'shipments') return getShipmentRows()

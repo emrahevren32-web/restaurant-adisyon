@@ -5711,6 +5711,124 @@ th { color:var(--muted-strong); font-size:13px; font-weight:750 }
   .bottleneck-analysis-table tbody tr:hover td { text-align:left }
 }
 
+.continuous-improvement-page { display:flex; flex-direction:column; gap:18px; min-width:0; max-width:100% }
+.continuous-improvement-metric-grid { grid-template-columns:repeat(4, minmax(0, 1fr)) }
+.continuous-improvement-create-card,
+.continuous-improvement-filter-card,
+.continuous-improvement-detail-card { margin-bottom:0; min-width:0 }
+.continuous-improvement-header-actions { display:flex; flex-wrap:wrap; gap:8px; align-items:center; justify-content:flex-end }
+.continuous-improvement-create-grid,
+.continuous-improvement-filter-grid { display:grid; grid-template-columns:repeat(4, minmax(0, 1fr)); gap:10px; align-items:end }
+.continuous-improvement-wide { grid-column:span 2 }
+.continuous-improvement-chart-grid { display:grid; grid-template-columns:repeat(2, minmax(0, 1fr)); gap:12px }
+.continuous-improvement-layout { grid-template-columns:minmax(0, 1fr) minmax(360px, 460px); align-items:start }
+.continuous-improvement-side { display:flex; flex-direction:column; gap:12px; min-width:0 }
+.continuous-improvement-table-wrap { min-width:0 }
+.continuous-improvement-table { min-width:1120px }
+.continuous-improvement-table tbody tr { cursor:pointer }
+.continuous-improvement-table tbody tr:hover td { background:#f0fdf4 }
+.continuous-improvement-table tbody tr[aria-selected="true"] td,
+.continuous-improvement-table tbody tr[aria-selected="true"]:hover td { background:#ecfdf5; box-shadow:inset 5px 0 0 #059669 }
+.continuous-improvement-table td strong,
+.continuous-improvement-table td span { display:block; min-width:0; line-height:1.28; overflow-wrap:anywhere }
+.continuous-improvement-table td strong { color:var(--text); font-weight:950 }
+.continuous-improvement-table td span { margin-top:3px; color:var(--muted); font-size:12px; font-weight:800 }
+.continuous-improvement-output-actions,
+.continuous-improvement-status-actions { display:grid; gap:8px; margin-bottom:12px; min-width:0 }
+.continuous-improvement-output-actions { grid-template-columns:repeat(3, minmax(0, 1fr)) }
+.continuous-improvement-status-actions { grid-template-columns:repeat(4, minmax(0, 1fr)) }
+.continuous-improvement-output-actions .btn,
+.continuous-improvement-status-actions .btn { width:100%; min-height:var(--touch-target); padding-inline:10px; white-space:normal }
+.continuous-improvement-detail-grid { display:grid; grid-template-columns:repeat(2, minmax(0, 1fr)); gap:10px; margin:12px 0 }
+.continuous-improvement-detail-grid > div,
+.continuous-improvement-recommendation-list > div,
+.continuous-improvement-history-list > div { min-width:0; border:1px solid var(--line); border-radius:var(--radius-md); padding:10px 11px; background:var(--surface-muted) }
+.continuous-improvement-detail-grid span,
+.continuous-improvement-detail-grid strong,
+.continuous-improvement-list-row strong,
+.continuous-improvement-list-row span,
+.continuous-improvement-list-row p,
+.continuous-improvement-recommendation-list strong,
+.continuous-improvement-recommendation-list span,
+.continuous-improvement-history-list strong,
+.continuous-improvement-history-list span,
+.continuous-improvement-history-list p { display:block; min-width:0; line-height:1.35; overflow-wrap:anywhere }
+.continuous-improvement-detail-grid span { color:var(--muted); font-size:12px; font-weight:850 }
+.continuous-improvement-detail-grid strong { margin-top:4px; color:var(--text); font-size:14px; font-weight:950; font-variant-numeric:tabular-nums }
+.continuous-improvement-notes { margin:0; color:var(--text-soft); font-size:13px; font-weight:750; line-height:1.55; overflow-wrap:anywhere }
+.continuous-improvement-list,
+.continuous-improvement-recommendation-list,
+.continuous-improvement-history-list { display:grid; gap:9px; min-width:0 }
+.continuous-improvement-list-row { display:grid; grid-template-columns:minmax(0, 1fr) auto auto; gap:8px 10px; align-items:center; min-width:0; border:1px solid var(--line); border-radius:var(--radius-md); padding:10px 11px; background:var(--surface-muted) }
+.continuous-improvement-list-row strong { color:var(--text); font-size:13px; font-weight:950 }
+.continuous-improvement-list-row span,
+.continuous-improvement-list-row p,
+.continuous-improvement-recommendation-list span,
+.continuous-improvement-history-list span,
+.continuous-improvement-history-list p { color:var(--muted); font-size:12px; font-weight:800 }
+.continuous-improvement-list-row p { grid-column:1 / -1; margin:0 }
+.continuous-improvement-list-row em { color:var(--text); font-style:normal; font-size:12px; font-weight:950; white-space:nowrap }
+.continuous-improvement-recommendation-list strong,
+.continuous-improvement-history-list strong { color:var(--text); font-size:13px; font-weight:950 }
+.continuous-improvement-history-list p { margin:5px 0 0 }
+
+@media (max-width: 1200px){
+  .continuous-improvement-metric-grid,
+  .continuous-improvement-create-grid,
+  .continuous-improvement-filter-grid,
+  .continuous-improvement-chart-grid { grid-template-columns:repeat(2, minmax(0, 1fr)) }
+  .continuous-improvement-wide { grid-column:1 / -1 }
+}
+
+@media (max-width: 980px){
+  .continuous-improvement-layout { display:block }
+  .continuous-improvement-side { margin-top:14px }
+  .continuous-improvement-status-actions { grid-template-columns:repeat(2, minmax(0, 1fr)) }
+  .continuous-improvement-table-wrap { overflow:visible; border:0; background:transparent; box-shadow:none }
+  .continuous-improvement-table-wrap .continuous-improvement-table { min-width:0 }
+  .continuous-improvement-table,
+  .continuous-improvement-table thead,
+  .continuous-improvement-table tbody,
+  .continuous-improvement-table tr,
+  .continuous-improvement-table td { display:block; width:100%; min-width:0 }
+  .continuous-improvement-table thead { display:none }
+  .continuous-improvement-table tbody { display:grid; gap:10px }
+  .continuous-improvement-table tbody tr,
+  .continuous-improvement-table tbody tr:nth-child(even),
+  .continuous-improvement-table tbody tr:hover { display:grid; grid-template-columns:repeat(2, minmax(0, 1fr)); gap:9px; border:1px solid var(--line); border-radius:var(--radius-md); padding:11px 12px; background:var(--surface); box-shadow:var(--shadow-xs) }
+  .continuous-improvement-table tbody tr td,
+  .continuous-improvement-table tbody tr:nth-child(even) td,
+  .continuous-improvement-table tbody tr:hover td,
+  .continuous-improvement-table tbody tr[aria-selected="true"] td,
+  .continuous-improvement-table tbody tr[aria-selected="true"]:hover td { height:auto; min-height:0; border:0; padding:0; background:transparent; box-shadow:none; text-align:right }
+  .continuous-improvement-table tbody td::before { content:attr(data-label); display:block; margin-bottom:3px; color:var(--muted); font-size:11px; font-weight:850; line-height:1.2; text-align:left }
+  .continuous-improvement-table tbody td:first-child,
+  .continuous-improvement-table tbody td.empty-cell { grid-column:1 / -1; text-align:left }
+  .continuous-improvement-table tbody td:first-child strong { text-align:left }
+  .continuous-improvement-table tbody td.empty-cell { text-align:center }
+}
+
+@media (max-width: 560px){
+  .continuous-improvement-metric-grid,
+  .continuous-improvement-create-grid,
+  .continuous-improvement-filter-grid,
+  .continuous-improvement-chart-grid,
+  .continuous-improvement-output-actions,
+  .continuous-improvement-status-actions,
+  .continuous-improvement-detail-grid,
+  .continuous-improvement-list-row { grid-template-columns:1fr }
+  .continuous-improvement-wide { grid-column:auto }
+  .continuous-improvement-header-actions { justify-content:stretch }
+  .continuous-improvement-header-actions .btn,
+  .continuous-improvement-header-actions .primary-button { width:100% }
+  .continuous-improvement-table tbody tr,
+  .continuous-improvement-table tbody tr:nth-child(even),
+  .continuous-improvement-table tbody tr:hover { grid-template-columns:1fr }
+  .continuous-improvement-table tbody tr td,
+  .continuous-improvement-table tbody tr:nth-child(even) td,
+  .continuous-improvement-table tbody tr:hover td { text-align:left }
+}
+
 .cost-engine-page { display:grid; gap:18px }
 .cost-header-actions { display:flex; flex-wrap:wrap; gap:10px; align-items:center; justify-content:flex-end }
 .cost-filter-card { margin-bottom:0 }

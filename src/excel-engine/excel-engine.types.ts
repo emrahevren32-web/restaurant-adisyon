@@ -14,6 +14,7 @@ export type ExcelModuleKey =
   | 'machine-scheduling'
   | 'workforce-planning'
   | 'bottleneck-analysis'
+  | 'continuous-improvement'
   | 'production-orders'
   | 'quality'
   | 'shipments'

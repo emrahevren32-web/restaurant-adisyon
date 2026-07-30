@@ -1266,7 +1266,7 @@ export const BUSINESS_WORKSPACE_MODULE_REGISTRY: BusinessWorkspaceModule[] = def
     isVisible: true,
     displayOrder: 45,
     dependencies: [],
-    tags: ['business', 'production', 'production-planning', 'planning', 'forecast', 'capacity', 'machine-scheduling', 'workforce-planning', 'bottleneck-analysis', 'operation', 'industrial-kitchen', 'work-order', 'production-line', 'intermediate-product', 'final-product', 'blast-chiller', 'packaging', 'labeling', 'dispatch', 'recipe-management', 'fire-analysis', 'cost-analysis'],
+    tags: ['business', 'production', 'production-planning', 'planning', 'forecast', 'capacity', 'machine-scheduling', 'workforce-planning', 'bottleneck-analysis', 'continuous-improvement', 'operation', 'industrial-kitchen', 'work-order', 'production-line', 'intermediate-product', 'final-product', 'blast-chiller', 'packaging', 'labeling', 'dispatch', 'recipe-management', 'fire-analysis', 'cost-analysis'],
     supportedSectorIds: industrialKitchenSectorIds,
     pricing: { model: 'paid', currency: 'TRY' },
     marketplace: marketplaceReady,
@@ -1335,6 +1335,19 @@ export const BUSINESS_WORKSPACE_MODULE_REGISTRY: BusinessWorkspaceModule[] = def
         supportedLayouts: ['standard', 'wide'],
         requiredPermission: 'operations.read',
         renderComponent: 'production.bottleneckAnalysis.placeholder'
+      }),
+      dashboardWidget({
+        id: 'production.continuousImprovement',
+        title: 'Iyilestirme Firsatlari',
+        description: 'Planning, scheduling, workforce ve Bottleneck Analysis ciktilarindan read-model iyilestirme onerileri ureten kontrol paneli alani.',
+        icon: 'CI',
+        category: 'Operasyon',
+        order: 19.9,
+        defaultVisible: false,
+        defaultSize: 'large',
+        supportedLayouts: ['standard', 'wide'],
+        requiredPermission: 'operations.read',
+        renderComponent: 'production.continuousImprovement.placeholder'
       }),
       dashboardWidget({
         id: 'production.workOrders',
@@ -1486,6 +1499,7 @@ export const BUSINESS_WORKSPACE_MODULE_REGISTRY: BusinessWorkspaceModule[] = def
       menuItem({ key: 'machine-scheduling', label: 'Makine Cizelgeleme', route: 'machine-scheduling', icon: 'MS', adminOnly: true, displayOrder: 8 }),
       menuItem({ key: 'workforce-planning', label: 'Personel Planlama', route: 'workforce-planning', icon: 'WP', adminOnly: true, displayOrder: 9 }),
       menuItem({ key: 'bottleneck-analysis', label: 'Darbogaz Analizi', route: 'bottleneck-analysis', icon: 'BN', adminOnly: true, displayOrder: 9.5 }),
+      menuItem({ key: 'continuous-improvement', label: 'Iyilestirme Firsatlari', route: 'continuous-improvement', icon: 'CI', adminOnly: true, displayOrder: 9.7 }),
       menuItem({ key: 'production-work-orders', label: 'Üretim Emirleri', route: 'production-work-orders', icon: 'UE', adminOnly: true, displayOrder: 10 }),
       menuItem({ key: 'production-lines', label: 'Üretim Hatları', route: 'production-lines', icon: 'UH', adminOnly: true, displayOrder: 20 }),
       menuItem({ key: 'intermediate-products', label: 'Ara Ürünler', route: 'intermediate-products', icon: 'AU', adminOnly: true, displayOrder: 30 }),

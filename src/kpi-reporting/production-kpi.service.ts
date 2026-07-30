@@ -6,6 +6,7 @@ import { MachineSchedulingService } from '../machine-scheduling/machine-scheduli
 import { ProductionPlanningService } from '../production-planning/production-planning.service'
 import { WorkforcePlanningService } from '../workforce-planning/workforce-planning.service'
 import { BottleneckAnalysisService } from '../bottleneck-analysis/bottleneck-analysis.service'
+import { ContinuousImprovementService } from '../continuous-improvement/continuous-improvement.service'
 import type { KpiFilters, KpiSourceData, ProductionKpiView } from './kpi.types'
 import {
   ALL_FILTER,
@@ -126,6 +127,10 @@ export const createProductionKpiView = (
     matchesPeriod(report.reportDate, filters.period)
   ))
   const bottleneckStatistics = BottleneckAnalysisService.statistics(bottleneckRecords)
+  const improvementRecords = ContinuousImprovementService.list(sourceData).filter(report => (
+    matchesPeriod(report.reportDate, filters.period)
+  ))
+  const improvementStatistics = ContinuousImprovementService.statistics(improvementRecords)
 
   const productBuckets = new Map<string, number>()
   activeOrders.forEach(order => {
@@ -174,6 +179,9 @@ export const createProductionKpiView = (
       createCard('bottleneck-analysis-total', 'Darbogaz', formatNumber(bottleneckStatistics.totalBottlenecks), `${formatNumber(bottleneckStatistics.averageRiskScore, 1)} ortalama risk`, bottleneckStatistics.totalBottlenecks > 0 ? 'warning' : 'success'),
       createCard('bottleneck-analysis-critical', 'Kritik Darbogaz', formatNumber(bottleneckStatistics.criticalBottlenecks), `En yogun hat: ${bottleneckStatistics.topLineName}`, bottleneckStatistics.criticalBottlenecks > 0 ? 'danger' : 'success'),
       createCard('bottleneck-analysis-waiting', 'Darbogaz Bekleme', `${formatNumber(bottleneckStatistics.totalWaitingMinutes)} dk`, `Setup ${formatNumber(bottleneckStatistics.totalSetupMinutes)} dk`, bottleneckStatistics.totalWaitingMinutes > 180 ? 'warning' : 'neutral'),
+      createCard('continuous-improvement-total', 'Iyilestirme Firsati', formatNumber(improvementStatistics.totalOpportunities), `${formatNumber(improvementStatistics.averageBenefitScore, 1)} fayda skoru`, improvementStatistics.totalOpportunities > 0 ? 'success' : 'neutral'),
+      createCard('continuous-improvement-critical', 'Kritik Firsat', formatNumber(improvementStatistics.criticalOpportunities), `${formatNumber(improvementStatistics.urgentRecommendations)} acil oneri`, improvementStatistics.criticalOpportunities > 0 ? 'warning' : 'success'),
+      createCard('continuous-improvement-gain', 'Beklenen Kazanc', `${formatNumber(improvementStatistics.expectedGainMinutes)} dk`, improvementStatistics.topPriorityLabel, improvementStatistics.expectedGainMinutes > 0 ? 'success' : 'neutral'),
       createCard('production-fire-total', 'Toplam Fire', formatQuantity(fireView.statistics.totalQuantity), 'Fire Impact Analysis read-model', fireView.statistics.totalQuantity > 0 ? 'warning' : 'success'),
       createCard('production-fire-cost', 'Fire Maliyeti', formatCurrency(fireView.statistics.totalCost), 'Tahmini maliyet etkisi', fireView.statistics.totalCost > 0 ? 'warning' : 'success'),
       createCard('production-fire-rate', 'Fire Orani', formatPercent(fireView.statistics.fireRate), 'Fire / uretim miktari', fireView.statistics.fireRate > 3 ? 'danger' : fireView.statistics.fireRate > 1 ? 'warning' : 'success')
