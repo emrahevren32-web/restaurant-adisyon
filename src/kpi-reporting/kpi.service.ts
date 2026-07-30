@@ -3,6 +3,7 @@ import {
   flattenHACCPMonitoringRecords
 } from '../haccp/haccp.mock'
 import { CriticalAlertService } from '../critical-alerts/critical-alert.service'
+import { ForecastService } from '../forecasting/forecast.service'
 import { createInventoryKpiView } from './inventory-kpi.service'
 import { createProductionKpiView } from './production-kpi.service'
 import { createPurchasingKpiView } from './purchasing-kpi.service'
@@ -88,6 +89,12 @@ const KPI_REPORTS: KpiReportDefinition[] = [
     title: 'Executive Summary',
     description: 'Yonetim icin kritik operasyon, kalite, stok, lojistik ve satin alma ozeti.',
     owner: 'Executive'
+  },
+  {
+    id: 'forecasting-report',
+    title: 'Forecasting Report',
+    description: 'Gecmis read-model verilerinden talep, stok, uretim, sevkiyat ve kalite tahmin raporu.',
+    owner: 'Decision Support'
   }
 ]
 
@@ -168,6 +175,7 @@ const createExecutiveSummary = (
   const alertStatistics = CriticalAlertService.statistics(
     CriticalAlertService.evaluate(sourceData).filter(alert => matchesPeriod(alert.createdAt, filters.period))
   )
+  const forecastStatistics = ForecastService.statistics([ForecastService.evaluate(sourceData)])
   const activeWasteRecords = WasteService.list(sourceData).filter(record => (
     record.status !== 'CANCELLED'
     && record.status !== 'REJECTED'
@@ -202,6 +210,8 @@ const createExecutiveSummary = (
       createCard('executive-open-action', 'Acik Corrective Action', formatNumber(openCorrectiveActionCount), 'OPEN / IN_PROGRESS faaliyetler', openCorrectiveActionCount > 0 ? 'warning' : 'success'),
       createCard('executive-critical-alerts', 'Kritik Alarm', formatNumber(alertStatistics.criticalAlerts), `${formatNumber(alertStatistics.activeAlerts)} aktif alert`, alertStatistics.criticalAlerts > 0 ? 'danger' : 'success'),
       createCard('executive-active-alerts', 'Aktif Alarm', formatNumber(alertStatistics.activeAlerts), `${formatNumber(alertStatistics.averageRiskScore, 1)} ortalama risk`, alertStatistics.activeAlerts > 0 ? 'warning' : 'success'),
+      createCard('executive-forecast-risk', 'Riskli Tahmin', formatNumber(forecastStatistics.riskyForecasts), forecastStatistics.biggestIncreaseLabel, forecastStatistics.riskyForecasts > 0 ? 'warning' : 'success'),
+      createCard('executive-forecast-demand', 'Beklenen Talep', formatNumber(forecastStatistics.expectedDemand, 1), `${formatNumber(forecastStatistics.averageConfidence, 1)} confidence`, 'neutral'),
       createCard('executive-critical-stock', 'Kritik Stok', formatNumber(getCriticalStockCount(sourceData)), 'Min seviyenin altindaki stoklar', getCriticalStockCount(sourceData) > 0 ? 'danger' : 'success'),
       createCard('executive-fire-rate', 'Fire Orani', formatPercent(fireRate), 'Fire / uretim miktari', fireRate > 3 ? 'warning' : 'success'),
       createCard('executive-haccp-rate', 'HACCP Basari Orani', formatPercent(haccpSuccessRate), 'PASS / toplam monitoring', haccpSuccessRate >= 90 ? 'success' : 'warning')

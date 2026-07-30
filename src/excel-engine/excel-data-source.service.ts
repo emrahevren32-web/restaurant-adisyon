@@ -81,6 +81,13 @@ import {
   CriticalAlertService
 } from '../critical-alerts/critical-alert.service'
 import {
+  FORECAST_RISK_LABELS,
+  FORECAST_STATUS_LABELS,
+  FORECAST_TREND_LABELS,
+  FORECAST_TYPE_LABELS,
+  ForecastService
+} from '../forecasting/forecast.service'
+import {
   WASTE_REASON_LABELS,
   WASTE_STATUS_LABELS,
   WASTE_TYPE_LABELS,
@@ -808,6 +815,51 @@ const getCriticalAlertRows = (): ExcelRow[] => {
   }))
 }
 
+const getForecastRows = (): ExcelRow[] => {
+  const sourceData = loadKpiSourceData()
+
+  return ForecastService.list(sourceData).flatMap(report => report.predictions.map(prediction => ({
+    id: report.id,
+    lineId: prediction.id,
+    reportNo: report.reportNo,
+    reportDate: report.reportDate,
+    status: FORECAST_STATUS_LABELS[report.status],
+    scenarioName: report.scenarioName,
+    horizonDays: report.horizonDays,
+    analysisWindowDays: report.analysisWindowDays,
+    forecastType: FORECAST_TYPE_LABELS[prediction.forecastType],
+    entityName: prediction.entityName,
+    productName: prediction.productName,
+    stockItemName: prediction.stockItemName,
+    branchName: prediction.branchName,
+    productionLineName: prediction.productionLineName,
+    machineCode: prediction.machineCode,
+    machineName: prediction.machineName,
+    employeeName: prediction.employeeName,
+    supplierName: prediction.supplierName,
+    unit: prediction.unit,
+    expectedValue: prediction.expectedValue,
+    minimumValue: prediction.minimumValue,
+    maximumValue: prediction.maximumValue,
+    growthPercent: prediction.growthPercent,
+    seasonalityScore: prediction.seasonalityScore,
+    confidenceScore: prediction.confidenceScore,
+    riskScore: prediction.riskScore,
+    riskLevel: FORECAST_RISK_LABELS[prediction.riskLevel],
+    trendDirection: FORECAST_TREND_LABELS[prediction.trendDirection],
+    expectedDemand: prediction.expectedDemand,
+    expectedProduction: prediction.expectedProduction,
+    expectedStock: prediction.expectedStock,
+    expectedWaste: prediction.expectedWaste,
+    expectedShipment: prediction.expectedShipment,
+    expectedCapacityPercent: prediction.expectedCapacityPercent,
+    expectedPersonnelNeed: prediction.expectedPersonnelNeed,
+    daysToCritical: prediction.daysToCritical,
+    recommendation: prediction.recommendation,
+    evidence: prediction.evidence
+  })))
+}
+
 const getQualityRows = (): ExcelRow[] => {
   const sourceData = loadKpiSourceData()
   const qualityFormRows = QualityFormService.list(sourceData).flatMap(form => {
@@ -1139,6 +1191,7 @@ const getRowsForModule = (
   if(moduleKey === 'bottleneck-analysis') return getBottleneckAnalysisRows()
   if(moduleKey === 'continuous-improvement') return getContinuousImprovementRows()
   if(moduleKey === 'critical-alerts') return getCriticalAlertRows()
+  if(moduleKey === 'forecasting') return getForecastRows()
   if(moduleKey === 'production-orders') return getProductionOrderRows()
   if(moduleKey === 'quality') return getQualityRows()
   if(moduleKey === 'shipments') return getShipmentRows()

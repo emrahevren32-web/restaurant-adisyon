@@ -16,6 +16,7 @@ export type ExcelModuleKey =
   | 'bottleneck-analysis'
   | 'continuous-improvement'
   | 'critical-alerts'
+  | 'forecasting'
   | 'production-orders'
   | 'quality'
   | 'shipments'

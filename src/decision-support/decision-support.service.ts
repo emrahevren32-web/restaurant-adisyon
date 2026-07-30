@@ -8,6 +8,7 @@ import { createCapacityPlanningDecisionSuggestions } from './capacity-planning-d
 import { createBottleneckAnalysisDecisionSuggestions } from './bottleneck-analysis-decision.service'
 import { createContinuousImprovementDecisionSuggestions } from './continuous-improvement-decision.service'
 import { createCriticalAlertDecisionSuggestions } from './critical-alert-decision.service'
+import { createForecastingDecisionSuggestions } from './forecasting-decision.service'
 import { createInventoryDecisionSuggestions } from './inventory-decision.service'
 import { createMachineSchedulingDecisionSuggestions } from './machine-scheduling-decision.service'
 import { createOperationChecklistDecisionSuggestions } from './operation-checklist-decision.service'
@@ -73,6 +74,7 @@ export const createDecisionSuggestions = (
     ...createBottleneckAnalysisDecisionSuggestions(sourceData),
     ...createContinuousImprovementDecisionSuggestions(sourceData),
     ...createCriticalAlertDecisionSuggestions(sourceData),
+    ...createForecastingDecisionSuggestions(sourceData),
     ...createCostEngineDecisionSuggestions(sourceData),
     ...createInventoryDecisionSuggestions(sourceData),
     ...createQualityDecisionSuggestions(sourceData),
@@ -129,6 +131,7 @@ const getDashboardSummary = (
     suggestion.ruleId === 'production-fire-root-cause'
     || suggestion.ruleId === 'cost-engine-fire-cost'
     || suggestion.ruleId.startsWith('waste-')
+    || suggestion.ruleId === 'forecasting-critical-risk'
   )).length,
   riskySuppliers: suggestions.filter(suggestion => suggestion.category === 'Purchasing' && (suggestion.risk === 'HIGH' || suggestion.risk === 'CRITICAL')).length,
   riskyCcps: suggestions.filter(suggestion => (
@@ -136,6 +139,7 @@ const getDashboardSummary = (
     || suggestion.ruleId.startsWith('quality-form-')
     || suggestion.ruleId.startsWith('operation-checklist-')
     || suggestion.ruleId === 'critical-alert-quality-fail'
+    || suggestion.ruleId === 'forecasting-quality-risk'
   )).length,
   delayedProduction: suggestions.filter(suggestion => (
     suggestion.ruleId === 'production-delay-shift'
@@ -147,11 +151,14 @@ const getDashboardSummary = (
     || suggestion.ruleId.startsWith('continuous-improvement-')
     || suggestion.ruleId === 'critical-alert-maintenance-line'
     || suggestion.ruleId === 'critical-alert-machine-stop-review'
+    || suggestion.ruleId === 'forecasting-production-increase'
+    || suggestion.ruleId === 'forecasting-critical-risk'
   )).length,
   delayedShipments: suggestions.filter(suggestion => (
     suggestion.ruleId === 'shipment-delay-revision'
     || suggestion.ruleId.startsWith('shipment-form-')
     || suggestion.ruleId === 'critical-alert-generic-critical'
+    || suggestion.ruleId === 'forecasting-shipment-surge'
   )).length
 })
 

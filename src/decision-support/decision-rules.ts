@@ -317,6 +317,60 @@ export const DECISION_RULES: DecisionRule[] = [
     thresholdLabel: 'Critical alert level CRITICAL'
   },
   {
+    id: 'forecasting-production-increase',
+    category: 'Production',
+    title: 'Forecasting uretim/talep artisi',
+    description: 'Forecasting Engine talep veya uretim tahmininde anlamli artis gordugunde kapasite ve malzeme hazirligi onerir.',
+    baseRisk: 'HIGH',
+    priority: 'HIGH',
+    thresholdLabel: 'Forecast type PRODUCTION/DEMAND and growth >= 10%'
+  },
+  {
+    id: 'forecasting-stock-critical',
+    category: 'Inventory',
+    title: 'Forecasting kritik stok tahmini',
+    description: 'Stok tahmini kritik seviyeye yaklasiyorsa satin alma veya depo transferi erkene alinmalidir.',
+    baseRisk: 'HIGH',
+    priority: 'URGENT',
+    thresholdLabel: 'Forecast type STOCK and daysToCritical <= 3'
+  },
+  {
+    id: 'forecasting-purchase-early',
+    category: 'Purchasing',
+    title: 'Forecasting satin alma erkene cekme',
+    description: 'Satin alma hacmi veya kritik stok riski artiyorsa siparis takvimi manuel olarak erkene cekilebilir.',
+    baseRisk: 'HIGH',
+    priority: 'HIGH',
+    thresholdLabel: 'Forecast type PURCHASING and risk HIGH/CRITICAL'
+  },
+  {
+    id: 'forecasting-shipment-surge',
+    category: 'Shipment',
+    title: 'Forecasting sevkiyat hacmi artisi',
+    description: 'Sevkiyat hacmi trend veya mevsimsellik nedeniyle artiyorsa arac ve yukleme kapasitesi incelenmelidir.',
+    baseRisk: 'MEDIUM',
+    priority: 'HIGH',
+    thresholdLabel: 'Forecast type SHIPMENT and growth >= 10% or seasonal'
+  },
+  {
+    id: 'forecasting-quality-risk',
+    category: 'Quality',
+    title: 'Forecasting kalite riski',
+    description: 'Kalite tahmini FAIL veya conditional sinyallerinde artisa isaret ederse kontrol sikligi onerilir.',
+    baseRisk: 'HIGH',
+    priority: 'HIGH',
+    thresholdLabel: 'Forecast type QUALITY and risk HIGH/CRITICAL'
+  },
+  {
+    id: 'forecasting-critical-risk',
+    category: 'Management',
+    title: 'Forecasting kritik risk',
+    description: 'CRITICAL seviye tahmin yonetim Decision Support listesine manuel aksiyon olarak tasinir.',
+    baseRisk: 'CRITICAL',
+    priority: 'URGENT',
+    thresholdLabel: 'Forecast risk CRITICAL'
+  },
+  {
     id: 'inventory-critical-purchase',
     category: 'Inventory',
     title: 'Kritik stok icin satin alma oner',

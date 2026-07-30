@@ -60,6 +60,7 @@ import ProcurementAnalytics from '../pages/ProcurementAnalytics'
 import KPIDashboard from '../pages/KPIDashboard'
 import DecisionSupport from '../pages/DecisionSupport'
 import CriticalAlerts from '../pages/CriticalAlerts'
+import Forecasting from '../pages/Forecasting'
 import LabelManagement from '../pages/LabelManagement'
 import OperationChecklists from '../pages/OperationChecklists'
 import LotSystem from '../pages/LotSystem'
@@ -244,6 +245,7 @@ export default function BusinessWorkspaceRouteHost({
   if(route === 'kpi-dashboard') return <KPIDashboard currentUser={currentUser} />
   if(route === 'decision-support') return <DecisionSupport currentUser={currentUser} />
   if(route === 'critical-alerts') return <CriticalAlerts currentUser={currentUser} />
+  if(route === 'forecasting') return <Forecasting currentUser={currentUser} />
   if(route === 'label-management') return <LabelManagement currentUser={currentUser} />
   if(route === 'operation-checklists') return <OperationChecklists currentUser={currentUser} />
   if(route === 'lot-system') return <LotSystem currentUser={currentUser} />
