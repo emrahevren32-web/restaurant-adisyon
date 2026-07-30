@@ -7,6 +7,7 @@ import { createCostEngineDecisionSuggestions } from './cost-engine-decision.serv
 import { createCapacityPlanningDecisionSuggestions } from './capacity-planning-decision.service'
 import { createBottleneckAnalysisDecisionSuggestions } from './bottleneck-analysis-decision.service'
 import { createContinuousImprovementDecisionSuggestions } from './continuous-improvement-decision.service'
+import { createCriticalAlertDecisionSuggestions } from './critical-alert-decision.service'
 import { createInventoryDecisionSuggestions } from './inventory-decision.service'
 import { createMachineSchedulingDecisionSuggestions } from './machine-scheduling-decision.service'
 import { createOperationChecklistDecisionSuggestions } from './operation-checklist-decision.service'
@@ -71,6 +72,7 @@ export const createDecisionSuggestions = (
     ...createWorkforcePlanningDecisionSuggestions(sourceData),
     ...createBottleneckAnalysisDecisionSuggestions(sourceData),
     ...createContinuousImprovementDecisionSuggestions(sourceData),
+    ...createCriticalAlertDecisionSuggestions(sourceData),
     ...createCostEngineDecisionSuggestions(sourceData),
     ...createInventoryDecisionSuggestions(sourceData),
     ...createQualityDecisionSuggestions(sourceData),
@@ -133,6 +135,7 @@ const getDashboardSummary = (
     suggestion.ruleId === 'quality-ccp-failure-risk'
     || suggestion.ruleId.startsWith('quality-form-')
     || suggestion.ruleId.startsWith('operation-checklist-')
+    || suggestion.ruleId === 'critical-alert-quality-fail'
   )).length,
   delayedProduction: suggestions.filter(suggestion => (
     suggestion.ruleId === 'production-delay-shift'
@@ -142,10 +145,13 @@ const getDashboardSummary = (
     || suggestion.ruleId.startsWith('workforce-planning-')
     || suggestion.ruleId.startsWith('bottleneck-analysis-')
     || suggestion.ruleId.startsWith('continuous-improvement-')
+    || suggestion.ruleId === 'critical-alert-maintenance-line'
+    || suggestion.ruleId === 'critical-alert-machine-stop-review'
   )).length,
   delayedShipments: suggestions.filter(suggestion => (
     suggestion.ruleId === 'shipment-delay-revision'
     || suggestion.ruleId.startsWith('shipment-form-')
+    || suggestion.ruleId === 'critical-alert-generic-critical'
   )).length
 })
 

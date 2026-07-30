@@ -272,6 +272,51 @@ export const DECISION_RULES: DecisionRule[] = [
     thresholdLabel: 'Opportunity priority URGENT'
   },
   {
+    id: 'critical-alert-stock-purchase',
+    category: 'Inventory',
+    title: 'Critical Alert kritik stok satin alma',
+    description: 'Critical Alert Engine kritik stok alarmi uretirse satin alma veya depo transferi manuel olarak onerilir.',
+    baseRisk: 'HIGH',
+    priority: 'URGENT',
+    thresholdLabel: 'Critical alert category STOCK and level HIGH/CRITICAL'
+  },
+  {
+    id: 'critical-alert-maintenance-line',
+    category: 'Production',
+    title: 'Critical Alert hat/bakim plani',
+    description: 'Makine, kapasite veya bakim alarmi uretildiginde hat ve bakim plani manuel olarak gozden gecirilir.',
+    baseRisk: 'HIGH',
+    priority: 'HIGH',
+    thresholdLabel: 'Critical alert category MACHINE/MAINTENANCE/CAPACITY'
+  },
+  {
+    id: 'critical-alert-quality-fail',
+    category: 'Quality',
+    title: 'Critical Alert kalite FAIL aksiyonu',
+    description: 'Kalite, HACCP, lot veya mal kabul alarmi FAIL etkisi tasiyorsa kalite aksiyon listesine alinmalidir.',
+    baseRisk: 'HIGH',
+    priority: 'URGENT',
+    thresholdLabel: 'Critical alert category QUALITY/HACCP/LOT/GOODS_RECEIPT'
+  },
+  {
+    id: 'critical-alert-machine-stop-review',
+    category: 'Production',
+    title: 'Critical Alert makine uygunluk incelemesi',
+    description: 'Kritik makine alarmi otomatik durdurma yapmadan manuel uretim uygunlugu incelemesi onerir.',
+    baseRisk: 'HIGH',
+    priority: 'URGENT',
+    thresholdLabel: 'Critical machine alert risk score >= 85'
+  },
+  {
+    id: 'critical-alert-generic-critical',
+    category: 'Management',
+    title: 'Critical Alert yonetim gorunurlugu',
+    description: 'CRITICAL seviye alarm yonetim Decision Support listesinde manuel aksiyon olarak gorunur.',
+    baseRisk: 'CRITICAL',
+    priority: 'URGENT',
+    thresholdLabel: 'Critical alert level CRITICAL'
+  },
+  {
     id: 'inventory-critical-purchase',
     category: 'Inventory',
     title: 'Kritik stok icin satin alma oner',

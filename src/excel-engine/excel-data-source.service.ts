@@ -74,6 +74,13 @@ import {
   IMPROVEMENT_RISK_LABELS
 } from '../continuous-improvement/continuous-improvement.service'
 import {
+  ALERT_CATEGORY_LABELS,
+  ALERT_LEVEL_LABELS,
+  ALERT_PRIORITY_LABELS,
+  ALERT_STATUS_LABELS,
+  CriticalAlertService
+} from '../critical-alerts/critical-alert.service'
+import {
   WASTE_REASON_LABELS,
   WASTE_STATUS_LABELS,
   WASTE_TYPE_LABELS,
@@ -768,6 +775,39 @@ const getContinuousImprovementRows = (): ExcelRow[] => {
   })
 }
 
+const getCriticalAlertRows = (): ExcelRow[] => {
+  const sourceData = loadKpiSourceData()
+
+  return CriticalAlertService.list(sourceData).map(alert => ({
+    id: alert.id,
+    alertNo: alert.alertNo,
+    status: ALERT_STATUS_LABELS[alert.status],
+    level: ALERT_LEVEL_LABELS[alert.level],
+    category: ALERT_CATEGORY_LABELS[alert.category],
+    priority: ALERT_PRIORITY_LABELS[alert.priority],
+    createdAt: alert.createdAt,
+    lastDetectedAt: alert.lastDetectedAt,
+    riskScore: alert.riskScore,
+    impactScore: alert.impactScore,
+    durationMinutes: alert.durationMinutes,
+    repeatCount: alert.repeatCount,
+    title: alert.title,
+    reason: alert.reason,
+    recommendedAction: alert.recommendedAction,
+    expectedImpact: alert.expectedImpact,
+    sourceModule: alert.sourceModule,
+    sourceNo: alert.sourceNo,
+    relatedEntityType: alert.relatedEntityType,
+    relatedEntityName: alert.relatedEntityName,
+    branchName: alert.branchName,
+    productionLineName: alert.productionLineName,
+    machineCode: alert.machineCode,
+    machineName: alert.machineName,
+    employeeName: alert.employeeName,
+    lotNo: alert.lotNo
+  }))
+}
+
 const getQualityRows = (): ExcelRow[] => {
   const sourceData = loadKpiSourceData()
   const qualityFormRows = QualityFormService.list(sourceData).flatMap(form => {
@@ -1098,6 +1138,7 @@ const getRowsForModule = (
   if(moduleKey === 'workforce-planning') return getWorkforcePlanningRows()
   if(moduleKey === 'bottleneck-analysis') return getBottleneckAnalysisRows()
   if(moduleKey === 'continuous-improvement') return getContinuousImprovementRows()
+  if(moduleKey === 'critical-alerts') return getCriticalAlertRows()
   if(moduleKey === 'production-orders') return getProductionOrderRows()
   if(moduleKey === 'quality') return getQualityRows()
   if(moduleKey === 'shipments') return getShipmentRows()

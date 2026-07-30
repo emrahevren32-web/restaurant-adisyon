@@ -2,6 +2,7 @@ import {
   flattenHACCPCorrectiveActions,
   flattenHACCPMonitoringRecords
 } from '../haccp/haccp.mock'
+import { CriticalAlertService } from '../critical-alerts/critical-alert.service'
 import { createInventoryKpiView } from './inventory-kpi.service'
 import { createProductionKpiView } from './production-kpi.service'
 import { createPurchasingKpiView } from './purchasing-kpi.service'
@@ -164,6 +165,9 @@ const createExecutiveSummary = (
   const openCorrectiveActionCount = getOpenCorrectiveActionCount(sourceData)
   const haccpSuccessRate = getHaccpSuccessRate(sourceData, filters)
   const fireRate = getFireRate(sourceData, filters)
+  const alertStatistics = CriticalAlertService.statistics(
+    CriticalAlertService.evaluate(sourceData).filter(alert => matchesPeriod(alert.createdAt, filters.period))
+  )
   const activeWasteRecords = WasteService.list(sourceData).filter(record => (
     record.status !== 'CANCELLED'
     && record.status !== 'REJECTED'
@@ -196,6 +200,8 @@ const createExecutiveSummary = (
       createCard('executive-cost-engine', 'Cost Engine Maliyeti', getCard(dashboard.production.cards, 'production-cost-total'), 'Read-model urun maliyeti', 'neutral'),
       createCard('executive-active-recall', 'Aktif Recall', formatNumber(activeRecallCount), 'Acik veya devam eden recall', activeRecallCount > 0 ? 'danger' : 'success'),
       createCard('executive-open-action', 'Acik Corrective Action', formatNumber(openCorrectiveActionCount), 'OPEN / IN_PROGRESS faaliyetler', openCorrectiveActionCount > 0 ? 'warning' : 'success'),
+      createCard('executive-critical-alerts', 'Kritik Alarm', formatNumber(alertStatistics.criticalAlerts), `${formatNumber(alertStatistics.activeAlerts)} aktif alert`, alertStatistics.criticalAlerts > 0 ? 'danger' : 'success'),
+      createCard('executive-active-alerts', 'Aktif Alarm', formatNumber(alertStatistics.activeAlerts), `${formatNumber(alertStatistics.averageRiskScore, 1)} ortalama risk`, alertStatistics.activeAlerts > 0 ? 'warning' : 'success'),
       createCard('executive-critical-stock', 'Kritik Stok', formatNumber(getCriticalStockCount(sourceData)), 'Min seviyenin altindaki stoklar', getCriticalStockCount(sourceData) > 0 ? 'danger' : 'success'),
       createCard('executive-fire-rate', 'Fire Orani', formatPercent(fireRate), 'Fire / uretim miktari', fireRate > 3 ? 'warning' : 'success'),
       createCard('executive-haccp-rate', 'HACCP Basari Orani', formatPercent(haccpSuccessRate), 'PASS / toplam monitoring', haccpSuccessRate >= 90 ? 'success' : 'warning')
