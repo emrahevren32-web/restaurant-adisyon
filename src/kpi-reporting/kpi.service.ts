@@ -4,6 +4,8 @@ import {
 } from '../haccp/haccp.mock'
 import { CriticalAlertService } from '../critical-alerts/critical-alert.service'
 import { ForecastService } from '../forecasting/forecast.service'
+import { calculateRecommendationReport } from '../recommendation-engine/recommendation-calculation.service'
+import { createRecommendationStatistics } from '../recommendation-engine/recommendation-statistics.service'
 import { createInventoryKpiView } from './inventory-kpi.service'
 import { createProductionKpiView } from './production-kpi.service'
 import { createPurchasingKpiView } from './purchasing-kpi.service'
@@ -98,6 +100,21 @@ const KPI_REPORTS: KpiReportDefinition[] = [
   }
 ]
 
+const createKpiRecommendationStatistics = (
+  sourceData: KpiSourceData
+) => createRecommendationStatistics([
+  calculateRecommendationReport({
+    reportDate: new Date().toLocaleDateString('sv-SE'),
+    scope: 'all',
+    responsiblePerson: 'KPI Dashboard',
+    description: 'KPI Dashboard read-model recommendation ozeti.',
+    sourceData,
+    decisionSuggestions: [],
+    actorName: 'KPI Dashboard',
+    getReportNo: () => `RC-${new Date().getFullYear()}-000000`
+  })
+])
+
 const getCard = (cards: Array<{ id: string; value: string }>, id: string) => (
   cards.find(card => card.id === id)?.value || '-'
 )
@@ -176,6 +193,7 @@ const createExecutiveSummary = (
     CriticalAlertService.evaluate(sourceData).filter(alert => matchesPeriod(alert.createdAt, filters.period))
   )
   const forecastStatistics = ForecastService.statistics([ForecastService.evaluate(sourceData)])
+  const recommendationStatistics = createKpiRecommendationStatistics(sourceData)
   const activeWasteRecords = WasteService.list(sourceData).filter(record => (
     record.status !== 'CANCELLED'
     && record.status !== 'REJECTED'
@@ -212,6 +230,8 @@ const createExecutiveSummary = (
       createCard('executive-active-alerts', 'Aktif Alarm', formatNumber(alertStatistics.activeAlerts), `${formatNumber(alertStatistics.averageRiskScore, 1)} ortalama risk`, alertStatistics.activeAlerts > 0 ? 'warning' : 'success'),
       createCard('executive-forecast-risk', 'Riskli Tahmin', formatNumber(forecastStatistics.riskyForecasts), forecastStatistics.biggestIncreaseLabel, forecastStatistics.riskyForecasts > 0 ? 'warning' : 'success'),
       createCard('executive-forecast-demand', 'Beklenen Talep', formatNumber(forecastStatistics.expectedDemand, 1), `${formatNumber(forecastStatistics.averageConfidence, 1)} confidence`, 'neutral'),
+      createCard('executive-recommendation-critical', 'Kritik Oneri', formatNumber(recommendationStatistics.criticalRecommendations), `${formatNumber(recommendationStatistics.totalRecommendations)} toplam oneri`, recommendationStatistics.criticalRecommendations > 0 ? 'danger' : 'success'),
+      createCard('executive-recommendation-gain', 'Oneri Kazanci', formatNumber(recommendationStatistics.expectedTotalGain, 1), `${formatNumber(recommendationStatistics.averageConfidence, 1)} confidence`, 'neutral'),
       createCard('executive-critical-stock', 'Kritik Stok', formatNumber(getCriticalStockCount(sourceData)), 'Min seviyenin altindaki stoklar', getCriticalStockCount(sourceData) > 0 ? 'danger' : 'success'),
       createCard('executive-fire-rate', 'Fire Orani', formatPercent(fireRate), 'Fire / uretim miktari', fireRate > 3 ? 'warning' : 'success'),
       createCard('executive-haccp-rate', 'HACCP Basari Orani', formatPercent(haccpSuccessRate), 'PASS / toplam monitoring', haccpSuccessRate >= 90 ? 'success' : 'warning')

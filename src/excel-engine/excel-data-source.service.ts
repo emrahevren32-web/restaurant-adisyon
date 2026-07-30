@@ -88,6 +88,13 @@ import {
   ForecastService
 } from '../forecasting/forecast.service'
 import {
+  RECOMMENDATION_PRIORITY_LABELS,
+  RECOMMENDATION_RISK_LABELS,
+  RECOMMENDATION_STATUS_LABELS,
+  RECOMMENDATION_TYPE_LABELS,
+  RecommendationService
+} from '../recommendation-engine/recommendation.service'
+import {
   WASTE_REASON_LABELS,
   WASTE_STATUS_LABELS,
   WASTE_TYPE_LABELS,
@@ -860,6 +867,46 @@ const getForecastRows = (): ExcelRow[] => {
   })))
 }
 
+const getRecommendationRows = (): ExcelRow[] => {
+  const sourceData = loadKpiSourceData()
+
+  return RecommendationService.list(sourceData).flatMap(report => report.items.map(item => ({
+    id: report.id,
+    lineId: item.id,
+    reportNo: report.reportNo,
+    reportDate: report.reportDate,
+    status: RECOMMENDATION_STATUS_LABELS[report.status],
+    scope: report.scope === 'all' ? 'Tum Oneriler' : RECOMMENDATION_TYPE_LABELS[report.scope],
+    recommendationType: RECOMMENDATION_TYPE_LABELS[item.recommendationType],
+    priority: RECOMMENDATION_PRIORITY_LABELS[item.priority],
+    risk: RECOMMENDATION_RISK_LABELS[item.risk],
+    title: item.title,
+    reason: item.reason,
+    action: item.action,
+    expectedImpact: item.expectedImpact,
+    ownerRole: item.ownerRole,
+    riskScore: item.riskScore,
+    expectedBenefitScore: item.expectedBenefitScore,
+    expectedCostImpact: item.expectedCostImpact,
+    expectedCapacityGain: item.expectedCapacityGain,
+    expectedTimeGainMinutes: item.expectedTimeGainMinutes,
+    confidenceScore: item.confidenceScore,
+    sourceModule: item.sourceModule,
+    sourceNo: item.sourceNo,
+    relatedModules: item.relatedModules.join(','),
+    relatedEntityType: item.relatedEntityType,
+    relatedEntityName: item.relatedEntityName,
+    productName: item.productName,
+    stockItemName: item.stockItemName,
+    branchName: item.branchName,
+    productionLineName: item.productionLineName,
+    machineCode: item.machineCode,
+    machineName: item.machineName,
+    employeeName: item.employeeName,
+    supplierName: item.supplierName
+  })))
+}
+
 const getQualityRows = (): ExcelRow[] => {
   const sourceData = loadKpiSourceData()
   const qualityFormRows = QualityFormService.list(sourceData).flatMap(form => {
@@ -1192,6 +1239,7 @@ const getRowsForModule = (
   if(moduleKey === 'continuous-improvement') return getContinuousImprovementRows()
   if(moduleKey === 'critical-alerts') return getCriticalAlertRows()
   if(moduleKey === 'forecasting') return getForecastRows()
+  if(moduleKey === 'recommendation-engine') return getRecommendationRows()
   if(moduleKey === 'production-orders') return getProductionOrderRows()
   if(moduleKey === 'quality') return getQualityRows()
   if(moduleKey === 'shipments') return getShipmentRows()

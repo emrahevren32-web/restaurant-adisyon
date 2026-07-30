@@ -371,6 +371,51 @@ export const DECISION_RULES: DecisionRule[] = [
     thresholdLabel: 'Forecast risk CRITICAL'
   },
   {
+    id: 'recommendation-engine-urgent',
+    category: 'Management',
+    title: 'Recommendation Engine acil oneri',
+    description: 'Recommendation Engine kritik risk, beklenen fayda ve confidence skoruna gore acil manuel aksiyon onerisi uretir.',
+    baseRisk: 'CRITICAL',
+    priority: 'URGENT',
+    thresholdLabel: 'Recommendation risk CRITICAL or priority URGENT'
+  },
+  {
+    id: 'recommendation-engine-critical-stock',
+    category: 'Inventory',
+    title: 'Recommendation Engine kritik stok onerisi',
+    description: 'Stok, forecast ve kritik alarm sinyalleri ayni varligi isaret ediyorsa stok aksiyonu manuel olarak incelenmelidir.',
+    baseRisk: 'HIGH',
+    priority: 'URGENT',
+    thresholdLabel: 'Recommendation type STOCK and risk HIGH/CRITICAL'
+  },
+  {
+    id: 'recommendation-engine-maintenance',
+    category: 'Production',
+    title: 'Recommendation Engine bakim/makine onceligi',
+    description: 'Makine, bakim, kapasite ve bottleneck sinyalleri bakim zamaninin manuel incelenmesini gerektirebilir.',
+    baseRisk: 'HIGH',
+    priority: 'HIGH',
+    thresholdLabel: 'Recommendation type MACHINE/MAINTENANCE'
+  },
+  {
+    id: 'recommendation-engine-quality',
+    category: 'Quality',
+    title: 'Recommendation Engine kalite kontrol sikligi',
+    description: 'Kalite, HACCP, form ve alert sinyalleri kontrol sikliginin manuel artirilmasini onerebilir.',
+    baseRisk: 'HIGH',
+    priority: 'HIGH',
+    thresholdLabel: 'Recommendation type QUALITY'
+  },
+  {
+    id: 'recommendation-engine-shipment',
+    category: 'Shipment',
+    title: 'Recommendation Engine sevkiyat takvimi',
+    description: 'Sevkiyat, planlama ve forecast sinyalleri arac, yukleme veya teslimat takviminin manuel incelenmesini gerektirebilir.',
+    baseRisk: 'MEDIUM',
+    priority: 'HIGH',
+    thresholdLabel: 'Recommendation type SHIPMENT'
+  },
+  {
     id: 'inventory-critical-purchase',
     category: 'Inventory',
     title: 'Kritik stok icin satin alma oner',

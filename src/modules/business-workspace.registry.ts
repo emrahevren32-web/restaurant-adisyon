@@ -1008,7 +1008,7 @@ export const BUSINESS_WORKSPACE_MODULE_REGISTRY: BusinessWorkspaceModule[] = def
     isVisible: true,
     displayOrder: 43,
     dependencies: [WORKSPACE_MODULE_CODES.DASHBOARD, WORKSPACE_MODULE_CODES.STOCK, WORKSPACE_MODULE_CODES.PURCHASE],
-    tags: ['business', 'reporting', 'kpi', 'dashboard', 'executive-dashboard', 'production-kpi', 'inventory-kpi', 'quality-kpi', 'purchasing-kpi', 'shipment-kpi', 'decision-support', 'critical-alerts', 'forecasting', 'industrial-kitchen'],
+    tags: ['business', 'reporting', 'kpi', 'dashboard', 'executive-dashboard', 'production-kpi', 'inventory-kpi', 'quality-kpi', 'purchasing-kpi', 'shipment-kpi', 'decision-support', 'critical-alerts', 'forecasting', 'recommendation-engine', 'industrial-kitchen'],
     supportedSectorIds: industrialKitchenSectorIds,
     pricing: { model: 'paid', currency: 'TRY' },
     marketplace: marketplaceReady,
@@ -1064,13 +1064,27 @@ export const BUSINESS_WORKSPACE_MODULE_REGISTRY: BusinessWorkspaceModule[] = def
         supportedLayouts: ['standard', 'wide'],
         requiredPermission: 'dashboard.read',
         renderComponent: 'reporting.forecasting.placeholder'
+      }),
+      dashboardWidget({
+        id: 'reporting.recommendationEngine',
+        title: 'Otomatik Oneriler',
+        description: 'Forecasting, kritik alarm, planlama, stok, kalite ve KPI verilerinden read-model oneri raporlari uretmek icin kontrol paneli baslangic alani.',
+        icon: 'RC',
+        category: 'Raporlama',
+        order: 35,
+        defaultVisible: false,
+        defaultSize: 'large',
+        supportedLayouts: ['standard', 'wide'],
+        requiredPermission: 'dashboard.read',
+        renderComponent: 'reporting.recommendationEngine.placeholder'
       })
     ],
     menuItems: [
       menuItem({ key: 'kpi-dashboard', label: 'KPI Dashboard', route: 'kpi-dashboard', icon: 'KP', adminOnly: true, displayOrder: 10 }),
       menuItem({ key: 'decision-support', label: 'Decision Support', route: 'decision-support', icon: 'DS', adminOnly: true, displayOrder: 20 }),
       menuItem({ key: 'critical-alerts', label: 'Kritik Alarmlar', route: 'critical-alerts', icon: 'AL', adminOnly: true, displayOrder: 30 }),
-      menuItem({ key: 'forecasting', label: 'Tahminleme', route: 'forecasting', icon: 'FC', adminOnly: true, displayOrder: 40 })
+      menuItem({ key: 'forecasting', label: 'Tahminleme', route: 'forecasting', icon: 'FC', adminOnly: true, displayOrder: 40 }),
+      menuItem({ key: 'recommendation-engine', label: 'Otomatik Oneriler', route: 'recommendation-engine', icon: 'RC', adminOnly: true, displayOrder: 50 })
     ]
   },
   {
