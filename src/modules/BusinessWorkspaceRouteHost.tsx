@@ -76,6 +76,7 @@ import ProductionPlanning from '../pages/ProductionPlanning'
 import CapacityPlanning from '../pages/CapacityPlanning'
 import MachineScheduling from '../pages/MachineScheduling'
 import WorkforcePlanning from '../pages/WorkforcePlanning'
+import BottleneckAnalysis from '../pages/BottleneckAnalysis'
 import SupplierManagement from '../pages/SupplierManagement'
 import Users from '../pages/Users'
 import Settings from '../pages/Settings'
@@ -219,6 +220,7 @@ export default function BusinessWorkspaceRouteHost({
   if(route === 'capacity-planning') return <CapacityPlanning currentUser={currentUser} />
   if(route === 'machine-scheduling') return <MachineScheduling currentUser={currentUser} />
   if(route === 'workforce-planning') return <WorkforcePlanning currentUser={currentUser} />
+  if(route === 'bottleneck-analysis') return <BottleneckAnalysis currentUser={currentUser} />
   if(route === 'production-lines') return <ProductionLines currentUser={currentUser} />
   if(route === 'intermediate-products') return <IntermediateProducts />
   if(route === 'final-products') return <FinalProducts />

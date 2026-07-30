@@ -13,6 +13,7 @@ export type ExcelModuleKey =
   | 'capacity-planning'
   | 'machine-scheduling'
   | 'workforce-planning'
+  | 'bottleneck-analysis'
   | 'production-orders'
   | 'quality'
   | 'shipments'

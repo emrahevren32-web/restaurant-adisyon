@@ -5,6 +5,7 @@ import { createFireAnalysisView } from '../fire-impact/fire-analysis.service'
 import { MachineSchedulingService } from '../machine-scheduling/machine-scheduling.service'
 import { ProductionPlanningService } from '../production-planning/production-planning.service'
 import { WorkforcePlanningService } from '../workforce-planning/workforce-planning.service'
+import { BottleneckAnalysisService } from '../bottleneck-analysis/bottleneck-analysis.service'
 import type { KpiFilters, KpiSourceData, ProductionKpiView } from './kpi.types'
 import {
   ALL_FILTER,
@@ -121,6 +122,10 @@ export const createProductionKpiView = (
     matchesPeriod(plan.planDate, filters.period)
   ))
   const workforceStatistics = WorkforcePlanningService.statistics(workforceRecords)
+  const bottleneckRecords = BottleneckAnalysisService.list(sourceData).filter(report => (
+    matchesPeriod(report.reportDate, filters.period)
+  ))
+  const bottleneckStatistics = BottleneckAnalysisService.statistics(bottleneckRecords)
 
   const productBuckets = new Map<string, number>()
   activeOrders.forEach(order => {
@@ -166,6 +171,9 @@ export const createProductionKpiView = (
       createCard('workforce-planning-utilization', 'Personel Doluluk', formatPercent(workforceStatistics.shiftUtilizationPercent), `${formatNumber(workforceStatistics.activePersonnel)} aktif / ${formatNumber(workforceStatistics.idlePersonnel)} bos personel`, workforceStatistics.shiftUtilizationPercent > 95 ? 'warning' : 'success'),
       createCard('workforce-planning-missing', 'Eksik Personel', formatNumber(workforceStatistics.missingPersonnel), 'Workforce Planning read-model', workforceStatistics.missingPersonnel > 0 ? 'warning' : 'success'),
       createCard('workforce-planning-conflict', 'Personel Cakisma', formatNumber(workforceStatistics.conflictCount), `${formatNumber(workforceStatistics.totalWorkingMinutes)} dk planlanan calisma`, workforceStatistics.conflictCount > 0 ? 'danger' : 'success'),
+      createCard('bottleneck-analysis-total', 'Darbogaz', formatNumber(bottleneckStatistics.totalBottlenecks), `${formatNumber(bottleneckStatistics.averageRiskScore, 1)} ortalama risk`, bottleneckStatistics.totalBottlenecks > 0 ? 'warning' : 'success'),
+      createCard('bottleneck-analysis-critical', 'Kritik Darbogaz', formatNumber(bottleneckStatistics.criticalBottlenecks), `En yogun hat: ${bottleneckStatistics.topLineName}`, bottleneckStatistics.criticalBottlenecks > 0 ? 'danger' : 'success'),
+      createCard('bottleneck-analysis-waiting', 'Darbogaz Bekleme', `${formatNumber(bottleneckStatistics.totalWaitingMinutes)} dk`, `Setup ${formatNumber(bottleneckStatistics.totalSetupMinutes)} dk`, bottleneckStatistics.totalWaitingMinutes > 180 ? 'warning' : 'neutral'),
       createCard('production-fire-total', 'Toplam Fire', formatQuantity(fireView.statistics.totalQuantity), 'Fire Impact Analysis read-model', fireView.statistics.totalQuantity > 0 ? 'warning' : 'success'),
       createCard('production-fire-cost', 'Fire Maliyeti', formatCurrency(fireView.statistics.totalCost), 'Tahmini maliyet etkisi', fireView.statistics.totalCost > 0 ? 'warning' : 'success'),
       createCard('production-fire-rate', 'Fire Orani', formatPercent(fireView.statistics.fireRate), 'Fire / uretim miktari', fireView.statistics.fireRate > 3 ? 'danger' : fireView.statistics.fireRate > 1 ? 'warning' : 'success')

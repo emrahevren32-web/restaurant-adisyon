@@ -5,6 +5,7 @@ import { ALL_FILTER } from '../kpi-reporting/kpi.utils'
 import { DECISION_RULES } from './decision-rules'
 import { createCostEngineDecisionSuggestions } from './cost-engine-decision.service'
 import { createCapacityPlanningDecisionSuggestions } from './capacity-planning-decision.service'
+import { createBottleneckAnalysisDecisionSuggestions } from './bottleneck-analysis-decision.service'
 import { createInventoryDecisionSuggestions } from './inventory-decision.service'
 import { createMachineSchedulingDecisionSuggestions } from './machine-scheduling-decision.service'
 import { createOperationChecklistDecisionSuggestions } from './operation-checklist-decision.service'
@@ -67,6 +68,7 @@ export const createDecisionSuggestions = (
     ...createCapacityPlanningDecisionSuggestions(sourceData),
     ...createMachineSchedulingDecisionSuggestions(sourceData),
     ...createWorkforcePlanningDecisionSuggestions(sourceData),
+    ...createBottleneckAnalysisDecisionSuggestions(sourceData),
     ...createCostEngineDecisionSuggestions(sourceData),
     ...createInventoryDecisionSuggestions(sourceData),
     ...createQualityDecisionSuggestions(sourceData),
@@ -136,6 +138,7 @@ const getDashboardSummary = (
     || suggestion.ruleId.startsWith('capacity-planning-')
     || suggestion.ruleId.startsWith('machine-scheduling-')
     || suggestion.ruleId.startsWith('workforce-planning-')
+    || suggestion.ruleId.startsWith('bottleneck-analysis-')
   )).length,
   delayedShipments: suggestions.filter(suggestion => (
     suggestion.ruleId === 'shipment-delay-revision'

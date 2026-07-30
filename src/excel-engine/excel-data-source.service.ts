@@ -61,6 +61,12 @@ import {
   WorkforcePlanningService
 } from '../workforce-planning/workforce-planning.service'
 import {
+  BottleneckAnalysisService,
+  BOTTLENECK_REPORT_STATUS_LABELS,
+  BOTTLENECK_RISK_LABELS,
+  BOTTLENECK_TYPE_LABELS
+} from '../bottleneck-analysis/bottleneck-analysis.service'
+import {
   WASTE_REASON_LABELS,
   WASTE_STATUS_LABELS,
   WASTE_TYPE_LABELS,
@@ -622,6 +628,77 @@ const getWorkforcePlanningRows = (): ExcelRow[] => {
   })
 }
 
+const getBottleneckAnalysisRows = (): ExcelRow[] => {
+  const sourceData = loadKpiSourceData()
+  const reports = BottleneckAnalysisService.list(sourceData)
+
+  return reports.flatMap((report): ExcelRow[] => {
+    const baseRow: ExcelRow = {
+      id: report.id,
+      reportNo: report.reportNo,
+      status: BOTTLENECK_REPORT_STATUS_LABELS[report.status],
+      reportDate: report.reportDate,
+      startDate: report.startDate,
+      endDate: report.endDate,
+      productionLineName: report.productionLineName,
+      machineCode: report.machineCode,
+      machineName: report.machineName,
+      employeeName: report.employeeName,
+      workCenterName: report.workCenterName,
+      riskLevel: report.riskLevel === 'all' ? 'Tum Riskler' : BOTTLENECK_RISK_LABELS[report.riskLevel],
+      itemCount: report.items.length,
+      criticalCount: report.items.filter(item => item.riskLevel === 'CRITICAL').length,
+      recommendations: report.recommendations.join(' | ')
+    }
+
+    if(report.items.length === 0){
+      return report.constraints.map(constraint => ({
+        ...baseRow,
+        lineId: constraint.id,
+        bottleneckType: BOTTLENECK_TYPE_LABELS[constraint.entityType],
+        entityName: constraint.entityName,
+        riskLevel: BOTTLENECK_RISK_LABELS[constraint.riskLevel],
+        utilizationPercent: constraint.utilizationPercent,
+        waitingMinutes: constraint.waitingMinutes,
+        setupMinutes: constraint.setupMinutes,
+        cleaningMinutes: constraint.cleaningMinutes,
+        workingMinutes: constraint.workingMinutes,
+        idleMinutes: constraint.idleMinutes,
+        sourceNo: constraint.sourceNo
+      }))
+    }
+
+    return report.items.map(item => ({
+      ...baseRow,
+      lineId: item.id,
+      bottleneckType: BOTTLENECK_TYPE_LABELS[item.bottleneckType],
+      riskLevel: BOTTLENECK_RISK_LABELS[item.riskLevel],
+      riskScore: item.riskScore,
+      entityCode: item.entityCode,
+      entityName: item.entityName,
+      productionLineName: item.productionLineName,
+      machineCode: item.machineCode,
+      machineName: item.machineName,
+      employeeName: item.employeeName,
+      workCenterName: item.workCenterName,
+      shiftName: item.shiftName,
+      utilizationPercent: item.utilizationPercent,
+      waitingMinutes: item.waitingMinutes,
+      setupMinutes: item.setupMinutes,
+      cleaningMinutes: item.cleaningMinutes,
+      workingMinutes: item.workingMinutes,
+      idleMinutes: item.idleMinutes,
+      overloadMinutes: item.overloadMinutes,
+      maintenanceMinutes: item.maintenanceMinutes,
+      missingPersonnel: item.missingPersonnel,
+      sourceType: item.sourceType,
+      sourceNo: item.sourceNo,
+      recommendation: item.recommendation,
+      reasons: item.reasons.map(reason => `${reason.label}: ${reason.value} ${reason.unit}`).join(' | ')
+    }))
+  })
+}
+
 const getQualityRows = (): ExcelRow[] => {
   const sourceData = loadKpiSourceData()
   const qualityFormRows = QualityFormService.list(sourceData).flatMap(form => {
@@ -950,6 +1027,7 @@ const getRowsForModule = (
   if(moduleKey === 'capacity-planning') return getCapacityPlanningRows()
   if(moduleKey === 'machine-scheduling') return getMachineSchedulingRows()
   if(moduleKey === 'workforce-planning') return getWorkforcePlanningRows()
+  if(moduleKey === 'bottleneck-analysis') return getBottleneckAnalysisRows()
   if(moduleKey === 'production-orders') return getProductionOrderRows()
   if(moduleKey === 'quality') return getQualityRows()
   if(moduleKey === 'shipments') return getShipmentRows()

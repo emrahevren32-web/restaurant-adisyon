@@ -182,6 +182,51 @@ export const DECISION_RULES: DecisionRule[] = [
     thresholdLabel: 'Conflict reason cakisan gorev'
   },
   {
+    id: 'bottleneck-analysis-line-over-95',
+    category: 'Production',
+    title: 'Bottleneck Analysis hat kapasitesi >95',
+    description: 'Hat kapasitesi surekli %95 uzerinde gorunuyorsa uretim akisi kritik darbogaz riski tasir.',
+    baseRisk: 'HIGH',
+    priority: 'HIGH',
+    thresholdLabel: 'Hat utilization >= 95%'
+  },
+  {
+    id: 'bottleneck-analysis-machine-top',
+    category: 'Production',
+    title: 'Bottleneck Analysis en yogun makine',
+    description: 'Makine risk skoru yuksekse bekleme, setup, bakim ve queue etkisi birlikte incelenmelidir.',
+    baseRisk: 'HIGH',
+    priority: 'HIGH',
+    thresholdLabel: 'Makine risk skoru >= 75'
+  },
+  {
+    id: 'bottleneck-analysis-setup-share',
+    category: 'Production',
+    title: 'Bottleneck Analysis setup payi',
+    description: 'Setup ve temizlik payi uretim suresinin anlamli bolumunu aliyorsa proses sirasi revizyonu gerekebilir.',
+    baseRisk: 'MEDIUM',
+    priority: 'HIGH',
+    thresholdLabel: 'Setup + temizlik / calisma >= 18%'
+  },
+  {
+    id: 'bottleneck-analysis-personnel-capacity-loss',
+    category: 'Production',
+    title: 'Bottleneck Analysis personel kapasite kaybi',
+    description: 'Personel eksigi gunluk kapasiteyi dusuruyorsa vardiya ve gorev kapsami manuel olarak incelenmelidir.',
+    baseRisk: 'HIGH',
+    priority: 'HIGH',
+    thresholdLabel: 'Tahmini kapasite kaybi >= 12%'
+  },
+  {
+    id: 'bottleneck-analysis-maintenance-impact',
+    category: 'Production',
+    title: 'Bottleneck Analysis maintenance etkisi',
+    description: 'Bakim penceresi yogun uretim saatine denk geldiginde darbogaz etkisi artabilir.',
+    baseRisk: 'HIGH',
+    priority: 'HIGH',
+    thresholdLabel: 'Maintenance minutes > 0 veya MAINTENANCE tipi bottleneck'
+  },
+  {
     id: 'inventory-critical-purchase',
     category: 'Inventory',
     title: 'Kritik stok icin satin alma oner',
