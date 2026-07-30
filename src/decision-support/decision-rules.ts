@@ -650,6 +650,51 @@ export const DECISION_RULES: DecisionRule[] = [
     thresholdLabel: 'Fire maliyet payi >= 7%'
   },
   {
+    id: 'cost-optimization-raw-material',
+    category: 'Purchasing',
+    title: 'Cost Optimization hammadde maliyeti artisi',
+    description: 'Cost Optimization Engine hammadde, satin alma ve recete maliyetindeki artisi parasal tasarruf potansiyeline cevirir.',
+    baseRisk: 'HIGH',
+    priority: 'HIGH',
+    thresholdLabel: 'RAW_MATERIAL tasarruf potansiyeli > 0 veya risk HIGH/CRITICAL'
+  },
+  {
+    id: 'cost-optimization-energy',
+    category: 'Production',
+    title: 'Cost Optimization enerji maliyeti',
+    description: 'Hat, makine bos sure ve kapasite verileri enerji maliyeti ortalamanin uzerine ciktiginda manuel inceleme onerir.',
+    baseRisk: 'MEDIUM',
+    priority: 'HIGH',
+    thresholdLabel: 'ENERGY kalemi veya bos sure kaynakli MACHINE kalemi'
+  },
+  {
+    id: 'cost-optimization-maintenance',
+    category: 'Production',
+    title: 'Cost Optimization bakim maliyeti',
+    description: 'Bakim ve makine kaynakli maliyet sapmasi kritik seviyeye yaklastiginda bakim penceresi manuel olarak incelenir.',
+    baseRisk: 'HIGH',
+    priority: 'HIGH',
+    thresholdLabel: 'MAINTENANCE kalemi veya maintenance source module'
+  },
+  {
+    id: 'cost-optimization-waste',
+    category: 'Production',
+    title: 'Cost Optimization fire tasarrufu',
+    description: 'Fire, lot, kalite ve recipe cost verileri parasal tasarruf firsati urettiginde kok neden analizi onerilir.',
+    baseRisk: 'HIGH',
+    priority: 'HIGH',
+    thresholdLabel: 'WASTE tasarruf potansiyeli > 0'
+  },
+  {
+    id: 'cost-optimization-supplier',
+    category: 'Purchasing',
+    title: 'Cost Optimization alternatif supplier',
+    description: 'Purchase Orders, Goods Receipt ve supplier kalite maliyetleri alternatif tedarikci karar sinyaline donusturulur.',
+    baseRisk: 'MEDIUM',
+    priority: 'HIGH',
+    thresholdLabel: 'Supplier bagli cost optimization kalemi'
+  },
+  {
     id: 'waste-product-increase',
     category: 'Production',
     title: 'Waste Management urun fire artisi',

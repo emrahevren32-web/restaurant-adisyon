@@ -7,6 +7,7 @@ import { createCostEngineDecisionSuggestions } from './cost-engine-decision.serv
 import { createCapacityPlanningDecisionSuggestions } from './capacity-planning-decision.service'
 import { createBottleneckAnalysisDecisionSuggestions } from './bottleneck-analysis-decision.service'
 import { createContinuousImprovementDecisionSuggestions } from './continuous-improvement-decision.service'
+import { createCostOptimizationDecisionSuggestions } from './cost-optimization-decision.service'
 import { createCriticalAlertDecisionSuggestions } from './critical-alert-decision.service'
 import { createForecastingDecisionSuggestions } from './forecasting-decision.service'
 import { createInventoryDecisionSuggestions } from './inventory-decision.service'
@@ -78,6 +79,7 @@ export const createDecisionSuggestions = (
     ...createForecastingDecisionSuggestions(sourceData),
     ...createRecommendationEngineDecisionSuggestions(sourceData),
     ...createCostEngineDecisionSuggestions(sourceData),
+    ...createCostOptimizationDecisionSuggestions(sourceData),
     ...createInventoryDecisionSuggestions(sourceData),
     ...createQualityDecisionSuggestions(sourceData),
     ...createQualityFormDecisionSuggestions(sourceData),
@@ -132,6 +134,7 @@ const getDashboardSummary = (
   highFire: suggestions.filter(suggestion => (
     suggestion.ruleId === 'production-fire-root-cause'
     || suggestion.ruleId === 'cost-engine-fire-cost'
+    || suggestion.ruleId === 'cost-optimization-waste'
     || suggestion.ruleId.startsWith('waste-')
     || suggestion.ruleId === 'forecasting-critical-risk'
     || suggestion.ruleId === 'recommendation-engine-urgent'
@@ -159,6 +162,8 @@ const getDashboardSummary = (
     || suggestion.ruleId === 'forecasting-critical-risk'
     || suggestion.ruleId === 'recommendation-engine-urgent'
     || suggestion.ruleId === 'recommendation-engine-maintenance'
+    || suggestion.ruleId === 'cost-optimization-energy'
+    || suggestion.ruleId === 'cost-optimization-maintenance'
   )).length,
   delayedShipments: suggestions.filter(suggestion => (
     suggestion.ruleId === 'shipment-delay-revision'

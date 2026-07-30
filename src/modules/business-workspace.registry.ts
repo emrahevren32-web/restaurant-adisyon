@@ -1008,7 +1008,7 @@ export const BUSINESS_WORKSPACE_MODULE_REGISTRY: BusinessWorkspaceModule[] = def
     isVisible: true,
     displayOrder: 43,
     dependencies: [WORKSPACE_MODULE_CODES.DASHBOARD, WORKSPACE_MODULE_CODES.STOCK, WORKSPACE_MODULE_CODES.PURCHASE],
-    tags: ['business', 'reporting', 'kpi', 'dashboard', 'executive-dashboard', 'production-kpi', 'inventory-kpi', 'quality-kpi', 'purchasing-kpi', 'shipment-kpi', 'decision-support', 'critical-alerts', 'forecasting', 'recommendation-engine', 'ai-analysis', 'industrial-kitchen'],
+    tags: ['business', 'reporting', 'kpi', 'dashboard', 'executive-dashboard', 'production-kpi', 'inventory-kpi', 'quality-kpi', 'purchasing-kpi', 'shipment-kpi', 'decision-support', 'critical-alerts', 'forecasting', 'recommendation-engine', 'ai-analysis', 'cost-optimization', 'industrial-kitchen'],
     supportedSectorIds: industrialKitchenSectorIds,
     pricing: { model: 'paid', currency: 'TRY' },
     marketplace: marketplaceReady,
@@ -1090,6 +1090,19 @@ export const BUSINESS_WORKSPACE_MODULE_REGISTRY: BusinessWorkspaceModule[] = def
         supportedLayouts: ['standard', 'wide'],
         requiredPermission: 'dashboard.read',
         renderComponent: 'reporting.aiAnalysis.placeholder'
+      }),
+      dashboardWidget({
+        id: 'reporting.costOptimization',
+        title: 'Maliyet Optimizasyonu',
+        description: 'Forecasting, AI Analysis, Recommendation Engine, Waste, Purchase ve Cost Engine verilerinden read-model maliyet optimizasyon firsatlari uretmek icin kontrol paneli baslangic alani.',
+        icon: 'CO',
+        category: 'Raporlama',
+        order: 45,
+        defaultVisible: false,
+        defaultSize: 'large',
+        supportedLayouts: ['standard', 'wide'],
+        requiredPermission: 'dashboard.read',
+        renderComponent: 'reporting.costOptimization.placeholder'
       })
     ],
     menuItems: [
@@ -1098,7 +1111,8 @@ export const BUSINESS_WORKSPACE_MODULE_REGISTRY: BusinessWorkspaceModule[] = def
       menuItem({ key: 'critical-alerts', label: 'Kritik Alarmlar', route: 'critical-alerts', icon: 'AL', adminOnly: true, displayOrder: 30 }),
       menuItem({ key: 'forecasting', label: 'Tahminleme', route: 'forecasting', icon: 'FC', adminOnly: true, displayOrder: 40 }),
       menuItem({ key: 'recommendation-engine', label: 'Otomatik Oneriler', route: 'recommendation-engine', icon: 'RC', adminOnly: true, displayOrder: 50 }),
-      menuItem({ key: 'ai-analysis', label: 'AI Analiz', route: 'ai-analysis', icon: 'AI', adminOnly: true, displayOrder: 60 })
+      menuItem({ key: 'ai-analysis', label: 'AI Analiz', route: 'ai-analysis', icon: 'AI', adminOnly: true, displayOrder: 60 }),
+      menuItem({ key: 'cost-optimization', label: 'Maliyet Optimizasyonu', route: 'cost-optimization', icon: 'CO', adminOnly: true, displayOrder: 70 })
     ]
   },
   {

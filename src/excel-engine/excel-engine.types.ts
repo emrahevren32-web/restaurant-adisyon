@@ -19,6 +19,7 @@ export type ExcelModuleKey =
   | 'forecasting'
   | 'recommendation-engine'
   | 'ai-analysis'
+  | 'cost-optimization'
   | 'production-orders'
   | 'quality'
   | 'shipments'

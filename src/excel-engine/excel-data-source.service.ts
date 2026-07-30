@@ -1,5 +1,12 @@
 import { createCostEngineView, createDefaultCostEngineFilters } from '../cost-engine/cost-engine.service'
 import {
+  COST_OPTIMIZATION_CATEGORY_LABELS,
+  COST_OPTIMIZATION_PRIORITY_LABELS,
+  COST_OPTIMIZATION_RISK_LABELS,
+  COST_OPTIMIZATION_STATUS_LABELS,
+  CostOptimizationService
+} from '../cost-optimization/cost-optimization.service'
+import {
   AI_ANALYSIS_STATUS_LABELS,
   AI_ANALYSIS_TITLE_LABELS,
   AI_INSIGHT_TYPE_LABELS,
@@ -953,6 +960,49 @@ const getAIAnalysisRows = (): ExcelRow[] => {
   })))
 }
 
+const getCostOptimizationRows = (): ExcelRow[] => {
+  const sourceData = loadKpiSourceData()
+
+  return CostOptimizationService.list(sourceData).flatMap(report => report.items.map(item => ({
+    id: report.id,
+    lineId: item.id,
+    reportNo: report.reportNo,
+    reportDate: report.reportDate,
+    status: COST_OPTIMIZATION_STATUS_LABELS[report.status],
+    scope: report.scope === 'all' ? 'Tum Kategoriler' : COST_OPTIMIZATION_CATEGORY_LABELS[report.scope],
+    category: COST_OPTIMIZATION_CATEGORY_LABELS[item.category],
+    priority: COST_OPTIMIZATION_PRIORITY_LABELS[item.priority],
+    risk: COST_OPTIMIZATION_RISK_LABELS[item.risk],
+    title: item.title,
+    reason: item.reason,
+    action: item.action,
+    expectedImpact: item.expectedImpact,
+    ownerRole: item.ownerRole,
+    unitCost: item.unitCost,
+    totalCost: item.totalCost,
+    baselineCost: item.baselineCost,
+    optimizedCost: item.optimizedCost,
+    savingPotential: item.savingPotential,
+    expectedMonthlyGain: item.expectedMonthlyGain,
+    expectedAnnualGain: item.expectedAnnualGain,
+    roiEstimate: item.roiEstimate,
+    riskScore: item.riskScore,
+    confidenceScore: item.confidenceScore,
+    sourceModule: item.sourceModule,
+    sourceNo: item.sourceNo,
+    relatedModules: item.relatedModules.join(','),
+    relatedEntityType: item.relatedEntityType,
+    relatedEntityName: item.relatedEntityName,
+    productName: item.productName,
+    branchName: item.branchName,
+    warehouseName: item.warehouseName,
+    productionLineName: item.productionLineName,
+    machineCode: item.machineCode,
+    machineName: item.machineName,
+    supplierName: item.supplierName
+  })))
+}
+
 const getQualityRows = (): ExcelRow[] => {
   const sourceData = loadKpiSourceData()
   const qualityFormRows = QualityFormService.list(sourceData).flatMap(form => {
@@ -1287,6 +1337,7 @@ const getRowsForModule = (
   if(moduleKey === 'forecasting') return getForecastRows()
   if(moduleKey === 'recommendation-engine') return getRecommendationRows()
   if(moduleKey === 'ai-analysis') return getAIAnalysisRows()
+  if(moduleKey === 'cost-optimization') return getCostOptimizationRows()
   if(moduleKey === 'production-orders') return getProductionOrderRows()
   if(moduleKey === 'quality') return getQualityRows()
   if(moduleKey === 'shipments') return getShipmentRows()

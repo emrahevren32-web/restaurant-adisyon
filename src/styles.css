@@ -6111,149 +6111,251 @@ th { color:var(--muted-strong); font-size:13px; font-weight:750 }
 .ai-analysis-score-list p,
 .ai-analysis-history-list p { margin:5px 0 0 }
 
+.cost-optimization-page { display:flex; flex-direction:column; gap:18px; min-width:0; max-width:100% }
+.cost-optimization-metric-grid { grid-template-columns:repeat(5, minmax(0, 1fr)) }
+.cost-optimization-create-card,
+.cost-optimization-filter-card,
+.cost-optimization-detail-card { margin-bottom:0; min-width:0 }
+.cost-optimization-create-grid,
+.cost-optimization-filter-grid { display:grid; grid-template-columns:repeat(4, minmax(0, 1fr)); gap:10px; align-items:end }
+.cost-optimization-wide { grid-column:span 2 }
+.cost-optimization-chart-grid { display:grid; grid-template-columns:repeat(2, minmax(0, 1fr)); gap:12px }
+.cost-optimization-chart-grid .kpi-chart-card:last-child { grid-column:1 / -1 }
+.cost-optimization-layout { grid-template-columns:minmax(0, 1fr) minmax(360px, 460px); align-items:start }
+.cost-optimization-side { display:flex; flex-direction:column; gap:12px; min-width:0 }
+.cost-optimization-table-wrap { min-width:0 }
+.cost-optimization-table { min-width:1220px }
+.cost-optimization-table tbody tr { cursor:pointer }
+.cost-optimization-table tbody tr:hover td { background:#f0fdf4 }
+.cost-optimization-table tbody tr[aria-selected="true"] td,
+.cost-optimization-table tbody tr[aria-selected="true"]:hover td { background:#dcfce7; box-shadow:inset 5px 0 0 #16a34a }
+.cost-optimization-table td strong,
+.cost-optimization-table td span { display:block; min-width:0; line-height:1.28; overflow-wrap:anywhere }
+.cost-optimization-table td strong { color:var(--text); font-weight:950 }
+.cost-optimization-table td span { margin-top:3px; color:var(--muted); font-size:12px; font-weight:800 }
+.cost-optimization-output-actions,
+.cost-optimization-status-actions { display:grid; gap:8px; margin-bottom:12px; min-width:0 }
+.cost-optimization-output-actions { grid-template-columns:repeat(3, minmax(0, 1fr)) }
+.cost-optimization-status-actions { grid-template-columns:repeat(2, minmax(0, 1fr)) }
+.cost-optimization-output-actions .btn,
+.cost-optimization-status-actions .btn { width:100%; min-height:var(--touch-target); padding-inline:10px; white-space:normal }
+.cost-optimization-detail-grid { display:grid; grid-template-columns:repeat(2, minmax(0, 1fr)); gap:10px; margin:12px 0 }
+.cost-optimization-detail-grid > div,
+.cost-optimization-opportunity-list > div,
+.cost-optimization-module-list > div,
+.cost-optimization-history-list > div { min-width:0; border:1px solid var(--line); border-radius:var(--radius-md); padding:10px 11px; background:var(--surface-muted) }
+.cost-optimization-detail-grid span,
+.cost-optimization-detail-grid strong,
+.cost-optimization-opportunity-list strong,
+.cost-optimization-opportunity-list span,
+.cost-optimization-module-list strong,
+.cost-optimization-module-list span,
+.cost-optimization-history-list strong,
+.cost-optimization-history-list span,
+.cost-optimization-history-list p { display:block; min-width:0; line-height:1.35; overflow-wrap:anywhere }
+.cost-optimization-detail-grid span { color:var(--muted); font-size:12px; font-weight:850 }
+.cost-optimization-detail-grid strong { margin-top:4px; color:var(--text); font-size:14px; font-weight:950; font-variant-numeric:tabular-nums }
+.cost-optimization-notes { margin:0; color:var(--text-soft); font-size:13px; font-weight:750; line-height:1.55; overflow-wrap:anywhere }
+.cost-optimization-opportunity-list,
+.cost-optimization-module-list,
+.cost-optimization-history-list { display:grid; gap:9px; min-width:0 }
+.cost-optimization-opportunity-list strong,
+.cost-optimization-module-list strong,
+.cost-optimization-history-list strong { color:var(--text); font-size:13px; font-weight:950 }
+.cost-optimization-opportunity-list span,
+.cost-optimization-module-list span,
+.cost-optimization-history-list span,
+.cost-optimization-history-list p { color:var(--muted); font-size:12px; font-weight:800 }
+.cost-optimization-history-list p { margin:5px 0 0 }
+
 @media (max-width: 1200px){
   .forecasting-metric-grid,
   .recommendation-engine-metric-grid,
   .ai-analysis-metric-grid,
+  .cost-optimization-metric-grid,
   .forecasting-create-grid,
   .recommendation-engine-create-grid,
   .ai-analysis-create-grid,
+  .cost-optimization-create-grid,
   .forecasting-filter-grid,
   .recommendation-engine-filter-grid,
   .ai-analysis-filter-grid,
+  .cost-optimization-filter-grid,
   .forecasting-chart-grid,
   .recommendation-engine-chart-grid,
-  .ai-analysis-chart-grid { grid-template-columns:repeat(2, minmax(0, 1fr)) }
+  .ai-analysis-chart-grid,
+  .cost-optimization-chart-grid { grid-template-columns:repeat(2, minmax(0, 1fr)) }
   .forecasting-chart-grid .kpi-chart-card:last-child,
   .recommendation-engine-chart-grid .kpi-chart-card:last-child,
   .ai-analysis-chart-grid .kpi-chart-card:last-child,
+  .cost-optimization-chart-grid .kpi-chart-card:last-child,
   .forecasting-wide,
   .recommendation-engine-wide,
-  .ai-analysis-wide { grid-column:1 / -1 }
+  .ai-analysis-wide,
+  .cost-optimization-wide { grid-column:1 / -1 }
 }
 
 @media (max-width: 980px){
   .forecasting-layout { display:block }
   .recommendation-engine-layout { display:block }
   .ai-analysis-layout { display:block }
+  .cost-optimization-layout { display:block }
   .forecasting-side { margin-top:14px }
   .recommendation-engine-side { margin-top:14px }
   .ai-analysis-side { margin-top:14px }
+  .cost-optimization-side { margin-top:14px }
   .forecasting-table-wrap { overflow:visible; border:0; background:transparent; box-shadow:none }
   .recommendation-engine-table-wrap { overflow:visible; border:0; background:transparent; box-shadow:none }
   .ai-analysis-table-wrap { overflow:visible; border:0; background:transparent; box-shadow:none }
+  .cost-optimization-table-wrap { overflow:visible; border:0; background:transparent; box-shadow:none }
   .forecasting-table-wrap .forecasting-table { min-width:0 }
   .recommendation-engine-table-wrap .recommendation-engine-table { min-width:0 }
   .ai-analysis-table-wrap .ai-analysis-table { min-width:0 }
+  .cost-optimization-table-wrap .cost-optimization-table { min-width:0 }
   .forecasting-table,
   .recommendation-engine-table,
   .ai-analysis-table,
+  .cost-optimization-table,
   .forecasting-table thead,
   .recommendation-engine-table thead,
   .ai-analysis-table thead,
+  .cost-optimization-table thead,
   .forecasting-table tbody,
   .recommendation-engine-table tbody,
   .ai-analysis-table tbody,
+  .cost-optimization-table tbody,
   .forecasting-table tr,
   .recommendation-engine-table tr,
   .ai-analysis-table tr,
+  .cost-optimization-table tr,
   .forecasting-table td,
   .recommendation-engine-table td,
-  .ai-analysis-table td { display:block; width:100%; min-width:0 }
+  .ai-analysis-table td,
+  .cost-optimization-table td { display:block; width:100%; min-width:0 }
   .forecasting-table thead { display:none }
   .recommendation-engine-table thead { display:none }
   .ai-analysis-table thead { display:none }
+  .cost-optimization-table thead { display:none }
   .forecasting-table tbody { display:grid; gap:10px }
   .recommendation-engine-table tbody { display:grid; gap:10px }
   .ai-analysis-table tbody { display:grid; gap:10px }
+  .cost-optimization-table tbody { display:grid; gap:10px }
   .forecasting-table tbody tr,
   .recommendation-engine-table tbody tr,
   .ai-analysis-table tbody tr,
+  .cost-optimization-table tbody tr,
   .forecasting-table tbody tr:nth-child(even),
   .recommendation-engine-table tbody tr:nth-child(even),
   .ai-analysis-table tbody tr:nth-child(even),
+  .cost-optimization-table tbody tr:nth-child(even),
   .forecasting-table tbody tr:hover,
   .recommendation-engine-table tbody tr:hover,
-  .ai-analysis-table tbody tr:hover { display:grid; grid-template-columns:repeat(2, minmax(0, 1fr)); gap:9px; border:1px solid var(--line); border-radius:var(--radius-md); padding:11px 12px; background:var(--surface); box-shadow:var(--shadow-xs) }
+  .ai-analysis-table tbody tr:hover,
+  .cost-optimization-table tbody tr:hover { display:grid; grid-template-columns:repeat(2, minmax(0, 1fr)); gap:9px; border:1px solid var(--line); border-radius:var(--radius-md); padding:11px 12px; background:var(--surface); box-shadow:var(--shadow-xs) }
   .forecasting-table tbody tr td,
   .recommendation-engine-table tbody tr td,
   .ai-analysis-table tbody tr td,
+  .cost-optimization-table tbody tr td,
   .forecasting-table tbody tr:nth-child(even) td,
   .recommendation-engine-table tbody tr:nth-child(even) td,
   .ai-analysis-table tbody tr:nth-child(even) td,
+  .cost-optimization-table tbody tr:nth-child(even) td,
   .forecasting-table tbody tr:hover td,
   .recommendation-engine-table tbody tr:hover td,
   .ai-analysis-table tbody tr:hover td,
+  .cost-optimization-table tbody tr:hover td,
   .forecasting-table tbody tr[aria-selected="true"] td,
   .recommendation-engine-table tbody tr[aria-selected="true"] td,
   .ai-analysis-table tbody tr[aria-selected="true"] td,
+  .cost-optimization-table tbody tr[aria-selected="true"] td,
   .forecasting-table tbody tr[aria-selected="true"]:hover td,
   .recommendation-engine-table tbody tr[aria-selected="true"]:hover td,
-  .ai-analysis-table tbody tr[aria-selected="true"]:hover td { height:auto; min-height:0; border:0; padding:0; background:transparent; box-shadow:none; text-align:right }
+  .ai-analysis-table tbody tr[aria-selected="true"]:hover td,
+  .cost-optimization-table tbody tr[aria-selected="true"]:hover td { height:auto; min-height:0; border:0; padding:0; background:transparent; box-shadow:none; text-align:right }
   .forecasting-table tbody td::before { content:attr(data-label); display:block; margin-bottom:3px; color:var(--muted); font-size:11px; font-weight:850; line-height:1.2; text-align:left }
   .recommendation-engine-table tbody td::before { content:attr(data-label); display:block; margin-bottom:3px; color:var(--muted); font-size:11px; font-weight:850; line-height:1.2; text-align:left }
   .ai-analysis-table tbody td::before { content:attr(data-label); display:block; margin-bottom:3px; color:var(--muted); font-size:11px; font-weight:850; line-height:1.2; text-align:left }
+  .cost-optimization-table tbody td::before { content:attr(data-label); display:block; margin-bottom:3px; color:var(--muted); font-size:11px; font-weight:850; line-height:1.2; text-align:left }
   .forecasting-table tbody td:first-child,
   .recommendation-engine-table tbody td:first-child,
   .ai-analysis-table tbody td:first-child,
+  .cost-optimization-table tbody td:first-child,
   .forecasting-table tbody td.empty-cell,
   .recommendation-engine-table tbody td.empty-cell,
-  .ai-analysis-table tbody td.empty-cell { grid-column:1 / -1; text-align:left }
+  .ai-analysis-table tbody td.empty-cell,
+  .cost-optimization-table tbody td.empty-cell { grid-column:1 / -1; text-align:left }
   .forecasting-table tbody td:first-child strong { text-align:left }
   .recommendation-engine-table tbody td:first-child strong { text-align:left }
   .ai-analysis-table tbody td:first-child strong { text-align:left }
+  .cost-optimization-table tbody td:first-child strong { text-align:left }
   .forecasting-table tbody td.empty-cell { text-align:center }
   .recommendation-engine-table tbody td.empty-cell { text-align:center }
   .ai-analysis-table tbody td.empty-cell { text-align:center }
+  .cost-optimization-table tbody td.empty-cell { text-align:center }
 }
 
 @media (max-width: 560px){
   .forecasting-metric-grid,
   .recommendation-engine-metric-grid,
   .ai-analysis-metric-grid,
+  .cost-optimization-metric-grid,
   .forecasting-create-grid,
   .recommendation-engine-create-grid,
   .ai-analysis-create-grid,
+  .cost-optimization-create-grid,
   .forecasting-filter-grid,
   .recommendation-engine-filter-grid,
   .ai-analysis-filter-grid,
+  .cost-optimization-filter-grid,
   .forecasting-chart-grid,
   .recommendation-engine-chart-grid,
   .ai-analysis-chart-grid,
+  .cost-optimization-chart-grid,
   .forecasting-output-actions,
   .recommendation-engine-output-actions,
   .ai-analysis-output-actions,
+  .cost-optimization-output-actions,
   .forecasting-status-actions,
   .recommendation-engine-status-actions,
   .ai-analysis-status-actions,
+  .cost-optimization-status-actions,
   .forecasting-detail-grid,
   .recommendation-engine-detail-grid,
   .ai-analysis-detail-grid,
+  .cost-optimization-detail-grid,
   .forecasting-list-row { grid-template-columns:1fr }
   .forecasting-chart-grid .kpi-chart-card:last-child,
   .recommendation-engine-chart-grid .kpi-chart-card:last-child,
   .ai-analysis-chart-grid .kpi-chart-card:last-child,
+  .cost-optimization-chart-grid .kpi-chart-card:last-child,
   .forecasting-wide,
   .recommendation-engine-wide,
-  .ai-analysis-wide { grid-column:auto }
+  .ai-analysis-wide,
+  .cost-optimization-wide { grid-column:auto }
   .forecasting-table tbody tr,
   .recommendation-engine-table tbody tr,
   .ai-analysis-table tbody tr,
+  .cost-optimization-table tbody tr,
   .forecasting-table tbody tr:nth-child(even),
   .recommendation-engine-table tbody tr:nth-child(even),
   .ai-analysis-table tbody tr:nth-child(even),
+  .cost-optimization-table tbody tr:nth-child(even),
   .forecasting-table tbody tr:hover,
   .recommendation-engine-table tbody tr:hover,
-  .ai-analysis-table tbody tr:hover { grid-template-columns:1fr }
+  .ai-analysis-table tbody tr:hover,
+  .cost-optimization-table tbody tr:hover { grid-template-columns:1fr }
   .forecasting-table tbody tr td,
   .recommendation-engine-table tbody tr td,
   .ai-analysis-table tbody tr td,
+  .cost-optimization-table tbody tr td,
   .forecasting-table tbody tr:nth-child(even) td,
   .recommendation-engine-table tbody tr:nth-child(even) td,
   .ai-analysis-table tbody tr:nth-child(even) td,
+  .cost-optimization-table tbody tr:nth-child(even) td,
   .forecasting-table tbody tr:hover td,
   .recommendation-engine-table tbody tr:hover td,
-  .ai-analysis-table tbody tr:hover td { text-align:left }
+  .ai-analysis-table tbody tr:hover td,
+  .cost-optimization-table tbody tr:hover td { text-align:left }
 }
 
 .cost-engine-page { display:grid; gap:18px }

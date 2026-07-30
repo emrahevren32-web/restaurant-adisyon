@@ -63,6 +63,7 @@ import CriticalAlerts from '../pages/CriticalAlerts'
 import Forecasting from '../pages/Forecasting'
 import RecommendationEngine from '../pages/RecommendationEngine'
 import AIAnalysis from '../pages/AIAnalysis'
+import CostOptimization from '../pages/CostOptimization'
 import LabelManagement from '../pages/LabelManagement'
 import OperationChecklists from '../pages/OperationChecklists'
 import LotSystem from '../pages/LotSystem'
@@ -250,6 +251,7 @@ export default function BusinessWorkspaceRouteHost({
   if(route === 'forecasting') return <Forecasting currentUser={currentUser} />
   if(route === 'recommendation-engine') return <RecommendationEngine currentUser={currentUser} />
   if(route === 'ai-analysis') return <AIAnalysis currentUser={currentUser} />
+  if(route === 'cost-optimization') return <CostOptimization currentUser={currentUser} />
   if(route === 'label-management') return <LabelManagement currentUser={currentUser} />
   if(route === 'operation-checklists') return <OperationChecklists currentUser={currentUser} />
   if(route === 'lot-system') return <LotSystem currentUser={currentUser} />
