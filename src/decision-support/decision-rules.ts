@@ -146,6 +146,42 @@ export const DECISION_RULES: DecisionRule[] = [
     thresholdLabel: 'Bos zaman / kullanilabilir zaman >= 25%'
   },
   {
+    id: 'workforce-planning-shift-missing',
+    category: 'Production',
+    title: 'Workforce Planning vardiya eksigi',
+    description: 'Vardiya bazli uretim yuku mevcut atanan personeli asarsa manuel personel takviyesi onerilir.',
+    baseRisk: 'HIGH',
+    priority: 'HIGH',
+    thresholdLabel: 'Missing employee count > 0'
+  },
+  {
+    id: 'workforce-planning-line-operator-gap',
+    category: 'Production',
+    title: 'Workforce Planning hat operator eksigi',
+    description: 'Hat veya work center gorevi icin aktif personel bulunamazsa operator sayisi yetersiz kabul edilir.',
+    baseRisk: 'HIGH',
+    priority: 'HIGH',
+    thresholdLabel: 'Atama satiri MISSING'
+  },
+  {
+    id: 'workforce-planning-machine-operator-missing',
+    category: 'Production',
+    title: 'Workforce Planning makine vardiya kapsami',
+    description: 'Makine gorev saatini kapsayan vardiya/personel bulunamazsa makine baslatma riski olusur.',
+    baseRisk: 'HIGH',
+    priority: 'HIGH',
+    thresholdLabel: 'Conflict reason vardiya kapsami'
+  },
+  {
+    id: 'workforce-planning-employee-overlap',
+    category: 'Production',
+    title: 'Workforce Planning personel cakismasi',
+    description: 'Ayni personele cakisan zaman araliginda gorev atanirsa manuel revizyon gerekir.',
+    baseRisk: 'HIGH',
+    priority: 'HIGH',
+    thresholdLabel: 'Conflict reason cakisan gorev'
+  },
+  {
     id: 'inventory-critical-purchase',
     category: 'Inventory',
     title: 'Kritik stok icin satin alma oner',

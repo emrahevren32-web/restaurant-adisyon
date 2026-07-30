@@ -5479,6 +5479,120 @@ th { color:var(--muted-strong); font-size:13px; font-weight:750 }
   .machine-scheduling-table tbody tr:hover td { text-align:left }
 }
 
+.workforce-planning-page { display:flex; flex-direction:column; gap:18px; min-width:0; max-width:100% }
+.workforce-planning-metric-grid { grid-template-columns:repeat(5, minmax(0, 1fr)) }
+.workforce-planning-create-card,
+.workforce-planning-filter-card,
+.workforce-planning-detail-card { margin-bottom:0; min-width:0 }
+.workforce-planning-create-grid,
+.workforce-planning-filter-grid { display:grid; grid-template-columns:repeat(4, minmax(0, 1fr)); gap:10px; align-items:end }
+.workforce-planning-wide { grid-column:span 2 }
+.workforce-planning-chart-grid { display:grid; grid-template-columns:repeat(2, minmax(0, 1fr)); gap:12px }
+.workforce-planning-layout { grid-template-columns:minmax(0, 1fr) minmax(360px, 460px); align-items:start }
+.workforce-planning-side { display:flex; flex-direction:column; gap:12px; min-width:0 }
+.workforce-planning-table-wrap { min-width:0 }
+.workforce-planning-table { min-width:1120px }
+.workforce-planning-table tbody tr { cursor:pointer }
+.workforce-planning-table tbody tr:hover td { background:#f1f7ff }
+.workforce-planning-table tbody tr[aria-selected="true"] td,
+.workforce-planning-table tbody tr[aria-selected="true"]:hover td { background:var(--accent-subtle); box-shadow:inset 5px 0 0 var(--accent) }
+.workforce-planning-table td strong,
+.workforce-planning-table td span { display:block; min-width:0; line-height:1.28; overflow-wrap:anywhere }
+.workforce-planning-table td strong { color:var(--text); font-weight:950 }
+.workforce-planning-table td span { margin-top:3px; color:var(--muted); font-size:12px; font-weight:800 }
+.workforce-planning-output-actions,
+.workforce-planning-status-actions { display:grid; gap:8px; margin-bottom:12px; min-width:0 }
+.workforce-planning-output-actions { grid-template-columns:repeat(3, minmax(0, 1fr)) }
+.workforce-planning-status-actions { grid-template-columns:repeat(5, minmax(0, 1fr)) }
+.workforce-planning-output-actions .btn,
+.workforce-planning-status-actions .btn { width:100%; min-height:var(--touch-target); padding-inline:10px; white-space:normal }
+.workforce-planning-detail-grid { display:grid; grid-template-columns:repeat(2, minmax(0, 1fr)); gap:10px; margin:12px 0 }
+.workforce-planning-detail-grid > div,
+.workforce-planning-recommendation-list > div,
+.workforce-planning-history-list > div { min-width:0; border:1px solid var(--line); border-radius:var(--radius-md); padding:10px 11px; background:var(--surface-muted) }
+.workforce-planning-detail-grid span,
+.workforce-planning-detail-grid strong,
+.workforce-planning-list-row strong,
+.workforce-planning-list-row span,
+.workforce-planning-list-row p,
+.workforce-planning-recommendation-list strong,
+.workforce-planning-recommendation-list span,
+.workforce-planning-history-list strong,
+.workforce-planning-history-list span,
+.workforce-planning-history-list p { display:block; min-width:0; line-height:1.35; overflow-wrap:anywhere }
+.workforce-planning-detail-grid span { color:var(--muted); font-size:12px; font-weight:850 }
+.workforce-planning-detail-grid strong { margin-top:4px; color:var(--text); font-size:14px; font-weight:950; font-variant-numeric:tabular-nums }
+.workforce-planning-notes { margin:0; color:var(--text-soft); font-size:13px; font-weight:750; line-height:1.55; overflow-wrap:anywhere }
+.workforce-planning-list,
+.workforce-planning-recommendation-list,
+.workforce-planning-history-list { display:grid; gap:9px; min-width:0 }
+.workforce-planning-list-row { display:grid; grid-template-columns:minmax(0, 1fr) auto auto; gap:8px 10px; align-items:center; min-width:0; border:1px solid var(--line); border-radius:var(--radius-md); padding:10px 11px; background:var(--surface-muted) }
+.workforce-planning-list-row strong { color:var(--text); font-size:13px; font-weight:950 }
+.workforce-planning-list-row span,
+.workforce-planning-list-row p,
+.workforce-planning-recommendation-list span,
+.workforce-planning-history-list span,
+.workforce-planning-history-list p { color:var(--muted); font-size:12px; font-weight:800 }
+.workforce-planning-list-row p { grid-column:1 / -1; margin:0 }
+.workforce-planning-list-row em { color:var(--text); font-style:normal; font-size:12px; font-weight:950; white-space:nowrap }
+.workforce-planning-recommendation-list strong,
+.workforce-planning-history-list strong { color:var(--text); font-size:13px; font-weight:950 }
+.workforce-planning-history-list p { margin:5px 0 0 }
+
+@media (max-width: 1200px){
+  .workforce-planning-metric-grid,
+  .workforce-planning-create-grid,
+  .workforce-planning-filter-grid,
+  .workforce-planning-chart-grid { grid-template-columns:repeat(2, minmax(0, 1fr)) }
+  .workforce-planning-wide { grid-column:1 / -1 }
+}
+
+@media (max-width: 980px){
+  .workforce-planning-layout { display:block }
+  .workforce-planning-side { margin-top:14px }
+  .workforce-planning-status-actions { grid-template-columns:repeat(3, minmax(0, 1fr)) }
+  .workforce-planning-table-wrap { overflow:visible; border:0; background:transparent; box-shadow:none }
+  .workforce-planning-table-wrap .workforce-planning-table { min-width:0 }
+  .workforce-planning-table,
+  .workforce-planning-table thead,
+  .workforce-planning-table tbody,
+  .workforce-planning-table tr,
+  .workforce-planning-table td { display:block; width:100%; min-width:0 }
+  .workforce-planning-table thead { display:none }
+  .workforce-planning-table tbody { display:grid; gap:10px }
+  .workforce-planning-table tbody tr,
+  .workforce-planning-table tbody tr:nth-child(even),
+  .workforce-planning-table tbody tr:hover { display:grid; grid-template-columns:repeat(2, minmax(0, 1fr)); gap:9px; border:1px solid var(--line); border-radius:var(--radius-md); padding:11px 12px; background:var(--surface); box-shadow:var(--shadow-xs) }
+  .workforce-planning-table tbody tr td,
+  .workforce-planning-table tbody tr:nth-child(even) td,
+  .workforce-planning-table tbody tr:hover td,
+  .workforce-planning-table tbody tr[aria-selected="true"] td,
+  .workforce-planning-table tbody tr[aria-selected="true"]:hover td { height:auto; min-height:0; border:0; padding:0; background:transparent; box-shadow:none; text-align:right }
+  .workforce-planning-table tbody td::before { content:attr(data-label); display:block; margin-bottom:3px; color:var(--muted); font-size:11px; font-weight:850; line-height:1.2; text-align:left }
+  .workforce-planning-table tbody td:first-child,
+  .workforce-planning-table tbody td.empty-cell { grid-column:1 / -1; text-align:left }
+  .workforce-planning-table tbody td:first-child strong { text-align:left }
+  .workforce-planning-table tbody td.empty-cell { text-align:center }
+}
+
+@media (max-width: 560px){
+  .workforce-planning-metric-grid,
+  .workforce-planning-create-grid,
+  .workforce-planning-filter-grid,
+  .workforce-planning-chart-grid,
+  .workforce-planning-output-actions,
+  .workforce-planning-status-actions,
+  .workforce-planning-detail-grid,
+  .workforce-planning-list-row { grid-template-columns:1fr }
+  .workforce-planning-wide { grid-column:auto }
+  .workforce-planning-table tbody tr,
+  .workforce-planning-table tbody tr:nth-child(even),
+  .workforce-planning-table tbody tr:hover { grid-template-columns:1fr }
+  .workforce-planning-table tbody tr td,
+  .workforce-planning-table tbody tr:nth-child(even) td,
+  .workforce-planning-table tbody tr:hover td { text-align:left }
+}
+
 .cost-engine-page { display:grid; gap:18px }
 .cost-header-actions { display:flex; flex-wrap:wrap; gap:10px; align-items:center; justify-content:flex-end }
 .cost-filter-card { margin-bottom:0 }

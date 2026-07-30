@@ -17,6 +17,7 @@ import { createQualityFormDecisionSuggestions } from './quality-form-decision.se
 import { createShipmentDecisionSuggestions } from './shipment-decision.service'
 import { createShipmentFormDecisionSuggestions } from './shipment-form-decision.service'
 import { createWasteDecisionSuggestions } from './waste-decision.service'
+import { createWorkforcePlanningDecisionSuggestions } from './workforce-planning-decision.service'
 import type {
   DecisionDashboardSummary,
   DecisionRisk,
@@ -65,6 +66,7 @@ export const createDecisionSuggestions = (
     ...createProductionPlanningDecisionSuggestions(sourceData),
     ...createCapacityPlanningDecisionSuggestions(sourceData),
     ...createMachineSchedulingDecisionSuggestions(sourceData),
+    ...createWorkforcePlanningDecisionSuggestions(sourceData),
     ...createCostEngineDecisionSuggestions(sourceData),
     ...createInventoryDecisionSuggestions(sourceData),
     ...createQualityDecisionSuggestions(sourceData),
@@ -133,6 +135,7 @@ const getDashboardSummary = (
     || suggestion.ruleId.startsWith('production-planning-')
     || suggestion.ruleId.startsWith('capacity-planning-')
     || suggestion.ruleId.startsWith('machine-scheduling-')
+    || suggestion.ruleId.startsWith('workforce-planning-')
   )).length,
   delayedShipments: suggestions.filter(suggestion => (
     suggestion.ruleId === 'shipment-delay-revision'
