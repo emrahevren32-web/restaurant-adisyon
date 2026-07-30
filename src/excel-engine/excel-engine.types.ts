@@ -18,6 +18,7 @@ export type ExcelModuleKey =
   | 'critical-alerts'
   | 'forecasting'
   | 'recommendation-engine'
+  | 'ai-analysis'
   | 'production-orders'
   | 'quality'
   | 'shipments'

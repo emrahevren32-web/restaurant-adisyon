@@ -1,4 +1,11 @@
 import { createCostEngineView, createDefaultCostEngineFilters } from '../cost-engine/cost-engine.service'
+import {
+  AI_ANALYSIS_STATUS_LABELS,
+  AI_ANALYSIS_TITLE_LABELS,
+  AI_INSIGHT_TYPE_LABELS,
+  AI_SEVERITY_LABELS,
+  AIAnalysisService
+} from '../ai-analysis/ai-analysis.service'
 import { DeliveryNoteService, DELIVERY_NOTE_STATUS_LABELS } from '../delivery-notes/delivery-note.service'
 import {
   GOODS_RECEIPT_MANAGEMENT_STATUS_LABELS,
@@ -907,6 +914,45 @@ const getRecommendationRows = (): ExcelRow[] => {
   })))
 }
 
+const getAIAnalysisRows = (): ExcelRow[] => {
+  const sourceData = loadKpiSourceData()
+
+  return AIAnalysisService.list(sourceData).flatMap(report => report.insights.map(insight => ({
+    id: report.id,
+    lineId: insight.id,
+    reportNo: report.reportNo,
+    reportDate: report.reportDate,
+    status: AI_ANALYSIS_STATUS_LABELS[report.status],
+    scope: report.scope === 'all' ? 'Tum Basliklar' : AI_ANALYSIS_TITLE_LABELS[report.scope],
+    analysisTitle: AI_ANALYSIS_TITLE_LABELS[insight.analysisTitle],
+    insightType: AI_INSIGHT_TYPE_LABELS[insight.insightType],
+    severity: AI_SEVERITY_LABELS[insight.severity],
+    title: insight.title,
+    summary: insight.summary,
+    evidence: insight.evidence,
+    expectedImpact: insight.expectedImpact,
+    recommendedAction: insight.recommendedAction,
+    suggestedPromptContext: insight.suggestedPromptContext,
+    confidenceScore: insight.confidenceScore,
+    riskScore: insight.riskScore,
+    impactScore: insight.impactScore,
+    priorityScore: insight.priorityScore,
+    trendScore: insight.trendScore,
+    expectedGainScore: insight.expectedGainScore,
+    sourceModule: insight.sourceModule,
+    sourceNo: insight.sourceNo,
+    relatedModules: insight.relatedModules.join(','),
+    relatedEntityType: insight.relatedEntityType,
+    relatedEntityName: insight.relatedEntityName,
+    branchName: insight.branchName,
+    productionLineName: insight.productionLineName,
+    machineCode: insight.machineCode,
+    machineName: insight.machineName,
+    employeeName: insight.employeeName,
+    categoryName: insight.categoryName
+  })))
+}
+
 const getQualityRows = (): ExcelRow[] => {
   const sourceData = loadKpiSourceData()
   const qualityFormRows = QualityFormService.list(sourceData).flatMap(form => {
@@ -1240,6 +1286,7 @@ const getRowsForModule = (
   if(moduleKey === 'critical-alerts') return getCriticalAlertRows()
   if(moduleKey === 'forecasting') return getForecastRows()
   if(moduleKey === 'recommendation-engine') return getRecommendationRows()
+  if(moduleKey === 'ai-analysis') return getAIAnalysisRows()
   if(moduleKey === 'production-orders') return getProductionOrderRows()
   if(moduleKey === 'quality') return getQualityRows()
   if(moduleKey === 'shipments') return getShipmentRows()
