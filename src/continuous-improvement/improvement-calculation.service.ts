@@ -1,5 +1,5 @@
 import { BottleneckAnalysisService } from '../bottleneck-analysis/bottleneck-analysis.service'
-import type { BottleneckItem } from '../bottleneck-analysis/bottleneck-analysis.types'
+import type { BottleneckItem, BottleneckReport } from '../bottleneck-analysis/bottleneck-analysis.types'
 import { CapacityPlanningService } from '../capacity-planning/capacity-planning.service'
 import type { CapacityPlan } from '../capacity-planning/capacity-planning.types'
 import type { KpiSourceData } from '../kpi-reporting/kpi.types'
@@ -10,10 +10,12 @@ import {
   sumBy
 } from '../kpi-reporting/kpi.utils'
 import { MachineSchedulingService } from '../machine-scheduling/machine-scheduling.service'
+import type { MachineSchedule } from '../machine-scheduling/machine-scheduling.types'
 import { WorkforcePlanningService } from '../workforce-planning/workforce-planning.service'
 import type {
   EmployeeAssignment,
-  ShiftAssignment
+  ShiftAssignment,
+  WorkforcePlan
 } from '../workforce-planning/workforce-planning.types'
 import type {
   ImprovementArea,
@@ -34,6 +36,10 @@ type ImprovementCalculationInput = {
   productionLineId: string
   machineId: string
   employeeId: string
+  bottleneckReports?: BottleneckReport[]
+  capacityPlans?: CapacityPlan[]
+  machineSchedules?: MachineSchedule[]
+  workforcePlans?: WorkforcePlan[]
 }
 
 export type ImprovementCalculationResult = {
@@ -288,8 +294,9 @@ const createRecommendation = (
 })
 
 const createBottleneckOpportunities = (
-  input: ImprovementCalculationInput
-) => BottleneckAnalysisService.list(input.sourceData)
+  input: ImprovementCalculationInput,
+  reports: BottleneckReport[]
+) => reports
   .filter(report => report.status !== 'CANCELLED' && isInDateRange(report.startDate, report.endDate, input))
   .flatMap(report => report.items.map(item => ({ report, item })))
   .map(({ report, item }) => {
@@ -411,8 +418,9 @@ const createCapacityOpportunities = (
 }
 
 const createSchedulingOpportunities = (
-  input: ImprovementCalculationInput
-) => MachineSchedulingService.list(input.sourceData)
+  input: ImprovementCalculationInput,
+  schedules: MachineSchedule[]
+) => schedules
   .filter(schedule => schedule.status !== 'CANCELLED' && isInDateRange(schedule.startDate, schedule.endDate, input))
   .flatMap(schedule => [
     ...schedule.queues.map(queue => {
@@ -469,8 +477,9 @@ const createSchedulingOpportunities = (
   .filter(opportunity => matchesScope(opportunity, input))
 
 const createWorkforceOpportunities = (
-  input: ImprovementCalculationInput
-) => WorkforcePlanningService.list(input.sourceData)
+  input: ImprovementCalculationInput,
+  plans: WorkforcePlan[]
+) => plans
   .filter(plan => plan.status !== 'CANCELLED' && isInDateRange(plan.startDate, plan.endDate, input))
   .flatMap(plan => [
     ...plan.shiftAssignments.map((assignment: ShiftAssignment) => createOpportunity({
@@ -547,15 +556,19 @@ const dedupeOpportunities = (
 export const calculateImprovementOpportunities = (
   input: ImprovementCalculationInput
 ): ImprovementCalculationResult => {
-  const capacityPlans = CapacityPlanningService.list(input.sourceData).filter(plan => plan.status !== 'CANCELLED' && isInDateRange(plan.startDate, plan.endDate, input))
-  const machineSchedules = MachineSchedulingService.list(input.sourceData).filter(schedule => schedule.status !== 'CANCELLED' && isInDateRange(schedule.startDate, schedule.endDate, input))
-  const workforcePlans = WorkforcePlanningService.list(input.sourceData).filter(plan => plan.status !== 'CANCELLED' && isInDateRange(plan.startDate, plan.endDate, input))
-  const bottleneckReports = BottleneckAnalysisService.list(input.sourceData).filter(report => report.status !== 'CANCELLED' && isInDateRange(report.startDate, report.endDate, input))
+  const capacityPlans = (input.capacityPlans || CapacityPlanningService.list(input.sourceData))
+    .filter(plan => plan.status !== 'CANCELLED' && isInDateRange(plan.startDate, plan.endDate, input))
+  const machineSchedules = (input.machineSchedules || MachineSchedulingService.list(input.sourceData))
+    .filter(schedule => schedule.status !== 'CANCELLED' && isInDateRange(schedule.startDate, schedule.endDate, input))
+  const workforcePlans = (input.workforcePlans || WorkforcePlanningService.list(input.sourceData))
+    .filter(plan => plan.status !== 'CANCELLED' && isInDateRange(plan.startDate, plan.endDate, input))
+  const bottleneckReports = (input.bottleneckReports || BottleneckAnalysisService.list(input.sourceData))
+    .filter(report => report.status !== 'CANCELLED' && isInDateRange(report.startDate, report.endDate, input))
   const opportunities = dedupeOpportunities([
-    ...createBottleneckOpportunities(input),
+    ...createBottleneckOpportunities(input, bottleneckReports),
     ...createCapacityOpportunities(input, capacityPlans),
-    ...createSchedulingOpportunities(input),
-    ...createWorkforceOpportunities(input),
+    ...createSchedulingOpportunities(input, machineSchedules),
+    ...createWorkforceOpportunities(input, workforcePlans),
     ...createMaterialOpportunities(input)
   ])
     .filter(opportunity => opportunity.expectedGainMinutes > 0 || opportunity.expectedBenefitScore >= 45)

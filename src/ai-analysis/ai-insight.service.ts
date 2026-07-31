@@ -7,8 +7,7 @@ import { createDecisionSuggestions } from '../decision-support/decision-support.
 import type { DecisionSuggestion } from '../decision-support/decision-support.types'
 import { ForecastService } from '../forecasting/forecast.service'
 import type { ForecastPrediction } from '../forecasting/forecasting.types'
-import { createDefaultKpiFilters, createKpiDashboardView } from '../kpi-reporting/kpi.service'
-import type { KpiSourceData, KPICard } from '../kpi-reporting/kpi.types'
+import type { KpiSourceData, KpiTone } from '../kpi-reporting/kpi.types'
 import {
   ALL_FILTER,
   averageBy,
@@ -16,8 +15,11 @@ import {
   formatPercent,
   roundKpi
 } from '../kpi-reporting/kpi.utils'
+import { MachineSchedulingService } from '../machine-scheduling/machine-scheduling.service'
+import { ProductionPlanningService } from '../production-planning/production-planning.service'
 import { RecommendationService } from '../recommendation-engine/recommendation.service'
 import type { RecommendationItem } from '../recommendation-engine/recommendation-engine.types'
+import { WorkforcePlanningService } from '../workforce-planning/workforce-planning.service'
 import { AI_ANALYSIS_TITLES, AI_INSIGHT_TYPE_LABELS } from './ai-analysis.constants'
 import { createAIHistory } from './ai-history.service'
 import {
@@ -41,6 +43,16 @@ type AIInsightCalculationInput = AIAnalysisReportCreateInput & {
   sourceData: KpiSourceData
   getReportNo: () => string
   actorName: string
+  bottleneckReports?: ReturnType<typeof BottleneckAnalysisService.list>
+  capacityPlans?: ReturnType<typeof CapacityPlanningService.list>
+  criticalAlerts?: CriticalAlert[]
+  decisionSuggestions?: DecisionSuggestion[]
+  forecastPredictions?: ForecastPrediction[]
+  improvementReports?: ReturnType<typeof ContinuousImprovementService.list>
+  machineSchedules?: ReturnType<typeof MachineSchedulingService.list>
+  productionPlans?: ReturnType<typeof ProductionPlanningService.list>
+  recommendationItems?: RecommendationItem[]
+  workforcePlans?: ReturnType<typeof WorkforcePlanningService.list>
 }
 
 type AIInsightInput = {
@@ -195,10 +207,23 @@ const createInsight = (
 }
 
 const createDecisionSupportInsights = (
-  sourceData: KpiSourceData,
+  input: AIInsightCalculationInput,
   reportId: string,
   reportNo: string
-) => createDecisionSuggestions(sourceData)
+) => (input.decisionSuggestions || createDecisionSuggestions(input.sourceData, {
+  skipSources: [
+    'production-planning',
+    'capacity-planning',
+    'machine-scheduling',
+    'workforce-planning',
+    'bottleneck-analysis',
+    'continuous-improvement',
+    'critical-alerts',
+    'forecasting',
+    'recommendation-engine',
+    'cost-optimization'
+  ]
+}))
   .filter(suggestion => suggestion.risk === 'HIGH' || suggestion.risk === 'CRITICAL' || suggestion.priority === 'URGENT')
   .slice(0, 10)
   .map(suggestion => createInsight({
@@ -229,10 +254,10 @@ const createDecisionSupportInsights = (
   }))
 
 const createCriticalAlertInsights = (
-  sourceData: KpiSourceData,
+  input: AIInsightCalculationInput,
   reportId: string,
   reportNo: string
-) => CriticalAlertService.evaluate(sourceData)
+) => (input.criticalAlerts || CriticalAlertService.evaluate(input.sourceData))
   .filter(alert => alert.status === 'ACTIVE' || alert.level === 'CRITICAL' || alert.level === 'HIGH' || alert.repeatCount > 1)
   .slice(0, 10)
   .map(alert => createInsight({
@@ -270,10 +295,10 @@ const createCriticalAlertInsights = (
   }))
 
 const createForecastInsights = (
-  sourceData: KpiSourceData,
+  input: AIInsightCalculationInput,
   reportId: string,
   reportNo: string
-) => ForecastService.evaluate(sourceData).predictions
+) => (input.forecastPredictions || ForecastService.evaluate(input.sourceData).predictions)
   .filter(prediction => prediction.riskLevel === 'HIGH' || prediction.riskLevel === 'CRITICAL' || prediction.growthPercent >= 10 || prediction.daysToCritical <= 4)
   .slice(0, 12)
   .map(prediction => createInsight({
@@ -315,10 +340,10 @@ const createForecastInsights = (
   }))
 
 const createRecommendationInsights = (
-  sourceData: KpiSourceData,
+  input: AIInsightCalculationInput,
   reportId: string,
   reportNo: string
-) => RecommendationService.evaluate(sourceData).items
+) => (input.recommendationItems || RecommendationService.evaluate(input.sourceData).items)
   .filter(item => item.risk === 'HIGH' || item.risk === 'CRITICAL' || item.priority === 'URGENT' || item.expectedBenefitScore >= 70)
   .slice(0, 14)
   .map(item => createInsight({
@@ -356,10 +381,10 @@ const createRecommendationInsights = (
   }))
 
 const createCapacityInsights = (
-  sourceData: KpiSourceData,
+  input: AIInsightCalculationInput,
   reportId: string,
   reportNo: string
-) => CapacityPlanningService.list(sourceData)
+) => (input.capacityPlans || CapacityPlanningService.list(input.sourceData))
   .flatMap(plan => plan.machineCapacities.map(capacity => ({ plan, capacity })))
   .filter(row => row.capacity.riskLevel === 'HIGH' || row.capacity.riskLevel === 'CRITICAL' || row.capacity.utilizationPercent >= 90 || row.capacity.overloadMinutes > 0)
   .slice(0, 8)
@@ -394,10 +419,10 @@ const createCapacityInsights = (
   }))
 
 const createBottleneckInsights = (
-  sourceData: KpiSourceData,
+  input: AIInsightCalculationInput,
   reportId: string,
   reportNo: string
-) => BottleneckAnalysisService.list(sourceData)
+) => (input.bottleneckReports || BottleneckAnalysisService.list(input.sourceData))
   .flatMap(report => report.items.map(item => ({ report, item })))
   .filter(row => row.item.critical || row.item.riskLevel === 'HIGH' || row.item.riskLevel === 'CRITICAL')
   .slice(0, 8)
@@ -434,10 +459,10 @@ const createBottleneckInsights = (
   }))
 
 const createImprovementInsights = (
-  sourceData: KpiSourceData,
+  input: AIInsightCalculationInput,
   reportId: string,
   reportNo: string
-) => ContinuousImprovementService.list(sourceData)
+) => (input.improvementReports || ContinuousImprovementService.list(input.sourceData))
   .flatMap(report => report.opportunities.map(opportunity => ({ report, opportunity })))
   .filter(row => row.opportunity.priority === 'URGENT' || row.opportunity.riskLevel === 'HIGH' || row.opportunity.riskLevel === 'CRITICAL' || row.opportunity.expectedBenefitScore >= 65)
   .slice(0, 8)
@@ -480,12 +505,79 @@ const createKpiInsights = (
   reportId: string,
   reportNo: string
 ) => {
-  const dashboard = createKpiDashboardView(sourceData, createDefaultKpiFilters())
-  const cards: Array<{ area: AIAnalysisTitle; card: KPICard }> = [
-    ...dashboard.executive.cards.map(card => ({ area: 'PRODUCTION' as const, card })),
-    ...dashboard.inventory.cards.map(card => ({ area: 'STOCK' as const, card })),
-    ...dashboard.quality.cards.map(card => ({ area: 'QUALITY' as const, card })),
-    ...dashboard.shipment.cards.map(card => ({ area: 'SHIPMENT' as const, card }))
+  const today = getTodayKey()
+  const openProductionOrders = sourceData.productionOrders.filter(order => (
+    !String(order.status || '').toLocaleLowerCase('tr-TR').includes('tamam')
+    && !String(order.status || '').toLocaleLowerCase('tr-TR').includes('iptal')
+  )).length
+  const criticalStocks = sourceData.stockItems.filter(item => item.currentQty <= item.minQty).length
+  const openRecalls = sourceData.productRecalls.filter(recall => recall.status !== 'COMPLETED' && recall.status !== 'CANCELLED').length
+  const delayedShipments = sourceData.shipmentPlans.filter(plan => (
+    plan.status !== 'COMPLETED'
+    && plan.status !== 'CANCELLED'
+    && String(plan.planDate || '').slice(0, 10) < today
+  )).length
+  const rejectedReceipts = sourceData.goodsReceipts.filter(receipt => receipt.status === 'REJECTED' || receipt.status === 'PARTIAL_ACCEPTED').length
+  const cards: Array<{
+    area: AIAnalysisTitle
+    card: {
+      id: string
+      label: string
+      value: string
+      detail: string
+      tone: KpiTone
+    }
+  }> = [
+    {
+      area: 'PRODUCTION',
+      card: {
+        id: 'ai-kpi-open-production',
+        label: 'Acik Uretim Emirleri',
+        value: formatNumber(openProductionOrders),
+        detail: 'Tamamlanmamis uretim emirleri',
+        tone: openProductionOrders > 0 ? 'warning' : 'success'
+      }
+    },
+    {
+      area: 'STOCK',
+      card: {
+        id: 'ai-kpi-critical-stock',
+        label: 'Kritik Stok',
+        value: formatNumber(criticalStocks),
+        detail: 'Min seviyenin altindaki stoklar',
+        tone: criticalStocks > 0 ? 'danger' : 'success'
+      }
+    },
+    {
+      area: 'QUALITY',
+      card: {
+        id: 'ai-kpi-open-recalls',
+        label: 'Acik Recall',
+        value: formatNumber(openRecalls),
+        detail: 'Kapanmamis kalite recall kayitlari',
+        tone: openRecalls > 0 ? 'danger' : 'success'
+      }
+    },
+    {
+      area: 'SHIPMENT',
+      card: {
+        id: 'ai-kpi-delayed-shipments',
+        label: 'Geciken Sevkiyat',
+        value: formatNumber(delayedShipments),
+        detail: 'Plan tarihi gecmis tamamlanmamis sevkiyatlar',
+        tone: delayedShipments > 0 ? 'warning' : 'success'
+      }
+    },
+    {
+      area: 'STOCK',
+      card: {
+        id: 'ai-kpi-rejected-receipts',
+        label: 'Mal Kabul Riski',
+        value: formatNumber(rejectedReceipts),
+        detail: 'Red veya kismi kabul durumundaki mal kabuller',
+        tone: rejectedReceipts > 0 ? 'warning' : 'success'
+      }
+    }
   ]
 
   return cards
@@ -606,14 +698,83 @@ export const calculateAIAnalysisReport = (
 ): AIAnalysisReport => {
   const reportNo = input.getReportNo()
   const reportId = `ai_analysis_${reportNo}`.replace(/[^a-zA-Z0-9_]+/g, '_')
+  const productionPlans = input.productionPlans || ProductionPlanningService.list(input.sourceData)
+  const capacityPlans = input.capacityPlans || CapacityPlanningService.list(input.sourceData)
+  const machineSchedules = input.machineSchedules || MachineSchedulingService.list(input.sourceData)
+  const workforcePlans = input.workforcePlans || WorkforcePlanningService.list(input.sourceData, { machineSchedules })
+  const bottleneckReports = input.bottleneckReports || BottleneckAnalysisService.list(input.sourceData, {
+    capacityPlans,
+    machineSchedules,
+    workforcePlans
+  })
+  const improvementReports = input.improvementReports || ContinuousImprovementService.list(input.sourceData, {
+    bottleneckReports,
+    capacityPlans,
+    machineSchedules,
+    workforcePlans
+  })
+  const criticalAlerts = input.criticalAlerts || CriticalAlertService.evaluate(input.sourceData, [], input.actorName, {
+    bottleneckReports,
+    capacityPlans,
+    improvementReports,
+    machineSchedules,
+    workforcePlans
+  })
+  const forecastPredictions = input.forecastPredictions || ForecastService.evaluate(input.sourceData, {}, [], input.actorName, {
+    bottleneckReports,
+    capacityPlans,
+    criticalAlerts,
+    improvementReports,
+    machineSchedules,
+    productionPlans,
+    workforcePlans
+  }).predictions
+  const decisionSuggestions = input.decisionSuggestions || createDecisionSuggestions(input.sourceData, {
+    skipSources: [
+      'production-planning',
+      'capacity-planning',
+      'machine-scheduling',
+      'workforce-planning',
+      'bottleneck-analysis',
+      'continuous-improvement',
+      'critical-alerts',
+      'forecasting',
+      'recommendation-engine',
+      'cost-optimization'
+    ]
+  })
+  const recommendationItems = input.recommendationItems || RecommendationService.evaluate(input.sourceData, {}, [], input.actorName, {
+    bottleneckReports,
+    capacityPlans,
+    criticalAlerts,
+    decisionSuggestions,
+    forecastPredictions,
+    improvementReports,
+    machineSchedules,
+    productionPlans,
+    workforcePlans
+  }).items
+  const context = {
+    ...input,
+    bottleneckReports,
+    capacityPlans,
+    criticalAlerts,
+    decisionSuggestions,
+    forecastPredictions,
+    improvementReports,
+    machineSchedules,
+    productionPlans,
+    recommendationItems,
+    workforcePlans
+  }
   const insights = filterByScope(dedupeInsights([
-    ...createDecisionSupportInsights(input.sourceData, reportId, reportNo),
-    ...createCriticalAlertInsights(input.sourceData, reportId, reportNo),
-    ...createForecastInsights(input.sourceData, reportId, reportNo),
-    ...createRecommendationInsights(input.sourceData, reportId, reportNo),
-    ...createCapacityInsights(input.sourceData, reportId, reportNo),
-    ...createBottleneckInsights(input.sourceData, reportId, reportNo),
-    ...createImprovementInsights(input.sourceData, reportId, reportNo),
+    ...createDecisionSupportInsights(context, reportId, reportNo),
+    ...createCriticalAlertInsights(context, reportId, reportNo),
+    ...createForecastInsights(context, reportId, reportNo),
+    ...createRecommendationInsights(context, reportId, reportNo),
+    ...createCapacityInsights(context, reportId, reportNo),
+    ...createBottleneckInsights(context, reportId, reportNo),
+    ...createImprovementInsights(context, reportId, reportNo),
     ...createKpiInsights(input.sourceData, reportId, reportNo)
   ]), input.scope)
   const finalInsights = insights.length > 0 ? insights : [createFallbackInsight(reportId, reportNo)]

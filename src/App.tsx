@@ -20,6 +20,7 @@ import QRMenu from './pages/QRMenu'
 import Login from './pages/Login'
 import AppShell, { ShellNavGroup, ShellNavItem } from './components/AppShell'
 import OnboardingExperience from './components/OnboardingExperience'
+import RouteErrorBoundary from './components/RouteErrorBoundary'
 import { resolveSecurityTargetForIdentity } from './auth/authentication-pipeline'
 import {
   AuthenticationState,
@@ -641,6 +642,10 @@ export default function App(){
       onLogout={logout}
     >
       <React.Fragment key={`${activeBranchId}:${onboardingRefreshKey}`}>
+      <RouteErrorBoundary
+        boundaryKey={`${route}:${activeBranchId}:${onboardingRefreshKey}`}
+        routeLabel={activeNavLabel}
+      >
       {licenseAccessError && <div className="form-error license-access-error">{licenseAccessError}</div>}
       {firstLoginOnboardingRequired && firstLoginOnboardingState ? (
         <FirstLoginWizard
@@ -718,6 +723,7 @@ export default function App(){
       )}
         </>
       )}
+      </RouteErrorBoundary>
       </React.Fragment>
       {currentUser && !isPlatformAdmin && !firstLoginOnboardingRequired && workspaceSetupCompleted && (
         <OnboardingExperience

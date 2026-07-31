@@ -3,6 +3,7 @@ import {
   ALL_FILTER,
   roundKpi
 } from '../kpi-reporting/kpi.utils'
+import { resolveReadModel } from '../read-model/read-model-safety'
 import { calculateForecastReport, ForecastCalculationService } from './forecast-calculation.service'
 import { appendForecastHistory, createForecastHistory } from './forecast-history.service'
 import { createForecastStatistics } from './forecast-statistics.service'
@@ -50,6 +51,7 @@ export const FORECAST_STORAGE_KEY = 'ra_forecasting_engine_records'
 type RawForecastReport = Partial<Record<keyof ForecastReport, unknown>> & Record<string, unknown>
 type RawForecastPrediction = Partial<Record<keyof ForecastPrediction, unknown>> & Record<string, unknown>
 type RawForecastScenario = Partial<Record<keyof ForecastScenario, unknown>> & Record<string, unknown>
+type ForecastEvaluationDependencies = Partial<Parameters<typeof calculateForecastReport>[0]>
 
 const FORECAST_NO_PREFIX = 'FC'
 const FORECAST_NO_PADDING = 6
@@ -283,23 +285,60 @@ export const saveForecastReports = (reports: ForecastReport[]) => {
   localStorage.setItem(FORECAST_STORAGE_KEY, JSON.stringify(reports))
 }
 
+const createForecastFallbackReport = (
+  input: ForecastReportCreateInput,
+  existingReports: ForecastReport[],
+  actorName: string
+): ForecastReport => {
+  const reportNo = getNextForecastNo(existingReports, input.reportDate)
+  const reportId = `forecast_report_${reportNo}_fallback`.replace(/[^a-zA-Z0-9_]+/g, '_')
+  const createdAt = new Date().toISOString()
+
+  return {
+    id: reportId,
+    reportNo,
+    status: 'GENERATED',
+    reportDate: input.reportDate,
+    startDate: addDays(input.reportDate, 1),
+    endDate: addDays(input.reportDate, input.horizonDays),
+    horizonDays: input.horizonDays,
+    analysisWindowDays: input.analysisWindowDays,
+    scenarioName: input.scenarioName,
+    responsiblePerson: input.responsiblePerson || actorName,
+    description: input.description || 'Read-model kaynak hatasi nedeniyle bos forecast raporu olusturuldu.',
+    predictions: [],
+    scenarios: [],
+    history: [
+      createForecastHistory(reportId, 'CALCULATED', actorName, 'Read-model kaynak hatasi nedeniyle forecast hesaplamasi bos fallback ile tamamlandi.')
+    ],
+    sourceType: 'ReadModel',
+    sourceId: 'forecasting-runtime-fallback',
+    revisionNo: 1,
+    createdBy: actorName,
+    createdAt,
+    updatedAt: createdAt
+  }
+}
+
 export const evaluateForecastReport = (
   sourceData: KpiSourceData,
   input: Partial<ForecastReportCreateInput> = {},
   existingReports: ForecastReport[] = [],
-  actorName = 'Forecasting Engine'
+  actorName = 'Forecasting Engine',
+  dependencies: ForecastEvaluationDependencies = {}
 ) => {
   const createInput = {
     ...createDefaultForecastReportInput(actorName),
     ...input
   }
 
-  return calculateForecastReport({
+  return resolveReadModel(() => calculateForecastReport({
     ...createInput,
+    ...dependencies,
     sourceData,
     actorName,
     getReportNo: () => getNextForecastNo(existingReports, createInput.reportDate)
-  })
+  }), createForecastFallbackReport(createInput, existingReports, actorName))
 }
 
 export const loadForecastReports = (

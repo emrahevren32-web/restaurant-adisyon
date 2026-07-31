@@ -5,6 +5,7 @@ import {
   ALL_FILTER,
   roundKpi
 } from '../kpi-reporting/kpi.utils'
+import { resolveReadModel } from '../read-model/read-model-safety'
 import { calculateRecommendationReport } from '../recommendation-engine/recommendation-calculation.service'
 import { calculateCostOptimizationReport, CostAnalysisService } from './cost-analysis.service'
 import { CostCalculationService } from './cost-calculation.service'
@@ -267,6 +268,37 @@ export const saveCostOptimizationReports = (reports: CostOptimizationReport[]) =
   localStorage.setItem(COST_OPTIMIZATION_STORAGE_KEY, JSON.stringify(reports))
 }
 
+const createCostOptimizationFallbackReport = (
+  input: CostOptimizationReportCreateInput,
+  existingReports: CostOptimizationReport[],
+  actorName: string
+): CostOptimizationReport => {
+  const reportNo = getNextCostOptimizationNo(existingReports, input.reportDate)
+  const reportId = `cost_optimization_${reportNo}_fallback`.replace(/[^a-zA-Z0-9_]+/g, '_')
+  const createdAt = new Date().toISOString()
+
+  return {
+    id: reportId,
+    reportNo,
+    status: 'GENERATED',
+    reportDate: input.reportDate,
+    scope: input.scope,
+    responsiblePerson: input.responsiblePerson || actorName,
+    description: input.description || 'Read-model kaynak hatasi nedeniyle bos cost optimization raporu olusturuldu.',
+    items: [],
+    opportunities: [],
+    history: [
+      createCostHistory(reportId, 'ANALYZED', actorName, 'Read-model kaynak hatasi nedeniyle cost optimization hesaplamasi bos fallback ile tamamlandi.')
+    ],
+    sourceType: 'ReadModel',
+    sourceId: 'cost-optimization-runtime-fallback',
+    revisionNo: 1,
+    createdBy: actorName,
+    createdAt,
+    updatedAt: createdAt
+  }
+}
+
 export const evaluateCostOptimizationReport = (
   sourceData: KpiSourceData,
   input: Partial<CostOptimizationReportCreateInput> = {},
@@ -277,34 +309,50 @@ export const evaluateCostOptimizationReport = (
     ...createDefaultCostOptimizationReportInput(actorName),
     ...input
   }
-  const decisionSuggestions = createDecisionSuggestions(sourceData)
-    .filter(suggestion => !suggestion.ruleId.startsWith('cost-optimization-'))
-  const recommendationReport = calculateRecommendationReport({
-    reportDate: createInput.reportDate,
-    scope: 'all',
-    responsiblePerson: actorName,
-    description: 'Cost Optimization recommendation source.',
-    sourceData,
-    decisionSuggestions,
-    actorName,
-    getReportNo: () => `RC-${new Date().getFullYear()}-000000`
-  })
-  const aiAnalysisReport = AIAnalysisService.evaluate(sourceData, {
-    reportDate: createInput.reportDate,
-    scope: 'all',
-    responsiblePerson: actorName,
-    description: 'Cost Optimization AI Analysis source.'
-  }, [], actorName)
 
-  return calculateCostOptimizationReport({
-    ...createInput,
-    sourceData,
-    actorName,
-    decisionSuggestions,
-    recommendationReport,
-    aiAnalysisReport,
-    getReportNo: () => getNextCostOptimizationNo(existingReports, createInput.reportDate)
-  })
+  return resolveReadModel(() => {
+    const decisionSuggestions = createDecisionSuggestions(sourceData, {
+      skipSources: [
+        'production-planning',
+        'capacity-planning',
+        'machine-scheduling',
+        'workforce-planning',
+        'bottleneck-analysis',
+        'continuous-improvement',
+        'critical-alerts',
+        'forecasting',
+        'recommendation-engine',
+        'cost-optimization'
+      ]
+    })
+      .filter(suggestion => !suggestion.ruleId.startsWith('cost-optimization-'))
+    const recommendationReport = calculateRecommendationReport({
+      reportDate: createInput.reportDate,
+      scope: 'all',
+      responsiblePerson: actorName,
+      description: 'Cost Optimization recommendation source.',
+      sourceData,
+      decisionSuggestions,
+      actorName,
+      getReportNo: () => `RC-${new Date().getFullYear()}-000000`
+    })
+    const aiAnalysisReport = AIAnalysisService.evaluate(sourceData, {
+      reportDate: createInput.reportDate,
+      scope: 'all',
+      responsiblePerson: actorName,
+      description: 'Cost Optimization AI Analysis source.'
+    }, [], actorName)
+
+    return calculateCostOptimizationReport({
+      ...createInput,
+      sourceData,
+      actorName,
+      decisionSuggestions,
+      recommendationReport,
+      aiAnalysisReport,
+      getReportNo: () => getNextCostOptimizationNo(existingReports, createInput.reportDate)
+    })
+  }, createCostOptimizationFallbackReport(createInput, existingReports, actorName))
 }
 
 export const loadCostOptimizationReports = (

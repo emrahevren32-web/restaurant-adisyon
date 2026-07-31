@@ -5,6 +5,7 @@ import {
 } from '../kpi-reporting/kpi.utils'
 import { CapacityPlanningService } from '../capacity-planning/capacity-planning.service'
 import { MachineSchedulingService } from '../machine-scheduling/machine-scheduling.service'
+import { resolveReadModelList } from '../read-model/read-model-safety'
 import { loadEmployees } from '../storage'
 import { calculateWorkforcePlanning, WorkforceCalculationService } from './workforce-calculation.service'
 import { appendWorkforceHistory, createWorkforceHistory } from './workforce-history.service'
@@ -46,6 +47,9 @@ export {
 export const WORKFORCE_PLANNING_STORAGE_KEY = 'ra_workforce_planning_records'
 
 type RawWorkforcePlan = Partial<Record<keyof WorkforcePlan, unknown>> & Record<string, unknown>
+type WorkforceReadModelDependencies = {
+  machineSchedules?: ReturnType<typeof MachineSchedulingService.list>
+}
 
 const PLAN_NO_PREFIX = 'WP'
 const PLAN_NO_PADDING = 6
@@ -145,6 +149,7 @@ const getMachineLabel = (
 const createPlanFromInput = ({
   actorName,
   input,
+  machineSchedules,
   planId,
   planNo,
   sourceData,
@@ -153,6 +158,7 @@ const createPlanFromInput = ({
 }: {
   actorName: string
   input: WorkforcePlanCreateInput
+  machineSchedules?: ReturnType<typeof MachineSchedulingService.list>
   planId: string
   planNo: string
   sourceData: KpiSourceData
@@ -169,7 +175,8 @@ const createPlanFromInput = ({
     department: input.department,
     shiftName: input.shiftName,
     productionLineId: input.productionLineId,
-    machineId: input.machineId
+    machineId: input.machineId,
+    machineSchedules
   })
   const machineLabel = getMachineLabel(input.machineId, calculation.items)
   const createdAt = new Date().toISOString()
@@ -212,10 +219,11 @@ const createPlanFromInput = ({
 }
 
 export const createWorkforcePlanningReadModelRecords = (
-  sourceData: KpiSourceData
+  sourceData: KpiSourceData,
+  dependencies: WorkforceReadModelDependencies = {}
 ): WorkforcePlan[] => {
   const today = getTodayKey()
-  const machineSchedules = MachineSchedulingService.list(sourceData)
+  const machineSchedules = dependencies.machineSchedules || MachineSchedulingService.list(sourceData)
   const firstItem = machineSchedules.flatMap(schedule => schedule.items)[0]
   const busiestLine = [...machineSchedules.flatMap(schedule => schedule.items)]
     .sort((first, second) => second.totalWorkingMinutes - first.totalWorkingMinutes)[0] || firstItem
@@ -289,6 +297,7 @@ export const createWorkforcePlanningReadModelRecords = (
   return seedInputs.map((row, index) => createPlanFromInput({
     actorName: row.actorName,
     input: row.input,
+    machineSchedules,
     planId: `workforce_plan_${index + 1}_${row.input.shiftName}_${today.replace(/-/g, '')}`,
     planNo: getNextWorkforcePlanNo([], today, index),
     sourceData,
@@ -467,9 +476,10 @@ export const saveWorkforcePlans = (records: WorkforcePlan[]) => {
 }
 
 export const loadWorkforcePlans = (
-  sourceData: KpiSourceData
+  sourceData: KpiSourceData,
+  dependencies: WorkforceReadModelDependencies = {}
 ) => {
-  const seedRecords = createWorkforcePlanningReadModelRecords(sourceData)
+  const seedRecords = resolveReadModelList(() => createWorkforcePlanningReadModelRecords(sourceData, dependencies))
   if(!isBrowserStorageAvailable()) return seedRecords
 
   const stored = localStorage.getItem(WORKFORCE_PLANNING_STORAGE_KEY)

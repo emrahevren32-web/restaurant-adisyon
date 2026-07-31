@@ -28,6 +28,11 @@ type AlertEvaluationInput = {
   sourceData: KpiSourceData
   getAlertNo: (index: number) => string
   actorName: string
+  bottleneckReports?: ReturnType<typeof BottleneckAnalysisService.list>
+  capacityPlans?: ReturnType<typeof CapacityPlanningService.list>
+  improvementReports?: ReturnType<typeof ContinuousImprovementService.list>
+  machineSchedules?: ReturnType<typeof MachineSchedulingService.list>
+  workforcePlans?: ReturnType<typeof WorkforcePlanningService.list>
 }
 
 const DAY_MS = 86400000
@@ -418,7 +423,11 @@ const createPlanningAlerts = (
   startIndex: number
 ) => {
   let index = startIndex
-  const capacityAlerts = withRule('alert-rule-capacity-full', rule => CapacityPlanningService.list(input.sourceData)
+  const capacityPlans = input.capacityPlans || CapacityPlanningService.list(input.sourceData)
+  const machineSchedules = input.machineSchedules || MachineSchedulingService.list(input.sourceData)
+  const workforcePlans = input.workforcePlans || WorkforcePlanningService.list(input.sourceData)
+
+  const capacityAlerts = withRule('alert-rule-capacity-full', rule => capacityPlans
     .filter(plan => plan.status !== 'CANCELLED')
     .flatMap(plan => plan.productionCapacities.map(capacity => ({ plan, capacity })))
     .filter(row => row.capacity.utilizationPercent >= 100 || row.capacity.overloadMinutes > 0)
@@ -439,7 +448,7 @@ const createPlanningAlerts = (
       productionLineId: capacity.productionLineId,
       productionLineName: capacity.productionLineName
     })))
-  const machineAlerts = withRule('alert-rule-machine-conflict', rule => MachineSchedulingService.list(input.sourceData)
+  const machineAlerts = withRule('alert-rule-machine-conflict', rule => machineSchedules
     .filter(schedule => schedule.status !== 'CANCELLED')
     .flatMap(schedule => schedule.queues.map(queue => ({ schedule, queue })))
     .filter(row => row.queue.conflictCount > 0)
@@ -463,7 +472,7 @@ const createPlanningAlerts = (
       machineCode: queue.machineCode,
       machineName: queue.machineName
     })))
-  const waitingAlerts = withRule('alert-rule-waiting-critical', rule => MachineSchedulingService.list(input.sourceData)
+  const waitingAlerts = withRule('alert-rule-waiting-critical', rule => machineSchedules
     .filter(schedule => schedule.status !== 'CANCELLED')
     .flatMap(schedule => schedule.queues.map(queue => ({ schedule, queue })))
     .filter(row => row.queue.totalWaitingMinutes >= 180)
@@ -488,7 +497,7 @@ const createPlanningAlerts = (
       machineCode: queue.machineCode,
       machineName: queue.machineName
     })))
-  const setupAlerts = withRule('alert-rule-setup-critical', rule => MachineSchedulingService.list(input.sourceData)
+  const setupAlerts = withRule('alert-rule-setup-critical', rule => machineSchedules
     .filter(schedule => schedule.status !== 'CANCELLED')
     .flatMap(schedule => schedule.queues.map(queue => ({ schedule, queue })))
     .filter(row => row.queue.totalSetupMinutes + row.queue.totalCleaningMinutes >= 60)
@@ -512,7 +521,7 @@ const createPlanningAlerts = (
       machineCode: queue.machineCode,
       machineName: queue.machineName
     })))
-  const personnelAlerts = withRule('alert-rule-personnel-gap', rule => WorkforcePlanningService.list(input.sourceData)
+  const personnelAlerts = withRule('alert-rule-personnel-gap', rule => workforcePlans
     .filter(plan => plan.status !== 'CANCELLED')
     .flatMap(plan => plan.shiftAssignments.map(assignment => ({ plan, assignment })))
     .filter(row => row.assignment.missingEmployeeCount > 0 || row.assignment.conflictCount > 0)
@@ -542,7 +551,10 @@ const createBottleneckAndImprovementAlerts = (
   startIndex: number
 ) => {
   let index = startIndex
-  const bottleneckAlerts = withRule('alert-rule-waiting-critical', rule => BottleneckAnalysisService.list(input.sourceData)
+  const bottleneckReports = input.bottleneckReports || BottleneckAnalysisService.list(input.sourceData)
+  const improvementReports = input.improvementReports || ContinuousImprovementService.list(input.sourceData)
+
+  const bottleneckAlerts = withRule('alert-rule-waiting-critical', rule => bottleneckReports
     .filter(report => report.status !== 'CANCELLED')
     .flatMap(report => report.items.map(item => ({ report, item })))
     .filter(row => row.item.riskLevel === 'CRITICAL' || row.item.waitingMinutes >= 180)
@@ -571,7 +583,7 @@ const createBottleneckAndImprovementAlerts = (
       employeeId: item.employeeId,
       employeeName: item.employeeName
     })))
-  const maintenanceAlerts = withRule('alert-rule-maintenance-impact', rule => ContinuousImprovementService.list(input.sourceData)
+  const maintenanceAlerts = withRule('alert-rule-maintenance-impact', rule => improvementReports
     .filter(report => report.status !== 'CANCELLED')
     .flatMap(report => report.opportunities.map(opportunity => ({ report, opportunity })))
     .filter(row => row.opportunity.area === 'MAINTENANCE' && row.opportunity.priority === 'URGENT')
@@ -645,9 +657,38 @@ const createShipmentAndReceiptAlerts = (
   return [...shipmentAlerts, ...receiptAlerts]
 }
 
+const createEvaluationContext = (
+  input: AlertEvaluationInput
+): AlertEvaluationInput => {
+  const capacityPlans = input.capacityPlans || CapacityPlanningService.list(input.sourceData)
+  const machineSchedules = input.machineSchedules || MachineSchedulingService.list(input.sourceData)
+  const workforcePlans = input.workforcePlans || WorkforcePlanningService.list(input.sourceData, { machineSchedules })
+  const bottleneckReports = input.bottleneckReports || BottleneckAnalysisService.list(input.sourceData, {
+    capacityPlans,
+    machineSchedules,
+    workforcePlans
+  })
+  const improvementReports = input.improvementReports || ContinuousImprovementService.list(input.sourceData, {
+    bottleneckReports,
+    capacityPlans,
+    machineSchedules,
+    workforcePlans
+  })
+
+  return {
+    ...input,
+    bottleneckReports,
+    capacityPlans,
+    improvementReports,
+    machineSchedules,
+    workforcePlans
+  }
+}
+
 export const evaluateCriticalAlerts = (
   input: AlertEvaluationInput
 ) => {
+  const context = createEvaluationContext(input)
   const buckets: CriticalAlert[][] = []
   let index = 0
   const append = (records: CriticalAlert[]) => {
@@ -655,13 +696,13 @@ export const evaluateCriticalAlerts = (
     index += records.length
   }
 
-  append(createStockAlerts(input, index))
-  append(createLotAlerts(input, index))
-  append(createHaccpAlerts(input, index))
-  append(createQualityAlerts(input, index))
-  append(createPlanningAlerts(input, index))
-  append(createBottleneckAndImprovementAlerts(input, index))
-  append(createShipmentAndReceiptAlerts(input, index))
+  append(createStockAlerts(context, index))
+  append(createLotAlerts(context, index))
+  append(createHaccpAlerts(context, index))
+  append(createQualityAlerts(context, index))
+  append(createPlanningAlerts(context, index))
+  append(createBottleneckAndImprovementAlerts(context, index))
+  append(createShipmentAndReceiptAlerts(context, index))
 
   return buckets.flat().sort((first, second) => (
     second.riskScore - first.riskScore

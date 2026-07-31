@@ -4,6 +4,7 @@ import {
   ALL_FILTER,
   roundKpi
 } from '../kpi-reporting/kpi.utils'
+import { resolveReadModel, resolveReadModelList } from '../read-model/read-model-safety'
 import { calculateRecommendationReport, RecommendationCalculationService } from './recommendation-calculation.service'
 import { appendRecommendationHistory, createRecommendationHistory } from './recommendation-history.service'
 import { createRecommendationStatistics } from './recommendation-statistics.service'
@@ -48,6 +49,7 @@ export const RECOMMENDATION_STORAGE_KEY = 'ra_recommendation_engine_records'
 
 type RawRecommendationReport = Partial<Record<keyof RecommendationReport, unknown>> & Record<string, unknown>
 type RawRecommendationItem = Partial<Record<keyof RecommendationItem, unknown>> & Record<string, unknown>
+type RecommendationEvaluationDependencies = Partial<Parameters<typeof calculateRecommendationReport>[0]>
 type RawRecommendationRule = Partial<Record<keyof RecommendationRule, unknown>> & Record<string, unknown>
 
 const RECOMMENDATION_NO_PREFIX = 'RC'
@@ -257,26 +259,72 @@ export const saveRecommendationReports = (reports: RecommendationReport[]) => {
   localStorage.setItem(RECOMMENDATION_STORAGE_KEY, JSON.stringify(reports))
 }
 
+const createRecommendationFallbackReport = (
+  input: RecommendationReportCreateInput,
+  existingReports: RecommendationReport[],
+  actorName: string
+): RecommendationReport => {
+  const reportNo = getNextRecommendationNo(existingReports, input.reportDate)
+  const reportId = `recommendation_report_${reportNo}_fallback`.replace(/[^a-zA-Z0-9_]+/g, '_')
+  const createdAt = new Date().toISOString()
+
+  return {
+    id: reportId,
+    reportNo,
+    status: 'GENERATED',
+    reportDate: input.reportDate,
+    scope: input.scope,
+    responsiblePerson: input.responsiblePerson || actorName,
+    description: input.description || 'Read-model kaynak hatasi nedeniyle bos recommendation raporu olusturuldu.',
+    items: [],
+    rules: resolveReadModelList(() => listRecommendationRules()),
+    history: [
+      createRecommendationHistory(reportId, 'CALCULATED', actorName, 'Read-model kaynak hatasi nedeniyle recommendation hesaplamasi bos fallback ile tamamlandi.')
+    ],
+    sourceType: 'ReadModel',
+    sourceId: 'recommendation-runtime-fallback',
+    revisionNo: 1,
+    createdBy: actorName,
+    createdAt,
+    updatedAt: createdAt
+  }
+}
+
 export const evaluateRecommendationReport = (
   sourceData: KpiSourceData,
   input: Partial<RecommendationReportCreateInput> = {},
   existingReports: RecommendationReport[] = [],
-  actorName = 'Recommendation Engine'
+  actorName = 'Recommendation Engine',
+  dependencies: RecommendationEvaluationDependencies = {}
 ) => {
   const createInput = {
     ...createDefaultRecommendationReportInput(actorName),
     ...input
   }
-  const decisionSuggestions = createDecisionSuggestions(sourceData)
+  const decisionSuggestions = resolveReadModelList(() => createDecisionSuggestions(sourceData, {
+    skipSources: [
+      'production-planning',
+      'capacity-planning',
+      'machine-scheduling',
+      'workforce-planning',
+      'bottleneck-analysis',
+      'continuous-improvement',
+      'critical-alerts',
+      'forecasting',
+      'recommendation-engine',
+      'cost-optimization'
+    ]
+  }))
     .filter(suggestion => !suggestion.ruleId.startsWith('recommendation-engine-'))
 
-  return calculateRecommendationReport({
+  return resolveReadModel(() => calculateRecommendationReport({
     ...createInput,
+    ...dependencies,
     sourceData,
     actorName,
     decisionSuggestions,
     getReportNo: () => getNextRecommendationNo(existingReports, createInput.reportDate)
-  })
+  }), createRecommendationFallbackReport(createInput, existingReports, actorName))
 }
 
 export const loadRecommendationReports = (

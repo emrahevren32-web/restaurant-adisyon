@@ -71,6 +71,11 @@ textarea { resize:vertical }
 .card { min-width:0; background:var(--card); padding:18px; margin-bottom:0; border:1px solid var(--line); border-radius:var(--radius-md); box-shadow:var(--card-shadow) }
 .card > :first-child { margin-top:0 }
 .card > :last-child { margin-bottom:0 }
+.route-error-card { display:grid; gap:8px; max-width:760px; margin:0 auto; border-color:var(--danger-line); background:linear-gradient(180deg,var(--danger-soft),var(--card)); overflow-wrap:anywhere }
+.route-error-card span { color:var(--danger); font-size:12px; font-weight:900; text-transform:uppercase; letter-spacing:0 }
+.route-error-card h2 { margin:0; color:var(--text); font-size:22px; line-height:1.25; font-weight:900 }
+.route-error-card p { margin:0; color:var(--text-soft); font-size:14px; line-height:1.45; font-weight:750 }
+.route-error-card small { color:var(--muted); font-weight:800; line-height:1.35 }
 table { width:100%; border-collapse:collapse }
 th, td { border-bottom:1px solid var(--line-soft); padding:10px 8px; text-align:left; vertical-align:middle }
 th { color:var(--muted-strong); font-size:13px; font-weight:750 }

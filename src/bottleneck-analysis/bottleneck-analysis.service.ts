@@ -5,6 +5,7 @@ import {
 } from '../kpi-reporting/kpi.utils'
 import { CapacityPlanningService } from '../capacity-planning/capacity-planning.service'
 import { MachineSchedulingService } from '../machine-scheduling/machine-scheduling.service'
+import { resolveReadModelList } from '../read-model/read-model-safety'
 import { loadEmployees } from '../storage'
 import { WorkforcePlanningService } from '../workforce-planning/workforce-planning.service'
 import { calculateBottleneckAnalysis, BottleneckCalculationService } from './bottleneck-calculation.service'
@@ -48,6 +49,11 @@ export {
 export const BOTTLENECK_ANALYSIS_STORAGE_KEY = 'ra_bottleneck_analysis_records'
 
 type RawBottleneckReport = Partial<Record<keyof BottleneckReport, unknown>> & Record<string, unknown>
+type BottleneckReadModelDependencies = {
+  capacityPlans?: ReturnType<typeof CapacityPlanningService.list>
+  machineSchedules?: ReturnType<typeof MachineSchedulingService.list>
+  workforcePlans?: ReturnType<typeof WorkforcePlanningService.list>
+}
 
 const REPORT_NO_PREFIX = 'BN'
 const REPORT_NO_PADDING = 6
@@ -159,20 +165,26 @@ const getWorkCenterLabel = (
 
 const createReportFromInput = ({
   actorName,
+  capacityPlans,
   input,
+  machineSchedules,
   reportId,
   reportNo,
   sourceData,
   sourceType,
-  status
+  status,
+  workforcePlans
 }: {
   actorName: string
+  capacityPlans?: ReturnType<typeof CapacityPlanningService.list>
   input: BottleneckReportCreateInput
+  machineSchedules?: ReturnType<typeof MachineSchedulingService.list>
   reportId: string
   reportNo: string
   sourceData: KpiSourceData
   sourceType: BottleneckReport['sourceType']
   status: BottleneckReportStatus
+  workforcePlans?: ReturnType<typeof WorkforcePlanningService.list>
 }) => {
   const calculation = calculateBottleneckAnalysis({
     reportId,
@@ -184,7 +196,10 @@ const createReportFromInput = ({
     machineId: input.machineId,
     employeeId: input.employeeId,
     workCenterId: input.workCenterId,
-    riskLevel: input.riskLevel
+    riskLevel: input.riskLevel,
+    capacityPlans,
+    machineSchedules,
+    workforcePlans
   })
   const machineLabel = getMachineLabel(input.machineId, calculation.items)
   const createdAt = new Date().toISOString()
@@ -229,12 +244,13 @@ const createReportFromInput = ({
 }
 
 export const createBottleneckAnalysisReadModelRecords = (
-  sourceData: KpiSourceData
+  sourceData: KpiSourceData,
+  dependencies: BottleneckReadModelDependencies = {}
 ): BottleneckReport[] => {
   const today = getTodayKey()
-  const capacityPlans = CapacityPlanningService.list(sourceData)
-  const machineSchedules = MachineSchedulingService.list(sourceData)
-  const workforcePlans = WorkforcePlanningService.list(sourceData)
+  const capacityPlans = dependencies.capacityPlans || CapacityPlanningService.list(sourceData)
+  const machineSchedules = dependencies.machineSchedules || MachineSchedulingService.list(sourceData)
+  const workforcePlans = dependencies.workforcePlans || WorkforcePlanningService.list(sourceData, { machineSchedules })
   const busiestLine = [...capacityPlans.flatMap(plan => plan.productionCapacities)]
     .sort((first, second) => second.utilizationPercent - first.utilizationPercent)[0]
   const busiestMachine = [...machineSchedules.flatMap(schedule => schedule.queues)]
@@ -310,12 +326,15 @@ export const createBottleneckAnalysisReadModelRecords = (
 
   return seedInputs.map((row, index) => createReportFromInput({
     actorName: row.actorName,
+    capacityPlans,
     input: row.input,
+    machineSchedules,
     reportId: `bottleneck_report_${index + 1}_${row.input.riskLevel}_${today.replace(/-/g, '')}`,
     reportNo: getNextBottleneckReportNo([], today, index),
     sourceData,
     sourceType: 'ReadModel',
-    status: row.status
+    status: row.status,
+    workforcePlans
   }))
 }
 
@@ -501,9 +520,10 @@ export const saveBottleneckReports = (records: BottleneckReport[]) => {
 }
 
 export const loadBottleneckReports = (
-  sourceData: KpiSourceData
+  sourceData: KpiSourceData,
+  dependencies: BottleneckReadModelDependencies = {}
 ) => {
-  const seedRecords = createBottleneckAnalysisReadModelRecords(sourceData)
+  const seedRecords = resolveReadModelList(() => createBottleneckAnalysisReadModelRecords(sourceData, dependencies))
   if(!isBrowserStorageAvailable()) return seedRecords
 
   const stored = localStorage.getItem(BOTTLENECK_ANALYSIS_STORAGE_KEY)

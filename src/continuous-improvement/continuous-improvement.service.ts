@@ -5,6 +5,7 @@ import {
 } from '../kpi-reporting/kpi.utils'
 import type { KpiSourceData } from '../kpi-reporting/kpi.types'
 import { MachineSchedulingService } from '../machine-scheduling/machine-scheduling.service'
+import { resolveReadModelList } from '../read-model/read-model-safety'
 import { loadEmployees } from '../storage'
 import { WorkforcePlanningService } from '../workforce-planning/workforce-planning.service'
 import { BottleneckAnalysisService } from '../bottleneck-analysis/bottleneck-analysis.service'
@@ -53,6 +54,12 @@ export {
 export const CONTINUOUS_IMPROVEMENT_STORAGE_KEY = 'ra_continuous_improvement_records'
 
 type RawImprovementReport = Partial<Record<keyof ImprovementReport, unknown>> & Record<string, unknown>
+type ImprovementReadModelDependencies = {
+  bottleneckReports?: ReturnType<typeof BottleneckAnalysisService.list>
+  capacityPlans?: ReturnType<typeof CapacityPlanningService.list>
+  machineSchedules?: ReturnType<typeof MachineSchedulingService.list>
+  workforcePlans?: ReturnType<typeof WorkforcePlanningService.list>
+}
 
 const REPORT_NO_PREFIX = 'CI'
 const REPORT_NO_PADDING = 6
@@ -161,20 +168,28 @@ const getEmployeeLabel = (
 
 const createReportFromInput = ({
   actorName,
+  bottleneckReports,
+  capacityPlans,
   input,
+  machineSchedules,
   reportId,
   reportNo,
   sourceData,
   sourceType,
-  status
+  status,
+  workforcePlans
 }: {
   actorName: string
+  bottleneckReports?: ReturnType<typeof BottleneckAnalysisService.list>
+  capacityPlans?: ReturnType<typeof CapacityPlanningService.list>
   input: ImprovementReportCreateInput
+  machineSchedules?: ReturnType<typeof MachineSchedulingService.list>
   reportId: string
   reportNo: string
   sourceData: KpiSourceData
   sourceType: ImprovementReport['sourceType']
   status: ImprovementReportStatus
+  workforcePlans?: ReturnType<typeof WorkforcePlanningService.list>
 }) => {
   const calculation = calculateImprovementOpportunities({
     reportId,
@@ -185,7 +200,11 @@ const createReportFromInput = ({
     area: input.area,
     productionLineId: input.productionLineId,
     machineId: input.machineId,
-    employeeId: input.employeeId
+    employeeId: input.employeeId,
+    bottleneckReports,
+    capacityPlans,
+    machineSchedules,
+    workforcePlans
   })
   const machineLabel = getMachineLabel(input.machineId, calculation.opportunities)
   const createdAt = new Date().toISOString()
@@ -227,13 +246,18 @@ const createReportFromInput = ({
 }
 
 export const createContinuousImprovementReadModelRecords = (
-  sourceData: KpiSourceData
+  sourceData: KpiSourceData,
+  dependencies: ImprovementReadModelDependencies = {}
 ): ImprovementReport[] => {
   const today = getTodayKey()
-  const bottleneckReports = BottleneckAnalysisService.list(sourceData)
-  const capacityPlans = CapacityPlanningService.list(sourceData)
-  const machineSchedules = MachineSchedulingService.list(sourceData)
-  const workforcePlans = WorkforcePlanningService.list(sourceData)
+  const capacityPlans = dependencies.capacityPlans || CapacityPlanningService.list(sourceData)
+  const machineSchedules = dependencies.machineSchedules || MachineSchedulingService.list(sourceData)
+  const workforcePlans = dependencies.workforcePlans || WorkforcePlanningService.list(sourceData, { machineSchedules })
+  const bottleneckReports = dependencies.bottleneckReports || BottleneckAnalysisService.list(sourceData, {
+    capacityPlans,
+    machineSchedules,
+    workforcePlans
+  })
   const topBottleneck = [...bottleneckReports.flatMap(report => report.items)]
     .sort((first, second) => second.riskScore - first.riskScore)[0]
   const idleMachine = [...machineSchedules.flatMap(schedule => schedule.timelines)]
@@ -307,12 +331,16 @@ export const createContinuousImprovementReadModelRecords = (
 
   return seedInputs.map((row, index) => createReportFromInput({
     actorName: row.actorName,
+    bottleneckReports,
+    capacityPlans,
     input: row.input,
+    machineSchedules,
     reportId: `improvement_report_${index + 1}_${row.input.area}_${today.replace(/-/g, '')}`,
     reportNo: getNextImprovementReportNo([], today, index),
     sourceData,
     sourceType: 'ReadModel',
-    status: row.status
+    status: row.status,
+    workforcePlans
   }))
 }
 
@@ -474,9 +502,10 @@ export const saveImprovementReports = (records: ImprovementReport[]) => {
 }
 
 export const loadImprovementReports = (
-  sourceData: KpiSourceData
+  sourceData: KpiSourceData,
+  dependencies: ImprovementReadModelDependencies = {}
 ) => {
-  const seedRecords = createContinuousImprovementReadModelRecords(sourceData)
+  const seedRecords = resolveReadModelList(() => createContinuousImprovementReadModelRecords(sourceData, dependencies))
   if(!isBrowserStorageAvailable()) return seedRecords
 
   const stored = localStorage.getItem(CONTINUOUS_IMPROVEMENT_STORAGE_KEY)

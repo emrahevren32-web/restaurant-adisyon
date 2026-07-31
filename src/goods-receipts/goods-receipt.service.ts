@@ -1,6 +1,7 @@
 import { createCostEngineView, createDefaultCostEngineFilters } from '../cost-engine/cost-engine.service'
 import type { InventoryLot } from '../inventory-lots/inventory-lot.types'
 import type { KpiSourceData } from '../kpi-reporting/kpi.types'
+import { resolveReadModelList } from '../read-model/read-model-safety'
 import { getGoodsReceiptOrderLines } from './goods-receipt.mock'
 import { appendGoodsReceiptHistory, createGoodsReceiptHistory } from './goods-receipt-history.service'
 import { GoodsReceiptInspectionService } from './goods-receipt-inspection.service'
@@ -576,7 +577,7 @@ export const saveGoodsReceiptManagementRecords = (
 export const loadGoodsReceiptManagementRecords = (
   sourceData: KpiSourceData
 ) => {
-  const seedRecords = createSeedRecords(sourceData)
+  const seedRecords = resolveReadModelList(() => createSeedRecords(sourceData))
 
   if(!isBrowserStorageAvailable()) return seedRecords
 

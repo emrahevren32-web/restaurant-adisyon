@@ -3,6 +3,7 @@ import {
   ALL_FILTER,
   roundKpi
 } from '../kpi-reporting/kpi.utils'
+import { resolveReadModel } from '../read-model/read-model-safety'
 import {
   AI_ANALYSIS_STATUSES,
   AI_ANALYSIS_STATUS_LABELS,
@@ -50,6 +51,7 @@ type RawAIAnalysisReport = Partial<Record<keyof AIAnalysisReport, unknown>> & Re
 type RawAIInsight = Partial<Record<keyof AIInsight, unknown>> & Record<string, unknown>
 type RawAIFinding = Partial<Record<keyof AIFinding, unknown>> & Record<string, unknown>
 type RawAIScore = Partial<Record<keyof AIScore, unknown>> & Record<string, unknown>
+type AIAnalysisEvaluationDependencies = Partial<Parameters<typeof calculateAIAnalysisReport>[0]>
 
 const AI_REPORT_NO_PREFIX = 'AI'
 const AI_REPORT_NO_PADDING = 6
@@ -287,23 +289,57 @@ export const saveAIAnalysisReports = (reports: AIAnalysisReport[]) => {
   localStorage.setItem(AI_ANALYSIS_STORAGE_KEY, JSON.stringify(reports))
 }
 
+const createAIAnalysisFallbackReport = (
+  input: AIAnalysisReportCreateInput,
+  existingReports: AIAnalysisReport[],
+  actorName: string
+): AIAnalysisReport => {
+  const reportNo = getNextAIAnalysisNo(existingReports, input.reportDate)
+  const reportId = `ai_analysis_${reportNo}_fallback`.replace(/[^a-zA-Z0-9_]+/g, '_')
+  const createdAt = new Date().toISOString()
+
+  return {
+    id: reportId,
+    reportNo,
+    status: 'GENERATED',
+    reportDate: input.reportDate,
+    scope: input.scope,
+    responsiblePerson: input.responsiblePerson || actorName,
+    description: input.description || 'Read-model kaynak hatasi nedeniyle bos AI analysis raporu olusturuldu.',
+    insights: [],
+    findings: [],
+    scores: [],
+    history: [
+      createAIHistory(reportId, 'ANALYZED', actorName, 'Read-model kaynak hatasi nedeniyle AI analysis hesaplamasi bos fallback ile tamamlandi.')
+    ],
+    sourceType: 'ReadModel',
+    sourceId: 'ai-analysis-runtime-fallback',
+    revisionNo: 1,
+    createdBy: actorName,
+    createdAt,
+    updatedAt: createdAt
+  }
+}
+
 export const evaluateAIAnalysisReport = (
   sourceData: KpiSourceData,
   input: Partial<AIAnalysisReportCreateInput> = {},
   existingReports: AIAnalysisReport[] = [],
-  actorName = 'AI Analysis Engine'
+  actorName = 'AI Analysis Engine',
+  dependencies: AIAnalysisEvaluationDependencies = {}
 ) => {
   const createInput = {
     ...createDefaultAIAnalysisReportInput(actorName),
     ...input
   }
 
-  return calculateAIAnalysisReport({
+  return resolveReadModel(() => calculateAIAnalysisReport({
     ...createInput,
+    ...dependencies,
     sourceData,
     actorName,
     getReportNo: () => getNextAIAnalysisNo(existingReports, createInput.reportDate)
-  })
+  }), createAIAnalysisFallbackReport(createInput, existingReports, actorName))
 }
 
 export const loadAIAnalysisReports = (

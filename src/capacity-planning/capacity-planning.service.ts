@@ -3,6 +3,8 @@ import {
   ALL_FILTER,
   roundKpi
 } from '../kpi-reporting/kpi.utils'
+import { ProductionPlanningService } from '../production-planning/production-planning.service'
+import { resolveReadModelList } from '../read-model/read-model-safety'
 import {
   calculateCapacityPlan,
   CapacityCalculationService
@@ -139,6 +141,7 @@ const createCapacityPlanFromInput = ({
   actorName,
   capacityPlanNo,
   input,
+  planningPlans,
   planId,
   sourceData,
   sourceType,
@@ -147,6 +150,7 @@ const createCapacityPlanFromInput = ({
   actorName: string
   capacityPlanNo: string
   input: CapacityPlanCreateInput
+  planningPlans?: ReturnType<typeof ProductionPlanningService.list>
   planId: string
   sourceData: KpiSourceData
   sourceType: CapacityPlan['sourceType']
@@ -159,7 +163,8 @@ const createCapacityPlanFromInput = ({
     endDate: input.endDate,
     productionLineId: input.productionLineId,
     workCenterId: input.workCenterId,
-    shift: input.shift
+    shift: input.shift,
+    planningPlans
   })
   const createdAt = new Date().toISOString()
   const plan: CapacityPlan = {
@@ -200,6 +205,7 @@ export const createCapacityPlanningReadModelRecords = (
   sourceData: KpiSourceData
 ): CapacityPlan[] => {
   const today = getTodayKey()
+  const planningPlans = ProductionPlanningService.list(sourceData)
   const firstLine = sourceData.productionLines[0]
   const busiestLine = [...sourceData.productionLines].sort((first, second) => second.estimatedUtilization - first.estimatedUtilization)[0] || firstLine
   const maintenanceLine = sourceData.productionLines.find(line => normalizeSearchText(line.status).includes('bak')) || busiestLine
@@ -268,6 +274,7 @@ export const createCapacityPlanningReadModelRecords = (
     actorName: row.actorName,
     capacityPlanNo: getNextCapacityPlanNo(seedInputs.slice(0, index).map((_, seedIndex) => ({ capacityPlanNo: getNextCapacityPlanNo([], today, seedIndex) })), today),
     input: row.input,
+    planningPlans,
     planId: `capacity_plan_${index + 1}_${row.input.productionLineId}_${row.input.shift}_${today.replace(/-/g, '')}`,
     sourceData,
     sourceType: 'ReadModel',
@@ -489,7 +496,7 @@ export const saveCapacityPlans = (records: CapacityPlan[]) => {
 export const loadCapacityPlans = (
   sourceData: KpiSourceData
 ) => {
-  const seedRecords = createCapacityPlanningReadModelRecords(sourceData)
+  const seedRecords = resolveReadModelList(() => createCapacityPlanningReadModelRecords(sourceData))
   if(!isBrowserStorageAvailable()) return seedRecords
 
   const stored = localStorage.getItem(CAPACITY_PLANNING_STORAGE_KEY)

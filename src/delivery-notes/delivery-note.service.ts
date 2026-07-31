@@ -180,12 +180,51 @@ const getShipmentForLine = (
   )) || candidates[0] || null
 }
 
+const getShipmentPlanSourceWarnings = (
+  shipmentPlanId: string,
+  sourceData: KpiSourceData
+) => {
+  const plan = sourceData.shipmentPlans.find(record => record.id === shipmentPlanId)
+  if(!plan) return ['Sevkiyat plani bulunamadi; read-model irsaliye uretilmedi.']
+
+  const warnings: string[] = []
+  if(plan.status === 'CANCELLED') warnings.push(`${plan.shipmentPlanNo} iptal edilmis sevkiyat plani oldugu icin atlandi.`)
+  const vehicle = sourceData.shipmentVehicles.find(record => record.id === plan.vehicleId)
+  if(!vehicle) warnings.push(`${plan.shipmentPlanNo} icin arac kaydi bulunamadi.`)
+
+  const palletMap = createMap(sourceData.shipmentPallets)
+  const workOrderMap = createMap(sourceData.shipmentWorkOrders)
+  const lotMap = createMap(sourceData.inventoryLots)
+  const cancelledShipmentNos = new Set<string>()
+  let missingLotCount = 0
+  let invalidQuantityCount = 0
+
+  for(const stop of plan.stops){
+    const vehicleLoad = vehicle?.loads.find(load => load.id === stop.vehicleLoadId)
+    const pallet = vehicleLoad ? palletMap.get(vehicleLoad.palletId) : null
+    const workOrder = pallet ? workOrderMap.get(pallet.workOrderId) || null : null
+
+    for(const palletItem of pallet?.items || []){
+      const shipment = getShipmentForLine(workOrder, palletItem, sourceData)
+      if(shipment?.status === 'CANCELLED') cancelledShipmentNos.add(shipment.shipmentNo)
+      if(!lotMap.has(palletItem.inventoryLotId)) missingLotCount += 1
+      if(!Number.isFinite(Number(palletItem.quantity)) || Number(palletItem.quantity) <= 0) invalidQuantityCount += 1
+    }
+  }
+
+  cancelledShipmentNos.forEach(shipmentNo => warnings.push(`${shipmentNo} iptal edilmis sevkiyat oldugu icin irsaliye read-modelinden atlandi.`))
+  if(missingLotCount > 0) warnings.push(`${missingLotCount} palet satiri lot bulunamadigi icin atlandi.`)
+  if(invalidQuantityCount > 0) warnings.push(`${invalidQuantityCount} palet satiri gecersiz miktar nedeniyle atlandi.`)
+
+  return warnings
+}
+
 export const createDeliveryNoteLineSources = (
   shipmentPlanId: string,
   sourceData: KpiSourceData
 ): DeliveryNoteLineSource[] => {
   const plan = sourceData.shipmentPlans.find(record => record.id === shipmentPlanId)
-  if(!plan) return []
+  if(!plan || plan.status === 'CANCELLED') return []
 
   const vehicle = sourceData.shipmentVehicles.find(record => record.id === plan.vehicleId)
   if(!vehicle) return []
@@ -207,7 +246,11 @@ export const createDeliveryNoteLineSources = (
 
     for(const palletItem of pallet.items){
       const lot = lotMap.get(palletItem.inventoryLotId) || null
+      const quantity = Number(palletItem.quantity)
+      if(!lot || !Number.isFinite(quantity) || quantity <= 0) continue
       const stockItem = stockItemMap.get(palletItem.stockItemId || lot?.stockItemId || '') || null
+      const shipment = getShipmentForLine(workOrder, palletItem, sourceData)
+      if(shipment?.status === 'CANCELLED') continue
       lines.push({
         plan,
         stop,
@@ -216,7 +259,7 @@ export const createDeliveryNoteLineSources = (
         pallet,
         palletItem,
         workOrder,
-        shipment: getShipmentForLine(workOrder, palletItem, sourceData),
+        shipment,
         lot,
         stockItem,
         branch
@@ -448,12 +491,13 @@ export const createDeliveryNoteFromShipmentPlan = (
   shipmentPlanId: string,
   sourceData: KpiSourceData,
   actorName: string,
-  existingRecords: DeliveryNote[] = loadDeliveryNoteRecords(sourceData)
+  existingRecords: DeliveryNote[] = []
 ): DeliveryNote => {
   const context = createDeliveryNoteContext(sourceData)
   const lines = createDeliveryNoteLineSources(shipmentPlanId, sourceData)
   const plan = sourceData.shipmentPlans.find(record => record.id === shipmentPlanId) || null
   const vehicle = plan ? sourceData.shipmentVehicles.find(record => record.id === plan.vehicleId) || null : null
+  const sourceWarnings = getShipmentPlanSourceWarnings(shipmentPlanId, sourceData)
 
   if(!plan) throw new Error('Sevkiyat plani bulunamadi.')
   if(lines.length === 0) throw new Error('Sevkiyat plani icin irsaliye kalemi bulunamadi.')
@@ -485,7 +529,10 @@ export const createDeliveryNoteFromShipmentPlan = (
     status: 'DRAFT',
     description: `${plan.shipmentPlanNo} sevkiyat plani icin otomatik doldurulan kurumsal irsaliye read model kaydi.`,
     items,
-    history: [createDeliveryNoteHistory(id, 'CREATED', actorName, `${plan.shipmentPlanNo} planindan irsaliye olusturuldu.`, now)],
+    history: [
+      createDeliveryNoteHistory(id, 'CREATED', actorName, `${plan.shipmentPlanNo} planindan irsaliye olusturuldu.`, now),
+      ...sourceWarnings.map(warning => createDeliveryNoteHistory(id, 'VALIDATION', actorName, warning, now))
+    ],
     createdBy: actorName,
     createdAt: now,
     updatedAt: now
@@ -506,9 +553,14 @@ const createSeedDeliveryNotes = (
     .slice(0, NOTE_SEED_COUNT)
   const statuses: DeliveryNoteStatus[] = ['DRAFT', 'READY', 'PRINTED', 'LOADED', 'DELIVERED', 'CANCELLED', 'READY', 'DELIVERED']
 
-  return eligiblePlans.map((plan, index) => {
+  return eligiblePlans.flatMap((plan, index) => {
     const seedDate = addDays(getTodayKey(), index === 0 ? 0 : -index)
-    const record = createDeliveryNoteFromShipmentPlan(plan.id, sourceData, 'Lojistik Planlama', [])
+    let record: DeliveryNote
+    try {
+      record = createDeliveryNoteFromShipmentPlan(plan.id, sourceData, 'Lojistik Planlama', [])
+    } catch {
+      return []
+    }
     const status = statuses[index % statuses.length]
     const updatedRecord = {
       ...record,
@@ -558,7 +610,12 @@ export const saveDeliveryNoteRecords = (
 export const loadDeliveryNoteRecords = (
   sourceData: KpiSourceData
 ) => {
-  const seedRecords = createSeedDeliveryNotes(sourceData)
+  let seedRecords: DeliveryNote[] = []
+  try {
+    seedRecords = createSeedDeliveryNotes(sourceData)
+  } catch {
+    seedRecords = []
+  }
 
   if(!isBrowserStorageAvailable()) return seedRecords
 

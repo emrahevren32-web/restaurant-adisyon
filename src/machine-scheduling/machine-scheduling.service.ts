@@ -4,6 +4,7 @@ import {
   roundKpi
 } from '../kpi-reporting/kpi.utils'
 import { CapacityPlanningService } from '../capacity-planning/capacity-planning.service'
+import { resolveReadModelList } from '../read-model/read-model-safety'
 import { appendSchedulingHistory, createSchedulingHistory } from './scheduling-history.service'
 import { calculateMachineScheduling, SchedulingCalculationService } from './scheduling-calculation.service'
 import { createSchedulingStatistics } from './scheduling-statistics.service'
@@ -141,6 +142,7 @@ const getMachineLabel = (
 
 const createScheduleFromInput = ({
   actorName,
+  capacityPlans,
   input,
   scheduleId,
   scheduleNo,
@@ -149,6 +151,7 @@ const createScheduleFromInput = ({
   status
 }: {
   actorName: string
+  capacityPlans?: ReturnType<typeof CapacityPlanningService.list>
   input: MachineScheduleCreateInput
   scheduleId: string
   scheduleNo: string
@@ -165,7 +168,8 @@ const createScheduleFromInput = ({
     machineId: input.machineId,
     productionLineId: input.productionLineId,
     workCenterId: input.workCenterId,
-    shift: input.shift
+    shift: input.shift,
+    capacityPlans
   })
   const machineLabel = getMachineLabel(input.machineId, calculation.timelines)
   const createdAt = new Date().toISOString()
@@ -282,6 +286,7 @@ export const createMachineSchedulingReadModelRecords = (
 
   return seedInputs.map((row, index) => createScheduleFromInput({
     actorName: row.actorName,
+    capacityPlans,
     input: row.input,
     scheduleId: `machine_schedule_${index + 1}_${row.input.machineId}_${row.input.shift}_${today.replace(/-/g, '')}`,
     scheduleNo: getNextMachineScheduleNo([], today, index),
@@ -485,7 +490,7 @@ export const saveMachineSchedules = (records: MachineSchedule[]) => {
 export const loadMachineSchedules = (
   sourceData: KpiSourceData
 ) => {
-  const seedRecords = createMachineSchedulingReadModelRecords(sourceData)
+  const seedRecords = resolveReadModelList(() => createMachineSchedulingReadModelRecords(sourceData))
   if(!isBrowserStorageAvailable()) return seedRecords
 
   const stored = localStorage.getItem(MACHINE_SCHEDULING_STORAGE_KEY)

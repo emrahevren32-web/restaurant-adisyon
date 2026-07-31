@@ -26,6 +26,7 @@ type WorkforceCalculationInput = {
   shiftName: string
   productionLineId: string
   machineId: string
+  machineSchedules?: MachineSchedule[]
 }
 
 export type WorkforceCalculationResult = {
@@ -164,7 +165,8 @@ const getCandidateRows = (
   const employees = loadEmployees().filter(employee => matchesEmployee(employee, input))
   const activeEmployees = employees.filter(employee => employee.isActive)
   const shifts = loadShifts().filter(shift => matchesShift(shift, input))
-  const schedules = MachineSchedulingService.list(input.sourceData).filter(schedule => matchesMachineSchedule(schedule, input))
+  const schedules = (input.machineSchedules || MachineSchedulingService.list(input.sourceData))
+    .filter(schedule => matchesMachineSchedule(schedule, input))
   const tasks = schedules.flatMap(schedule => schedule.items.map(item => ({ schedule, item })))
     .filter(row => matchesMachineItem(row.item, input))
     .sort((first, second) => (

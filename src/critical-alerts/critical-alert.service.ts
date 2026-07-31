@@ -3,6 +3,7 @@ import {
   ALL_FILTER,
   roundKpi
 } from '../kpi-reporting/kpi.utils'
+import { resolveReadModelList } from '../read-model/read-model-safety'
 import {
   ALERT_CATEGORIES,
   ALERT_CATEGORY_LABELS,
@@ -42,6 +43,10 @@ export {
 export const CRITICAL_ALERT_STORAGE_KEY = 'ra_critical_alert_engine_records'
 
 type RawCriticalAlert = Partial<Record<keyof CriticalAlert, unknown>> & Record<string, unknown>
+type CriticalAlertEvaluationDependencies = Partial<Omit<
+  Parameters<typeof evaluateCriticalAlerts>[0],
+  'sourceData' | 'getAlertNo' | 'actorName'
+>>
 
 const ALERT_NO_PREFIX = 'AL'
 const ALERT_NO_PADDING = 6
@@ -228,12 +233,14 @@ export const saveCriticalAlerts = (alerts: CriticalAlert[]) => {
 export const evaluateCriticalAlertRecords = (
   sourceData: KpiSourceData,
   existingAlerts: CriticalAlert[] = [],
-  actorName = 'Critical Alert Engine'
-) => evaluateCriticalAlerts({
+  actorName = 'Critical Alert Engine',
+  dependencies: CriticalAlertEvaluationDependencies = {}
+) => resolveReadModelList(() => evaluateCriticalAlerts({
+  ...dependencies,
   sourceData,
   actorName,
   getAlertNo: index => getNextAlertNo(existingAlerts, getTodayKey(), index)
-})
+}))
 
 export const loadCriticalAlerts = (
   sourceData: KpiSourceData

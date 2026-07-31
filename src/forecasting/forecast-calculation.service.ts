@@ -34,6 +34,13 @@ type ForecastCalculationInput = ForecastReportCreateInput & {
   sourceData: KpiSourceData
   getReportNo: () => string
   actorName: string
+  bottleneckReports?: ReturnType<typeof BottleneckAnalysisService.list>
+  capacityPlans?: ReturnType<typeof CapacityPlanningService.list>
+  criticalAlerts?: CriticalAlert[]
+  improvementReports?: ReturnType<typeof ContinuousImprovementService.list>
+  machineSchedules?: ReturnType<typeof MachineSchedulingService.list>
+  productionPlans?: ReturnType<typeof ProductionPlanningService.list>
+  workforcePlans?: ReturnType<typeof WorkforcePlanningService.list>
 }
 
 type MetricEvent = {
@@ -389,8 +396,10 @@ const createProductionPredictions = (
   reportNo: string,
   alerts: CriticalAlert[]
 ) => {
-  const plans = ProductionPlanningService.list(input.sourceData).filter(plan => plan.status !== 'CANCELLED')
-  const capacityPlans = CapacityPlanningService.list(input.sourceData).filter(plan => plan.status !== 'CANCELLED')
+  const plans = (input.productionPlans || ProductionPlanningService.list(input.sourceData))
+    .filter(plan => plan.status !== 'CANCELLED')
+  const capacityPlans = (input.capacityPlans || CapacityPlanningService.list(input.sourceData))
+    .filter(plan => plan.status !== 'CANCELLED')
   const capacityPercent = averageBy(
     capacityPlans.flatMap(plan => plan.productionCapacities),
     capacity => capacity.utilizationPercent
@@ -874,10 +883,14 @@ const createPersonnelPredictions = (
   reportNo: string,
   alerts: CriticalAlert[]
 ) => {
-  const workforcePlans = WorkforcePlanningService.list(input.sourceData).filter(plan => plan.status !== 'CANCELLED')
-  const bottleneckReports = BottleneckAnalysisService.list(input.sourceData).filter(report => report.status !== 'CANCELLED')
-  const improvementReports = ContinuousImprovementService.list(input.sourceData).filter(report => report.status !== 'CANCELLED')
-  const machineSchedules = MachineSchedulingService.list(input.sourceData).filter(schedule => schedule.status !== 'CANCELLED')
+  const workforcePlans = (input.workforcePlans || WorkforcePlanningService.list(input.sourceData))
+    .filter(plan => plan.status !== 'CANCELLED')
+  const bottleneckReports = (input.bottleneckReports || BottleneckAnalysisService.list(input.sourceData))
+    .filter(report => report.status !== 'CANCELLED')
+  const improvementReports = (input.improvementReports || ContinuousImprovementService.list(input.sourceData))
+    .filter(report => report.status !== 'CANCELLED')
+  const machineSchedules = (input.machineSchedules || MachineSchedulingService.list(input.sourceData))
+    .filter(schedule => schedule.status !== 'CANCELLED')
   const events: MetricEvent[] = workforcePlans.flatMap(plan => plan.shiftAssignments.map(assignment => ({
     date: assignment.workDate || plan.planDate,
     value: assignment.assignedEmployees + assignment.missingEmployeeCount,
@@ -983,16 +996,47 @@ export const calculateForecastReport = (
   const reportDate = input.reportDate || getTodayKey()
   const startDate = addDays(reportDate, 1)
   const endDate = addDays(reportDate, Math.max(1, input.horizonDays))
-  const alerts = CriticalAlertService.evaluate(input.sourceData)
+  const productionPlans = input.productionPlans || ProductionPlanningService.list(input.sourceData)
+  const capacityPlans = input.capacityPlans || CapacityPlanningService.list(input.sourceData)
+  const machineSchedules = input.machineSchedules || MachineSchedulingService.list(input.sourceData)
+  const workforcePlans = input.workforcePlans || WorkforcePlanningService.list(input.sourceData, { machineSchedules })
+  const bottleneckReports = input.bottleneckReports || BottleneckAnalysisService.list(input.sourceData, {
+    capacityPlans,
+    machineSchedules,
+    workforcePlans
+  })
+  const improvementReports = input.improvementReports || ContinuousImprovementService.list(input.sourceData, {
+    bottleneckReports,
+    capacityPlans,
+    machineSchedules,
+    workforcePlans
+  })
+  const alerts = input.criticalAlerts || CriticalAlertService.evaluate(input.sourceData, [], input.actorName, {
+    bottleneckReports,
+    capacityPlans,
+    improvementReports,
+    machineSchedules,
+    workforcePlans
+  })
+  const context = {
+    ...input,
+    bottleneckReports,
+    capacityPlans,
+    criticalAlerts: alerts,
+    improvementReports,
+    machineSchedules,
+    productionPlans,
+    workforcePlans
+  }
   const predictions = [
-    ...createStockPredictions(input, reportId, reportNo, alerts),
-    ...createDemandPredictions(input, reportId, reportNo, alerts),
-    ...createProductionPredictions(input, reportId, reportNo, alerts),
-    ...createShipmentPredictions(input, reportId, reportNo, alerts),
-    ...createWastePredictions(input, reportId, reportNo, alerts),
-    ...createQualityPredictions(input, reportId, reportNo, alerts),
-    ...createPurchasingPredictions(input, reportId, reportNo, alerts),
-    ...createPersonnelPredictions(input, reportId, reportNo, alerts)
+    ...createStockPredictions(context, reportId, reportNo, alerts),
+    ...createDemandPredictions(context, reportId, reportNo, alerts),
+    ...createProductionPredictions(context, reportId, reportNo, alerts),
+    ...createShipmentPredictions(context, reportId, reportNo, alerts),
+    ...createWastePredictions(context, reportId, reportNo, alerts),
+    ...createQualityPredictions(context, reportId, reportNo, alerts),
+    ...createPurchasingPredictions(context, reportId, reportNo, alerts),
+    ...createPersonnelPredictions(context, reportId, reportNo, alerts)
   ].sort((first, second) => (
     second.riskScore - first.riskScore
     || second.expectedValue - first.expectedValue

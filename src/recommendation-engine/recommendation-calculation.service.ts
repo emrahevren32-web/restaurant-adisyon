@@ -38,6 +38,14 @@ type RecommendationCalculationInput = RecommendationReportCreateInput & {
   decisionSuggestions?: DecisionSuggestion[]
   getReportNo: () => string
   actorName: string
+  bottleneckReports?: ReturnType<typeof BottleneckAnalysisService.list>
+  capacityPlans?: ReturnType<typeof CapacityPlanningService.list>
+  criticalAlerts?: CriticalAlert[]
+  forecastPredictions?: ForecastPrediction[]
+  improvementReports?: ReturnType<typeof ContinuousImprovementService.list>
+  machineSchedules?: ReturnType<typeof MachineSchedulingService.list>
+  productionPlans?: ReturnType<typeof ProductionPlanningService.list>
+  workforcePlans?: ReturnType<typeof WorkforcePlanningService.list>
 }
 
 type RecommendationItemInput = {
@@ -292,7 +300,7 @@ const createCriticalAlertItems = (
   input: RecommendationCalculationInput,
   reportId: string,
   reportNo: string
-) => CriticalAlertService.evaluate(input.sourceData)
+) => (input.criticalAlerts || CriticalAlertService.evaluate(input.sourceData))
   .filter(alert => alert.status === 'ACTIVE' && (alert.level === 'CRITICAL' || alert.level === 'HIGH' || alert.riskScore >= 70))
   .slice(0, 16)
   .map(alert => createRecommendationItem({
@@ -347,7 +355,7 @@ const createForecastItems = (
   input: RecommendationCalculationInput,
   reportId: string,
   reportNo: string
-) => ForecastService.evaluate(input.sourceData).predictions
+) => (input.forecastPredictions || ForecastService.evaluate(input.sourceData).predictions)
   .filter(prediction => (
     prediction.riskLevel === 'HIGH'
     || prediction.riskLevel === 'CRITICAL'
@@ -404,7 +412,7 @@ const createProductionPlanningItems = (
   input: RecommendationCalculationInput,
   reportId: string,
   reportNo: string
-) => ProductionPlanningService.list(input.sourceData)
+) => (input.productionPlans || ProductionPlanningService.list(input.sourceData))
   .filter(plan => plan.status !== 'CANCELLED')
   .flatMap(plan => plan.items.map(item => ({ plan, item })))
   .filter(row => row.item.priority === 'CRITICAL' || row.item.priority === 'HIGH' || row.item.capacityUsagePercent >= 90 || row.item.currentStock <= row.item.minimumStock)
@@ -447,7 +455,7 @@ const createCapacityAndMachineItems = (
   reportId: string,
   reportNo: string
 ) => {
-  const capacityItems = CapacityPlanningService.list(input.sourceData)
+  const capacityItems = (input.capacityPlans || CapacityPlanningService.list(input.sourceData))
     .filter(plan => plan.status !== 'CANCELLED')
     .flatMap(plan => plan.productionCapacities.map(capacity => ({ plan, capacity })))
     .filter(row => row.capacity.utilizationPercent >= 95 || row.capacity.overloadMinutes > 0)
@@ -475,7 +483,7 @@ const createCapacityAndMachineItems = (
       productionLineName: capacity.productionLineName
     }))
 
-  const machineItems = MachineSchedulingService.list(input.sourceData)
+  const machineItems = (input.machineSchedules || MachineSchedulingService.list(input.sourceData))
     .filter(schedule => schedule.status !== 'CANCELLED')
     .flatMap(schedule => schedule.queues.map(queue => ({ schedule, queue })))
     .filter(row => row.queue.conflictCount > 0 || row.queue.totalWaitingMinutes >= 120 || row.queue.idleMinutes >= 120)
@@ -517,7 +525,7 @@ const createWorkforceItems = (
   input: RecommendationCalculationInput,
   reportId: string,
   reportNo: string
-) => WorkforcePlanningService.list(input.sourceData)
+) => (input.workforcePlans || WorkforcePlanningService.list(input.sourceData))
   .filter(plan => plan.status !== 'CANCELLED')
   .flatMap(plan => plan.shiftAssignments.map(assignment => ({ plan, assignment })))
   .filter(row => row.assignment.missingEmployeeCount > 0 || row.assignment.conflictCount > 0)
@@ -551,7 +559,7 @@ const createBottleneckAndImprovementItems = (
   reportId: string,
   reportNo: string
 ) => {
-  const bottleneckItems = BottleneckAnalysisService.list(input.sourceData)
+  const bottleneckItems = (input.bottleneckReports || BottleneckAnalysisService.list(input.sourceData))
     .filter(report => report.status !== 'CANCELLED')
     .flatMap(report => report.items.map(item => ({ report, item })))
     .filter(row => row.item.riskLevel === 'CRITICAL' || row.item.riskLevel === 'HIGH' || row.item.riskScore >= 70)
@@ -584,7 +592,7 @@ const createBottleneckAndImprovementItems = (
       employeeName: item.employeeName
     }))
 
-  const improvementItems = ContinuousImprovementService.list(input.sourceData)
+  const improvementItems = (input.improvementReports || ContinuousImprovementService.list(input.sourceData))
     .filter(report => report.status !== 'CANCELLED')
     .flatMap(report => report.opportunities.map(opportunity => ({ report, opportunity })))
     .filter(row => row.opportunity.priority === 'URGENT' || row.opportunity.priority === 'HIGH' || row.opportunity.expectedBenefitScore >= 70)
@@ -786,16 +794,58 @@ export const calculateRecommendationReport = (
 ): RecommendationReport => {
   const reportNo = input.getReportNo()
   const reportId = `recommendation_report_${reportNo}`.replace(/[^a-zA-Z0-9_]+/g, '_')
+  const productionPlans = input.productionPlans || ProductionPlanningService.list(input.sourceData)
+  const capacityPlans = input.capacityPlans || CapacityPlanningService.list(input.sourceData)
+  const machineSchedules = input.machineSchedules || MachineSchedulingService.list(input.sourceData)
+  const workforcePlans = input.workforcePlans || WorkforcePlanningService.list(input.sourceData, { machineSchedules })
+  const bottleneckReports = input.bottleneckReports || BottleneckAnalysisService.list(input.sourceData, {
+    capacityPlans,
+    machineSchedules,
+    workforcePlans
+  })
+  const improvementReports = input.improvementReports || ContinuousImprovementService.list(input.sourceData, {
+    bottleneckReports,
+    capacityPlans,
+    machineSchedules,
+    workforcePlans
+  })
+  const criticalAlerts = input.criticalAlerts || CriticalAlertService.evaluate(input.sourceData, [], input.actorName, {
+    bottleneckReports,
+    capacityPlans,
+    improvementReports,
+    machineSchedules,
+    workforcePlans
+  })
+  const forecastPredictions = input.forecastPredictions || ForecastService.evaluate(input.sourceData, {}, [], input.actorName, {
+    bottleneckReports,
+    capacityPlans,
+    criticalAlerts,
+    improvementReports,
+    machineSchedules,
+    productionPlans,
+    workforcePlans
+  }).predictions
+  const context = {
+    ...input,
+    bottleneckReports,
+    capacityPlans,
+    criticalAlerts,
+    forecastPredictions,
+    improvementReports,
+    machineSchedules,
+    productionPlans,
+    workforcePlans
+  }
   const rawItems = [
-    ...createDecisionSupportItems(input, reportId, reportNo),
-    ...createCriticalAlertItems(input, reportId, reportNo),
-    ...createForecastItems(input, reportId, reportNo),
-    ...createProductionPlanningItems(input, reportId, reportNo),
-    ...createCapacityAndMachineItems(input, reportId, reportNo),
-    ...createWorkforceItems(input, reportId, reportNo),
-    ...createBottleneckAndImprovementItems(input, reportId, reportNo),
-    ...createQualityShipmentChecklistItems(input, reportId, reportNo),
-    ...createWasteItems(input, reportId, reportNo)
+    ...createDecisionSupportItems(context, reportId, reportNo),
+    ...createCriticalAlertItems(context, reportId, reportNo),
+    ...createForecastItems(context, reportId, reportNo),
+    ...createProductionPlanningItems(context, reportId, reportNo),
+    ...createCapacityAndMachineItems(context, reportId, reportNo),
+    ...createWorkforceItems(context, reportId, reportNo),
+    ...createBottleneckAndImprovementItems(context, reportId, reportNo),
+    ...createQualityShipmentChecklistItems(context, reportId, reportNo),
+    ...createWasteItems(context, reportId, reportNo)
   ]
   const items = filterScope(dedupeItems(rawItems), input.scope)
   const now = new Date().toISOString()

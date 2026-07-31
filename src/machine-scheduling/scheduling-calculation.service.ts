@@ -27,6 +27,7 @@ type SchedulingCalculationInput = {
   productionLineId: string
   workCenterId: string
   shift: string
+  capacityPlans?: CapacityPlan[]
 }
 
 export type SchedulingCalculationResult = {
@@ -138,7 +139,7 @@ const dedupeMachines = (
 const getSourceRows = (
   input: SchedulingCalculationInput
 ) => {
-  const capacityPlans = CapacityPlanningService.list(input.sourceData).filter(plan => matchesCapacityPlan(plan, input))
+  const capacityPlans = (input.capacityPlans || CapacityPlanningService.list(input.sourceData)).filter(plan => matchesCapacityPlan(plan, input))
   const machines = capacityPlans.flatMap(plan => plan.machineCapacities.map(machine => ({ ...machine, sourceCapacityPlanId: plan.id })))
     .filter(machine => matchesMachineScope(machine, input))
   const machineIds = new Set(machines.map(machine => machine.machineId))

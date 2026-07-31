@@ -7,6 +7,7 @@ import {
   roundKpi,
   sumBy
 } from '../kpi-reporting/kpi.utils'
+import { resolveReadModelList } from '../read-model/read-model-safety'
 import type { RecipeManagementRecord } from '../recipe-management/recipe-management.types'
 import type { StockItem, StockUnit } from '../types'
 import { createWasteAnalysis } from './waste-analysis.service'
@@ -609,7 +610,7 @@ export const saveWasteRecords = (
 export const loadWasteRecords = (
   sourceData: KpiSourceData
 ) => {
-  const seedRecords = createWasteReadModelRecords(sourceData)
+  const seedRecords = resolveReadModelList(() => createWasteReadModelRecords(sourceData))
 
   if(!isBrowserStorageAvailable()) return seedRecords
 

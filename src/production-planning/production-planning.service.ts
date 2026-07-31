@@ -7,6 +7,7 @@ import {
   roundKpi,
   sumBy
 } from '../kpi-reporting/kpi.utils'
+import { resolveReadModelList } from '../read-model/read-model-safety'
 import type { ProductionLine } from '../production-lines/production-line.types'
 import type { ProductionWorkOrder } from '../production-work-orders/production-work-order.types'
 import type { RecipeManagementRecord } from '../recipe-management/recipe-management.types'
@@ -67,6 +68,9 @@ type DemandContext = {
   planType: ProductionPlanType
   startDate: string
   endDate: string
+  deliveryNotes: ReturnType<typeof DeliveryNoteService.list>
+  goodsReceipts: ReturnType<typeof GoodsReceiptService.list>
+  wasteRecords: ReturnType<typeof WasteService.list>
 }
 
 type RawProductionPlan = Partial<Record<keyof ProductionPlan, unknown>> & Record<string, unknown>
@@ -286,7 +290,7 @@ const getPendingOrderQuantity = (
 const getDeliveryNoteDemand = (
   productName: string,
   context: DemandContext
-) => sumBy(DeliveryNoteService.list(context.sourceData).filter(note => (
+) => sumBy(context.deliveryNotes.filter(note => (
   note.status !== 'CANCELLED'
   && note.status !== 'DELIVERED'
   && isDateWithin(note.date, context.startDate, context.endDate)
@@ -339,8 +343,8 @@ const getCurrentStock = (
 
 const getGoodsReceiptSupply = (
   product: ProductCatalogItem,
-  sourceData: KpiSourceData
-) => sumBy(GoodsReceiptService.list(sourceData).filter(receipt => receipt.status !== 'CANCELLED' && receipt.status !== 'REJECTED'), receipt => (
+  context: DemandContext
+) => sumBy(context.goodsReceipts.filter(receipt => receipt.status !== 'CANCELLED' && receipt.status !== 'REJECTED'), receipt => (
   sumBy(receipt.items.filter(item => (
     item.stockItemId === product.stockItem?.id
     || productMatches(item.productName || item.stockItemName || '', product.productName)
@@ -349,14 +353,14 @@ const getGoodsReceiptSupply = (
 
 const getWastePercent = (
   product: ProductCatalogItem,
-  sourceData: KpiSourceData
+  context: DemandContext
 ) => {
   const recipeFire = product.recipe.firePercent || 0
-  const wasteQuantity = sumBy(WasteService.list(sourceData).filter(record => (
+  const wasteQuantity = sumBy(context.wasteRecords.filter(record => (
     record.status !== 'CANCELLED'
     && (record.productId === product.productId || productMatches(record.productName || record.stockItemName, product.productName))
   )), record => record.quantity)
-  const productionQuantity = sumBy(sourceData.productionOrders.filter(order => !isCancelledOrder(order)), order => getLineQuantityForProduct(order, product.productName))
+  const productionQuantity = sumBy(context.sourceData.productionOrders.filter(order => !isCancelledOrder(order)), order => getLineQuantityForProduct(order, product.productName))
   const actualWastePercent = percent(wasteQuantity, productionQuantity + wasteQuantity)
 
   return roundKpi(Math.max(recipeFire, actualWastePercent))
@@ -411,7 +415,7 @@ const createDemandSupplyForProduct = (
   const forecastQuantity = getForecastQuantity(product.productName, context)
   const minimumStockQuantity = product.stockItem?.minQty || Math.max(10, forecastQuantity * 0.25)
   const safetyStockQuantity = Math.max(minimumStockQuantity * 0.5, forecastQuantity * 0.1)
-  const wastePercent = getWastePercent(product, context.sourceData)
+  const wastePercent = getWastePercent(product, context)
   const grossDemand = Math.max(
     pendingOrderQuantity + branchDemandQuantity + customerOrderQuantity,
     forecastQuantity,
@@ -420,7 +424,7 @@ const createDemandSupplyForProduct = (
   const wasteAllowanceQuantity = roundKpi(grossDemand * (wastePercent / 100))
   const totalDemand = roundKpi(grossDemand + wasteAllowanceQuantity)
   const currentStock = getCurrentStock(product, context.sourceData)
-  const goodsReceiptSupply = getGoodsReceiptSupply(product, context.sourceData)
+  const goodsReceiptSupply = getGoodsReceiptSupply(product, context)
   const availableSupply = roundKpi(currentStock + pendingProduction + goodsReceiptSupply)
   const shortageQuantity = Math.max(0, roundKpi(totalDemand - availableSupply))
   const surplusRiskQuantity = Math.max(0, roundKpi(availableSupply - totalDemand * 1.5))
@@ -564,7 +568,10 @@ const createPlanFromContext = ({
     branchId,
     planType,
     startDate,
-    endDate
+    endDate,
+    deliveryNotes: DeliveryNoteService.list(sourceData),
+    goodsReceipts: GoodsReceiptService.list(sourceData),
+    wasteRecords: WasteService.list(sourceData)
   }
   const demandSupplyRows = catalog.map(product => ({
     product,
@@ -863,7 +870,7 @@ export const saveProductionPlans = (
 export const loadProductionPlans = (
   sourceData: KpiSourceData
 ) => {
-  const seedRecords = createProductionPlanningReadModelRecords(sourceData)
+  const seedRecords = resolveReadModelList(() => createProductionPlanningReadModelRecords(sourceData))
 
   if(!isBrowserStorageAvailable()) return seedRecords
 

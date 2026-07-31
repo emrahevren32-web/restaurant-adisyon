@@ -2,6 +2,7 @@ import { flattenHACCPCorrectiveActions } from '../haccp/haccp.mock'
 import { createDefaultKpiFilters } from '../kpi-reporting/kpi.service'
 import type { KpiSourceData } from '../kpi-reporting/kpi.types'
 import { ALL_FILTER } from '../kpi-reporting/kpi.utils'
+import { resolveReadModelList } from '../read-model/read-model-safety'
 import { DECISION_RULES } from './decision-rules'
 import { createCostEngineDecisionSuggestions } from './cost-engine-decision.service'
 import { createCapacityPlanningDecisionSuggestions } from './capacity-planning-decision.service'
@@ -34,6 +35,32 @@ import type {
 } from './decision-support.types'
 import { getDateKey, getTodayKey } from './decision-support.utils'
 
+type DecisionSuggestionSource =
+  | 'production'
+  | 'production-planning'
+  | 'capacity-planning'
+  | 'machine-scheduling'
+  | 'workforce-planning'
+  | 'bottleneck-analysis'
+  | 'continuous-improvement'
+  | 'critical-alerts'
+  | 'forecasting'
+  | 'recommendation-engine'
+  | 'cost-engine'
+  | 'cost-optimization'
+  | 'inventory'
+  | 'quality'
+  | 'quality-forms'
+  | 'operation-checklists'
+  | 'purchasing'
+  | 'shipment'
+  | 'shipment-forms'
+  | 'waste'
+
+type DecisionSuggestionOptions = {
+  skipSources?: DecisionSuggestionSource[]
+}
+
 export const createDefaultDecisionSupportFilters = (): DecisionSupportFilters => ({
   ...createDefaultKpiFilters(),
   category: ALL_FILTER,
@@ -64,30 +91,37 @@ const createManagementSuggestions = (
   })]
 }
 
+const createSafeDecisionSuggestions = (
+  source: DecisionSuggestionSource,
+  options: DecisionSuggestionOptions,
+  factory: () => DecisionSuggestion[]
+) => options.skipSources?.includes(source) ? [] : resolveReadModelList(factory)
+
 export const createDecisionSuggestions = (
-  sourceData: KpiSourceData
+  sourceData: KpiSourceData,
+  options: DecisionSuggestionOptions = {}
 ) => {
   const baseSuggestions = [
-    ...createProductionDecisionSuggestions(sourceData),
-    ...createProductionPlanningDecisionSuggestions(sourceData),
-    ...createCapacityPlanningDecisionSuggestions(sourceData),
-    ...createMachineSchedulingDecisionSuggestions(sourceData),
-    ...createWorkforcePlanningDecisionSuggestions(sourceData),
-    ...createBottleneckAnalysisDecisionSuggestions(sourceData),
-    ...createContinuousImprovementDecisionSuggestions(sourceData),
-    ...createCriticalAlertDecisionSuggestions(sourceData),
-    ...createForecastingDecisionSuggestions(sourceData),
-    ...createRecommendationEngineDecisionSuggestions(sourceData),
-    ...createCostEngineDecisionSuggestions(sourceData),
-    ...createCostOptimizationDecisionSuggestions(sourceData),
-    ...createInventoryDecisionSuggestions(sourceData),
-    ...createQualityDecisionSuggestions(sourceData),
-    ...createQualityFormDecisionSuggestions(sourceData),
-    ...createOperationChecklistDecisionSuggestions(sourceData),
-    ...createPurchasingDecisionSuggestions(sourceData),
-    ...createShipmentDecisionSuggestions(sourceData),
-    ...createShipmentFormDecisionSuggestions(sourceData),
-    ...createWasteDecisionSuggestions(sourceData)
+    ...createSafeDecisionSuggestions('production', options, () => createProductionDecisionSuggestions(sourceData)),
+    ...createSafeDecisionSuggestions('production-planning', options, () => createProductionPlanningDecisionSuggestions(sourceData)),
+    ...createSafeDecisionSuggestions('capacity-planning', options, () => createCapacityPlanningDecisionSuggestions(sourceData)),
+    ...createSafeDecisionSuggestions('machine-scheduling', options, () => createMachineSchedulingDecisionSuggestions(sourceData)),
+    ...createSafeDecisionSuggestions('workforce-planning', options, () => createWorkforcePlanningDecisionSuggestions(sourceData)),
+    ...createSafeDecisionSuggestions('bottleneck-analysis', options, () => createBottleneckAnalysisDecisionSuggestions(sourceData)),
+    ...createSafeDecisionSuggestions('continuous-improvement', options, () => createContinuousImprovementDecisionSuggestions(sourceData)),
+    ...createSafeDecisionSuggestions('critical-alerts', options, () => createCriticalAlertDecisionSuggestions(sourceData)),
+    ...createSafeDecisionSuggestions('forecasting', options, () => createForecastingDecisionSuggestions(sourceData)),
+    ...createSafeDecisionSuggestions('recommendation-engine', options, () => createRecommendationEngineDecisionSuggestions(sourceData)),
+    ...createSafeDecisionSuggestions('cost-engine', options, () => createCostEngineDecisionSuggestions(sourceData)),
+    ...createSafeDecisionSuggestions('cost-optimization', options, () => createCostOptimizationDecisionSuggestions(sourceData)),
+    ...createSafeDecisionSuggestions('inventory', options, () => createInventoryDecisionSuggestions(sourceData)),
+    ...createSafeDecisionSuggestions('quality', options, () => createQualityDecisionSuggestions(sourceData)),
+    ...createSafeDecisionSuggestions('quality-forms', options, () => createQualityFormDecisionSuggestions(sourceData)),
+    ...createSafeDecisionSuggestions('operation-checklists', options, () => createOperationChecklistDecisionSuggestions(sourceData)),
+    ...createSafeDecisionSuggestions('purchasing', options, () => createPurchasingDecisionSuggestions(sourceData)),
+    ...createSafeDecisionSuggestions('shipment', options, () => createShipmentDecisionSuggestions(sourceData)),
+    ...createSafeDecisionSuggestions('shipment-forms', options, () => createShipmentFormDecisionSuggestions(sourceData)),
+    ...createSafeDecisionSuggestions('waste', options, () => createWasteDecisionSuggestions(sourceData))
   ]
 
   return dedupeSuggestions([

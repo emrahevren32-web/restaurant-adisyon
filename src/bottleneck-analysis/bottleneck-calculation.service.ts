@@ -13,9 +13,9 @@ import {
   sumBy
 } from '../kpi-reporting/kpi.utils'
 import { MachineSchedulingService } from '../machine-scheduling/machine-scheduling.service'
-import type { MachineQueue, MachineTimeline } from '../machine-scheduling/machine-scheduling.types'
+import type { MachineQueue, MachineSchedule, MachineTimeline } from '../machine-scheduling/machine-scheduling.types'
 import { WorkforcePlanningService } from '../workforce-planning/workforce-planning.service'
-import type { EmployeeAssignment, ShiftAssignment } from '../workforce-planning/workforce-planning.types'
+import type { EmployeeAssignment, ShiftAssignment, WorkforcePlan } from '../workforce-planning/workforce-planning.types'
 import type {
   BottleneckItem,
   BottleneckReason,
@@ -35,6 +35,9 @@ type BottleneckCalculationInput = {
   employeeId: string
   workCenterId: string
   riskLevel: BottleneckRiskLevel | 'all'
+  capacityPlans?: CapacityPlan[]
+  machineSchedules?: MachineSchedule[]
+  workforcePlans?: WorkforcePlan[]
 }
 
 export type BottleneckCalculationResult = {
@@ -413,8 +416,9 @@ const createWorkCenterItems = (
   }))
 
 const createMachineQueueItems = (
-  input: BottleneckCalculationInput
-) => MachineSchedulingService.list(input.sourceData)
+  input: BottleneckCalculationInput,
+  schedules: MachineSchedule[]
+) => schedules
   .filter(schedule => schedule.status !== 'CANCELLED' && isInDateRange(schedule.startDate, schedule.endDate, input))
   .flatMap(schedule => schedule.queues.map(queue => ({ schedule, queue })))
   .filter(row => matchesScope(row.queue, input))
@@ -464,8 +468,9 @@ const createMachineQueueItems = (
   })
 
 const createTimelineIdleItems = (
-  input: BottleneckCalculationInput
-) => MachineSchedulingService.list(input.sourceData)
+  input: BottleneckCalculationInput,
+  schedules: MachineSchedule[]
+) => schedules
   .filter(schedule => schedule.status !== 'CANCELLED' && isInDateRange(schedule.startDate, schedule.endDate, input))
   .flatMap(schedule => schedule.timelines.map(timeline => ({ schedule, timeline })))
   .filter(row => matchesScope(row.timeline, input))
@@ -493,8 +498,9 @@ const createTimelineIdleItems = (
   }))
 
 const createPersonnelItems = (
-  input: BottleneckCalculationInput
-) => WorkforcePlanningService.list(input.sourceData)
+  input: BottleneckCalculationInput,
+  plans: WorkforcePlan[]
+) => plans
   .filter(plan => plan.status !== 'CANCELLED' && isInDateRange(plan.startDate, plan.endDate, input))
   .flatMap(plan => [
     ...plan.shiftAssignments.map(assignment => ({ plan, assignment, kind: 'SHIFT' as const })),
@@ -642,16 +648,19 @@ const createRecommendations = (
 export const calculateBottleneckAnalysis = (
   input: BottleneckCalculationInput
 ): BottleneckCalculationResult => {
-  const capacityPlans = CapacityPlanningService.list(input.sourceData).filter(plan => plan.status !== 'CANCELLED' && isInDateRange(plan.startDate, plan.endDate, input))
-  const machineSchedules = MachineSchedulingService.list(input.sourceData).filter(schedule => schedule.status !== 'CANCELLED' && isInDateRange(schedule.startDate, schedule.endDate, input))
-  const workforcePlans = WorkforcePlanningService.list(input.sourceData).filter(plan => plan.status !== 'CANCELLED' && isInDateRange(plan.startDate, plan.endDate, input))
+  const capacityPlans = (input.capacityPlans || CapacityPlanningService.list(input.sourceData))
+    .filter(plan => plan.status !== 'CANCELLED' && isInDateRange(plan.startDate, plan.endDate, input))
+  const machineSchedules = (input.machineSchedules || MachineSchedulingService.list(input.sourceData))
+    .filter(schedule => schedule.status !== 'CANCELLED' && isInDateRange(schedule.startDate, schedule.endDate, input))
+  const workforcePlans = (input.workforcePlans || WorkforcePlanningService.list(input.sourceData))
+    .filter(plan => plan.status !== 'CANCELLED' && isInDateRange(plan.startDate, plan.endDate, input))
   const items = filterByRisk(dedupeItems([
     ...createLineItems(input, capacityPlans),
     ...createMachineCapacityItems(input, capacityPlans),
     ...createWorkCenterItems(input, capacityPlans),
-    ...createMachineQueueItems(input),
-    ...createTimelineIdleItems(input),
-    ...createPersonnelItems(input),
+    ...createMachineQueueItems(input, machineSchedules),
+    ...createTimelineIdleItems(input, machineSchedules),
+    ...createPersonnelItems(input, workforcePlans),
     ...createWarehouseItems(input, capacityPlans),
     ...createMaterialItems(input)
   ]).sort((first, second) => second.riskScore - first.riskScore || first.entityName.localeCompare(second.entityName, 'tr-TR')), input)

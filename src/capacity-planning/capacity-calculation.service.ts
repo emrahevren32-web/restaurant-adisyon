@@ -40,6 +40,7 @@ type CapacityCalculationInput = {
   productionLineId: string
   workCenterId: string
   shift: string
+  planningPlans?: ProductionPlan[]
 }
 
 export type CapacityCalculationResult = {
@@ -674,7 +675,7 @@ export const calculateCapacityPlan = (
 ): CapacityCalculationResult => {
   const workingMinutes = getWorkingMinutes(input.startDate, input.endDate, input.shift)
   const maintenanceLineIds = getMaintenanceLineIds(input.sourceData)
-  const planningPlans = ProductionPlanningService.list(input.sourceData).filter(plan => matchesPlanningPlan(plan, input))
+  const planningPlans = (input.planningPlans || ProductionPlanningService.list(input.sourceData)).filter(plan => matchesPlanningPlan(plan, input))
   const productionOrders = input.sourceData.productionOrders.filter(order => matchesOrder(order, input))
   const planningItems = createPlanningItems(planningPlans, input.sourceData, input.planId, maintenanceLineIds, workingMinutes)
   const orderItems = createProductionOrderItems(productionOrders, input.sourceData, input.planId, maintenanceLineIds, workingMinutes)
