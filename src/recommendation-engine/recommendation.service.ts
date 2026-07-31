@@ -312,7 +312,8 @@ export const evaluateRecommendationReport = (
       'critical-alerts',
       'forecasting',
       'recommendation-engine',
-      'cost-optimization'
+      'cost-optimization',
+      'purchase-recommendations'
     ]
   }))
     .filter(suggestion => !suggestion.ruleId.startsWith('recommendation-engine-'))

@@ -20,6 +20,7 @@ export type ExcelModuleKey =
   | 'recommendation-engine'
   | 'ai-analysis'
   | 'cost-optimization'
+  | 'purchase-recommendations'
   | 'production-orders'
   | 'quality'
   | 'shipments'

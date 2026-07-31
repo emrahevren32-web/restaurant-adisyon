@@ -221,7 +221,8 @@ const createDecisionSupportInsights = (
     'critical-alerts',
     'forecasting',
     'recommendation-engine',
-    'cost-optimization'
+    'cost-optimization',
+    'purchase-recommendations'
   ]
 }))
   .filter(suggestion => suggestion.risk === 'HIGH' || suggestion.risk === 'CRITICAL' || suggestion.priority === 'URGENT')
@@ -740,7 +741,8 @@ export const calculateAIAnalysisReport = (
       'critical-alerts',
       'forecasting',
       'recommendation-engine',
-      'cost-optimization'
+      'cost-optimization',
+      'purchase-recommendations'
     ]
   })
   const recommendationItems = input.recommendationItems || RecommendationService.evaluate(input.sourceData, {}, [], input.actorName, {

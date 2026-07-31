@@ -6173,6 +6173,63 @@ th { color:var(--muted-strong); font-size:13px; font-weight:750 }
 .cost-optimization-history-list p { color:var(--muted); font-size:12px; font-weight:800 }
 .cost-optimization-history-list p { margin:5px 0 0 }
 
+.purchase-recommendations-page { display:flex; flex-direction:column; gap:18px; min-width:0; max-width:100% }
+.purchase-recommendations-metric-grid { grid-template-columns:repeat(5, minmax(0, 1fr)) }
+.purchase-recommendations-create-card,
+.purchase-recommendations-filter-card,
+.purchase-recommendations-detail-card { margin-bottom:0; min-width:0 }
+.purchase-recommendations-create-grid,
+.purchase-recommendations-filter-grid { display:grid; grid-template-columns:repeat(4, minmax(0, 1fr)); gap:10px; align-items:end }
+.purchase-recommendations-wide { grid-column:span 2 }
+.purchase-recommendations-chart-grid { display:grid; grid-template-columns:repeat(2, minmax(0, 1fr)); gap:12px }
+.purchase-recommendations-chart-grid .kpi-chart-card:last-child { grid-column:1 / -1 }
+.purchase-recommendations-layout { grid-template-columns:minmax(0, 1fr) minmax(360px, 460px); align-items:start }
+.purchase-recommendations-side { display:flex; flex-direction:column; gap:12px; min-width:0 }
+.purchase-recommendations-table-wrap { min-width:0 }
+.purchase-recommendations-table { min-width:1280px }
+.purchase-recommendations-table tbody tr { cursor:pointer }
+.purchase-recommendations-table tbody tr:hover td { background:#eff6ff }
+.purchase-recommendations-table tbody tr[aria-selected="true"] td,
+.purchase-recommendations-table tbody tr[aria-selected="true"]:hover td { background:#dbeafe; box-shadow:inset 5px 0 0 #2563eb }
+.purchase-recommendations-table td strong,
+.purchase-recommendations-table td span { display:block; min-width:0; line-height:1.28; overflow-wrap:anywhere }
+.purchase-recommendations-table td strong { color:var(--text); font-weight:950 }
+.purchase-recommendations-table td span { margin-top:3px; color:var(--muted); font-size:12px; font-weight:800 }
+.purchase-recommendations-output-actions,
+.purchase-recommendations-status-actions { display:grid; gap:8px; margin-bottom:12px; min-width:0 }
+.purchase-recommendations-output-actions { grid-template-columns:repeat(3, minmax(0, 1fr)) }
+.purchase-recommendations-status-actions { grid-template-columns:repeat(2, minmax(0, 1fr)) }
+.purchase-recommendations-output-actions .btn,
+.purchase-recommendations-status-actions .btn { width:100%; min-height:var(--touch-target); padding-inline:10px; white-space:normal }
+.purchase-recommendations-detail-grid { display:grid; grid-template-columns:repeat(2, minmax(0, 1fr)); gap:10px; margin:12px 0 }
+.purchase-recommendations-detail-grid > div,
+.purchase-recommendations-opportunity-list > div,
+.purchase-recommendations-module-list > div,
+.purchase-recommendations-history-list > div { min-width:0; border:1px solid var(--line); border-radius:var(--radius-md); padding:10px 11px; background:var(--surface-muted) }
+.purchase-recommendations-detail-grid span,
+.purchase-recommendations-detail-grid strong,
+.purchase-recommendations-opportunity-list strong,
+.purchase-recommendations-opportunity-list span,
+.purchase-recommendations-module-list strong,
+.purchase-recommendations-module-list span,
+.purchase-recommendations-history-list strong,
+.purchase-recommendations-history-list span,
+.purchase-recommendations-history-list p { display:block; min-width:0; line-height:1.35; overflow-wrap:anywhere }
+.purchase-recommendations-detail-grid span { color:var(--muted); font-size:12px; font-weight:850 }
+.purchase-recommendations-detail-grid strong { margin-top:4px; color:var(--text); font-size:14px; font-weight:950; font-variant-numeric:tabular-nums }
+.purchase-recommendations-notes { margin:0; color:var(--text-soft); font-size:13px; font-weight:750; line-height:1.55; overflow-wrap:anywhere }
+.purchase-recommendations-opportunity-list,
+.purchase-recommendations-module-list,
+.purchase-recommendations-history-list { display:grid; gap:9px; min-width:0 }
+.purchase-recommendations-opportunity-list strong,
+.purchase-recommendations-module-list strong,
+.purchase-recommendations-history-list strong { color:var(--text); font-size:13px; font-weight:950 }
+.purchase-recommendations-opportunity-list span,
+.purchase-recommendations-module-list span,
+.purchase-recommendations-history-list span,
+.purchase-recommendations-history-list p { color:var(--muted); font-size:12px; font-weight:800 }
+.purchase-recommendations-history-list p { margin:5px 0 0 }
+
 @media (max-width: 1200px){
   .forecasting-metric-grid,
   .recommendation-engine-metric-grid,
@@ -6361,6 +6418,60 @@ th { color:var(--muted-strong); font-size:13px; font-weight:750 }
   .recommendation-engine-table tbody tr:hover td,
   .ai-analysis-table tbody tr:hover td,
   .cost-optimization-table tbody tr:hover td { text-align:left }
+}
+
+@media (max-width: 1200px){
+  .purchase-recommendations-metric-grid,
+  .purchase-recommendations-create-grid,
+  .purchase-recommendations-filter-grid,
+  .purchase-recommendations-chart-grid { grid-template-columns:repeat(2, minmax(0, 1fr)) }
+  .purchase-recommendations-chart-grid .kpi-chart-card:last-child,
+  .purchase-recommendations-wide { grid-column:1 / -1 }
+}
+
+@media (max-width: 980px){
+  .purchase-recommendations-layout { display:block }
+  .purchase-recommendations-side { margin-top:14px }
+  .purchase-recommendations-table-wrap { overflow:visible; border:0; background:transparent; box-shadow:none }
+  .purchase-recommendations-table-wrap .purchase-recommendations-table { min-width:0 }
+  .purchase-recommendations-table,
+  .purchase-recommendations-table thead,
+  .purchase-recommendations-table tbody,
+  .purchase-recommendations-table tr,
+  .purchase-recommendations-table td { display:block; width:100%; min-width:0 }
+  .purchase-recommendations-table thead { display:none }
+  .purchase-recommendations-table tbody { display:grid; gap:10px }
+  .purchase-recommendations-table tbody tr,
+  .purchase-recommendations-table tbody tr:nth-child(even),
+  .purchase-recommendations-table tbody tr:hover { display:grid; grid-template-columns:repeat(2, minmax(0, 1fr)); gap:9px; border:1px solid var(--line); border-radius:var(--radius-md); padding:11px 12px; background:var(--surface); box-shadow:var(--shadow-xs) }
+  .purchase-recommendations-table tbody tr td,
+  .purchase-recommendations-table tbody tr:nth-child(even) td,
+  .purchase-recommendations-table tbody tr:hover td,
+  .purchase-recommendations-table tbody tr[aria-selected="true"] td,
+  .purchase-recommendations-table tbody tr[aria-selected="true"]:hover td { height:auto; min-height:0; border:0; padding:0; background:transparent; box-shadow:none; text-align:right }
+  .purchase-recommendations-table tbody td::before { content:attr(data-label); display:block; margin-bottom:3px; color:var(--muted); font-size:11px; font-weight:850; line-height:1.2; text-align:left }
+  .purchase-recommendations-table tbody td:first-child,
+  .purchase-recommendations-table tbody td.empty-cell { grid-column:1 / -1; text-align:left }
+  .purchase-recommendations-table tbody td:first-child strong { text-align:left }
+  .purchase-recommendations-table tbody td.empty-cell { text-align:center }
+}
+
+@media (max-width: 560px){
+  .purchase-recommendations-metric-grid,
+  .purchase-recommendations-create-grid,
+  .purchase-recommendations-filter-grid,
+  .purchase-recommendations-chart-grid,
+  .purchase-recommendations-output-actions,
+  .purchase-recommendations-status-actions,
+  .purchase-recommendations-detail-grid { grid-template-columns:1fr }
+  .purchase-recommendations-chart-grid .kpi-chart-card:last-child,
+  .purchase-recommendations-wide { grid-column:auto }
+  .purchase-recommendations-table tbody tr,
+  .purchase-recommendations-table tbody tr:nth-child(even),
+  .purchase-recommendations-table tbody tr:hover { grid-template-columns:1fr }
+  .purchase-recommendations-table tbody tr td,
+  .purchase-recommendations-table tbody tr:nth-child(even) td,
+  .purchase-recommendations-table tbody tr:hover td { text-align:left }
 }
 
 .cost-engine-page { display:grid; gap:18px }

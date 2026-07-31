@@ -695,6 +695,78 @@ export const DECISION_RULES: DecisionRule[] = [
     thresholdLabel: 'Supplier bagli cost optimization kalemi'
   },
   {
+    id: 'purchase-recommendation-critical-stock',
+    category: 'Purchasing',
+    title: 'Purchase Recommendation kritik stok',
+    description: 'Minimum stok altina inen veya hizla tukenecek hammadde icin satin alma aksiyonu onerilir.',
+    baseRisk: 'CRITICAL',
+    priority: 'URGENT',
+    thresholdLabel: 'Current stock <= minimum stock'
+  },
+  {
+    id: 'purchase-recommendation-stockout-soon',
+    category: 'Purchasing',
+    title: 'Purchase Recommendation yaklasan stok tukenmesi',
+    description: 'Tuketim hizi ve forecast sinyali stok tukenmesini yaklastirdiginda satin alma tarihi one cekilmelidir.',
+    baseRisk: 'HIGH',
+    priority: 'HIGH',
+    thresholdLabel: 'Estimated stockout <= 7 gun'
+  },
+  {
+    id: 'purchase-recommendation-forecast-order',
+    category: 'Purchasing',
+    title: 'Purchase Recommendation forecast siparis',
+    description: 'Forecasting ve Recommendation Engine sinyalleri satin alma ihtiyacina donusturulur.',
+    baseRisk: 'HIGH',
+    priority: 'HIGH',
+    thresholdLabel: 'Forecast risk >= HIGH'
+  },
+  {
+    id: 'purchase-recommendation-bulk-buy',
+    category: 'Purchasing',
+    title: 'Purchase Recommendation toplu alim',
+    description: 'Supplier MOQ ve stok ihtiyaci birlikte avantaj urettiginde toplu alim degerlendirilir.',
+    baseRisk: 'MEDIUM',
+    priority: 'NORMAL',
+    thresholdLabel: 'Recommended quantity >= MOQ'
+  },
+  {
+    id: 'purchase-recommendation-alternative-supplier',
+    category: 'Purchasing',
+    title: 'Purchase Recommendation alternatif tedarikci',
+    description: 'Alternatif tedarikci fiyat veya kalite avantaji varsa satin alma karsilastirmasi onerilir.',
+    baseRisk: 'MEDIUM',
+    priority: 'HIGH',
+    thresholdLabel: 'Alternative supplier advantage >= 5%'
+  },
+  {
+    id: 'purchase-recommendation-cost-advantage',
+    category: 'Purchasing',
+    title: 'Purchase Recommendation maliyet avantaji',
+    description: 'Cost Optimization ve Recipe Cost sinyalleri satin alma tasarruf aksiyonuna donusturulur.',
+    baseRisk: 'HIGH',
+    priority: 'HIGH',
+    thresholdLabel: 'Expected saving > 0'
+  },
+  {
+    id: 'purchase-recommendation-waste-replenishment',
+    category: 'Purchasing',
+    title: 'Purchase Recommendation fire yenileme',
+    description: 'Fire ve mal kabul reddi kaynakli eksilen miktar satin alma takibine alinir.',
+    baseRisk: 'HIGH',
+    priority: 'HIGH',
+    thresholdLabel: 'Waste/rejection quantity > 0'
+  },
+  {
+    id: 'purchase-recommendation-seasonal-purchase',
+    category: 'Purchasing',
+    title: 'Purchase Recommendation sezonluk alim',
+    description: 'Mevsimsel talep artisi satin alma hazirligi gerektirdiginde karar destegi uretir.',
+    baseRisk: 'MEDIUM',
+    priority: 'NORMAL',
+    thresholdLabel: 'Seasonality score >= 25'
+  },
+  {
     id: 'waste-product-increase',
     category: 'Production',
     title: 'Waste Management urun fire artisi',

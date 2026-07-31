@@ -1008,7 +1008,7 @@ export const BUSINESS_WORKSPACE_MODULE_REGISTRY: BusinessWorkspaceModule[] = def
     isVisible: true,
     displayOrder: 43,
     dependencies: [WORKSPACE_MODULE_CODES.DASHBOARD, WORKSPACE_MODULE_CODES.STOCK, WORKSPACE_MODULE_CODES.PURCHASE],
-    tags: ['business', 'reporting', 'kpi', 'dashboard', 'executive-dashboard', 'production-kpi', 'inventory-kpi', 'quality-kpi', 'purchasing-kpi', 'shipment-kpi', 'decision-support', 'critical-alerts', 'forecasting', 'recommendation-engine', 'ai-analysis', 'cost-optimization', 'industrial-kitchen'],
+    tags: ['business', 'reporting', 'kpi', 'dashboard', 'executive-dashboard', 'production-kpi', 'inventory-kpi', 'quality-kpi', 'purchasing-kpi', 'shipment-kpi', 'decision-support', 'critical-alerts', 'forecasting', 'recommendation-engine', 'ai-analysis', 'cost-optimization', 'purchase-recommendations', 'industrial-kitchen'],
     supportedSectorIds: industrialKitchenSectorIds,
     pricing: { model: 'paid', currency: 'TRY' },
     marketplace: marketplaceReady,
@@ -1103,6 +1103,19 @@ export const BUSINESS_WORKSPACE_MODULE_REGISTRY: BusinessWorkspaceModule[] = def
         supportedLayouts: ['standard', 'wide'],
         requiredPermission: 'dashboard.read',
         renderComponent: 'reporting.costOptimization.placeholder'
+      }),
+      dashboardWidget({
+        id: 'reporting.purchaseRecommendations',
+        title: 'Satin Alma Onerileri',
+        description: 'Forecasting, stok, mal kabul, fire, supplier ve maliyet sinyallerinden read-model satin alma onerileri uretmek icin kontrol paneli baslangic alani.',
+        icon: 'PR',
+        category: 'Raporlama',
+        order: 50,
+        defaultVisible: false,
+        defaultSize: 'large',
+        supportedLayouts: ['standard', 'wide'],
+        requiredPermission: 'dashboard.read',
+        renderComponent: 'reporting.purchaseRecommendations.placeholder'
       })
     ],
     menuItems: [
@@ -1112,7 +1125,8 @@ export const BUSINESS_WORKSPACE_MODULE_REGISTRY: BusinessWorkspaceModule[] = def
       menuItem({ key: 'forecasting', label: 'Tahminleme', route: 'forecasting', icon: 'FC', adminOnly: true, displayOrder: 40 }),
       menuItem({ key: 'recommendation-engine', label: 'Otomatik Oneriler', route: 'recommendation-engine', icon: 'RC', adminOnly: true, displayOrder: 50 }),
       menuItem({ key: 'ai-analysis', label: 'AI Analiz', route: 'ai-analysis', icon: 'AI', adminOnly: true, displayOrder: 60 }),
-      menuItem({ key: 'cost-optimization', label: 'Maliyet Optimizasyonu', route: 'cost-optimization', icon: 'CO', adminOnly: true, displayOrder: 70 })
+      menuItem({ key: 'cost-optimization', label: 'Maliyet Optimizasyonu', route: 'cost-optimization', icon: 'CO', adminOnly: true, displayOrder: 70 }),
+      menuItem({ key: 'purchase-recommendations', label: 'Satin Alma Onerileri', route: 'purchase-recommendations', icon: 'PR', adminOnly: true, displayOrder: 80 })
     ]
   },
   {

@@ -1,4 +1,6 @@
 import type { GoodsReceiptRecord } from '../goods-receipts/goods-receipt.types'
+import { calculatePurchaseRecommendationReport } from '../purchase-recommendations/purchase-recommendation-calculation.service'
+import { createPurchaseRecommendationStatistics } from '../purchase-recommendations/purchase-recommendation-statistics.service'
 import type { PurchaseOrder } from '../purchase-orders/purchase-order.types'
 import type { RequestForQuotationRecord } from '../request-for-quotations/request-for-quotation.types'
 import type { PurchasingKpiView, KpiFilters, KpiSourceData } from './kpi.types'
@@ -116,6 +118,26 @@ export const createPurchasingKpiView = (
   const averageSupplierPerformance = averageBy(supplierScores, supplier => supplier.value)
   const topSupplier = [...supplierVolumeMap.entries()].sort((first, second) => second[1] - first[1])[0]
   const topSupplierName = sourceData.suppliers.find(supplier => supplier.id === topSupplier?.[0])?.name || '-'
+  const purchaseRecommendationReport = calculatePurchaseRecommendationReport({
+    reportDate: new Date().toLocaleDateString('sv-SE'),
+    scope: 'all',
+    responsiblePerson: 'KPI Dashboard',
+    description: 'Purchasing KPI read-model purchase recommendation ozeti.',
+    sourceData,
+    decisionSuggestions: [],
+    actorName: 'KPI Dashboard',
+    getReportNo: () => `PR-REC-${new Date().getFullYear()}-000000`
+  })
+  const filteredPurchaseRecommendationReport = {
+    ...purchaseRecommendationReport,
+    items: purchaseRecommendationReport.items.filter(item => (
+      matchesOptionalFilter(filters.branchId, item.branchId)
+      && matchesOptionalFilter(filters.warehouseId, item.warehouseId)
+      && matchesOptionalFilter(filters.supplierId, item.supplierId || item.alternativeSupplierId)
+      && matchesOptionalFilter(filters.productId, item.stockItemId || item.productId)
+    ))
+  }
+  const purchaseRecommendationStatistics = createPurchaseRecommendationStatistics([filteredPurchaseRecommendationReport])
 
   return {
     cards: [
@@ -125,7 +147,9 @@ export const createPurchasingKpiView = (
       createCard('purchasing-supplier-score', 'Supplier Performance', formatPercent(averageSupplierPerformance), 'Tedarikci ortalama skoru', averageSupplierPerformance >= 80 ? 'success' : 'warning'),
       createCard('purchasing-delivery-time', 'Teslim Suresi', `${formatNumber(deliveryTime, 1)} gun`, 'PO orderDate -> receiptDate ortalamasi', 'neutral'),
       createCard('purchasing-rejection-rate', 'Red Orani', formatPercent(rejectionRate), `${formatNumber(rejectedQuantity, 2)} red miktar`, rejectionRate > 5 ? 'danger' : 'success'),
-      createCard('purchasing-top-supplier', 'En Cok Alim Yapilan Tedarikci', topSupplierName, topSupplier ? formatCurrency(topSupplier[1]) : 'Kayit yok', 'neutral')
+      createCard('purchasing-top-supplier', 'En Cok Alim Yapilan Tedarikci', topSupplierName, topSupplier ? formatCurrency(topSupplier[1]) : 'Kayit yok', 'neutral'),
+      createCard('purchasing-recommendation-total', 'Satin Alma Onerileri', formatNumber(purchaseRecommendationStatistics.totalRecommendations), `${formatNumber(purchaseRecommendationStatistics.criticalPurchases)} kritik`, purchaseRecommendationStatistics.criticalPurchases > 0 ? 'warning' : 'success'),
+      createCard('purchasing-recommendation-saving', 'Oneri Tasarrufu', formatCurrency(purchaseRecommendationStatistics.expectedSaving), `${formatNumber(purchaseRecommendationStatistics.alternativeSupplierCount)} alternatif tedarikci`, 'neutral')
     ],
     supplierPerformance: createBarRows(supplierScores, 8, '%'),
     topSuppliers: createBarRows(

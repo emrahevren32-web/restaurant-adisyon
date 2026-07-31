@@ -7,6 +7,13 @@ import {
   CostOptimizationService
 } from '../cost-optimization/cost-optimization.service'
 import {
+  PURCHASE_RECOMMENDATION_PRIORITY_LABELS,
+  PURCHASE_RECOMMENDATION_RISK_LABELS,
+  PURCHASE_RECOMMENDATION_STATUS_LABELS,
+  PURCHASE_RECOMMENDATION_TYPE_LABELS,
+  PurchaseRecommendationService
+} from '../purchase-recommendations/purchase-recommendation.service'
+import {
   AI_ANALYSIS_STATUS_LABELS,
   AI_ANALYSIS_TITLE_LABELS,
   AI_INSIGHT_TYPE_LABELS,
@@ -1003,6 +1010,50 @@ const getCostOptimizationRows = (): ExcelRow[] => {
   })))
 }
 
+const getPurchaseRecommendationRows = (): ExcelRow[] => {
+  const sourceData = loadKpiSourceData()
+
+  return PurchaseRecommendationService.list(sourceData).flatMap(report => report.items.map(item => ({
+    id: report.id,
+    lineId: item.id,
+    reportNo: report.reportNo,
+    reportDate: report.reportDate,
+    status: PURCHASE_RECOMMENDATION_STATUS_LABELS[report.status],
+    scope: report.scope === 'all' ? 'Tum Oneriler' : PURCHASE_RECOMMENDATION_TYPE_LABELS[report.scope],
+    recommendationType: PURCHASE_RECOMMENDATION_TYPE_LABELS[item.recommendationType],
+    priority: PURCHASE_RECOMMENDATION_PRIORITY_LABELS[item.priority],
+    risk: PURCHASE_RECOMMENDATION_RISK_LABELS[item.risk],
+    title: item.title,
+    reason: item.reason,
+    action: item.action,
+    expectedImpact: item.expectedImpact,
+    ownerRole: item.ownerRole,
+    recommendedOrderQuantity: item.recommendedOrderQuantity,
+    currentStock: item.currentStock,
+    minimumStock: item.minimumStock,
+    dailyUsageEstimate: item.dailyUsageEstimate,
+    estimatedCoverageDays: item.estimatedCoverageDays,
+    estimatedStockoutDate: item.estimatedStockoutDate,
+    expectedCost: item.expectedCost,
+    expectedSaving: item.expectedSaving,
+    unitCost: item.unitCost,
+    riskScore: item.riskScore,
+    confidenceScore: item.confidenceScore,
+    sourceModule: item.sourceModule,
+    sourceNo: item.sourceNo,
+    relatedModules: item.relatedModules.join(','),
+    relatedEntityType: item.relatedEntityType,
+    relatedEntityName: item.relatedEntityName,
+    productName: item.productName,
+    stockItemName: item.stockItemName,
+    categoryName: item.categoryName,
+    branchName: item.branchName,
+    warehouseName: item.warehouseName,
+    supplierName: item.supplierName,
+    alternativeSupplierName: item.alternativeSupplierName
+  })))
+}
+
 const getQualityRows = (): ExcelRow[] => {
   const sourceData = loadKpiSourceData()
   const qualityFormRows = QualityFormService.list(sourceData).flatMap(form => {
@@ -1338,6 +1389,7 @@ const getRowsForModule = (
   if(moduleKey === 'recommendation-engine') return getRecommendationRows()
   if(moduleKey === 'ai-analysis') return getAIAnalysisRows()
   if(moduleKey === 'cost-optimization') return getCostOptimizationRows()
+  if(moduleKey === 'purchase-recommendations') return getPurchaseRecommendationRows()
   if(moduleKey === 'production-orders') return getProductionOrderRows()
   if(moduleKey === 'quality') return getQualityRows()
   if(moduleKey === 'shipments') return getShipmentRows()

@@ -16,6 +16,7 @@ import { createMachineSchedulingDecisionSuggestions } from './machine-scheduling
 import { createOperationChecklistDecisionSuggestions } from './operation-checklist-decision.service'
 import { createDecisionSuggestion, dedupeSuggestions } from './recommendation-engine.service'
 import { createRecommendationEngineDecisionSuggestions } from './recommendation-engine-decision.service'
+import { createPurchaseRecommendationDecisionSuggestions } from './purchase-recommendation-decision.service'
 import { createProductionPlanningDecisionSuggestions } from './production-planning-decision.service'
 import { createProductionDecisionSuggestions } from './production-decision.service'
 import { createPurchasingDecisionSuggestions } from './purchasing-decision.service'
@@ -48,6 +49,7 @@ type DecisionSuggestionSource =
   | 'recommendation-engine'
   | 'cost-engine'
   | 'cost-optimization'
+  | 'purchase-recommendations'
   | 'inventory'
   | 'quality'
   | 'quality-forms'
@@ -114,6 +116,7 @@ export const createDecisionSuggestions = (
     ...createSafeDecisionSuggestions('recommendation-engine', options, () => createRecommendationEngineDecisionSuggestions(sourceData)),
     ...createSafeDecisionSuggestions('cost-engine', options, () => createCostEngineDecisionSuggestions(sourceData)),
     ...createSafeDecisionSuggestions('cost-optimization', options, () => createCostOptimizationDecisionSuggestions(sourceData)),
+    ...createSafeDecisionSuggestions('purchase-recommendations', options, () => createPurchaseRecommendationDecisionSuggestions(sourceData)),
     ...createSafeDecisionSuggestions('inventory', options, () => createInventoryDecisionSuggestions(sourceData)),
     ...createSafeDecisionSuggestions('quality', options, () => createQualityDecisionSuggestions(sourceData)),
     ...createSafeDecisionSuggestions('quality-forms', options, () => createQualityFormDecisionSuggestions(sourceData)),
@@ -173,7 +176,10 @@ const getDashboardSummary = (
     || suggestion.ruleId === 'forecasting-critical-risk'
     || suggestion.ruleId === 'recommendation-engine-urgent'
   )).length,
-  riskySuppliers: suggestions.filter(suggestion => suggestion.category === 'Purchasing' && (suggestion.risk === 'HIGH' || suggestion.risk === 'CRITICAL')).length,
+  riskySuppliers: suggestions.filter(suggestion => (
+    suggestion.category === 'Purchasing'
+    && (suggestion.risk === 'HIGH' || suggestion.risk === 'CRITICAL')
+  )).length,
   riskyCcps: suggestions.filter(suggestion => (
     suggestion.ruleId === 'quality-ccp-failure-risk'
     || suggestion.ruleId.startsWith('quality-form-')

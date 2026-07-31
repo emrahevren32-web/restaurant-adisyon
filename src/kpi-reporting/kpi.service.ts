@@ -6,6 +6,8 @@ import { calculateCostOptimizationReport } from '../cost-optimization/cost-analy
 import { createCostOptimizationStatistics } from '../cost-optimization/cost-statistics.service'
 import { CriticalAlertService } from '../critical-alerts/critical-alert.service'
 import { ForecastService } from '../forecasting/forecast.service'
+import { calculatePurchaseRecommendationReport } from '../purchase-recommendations/purchase-recommendation-calculation.service'
+import { createPurchaseRecommendationStatistics } from '../purchase-recommendations/purchase-recommendation-statistics.service'
 import { calculateRecommendationReport } from '../recommendation-engine/recommendation-calculation.service'
 import { createRecommendationStatistics } from '../recommendation-engine/recommendation-statistics.service'
 import { createInventoryKpiView } from './inventory-kpi.service'
@@ -105,6 +107,12 @@ const KPI_REPORTS: KpiReportDefinition[] = [
     title: 'Cost Optimization Report',
     description: 'Cost Engine, purchase, fire, forecast, AI ve recommendation verilerinden tasarruf potansiyeli raporu.',
     owner: 'Decision Support'
+  },
+  {
+    id: 'purchase-recommendation-report',
+    title: 'Purchase Recommendation Report',
+    description: 'Forecasting, stok, goods receipt, supplier, cost optimization ve waste verilerinden satin alma onerileri raporu.',
+    owner: 'Purchasing'
   }
 ]
 
@@ -135,6 +143,21 @@ const createKpiCostOptimizationStatistics = (
     decisionSuggestions: [],
     actorName: 'KPI Dashboard',
     getReportNo: () => `CO-${new Date().getFullYear()}-000000`
+  })
+])
+
+const createKpiPurchaseRecommendationStatistics = (
+  sourceData: KpiSourceData
+) => createPurchaseRecommendationStatistics([
+  calculatePurchaseRecommendationReport({
+    reportDate: new Date().toLocaleDateString('sv-SE'),
+    scope: 'all',
+    responsiblePerson: 'KPI Dashboard',
+    description: 'KPI Dashboard read-model purchase recommendation ozeti.',
+    sourceData,
+    decisionSuggestions: [],
+    actorName: 'KPI Dashboard',
+    getReportNo: () => `PR-REC-${new Date().getFullYear()}-000000`
   })
 ])
 
@@ -218,6 +241,7 @@ const createExecutiveSummary = (
   const forecastStatistics = ForecastService.statistics([ForecastService.evaluate(sourceData)])
   const recommendationStatistics = createKpiRecommendationStatistics(sourceData)
   const costOptimizationStatistics = createKpiCostOptimizationStatistics(sourceData)
+  const purchaseRecommendationStatistics = createKpiPurchaseRecommendationStatistics(sourceData)
   const activeWasteRecords = WasteService.list(sourceData).filter(record => (
     record.status !== 'CANCELLED'
     && record.status !== 'REJECTED'
@@ -257,6 +281,8 @@ const createExecutiveSummary = (
       createCard('executive-recommendation-critical', 'Kritik Oneri', formatNumber(recommendationStatistics.criticalRecommendations), `${formatNumber(recommendationStatistics.totalRecommendations)} toplam oneri`, recommendationStatistics.criticalRecommendations > 0 ? 'danger' : 'success'),
       createCard('executive-recommendation-gain', 'Oneri Kazanci', formatNumber(recommendationStatistics.expectedTotalGain, 1), `${formatNumber(recommendationStatistics.averageConfidence, 1)} confidence`, 'neutral'),
       createCard('executive-cost-optimization-saving', 'Maliyet Optimizasyonu', formatCurrency(costOptimizationStatistics.totalSaving), `${formatNumber(costOptimizationStatistics.criticalCosts)} kritik maliyet`, costOptimizationStatistics.criticalCosts > 0 ? 'warning' : 'success'),
+      createCard('executive-purchase-recommendation-critical', 'Kritik Satin Alma', formatNumber(purchaseRecommendationStatistics.criticalPurchases), `${formatNumber(purchaseRecommendationStatistics.totalRecommendations)} satin alma onerisi`, purchaseRecommendationStatistics.criticalPurchases > 0 ? 'warning' : 'success'),
+      createCard('executive-purchase-recommendation-saving', 'Satin Alma Tasarrufu', formatCurrency(purchaseRecommendationStatistics.expectedSaving), `${formatNumber(purchaseRecommendationStatistics.alternativeSupplierCount)} alternatif tedarikci`, 'neutral'),
       createCard('executive-critical-stock', 'Kritik Stok', formatNumber(getCriticalStockCount(sourceData)), 'Min seviyenin altindaki stoklar', getCriticalStockCount(sourceData) > 0 ? 'danger' : 'success'),
       createCard('executive-fire-rate', 'Fire Orani', formatPercent(fireRate), 'Fire / uretim miktari', fireRate > 3 ? 'warning' : 'success'),
       createCard('executive-haccp-rate', 'HACCP Basari Orani', formatPercent(haccpSuccessRate), 'PASS / toplam monitoring', haccpSuccessRate >= 90 ? 'success' : 'warning')
