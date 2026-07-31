@@ -71,6 +71,9 @@ import { createPlatformNavGroups, getPlatformRoutes } from './platform/platform.
 import { getBusinessMenuEmptyState, getWorkspaceTemplateViewForUser } from './workspace-template/workspace-template.service'
 import { WORKSPACE_MODULE_CODES } from './modules/module-code.registry'
 import {
+  DECISION_SUPPORT_WORKSPACE_MODULE_CODE,
+  KPI_REPORTING_MODULE_CODE,
+  getBusinessWorkspaceModuleByCode,
   getBusinessWorkspaceModuleByLicenseKey,
   isBusinessWorkspaceModuleAvailableForSector
 } from './modules/business-workspace.registry'
@@ -132,6 +135,16 @@ const isWorkspaceNavigationBaseModule = (
   && Boolean(primarySectorId)
 )
 
+const isDecisionSupportWorkspaceNavigationEnabled = (
+  user: User | null,
+  moduleCode: string
+) => {
+  if(moduleCode !== DECISION_SUPPORT_WORKSPACE_MODULE_CODE) return false
+
+  const reportingModule = getBusinessWorkspaceModuleByCode(KPI_REPORTING_MODULE_CODE)
+  return Boolean(reportingModule && isWorkspaceModuleActiveForUser(user, reportingModule))
+}
+
 const lockInstallationNavItems = (items: NavItem[]): NavItem[] => (
   items.map(item => {
     const children = item.children ? lockInstallationNavItems(item.children as NavItem[]) : undefined
@@ -180,6 +193,7 @@ const createWorkspaceNavGroupsForUser = (user: User | null) => {
       if(module.isCoreModule || module.isAlwaysActive) return true
       if(module.isBusinessModule){
         return isWorkspaceModuleActiveForUser(user, module)
+          || isDecisionSupportWorkspaceNavigationEnabled(user, module.code)
       }
       if(module.isIntegrationModule){
         return isWorkspaceModuleActiveForUser(user, module)

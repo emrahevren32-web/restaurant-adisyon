@@ -54,6 +54,8 @@ const integrationModuleLifecycle: WorkspaceModuleLifecycle = {
   canBeActivatedManually: true
 }
 const industrialKitchenSectorIds = [createSectorId(SECTOR_CODES.INDUSTRIAL_KITCHEN)]
+export const KPI_REPORTING_MODULE_CODE = 'kpi-reporting'
+export const DECISION_SUPPORT_WORKSPACE_MODULE_CODE = 'decision-support-workspace'
 
 const menuItem = (
   item: WorkspaceModuleMenuItem<BusinessWorkspaceRoute, BusinessWorkspaceNavKey>
@@ -995,7 +997,7 @@ export const BUSINESS_WORKSPACE_MODULE_REGISTRY: BusinessWorkspaceModule[] = def
   },
   {
     id: 'business-kpi-reporting',
-    code: 'kpi-reporting',
+    code: KPI_REPORTING_MODULE_CODE,
     name: 'Raporlama',
     description: 'Industrial Kitchen KPI Dashboard, executive summary ve domain bazli read-model raporlama motoru.',
     category: 'business',
@@ -1008,7 +1010,7 @@ export const BUSINESS_WORKSPACE_MODULE_REGISTRY: BusinessWorkspaceModule[] = def
     isVisible: true,
     displayOrder: 43,
     dependencies: [WORKSPACE_MODULE_CODES.DASHBOARD, WORKSPACE_MODULE_CODES.STOCK, WORKSPACE_MODULE_CODES.PURCHASE],
-    tags: ['business', 'reporting', 'kpi', 'dashboard', 'executive-dashboard', 'production-kpi', 'inventory-kpi', 'quality-kpi', 'purchasing-kpi', 'shipment-kpi', 'decision-support', 'critical-alerts', 'forecasting', 'recommendation-engine', 'ai-analysis', 'cost-optimization', 'purchase-recommendations', 'industrial-kitchen'],
+    tags: ['business', 'reporting', 'kpi', 'dashboard', 'executive-dashboard', 'production-kpi', 'inventory-kpi', 'quality-kpi', 'purchasing-kpi', 'shipment-kpi', 'industrial-kitchen'],
     supportedSectorIds: industrialKitchenSectorIds,
     pricing: { model: 'paid', currency: 'TRY' },
     marketplace: marketplaceReady,
@@ -1025,14 +1027,39 @@ export const BUSINESS_WORKSPACE_MODULE_REGISTRY: BusinessWorkspaceModule[] = def
         supportedLayouts: ['standard', 'wide'],
         requiredPermission: 'dashboard.read',
         renderComponent: 'reporting.kpiDashboard.placeholder'
-      }),
+      })
+    ],
+    menuItems: [
+      menuItem({ key: 'kpi-dashboard', label: 'KPI Dashboard', route: 'kpi-dashboard', icon: 'KP', adminOnly: true, displayOrder: 10 })
+    ]
+  },
+  {
+    id: 'business-decision-support-workspace',
+    code: DECISION_SUPPORT_WORKSPACE_MODULE_CODE,
+    name: 'Karar Destek',
+    description: 'Industrial Kitchen Decision Support, kritik alarm, tahminleme, otomatik oneri, AI analiz, maliyet optimizasyonu ve satin alma onerileri icin ana karar destek calisma alani.',
+    category: 'business',
+    icon: 'DS',
+    route: 'decision-support',
+    permissions: ['dashboard.read', 'operations.read', 'stock.read', 'finance.read'],
+    isCoreModule: false,
+    isBusinessModule: true,
+    isEnabled: true,
+    isVisible: true,
+    displayOrder: 44,
+    dependencies: [WORKSPACE_MODULE_CODES.DASHBOARD, WORKSPACE_MODULE_CODES.STOCK, WORKSPACE_MODULE_CODES.PURCHASE],
+    tags: ['business', 'decision-support', 'critical-alerts', 'forecasting', 'recommendation-engine', 'ai-analysis', 'cost-optimization', 'purchase-recommendations', 'analytics', 'industrial-kitchen'],
+    supportedSectorIds: industrialKitchenSectorIds,
+    pricing: { model: 'paid', currency: 'TRY' },
+    marketplace: marketplaceReady,
+    dashboardWidgets: [
       dashboardWidget({
         id: 'reporting.decisionSupport',
         title: 'Decision Support',
         description: 'ERP read-model verilerinden rule, risk ve recommendation engine ile yonetim onerileri uretmek icin kontrol paneli baslangic alani.',
         icon: 'DS',
-        category: 'Raporlama',
-        order: 20,
+        category: 'Karar Destek',
+        order: 10,
         defaultVisible: false,
         defaultSize: 'large',
         supportedLayouts: ['standard', 'wide'],
@@ -1044,8 +1071,8 @@ export const BUSINESS_WORKSPACE_MODULE_REGISTRY: BusinessWorkspaceModule[] = def
         title: 'Kritik Alarmlar',
         description: 'Read-model kaynaklardan uretilen kritik stok, kalite, HACCP, kapasite, makine ve sevkiyat alarmlarini izlemek icin kontrol paneli baslangic alani.',
         icon: 'AL',
-        category: 'Raporlama',
-        order: 25,
+        category: 'Karar Destek',
+        order: 20,
         defaultVisible: false,
         defaultSize: 'large',
         supportedLayouts: ['standard', 'wide'],
@@ -1057,7 +1084,7 @@ export const BUSINESS_WORKSPACE_MODULE_REGISTRY: BusinessWorkspaceModule[] = def
         title: 'Tahminleme',
         description: 'Gecmis operasyon, stok, kalite, sevkiyat, kapasite ve kritik alarm verilerinden forecast raporlari uretmek icin kontrol paneli baslangic alani.',
         icon: 'FC',
-        category: 'Raporlama',
+        category: 'Karar Destek',
         order: 30,
         defaultVisible: false,
         defaultSize: 'large',
@@ -1070,8 +1097,8 @@ export const BUSINESS_WORKSPACE_MODULE_REGISTRY: BusinessWorkspaceModule[] = def
         title: 'Otomatik Oneriler',
         description: 'Forecasting, kritik alarm, planlama, stok, kalite ve KPI verilerinden read-model oneri raporlari uretmek icin kontrol paneli baslangic alani.',
         icon: 'RC',
-        category: 'Raporlama',
-        order: 35,
+        category: 'Karar Destek',
+        order: 40,
         defaultVisible: false,
         defaultSize: 'large',
         supportedLayouts: ['standard', 'wide'],
@@ -1083,8 +1110,8 @@ export const BUSINESS_WORKSPACE_MODULE_REGISTRY: BusinessWorkspaceModule[] = def
         title: 'AI Analiz',
         description: 'Decision Support, alarm, forecast, recommendation ve planlama verilerini dis AI servisine gitmeden AI-ready analiz formatina donusturmek icin kontrol paneli baslangic alani.',
         icon: 'AI',
-        category: 'Raporlama',
-        order: 40,
+        category: 'Karar Destek',
+        order: 50,
         defaultVisible: false,
         defaultSize: 'large',
         supportedLayouts: ['standard', 'wide'],
@@ -1096,8 +1123,8 @@ export const BUSINESS_WORKSPACE_MODULE_REGISTRY: BusinessWorkspaceModule[] = def
         title: 'Maliyet Optimizasyonu',
         description: 'Forecasting, AI Analysis, Recommendation Engine, Waste, Purchase ve Cost Engine verilerinden read-model maliyet optimizasyon firsatlari uretmek icin kontrol paneli baslangic alani.',
         icon: 'CO',
-        category: 'Raporlama',
-        order: 45,
+        category: 'Karar Destek',
+        order: 60,
         defaultVisible: false,
         defaultSize: 'large',
         supportedLayouts: ['standard', 'wide'],
@@ -1109,8 +1136,8 @@ export const BUSINESS_WORKSPACE_MODULE_REGISTRY: BusinessWorkspaceModule[] = def
         title: 'Satin Alma Onerileri',
         description: 'Forecasting, stok, mal kabul, fire, supplier ve maliyet sinyallerinden read-model satin alma onerileri uretmek icin kontrol paneli baslangic alani.',
         icon: 'PR',
-        category: 'Raporlama',
-        order: 50,
+        category: 'Karar Destek',
+        order: 70,
         defaultVisible: false,
         defaultSize: 'large',
         supportedLayouts: ['standard', 'wide'],
@@ -1119,14 +1146,13 @@ export const BUSINESS_WORKSPACE_MODULE_REGISTRY: BusinessWorkspaceModule[] = def
       })
     ],
     menuItems: [
-      menuItem({ key: 'kpi-dashboard', label: 'KPI Dashboard', route: 'kpi-dashboard', icon: 'KP', adminOnly: true, displayOrder: 10 }),
-      menuItem({ key: 'decision-support', label: 'Decision Support', route: 'decision-support', icon: 'DS', adminOnly: true, displayOrder: 20 }),
-      menuItem({ key: 'critical-alerts', label: 'Kritik Alarmlar', route: 'critical-alerts', icon: 'AL', adminOnly: true, displayOrder: 30 }),
-      menuItem({ key: 'forecasting', label: 'Tahminleme', route: 'forecasting', icon: 'FC', adminOnly: true, displayOrder: 40 }),
-      menuItem({ key: 'recommendation-engine', label: 'Otomatik Oneriler', route: 'recommendation-engine', icon: 'RC', adminOnly: true, displayOrder: 50 }),
-      menuItem({ key: 'ai-analysis', label: 'AI Analiz', route: 'ai-analysis', icon: 'AI', adminOnly: true, displayOrder: 60 }),
-      menuItem({ key: 'cost-optimization', label: 'Maliyet Optimizasyonu', route: 'cost-optimization', icon: 'CO', adminOnly: true, displayOrder: 70 }),
-      menuItem({ key: 'purchase-recommendations', label: 'Satin Alma Onerileri', route: 'purchase-recommendations', icon: 'PR', adminOnly: true, displayOrder: 80 })
+      menuItem({ key: 'decision-support', label: 'Decision Support', route: 'decision-support', icon: 'DS', adminOnly: true, displayOrder: 10 }),
+      menuItem({ key: 'critical-alerts', label: 'Kritik Alarmlar', route: 'critical-alerts', icon: 'AL', adminOnly: true, displayOrder: 20 }),
+      menuItem({ key: 'forecasting', label: 'Tahminleme', route: 'forecasting', icon: 'FC', adminOnly: true, displayOrder: 30 }),
+      menuItem({ key: 'recommendation-engine', label: 'Otomatik Oneriler', route: 'recommendation-engine', icon: 'RC', adminOnly: true, displayOrder: 40 }),
+      menuItem({ key: 'ai-analysis', label: 'AI Analiz', route: 'ai-analysis', icon: 'AI', adminOnly: true, displayOrder: 50 }),
+      menuItem({ key: 'cost-optimization', label: 'Maliyet Optimizasyonu', route: 'cost-optimization', icon: 'CO', adminOnly: true, displayOrder: 60 }),
+      menuItem({ key: 'purchase-recommendations', label: 'Satin Alma Onerileri', route: 'purchase-recommendations', icon: 'PR', adminOnly: true, displayOrder: 70 })
     ]
   },
   {
