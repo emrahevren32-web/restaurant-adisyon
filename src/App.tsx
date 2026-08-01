@@ -391,12 +391,22 @@ export default function App(){
     authStateRef.current = evaluateAuthenticationStateTarget(currentAuthState, target)
   }
 
+  const runBranchScopedMigration = React.useCallback((user?: User | null) => {
+    if(!user) return
+
+    try {
+      migrateBranchScopedData(user)
+    } catch (error) {
+      console.warn('Sube veri migration hatasi atlandi.', error)
+    }
+  }, [])
+
   React.useEffect(()=>{
     ensureDefaultAdmin()
-    if(currentUser) migrateBranchScopedData(currentUser)
+    runBranchScopedMigration(currentUser)
     setBranches(getVisibleBranchesForUser(currentUser))
     setActiveBranchState(getActiveBranchId())
-  }, [currentUser])
+  }, [currentUser, runBranchScopedMigration])
   React.useEffect(() => {
     document.title = workspaceChrome.name
   }, [workspaceChrome.name])
@@ -460,7 +470,7 @@ export default function App(){
 
     updateAuthenticationState(nextAuthState)
     const defaultNavigation = getDefaultNavigation(u, nextAuthState.pipeline.loginRedirect)
-    migrateBranchScopedData(u)
+    runBranchScopedMigration(u)
     setUserState(u)
     setBranches(getVisibleBranchesForUser(u))
     setActiveBranchState(getActiveBranchId())

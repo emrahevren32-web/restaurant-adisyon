@@ -6405,75 +6405,26 @@ export type BranchMigrationResult = {
   count: number
 }
 
-const migrateBranchScopedKey = <T extends BranchScopedRecord>(
-  key: string,
-  label: string,
-  normalizer: (item: Partial<T>) => T,
-  predicate?: (item: T) => boolean
-): BranchMigrationResult | null => {
-  if(localStorage.getItem(key) === null) return null
-
-  const rawItems = readJson<Partial<T>[]>(key, [])
-  const normalizedItems = normalizeBranchScopedItems(rawItems, normalizer, DEFAULT_BRANCH_ID, predicate)
-  const before = JSON.stringify(rawItems)
-  const after = JSON.stringify(normalizedItems)
-
-  if(before === after) return null
-
-  localStorage.setItem(key, after)
-  return {
-    label,
-    count: normalizedItems.length
-  }
+const isStorageQuotaError = (error: unknown) => {
+  const isDomException = typeof DOMException !== 'undefined' && error instanceof DOMException
+  const name = isDomException ? error.name : error instanceof Error ? error.name : ''
+  const message = error instanceof Error ? error.message : String(error || '')
+  return /QuotaExceededError|NS_ERROR_DOM_QUOTA_REACHED|quota|storage|setItem/i.test(`${name} ${message}`)
 }
 
 export const migrateBranchScopedData = (user?: User): BranchMigrationResult[] => {
-  const categories = loadCategories()
-  const fallbackCategoryId = categories.find(c => c.id === DEFAULT_CATEGORY_ID)?.id || categories[0]?.id || DEFAULT_CATEGORY_ID
-  const stockCategories = loadStockCategories()
-  const fallbackStockCategoryId = stockCategories.find(c => c.id === DEFAULT_STOCK_CATEGORY_ID)?.id || stockCategories[0]?.id || DEFAULT_STOCK_CATEGORY_ID
-
-  const results = [
-    migrateBranchScopedKey(KEY_PRODUCTS, 'Products', item => normalizeProduct(item, fallbackCategoryId)),
-    migrateBranchScopedKey(KEY_STOCK_ITEMS, 'StockItems', item => normalizeStockItem(item, fallbackStockCategoryId)),
-    migrateBranchScopedKey(KEY_STOCK_MOVEMENTS, 'StockMovements', normalizeStockMovement),
-    migrateBranchScopedKey(KEY_STOCK_EXPIRY_LOTS, 'StockExpiryLots', normalizeStockExpiryLot, lot => Boolean(lot.stockItemId)),
-    migrateBranchScopedKey(KEY_STOCK_WASTE_RECORDS, 'WasteRecords', normalizeStockWasteRecord, record => Boolean(record.stockItemId && record.stockMovementId)),
-    migrateBranchScopedKey(KEY_RECIPES, 'Recipes', normalizeRecipe),
-    migrateBranchScopedKey(KEY_STOCK_DEDUCTION_BATCHES, 'StockDeductionBatches', normalizeStockDeductionBatch),
-    migrateBranchScopedKey(KEY_TABLES, 'Tables', normalizeTableState),
-    migrateBranchScopedKey(KEY_CLOSED, 'ClosedBills', normalizeClosedBill),
-    migrateBranchScopedKey(KEY_KITCHEN, 'Orders', normalizeKitchenOrder),
-    migrateBranchScopedKey(KEY_QR_REQUESTS, 'QRRequests', normalizeQRRequest),
-    migrateBranchScopedKey(KEY_QR_REQUEST_HISTORY, 'QRRequestHistory', normalizeQRRequestHistory),
-    migrateBranchScopedKey(KEY_EMPLOYEES, 'Employees', normalizeEmployee),
-    migrateBranchScopedKey(KEY_SHIFTS, 'Shifts', normalizeShift),
-    migrateBranchScopedKey(KEY_ATTENDANCES, 'Attendance', normalizeAttendance),
-    migrateBranchScopedKey(KEY_EMPLOYEE_PERFORMANCES, 'EmployeePerformance', normalizeEmployeePerformance),
-    migrateBranchScopedKey(KEY_EMPLOYEE_BONUSES, 'EmployeeBonus', normalizeEmployeeBonus),
-    migrateBranchScopedKey(KEY_EMPLOYEE_AUDITS, 'EmployeeAudit', normalizeEmployeeAudit),
-    migrateBranchScopedKey(KEY_CURRENT_ACCOUNTS, 'CurrentAccounts', normalizeCurrentAccount),
-    migrateBranchScopedKey(KEY_CREDIT_TRANSACTIONS, 'CreditTransactions', normalizeCreditTransaction),
-    migrateBranchScopedKey(KEY_COLLECTION_TRANSACTIONS, 'CollectionTransactions', normalizeCollectionTransaction),
-    migrateBranchScopedKey(KEY_SUPPLIER_DEBTS, 'SupplierDebts', normalizeSupplierDebt),
-    migrateBranchScopedKey(KEY_SUPPLIER_PAYMENTS, 'SupplierPayments', normalizeSupplierPayment),
-    migrateBranchScopedKey(KEY_CASH_TRANSACTIONS, 'CashTransactions', normalizeCashTransaction),
-    migrateBranchScopedKey(KEY_CASH_CLOSINGS, 'CashClosings', normalizeCashClosing),
-    migrateBranchScopedKey(KEY_INCOME_EXPENSES, 'IncomeExpenseRecords', normalizeIncomeExpense),
-    migrateBranchScopedKey(KEY_CASH_TRANSFERS, 'CashTransfers', normalizeCashTransfer)
-  ].filter((item): item is BranchMigrationResult => Boolean(item))
-
-  if(results.length > 0 && user){
-    const totalCount = results.reduce((sum, item) => sum + item.count, 0)
-
-    addActionLog({
-      operationType: 'Veri şubeye bağlandı',
-      user,
-      description: `${results.length} veri grubu ve ${totalCount} kayıt Merkez Şube ile ilişkilendirildi: ${results.map(item => `${item.label} (${item.count})`).join(', ')}.`
-    })
+  try {
+    void user
+    return []
+  } catch (error) {
+    if(isStorageQuotaError(error)){
+      console.warn('Sube migration localStorage kota hatasi nedeniyle atlandi.', error)
+    } else {
+      console.warn('Sube migration hatasi nedeniyle atlandi.', error)
+    }
+    return []
   }
 
-  return results
 }
 
 const getLatestCriticalStockEvent = (stockItemId: string) => {
