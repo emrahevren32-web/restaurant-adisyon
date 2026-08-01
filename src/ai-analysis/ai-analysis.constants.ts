@@ -19,12 +19,12 @@ export const AI_ANALYSIS_TITLES: AIAnalysisTitle[] = [
 ]
 
 export const AI_ANALYSIS_TITLE_LABELS: Record<AIAnalysisTitle, string> = {
-  PRODUCTION: 'Uretim',
+  PRODUCTION: 'Üretim',
   STOCK: 'Stok',
   QUALITY: 'Kalite',
   MACHINE: 'Makine',
   PERSONNEL: 'Personel',
-  MAINTENANCE: 'Bakim',
+  MAINTENANCE: 'Bakım',
   SHIPMENT: 'Sevkiyat',
   ENERGY: 'Enerji',
   CAPACITY: 'Kapasite',
@@ -41,7 +41,7 @@ export const AI_INSIGHT_TYPES: AIInsightType[] = [
 
 export const AI_INSIGHT_TYPE_LABELS: Record<AIInsightType, string> = {
   RISK: 'Risk',
-  OPPORTUNITY: 'Firsat',
+  OPPORTUNITY: 'Fırsat',
   ANOMALY: 'Anormallik',
   REPEATING_PROBLEM: 'Tekrarlayan Problem',
   EXPECTED_IMPACT: 'Beklenen Etki'
@@ -55,9 +55,9 @@ export const AI_SEVERITIES: AISeverity[] = [
 ]
 
 export const AI_SEVERITY_LABELS: Record<AISeverity, string> = {
-  LOW: 'Dusuk',
+  LOW: 'Düşük',
   MEDIUM: 'Orta',
-  HIGH: 'Yuksek',
+  HIGH: 'Yüksek',
   CRITICAL: 'Kritik'
 }
 
@@ -68,7 +68,7 @@ export const AI_ANALYSIS_STATUSES: AIAnalysisStatus[] = [
 ]
 
 export const AI_ANALYSIS_STATUS_LABELS: Record<AIAnalysisStatus, string> = {
-  GENERATED: 'Uretildi',
-  REVIEWED: 'Incelendi',
-  ARCHIVED: 'Arsivlendi'
+  GENERATED: 'Üretildi',
+  REVIEWED: 'İncelendi',
+  ARCHIVED: 'Arşivlendi'
 }

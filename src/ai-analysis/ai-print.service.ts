@@ -50,7 +50,7 @@ export const createAIPrintHtml = (
 <html lang="tr">
 <head>
   <meta charset="utf-8" />
-  <title>${escapeHtml(report.reportNo)} AI Analysis</title>
+  <title>${escapeHtml(report.reportNo)} Yapay Zeka Analizi</title>
   <style>
     * { box-sizing:border-box; }
     body { margin:0; padding:24px; color:#111827; font-family:Inter, Arial, sans-serif; background:#f8fafc; }
@@ -77,21 +77,21 @@ export const createAIPrintHtml = (
   <div class="sheet">
     <div class="header">
       <div>
-        <span class="muted">AI Analysis Engine</span>
-        <h1>${escapeHtml(report.reportNo)} - AI Analiz</h1>
+        <span class="muted">Yapay Zeka Analiz Motoru</span>
+        <h1>${escapeHtml(report.reportNo)} - Yapay Zeka Analizi</h1>
         <div class="muted">${escapeHtml(formatDate(report.reportDate))}</div>
       </div>
       <span class="pill">${escapeHtml(mode === 'PDF' ? 'PDF Hazirlik' : AI_ANALYSIS_STATUS_LABELS[report.status])}</span>
     </div>
     <div class="grid">
       <div class="box"><span>Rapor Tarihi</span><strong>${escapeHtml(formatDate(report.reportDate))}</strong></div>
-      <div class="box"><span>Kapsam</span><strong>${escapeHtml(report.scope === 'all' ? 'Tum Basliklar' : AI_ANALYSIS_TITLE_LABELS[report.scope])}</strong></div>
-      <div class="box"><span>Insight</span><strong>${escapeHtml(report.insights.length)}</strong></div>
+      <div class="box"><span>Kapsam</span><strong>${escapeHtml(report.scope === 'all' ? 'Tüm Başlıklar' : AI_ANALYSIS_TITLE_LABELS[report.scope])}</strong></div>
+      <div class="box"><span>İçgörü</span><strong>${escapeHtml(report.insights.length)}</strong></div>
       <div class="box"><span>Sorumlu</span><strong>${escapeHtml(report.responsiblePerson)}</strong></div>
     </div>
-    <h2>AI Insight Listesi</h2>
+    <h2>Yapay Zeka Bulguları</h2>
     <table>
-      <thead><tr><th>Baslik</th><th>Insight</th><th>Seviye</th><th>Confidence</th><th>Impact</th><th>Oneri</th></tr></thead>
+      <thead><tr><th>Başlık</th><th>İçgörü</th><th>Seviye</th><th>Güven Skoru</th><th>Etki Skoru</th><th>Öneri</th></tr></thead>
       <tbody>
         ${report.insights.slice(0, 36).map(insight => `
           <tr>
@@ -105,9 +105,9 @@ export const createAIPrintHtml = (
         `).join('')}
       </tbody>
     </table>
-    <h2>History</h2>
+    <h2>Geçmiş</h2>
     <table>
-      <thead><tr><th>Aksiyon</th><th>Kullanici</th><th>Tarih</th><th>Aciklama</th></tr></thead>
+      <thead><tr><th>Aksiyon</th><th>Kullanıcı</th><th>Tarih</th><th>Açıklama</th></tr></thead>
       <tbody>
         ${report.history.map(history => `
           <tr>

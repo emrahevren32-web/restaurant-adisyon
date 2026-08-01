@@ -8,6 +8,7 @@ import {
   ALL_FILTER,
   roundKpi
 } from '../kpi-reporting/kpi.utils'
+import { getDecisionReadModelSnapshot } from '../read-model/decision-read-model-snapshot.service'
 import { resolveReadModel } from '../read-model/read-model-safety'
 import { RecommendationService } from '../recommendation-engine/recommendation.service'
 import { WasteService } from '../waste-management/waste.service'
@@ -317,7 +318,8 @@ export const evaluatePurchaseRecommendationReport = (
   }
 
   return resolveReadModel(() => {
-    const forecastReport = dependencies.forecastReport || ForecastService.evaluate(sourceData, {
+    const snapshot = getDecisionReadModelSnapshot(sourceData, actorName)
+    const forecastReport = dependencies.forecastReport || snapshot.forecastReport || ForecastService.evaluate(sourceData, {
       reportDate: createInput.reportDate,
       horizonDays: 7,
       analysisWindowDays: 30,
@@ -325,7 +327,7 @@ export const evaluatePurchaseRecommendationReport = (
       responsiblePerson: actorName,
       description: 'Purchase Recommendation forecast source.'
     })
-    const recommendationReport = dependencies.recommendationReport || RecommendationService.evaluate(sourceData, {
+    const recommendationReport = dependencies.recommendationReport || snapshot.recommendationReport || RecommendationService.evaluate(sourceData, {
       reportDate: createInput.reportDate,
       scope: 'all',
       responsiblePerson: actorName,
@@ -335,15 +337,15 @@ export const evaluatePurchaseRecommendationReport = (
       reportDate: createInput.reportDate,
       scope: 'all',
       responsiblePerson: actorName,
-      description: 'Purchase Recommendation AI source.'
-    })
+      description: 'Satın alma önerileri yapay zeka analiz kaynağı.'
+    }, [], actorName, snapshot)
     const costOptimizationReport = dependencies.costOptimizationReport || CostOptimizationService.evaluate(sourceData, {
       reportDate: createInput.reportDate,
       scope: 'all',
       responsiblePerson: actorName,
       description: 'Purchase Recommendation cost source.'
     })
-    const criticalAlerts = dependencies.criticalAlerts || CriticalAlertService.evaluate(sourceData)
+    const criticalAlerts = dependencies.criticalAlerts || snapshot.criticalAlerts || CriticalAlertService.evaluate(sourceData)
     const goodsReceipts = dependencies.goodsReceipts || GoodsReceiptService.list(sourceData)
     const wasteRecords = dependencies.wasteRecords || WasteService.list(sourceData)
 
@@ -358,7 +360,7 @@ export const evaluatePurchaseRecommendationReport = (
       criticalAlerts,
       goodsReceipts,
       wasteRecords,
-      decisionSuggestions: dependencies.decisionSuggestions || [],
+      decisionSuggestions: dependencies.decisionSuggestions || snapshot.decisionSuggestions,
       getReportNo: () => getNextPurchaseRecommendationNo(existingReports, createInput.reportDate)
     })
   }, createPurchaseRecommendationFallbackReport(createInput, existingReports, actorName))
@@ -367,11 +369,11 @@ export const evaluatePurchaseRecommendationReport = (
 export const loadPurchaseRecommendationReports = (
   sourceData: KpiSourceData
 ) => {
-  const defaultReport = evaluatePurchaseRecommendationReport(sourceData)
-  if(!isBrowserStorageAvailable()) return [defaultReport]
+  if(!isBrowserStorageAvailable()) return [evaluatePurchaseRecommendationReport(sourceData)]
 
   const stored = localStorage.getItem(PURCHASE_RECOMMENDATION_STORAGE_KEY)
   if(stored === null){
+    const defaultReport = evaluatePurchaseRecommendationReport(sourceData)
     savePurchaseRecommendationReports([defaultReport])
     return [defaultReport]
   }
@@ -383,12 +385,13 @@ export const loadPurchaseRecommendationReports = (
         .filter(isRecord)
         .map((record, index) => normalizeReport(record as RawPurchaseRecommendationReport, index))
         .sort((first, second) => second.reportDate.localeCompare(first.reportDate) || first.reportNo.localeCompare(second.reportNo))
-      return reports.length > 0 ? reports : [defaultReport]
+      if(reports.length > 0) return reports
     }
   } catch {
     // Corrupt local purchase recommendation cache is replaced with a fresh read-model report.
   }
 
+  const defaultReport = evaluatePurchaseRecommendationReport(sourceData)
   savePurchaseRecommendationReports([defaultReport])
   return [defaultReport]
 }

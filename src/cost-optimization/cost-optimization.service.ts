@@ -1,12 +1,11 @@
 import { AIAnalysisService } from '../ai-analysis/ai-analysis.service'
-import { createDecisionSuggestions } from '../decision-support/decision-support.service'
 import type { KpiSourceData } from '../kpi-reporting/kpi.types'
 import {
   ALL_FILTER,
   roundKpi
 } from '../kpi-reporting/kpi.utils'
+import { getDecisionReadModelSnapshot } from '../read-model/decision-read-model-snapshot.service'
 import { resolveReadModel } from '../read-model/read-model-safety'
-import { calculateRecommendationReport } from '../recommendation-engine/recommendation-calculation.service'
 import { calculateCostOptimizationReport, CostAnalysisService } from './cost-analysis.service'
 import { CostCalculationService } from './cost-calculation.service'
 import {
@@ -311,38 +310,16 @@ export const evaluateCostOptimizationReport = (
   }
 
   return resolveReadModel(() => {
-    const decisionSuggestions = createDecisionSuggestions(sourceData, {
-      skipSources: [
-        'production-planning',
-        'capacity-planning',
-        'machine-scheduling',
-        'workforce-planning',
-        'bottleneck-analysis',
-        'continuous-improvement',
-        'critical-alerts',
-        'forecasting',
-        'recommendation-engine',
-        'cost-optimization',
-        'purchase-recommendations'
-      ]
-    })
+    const snapshot = getDecisionReadModelSnapshot(sourceData, actorName)
+    const decisionSuggestions = snapshot.decisionSuggestions
       .filter(suggestion => !suggestion.ruleId.startsWith('cost-optimization-'))
-    const recommendationReport = calculateRecommendationReport({
-      reportDate: createInput.reportDate,
-      scope: 'all',
-      responsiblePerson: actorName,
-      description: 'Cost Optimization recommendation source.',
-      sourceData,
-      decisionSuggestions,
-      actorName,
-      getReportNo: () => `RC-${new Date().getFullYear()}-000000`
-    })
+    const recommendationReport = snapshot.recommendationReport
     const aiAnalysisReport = AIAnalysisService.evaluate(sourceData, {
       reportDate: createInput.reportDate,
       scope: 'all',
       responsiblePerson: actorName,
-      description: 'Cost Optimization AI Analysis source.'
-    }, [], actorName)
+      description: 'Maliyet optimizasyonu yapay zeka analiz kaynagi.'
+    }, [], actorName, snapshot)
 
     return calculateCostOptimizationReport({
       ...createInput,
@@ -359,11 +336,11 @@ export const evaluateCostOptimizationReport = (
 export const loadCostOptimizationReports = (
   sourceData: KpiSourceData
 ) => {
-  const defaultReport = evaluateCostOptimizationReport(sourceData)
-  if(!isBrowserStorageAvailable()) return [defaultReport]
+  if(!isBrowserStorageAvailable()) return [evaluateCostOptimizationReport(sourceData)]
 
   const stored = localStorage.getItem(COST_OPTIMIZATION_STORAGE_KEY)
   if(stored === null){
+    const defaultReport = evaluateCostOptimizationReport(sourceData)
     saveCostOptimizationReports([defaultReport])
     return [defaultReport]
   }
@@ -375,12 +352,13 @@ export const loadCostOptimizationReports = (
         .filter(isRecord)
         .map((record, index) => normalizeReport(record as RawCostOptimizationReport, index))
         .sort((first, second) => second.reportDate.localeCompare(first.reportDate) || first.reportNo.localeCompare(second.reportNo))
-      return reports.length > 0 ? reports : [defaultReport]
+      if(reports.length > 0) return reports
     }
   } catch {
     // Corrupt local cost optimization cache is replaced with a fresh read-model report.
   }
 
+  const defaultReport = evaluateCostOptimizationReport(sourceData)
   saveCostOptimizationReports([defaultReport])
   return [defaultReport]
 }

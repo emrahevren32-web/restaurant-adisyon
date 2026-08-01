@@ -3,6 +3,7 @@ import {
   ALL_FILTER,
   roundKpi
 } from '../kpi-reporting/kpi.utils'
+import { getDecisionReadModelSnapshot } from '../read-model/decision-read-model-snapshot.service'
 import { resolveReadModel } from '../read-model/read-model-safety'
 import {
   AI_ANALYSIS_STATUSES,
@@ -101,7 +102,7 @@ export const createDefaultAIAnalysisFilters = (): AIAnalysisFilters => ({
 })
 
 export const createDefaultAIAnalysisReportInput = (
-  responsiblePerson = 'AI Analysis Engine'
+  responsiblePerson = 'Yapay Zeka Analiz Motoru'
 ): AIAnalysisReportCreateInput => ({
   reportDate: getTodayKey(),
   scope: 'all',
@@ -141,7 +142,7 @@ const normalizeHistory = (
     reportId,
     action: normalizeText(history.action).toUpperCase() as AIHistoryAction,
     actorName: normalizeText(history.actorName) || actorName,
-    description: normalizeText(history.description) || 'AI Analysis raporu guncellendi.',
+    description: normalizeText(history.description) || 'Yapay zeka analiz raporu guncellendi.',
     revisionNo: normalizeNumber(history.revisionNo) || 1,
     createdAt: normalizeText(history.createdAt) || new Date().toISOString()
   }))
@@ -159,7 +160,7 @@ const normalizeInsight = (
   analysisTitle: mapTitle(value.analysisTitle),
   insightType: mapInsightType(value.insightType),
   severity: mapSeverity(value.severity),
-  title: normalizeText(value.title) || 'AI Insight',
+  title: normalizeText(value.title) || 'Yapay zeka bulgusu',
   summary: normalizeText(value.summary),
   evidence: normalizeText(value.evidence),
   expectedImpact: normalizeText(value.expectedImpact),
@@ -207,7 +208,7 @@ const normalizeFinding = (
   analysisTitle: mapTitle(value.analysisTitle),
   findingType: mapInsightType(value.findingType),
   severity: mapSeverity(value.severity),
-  title: normalizeText(value.title) || 'AI Finding',
+  title: normalizeText(value.title) || 'Yapay zeka bulgusu',
   description: normalizeText(value.description),
   metricName: normalizeText(value.metricName),
   metricValue: normalizeNumber(value.metricValue),
@@ -248,7 +249,7 @@ const normalizeReport = (
   const reportNo = normalizeText(value.reportNo) || getNextAIAnalysisNo([], reportDate, index)
   const id = normalizeText(value.id) || `ai_analysis_${reportNo}`.replace(/[^a-zA-Z0-9_]+/g, '_')
   const createdAt = normalizeText(value.createdAt) || new Date().toISOString()
-  const actorName = 'AI Analysis Engine'
+  const actorName = 'Yapay Zeka Analiz Motoru'
   const insights = Array.isArray(value.insights)
     ? value.insights.filter(isRecord).map((insight, insightIndex) => normalizeInsight(insight as RawAIInsight, id, reportNo, insightIndex))
     : []
@@ -274,7 +275,7 @@ const normalizeReport = (
     scores,
     history: history.length > 0
       ? history
-      : [createAIHistory(id, 'CREATED', actorName, `${reportNo} AI analysis read-model olarak olusturuldu.`)],
+      : [createAIHistory(id, 'CREATED', actorName, `${reportNo} yapay zeka analizi read-model olarak olusturuldu.`)],
     sourceType: normalizeText(value.sourceType) === 'ManualReadModel' ? 'ManualReadModel' : 'ReadModel',
     sourceId: normalizeText(value.sourceId) || 'ai-analysis-engine',
     revisionNo: normalizeNumber(value.revisionNo) || 1,
@@ -305,12 +306,12 @@ const createAIAnalysisFallbackReport = (
     reportDate: input.reportDate,
     scope: input.scope,
     responsiblePerson: input.responsiblePerson || actorName,
-    description: input.description || 'Read-model kaynak hatasi nedeniyle bos AI analysis raporu olusturuldu.',
+    description: input.description || 'Read-model kaynak hatasi nedeniyle bos yapay zeka analiz raporu olusturuldu.',
     insights: [],
     findings: [],
     scores: [],
     history: [
-      createAIHistory(reportId, 'ANALYZED', actorName, 'Read-model kaynak hatasi nedeniyle AI analysis hesaplamasi bos fallback ile tamamlandi.')
+      createAIHistory(reportId, 'ANALYZED', actorName, 'Read-model kaynak hatasi nedeniyle yapay zeka analizi bos fallback ile tamamlandi.')
     ],
     sourceType: 'ReadModel',
     sourceId: 'ai-analysis-runtime-fallback',
@@ -325,7 +326,7 @@ export const evaluateAIAnalysisReport = (
   sourceData: KpiSourceData,
   input: Partial<AIAnalysisReportCreateInput> = {},
   existingReports: AIAnalysisReport[] = [],
-  actorName = 'AI Analysis Engine',
+  actorName = 'Yapay Zeka Analiz Motoru',
   dependencies: AIAnalysisEvaluationDependencies = {}
 ) => {
   const createInput = {
@@ -333,8 +334,11 @@ export const evaluateAIAnalysisReport = (
     ...input
   }
 
+  const snapshot = getDecisionReadModelSnapshot(sourceData, actorName)
+
   return resolveReadModel(() => calculateAIAnalysisReport({
     ...createInput,
+    ...snapshot,
     ...dependencies,
     sourceData,
     actorName,
@@ -345,11 +349,11 @@ export const evaluateAIAnalysisReport = (
 export const loadAIAnalysisReports = (
   sourceData: KpiSourceData
 ) => {
-  const defaultReport = evaluateAIAnalysisReport(sourceData)
-  if(!isBrowserStorageAvailable()) return [defaultReport]
+  if(!isBrowserStorageAvailable()) return [evaluateAIAnalysisReport(sourceData)]
 
   const stored = localStorage.getItem(AI_ANALYSIS_STORAGE_KEY)
   if(stored === null){
+    const defaultReport = evaluateAIAnalysisReport(sourceData)
     saveAIAnalysisReports([defaultReport])
     return [defaultReport]
   }
@@ -361,12 +365,13 @@ export const loadAIAnalysisReports = (
         .filter(isRecord)
         .map((record, index) => normalizeReport(record as RawAIAnalysisReport, index))
         .sort((first, second) => second.reportDate.localeCompare(first.reportDate) || first.reportNo.localeCompare(second.reportNo))
-      return reports.length > 0 ? reports : [defaultReport]
+      if(reports.length > 0) return reports
     }
   } catch {
-    // Corrupt local AI analysis cache is replaced with a fresh read-model report.
+    // Bozuk yerel yapay zeka analiz cache kaydi taze read-model raporuyla degistirilir.
   }
 
+  const defaultReport = evaluateAIAnalysisReport(sourceData)
   saveAIAnalysisReports([defaultReport])
   return [defaultReport]
 }
@@ -444,7 +449,7 @@ export const updateAIAnalysisReportStatus = (
 ) => {
   const reports = loadAIAnalysisReports(sourceData)
   const report = reports.find(record => record.id === reportId)
-  if(!report) throw new Error('AI Analysis report bulunamadi.')
+  if(!report) throw new Error('Yapay zeka analiz raporu bulunamadi.')
   const actionByStatus: Record<Extract<AIAnalysisStatus, 'REVIEWED' | 'ARCHIVED'>, AIHistoryAction> = {
     REVIEWED: 'REVIEWED',
     ARCHIVED: 'ARCHIVED'
@@ -470,7 +475,7 @@ export const recordAIAnalysisOutput = (
 ) => {
   const reports = loadAIAnalysisReports(sourceData)
   const report = reports.find(record => record.id === reportId)
-  if(!report) throw new Error('AI Analysis report bulunamadi.')
+  if(!report) throw new Error('Yapay zeka analiz raporu bulunamadi.')
   const nextReport = appendAIHistory(
     report,
     action,

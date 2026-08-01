@@ -344,11 +344,11 @@ export const evaluateForecastReport = (
 export const loadForecastReports = (
   sourceData: KpiSourceData
 ) => {
-  const defaultReport = evaluateForecastReport(sourceData)
-  if(!isBrowserStorageAvailable()) return [defaultReport]
+  if(!isBrowserStorageAvailable()) return [evaluateForecastReport(sourceData)]
 
   const stored = localStorage.getItem(FORECAST_STORAGE_KEY)
   if(stored === null){
+    const defaultReport = evaluateForecastReport(sourceData)
     saveForecastReports([defaultReport])
     return [defaultReport]
   }
@@ -360,12 +360,13 @@ export const loadForecastReports = (
         .filter(isRecord)
         .map((record, index) => normalizeReport(record as RawForecastReport, index))
         .sort((first, second) => second.reportDate.localeCompare(first.reportDate) || first.reportNo.localeCompare(second.reportNo))
-      return reports.length > 0 ? reports : [defaultReport]
+      if(reports.length > 0) return reports
     }
   } catch {
     // Corrupt local forecast cache is replaced with a fresh read-model forecast.
   }
 
+  const defaultReport = evaluateForecastReport(sourceData)
   saveForecastReports([defaultReport])
   return [defaultReport]
 }

@@ -331,11 +331,11 @@ export const evaluateRecommendationReport = (
 export const loadRecommendationReports = (
   sourceData: KpiSourceData
 ) => {
-  const defaultReport = evaluateRecommendationReport(sourceData)
-  if(!isBrowserStorageAvailable()) return [defaultReport]
+  if(!isBrowserStorageAvailable()) return [evaluateRecommendationReport(sourceData)]
 
   const stored = localStorage.getItem(RECOMMENDATION_STORAGE_KEY)
   if(stored === null){
+    const defaultReport = evaluateRecommendationReport(sourceData)
     saveRecommendationReports([defaultReport])
     return [defaultReport]
   }
@@ -347,12 +347,13 @@ export const loadRecommendationReports = (
         .filter(isRecord)
         .map((record, index) => normalizeReport(record as RawRecommendationReport, index))
         .sort((first, second) => second.reportDate.localeCompare(first.reportDate) || first.reportNo.localeCompare(second.reportNo))
-      return reports.length > 0 ? reports : [defaultReport]
+      if(reports.length > 0) return reports
     }
   } catch {
     // Corrupt local recommendation cache is replaced with a fresh read-model report.
   }
 
+  const defaultReport = evaluateRecommendationReport(sourceData)
   saveRecommendationReports([defaultReport])
   return [defaultReport]
 }

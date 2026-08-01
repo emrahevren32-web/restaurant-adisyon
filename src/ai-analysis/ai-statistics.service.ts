@@ -135,7 +135,7 @@ export const createAIStatistics = (
       'YEAR',
       report => report.reportDate,
       report => report.insights.length,
-      'Aylik AI Analysis Trend',
+      'Aylık Yapay Zeka Analiz Trendi',
       '#0f766e'
     )
   }
