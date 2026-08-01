@@ -368,7 +368,7 @@ const createForecastItems = (
     reportId,
     reportNo,
     title: prediction.recommendation,
-    description: `${prediction.entityName} forecast sinyali otomatik oneriye cevrildi.`,
+    description: `${prediction.entityName} tahmin sinyali otomatik öneriye çevrildi.`,
     reason: prediction.evidence,
     action: prediction.recommendation,
     expectedImpact: `${prediction.entityName} icin risk ${prediction.riskScore} ve confidence ${prediction.confidenceScore}.`,
@@ -426,7 +426,7 @@ const createProductionPlanningItems = (
       ? 'Kritik stok yenilenmeli ve plan malzeme uygunlugu manuel kontrol edilmeli.'
       : item.capacityUsagePercent >= 90
         ? 'Hat yuku alternatif hat veya vardiya senaryosu ile manuel dengelenmeli.'
-        : 'Uretim miktari talep ve forecast etkisine gore manuel artirilabilir.',
+      : 'Üretim miktarı talep ve tahmin etkisine göre manuel artırılabilir.',
     expectedImpact: 'Plan acigi, kapasite baskisi ve stok yetersizligi riskini azaltir.',
     ownerRole: 'Uretim Planlama',
     riskScore: item.priority === 'CRITICAL' ? 88 : item.capacityUsagePercent >= 100 ? 82 : 66,
@@ -648,9 +648,9 @@ const createQualityShipmentChecklistItems = (
       ruleId: 'recommendation-rule-quality-control',
       reportId,
       reportNo,
-      reason: `${form.formNo} kalite formunda FAIL sonucu tespit edildi.`,
-      action: 'Kalite kontrol sikligi artirilmali ve lot/supplier etkisi manuel incelenmeli.',
-      expectedImpact: 'Kalite FAIL, recall ve sevkiyat blokaj riskini azaltir.',
+      reason: `${form.formNo} kalite formunda başarısız sonuç tespit edildi.`,
+      action: 'Kalite kontrol sıklığı artırılmalı ve lot/tedarikçi etkisi manuel incelenmeli.',
+      expectedImpact: 'Kalite başarısızlığı, geri çağırma ve sevkiyat blokaj riskini azaltır.',
       ownerRole: 'Kalite',
       riskScore: form.result === 'FAIL' ? 86 : 70,
       confidenceScore: 82,
@@ -679,7 +679,7 @@ const createQualityShipmentChecklistItems = (
       ruleId: 'recommendation-rule-shipment-reschedule',
       reportId,
       reportNo,
-      reason: `${form.formNo} sevkiyat formunda checklist veya sicaklik FAIL sonucu var.`,
+      reason: `${form.formNo} sevkiyat formunda kontrol listesi veya sıcaklık başarısız sonucu var.`,
       action: 'Sevkiyat yeniden planlanmali; arac, soguk zincir ve yukleme kontrolu manuel incelenmeli.',
       expectedImpact: 'Teslimat gecikmesi ve sevkiyat kalite riskini azaltir.',
       ownerRole: 'Sevkiyat',
@@ -704,7 +704,7 @@ const createQualityShipmentChecklistItems = (
       ruleId: 'recommendation-rule-quality-control',
       reportId,
       reportNo,
-      reason: `${record.checklistNo} operasyon checklist ${record.execution.failCount} FAIL ve ${record.execution.completionRate}% tamamlanma.`,
+      reason: `${record.checklistNo} operasyon kontrol listesi ${record.execution.failCount} başarısız madde ve ${record.execution.completionRate}% tamamlanma.`,
       action: 'Operasyon checklist uygunsuzluklari kalite ve operasyon sorumlusu tarafindan manuel kapatilmali.',
       expectedImpact: 'Operasyon standardi, HACCP ve kalite riskini azaltir.',
       ownerRole: 'Operasyon ve Kalite',
@@ -861,7 +861,7 @@ export const calculateRecommendationReport = (
     items,
     rules: listRecommendationRules(),
     history: [
-      createRecommendationHistory(reportId, 'CREATED', input.actorName, `${reportNo} Recommendation Engine read-model raporu olusturuldu.`),
+    createRecommendationHistory(reportId, 'CREATED', input.actorName, `${reportNo} Öneri Motoru analiz modeli raporu oluşturuldu.`),
       createRecommendationHistory(reportId, 'CALCULATED', input.actorName, `${items.length} otomatik oneri hesaplandi.`)
     ],
     sourceType: 'ReadModel',

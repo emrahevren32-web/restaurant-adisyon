@@ -58,7 +58,7 @@ export const createPurchaseRecommendationPrintHtml = (
 <html lang="tr">
 <head>
   <meta charset="utf-8" />
-  <title>${escapeHtml(report.reportNo)} Purchase Recommendation</title>
+  <title>${escapeHtml(report.reportNo)} Satın Alma Önerisi</title>
   <style>
     * { box-sizing:border-box; }
     body { margin:0; padding:24px; color:#111827; font-family:Inter, Arial, sans-serif; background:#f8fafc; }
@@ -85,7 +85,7 @@ export const createPurchaseRecommendationPrintHtml = (
   <div class="sheet">
     <div class="header">
       <div>
-        <span class="muted">Purchase Recommendation Engine</span>
+        <span class="muted">Satın Alma Öneri Motoru</span>
         <h1>${escapeHtml(report.reportNo)} - Satin Alma Onerileri</h1>
         <div class="muted">${escapeHtml(formatDate(report.reportDate))}</div>
       </div>
@@ -99,7 +99,7 @@ export const createPurchaseRecommendationPrintHtml = (
     </div>
     <h2>Oneri Listesi</h2>
     <table>
-      <thead><tr><th>Tur</th><th>Urun / Stok</th><th>Supplier</th><th>Miktar</th><th>Risk</th><th>Tasarruf</th><th>Aksiyon</th></tr></thead>
+      <thead><tr><th>Tür</th><th>Ürün / Stok</th><th>Tedarikçi</th><th>Miktar</th><th>Risk</th><th>Tasarruf</th><th>Aksiyon</th></tr></thead>
       <tbody>
         ${report.items.slice(0, 36).map(item => `
           <tr>

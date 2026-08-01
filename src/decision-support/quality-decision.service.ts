@@ -41,8 +41,8 @@ const createCcpFailureSuggestions = (
       return createDecisionSuggestion({
         category: 'Quality',
         title: `Riskli CCP: ${ccp?.name || ccpId}`,
-        description: 'Ayni CCP tekrarlayan FAIL sonucu uretti.',
-        reason: `${count} FAIL kaydi. Kritik limit: ${ccp?.criticalLimit || '-'}.`,
+        description: 'Aynı kritik kontrol noktası tekrarlayan başarısız sonuç üretti.',
+        reason: `${count} başarısız kayıt. Kritik limit: ${ccp?.criticalLimit || '-'}.`,
         ruleId: 'quality-ccp-failure-risk',
         relatedEntityType: 'CriticalControlPoint',
         relatedEntityId: ccpId,
@@ -106,7 +106,7 @@ const createRecallSuggestions = (
     warehouseId: lot?.warehouseId || '',
     evidenceScore: Math.min(30, activeRecalls.length * 6),
     createdAt: firstRecall.reportedDate || firstRecall.createdAt,
-    recommendationAction: 'Yonetici uyarisi ac, lot ve supplier kok neden analizi baslat.',
+    recommendationAction: 'Yönetici uyarısı aç, lot ve tedarikçi kök neden analizi başlat.',
     expectedImpact: 'Geri cagirma kapsam kontrolunu ve marka riskini iyilestirir.',
     ownerRole: 'Yonetici'
   })]

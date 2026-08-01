@@ -58,13 +58,6 @@ import GoodsReceipts from '../pages/GoodsReceipts'
 import SupplierPerformances from '../pages/SupplierPerformances'
 import ProcurementAnalytics from '../pages/ProcurementAnalytics'
 import KPIDashboard from '../pages/KPIDashboard'
-import DecisionSupport from '../pages/DecisionSupport'
-import CriticalAlerts from '../pages/CriticalAlerts'
-import Forecasting from '../pages/Forecasting'
-import RecommendationEngine from '../pages/RecommendationEngine'
-import AIAnalysis from '../pages/AIAnalysis'
-import CostOptimization from '../pages/CostOptimization'
-import PurchaseRecommendations from '../pages/PurchaseRecommendations'
 import LabelManagement from '../pages/LabelManagement'
 import OperationChecklists from '../pages/OperationChecklists'
 import LotSystem from '../pages/LotSystem'
@@ -125,6 +118,71 @@ type Props = {
   onOpenWorkspaceSettings: () => void
   onModuleLifecycleChanged: (result: WorkspaceModuleLifecycleResult) => void
 }
+
+const DecisionSupport = React.lazy(() => import('../pages/DecisionSupport'))
+const CriticalAlerts = React.lazy(() => import('../pages/CriticalAlerts'))
+const Forecasting = React.lazy(() => import('../pages/Forecasting'))
+const RecommendationEngine = React.lazy(() => import('../pages/RecommendationEngine'))
+const AIAnalysis = React.lazy(() => import('../pages/AIAnalysis'))
+const CostOptimization = React.lazy(() => import('../pages/CostOptimization'))
+const PurchaseRecommendations = React.lazy(() => import('../pages/PurchaseRecommendations'))
+
+const onDecisionRouteRender: React.ProfilerOnRenderCallback = (
+  id,
+  phase,
+  actualDuration
+) => {
+  const importMeta = import.meta as ImportMeta & { env?: { DEV?: boolean } }
+  if(importMeta.env?.DEV && actualDuration >= 16){
+    console.info(`[Profiler] ${id} ${phase}: ${actualDuration.toFixed(1)}ms`)
+  }
+}
+
+const DecisionRouteSkeleton = React.memo(function DecisionRouteSkeleton(){
+  return (
+    <section className="decision-route-skeleton" aria-label="Karar Destek yükleniyor">
+      <div className="decision-skeleton-hero">
+        <span className="decision-skeleton-line short" />
+        <span className="decision-skeleton-line title" />
+        <span className="decision-skeleton-line medium" />
+      </div>
+      <div className="decision-skeleton-grid">
+        {Array.from({ length: 4 }).map((_, index) => (
+          <div className="decision-skeleton-card" key={index}>
+            <span className="decision-skeleton-line short" />
+            <span className="decision-skeleton-line value" />
+            <span className="decision-skeleton-line medium" />
+          </div>
+        ))}
+      </div>
+      <div className="decision-skeleton-filter">
+        <span className="decision-skeleton-line medium" />
+        <span className="decision-skeleton-line medium" />
+        <span className="decision-skeleton-line medium" />
+        <span className="decision-skeleton-line short" />
+      </div>
+      <div className="decision-skeleton-table">
+        {Array.from({ length: 6 }).map((_, index) => (
+          <span className="decision-skeleton-line table-row" key={index} />
+        ))}
+      </div>
+    </section>
+  )
+})
+
+const DecisionRouteFrame = ({
+  children,
+  route
+}: {
+  children: React.ReactNode
+  route: BusinessWorkspaceRoute
+}) => (
+  <React.Profiler id={`Karar Destek:${route}`} onRender={onDecisionRouteRender}>
+    <React.Suspense fallback={<DecisionRouteSkeleton />}>
+      {children}
+    </React.Suspense>
+  </React.Profiler>
+)
 
 export default function BusinessWorkspaceRouteHost({
   route,
@@ -247,13 +305,13 @@ export default function BusinessWorkspaceRouteHost({
   if(route === 'supplier-performances') return <SupplierPerformances />
   if(route === 'procurement-analytics') return <ProcurementAnalytics />
   if(route === 'kpi-dashboard') return <KPIDashboard currentUser={currentUser} />
-  if(route === 'decision-support') return <DecisionSupport currentUser={currentUser} />
-  if(route === 'critical-alerts') return <CriticalAlerts currentUser={currentUser} />
-  if(route === 'forecasting') return <Forecasting currentUser={currentUser} />
-  if(route === 'recommendation-engine') return <RecommendationEngine currentUser={currentUser} />
-  if(route === 'ai-analysis') return <AIAnalysis currentUser={currentUser} />
-  if(route === 'cost-optimization') return <CostOptimization currentUser={currentUser} />
-  if(route === 'purchase-recommendations') return <PurchaseRecommendations currentUser={currentUser} />
+  if(route === 'decision-support') return <DecisionRouteFrame route={route}><DecisionSupport currentUser={currentUser} /></DecisionRouteFrame>
+  if(route === 'critical-alerts') return <DecisionRouteFrame route={route}><CriticalAlerts currentUser={currentUser} /></DecisionRouteFrame>
+  if(route === 'forecasting') return <DecisionRouteFrame route={route}><Forecasting currentUser={currentUser} /></DecisionRouteFrame>
+  if(route === 'recommendation-engine') return <DecisionRouteFrame route={route}><RecommendationEngine currentUser={currentUser} /></DecisionRouteFrame>
+  if(route === 'ai-analysis') return <DecisionRouteFrame route={route}><AIAnalysis currentUser={currentUser} /></DecisionRouteFrame>
+  if(route === 'cost-optimization') return <DecisionRouteFrame route={route}><CostOptimization currentUser={currentUser} /></DecisionRouteFrame>
+  if(route === 'purchase-recommendations') return <DecisionRouteFrame route={route}><PurchaseRecommendations currentUser={currentUser} /></DecisionRouteFrame>
   if(route === 'label-management') return <LabelManagement currentUser={currentUser} />
   if(route === 'operation-checklists') return <OperationChecklists currentUser={currentUser} />
   if(route === 'lot-system') return <LotSystem currentUser={currentUser} />

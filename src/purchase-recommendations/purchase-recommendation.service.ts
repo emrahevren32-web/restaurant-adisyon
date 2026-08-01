@@ -8,6 +8,10 @@ import {
   ALL_FILTER,
   roundKpi
 } from '../kpi-reporting/kpi.utils'
+import {
+  getDecisionIndexedRecord,
+  setDecisionIndexedRecord
+} from '../read-model/decision-indexed-storage.service'
 import { getDecisionReadModelSnapshot } from '../read-model/decision-read-model-snapshot.service'
 import { resolveReadModel } from '../read-model/read-model-safety'
 import { RecommendationService } from '../recommendation-engine/recommendation.service'
@@ -66,7 +70,7 @@ const PURCHASE_RECOMMENDATION_NO_PREFIX = 'PR-REC'
 const PURCHASE_RECOMMENDATION_NO_PADDING = 6
 
 const isBrowserStorageAvailable = () => (
-  typeof window !== 'undefined' && typeof localStorage !== 'undefined'
+  typeof window !== 'undefined'
 )
 
 const isRecord = (value: unknown): value is Record<string, unknown> => (
@@ -111,7 +115,7 @@ export const createDefaultPurchaseRecommendationFilters = (): PurchaseRecommenda
 })
 
 export const createDefaultPurchaseRecommendationReportInput = (
-  responsiblePerson = 'Purchase Recommendation Engine'
+  responsiblePerson = 'Satın Alma Öneri Motoru'
 ): PurchaseRecommendationReportCreateInput => ({
   reportDate: getTodayKey(),
   scope: 'all',
@@ -151,7 +155,7 @@ const normalizeHistory = (
     reportId,
     action: normalizeText(history.action).toUpperCase() as PurchaseRecommendationHistoryAction,
     actorName: normalizeText(history.actorName) || actorName,
-    description: normalizeText(history.description) || 'Purchase Recommendation raporu guncellendi.',
+    description: normalizeText(history.description) || 'Satın alma öneri raporu güncellendi.',
     revisionNo: normalizeNumber(history.revisionNo) || 1,
     createdAt: normalizeText(history.createdAt) || new Date().toISOString()
   }))
@@ -164,7 +168,7 @@ const normalizeRule = (
   id: normalizeText(value.id) || `purchase_recommendation_rule_${index + 1}`,
   code: normalizeText(value.code) || `PR-REC-RULE-${index + 1}`,
   type: mapType(value.type),
-  title: normalizeText(value.title) || 'Purchase Recommendation Rule',
+  title: normalizeText(value.title) || 'Satın Alma Öneri Kuralı',
   description: normalizeText(value.description),
   sourceModule: normalizeText(value.sourceModule) as PurchaseRecommendationSourceModule || 'ReadModel',
   baseRisk: mapRisk(value.baseRisk),
@@ -186,12 +190,12 @@ const normalizeItem = (
   recommendationType: mapType(value.recommendationType),
   priority: mapPriority(value.priority),
   risk: mapRisk(value.risk),
-  title: normalizeText(value.title) || 'Satin alma onerisi',
+  title: normalizeText(value.title) || 'Satın alma önerisi',
   description: normalizeText(value.description),
   reason: normalizeText(value.reason),
   action: normalizeText(value.action),
   expectedImpact: normalizeText(value.expectedImpact),
-  ownerRole: normalizeText(value.ownerRole) || 'Satin Alma',
+  ownerRole: normalizeText(value.ownerRole) || 'Satın Alma',
   recommendedOrderQuantity: Math.max(0, normalizeNumber(value.recommendedOrderQuantity)),
   currentStock: Math.max(0, normalizeNumber(value.currentStock)),
   minimumStock: Math.max(0, normalizeNumber(value.minimumStock)),
@@ -211,7 +215,7 @@ const normalizeItem = (
     : [],
   relatedEntityType: normalizeText(value.relatedEntityType),
   relatedEntityId: normalizeText(value.relatedEntityId),
-  relatedEntityName: normalizeText(value.relatedEntityName) || 'Read Model',
+  relatedEntityName: normalizeText(value.relatedEntityName) || 'Analiz Modeli',
   productId: normalizeText(value.productId),
   productName: normalizeText(value.productName),
   stockItemId: normalizeText(value.stockItemId),
@@ -237,7 +241,7 @@ const normalizeReport = (
   const reportNo = normalizeText(value.reportNo) || getNextPurchaseRecommendationNo([], reportDate, index)
   const id = normalizeText(value.id) || `purchase_recommendation_${reportNo}`.replace(/[^a-zA-Z0-9_]+/g, '_')
   const createdAt = normalizeText(value.createdAt) || new Date().toISOString()
-  const actorName = 'Purchase Recommendation Engine'
+  const actorName = 'Satın Alma Öneri Motoru'
   const items = Array.isArray(value.items)
     ? value.items.filter(isRecord).map((item, itemIndex) => normalizeItem(item as RawPurchaseRecommendationItem, id, reportNo, itemIndex))
     : []
@@ -271,7 +275,7 @@ const normalizeReport = (
 
 export const savePurchaseRecommendationReports = (reports: PurchaseRecommendationReport[]) => {
   if(!isBrowserStorageAvailable()) return
-  localStorage.setItem(PURCHASE_RECOMMENDATION_STORAGE_KEY, JSON.stringify(reports))
+  setDecisionIndexedRecord(PURCHASE_RECOMMENDATION_STORAGE_KEY, reports)
 }
 
 const createPurchaseRecommendationFallbackReport = (
@@ -290,11 +294,11 @@ const createPurchaseRecommendationFallbackReport = (
     reportDate: input.reportDate,
     scope: input.scope,
     responsiblePerson: input.responsiblePerson || actorName,
-    description: input.description || 'Read-model kaynak hatasi nedeniyle bos purchase recommendation raporu olusturuldu.',
+    description: input.description || 'Analiz modeli kaynak hatası nedeniyle boş satın alma öneri raporu oluşturuldu.',
     items: [],
     rules: listPurchaseRecommendationRules(),
     history: [
-      createPurchaseRecommendationHistory(reportId, 'CALCULATED', actorName, 'Read-model kaynak hatasi nedeniyle purchase recommendation hesaplamasi bos fallback ile tamamlandi.')
+      createPurchaseRecommendationHistory(reportId, 'CALCULATED', actorName, 'Analiz modeli kaynak hatası nedeniyle satın alma öneri hesaplaması boş fallback ile tamamlandı.')
     ],
     sourceType: 'ReadModel',
     sourceId: 'purchase-recommendation-runtime-fallback',
@@ -309,7 +313,7 @@ export const evaluatePurchaseRecommendationReport = (
   sourceData: KpiSourceData,
   input: Partial<PurchaseRecommendationReportCreateInput> = {},
   existingReports: PurchaseRecommendationReport[] = [],
-  actorName = 'Purchase Recommendation Engine',
+  actorName = 'Satın Alma Öneri Motoru',
   dependencies: PurchaseRecommendationEvaluationDependencies = {}
 ) => {
   const createInput = {
@@ -323,15 +327,15 @@ export const evaluatePurchaseRecommendationReport = (
       reportDate: createInput.reportDate,
       horizonDays: 7,
       analysisWindowDays: 30,
-      scenarioName: 'Purchase Recommendation Forecast Source',
+      scenarioName: 'Satın Alma Tahmin Kaynağı',
       responsiblePerson: actorName,
-      description: 'Purchase Recommendation forecast source.'
+      description: 'Satın alma önerileri tahmin kaynağı.'
     })
     const recommendationReport = dependencies.recommendationReport || snapshot.recommendationReport || RecommendationService.evaluate(sourceData, {
       reportDate: createInput.reportDate,
       scope: 'all',
       responsiblePerson: actorName,
-      description: 'Purchase Recommendation recommendation source.'
+      description: 'Satın alma önerileri otomatik öneri kaynağı.'
     }, [], actorName, { forecastPredictions: forecastReport.predictions })
     const aiAnalysisReport = dependencies.aiAnalysisReport || AIAnalysisService.evaluate(sourceData, {
       reportDate: createInput.reportDate,
@@ -343,7 +347,7 @@ export const evaluatePurchaseRecommendationReport = (
       reportDate: createInput.reportDate,
       scope: 'all',
       responsiblePerson: actorName,
-      description: 'Purchase Recommendation cost source.'
+      description: 'Satın alma önerileri maliyet kaynağı.'
     })
     const criticalAlerts = dependencies.criticalAlerts || snapshot.criticalAlerts || CriticalAlertService.evaluate(sourceData)
     const goodsReceipts = dependencies.goodsReceipts || GoodsReceiptService.list(sourceData)
@@ -371,7 +375,7 @@ export const loadPurchaseRecommendationReports = (
 ) => {
   if(!isBrowserStorageAvailable()) return [evaluatePurchaseRecommendationReport(sourceData)]
 
-  const stored = localStorage.getItem(PURCHASE_RECOMMENDATION_STORAGE_KEY)
+  const stored = getDecisionIndexedRecord<RawPurchaseRecommendationReport[]>(PURCHASE_RECOMMENDATION_STORAGE_KEY)
   if(stored === null){
     const defaultReport = evaluatePurchaseRecommendationReport(sourceData)
     savePurchaseRecommendationReports([defaultReport])
@@ -379,9 +383,8 @@ export const loadPurchaseRecommendationReports = (
   }
 
   try {
-    const parsed = JSON.parse(stored)
-    if(Array.isArray(parsed)){
-      const reports = parsed
+    if(Array.isArray(stored)){
+      const reports = stored
         .filter(isRecord)
         .map((record, index) => normalizeReport(record as RawPurchaseRecommendationReport, index))
         .sort((first, second) => second.reportDate.localeCompare(first.reportDate) || first.reportNo.localeCompare(second.reportNo))
@@ -468,7 +471,7 @@ export const updatePurchaseRecommendationReportStatus = (
 ) => {
   const reports = loadPurchaseRecommendationReports(sourceData)
   const report = reports.find(record => record.id === reportId)
-  if(!report) throw new Error('Purchase Recommendation report bulunamadi.')
+  if(!report) throw new Error('Satın alma öneri raporu bulunamadı.')
   const actionByStatus: Record<Extract<PurchaseRecommendationStatus, 'REVIEWED' | 'ARCHIVED'>, PurchaseRecommendationHistoryAction> = {
     REVIEWED: 'REVIEWED',
     ARCHIVED: 'ARCHIVED'
@@ -494,7 +497,7 @@ export const recordPurchaseRecommendationOutput = (
 ) => {
   const reports = loadPurchaseRecommendationReports(sourceData)
   const report = reports.find(record => record.id === reportId)
-  if(!report) throw new Error('Purchase Recommendation report bulunamadi.')
+  if(!report) throw new Error('Satın alma öneri raporu bulunamadı.')
   const nextReport = appendPurchaseRecommendationHistory(
     report,
     action,

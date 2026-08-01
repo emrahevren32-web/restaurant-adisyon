@@ -3,6 +3,10 @@ import {
   ALL_FILTER,
   roundKpi
 } from '../kpi-reporting/kpi.utils'
+import {
+  getDecisionIndexedRecord,
+  setDecisionIndexedRecord
+} from '../read-model/decision-indexed-storage.service'
 import { getDecisionReadModelSnapshot } from '../read-model/decision-read-model-snapshot.service'
 import { resolveReadModel } from '../read-model/read-model-safety'
 import {
@@ -58,7 +62,7 @@ const AI_REPORT_NO_PREFIX = 'AI'
 const AI_REPORT_NO_PADDING = 6
 
 const isBrowserStorageAvailable = () => (
-  typeof window !== 'undefined' && typeof localStorage !== 'undefined'
+  typeof window !== 'undefined'
 )
 
 const isRecord = (value: unknown): value is Record<string, unknown> => (
@@ -174,7 +178,7 @@ const normalizeInsight = (
     : [],
   relatedEntityType: normalizeText(value.relatedEntityType),
   relatedEntityId: normalizeText(value.relatedEntityId),
-  relatedEntityName: normalizeText(value.relatedEntityName) || 'Read Model',
+  relatedEntityName: normalizeText(value.relatedEntityName) || 'Analiz Modeli',
   branchId: normalizeText(value.branchId),
   branchName: normalizeText(value.branchName),
   productionLineId: normalizeText(value.productionLineId),
@@ -219,7 +223,7 @@ const normalizeFinding = (
   sourceNo: normalizeText(value.sourceNo),
   relatedEntityType: normalizeText(value.relatedEntityType),
   relatedEntityId: normalizeText(value.relatedEntityId),
-  relatedEntityName: normalizeText(value.relatedEntityName) || 'Read Model',
+  relatedEntityName: normalizeText(value.relatedEntityName) || 'Analiz Modeli',
   createdAt: normalizeText(value.createdAt) || new Date().toISOString()
 })
 
@@ -287,7 +291,7 @@ const normalizeReport = (
 
 export const saveAIAnalysisReports = (reports: AIAnalysisReport[]) => {
   if(!isBrowserStorageAvailable()) return
-  localStorage.setItem(AI_ANALYSIS_STORAGE_KEY, JSON.stringify(reports))
+  setDecisionIndexedRecord(AI_ANALYSIS_STORAGE_KEY, reports)
 }
 
 const createAIAnalysisFallbackReport = (
@@ -334,7 +338,12 @@ export const evaluateAIAnalysisReport = (
     ...input
   }
 
-  const snapshot = getDecisionReadModelSnapshot(sourceData, actorName)
+  const snapshot = dependencies.forecastPredictions
+    || dependencies.recommendationItems
+    || dependencies.decisionSuggestions
+    || dependencies.criticalAlerts
+    ? dependencies
+    : getDecisionReadModelSnapshot(sourceData, actorName)
 
   return resolveReadModel(() => calculateAIAnalysisReport({
     ...createInput,
@@ -351,7 +360,7 @@ export const loadAIAnalysisReports = (
 ) => {
   if(!isBrowserStorageAvailable()) return [evaluateAIAnalysisReport(sourceData)]
 
-  const stored = localStorage.getItem(AI_ANALYSIS_STORAGE_KEY)
+  const stored = getDecisionIndexedRecord<RawAIAnalysisReport[]>(AI_ANALYSIS_STORAGE_KEY)
   if(stored === null){
     const defaultReport = evaluateAIAnalysisReport(sourceData)
     saveAIAnalysisReports([defaultReport])
@@ -359,9 +368,8 @@ export const loadAIAnalysisReports = (
   }
 
   try {
-    const parsed = JSON.parse(stored)
-    if(Array.isArray(parsed)){
-      const reports = parsed
+    if(Array.isArray(stored)){
+      const reports = stored
         .filter(isRecord)
         .map((record, index) => normalizeReport(record as RawAIAnalysisReport, index))
         .sort((first, second) => second.reportDate.localeCompare(first.reportDate) || first.reportNo.localeCompare(second.reportNo))

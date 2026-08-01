@@ -461,8 +461,8 @@ const createForecastCandidates = (
         : type === 'STOCKOUT_SOON'
           ? 'purchase-recommendation-stockout-soon'
           : 'purchase-recommendation-forecast-order',
-      title: `${prediction.entityName} forecast kaynakli satin alma`,
-      description: 'Forecasting Engine ciktisi satin alma ihtiyacina cevrildi.',
+      title: `${prediction.entityName} tahmin kaynaklı satın alma`,
+      description: 'Tahminleme Motoru çıktısı satın alma ihtiyacına çevrildi.',
       reason: prediction.evidence || `${prediction.entityName} beklenen deger ${formatNumber(prediction.expectedValue, 1)}, buyume ${formatNumber(prediction.growthPercent, 1)}%.`,
       action: prediction.recommendation || 'Forecast sonucuna gore satin alma miktari ve teslim tarihi manuel planlanmali.',
       expectedImpact: 'Tahmin edilen talep artisi stok kesintisine donusmeden yonetilir.',
@@ -519,7 +519,7 @@ const createCostCandidates = (
       ? 'purchase-recommendation-alternative-supplier'
       : 'purchase-recommendation-cost-advantage',
     title: `${item.title} satin alma etkisi`,
-    description: 'Cost Optimization ciktisi satin alma karar sinyaline cevrildi.',
+    description: 'Maliyet Optimizasyonu çıktısı satın alma karar sinyaline çevrildi.',
     reason: item.reason,
     action: item.action || 'Tedarikci fiyatlari, alis miktari ve teslim sartlari karsilastirilmali.',
     expectedImpact: item.expectedImpact || 'Beklenen satin alma maliyeti azalabilir.',
@@ -574,7 +574,7 @@ const createRecommendationEngineCandidates = (
       ? 'purchase-recommendation-waste-replenishment'
       : 'purchase-recommendation-forecast-order',
     title: `${item.title} satin alma onerisi`,
-    description: 'Recommendation Engine ciktisi satin alma ekip aksiyonuna cevrildi.',
+    description: 'Öneri Motoru çıktısı satın alma ekip aksiyonuna çevrildi.',
     reason: item.reason,
     action: item.action,
     expectedImpact: item.expectedImpact,
@@ -667,7 +667,7 @@ const createAlertCandidates = (
         ? 'purchase-recommendation-alternative-supplier'
         : 'purchase-recommendation-critical-stock',
       title: `${alert.title} icin satin alma kontrolu`,
-      description: 'Critical Alert sinyali satin alma takip onerisine cevrildi.',
+      description: 'Kritik Alarm sinyali satın alma takip önerisine çevrildi.',
       reason: alert.reason,
       action: alert.recommendedAction || 'Satin alma sorumlusu kritik alarmi incelemeli.',
       expectedImpact: alert.expectedImpact || 'Kritik stok ve tedarik riski dusurulur.',
@@ -944,7 +944,7 @@ const createDecisionCandidates = (
         : 'FORECAST_ORDER',
     ruleId: 'purchase-recommendation-forecast-order',
     title: `${suggestion.title} satin alma karar sinyali`,
-    description: 'Decision Support onerisi Purchase Recommendation read-model formatina cevrildi.',
+    description: 'Karar Destek önerisi satın alma önerisi analiz modeli formatına çevrildi.',
     reason: suggestion.reason,
     action: suggestion.recommendation.action,
     expectedImpact: suggestion.recommendation.expectedImpact,
@@ -1021,7 +1021,7 @@ export const calculatePurchaseRecommendationReport = (
     reportDate: input.reportDate || getTodayKey(),
     scope: input.scope,
     responsiblePerson: input.responsiblePerson || input.actorName,
-    description: input.description || 'Forecasting, Cost Optimization, Recommendation, AI Analysis, Critical Alerts, Stock, Goods Receipt ve Waste read-model verilerinden satin alma onerileri uretildi.',
+    description: input.description || 'Tahminleme, Maliyet Optimizasyonu, Öneri Motoru, Yapay Zeka Analizi, Kritik Alarmlar, Stok, Mal Kabul ve Fire analiz modeli verilerinden satın alma önerileri üretildi.',
     items,
     rules: listPurchaseRecommendationRules(),
     history: [

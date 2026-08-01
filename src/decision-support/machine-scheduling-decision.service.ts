@@ -23,7 +23,7 @@ const createConflictSuggestion = (
   return [createDecisionSuggestion({
     category: 'Production',
     title: `${row.item.machineCode} uzerinde makine zaman cakismasi var`,
-    description: 'Machine Scheduling read-modeli makine uygunlugu ve gorev zaman penceresini kontrol eder.',
+    description: 'Makine Çizelgeleme analiz modeli makine uygunluğu ve görev zaman penceresini kontrol eder.',
     reason: `${row.item.productName} gorevi ${row.item.machineCode} icin ${row.item.conflictReason || 'uygun zaman disina tasiyor'}.`,
     ruleId: 'machine-scheduling-conflict',
     relatedEntityType: 'MachineSchedule',
@@ -49,7 +49,7 @@ const createWaitingSuggestion = (
   return [createDecisionSuggestion({
     category: 'Production',
     title: `${row.queue.productionLineName} bekleme suresi yuksek`,
-    description: 'Machine Scheduling kuyruk analizi makine bazli toplam bekleme suresini gorunur kilar.',
+    description: 'Makine Çizelgeleme kuyruk analizi makine bazlı toplam bekleme süresini görünür kılar.',
     reason: `${row.queue.machineCode} kuyrugunda ${formatNumber(row.queue.totalWaitingMinutes)} dk bekleme ve ${formatNumber(row.queue.pendingItemCount)} bekleyen is var.`,
     ruleId: 'machine-scheduling-waiting',
     relatedEntityType: 'MachineSchedule',
@@ -83,7 +83,7 @@ const createSetupSuggestion = (
   return [createDecisionSuggestion({
     category: 'Production',
     title: `${row.queue.machineCode} setup ve temizlik yuku maliyeti artiriyor`,
-    description: 'Machine Scheduling setup ve temizlik surelerinin toplam calisma suresindeki payini izler.',
+    description: 'Makine Çizelgeleme setup ve temizlik sürelerinin toplam çalışma süresindeki payını izler.',
     reason: `${row.queue.machineName} icin setup/temizlik payi ${formatPercent(setupPercent)}, toplam ${formatNumber(setupLoad)} dk.`,
     ruleId: 'machine-scheduling-setup-heavy',
     relatedEntityType: 'MachineSchedule',
@@ -110,7 +110,7 @@ const createIdleSuggestion = (
   return [createDecisionSuggestion({
     category: 'Production',
     title: `${row.timeline.machineCode} gunun onemli bolumunde bos kaliyor`,
-    description: 'Machine Scheduling timeline analizi makine bos zamanini hesaplar.',
+    description: 'Makine Çizelgeleme zaman çizelgesi analizi makine boş zamanını hesaplar.',
     reason: `${row.timeline.machineName} icin bos zaman ${formatPercent(idlePercent)} (${formatNumber(row.timeline.idleMinutes)} dk).`,
     ruleId: 'machine-scheduling-idle-machine',
     relatedEntityType: 'MachineSchedule',

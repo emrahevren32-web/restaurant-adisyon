@@ -20,10 +20,10 @@ export const createPurchaseRecommendationDecisionSuggestions = (
   const report = calculatePurchaseRecommendationReport({
     reportDate: new Date().toLocaleDateString('sv-SE'),
     scope: 'all',
-    responsiblePerson: 'Decision Support',
-    description: 'Decision Support purchase recommendation source.',
+    responsiblePerson: 'Karar Destek Merkezi',
+    description: 'Karar Destek satın alma önerisi kaynağı.',
     sourceData,
-    actorName: 'Decision Support',
+    actorName: 'Karar Destek Merkezi',
     decisionSuggestions: [],
     getReportNo: () => `PR-REC-${new Date().getFullYear()}-000000`
   })

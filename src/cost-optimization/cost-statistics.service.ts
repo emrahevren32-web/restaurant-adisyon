@@ -103,7 +103,7 @@ export const createCostOptimizationStatistics = (
       'YEAR',
       report => report.reportDate,
       report => sumBy(report.items, item => item.savingPotential),
-      'Aylik Cost Optimization Trend',
+      'Aylık Maliyet Optimizasyonu Trendi',
       '#0891b2'
     ),
     yearlyTrend: createTrend(

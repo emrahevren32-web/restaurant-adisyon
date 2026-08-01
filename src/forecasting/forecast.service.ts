@@ -3,6 +3,11 @@ import {
   ALL_FILTER,
   roundKpi
 } from '../kpi-reporting/kpi.utils'
+import {
+  getDecisionIndexedRecord,
+  setDecisionIndexedRecord
+} from '../read-model/decision-indexed-storage.service'
+import { getDecisionReadModelSnapshot } from '../read-model/decision-read-model-snapshot.service'
 import { resolveReadModel } from '../read-model/read-model-safety'
 import { calculateForecastReport, ForecastCalculationService } from './forecast-calculation.service'
 import { appendForecastHistory, createForecastHistory } from './forecast-history.service'
@@ -57,7 +62,7 @@ const FORECAST_NO_PREFIX = 'FC'
 const FORECAST_NO_PADDING = 6
 
 const isBrowserStorageAvailable = () => (
-  typeof window !== 'undefined' && typeof localStorage !== 'undefined'
+  typeof window !== 'undefined'
 )
 
 const isRecord = (value: unknown): value is Record<string, unknown> => (
@@ -110,7 +115,7 @@ export const createDefaultForecastFilters = (): ForecastFilters => ({
 })
 
 export const createDefaultForecastReportInput = (
-  responsiblePerson = 'Forecasting Engine'
+  responsiblePerson = 'Tahminleme Motoru'
 ): ForecastReportCreateInput => ({
   reportDate: getTodayKey(),
   horizonDays: 7,
@@ -245,7 +250,7 @@ const normalizeReport = (
   const reportNo = normalizeText(value.reportNo) || getNextForecastNo([], reportDate, index)
   const id = normalizeText(value.id) || `forecast_report_${reportNo}`.replace(/[^a-zA-Z0-9_]+/g, '_')
   const createdAt = normalizeText(value.createdAt) || new Date().toISOString()
-  const actorName = 'Forecasting Engine'
+  const actorName = 'Tahminleme Motoru'
   const predictions = Array.isArray(value.predictions)
     ? value.predictions.filter(isRecord).map((prediction, predictionIndex) => normalizePrediction(prediction as RawForecastPrediction, id, reportNo, predictionIndex))
     : []
@@ -270,7 +275,7 @@ const normalizeReport = (
     scenarios,
     history: history.length > 0
       ? history
-      : [createForecastHistory(id, 'CREATED', actorName, `${reportNo} forecast read-model olarak olusturuldu.`)],
+      : [createForecastHistory(id, 'CREATED', actorName, `${reportNo} tahmin analiz modeli olarak oluşturuldu.`)],
     sourceType: normalizeText(value.sourceType) === 'ManualReadModel' ? 'ManualReadModel' : 'ReadModel',
     sourceId: normalizeText(value.sourceId) || 'forecasting-engine',
     revisionNo: normalizeNumber(value.revisionNo) || 1,
@@ -282,7 +287,7 @@ const normalizeReport = (
 
 export const saveForecastReports = (reports: ForecastReport[]) => {
   if(!isBrowserStorageAvailable()) return
-  localStorage.setItem(FORECAST_STORAGE_KEY, JSON.stringify(reports))
+  setDecisionIndexedRecord(FORECAST_STORAGE_KEY, reports)
 }
 
 const createForecastFallbackReport = (
@@ -305,11 +310,11 @@ const createForecastFallbackReport = (
     analysisWindowDays: input.analysisWindowDays,
     scenarioName: input.scenarioName,
     responsiblePerson: input.responsiblePerson || actorName,
-    description: input.description || 'Read-model kaynak hatasi nedeniyle bos forecast raporu olusturuldu.',
+    description: input.description || 'Analiz modeli kaynak hatası nedeniyle boş tahmin raporu oluşturuldu.',
     predictions: [],
     scenarios: [],
     history: [
-      createForecastHistory(reportId, 'CALCULATED', actorName, 'Read-model kaynak hatasi nedeniyle forecast hesaplamasi bos fallback ile tamamlandi.')
+      createForecastHistory(reportId, 'CALCULATED', actorName, 'Analiz modeli kaynak hatası nedeniyle tahmin hesaplaması boş yedek raporla tamamlandı.')
     ],
     sourceType: 'ReadModel',
     sourceId: 'forecasting-runtime-fallback',
@@ -324,7 +329,7 @@ export const evaluateForecastReport = (
   sourceData: KpiSourceData,
   input: Partial<ForecastReportCreateInput> = {},
   existingReports: ForecastReport[] = [],
-  actorName = 'Forecasting Engine',
+  actorName = 'Tahminleme Motoru',
   dependencies: ForecastEvaluationDependencies = {}
 ) => {
   const createInput = {
@@ -346,27 +351,26 @@ export const loadForecastReports = (
 ) => {
   if(!isBrowserStorageAvailable()) return [evaluateForecastReport(sourceData)]
 
-  const stored = localStorage.getItem(FORECAST_STORAGE_KEY)
+  const stored = getDecisionIndexedRecord<RawForecastReport[]>(FORECAST_STORAGE_KEY)
   if(stored === null){
-    const defaultReport = evaluateForecastReport(sourceData)
+    const defaultReport = getDecisionReadModelSnapshot(sourceData, 'Tahminleme').forecastReport
     saveForecastReports([defaultReport])
     return [defaultReport]
   }
 
   try {
-    const parsed = JSON.parse(stored)
-    if(Array.isArray(parsed)){
-      const reports = parsed
+    if(Array.isArray(stored)){
+      const reports = stored
         .filter(isRecord)
         .map((record, index) => normalizeReport(record as RawForecastReport, index))
         .sort((first, second) => second.reportDate.localeCompare(first.reportDate) || first.reportNo.localeCompare(second.reportNo))
       if(reports.length > 0) return reports
     }
   } catch {
-    // Corrupt local forecast cache is replaced with a fresh read-model forecast.
+    // Bozuk yerel tahmin cache kaydı taze analiz modeli tahminiyle değiştirilir.
   }
 
-  const defaultReport = evaluateForecastReport(sourceData)
+  const defaultReport = getDecisionReadModelSnapshot(sourceData, 'Tahminleme').forecastReport
   saveForecastReports([defaultReport])
   return [defaultReport]
 }

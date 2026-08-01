@@ -6,6 +6,10 @@ import {
   ALL_FILTER,
   formatNumber
 } from '../kpi-reporting/kpi.utils'
+import {
+  getDecisionEntityTypeLabel,
+  getDecisionSourceModuleLabel
+} from '../decision-support/decision-support-ui.utils'
 import { loadEmployees } from '../storage'
 import { AlertPrintService } from '../critical-alerts/alert-print.service'
 import {
@@ -190,7 +194,7 @@ export default function CriticalAlerts({ currentUser }: { currentUser: User }){
       <div className="page-header">
         <div>
           <h2>Kritik Alarmlar</h2>
-          <p className="muted">Decision Support, planlama, kalite, stok, lot, HACCP, sevkiyat ve bakim read-model sinyallerinden alarm uretir.</p>
+          <p className="muted">Karar Destek Merkezi; planlama, kalite, stok, lot, HACCP, sevkiyat ve bakım analiz modeli sinyallerinden alarm üretir.</p>
         </div>
       </div>
 
@@ -215,7 +219,7 @@ export default function CriticalAlerts({ currentUser }: { currentUser: User }){
         <div className="metric-card warning">
           <span>Bugunku Alarm</span>
           <strong>{formatNumber(statistics.todayAlerts)}</strong>
-          <small>AL read-model degerlendirme</small>
+          <small>AL analiz modeli değerlendirmesi</small>
         </div>
         <div className="metric-card success">
           <span>Ortalama Risk</span>
@@ -307,8 +311,8 @@ export default function CriticalAlerts({ currentUser }: { currentUser: User }){
         <section className="product-main card">
           <div className="section-header">
             <div>
-              <h3>Critical Alert Listesi</h3>
-              <p className="muted">Alarmlar read-model analiz sonucudur; otomatik stok, uretim veya operasyon kaydi olusturmaz.</p>
+              <h3>Kritik Alarm Listesi</h3>
+              <p className="muted">Alarmlar analiz modeli sonucudur; otomatik stok, üretim veya operasyon kaydı oluşturmaz.</p>
             </div>
             <span className="status-pill">{formatScore(statistics.averageRiskScore)} risk</span>
           </div>
@@ -394,7 +398,7 @@ function CriticalAlertDetailPanel({
         <div className="section-header compact">
           <div>
             <h3>{alert.alertNo}</h3>
-            <p className="muted">{alert.sourceModule} / {alert.sourceNo || alert.relatedEntityName}</p>
+            <p className="muted">{getDecisionSourceModuleLabel(alert.sourceModule)} / {alert.sourceNo || alert.relatedEntityName}</p>
           </div>
           <span className={`status-pill ${getLevelClass(alert.level)}`}>{ALERT_LEVEL_LABELS[alert.level]}</span>
         </div>
@@ -433,13 +437,13 @@ function CriticalAlertDetailPanel({
         <div className="critical-alerts-recommendation-list">
           <div>
             <strong>{alert.reason}</strong>
-            <span>{alert.relatedEntityType} / {alert.relatedEntityName || '-'}</span>
+            <span>{getDecisionEntityTypeLabel(alert.relatedEntityType)} / {alert.relatedEntityName || '-'}</span>
           </div>
         </div>
       </section>
 
       <section className="card critical-alerts-detail-card">
-        <h3>Decision Support Onerisi</h3>
+        <h3>Karar Destek Önerisi</h3>
         <div className="critical-alerts-recommendation-list">
           <div>
             <strong>{alert.recommendedAction}</strong>

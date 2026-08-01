@@ -20,11 +20,11 @@ const getActiveCostItems = (
 ) => calculateCostOptimizationReport({
   reportDate: getTodayKey(),
   scope: 'all',
-  responsiblePerson: 'Decision Support',
-  description: 'Decision Support read-model cost optimization ozeti.',
+  responsiblePerson: 'Karar Destek Merkezi',
+  description: 'Karar Destek analiz modeli maliyet optimizasyonu özeti.',
   sourceData,
   decisionSuggestions: [],
-  actorName: 'Decision Support',
+  actorName: 'Karar Destek Merkezi',
   getReportNo: () => `CO-${new Date().getFullYear()}-000000`
 }).items
   .filter(item => item.savingPotential > 0 || item.risk === 'HIGH' || item.risk === 'CRITICAL')
@@ -97,9 +97,9 @@ const createRawMaterialSuggestion = (
     'cost-optimization-raw-material',
     'Purchasing',
     `${getEntityLabel(item)} hammadde maliyeti artti`,
-    'Cost Optimization Engine hammadde, satin alma ve recipe cost etkisini Decision Support icin onceliklendirir.',
-    `Hammadde maliyeti ${formatPercent(increaseRate)} optimize edilebilir; tasarruf potansiyeli ${formatCurrency(item.savingPotential)}, confidence ${formatNumber(item.confidenceScore, 1)}.`,
-    'Alternatif supplier, fiyat kosulu ve recete maliyet etkisi manuel olarak karsilastirilmali.',
+    'Maliyet Optimizasyon Motoru hammadde, satın alma ve reçete maliyeti etkisini Karar Destek için önceliklendirir.',
+    `Hammadde maliyeti ${formatPercent(increaseRate)} optimize edilebilir; tasarruf potansiyeli ${formatCurrency(item.savingPotential)}, güven skoru ${formatNumber(item.confidenceScore, 1)}.`,
+    'Alternatif tedarikçi, fiyat koşulu ve reçete maliyet etkisi manuel olarak karşılaştırılmalı.',
     'Hammadde maliyet artisinin urun birim maliyetine etkisini azaltabilir.'
   )]
 }
@@ -115,7 +115,7 @@ const createEnergySuggestion = (
     'cost-optimization-energy',
     toDecisionCategory(item.category),
     `${item.productionLineName || item.machineCode || getEntityLabel(item)} enerji maliyeti ortalamanin uzerinde`,
-    'Cost Optimization Engine kapasite, makine bos sure ve enerji etkisini maliyet sinyaline cevirir.',
+    'Maliyet Optimizasyon Motoru kapasite, makine boş süre ve enerji etkisini maliyet sinyaline çevirir.',
     `${item.reason} Beklenen tasarruf ${formatCurrency(item.expectedMonthlyGain)} / ay.`,
     'Hat yuk dengeleme, bekleme modu ve makine kullanim planlari manuel olarak incelenmeli.',
     'Enerji ve bos kapasite kaynakli maliyet kaybi azalabilir.'
@@ -133,7 +133,7 @@ const createMaintenanceSuggestion = (
     'cost-optimization-maintenance',
     'Production',
     `${item.machineCode || item.machineName || getEntityLabel(item)} bakim maliyeti kritik`,
-    'Cost Optimization Engine bakim, makine ve kapasite sinyallerinden kritik maliyet kalemi uretir.',
+    'Maliyet Optimizasyon Motoru bakım, makine ve kapasite sinyallerinden kritik maliyet kalemi üretir.',
     `${item.reason} Risk skoru ${formatNumber(item.riskScore, 1)}, yillik kazanc ${formatCurrency(item.expectedAnnualGain)}.`,
     'Bakim penceresi, plansiz durus riski ve yedek makine senaryosu manuel olarak degerlendirilmeli.',
     'Bakim kaynakli kapasite kaybi ve maliyet sapmasi azalabilir.'
@@ -151,7 +151,7 @@ const createWasteSuggestion = (
     'cost-optimization-waste',
     'Production',
     `${getEntityLabel(item)} fire azaltma tasarrufu`,
-    'Cost Optimization Engine fire, kalite, lot ve recipe cost etkisini parasal tasarruf firsatina cevirir.',
+    'Maliyet Optimizasyon Motoru fire, kalite, lot ve reçete maliyeti etkisini parasal tasarruf fırsatına çevirir.',
     `Fire azaltilirsa ${formatCurrency(item.expectedMonthlyGain)} / ay, ${formatCurrency(item.expectedAnnualGain)} / yil tasarruf potansiyeli var.`,
     'Fire kok nedeni, lot, proses ve operator etkisi manuel aksiyon listesine alinmali.',
     'Fire nedeniyle olusan maliyet sapmasi azalabilir.'
@@ -168,10 +168,10 @@ const createSupplierSuggestion = (
     item,
     'cost-optimization-supplier',
     'Purchasing',
-    `${item.supplierName || getEntityLabel(item)} alternatif supplier firsati`,
-    'Cost Optimization Engine purchase, goods receipt ve kalite maliyetlerini tedarikci karar sinyaline donusturur.',
+    `${item.supplierName || getEntityLabel(item)} alternatif tedarikçi fırsatı`,
+    'Maliyet Optimizasyon Motoru satın alma, mal kabul ve kalite maliyetlerini tedarikçi karar sinyaline dönüştürür.',
     `${item.reason} Tasarruf potansiyeli ${formatCurrency(item.savingPotential)}, ROI ${formatNumber(item.roiEstimate, 1)}.`,
-    'Alternatif supplier, kalite red maliyeti, teslim kosulu ve fiyat farki manuel olarak karsilastirilmali.',
+    'Alternatif tedarikçi, kalite red maliyeti, teslim koşulu ve fiyat farkı manuel olarak karşılaştırılmalı.',
     'Tedarik maliyeti ve mal kabul red maliyeti dusurulebilir.'
   )]
 }

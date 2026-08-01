@@ -114,7 +114,7 @@ const createFireSuggestion = (
   return [createDecisionSuggestion({
     category: 'Production',
     title: 'Fire orani icin kok neden analizi',
-    description: 'Fire Impact Analysis read-model sonucu uretim, recete ve maliyet etkisi yuksek.',
+    description: 'Fire Etki Analizi analiz modeli sonucu üretim, reçete ve maliyet etkisi yüksek.',
     reason: `Fire orani ${formatPercent(fireRate)}, toplam maliyet ${formatCurrency(fireView.statistics.totalCost)}. En riskli kayit: ${highImpact?.productName || 'genel fire'} / score ${highImpact?.impactScore || fireView.statistics.highRiskImpactCount}.`,
     ruleId: 'production-fire-root-cause',
     relatedEntityType: 'StockWasteRecord',

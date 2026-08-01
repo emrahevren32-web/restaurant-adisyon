@@ -361,7 +361,7 @@ const createPurchaseItems = (
         title: `${getSupplierName(sourceData, order.supplierId)} alternatif tedarik maliyeti`,
         description: 'Purchase Orders toplam tutari ortalamanin uzerinde; alternatif tedarikci veya fiyat kosulu incelenebilir.',
         reason: `${order.orderNo} tutari ${formatCurrency(order.grandTotal)}, ortalama PO ${formatCurrency(averageOrderCost)}.`,
-        action: 'Alternatif supplier, teslim kosulu ve fiyat gecerlilikleri manuel karsilastirilmali.',
+    action: 'Alternatif tedarikçi, teslim koşulu ve fiyat geçerlilikleri manuel karşılaştırılmalı.',
         expectedImpact: `${formatCurrency(saving)} aylik hammadde/satin alma tasarrufu potansiyeli.`,
         ownerRole: 'Satin Alma',
         totalCost: order.grandTotal,
@@ -503,7 +503,7 @@ const createForecastItems = (
       reportNo,
       category,
       title: `${prediction.entityName} tahmin kaynakli maliyet firsati`,
-      description: 'Forecasting Engine riskli trendleri maliyet optimizasyon veri setine tasir.',
+  description: 'Tahminleme Motoru riskli trendleri maliyet optimizasyon veri setine taşır.',
       reason: `${prediction.evidence} Buyume ${formatPercent(prediction.growthPercent)}, risk ${formatNumber(prediction.riskScore, 1)}.`,
       action: prediction.recommendation,
       expectedImpact: `${formatCurrency(saving)} tahmini aylik maliyet etkisi azaltabilir.`,
@@ -563,7 +563,7 @@ const createRecommendationItems = (
       reportNo,
       category,
       title: `${item.title} maliyet firsati`,
-      description: 'Recommendation Engine onerisi maliyet optimizasyon potansiyeline cevrildi.',
+    description: 'Öneri Motoru önerisi maliyet optimizasyon potansiyeline çevrildi.',
       reason: `${item.reason} Maliyet etkisi ${formatCurrency(item.expectedCostImpact)}, fayda ${formatNumber(item.expectedBenefitScore, 1)}.`,
       action: item.action,
       expectedImpact: item.expectedImpact,
@@ -683,7 +683,7 @@ const createDecisionItems = (
       reportNo,
       category,
       title: `${suggestion.title} maliyet etkisi`,
-      description: 'Decision Support onerisi maliyet optimizasyon baglamina cevrildi.',
+      description: 'Karar Destek önerisi maliyet optimizasyon bağlamına çevrildi.',
       reason: suggestion.reason,
       action: suggestion.recommendation.action,
       expectedImpact: suggestion.recommendation.expectedImpact,
@@ -739,8 +739,8 @@ export const calculateCostOptimizationReport = (
   const recommendationReport = input.recommendationReport || calculateRecommendationReport({
     reportDate: input.reportDate,
     scope: 'all',
-    responsiblePerson: 'Cost Optimization Engine',
-    description: 'Cost Optimization read-model recommendation source.',
+    responsiblePerson: 'Maliyet Optimizasyon Motoru',
+    description: 'Maliyet optimizasyonu analiz modeli öneri kaynağı.',
     sourceData: input.sourceData,
     decisionSuggestions: input.decisionSuggestions || [],
     actorName: input.actorName,
@@ -780,7 +780,7 @@ export const calculateCostOptimizationReport = (
         relatedModules: ['ReadModel'],
         relatedEntityType: 'CostOptimization',
         relatedEntityId: reportId,
-        relatedEntityName: 'Cost Optimization Engine'
+      relatedEntityName: 'Maliyet Optimizasyon Motoru'
       })
     ]
   const opportunities = finalItems.map(toOpportunity)

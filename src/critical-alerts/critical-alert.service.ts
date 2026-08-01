@@ -3,6 +3,10 @@ import {
   ALL_FILTER,
   roundKpi
 } from '../kpi-reporting/kpi.utils'
+import {
+  getDecisionIndexedRecord,
+  setDecisionIndexedRecord
+} from '../read-model/decision-indexed-storage.service'
 import { resolveReadModelList } from '../read-model/read-model-safety'
 import {
   ALERT_CATEGORIES,
@@ -52,7 +56,7 @@ const ALERT_NO_PREFIX = 'AL'
 const ALERT_NO_PADDING = 6
 
 const isBrowserStorageAvailable = () => (
-  typeof window !== 'undefined' && typeof localStorage !== 'undefined'
+  typeof window !== 'undefined'
 )
 
 const isRecord = (value: unknown): value is Record<string, unknown> => (
@@ -127,7 +131,7 @@ const normalizeHistory = (
     alertId,
     action: normalizeText(history.action).toUpperCase() as AlertHistoryAction,
     actorName: normalizeText(history.actorName) || actorName,
-    description: normalizeText(history.description) || 'Alert guncellendi.',
+    description: normalizeText(history.description) || 'Alarm güncellendi.',
     createdAt: normalizeText(history.createdAt) || new Date().toISOString()
   }))
 }
@@ -139,7 +143,7 @@ const normalizeAlert = (
   const id = normalizeText(value.id) || `critical_alert_${index + 1}`
   const alertNo = normalizeText(value.alertNo) || getNextAlertNo([], normalizeText(value.createdAt) || getTodayKey(), index)
   const createdAt = normalizeText(value.createdAt) || new Date().toISOString()
-  const actorName = 'Critical Alert Engine'
+  const actorName = 'Kritik Alarm Motoru'
   const sourceModule = normalizeText(value.sourceModule) as CriticalAlert['sourceModule']
   const alert: CriticalAlert = {
     id,
@@ -149,7 +153,7 @@ const normalizeAlert = (
     level: mapLevel(value.level),
     category: mapCategory(value.category),
     priority: mapPriority(value.priority),
-    title: normalizeText(value.title) || 'Critical Alert',
+    title: normalizeText(value.title) || 'Kritik Alarm',
     description: normalizeText(value.description),
     reason: normalizeText(value.reason),
     recommendedAction: normalizeText(value.recommendedAction),
@@ -227,13 +231,13 @@ const mergeEvaluatedAlerts = (
 
 export const saveCriticalAlerts = (alerts: CriticalAlert[]) => {
   if(!isBrowserStorageAvailable()) return
-  localStorage.setItem(CRITICAL_ALERT_STORAGE_KEY, JSON.stringify(alerts))
+  setDecisionIndexedRecord(CRITICAL_ALERT_STORAGE_KEY, alerts)
 }
 
 export const evaluateCriticalAlertRecords = (
   sourceData: KpiSourceData,
   existingAlerts: CriticalAlert[] = [],
-  actorName = 'Critical Alert Engine',
+  actorName = 'Kritik Alarm Motoru',
   dependencies: CriticalAlertEvaluationDependencies = {}
 ) => resolveReadModelList(() => evaluateCriticalAlerts({
   ...dependencies,
@@ -248,16 +252,15 @@ export const loadCriticalAlerts = (
   const evaluatedAlerts = evaluateCriticalAlertRecords(sourceData)
   if(!isBrowserStorageAvailable()) return evaluatedAlerts
 
-  const stored = localStorage.getItem(CRITICAL_ALERT_STORAGE_KEY)
+  const stored = getDecisionIndexedRecord<RawCriticalAlert[]>(CRITICAL_ALERT_STORAGE_KEY)
   if(stored === null){
     saveCriticalAlerts(evaluatedAlerts)
     return evaluatedAlerts
   }
 
   try {
-    const parsed = JSON.parse(stored)
-    if(Array.isArray(parsed)){
-      const storedAlerts = parsed
+    if(Array.isArray(stored)){
+      const storedAlerts = stored
         .filter(isRecord)
         .map((record, index) => normalizeAlert(record as RawCriticalAlert, index))
       const nextEvaluatedAlerts = evaluateCriticalAlertRecords(sourceData, storedAlerts)
@@ -321,7 +324,7 @@ export const updateCriticalAlertStatus = (
 ) => {
   const alerts = loadCriticalAlerts(sourceData)
   const alert = alerts.find(record => record.id === alertId)
-  if(!alert) throw new Error('Critical alert bulunamadi.')
+  if(!alert) throw new Error('Kritik alarm bulunamadı.')
 
   const actionByStatus: Record<Extract<AlertStatus, 'ACKNOWLEDGED' | 'RESOLVED' | 'DISMISSED'>, AlertHistoryAction> = {
     ACKNOWLEDGED: 'ACKNOWLEDGED',
@@ -349,7 +352,7 @@ export const recordCriticalAlertOutput = (
 ) => {
   const alerts = loadCriticalAlerts(sourceData)
   const alert = alerts.find(record => record.id === alertId)
-  if(!alert) throw new Error('Critical alert bulunamadi.')
+  if(!alert) throw new Error('Kritik alarm bulunamadı.')
   const nextAlert = appendAlertHistory(
     alert,
     action,

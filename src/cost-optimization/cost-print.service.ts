@@ -54,7 +54,7 @@ export const createCostPrintHtml = (
 <html lang="tr">
 <head>
   <meta charset="utf-8" />
-  <title>${escapeHtml(report.reportNo)} Cost Optimization</title>
+  <title>${escapeHtml(report.reportNo)} Maliyet Optimizasyonu</title>
   <style>
     * { box-sizing:border-box; }
     body { margin:0; padding:24px; color:#111827; font-family:Inter, Arial, sans-serif; background:#f8fafc; }
@@ -81,7 +81,7 @@ export const createCostPrintHtml = (
   <div class="sheet">
     <div class="header">
       <div>
-        <span class="muted">Cost Optimization Engine</span>
+        <span class="muted">Maliyet Optimizasyon Motoru</span>
         <h1>${escapeHtml(report.reportNo)} - Maliyet Optimizasyonu</h1>
         <div class="muted">${escapeHtml(formatDate(report.reportDate))}</div>
       </div>

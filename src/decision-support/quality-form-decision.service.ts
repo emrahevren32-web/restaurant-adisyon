@@ -58,9 +58,9 @@ const createProductFailIncreaseSuggestions = (
 
     return [createDecisionSuggestion({
       category: 'Quality',
-      title: `${leadForm.productName || leadForm.stockItemName} FAIL orani artti`,
-      description: 'Quality Forms sonuclari ayni urunde artan FAIL trendi gosteriyor.',
-      reason: `Son 30 gunde ayni urunde FAIL orani ${formatPercent(recentFailRate)}; artis ${formatPercent(increase)}.`,
+    title: `${leadForm.productName || leadForm.stockItemName} başarısızlık oranı arttı`,
+    description: 'Kalite Formları sonuçları aynı üründe artan başarısızlık trendi gösteriyor.',
+    reason: `Son 30 günde aynı üründe başarısızlık oranı ${formatPercent(recentFailRate)}; artış ${formatPercent(increase)}.`,
       ruleId: 'quality-form-product-fail-increase',
       relatedEntityType: 'QualityForm',
       relatedEntityId: leadForm.id,
@@ -72,7 +72,7 @@ const createProductFailIncreaseSuggestions = (
       warehouseId: leadForm.warehouseId,
       evidenceScore: Math.min(30, increase),
       createdAt: leadForm.updatedAt || leadForm.createdAt,
-      recommendationAction: 'Urun bazli kalite kok neden analizi ac ve son FAIL formlarinin inspection kriterlerini karsilastir.',
+    recommendationAction: 'Ürün bazlı kalite kök neden analizi aç ve son başarısız formların kontrol kriterlerini karşılaştır.',
       expectedImpact: 'Tekrarlayan kalite uygunsuzlugunu erken yakalayarak waste ve recall riskini dusurur.',
       ownerRole: 'Kalite'
     })]
@@ -95,8 +95,8 @@ const createSupplierProblemSuggestions = (
       return [createDecisionSuggestion({
         category: 'Quality',
         title: `${leadForm.supplierName} kalite problemi olusturuyor`,
-        description: 'Quality Forms mal kabul kayitlari supplier bazli tekrar eden kalite problemi gosteriyor.',
-        reason: `Ayni supplier son 5 teslimatta ${problemForms.length} kalite problemi olusturdu.`,
+        description: 'Kalite Formları mal kabul kayıtları tedarikçi bazlı tekrar eden kalite problemi gösteriyor.',
+        reason: `Aynı tedarikçi son 5 teslimatta ${problemForms.length} kalite problemi oluşturdu.`,
         ruleId: 'quality-form-supplier-problem',
         relatedEntityType: 'QualityForm',
         relatedEntityId: leadForm.id,
@@ -127,7 +127,7 @@ const createConditionalApprovalSuggestions = (
     category: 'Quality',
     title: 'Sartli onay verilen urunler incelenmeli',
     description: 'Quality Forms sartli onay kayitlari takip aksiyonu gerektiriyor.',
-    reason: `${conditionalForms.length} form CONDITIONAL veya Sartli Onay durumunda.`,
+    reason: `${conditionalForms.length} form koşullu veya Şartlı Onay durumunda.`,
     ruleId: 'quality-form-conditional-review',
     relatedEntityType: 'QualityForm',
     relatedEntityId: leadForm.id,

@@ -30,6 +30,7 @@ import {
   formatPercent,
   formatQuantity
 } from '../kpi-reporting/kpi.utils'
+import { getDecisionSourceModuleLabel } from '../decision-support/decision-support-ui.utils'
 import { loadEmployees } from '../storage'
 import type { User } from '../types'
 
@@ -180,9 +181,9 @@ export default function Forecasting({ currentUser }: { currentUser: User }){
       const firstPredictionId = report.predictions[0]?.id || ''
       refreshReports(firstPredictionId)
       setForm(ForecastService.createDefaultInput(userName))
-      setMessage({ type: 'success', text: `${report.reportNo} forecast raporu olusturuldu.` })
+      setMessage({ type: 'success', text: `${report.reportNo} tahmin raporu oluşturuldu.` })
     } catch (error) {
-      setMessage({ type: 'error', text: error instanceof Error ? error.message : 'Forecast raporu olusturulamadi.' })
+      setMessage({ type: 'error', text: error instanceof Error ? error.message : 'Tahmin raporu oluşturulamadı.' })
     }
   }
 
@@ -193,7 +194,7 @@ export default function Forecasting({ currentUser }: { currentUser: User }){
       refreshReports(report.predictions[0]?.id || selectedPredictionId)
       setMessage({ type: 'success', text: `${report.reportNo} ${FORECAST_STATUS_LABELS[status]} durumuna alindi.` })
     } catch (error) {
-      setMessage({ type: 'error', text: error instanceof Error ? error.message : 'Forecast durumu guncellenemedi.' })
+      setMessage({ type: 'error', text: error instanceof Error ? error.message : 'Tahmin durumu güncellenemedi.' })
     }
   }
 
@@ -222,7 +223,7 @@ export default function Forecasting({ currentUser }: { currentUser: User }){
           : `${report.reportNo} cikti penceresi acildi.`
       })
     } catch (error) {
-      setMessage({ type: 'error', text: error instanceof Error ? error.message : 'Forecast ciktisi alinamadi.' })
+      setMessage({ type: 'error', text: error instanceof Error ? error.message : 'Tahmin çıktısı alınamadı.' })
     }
   }
 
@@ -231,7 +232,7 @@ export default function Forecasting({ currentUser }: { currentUser: User }){
       <div className="page-header">
         <div>
           <h2>Tahminleme</h2>
-          <p className="muted">Gecmis uretim, stok, satin alma, sevkiyat, fire, kalite, personel, kapasite ve kritik alarm verilerinden read-model tahmin uretir.</p>
+          <p className="muted">Geçmiş üretim, stok, satın alma, sevkiyat, fire, kalite, personel, kapasite ve kritik alarm verilerinden analiz modeli tahmin üretir.</p>
         </div>
       </div>
 
@@ -259,7 +260,7 @@ export default function Forecasting({ currentUser }: { currentUser: User }){
           <small>Trend analizi</small>
         </div>
         <div className="metric-card">
-          <span>Confidence</span>
+          <span>Güven Skoru</span>
           <strong>{formatNumber(statistics.averageConfidence, 1)}</strong>
           <small>Ortalama tahmin guveni</small>
         </div>
@@ -268,7 +269,7 @@ export default function Forecasting({ currentUser }: { currentUser: User }){
       <section className="card forecasting-create-card">
         <div className="section-header compact">
           <div>
-            <h3>Yeni Forecast Raporu</h3>
+            <h3>Yeni Tahmin Raporu</h3>
             <p className="muted">Sadece tahmin raporu olusturur; siparis, uretim emri, stok veya vardiya kaydi olusturmaz.</p>
           </div>
           <button className="primary-button" type="button" disabled={!form.reportDate || !form.responsiblePerson} onClick={createReport}>Rapor Olustur</button>
@@ -300,7 +301,7 @@ export default function Forecasting({ currentUser }: { currentUser: User }){
           </label>
           <label className="form-field forecasting-wide">
             <span>Aciklama</span>
-            <input value={form.description} onChange={event => updateForm('description', event.target.value)} placeholder="Forecast analiz notu" />
+            <input value={form.description} onChange={event => updateForm('description', event.target.value)} placeholder="Tahmin analiz notu" />
           </label>
         </div>
       </section>
@@ -369,7 +370,7 @@ export default function Forecasting({ currentUser }: { currentUser: User }){
           </label>
           <label className="form-field forecasting-wide">
             <span>Arama</span>
-            <input type="search" value={filters.search} onChange={event => updateFilter('search', event.target.value)} placeholder="Rapor no, urun, stok, hat, makine, supplier, oneri" />
+            <input type="search" value={filters.search} onChange={event => updateFilter('search', event.target.value)} placeholder="Rapor no, ürün, stok, hat, makine, tedarikçi, öneri" />
           </label>
         </div>
       </section>
@@ -390,8 +391,8 @@ export default function Forecasting({ currentUser }: { currentUser: User }){
         <section className="product-main card">
           <div className="section-header">
             <div>
-              <h3>Forecast Listesi</h3>
-              <p className="muted">Tahminler operasyonel aksiyon olusturmaz; Decision Support ve KPI icin analiz verisi saglar.</p>
+              <h3>Tahmin Listesi</h3>
+              <p className="muted">Tahminler operasyonel aksiyon oluşturmaz; Karar Destek Merkezi ve KPI için analiz verisi sağlar.</p>
             </div>
             <span className="status-pill">{formatNumber(statistics.riskyForecasts)} riskli</span>
           </div>
@@ -404,14 +405,14 @@ export default function Forecasting({ currentUser }: { currentUser: User }){
                   <th>Varlik</th>
                   <th>Beklenen</th>
                   <th>Trend</th>
-                  <th>Confidence</th>
+                  <th>Güven Skoru</th>
                   <th>Risk</th>
                   <th>Durum</th>
                 </tr>
               </thead>
               <tbody>
                 {rows.length === 0 && (
-                  <tr><td className="empty-cell" colSpan={8}>Filtrelere uygun forecast bulunamadi.</td></tr>
+                  <tr><td className="empty-cell" colSpan={8}>Filtrelere uygun tahmin bulunamadı.</td></tr>
                 )}
                 {rows.map(row => (
                   <tr
@@ -429,11 +430,11 @@ export default function Forecasting({ currentUser }: { currentUser: User }){
                     }}
                   >
                     <td data-label="Rapor"><strong>{row.report.reportNo}</strong><span>{formatDate(row.report.reportDate)} / {row.report.horizonDays} gun</span></td>
-                    <td data-label="Tur"><strong>{FORECAST_TYPE_LABELS[row.prediction.forecastType]}</strong><span>{row.prediction.sourceModule}</span></td>
+                    <td data-label="Tur"><strong>{FORECAST_TYPE_LABELS[row.prediction.forecastType]}</strong><span>{getDecisionSourceModuleLabel(row.prediction.sourceModule)}</span></td>
                     <td data-label="Varlik"><strong>{row.prediction.entityName}</strong><span>{row.prediction.productName || row.prediction.stockItemName || row.prediction.branchName || '-'}</span></td>
                     <td data-label="Beklenen">{formatQuantity(row.prediction.expectedValue, row.prediction.unit)}</td>
                     <td data-label="Trend"><span className={`status-pill ${getTrendClass(row.prediction.trendDirection)}`}>{FORECAST_TREND_LABELS[row.prediction.trendDirection]} {formatPercent(row.prediction.growthPercent)}</span></td>
-                    <td data-label="Confidence">{formatNumber(row.prediction.confidenceScore, 1)}</td>
+                    <td data-label="Güven Skoru">{formatNumber(row.prediction.confidenceScore, 1)}</td>
                     <td data-label="Risk"><span className={`status-pill ${getRiskClass(row.prediction.riskLevel)}`}>{FORECAST_RISK_LABELS[row.prediction.riskLevel]}</span></td>
                     <td data-label="Durum"><span className={`status-pill ${getStatusClass(row.report.status)}`}>{FORECAST_STATUS_LABELS[row.report.status]}</span></td>
                   </tr>
@@ -453,8 +454,8 @@ export default function Forecasting({ currentUser }: { currentUser: User }){
             />
           ) : (
             <section className="card forecasting-detail-card">
-              <h3>Forecast Detayi</h3>
-              <p className="muted">Detay gormek icin bir forecast satiri secin.</p>
+              <h3>Tahmin Detayı</h3>
+              <p className="muted">Detay görmek için bir tahmin satırı seçin.</p>
             </section>
           )}
         </aside>
@@ -514,11 +515,11 @@ function ForecastDetailPanel({
       </section>
 
       <section className="card forecasting-detail-card">
-        <h3>Decision Support Onerisi</h3>
+        <h3>Karar Destek Önerisi</h3>
         <div className="forecasting-recommendation-list">
           <div>
             <strong>{prediction.recommendation}</strong>
-            <span>Risk {formatNumber(prediction.riskScore, 1)} / Confidence {formatNumber(prediction.confidenceScore, 1)}</span>
+            <span>Risk {formatNumber(prediction.riskScore, 1)} / Güven {formatNumber(prediction.confidenceScore, 1)}</span>
           </div>
         </div>
       </section>

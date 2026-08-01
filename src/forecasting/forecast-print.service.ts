@@ -50,7 +50,7 @@ export const createForecastPrintHtml = (
 <html lang="tr">
 <head>
   <meta charset="utf-8" />
-  <title>${escapeHtml(report.reportNo)} Forecasting Engine</title>
+  <title>${escapeHtml(report.reportNo)} Tahminleme Motoru</title>
   <style>
     * { box-sizing:border-box; }
     body { margin:0; padding:24px; color:#111827; font-family:Inter, Arial, sans-serif; background:#f8fafc; }
@@ -77,7 +77,7 @@ export const createForecastPrintHtml = (
   <div class="sheet">
     <div class="header">
       <div>
-        <span class="muted">Forecasting Engine</span>
+        <span class="muted">Tahminleme Motoru</span>
         <h1>${escapeHtml(report.reportNo)} - ${escapeHtml(report.scenarioName)}</h1>
         <div class="muted">${escapeHtml(formatDate(report.startDate))} - ${escapeHtml(formatDate(report.endDate))}</div>
       </div>

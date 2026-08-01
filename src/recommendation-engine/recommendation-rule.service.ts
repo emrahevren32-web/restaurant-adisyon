@@ -6,11 +6,11 @@ export const RECOMMENDATION_RULES: RecommendationRule[] = [
     code: 'PRODUCTION_INCREASE',
     type: 'PRODUCTION',
     title: 'Uretim miktarini artir',
-    description: 'Forecasting ve Decision Support talep artisi sinyali verdiginde uretim artisi onerir.',
+    description: 'Tahminleme ve Karar Destek talep artışı sinyali verdiğinde üretim artışı önerir.',
     sourceModule: 'Forecasting',
     baseRisk: 'HIGH',
     priority: 'HIGH',
-    thresholdLabel: 'Demand or production growth >= 10%',
+    thresholdLabel: 'Talep veya üretim artışı >= %10',
     enabled: true
   },
   {
@@ -22,7 +22,7 @@ export const RECOMMENDATION_RULES: RecommendationRule[] = [
     sourceModule: 'Forecasting',
     baseRisk: 'MEDIUM',
     priority: 'NORMAL',
-    thresholdLabel: 'Forecast trend DOWN and stock expected positive',
+    thresholdLabel: 'Tahmin trendi düşüşte ve stok beklentisi pozitif',
     enabled: true
   },
   {
@@ -30,11 +30,11 @@ export const RECOMMENDATION_RULES: RecommendationRule[] = [
     code: 'PURCHASE_ORDER_NEEDED',
     type: 'PURCHASING',
     title: 'Satin alma siparisi olusturulmali',
-    description: 'Kritik stok, forecast veya DSS satin alma ihtiyaci urettiginde manuel satin alma onerir.',
+    description: 'Kritik stok, tahmin veya karar destek satın alma ihtiyacı ürettiğinde manuel satın alma önerir.',
     sourceModule: 'DecisionSupport',
     baseRisk: 'HIGH',
     priority: 'HIGH',
-    thresholdLabel: 'Critical stock or purchasing forecast HIGH',
+    thresholdLabel: 'Kritik stok veya yüksek satın alma tahmini',
     enabled: true
   },
   {
@@ -42,11 +42,11 @@ export const RECOMMENDATION_RULES: RecommendationRule[] = [
     code: 'CRITICAL_STOCK_REPLENISH',
     type: 'STOCK',
     title: 'Kritik stok yenilenmeli',
-    description: 'Stock ve Critical Alert sinyalleri stok yenileme onerisi uretir.',
+    description: 'Stok ve kritik alarm sinyalleri stok yenileme önerisi üretir.',
     sourceModule: 'CriticalAlerts',
     baseRisk: 'CRITICAL',
     priority: 'URGENT',
-    thresholdLabel: 'Stock alert CRITICAL or daysToCritical <= 4',
+    thresholdLabel: 'Stok alarmı kritik veya kritik güne kalan süre <= 4',
     enabled: true
   },
   {
@@ -54,11 +54,11 @@ export const RECOMMENDATION_RULES: RecommendationRule[] = [
     code: 'MACHINE_MAINTENANCE',
     type: 'MAINTENANCE',
     title: 'Makine bakim plani one cekilmeli',
-    description: 'Makine, bottleneck veya critical alert bakim etkisi urettiginde manuel bakim onerir.',
+    description: 'Makine, darboğaz veya kritik alarm bakım etkisi ürettiğinde manuel bakım önerir.',
     sourceModule: 'CriticalAlerts',
     baseRisk: 'HIGH',
     priority: 'HIGH',
-    thresholdLabel: 'Machine/maintenance risk HIGH',
+    thresholdLabel: 'Makine/bakım riski yüksek',
     enabled: true
   },
   {
@@ -66,11 +66,11 @@ export const RECOMMENDATION_RULES: RecommendationRule[] = [
     code: 'LINE_BALANCE',
     type: 'MACHINE',
     title: 'Hat yuku dengelenmeli',
-    description: 'Capacity Planning ve Bottleneck Analysis hat yukunu kritik buldugunda dengeleme onerir.',
+    description: 'Kapasite Planlama ve Darboğaz Analizi hat yükünü kritik bulduğunda dengeleme önerir.',
     sourceModule: 'CapacityPlanning',
     baseRisk: 'HIGH',
     priority: 'HIGH',
-    thresholdLabel: 'Utilization >= 95% or overload > 0',
+    thresholdLabel: 'Kullanım >= %95 veya aşırı yük > 0',
     enabled: true
   },
   {
@@ -78,11 +78,11 @@ export const RECOMMENDATION_RULES: RecommendationRule[] = [
     code: 'PERSONNEL_DISTRIBUTION',
     type: 'PERSONNEL',
     title: 'Personel dagilimi iyilestirilmeli',
-    description: 'Workforce Planning eksik personel veya vardiya cakismasi sinyali verdiginde onerir.',
+    description: 'Vardiya Planlama eksik personel veya vardiya çakışması sinyali verdiğinde önerir.',
     sourceModule: 'WorkforcePlanning',
     baseRisk: 'HIGH',
     priority: 'HIGH',
-    thresholdLabel: 'Missing personnel > 0 or conflict > 0',
+    thresholdLabel: 'Eksik personel > 0 veya çakışma > 0',
     enabled: true
   },
   {
@@ -90,11 +90,11 @@ export const RECOMMENDATION_RULES: RecommendationRule[] = [
     code: 'SHIPMENT_RESCHEDULE',
     type: 'SHIPMENT',
     title: 'Sevkiyat yeniden planlanmali',
-    description: 'Shipment Forms veya Forecasting sevkiyat riskini arttirdiginda manuel planlama onerir.',
+    description: 'Sevkiyat Formları veya Tahminleme sevkiyat riskini artırdığında manuel planlama önerir.',
     sourceModule: 'ShipmentForms',
     baseRisk: 'MEDIUM',
     priority: 'HIGH',
-    thresholdLabel: 'Shipment risk HIGH or volume surge',
+    thresholdLabel: 'Sevkiyat riski yüksek veya hacim artışı var',
     enabled: true
   },
   {
@@ -102,11 +102,11 @@ export const RECOMMENDATION_RULES: RecommendationRule[] = [
     code: 'WASTE_ANALYSIS',
     type: 'WASTE',
     title: 'Fire analizi yapilmali',
-    description: 'Fire, kalite veya forecast fire artisi sinyali verdiginde kok neden analizi onerir.',
+    description: 'Fire, kalite veya tahminleme fire artışı sinyali verdiğinde kök neden analizi önerir.',
     sourceModule: 'Forecasting',
     baseRisk: 'HIGH',
     priority: 'HIGH',
-    thresholdLabel: 'Waste forecast growth or waste DSS HIGH',
+    thresholdLabel: 'Fire tahmini artıyor veya fire karar destek riski yüksek',
     enabled: true
   },
   {
@@ -114,11 +114,11 @@ export const RECOMMENDATION_RULES: RecommendationRule[] = [
     code: 'QUALITY_CONTROL',
     type: 'QUALITY',
     title: 'Kalite kontrolu artirilmali',
-    description: 'Quality Forms, HACCP, checklist veya critical alert kalite riski urettiginde onerir.',
+    description: 'Kalite Formları, HACCP, kontrol listesi veya kritik alarm kalite riski ürettiğinde önerir.',
     sourceModule: 'QualityForms',
     baseRisk: 'HIGH',
     priority: 'HIGH',
-    thresholdLabel: 'Quality FAIL or HACCP/checklist risk',
+    thresholdLabel: 'Kalite başarısız veya HACCP/kontrol listesi riski',
     enabled: true
   },
   {
@@ -130,7 +130,7 @@ export const RECOMMENDATION_RULES: RecommendationRule[] = [
     sourceModule: 'MachineScheduling',
     baseRisk: 'MEDIUM',
     priority: 'NORMAL',
-    thresholdLabel: 'Idle minutes >= 120',
+    thresholdLabel: 'Boş süre >= 120 dakika',
     enabled: true
   }
 ]

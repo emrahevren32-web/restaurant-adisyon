@@ -55,4 +55,4 @@ export const getWarehouseName = (
 export const getSupplierName = (
   sourceData: KpiSourceData,
   supplierId: string
-) => sourceData.suppliers.find(supplier => supplier.id === supplierId)?.name || supplierId || 'Supplier'
+) => sourceData.suppliers.find(supplier => supplier.id === supplierId)?.name || supplierId || 'Tedarikçi'

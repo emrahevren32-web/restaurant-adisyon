@@ -42,7 +42,7 @@ export const createAlertPrintHtml = (
 <html lang="tr">
 <head>
   <meta charset="utf-8" />
-  <title>${escapeHtml(alert.alertNo)} Critical Alert</title>
+  <title>${escapeHtml(alert.alertNo)} Kritik Alarm</title>
   <style>
     * { box-sizing:border-box; }
     body { margin:0; padding:24px; color:#111827; font-family:Inter, Arial, sans-serif; background:#f8fafc; }
@@ -70,7 +70,7 @@ export const createAlertPrintHtml = (
   <div class="sheet">
     <div class="header">
       <div>
-        <span class="muted">Critical Alert Engine</span>
+        <span class="muted">Kritik Alarm Motoru</span>
         <h1>${escapeHtml(alert.alertNo)} - ${escapeHtml(alert.title)}</h1>
         <div class="muted">${escapeHtml(formatDateTime(alert.createdAt))}</div>
       </div>

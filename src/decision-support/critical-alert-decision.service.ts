@@ -44,7 +44,7 @@ const createStockPurchaseSuggestion = (
   return [createDecisionSuggestion({
     category: 'Inventory',
     title: `${alert.relatedEntityName} kritik stok alarmi`,
-    description: 'Critical Alert Engine stok read-model sinyallerini Decision Support icin onceliklendirir.',
+    description: 'Kritik Alarm Motoru stok analiz modeli sinyallerini Karar Destek için önceliklendirir.',
     reason: `${alert.alertNo}: ${alert.reason} Risk skoru ${formatNumber(alert.riskScore, 1)}.`,
     ruleId: 'critical-alert-stock-purchase',
     relatedEntityType: 'CriticalAlert',
@@ -71,8 +71,8 @@ const createMaintenanceLineSuggestion = (
   return [createDecisionSuggestion({
     category: 'Production',
     title: `${alert.productionLineName || alert.machineCode || alert.relatedEntityName} bakim/kapasite alarmi`,
-    description: 'Critical Alert Engine makine, bakim ve kapasite sinyallerini manuel aksiyon onerisine cevirir.',
-    reason: `${alert.alertNo}: ${alert.reason} Impact skoru ${formatNumber(alert.impactScore, 1)}.`,
+    description: 'Kritik Alarm Motoru makine, bakım ve kapasite sinyallerini manuel aksiyon önerisine çevirir.',
+    reason: `${alert.alertNo}: ${alert.reason} Etki skoru ${formatNumber(alert.impactScore, 1)}.`,
     ruleId: 'critical-alert-maintenance-line',
     relatedEntityType: 'CriticalAlert',
     relatedEntityId: alert.id,
@@ -96,8 +96,8 @@ const createQualityFailSuggestion = (
 
   return [createDecisionSuggestion({
     category: alert.category === 'GOODS_RECEIPT' ? 'Purchasing' : 'Quality',
-    title: `${ALERT_CATEGORY_LABELS[alert.category]} FAIL kritik alarmi`,
-    description: 'Critical Alert Engine kalite, HACCP, lot ve mal kabul FAIL sinyallerini Decision Support ile gorunur kilar.',
+    title: `${ALERT_CATEGORY_LABELS[alert.category]} başarısızlık kritik alarmı`,
+    description: 'Kritik Alarm Motoru kalite, HACCP, lot ve mal kabul başarısızlık sinyallerini Karar Destek ile görünür kılar.',
     reason: `${alert.alertNo}: ${alert.reason} Seviye ${ALERT_LEVEL_LABELS[alert.level]}.`,
     ruleId: 'critical-alert-quality-fail',
     relatedEntityType: 'CriticalAlert',
@@ -108,8 +108,8 @@ const createQualityFailSuggestion = (
     warehouseId: alert.branchId,
     evidenceScore: getAlertEvidenceScore(alert),
     createdAt: alert.lastDetectedAt,
-    recommendationAction: 'Kalite FAIL, HACCP kritik limit veya mal kabul red etkisini manuel izolasyon ve corrective action listesine al.',
-    expectedImpact: 'Gida guvenligi, recall, sevkiyat ve supplier uygunsuzluk riskini azaltir.',
+    recommendationAction: 'Kalite başarısızlığı, HACCP kritik limit veya mal kabul red etkisini manuel izolasyon ve düzeltici faaliyet listesine al.',
+    expectedImpact: 'Gıda güvenliği, geri çağırma, sevkiyat ve tedarikçi uygunsuzluk riskini azaltır.',
     ownerRole: 'Kalite ve HACCP'
   })]
 }
@@ -125,7 +125,7 @@ const createMachineStopReviewSuggestion = (
   return [createDecisionSuggestion({
     category: 'Production',
     title: `${alert.machineCode || alert.relatedEntityName} uretim uygunlugu incelenmeli`,
-    description: 'Critical Alert Engine makine riskini otomatik durdurma yerine manuel karar destegi olarak sunar.',
+    description: 'Kritik Alarm Motoru makine riskini otomatik durdurma yerine manuel karar desteği olarak sunar.',
     reason: `${alert.alertNo}: ${alert.reason} Risk skoru ${formatNumber(alert.riskScore, 1)}.`,
     ruleId: 'critical-alert-machine-stop-review',
     relatedEntityType: 'CriticalAlert',
@@ -148,7 +148,7 @@ const createGenericCriticalAlertSuggestions = (
   .map(alert => createDecisionSuggestion({
     category: toDecisionCategory(alert),
     title: `${alert.alertNo} kritik alarm aksiyonu`,
-    description: 'Critical Alert Engine kritik seviyedeki read-model alarmi Decision Support listesine tasir.',
+    description: 'Kritik Alarm Motoru kritik seviyedeki analiz modeli alarmını Karar Destek listesine taşır.',
     reason: alert.reason,
     ruleId: 'critical-alert-generic-critical',
     relatedEntityType: 'CriticalAlert',

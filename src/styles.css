@@ -76,6 +76,39 @@ textarea { resize:vertical }
 .route-error-card h2 { margin:0; color:var(--text); font-size:22px; line-height:1.25; font-weight:900 }
 .route-error-card p { margin:0; color:var(--text-soft); font-size:14px; line-height:1.45; font-weight:750 }
 .route-error-card small { color:var(--muted); font-weight:800; line-height:1.35 }
+.decision-route-skeleton { display:grid; gap:16px; width:100%; animation:decision-skeleton-fade .18s ease-out }
+.decision-skeleton-hero,
+.decision-skeleton-card,
+.decision-skeleton-filter,
+.decision-skeleton-table { border:1px solid var(--line); background:var(--card); border-radius:var(--radius-md); box-shadow:var(--shadow-sm) }
+.decision-skeleton-hero { display:grid; gap:12px; padding:20px; min-height:128px }
+.decision-skeleton-grid { display:grid; grid-template-columns:repeat(4,minmax(0,1fr)); gap:12px }
+.decision-skeleton-card { display:grid; gap:10px; min-height:104px; padding:16px }
+.decision-skeleton-filter { display:grid; grid-template-columns:repeat(4,minmax(0,1fr)); gap:12px; padding:14px }
+.decision-skeleton-table { display:grid; gap:10px; padding:16px }
+.decision-skeleton-line { display:block; height:12px; border-radius:999px; background:linear-gradient(90deg,var(--surface-subtle),var(--surface),var(--surface-subtle)); background-size:220% 100%; animation:decision-skeleton-shimmer 1.1s ease-in-out infinite }
+.decision-skeleton-line.short { width:34% }
+.decision-skeleton-line.medium { width:68% }
+.decision-skeleton-line.title { width:46%; height:28px; border-radius:8px }
+.decision-skeleton-line.value { width:52%; height:24px; border-radius:8px }
+.decision-skeleton-line.table-row { width:100%; height:18px; border-radius:7px }
+@keyframes decision-skeleton-shimmer {
+  0% { background-position:120% 0 }
+  100% { background-position:-120% 0 }
+}
+@keyframes decision-skeleton-fade {
+  from { opacity:.4 }
+  to { opacity:1 }
+}
+@media (max-width:980px){
+  .decision-skeleton-grid,
+  .decision-skeleton-filter { grid-template-columns:repeat(2,minmax(0,1fr)) }
+}
+@media (max-width:640px){
+  .decision-skeleton-grid,
+  .decision-skeleton-filter { grid-template-columns:1fr }
+  .decision-skeleton-hero { min-height:112px }
+}
 table { width:100%; border-collapse:collapse }
 th, td { border-bottom:1px solid var(--line-soft); padding:10px 8px; text-align:left; vertical-align:middle }
 th { color:var(--muted-strong); font-size:13px; font-weight:750 }

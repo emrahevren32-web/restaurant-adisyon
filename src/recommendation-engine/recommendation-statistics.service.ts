@@ -119,19 +119,19 @@ const aggregateSuccessRows = (
       id: 'high-confidence',
       label: 'Yuksek Guven',
       value: items.filter(item => item.confidenceScore >= 80).length,
-      detail: 'Confidence >= 80'
+      detail: 'Güven skoru >= 80'
     },
     {
       id: 'medium-confidence',
       label: 'Orta Guven',
       value: items.filter(item => item.confidenceScore >= 60 && item.confidenceScore < 80).length,
-      detail: 'Confidence 60-79'
+      detail: 'Güven skoru 60-79'
     },
     {
       id: 'low-confidence',
       label: 'Izleme',
       value: items.filter(item => item.confidenceScore < 60).length,
-      detail: 'Confidence < 60'
+      detail: 'Güven skoru < 60'
     }
   ]
 

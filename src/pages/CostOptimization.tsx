@@ -177,7 +177,7 @@ export default function CostOptimization({ currentUser }: { currentUser: User })
       setForm(CostOptimizationService.createDefaultInput(userName))
       setMessage({ type: 'success', text: `${report.reportNo} maliyet optimizasyon raporu olusturuldu.` })
     } catch (error) {
-      setMessage({ type: 'error', text: error instanceof Error ? error.message : 'Cost Optimization raporu olusturulamadi.' })
+      setMessage({ type: 'error', text: error instanceof Error ? error.message : 'Maliyet optimizasyon raporu oluşturulamadı.' })
     }
   }
 
@@ -188,7 +188,7 @@ export default function CostOptimization({ currentUser }: { currentUser: User })
       refreshReports(report.items[0]?.id || selectedItemId)
       setMessage({ type: 'success', text: `${report.reportNo} ${COST_OPTIMIZATION_STATUS_LABELS[status]} durumuna alindi.` })
     } catch (error) {
-      setMessage({ type: 'error', text: error instanceof Error ? error.message : 'Cost Optimization durumu guncellenemedi.' })
+      setMessage({ type: 'error', text: error instanceof Error ? error.message : 'Maliyet optimizasyon durumu güncellenemedi.' })
     }
   }
 
@@ -217,7 +217,7 @@ export default function CostOptimization({ currentUser }: { currentUser: User })
           : `${report.reportNo} cikti penceresi acildi.`
       })
     } catch (error) {
-      setMessage({ type: 'error', text: error instanceof Error ? error.message : 'Cost Optimization ciktisi alinamadi.' })
+      setMessage({ type: 'error', text: error instanceof Error ? error.message : 'Maliyet optimizasyon çıktısı alınamadı.' })
     }
   }
 
@@ -226,7 +226,7 @@ export default function CostOptimization({ currentUser }: { currentUser: User })
       <div className="page-header">
         <div>
           <h2>Maliyet Optimizasyonu</h2>
-          <p className="muted">Planlama, forecast, recommendation, AI analysis, purchase, waste ve recipe cost verilerinden read-model tasarruf firsatlari uretir.</p>
+          <p className="muted">Planlama, tahminleme, öneri, yapay zeka analizi, satın alma, fire ve reçete maliyeti verilerinden analiz modeli tasarruf fırsatları üretir.</p>
         </div>
       </div>
 
@@ -254,16 +254,16 @@ export default function CostOptimization({ currentUser }: { currentUser: User })
           <small>Aylik {formatCurrency(statistics.expectedMonthlyGain)}</small>
         </div>
         <div className="metric-card">
-          <span>ROI / Confidence</span>
+          <span>ROI / Güven Skoru</span>
           <strong>{formatPercent(statistics.averageRoi)}</strong>
-          <small>{formatNumber(statistics.averageConfidence, 1)} confidence</small>
+          <small>{formatNumber(statistics.averageConfidence, 1)} güven</small>
         </div>
       </div>
 
       <section className="card cost-optimization-create-card">
         <div className="section-header compact">
           <div>
-            <h3>Yeni Cost Optimization Raporu</h3>
+            <h3>Yeni Maliyet Optimizasyon Raporu</h3>
             <p className="muted">Sadece analiz ve oneri uretir; satin alma, stok, uretim, recete veya muhasebe kaydi olusturmaz.</p>
           </div>
           <button className="primary-button" type="button" disabled={!form.reportDate || !form.responsiblePerson} onClick={createReport}>Rapor Olustur</button>
@@ -350,9 +350,9 @@ export default function CostOptimization({ currentUser }: { currentUser: User })
             </select>
           </label>
           <label className="form-field">
-            <span>Supplier</span>
+            <span>Tedarikçi</span>
             <select value={filters.supplierId} onChange={event => updateFilter('supplierId', event.target.value)}>
-              <option value={ALL_FILTER}>Tum Supplier</option>
+              <option value={ALL_FILTER}>Tüm Tedarikçiler</option>
               {supplierOptions.map(option => <option key={option.id} value={option.id}>{option.name}</option>)}
             </select>
           </label>
@@ -362,7 +362,7 @@ export default function CostOptimization({ currentUser }: { currentUser: User })
           </label>
           <label className="form-field cost-optimization-wide">
             <span>Arama</span>
-            <input type="search" value={filters.search} onChange={event => updateFilter('search', event.target.value)} placeholder="Rapor no, urun, supplier, hat, makine, maliyet nedeni" />
+            <input type="search" value={filters.search} onChange={event => updateFilter('search', event.target.value)} placeholder="Rapor no, ürün, tedarikçi, hat, makine, maliyet nedeni" />
           </label>
         </div>
       </section>
@@ -373,7 +373,7 @@ export default function CostOptimization({ currentUser }: { currentUser: User })
         <BarChartCard title="Urun Bazli" rows={statistics.productRows} />
         <BarChartCard title="Hat Bazli" rows={statistics.lineRows} />
         <BarChartCard title="Makine Bazli" rows={statistics.machineRows} />
-        <BarChartCard title="Supplier Bazli" rows={statistics.supplierRows} />
+        <BarChartCard title="Tedarikçi Bazlı" rows={statistics.supplierRows} />
         <LineChartCard series={statistics.monthlyTrend} />
         <LineChartCard series={statistics.yearlyTrend} />
       </div>
@@ -498,7 +498,7 @@ function CostOptimizationDetailPanel({
           <div><span>Aylik Kazanc</span><strong>{formatCurrency(item.expectedMonthlyGain)}</strong></div>
           <div><span>Yillik Kazanc</span><strong>{formatCurrency(item.expectedAnnualGain)}</strong></div>
           <div><span>ROI</span><strong>{formatPercent(item.roiEstimate)}</strong></div>
-          <div><span>Confidence</span><strong>{formatNumber(item.confidenceScore, 1)}</strong></div>
+          <div><span>Güven Skoru</span><strong>{formatNumber(item.confidenceScore, 1)}</strong></div>
           <div><span>Risk Skoru</span><strong>{formatNumber(item.riskScore, 1)}</strong></div>
           <div><span>Kaynak</span><strong>{item.sourceModule}</strong></div>
         </div>

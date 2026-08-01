@@ -32,7 +32,7 @@ export type DecisionReadModelSnapshot = {
   recommendationItems: RecommendationItem[]
 }
 
-const SNAPSHOT_TTL_MS = 120000
+const SNAPSHOT_TTL_MS = 15000
 const snapshotCache = new Map<string, { expiresAt: number; snapshot: DecisionReadModelSnapshot }>()
 
 const getTodayKey = () => new Date().toLocaleDateString('sv-SE')
@@ -102,7 +102,7 @@ const createEmptySnapshot = (
     analysisWindowDays: 30,
     scenarioName: 'Snapshot Tahmin',
     responsiblePerson: actorName,
-    description: 'Read-model snapshot fallback tahmin raporu.',
+    description: 'Analiz modeli snapshot fallback tahmin raporu.',
     predictions: [],
     scenarios: [],
     history: [],
@@ -120,7 +120,7 @@ const createEmptySnapshot = (
     reportDate: today,
     scope: 'all',
     responsiblePerson: actorName,
-    description: 'Read-model snapshot fallback oneri raporu.',
+    description: 'Analiz modeli snapshot fallback oneri raporu.',
     items: [],
     rules: [],
     history: [],
@@ -186,7 +186,7 @@ const createSnapshot = (
     analysisWindowDays: 30,
     scenarioName: 'Snapshot Tahmin',
     responsiblePerson: actorName,
-    description: 'Read-model snapshot cache tahmin raporu.',
+    description: 'Analiz modeli snapshot cache tahmin raporu.',
     sourceData,
     bottleneckReports,
     capacityPlans,
@@ -202,7 +202,7 @@ const createSnapshot = (
     reportDate: today,
     scope: 'all',
     responsiblePerson: actorName,
-    description: 'Read-model snapshot cache oneri raporu.',
+    description: 'Analiz modeli snapshot cache oneri raporu.',
     sourceData,
     bottleneckReports,
     capacityPlans,
@@ -237,10 +237,10 @@ const createSnapshot = (
 
 export const getDecisionReadModelSnapshot = (
   sourceData: KpiSourceData,
-  actorName = 'Read Model Snapshot Cache'
+  actorName = 'Analiz Modeli Snapshot Cache'
 ) => {
   const fingerprint = createSourceFingerprint(sourceData)
-  const cacheKey = `${actorName}|${fingerprint}`
+  const cacheKey = `decision-snapshot|${fingerprint}`
   const now = Date.now()
   const cached = snapshotCache.get(cacheKey)
 

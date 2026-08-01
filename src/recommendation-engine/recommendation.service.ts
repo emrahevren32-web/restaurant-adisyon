@@ -4,6 +4,11 @@ import {
   ALL_FILTER,
   roundKpi
 } from '../kpi-reporting/kpi.utils'
+import {
+  getDecisionIndexedRecord,
+  setDecisionIndexedRecord
+} from '../read-model/decision-indexed-storage.service'
+import { getDecisionReadModelSnapshot } from '../read-model/decision-read-model-snapshot.service'
 import { resolveReadModel, resolveReadModelList } from '../read-model/read-model-safety'
 import { calculateRecommendationReport, RecommendationCalculationService } from './recommendation-calculation.service'
 import { appendRecommendationHistory, createRecommendationHistory } from './recommendation-history.service'
@@ -56,7 +61,7 @@ const RECOMMENDATION_NO_PREFIX = 'RC'
 const RECOMMENDATION_NO_PADDING = 6
 
 const isBrowserStorageAvailable = () => (
-  typeof window !== 'undefined' && typeof localStorage !== 'undefined'
+  typeof window !== 'undefined'
 )
 
 const isRecord = (value: unknown): value is Record<string, unknown> => (
@@ -100,7 +105,7 @@ export const createDefaultRecommendationFilters = (): RecommendationFilters => (
 })
 
 export const createDefaultRecommendationReportInput = (
-  responsiblePerson = 'Recommendation Engine'
+  responsiblePerson = 'Öneri Motoru'
 ): RecommendationReportCreateInput => ({
   reportDate: getTodayKey(),
   scope: 'all',
@@ -195,7 +200,7 @@ const normalizeItem = (
     : [],
   relatedEntityType: normalizeText(value.relatedEntityType),
   relatedEntityId: normalizeText(value.relatedEntityId),
-  relatedEntityName: normalizeText(value.relatedEntityName) || 'Read Model',
+  relatedEntityName: normalizeText(value.relatedEntityName) || 'Analiz Modeli',
   productId: normalizeText(value.productId),
   productName: normalizeText(value.productName),
   stockItemId: normalizeText(value.stockItemId),
@@ -222,7 +227,7 @@ const normalizeReport = (
   const reportNo = normalizeText(value.reportNo) || getNextRecommendationNo([], reportDate, index)
   const id = normalizeText(value.id) || `recommendation_report_${reportNo}`.replace(/[^a-zA-Z0-9_]+/g, '_')
   const createdAt = normalizeText(value.createdAt) || new Date().toISOString()
-  const actorName = 'Recommendation Engine'
+  const actorName = 'Öneri Motoru'
   const items = Array.isArray(value.items)
     ? value.items.filter(isRecord).map((item, itemIndex) => normalizeItem(item as RawRecommendationItem, id, reportNo, itemIndex))
     : []
@@ -256,7 +261,7 @@ const normalizeReport = (
 
 export const saveRecommendationReports = (reports: RecommendationReport[]) => {
   if(!isBrowserStorageAvailable()) return
-  localStorage.setItem(RECOMMENDATION_STORAGE_KEY, JSON.stringify(reports))
+  setDecisionIndexedRecord(RECOMMENDATION_STORAGE_KEY, reports)
 }
 
 const createRecommendationFallbackReport = (
@@ -294,7 +299,7 @@ export const evaluateRecommendationReport = (
   sourceData: KpiSourceData,
   input: Partial<RecommendationReportCreateInput> = {},
   existingReports: RecommendationReport[] = [],
-  actorName = 'Recommendation Engine',
+  actorName = 'Öneri Motoru',
   dependencies: RecommendationEvaluationDependencies = {}
 ) => {
   const createInput = {
@@ -333,17 +338,16 @@ export const loadRecommendationReports = (
 ) => {
   if(!isBrowserStorageAvailable()) return [evaluateRecommendationReport(sourceData)]
 
-  const stored = localStorage.getItem(RECOMMENDATION_STORAGE_KEY)
+  const stored = getDecisionIndexedRecord<RawRecommendationReport[]>(RECOMMENDATION_STORAGE_KEY)
   if(stored === null){
-    const defaultReport = evaluateRecommendationReport(sourceData)
+    const defaultReport = getDecisionReadModelSnapshot(sourceData, 'Otomatik Oneriler').recommendationReport
     saveRecommendationReports([defaultReport])
     return [defaultReport]
   }
 
   try {
-    const parsed = JSON.parse(stored)
-    if(Array.isArray(parsed)){
-      const reports = parsed
+    if(Array.isArray(stored)){
+      const reports = stored
         .filter(isRecord)
         .map((record, index) => normalizeReport(record as RawRecommendationReport, index))
         .sort((first, second) => second.reportDate.localeCompare(first.reportDate) || first.reportNo.localeCompare(second.reportNo))
@@ -353,7 +357,7 @@ export const loadRecommendationReports = (
     // Corrupt local recommendation cache is replaced with a fresh read-model report.
   }
 
-  const defaultReport = evaluateRecommendationReport(sourceData)
+  const defaultReport = getDecisionReadModelSnapshot(sourceData, 'Otomatik Oneriler').recommendationReport
   saveRecommendationReports([defaultReport])
   return [defaultReport]
 }

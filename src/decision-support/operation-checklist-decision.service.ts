@@ -62,9 +62,9 @@ const createEquipmentFailSuggestions = (
 
     return [createDecisionSuggestion({
       category: 'Production',
-      title: `${leadChecklist.equipmentName || leadChecklist.sourceNo} ekipmaninda FAIL orani yukseldi`,
-      description: 'Operations Checklists ekipman ve bakim kontrollerinde tekrar eden FAIL sinyali buldu.',
-      reason: `Son 15 gunde ${formatNumber(group.length)} ekipman checklistinden ${formatNumber(failCount)} tanesi FAIL iceriyor; oran ${formatPercent(failRate)}.`,
+    title: `${leadChecklist.equipmentName || leadChecklist.sourceNo} ekipmanında başarısızlık oranı yükseldi`,
+    description: 'Operasyon Kontrolleri ekipman ve bakım kontrollerinde tekrar eden başarısız sinyal buldu.',
+    reason: `Son 15 günde ${formatNumber(group.length)} ekipman kontrol listesinden ${formatNumber(failCount)} tanesi başarısız madde içeriyor; oran ${formatPercent(failRate)}.`,
       ruleId: 'operation-checklist-equipment-fail-increase',
       relatedEntityType: 'Checklist',
       relatedEntityId: leadChecklist.id,
@@ -136,7 +136,7 @@ const createColdRoomDeviationSuggestions = (
   return [createDecisionSuggestion({
     category: 'Quality',
     title: 'Soguk oda kontrollerinde sicaklik sapmalari artiyor',
-    description: 'Operations Checklists soguk oda kontrol maddelerinde WARNING/FAIL sapmalari yakaladi.',
+    description: 'Operasyon Kontrolleri soğuk oda kontrol maddelerinde uyarı/başarısızlık sapmaları yakaladı.',
     reason: `Son 30 gunde ${formatNumber(coldRoomChecklists.length)} soguk oda checklisti sapma iceriyor.`,
     ruleId: 'operation-checklist-cold-room-deviation',
     relatedEntityType: 'Checklist',

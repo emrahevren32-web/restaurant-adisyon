@@ -35,7 +35,7 @@ const createCriticalStockSuggestions = (
   return [createDecisionSuggestion({
     category: 'Production',
     title: `${lead.item.productName} stogu kritik seviyeye dusecek`,
-    description: 'Production Planning stok ve minimum stok analizinden kritik uretim ihtiyaci cikardi.',
+    description: 'Üretim Planlama stok ve minimum stok analizinden kritik üretim ihtiyacı çıkardı.',
     reason: `${lead.item.productName} mevcut stok ${formatQuantity(lead.item.currentStock, lead.item.unit)}, minimum ${formatQuantity(lead.item.minimumStock, lead.item.unit)}; uretilecek miktar ${formatQuantity(lead.item.produceQuantity, lead.item.unit)}.`,
     ruleId: 'production-planning-critical-stock',
     relatedEntityType: 'ProductionPlan',
@@ -69,7 +69,7 @@ const createQuantityIncreaseSuggestions = (
   return [createDecisionSuggestion({
     category: 'Production',
     title: `${lead.item.productName} icin uretim miktari artirilmali`,
-    description: 'Production Planning talep ve forecast farkinda %15 uzeri artis ihtiyaci buldu.',
+    description: 'Üretim Planlama talep ve tahmin farkında %15 üzeri artış ihtiyacı buldu.',
     reason: `Talep ${formatQuantity(lead.item.demandQuantity, lead.item.unit)}, planlanan uretim ${formatQuantity(lead.item.produceQuantity, lead.item.unit)}; artis ihtiyaci ${formatPercent(lead.increaseNeed)}.`,
     ruleId: 'production-planning-quantity-increase',
     relatedEntityType: 'ProductionPlan',
@@ -98,7 +98,7 @@ const createWasteRevisionSuggestions = (
   return [createDecisionSuggestion({
     category: 'Production',
     title: `${lead.item.productName} fire orani nedeniyle plan revizyonu gerektiriyor`,
-    description: 'Production Planning fire etkisini plan miktari ve recete uzerinde kritik buldu.',
+    description: 'Üretim Planlama fire etkisini plan miktarı ve reçete üzerinde kritik buldu.',
     reason: `${lead.item.productName} fire orani ${formatPercent(lead.item.wastePercent)}; plan uretimi ${formatQuantity(lead.item.produceQuantity, lead.item.unit)}.`,
     ruleId: 'production-planning-waste-revision',
     relatedEntityType: 'ProductionPlan',
@@ -127,7 +127,7 @@ const createBranchDemandGapSuggestions = (
   return [createDecisionSuggestion({
     category: 'Production',
     title: `${leadPlan.branchName} talebi mevcut plana gore karsilanamiyor`,
-    description: 'Production Planning sube ve musteri talebinde planlanan uretime gore acik tespit etti.',
+    description: 'Üretim Planlama şube ve müşteri talebinde planlanan üretime göre açık tespit etti.',
     reason: `${leadItem.productName} icin talep acigi ${formatQuantity(gap, leadItem.unit)}; sube/musteri talebi ${formatQuantity(leadItem.branchDemandQuantity + leadItem.customerOrderQuantity, leadItem.unit)}.`,
     ruleId: 'production-planning-branch-demand-gap',
     relatedEntityType: 'ProductionPlan',

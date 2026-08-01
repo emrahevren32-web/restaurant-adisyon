@@ -7,6 +7,7 @@ import {
   formatCurrency,
   formatNumber
 } from '../kpi-reporting/kpi.utils'
+import { getDecisionSourceModuleLabel } from '../decision-support/decision-support-ui.utils'
 import { PurchaseRecommendationPrintService } from '../purchase-recommendations/purchase-recommendation-print.service'
 import {
   PURCHASE_RECOMMENDATION_PRIORITIES,
@@ -179,7 +180,7 @@ export default function PurchaseRecommendations({ currentUser }: { currentUser: 
       setForm(PurchaseRecommendationService.createDefaultInput(userName))
       setMessage({ type: 'success', text: `${report.reportNo} satin alma onerisi raporu olusturuldu.` })
     } catch (error) {
-      setMessage({ type: 'error', text: error instanceof Error ? error.message : 'Purchase Recommendation raporu olusturulamadi.' })
+      setMessage({ type: 'error', text: error instanceof Error ? error.message : 'Satın alma öneri raporu oluşturulamadı.' })
     }
   }
 
@@ -190,7 +191,7 @@ export default function PurchaseRecommendations({ currentUser }: { currentUser: 
       refreshReports(report.items[0]?.id || selectedItemId)
       setMessage({ type: 'success', text: `${report.reportNo} ${PURCHASE_RECOMMENDATION_STATUS_LABELS[status]} durumuna alindi.` })
     } catch (error) {
-      setMessage({ type: 'error', text: error instanceof Error ? error.message : 'Purchase Recommendation durumu guncellenemedi.' })
+      setMessage({ type: 'error', text: error instanceof Error ? error.message : 'Satın alma öneri durumu güncellenemedi.' })
     }
   }
 
@@ -219,7 +220,7 @@ export default function PurchaseRecommendations({ currentUser }: { currentUser: 
           : `${report.reportNo} cikti penceresi acildi.`
       })
     } catch (error) {
-      setMessage({ type: 'error', text: error instanceof Error ? error.message : 'Purchase Recommendation ciktisi alinamadi.' })
+      setMessage({ type: 'error', text: error instanceof Error ? error.message : 'Satın alma öneri çıktısı alınamadı.' })
     }
   }
 
@@ -228,7 +229,7 @@ export default function PurchaseRecommendations({ currentUser }: { currentUser: 
       <div className="page-header">
         <div>
           <h2>Satin Alma Onerileri</h2>
-          <p className="muted">Forecasting, Cost Optimization, AI Analysis, Critical Alerts, stok, mal kabul, fire ve supplier verilerinden read-model satin alma onerileri uretir.</p>
+          <p className="muted">Tahminleme, maliyet optimizasyonu, yapay zeka analizi, kritik alarmlar, stok, mal kabul, fire ve tedarikçi verilerinden analiz modeli satın alma önerileri üretir.</p>
         </div>
       </div>
 
@@ -256,17 +257,17 @@ export default function PurchaseRecommendations({ currentUser }: { currentUser: 
           <small>Fiyat/kosul karsilastirma</small>
         </div>
         <div className="metric-card">
-          <span>Risk / Confidence</span>
+          <span>Risk / Güven Skoru</span>
           <strong>{formatNumber(statistics.averageRiskScore, 1)}</strong>
-          <small>{formatNumber(statistics.averageConfidence, 1)} confidence</small>
+          <small>{formatNumber(statistics.averageConfidence, 1)} güven</small>
         </div>
       </div>
 
       <section className="card purchase-recommendations-create-card">
         <div className="section-header compact">
           <div>
-            <h3>Yeni Purchase Recommendation Raporu</h3>
-            <p className="muted">Sadece oneri uretir; purchase order, stok hareketi veya supplier siparisi olusturmaz.</p>
+            <h3>Yeni Satın Alma Öneri Raporu</h3>
+            <p className="muted">Sadece öneri üretir; satın alma siparişi, stok hareketi veya tedarikçi siparişi oluşturmaz.</p>
           </div>
           <button className="primary-button" type="button" disabled={!form.reportDate || !form.responsiblePerson} onClick={createReport}>Rapor Olustur</button>
         </div>
@@ -364,7 +365,7 @@ export default function PurchaseRecommendations({ currentUser }: { currentUser: 
           </label>
           <label className="form-field purchase-recommendations-wide">
             <span>Arama</span>
-            <input type="search" value={filters.search} onChange={event => updateFilter('search', event.target.value)} placeholder="Rapor no, urun, stok, supplier, neden, aksiyon" />
+            <input type="search" value={filters.search} onChange={event => updateFilter('search', event.target.value)} placeholder="Rapor no, ürün, stok, tedarikçi, neden, aksiyon" />
           </label>
         </div>
       </section>
@@ -373,7 +374,7 @@ export default function PurchaseRecommendations({ currentUser }: { currentUser: 
         <BarChartCard title="Kategori Dagilimi" rows={statistics.categoryRows} />
         <BarChartCard title="Oneri Turu" rows={statistics.typeRows} />
         <BarChartCard title="Urun Bazli" rows={statistics.productRows} />
-        <BarChartCard title="Supplier Bazli" rows={statistics.supplierRows} />
+        <BarChartCard title="Tedarikçi Bazlı" rows={statistics.supplierRows} />
         <BarChartCard title="Sube Bazli" rows={statistics.branchRows} />
         <BarChartCard title="Risk Dagilimi" rows={statistics.riskRows} />
         <BarChartCard title="Oncelik Dagilimi" rows={statistics.priorityRows} />
@@ -426,7 +427,7 @@ export default function PurchaseRecommendations({ currentUser }: { currentUser: 
                     <td data-label="Rapor"><strong>{row.report.reportNo}</strong><span>{formatDate(row.report.reportDate)}</span></td>
                     <td data-label="Tur"><strong>{PURCHASE_RECOMMENDATION_TYPE_LABELS[row.item.recommendationType]}</strong><span>{row.item.ownerRole}</span></td>
                     <td data-label="Urun / Stok"><strong>{row.item.stockItemName || row.item.productName}</strong><span>{row.item.categoryName}</span></td>
-                    <td data-label="Tedarikci"><strong>{row.item.supplierName || '-'}</strong><span>{row.item.alternativeSupplierName ? `Alternatif: ${row.item.alternativeSupplierName}` : row.item.sourceModule}</span></td>
+                    <td data-label="Tedarikçi"><strong>{row.item.supplierName || '-'}</strong><span>{row.item.alternativeSupplierName ? `Alternatif: ${row.item.alternativeSupplierName}` : getDecisionSourceModuleLabel(row.item.sourceModule)}</span></td>
                     <td data-label="Miktar">{formatNumber(row.item.recommendedOrderQuantity, 2)}</td>
                     <td data-label="Tukenme">{row.item.estimatedStockoutDate ? formatDate(row.item.estimatedStockoutDate) : '-'}</td>
                     <td data-label="Tasarruf">{formatCurrency(row.item.expectedSaving)}</td>
@@ -502,7 +503,7 @@ function PurchaseRecommendationDetailPanel({
           <div><span>Beklenen Maliyet</span><strong>{formatCurrency(item.expectedCost)}</strong></div>
           <div><span>Beklenen Tasarruf</span><strong>{formatCurrency(item.expectedSaving)}</strong></div>
           <div><span>Risk Skoru</span><strong>{formatNumber(item.riskScore, 1)}</strong></div>
-          <div><span>Confidence</span><strong>{formatNumber(item.confidenceScore, 1)}</strong></div>
+          <div><span>Güven Skoru</span><strong>{formatNumber(item.confidenceScore, 1)}</strong></div>
           <div><span>Kaynak</span><strong>{item.sourceModule}</strong></div>
           <div><span>Tukenme Tarihi</span><strong>{item.estimatedStockoutDate ? formatDate(item.estimatedStockoutDate) : '-'}</strong></div>
         </div>

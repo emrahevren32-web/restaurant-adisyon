@@ -41,7 +41,7 @@ const createProductionIncreaseSuggestion = (
   return [createDecisionSuggestion({
     category: 'Production',
     title: `${prediction.entityName} uretim/talep tahmini artiyor`,
-    description: 'Forecasting Engine talep ve uretim trendini Decision Support icin onceliklendirir.',
+    description: 'Tahminleme Motoru talep ve üretim trendini Karar Destek için önceliklendirir.',
     reason: `${FORECAST_TYPE_LABELS[prediction.forecastType]} ${formatPercent(prediction.growthPercent)} buyume gosteriyor; beklenen ${formatNumber(prediction.expectedValue, 1)} ${prediction.unit}.`,
     ruleId: 'forecasting-production-increase',
     relatedEntityType: 'ForecastPrediction',
@@ -69,7 +69,7 @@ const createStockCriticalSuggestion = (
   return [createDecisionSuggestion({
     category: 'Inventory',
     title: `${prediction.entityName} stok kritik seviyeye inebilir`,
-    description: 'Forecasting Engine stok tuketim trendinden kritik gun tahmini uretir.',
+    description: 'Tahminleme Motoru stok tüketim trendinden kritik gün tahmini üretir.',
     reason: `${prediction.entityName} icin beklenen stok ${formatNumber(prediction.expectedStock, 1)} ${prediction.unit}; kritik gun ${formatNumber(prediction.daysToCritical, 1)}.`,
     ruleId: 'forecasting-stock-critical',
     relatedEntityType: 'ForecastPrediction',
@@ -96,7 +96,7 @@ const createPurchaseEarlySuggestion = (
   return [createDecisionSuggestion({
     category: 'Purchasing',
     title: `${prediction.entityName} satin alma takvimi incelenmeli`,
-    description: 'Forecasting Engine satin alma hacmi ve kritik stok sinyallerini birlikte yorumlar.',
+    description: 'Tahminleme Motoru satın alma hacmi ve kritik stok sinyallerini birlikte yorumlar.',
     reason: `${prediction.entityName} beklenen satin alma ${formatNumber(prediction.expectedValue, 1)} ${prediction.unit}; risk skoru ${formatNumber(prediction.riskScore, 1)}.`,
     ruleId: 'forecasting-purchase-early',
     relatedEntityType: 'ForecastPrediction',
@@ -104,7 +104,7 @@ const createPurchaseEarlySuggestion = (
     relatedSupplierId: prediction.supplierId,
     evidenceScore: getEvidenceScore(prediction),
     createdAt: prediction.createdAt,
-    recommendationAction: 'Satin alma siparisi, teslim tarihi ve alternatif supplier secenegi manuel erkene cekme senaryosuna alinmali.',
+    recommendationAction: 'Satın alma siparişi, teslim tarihi ve alternatif tedarikçi seçeneği manuel erkene çekme senaryosuna alınmalı.',
     expectedImpact: 'Kritik stok ve tedarik gecikmesi riskini azaltir.',
     ownerRole: 'Satin Alma'
   })]
@@ -121,7 +121,7 @@ const createShipmentSurgeSuggestion = (
   return [createDecisionSuggestion({
     category: 'Shipment',
     title: `${prediction.entityName} sevkiyat hacmi artabilir`,
-    description: 'Forecasting Engine sevkiyat formlari ve shipment read-model verilerinden hacim tahmini uretir.',
+    description: 'Tahminleme Motoru sevkiyat formları ve sevkiyat analiz modeli verilerinden hacim tahmini üretir.',
     reason: `Beklenen sevkiyat ${formatNumber(prediction.expectedShipment, 1)} ${prediction.unit}; trend ${formatPercent(prediction.growthPercent)}.`,
     ruleId: 'forecasting-shipment-surge',
     relatedEntityType: 'ForecastPrediction',
@@ -147,7 +147,7 @@ const createQualityRiskSuggestion = (
   return [createDecisionSuggestion({
     category: 'Quality',
     title: `${prediction.entityName} kalite riski tahmini`,
-    description: 'Forecasting Engine kalite formu FAIL/conditional sinyallerinden ileri kalite riski uretir.',
+    description: 'Tahminleme Motoru kalite formu başarısız/koşullu sinyallerinden ileri kalite riski üretir.',
     reason: `${prediction.entityName} beklenen kalite risk adedi ${formatNumber(prediction.expectedValue, 1)}; risk skoru ${formatNumber(prediction.riskScore, 1)}.`,
     ruleId: 'forecasting-quality-risk',
     relatedEntityType: 'ForecastPrediction',
@@ -159,7 +159,7 @@ const createQualityRiskSuggestion = (
     evidenceScore: getEvidenceScore(prediction),
     createdAt: prediction.createdAt,
     recommendationAction: 'Kalite kontrol, numune ve HACCP izleme sikligi manuel olarak artirilma senaryosuna alinmali.',
-    expectedImpact: 'Kalite FAIL, recall ve sevkiyat blokaj riskini azaltir.',
+    expectedImpact: 'Kalite başarısızlığı, geri çağırma ve sevkiyat blokaj riskini azaltır.',
     ownerRole: 'Kalite'
   })]
 }
@@ -181,8 +181,8 @@ export const createForecastingDecisionSuggestions = (
       .slice(0, 3)
       .map(prediction => createDecisionSuggestion({
         category: toDecisionCategory(prediction),
-        title: `${prediction.entityName} kritik forecast riski`,
-        description: 'Forecasting Engine kritik tahmini Decision Support listesine tasir.',
+        title: `${prediction.entityName} kritik tahmin riski`,
+        description: 'Tahminleme Motoru kritik tahmini Karar Destek listesine taşır.',
         reason: prediction.evidence,
         ruleId: 'forecasting-critical-risk',
         relatedEntityType: 'ForecastPrediction',

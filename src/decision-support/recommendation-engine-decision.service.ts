@@ -12,11 +12,11 @@ const activeRecommendationItems = (
 ) => calculateRecommendationReport({
   reportDate: getTodayKey(),
   scope: 'all',
-  responsiblePerson: 'Decision Support',
-  description: 'Decision Support read-model recommendation ozeti.',
+  responsiblePerson: 'Karar Destek Merkezi',
+  description: 'Karar Destek analiz modeli öneri özeti.',
   sourceData,
   decisionSuggestions: [],
-  actorName: 'Decision Support',
+  actorName: 'Karar Destek Merkezi',
   getReportNo: () => `RC-${new Date().getFullYear()}-000000`
 }).items
   .filter(item => item.risk === 'CRITICAL' || item.risk === 'HIGH' || item.priority === 'URGENT')
@@ -46,7 +46,7 @@ const createRecommendationSuggestion = (
   category,
   title,
   description,
-  reason: `${item.reason} Risk ${formatNumber(item.riskScore, 1)}, fayda ${formatNumber(item.expectedBenefitScore, 1)}, confidence ${formatNumber(item.confidenceScore, 1)}.`,
+  reason: `${item.reason} Risk ${formatNumber(item.riskScore, 1)}, fayda ${formatNumber(item.expectedBenefitScore, 1)}, güven skoru ${formatNumber(item.confidenceScore, 1)}.`,
   ruleId,
   relatedEntityType: 'RecommendationItem',
   relatedEntityId: item.id,
@@ -73,7 +73,7 @@ const createUrgentSuggestion = (
     'recommendation-engine-urgent',
     toDecisionCategory(item),
     `${item.relatedEntityName} icin acil otomatik oneri`,
-    'Recommendation Engine kritik risk, fayda ve confidence skorunu Decision Support icin onceliklendirir.'
+    'Öneri Motoru kritik risk, fayda ve güven skorunu Karar Destek için önceliklendirir.'
   )]
 }
 
@@ -88,7 +88,7 @@ const createCriticalStockSuggestion = (
     'recommendation-engine-critical-stock',
     'Inventory',
     `${item.relatedEntityName} kritik stok onerisi`,
-    'Recommendation Engine stok, forecast ve kritik alarm sinyallerini birlestirerek stok aksiyonunu gorunur kilar.'
+    'Öneri Motoru stok, tahmin ve kritik alarm sinyallerini birleştirerek stok aksiyonunu görünür kılar.'
   )]
 }
 
@@ -103,7 +103,7 @@ const createMaintenanceSuggestion = (
     'recommendation-engine-maintenance',
     'Production',
     `${item.machineCode || item.relatedEntityName} bakim/makine onceligi`,
-    'Recommendation Engine makine, bakim, kapasite ve bottleneck sinyallerini manuel inceleme onerisine donusturur.'
+    'Öneri Motoru makine, bakım, kapasite ve darboğaz sinyallerini manuel inceleme önerisine dönüştürür.'
   )]
 }
 
@@ -118,7 +118,7 @@ const createQualitySuggestion = (
     'recommendation-engine-quality',
     'Quality',
     `${item.relatedEntityName} kalite kontrol sikligi`,
-    'Recommendation Engine kalite, HACCP, form ve alert sinyallerinden kontrol sikligi onerisi uretir.'
+    'Öneri Motoru kalite, HACCP, form ve alarm sinyallerinden kontrol sıklığı önerisi üretir.'
   )]
 }
 
@@ -133,7 +133,7 @@ const createShipmentSuggestion = (
     'recommendation-engine-shipment',
     'Shipment',
     `${item.relatedEntityName} sevkiyat takvimi incelenmeli`,
-    'Recommendation Engine sevkiyat, planlama ve forecast sinyallerinden manuel sevkiyat onerisi uretir.'
+    'Öneri Motoru sevkiyat, planlama ve tahmin sinyallerinden manuel sevkiyat önerisi üretir.'
   )]
 }
 

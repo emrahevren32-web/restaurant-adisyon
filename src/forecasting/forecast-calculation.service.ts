@@ -867,7 +867,7 @@ const createPurchasingPredictions = (
         reportId,
         reportNo,
         recommendation: stockAlertBoost > 0 || profile.growthPercent >= 15
-          ? `${event.entityName} siparis periyodu erkene cekilmeli veya alternatif supplier manuel incelenmeli.`
+          ? `${event.entityName} sipariş periyodu erkene çekilmeli veya alternatif tedarikçi manuel incelenmeli.`
           : `${event.entityName} satin alma tahmini mevcut akisla izlenebilir.`,
         evidence: `Beklenen satin alma degeri ${roundKpi(profile.expectedValue)} ${event.unit}, kritik stok boost ${stockAlertBoost}.`
       })
@@ -958,7 +958,7 @@ const createForecastScenarios = (
       wasteMultiplier: 1,
       qualityRiskMultiplier: 1,
       capacityMultiplier: 1,
-      expectedImpact: 'Mevcut read-model verisiyle operasyonel gorunurluk saglar.',
+      expectedImpact: 'Mevcut analiz modeli verisiyle operasyonel görünürlük sağlar.',
       riskLevel
     },
     {
@@ -1060,7 +1060,7 @@ export const calculateForecastReport = (
     predictions,
     scenarios,
     history: [
-      createForecastHistory(reportId, 'CREATED', input.actorName, `${reportNo} Forecasting Engine read-model raporu olusturuldu.`),
+      createForecastHistory(reportId, 'CREATED', input.actorName, `${reportNo} Tahminleme Motoru analiz modeli raporu oluşturuldu.`),
       createForecastHistory(reportId, 'CALCULATED', input.actorName, `${predictions.length} tahmin satiri hesaplandi.`)
     ],
     sourceType: 'ReadModel',

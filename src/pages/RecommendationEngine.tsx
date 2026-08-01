@@ -27,6 +27,10 @@ import {
   ALL_FILTER,
   formatNumber
 } from '../kpi-reporting/kpi.utils'
+import {
+  getDecisionEntityTypeLabel,
+  getDecisionSourceModuleLabel
+} from '../decision-support/decision-support-ui.utils'
 import { loadEmployees } from '../storage'
 import type { User } from '../types'
 
@@ -171,7 +175,7 @@ export default function RecommendationEngine({ currentUser }: { currentUser: Use
       setForm(RecommendationService.createDefaultInput(userName))
       setMessage({ type: 'success', text: `${report.reportNo} otomatik oneri raporu olusturuldu.` })
     } catch (error) {
-      setMessage({ type: 'error', text: error instanceof Error ? error.message : 'Recommendation raporu olusturulamadi.' })
+      setMessage({ type: 'error', text: error instanceof Error ? error.message : 'Öneri raporu oluşturulamadı.' })
     }
   }
 
@@ -182,7 +186,7 @@ export default function RecommendationEngine({ currentUser }: { currentUser: Use
       refreshReports(report.items[0]?.id || selectedItemId)
       setMessage({ type: 'success', text: `${report.reportNo} ${RECOMMENDATION_STATUS_LABELS[status]} durumuna alindi.` })
     } catch (error) {
-      setMessage({ type: 'error', text: error instanceof Error ? error.message : 'Recommendation durumu guncellenemedi.' })
+      setMessage({ type: 'error', text: error instanceof Error ? error.message : 'Öneri durumu güncellenemedi.' })
     }
   }
 
@@ -211,7 +215,7 @@ export default function RecommendationEngine({ currentUser }: { currentUser: Use
           : `${report.reportNo} cikti penceresi acildi.`
       })
     } catch (error) {
-      setMessage({ type: 'error', text: error instanceof Error ? error.message : 'Recommendation ciktisi alinamadi.' })
+      setMessage({ type: 'error', text: error instanceof Error ? error.message : 'Öneri çıktısı alınamadı.' })
     }
   }
 
@@ -220,7 +224,7 @@ export default function RecommendationEngine({ currentUser }: { currentUser: Use
       <div className="page-header">
         <div>
           <h2>Otomatik Oneriler</h2>
-          <p className="muted">Forecasting, Critical Alerts, planlama, kapasite, stok, kalite ve KPI verilerinden read-model karar onerileri uretir.</p>
+          <p className="muted">Tahminleme, kritik alarmlar, planlama, kapasite, stok, kalite ve KPI verilerinden analiz modeli karar önerileri üretir.</p>
         </div>
       </div>
 
@@ -248,7 +252,7 @@ export default function RecommendationEngine({ currentUser }: { currentUser: Use
           <small>Fayda + kapasite + sure</small>
         </div>
         <div className="metric-card">
-          <span>Confidence</span>
+          <span>Güven Skoru</span>
           <strong>{formatNumber(statistics.averageConfidence, 1)}</strong>
           <small>Risk {formatNumber(statistics.averageRiskScore, 1)}</small>
         </div>
@@ -257,7 +261,7 @@ export default function RecommendationEngine({ currentUser }: { currentUser: Use
       <section className="card recommendation-engine-create-card">
         <div className="section-header compact">
           <div>
-            <h3>Yeni Recommendation Raporu</h3>
+            <h3>Yeni Öneri Raporu</h3>
             <p className="muted">Sadece analiz ve oneri olusturur; stok, satin alma, uretim, vardiya veya muhasebe kaydi olusturmaz.</p>
           </div>
           <button className="primary-button" type="button" disabled={!form.reportDate || !form.responsiblePerson} onClick={createReport}>Rapor Olustur</button>
@@ -349,7 +353,7 @@ export default function RecommendationEngine({ currentUser }: { currentUser: Use
           </label>
           <label className="form-field recommendation-engine-wide">
             <span>Arama</span>
-            <input type="search" value={filters.search} onChange={event => updateFilter('search', event.target.value)} placeholder="Rapor no, oneri, kaynak, urun, stok, hat, makine, supplier" />
+            <input type="search" value={filters.search} onChange={event => updateFilter('search', event.target.value)} placeholder="Rapor no, öneri, kaynak, ürün, stok, hat, makine, tedarikçi" />
           </label>
         </div>
       </section>
@@ -371,7 +375,7 @@ export default function RecommendationEngine({ currentUser }: { currentUser: Use
           <div className="section-header">
             <div>
               <h3>Oneri Listesi</h3>
-              <p className="muted">Oneriler Decision Support ve KPI katmanina veri saglar; otomatik uygulama yapmaz.</p>
+              <p className="muted">Öneriler Karar Destek Merkezi ve KPI katmanına veri sağlar; otomatik uygulama yapmaz.</p>
             </div>
             <span className="status-pill">{formatNumber(statistics.criticalRecommendations)} kritik</span>
           </div>
@@ -411,7 +415,7 @@ export default function RecommendationEngine({ currentUser }: { currentUser: Use
                     <td data-label="Rapor"><strong>{row.report.reportNo}</strong><span>{formatDate(row.report.reportDate)}</span></td>
                     <td data-label="Tur"><strong>{RECOMMENDATION_TYPE_LABELS[row.item.recommendationType]}</strong><span>{row.item.ownerRole}</span></td>
                     <td data-label="Oneri"><strong>{row.item.title}</strong><span>{row.item.relatedEntityName}</span></td>
-                    <td data-label="Kaynak"><strong>{row.item.sourceModule}</strong><span>{row.item.sourceNo || row.item.relatedEntityType}</span></td>
+                    <td data-label="Kaynak"><strong>{getDecisionSourceModuleLabel(row.item.sourceModule)}</strong><span>{row.item.sourceNo || getDecisionEntityTypeLabel(row.item.relatedEntityType)}</span></td>
                     <td data-label="Fayda">{formatNumber(row.item.expectedBenefitScore, 1)}</td>
                     <td data-label="Risk"><span className={`status-pill ${getRiskClass(row.item.risk)}`}>{RECOMMENDATION_RISK_LABELS[row.item.risk]}</span></td>
                     <td data-label="Oncelik"><span className={`status-pill ${getPriorityClass(row.item.priority)}`}>{RECOMMENDATION_PRIORITY_LABELS[row.item.priority]}</span></td>
@@ -484,7 +488,7 @@ function RecommendationDetailPanel({
           <div><span>Maliyet Etkisi</span><strong>{formatNumber(item.expectedCostImpact, 1)}</strong></div>
           <div><span>Kapasite Kazanci</span><strong>{formatNumber(item.expectedCapacityGain, 1)}</strong></div>
           <div><span>Sure Kazanci</span><strong>{formatNumber(item.expectedTimeGainMinutes, 1)} dk</strong></div>
-          <div><span>Confidence</span><strong>{formatNumber(item.confidenceScore, 1)}</strong></div>
+          <div><span>Güven Skoru</span><strong>{formatNumber(item.confidenceScore, 1)}</strong></div>
           <div><span>Kaynak</span><strong>{item.sourceModule}</strong></div>
           <div><span>Ilgili Moduller</span><strong>{item.relatedModules.join(', ') || '-'}</strong></div>
         </div>

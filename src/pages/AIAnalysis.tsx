@@ -19,10 +19,14 @@ import type {
   AIFinding,
   AIHistoryAction,
   AIInsight,
-  AIInsightType,
-  AISourceModule,
   AISeverity
 } from '../ai-analysis/ai-analysis.types'
+import {
+  formatDecisionCurrency as formatCurrency,
+  getDecisionInsightTypeClass as getInsightTypeClass,
+  getDecisionSeverityClass as getSeverityClass,
+  getDecisionSourceModuleLabel as getSourceModuleLabel
+} from '../decision-support/decision-support-ui.utils'
 import { ExcelExportService } from '../excel-engine/excel-export.service'
 import { loadKpiSourceData } from '../kpi-reporting/kpi-source.service'
 import type { BarChartRow, ChartSeries, PieChartSlice } from '../kpi-reporting/kpi.types'
@@ -57,36 +61,6 @@ type HeatmapRow = {
   cells: Array<{ severity: AISeverity; count: number; averageRisk: number }>
 }
 
-const SOURCE_MODULE_LABELS: Partial<Record<AISourceModule, string>> = {
-  DecisionSupport: 'Karar Destek',
-  CriticalAlerts: 'Kritik Alarmlar',
-  Forecasting: 'Tahminleme',
-  RecommendationEngine: 'Öneri Motoru',
-  ProductionPlanning: 'Üretim Planlama',
-  CapacityPlanning: 'Kapasite Planlama',
-  MachineScheduling: 'Makine Çizelgeleme',
-  WorkforcePlanning: 'Vardiya Planlama',
-  BottleneckAnalysis: 'Darboğaz Analizi',
-  ContinuousImprovement: 'Sürekli İyileştirme',
-  QualityForms: 'Kalite Formları',
-  ShipmentForms: 'Sevkiyat Formları',
-  OperationsChecklists: 'Operasyon Kontrolleri',
-  Warehouse: 'Depo',
-  Stock: 'Stok',
-  Inventory: 'Envanter',
-  Purchase: 'Satın Alma',
-  PurchaseOrders: 'Satın Alma Siparişleri',
-  GoodsReceipt: 'Mal Kabul',
-  FireManagement: 'Fire Yönetimi',
-  HACCP: 'HACCP',
-  LotManagement: 'Lot Yönetimi',
-  Shipment: 'Sevkiyat',
-  Quality: 'Kalite',
-  Maintenance: 'Bakım',
-  KPIDashboard: 'KPI Dashboard',
-  ReadModel: 'Read Model'
-}
-
 const PIE_COLORS = ['#0f766e', '#2563eb', '#f59e0b', '#dc2626', '#7c3aed', '#0891b2']
 
 const getUserName = (currentUser: User) => currentUser.fullName || currentUser.username
@@ -113,31 +87,9 @@ const formatDateTime = (value: string) => {
     })
 }
 
-const formatCurrency = (value: number) => value.toLocaleString('tr-TR', {
-  style: 'currency',
-  currency: 'TRY',
-  maximumFractionDigits: 0
-})
 
 const clamp = (value: number, min = 0, max = 100) => Math.max(min, Math.min(max, value))
 
-const getSourceModuleLabel = (module: AISourceModule | string) => (
-  SOURCE_MODULE_LABELS[module as AISourceModule] || String(module || 'Read Model')
-)
-
-const getSeverityClass = (severity: AISeverity) => {
-  if(severity === 'CRITICAL') return 'danger-pill'
-  if(severity === 'HIGH') return 'warning-pill'
-  if(severity === 'MEDIUM') return 'muted-pill'
-  return 'success'
-}
-
-const getInsightTypeClass = (type: AIInsightType) => {
-  if(type === 'RISK') return 'danger-pill'
-  if(type === 'ANOMALY' || type === 'REPEATING_PROBLEM') return 'warning-pill'
-  if(type === 'OPPORTUNITY') return 'success'
-  return 'muted-pill'
-}
 
 const getStatusClass = (status: AIAnalysisStatus) => {
   if(status === 'GENERATED') return 'warning-pill'
@@ -214,7 +166,7 @@ const createExecutiveBullets = (insights: AIInsight[]) => {
 const createExecutiveNarrative = (insights: AIInsight[]) => {
   const top = getTopInsights(insights, 1)[0]
   if(!top){
-    return 'Bugünkü read-model analizinde kritik sapma bulunmadı. Sistem, dış AI servisine veri göndermeden mevcut operasyon kayıtlarından izleme setini hazır tuttu.'
+    return 'Bugünkü analiz modeli analizinde kritik sapma bulunmadı. Sistem, dış AI servisine veri göndermeden mevcut operasyon kayıtlarından izleme setini hazır tuttu.'
   }
 
   const lineText = top.productionLineName || top.machineName || top.relatedEntityName
@@ -310,15 +262,21 @@ export default function AIAnalysis({ currentUser }: { currentUser: User }){
   ), [filteredReports])
   const statistics = React.useMemo(() => AIAnalysisService.statistics(reports), [reports])
   const filteredInsights = React.useMemo(() => getAllInsights(rows), [rows])
-  const selectedRow = rows.find(row => row.insight.id === selectedInsightId)
+  const selectedRow = React.useMemo(() => (
+    rows.find(row => row.insight.id === selectedInsightId)
     || rows[0]
     || null
-  const selectedReport = selectedRow
-    ? reports.find(report => report.id === selectedRow.report.id) || selectedRow.report
-    : reports[0] || null
-  const selectedFindings = selectedReport && selectedRow
-    ? selectedReport.findings.filter(finding => finding.insightId === selectedRow.insight.id)
-    : []
+  ), [rows, selectedInsightId])
+  const selectedReport = React.useMemo(() => (
+    selectedRow
+      ? reports.find(report => report.id === selectedRow.report.id) || selectedRow.report
+      : reports[0] || null
+  ), [reports, selectedRow])
+  const selectedFindings = React.useMemo(() => (
+    selectedReport && selectedRow
+      ? selectedReport.findings.filter(finding => finding.insightId === selectedRow.insight.id)
+      : []
+  ), [selectedReport, selectedRow])
   const branchOptions = React.useMemo(() => uniqueOptions([
     ...sourceData.branches.map(branch => ({ id: branch.id, name: branch.name })),
     ...reports.flatMap(report => report.insights.map(insight => ({ id: insight.branchId, name: insight.branchName || insight.branchId })))
@@ -354,21 +312,21 @@ export default function AIAnalysis({ currentUser }: { currentUser: User }){
     setSelectedInsightId(rows[0]?.insight.id || '')
   }, [rows, selectedInsightId])
 
-  const refreshReports = (targetInsightId?: string) => {
+  const refreshReports = React.useCallback((targetInsightId?: string) => {
     const nextReports = AIAnalysisService.list(sourceData)
     setReports(nextReports)
     if(targetInsightId) setSelectedInsightId(targetInsightId)
-  }
+  }, [sourceData])
 
-  const updateFilter = <TKey extends keyof AIAnalysisFilters>(key: TKey, value: AIAnalysisFilters[TKey]) => {
+  const updateFilter = React.useCallback(function updateFilter<TKey extends keyof AIAnalysisFilters>(key: TKey, value: AIAnalysisFilters[TKey]) {
     setFilters(prev => ({ ...prev, [key]: value }))
-  }
+  }, [])
 
-  const updateForm = <TKey extends keyof AIAnalysisReportCreateInput>(key: TKey, value: AIAnalysisReportCreateInput[TKey]) => {
+  const updateForm = React.useCallback(function updateForm<TKey extends keyof AIAnalysisReportCreateInput>(key: TKey, value: AIAnalysisReportCreateInput[TKey]) {
     setForm(prev => ({ ...prev, [key]: value }))
-  }
+  }, [])
 
-  const createReport = () => {
+  const createReport = React.useCallback(() => {
     try{
       const report = AIAnalysisService.add(form, sourceData, userName)
       const firstInsightId = report.insights[0]?.id || ''
@@ -378,9 +336,9 @@ export default function AIAnalysis({ currentUser }: { currentUser: User }){
     } catch (error) {
       setMessage({ type: 'error', text: error instanceof Error ? error.message : 'Yapay zeka analiz raporu oluşturulamadı.' })
     }
-  }
+  }, [form, refreshReports, sourceData, userName])
 
-  const changeStatus = (status: Extract<AIAnalysisStatus, 'REVIEWED' | 'ARCHIVED'>) => {
+  const changeStatus = React.useCallback((status: Extract<AIAnalysisStatus, 'REVIEWED' | 'ARCHIVED'>) => {
     if(!selectedReport) return
     try{
       const report = AIAnalysisService.updateStatus(selectedReport.id, status, sourceData, userName)
@@ -389,9 +347,9 @@ export default function AIAnalysis({ currentUser }: { currentUser: User }){
     } catch (error) {
       setMessage({ type: 'error', text: error instanceof Error ? error.message : 'Yapay zeka analiz durumu güncellenemedi.' })
     }
-  }
+  }, [refreshReports, selectedInsightId, selectedReport, sourceData, userName])
 
-  const recordOutput = (action: Extract<AIHistoryAction, 'PRINTED' | 'PDF' | 'EXCEL'>) => {
+  const recordOutput = React.useCallback((action: Extract<AIHistoryAction, 'PRINTED' | 'PDF' | 'EXCEL'>) => {
     if(!selectedReport) return
 
     try{
@@ -418,7 +376,7 @@ export default function AIAnalysis({ currentUser }: { currentUser: User }){
     } catch (error) {
       setMessage({ type: 'error', text: error instanceof Error ? error.message : 'Yapay zeka analiz çıktısı alınamadı.' })
     }
-  }
+  }, [refreshReports, selectedInsightId, selectedReport, sourceData, userName])
 
   return (
     <div className="ai-analysis-page">
@@ -433,7 +391,7 @@ export default function AIAnalysis({ currentUser }: { currentUser: User }){
 
       <section className="ai-analysis-executive">
         <div className="ai-analysis-executive-copy">
-          <span className="status-pill success">Read Model Anlık Görüntü</span>
+          <span className="status-pill success">Analiz Modeli Anlık Görüntü</span>
           <h3>Yapay Zeka Yönetici Özeti</h3>
           <p>{executiveNarrative}</p>
           <div className="ai-analysis-executive-bullets">
@@ -605,7 +563,7 @@ export default function AIAnalysis({ currentUser }: { currentUser: User }){
         <div className="section-header compact">
           <div>
             <h3>Yapay Zeka Bulguları</h3>
-            <p className="muted">Dış AI servisi kullanılmadan read-model verilerinden yorum üretildi.</p>
+            <p className="muted">Dış AI servisi kullanılmadan analiz modeli verilerinden yorum üretildi.</p>
           </div>
         </div>
         <div className="ai-analysis-narrative-grid">
@@ -716,7 +674,7 @@ export default function AIAnalysis({ currentUser }: { currentUser: User }){
   )
 }
 
-function AIAnalysisDetailPanel({
+const AIAnalysisDetailPanel = React.memo(function AIAnalysisDetailPanel({
   findings,
   insight,
   onOutput,
@@ -821,9 +779,8 @@ function AIAnalysisDetailPanel({
       </section>
     </>
   )
-}
-
-function BarChartCard({ rows, title }: { rows: BarChartRow[]; title: string }){
+})
+const BarChartCard = React.memo(function BarChartCard({ rows, title }: { rows: BarChartRow[]; title: string }){
   const maxValue = Math.max(1, ...rows.map(row => row.value))
 
   return (
@@ -851,9 +808,9 @@ function BarChartCard({ rows, title }: { rows: BarChartRow[]; title: string }){
       </div>
     </section>
   )
-}
+})
 
-function LineChartCard({ series }: { series: ChartSeries }){
+const LineChartCard = React.memo(function LineChartCard({ series }: { series: ChartSeries }){
   const maxValue = Math.max(1, ...series.points.map(point => point.value))
 
   return (
@@ -876,9 +833,9 @@ function LineChartCard({ series }: { series: ChartSeries }){
       </div>
     </section>
   )
-}
+})
 
-function PieChartCard({ slices, title }: { slices: PieChartSlice[]; title: string }){
+const PieChartCard = React.memo(function PieChartCard({ slices, title }: { slices: PieChartSlice[]; title: string }){
   const total = slices.reduce((sum, slice) => sum + slice.value, 0)
   let offset = 0
   const gradient = slices.length > 0
@@ -916,9 +873,9 @@ function PieChartCard({ slices, title }: { slices: PieChartSlice[]; title: strin
       </div>
     </section>
   )
-}
+})
 
-function HeatmapCard({ rows }: { rows: HeatmapRow[] }){
+const HeatmapCard = React.memo(function HeatmapCard({ rows }: { rows: HeatmapRow[] }){
   return (
     <section className="card kpi-chart-card ai-analysis-heatmap-card">
       <div className="section-header compact">
@@ -950,9 +907,9 @@ function HeatmapCard({ rows }: { rows: HeatmapRow[] }){
       </div>
     </section>
   )
-}
+})
 
-function TimelineCard({
+const TimelineCard = React.memo(function TimelineCard({
   insights,
   onSelect
 }: {
@@ -979,4 +936,4 @@ function TimelineCard({
       </div>
     </section>
   )
-}
+})

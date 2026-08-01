@@ -50,7 +50,7 @@ export const DECISION_RULES: DecisionRule[] = [
     id: 'production-planning-quantity-increase',
     category: 'Production',
     title: 'Production Planning uretim miktari artisi',
-    description: 'Talep ve forecast planlanan uretimi asarsa miktar revizyonu onerilir.',
+    description: 'Talep ve tahmin planlanan üretimi aşarsa miktar revizyonu önerilir.',
     baseRisk: 'HIGH',
     priority: 'HIGH',
     thresholdLabel: 'Talep acigi / planlanan uretim >= 15%'
@@ -260,67 +260,67 @@ export const DECISION_RULES: DecisionRule[] = [
     description: 'Bakim sureleri kapasite kazanci firsati olusturuyorsa bakim penceresi gozden gecirilmelidir.',
     baseRisk: 'HIGH',
     priority: 'HIGH',
-    thresholdLabel: 'Maintenance minutes > 0'
+    thresholdLabel: 'Bakım süresi > 0'
   },
   {
     id: 'continuous-improvement-urgent-opportunity',
     category: 'Production',
-    title: 'Continuous Improvement acil firsat',
+    title: 'Sürekli İyileştirme acil fırsat',
     description: 'Fayda ve risk skoru acil seviyeye ciktiginda yonetim gorunurlugu gerekir.',
     baseRisk: 'HIGH',
     priority: 'URGENT',
-    thresholdLabel: 'Opportunity priority URGENT'
+    thresholdLabel: 'Fırsat önceliği acil'
   },
   {
     id: 'critical-alert-stock-purchase',
     category: 'Inventory',
-    title: 'Critical Alert kritik stok satin alma',
-    description: 'Critical Alert Engine kritik stok alarmi uretirse satin alma veya depo transferi manuel olarak onerilir.',
+    title: 'Kritik Alarm kritik stok satın alma',
+    description: 'Kritik Alarm Motoru kritik stok alarmı üretirse satın alma veya depo transferi manuel olarak önerilir.',
     baseRisk: 'HIGH',
     priority: 'URGENT',
-    thresholdLabel: 'Critical alert category STOCK and level HIGH/CRITICAL'
+    thresholdLabel: 'Kritik alarm kategorisi stok ve seviye yüksek/kritik'
   },
   {
     id: 'critical-alert-maintenance-line',
     category: 'Production',
-    title: 'Critical Alert hat/bakim plani',
+    title: 'Kritik Alarm hat/bakım planı',
     description: 'Makine, kapasite veya bakim alarmi uretildiginde hat ve bakim plani manuel olarak gozden gecirilir.',
     baseRisk: 'HIGH',
     priority: 'HIGH',
-    thresholdLabel: 'Critical alert category MACHINE/MAINTENANCE/CAPACITY'
+    thresholdLabel: 'Kritik alarm kategorisi makine/bakım/kapasite'
   },
   {
     id: 'critical-alert-quality-fail',
     category: 'Quality',
-    title: 'Critical Alert kalite FAIL aksiyonu',
-    description: 'Kalite, HACCP, lot veya mal kabul alarmi FAIL etkisi tasiyorsa kalite aksiyon listesine alinmalidir.',
+    title: 'Kritik Alarm kalite aksiyonu',
+    description: 'Kalite, HACCP, lot veya mal kabul alarmı başarısızlık etkisi taşıyorsa kalite aksiyon listesine alınmalıdır.',
     baseRisk: 'HIGH',
     priority: 'URGENT',
-    thresholdLabel: 'Critical alert category QUALITY/HACCP/LOT/GOODS_RECEIPT'
+    thresholdLabel: 'Kritik alarm kategorisi kalite/HACCP/lot/mal kabul'
   },
   {
     id: 'critical-alert-machine-stop-review',
     category: 'Production',
-    title: 'Critical Alert makine uygunluk incelemesi',
+    title: 'Kritik Alarm makine uygunluk incelemesi',
     description: 'Kritik makine alarmi otomatik durdurma yapmadan manuel uretim uygunlugu incelemesi onerir.',
     baseRisk: 'HIGH',
     priority: 'URGENT',
-    thresholdLabel: 'Critical machine alert risk score >= 85'
+    thresholdLabel: 'Kritik makine alarmı risk skoru >= 85'
   },
   {
     id: 'critical-alert-generic-critical',
     category: 'Management',
-    title: 'Critical Alert yonetim gorunurlugu',
-    description: 'CRITICAL seviye alarm yonetim Decision Support listesinde manuel aksiyon olarak gorunur.',
+    title: 'Kritik Alarm yönetim görünürlüğü',
+    description: 'Kritik seviye alarm yönetim Karar Destek listesinde manuel aksiyon olarak görünür.',
     baseRisk: 'CRITICAL',
     priority: 'URGENT',
-    thresholdLabel: 'Critical alert level CRITICAL'
+    thresholdLabel: 'Kritik alarm seviyesi kritik'
   },
   {
     id: 'forecasting-production-increase',
     category: 'Production',
-    title: 'Forecasting uretim/talep artisi',
-    description: 'Forecasting Engine talep veya uretim tahmininde anlamli artis gordugunde kapasite ve malzeme hazirligi onerir.',
+    title: 'Tahminleme üretim/talep artışı',
+    description: 'Tahminleme Motoru talep veya üretim tahmininde anlamlı artış gördüğünde kapasite ve malzeme hazırlığı önerir.',
     baseRisk: 'HIGH',
     priority: 'HIGH',
     thresholdLabel: 'Forecast type PRODUCTION/DEMAND and growth >= 10%'
@@ -350,31 +350,31 @@ export const DECISION_RULES: DecisionRule[] = [
     description: 'Sevkiyat hacmi trend veya mevsimsellik nedeniyle artiyorsa arac ve yukleme kapasitesi incelenmelidir.',
     baseRisk: 'MEDIUM',
     priority: 'HIGH',
-    thresholdLabel: 'Forecast type SHIPMENT and growth >= 10% or seasonal'
+    thresholdLabel: 'Sevkiyat tahmini ve artış >= %10 veya mevsimsel'
   },
   {
     id: 'forecasting-quality-risk',
     category: 'Quality',
-    title: 'Forecasting kalite riski',
-    description: 'Kalite tahmini FAIL veya conditional sinyallerinde artisa isaret ederse kontrol sikligi onerilir.',
+    title: 'Tahminleme kalite riski',
+    description: 'Kalite tahmini başarısız veya koşullu sinyallerinde artışa işaret ederse kontrol sıklığı önerilir.',
     baseRisk: 'HIGH',
     priority: 'HIGH',
-    thresholdLabel: 'Forecast type QUALITY and risk HIGH/CRITICAL'
+    thresholdLabel: 'Kalite tahmini riski yüksek/kritik'
   },
   {
     id: 'forecasting-critical-risk',
     category: 'Management',
-    title: 'Forecasting kritik risk',
-    description: 'CRITICAL seviye tahmin yonetim Decision Support listesine manuel aksiyon olarak tasinir.',
+    title: 'Tahminleme kritik risk',
+    description: 'Kritik seviye tahmin yönetim Karar Destek listesine manuel aksiyon olarak taşınır.',
     baseRisk: 'CRITICAL',
     priority: 'URGENT',
-    thresholdLabel: 'Forecast risk CRITICAL'
+    thresholdLabel: 'Tahmin riski kritik'
   },
   {
     id: 'recommendation-engine-urgent',
     category: 'Management',
-    title: 'Recommendation Engine acil oneri',
-    description: 'Recommendation Engine kritik risk, beklenen fayda ve confidence skoruna gore acil manuel aksiyon onerisi uretir.',
+    title: 'Öneri Motoru acil öneri',
+    description: 'Öneri Motoru kritik risk, beklenen fayda ve güven skoruna göre acil manuel aksiyon önerisi üretir.',
     baseRisk: 'CRITICAL',
     priority: 'URGENT',
     thresholdLabel: 'Recommendation risk CRITICAL or priority URGENT'
@@ -382,8 +382,8 @@ export const DECISION_RULES: DecisionRule[] = [
   {
     id: 'recommendation-engine-critical-stock',
     category: 'Inventory',
-    title: 'Recommendation Engine kritik stok onerisi',
-    description: 'Stok, forecast ve kritik alarm sinyalleri ayni varligi isaret ediyorsa stok aksiyonu manuel olarak incelenmelidir.',
+    title: 'Öneri Motoru kritik stok önerisi',
+    description: 'Stok, tahmin ve kritik alarm sinyalleri aynı varlığı işaret ediyorsa stok aksiyonu manuel olarak incelenmelidir.',
     baseRisk: 'HIGH',
     priority: 'URGENT',
     thresholdLabel: 'Recommendation type STOCK and risk HIGH/CRITICAL'
@@ -391,7 +391,7 @@ export const DECISION_RULES: DecisionRule[] = [
   {
     id: 'recommendation-engine-maintenance',
     category: 'Production',
-    title: 'Recommendation Engine bakim/makine onceligi',
+    title: 'Öneri Motoru bakım/makine önceliği',
     description: 'Makine, bakim, kapasite ve bottleneck sinyalleri bakim zamaninin manuel incelenmesini gerektirebilir.',
     baseRisk: 'HIGH',
     priority: 'HIGH',
@@ -400,7 +400,7 @@ export const DECISION_RULES: DecisionRule[] = [
   {
     id: 'recommendation-engine-quality',
     category: 'Quality',
-    title: 'Recommendation Engine kalite kontrol sikligi',
+    title: 'Öneri Motoru kalite kontrol sıklığı',
     description: 'Kalite, HACCP, form ve alert sinyalleri kontrol sikliginin manuel artirilmasini onerebilir.',
     baseRisk: 'HIGH',
     priority: 'HIGH',
@@ -409,8 +409,8 @@ export const DECISION_RULES: DecisionRule[] = [
   {
     id: 'recommendation-engine-shipment',
     category: 'Shipment',
-    title: 'Recommendation Engine sevkiyat takvimi',
-    description: 'Sevkiyat, planlama ve forecast sinyalleri arac, yukleme veya teslimat takviminin manuel incelenmesini gerektirebilir.',
+    title: 'Öneri Motoru sevkiyat takvimi',
+    description: 'Sevkiyat, planlama ve tahmin sinyalleri araç, yükleme veya teslimat takviminin manuel incelenmesini gerektirebilir.',
     baseRisk: 'MEDIUM',
     priority: 'HIGH',
     thresholdLabel: 'Recommendation type SHIPMENT'
@@ -454,11 +454,11 @@ export const DECISION_RULES: DecisionRule[] = [
   {
     id: 'quality-ccp-failure-risk',
     category: 'Quality',
-    title: 'Tekrarlayan CCP FAIL icin risk uyarisi',
-    description: 'Ayni CCP son 30 gunde cok FAIL verdiyse proses kontrolu sertlestirilmelidir.',
+    title: 'Tekrarlayan kritik kontrol noktası başarısızlığı için risk uyarısı',
+    description: 'Aynı kritik kontrol noktası son 30 günde çok başarısız sonuç verdiyse proses kontrolü sıkılaştırılmalıdır.',
     baseRisk: 'CRITICAL',
     priority: 'URGENT',
-    thresholdLabel: 'CCP FAIL count >= 3'
+    thresholdLabel: 'Kritik kontrol noktası başarısız sonuç sayısı >= 3'
   },
   {
     id: 'quality-haccp-meeting',
@@ -490,17 +490,17 @@ export const DECISION_RULES: DecisionRule[] = [
   {
     id: 'quality-form-product-fail-increase',
     category: 'Quality',
-    title: 'Quality Forms urun FAIL orani artisi',
-    description: 'Son kalite formlarinda ayni urunde FAIL orani artiyorsa kalite kok neden analizi gerekir.',
+    title: 'Kalite Formları ürün başarısızlık oranı artışı',
+    description: 'Son kalite formlarında aynı üründe başarısızlık oranı artıyorsa kalite kök neden analizi gerekir.',
     baseRisk: 'HIGH',
     priority: 'HIGH',
-    thresholdLabel: 'Son 30 gun FAIL orani onceki periyoda gore >= 10 puan'
+    thresholdLabel: 'Son 30 gün başarısızlık oranı önceki periyoda göre >= 10 puan'
   },
   {
     id: 'quality-form-supplier-problem',
     category: 'Quality',
-    title: 'Quality Forms supplier kalite problemi',
-    description: 'Ayni supplier son teslimatlarda tekrar eden kalite problemi olusturuyorsa satin alma ve kalite birlikte aksiyon almalidir.',
+    title: 'Kalite Formları tedarikçi kalite problemi',
+    description: 'Aynı tedarikçi son teslimatlarda tekrar eden kalite problemi oluşturuyorsa satın alma ve kalite birlikte aksiyon almalıdır.',
     baseRisk: 'HIGH',
     priority: 'HIGH',
     thresholdLabel: 'Son 5 mal kabul kalite formunda >= 3 problem'
@@ -517,11 +517,11 @@ export const DECISION_RULES: DecisionRule[] = [
   {
     id: 'operation-checklist-equipment-fail-increase',
     category: 'Production',
-    title: 'Operations Checklists ekipman FAIL artisi',
-    description: 'Ayni ekipman veya bakim checklistlerinde FAIL orani artiyorsa plansiz durus riski olusur.',
+    title: 'Operasyon Kontrolleri ekipman başarısızlık artışı',
+    description: 'Aynı ekipman veya bakım kontrol listelerinde başarısızlık oranı artıyorsa plansız duruş riski oluşur.',
     baseRisk: 'HIGH',
     priority: 'HIGH',
-    thresholdLabel: 'Son 15 gun ekipman checklist FAIL orani >= 25%'
+    thresholdLabel: 'Son 15 gün ekipman kontrol listesi başarısızlık oranı >= %25'
   },
   {
     id: 'operation-checklist-cleaning-incomplete',
@@ -539,21 +539,21 @@ export const DECISION_RULES: DecisionRule[] = [
     description: 'Soguk oda checklistlerinde sicaklik veya depo duzeni sapmalari artiyorsa soguk zincir riski olusur.',
     baseRisk: 'HIGH',
     priority: 'HIGH',
-    thresholdLabel: 'Son 30 gun soguk oda WARNING/FAIL checklist sayisi >= 2'
+    thresholdLabel: 'Son 30 gün soğuk oda uyarı/başarısız kontrol listesi sayısı >= 2'
   },
   {
     id: 'purchasing-late-supplier',
     category: 'Purchasing',
-    title: 'Teslim suresi uzayan tedarikci icin alternatif supplier oner',
+    title: 'Teslim süresi uzayan tedarikçi için alternatif tedarikçi öner',
     description: 'Gercek teslim suresi lead time uzerine cikarsa ikinci kaynak planlanmalidir.',
     baseRisk: 'HIGH',
     priority: 'HIGH',
-    thresholdLabel: 'Average delivery days > supplier lead time + 2'
+    thresholdLabel: 'Ortalama teslim süresi > tedarikçi teslim süresi + 2'
   },
   {
     id: 'purchasing-rejection-risk',
     category: 'Purchasing',
-    title: 'Yuksek red orani icin supplier risk olustur',
+    title: 'Yüksek red oranı için tedarikçi riski oluştur',
     description: 'Mal kabul red orani yuksek tedarikciler kalite ve satin alma tarafinda izlenmelidir.',
     baseRisk: 'HIGH',
     priority: 'HIGH',
@@ -562,7 +562,7 @@ export const DECISION_RULES: DecisionRule[] = [
   {
     id: 'purchasing-single-supplier',
     category: 'Purchasing',
-    title: 'Tek tedarikci yogunlugu icin ikinci supplier oner',
+    title: 'Tek tedarikçi yoğunluğu için ikinci tedarikçi öner',
     description: 'Alim hacminin buyuk kismi tek tedarikcideyse tedarik surekliligi riski olusur.',
     baseRisk: 'MEDIUM',
     priority: 'NORMAL',
@@ -608,7 +608,7 @@ export const DECISION_RULES: DecisionRule[] = [
     id: 'shipment-form-cold-chain-deviation',
     category: 'Shipment',
     title: 'Shipment Forms soguk zincir sapmasi',
-    description: 'Sicaklik loglarinda WARNING veya FAIL artarsa sogutucu sistem ve yukleme sureci kontrol edilmelidir.',
+    description: 'Sıcaklık kayıtlarında uyarı veya başarısız sonuç artarsa soğutucu sistem ve yükleme süreci kontrol edilmelidir.',
     baseRisk: 'HIGH',
     priority: 'HIGH',
     thresholdLabel: 'Son 30 gun sicaklik sapmasi >= 2'
@@ -652,8 +652,8 @@ export const DECISION_RULES: DecisionRule[] = [
   {
     id: 'cost-optimization-raw-material',
     category: 'Purchasing',
-    title: 'Cost Optimization hammadde maliyeti artisi',
-    description: 'Cost Optimization Engine hammadde, satin alma ve recete maliyetindeki artisi parasal tasarruf potansiyeline cevirir.',
+    title: 'Maliyet Optimizasyonu hammadde maliyeti artışı',
+    description: 'Maliyet Optimizasyon Motoru hammadde, satın alma ve reçete maliyetindeki artışı parasal tasarruf potansiyeline çevirir.',
     baseRisk: 'HIGH',
     priority: 'HIGH',
     thresholdLabel: 'RAW_MATERIAL tasarruf potansiyeli > 0 veya risk HIGH/CRITICAL'
@@ -661,7 +661,7 @@ export const DECISION_RULES: DecisionRule[] = [
   {
     id: 'cost-optimization-energy',
     category: 'Production',
-    title: 'Cost Optimization enerji maliyeti',
+    title: 'Maliyet Optimizasyonu enerji maliyeti',
     description: 'Hat, makine bos sure ve kapasite verileri enerji maliyeti ortalamanin uzerine ciktiginda manuel inceleme onerir.',
     baseRisk: 'MEDIUM',
     priority: 'HIGH',
@@ -670,7 +670,7 @@ export const DECISION_RULES: DecisionRule[] = [
   {
     id: 'cost-optimization-maintenance',
     category: 'Production',
-    title: 'Cost Optimization bakim maliyeti',
+    title: 'Maliyet Optimizasyonu bakım maliyeti',
     description: 'Bakim ve makine kaynakli maliyet sapmasi kritik seviyeye yaklastiginda bakim penceresi manuel olarak incelenir.',
     baseRisk: 'HIGH',
     priority: 'HIGH',
@@ -679,7 +679,7 @@ export const DECISION_RULES: DecisionRule[] = [
   {
     id: 'cost-optimization-waste',
     category: 'Production',
-    title: 'Cost Optimization fire tasarrufu',
+    title: 'Maliyet Optimizasyonu fire tasarrufu',
     description: 'Fire, lot, kalite ve recipe cost verileri parasal tasarruf firsati urettiginde kok neden analizi onerilir.',
     baseRisk: 'HIGH',
     priority: 'HIGH',
@@ -688,8 +688,8 @@ export const DECISION_RULES: DecisionRule[] = [
   {
     id: 'cost-optimization-supplier',
     category: 'Purchasing',
-    title: 'Cost Optimization alternatif supplier',
-    description: 'Purchase Orders, Goods Receipt ve supplier kalite maliyetleri alternatif tedarikci karar sinyaline donusturulur.',
+    title: 'Maliyet Optimizasyonu alternatif tedarikçi',
+    description: 'Satın Alma Siparişleri, Mal Kabul ve tedarikçi kalite maliyetleri alternatif tedarikçi karar sinyaline dönüştürülür.',
     baseRisk: 'MEDIUM',
     priority: 'HIGH',
     thresholdLabel: 'Supplier bagli cost optimization kalemi'
@@ -697,7 +697,7 @@ export const DECISION_RULES: DecisionRule[] = [
   {
     id: 'purchase-recommendation-critical-stock',
     category: 'Purchasing',
-    title: 'Purchase Recommendation kritik stok',
+    title: 'Satın Alma Önerisi kritik stok',
     description: 'Minimum stok altina inen veya hizla tukenecek hammadde icin satin alma aksiyonu onerilir.',
     baseRisk: 'CRITICAL',
     priority: 'URGENT',
@@ -706,8 +706,8 @@ export const DECISION_RULES: DecisionRule[] = [
   {
     id: 'purchase-recommendation-stockout-soon',
     category: 'Purchasing',
-    title: 'Purchase Recommendation yaklasan stok tukenmesi',
-    description: 'Tuketim hizi ve forecast sinyali stok tukenmesini yaklastirdiginda satin alma tarihi one cekilmelidir.',
+    title: 'Satın Alma Önerisi yaklaşan stok tükenmesi',
+    description: 'Tüketim hızı ve tahmin sinyali stok tükenmesini yaklaştırdığında satın alma tarihi öne çekilmelidir.',
     baseRisk: 'HIGH',
     priority: 'HIGH',
     thresholdLabel: 'Estimated stockout <= 7 gun'
@@ -715,17 +715,17 @@ export const DECISION_RULES: DecisionRule[] = [
   {
     id: 'purchase-recommendation-forecast-order',
     category: 'Purchasing',
-    title: 'Purchase Recommendation forecast siparis',
-    description: 'Forecasting ve Recommendation Engine sinyalleri satin alma ihtiyacina donusturulur.',
+    title: 'Satın Alma Önerisi tahmine dayalı sipariş',
+    description: 'Tahminleme ve Öneri Motoru sinyalleri satın alma ihtiyacına dönüştürülür.',
     baseRisk: 'HIGH',
     priority: 'HIGH',
-    thresholdLabel: 'Forecast risk >= HIGH'
+    thresholdLabel: 'Tahmin riski >= yüksek'
   },
   {
     id: 'purchase-recommendation-bulk-buy',
     category: 'Purchasing',
-    title: 'Purchase Recommendation toplu alim',
-    description: 'Supplier MOQ ve stok ihtiyaci birlikte avantaj urettiginde toplu alim degerlendirilir.',
+    title: 'Satın Alma Önerisi toplu alım',
+    description: 'Tedarikçi minimum sipariş miktarı ve stok ihtiyacı birlikte avantaj ürettiğinde toplu alım değerlendirilir.',
     baseRisk: 'MEDIUM',
     priority: 'NORMAL',
     thresholdLabel: 'Recommended quantity >= MOQ'
@@ -733,43 +733,43 @@ export const DECISION_RULES: DecisionRule[] = [
   {
     id: 'purchase-recommendation-alternative-supplier',
     category: 'Purchasing',
-    title: 'Purchase Recommendation alternatif tedarikci',
+    title: 'Satın Alma Önerisi alternatif tedarikçi',
     description: 'Alternatif tedarikci fiyat veya kalite avantaji varsa satin alma karsilastirmasi onerilir.',
     baseRisk: 'MEDIUM',
     priority: 'HIGH',
-    thresholdLabel: 'Alternative supplier advantage >= 5%'
+    thresholdLabel: 'Alternatif tedarikçi avantajı >= %5'
   },
   {
     id: 'purchase-recommendation-cost-advantage',
     category: 'Purchasing',
-    title: 'Purchase Recommendation maliyet avantaji',
-    description: 'Cost Optimization ve Recipe Cost sinyalleri satin alma tasarruf aksiyonuna donusturulur.',
+    title: 'Satın Alma Önerisi maliyet avantajı',
+    description: 'Maliyet Optimizasyonu ve Reçete Maliyeti sinyalleri satın alma tasarruf aksiyonuna dönüştürülür.',
     baseRisk: 'HIGH',
     priority: 'HIGH',
-    thresholdLabel: 'Expected saving > 0'
+    thresholdLabel: 'Beklenen tasarruf > 0'
   },
   {
     id: 'purchase-recommendation-waste-replenishment',
     category: 'Purchasing',
-    title: 'Purchase Recommendation fire yenileme',
+    title: 'Satın Alma Önerisi fire yenileme',
     description: 'Fire ve mal kabul reddi kaynakli eksilen miktar satin alma takibine alinir.',
     baseRisk: 'HIGH',
     priority: 'HIGH',
-    thresholdLabel: 'Waste/rejection quantity > 0'
+    thresholdLabel: 'Fire/red miktarı > 0'
   },
   {
     id: 'purchase-recommendation-seasonal-purchase',
     category: 'Purchasing',
-    title: 'Purchase Recommendation sezonluk alim',
+    title: 'Satın Alma Önerisi sezonluk alım',
     description: 'Mevsimsel talep artisi satin alma hazirligi gerektirdiginde karar destegi uretir.',
     baseRisk: 'MEDIUM',
     priority: 'NORMAL',
-    thresholdLabel: 'Seasonality score >= 25'
+    thresholdLabel: 'Mevsimsellik skoru >= 25'
   },
   {
     id: 'waste-product-increase',
     category: 'Production',
-    title: 'Waste Management urun fire artisi',
+    title: 'Fire Yönetimi ürün fire artışı',
     description: 'Son 30 gunde urun bazli fire artisi belirginse recete, lot ve proses kok nedeni incelenmelidir.',
     baseRisk: 'HIGH',
     priority: 'HIGH',
@@ -800,7 +800,7 @@ export const DECISION_RULES: DecisionRule[] = [
     description: 'Birden fazla kritik risk ayni anda olustugunda koordineli yonetim aksiyonu gerekir.',
     baseRisk: 'CRITICAL',
     priority: 'URGENT',
-    thresholdLabel: 'Critical suggestion count >= 3'
+    thresholdLabel: 'Kritik öneri sayısı >= 3'
   }
 ]
 

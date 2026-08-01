@@ -51,8 +51,8 @@ export const CRITICAL_ALERT_RULES: AlertRule[] = [
     category: 'HACCP',
     level: 'CRITICAL',
     title: 'HACCP kritik limit asimi',
-    description: 'HACCP monitoring kaydinda FAIL sonucu olustu.',
-    thresholdLabel: 'monitoring result FAIL',
+    description: 'HACCP izleme kaydında başarısız sonuç oluştu.',
+    thresholdLabel: 'İzleme sonucu başarısız',
     sourceModule: 'HACCP',
     enabled: true
   },
@@ -61,9 +61,9 @@ export const CRITICAL_ALERT_RULES: AlertRule[] = [
     code: 'QUALITY_FAIL_RATE',
     category: 'QUALITY',
     level: 'HIGH',
-    title: 'Kalite FAIL orani yukseliyor',
-    description: 'Quality Forms veya operasyon formlarinda FAIL sonucu tespit edildi.',
-    thresholdLabel: 'FAIL count > 0',
+    title: 'Kalite başarısızlık oranı yükseliyor',
+    description: 'Kalite Formları veya operasyon formlarında başarısız sonuç tespit edildi.',
+    thresholdLabel: 'Başarısız sonuç sayısı > 0',
     sourceModule: 'QualityForms',
     enabled: true
   },

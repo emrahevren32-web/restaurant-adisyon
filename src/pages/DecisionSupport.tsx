@@ -137,11 +137,11 @@ export default function DecisionSupport({ currentUser }: { currentUser: User }){
     <div className="decision-support-page">
       <div className="page-header">
         <div>
-          <h2>Decision Support</h2>
-          <p className="muted">ERP verilerini read-model olarak analiz eden Rule, Risk ve Recommendation Engine.</p>
+          <h2>Karar Destek Merkezi</h2>
+          <p className="muted">ERP verilerini analiz modeli olarak işleyen kural, risk ve öneri motoru.</p>
         </div>
         <div className="decision-header-actions">
-          <span className="status-pill success">Read Model</span>
+          <span className="status-pill success">Analiz Modeli</span>
           <span className="muted">{getUserName(currentUser)}</span>
         </div>
       </div>
@@ -207,16 +207,16 @@ export default function DecisionSupport({ currentUser }: { currentUser: User }){
             </select>
           </label>
           <label className="form-field">
-            <span>Supplier</span>
+            <span>Tedarikçi</span>
             <select value={filters.supplierId} onChange={event => updateFilter('supplierId', event.target.value)}>
-              <option value={ALL_FILTER}>Tum Supplier</option>
+              <option value={ALL_FILTER}>Tüm Tedarikçiler</option>
               {sourceData.suppliers.map(supplier => <option key={supplier.id} value={supplier.id}>{supplier.name}</option>)}
             </select>
           </label>
           <label className="form-field">
-            <span>Work Order</span>
+            <span>İş Emri</span>
             <select value={filters.workOrderId} onChange={event => updateFilter('workOrderId', event.target.value)}>
-              <option value={ALL_FILTER}>Tum Work Order</option>
+              <option value={ALL_FILTER}>Tüm İş Emirleri</option>
               {workOrderOptions.map(order => <option key={order.id} value={order.id}>{order.label}</option>)}
             </select>
           </label>
@@ -231,8 +231,8 @@ export default function DecisionSupport({ currentUser }: { currentUser: User }){
         <section className="product-main card">
           <div className="section-header">
             <div>
-              <h3>Decision Suggestions</h3>
-              <p className="muted">Rule Engine tarafindan uretilen oneriler. Operasyon otomatik baslatilmaz.</p>
+              <h3>Karar Önerileri</h3>
+              <p className="muted">Kural motoru tarafından üretilen öneriler. Operasyon otomatik başlatılmaz.</p>
             </div>
           </div>
           <div className="table-wrap decision-table-wrap">
@@ -243,8 +243,8 @@ export default function DecisionSupport({ currentUser }: { currentUser: User }){
                   <th>Oneri</th>
                   <th>Risk</th>
                   <th>Oncelik</th>
-                  <th>Ilgili Entity</th>
-                  <th>Olusturma</th>
+                  <th>İlgili Kayıt</th>
+                  <th>Oluşturma</th>
                 </tr>
               </thead>
               <tbody>
@@ -267,7 +267,7 @@ export default function DecisionSupport({ currentUser }: { currentUser: User }){
                     <td data-label="Oneri"><strong>{suggestion.title}</strong><span>{suggestion.description}</span></td>
                     <td data-label="Risk"><span className={`status-pill ${getRiskClass(suggestion.risk)}`}>{suggestion.risk} / {suggestion.riskScore}</span></td>
                     <td data-label="Oncelik"><span className={`status-pill ${getPriorityClass(suggestion.priority)}`}>{suggestion.priority}</span></td>
-                    <td data-label="Ilgili Entity">{getRelatedEntityLabel(suggestion, sourceData)}</td>
+                    <td data-label="İlgili Kayıt">{getRelatedEntityLabel(suggestion, sourceData)}</td>
                     <td data-label="Olusturma">{formatDateTime(suggestion.createdAt)}</td>
                   </tr>
                 ))}
@@ -293,7 +293,7 @@ function DecisionDashboardCards({ view }: { view: ReturnType<typeof createDecisi
     ['Bekleyen Corrective Action', view.dashboard.pendingCorrectiveActions, view.dashboard.pendingCorrectiveActions > 0 ? 'warning' : 'success'],
     ['Kritik Stoklar', view.dashboard.criticalStocks, view.dashboard.criticalStocks > 0 ? 'danger' : 'success'],
     ['Yuksek Fire', view.dashboard.highFire, view.dashboard.highFire > 0 ? 'warning' : 'success'],
-    ['Riskli Supplier', view.dashboard.riskySuppliers, view.dashboard.riskySuppliers > 0 ? 'warning' : 'success'],
+    ['Riskli Tedarikçi', view.dashboard.riskySuppliers, view.dashboard.riskySuppliers > 0 ? 'warning' : 'success'],
     ['Riskli CCP', view.dashboard.riskyCcps, view.dashboard.riskyCcps > 0 ? 'danger' : 'success'],
     ['Geciken Uretim', view.dashboard.delayedProduction, view.dashboard.delayedProduction > 0 ? 'warning' : 'success'],
     ['Geciken Sevkiyat', view.dashboard.delayedShipments, view.dashboard.delayedShipments > 0 ? 'warning' : 'success']
@@ -341,7 +341,7 @@ function DecisionDetailPanel({
         <div><span>Risk</span><strong>{suggestion.risk}</strong></div>
         <div><span>Oncelik</span><strong>{suggestion.priority}</strong></div>
         <div><span>Status</span><strong>{suggestion.status}</strong></div>
-        <div><span>Entity</span><strong>{getRelatedEntityLabel(suggestion, sourceData)}</strong></div>
+        <div><span>İlgili Kayıt</span><strong>{getRelatedEntityLabel(suggestion, sourceData)}</strong></div>
         <div><span>Owner</span><strong>{suggestion.recommendation.ownerRole}</strong></div>
       </div>
       <div className="decision-explain-list">
@@ -367,7 +367,7 @@ function RuleEnginePanel({ view }: { view: ReturnType<typeof createDecisionSuppo
     <section className="card decision-detail-card">
       <div className="section-header compact">
         <div>
-          <h3>Rule Engine</h3>
+          <h3>Kural Motoru</h3>
           <p className="muted">AI Engine icin degistirilebilir kural katalogu.</p>
         </div>
         <span className="status-pill">{formatNumber(view.rules.length)} rule</span>

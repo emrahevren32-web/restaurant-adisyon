@@ -21,6 +21,10 @@ import Login from './pages/Login'
 import AppShell, { ShellNavGroup, ShellNavItem } from './components/AppShell'
 import OnboardingExperience from './components/OnboardingExperience'
 import RouteErrorBoundary from './components/RouteErrorBoundary'
+import {
+  clearDecisionIndexedRecords,
+  isDecisionStorageError
+} from './read-model/decision-indexed-storage.service'
 import { resolveSecurityTargetForIdentity } from './auth/authentication-pipeline'
 import {
   AuthenticationState,
@@ -341,6 +345,7 @@ export default function App(){
   const [branches, setBranches] = React.useState<Branch[]>(() => getVisibleBranchesForUser(initialUser))
   const [activeBranchId, setActiveBranchState] = React.useState(() => getActiveBranchId())
   const [licenseAccessError, setLicenseAccessError] = React.useState('')
+  const [storageRecoveryMessage, setStorageRecoveryMessage] = React.useState('')
   const [selectedCustomerId, setSelectedCustomerId] = React.useState('')
   const [selectedPendingApplicationId, setSelectedPendingApplicationId] = React.useState('')
   const [onboardingRefreshKey, setOnboardingRefreshKey] = React.useState(0)
@@ -418,6 +423,36 @@ export default function App(){
     setActiveNavKey(workspaceSetupCompleted ? 'dashboard' : 'workspace-welcome')
     setOpenGroupKey('system-modules')
   }, [currentUser, isPlatformAdmin, route, workspaceSetupCompleted])
+  React.useEffect(() => {
+    let recoveryTimer: number | undefined
+    const recoverDecisionStorage = (error: unknown) => {
+      if(!isDecisionStorageError(error)) return
+      clearDecisionIndexedRecords()
+      setStorageRecoveryMessage('Karar Destek önbelleği temizleniyor.')
+      window.clearTimeout(recoveryTimer)
+      recoveryTimer = window.setTimeout(() => setStorageRecoveryMessage(''), 4200)
+    }
+    const onDecisionStorageError = (event: Event) => {
+      recoverDecisionStorage((event as CustomEvent).detail?.message || event)
+    }
+    const onWindowError = (event: ErrorEvent) => {
+      recoverDecisionStorage(event.error || event.message)
+    }
+    const onUnhandledRejection = (event: PromiseRejectionEvent) => {
+      recoverDecisionStorage(event.reason)
+    }
+
+    window.addEventListener('decision-storage-error', onDecisionStorageError)
+    window.addEventListener('error', onWindowError)
+    window.addEventListener('unhandledrejection', onUnhandledRejection)
+
+    return () => {
+      window.clearTimeout(recoveryTimer)
+      window.removeEventListener('decision-storage-error', onDecisionStorageError)
+      window.removeEventListener('error', onWindowError)
+      window.removeEventListener('unhandledrejection', onUnhandledRejection)
+    }
+  }, [])
 
   const onLogin = (nextAuthState: AuthenticationState) => {
     const u = nextAuthState.currentUser
@@ -661,6 +696,7 @@ export default function App(){
         routeLabel={activeNavLabel}
       >
       {licenseAccessError && <div className="form-error license-access-error">{licenseAccessError}</div>}
+      {storageRecoveryMessage && <div className="settings-message warning">{storageRecoveryMessage}</div>}
       {firstLoginOnboardingRequired && firstLoginOnboardingState ? (
         <FirstLoginWizard
           currentUser={currentUser}

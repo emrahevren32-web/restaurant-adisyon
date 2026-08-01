@@ -4,6 +4,10 @@ import {
   ALL_FILTER,
   roundKpi
 } from '../kpi-reporting/kpi.utils'
+import {
+  getDecisionIndexedRecord,
+  setDecisionIndexedRecord
+} from '../read-model/decision-indexed-storage.service'
 import { getDecisionReadModelSnapshot } from '../read-model/decision-read-model-snapshot.service'
 import { resolveReadModel } from '../read-model/read-model-safety'
 import { calculateCostOptimizationReport, CostAnalysisService } from './cost-analysis.service'
@@ -56,7 +60,7 @@ const COST_OPTIMIZATION_NO_PREFIX = 'CO'
 const COST_OPTIMIZATION_NO_PADDING = 6
 
 const isBrowserStorageAvailable = () => (
-  typeof window !== 'undefined' && typeof localStorage !== 'undefined'
+  typeof window !== 'undefined'
 )
 
 const isRecord = (value: unknown): value is Record<string, unknown> => (
@@ -101,7 +105,7 @@ export const createDefaultCostOptimizationFilters = (): CostOptimizationFilters 
 })
 
 export const createDefaultCostOptimizationReportInput = (
-  responsiblePerson = 'Cost Optimization Engine'
+  responsiblePerson = 'Maliyet Optimizasyon Motoru'
 ): CostOptimizationReportCreateInput => ({
   reportDate: getTodayKey(),
   scope: 'all',
@@ -141,7 +145,7 @@ const normalizeHistory = (
     reportId,
     action: normalizeText(history.action).toUpperCase() as CostHistoryAction,
     actorName: normalizeText(history.actorName) || actorName,
-    description: normalizeText(history.description) || 'Cost Optimization raporu guncellendi.',
+    description: normalizeText(history.description) || 'Maliyet optimizasyon raporu güncellendi.',
     revisionNo: normalizeNumber(history.revisionNo) || 1,
     createdAt: normalizeText(history.createdAt) || new Date().toISOString()
   }))
@@ -205,7 +209,7 @@ const normalizeItem = (
     : [],
   relatedEntityType: normalizeText(value.relatedEntityType),
   relatedEntityId: normalizeText(value.relatedEntityId),
-  relatedEntityName: normalizeText(value.relatedEntityName) || 'Read Model',
+  relatedEntityName: normalizeText(value.relatedEntityName) || 'Analiz Modeli',
   productId: normalizeText(value.productId),
   productName: normalizeText(value.productName),
   branchId: normalizeText(value.branchId),
@@ -230,7 +234,7 @@ const normalizeReport = (
   const reportNo = normalizeText(value.reportNo) || getNextCostOptimizationNo([], reportDate, index)
   const id = normalizeText(value.id) || `cost_optimization_${reportNo}`.replace(/[^a-zA-Z0-9_]+/g, '_')
   const createdAt = normalizeText(value.createdAt) || new Date().toISOString()
-  const actorName = 'Cost Optimization Engine'
+  const actorName = 'Maliyet Optimizasyon Motoru'
   const items = Array.isArray(value.items)
     ? value.items.filter(isRecord).map((item, itemIndex) => normalizeItem(item as RawCostOptimizationItem, id, reportNo, itemIndex))
     : []
@@ -264,7 +268,7 @@ const normalizeReport = (
 
 export const saveCostOptimizationReports = (reports: CostOptimizationReport[]) => {
   if(!isBrowserStorageAvailable()) return
-  localStorage.setItem(COST_OPTIMIZATION_STORAGE_KEY, JSON.stringify(reports))
+  setDecisionIndexedRecord(COST_OPTIMIZATION_STORAGE_KEY, reports)
 }
 
 const createCostOptimizationFallbackReport = (
@@ -302,7 +306,7 @@ export const evaluateCostOptimizationReport = (
   sourceData: KpiSourceData,
   input: Partial<CostOptimizationReportCreateInput> = {},
   existingReports: CostOptimizationReport[] = [],
-  actorName = 'Cost Optimization Engine'
+  actorName = 'Maliyet Optimizasyon Motoru'
 ) => {
   const createInput = {
     ...createDefaultCostOptimizationReportInput(actorName),
@@ -338,7 +342,7 @@ export const loadCostOptimizationReports = (
 ) => {
   if(!isBrowserStorageAvailable()) return [evaluateCostOptimizationReport(sourceData)]
 
-  const stored = localStorage.getItem(COST_OPTIMIZATION_STORAGE_KEY)
+  const stored = getDecisionIndexedRecord<RawCostOptimizationReport[]>(COST_OPTIMIZATION_STORAGE_KEY)
   if(stored === null){
     const defaultReport = evaluateCostOptimizationReport(sourceData)
     saveCostOptimizationReports([defaultReport])
@@ -346,9 +350,8 @@ export const loadCostOptimizationReports = (
   }
 
   try {
-    const parsed = JSON.parse(stored)
-    if(Array.isArray(parsed)){
-      const reports = parsed
+    if(Array.isArray(stored)){
+      const reports = stored
         .filter(isRecord)
         .map((record, index) => normalizeReport(record as RawCostOptimizationReport, index))
         .sort((first, second) => second.reportDate.localeCompare(first.reportDate) || first.reportNo.localeCompare(second.reportNo))
@@ -437,7 +440,7 @@ export const updateCostOptimizationReportStatus = (
 ) => {
   const reports = loadCostOptimizationReports(sourceData)
   const report = reports.find(record => record.id === reportId)
-  if(!report) throw new Error('Cost Optimization report bulunamadi.')
+  if(!report) throw new Error('Maliyet optimizasyon raporu bulunamadı.')
   const actionByStatus: Record<Extract<CostOptimizationStatus, 'REVIEWED' | 'ARCHIVED'>, CostHistoryAction> = {
     REVIEWED: 'REVIEWED',
     ARCHIVED: 'ARCHIVED'
@@ -463,7 +466,7 @@ export const recordCostOptimizationOutput = (
 ) => {
   const reports = loadCostOptimizationReports(sourceData)
   const report = reports.find(record => record.id === reportId)
-  if(!report) throw new Error('Cost Optimization report bulunamadi.')
+  if(!report) throw new Error('Maliyet optimizasyon raporu bulunamadı.')
   const nextReport = appendCostHistory(
     report,
     action,
