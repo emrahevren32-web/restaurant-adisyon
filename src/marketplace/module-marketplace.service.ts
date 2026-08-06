@@ -99,7 +99,7 @@ const resolveBadges = (
   }
 
   if(installState === 'UNINSTALLED'){
-    badges.push({ type: 'uninstalled', label: "Workspace'ten Kaldırıldı" })
+    badges.push({ type: 'uninstalled', label: 'Çalışma Alanından Kaldırıldı' })
   }
 
   if(installState === 'AVAILABLE'){

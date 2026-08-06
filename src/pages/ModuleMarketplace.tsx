@@ -1,4 +1,5 @@
 import React from 'react'
+import * as XLSX from 'xlsx'
 import ModuleSetupWizard from '../components/ModuleSetupWizard'
 import {
   getMarketplaceCatalog,
@@ -22,7 +23,10 @@ import type {
   MarketplaceModule,
   MarketplaceModuleState
 } from '../marketplace/marketplace.types'
-import { getBusinessWorkspaceModuleById } from '../modules/business-workspace.registry'
+import {
+  getBusinessWorkspaceModuleById,
+  type BusinessWorkspaceModule
+} from '../modules/business-workspace.registry'
 import type { WorkspaceModuleType } from '../modules/module-registry.types'
 import type { User } from '../types'
 import { getCompanyIdForUser, loadCompanies } from '../storage'
@@ -32,6 +36,8 @@ import {
   getWorkspaceModuleLifecycleStateForUser,
   installWorkspaceModuleForUser,
   suspendWorkspaceModuleForUser,
+  WORKSPACE_MODULE_LIFECYCLE_EVENT,
+  type WorkspaceModuleLifecycleAction,
   type WorkspaceModuleLifecycleResult
 } from '../workspace/workspace-module-lifecycle.service'
 import {
@@ -40,19 +46,67 @@ import {
   startModuleSetupWizardForModule
 } from '../workspace/module-setup-wizard.service'
 import type { ModuleSetupWizardSession } from '../workspace/module-setup-wizard.types'
-import { provisionWorkspaceForModuleLifecycleResult } from '../workspace-provisioning/workspace-provisioning.service'
+import {
+  WORKSPACE_PROVISIONING_EVENT,
+  provisionWorkspaceForModuleLifecycleResult
+} from '../workspace-provisioning/workspace-provisioning.service'
+import {
+  createModuleInstallationExperiencePreview,
+  createModuleUninstallImpactAnalysis,
+  getModuleLifecycleProgressSteps,
+  type ModuleInstallationExperiencePreview,
+  type ModuleLifecycleProgressStep,
+  type ModuleUninstallImpactAnalysis
+} from '../workspace/workspace-module-experience.service'
 
 type Props = {
   currentUser: User
   onModuleLifecycleChanged: (result: WorkspaceModuleLifecycleResult) => void
 }
 
+type ToastType = 'success' | 'warning' | 'error' | 'info'
+
+type ToastMessage = {
+  id: string
+  type: ToastType
+  message: string
+}
+
+type ProgressStepState = ModuleLifecycleProgressStep & {
+  status: 'pending' | 'running' | 'done'
+}
+
+type LifecycleProgressState = {
+  action: WorkspaceModuleLifecycleAction | 'export'
+  title: string
+  moduleName: string
+  steps: ProgressStepState[]
+  percent: number
+  status: 'running' | 'success' | 'failed' | 'cancelled'
+  message: string
+  canCancel: boolean
+}
+
+type InstallDraft = {
+  module: MarketplaceModule
+  definition: BusinessWorkspaceModule
+  preview: ModuleInstallationExperiencePreview
+}
+
+type UninstallDraft = {
+  module: MarketplaceModule
+  definition: BusinessWorkspaceModule
+  impact: ModuleUninstallImpactAnalysis
+}
+
+type MarketplaceOutputAction = 'EXCEL' | 'PDF' | 'PRINTED'
+
 const stateLabels: Record<MarketplaceModuleState, string> = {
-  AVAILABLE: 'Kur',
+  AVAILABLE: 'Kurulabilir',
   INSTALLED: 'Kurulu',
-  CONFIGURED: 'Kurulu',
-  ACTIVE: 'Kurulu',
-  SUSPENDED: 'Kurulu',
+  CONFIGURED: 'Yapılandırıldı',
+  ACTIVE: 'Aktif',
+  SUSPENDED: 'Pasif',
   UNINSTALLED: 'Kurulu Değil',
   DISABLED: 'Desteklenmiyor',
   COMING_SOON: 'Yakında'
@@ -64,10 +118,17 @@ const moduleTypeLabels: Record<WorkspaceModuleType, string> = {
   integration: 'Entegrasyon'
 }
 
+const outputLabels: Record<MarketplaceOutputAction, string> = {
+  EXCEL: 'Excel',
+  PDF: 'PDF',
+  PRINTED: 'Yazdır'
+}
+
 const getCardDisplayState = (module: MarketplaceModule) => {
   if(module.installState === 'COMING_SOON') return { label: 'Yakında', className: 'warning-pill' }
   if(module.installState === 'DISABLED') return { label: 'Desteklenmiyor', className: 'muted-pill' }
-  if(module.installState === 'AVAILABLE' || module.installState === 'UNINSTALLED') return { label: 'Kur', className: 'info-pill' }
+  if(module.installState === 'AVAILABLE' || module.installState === 'UNINSTALLED') return { label: 'Kurulabilir', className: 'info-pill' }
+  if(module.installState === 'SUSPENDED') return { label: 'Pasif', className: 'warning-pill' }
   return { label: 'Kurulu', className: 'success' }
 }
 
@@ -110,6 +171,120 @@ const getPrimarySectorIdForUser = (user: User) => {
   return loadCompanies({ allTenants: true }).find(company => company.id === companyId)?.primarySectorId || ''
 }
 
+const wait = (ms: number) => new Promise(resolve => window.setTimeout(resolve, ms))
+
+const createProgressState = (
+  action: WorkspaceModuleLifecycleAction | 'export',
+  title: string,
+  moduleName: string
+): LifecycleProgressState => ({
+  action,
+  title,
+  moduleName,
+  steps: getModuleLifecycleProgressSteps(action).map(step => ({ ...step, status: 'pending' })),
+  percent: 0,
+  status: 'running',
+  message: 'İşlem hazırlanıyor.',
+  canCancel: action !== 'export'
+})
+
+const escapeHtml = (value: unknown) => String(value ?? '')
+  .replace(/&/g, '&amp;')
+  .replace(/</g, '&lt;')
+  .replace(/>/g, '&gt;')
+  .replace(/"/g, '&quot;')
+  .replace(/'/g, '&#039;')
+
+const createOutputRows = (modules: MarketplaceModule[]) => modules.map(module => ({
+  'Modül Adı': module.name,
+  'Açıklama': module.shortDescription,
+  'Kategori': module.category,
+  'Tip': moduleTypeLabels[module.moduleType],
+  'Durum': stateLabels[module.installState],
+  'Lisans': module.licenseState === 'LICENSED' ? 'Lisanslı' : 'Lisanssız',
+  'Sağlayıcı': module.developer,
+  'Sürüm': module.version,
+  'Aylık Ücret': module.commercial.monthlyPrice || 0,
+  'Deneme Süresi': module.commercial.trialDays ? `${module.commercial.trialDays} gün` : 'Yok',
+  'Menü Sayısı': module.workspaceConnection.menuKeys.length
+}))
+
+const createOutputFileName = () => `modul-magazasi-filtreli-${new Date().toLocaleDateString('sv-SE')}.xlsx`
+
+const exportMarketplaceRowsToExcel = (modules: MarketplaceModule[]) => {
+  const workbook = XLSX.utils.book_new()
+  const worksheet = XLSX.utils.json_to_sheet(createOutputRows(modules))
+  XLSX.utils.book_append_sheet(workbook, worksheet, 'Modül Mağazası')
+  const fileName = createOutputFileName()
+  XLSX.writeFile(workbook, fileName)
+  return fileName
+}
+
+const createPrintHtml = (
+  modules: MarketplaceModule[],
+  mode: 'A4' | 'PDF'
+) => {
+  const rows = modules.map(module => `
+    <tr>
+      <td>${escapeHtml(module.name)}</td>
+      <td>${escapeHtml(module.category)}</td>
+      <td>${escapeHtml(moduleTypeLabels[module.moduleType])}</td>
+      <td>${escapeHtml(stateLabels[module.installState])}</td>
+      <td>${escapeHtml(module.developer)}</td>
+      <td>${escapeHtml(module.workspaceConnection.menuKeys.length)}</td>
+    </tr>
+  `).join('')
+
+  return `<!doctype html>
+  <html lang="tr">
+    <head>
+      <meta charset="utf-8" />
+      <title>Modül Mağazası Çıktısı</title>
+      <style>
+        body { font-family: Arial, sans-serif; margin: 28px; color: #172033; }
+        h1 { margin: 0 0 8px; font-size: 24px; }
+        .meta { margin: 0 0 18px; color: #5d6678; font-size: 13px; }
+        table { width: 100%; border-collapse: collapse; font-size: 12px; }
+        th, td { border: 1px solid #d8deea; padding: 8px; text-align: left; vertical-align: top; }
+        th { background: #f3f6fb; }
+        .pill { display: inline-block; margin-bottom: 14px; border: 1px solid #a8c7fa; border-radius: 999px; padding: 5px 10px; color: #2458c5; font-weight: 700; font-size: 12px; }
+        @media print { body { margin: 14mm; } }
+      </style>
+    </head>
+    <body>
+      <span class="pill">${mode === 'PDF' ? 'PDF Hazırlık' : 'Yazdırılabilir Liste'}</span>
+      <h1>Modül Mağazası Filtrelenmiş Liste</h1>
+      <p class="meta">${modules.length.toLocaleString('tr-TR')} modül · ${new Date().toLocaleString('tr-TR')}</p>
+      <table>
+        <thead>
+          <tr>
+            <th>Modül</th>
+            <th>Kategori</th>
+            <th>Tip</th>
+            <th>Durum</th>
+            <th>Sağlayıcı</th>
+            <th>Menü</th>
+          </tr>
+        </thead>
+        <tbody>${rows}</tbody>
+      </table>
+      <script>window.addEventListener('load', () => window.print())</script>
+    </body>
+  </html>`
+}
+
+const openMarketplacePrintWindow = (
+  modules: MarketplaceModule[],
+  mode: 'A4' | 'PDF',
+  targetWindow?: Window | null
+) => {
+  const printWindow = targetWindow || window.open('', '_blank', 'width=1180,height=840')
+  if(!printWindow) throw new Error('Çıktı penceresi açılamadı.')
+  printWindow.document.open()
+  printWindow.document.write(createPrintHtml(modules, mode))
+  printWindow.document.close()
+}
+
 export default function ModuleMarketplace({ currentUser, onModuleLifecycleChanged }: Props){
   const [search, setSearch] = React.useState('')
   const [workspaceCategory, setWorkspaceCategory] = React.useState<MarketplaceWorkspaceCategoryKey>('all')
@@ -117,11 +292,36 @@ export default function ModuleMarketplace({ currentUser, onModuleLifecycleChange
   const [state, setState] = React.useState<MarketplaceModuleState | 'all'>('all')
   const [activeTab, setActiveTab] = React.useState<MarketplaceCatalogTab>('recommended')
   const [refreshKey, setRefreshKey] = React.useState(0)
-  const [message, setMessage] = React.useState('')
-  const [error, setError] = React.useState('')
+  const [bannerMessage, setBannerMessage] = React.useState('')
+  const [bannerError, setBannerError] = React.useState('')
+  const [toasts, setToasts] = React.useState<ToastMessage[]>([])
   const [activeSetupSession, setActiveSetupSession] = React.useState<ModuleSetupWizardSession | null>(null)
   const [managedModule, setManagedModule] = React.useState<MarketplaceModule | null>(null)
+  const [installDraft, setInstallDraft] = React.useState<InstallDraft | null>(null)
+  const [uninstallDraft, setUninstallDraft] = React.useState<UninstallDraft | null>(null)
+  const [progress, setProgress] = React.useState<LifecycleProgressState | null>(null)
+  const cancelRequestedRef = React.useRef(false)
+  const retryOperationRef = React.useRef<(() => void) | null>(null)
   const primarySectorId = React.useMemo(() => getPrimarySectorIdForUser(currentUser), [currentUser])
+  const companyId = React.useMemo(() => getCompanyIdForUser(currentUser), [currentUser])
+
+  React.useEffect(() => {
+    const refresh = () => setRefreshKey(current => current + 1)
+    window.addEventListener(WORKSPACE_MODULE_LIFECYCLE_EVENT, refresh)
+    window.addEventListener(WORKSPACE_PROVISIONING_EVENT, refresh)
+    return () => {
+      window.removeEventListener(WORKSPACE_MODULE_LIFECYCLE_EVENT, refresh)
+      window.removeEventListener(WORKSPACE_PROVISIONING_EVENT, refresh)
+    }
+  }, [])
+
+  const pushToast = React.useCallback((type: ToastType, message: string) => {
+    const id = `toast_${Date.now()}_${Math.random().toString(16).slice(2)}`
+    setToasts(current => [...current, { id, type, message }].slice(-4))
+    window.setTimeout(() => {
+      setToasts(current => current.filter(item => item.id !== id))
+    }, 4600)
+  }, [])
 
   const marketplaceContext = React.useMemo<MarketplaceContext>(() => ({
     getLifecycleState: module => getWorkspaceModuleLifecycleStateForUser(currentUser, module),
@@ -162,24 +362,243 @@ export default function ModuleMarketplace({ currentUser, onModuleLifecycleChange
   const suspendedCount = allModules.filter(module => module.installState === 'SUSPENDED').length
   const availableCount = allModules.filter(module => module.installState === 'AVAILABLE' || module.installState === 'UNINSTALLED').length
   const comingSoonCount = allModules.filter(module => module.installState === 'COMING_SOON').length
+  const managedCount = installedCount + suspendedCount
+  const readyRate = allModules.length > 0 ? Math.round((managedCount / allModules.length) * 100) : 0
 
   const refreshLifecycle = (result: WorkspaceModuleLifecycleResult, nextMessage: string) => {
     setRefreshKey(current => current + 1)
-    setMessage(nextMessage)
-    setError('')
+    setBannerMessage(nextMessage)
+    setBannerError('')
     onModuleLifecycleChanged(result)
   }
 
-  const startConfiguration = (module: MarketplaceModule) => {
-    const moduleDefinition = getBusinessWorkspaceModuleById(module.id)
-    if(!moduleDefinition){
-      setError('Modül kaydı bulunamadı.')
-      return
-    }
+  const updateProgressStep = (
+    stepIndex: number,
+    status: ProgressStepState['status'],
+    percent?: number,
+    message?: string
+  ) => {
+    setProgress(current => {
+      if(!current) return current
+      return {
+        ...current,
+        percent: percent ?? current.percent,
+        message: message || current.message,
+        steps: current.steps.map((step, index) => (
+          index === stepIndex ? { ...step, status } : step
+        ))
+      }
+    })
+  }
 
-    setMessage(`${module.name} başlangıç sihirbazı açıldı.`)
-    setError('')
-    setActiveSetupSession(startModuleSetupWizardForModule(currentUser, moduleDefinition))
+  const runWithProgress = async <T,>(
+    action: WorkspaceModuleLifecycleAction | 'export',
+    title: string,
+    moduleName: string,
+    operation: () => T | Promise<T>
+  ): Promise<T | null> => {
+    cancelRequestedRef.current = false
+    const initialProgress = createProgressState(action, title, moduleName)
+    setProgress(initialProgress)
+    setBannerMessage('')
+    setBannerError('')
+
+    let completedWeight = 0
+
+    try {
+      for(const [index, step] of initialProgress.steps.entries()){
+        if(cancelRequestedRef.current) throw new Error('İşlem iptal edildi.')
+        updateProgressStep(index, 'running', Math.min(98, completedWeight), step.label)
+        await wait(280 + index * 55)
+        if(cancelRequestedRef.current) throw new Error('İşlem iptal edildi.')
+        completedWeight += step.weight
+        updateProgressStep(index, 'done', Math.min(98, completedWeight), step.label)
+      }
+
+      setProgress(current => current ? { ...current, message: 'Son kontroller tamamlanıyor.', canCancel: false } : current)
+      const timeout = new Promise<never>((_, reject) => {
+        window.setTimeout(() => reject(new Error('İşlem zaman aşımına uğradı. Lütfen tekrar deneyin.')), 15000)
+      })
+      const result = await Promise.race([Promise.resolve().then(operation), timeout])
+      const successMessage = action === 'export'
+        ? 'Çıktı hazırlandı.'
+        : action === 'detach-from-workspace'
+          ? `${moduleName} kaldırma akışı tamamlandı.`
+          : action === 'suspend'
+            ? `${moduleName} pasife alındı.`
+            : `${moduleName} başarıyla etkinleştirildi.`
+      setProgress(current => current ? {
+        ...current,
+        percent: 100,
+        status: 'success',
+        message: successMessage,
+        canCancel: false,
+        steps: current.steps.map(step => ({ ...step, status: 'done' }))
+      } : current)
+      await wait(650)
+      setProgress(null)
+      return result
+    } catch(error) {
+      const message = error instanceof Error ? error.message : 'İşlem tamamlanamadı.'
+      const cancelled = message.includes('iptal')
+      setProgress(current => current ? {
+        ...current,
+        status: cancelled ? 'cancelled' : 'failed',
+        message,
+        canCancel: false
+      } : current)
+      if(cancelled){
+        pushToast('warning', 'İşlem iptal edildi.')
+      } else {
+        setBannerError(message)
+        pushToast('error', message)
+      }
+      return null
+    }
+  }
+
+  const closeProgress = () => {
+    if(progress?.status === 'running') return
+    setProgress(null)
+  }
+
+  const requestCancelProgress = () => {
+    cancelRequestedRef.current = true
+    setProgress(current => current ? {
+      ...current,
+      status: 'cancelled',
+      message: 'İptal isteği alındı. Güvenli noktada durduruluyor.',
+      canCancel: false
+    } : current)
+  }
+
+  const getModuleDefinition = (module: MarketplaceModule) => {
+    const moduleDefinition = getBusinessWorkspaceModuleById(module.id)
+    if(!moduleDefinition) throw new Error('Modül kaydı bulunamadı.')
+    return moduleDefinition
+  }
+
+  const startConfiguration = (module: MarketplaceModule) => {
+    try {
+      const moduleDefinition = getModuleDefinition(module)
+      setBannerMessage(`${module.name} başlangıç sihirbazı açıldı.`)
+      setBannerError('')
+      pushToast('info', `${module.name} başlangıç sihirbazı açıldı.`)
+      setActiveSetupSession(startModuleSetupWizardForModule(currentUser, moduleDefinition))
+    } catch(error) {
+      const message = error instanceof Error ? error.message : 'Modül kaydı bulunamadı.'
+      setBannerError(message)
+      pushToast('error', message)
+    }
+  }
+
+  const startInstallFlow = async (module: MarketplaceModule) => {
+    retryOperationRef.current = () => { void startInstallFlow(module) }
+
+    const result = await runWithProgress(
+      'install',
+      `${module.name} kuruluyor...`,
+      module.name,
+      () => {
+        const installResult = installWorkspaceModuleForUser(currentUser, module.id)
+        if(installResult.alreadyInstalled) return installResult
+
+        completeModuleSetupWizardSession(currentUser, startModuleSetupWizardForInstallResult(currentUser, installResult))
+        const activationResult = activateWorkspaceModuleForUser(currentUser, module.id)
+        provisionWorkspaceForModuleLifecycleResult(currentUser, activationResult)
+        return activationResult
+      }
+    )
+
+    if(!result) return
+
+    const message = result.alreadyInstalled
+      ? `${module.name} zaten kurulu.`
+      : `${module.name} başarıyla etkinleştirildi.`
+    refreshLifecycle(result, message)
+    pushToast(result.alreadyInstalled ? 'info' : 'success', result.alreadyInstalled ? message : 'Modül başarıyla kuruldu.')
+    setManagedModule({ ...module, installState: 'ACTIVE' })
+  }
+
+  const startActivationFlow = async (
+    module: MarketplaceModule,
+    actionKey: Extract<WorkspaceModuleLifecycleAction, 'activate' | 'reactivate' | 'suspend'>
+  ) => {
+    retryOperationRef.current = () => { void startActivationFlow(module, actionKey) }
+    const result = await runWithProgress(
+      actionKey,
+      actionKey === 'suspend' ? `${module.name} pasife alınıyor...` : `${module.name} etkinleştiriliyor...`,
+      module.name,
+      () => {
+        const lifecycleResult = actionKey === 'suspend'
+          ? suspendWorkspaceModuleForUser(currentUser, module.id)
+          : activateWorkspaceModuleForUser(currentUser, module.id)
+        provisionWorkspaceForModuleLifecycleResult(currentUser, lifecycleResult)
+        return lifecycleResult
+      }
+    )
+
+    if(!result) return
+
+    const nextState = actionKey === 'suspend' ? 'SUSPENDED' : 'ACTIVE'
+    const message = actionKey === 'suspend'
+      ? `${module.name} pasife alındı. Menü ve kontrol paneli seçenekleri güncellendi.`
+      : `${module.name} etkinleştirildi. Menü ve kontrol paneli seçenekleri güncellendi.`
+    refreshLifecycle(result, message)
+    pushToast('success', actionKey === 'suspend' ? 'Modül pasife alındı.' : 'Modül başarıyla etkinleştirildi.')
+    setManagedModule(current => current?.id === module.id ? { ...current, installState: nextState } : current)
+  }
+
+  const startUninstallFlow = async (module: MarketplaceModule) => {
+    retryOperationRef.current = () => { void startUninstallFlow(module) }
+    const result = await runWithProgress(
+      'detach-from-workspace',
+      `${module.name} kaldırılıyor...`,
+      module.name,
+      () => {
+        const lifecycleResult = detachWorkspaceModuleFromWorkspaceForUser(currentUser, module.id)
+        provisionWorkspaceForModuleLifecycleResult(currentUser, lifecycleResult)
+        return lifecycleResult
+      }
+    )
+
+    if(!result) return
+
+    setActiveSetupSession(current => current?.module.id === module.id ? null : current)
+    setManagedModule(current => current?.id === module.id ? null : current)
+    refreshLifecycle(result, `${module.name} verileri silinmeden çalışma alanından kaldırıldı.`)
+    pushToast('success', 'Modül çalışma alanından kaldırıldı.')
+  }
+
+  const openInstallWizard = (module: MarketplaceModule) => {
+    try {
+      const definition = getModuleDefinition(module)
+      setInstallDraft({
+        module,
+        definition,
+        preview: createModuleInstallationExperiencePreview(definition)
+      })
+      setBannerError('')
+    } catch(error) {
+      const message = error instanceof Error ? error.message : 'Kurulum önizlemesi hazırlanamadı.'
+      setBannerError(message)
+      pushToast('error', message)
+    }
+  }
+
+  const openUninstallWizard = (module: MarketplaceModule) => {
+    try {
+      if(!companyId) throw new Error('Çalışma alanı bulunamadı.')
+      const definition = getModuleDefinition(module)
+      const impact = createModuleUninstallImpactAnalysis(companyId, definition)
+      setUninstallDraft({ module, definition, impact })
+      setBannerError('')
+      if(impact.blocked) pushToast('warning', 'Bağımlı modüller bulundu.')
+    } catch(error) {
+      const message = error instanceof Error ? error.message : 'Kaldırma etki analizi hazırlanamadı.'
+      setBannerError(message)
+      pushToast('error', message)
+    }
   }
 
   const performLifecycleAction = (
@@ -187,65 +606,37 @@ export default function ModuleMarketplace({ currentUser, onModuleLifecycleChange
     action: MarketplaceModuleActionDefinition
   ) => {
     if(action.disabled) return
+    setBannerMessage('')
+    setBannerError('')
 
-    setMessage('')
-    setError('')
+    if(action.key === 'install'){
+      openInstallWizard(module)
+      return
+    }
 
-    try {
-      if(action.key === 'install'){
-        const installResult = installWorkspaceModuleForUser(currentUser, module.id)
-        if(installResult.alreadyInstalled){
-          refreshLifecycle(installResult, `${module.name} zaten kurulu.`)
-          return
-        }
+    if(action.key === 'configure'){
+      startConfiguration(module)
+      return
+    }
 
-        completeModuleSetupWizardSession(currentUser, startModuleSetupWizardForInstallResult(currentUser, installResult))
-        const activationResult = activateWorkspaceModuleForUser(currentUser, module.id)
-        provisionWorkspaceForModuleLifecycleResult(currentUser, activationResult)
-        refreshLifecycle(activationResult, `${module.name} kuruldu ve çalışma alanına eklendi.`)
-        setManagedModule({ ...module, installState: 'ACTIVE' })
-        return
-      }
+    if(action.key === 'manage'){
+      setManagedModule(module)
+      pushToast('info', `${module.name} yönetim bilgileri açıldı.`)
+      return
+    }
 
-      if(action.key === 'configure'){
-        startConfiguration(module)
-        return
-      }
+    if(action.key === 'activate' || action.key === 'reactivate'){
+      void startActivationFlow(module, action.key)
+      return
+    }
 
-      if(action.key === 'manage'){
-        setManagedModule(module)
-        setMessage(`${module.name} yönetim bilgileri açıldı.`)
-        return
-      }
+    if(action.key === 'suspend'){
+      void startActivationFlow(module, 'suspend')
+      return
+    }
 
-      if(action.key === 'activate' || action.key === 'reactivate'){
-        const result = activateWorkspaceModuleForUser(currentUser, module.id)
-        provisionWorkspaceForModuleLifecycleResult(currentUser, result)
-        refreshLifecycle(result, action.key === 'reactivate'
-          ? `${module.name} yeniden aktifleştirildi. Menü ve kontrol paneli widget kataloğu güncellendi.`
-          : `${module.name} aktifleştirildi. Menü ve kontrol paneli widget kataloğu güncellendi.`
-        )
-        setManagedModule(current => current?.id === module.id ? { ...current, installState: 'ACTIVE' } : current)
-        return
-      }
-
-      if(action.key === 'suspend'){
-        const result = suspendWorkspaceModuleForUser(currentUser, module.id)
-        provisionWorkspaceForModuleLifecycleResult(currentUser, result)
-        refreshLifecycle(result, `${module.name} pasife alındı. Menüden ve kontrol paneli seçeneklerinden kaldırıldı.`)
-        setManagedModule(current => current?.id === module.id ? { ...current, installState: 'SUSPENDED' } : current)
-        return
-      }
-
-      if(action.key === 'detach-from-workspace'){
-        const result = detachWorkspaceModuleFromWorkspaceForUser(currentUser, module.id)
-        provisionWorkspaceForModuleLifecycleResult(currentUser, result)
-        setActiveSetupSession(current => current?.module.id === module.id ? null : current)
-        setManagedModule(current => current?.id === module.id ? null : current)
-        refreshLifecycle(result, `${module.name} verileri silinmeden bu çalışma alanından kaldırıldı.`)
-      }
-    } catch(lifecycleError) {
-      setError(lifecycleError instanceof Error ? lifecycleError.message : 'Modül yaşam döngüsü güncellenemedi.')
+    if(action.key === 'detach-from-workspace'){
+      openUninstallWizard(module)
     }
   }
 
@@ -260,24 +651,206 @@ export default function ModuleMarketplace({ currentUser, onModuleLifecycleChange
       activationResult,
       `${activeSetupSession.module.name} yapılandırıldı ve çalışma alanı menüsüne eklendi.`
     )
+    pushToast('success', `${activeSetupSession.module.name} yapılandırıldı.`)
+  }
+
+  const outputMarketplaceRows = async (action: MarketplaceOutputAction) => {
+    if(modules.length === 0){
+      pushToast('warning', 'Çıktı alınacak filtrelenmiş kayıt bulunamadı.')
+      return
+    }
+
+    retryOperationRef.current = () => { void outputMarketplaceRows(action) }
+    const reservedPrintWindow = action === 'EXCEL'
+      ? null
+      : window.open('', '_blank', 'width=1180,height=840')
+    if(action !== 'EXCEL' && !reservedPrintWindow){
+      const message = 'Çıktı penceresi açılamadı. Tarayıcı popup iznini kontrol edin.'
+      setBannerError(message)
+      pushToast('error', message)
+      return
+    }
+
+    const result = await runWithProgress('export', `${outputLabels[action]} çıktısı hazırlanıyor...`, 'Modül Mağazası', () => {
+      if(action === 'EXCEL'){
+        return {
+          fileName: exportMarketplaceRowsToExcel(modules),
+          count: modules.length
+        }
+      }
+
+      openMarketplacePrintWindow(modules, action === 'PDF' ? 'PDF' : 'A4', reservedPrintWindow)
+      return {
+        fileName: action === 'PDF' ? 'PDF çıktı penceresi' : 'Yazdırma penceresi',
+        count: modules.length
+      }
+    })
+
+    if(!result) return
+
+    const message = action === 'EXCEL'
+      ? `${result.count.toLocaleString('tr-TR')} modül Excel çıktısına aktarıldı.`
+      : `${result.count.toLocaleString('tr-TR')} modül için ${outputLabels[action]} penceresi hazırlandı.`
+    setBannerMessage(message)
+    pushToast('success', action === 'EXCEL' ? 'Excel oluşturuldu.' : action === 'PDF' ? 'PDF hazırlandı.' : 'Yazdırma penceresi hazırlandı.')
   }
 
   return (
     <div className="module-marketplace-page">
+      <div className="module-toast-stack" aria-live="polite">
+        {toasts.map(toast => (
+          <div className={`module-toast ${toast.type}`} key={toast.id}>
+            {toast.message}
+          </div>
+        ))}
+      </div>
+
+      {progress && (
+        <div className="module-progress-overlay" role="dialog" aria-modal="true" aria-label={progress.title}>
+          <div className="module-progress-shell">
+            <div className="module-progress-header">
+              <span className={`status-pill ${progress.status === 'failed' ? 'danger-pill' : progress.status === 'cancelled' ? 'warning-pill' : 'info-pill'}`}>
+                {progress.status === 'success' ? 'Tamamlandı' : progress.status === 'failed' ? 'Hata' : progress.status === 'cancelled' ? 'İptal' : 'İşleniyor'}
+              </span>
+              <h3>{progress.title}</h3>
+              <p>{progress.message}</p>
+            </div>
+            <div className="module-progress-meter" aria-label={`İlerleme ${progress.percent}%`}>
+              <span style={{ width: `${progress.percent}%` }} />
+            </div>
+            <strong className="module-progress-percent">{progress.percent}%</strong>
+            <div className="module-progress-step-list">
+              {progress.steps.map(step => (
+                <div className={`module-progress-step ${step.status}`} key={step.id}>
+                  <span>{step.status === 'done' ? '✓' : step.status === 'running' ? '•' : ''}</span>
+                  <strong>{step.label}</strong>
+                </div>
+              ))}
+            </div>
+            <div className="module-progress-actions">
+              {progress.canCancel && progress.status === 'running' && (
+                <button className="btn" type="button" onClick={requestCancelProgress}>İptal Et</button>
+              )}
+              {progress.status === 'failed' && (
+                <button className="btn primary" type="button" onClick={() => retryOperationRef.current?.()}>Tekrar Dene</button>
+              )}
+              {progress.status !== 'running' && (
+                <button className="btn" type="button" onClick={closeProgress}>Kapat</button>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
+
+      {installDraft && (
+        <div className="module-lifecycle-modal-backdrop" role="presentation">
+          <section className="module-lifecycle-modal" role="dialog" aria-modal="true" aria-label={`${installDraft.module.name} kurulum onayı`}>
+            <div className="module-lifecycle-modal-header">
+              <span className="marketplace-module-icon" aria-hidden="true">{installDraft.module.icon}</span>
+              <div>
+                <span className="status-pill info-pill">Kurulum Sihirbazı</span>
+                <h3>{installDraft.module.name}</h3>
+                <p>{installDraft.preview.description}</p>
+              </div>
+            </div>
+            <div className="module-lifecycle-summary-grid">
+              <div><span>Aylık Ücret</span><strong>{installDraft.preview.monthlyFeeLabel}</strong></div>
+              <div><span>Deneme Süresi</span><strong>{installDraft.preview.trialLabel}</strong></div>
+              <div><span>Tahmini Süre</span><strong>{installDraft.preview.estimatedDurationLabel}</strong></div>
+            </div>
+            <div className="module-lifecycle-detail-grid">
+              <LifecycleList title="Sağlayacağı Özellikler" items={installDraft.preview.features} emptyLabel="Özellik bulunamadı." />
+              <LifecycleList title="Kurulacak Alt Bileşenler" items={installDraft.preview.subcomponents} emptyLabel="Alt bileşen bulunamadı." />
+              <LifecycleList title="Kullanacağı Çalışma Alanları" items={installDraft.preview.workspaces} emptyLabel="Çalışma alanı bulunamadı." />
+              <LifecycleList title="Kuracağı Menüler" items={installDraft.preview.menus} emptyLabel="Menü kaydı bulunamadı." />
+              <LifecycleList title="Bağımlı Modüller" items={installDraft.preview.dependencies.map(item => `${item.moduleName} · ${item.critical ? 'Kritik' : 'Opsiyonel'}`)} emptyLabel="Bağımlı modül yok." />
+              <LifecycleList title="Bağımlılık Grafiği" items={installDraft.preview.dependencyGraphLines} emptyLabel="Grafik verisi yok." />
+            </div>
+            <div className="module-lifecycle-modal-actions">
+              <button className="btn" type="button" onClick={() => setInstallDraft(null)}>Vazgeç</button>
+              <button
+                className="btn primary"
+                type="button"
+                onClick={() => {
+                  const module = installDraft.module
+                  setInstallDraft(null)
+                  void startInstallFlow(module)
+                }}
+              >
+                Kurulumu Başlat
+              </button>
+            </div>
+          </section>
+        </div>
+      )}
+
+      {uninstallDraft && (
+        <div className="module-lifecycle-modal-backdrop" role="presentation">
+          <section className="module-lifecycle-modal" role="dialog" aria-modal="true" aria-label={`${uninstallDraft.module.name} kaldırma etki analizi`}>
+            <div className="module-lifecycle-modal-header">
+              <span className="marketplace-module-icon" aria-hidden="true">{uninstallDraft.module.icon}</span>
+              <div>
+                <span className={`status-pill ${uninstallDraft.impact.blocked ? 'danger-pill' : 'warning-pill'}`}>
+                  Kaldırma Etki Analizi
+                </span>
+                <h3>{uninstallDraft.module.name}</h3>
+                <p>
+                  {uninstallDraft.impact.blocked
+                    ? 'Kritik bağımlılıklar çözülmeden bu modül kaldırılamaz.'
+                    : 'Veriler korunarak çalışma alanı bağlantıları kaldırılacak.'}
+                </p>
+              </div>
+            </div>
+            {uninstallDraft.impact.blocked && (
+              <div className="form-error">
+                Bu modül kaldırılamaz. Önce kritik bağımlı modülleri pasife alın veya çalışma alanından kaldırın.
+              </div>
+            )}
+            <div className="module-lifecycle-detail-grid">
+              <LifecycleList title="Etkilenen Modüller" items={uninstallDraft.impact.affectedModules.map(item => `${item.moduleName} · ${item.critical ? 'Kritik' : 'Dolaylı'}`)} emptyLabel="Etkilenen aktif modül yok." />
+              <LifecycleList title="Kullanılamayacak Ekranlar" items={uninstallDraft.impact.unavailableScreens} emptyLabel="Ekran katkısı yok." />
+              <LifecycleList title="Korunacak Veriler" items={uninstallDraft.impact.preservedData} emptyLabel="Korunacak veri listesi yok." />
+              <LifecycleList title="Silinecek Önbellek" items={uninstallDraft.impact.deletedCache} emptyLabel="Önbellek kaydı yok." />
+              <LifecycleList title="Bağımlılık Grafiği" items={uninstallDraft.impact.dependencyGraphLines} emptyLabel="Bağımlılık yok." />
+              <div className="module-lifecycle-list">
+                <h4>Yeniden Kurulabilirlik</h4>
+                <strong>{uninstallDraft.impact.reinstallableLabel}</strong>
+              </div>
+            </div>
+            <div className="module-lifecycle-modal-actions">
+              <button className="btn" type="button" onClick={() => setUninstallDraft(null)}>Vazgeç</button>
+              <button
+                className="btn danger"
+                type="button"
+                disabled={uninstallDraft.impact.blocked}
+                onClick={() => {
+                  const module = uninstallDraft.module
+                  setUninstallDraft(null)
+                  void startUninstallFlow(module)
+                }}
+              >
+                Kaldırmayı Başlat
+              </button>
+            </div>
+          </section>
+        </div>
+      )}
+
       <section className="marketplace-hero">
         <div>
           <span className="status-pill info-pill">MIYOP Modül Mağazası</span>
           <h2>İşletme çalışma alanı yönetim merkezi</h2>
-          <p>İhtiyacınız olan modülleri keşfedin, kurun ve çalışma alanı içinde yönetin.</p>
+          <p>Modülleri keşfedin, kurulum etkisini görün, güvenli şekilde etkinleştirin ve çalışma alanı yaşam döngüsünü yönetin.</p>
         </div>
         <div className="marketplace-hero-stats">
           <span>{allModules.length} modül</span>
-          <strong>{installedCount + suspendedCount} yönetilen</strong>
+          <strong>{managedCount} yönetilen</strong>
+          <em>{readyRate}% kullanımda</em>
         </div>
       </section>
 
-      {message && <div className="form-success">{message}</div>}
-      {error && <div className="form-error">{error}</div>}
+      {bannerMessage && <div className="form-success">{bannerMessage}</div>}
+      {bannerError && <div className="form-error">{bannerError}</div>}
 
       {activeSetupSession && (
         <ModuleSetupWizard session={activeSetupSession} onComplete={completeSetupWizard} />
@@ -406,6 +979,13 @@ export default function ModuleMarketplace({ currentUser, onModuleLifecycleChange
         </label>
       </div>
 
+      <div className="marketplace-output-toolbar" aria-label="Filtrelenmiş liste çıktıları">
+        <span>{modules.length.toLocaleString('tr-TR')} filtrelenmiş kayıt</span>
+        <button className="btn" type="button" disabled={modules.length === 0} onClick={() => void outputMarketplaceRows('EXCEL')}>Excel</button>
+        <button className="btn" type="button" disabled={modules.length === 0} onClick={() => void outputMarketplaceRows('PDF')}>PDF</button>
+        <button className="btn" type="button" disabled={modules.length === 0} onClick={() => void outputMarketplaceRows('PRINTED')}>Yazdır</button>
+      </div>
+
       <div className="marketplace-section-heading">
         <div>
           <h3>{activeWorkspaceCategory.label}</h3>
@@ -457,7 +1037,7 @@ export default function ModuleMarketplace({ currentUser, onModuleLifecycleChange
                     key={`${module.id}-${action.key}`}
                     className={`btn marketplace-install-button ${getActionButtonClassName(action)}`}
                     type="button"
-                    disabled={action.disabled}
+                    disabled={action.disabled || Boolean(progress && progress.status === 'running')}
                     onClick={() => performLifecycleAction(module, action)}
                   >
                     {action.label}
@@ -474,6 +1054,29 @@ export default function ModuleMarketplace({ currentUser, onModuleLifecycleChange
           </div>
         )}
       </section>
+    </div>
+  )
+}
+
+function LifecycleList({
+  title,
+  items,
+  emptyLabel
+}: {
+  title: string
+  items: string[]
+  emptyLabel: string
+}){
+  return (
+    <div className="module-lifecycle-list">
+      <h4>{title}</h4>
+      {items.length > 0 ? (
+        <ul>
+          {items.map(item => <li key={`${title}-${item}`}>{item}</li>)}
+        </ul>
+      ) : (
+        <span>{emptyLabel}</span>
+      )}
     </div>
   )
 }

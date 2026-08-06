@@ -110,17 +110,59 @@ const aggregatePriorityRows = (
   })))
 }
 
+const aggregateExpectedSavingRows = (
+  items: PurchaseRecommendationItem[]
+) => {
+  const rows = items.reduce<Map<string, { label: string; saving: number; count: number }>>((map, item) => {
+    if(item.expectedSaving <= 0) return map
+    const key = item.categoryId || item.recommendationType
+    const previous = map.get(key)
+    map.set(key, {
+      label: previous?.label || item.categoryName || PURCHASE_RECOMMENDATION_TYPE_LABELS[item.recommendationType],
+      saving: roundKpi((previous?.saving || 0) + item.expectedSaving),
+      count: (previous?.count || 0) + 1
+    })
+    return map
+  }, new Map())
+
+  return Array.from(rows.entries())
+    .sort((first, second) => second[1].saving - first[1].saving || first[1].label.localeCompare(second[1].label, 'tr-TR'))
+    .slice(0, 8)
+    .map(([id, row]) => ({
+      id,
+      label: row.label,
+      value: roundKpi(row.saving),
+      formattedValue: formatCurrency(row.saving),
+      detail: `${formatNumber(row.count)} tasarruf senaryosu`
+    }))
+}
+
+const aggregateCriticalProductRows = (
+  items: PurchaseRecommendationItem[]
+) => aggregateBy(
+  items.filter(item => item.risk === 'CRITICAL' || item.priority === 'URGENT'),
+  item => item.stockItemId || item.productId,
+  item => item.stockItemName || item.productName || item.relatedEntityName
+)
+
 export const createPurchaseRecommendationStatistics = (
   reports: PurchaseRecommendationReport[]
 ): PurchaseRecommendationStatistics => {
   const items = flattenItems(reports)
+  const alternativeSupplierIds = new Set<string>()
+  items.forEach(item => {
+    if(item.alternativeSupplierId) alternativeSupplierIds.add(item.alternativeSupplierId)
+    item.alternativeSuppliers.forEach(option => {
+      if(option.supplierId) alternativeSupplierIds.add(option.supplierId)
+    })
+  })
 
   return {
     totalRecommendations: items.length,
     criticalPurchases: items.filter(item => item.risk === 'CRITICAL' || item.priority === 'URGENT').length,
     expectedSaving: roundKpi(sumBy(items, item => item.expectedSaving)),
     expectedCost: roundKpi(sumBy(items, item => item.expectedCost)),
-    alternativeSupplierCount: new Set(items.map(item => item.alternativeSupplierId).filter(Boolean)).size,
+    alternativeSupplierCount: alternativeSupplierIds.size,
     averageRiskScore: averageBy(items, item => item.riskScore),
     averageConfidence: averageBy(items, item => item.confidenceScore),
     typeRows: aggregateTypeRows(items),
@@ -131,6 +173,16 @@ export const createPurchaseRecommendationStatistics = (
     supplierRows: aggregateBy(items, item => item.supplierId || item.alternativeSupplierId, item => item.supplierName || item.alternativeSupplierName),
     riskRows: aggregateRiskRows(items),
     priorityRows: aggregatePriorityRows(items),
+    expectedSavingRows: aggregateExpectedSavingRows(items),
+    criticalProductRows: aggregateCriticalProductRows(items),
+    dailyTrend: createTrend(
+      items,
+      'MONTH',
+      item => item.createdAt,
+      () => 1,
+      'Günlük Öneri Trendleri',
+      '#0f766e'
+    ),
     monthlyTrend: createTrend(
       reports,
       'YEAR',

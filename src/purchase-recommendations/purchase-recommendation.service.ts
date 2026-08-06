@@ -35,6 +35,7 @@ import type {
   PurchaseRecommendationHistory,
   PurchaseRecommendationHistoryAction,
   PurchaseRecommendationItem,
+  PurchaseRecommendationLinkedEntity,
   PurchaseRecommendationPriority,
   PurchaseRecommendationReport,
   PurchaseRecommendationReportCreateInput,
@@ -42,6 +43,7 @@ import type {
   PurchaseRecommendationRule,
   PurchaseRecommendationSourceModule,
   PurchaseRecommendationStatus,
+  PurchaseRecommendationSupplierOption,
   PurchaseRecommendationType
 } from './purchase-recommendation.types'
 
@@ -161,6 +163,35 @@ const normalizeHistory = (
   }))
 }
 
+const normalizeLinkedEntities = (
+  value: unknown
+): PurchaseRecommendationLinkedEntity[] => {
+  if(!Array.isArray(value)) return []
+
+  return value.filter(isRecord).map((record, index) => ({
+    id: normalizeText(record.id) || `linked_entity_${index + 1}`,
+    no: normalizeText(record.no),
+    name: normalizeText(record.name) || normalizeText(record.no) || 'Bağlı kayıt',
+    detail: normalizeText(record.detail)
+  }))
+}
+
+const normalizeSupplierOptions = (
+  value: unknown
+): PurchaseRecommendationSupplierOption[] => {
+  if(!Array.isArray(value)) return []
+
+  return value.filter(isRecord).map((record, index) => ({
+    supplierId: normalizeText(record.supplierId) || `supplier_option_${index + 1}`,
+    supplierName: normalizeText(record.supplierName) || 'Tedarikçi',
+    unitCost: Math.max(0, normalizeNumber(record.unitCost)),
+    leadTimeDays: Math.max(0, normalizeNumber(record.leadTimeDays)),
+    savingPercent: Math.max(0, normalizeNumber(record.savingPercent)),
+    performanceScore: Math.max(0, normalizeNumber(record.performanceScore)),
+    reason: normalizeText(record.reason)
+  }))
+}
+
 const normalizeRule = (
   value: RawPurchaseRecommendationRule,
   index: number
@@ -186,6 +217,7 @@ const normalizeItem = (
   id: normalizeText(value.id) || `${reportId}_purchase_item_${index + 1}`,
   reportId,
   reportNo,
+  recommendationNo: normalizeText(value.recommendationNo) || `${reportNo}-${String(index + 1).padStart(3, '0')}`,
   ruleId: normalizeText(value.ruleId),
   recommendationType: mapType(value.recommendationType),
   priority: mapPriority(value.priority),
@@ -199,14 +231,19 @@ const normalizeItem = (
   recommendedOrderQuantity: Math.max(0, normalizeNumber(value.recommendedOrderQuantity)),
   currentStock: Math.max(0, normalizeNumber(value.currentStock)),
   minimumStock: Math.max(0, normalizeNumber(value.minimumStock)),
+  maximumStock: Math.max(0, normalizeNumber(value.maximumStock)),
   dailyUsageEstimate: Math.max(0, normalizeNumber(value.dailyUsageEstimate)),
   estimatedCoverageDays: Math.max(0, normalizeNumber(value.estimatedCoverageDays)),
   estimatedStockoutDate: normalizeText(value.estimatedStockoutDate),
   expectedCost: Math.max(0, normalizeNumber(value.expectedCost)),
   expectedSaving: Math.max(0, normalizeNumber(value.expectedSaving)),
   unitCost: Math.max(0, normalizeNumber(value.unitCost)),
+  leadTimeDays: Math.max(0, normalizeNumber(value.leadTimeDays)),
   riskScore: Math.max(0, normalizeNumber(value.riskScore)),
   confidenceScore: Math.max(0, normalizeNumber(value.confidenceScore)),
+  analysisResult: normalizeText(value.analysisResult),
+  riskExplanation: normalizeText(value.riskExplanation),
+  expectedGain: normalizeText(value.expectedGain),
   sourceModule: normalizeText(value.sourceModule) as PurchaseRecommendationSourceModule || 'ReadModel',
   sourceId: normalizeText(value.sourceId),
   sourceNo: normalizeText(value.sourceNo),
@@ -230,6 +267,12 @@ const normalizeItem = (
   supplierName: normalizeText(value.supplierName),
   alternativeSupplierId: normalizeText(value.alternativeSupplierId),
   alternativeSupplierName: normalizeText(value.alternativeSupplierName),
+  affectedProductionOrders: normalizeLinkedEntities(value.affectedProductionOrders),
+  affectedRecipes: normalizeLinkedEntities(value.affectedRecipes),
+  alternativeSuppliers: normalizeSupplierOptions(value.alternativeSuppliers),
+  openRequestNos: Array.isArray(value.openRequestNos) ? value.openRequestNos.map(normalizeText).filter(Boolean) : [],
+  pendingOrderNos: Array.isArray(value.pendingOrderNos) ? value.pendingOrderNos.map(normalizeText).filter(Boolean) : [],
+  lotRiskSummary: normalizeText(value.lotRiskSummary),
   createdAt: normalizeText(value.createdAt) || new Date().toISOString()
 })
 
@@ -370,6 +413,44 @@ export const evaluatePurchaseRecommendationReport = (
   }, createPurchaseRecommendationFallbackReport(createInput, existingReports, actorName))
 }
 
+const hasPurchaseRecommendationSeedCoverage = (
+  reports: PurchaseRecommendationReport[]
+) => {
+  const items = reports.flatMap(report => report.items)
+  const criticalRiskCount = items.filter(item => item.risk === 'CRITICAL').length
+  const alternativeSupplierCount = items.filter(item => (
+    item.alternativeSupplierId
+    || item.alternativeSuppliers.length > 0
+    || item.recommendationType === 'ALTERNATIVE_SUPPLIER'
+    || item.recommendationType === 'LOWER_COST_SUPPLIER'
+  )).length
+  const savingScenarioCount = items.filter(item => item.expectedSaving > 0).length
+
+  return items.length >= 120
+    && criticalRiskCount >= 20
+    && alternativeSupplierCount >= 15
+    && savingScenarioCount >= 30
+}
+
+const ensurePurchaseRecommendationSeedCoverage = (
+  reports: PurchaseRecommendationReport[],
+  sourceData: KpiSourceData
+) => {
+  if(hasPurchaseRecommendationSeedCoverage(reports)) return reports
+
+  const seedReport = evaluatePurchaseRecommendationReport(sourceData, {
+    reportDate: getTodayKey(),
+    scope: 'all',
+    responsiblePerson: 'Satın Alma Öneri Motoru',
+    description: 'Faz 34.13.6 seed kapsamı için read-model satın alma önerileri üretildi.'
+  }, reports, 'Satın Alma Öneri Motoru')
+  const nextReports = [seedReport, ...reports]
+    .sort((first, second) => second.reportDate.localeCompare(first.reportDate) || first.reportNo.localeCompare(second.reportNo))
+
+  savePurchaseRecommendationReports(nextReports)
+  return nextReports
+}
+
 export const loadPurchaseRecommendationReports = (
   sourceData: KpiSourceData
 ) => {
@@ -378,8 +459,9 @@ export const loadPurchaseRecommendationReports = (
   const stored = getDecisionIndexedRecord<RawPurchaseRecommendationReport[]>(PURCHASE_RECOMMENDATION_STORAGE_KEY)
   if(stored === null){
     const defaultReport = evaluatePurchaseRecommendationReport(sourceData)
-    savePurchaseRecommendationReports([defaultReport])
-    return [defaultReport]
+    const reports = ensurePurchaseRecommendationSeedCoverage([defaultReport], sourceData)
+    savePurchaseRecommendationReports(reports)
+    return reports
   }
 
   try {
@@ -388,7 +470,7 @@ export const loadPurchaseRecommendationReports = (
         .filter(isRecord)
         .map((record, index) => normalizeReport(record as RawPurchaseRecommendationReport, index))
         .sort((first, second) => second.reportDate.localeCompare(first.reportDate) || first.reportNo.localeCompare(second.reportNo))
-      if(reports.length > 0) return reports
+      if(reports.length > 0) return ensurePurchaseRecommendationSeedCoverage(reports, sourceData)
     }
   } catch {
     // Corrupt local purchase recommendation cache is replaced with a fresh read-model report.

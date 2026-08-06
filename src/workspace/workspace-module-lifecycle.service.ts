@@ -11,6 +11,7 @@ import { WORKSPACE_MODULE_TYPES } from '../modules/module-registry.types'
 import { getModuleDependencyRule } from '../modules/module-dependency.registry'
 import type { ModuleCode } from '../modules/module-code.registry'
 import { recordWorkspaceAuditEvent } from './workspace-audit.service'
+import { WorkspaceIndexedStorageService } from './workspace-indexed-storage.service'
 import {
   WORKSPACE_MODULE_LIFECYCLE_STATES,
   type WorkspaceModuleLifecycleAction,
@@ -35,6 +36,10 @@ export { WORKSPACE_MODULE_LIFECYCLE_STATES } from './workspace-module-lifecycle.
 const STORAGE_KEY = 'miyop_workspace_module_installations'
 export const WORKSPACE_MODULE_LIFECYCLE_EVENT = 'miyop-workspace-module-lifecycle-updated'
 export const WORKSPACE_MODULE_INSTALLATION_EVENT = 'miyop-workspace-module-installations-updated'
+const WORKSPACE_MODULE_STORAGE_EVENTS = [
+  WORKSPACE_MODULE_LIFECYCLE_EVENT,
+  WORKSPACE_MODULE_INSTALLATION_EVENT
+]
 
 const WORKSPACE_MODULE_LIFECYCLE_ACTION_REGISTRY: WorkspaceModuleLifecycleActionDefinition[] = [
   {
@@ -74,7 +79,7 @@ const WORKSPACE_MODULE_LIFECYCLE_ACTION_REGISTRY: WorkspaceModuleLifecycleAction
   },
   {
     key: 'detach-from-workspace',
-    label: "Workspace'ten Kaldır",
+    label: "Çalışma Alanından Kaldır",
     variant: 'danger',
     visibleInStates: [
       WORKSPACE_MODULE_LIFECYCLE_STATES.INSTALLED,
@@ -101,8 +106,6 @@ const WORKSPACE_MODULE_LIFECYCLE_ACTION_REGISTRY: WorkspaceModuleLifecycleAction
     displayOrder: 80
   }
 ]
-
-const isBrowser = () => typeof window !== 'undefined' && typeof localStorage !== 'undefined'
 
 const isLifecycleState = (value: unknown): value is WorkspaceModuleLifecycleState => {
   return Object.values(WORKSPACE_MODULE_LIFECYCLE_STATES).includes(value as WorkspaceModuleLifecycleState)
@@ -174,23 +177,22 @@ const normalizeLifecycleRecord = (
 }
 
 const readLifecycleRecords = (): WorkspaceModuleLifecycleRecord[] => {
-  if(!isBrowser()) return []
-
-  try {
-    const parsed = JSON.parse(localStorage.getItem(STORAGE_KEY) || '[]')
-    return Array.isArray(parsed)
-      ? parsed.map(normalizeLifecycleRecord).filter(Boolean) as WorkspaceModuleLifecycleRecord[]
-      : []
-  } catch {
-    return []
-  }
+  const storedRecords = WorkspaceIndexedStorageService.get<Partial<WorkspaceModuleLifecycleRecord>[]>(
+    STORAGE_KEY,
+    [],
+    WORKSPACE_MODULE_STORAGE_EVENTS
+  )
+  return Array.isArray(storedRecords)
+    ? storedRecords.map(normalizeLifecycleRecord).filter(Boolean) as WorkspaceModuleLifecycleRecord[]
+    : []
 }
 
 const saveLifecycleRecords = (records: WorkspaceModuleLifecycleRecord[]) => {
-  if(!isBrowser()) return
-  localStorage.setItem(STORAGE_KEY, JSON.stringify(records.map(normalizeLifecycleRecord).filter(Boolean)))
-  window.dispatchEvent(new CustomEvent(WORKSPACE_MODULE_LIFECYCLE_EVENT))
-  window.dispatchEvent(new CustomEvent(WORKSPACE_MODULE_INSTALLATION_EVENT))
+  WorkspaceIndexedStorageService.set(
+    STORAGE_KEY,
+    records.map(normalizeLifecycleRecord).filter(Boolean),
+    WORKSPACE_MODULE_STORAGE_EVENTS
+  )
 }
 
 const isInstallableMarketplaceModule = (module: BusinessWorkspaceModule) => {
@@ -294,14 +296,14 @@ const createResult = (
 
 const assertCompanyId = (user: User) => {
   const companyId = getCompanyIdForUser(user)
-  if(!companyId) throw new Error('Modül yaşam döngüsü için Business Workspace bulunamadı.')
+  if(!companyId) throw new Error('Modül yaşam döngüsü için çalışma alanı bulunamadı.')
   return companyId
 }
 
 const assertModule = (moduleId: string) => {
   const module = getBusinessWorkspaceModuleById(moduleId)
   if(!module) throw new Error('Modül kaydı bulunamadı.')
-  if(!isInstallableMarketplaceModule(module)) throw new Error('Bu modül şu anda Workspace yaşam döngüsüne uygun değil.')
+  if(!isInstallableMarketplaceModule(module)) throw new Error('Bu modül şu anda çalışma alanı yaşam döngüsüne uygun değil.')
   return module
 }
 
@@ -320,7 +322,7 @@ const assertExistingRecord = (
   const module = assertModule(moduleId)
   const record = getLifecycleRecord(companyId, module.id)
   if(!record || record.lifecycleState === WORKSPACE_MODULE_LIFECYCLE_STATES.UNINSTALLED){
-    throw new Error('Bu modül Business Workspace içinde kurulu değil.')
+    throw new Error('Bu modül çalışma alanı içinde kurulu değil.')
   }
   return { companyId, module, record }
 }
@@ -333,7 +335,10 @@ const assertModuleCanBeDetached = (
     .filter(activeModule => activeModule.id !== module.id)
     .filter(activeModule => {
       const rule = getModuleDependencyRule(activeModule.code as ModuleCode)
-      return Boolean(rule?.requires.includes(module.code as ModuleCode))
+      return Boolean(
+        rule?.requires.includes(module.code as ModuleCode)
+        || activeModule.dependencies.includes(module.code)
+      )
     })
 
   if(dependentModules.length === 0) return
@@ -446,7 +451,7 @@ export const installWorkspaceModuleForUser = (
     user,
     eventType: 'MODULE_INSTALLED',
     title: `${module.name} modülü kuruldu.`,
-    description: `${module.name} modülü Marketplace üzerinden Business Workspace içine kuruldu.`,
+    description: `${module.name} modülü Modül Mağazası üzerinden çalışma alanına kuruldu.`,
     moduleId: module.id,
     moduleCode: module.code,
     moduleName: module.name
@@ -494,7 +499,7 @@ export const activateWorkspaceModuleForUser = (
     title: previousState === WORKSPACE_MODULE_LIFECYCLE_STATES.SUSPENDED
       ? `${module.name} modülü yeniden aktifleştirildi.`
       : `${module.name} modülü aktif edildi.`,
-    description: `${module.name} modülü Business Workspace kullanımına açıldı.`,
+    description: `${module.name} modülü çalışma alanı kullanımına açıldı.`,
     moduleId: module.id,
     moduleCode: module.code,
     moduleName: module.name
@@ -522,7 +527,7 @@ export const suspendWorkspaceModuleForUser = (
     user,
     eventType: 'MODULE_SUSPENDED',
     title: `${module.name} modülü pasife alındı.`,
-    description: `${module.name} modülü verileri korunarak Business Workspace kullanımından geçici olarak pasife alındı.`,
+    description: `${module.name} modülü verileri korunarak çalışma alanı kullanımından geçici olarak pasife alındı.`,
     moduleId: module.id,
     moduleCode: module.code,
     moduleName: module.name
@@ -544,8 +549,8 @@ export const detachWorkspaceModuleFromWorkspaceForUser = (
   recordWorkspaceAuditEvent({
     user,
     eventType: 'MODULE_DETACHED_FROM_WORKSPACE',
-    title: `${module.name} modülü Workspace'ten kaldırıldı.`,
-    description: `${module.name} modülü verileri silinmeden Business Workspace kullanımından kaldırıldı.`,
+    title: `${module.name} modülü çalışma alanından kaldırıldı.`,
+    description: `${module.name} modülü verileri silinmeden çalışma alanı kullanımından kaldırıldı.`,
     moduleId: module.id,
     moduleCode: module.code,
     moduleName: module.name

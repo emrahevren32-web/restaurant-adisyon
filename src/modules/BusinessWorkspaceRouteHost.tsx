@@ -58,6 +58,8 @@ import GoodsReceipts from '../pages/GoodsReceipts'
 import SupplierPerformances from '../pages/SupplierPerformances'
 import ProcurementAnalytics from '../pages/ProcurementAnalytics'
 import KPIDashboard from '../pages/KPIDashboard'
+import DailyProductionAnalytics from '../pages/DailyProductionAnalytics'
+import WeeklyProductionAnalytics from '../pages/WeeklyProductionAnalytics'
 import LabelManagement from '../pages/LabelManagement'
 import OperationChecklists from '../pages/OperationChecklists'
 import LotSystem from '../pages/LotSystem'
@@ -126,6 +128,9 @@ const RecommendationEngine = React.lazy(() => import('../pages/RecommendationEng
 const AIAnalysis = React.lazy(() => import('../pages/AIAnalysis'))
 const CostOptimization = React.lazy(() => import('../pages/CostOptimization'))
 const PurchaseRecommendations = React.lazy(() => import('../pages/PurchaseRecommendations'))
+const ProductionPlanningRecommendations = React.lazy(() => import('../pages/ProductionPlanningRecommendations'))
+const WastePrediction = React.lazy(() => import('../pages/WastePrediction'))
+const ShipmentOptimization = React.lazy(() => import('../pages/ShipmentOptimization'))
 
 const onDecisionRouteRender: React.ProfilerOnRenderCallback = (
   id,
@@ -305,6 +310,8 @@ export default function BusinessWorkspaceRouteHost({
   if(route === 'supplier-performances') return <SupplierPerformances />
   if(route === 'procurement-analytics') return <ProcurementAnalytics />
   if(route === 'kpi-dashboard') return <KPIDashboard currentUser={currentUser} />
+  if(route === 'daily-production-analytics') return <DailyProductionAnalytics currentUser={currentUser} />
+  if(route === 'weekly-production-analytics') return <WeeklyProductionAnalytics currentUser={currentUser} />
   if(route === 'decision-support') return <DecisionRouteFrame route={route}><DecisionSupport currentUser={currentUser} /></DecisionRouteFrame>
   if(route === 'critical-alerts') return <DecisionRouteFrame route={route}><CriticalAlerts currentUser={currentUser} /></DecisionRouteFrame>
   if(route === 'forecasting') return <DecisionRouteFrame route={route}><Forecasting currentUser={currentUser} /></DecisionRouteFrame>
@@ -312,6 +319,9 @@ export default function BusinessWorkspaceRouteHost({
   if(route === 'ai-analysis') return <DecisionRouteFrame route={route}><AIAnalysis currentUser={currentUser} /></DecisionRouteFrame>
   if(route === 'cost-optimization') return <DecisionRouteFrame route={route}><CostOptimization currentUser={currentUser} /></DecisionRouteFrame>
   if(route === 'purchase-recommendations') return <DecisionRouteFrame route={route}><PurchaseRecommendations currentUser={currentUser} /></DecisionRouteFrame>
+  if(route === 'production-planning-recommendations') return <DecisionRouteFrame route={route}><ProductionPlanningRecommendations currentUser={currentUser} /></DecisionRouteFrame>
+  if(route === 'waste-predictions') return <DecisionRouteFrame route={route}><WastePrediction currentUser={currentUser} /></DecisionRouteFrame>
+  if(route === 'shipment-optimization') return <DecisionRouteFrame route={route}><ShipmentOptimization currentUser={currentUser} /></DecisionRouteFrame>
   if(route === 'label-management') return <LabelManagement currentUser={currentUser} />
   if(route === 'operation-checklists') return <OperationChecklists currentUser={currentUser} />
   if(route === 'lot-system') return <LotSystem currentUser={currentUser} />

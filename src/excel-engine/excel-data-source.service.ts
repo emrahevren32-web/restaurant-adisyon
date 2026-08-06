@@ -14,6 +14,20 @@ import {
   PurchaseRecommendationService
 } from '../purchase-recommendations/purchase-recommendation.service'
 import {
+  PRODUCTION_PLANNING_RECOMMENDATION_PRIORITY_LABELS,
+  PRODUCTION_PLANNING_RECOMMENDATION_RISK_LABELS,
+  PRODUCTION_PLANNING_RECOMMENDATION_STATUS_LABELS,
+  PRODUCTION_PLANNING_RECOMMENDATION_TYPE_LABELS,
+  ProductionPlanningRecommendationService
+} from '../production-planning-recommendations/production-planning-recommendation.service'
+import {
+  WASTE_PREDICTION_PRIORITY_LABELS,
+  WASTE_PREDICTION_RISK_LABELS,
+  WASTE_PREDICTION_STATUS_LABELS,
+  WASTE_PREDICTION_TYPE_LABELS,
+  WastePredictionService
+} from '../waste-predictions/waste-prediction.service'
+import {
   AI_ANALYSIS_STATUS_LABELS,
   AI_ANALYSIS_TITLE_LABELS,
   AI_INSIGHT_TYPE_LABELS,
@@ -894,6 +908,7 @@ const getRecommendationRows = (): ExcelRow[] => {
   return RecommendationService.list(sourceData).flatMap(report => report.items.map(item => ({
     id: report.id,
     lineId: item.id,
+    recommendationNo: item.recommendationNo,
     reportNo: report.reportNo,
     reportDate: report.reportDate,
     status: RECOMMENDATION_STATUS_LABELS[report.status],
@@ -1031,14 +1046,19 @@ const getPurchaseRecommendationRows = (): ExcelRow[] => {
     recommendedOrderQuantity: item.recommendedOrderQuantity,
     currentStock: item.currentStock,
     minimumStock: item.minimumStock,
+    maximumStock: item.maximumStock,
     dailyUsageEstimate: item.dailyUsageEstimate,
     estimatedCoverageDays: item.estimatedCoverageDays,
     estimatedStockoutDate: item.estimatedStockoutDate,
     expectedCost: item.expectedCost,
     expectedSaving: item.expectedSaving,
     unitCost: item.unitCost,
+    leadTimeDays: item.leadTimeDays,
     riskScore: item.riskScore,
     confidenceScore: item.confidenceScore,
+    analysisResult: item.analysisResult,
+    riskExplanation: item.riskExplanation,
+    expectedGain: item.expectedGain,
     sourceModule: item.sourceModule,
     sourceNo: item.sourceNo,
     relatedModules: item.relatedModules.join(','),
@@ -1050,7 +1070,116 @@ const getPurchaseRecommendationRows = (): ExcelRow[] => {
     branchName: item.branchName,
     warehouseName: item.warehouseName,
     supplierName: item.supplierName,
-    alternativeSupplierName: item.alternativeSupplierName
+    alternativeSupplierName: item.alternativeSupplierName,
+    affectedProductionOrders: item.affectedProductionOrders.map(record => record.no || record.name).join(','),
+    affectedRecipes: item.affectedRecipes.map(record => record.no || record.name).join(','),
+    alternativeSuppliers: item.alternativeSuppliers.map(option => option.supplierName).join(','),
+    openRequestNos: item.openRequestNos.join(','),
+    pendingOrderNos: item.pendingOrderNos.join(','),
+    lotRiskSummary: item.lotRiskSummary,
+    createdAt: item.createdAt
+  })))
+}
+
+const getProductionPlanningRecommendationRows = (): ExcelRow[] => {
+  const sourceData = loadKpiSourceData()
+
+  return ProductionPlanningRecommendationService.list(sourceData).flatMap(report => report.items.map(item => ({
+    id: report.id,
+    lineId: item.id,
+    reportNo: report.reportNo,
+    reportDate: report.reportDate,
+    status: PRODUCTION_PLANNING_RECOMMENDATION_STATUS_LABELS[report.status],
+    scope: report.scope === 'all' ? 'Tum Oneriler' : PRODUCTION_PLANNING_RECOMMENDATION_TYPE_LABELS[report.scope],
+    recommendationNo: item.recommendationNo,
+    recommendationType: PRODUCTION_PLANNING_RECOMMENDATION_TYPE_LABELS[item.recommendationType],
+    priority: PRODUCTION_PLANNING_RECOMMENDATION_PRIORITY_LABELS[item.priority],
+    risk: PRODUCTION_PLANNING_RECOMMENDATION_RISK_LABELS[item.risk],
+    workOrderNo: item.workOrderNo,
+    productName: item.productName,
+    recipeName: item.recipeName,
+    productionLineName: item.productionLineName,
+    machineCode: item.machineCode,
+    machineName: item.machineName,
+    branchName: item.branchName,
+    plannedStartAt: item.plannedStartAt,
+    plannedEndAt: item.plannedEndAt,
+    confidenceScore: item.confidenceScore,
+    expectedGain: item.expectedGain,
+    expectedCapacityGainPercent: item.expectedCapacityGainPercent,
+    expectedCapacityGainMinutes: item.expectedCapacityGainMinutes,
+    expectedTimeGainMinutes: item.expectedTimeGainMinutes,
+    setupTimeGainMinutes: item.setupTimeGainMinutes,
+    wasteReductionPercent: item.wasteReductionPercent,
+    currentLineUtilizationPercent: item.currentLineUtilizationPercent,
+    currentMachineUtilizationPercent: item.currentMachineUtilizationPercent,
+    affectedWorkOrders: item.affectedWorkOrders.map(record => record.no || record.name).join(','),
+    affectedMachines: item.affectedMachines.map(record => record.no || record.name).join(','),
+    affectedPersonnel: item.affectedPersonnel.map(record => record.name || record.no).join(','),
+    alternativeLines: item.alternativeLines.map(option => option.name).join(','),
+    alternativeMachines: item.alternativeMachines.map(option => option.name).join(','),
+    reason: item.reason,
+    analysisResult: item.analysisResult,
+    riskExplanation: item.riskExplanation,
+    lotSktSummary: item.lotSktSummary,
+    haccpCriticalPoint: item.haccpCriticalPoint,
+    createdAt: item.createdAt
+  })))
+}
+
+const getWastePredictionRows = (): ExcelRow[] => {
+  const sourceData = loadKpiSourceData()
+
+  return WastePredictionService.list(sourceData).flatMap(report => report.items.map(item => ({
+    id: report.id,
+    lineId: item.id,
+    reportNo: report.reportNo,
+    reportDate: report.reportDate,
+    status: WASTE_PREDICTION_STATUS_LABELS[report.status],
+    scope: report.scope === 'all' ? 'Tum Tahminler' : WASTE_PREDICTION_TYPE_LABELS[report.scope],
+    predictionNo: item.predictionNo,
+    predictionType: WASTE_PREDICTION_TYPE_LABELS[item.predictionType],
+    productName: item.productName,
+    stockItemName: item.stockItemName,
+    recipeName: item.recipeName,
+    recipeCode: item.recipeCode,
+    productionLineName: item.productionLineName,
+    machineCode: item.machineCode,
+    machineName: item.machineName,
+    branchName: item.branchName,
+    lotNo: item.lotNo,
+    supplierName: item.supplierName,
+    plannedQuantity: item.plannedQuantity,
+    unit: item.unit,
+    expectedWastePercent: item.expectedWastePercent,
+    expectedWasteKg: item.expectedWasteKg,
+    expectedWasteCost: item.expectedWasteCost,
+    expectedSaving: item.expectedSaving,
+    unitCost: item.unitCost,
+    risk: WASTE_PREDICTION_RISK_LABELS[item.risk],
+    priority: WASTE_PREDICTION_PRIORITY_LABELS[item.priority],
+    riskScore: item.riskScore,
+    confidenceScore: item.confidenceScore,
+    riskReason: item.riskReason,
+    forecastReason: item.forecastReason,
+    analysisResult: item.analysisResult,
+    riskExplanation: item.riskExplanation,
+    qualitySignal: item.qualitySignal,
+    haccpCriticalPoint: item.haccpCriticalPoint,
+    lotExpiryDate: item.lotExpiryDate,
+    lotDaysToExpiry: item.lotDaysToExpiry,
+    supplierPerformanceScore: item.supplierPerformanceScore,
+    lineEfficiencyPercent: item.lineEfficiencyPercent,
+    capacityUtilizationPercent: item.capacityUtilizationPercent,
+    machineUtilizationPercent: item.machineUtilizationPercent,
+    historicalWastePercent: item.historicalWastePercent,
+    affectedProductionOrders: item.affectedProductionOrders.map(record => record.no || record.name).join(','),
+    affectedLots: item.affectedLots.map(record => record.no || record.name).join(','),
+    alternativeRecipes: item.alternativeRecipes.map(option => option.name).join(','),
+    alternativeSuppliers: item.alternativeSuppliers.map(option => option.name).join(','),
+    sourceModules: item.sourceModules.join(','),
+    sourceNo: item.sourceNo,
+    createdAt: item.createdAt
   })))
 }
 
@@ -1390,6 +1519,8 @@ const getRowsForModule = (
   if(moduleKey === 'ai-analysis') return getAIAnalysisRows()
   if(moduleKey === 'cost-optimization') return getCostOptimizationRows()
   if(moduleKey === 'purchase-recommendations') return getPurchaseRecommendationRows()
+  if(moduleKey === 'production-planning-recommendations') return getProductionPlanningRecommendationRows()
+  if(moduleKey === 'waste-predictions') return getWastePredictionRows()
   if(moduleKey === 'production-orders') return getProductionOrderRows()
   if(moduleKey === 'quality') return getQualityRows()
   if(moduleKey === 'shipments') return getShipmentRows()

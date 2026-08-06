@@ -199,6 +199,25 @@ const normalizeInsight = (
   createdAt: normalizeText(value.createdAt) || new Date().toISOString()
 })
 
+const ensureUniqueInsightIds = (
+  insights: AIInsight[]
+): AIInsight[] => {
+  const seen = new Map<string, number>()
+
+  return insights.map((insight, index) => {
+    const baseId = normalizeText(insight.id) || `${insight.reportId}_insight_${index + 1}`
+    const count = seen.get(baseId) || 0
+    seen.set(baseId, count + 1)
+
+    if(count === 0) return { ...insight, id: baseId }
+
+    return {
+      ...insight,
+      id: `${baseId}_${count + 1}`
+    }
+  })
+}
+
 const normalizeFinding = (
   value: RawAIFinding,
   reportId: string,
@@ -254,9 +273,9 @@ const normalizeReport = (
   const id = normalizeText(value.id) || `ai_analysis_${reportNo}`.replace(/[^a-zA-Z0-9_]+/g, '_')
   const createdAt = normalizeText(value.createdAt) || new Date().toISOString()
   const actorName = 'Yapay Zeka Analiz Motoru'
-  const insights = Array.isArray(value.insights)
+  const insights = ensureUniqueInsightIds(Array.isArray(value.insights)
     ? value.insights.filter(isRecord).map((insight, insightIndex) => normalizeInsight(insight as RawAIInsight, id, reportNo, insightIndex))
-    : []
+    : [])
   const findings = Array.isArray(value.findings)
     ? value.findings.filter(isRecord).map((finding, findingIndex) => normalizeFinding(finding as RawAIFinding, id, reportNo, findingIndex))
     : []

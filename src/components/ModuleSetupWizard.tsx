@@ -56,7 +56,7 @@ export default function ModuleSetupWizard({ session, onComplete }: Props){
         <p>{activeStep.description}</p>
         {activeStep.placeholder && (
           <div className="module-setup-placeholder">
-            <strong>Placeholder</strong>
+            <strong>Hazırlık alanı</strong>
             <span>{activeStep.placeholder}</span>
           </div>
         )}

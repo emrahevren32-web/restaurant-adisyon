@@ -21,6 +21,8 @@ export type ExcelModuleKey =
   | 'ai-analysis'
   | 'cost-optimization'
   | 'purchase-recommendations'
+  | 'production-planning-recommendations'
+  | 'waste-predictions'
   | 'production-orders'
   | 'quality'
   | 'shipments'

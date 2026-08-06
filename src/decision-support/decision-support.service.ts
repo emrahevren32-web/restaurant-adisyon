@@ -1,5 +1,4 @@
 import { flattenHACCPCorrectiveActions } from '../haccp/haccp.mock'
-import { createDefaultKpiFilters } from '../kpi-reporting/kpi.service'
 import type { KpiSourceData } from '../kpi-reporting/kpi.types'
 import { ALL_FILTER } from '../kpi-reporting/kpi.utils'
 import { resolveReadModelList } from '../read-model/read-model-safety'
@@ -64,7 +63,13 @@ type DecisionSuggestionOptions = {
 }
 
 export const createDefaultDecisionSupportFilters = (): DecisionSupportFilters => ({
-  ...createDefaultKpiFilters(),
+  period: 'MONTH',
+  branchId: ALL_FILTER,
+  warehouseId: ALL_FILTER,
+  productId: ALL_FILTER,
+  lotId: ALL_FILTER,
+  supplierId: ALL_FILTER,
+  operator: ALL_FILTER,
   category: ALL_FILTER,
   risk: ALL_FILTER,
   priority: ALL_FILTER,

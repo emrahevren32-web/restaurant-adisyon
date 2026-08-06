@@ -11,7 +11,12 @@ import {
 import { getDecisionReadModelSnapshot } from '../read-model/decision-read-model-snapshot.service'
 import { resolveReadModel } from '../read-model/read-model-safety'
 import { calculateCostOptimizationReport, CostAnalysisService } from './cost-analysis.service'
-import { CostCalculationService } from './cost-calculation.service'
+import {
+  CostCalculationService,
+  clampAnnualGainValue,
+  clampCostValue,
+  clampSavingValue
+} from './cost-calculation.service'
 import {
   COST_OPTIMIZATION_CATEGORIES,
   COST_OPTIMIZATION_CATEGORY_LABELS,
@@ -161,9 +166,9 @@ const normalizeOpportunity = (
   category: mapCategory(value.category),
   title: normalizeText(value.title) || 'Maliyet firsati',
   description: normalizeText(value.description),
-  expectedSaving: Math.max(0, normalizeNumber(value.expectedSaving)),
-  expectedMonthlyGain: Math.max(0, normalizeNumber(value.expectedMonthlyGain)),
-  expectedAnnualGain: Math.max(0, normalizeNumber(value.expectedAnnualGain)),
+  expectedSaving: clampSavingValue(normalizeNumber(value.expectedSaving)),
+  expectedMonthlyGain: clampSavingValue(normalizeNumber(value.expectedMonthlyGain)),
+  expectedAnnualGain: clampAnnualGainValue(normalizeNumber(value.expectedAnnualGain)),
   roiEstimate: Math.max(0, normalizeNumber(value.roiEstimate)),
   confidenceScore: Math.max(0, normalizeNumber(value.confidenceScore)),
   riskScore: Math.max(0, normalizeNumber(value.riskScore)),
@@ -191,13 +196,13 @@ const normalizeItem = (
   action: normalizeText(value.action),
   expectedImpact: normalizeText(value.expectedImpact),
   ownerRole: normalizeText(value.ownerRole) || 'Operasyon',
-  unitCost: Math.max(0, normalizeNumber(value.unitCost)),
-  totalCost: Math.max(0, normalizeNumber(value.totalCost)),
-  baselineCost: Math.max(0, normalizeNumber(value.baselineCost)),
-  optimizedCost: Math.max(0, normalizeNumber(value.optimizedCost)),
-  savingPotential: Math.max(0, normalizeNumber(value.savingPotential)),
-  expectedMonthlyGain: Math.max(0, normalizeNumber(value.expectedMonthlyGain)),
-  expectedAnnualGain: Math.max(0, normalizeNumber(value.expectedAnnualGain)),
+  unitCost: clampCostValue(normalizeNumber(value.unitCost), 1_000_000),
+  totalCost: clampCostValue(normalizeNumber(value.totalCost)),
+  baselineCost: clampCostValue(normalizeNumber(value.baselineCost)),
+  optimizedCost: clampCostValue(normalizeNumber(value.optimizedCost)),
+  savingPotential: clampSavingValue(normalizeNumber(value.savingPotential)),
+  expectedMonthlyGain: clampSavingValue(normalizeNumber(value.expectedMonthlyGain)),
+  expectedAnnualGain: clampAnnualGainValue(normalizeNumber(value.expectedAnnualGain)),
   roiEstimate: Math.max(0, normalizeNumber(value.roiEstimate)),
   riskScore: Math.max(0, normalizeNumber(value.riskScore)),
   confidenceScore: Math.max(0, normalizeNumber(value.confidenceScore)),

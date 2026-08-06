@@ -355,8 +355,8 @@ export const BUSINESS_WORKSPACE_MODULE_REGISTRY: BusinessWorkspaceModule[] = def
   {
     id: 'system-executive-center',
     code: WORKSPACE_MODULE_CODES.EXECUTIVE_CENTER,
-    name: 'Yönetici Merkezi',
-    description: 'İşletme sahibi için yönetim özeti, uyarılar ve karar destek merkezi.',
+    name: 'Executive Dashboard',
+    description: 'Endüstriyel mutfak yönetimi için KPI, operasyon özeti, kritik uyarı ve karar destek yönetici görünümü.',
     category: 'system',
     icon: 'YM',
     route: 'business-summary',
@@ -371,7 +371,7 @@ export const BUSINESS_WORKSPACE_MODULE_REGISTRY: BusinessWorkspaceModule[] = def
     pricing: includedPricing,
     marketplace: coreSystemMarketplace,
     menuItems: [
-      menuItem({ key: 'business-summary', label: 'Yönetici Merkezi', route: 'business-summary', icon: 'YM', adminOnly: true, displayOrder: 20 })
+      menuItem({ key: 'business-summary', label: 'Executive Dashboard', route: 'business-summary', icon: 'YM', adminOnly: true, displayOrder: 20 })
     ]
   },
   {
@@ -1010,7 +1010,7 @@ export const BUSINESS_WORKSPACE_MODULE_REGISTRY: BusinessWorkspaceModule[] = def
     isVisible: true,
     displayOrder: 43,
     dependencies: [WORKSPACE_MODULE_CODES.DASHBOARD, WORKSPACE_MODULE_CODES.STOCK, WORKSPACE_MODULE_CODES.PURCHASE],
-    tags: ['business', 'reporting', 'kpi', 'dashboard', 'executive-dashboard', 'production-kpi', 'inventory-kpi', 'quality-kpi', 'purchasing-kpi', 'shipment-kpi', 'industrial-kitchen'],
+    tags: ['business', 'reporting', 'kpi', 'dashboard', 'executive-dashboard', 'daily-production-analytics', 'weekly-production-analytics', 'production-kpi', 'inventory-kpi', 'quality-kpi', 'purchasing-kpi', 'shipment-kpi', 'industrial-kitchen'],
     supportedSectorIds: industrialKitchenSectorIds,
     pricing: { model: 'paid', currency: 'TRY' },
     marketplace: marketplaceReady,
@@ -1027,17 +1027,45 @@ export const BUSINESS_WORKSPACE_MODULE_REGISTRY: BusinessWorkspaceModule[] = def
         supportedLayouts: ['standard', 'wide'],
         requiredPermission: 'dashboard.read',
         renderComponent: 'reporting.kpiDashboard.placeholder'
+      }),
+      dashboardWidget({
+        id: 'reporting.dailyProductionAnalytics',
+        title: 'Günlük Üretim Analizi',
+        description: 'Üretim emirleri, gerçekleşen üretim, hat, makine, personel, reçete, fire, lot, kalite ve HACCP sonuçlarını günlük read-model analizi olarak izlemek için kontrol paneli başlangıç alanı.',
+        icon: 'GA',
+        category: 'Raporlama',
+        order: 20,
+        defaultVisible: false,
+        defaultSize: 'large',
+        supportedLayouts: ['standard', 'wide'],
+        requiredPermission: 'dashboard.read',
+        renderComponent: 'reporting.dailyProductionAnalytics.placeholder'
+      }),
+      dashboardWidget({
+        id: 'reporting.weeklyProductionAnalytics',
+        title: 'Haftalık Üretim Analizi',
+        description: 'Günlük üretim kayıtları, üretim emirleri, hat, makine, operatör, vardiya, fire, kalite, lot ve HACCP sonuçlarından haftalık performans trendlerini izlemek için kontrol paneli başlangıç alanı.',
+        icon: 'HA',
+        category: 'Raporlama',
+        order: 30,
+        defaultVisible: false,
+        defaultSize: 'large',
+        supportedLayouts: ['standard', 'wide'],
+        requiredPermission: 'dashboard.read',
+        renderComponent: 'reporting.weeklyProductionAnalytics.placeholder'
       })
     ],
     menuItems: [
-      menuItem({ key: 'kpi-dashboard', label: 'KPI Dashboard', route: 'kpi-dashboard', icon: 'KP', adminOnly: true, displayOrder: 10 })
+      menuItem({ key: 'kpi-dashboard', label: 'KPI Dashboard', route: 'kpi-dashboard', icon: 'KP', adminOnly: true, displayOrder: 10 }),
+      menuItem({ key: 'daily-production-analytics', label: 'Günlük Üretim Analizi', route: 'daily-production-analytics', icon: 'GA', adminOnly: true, displayOrder: 20 }),
+      menuItem({ key: 'weekly-production-analytics', label: 'Haftalık Üretim Analizi', route: 'weekly-production-analytics', icon: 'HA', adminOnly: true, displayOrder: 30 })
     ]
   },
   {
     id: 'business-decision-support-workspace',
     code: DECISION_SUPPORT_WORKSPACE_MODULE_CODE,
     name: 'Karar Destek',
-    description: 'Industrial Kitchen karar destek merkezi, kritik alarm, tahminleme, otomatik oneri, AI analiz, maliyet optimizasyonu ve satin alma onerileri icin ana calisma alani.',
+    description: 'Industrial Kitchen karar destek merkezi, kritik alarm, tahminleme, otomatik oneri, AI analiz, maliyet optimizasyonu, satin alma, uretim planlama, fire ve sevkiyat optimizasyonu onerileri icin ana calisma alani.',
     category: 'business',
     icon: 'DS',
     route: 'decision-support',
@@ -1048,7 +1076,7 @@ export const BUSINESS_WORKSPACE_MODULE_REGISTRY: BusinessWorkspaceModule[] = def
     isVisible: true,
     displayOrder: 44,
     dependencies: [WORKSPACE_MODULE_CODES.DASHBOARD, WORKSPACE_MODULE_CODES.STOCK, WORKSPACE_MODULE_CODES.PURCHASE],
-    tags: ['business', 'decision-support', 'critical-alerts', 'forecasting', 'recommendation-engine', 'ai-analysis', 'cost-optimization', 'purchase-recommendations', 'analytics', 'industrial-kitchen'],
+    tags: ['business', 'decision-support', 'critical-alerts', 'forecasting', 'recommendation-engine', 'ai-analysis', 'cost-optimization', 'purchase-recommendations', 'production-planning-recommendations', 'waste-predictions', 'shipment-optimization', 'analytics', 'industrial-kitchen'],
     supportedSectorIds: industrialKitchenSectorIds,
     pricing: { model: 'paid', currency: 'TRY' },
     marketplace: marketplaceReady,
@@ -1143,6 +1171,45 @@ export const BUSINESS_WORKSPACE_MODULE_REGISTRY: BusinessWorkspaceModule[] = def
         supportedLayouts: ['standard', 'wide'],
         requiredPermission: 'dashboard.read',
         renderComponent: 'reporting.purchaseRecommendations.placeholder'
+      }),
+      dashboardWidget({
+        id: 'reporting.productionPlanningRecommendations',
+        title: 'Uretim Planlama Onerileri',
+        description: 'Uretim emirleri, kapasite, vardiya, makine, recete, stok, satin alma, tahminleme, fire, sevkiyat, lot/SKT ve HACCP sinyallerinden karar destek onerileri uretmek icin kontrol paneli baslangic alani.',
+        icon: 'PO',
+        category: 'Karar Destek',
+        order: 80,
+        defaultVisible: false,
+        defaultSize: 'large',
+        supportedLayouts: ['standard', 'wide'],
+        requiredPermission: 'dashboard.read',
+        renderComponent: 'reporting.productionPlanningRecommendations.placeholder'
+      }),
+      dashboardWidget({
+        id: 'reporting.wastePredictions',
+        title: 'Fire Tahmini',
+        description: 'Uretim, recete, stok, kalite, satin alma, kapasite, makine, personel, gecmis fire, lot/SKT ve HACCP sinyallerinden read-model fire tahminleri uretmek icin kontrol paneli baslangic alani.',
+        icon: 'FT',
+        category: 'Karar Destek',
+        order: 90,
+        defaultVisible: false,
+        defaultSize: 'large',
+        supportedLayouts: ['standard', 'wide'],
+        requiredPermission: 'dashboard.read',
+        renderComponent: 'reporting.wastePredictions.placeholder'
+      }),
+      dashboardWidget({
+        id: 'reporting.shipmentOptimization',
+        title: 'Sevkiyat Optimizasyonu',
+        description: 'Sevkiyat planlari, arac kapasitesi, teslimat rotalari, musteri teslim saatleri, soguk zincir, uretim ve depo sinyallerinden read-model sevkiyat optimizasyon onerileri uretmek icin kontrol paneli baslangic alani.',
+        icon: 'SO',
+        category: 'Karar Destek',
+        order: 100,
+        defaultVisible: false,
+        defaultSize: 'large',
+        supportedLayouts: ['standard', 'wide'],
+        requiredPermission: 'dashboard.read',
+        renderComponent: 'reporting.shipmentOptimization.placeholder'
       })
     ],
     menuItems: [
@@ -1152,7 +1219,10 @@ export const BUSINESS_WORKSPACE_MODULE_REGISTRY: BusinessWorkspaceModule[] = def
       menuItem({ key: 'recommendation-engine', label: 'Otomatik Oneriler', route: 'recommendation-engine', icon: 'RC', adminOnly: true, displayOrder: 40 }),
       menuItem({ key: 'ai-analysis', label: 'Yapay Zeka Analizi', route: 'ai-analysis', icon: 'AI', adminOnly: true, displayOrder: 50 }),
       menuItem({ key: 'cost-optimization', label: 'Maliyet Optimizasyonu', route: 'cost-optimization', icon: 'CO', adminOnly: true, displayOrder: 60 }),
-      menuItem({ key: 'purchase-recommendations', label: 'Satin Alma Onerileri', route: 'purchase-recommendations', icon: 'PR', adminOnly: true, displayOrder: 70 })
+      menuItem({ key: 'purchase-recommendations', label: 'Satin Alma Onerileri', route: 'purchase-recommendations', icon: 'PR', adminOnly: true, displayOrder: 70 }),
+      menuItem({ key: 'production-planning-recommendations', label: 'Uretim Planlama Onerileri', route: 'production-planning-recommendations', icon: 'PO', adminOnly: true, displayOrder: 80 }),
+      menuItem({ key: 'waste-predictions', label: 'Fire Tahmini', route: 'waste-predictions', icon: 'FT', adminOnly: true, displayOrder: 90 }),
+      menuItem({ key: 'shipment-optimization', label: 'Sevkiyat Optimizasyonu', route: 'shipment-optimization', icon: 'SO', adminOnly: true, displayOrder: 100 })
     ]
   },
   {
@@ -1229,8 +1299,8 @@ export const BUSINESS_WORKSPACE_MODULE_REGISTRY: BusinessWorkspaceModule[] = def
       }),
       dashboardWidget({
         id: 'quality.productRecalls',
-        title: 'Recall Management',
-        description: 'Inventory Lot kaynaklı ürün geri çağırma kayıtlarını, risk seviyelerini ve ilgili numune zincirini takip etmek için kontrol paneli başlangıç alanı.',
+        title: 'Geri Çağırma',
+        description: 'Ürün, lot, hammadde, tedarikçi, kalite, HACCP, SKT, etiket ve alerjen kaynaklı recall süreçlerini izlenebilirlik ağıyla yönetmek için kontrol paneli başlangıç alanı.',
         icon: 'RC',
         category: 'Kalite',
         order: 8,
@@ -1350,7 +1420,7 @@ export const BUSINESS_WORKSPACE_MODULE_REGISTRY: BusinessWorkspaceModule[] = def
       menuItem({ key: 'lot-system', label: 'Lot Sistemi', route: 'lot-system', icon: 'LS', adminOnly: true, displayOrder: 5 }),
       menuItem({ key: 'sample-tracking', label: 'Numune Takibi', route: 'sample-tracking', icon: 'NT', adminOnly: true, displayOrder: 6 }),
       menuItem({ key: 'witness-samples', label: 'Şahit Numune', route: 'witness-samples', icon: 'SN', adminOnly: true, displayOrder: 7 }),
-      menuItem({ key: 'product-recalls', label: 'Recall Management', route: 'product-recalls', icon: 'RC', adminOnly: true, displayOrder: 8 }),
+      menuItem({ key: 'product-recalls', label: 'Geri Çağırma', route: 'product-recalls', icon: 'RC', adminOnly: true, displayOrder: 8 }),
       menuItem({ key: 'product-history', label: 'Ürün Geçmişi', route: 'product-history', icon: 'UG', adminOnly: true, displayOrder: 9 }),
       menuItem({ key: 'haccp-management', label: 'HACCP', route: 'haccp-management', icon: 'HC', adminOnly: true, displayOrder: 10 }),
       menuItem({ key: 'quality-controls', label: 'Kalite Kontrol', route: 'quality-controls', icon: 'KL', adminOnly: true, displayOrder: 11 }),

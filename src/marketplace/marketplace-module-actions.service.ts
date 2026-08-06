@@ -60,7 +60,7 @@ export const getMarketplaceModuleActions = (module: MarketplaceModule): Marketpl
       displayOrder: 20
     }, {
       key: 'detach-from-workspace',
-      label: "Workspace'ten Kaldır",
+      label: "Çalışma Alanından Kaldır",
       variant: 'danger',
       visibleInStates: [WORKSPACE_MODULE_LIFECYCLE_STATES.ACTIVE],
       displayOrder: 30
@@ -82,7 +82,7 @@ export const getMarketplaceModuleActions = (module: MarketplaceModule): Marketpl
       displayOrder: 20
     }, {
       key: 'detach-from-workspace',
-      label: "Workspace'ten Kaldır",
+      label: "Çalışma Alanından Kaldır",
       variant: 'danger',
       visibleInStates: [WORKSPACE_MODULE_LIFECYCLE_STATES.SUSPENDED],
       displayOrder: 30

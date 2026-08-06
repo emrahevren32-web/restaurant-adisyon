@@ -4,7 +4,7 @@ import { ContinuousImprovementService } from '../continuous-improvement/continuo
 import { CriticalAlertService } from '../critical-alerts/critical-alert.service'
 import type { CriticalAlert } from '../critical-alerts/critical-alert.types'
 import type { DecisionCategory, DecisionPriority, DecisionRisk, DecisionSuggestion } from '../decision-support/decision-support.types'
-import { ForecastService } from '../forecasting/forecast.service'
+import { calculateForecastReport } from '../forecasting/forecast-calculation.service'
 import type { ForecastPrediction } from '../forecasting/forecasting.types'
 import type { KpiSourceData } from '../kpi-reporting/kpi.types'
 import {
@@ -135,7 +135,7 @@ const createRecommendationItem = (
   const risk = input.risk || mapRisk(riskScore)
   const priority = input.priority || mapPriority(risk, riskScore)
   const expectedBenefitScore = roundKpi(clamp(input.expectedBenefitScore ?? riskScore * 0.68 + (input.confidenceScore || 65) * 0.28, 0, 100))
-  const id = `recommendation_${input.reportNo}_${rule.code}_${input.relatedEntityId || input.sourceId}`.replace(/[^a-zA-Z0-9_]+/g, '_')
+  const id = `recommendation_${input.reportNo}_${rule.code}_${input.sourceModule || rule.sourceModule}_${input.relatedEntityId || input.sourceId}`.replace(/[^a-zA-Z0-9_]+/g, '_')
 
   return {
     id,
@@ -351,11 +351,36 @@ const getRuleIdForForecast = (
   return 'recommendation-rule-production-increase'
 }
 
+const createForecastPredictions = (
+  input: RecommendationCalculationInput,
+  dependencies: Partial<Pick<
+    RecommendationCalculationInput,
+    | 'bottleneckReports'
+    | 'capacityPlans'
+    | 'criticalAlerts'
+    | 'improvementReports'
+    | 'machineSchedules'
+    | 'productionPlans'
+    | 'workforcePlans'
+  >> = {}
+) => calculateForecastReport({
+  reportDate: input.reportDate,
+  horizonDays: 30,
+  analysisWindowDays: 30,
+  scenarioName: 'Oneri Motoru Tahmini',
+  responsiblePerson: input.responsiblePerson,
+  description: 'Oneri Motoru tahminleme kaynagi.',
+  sourceData: input.sourceData,
+  actorName: input.actorName,
+  getReportNo: () => `FC-${new Date().getFullYear()}-000000`,
+  ...dependencies
+}).predictions
+
 const createForecastItems = (
   input: RecommendationCalculationInput,
   reportId: string,
   reportNo: string
-) => (input.forecastPredictions || ForecastService.evaluate(input.sourceData).predictions)
+) => (input.forecastPredictions || createForecastPredictions(input))
   .filter(prediction => (
     prediction.riskLevel === 'HIGH'
     || prediction.riskLevel === 'CRITICAL'
@@ -784,6 +809,20 @@ const dedupeItems = (
     || first.title.localeCompare(second.title, 'tr-TR')
   ))
 
+const ensureUniqueItemIds = (
+  items: RecommendationItem[]
+) => {
+  const seen = new Map<string, number>()
+
+  return items.map(item => {
+    const currentCount = seen.get(item.id) || 0
+    seen.set(item.id, currentCount + 1)
+    return currentCount === 0
+      ? item
+      : { ...item, id: `${item.id}_${currentCount + 1}` }
+  })
+}
+
 const filterScope = (
   items: RecommendationItem[],
   scope: RecommendationType | 'all'
@@ -816,7 +855,7 @@ export const calculateRecommendationReport = (
     machineSchedules,
     workforcePlans
   })
-  const forecastPredictions = input.forecastPredictions || ForecastService.evaluate(input.sourceData, {}, [], input.actorName, {
+  const forecastPredictions = input.forecastPredictions || createForecastPredictions(input, {
     bottleneckReports,
     capacityPlans,
     criticalAlerts,
@@ -847,7 +886,7 @@ export const calculateRecommendationReport = (
     ...createQualityShipmentChecklistItems(context, reportId, reportNo),
     ...createWasteItems(context, reportId, reportNo)
   ]
-  const items = filterScope(dedupeItems(rawItems), input.scope)
+  const items = ensureUniqueItemIds(filterScope(dedupeItems(rawItems), input.scope))
   const now = new Date().toISOString()
 
   return {

@@ -163,7 +163,7 @@ const createInsight = (
   const trendScore = roundKpi(clamp(input.trendScore))
   const confidenceScore = roundKpi(clamp(input.confidenceScore ?? calculateAIConfidence((input.relatedModules || []).length + 1, 1)))
   const priorityScore = roundKpi(clamp(input.priorityScore ?? calculateAIPriorityScore(riskScore, impactScore, trendScore, confidenceScore)))
-  const id = `ai_insight_${input.reportNo}_${normalizeKey(input.sourceModule)}_${normalizeKey(input.relatedEntityId || input.title)}_${normalizeKey(input.insightType)}`
+  const id = `ai_insight_${input.reportNo}_${normalizeKey(input.sourceModule)}_${normalizeKey(input.sourceId || input.sourceNo || input.relatedEntityName)}_${normalizeKey(input.relatedEntityId || input.title)}_${normalizeKey(input.insightType)}`
 
   return {
     id,
@@ -655,6 +655,25 @@ const dedupeInsights = (
     || first.title.localeCompare(second.title, 'tr-TR')
   ))
 
+const ensureUniqueInsightIds = (
+  insights: AIInsight[]
+): AIInsight[] => {
+  const seen = new Map<string, number>()
+
+  return insights.map(insight => {
+    const baseId = insight.id || `ai_insight_${normalizeKey(insight.reportNo)}_${normalizeKey(insight.title)}`
+    const count = seen.get(baseId) || 0
+    seen.set(baseId, count + 1)
+
+    if(count === 0) return { ...insight, id: baseId }
+
+    return {
+      ...insight,
+      id: `${baseId}_${count + 1}`
+    }
+  })
+}
+
 const filterByScope = (
   insights: AIInsight[],
   scope: AIAnalysisTitle | 'all'
@@ -769,7 +788,7 @@ export const calculateAIAnalysisReport = (
     recommendationItems,
     workforcePlans
   }
-  const insights = filterByScope(dedupeInsights([
+  const insights = ensureUniqueInsightIds(filterByScope(dedupeInsights([
     ...createDecisionSupportInsights(context, reportId, reportNo),
     ...createCriticalAlertInsights(context, reportId, reportNo),
     ...createForecastInsights(context, reportId, reportNo),
@@ -778,7 +797,7 @@ export const calculateAIAnalysisReport = (
     ...createBottleneckInsights(context, reportId, reportNo),
     ...createImprovementInsights(context, reportId, reportNo),
     ...createKpiInsights(input.sourceData, reportId, reportNo)
-  ]), input.scope)
+  ]), input.scope))
   const finalInsights = insights.length > 0 ? insights : [createFallbackInsight(reportId, reportNo)]
   const findings = createFindings(reportId, reportNo, finalInsights)
   const scores = createScores(reportId, finalInsights)

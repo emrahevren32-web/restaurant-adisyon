@@ -5,10 +5,17 @@ import { createDecisionSuggestion } from './recommendation-engine.service'
 
 const ruleIdByType: Record<PurchaseRecommendationItem['recommendationType'], string> = {
   CRITICAL_STOCK: 'purchase-recommendation-critical-stock',
+  UPCOMING_PRODUCTION: 'purchase-recommendation-upcoming-production',
+  POSTPONE_ORDER: 'purchase-recommendation-postpone-order',
+  SPLIT_ORDER: 'purchase-recommendation-split-order',
   STOCKOUT_SOON: 'purchase-recommendation-stockout-soon',
   FORECAST_ORDER: 'purchase-recommendation-forecast-order',
   BULK_BUY: 'purchase-recommendation-bulk-buy',
   ALTERNATIVE_SUPPLIER: 'purchase-recommendation-alternative-supplier',
+  LOWER_COST_SUPPLIER: 'purchase-recommendation-lower-cost-supplier',
+  STOCK_SUFFICIENT: 'purchase-recommendation-stock-sufficient',
+  WAIT_UPCOMING_DELIVERY: 'purchase-recommendation-wait-upcoming-delivery',
+  EXPIRY_RISK_NO_PURCHASE: 'purchase-recommendation-expiry-risk-no-purchase',
   COST_ADVANTAGE: 'purchase-recommendation-cost-advantage',
   WASTE_REPLENISHMENT: 'purchase-recommendation-waste-replenishment',
   SEASONAL_PURCHASE: 'purchase-recommendation-seasonal-purchase'

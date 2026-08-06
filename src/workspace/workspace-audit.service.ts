@@ -1,5 +1,6 @@
 import { getCompanyIdForUser } from '../storage'
 import type { User } from '../types'
+import { WorkspaceIndexedStorageService } from './workspace-indexed-storage.service'
 
 export type WorkspaceAuditEventType =
   | 'MODULE_INSTALLED'
@@ -37,8 +38,6 @@ export type WorkspaceAuditEventInput = {
 const STORAGE_KEY = 'miyop_workspace_audit_events'
 export const WORKSPACE_AUDIT_EVENT = 'miyop-workspace-audit-events-updated'
 
-const isBrowser = () => typeof window !== 'undefined' && typeof localStorage !== 'undefined'
-
 const createAuditId = (companyId: string, eventType: WorkspaceAuditEventType, createdAt: string) => {
   const companyPart = companyId.replace(/[^a-z0-9]/gi, '').slice(-8) || 'workspace'
   const timePart = new Date(createdAt).getTime().toString(36)
@@ -70,22 +69,22 @@ const normalizeAuditEvent = (item: Partial<WorkspaceAuditEvent>): WorkspaceAudit
 }
 
 const readAuditEvents = (): WorkspaceAuditEvent[] => {
-  if(!isBrowser()) return []
-
-  try {
-    const parsed = JSON.parse(localStorage.getItem(STORAGE_KEY) || '[]')
-    return Array.isArray(parsed)
-      ? parsed.map(normalizeAuditEvent).filter(Boolean) as WorkspaceAuditEvent[]
-      : []
-  } catch {
-    return []
-  }
+  const storedEvents = WorkspaceIndexedStorageService.get<Partial<WorkspaceAuditEvent>[]>(
+    STORAGE_KEY,
+    [],
+    [WORKSPACE_AUDIT_EVENT]
+  )
+  return Array.isArray(storedEvents)
+    ? storedEvents.map(normalizeAuditEvent).filter(Boolean) as WorkspaceAuditEvent[]
+    : []
 }
 
 const saveAuditEvents = (items: WorkspaceAuditEvent[]) => {
-  if(!isBrowser()) return
-  localStorage.setItem(STORAGE_KEY, JSON.stringify(items.map(normalizeAuditEvent).filter(Boolean)))
-  window.dispatchEvent(new CustomEvent(WORKSPACE_AUDIT_EVENT))
+  WorkspaceIndexedStorageService.set(
+    STORAGE_KEY,
+    items.map(normalizeAuditEvent).filter(Boolean),
+    [WORKSPACE_AUDIT_EVENT]
+  )
 }
 
 export const recordWorkspaceAuditEvent = (input: WorkspaceAuditEventInput) => {

@@ -66,9 +66,11 @@ import {
   getWorkspaceModuleLifecycleStateByLicenseKeyForUser,
   isWorkspaceLicenseModuleActiveForUser,
   isWorkspaceModuleActiveForUser,
+  WORKSPACE_MODULE_LIFECYCLE_EVENT,
   WORKSPACE_MODULE_LIFECYCLE_STATES
 } from './workspace/workspace-module-lifecycle.service'
 import type { WorkspaceModuleLifecycleResult } from './workspace/workspace-module-lifecycle.service'
+import { WORKSPACE_PROVISIONING_EVENT } from './workspace-provisioning/workspace-provisioning.service'
 import type { Evren360Notification } from './notifications/evren360-notification.service'
 import { hasConnectedWorkspaceIntegrationsForUser } from './integrations/workspace-integration.service'
 import { createPlatformNavGroups, getPlatformRoutes } from './platform/platform.registry'
@@ -85,7 +87,7 @@ import {
 type NavItem = ShellNavItem<Route, NavKey>
 type NavGroup = ShellNavGroup<Route, NavKey, NavGroupKey>
 
-const INSTALLATION_LOCK_MESSAGE = 'Kurulum tamamlanmadan Kontrol Paneli, Çalışma Alanı ve Modül Mağazası kullanılamaz. Lütfen Business Setup Wizard adımlarını tamamlayın.'
+const INSTALLATION_LOCK_MESSAGE = 'Kurulum tamamlanmadan Kontrol Paneli, Çalışma Alanı ve Modül Mağazası kullanılamaz. Lütfen işletme kurulum sihirbazı adımlarını tamamlayın.'
 const INSTALLATION_LOCKED_NAV_KEYS = new Set<NavKey>(['dashboard', 'workspace', 'marketplace'])
 const INSTALLATION_LOCKED_ROUTES = new Set<Route>(['summary', 'settings', 'marketplace'])
 
@@ -434,6 +436,17 @@ export default function App(){
     setOpenGroupKey('system-modules')
   }, [currentUser, isPlatformAdmin, route, workspaceSetupCompleted])
   React.useEffect(() => {
+    const refreshWorkspaceModules = () => setModuleInstallRefreshKey(current => current + 1)
+
+    window.addEventListener(WORKSPACE_MODULE_LIFECYCLE_EVENT, refreshWorkspaceModules)
+    window.addEventListener(WORKSPACE_PROVISIONING_EVENT, refreshWorkspaceModules)
+
+    return () => {
+      window.removeEventListener(WORKSPACE_MODULE_LIFECYCLE_EVENT, refreshWorkspaceModules)
+      window.removeEventListener(WORKSPACE_PROVISIONING_EVENT, refreshWorkspaceModules)
+    }
+  }, [])
+  React.useEffect(() => {
     let recoveryTimer: number | undefined
     const recoverDecisionStorage = (error: unknown) => {
       if(!isDecisionStorageError(error)) return
@@ -445,6 +458,11 @@ export default function App(){
     const onDecisionStorageError = (event: Event) => {
       recoverDecisionStorage((event as CustomEvent).detail?.message || event)
     }
+    const onWorkspaceStorageError = (event: Event) => {
+      setStorageRecoveryMessage((event as CustomEvent).detail?.message || 'Workspace önbelleği IndexedDB üzerinden yenileniyor.')
+      window.clearTimeout(recoveryTimer)
+      recoveryTimer = window.setTimeout(() => setStorageRecoveryMessage(''), 4200)
+    }
     const onWindowError = (event: ErrorEvent) => {
       recoverDecisionStorage(event.error || event.message)
     }
@@ -453,12 +471,14 @@ export default function App(){
     }
 
     window.addEventListener('decision-storage-error', onDecisionStorageError)
+    window.addEventListener('miyop-workspace-storage-error', onWorkspaceStorageError)
     window.addEventListener('error', onWindowError)
     window.addEventListener('unhandledrejection', onUnhandledRejection)
 
     return () => {
       window.clearTimeout(recoveryTimer)
       window.removeEventListener('decision-storage-error', onDecisionStorageError)
+      window.removeEventListener('miyop-workspace-storage-error', onWorkspaceStorageError)
       window.removeEventListener('error', onWindowError)
       window.removeEventListener('unhandledrejection', onUnhandledRejection)
     }

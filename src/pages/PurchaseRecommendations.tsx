@@ -1,4 +1,5 @@
 import React from 'react'
+import * as XLSX from 'xlsx'
 import { ExcelExportService } from '../excel-engine/excel-export.service'
 import { loadKpiSourceData } from '../kpi-reporting/kpi-source.service'
 import type { BarChartRow, ChartSeries } from '../kpi-reporting/kpi.types'
@@ -23,11 +24,13 @@ import type {
   PurchaseRecommendationFilters,
   PurchaseRecommendationHistoryAction,
   PurchaseRecommendationItem,
+  PurchaseRecommendationLinkedEntity,
   PurchaseRecommendationPriority,
   PurchaseRecommendationReport,
   PurchaseRecommendationReportCreateInput,
   PurchaseRecommendationRisk,
-  PurchaseRecommendationStatus
+  PurchaseRecommendationStatus,
+  PurchaseRecommendationSupplierOption
 } from '../purchase-recommendations/purchase-recommendation.types'
 import type { User } from '../types'
 
@@ -65,6 +68,13 @@ const formatDateTime = (value: string) => {
     })
 }
 
+const escapeHtml = (value: string | number | boolean) => String(value ?? '')
+  .replace(/&/g, '&amp;')
+  .replace(/</g, '&lt;')
+  .replace(/>/g, '&gt;')
+  .replace(/"/g, '&quot;')
+  .replace(/'/g, '&#39;')
+
 const getRiskClass = (risk: PurchaseRecommendationRisk) => {
   if(risk === 'CRITICAL') return 'danger-pill'
   if(risk === 'HIGH') return 'warning-pill'
@@ -86,11 +96,11 @@ const getStatusClass = (status: PurchaseRecommendationStatus) => {
 }
 
 const getHistoryLabel = (action: PurchaseRecommendationHistoryAction) => {
-  if(action === 'CREATED') return 'Olusturuldu'
-  if(action === 'CALCULATED') return 'Hesaplandi'
-  if(action === 'REVIEWED') return 'Incelendi'
-  if(action === 'ARCHIVED') return 'Arsivlendi'
-  if(action === 'PRINTED') return 'Yazdirildi'
+  if(action === 'CREATED') return 'Oluşturuldu'
+  if(action === 'CALCULATED') return 'Hesaplandı'
+  if(action === 'REVIEWED') return 'İncelendi'
+  if(action === 'ARCHIVED') return 'Arşivlendi'
+  if(action === 'PRINTED') return 'Yazdırıldı'
   if(action === 'PDF') return 'PDF'
   return 'Excel'
 }
@@ -109,6 +119,113 @@ const getActionDisabled = (
   return report.status === status
 }
 
+const mapRowsForOutput = (rows: PurchaseRecommendationRow[]) => rows.map(row => ({
+  'Öneri No': row.item.recommendationNo,
+  'Rapor No': row.report.reportNo,
+  'Öneri Türü': PURCHASE_RECOMMENDATION_TYPE_LABELS[row.item.recommendationType],
+  Ürün: row.item.stockItemName || row.item.productName || row.item.relatedEntityName,
+  Kategori: row.item.categoryName,
+  Depo: row.item.warehouseName,
+  Şube: row.item.branchName,
+  Tedarikçi: row.item.supplierName,
+  'Alternatif Tedarikçi': row.item.alternativeSupplierName || row.item.alternativeSuppliers.map(option => option.supplierName).join(', '),
+  'Önerilen Miktar': row.item.recommendedOrderQuantity,
+  Risk: PURCHASE_RECOMMENDATION_RISK_LABELS[row.item.risk],
+  Öncelik: PURCHASE_RECOMMENDATION_PRIORITY_LABELS[row.item.priority],
+  Confidence: row.item.confidenceScore,
+  'Beklenen Tasarruf': row.item.expectedSaving,
+  'Oluşturulma Tarihi': formatDateTime(row.item.createdAt),
+  Gerekçe: row.item.reason,
+  'Analiz Sonucu': row.item.analysisResult,
+  'Risk Açıklaması': row.item.riskExplanation,
+  'Beklenen Kazanç': row.item.expectedGain
+}))
+
+const createFilteredOutputFileName = () => `satin-alma-onerileri-filtreli-${new Date().toLocaleDateString('sv-SE')}.xlsx`
+
+const exportFilteredRowsToExcel = (rows: PurchaseRecommendationRow[]) => {
+  const workbook = XLSX.utils.book_new()
+  const worksheet = XLSX.utils.json_to_sheet(mapRowsForOutput(rows))
+  XLSX.utils.book_append_sheet(workbook, worksheet, 'Filtreli Liste')
+  XLSX.writeFile(workbook, createFilteredOutputFileName())
+}
+
+const createFilteredPrintHtml = (
+  rows: PurchaseRecommendationRow[],
+  mode: 'A4' | 'PDF'
+) => `<!doctype html>
+<html lang="tr">
+<head>
+  <meta charset="utf-8" />
+  <title>Satın Alma Önerileri - Filtreli Liste</title>
+  <style>
+    * { box-sizing:border-box; }
+    body { margin:0; padding:22px; color:#111827; font-family:Inter, Arial, sans-serif; background:#f8fafc; }
+    .sheet { max-width:1180px; margin:0 auto; padding:22px; border:1px solid #d1d5db; border-radius:8px; background:#fff; }
+    .header { display:flex; justify-content:space-between; gap:16px; align-items:flex-start; border-bottom:2px solid #111827; padding-bottom:14px; margin-bottom:16px; }
+    h1 { margin:0; font-size:22px; line-height:1.2; }
+    .muted { color:#64748b; font-size:12px; font-weight:700; }
+    .pill { display:inline-block; border:1px solid #d1d5db; border-radius:999px; padding:6px 10px; font-size:12px; font-weight:800; }
+    table { width:100%; border-collapse:collapse; font-size:11px; }
+    th, td { border:1px solid #e5e7eb; padding:7px; text-align:left; vertical-align:top; }
+    th { background:#f3f4f6; font-weight:900; }
+    @media print {
+      body { background:#fff; padding:0; }
+      .sheet { border:0; border-radius:0; max-width:none; }
+    }
+  </style>
+</head>
+<body>
+  <div class="sheet">
+    <div class="header">
+      <div>
+        <span class="muted">Karar Destek Motoru</span>
+        <h1>Satın Alma Önerileri - Filtreli Liste</h1>
+        <div class="muted">${escapeHtml(formatDateTime(new Date().toISOString()))}</div>
+      </div>
+      <span class="pill">${escapeHtml(mode === 'PDF' ? 'PDF Hazırlık' : `${rows.length} öneri`)}</span>
+    </div>
+    <table>
+      <thead>
+        <tr>
+          <th>Öneri No</th><th>Tür</th><th>Ürün</th><th>Depo</th><th>Şube</th><th>Tedarikçi</th><th>Miktar</th><th>Risk</th><th>Öncelik</th><th>Confidence</th><th>Tasarruf</th><th>Tarih</th>
+        </tr>
+      </thead>
+      <tbody>
+        ${rows.map(row => `
+          <tr>
+            <td>${escapeHtml(row.item.recommendationNo)}</td>
+            <td>${escapeHtml(PURCHASE_RECOMMENDATION_TYPE_LABELS[row.item.recommendationType])}</td>
+            <td>${escapeHtml(row.item.stockItemName || row.item.productName || row.item.relatedEntityName)}</td>
+            <td>${escapeHtml(row.item.warehouseName || '-')}</td>
+            <td>${escapeHtml(row.item.branchName || '-')}</td>
+            <td>${escapeHtml(row.item.supplierName || row.item.alternativeSupplierName || '-')}</td>
+            <td>${escapeHtml(formatNumber(row.item.recommendedOrderQuantity, 2))}</td>
+            <td>${escapeHtml(PURCHASE_RECOMMENDATION_RISK_LABELS[row.item.risk])}</td>
+            <td>${escapeHtml(PURCHASE_RECOMMENDATION_PRIORITY_LABELS[row.item.priority])}</td>
+            <td>${escapeHtml(formatNumber(row.item.confidenceScore, 1))}</td>
+            <td>${escapeHtml(formatCurrency(row.item.expectedSaving))}</td>
+            <td>${escapeHtml(formatDateTime(row.item.createdAt))}</td>
+          </tr>
+        `).join('')}
+      </tbody>
+    </table>
+  </div>
+  <script>window.addEventListener('load', () => window.print())</script>
+</body>
+</html>`
+
+const openFilteredPrintWindow = (
+  rows: PurchaseRecommendationRow[],
+  mode: 'A4' | 'PDF'
+) => {
+  const printWindow = window.open('', '_blank', 'width=1180,height=840')
+  if(!printWindow) throw new Error('Çıktı penceresi açılamadı.')
+  printWindow.document.open()
+  printWindow.document.write(createFilteredPrintHtml(rows, mode))
+  printWindow.document.close()
+}
+
 export default function PurchaseRecommendations({ currentUser }: { currentUser: User }){
   const userName = getUserName(currentUser)
   const sourceData = React.useMemo(loadKpiSourceData, [])
@@ -121,7 +238,7 @@ export default function PurchaseRecommendations({ currentUser }: { currentUser: 
   const rows = React.useMemo<PurchaseRecommendationRow[]>(() => (
     filteredReports.flatMap(report => report.items.map(item => ({ report, item })))
   ), [filteredReports])
-  const statistics = React.useMemo(() => PurchaseRecommendationService.statistics(reports), [reports])
+  const statistics = React.useMemo(() => PurchaseRecommendationService.statistics(filteredReports), [filteredReports])
   const selectedRow = rows.find(row => row.item.id === selectedItemId)
     || rows[0]
     || null
@@ -149,7 +266,8 @@ export default function PurchaseRecommendations({ currentUser }: { currentUser: 
     ...sourceData.suppliers.map(supplier => ({ id: supplier.id, name: supplier.name })),
     ...reports.flatMap(report => report.items.flatMap(item => [
       { id: item.supplierId, name: item.supplierName || item.supplierId },
-      { id: item.alternativeSupplierId, name: item.alternativeSupplierName || item.alternativeSupplierId }
+      { id: item.alternativeSupplierId, name: item.alternativeSupplierName || item.alternativeSupplierId },
+      ...item.alternativeSuppliers.map(option => ({ id: option.supplierId, name: option.supplierName }))
     ]))
   ]), [reports, sourceData])
 
@@ -178,7 +296,7 @@ export default function PurchaseRecommendations({ currentUser }: { currentUser: 
       const firstItemId = report.items[0]?.id || ''
       refreshReports(firstItemId)
       setForm(PurchaseRecommendationService.createDefaultInput(userName))
-      setMessage({ type: 'success', text: `${report.reportNo} satin alma onerisi raporu olusturuldu.` })
+      setMessage({ type: 'success', text: `${report.reportNo} satın alma öneri raporu oluşturuldu.` })
     } catch (error) {
       setMessage({ type: 'error', text: error instanceof Error ? error.message : 'Satın alma öneri raporu oluşturulamadı.' })
     }
@@ -189,7 +307,7 @@ export default function PurchaseRecommendations({ currentUser }: { currentUser: 
     try{
       const report = PurchaseRecommendationService.updateStatus(selectedReport.id, status, sourceData, userName)
       refreshReports(report.items[0]?.id || selectedItemId)
-      setMessage({ type: 'success', text: `${report.reportNo} ${PURCHASE_RECOMMENDATION_STATUS_LABELS[status]} durumuna alindi.` })
+      setMessage({ type: 'success', text: `${report.reportNo} ${PURCHASE_RECOMMENDATION_STATUS_LABELS[status]} durumuna alındı.` })
     } catch (error) {
       setMessage({ type: 'error', text: error instanceof Error ? error.message : 'Satın alma öneri durumu güncellenemedi.' })
     }
@@ -216,11 +334,27 @@ export default function PurchaseRecommendations({ currentUser }: { currentUser: 
       setMessage({
         type: 'success',
         text: action === 'EXCEL'
-          ? `${report.reportNo} Excel export edildi.`
-          : `${report.reportNo} cikti penceresi acildi.`
+          ? `${report.reportNo} Excel çıktısı hazırlandı.`
+          : `${report.reportNo} çıktı penceresi açıldı.`
       })
     } catch (error) {
       setMessage({ type: 'error', text: error instanceof Error ? error.message : 'Satın alma öneri çıktısı alınamadı.' })
+    }
+  }
+
+  const outputFilteredRows = (action: 'PRINTED' | 'PDF' | 'EXCEL') => {
+    try{
+      if(action === 'EXCEL') exportFilteredRowsToExcel(rows)
+      if(action === 'PRINTED') openFilteredPrintWindow(rows, 'A4')
+      if(action === 'PDF') openFilteredPrintWindow(rows, 'PDF')
+      setMessage({
+        type: 'success',
+        text: action === 'EXCEL'
+          ? `${formatNumber(rows.length)} satırlık filtreli liste Excel çıktısına aktarıldı.`
+          : `${formatNumber(rows.length)} satırlık filtreli liste çıktı penceresinde açıldı.`
+      })
+    } catch (error) {
+      setMessage({ type: 'error', text: error instanceof Error ? error.message : 'Filtreli liste çıktısı alınamadı.' })
     }
   }
 
@@ -228,8 +362,8 @@ export default function PurchaseRecommendations({ currentUser }: { currentUser: 
     <div className="purchase-recommendations-page">
       <div className="page-header">
         <div>
-          <h2>Satin Alma Onerileri</h2>
-          <p className="muted">Tahminleme, maliyet optimizasyonu, yapay zeka analizi, kritik alarmlar, stok, mal kabul, fire ve tedarikçi verilerinden analiz modeli satın alma önerileri üretir.</p>
+          <h2>Satın Alma Önerileri</h2>
+          <p className="muted">Karar Destek Motoru yalnızca analiz ve öneri üretir; satın alma talebi, siparişi, stok hareketi veya muhasebe kaydı oluşturmaz.</p>
         </div>
       </div>
 
@@ -237,39 +371,44 @@ export default function PurchaseRecommendations({ currentUser }: { currentUser: 
 
       <div className="metric-grid purchase-recommendations-metric-grid">
         <div className="metric-card">
-          <span>Toplam Satin Alma Onerisi</span>
+          <span>Toplam Satın Alma Önerisi</span>
           <strong>{formatNumber(statistics.totalRecommendations)}</strong>
-          <small>{formatNumber(rows.length)} filtre sonucu</small>
+          <small>Filtrelenmiş liste</small>
         </div>
         <div className="metric-card danger">
-          <span>Kritik Satin Alma</span>
+          <span>Kritik Satın Alma</span>
           <strong>{formatNumber(statistics.criticalPurchases)}</strong>
-          <small>CRITICAL veya URGENT</small>
+          <small>Kritik risk veya acil öncelik</small>
         </div>
         <div className="metric-card success">
           <span>Beklenen Tasarruf</span>
           <strong>{formatCurrency(statistics.expectedSaving)}</strong>
-          <small>Analitik avantaj</small>
+          <small>{formatNumber(statistics.expectedSavingRows.length)} tasarruf kırılımı</small>
         </div>
         <div className="metric-card warning">
-          <span>Alternatif Tedarikci</span>
+          <span>Alternatif Tedarikçi Sayısı</span>
           <strong>{formatNumber(statistics.alternativeSupplierCount)}</strong>
-          <small>Fiyat/kosul karsilastirma</small>
+          <small>Aktif alternatifler</small>
         </div>
         <div className="metric-card">
-          <span>Risk / Güven Skoru</span>
+          <span>Ortalama Risk</span>
           <strong>{formatNumber(statistics.averageRiskScore, 1)}</strong>
-          <small>{formatNumber(statistics.averageConfidence, 1)} güven</small>
+          <small>100 üzerinden</small>
+        </div>
+        <div className="metric-card success">
+          <span>Confidence Skoru</span>
+          <strong>{formatNumber(statistics.averageConfidence, 1)}</strong>
+          <small>Ortalama güven</small>
         </div>
       </div>
 
       <section className="card purchase-recommendations-create-card">
         <div className="section-header compact">
           <div>
-            <h3>Yeni Satın Alma Öneri Raporu</h3>
-            <p className="muted">Sadece öneri üretir; satın alma siparişi, stok hareketi veya tedarikçi siparişi oluşturmaz.</p>
+            <h3>Yeni Analiz Raporu</h3>
+            <p className="muted">Read-model kaynaklarından manuel karar desteği raporu üretir.</p>
           </div>
-          <button className="primary-button" type="button" disabled={!form.reportDate || !form.responsiblePerson} onClick={createReport}>Rapor Olustur</button>
+          <button className="primary-button" type="button" disabled={!form.reportDate || !form.responsiblePerson} onClick={createReport}>Rapor Oluştur</button>
         </div>
         <div className="purchase-recommendations-create-grid">
           <label className="form-field">
@@ -279,7 +418,7 @@ export default function PurchaseRecommendations({ currentUser }: { currentUser: 
           <label className="form-field">
             <span>Kapsam</span>
             <select value={form.scope} onChange={event => updateForm('scope', event.target.value as PurchaseRecommendationReportCreateInput['scope'])}>
-              <option value={ALL_FILTER}>Tum Oneriler</option>
+              <option value={ALL_FILTER}>Tüm Öneriler</option>
               {PURCHASE_RECOMMENDATION_TYPES.map(type => <option key={type} value={type}>{PURCHASE_RECOMMENDATION_TYPE_LABELS[type]}</option>)}
             </select>
           </label>
@@ -288,8 +427,8 @@ export default function PurchaseRecommendations({ currentUser }: { currentUser: 
             <input value={form.responsiblePerson} onChange={event => updateForm('responsiblePerson', event.target.value)} />
           </label>
           <label className="form-field purchase-recommendations-wide">
-            <span>Aciklama</span>
-            <input value={form.description} onChange={event => updateForm('description', event.target.value)} placeholder="Satin alma analiz notu" />
+            <span>Açıklama</span>
+            <input value={form.description} onChange={event => updateForm('description', event.target.value)} placeholder="Satın alma analiz notu" />
           </label>
         </div>
       </section>
@@ -298,64 +437,69 @@ export default function PurchaseRecommendations({ currentUser }: { currentUser: 
         <div className="section-header compact">
           <div>
             <h3>Filtreler</h3>
-            <p className="muted">{formatNumber(rows.length)} satin alma onerisi listeleniyor.</p>
+            <p className="muted">{formatNumber(rows.length)} satın alma önerisi listeleniyor.</p>
           </div>
-          <button className="btn" type="button" onClick={() => setFilters(PurchaseRecommendationService.createDefaultFilters())}>Sifirla</button>
+          <div className="purchase-recommendations-filter-actions">
+            <button className="btn" type="button" onClick={() => outputFilteredRows('EXCEL')}>Filtreli Excel</button>
+            <button className="btn" type="button" onClick={() => outputFilteredRows('PDF')}>Filtreli PDF</button>
+            <button className="btn" type="button" onClick={() => outputFilteredRows('PRINTED')}>Filtreli Yazdır</button>
+            <button className="btn" type="button" onClick={() => setFilters(PurchaseRecommendationService.createDefaultFilters())}>Sıfırla</button>
+          </div>
         </div>
         <div className="purchase-recommendations-filter-grid">
           <label className="form-field">
-            <span>Oneri Turu</span>
+            <span>Öneri Türü</span>
             <select value={filters.recommendationType} onChange={event => updateFilter('recommendationType', event.target.value as PurchaseRecommendationFilters['recommendationType'])}>
-              <option value={ALL_FILTER}>Tum Turler</option>
+              <option value={ALL_FILTER}>Tüm Türler</option>
               {PURCHASE_RECOMMENDATION_TYPES.map(type => <option key={type} value={type}>{PURCHASE_RECOMMENDATION_TYPE_LABELS[type]}</option>)}
             </select>
           </label>
           <label className="form-field">
-            <span>Oncelik</span>
+            <span>Öncelik</span>
             <select value={filters.priority} onChange={event => updateFilter('priority', event.target.value as PurchaseRecommendationFilters['priority'])}>
-              <option value={ALL_FILTER}>Tum Oncelikler</option>
+              <option value={ALL_FILTER}>Tüm Öncelikler</option>
               {PURCHASE_RECOMMENDATION_PRIORITIES.map(priority => <option key={priority} value={priority}>{PURCHASE_RECOMMENDATION_PRIORITY_LABELS[priority]}</option>)}
             </select>
           </label>
           <label className="form-field">
             <span>Risk</span>
             <select value={filters.risk} onChange={event => updateFilter('risk', event.target.value as PurchaseRecommendationFilters['risk'])}>
-              <option value={ALL_FILTER}>Tum Riskler</option>
+              <option value={ALL_FILTER}>Tüm Riskler</option>
               {PURCHASE_RECOMMENDATION_RISKS.map(risk => <option key={risk} value={risk}>{PURCHASE_RECOMMENDATION_RISK_LABELS[risk]}</option>)}
             </select>
           </label>
           <label className="form-field">
-            <span>Sube</span>
+            <span>Şube</span>
             <select value={filters.branchId} onChange={event => updateFilter('branchId', event.target.value)}>
-              <option value={ALL_FILTER}>Tum Subeler</option>
+              <option value={ALL_FILTER}>Tüm Şubeler</option>
               {branchOptions.map(option => <option key={option.id} value={option.id}>{option.name}</option>)}
             </select>
           </label>
           <label className="form-field">
             <span>Depo</span>
             <select value={filters.warehouseId} onChange={event => updateFilter('warehouseId', event.target.value)}>
-              <option value={ALL_FILTER}>Tum Depolar</option>
+              <option value={ALL_FILTER}>Tüm Depolar</option>
               {warehouseOptions.map(option => <option key={option.id} value={option.id}>{option.name}</option>)}
             </select>
           </label>
           <label className="form-field">
             <span>Kategori</span>
             <select value={filters.categoryId} onChange={event => updateFilter('categoryId', event.target.value)}>
-              <option value={ALL_FILTER}>Tum Kategoriler</option>
+              <option value={ALL_FILTER}>Tüm Kategoriler</option>
               {categoryOptions.map(option => <option key={option.id} value={option.id}>{option.name}</option>)}
             </select>
           </label>
           <label className="form-field">
-            <span>Urun / Stok</span>
+            <span>Ürün</span>
             <select value={filters.productId} onChange={event => updateFilter('productId', event.target.value)}>
-              <option value={ALL_FILTER}>Tum Urunler</option>
+              <option value={ALL_FILTER}>Tüm Ürünler</option>
               {productOptions.map(option => <option key={option.id} value={option.id}>{option.name}</option>)}
             </select>
           </label>
           <label className="form-field">
-            <span>Tedarikci</span>
+            <span>Tedarikçi</span>
             <select value={filters.supplierId} onChange={event => updateFilter('supplierId', event.target.value)}>
-              <option value={ALL_FILTER}>Tum Tedarikciler</option>
+              <option value={ALL_FILTER}>Tüm Tedarikçiler</option>
               {supplierOptions.map(option => <option key={option.id} value={option.id}>{option.name}</option>)}
             </select>
           </label>
@@ -365,28 +509,26 @@ export default function PurchaseRecommendations({ currentUser }: { currentUser: 
           </label>
           <label className="form-field purchase-recommendations-wide">
             <span>Arama</span>
-            <input type="search" value={filters.search} onChange={event => updateFilter('search', event.target.value)} placeholder="Rapor no, ürün, stok, tedarikçi, neden, aksiyon" />
+            <input type="search" value={filters.search} onChange={event => updateFilter('search', event.target.value)} placeholder="Öneri no, ürün, tedarikçi, gerekçe veya analiz sonucu" />
           </label>
         </div>
       </section>
 
       <div className="purchase-recommendations-chart-grid">
-        <BarChartCard title="Kategori Dagilimi" rows={statistics.categoryRows} />
-        <BarChartCard title="Oneri Turu" rows={statistics.typeRows} />
-        <BarChartCard title="Urun Bazli" rows={statistics.productRows} />
-        <BarChartCard title="Tedarikçi Bazlı" rows={statistics.supplierRows} />
-        <BarChartCard title="Sube Bazli" rows={statistics.branchRows} />
-        <BarChartCard title="Risk Dagilimi" rows={statistics.riskRows} />
-        <BarChartCard title="Oncelik Dagilimi" rows={statistics.priorityRows} />
-        <LineChartCard series={statistics.monthlyTrend} />
+        <BarChartCard title="Kategori Bazlı Öneriler" rows={statistics.categoryRows} />
+        <BarChartCard title="Risk Dağılımı" rows={statistics.riskRows} />
+        <BarChartCard title="Tedarikçi Bazlı Dağılım" rows={statistics.supplierRows} />
+        <BarChartCard title="Beklenen Tasarruf" rows={statistics.expectedSavingRows} />
+        <BarChartCard title="Kritik Ürünler" rows={statistics.criticalProductRows} />
+        <LineChartCard series={statistics.dailyTrend} />
       </div>
 
       <div className="product-layout purchase-recommendations-layout">
         <section className="product-main card">
           <div className="section-header">
             <div>
-              <h3>Oneri Listesi</h3>
-              <p className="muted">Satirlar satin alma karar destegi icindir; otomatik siparis olusturulmaz.</p>
+              <h3>Filtrelenmiş Liste</h3>
+              <p className="muted">Satırlar karar desteği çıktısıdır; gerçek satın alma işlemi başlatılmaz.</p>
             </div>
             <span className="status-pill">{formatCurrency(statistics.expectedSaving)} tasarruf</span>
           </div>
@@ -394,20 +536,23 @@ export default function PurchaseRecommendations({ currentUser }: { currentUser: 
             <table className="data-table purchase-recommendations-table">
               <thead>
                 <tr>
-                  <th>Rapor</th>
-                  <th>Tur</th>
-                  <th>Urun / Stok</th>
-                  <th>Tedarikci</th>
-                  <th>Miktar</th>
-                  <th>Tukenme</th>
-                  <th>Tasarruf</th>
+                  <th>Öneri No</th>
+                  <th>Öneri Türü</th>
+                  <th>Ürün</th>
+                  <th>Depo</th>
+                  <th>Şube</th>
+                  <th>Tedarikçi</th>
+                  <th>Önerilen Miktar</th>
                   <th>Risk</th>
-                  <th>Durum</th>
+                  <th>Öncelik</th>
+                  <th>Confidence</th>
+                  <th>Beklenen Tasarruf</th>
+                  <th>Oluşturulma Tarihi</th>
                 </tr>
               </thead>
               <tbody>
                 {rows.length === 0 && (
-                  <tr><td className="empty-cell" colSpan={9}>Filtrelere uygun satin alma onerisi bulunamadi.</td></tr>
+                  <tr><td className="empty-cell" colSpan={12}>Filtrelere uygun satın alma önerisi bulunamadı.</td></tr>
                 )}
                 {rows.map(row => (
                   <tr
@@ -424,15 +569,18 @@ export default function PurchaseRecommendations({ currentUser }: { currentUser: 
                       setSelectedItemId(row.item.id)
                     }}
                   >
-                    <td data-label="Rapor"><strong>{row.report.reportNo}</strong><span>{formatDate(row.report.reportDate)}</span></td>
-                    <td data-label="Tur"><strong>{PURCHASE_RECOMMENDATION_TYPE_LABELS[row.item.recommendationType]}</strong><span>{row.item.ownerRole}</span></td>
-                    <td data-label="Urun / Stok"><strong>{row.item.stockItemName || row.item.productName}</strong><span>{row.item.categoryName}</span></td>
-                    <td data-label="Tedarikçi"><strong>{row.item.supplierName || '-'}</strong><span>{row.item.alternativeSupplierName ? `Alternatif: ${row.item.alternativeSupplierName}` : getDecisionSourceModuleLabel(row.item.sourceModule)}</span></td>
-                    <td data-label="Miktar">{formatNumber(row.item.recommendedOrderQuantity, 2)}</td>
-                    <td data-label="Tukenme">{row.item.estimatedStockoutDate ? formatDate(row.item.estimatedStockoutDate) : '-'}</td>
-                    <td data-label="Tasarruf">{formatCurrency(row.item.expectedSaving)}</td>
+                    <td data-label="Öneri No"><strong>{row.item.recommendationNo}</strong><span>{row.report.reportNo}</span></td>
+                    <td data-label="Öneri Türü"><strong>{PURCHASE_RECOMMENDATION_TYPE_LABELS[row.item.recommendationType]}</strong><span>{row.item.ownerRole}</span></td>
+                    <td data-label="Ürün"><strong>{row.item.stockItemName || row.item.productName || row.item.relatedEntityName}</strong><span>{row.item.categoryName}</span></td>
+                    <td data-label="Depo"><strong>{row.item.warehouseName || '-'}</strong><span>{row.item.pendingOrderNos.length ? row.item.pendingOrderNos.join(', ') : getDecisionSourceModuleLabel(row.item.sourceModule)}</span></td>
+                    <td data-label="Şube"><strong>{row.item.branchName || '-'}</strong><span>{formatDate(row.report.reportDate)}</span></td>
+                    <td data-label="Tedarikçi"><strong>{row.item.supplierName || '-'}</strong><span>{row.item.alternativeSupplierName ? `Alternatif: ${row.item.alternativeSupplierName}` : '-'}</span></td>
+                    <td data-label="Önerilen Miktar">{formatNumber(row.item.recommendedOrderQuantity, 2)}</td>
                     <td data-label="Risk"><span className={`status-pill ${getRiskClass(row.item.risk)}`}>{PURCHASE_RECOMMENDATION_RISK_LABELS[row.item.risk]}</span></td>
-                    <td data-label="Durum"><span className={`status-pill ${getStatusClass(row.report.status)}`}>{PURCHASE_RECOMMENDATION_STATUS_LABELS[row.report.status]}</span></td>
+                    <td data-label="Öncelik"><span className={`status-pill ${getPriorityClass(row.item.priority)}`}>{PURCHASE_RECOMMENDATION_PRIORITY_LABELS[row.item.priority]}</span></td>
+                    <td data-label="Confidence">{formatNumber(row.item.confidenceScore, 1)}</td>
+                    <td data-label="Beklenen Tasarruf">{formatCurrency(row.item.expectedSaving)}</td>
+                    <td data-label="Oluşturulma Tarihi">{formatDateTime(row.item.createdAt)}</td>
                   </tr>
                 ))}
               </tbody>
@@ -450,8 +598,8 @@ export default function PurchaseRecommendations({ currentUser }: { currentUser: 
             />
           ) : (
             <section className="card purchase-recommendations-detail-card">
-              <h3>Oneri Detayi</h3>
-              <p className="muted">Detay gormek icin bir satin alma onerisi secin.</p>
+              <h3>Öneri Detayı</h3>
+              <p className="muted">Detay görüntülemek için bir satın alma önerisi seçin.</p>
             </section>
           )}
         </aside>
@@ -476,66 +624,49 @@ function PurchaseRecommendationDetailPanel({
       <section className="card purchase-recommendations-detail-card">
         <div className="section-header compact">
           <div>
-            <h3>{report.reportNo}</h3>
+            <h3>{item.recommendationNo}</h3>
             <p className="muted">{PURCHASE_RECOMMENDATION_TYPE_LABELS[item.recommendationType]} / {item.relatedEntityName}</p>
           </div>
-          <span className={`status-pill ${getPriorityClass(item.priority)}`}>{PURCHASE_RECOMMENDATION_PRIORITY_LABELS[item.priority]}</span>
+          <span className={`status-pill ${getStatusClass(report.status)}`}>{PURCHASE_RECOMMENDATION_STATUS_LABELS[report.status]}</span>
         </div>
 
         <div className="purchase-recommendations-output-actions">
-          <button className="btn" type="button" onClick={() => onOutput('PRINTED')}>Yazdir</button>
+          <button className="btn" type="button" onClick={() => onOutput('PRINTED')}>Yazdır</button>
           <button className="btn" type="button" onClick={() => onOutput('PDF')}>PDF</button>
           <button className="btn" type="button" onClick={() => onOutput('EXCEL')}>Excel</button>
         </div>
 
         <div className="purchase-recommendations-status-actions">
-          <button className="btn" type="button" disabled={getActionDisabled(report, 'REVIEWED')} onClick={() => onStatusChange('REVIEWED')}>Incele</button>
-          <button className="btn" type="button" disabled={getActionDisabled(report, 'ARCHIVED')} onClick={() => onStatusChange('ARCHIVED')}>Arsivle</button>
+          <button className="btn" type="button" disabled={getActionDisabled(report, 'REVIEWED')} onClick={() => onStatusChange('REVIEWED')}>İncele</button>
+          <button className="btn" type="button" disabled={getActionDisabled(report, 'ARCHIVED')} onClick={() => onStatusChange('ARCHIVED')}>Arşivle</button>
         </div>
 
         <div className="purchase-recommendations-detail-grid">
-          <div><span>Rapor Tarihi</span><strong>{formatDate(report.reportDate)}</strong></div>
-          <div><span>Oneri Turu</span><strong>{PURCHASE_RECOMMENDATION_TYPE_LABELS[item.recommendationType]}</strong></div>
-          <div><span>Onerilen Miktar</span><strong>{formatNumber(item.recommendedOrderQuantity, 2)}</strong></div>
-          <div><span>Kapsama Gunu</span><strong>{item.estimatedCoverageDays >= 999 ? '-' : formatNumber(item.estimatedCoverageDays, 1)}</strong></div>
-          <div><span>Mevcut Stok</span><strong>{formatNumber(item.currentStock, 2)}</strong></div>
-          <div><span>Minimum Stok</span><strong>{formatNumber(item.minimumStock, 2)}</strong></div>
-          <div><span>Beklenen Maliyet</span><strong>{formatCurrency(item.expectedCost)}</strong></div>
+          <div><span>Rapor No</span><strong>{report.reportNo}</strong></div>
+          <div><span>Oluşturulma</span><strong>{formatDateTime(item.createdAt)}</strong></div>
+          <div><span>Depo</span><strong>{item.warehouseName || '-'}</strong></div>
+          <div><span>Şube</span><strong>{item.branchName || '-'}</strong></div>
+          <div><span>Önerilen Miktar</span><strong>{formatNumber(item.recommendedOrderQuantity, 2)}</strong></div>
+          <div><span>Mevcut / Min / Maks</span><strong>{formatNumber(item.currentStock, 2)} / {formatNumber(item.minimumStock, 2)} / {formatNumber(item.maximumStock, 2)}</strong></div>
+          <div><span>Risk</span><strong>{PURCHASE_RECOMMENDATION_RISK_LABELS[item.risk]} ({formatNumber(item.riskScore, 1)})</strong></div>
+          <div><span>Öncelik</span><strong>{PURCHASE_RECOMMENDATION_PRIORITY_LABELS[item.priority]}</strong></div>
+          <div><span>Confidence</span><strong>{formatNumber(item.confidenceScore, 1)}</strong></div>
           <div><span>Beklenen Tasarruf</span><strong>{formatCurrency(item.expectedSaving)}</strong></div>
-          <div><span>Risk Skoru</span><strong>{formatNumber(item.riskScore, 1)}</strong></div>
-          <div><span>Güven Skoru</span><strong>{formatNumber(item.confidenceScore, 1)}</strong></div>
-          <div><span>Kaynak</span><strong>{item.sourceModule}</strong></div>
-          <div><span>Tukenme Tarihi</span><strong>{item.estimatedStockoutDate ? formatDate(item.estimatedStockoutDate) : '-'}</strong></div>
-        </div>
-        <p className="purchase-recommendations-notes">{item.reason}</p>
-      </section>
-
-      <section className="card purchase-recommendations-detail-card">
-        <h3>Risk ve Kazanc</h3>
-        <div className="purchase-recommendations-opportunity-list">
-          <div>
-            <strong>{item.title}</strong>
-            <span>{item.description}</span>
-          </div>
-          <div>
-            <strong>{item.action}</strong>
-            <span>{item.expectedImpact}</span>
-          </div>
+          <div><span>Tedarikçi</span><strong>{item.supplierName || '-'}</strong></div>
+          <div><span>Teslim Süresi</span><strong>{item.leadTimeDays ? `${formatNumber(item.leadTimeDays)} gün` : '-'}</strong></div>
         </div>
       </section>
 
-      <section className="card purchase-recommendations-detail-card">
-        <h3>Ilgili Moduller</h3>
-        <div className="purchase-recommendations-module-list">
-          <div>
-            <strong>{item.relatedModules.join(', ') || '-'}</strong>
-            <span>{item.supplierName || item.alternativeSupplierName || item.stockItemName || item.relatedEntityName}</span>
-          </div>
-        </div>
-      </section>
+      <DetailTextCard title="Gerekçe" primary={item.reason} />
+      <DetailTextCard title="Analiz Sonucu" primary={item.analysisResult || item.description} secondary={item.action} />
+      <DetailTextCard title="Risk Açıklaması" primary={item.riskExplanation} secondary={item.lotRiskSummary} />
+      <DetailTextCard title="Beklenen Kazanç" primary={item.expectedGain} secondary={item.expectedImpact} />
+      <LinkedEntityCard title="Etkilenen Üretim Emirleri" items={item.affectedProductionOrders} emptyText="Üretim emri bağlantısı yok." />
+      <LinkedEntityCard title="Etkilenen Reçeteler" items={item.affectedRecipes} emptyText="Reçete bağlantısı yok." />
+      <SupplierOptionCard items={item.alternativeSuppliers} />
 
       <section className="card purchase-recommendations-detail-card">
-        <h3>History</h3>
+        <h3>İşlem Geçmişi</h3>
         <div className="purchase-recommendations-history-list">
           {[...report.history].reverse().map(history => (
             <div key={history.id}>
@@ -550,6 +681,66 @@ function PurchaseRecommendationDetailPanel({
   )
 }
 
+function DetailTextCard({
+  primary,
+  secondary,
+  title
+}: {
+  primary: string
+  secondary?: string
+  title: string
+}){
+  return (
+    <section className="card purchase-recommendations-detail-card">
+      <h3>{title}</h3>
+      <p className="purchase-recommendations-notes">{primary || '-'}</p>
+      {secondary && <p className="purchase-recommendations-notes muted-note">{secondary}</p>}
+    </section>
+  )
+}
+
+function LinkedEntityCard({
+  emptyText,
+  items,
+  title
+}: {
+  emptyText: string
+  items: PurchaseRecommendationLinkedEntity[]
+  title: string
+}){
+  return (
+    <section className="card purchase-recommendations-detail-card">
+      <h3>{title}</h3>
+      <div className="purchase-recommendations-module-list">
+        {items.length === 0 && <div><strong>{emptyText}</strong><span>-</span></div>}
+        {items.map(item => (
+          <div key={`${item.id}:${item.no}`}>
+            <strong>{item.no || item.name}</strong>
+            <span>{item.name}{item.detail ? ` / ${item.detail}` : ''}</span>
+          </div>
+        ))}
+      </div>
+    </section>
+  )
+}
+
+function SupplierOptionCard({ items }: { items: PurchaseRecommendationSupplierOption[] }){
+  return (
+    <section className="card purchase-recommendations-detail-card">
+      <h3>Alternatif Tedarikçiler</h3>
+      <div className="purchase-recommendations-module-list">
+        {items.length === 0 && <div><strong>Alternatif tedarikçi yok.</strong><span>-</span></div>}
+        {items.map(item => (
+          <div key={item.supplierId}>
+            <strong>{item.supplierName}</strong>
+            <span>{formatCurrency(item.unitCost)} / {formatNumber(item.leadTimeDays)} gün / {formatNumber(item.performanceScore, 1)} performans / {formatNumber(item.savingPercent, 1)}% avantaj</span>
+          </div>
+        ))}
+      </div>
+    </section>
+  )
+}
+
 function BarChartCard({ rows, title }: { rows: BarChartRow[]; title: string }){
   const maxValue = Math.max(1, ...rows.map(row => row.value))
 
@@ -558,11 +749,11 @@ function BarChartCard({ rows, title }: { rows: BarChartRow[]; title: string }){
       <div className="section-header compact">
         <div>
           <h3>{title}</h3>
-          <p className="muted">{formatNumber(rows.length)} kirilim</p>
+          <p className="muted">{formatNumber(rows.length)} kırılım</p>
         </div>
       </div>
       <div className="kpi-bar-list">
-        {rows.length === 0 && <div className="empty-cell">Kayit bulunamadi.</div>}
+        {rows.length === 0 && <div className="empty-cell">Kayıt bulunamadı.</div>}
         {rows.map(row => (
           <div className="kpi-bar-row" key={row.id}>
             <div>
@@ -588,7 +779,7 @@ function LineChartCard({ series }: { series: ChartSeries }){
       <div className="section-header compact">
         <div>
           <h3>{series.label}</h3>
-          <p className="muted">{formatNumber(series.points.length)} period</p>
+          <p className="muted">{formatNumber(series.points.length)} gün</p>
         </div>
       </div>
       <div className="kpi-line-chart">

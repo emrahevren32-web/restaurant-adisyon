@@ -685,6 +685,29 @@ const createEvaluationContext = (
   }
 }
 
+const ensureUniqueAlertIds = (
+  alerts: CriticalAlert[]
+) => {
+  const seen = new Map<string, number>()
+
+  return alerts.map(alert => {
+    const currentCount = seen.get(alert.id) || 0
+    seen.set(alert.id, currentCount + 1)
+    if(currentCount === 0) return alert
+
+    const uniqueId = `${alert.id}_${currentCount + 1}`
+    return {
+      ...alert,
+      id: uniqueId,
+      history: alert.history.map(history => ({
+        ...history,
+        id: history.id.replace(alert.id, uniqueId),
+        alertId: uniqueId
+      }))
+    }
+  })
+}
+
 export const evaluateCriticalAlerts = (
   input: AlertEvaluationInput
 ) => {
@@ -704,11 +727,13 @@ export const evaluateCriticalAlerts = (
   append(createBottleneckAndImprovementAlerts(context, index))
   append(createShipmentAndReceiptAlerts(context, index))
 
-  return buckets.flat().sort((first, second) => (
+  const sortedAlerts = buckets.flat().sort((first, second) => (
     second.riskScore - first.riskScore
     || first.category.localeCompare(second.category)
     || first.title.localeCompare(second.title, 'tr-TR')
   ))
+
+  return ensureUniqueAlertIds(sortedAlerts)
 }
 
 export const AlertEvaluationService = {

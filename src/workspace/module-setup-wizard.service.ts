@@ -5,6 +5,7 @@ import type { WorkspaceModuleInstallResult } from './workspace-module-installati
 import { getModuleSetupWizardDefinition } from './module-setup-wizard.registry'
 import type { ModuleSetupWizardSession } from './module-setup-wizard.types'
 import { recordWorkspaceAuditEvent } from './workspace-audit.service'
+import { WorkspaceIndexedStorageService } from './workspace-indexed-storage.service'
 import {
   configureWorkspaceModuleForUser,
   type WorkspaceModuleLifecycleResult
@@ -13,23 +14,17 @@ import {
 const STORAGE_KEY = 'miyop_workspace_module_setup_sessions'
 export const WORKSPACE_MODULE_SETUP_EVENT = 'miyop-workspace-module-setup-updated'
 
-const isBrowser = () => typeof window !== 'undefined' && typeof localStorage !== 'undefined'
-
 const readSessions = (): ModuleSetupWizardSession[] => {
-  if(!isBrowser()) return []
-
-  try {
-    const parsed = JSON.parse(localStorage.getItem(STORAGE_KEY) || '[]')
-    return Array.isArray(parsed) ? parsed as ModuleSetupWizardSession[] : []
-  } catch {
-    return []
-  }
+  const sessions = WorkspaceIndexedStorageService.get<ModuleSetupWizardSession[]>(
+    STORAGE_KEY,
+    [],
+    [WORKSPACE_MODULE_SETUP_EVENT]
+  )
+  return Array.isArray(sessions) ? sessions : []
 }
 
 const saveSessions = (sessions: ModuleSetupWizardSession[]) => {
-  if(!isBrowser()) return
-  localStorage.setItem(STORAGE_KEY, JSON.stringify(sessions))
-  window.dispatchEvent(new CustomEvent(WORKSPACE_MODULE_SETUP_EVENT))
+  WorkspaceIndexedStorageService.set(STORAGE_KEY, sessions, [WORKSPACE_MODULE_SETUP_EVENT])
 }
 
 const createSetupSessionId = (companyId: string, moduleId: string, startedAt: string) => {
@@ -43,7 +38,7 @@ export const startModuleSetupWizardForModule = (
   module: BusinessWorkspaceModule
 ): ModuleSetupWizardSession => {
   const companyId = getCompanyIdForUser(user)
-  if(!companyId) throw new Error('Modül başlangıç sihirbazı için Business Workspace bulunamadı.')
+  if(!companyId) throw new Error('Modül başlangıç sihirbazı için çalışma alanı bulunamadı.')
 
   const startedAt = new Date().toISOString()
   const session: ModuleSetupWizardSession = {

@@ -18,6 +18,7 @@ import type {
   WorkspaceTemplateWidget
 } from '../workspace-template/workspace-template.types'
 import type { WorkspaceModuleLifecycleResult } from '../workspace/workspace-module-lifecycle.types'
+import { WorkspaceIndexedStorageService } from '../workspace/workspace-indexed-storage.service'
 import {
   WORKSPACE_PROVISION_STEP_STATUSES,
   WORKSPACE_PROVISION_STEP_TYPES,
@@ -118,7 +119,7 @@ const DEFAULT_WORKSPACE_ROLES: ProvisionManifestRole[] = [
   }
 ]
 
-const isBrowser = () => typeof window !== 'undefined' && typeof localStorage !== 'undefined'
+const isBrowser = () => typeof window !== 'undefined'
 
 const dispatchProvisioningEvent = () => {
   if(!isBrowser()) return
@@ -126,19 +127,11 @@ const dispatchProvisioningEvent = () => {
 }
 
 const readJson = <TValue,>(key: string, fallback: TValue): TValue => {
-  if(!isBrowser()) return fallback
-
-  try {
-    const parsed = JSON.parse(localStorage.getItem(key) || '')
-    return parsed || fallback
-  } catch {
-    return fallback
-  }
+  return WorkspaceIndexedStorageService.get<TValue>(key, fallback, [WORKSPACE_PROVISIONING_EVENT])
 }
 
 const writeJson = (key: string, value: unknown) => {
-  if(!isBrowser()) return
-  localStorage.setItem(key, JSON.stringify(value))
+  WorkspaceIndexedStorageService.set(key, value, [WORKSPACE_PROVISIONING_EVENT])
 }
 
 const createId = (prefix: string, parts: readonly string[]) => (

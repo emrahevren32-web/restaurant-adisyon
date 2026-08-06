@@ -24,12 +24,17 @@ export const KPI_COLORS = [
   '#475569'
 ]
 
-export const roundKpi = (value: number) => (
-  Math.round((value + Number.EPSILON) * ROUNDING_FACTOR) / ROUNDING_FACTOR
+export const toFiniteNumber = (value: number, fallback = 0) => (
+  Number.isFinite(value) ? value : fallback
 )
 
+export const roundKpi = (value: number) => {
+  const finiteValue = toFiniteNumber(value)
+  return Math.round((finiteValue + Number.EPSILON) * ROUNDING_FACTOR) / ROUNDING_FACTOR
+}
+
 export const sumBy = <T,>(records: T[], selector: (record: T) => number) => (
-  roundKpi(records.reduce((total, record) => total + selector(record), 0))
+  roundKpi(records.reduce((total, record) => total + toFiniteNumber(selector(record)), 0))
 )
 
 export const averageBy = <T,>(records: T[], selector: (record: T) => number) => (
@@ -37,23 +42,23 @@ export const averageBy = <T,>(records: T[], selector: (record: T) => number) => 
 )
 
 export const percent = (part: number, total: number) => (
-  total > 0 ? roundKpi((part / total) * PERCENT_MULTIPLIER) : 0
+  toFiniteNumber(total) > 0 ? roundKpi((toFiniteNumber(part) / toFiniteNumber(total)) * PERCENT_MULTIPLIER) : 0
 )
 
 export const formatNumber = (value: number, maximumFractionDigits = 0) => (
-  value.toLocaleString('tr-TR', { maximumFractionDigits })
+  toFiniteNumber(value).toLocaleString('tr-TR', { maximumFractionDigits })
 )
 
 export const formatQuantity = (value: number, unit = '') => (
-  `${value.toLocaleString('tr-TR', { maximumFractionDigits: 2 })}${unit ? ` ${unit}` : ''}`
+  `${toFiniteNumber(value).toLocaleString('tr-TR', { maximumFractionDigits: 2 })}${unit ? ` ${unit}` : ''}`
 )
 
 export const formatPercent = (value: number) => (
-  `${value.toLocaleString('tr-TR', { minimumFractionDigits: 1, maximumFractionDigits: 1 })}%`
+  `${toFiniteNumber(value).toLocaleString('tr-TR', { minimumFractionDigits: 1, maximumFractionDigits: 1 })}%`
 )
 
 export const formatCurrency = (value: number, currency = 'TRY') => (
-  value.toLocaleString('tr-TR', {
+  toFiniteNumber(value).toLocaleString('tr-TR', {
     style: 'currency',
     currency,
     maximumFractionDigits: 0

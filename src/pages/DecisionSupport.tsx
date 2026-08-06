@@ -1,4 +1,5 @@
 import React from 'react'
+import * as XLSX from 'xlsx'
 import { createDefaultDecisionSupportFilters, createDecisionSupportView } from '../decision-support/decision-support.service'
 import type {
   DecisionCategory,
@@ -20,6 +21,11 @@ const RISK_OPTIONS: DecisionRisk[] = ['LOW', 'MEDIUM', 'HIGH', 'CRITICAL']
 const PRIORITY_OPTIONS: DecisionPriority[] = ['LOW', 'NORMAL', 'HIGH', 'URGENT']
 
 const getUserName = (currentUser: User) => currentUser.fullName || currentUser.username
+
+type DecisionOutputRow = {
+  suggestion: DecisionSuggestion
+  relatedEntity: string
+}
 
 const formatDateTime = (value: string) => {
   const date = new Date(value)
@@ -112,9 +118,118 @@ const getRelatedEntityLabel = (
   return suggestion.relatedEntityId
 }
 
+const escapeHtml = (value: string | number) => String(value ?? '')
+  .replace(/&/g, '&amp;')
+  .replace(/</g, '&lt;')
+  .replace(/>/g, '&gt;')
+  .replace(/"/g, '&quot;')
+  .replace(/'/g, '&#039;')
+
+const createOutputRows = (
+  suggestions: DecisionSuggestion[],
+  sourceData: KpiSourceData
+): DecisionOutputRow[] => suggestions.map(suggestion => ({
+  suggestion,
+  relatedEntity: getRelatedEntityLabel(suggestion, sourceData)
+}))
+
+const mapRowsForOutput = (
+  rows: DecisionOutputRow[]
+) => rows.map(row => ({
+  'Kategori': row.suggestion.category,
+  'Oneri': row.suggestion.title,
+  'Aciklama': row.suggestion.description,
+  'Risk': row.suggestion.risk,
+  'Risk Skoru': row.suggestion.riskScore,
+  'Oncelik': row.suggestion.priority,
+  'Ilgili Kayit': row.relatedEntity,
+  'Sebep': row.suggestion.reason,
+  'Onerilen Aksiyon': row.suggestion.recommendation.action,
+  'Beklenen Etki': row.suggestion.recommendation.expectedImpact,
+  'Sorumlu Rol': row.suggestion.recommendation.ownerRole,
+  'Olusturma': formatDateTime(row.suggestion.createdAt)
+}))
+
+const createFilteredOutputFileName = () => `karar-destek-filtreli-${new Date().toLocaleDateString('sv-SE')}.xlsx`
+
+const exportFilteredRowsToExcel = (
+  rows: DecisionOutputRow[]
+) => {
+  const workbook = XLSX.utils.book_new()
+  const worksheet = XLSX.utils.json_to_sheet(mapRowsForOutput(rows))
+  XLSX.utils.book_append_sheet(workbook, worksheet, 'Filtreli Liste')
+  XLSX.writeFile(workbook, createFilteredOutputFileName())
+}
+
+const createFilteredPrintHtml = (
+  rows: DecisionOutputRow[],
+  mode: 'A4' | 'PDF'
+) => `
+<!doctype html>
+<html lang="tr">
+<head>
+  <meta charset="utf-8" />
+  <title>Karar Destek Filtreli Liste</title>
+  <style>
+    body { font-family: Arial, sans-serif; color: #111827; margin: 24px; }
+    h1 { margin: 0 0 6px; font-size: 22px; }
+    .muted { color: #64748b; font-size: 12px; }
+    .pill { display: inline-block; margin: 12px 0; padding: 4px 10px; border: 1px solid #cbd5e1; border-radius: 999px; font-size: 12px; }
+    table { width: 100%; border-collapse: collapse; font-size: 11px; }
+    th, td { border-bottom: 1px solid #e5e7eb; padding: 8px; text-align: left; vertical-align: top; }
+    th { background: #f8fafc; color: #334155; }
+    @media print { body { margin: 10mm; } }
+  </style>
+</head>
+<body>
+  <h1>Karar Destek Filtreli Liste</h1>
+  <div class="muted">${escapeHtml(formatDateTime(new Date().toISOString()))}</div>
+  <span class="pill">${escapeHtml(mode === 'PDF' ? 'PDF Hazirlik' : `${rows.length} oneri`)}</span>
+  <table>
+    <thead>
+      <tr>
+        <th>Kategori</th>
+        <th>Oneri</th>
+        <th>Risk</th>
+        <th>Oncelik</th>
+        <th>Ilgili Kayit</th>
+        <th>Aksiyon</th>
+        <th>Olusturma</th>
+      </tr>
+    </thead>
+    <tbody>
+      ${rows.map(row => `
+        <tr>
+          <td>${escapeHtml(row.suggestion.category)}</td>
+          <td>${escapeHtml(row.suggestion.title)}<br><span class="muted">${escapeHtml(row.suggestion.description)}</span></td>
+          <td>${escapeHtml(`${row.suggestion.risk} / ${row.suggestion.riskScore}`)}</td>
+          <td>${escapeHtml(row.suggestion.priority)}</td>
+          <td>${escapeHtml(row.relatedEntity)}</td>
+          <td>${escapeHtml(row.suggestion.recommendation.action)}</td>
+          <td>${escapeHtml(formatDateTime(row.suggestion.createdAt))}</td>
+        </tr>
+      `).join('')}
+    </tbody>
+  </table>
+  <script>window.addEventListener('load', () => window.print())</script>
+</body>
+</html>`
+
+const openFilteredPrintWindow = (
+  rows: DecisionOutputRow[],
+  mode: 'A4' | 'PDF'
+) => {
+  const printWindow = window.open('', '_blank', 'width=1180,height=840')
+  if(!printWindow) throw new Error('Cikti penceresi acilamadi.')
+  printWindow.document.open()
+  printWindow.document.write(createFilteredPrintHtml(rows, mode))
+  printWindow.document.close()
+}
+
 export default function DecisionSupport({ currentUser }: { currentUser: User }){
   const sourceData = React.useMemo(loadKpiSourceData, [])
   const [filters, setFilters] = React.useState<DecisionSupportFilters>(() => createDefaultDecisionSupportFilters())
+  const [outputMessage, setOutputMessage] = React.useState('')
   const view = React.useMemo(() => createDecisionSupportView(sourceData, filters), [sourceData, filters])
   const [selectedSuggestionId, setSelectedSuggestionId] = React.useState('')
   const productOptions = React.useMemo(() => getProductOptions(sourceData), [sourceData])
@@ -131,6 +246,22 @@ export default function DecisionSupport({ currentUser }: { currentUser: User }){
 
   const updateFilter = <TKey extends keyof DecisionSupportFilters>(key: TKey, value: DecisionSupportFilters[TKey]) => {
     setFilters(prev => ({ ...prev, [key]: value }))
+  }
+
+  const outputFilteredRows = (action: 'PRINTED' | 'PDF' | 'EXCEL') => {
+    const rows = createOutputRows(view.filteredSuggestions, sourceData)
+    try {
+      if(action === 'EXCEL') exportFilteredRowsToExcel(rows)
+      if(action === 'PRINTED') openFilteredPrintWindow(rows, 'A4')
+      if(action === 'PDF') openFilteredPrintWindow(rows, 'PDF')
+      setOutputMessage(
+        action === 'EXCEL'
+          ? `${formatNumber(rows.length)} satirlik filtreli liste Excel ciktisina aktarildi.`
+          : `${formatNumber(rows.length)} satirlik filtreli liste cikti penceresinde acildi.`
+      )
+    } catch (error) {
+      setOutputMessage(error instanceof Error ? error.message : 'Cikti islemi tamamlanamadi.')
+    }
   }
 
   return (
@@ -154,8 +285,14 @@ export default function DecisionSupport({ currentUser }: { currentUser: User }){
             <h3>Filtreler</h3>
             <p className="muted">{formatNumber(view.filteredSuggestions.length)} / {formatNumber(view.suggestions.length)} oneriyi gosteriyor.</p>
           </div>
-          <button className="btn" type="button" onClick={() => setFilters(createDefaultDecisionSupportFilters())}>Sifirla</button>
+          <div className="decision-filter-actions">
+            <button className="btn" type="button" onClick={() => outputFilteredRows('EXCEL')}>Filtreli Excel</button>
+            <button className="btn" type="button" onClick={() => outputFilteredRows('PDF')}>Filtreli PDF</button>
+            <button className="btn" type="button" onClick={() => outputFilteredRows('PRINTED')}>Filtreli Yazdir</button>
+            <button className="btn" type="button" onClick={() => setFilters(createDefaultDecisionSupportFilters())}>Sifirla</button>
+          </div>
         </div>
+        {outputMessage && <p className="form-success">{outputMessage}</p>}
         <div className="decision-filter-grid">
           <label className="form-field">
             <span>Kategori</span>

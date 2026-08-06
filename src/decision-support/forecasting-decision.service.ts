@@ -1,7 +1,5 @@
-import {
-  FORECAST_TYPE_LABELS,
-  ForecastService
-} from '../forecasting/forecast.service'
+import { calculateForecastReport } from '../forecasting/forecast-calculation.service'
+import { FORECAST_TYPE_LABELS } from '../forecasting/forecasting.constants'
 import type { ForecastPrediction } from '../forecasting/forecasting.types'
 import type { KpiSourceData } from '../kpi-reporting/kpi.types'
 import {
@@ -13,7 +11,17 @@ import { createDecisionSuggestion } from './recommendation-engine.service'
 
 const activePredictions = (
   sourceData: KpiSourceData
-) => ForecastService.evaluate(sourceData).predictions
+) => calculateForecastReport({
+  reportDate: new Date().toLocaleDateString('sv-SE'),
+  horizonDays: 30,
+  analysisWindowDays: 30,
+  scenarioName: 'Karar Destek Tahmini',
+  responsiblePerson: 'Karar Destek Merkezi',
+  description: 'Karar Destek tahminleme kaynagi.',
+  sourceData,
+  actorName: 'Karar Destek Merkezi',
+  getReportNo: () => `FC-${new Date().getFullYear()}-000000`
+}).predictions
   .filter(prediction => prediction.riskLevel === 'HIGH' || prediction.riskLevel === 'CRITICAL' || prediction.growthPercent >= 10)
 
 const getEvidenceScore = (

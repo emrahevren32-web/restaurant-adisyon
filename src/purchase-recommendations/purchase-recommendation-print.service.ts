@@ -5,6 +5,7 @@ import {
   PURCHASE_RECOMMENDATION_TYPE_LABELS
 } from './purchase-recommendation.constants'
 import type {
+  PurchaseRecommendationItem,
   PurchaseRecommendationPrintMode,
   PurchaseRecommendationReport
 } from './purchase-recommendation.types'
@@ -51,6 +52,17 @@ const formatDateTime = (value: string) => {
     })
 }
 
+const joinNames = (
+  items: Array<{ no?: string; name?: string }>
+) => items.map(item => item.no || item.name).filter(Boolean).join(', ')
+
+const getSupplierText = (item: PurchaseRecommendationItem) => (
+  item.supplierName
+  || item.alternativeSupplierName
+  || item.alternativeSuppliers.map(option => option.supplierName).join(', ')
+  || '-'
+)
+
 export const createPurchaseRecommendationPrintHtml = (
   report: PurchaseRecommendationReport,
   mode: PurchaseRecommendationPrintMode = 'A4'
@@ -58,11 +70,11 @@ export const createPurchaseRecommendationPrintHtml = (
 <html lang="tr">
 <head>
   <meta charset="utf-8" />
-  <title>${escapeHtml(report.reportNo)} Satın Alma Önerisi</title>
+  <title>${escapeHtml(report.reportNo)} Satın Alma Önerileri</title>
   <style>
     * { box-sizing:border-box; }
     body { margin:0; padding:24px; color:#111827; font-family:Inter, Arial, sans-serif; background:#f8fafc; }
-    .sheet { max-width:1120px; margin:0 auto; padding:24px; border:1px solid #d1d5db; border-radius:8px; background:#fff; }
+    .sheet { max-width:1220px; margin:0 auto; padding:24px; border:1px solid #d1d5db; border-radius:8px; background:#fff; }
     .header { display:flex; justify-content:space-between; gap:16px; align-items:flex-start; border-bottom:2px solid #111827; padding-bottom:16px; margin-bottom:18px; }
     h1 { margin:0; font-size:22px; line-height:1.2; }
     h2 { margin:22px 0 10px; font-size:16px; }
@@ -72,9 +84,10 @@ export const createPurchaseRecommendationPrintHtml = (
     .box { min-width:0; border:1px solid #e5e7eb; border-radius:6px; padding:9px 10px; background:#f9fafb; }
     .box span { display:block; color:#64748b; font-size:11px; font-weight:800; }
     .box strong { display:block; margin-top:4px; color:#111827; font-size:13px; overflow-wrap:anywhere; }
-    table { width:100%; border-collapse:collapse; font-size:12px; }
-    th, td { border:1px solid #e5e7eb; padding:8px; text-align:left; vertical-align:top; }
+    table { width:100%; border-collapse:collapse; font-size:11px; }
+    th, td { border:1px solid #e5e7eb; padding:7px; text-align:left; vertical-align:top; }
     th { background:#f3f4f6; font-weight:900; }
+    .note { color:#334155; font-size:12px; line-height:1.45; }
     @media print {
       body { background:#fff; padding:0; }
       .sheet { border:0; border-radius:0; max-width:none; }
@@ -86,37 +99,61 @@ export const createPurchaseRecommendationPrintHtml = (
     <div class="header">
       <div>
         <span class="muted">Satın Alma Öneri Motoru</span>
-        <h1>${escapeHtml(report.reportNo)} - Satin Alma Onerileri</h1>
+        <h1>${escapeHtml(report.reportNo)} - Satın Alma Önerileri</h1>
         <div class="muted">${escapeHtml(formatDate(report.reportDate))}</div>
       </div>
-      <span class="pill">${escapeHtml(mode === 'PDF' ? 'PDF Hazirlik' : PURCHASE_RECOMMENDATION_STATUS_LABELS[report.status])}</span>
+      <span class="pill">${escapeHtml(mode === 'PDF' ? 'PDF Hazırlık' : PURCHASE_RECOMMENDATION_STATUS_LABELS[report.status])}</span>
     </div>
     <div class="grid">
       <div class="box"><span>Rapor Tarihi</span><strong>${escapeHtml(formatDate(report.reportDate))}</strong></div>
-      <div class="box"><span>Kapsam</span><strong>${escapeHtml(report.scope === 'all' ? 'Tum Oneriler' : PURCHASE_RECOMMENDATION_TYPE_LABELS[report.scope])}</strong></div>
-      <div class="box"><span>Oneri Sayisi</span><strong>${escapeHtml(report.items.length)}</strong></div>
+      <div class="box"><span>Kapsam</span><strong>${escapeHtml(report.scope === 'all' ? 'Tüm Öneriler' : PURCHASE_RECOMMENDATION_TYPE_LABELS[report.scope])}</strong></div>
+      <div class="box"><span>Öneri Sayısı</span><strong>${escapeHtml(report.items.length)}</strong></div>
       <div class="box"><span>Sorumlu</span><strong>${escapeHtml(report.responsiblePerson)}</strong></div>
     </div>
-    <h2>Oneri Listesi</h2>
+    <p class="note">Bu çıktı yalnızca karar desteği sağlar; satın alma talebi, satın alma siparişi, stok hareketi veya muhasebe kaydı oluşturmaz.</p>
+    <h2>Öneri Listesi</h2>
     <table>
-      <thead><tr><th>Tür</th><th>Ürün / Stok</th><th>Tedarikçi</th><th>Miktar</th><th>Risk</th><th>Tasarruf</th><th>Aksiyon</th></tr></thead>
+      <thead>
+        <tr><th>Öneri No</th><th>Tür</th><th>Ürün</th><th>Depo</th><th>Şube</th><th>Tedarikçi</th><th>Miktar</th><th>Risk</th><th>Öncelik</th><th>Confidence</th><th>Tasarruf</th><th>Tarih</th></tr>
+      </thead>
       <tbody>
-        ${report.items.slice(0, 36).map(item => `
+        ${report.items.slice(0, 120).map(item => `
           <tr>
+            <td>${escapeHtml(item.recommendationNo)}</td>
             <td>${escapeHtml(PURCHASE_RECOMMENDATION_TYPE_LABELS[item.recommendationType])}</td>
-            <td>${escapeHtml(item.stockItemName || item.productName || item.relatedEntityName)}<br><span class="muted">${escapeHtml(item.categoryName)}</span></td>
-            <td>${escapeHtml(item.supplierName || item.alternativeSupplierName || '-')}</td>
+            <td>${escapeHtml(item.stockItemName || item.productName || item.relatedEntityName)}</td>
+            <td>${escapeHtml(item.warehouseName || '-')}</td>
+            <td>${escapeHtml(item.branchName || '-')}</td>
+            <td>${escapeHtml(getSupplierText(item))}</td>
             <td>${escapeHtml(formatNumber(item.recommendedOrderQuantity, 2))}</td>
-            <td>${escapeHtml(PURCHASE_RECOMMENDATION_RISK_LABELS[item.risk])} / ${escapeHtml(PURCHASE_RECOMMENDATION_PRIORITY_LABELS[item.priority])}</td>
+            <td>${escapeHtml(PURCHASE_RECOMMENDATION_RISK_LABELS[item.risk])}</td>
+            <td>${escapeHtml(PURCHASE_RECOMMENDATION_PRIORITY_LABELS[item.priority])}</td>
+            <td>${escapeHtml(formatNumber(item.confidenceScore, 1))}</td>
             <td>${escapeHtml(formatCurrency(item.expectedSaving))}</td>
-            <td>${escapeHtml(item.action)}</td>
+            <td>${escapeHtml(formatDateTime(item.createdAt))}</td>
           </tr>
         `).join('')}
       </tbody>
     </table>
-    <h2>History</h2>
+    <h2>Analiz Detayları</h2>
     <table>
-      <thead><tr><th>Aksiyon</th><th>Kullanici</th><th>Tarih</th><th>Aciklama</th></tr></thead>
+      <thead><tr><th>Öneri No</th><th>Gerekçe</th><th>Analiz Sonucu</th><th>Risk Açıklaması</th><th>Etkilenen Üretim / Reçete</th><th>Alternatif Tedarikçiler</th></tr></thead>
+      <tbody>
+        ${report.items.slice(0, 36).map(item => `
+          <tr>
+            <td>${escapeHtml(item.recommendationNo)}</td>
+            <td>${escapeHtml(item.reason)}</td>
+            <td>${escapeHtml(item.analysisResult || item.action)}</td>
+            <td>${escapeHtml(item.riskExplanation || item.lotRiskSummary || '-')}</td>
+            <td>${escapeHtml([joinNames(item.affectedProductionOrders), joinNames(item.affectedRecipes)].filter(Boolean).join(' / ') || '-')}</td>
+            <td>${escapeHtml(item.alternativeSuppliers.map(option => `${option.supplierName} ${formatNumber(option.savingPercent, 1)}%`).join(', ') || item.alternativeSupplierName || '-')}</td>
+          </tr>
+        `).join('')}
+      </tbody>
+    </table>
+    <h2>İşlem Geçmişi</h2>
+    <table>
+      <thead><tr><th>Aksiyon</th><th>Kullanıcı</th><th>Tarih</th><th>Açıklama</th></tr></thead>
       <tbody>
         ${report.history.map(history => `
           <tr>
@@ -140,8 +177,8 @@ export const openPurchaseRecommendationPrintWindow = (
   mode: PurchaseRecommendationPrintMode = 'A4'
 ) => {
   if(typeof window === 'undefined') return
-  const printWindow = window.open('', '_blank', 'width=1120,height=840')
-  if(!printWindow) throw new Error('Cikti penceresi acilamadi.')
+  const printWindow = window.open('', '_blank', 'width=1220,height=840')
+  if(!printWindow) throw new Error('Çıktı penceresi açılamadı.')
   printWindow.document.open()
   printWindow.document.write(createPurchaseRecommendationPrintHtml(report, mode))
   printWindow.document.close()

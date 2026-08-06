@@ -3,7 +3,7 @@ import { CapacityPlanningService } from '../capacity-planning/capacity-planning.
 import { createCostEngineView, createDefaultCostEngineFilters } from '../cost-engine/cost-engine.service'
 import type { CostEngine } from '../cost-engine/cost-engine.types'
 import type { DecisionSuggestion } from '../decision-support/decision-support.types'
-import { ForecastService } from '../forecasting/forecast.service'
+import { calculateForecastReport } from '../forecasting/forecast-calculation.service'
 import type { ForecastPrediction } from '../forecasting/forecasting.types'
 import type { KpiSourceData } from '../kpi-reporting/kpi.types'
 import {
@@ -25,6 +25,9 @@ import { createCostHistory } from './cost-history.service'
 import {
   calculateConfidenceScore,
   calculateCostRiskScore,
+  clampAnnualGainValue,
+  clampCostValue,
+  clampSavingValue,
   calculateRoiEstimate,
   calculateSavingPotential,
   mapCostPriority,
@@ -94,15 +97,16 @@ const normalizeKey = (value: unknown) => normalizeText(value).toLocaleLowerCase(
 const createCostItem = (
   input: CostItemInput
 ): CostOptimizationItem => {
-  const savingPotential = roundKpi(Math.max(0, input.savingPotential))
-  const baselineCost = roundKpi(Math.max(input.baselineCost ?? input.totalCost, savingPotential))
+  const totalCost = clampCostValue(input.totalCost)
+  const savingPotential = clampSavingValue(input.savingPotential)
+  const baselineCost = clampCostValue(Math.max(input.baselineCost ?? totalCost, savingPotential))
   const optimizedCost = roundKpi(Math.max(0, baselineCost - savingPotential))
-  const expectedMonthlyGain = savingPotential
-  const expectedAnnualGain = roundKpi(expectedMonthlyGain * 12)
+  const expectedMonthlyGain = clampSavingValue(savingPotential)
+  const expectedAnnualGain = clampAnnualGainValue(expectedMonthlyGain * 12)
   const confidenceScore = roundKpi(Math.max(0, Math.min(100, input.confidenceScore ?? calculateConfidenceScore((input.relatedModules || []).length + 1, input.riskScore))))
   const riskScore = roundKpi(Math.max(0, Math.min(100, input.riskScore)))
   const priority = mapCostPriority(riskScore, savingPotential, confidenceScore)
-  const id = `cost_optimization_${input.reportNo}_${input.category}_${input.sourceModule}_${input.relatedEntityId || input.sourceId}`.replace(/[^a-zA-Z0-9_]+/g, '_')
+  const id = `cost_optimization_${input.reportNo}_${input.category}_${input.sourceModule}_${input.relatedEntityId || input.relatedEntityName}_${input.sourceId}`.replace(/[^a-zA-Z0-9_]+/g, '_')
 
   return {
     id,
@@ -117,8 +121,8 @@ const createCostItem = (
     action: input.action,
     expectedImpact: input.expectedImpact,
     ownerRole: input.ownerRole,
-    unitCost: roundKpi(Math.max(0, input.unitCost || 0)),
-    totalCost: roundKpi(Math.max(0, input.totalCost)),
+    unitCost: clampCostValue(input.unitCost || 0, 1_000_000),
+    totalCost,
     baselineCost,
     optimizedCost,
     savingPotential,
@@ -483,10 +487,20 @@ const mapForecastCategory = (
 }
 
 const createForecastItems = (
-  sourceData: KpiSourceData,
+  input: CostAnalysisInput,
   reportId: string,
   reportNo: string
-) => ForecastService.evaluate(sourceData).predictions
+) => calculateForecastReport({
+  reportDate: input.reportDate,
+  horizonDays: 30,
+  analysisWindowDays: 30,
+  scenarioName: 'Maliyet Optimizasyon Tahmini',
+  responsiblePerson: input.responsiblePerson,
+  description: 'Maliyet optimizasyonu tahminleme kaynagi.',
+  sourceData: input.sourceData,
+  actorName: input.actorName,
+  getReportNo: () => `FC-${new Date().getFullYear()}-000000`
+}).predictions
   .filter(prediction => prediction.riskLevel === 'HIGH' || prediction.riskLevel === 'CRITICAL' || prediction.expectedWaste > 0 || prediction.growthPercent >= 12)
   .slice(0, 8)
   .map(prediction => {
@@ -731,6 +745,20 @@ const filterByScope = (
   ? items
   : items.filter(item => item.category === scope)
 
+const ensureUniqueItemIds = (
+  items: CostOptimizationItem[]
+) => {
+  const seen = new Map<string, number>()
+
+  return items.map(item => {
+    const currentCount = seen.get(item.id) || 0
+    seen.set(item.id, currentCount + 1)
+    return currentCount === 0
+      ? item
+      : { ...item, id: `${item.id}_${currentCount + 1}` }
+  })
+}
+
 export const calculateCostOptimizationReport = (
   input: CostAnalysisInput
 ): CostOptimizationReport => {
@@ -746,17 +774,17 @@ export const calculateCostOptimizationReport = (
     actorName: input.actorName,
     getReportNo: () => `RC-${new Date().getFullYear()}-000000`
   })
-  const items = filterByScope(dedupeItems([
+  const items = ensureUniqueItemIds(filterByScope(dedupeItems([
     ...createRecipeCostItems(input.sourceData, reportId, reportNo),
     ...createWasteItems(input.sourceData, reportId, reportNo),
     ...createPurchaseItems(input.sourceData, reportId, reportNo),
     ...createGoodsReceiptItems(input.sourceData, reportId, reportNo),
     ...createCapacityItems(input.sourceData, reportId, reportNo),
-    ...createForecastItems(input.sourceData, reportId, reportNo),
+    ...createForecastItems(input, reportId, reportNo),
     ...createRecommendationItems(recommendationReport, reportId, reportNo),
     ...createAIAnalysisItems(input.aiAnalysisReport, reportId, reportNo),
     ...createDecisionItems(input.decisionSuggestions || [], reportId, reportNo)
-  ]), input.scope)
+  ]), input.scope))
   const finalItems = items.length > 0
     ? items
     : [
