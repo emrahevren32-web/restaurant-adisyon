@@ -425,6 +425,15 @@ export const DECISION_RULES: DecisionRule[] = [
     thresholdLabel: 'currentQty <= minQty'
   },
   {
+    id: 'inventory-alternative-material-substitution',
+    category: 'Inventory',
+    title: 'Alternatif hammadde manuel uygunluk onerisi',
+    description: 'Stok riski olan hammadde icin onayli alternatif hammadde varsa recete sahibi, kalite ve satin alma birlikte manuel degerlendirme yapar.',
+    baseRisk: 'MEDIUM',
+    priority: 'HIGH',
+    thresholdLabel: 'currentQty <= minQty ve onayli alternatif hammadde mevcut'
+  },
+  {
     id: 'inventory-expiry-priority',
     category: 'Inventory',
     title: 'SKT yaklasan lot icin oncelikli uretim veya sevkiyat oner',
@@ -648,6 +657,24 @@ export const DECISION_RULES: DecisionRule[] = [
     baseRisk: 'HIGH',
     priority: 'HIGH',
     thresholdLabel: 'Fire maliyet payi >= 7%'
+  },
+  {
+    id: 'historical-cost-snapshot-trend',
+    category: 'Production',
+    title: 'Historical Cost Snapshot maliyet trendi',
+    description: 'Dondurulmus maliyet snapshotlari son maliyet, ortalama maliyet ve son 30 gun degisimini karar destek sinyaline cevirir.',
+    baseRisk: 'MEDIUM',
+    priority: 'HIGH',
+    thresholdLabel: 'Son maliyet veya son 30 gun degisimi >= 10%'
+  },
+  {
+    id: 'historical-cost-critical-deviation',
+    category: 'Production',
+    title: 'Historical Cost Snapshot kritik maliyet sapmasi',
+    description: 'Son maliyet ortalamadan kritik seviyede saparsa bilesen bazli manuel maliyet kontrolu onerilir.',
+    baseRisk: 'HIGH',
+    priority: 'HIGH',
+    thresholdLabel: 'Ortalama maliyete gore sapma >= 22% veya son 30 gun degisimi >= 18%'
   },
   {
     id: 'cost-optimization-raw-material',

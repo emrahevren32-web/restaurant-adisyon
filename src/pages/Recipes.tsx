@@ -23,6 +23,12 @@ import {
   RecipeSnapshotService,
   buildRecipeSnapshotDiffRows
 } from '../recipe-management/recipe-snapshot.service'
+import {
+  RecipeAlternativeMaterialService
+} from '../recipe-management/recipe-alternative-material.service'
+import {
+  RecipeCostSnapshotService
+} from '../recipe-management/recipe-cost-snapshot.service'
 import type {
   RecipeIngredient,
   RecipeIngredientUnit,
@@ -36,6 +42,17 @@ import type {
   RecipeSnapshot,
   RecipeSnapshotDiffRow
 } from '../recipe-management/recipe-snapshot.types'
+import type {
+  AlternativeMaterial,
+  AlternativeMaterialApprovalStatus,
+  AlternativeMaterialGroup,
+  AlternativeMaterialStatus
+} from '../recipe-management/recipe-alternative-material.types'
+import type {
+  HistoricalCostSnapshot,
+  HistoricalCostSnapshotDiffRow,
+  HistoricalCostTrendPoint
+} from '../recipe-management/recipe-cost-snapshot.types'
 
 type StatusFilter = RecipeManagementStatus | 'all'
 type RoleFilter = RecipeManagementRole | 'all'
@@ -192,6 +209,23 @@ const getRecipeRoleClass = (role: RecipeManagementRole) => (
   role === 'PRIMARY' ? 'success' : 'info-pill'
 )
 
+const getAlternativeMaterialStatusClass = (status: AlternativeMaterialStatus) => (
+  status === 'Aktif' ? 'success' : 'muted-pill'
+)
+
+const getAlternativeMaterialApprovalClass = (status: AlternativeMaterialApprovalStatus) => {
+  if(status === 'Onaylandı') return 'success'
+  if(status === 'İncelemede') return 'warning-pill'
+  if(status === 'Taslak') return 'muted-pill'
+  return 'danger-pill'
+}
+
+const getAlternativeMaterialCostClass = (alternative: AlternativeMaterial) => {
+  if(alternative.costDifference < 0) return 'success'
+  if(alternative.costDifference > 0) return 'warning-pill'
+  return 'info-pill'
+}
+
 const findParentRecipe = (record: RecipeManagementRecord, records: RecipeManagementRecord[]) => (
   record.parentRecipeId
     ? records.find(item => item.id === record.parentRecipeId) || null
@@ -251,6 +285,14 @@ const formatVersionLabel = (record: RecipeManagementRecord) => (
 
 const formatSnapshotLabel = (snapshot: RecipeSnapshot) => (
   `${snapshot.snapshotNo} · V${snapshot.versionNo} · ${formatDateTime(snapshot.snapshotDate)}`
+)
+
+const sortCostSnapshotsDesc = (records: HistoricalCostSnapshot[]) => (
+  RecipeCostSnapshotService.sortDesc(records)
+)
+
+const formatCostSnapshotLabel = (snapshot: HistoricalCostSnapshot) => (
+  RecipeCostSnapshotService.formatLabel(snapshot)
 )
 
 const toSafeText = (value: unknown) => String(value ?? '')
@@ -586,9 +628,15 @@ export default function Recipes(){
   const [compareSourceId, setCompareSourceId] = React.useState('')
   const [compareTargetId, setCompareTargetId] = React.useState('')
   const [recipeSnapshots] = React.useState<RecipeSnapshot[]>(() => RecipeSnapshotService.load())
+  const [costSnapshots] = React.useState<HistoricalCostSnapshot[]>(() => RecipeCostSnapshotService.load(records, recipeSnapshots))
+  const [alternativeMaterialGroups] = React.useState<AlternativeMaterialGroup[]>(() => RecipeAlternativeMaterialService.load(records))
   const [selectedSnapshotId, setSelectedSnapshotId] = React.useState('')
   const [snapshotCompareSourceId, setSnapshotCompareSourceId] = React.useState('')
   const [snapshotCompareTargetId, setSnapshotCompareTargetId] = React.useState('')
+  const [selectedCostSnapshotId, setSelectedCostSnapshotId] = React.useState('')
+  const [costCompareSourceId, setCostCompareSourceId] = React.useState('')
+  const [costCompareTargetId, setCostCompareTargetId] = React.useState('')
+  const [selectedIngredientId, setSelectedIngredientId] = React.useState('')
   const [panelMode, setPanelMode] = React.useState<PanelMode>('summary')
   const [viewMode, setViewMode] = React.useState<ViewMode>('list')
   const [editingRecipeId, setEditingRecipeId] = React.useState('')
@@ -703,6 +751,47 @@ export default function Recipes(){
       ? recordsById.get(selectedRecord.parentRecipeId) || null
       : null
   ), [recordsById, selectedRecord])
+  const selectedAlternativeMaterialGroups = React.useMemo(() => (
+    selectedRecord
+      ? RecipeAlternativeMaterialService.getForRecipe(selectedRecord, alternativeMaterialGroups)
+      : []
+  ), [alternativeMaterialGroups, selectedRecord])
+  const selectedAlternativeGroupByIngredientId = React.useMemo(() => {
+    const nextGroupsByIngredientId = new Map<string, AlternativeMaterialGroup>()
+    selectedAlternativeMaterialGroups.forEach(group => nextGroupsByIngredientId.set(group.ingredientId, group))
+    return nextGroupsByIngredientId
+  }, [selectedAlternativeMaterialGroups])
+  const selectedIngredient = React.useMemo(() => (
+    selectedRecord?.ingredients.find(ingredient => ingredient.id === selectedIngredientId)
+    || selectedRecord?.ingredients[0]
+    || null
+  ), [selectedIngredientId, selectedRecord])
+  const selectedIngredientAlternativeGroup = selectedIngredient
+    ? selectedAlternativeGroupByIngredientId.get(selectedIngredient.id) || null
+    : null
+  const selectedAlternativeMaterials = selectedIngredientAlternativeGroup?.alternatives || []
+  const selectedAlternativeCostComparisons = React.useMemo(() => (
+    selectedIngredientAlternativeGroup
+      ? RecipeAlternativeMaterialService.buildCostComparisons([selectedIngredientAlternativeGroup])
+      : []
+  ), [selectedIngredientAlternativeGroup])
+  const approvedAlternativeMaterialCount = React.useMemo(() => (
+    selectedAlternativeMaterialGroups.reduce((sum, group) => (
+      sum + group.alternatives.filter(RecipeAlternativeMaterialService.isApprovedForUse).length
+    ), 0)
+  ), [selectedAlternativeMaterialGroups])
+  React.useEffect(() => {
+    if(!selectedRecord){
+      setSelectedIngredientId('')
+      return
+    }
+
+    setSelectedIngredientId(current => (
+      selectedRecord.ingredients.some(ingredient => ingredient.id === current)
+        ? current
+        : selectedRecord.ingredients[0]?.id || ''
+    ))
+  }, [selectedRecord])
   const isEditingRecipe = Boolean(editingRecipeId)
   const selectedMasterRecords = React.useMemo(() => (
     selectedRecord
@@ -740,10 +829,39 @@ export default function Recipes(){
     setSnapshotCompareSourceId(current => snapshotIds.includes(current) ? current : snapshotIds[0])
     setSnapshotCompareTargetId(current => snapshotIds.includes(current) ? current : snapshotIds[1] || snapshotIds[0])
   }, [selectedRecipeSnapshots])
+  const selectedCostSnapshots = React.useMemo(() => (
+    selectedRecord
+      ? sortCostSnapshotsDesc(RecipeCostSnapshotService.getForRecipe(selectedRecord, costSnapshots))
+      : []
+  ), [costSnapshots, selectedRecord])
+  const costSnapshotsById = React.useMemo(() => {
+    const nextCostSnapshotsById = new Map<string, HistoricalCostSnapshot>()
+    costSnapshots.forEach(snapshot => nextCostSnapshotsById.set(snapshot.id, snapshot))
+    return nextCostSnapshotsById
+  }, [costSnapshots])
+  const selectedCostSnapshot = costSnapshotsById.get(selectedCostSnapshotId)
+    || selectedCostSnapshots[0]
+    || null
+  React.useEffect(() => {
+    const costSnapshotIds = selectedCostSnapshots.map(snapshot => snapshot.id)
+    if(costSnapshotIds.length === 0) return
+
+    setSelectedCostSnapshotId(current => costSnapshotIds.includes(current) ? current : costSnapshotIds[0])
+    setCostCompareSourceId(current => costSnapshotIds.includes(current) ? current : costSnapshotIds[0])
+    setCostCompareTargetId(current => costSnapshotIds.includes(current) ? current : costSnapshotIds[1] || costSnapshotIds[0])
+  }, [selectedCostSnapshots])
+  const selectedCostTrendSummary = React.useMemo(() => (
+    RecipeCostSnapshotService.buildTrendSummary(selectedCostSnapshots)
+  ), [selectedCostSnapshots])
   const totalRecipeMasters = new Set(records.map(getRecipeMasterId)).size
   const totalRecipeVersions = records.length
   const activeRecipes = records.filter(isRecipeVersionActive).length
   const totalIngredients = records.reduce((sum, record) => sum + record.ingredients.length, 0)
+  const totalAlternativeGroups = alternativeMaterialGroups.length
+  const totalAlternativeMaterials = React.useMemo(() => (
+    RecipeAlternativeMaterialService.flatten(alternativeMaterialGroups).length
+  ), [alternativeMaterialGroups])
+  const totalCostSnapshots = costSnapshots.length
   const totalPortions = records.reduce((sum, record) => sum + record.portions, 0)
   const productOptions = React.useMemo(() => {
     const options = new Set<string>(RECIPE_PRODUCT_OPTIONS)
@@ -1177,6 +1295,263 @@ export default function Recipes(){
     )
 
     showToast(opened ? (mode === 'PDF' ? 'Snapshot karşılaştırma PDF hazırlandı.' : 'Snapshot karşılaştırma yazdırma hazırlandı.') : 'Yazdırma penceresi açılamadı.', opened ? 'success' : 'info')
+  }
+
+  const getCostHistoryRows = (snapshots = selectedCostSnapshots) => (
+    snapshots.map(snapshot => [
+      snapshot.snapshotNo,
+      formatDateTime(snapshot.snapshotDate),
+      RecipeCostSnapshotService.formatAmount(snapshot.grandTotalCost, snapshot.currency),
+      RecipeCostSnapshotService.formatAmount(snapshot.unitCost, snapshot.currency),
+      `V${snapshot.versionNo}`,
+      snapshot.productionOrderNo,
+      snapshot.createdBy
+    ])
+  )
+
+  const exportCostHistoryExcel = () => {
+    if(!selectedRecord) return
+
+    const worksheet = XLSX.utils.aoa_to_sheet([
+      ['Snapshot No', 'Tarih', 'Toplam Maliyet', 'Birim Maliyet', 'Versiyon', 'Üretim Emri', 'Oluşturan'],
+      ...getCostHistoryRows()
+    ])
+    const workbook = XLSX.utils.book_new()
+    XLSX.utils.book_append_sheet(workbook, worksheet, 'Maliyet Geçmişi')
+    XLSX.writeFile(workbook, `recete-cost-history-${selectedRecord.code}.xlsx`)
+    showToast('Maliyet geçmişi Excel oluşturuldu.')
+  }
+
+  const printCostHistory = (mode: RecipeSnapshotPrintMode) => {
+    if(!selectedRecord) return
+
+    const opened = openRecipePrintWindow(
+      `${selectedRecord.code} Maliyet Geçmişi`,
+      ['Snapshot No', 'Tarih', 'Toplam Maliyet', 'Birim Maliyet', 'Versiyon', 'Üretim Emri', 'Oluşturan'],
+      getCostHistoryRows(),
+      mode
+    )
+
+    showToast(opened ? (mode === 'PDF' ? 'Maliyet geçmişi PDF hazırlandı.' : 'Maliyet geçmişi yazdırma hazırlandı.') : 'Yazdırma penceresi açılamadı.', opened ? 'success' : 'info')
+  }
+
+  const getCostDetailRows = (snapshot: HistoricalCostSnapshot) => ([
+    ['Snapshot No', snapshot.snapshotNo],
+    ['Recipe Snapshot', snapshot.recipeSnapshotId],
+    ['Üretim Emri', snapshot.productionOrderNo],
+    ['Reçete', `${snapshot.recipeCode} · ${snapshot.recipeName}`],
+    ['Versiyon', `V${snapshot.versionNo}`],
+    ['Tarih', formatDateTime(snapshot.snapshotDate)],
+    ['Para Birimi', snapshot.currency],
+    ['Hammadde', RecipeCostSnapshotService.formatAmount(snapshot.totalMaterialCost, snapshot.currency)],
+    ['İşçilik', RecipeCostSnapshotService.formatAmount(snapshot.totalLaborCost, snapshot.currency)],
+    ['Enerji', RecipeCostSnapshotService.formatAmount(snapshot.totalEnergyCost, snapshot.currency)],
+    ['Paketleme', RecipeCostSnapshotService.formatAmount(snapshot.totalPackagingCost, snapshot.currency)],
+    ['Lojistik', RecipeCostSnapshotService.formatAmount(snapshot.totalLogisticsCost, snapshot.currency)],
+    ['Fire', RecipeCostSnapshotService.formatAmount(snapshot.totalWasteCost, snapshot.currency)],
+    ['Genel Gider', RecipeCostSnapshotService.formatAmount(snapshot.totalOverheadCost, snapshot.currency)],
+    ['Toplam Maliyet', RecipeCostSnapshotService.formatAmount(snapshot.grandTotalCost, snapshot.currency)],
+    ['Birim Maliyet', RecipeCostSnapshotService.formatAmount(snapshot.unitCost, snapshot.currency)],
+    ['Oluşturan', snapshot.createdBy],
+    ...snapshot.ingredients.map(ingredient => [
+      ingredient.materialName,
+      `${formatNumber(ingredient.quantity)} ${ingredient.unit} · ${RecipeCostSnapshotService.formatAmount(ingredient.unitPrice, ingredient.currency)} · ${RecipeCostSnapshotService.formatAmount(ingredient.lineTotal, ingredient.currency)} · ${ingredient.supplier}`
+    ])
+  ])
+
+  const exportCostDetailExcel = () => {
+    if(!selectedCostSnapshot) return
+
+    const worksheet = XLSX.utils.aoa_to_sheet([
+      ['Alan', 'Değer'],
+      ...getCostDetailRows(selectedCostSnapshot)
+    ])
+    const workbook = XLSX.utils.book_new()
+    XLSX.utils.book_append_sheet(workbook, worksheet, 'Maliyet Snapshot Detay')
+    XLSX.writeFile(workbook, `recete-cost-detail-${selectedCostSnapshot.snapshotNo}.xlsx`)
+    showToast('Maliyet snapshot detayı Excel oluşturuldu.')
+  }
+
+  const printCostDetail = (mode: RecipeSnapshotPrintMode) => {
+    if(!selectedCostSnapshot) return
+
+    const opened = openRecipePrintWindow(
+      `${selectedCostSnapshot.snapshotNo} Maliyet Snapshot Detay`,
+      ['Alan', 'Değer'],
+      getCostDetailRows(selectedCostSnapshot),
+      mode
+    )
+
+    showToast(opened ? (mode === 'PDF' ? 'Maliyet snapshot detayı PDF hazırlandı.' : 'Maliyet snapshot detayı yazdırma hazırlandı.') : 'Yazdırma penceresi açılamadı.', opened ? 'success' : 'info')
+  }
+
+  const getCostCompareRows = () => {
+    const sourceSnapshot = costSnapshotsById.get(costCompareSourceId)
+    const targetSnapshot = costSnapshotsById.get(costCompareTargetId)
+    if(!sourceSnapshot || !targetSnapshot) return [] as HistoricalCostSnapshotDiffRow[]
+
+    return RecipeCostSnapshotService.buildDiffRows(sourceSnapshot, targetSnapshot)
+  }
+
+  const exportCostCompareExcel = () => {
+    if(!selectedRecord) return
+
+    const worksheet = XLSX.utils.aoa_to_sheet([
+      ['Alan', 'Kaynak Snapshot', 'Hedef Snapshot', 'Mutlak Fark', 'Yüzde Fark'],
+      ...getCostCompareRows().map(row => [row.area, row.sourceValue, row.targetValue, row.absoluteDifference, row.percentDifference])
+    ])
+    const workbook = XLSX.utils.book_new()
+    XLSX.utils.book_append_sheet(workbook, worksheet, 'Maliyet Karşılaştırma')
+    XLSX.writeFile(workbook, `recete-cost-compare-${selectedRecord.code}.xlsx`)
+    showToast('Maliyet karşılaştırma Excel oluşturuldu.')
+  }
+
+  const printCostCompare = (mode: RecipeSnapshotPrintMode) => {
+    if(!selectedRecord) return
+
+    const opened = openRecipePrintWindow(
+      `${selectedRecord.code} Maliyet Karşılaştırma`,
+      ['Alan', 'Kaynak Snapshot', 'Hedef Snapshot', 'Mutlak Fark', 'Yüzde Fark'],
+      getCostCompareRows().map(row => [row.area, row.sourceValue, row.targetValue, row.absoluteDifference, row.percentDifference]),
+      mode
+    )
+
+    showToast(opened ? (mode === 'PDF' ? 'Maliyet karşılaştırma PDF hazırlandı.' : 'Maliyet karşılaştırma yazdırma hazırlandı.') : 'Yazdırma penceresi açılamadı.', opened ? 'success' : 'info')
+  }
+
+  const getTrendRows = (
+    periodLabel: string,
+    points: HistoricalCostTrendPoint[]
+  ) => points.map(point => [
+    periodLabel,
+    point.label,
+    point.formattedValue
+  ])
+
+  const getCostTrendRows = () => [
+    ['Özet', 'Son Maliyet', RecipeCostSnapshotService.formatAmount(selectedCostTrendSummary.latestCost)],
+    ['Özet', 'Ortalama Maliyet', RecipeCostSnapshotService.formatAmount(selectedCostTrendSummary.averageCost)],
+    ['Özet', 'En Yüksek Maliyet', RecipeCostSnapshotService.formatAmount(selectedCostTrendSummary.highestCost)],
+    ['Özet', 'En Düşük Maliyet', RecipeCostSnapshotService.formatAmount(selectedCostTrendSummary.lowestCost)],
+    ['Özet', 'Son 30 Gün Değişimi', `${formatFirePercent(selectedCostTrendSummary.last30DayChangePercent)} %`],
+    ...getTrendRows('Günlük', selectedCostTrendSummary.daily),
+    ...getTrendRows('Haftalık', selectedCostTrendSummary.weekly),
+    ...getTrendRows('Aylık', selectedCostTrendSummary.monthly)
+  ]
+
+  const exportCostTrendExcel = () => {
+    if(!selectedRecord) return
+
+    const worksheet = XLSX.utils.aoa_to_sheet([
+      ['Periyot', 'Etiket', 'Değer'],
+      ...getCostTrendRows()
+    ])
+    const workbook = XLSX.utils.book_new()
+    XLSX.utils.book_append_sheet(workbook, worksheet, 'Maliyet Trend')
+    XLSX.writeFile(workbook, `recete-cost-trend-${selectedRecord.code}.xlsx`)
+    showToast('Maliyet trend Excel oluşturuldu.')
+  }
+
+  const printCostTrend = (mode: RecipeSnapshotPrintMode) => {
+    if(!selectedRecord) return
+
+    const opened = openRecipePrintWindow(
+      `${selectedRecord.code} Maliyet Trend`,
+      ['Periyot', 'Etiket', 'Değer'],
+      getCostTrendRows(),
+      mode
+    )
+
+    showToast(opened ? (mode === 'PDF' ? 'Maliyet trend PDF hazırlandı.' : 'Maliyet trend yazdırma hazırlandı.') : 'Yazdırma penceresi açılamadı.', opened ? 'success' : 'info')
+  }
+
+  const getAlternativeMaterialRows = (groups = selectedAlternativeMaterialGroups) => (
+    groups.flatMap(group => group.alternatives.map(alternative => [
+      group.recipeCode,
+      group.recipeName,
+      group.primaryMaterialName,
+      alternative.materialCode,
+      alternative.materialName,
+      alternative.priority,
+      alternative.rule.substitutionMode,
+      alternative.substitutionRatio,
+      `${formatFirePercent(alternative.rule.maxUsagePercent)} %`,
+      `${formatFirePercent(alternative.rule.minimumQualityScore)} %`,
+      alternative.rule.allergenCheck ? 'Uygun' : 'Kontrol Gerekli',
+      alternative.rule.haccpCompliant ? 'Uygun' : 'Kontrol Gerekli',
+      formatRecipeCostAmount(alternative.costDifference),
+      `${formatFirePercent(alternative.qualityScore)} %`,
+      alternative.status,
+      alternative.approvalStatus,
+      alternative.notes || '-'
+    ]))
+  )
+
+  const exportAlternativeMaterialExcel = () => {
+    if(!selectedRecord) return
+
+    const worksheet = XLSX.utils.aoa_to_sheet([
+      ['Reçete Kodu', 'Reçete', 'Birincil Malzeme', 'Alternatif Kod', 'Alternatif Malzeme', 'Öncelik', 'Kural', 'Katsayı', 'Maksimum Kullanım', 'Minimum Kalite', 'Alerjen', 'HACCP', 'Maliyet Etkisi', 'Kalite', 'Durum', 'Onay', 'Not'],
+      ...getAlternativeMaterialRows()
+    ])
+    const workbook = XLSX.utils.book_new()
+    XLSX.utils.book_append_sheet(workbook, worksheet, 'Alternatif Hammaddeler')
+    XLSX.writeFile(workbook, `recete-alternatif-hammadde-${selectedRecord.code}.xlsx`)
+    showToast('Alternatif hammadde Excel oluşturuldu.')
+  }
+
+  const printAlternativeMaterialList = (mode: RecipeSnapshotPrintMode) => {
+    if(!selectedRecord) return
+
+    const opened = openRecipePrintWindow(
+      `${selectedRecord.code} Alternatif Hammaddeler`,
+      ['Reçete Kodu', 'Reçete', 'Birincil Malzeme', 'Alternatif Kod', 'Alternatif Malzeme', 'Öncelik', 'Kural', 'Katsayı', 'Maksimum Kullanım', 'Minimum Kalite', 'Alerjen', 'HACCP', 'Maliyet Etkisi', 'Kalite', 'Durum', 'Onay', 'Not'],
+      getAlternativeMaterialRows(),
+      mode
+    )
+
+    showToast(opened ? (mode === 'PDF' ? 'Alternatif hammadde PDF hazırlandı.' : 'Alternatif hammadde yazdırma hazırlandı.') : 'Yazdırma penceresi açılamadı.', opened ? 'success' : 'info')
+  }
+
+  const getAlternativeCostComparisonRows = (groups = selectedAlternativeMaterialGroups) => (
+    RecipeAlternativeMaterialService.buildCostComparisons(groups).map(row => [
+      row.recipeCode,
+      row.recipeName,
+      row.primaryMaterialName,
+      row.alternativeMaterialName,
+      formatRecipeCostAmount(row.currentCost),
+      formatRecipeCostAmount(row.alternativeCost),
+      formatRecipeCostAmount(row.costDifference),
+      `${formatFirePercent(row.costDifferencePercent)} %`,
+      `${formatFirePercent(row.qualityScore)} %`,
+      row.approvalStatus
+    ])
+  )
+
+  const exportAlternativeCostComparisonExcel = () => {
+    if(!selectedRecord) return
+
+    const worksheet = XLSX.utils.aoa_to_sheet([
+      ['Reçete Kodu', 'Reçete', 'Birincil Malzeme', 'Alternatif Malzeme', 'Mevcut Maliyet', 'Alternatif Maliyet', 'Fark', 'Fark %', 'Kalite', 'Onay'],
+      ...getAlternativeCostComparisonRows()
+    ])
+    const workbook = XLSX.utils.book_new()
+    XLSX.utils.book_append_sheet(workbook, worksheet, 'Maliyet Karşılaştırma')
+    XLSX.writeFile(workbook, `recete-alternatif-maliyet-${selectedRecord.code}.xlsx`)
+    showToast('Alternatif maliyet karşılaştırması Excel oluşturuldu.')
+  }
+
+  const printAlternativeCostComparison = (mode: RecipeSnapshotPrintMode) => {
+    if(!selectedRecord) return
+
+    const opened = openRecipePrintWindow(
+      `${selectedRecord.code} Alternatif Maliyet Karşılaştırma`,
+      ['Reçete Kodu', 'Reçete', 'Birincil Malzeme', 'Alternatif Malzeme', 'Mevcut Maliyet', 'Alternatif Maliyet', 'Fark', 'Fark %', 'Kalite', 'Onay'],
+      getAlternativeCostComparisonRows(),
+      mode
+    )
+
+    showToast(opened ? (mode === 'PDF' ? 'Alternatif maliyet PDF hazırlandı.' : 'Alternatif maliyet yazdırma hazırlandı.') : 'Yazdırma penceresi açılamadı.', opened ? 'success' : 'info')
   }
 
   const submitRecipeForm = (event: React.FormEvent) => {
@@ -1984,6 +2359,303 @@ export default function Recipes(){
     )
   }
 
+  const renderCostTrendRows = (
+    title: string,
+    points: HistoricalCostTrendPoint[]
+  ) => {
+    const maxValue = Math.max(...points.map(point => point.value), 1)
+
+    return (
+      <div className="recipe-cost-trend-panel">
+        <div className="section-header compact">
+          <h3>{title}</h3>
+        </div>
+        <div className="recipe-cost-trend-list">
+          {points.length === 0 ? (
+            <div className="recipe-relation-empty">Trend verisi bulunmuyor.</div>
+          ) : points.map(point => (
+            <div key={`${title}_${point.dateKey}`} className="recipe-cost-trend-row">
+              <div>
+                <strong>{point.label}</strong>
+                <span>{point.formattedValue}</span>
+              </div>
+              <span className="recipe-cost-trend-bar"><i style={{ width: `${Math.max(6, (point.value / maxValue) * 100)}%` }} /></span>
+            </div>
+          ))}
+        </div>
+      </div>
+    )
+  }
+
+  const renderCostHistoryCard = () => {
+    if(!selectedRecord) return null
+
+    const compareSourceSnapshot = costSnapshotsById.get(costCompareSourceId) || selectedCostSnapshots[0] || null
+    const compareTargetSnapshot = costSnapshotsById.get(costCompareTargetId) || selectedCostSnapshots[1] || compareSourceSnapshot
+    const costDiffRows = compareSourceSnapshot && compareTargetSnapshot
+      ? RecipeCostSnapshotService.buildDiffRows(compareSourceSnapshot, compareTargetSnapshot)
+      : []
+
+    return (
+      <section className="card recipe-cost-snapshot-card">
+        <div className="section-header compact">
+          <div>
+            <h3>Maliyet Geçmişi</h3>
+            <p className="muted">{selectedCostSnapshots.length} immutable maliyet snapshot · geçmiş üretim maliyetleri değişmez.</p>
+          </div>
+        </div>
+
+        <div className="recipe-version-output-actions">
+          <button className="btn" type="button" onClick={exportCostHistoryExcel}>Geçmiş Excel</button>
+          <button className="btn" type="button" onClick={() => printCostHistory('PDF')}>Geçmiş PDF</button>
+          <button className="btn" type="button" onClick={() => printCostHistory('PRINT')}>Yazdır</button>
+        </div>
+        <div className="recipe-version-output-actions">
+          <button className="btn" type="button" onClick={exportCostTrendExcel}>Trend Excel</button>
+          <button className="btn" type="button" onClick={() => printCostTrend('PDF')}>Trend PDF</button>
+          <button className="btn" type="button" onClick={() => printCostTrend('PRINT')}>Trend Yazdır</button>
+        </div>
+
+        {selectedCostSnapshots.length === 0 ? (
+          <div className="recipe-relation-empty">Bu reçete için maliyet snapshot bulunmuyor.</div>
+        ) : (
+          <>
+            <div className="recipe-summary-grid recipe-cost-kpi-grid">
+              <div><span>Son Maliyet</span><strong>{RecipeCostSnapshotService.formatAmount(selectedCostTrendSummary.latestCost)}</strong></div>
+              <div><span>Ortalama Maliyet</span><strong>{RecipeCostSnapshotService.formatAmount(selectedCostTrendSummary.averageCost)}</strong></div>
+              <div><span>En Yüksek</span><strong>{RecipeCostSnapshotService.formatAmount(selectedCostTrendSummary.highestCost)}</strong></div>
+              <div><span>En Düşük</span><strong>{RecipeCostSnapshotService.formatAmount(selectedCostTrendSummary.lowestCost)}</strong></div>
+              <div><span>Son Birim Maliyet</span><strong>{RecipeCostSnapshotService.formatAmount(selectedCostTrendSummary.latestUnitCost)}</strong></div>
+              <div><span>Son 30 Gün Değişimi</span><strong>{formatFirePercent(selectedCostTrendSummary.last30DayChangePercent)} %</strong></div>
+            </div>
+
+            <div className="recipe-snapshot-list">
+              {selectedCostSnapshots.slice(0, 8).map(snapshot => (
+                <button
+                  key={snapshot.id}
+                  className={`recipe-snapshot-row ${snapshot.id === selectedCostSnapshot?.id ? 'active' : ''}`}
+                  type="button"
+                  onClick={() => setSelectedCostSnapshotId(snapshot.id)}
+                >
+                  <span>{snapshot.snapshotNo}</span>
+                  <strong>{snapshot.productionOrderNo}</strong>
+                  <small>V{snapshot.versionNo} · {formatDateTime(snapshot.snapshotDate)} · {RecipeCostSnapshotService.formatAmount(snapshot.grandTotalCost, snapshot.currency)}</small>
+                </button>
+              ))}
+            </div>
+
+            {selectedCostSnapshot && (
+              <div className="recipe-snapshot-detail">
+                <div className="section-header compact">
+                  <div>
+                    <h3>Maliyet Snapshot Detay</h3>
+                    <p className="muted">{selectedCostSnapshot.snapshotNo} · {selectedCostSnapshot.ingredients.length} malzeme maliyeti</p>
+                  </div>
+                </div>
+                <div className="recipe-version-output-actions">
+                  <button className="btn" type="button" onClick={exportCostDetailExcel}>Detay Excel</button>
+                  <button className="btn" type="button" onClick={() => printCostDetail('PDF')}>Detay PDF</button>
+                  <button className="btn" type="button" onClick={() => printCostDetail('PRINT')}>Detay Yazdır</button>
+                </div>
+                <div className="recipe-cost-component-grid">
+                  <div><span>Hammadde</span><strong>{RecipeCostSnapshotService.formatAmount(selectedCostSnapshot.totalMaterialCost, selectedCostSnapshot.currency)}</strong></div>
+                  <div><span>İşçilik</span><strong>{RecipeCostSnapshotService.formatAmount(selectedCostSnapshot.totalLaborCost, selectedCostSnapshot.currency)}</strong></div>
+                  <div><span>Enerji</span><strong>{RecipeCostSnapshotService.formatAmount(selectedCostSnapshot.totalEnergyCost, selectedCostSnapshot.currency)}</strong></div>
+                  <div><span>Paketleme</span><strong>{RecipeCostSnapshotService.formatAmount(selectedCostSnapshot.totalPackagingCost, selectedCostSnapshot.currency)}</strong></div>
+                  <div><span>Fire</span><strong>{RecipeCostSnapshotService.formatAmount(selectedCostSnapshot.totalWasteCost, selectedCostSnapshot.currency)}</strong></div>
+                  <div><span>Lojistik</span><strong>{RecipeCostSnapshotService.formatAmount(selectedCostSnapshot.totalLogisticsCost, selectedCostSnapshot.currency)}</strong></div>
+                  <div><span>Genel Gider</span><strong>{RecipeCostSnapshotService.formatAmount(selectedCostSnapshot.totalOverheadCost, selectedCostSnapshot.currency)}</strong></div>
+                  <div><span>Toplam</span><strong>{RecipeCostSnapshotService.formatAmount(selectedCostSnapshot.grandTotalCost, selectedCostSnapshot.currency)}</strong></div>
+                </div>
+                <div className="recipe-snapshot-ingredient-list">
+                  {selectedCostSnapshot.ingredients.slice(0, 6).map(ingredient => (
+                    <div key={ingredient.id} className="recipe-snapshot-ingredient-row">
+                      <strong>{ingredient.materialName}</strong>
+                      <span>{formatNumber(ingredient.quantity)} {ingredient.unit} · {ingredient.supplier} · {formatDateTime(ingredient.priceDate)}</span>
+                      <em>{RecipeCostSnapshotService.formatAmount(ingredient.lineTotal, ingredient.currency)}</em>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            <div className="recipe-cost-trend-grid">
+              {renderCostTrendRows('Günlük Maliyet', selectedCostTrendSummary.daily)}
+              {renderCostTrendRows('Haftalık Maliyet', selectedCostTrendSummary.weekly)}
+              {renderCostTrendRows('Aylık Maliyet', selectedCostTrendSummary.monthly)}
+            </div>
+
+            <div className="recipe-version-compare">
+              <div className="section-header compact">
+                <h3>Maliyet Karşılaştırma</h3>
+              </div>
+              <div className="recipe-version-compare-controls">
+                <select value={compareSourceSnapshot?.id || ''} onChange={event => setCostCompareSourceId(event.target.value)}>
+                  {selectedCostSnapshots.map(snapshot => (
+                    <option key={snapshot.id} value={snapshot.id}>{formatCostSnapshotLabel(snapshot)}</option>
+                  ))}
+                </select>
+                <select value={compareTargetSnapshot?.id || ''} onChange={event => setCostCompareTargetId(event.target.value)}>
+                  {selectedCostSnapshots.map(snapshot => (
+                    <option key={snapshot.id} value={snapshot.id}>{formatCostSnapshotLabel(snapshot)}</option>
+                  ))}
+                </select>
+              </div>
+              <div className="recipe-version-output-actions">
+                <button className="btn" type="button" onClick={exportCostCompareExcel}>Fark Excel</button>
+                <button className="btn" type="button" onClick={() => printCostCompare('PDF')}>Fark PDF</button>
+                <button className="btn" type="button" onClick={() => printCostCompare('PRINT')}>Fark Yazdır</button>
+              </div>
+              <div className="recipe-version-diff-list">
+                {costDiffRows.length === 0 ? (
+                  <div className="recipe-relation-empty">Seçilen maliyet snapshotları arasında fark bulunmuyor.</div>
+                ) : costDiffRows.map(row => (
+                  <div key={row.area} className="recipe-version-diff-row">
+                    <span>{row.area}</span>
+                    <strong>{row.absoluteDifference}</strong>
+                    <small>{row.sourceValue} → {row.targetValue}</small>
+                    <em>{row.percentDifference}</em>
+                  </div>
+                ))}
+              </div>
+            </div>
+          </>
+        )}
+      </section>
+    )
+  }
+
+  const renderAlternativeMaterialCard = () => {
+    if(!selectedRecord) return null
+
+    const totalAlternatives = selectedAlternativeMaterialGroups.reduce((sum, group) => sum + group.alternatives.length, 0)
+    const selectedApprovedCount = selectedAlternativeMaterials.filter(RecipeAlternativeMaterialService.isApprovedForUse).length
+
+    return (
+      <section className="card recipe-alternative-material-card">
+        <div className="section-header compact">
+          <div>
+            <h3>Alternatif Hammaddeler</h3>
+            <p className="muted">{selectedAlternativeMaterialGroups.length} grup · {totalAlternatives} alternatif · otomatik reçete değişikliği yapılmaz.</p>
+          </div>
+          <span className="status-pill info-pill">{approvedAlternativeMaterialCount} onaylı</span>
+        </div>
+
+        <div className="recipe-version-output-actions">
+          <button className="btn" type="button" onClick={exportAlternativeMaterialExcel}>Liste Excel</button>
+          <button className="btn" type="button" onClick={() => printAlternativeMaterialList('PDF')}>Liste PDF</button>
+          <button className="btn" type="button" onClick={() => printAlternativeMaterialList('PRINT')}>Liste Yazdır</button>
+        </div>
+        <div className="recipe-version-output-actions">
+          <button className="btn" type="button" onClick={exportAlternativeCostComparisonExcel}>Maliyet Excel</button>
+          <button className="btn" type="button" onClick={() => printAlternativeCostComparison('PDF')}>Maliyet PDF</button>
+          <button className="btn" type="button" onClick={() => printAlternativeCostComparison('PRINT')}>Maliyet Yazdır</button>
+        </div>
+
+        <div className="recipe-alternative-tabs" role="tablist" aria-label="Malzeme alternatifleri">
+          {selectedRecord.ingredients.map(ingredient => {
+            const group = selectedAlternativeGroupByIngredientId.get(ingredient.id)
+            const count = group?.alternatives.length || 0
+
+            return (
+              <button
+                key={ingredient.id}
+                className={`recipe-alternative-tab ${ingredient.id === selectedIngredient?.id ? 'active' : ''}`}
+                type="button"
+                role="tab"
+                aria-selected={ingredient.id === selectedIngredient?.id}
+                onClick={() => setSelectedIngredientId(ingredient.id)}
+              >
+                <strong>{ingredient.materialName}</strong>
+                <span>{count} alternatif</span>
+              </button>
+            )
+          })}
+        </div>
+
+        {!selectedIngredient || !selectedIngredientAlternativeGroup ? (
+          <div className="recipe-relation-empty">Seçilen malzeme için alternatif hammadde tanımı bulunmuyor.</div>
+        ) : (
+          <>
+            <div className="recipe-summary-grid recipe-alternative-summary-grid">
+              <div><span>Birincil Malzeme</span><strong>{selectedIngredientAlternativeGroup.primaryMaterialName}</strong></div>
+              <div><span>Mevcut Maliyet</span><strong>{formatRecipeCostAmount(selectedIngredientAlternativeGroup.primaryCost)}</strong></div>
+              <div><span>Alternatif Sayısı</span><strong>{selectedAlternativeMaterials.length}</strong></div>
+              <div><span>Kullanıma Uygun</span><strong>{selectedApprovedCount}</strong></div>
+            </div>
+
+            <div className="table-wrap recipe-alternative-table-wrap">
+              <table className="data-table recipe-alternative-table">
+                <thead>
+                  <tr>
+                    <th>Malzeme</th>
+                    <th>Öncelik</th>
+                    <th>Katsayı</th>
+                    <th>Maliyet Etkisi</th>
+                    <th>Kalite</th>
+                    <th>Durum</th>
+                    <th>Onay</th>
+                    <th>Kurallar</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {selectedAlternativeMaterials.length === 0 && (
+                    <tr><td colSpan={8} className="empty-cell">Alternatif hammadde bulunmuyor.</td></tr>
+                  )}
+                  {selectedAlternativeMaterials.map(alternative => (
+                    <tr key={alternative.id}>
+                      <td data-label="Malzeme">
+                        <strong>{alternative.materialName}</strong>
+                        <span>{alternative.materialCode}</span>
+                      </td>
+                      <td data-label="Öncelik">{alternative.priority}</td>
+                      <td data-label="Katsayı">{formatNumber(alternative.substitutionRatio)}</td>
+                      <td data-label="Maliyet Etkisi">
+                        <span className={`status-pill ${getAlternativeMaterialCostClass(alternative)}`}>
+                          {formatRecipeCostAmount(alternative.costDifference)}
+                        </span>
+                      </td>
+                      <td data-label="Kalite">{formatFirePercent(alternative.qualityScore)} %</td>
+                      <td data-label="Durum">
+                        <span className={`status-pill ${getAlternativeMaterialStatusClass(alternative.status)}`}>{alternative.status}</span>
+                      </td>
+                      <td data-label="Onay">
+                        <span className={`status-pill ${getAlternativeMaterialApprovalClass(alternative.approvalStatus)}`}>{alternative.approvalStatus}</span>
+                      </td>
+                      <td data-label="Kurallar">
+                        <span>{alternative.rule.substitutionMode}</span>
+                        <small>
+                          Maks. {formatFirePercent(alternative.rule.maxUsagePercent)}% · Min. kalite {formatFirePercent(alternative.rule.minimumQualityScore)}% · Alerjen {alternative.rule.allergenCheck ? 'uygun' : 'kontrol'} · HACCP {alternative.rule.haccpCompliant ? 'uygun' : 'kontrol'}
+                        </small>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+
+            <div className="recipe-alternative-cost-list">
+              {selectedAlternativeCostComparisons.map(row => (
+                <div key={row.id} className="recipe-alternative-cost-row">
+                  <div>
+                    <span>{row.primaryMaterialName}</span>
+                    <strong>{row.alternativeMaterialName}</strong>
+                  </div>
+                  <div><span>Mevcut</span><strong>{formatRecipeCostAmount(row.currentCost)}</strong></div>
+                  <div><span>Alternatif</span><strong>{formatRecipeCostAmount(row.alternativeCost)}</strong></div>
+                  <div>
+                    <span>Fark</span>
+                    <strong>{formatRecipeCostAmount(row.costDifference)}</strong>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </>
+        )}
+      </section>
+    )
+  }
+
   const renderSummaryPanel = () => {
     if(!selectedRecord){
       return (
@@ -2014,6 +2686,7 @@ export default function Recipes(){
           <div><span>Versiyon Durumu</span><strong>{selectedVersionStatus}</strong></div>
           <div><span>Aktif Versiyon</span><strong>{isRecipeVersionActive(selectedRecord) ? 'Evet' : 'Hayır'}</strong></div>
           <div><span>Snapshot Sayısı</span><strong>{selectedRecipeSnapshots.length}</strong></div>
+          <div><span>Maliyet Snapshot</span><strong>{selectedCostSnapshots.length}</strong></div>
           <div><span>Reçete Adı</span><strong>{selectedRecord.recipeName}</strong></div>
           <div><span>Reçete Türü</span><strong>{selectedRecord.recipeType}</strong></div>
           <div><span>Rol</span><strong>{getRecipeRoleLabel(selectedRecord.recipeRole)}</strong></div>
@@ -2130,62 +2803,67 @@ export default function Recipes(){
         )}
 
         <div className="recipe-detail-grid">
-          <section className="card">
-            <div className="section-header">
-              <div>
-                <h3>Malzemeler</h3>
-                <p className="muted">{selectedRecord.ingredients.length} malzeme satırı gösteriliyor.</p>
-              </div>
-              <button className="btn primary" type="button" onClick={startAddIngredient} disabled={!canEditRecipeVersionDirectly(selectedRecord)}>+ Malzeme Ekle</button>
-            </div>
-
-            <div className="table-wrap recipe-ingredient-table-wrap">
-              <table className="data-table recipe-ingredient-table">
-                <thead>
-                  <tr>
-                    <th>Hammadde</th>
-                    <th>Miktar</th>
-                    <th>Birim</th>
-                    <th>Birim Maliyet</th>
-                    <th>Satır Maliyeti</th>
-                    <th>İşlemler</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {selectedRecord.ingredients.length === 0 && (
-                    <tr><td colSpan={6} className="empty-cell">Henüz malzeme bulunmuyor.</td></tr>
-                  )}
-                  {selectedRecord.ingredients.map(ingredient => {
-                    const ingredientCost = selectedIngredientCostMap.get(ingredient.id)
-
-                    return (
-                      <tr key={ingredient.id}>
-                        <td data-label="Hammadde"><strong>{ingredient.materialName}</strong></td>
-                        <td data-label="Miktar">{formatNumber(ingredient.quantity)}</td>
-                        <td data-label="Birim">{ingredient.unit}</td>
-                        <td data-label="Birim Maliyet">
-                          <strong>{formatRecipeCostAmount(ingredient.unitCost)}</strong>
-                        </td>
-                        <td data-label="Satır Maliyeti">
-                          <strong>{formatRecipeCostAmount(ingredientCost?.cost || 0)}</strong>
-                        </td>
-                        <td className="actions-cell" data-label="İşlemler">
-                          <button className="btn" type="button" onClick={() => startEditIngredient(ingredient)} disabled={!canEditRecipeVersionDirectly(selectedRecord)}>Düzenle</button>
-                          <button className="btn danger" type="button" onClick={() => deleteIngredient(ingredient)} disabled={!canEditRecipeVersionDirectly(selectedRecord)}>Sil</button>
-                        </td>
-                      </tr>
-                    )
-                  })}
-                </tbody>
-              </table>
-            </div>
-
-            {ingredientFormVisible ? renderIngredientForm() : (
-              <div className="recipe-ingredient-add-row">
+          <div className="recipe-detail-main-stack">
+            <section className="card">
+              <div className="section-header">
+                <div>
+                  <h3>Malzemeler</h3>
+                  <p className="muted">{selectedRecord.ingredients.length} malzeme satırı gösteriliyor.</p>
+                </div>
                 <button className="btn primary" type="button" onClick={startAddIngredient} disabled={!canEditRecipeVersionDirectly(selectedRecord)}>+ Malzeme Ekle</button>
               </div>
-            )}
-          </section>
+
+              <div className="table-wrap recipe-ingredient-table-wrap">
+                <table className="data-table recipe-ingredient-table">
+                  <thead>
+                    <tr>
+                      <th>Hammadde</th>
+                      <th>Miktar</th>
+                      <th>Birim</th>
+                      <th>Birim Maliyet</th>
+                      <th>Satır Maliyeti</th>
+                      <th>İşlemler</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {selectedRecord.ingredients.length === 0 && (
+                      <tr><td colSpan={6} className="empty-cell">Henüz malzeme bulunmuyor.</td></tr>
+                    )}
+                    {selectedRecord.ingredients.map(ingredient => {
+                      const ingredientCost = selectedIngredientCostMap.get(ingredient.id)
+
+                      return (
+                        <tr key={ingredient.id} className={ingredient.id === selectedIngredient?.id ? 'selected-row' : undefined}>
+                          <td data-label="Hammadde"><strong>{ingredient.materialName}</strong></td>
+                          <td data-label="Miktar">{formatNumber(ingredient.quantity)}</td>
+                          <td data-label="Birim">{ingredient.unit}</td>
+                          <td data-label="Birim Maliyet">
+                            <strong>{formatRecipeCostAmount(ingredient.unitCost)}</strong>
+                          </td>
+                          <td data-label="Satır Maliyeti">
+                            <strong>{formatRecipeCostAmount(ingredientCost?.cost || 0)}</strong>
+                          </td>
+                          <td className="actions-cell" data-label="İşlemler">
+                            <button className="btn" type="button" onClick={() => setSelectedIngredientId(ingredient.id)}>Alternatifler</button>
+                            <button className="btn" type="button" onClick={() => startEditIngredient(ingredient)} disabled={!canEditRecipeVersionDirectly(selectedRecord)}>Düzenle</button>
+                            <button className="btn danger" type="button" onClick={() => deleteIngredient(ingredient)} disabled={!canEditRecipeVersionDirectly(selectedRecord)}>Sil</button>
+                          </td>
+                        </tr>
+                      )
+                    })}
+                  </tbody>
+                </table>
+              </div>
+
+              {ingredientFormVisible ? renderIngredientForm() : (
+                <div className="recipe-ingredient-add-row">
+                  <button className="btn primary" type="button" onClick={startAddIngredient} disabled={!canEditRecipeVersionDirectly(selectedRecord)}>+ Malzeme Ekle</button>
+                </div>
+              )}
+            </section>
+
+            {renderAlternativeMaterialCard()}
+          </div>
 
           <aside className="recipe-detail-side">
             <section className="card recipe-detail-summary">
@@ -2198,6 +2876,7 @@ export default function Recipes(){
                 <div><span>Versiyon</span><strong>V{getRecipeVersionNo(selectedRecord)}</strong></div>
                 <div><span>Versiyon Durumu</span><strong>{getRecipeVersionStatus(selectedRecord)}</strong></div>
                 <div><span>Aktif Versiyon</span><strong>{isRecipeVersionActive(selectedRecord) ? 'Evet' : 'Hayır'}</strong></div>
+                <div><span>Maliyet Snapshot</span><strong>{selectedCostSnapshots.length}</strong></div>
                 <div><span>Reçete Adı</span><strong>{selectedRecord.recipeName}</strong></div>
                 <div><span>Reçete Türü</span><strong>{selectedRecord.recipeType}</strong></div>
                 <div><span>Rol</span><strong>{getRecipeRoleLabel(selectedRecord.recipeRole)}</strong></div>
@@ -2206,6 +2885,8 @@ export default function Recipes(){
                 <div><span>Ürün</span><strong>{selectedRecord.productName}</strong></div>
                 <div><span>Porsiyon</span><strong>{formatNumber(selectedRecord.portions)}</strong></div>
                 <div><span>Malzeme Sayısı</span><strong>{selectedRecord.ingredients.length}</strong></div>
+                <div><span>Alternatif Grup</span><strong>{selectedAlternativeMaterialGroups.length}</strong></div>
+                <div><span>Onaylı Alternatif</span><strong>{approvedAlternativeMaterialCount}</strong></div>
                 <div><span>Toplam Gramaj</span><strong>{formatNumber(calculateTotalGrams(selectedRecord.ingredients))} gr</strong></div>
                 <div><span>Toplam Maliyet</span><strong>{formatRecipeCostAmount(selectedRecipeCost.recipeCost)}</strong></div>
                 <div><span>Fire Maliyeti</span><strong>{formatRecipeCostAmount(selectedRecipeCost.fireAmount)}</strong></div>
@@ -2220,6 +2901,7 @@ export default function Recipes(){
             </section>
             {renderVersionHistoryCard()}
             {renderSnapshotHistoryCard()}
+            {renderCostHistoryCard()}
             {renderRecipeRelationCard()}
           </aside>
         </div>
@@ -2262,6 +2944,18 @@ export default function Recipes(){
         <div className="metric-card compact-metric-card">
           <span>Toplam Malzeme</span>
           <strong>{totalIngredients}</strong>
+        </div>
+        <div className="metric-card compact-metric-card">
+          <span>Alternatif Grup</span>
+          <strong>{totalAlternativeGroups}</strong>
+        </div>
+        <div className="metric-card compact-metric-card">
+          <span>Alternatif Hammadde</span>
+          <strong>{totalAlternativeMaterials}</strong>
+        </div>
+        <div className="metric-card compact-metric-card">
+          <span>Maliyet Snapshot</span>
+          <strong>{totalCostSnapshots}</strong>
         </div>
       </div>
 

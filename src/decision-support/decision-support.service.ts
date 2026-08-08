@@ -10,6 +10,7 @@ import { createContinuousImprovementDecisionSuggestions } from './continuous-imp
 import { createCostOptimizationDecisionSuggestions } from './cost-optimization-decision.service'
 import { createCriticalAlertDecisionSuggestions } from './critical-alert-decision.service'
 import { createForecastingDecisionSuggestions } from './forecasting-decision.service'
+import { createHistoricalCostDecisionSuggestions } from './historical-cost-decision.service'
 import { createInventoryDecisionSuggestions } from './inventory-decision.service'
 import { createMachineSchedulingDecisionSuggestions } from './machine-scheduling-decision.service'
 import { createOperationChecklistDecisionSuggestions } from './operation-checklist-decision.service'
@@ -47,6 +48,7 @@ type DecisionSuggestionSource =
   | 'forecasting'
   | 'recommendation-engine'
   | 'cost-engine'
+  | 'historical-cost-snapshot'
   | 'cost-optimization'
   | 'purchase-recommendations'
   | 'inventory'
@@ -120,6 +122,7 @@ export const createDecisionSuggestions = (
     ...createSafeDecisionSuggestions('forecasting', options, () => createForecastingDecisionSuggestions(sourceData)),
     ...createSafeDecisionSuggestions('recommendation-engine', options, () => createRecommendationEngineDecisionSuggestions(sourceData)),
     ...createSafeDecisionSuggestions('cost-engine', options, () => createCostEngineDecisionSuggestions(sourceData)),
+    ...createSafeDecisionSuggestions('historical-cost-snapshot', options, () => createHistoricalCostDecisionSuggestions(sourceData)),
     ...createSafeDecisionSuggestions('cost-optimization', options, () => createCostOptimizationDecisionSuggestions(sourceData)),
     ...createSafeDecisionSuggestions('purchase-recommendations', options, () => createPurchaseRecommendationDecisionSuggestions(sourceData)),
     ...createSafeDecisionSuggestions('inventory', options, () => createInventoryDecisionSuggestions(sourceData)),

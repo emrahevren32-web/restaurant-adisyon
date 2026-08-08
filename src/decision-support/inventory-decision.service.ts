@@ -1,6 +1,7 @@
 import type { InventoryLot } from '../inventory-lots/inventory-lot.types'
 import type { KpiSourceData } from '../kpi-reporting/kpi.types'
 import { percent, sumBy } from '../kpi-reporting/kpi.utils'
+import { RecipeAlternativeMaterialService } from '../recipe-management/recipe-alternative-material.service'
 import { createDecisionSuggestion } from './recommendation-engine.service'
 import type { DecisionSuggestion } from './decision-support.types'
 import {
@@ -133,11 +134,55 @@ const createSlowMovingStockSuggestions = (
     }))
 }
 
+const createAlternativeMaterialSuggestions = (
+  sourceData: KpiSourceData
+): DecisionSuggestion[] => {
+  const alternativeGroups = RecipeAlternativeMaterialService.load(sourceData.recipeRecords)
+  const criticalStockItems = sourceData.stockItems
+    .filter(item => item.currentQty <= item.minQty)
+
+  return criticalStockItems
+    .flatMap(item => {
+      const approvedAlternatives = RecipeAlternativeMaterialService.findApprovedAlternativesForMaterial(
+        item.name,
+        alternativeGroups
+      )
+      const bestAlternative = approvedAlternatives[0]
+      if(!bestAlternative) return []
+
+      const stockGap = Math.max(0, item.minQty - item.currentQty)
+      const costImpact = bestAlternative.alternative.costDifference.toLocaleString('tr-TR', {
+        maximumFractionDigits: 2
+      })
+
+      return [createDecisionSuggestion({
+        category: 'Inventory',
+        title: `Alternatif hammadde onerisi: ${item.name}`,
+        description: 'Birincil hammadde stok riski onayli alternatif hammadde havuzuyla manuel degerlendirilmeli.',
+        reason: `${item.name} stoku ${item.currentQty} ${item.unit}; ${bestAlternative.alternative.materialName} onayli alternatif. Maliyet etkisi ${costImpact} TL.`,
+        ruleId: 'inventory-alternative-material-substitution',
+        relatedEntityType: 'AlternativeMaterial',
+        relatedEntityId: bestAlternative.alternative.id,
+        relatedProductId: item.id,
+        branchId: item.branchId,
+        evidenceScore: Math.min(30, Math.max(
+          8,
+          stockGap + (bestAlternative.alternative.qualityScore / 10) + (bestAlternative.alternative.costDifference <= 0 ? 5 : 0)
+        )),
+        recommendationAction: 'Alternatif hammadde uygunlugunu satin alma, kalite ve recete sahibiyle manuel degerlendir.',
+        expectedImpact: 'Uretim kesinti riskini azaltir; recete, stok ve uretim plani otomatik degistirilmez.',
+        ownerRole: 'Uretim Planlama'
+      })]
+    })
+    .slice(0, MAX_ENTITY_SUGGESTIONS)
+}
+
 export const createInventoryDecisionSuggestions = (
   sourceData: KpiSourceData
 ): DecisionSuggestion[] => [
   ...createCriticalStockSuggestions(sourceData),
   ...createExpirySuggestions(sourceData),
   ...createWarehouseOverflowSuggestions(sourceData),
-  ...createSlowMovingStockSuggestions(sourceData)
+  ...createSlowMovingStockSuggestions(sourceData),
+  ...createAlternativeMaterialSuggestions(sourceData)
 ]
