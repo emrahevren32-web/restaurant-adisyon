@@ -12,6 +12,14 @@ import {
   saveRecipeManagementRecords
 } from '../recipe-management/recipe-management.mock'
 import {
+  ApprovedAlternativeMaterialService
+} from '../approved-alternative-materials/approved-alternative-material.service'
+import {
+  loadStockItems
+} from '../storage'
+import { loadSupplierManagementRecords } from '../supplier-management/supplier-management.mock'
+import { loadSupplierProductRecords } from '../supplier-management/supplier-product-mapping.mock'
+import {
   calculateRecipeCost,
   formatRecipeCostAmount
 } from '../recipe-management/recipe-cost-engine'
@@ -673,6 +681,9 @@ export default function Recipes(){
   const [costSnapshots] = React.useState<HistoricalCostSnapshot[]>(() => RecipeCostSnapshotService.load(records, recipeSnapshots))
   const [costSimulations, setCostSimulations] = React.useState<RecipeCostSimulation[]>(() => RecipeCostSimulationService.load(records, costSnapshots))
   const [alternativeMaterialGroups] = React.useState<AlternativeMaterialGroup[]>(() => RecipeAlternativeMaterialService.load(records))
+  const [stockItems] = React.useState(() => loadStockItems())
+  const [supplierRecords] = React.useState(() => loadSupplierManagementRecords())
+  const [supplierProductRecords] = React.useState(() => loadSupplierProductRecords(supplierRecords, stockItems))
   const [selectedSnapshotId, setSelectedSnapshotId] = React.useState('')
   const [snapshotCompareSourceId, setSnapshotCompareSourceId] = React.useState('')
   const [snapshotCompareTargetId, setSnapshotCompareTargetId] = React.useState('')
@@ -802,6 +813,30 @@ export default function Recipes(){
       ? RecipeAlternativeMaterialService.getForRecipe(selectedRecord, alternativeMaterialGroups)
       : []
   ), [alternativeMaterialGroups, selectedRecord])
+  const approvedAlternativeMaterialContext = React.useMemo(() => ({
+    stockItems,
+    suppliers: supplierRecords,
+    supplierProducts: supplierProductRecords
+  }), [stockItems, supplierProductRecords, supplierRecords])
+  const approvedAlternativeMaterialRecords = React.useMemo(() => (
+    ApprovedAlternativeMaterialService.load(approvedAlternativeMaterialContext)
+  ), [approvedAlternativeMaterialContext])
+  const approvedAlternativeCountsByIngredientId = React.useMemo(() => {
+    if(!selectedRecord) return new Map<string, number>()
+
+    return new Map(selectedRecord.ingredients.map(ingredient => [
+      ingredient.id,
+      ApprovedAlternativeMaterialService.findByMaterialName(
+        ingredient.materialName,
+        approvedAlternativeMaterialRecords,
+        approvedAlternativeMaterialContext,
+        true
+      ).length
+    ]))
+  }, [approvedAlternativeMaterialContext, approvedAlternativeMaterialRecords, selectedRecord])
+  const selectedApprovedAlternativeMaterialCount = React.useMemo(() => (
+    Array.from(approvedAlternativeCountsByIngredientId.values()).reduce((sum, count) => sum + count, 0)
+  ), [approvedAlternativeCountsByIngredientId])
   const selectedAlternativeGroupByIngredientId = React.useMemo(() => {
     const nextGroupsByIngredientId = new Map<string, AlternativeMaterialGroup>()
     selectedAlternativeMaterialGroups.forEach(group => nextGroupsByIngredientId.set(group.ingredientId, group))
@@ -3368,10 +3403,16 @@ export default function Recipes(){
                     )}
                     {selectedRecord.ingredients.map(ingredient => {
                       const ingredientCost = selectedIngredientCostMap.get(ingredient.id)
+                      const approvedAlternativeCount = approvedAlternativeCountsByIngredientId.get(ingredient.id) || 0
 
                       return (
                         <tr key={ingredient.id} className={ingredient.id === selectedIngredient?.id ? 'selected-row' : undefined}>
-                          <td data-label="Hammadde"><strong>{ingredient.materialName}</strong></td>
+                          <td data-label="Hammadde">
+                            <strong>{ingredient.materialName}</strong>
+                            <span className={`status-pill ${approvedAlternativeCount > 0 ? 'success' : 'muted-pill'} recipe-approved-alternative-pill`}>
+                              {approvedAlternativeCount > 0 ? `${approvedAlternativeCount} onaylı muadil` : 'Onaylı muadil yok'}
+                            </span>
+                          </td>
                           <td data-label="Miktar">{formatNumber(ingredient.quantity)}</td>
                           <td data-label="Birim">{ingredient.unit}</td>
                           <td data-label="Birim Maliyet">
@@ -3426,6 +3467,7 @@ export default function Recipes(){
                 <div><span>Malzeme Sayısı</span><strong>{selectedRecord.ingredients.length}</strong></div>
                 <div><span>Alternatif Grup</span><strong>{selectedAlternativeMaterialGroups.length}</strong></div>
                 <div><span>Onaylı Alternatif</span><strong>{approvedAlternativeMaterialCount}</strong></div>
+                <div><span>Onaylı Muadil Ürün</span><strong>{selectedApprovedAlternativeMaterialCount}</strong></div>
                 <div><span>Toplam Gramaj</span><strong>{formatNumber(calculateTotalGrams(selectedRecord.ingredients))} gr</strong></div>
                 <div><span>Toplam Maliyet</span><strong>{formatRecipeCostAmount(selectedRecipeCost.recipeCost)}</strong></div>
                 <div><span>Fire Maliyeti</span><strong>{formatRecipeCostAmount(selectedRecipeCost.fireAmount)}</strong></div>

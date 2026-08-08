@@ -3,6 +3,7 @@ import type { KpiSourceData } from '../kpi-reporting/kpi.types'
 import { ALL_FILTER } from '../kpi-reporting/kpi.utils'
 import { resolveReadModelList } from '../read-model/read-model-safety'
 import { DECISION_RULES } from './decision-rules'
+import { createApprovedAlternativeMaterialDecisionSuggestions } from './approved-alternative-material-decision.service'
 import { createCostEngineDecisionSuggestions } from './cost-engine-decision.service'
 import { createCapacityPlanningDecisionSuggestions } from './capacity-planning-decision.service'
 import { createBottleneckAnalysisDecisionSuggestions } from './bottleneck-analysis-decision.service'
@@ -51,6 +52,7 @@ type DecisionSuggestionSource =
   | 'cost-engine'
   | 'historical-cost-snapshot'
   | 'recipe-cost-simulation'
+  | 'approved-alternative-materials'
   | 'cost-optimization'
   | 'purchase-recommendations'
   | 'inventory'
@@ -126,6 +128,7 @@ export const createDecisionSuggestions = (
     ...createSafeDecisionSuggestions('cost-engine', options, () => createCostEngineDecisionSuggestions(sourceData)),
     ...createSafeDecisionSuggestions('historical-cost-snapshot', options, () => createHistoricalCostDecisionSuggestions(sourceData)),
     ...createSafeDecisionSuggestions('recipe-cost-simulation', options, () => createRecipeCostSimulationDecisionSuggestions(sourceData)),
+    ...createSafeDecisionSuggestions('approved-alternative-materials', options, () => createApprovedAlternativeMaterialDecisionSuggestions(sourceData)),
     ...createSafeDecisionSuggestions('cost-optimization', options, () => createCostOptimizationDecisionSuggestions(sourceData)),
     ...createSafeDecisionSuggestions('purchase-recommendations', options, () => createPurchaseRecommendationDecisionSuggestions(sourceData)),
     ...createSafeDecisionSuggestions('inventory', options, () => createInventoryDecisionSuggestions(sourceData)),

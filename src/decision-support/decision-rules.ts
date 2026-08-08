@@ -434,6 +434,33 @@ export const DECISION_RULES: DecisionRule[] = [
     thresholdLabel: 'currentQty <= minQty ve onayli alternatif hammadde mevcut'
   },
   {
+    id: 'approved-alternative-material-available',
+    category: 'Purchasing',
+    title: 'Onaylı muadil kullanılabilir',
+    description: 'Kritik veya stokta olmayan hammadde için aktif, kalite onaylı ve geçerliliği devam eden muadil ürün varsa manuel değerlendirme önerilir.',
+    baseRisk: 'MEDIUM',
+    priority: 'HIGH',
+    thresholdLabel: 'currentQty <= minQty ve önerilebilir approved alternative material mevcut'
+  },
+  {
+    id: 'approved-alternative-material-risky',
+    category: 'Purchasing',
+    title: 'Onaylı muadil riskli',
+    description: 'Muadil kaydı pasif, onaysız veya süresi dolmuşsa otomatik önerilmez ve kalite kontrolü gerekir.',
+    baseRisk: 'HIGH',
+    priority: 'HIGH',
+    thresholdLabel: 'Muadil kaydı mevcut ancak aktif/onaylı/geçerli değil'
+  },
+  {
+    id: 'approved-alternative-material-missing',
+    category: 'Purchasing',
+    title: 'Onaylı muadil bulunamadı',
+    description: 'Kritik hammadde için approved alternative material master data kaydı bulunmuyorsa satın alma ve kalite değerlendirmesi gerekir.',
+    baseRisk: 'HIGH',
+    priority: 'NORMAL',
+    thresholdLabel: 'currentQty <= minQty ve muadil eşleşmesi yok'
+  },
+  {
     id: 'inventory-expiry-priority',
     category: 'Inventory',
     title: 'SKT yaklasan lot icin oncelikli uretim veya sevkiyat oner',

@@ -2215,6 +2215,25 @@ th { color:var(--muted-strong); font-size:13px; font-weight:750 }
 .recipe-alternative-cost-row strong { display:block; min-width:0; line-height:1.25; overflow-wrap:anywhere }
 .recipe-alternative-cost-row span { color:var(--muted); font-size:11px; font-weight:900; text-transform:uppercase }
 .recipe-alternative-cost-row strong { margin-top:3px; color:var(--text); font-size:13px; font-weight:950; font-variant-numeric:tabular-nums }
+
+.approved-alternative-modal { width:min(1180px, calc(100vw - 28px)); max-height:92vh; overflow:auto }
+.approved-alternative-section { margin-top:14px }
+.approved-alternative-toolbar { display:grid; grid-template-columns:minmax(180px, 1.4fr) repeat(3, minmax(130px, .75fr)) repeat(4, auto); gap:8px; align-items:center; min-width:0 }
+.approved-alternative-toolbar input,
+.approved-alternative-toolbar select { min-width:0; width:100% }
+.approved-alternative-table-wrap { max-height:52vh; overflow:auto }
+.approved-alternative-table { min-width:1080px; table-layout:fixed }
+.approved-alternative-table th,
+.approved-alternative-table td { overflow-wrap:anywhere; vertical-align:top }
+.approved-alternative-table td strong,
+.approved-alternative-table td span { display:block; min-width:0; line-height:1.25 }
+.approved-alternative-table td .status-pill { display:inline-flex; margin-top:4px }
+.purchase-request-approved-alternatives { grid-column:1 / -1; display:flex; flex-wrap:wrap; gap:8px; align-items:center; min-width:0; border:1px solid var(--accent-line); border-radius:var(--radius-md); padding:10px; background:var(--accent-soft) }
+.purchase-request-approved-alternatives > div { display:grid; gap:2px; min-width:min(240px, 100%) }
+.purchase-request-approved-alternatives strong,
+.purchase-request-approved-alternatives span { overflow-wrap:anywhere }
+.purchase-request-approved-alternatives > div > span { color:var(--muted); font-size:12px; font-weight:800 }
+.recipe-approved-alternative-pill { margin-top:6px; width:max-content; max-width:100% }
 .recipe-ingredient-table { min-width:0; table-layout:fixed }
 .recipe-ingredient-table th,
 .recipe-ingredient-table td { overflow-wrap:anywhere; vertical-align:middle }
@@ -3267,6 +3286,9 @@ th { color:var(--muted-strong); font-size:13px; font-weight:750 }
   .recipe-cost-simulation-actions { justify-content:flex-start }
   .recipe-alternative-tabs,
   .recipe-alternative-cost-row { grid-template-columns:1fr }
+  .approved-alternative-toolbar { grid-template-columns:1fr }
+  .approved-alternative-modal { width:calc(100vw - 18px); max-height:94vh }
+  .purchase-request-approved-alternatives { flex-direction:column; align-items:stretch }
   .recipe-form-ingredient-row { grid-template-columns:1fr }
   .recipe-form-ingredient-row > div:last-child { justify-content:flex-start }
   .purchase-request-item-row { grid-template-columns:1fr }

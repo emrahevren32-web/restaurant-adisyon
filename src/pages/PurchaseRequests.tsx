@@ -1,5 +1,8 @@
 import React from 'react'
 import {
+  ApprovedAlternativeMaterialService
+} from '../approved-alternative-materials/approved-alternative-material.service'
+import {
   DEFAULT_PURCHASE_REQUEST_CURRENCY,
   PURCHASE_REQUEST_DEPARTMENT_LABELS,
   PURCHASE_REQUEST_DEPARTMENTS,
@@ -322,6 +325,14 @@ export default function PurchaseRequests({ currentUser }: Props){
 
   const stockItemMap = React.useMemo(() => new Map(context.stockItems.map(item => [item.id, item])), [context.stockItems])
   const supplierMap = React.useMemo(() => new Map(context.suppliers.map(supplier => [supplier.id, supplier])), [context.suppliers])
+  const approvedAlternativeMaterialContext = React.useMemo(() => ({
+    stockItems: context.stockItems,
+    suppliers: context.suppliers,
+    supplierProducts: context.supplierProducts
+  }), [context.stockItems, context.supplierProducts, context.suppliers])
+  const approvedAlternativeMaterialRecords = React.useMemo(() => (
+    ApprovedAlternativeMaterialService.load(approvedAlternativeMaterialContext)
+  ), [approvedAlternativeMaterialContext])
   const statistics = React.useMemo(() => calculatePurchaseRequestStatistics(records, context.stockItems), [context.stockItems, records])
   const suggestions = React.useMemo(() => createPurchaseRequestSuggestions(records, context), [context, records])
 
@@ -663,6 +674,7 @@ export default function PurchaseRequests({ currentUser }: Props){
                 form={form}
                 context={context}
                 supplierMap={supplierMap}
+                approvedAlternativeRecords={approvedAlternativeMaterialRecords}
                 editing={Boolean(editingRecordId)}
                 onChange={updateFormField}
                 onItemChange={updateItemField}
@@ -678,6 +690,7 @@ export default function PurchaseRequests({ currentUser }: Props){
               context={context}
               stockItemMap={stockItemMap}
               supplierMap={supplierMap}
+              approvedAlternativeRecords={approvedAlternativeMaterialRecords}
               onCreate={startCreate}
               onEdit={startEdit}
               onTransition={transitionRecord}
@@ -836,6 +849,7 @@ function PurchaseRequestDetailPanel({
   context,
   stockItemMap,
   supplierMap,
+  approvedAlternativeRecords,
   onCreate,
   onEdit,
   onTransition
@@ -844,6 +858,7 @@ function PurchaseRequestDetailPanel({
   context: PurchaseRequestReadModelContext
   stockItemMap: Map<string, StockItem>
   supplierMap: Map<string, Supplier>
+  approvedAlternativeRecords: ReturnType<typeof ApprovedAlternativeMaterialService.load>
   onCreate: () => void
   onEdit: (record: PurchaseRequestRecord) => void
   onTransition: (record: PurchaseRequestRecord, status: PurchaseRequestStatus, note?: string) => void
@@ -918,6 +933,7 @@ function PurchaseRequestDetailPanel({
               context={context}
               stockItemMap={stockItemMap}
               supplierMap={supplierMap}
+              approvedAlternativeRecords={approvedAlternativeRecords}
             />
           ))}
         </div>
@@ -960,14 +976,26 @@ function PurchaseRequestDetailItem({
   item,
   context,
   stockItemMap,
-  supplierMap
+  supplierMap,
+  approvedAlternativeRecords
 }: {
   item: PurchaseRequestItem
   context: PurchaseRequestReadModelContext
   stockItemMap: Map<string, StockItem>
   supplierMap: Map<string, Supplier>
+  approvedAlternativeRecords: ReturnType<typeof ApprovedAlternativeMaterialService.load>
 }){
   const stockItem = stockItemMap.get(item.stockItemId)
+  const approvedAlternatives = ApprovedAlternativeMaterialService.getForMaterial(
+    item.stockItemId,
+    approvedAlternativeRecords,
+    {
+      stockItems: context.stockItems,
+      suppliers: context.suppliers,
+      supplierProducts: context.supplierProducts
+    },
+    true
+  )
   return (
     <div className="purchase-request-detail-item">
       <div>
@@ -975,6 +1003,9 @@ function PurchaseRequestDetailItem({
         <span>{getCategoryLabel(item.categoryId, context)} · {formatQuantity(item.requestedQuantity || item.quantity, item.unit)}</span>
         <span>Stok {formatQuantity(item.currentStock, item.unit)} · Minimum {formatQuantity(item.minimumStock, item.unit)}</span>
         {item.suggestedSupplierId && <span>{getSupplierLabel(item.suggestedSupplierId, supplierMap)}</span>}
+        {approvedAlternatives.length > 0 && (
+          <span>Onaylı muadil: {approvedAlternatives.slice(0, 3).map(record => record.alternativeMaterialName).join(', ')}</span>
+        )}
       </div>
       <strong>{formatCurrency(item.estimatedTotalPrice)}</strong>
       {item.notes && <p>{item.notes}</p>}
@@ -986,6 +1017,7 @@ function PurchaseRequestForm({
   form,
   context,
   supplierMap,
+  approvedAlternativeRecords,
   editing,
   onChange,
   onItemChange,
@@ -997,6 +1029,7 @@ function PurchaseRequestForm({
   form: PurchaseRequestFormState
   context: PurchaseRequestReadModelContext
   supplierMap: Map<string, Supplier>
+  approvedAlternativeRecords: ReturnType<typeof ApprovedAlternativeMaterialService.load>
   editing: boolean
   onChange: <K extends keyof PurchaseRequestFormState>(field: K, value: PurchaseRequestFormState[K]) => void
   onItemChange: (index: number, field: ItemFormField, value: PurchaseRequestItemFormState[ItemFormField]) => void
@@ -1086,6 +1119,17 @@ function PurchaseRequestForm({
           {form.items.map((item, index) => {
             const stockItem = context.stockItems.find(record => record.id === item.stockItemId)
             const supplierProductOptions = getSupplierProductOptions(item.stockItemId, context, supplierMap)
+            const approvedAlternatives = ApprovedAlternativeMaterialService.getForMaterial(
+              item.stockItemId,
+              approvedAlternativeRecords,
+              {
+                stockItems: context.stockItems,
+                suppliers: context.suppliers,
+                supplierProducts: context.supplierProducts
+              },
+              true
+            )
+            const shouldShowAlternatives = Boolean(stockItem && (stockItem.currentQty <= 0 || supplierProductOptions.length === 0))
 
             return (
               <div className="purchase-request-item-row" key={item.id}>
@@ -1138,6 +1182,21 @@ function PurchaseRequestForm({
                   <input value={item.notes} onChange={event => onItemChange(index, 'notes', event.target.value)} />
                 </div>
                 <button className="btn purchase-request-item-remove" type="button" onClick={() => onRemoveItem(index)}>Sil</button>
+                {shouldShowAlternatives && (
+                  <div className="purchase-request-approved-alternatives">
+                    <div>
+                      <strong>Onaylı Muadil Ürünler</strong>
+                      <span>Otomatik seçim yapılmaz; satın alma ve kalite manuel değerlendirir.</span>
+                    </div>
+                    {approvedAlternatives.length === 0 ? (
+                      <span className="status-pill danger-pill">Muadil bulunamadı</span>
+                    ) : approvedAlternatives.slice(0, 4).map(record => (
+                      <span className="status-pill success" key={record.id}>
+                        {record.alternativeMaterialName} · {record.preferredSupplierName}
+                      </span>
+                    ))}
+                  </div>
+                )}
               </div>
             )
           })}

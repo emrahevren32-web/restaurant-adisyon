@@ -1,4 +1,9 @@
 import React from 'react'
+import * as XLSX from 'xlsx'
+import {
+  APPROVED_ALTERNATIVE_MATERIAL_STATUS_LABELS,
+  ApprovedAlternativeMaterialService
+} from '../approved-alternative-materials/approved-alternative-material.service'
 import { StockCategory, StockExpiryEvent, StockExpiryLot, StockItem, StockUnit, User } from '../types'
 import {
   addActionLog,
@@ -38,11 +43,18 @@ import {
   getStockLastPurchasePrice,
   getStockValueByAverageCost
 } from '../stockCost'
+import { loadSupplierManagementRecords } from '../supplier-management/supplier-management.mock'
+import { loadSupplierProductRecords } from '../supplier-management/supplier-product-mapping.mock'
+import type {
+  ApprovedAlternativeMaterialActiveFilter,
+  ApprovedAlternativeMaterialApprovalStatus
+} from '../approved-alternative-materials/approved-alternative-material.types'
 
 export type StockCardsFocus = 'cards' | 'critical' | 'expiry'
 type Props = { currentUser: User; focus?: StockCardsFocus }
 type StatusFilter = 'all' | 'active' | 'inactive' | 'critical' | 'out' | 'healthy' | 'expiry' | 'expiry-risk' | 'expired' | 'expiry-risk-or-expired'
 type UnitFilter = 'all' | StockUnit
+type AlternativeApprovalFilter = ApprovedAlternativeMaterialApprovalStatus | 'all'
 
 const DEFAULT_STOCK_CATEGORY_ID = 'stock_cat_general'
 const stockUnits: StockUnit[] = ['adet', 'kg', 'gr', 'lt', 'ml', 'paket', 'koli']
@@ -72,6 +84,60 @@ const formatDateTime = (value: string) => {
     hour: '2-digit',
     minute: '2-digit'
   })
+}
+
+const escapeHtml = (value: unknown) => String(value ?? '')
+  .replace(/&/g, '&amp;')
+  .replace(/</g, '&lt;')
+  .replace(/>/g, '&gt;')
+  .replace(/"/g, '&quot;')
+  .replace(/'/g, '&#039;')
+
+const printTableRows = (
+  title: string,
+  headers: string[],
+  rows: Array<Array<string | number>>,
+  mode: 'PDF' | 'PRINT'
+) => {
+  const printWindow = window.open('', '_blank')
+  if(!printWindow) return
+
+  const bodyRows = rows.map(row => (
+    `<tr>${row.map(cell => `<td>${escapeHtml(cell)}</td>`).join('')}</tr>`
+  )).join('')
+
+  printWindow.document.write(`
+    <html>
+      <head>
+        <title>${escapeHtml(title)}</title>
+        <style>
+          body{font-family:Arial,sans-serif;margin:24px;color:#111827}
+          h1{font-size:20px;margin:0 0 12px}
+          table{width:100%;border-collapse:collapse;font-size:11px}
+          th,td{border:1px solid #d1d5db;padding:7px;text-align:left;vertical-align:top}
+          th{background:#f3f4f6}
+        </style>
+      </head>
+      <body>
+        <h1>${escapeHtml(mode === 'PDF' ? `${title} PDF` : title)}</h1>
+        <table>
+          <thead><tr>${headers.map(header => `<th>${escapeHtml(header)}</th>`).join('')}</tr></thead>
+          <tbody>${bodyRows || `<tr><td colspan="${headers.length}">Kayıt bulunamadı.</td></tr>`}</tbody>
+        </table>
+      </body>
+    </html>
+  `)
+  printWindow.document.close()
+  printWindow.focus()
+  printWindow.print()
+}
+
+const getAlternativeApprovalStatusClass = (
+  status: ApprovedAlternativeMaterialApprovalStatus
+) => {
+  if(status === 'APPROVED') return 'success'
+  if(status === 'REJECTED') return 'danger-pill'
+  return 'warning-pill'
 }
 
 const formatLotEventType = (event: StockExpiryEvent) => {
@@ -110,6 +176,11 @@ export default function StockCards({ currentUser, focus = 'cards' }: Props){
   const [expiryLots, setExpiryLots] = React.useState(() => loadStockExpiryLots())
   const [expiryEvents, setExpiryEvents] = React.useState(() => loadStockExpiryEvents())
   const [lotPanelItem, setLotPanelItem] = React.useState<StockItem | null>(null)
+  const [alternativePanelItem, setAlternativePanelItem] = React.useState<StockItem | null>(null)
+  const [alternativeSearch, setAlternativeSearch] = React.useState('')
+  const [alternativeApprovalFilter, setAlternativeApprovalFilter] = React.useState<AlternativeApprovalFilter>('all')
+  const [alternativeActiveFilter, setAlternativeActiveFilter] = React.useState<ApprovedAlternativeMaterialActiveFilter>('all')
+  const [alternativeSupplierFilter, setAlternativeSupplierFilter] = React.useState('all')
   const previousFocusRef = React.useRef<StockCardsFocus>(focus)
 
   const canManageStock = currentUser.role === 'Admin'
@@ -162,6 +233,11 @@ export default function StockCards({ currentUser, focus = 'cards' }: Props){
     setStatusFilter(getDefaultStatusFilter(focus))
     setUnitFilter('all')
     setLotPanelItem(null)
+    setAlternativePanelItem(null)
+    setAlternativeSearch('')
+    setAlternativeApprovalFilter('all')
+    setAlternativeActiveFilter('all')
+    setAlternativeSupplierFilter('all')
   }, [focus])
 
   const categoryMap = React.useMemo(() => {
@@ -292,6 +368,65 @@ export default function StockCards({ currentUser, focus = 'cards' }: Props){
   const criticalShortageTotal = items.filter(isCriticalStock).reduce((sum, item) => sum + getCriticalShortage(item), 0)
   const criticalAlmostOutCount = items.filter(item => item.active && isCriticalStock(item) && !isOutOfStock(item)).length
   const stockItemById = React.useMemo(() => new Map(items.map(item => [item.id, item])), [items])
+  const supplierRecords = React.useMemo(() => loadSupplierManagementRecords(), [])
+  const supplierProductRecords = React.useMemo(() => (
+    loadSupplierProductRecords(supplierRecords, items)
+  ), [items, supplierRecords])
+  const approvedAlternativeMaterialContext = React.useMemo(() => ({
+    stockItems: items,
+    suppliers: supplierRecords,
+    supplierProducts: supplierProductRecords
+  }), [items, supplierProductRecords, supplierRecords])
+  const approvedAlternativeMaterialRecords = React.useMemo(() => (
+    ApprovedAlternativeMaterialService.load(approvedAlternativeMaterialContext)
+  ), [approvedAlternativeMaterialContext])
+  const approvedAlternativeMaterialViews = React.useMemo(() => (
+    ApprovedAlternativeMaterialService.buildViews(approvedAlternativeMaterialRecords, approvedAlternativeMaterialContext)
+  ), [approvedAlternativeMaterialContext, approvedAlternativeMaterialRecords])
+  const alternativeCountByMaterialId = React.useMemo(() => (
+    approvedAlternativeMaterialViews.reduce<Record<string, { total: number; usable: number }>>((acc, record) => {
+      const current = acc[record.materialId] || { total: 0, usable: 0 }
+      acc[record.materialId] = {
+        total: current.total + 1,
+        usable: current.usable + (record.usable ? 1 : 0)
+      }
+      return acc
+    }, {})
+  ), [approvedAlternativeMaterialViews])
+  const selectedAlternativeViews = React.useMemo(() => (
+    alternativePanelItem
+      ? ApprovedAlternativeMaterialService.getForMaterial(
+          alternativePanelItem.id,
+          approvedAlternativeMaterialRecords,
+          approvedAlternativeMaterialContext
+        )
+      : []
+  ), [alternativePanelItem, approvedAlternativeMaterialContext, approvedAlternativeMaterialRecords])
+  const alternativeSupplierOptions = React.useMemo(() => {
+    const options = new Map<string, string>()
+    selectedAlternativeViews.forEach(record => {
+      if(!record.preferredSupplierId) return
+      options.set(record.preferredSupplierId, record.preferredSupplierName)
+    })
+    return Array.from(options.entries()).sort((first, second) => first[1].localeCompare(second[1], 'tr-TR'))
+  }, [selectedAlternativeViews])
+  const filteredAlternativeViews = React.useMemo(() => (
+    ApprovedAlternativeMaterialService.filterViews(selectedAlternativeViews, {
+      materialId: alternativePanelItem?.id || 'all',
+      alternativeMaterialId: 'all',
+      approvalStatus: alternativeApprovalFilter,
+      active: alternativeActiveFilter,
+      supplierId: alternativeSupplierFilter,
+      search: alternativeSearch
+    })
+  ), [
+    alternativeActiveFilter,
+    alternativeApprovalFilter,
+    alternativePanelItem?.id,
+    alternativeSearch,
+    alternativeSupplierFilter,
+    selectedAlternativeViews
+  ])
   const activeExpiryLotStatusCounts = React.useMemo(() => {
     return expiryLots.reduce(
       (acc, lot) => {
@@ -365,11 +500,17 @@ export default function StockCards({ currentUser, focus = 'cards' }: Props){
       { label: 'Toplam Kart', value: items.length, detail: `${inactiveItemCount} pasif kart` },
       { label: 'Aktif Kart', value: activeItemCount, detail: `${healthyItemCount} sağlıklı stok` },
       { label: 'Geçerlilik Takibi', value: expiryTrackedItemCount, detail: 'Lot bazlı izlenir' },
-      { label: 'Stok Riski', value: criticalItemCount, detail: `${outOfStockCount} stokta yok` }
+      { label: 'Stok Riski', value: criticalItemCount, detail: `${outOfStockCount} stokta yok` },
+      {
+        label: 'Onaylı Muadil',
+        value: approvedAlternativeMaterialViews.filter(record => record.usable).length,
+        detail: `${approvedAlternativeMaterialViews.length} eşleşme`
+      }
     ]
   }, [
     activeExpiryLotStatusCounts,
     activeItemCount,
+    approvedAlternativeMaterialViews,
     criticalAlmostOutCount,
     criticalItemCount,
     criticalShortageTotal,
@@ -625,6 +766,42 @@ export default function StockCards({ currentUser, focus = 'cards' }: Props){
     }
   }
 
+  const resetAlternativeFilters = () => {
+    setAlternativeSearch('')
+    setAlternativeApprovalFilter('all')
+    setAlternativeActiveFilter('all')
+    setAlternativeSupplierFilter('all')
+  }
+
+  const closeAlternativePanel = () => {
+    setAlternativePanelItem(null)
+    resetAlternativeFilters()
+  }
+
+  const exportApprovedAlternativeExcel = () => {
+    if(!alternativePanelItem) return
+
+    const rows = ApprovedAlternativeMaterialService.getRows(filteredAlternativeViews)
+    const worksheet = XLSX.utils.aoa_to_sheet([
+      ApprovedAlternativeMaterialService.exportHeaders,
+      ...rows
+    ])
+    const workbook = XLSX.utils.book_new()
+    XLSX.utils.book_append_sheet(workbook, worksheet, 'Onayli Muadiller')
+    XLSX.writeFile(workbook, `${alternativePanelItem.name}-onayli-muadiller.xlsx`)
+  }
+
+  const printApprovedAlternativeRows = (mode: 'PDF' | 'PRINT') => {
+    if(!alternativePanelItem) return
+
+    printTableRows(
+      `${alternativePanelItem.name} Onaylı Muadil Ürünler`,
+      ApprovedAlternativeMaterialService.exportHeaders,
+      ApprovedAlternativeMaterialService.getRows(filteredAlternativeViews),
+      mode
+    )
+  }
+
   if(!canManageStock){
     return (
       <div className="stock-page">
@@ -708,6 +885,7 @@ export default function StockCards({ currentUser, focus = 'cards' }: Props){
                   <th>Eksik</th>
                   <th>Geçerlilik</th>
                   <th>Durum</th>
+                  <th>Muadil</th>
                   <th>Maliyet Bilgileri</th>
                   <th></th>
                 </tr>
@@ -715,7 +893,7 @@ export default function StockCards({ currentUser, focus = 'cards' }: Props){
               <tbody>
                 {visibleItems.length === 0 && (
                   <tr>
-                    <td colSpan={9} className="empty-cell">{focusMeta.emptyText}</td>
+                    <td colSpan={10} className="empty-cell">{focusMeta.emptyText}</td>
                   </tr>
                 )}
                 {sortedVisibleItems.map(item => {
@@ -723,6 +901,7 @@ export default function StockCards({ currentUser, focus = 'cards' }: Props){
                   const critical = isCriticalStock(item)
                   const shortage = getCriticalShortage(item)
                   const expirySummary = getItemExpirySummary(item)
+                  const alternativeCounts = alternativeCountByMaterialId[item.id] || { total: 0, usable: 0 }
 
                   return (
                     <tr key={item.id} className={critical ? 'critical-stock-table-row' : undefined}>
@@ -757,6 +936,14 @@ export default function StockCards({ currentUser, focus = 'cards' }: Props){
                         )}
                       </td>
                       <td>
+                        <span className={`status-pill ${alternativeCounts.usable > 0 ? 'success' : alternativeCounts.total > 0 ? 'warning-pill' : 'muted-pill'}`}>
+                          {alternativeCounts.usable > 0 ? `${alternativeCounts.usable} onaylı` : alternativeCounts.total > 0 ? `${alternativeCounts.total} kayıt` : 'Yok'}
+                        </span>
+                        {alternativeCounts.total > alternativeCounts.usable && (
+                          <div className="muted small-text">{alternativeCounts.total - alternativeCounts.usable} önerilemez</div>
+                        )}
+                      </td>
+                      <td>
                         {!item.active ? (
                           <span className="status-pill muted-pill">Pasif</span>
                         ) : critical ? (
@@ -773,6 +960,7 @@ export default function StockCards({ currentUser, focus = 'cards' }: Props){
                         </div>
                       </td>
                       <td className="actions-cell">
+                        <button className="btn" onClick={() => setAlternativePanelItem(item)}>Muadiller</button>
                         <button className={`btn ${item.tracksExpiry ? 'lot-view-btn' : ''}`} onClick={() => setLotPanelItem(item)}>Lotları Gör</button>
                         <button className="btn" onClick={() => startEditItem(item)}>Düzenle</button>
                         <button className="btn" onClick={() => toggleItemStatus(item.id)}>
@@ -989,6 +1177,144 @@ export default function StockCards({ currentUser, focus = 'cards' }: Props){
                     </div>
                   </details>
                 ))}
+              </div>
+            </section>
+          </div>
+        </div>
+      )}
+      {alternativePanelItem && (
+        <div className="modal-backdrop" role="dialog" aria-modal="true" aria-label={`${alternativePanelItem.name} onaylı muadil ürünleri`}>
+          <div className="stock-lot-modal approved-alternative-modal">
+            <div className="section-header">
+              <div>
+                <h3>{alternativePanelItem.name} Onaylı Muadil Ürünler</h3>
+                <p className="muted">
+                  Kalite onayı olmayan, pasif veya süresi dolmuş muadiller öneri listesine alınmaz.
+                </p>
+              </div>
+              <button className="btn" type="button" onClick={closeAlternativePanel}>Kapat</button>
+            </div>
+
+            <div className="metric-grid report-metric-grid">
+              <div className="metric-card">
+                <span>Toplam Muadil</span>
+                <strong>{selectedAlternativeViews.length}</strong>
+                <p className="muted">Master data eşleşmesi</p>
+              </div>
+              <div className="metric-card">
+                <span>Önerilebilir</span>
+                <strong>{selectedAlternativeViews.filter(record => record.usable).length}</strong>
+                <p className="muted">Aktif, onaylı ve geçerli</p>
+              </div>
+              <div className="metric-card">
+                <span>Kalite Onayı Bekleyen</span>
+                <strong>{selectedAlternativeViews.filter(record => record.approvalStatus === 'PENDING').length}</strong>
+                <p className="muted">Otomatik önerilmez</p>
+              </div>
+              <div className="metric-card">
+                <span>Süresi Dolan</span>
+                <strong>{selectedAlternativeViews.filter(record => record.expired).length}</strong>
+                <p className="muted">Yeniden kalite onayı gerekir</p>
+              </div>
+            </div>
+
+            <section className="lot-panel-section approved-alternative-section">
+              <div className="section-header compact">
+                <h4>Filtreler ve Çıktılar</h4>
+                <span className="status-pill">{filteredAlternativeViews.length} kayıt</span>
+              </div>
+              <div className="approved-alternative-toolbar">
+                <input
+                  type="search"
+                  placeholder="Muadil, tedarikçi, sebep veya not ara"
+                  value={alternativeSearch}
+                  onChange={event => setAlternativeSearch(event.target.value)}
+                />
+                <select value={alternativeApprovalFilter} onChange={event => setAlternativeApprovalFilter(event.target.value as AlternativeApprovalFilter)}>
+                  <option value="all">Tüm onay durumları</option>
+                  {ApprovedAlternativeMaterialService.statuses.map(status => (
+                    <option key={status} value={status}>{APPROVED_ALTERNATIVE_MATERIAL_STATUS_LABELS[status]}</option>
+                  ))}
+                </select>
+                <select value={alternativeActiveFilter} onChange={event => setAlternativeActiveFilter(event.target.value as ApprovedAlternativeMaterialActiveFilter)}>
+                  <option value="all">Aktif/Pasif</option>
+                  <option value="active">Aktif</option>
+                  <option value="inactive">Pasif</option>
+                </select>
+                <select value={alternativeSupplierFilter} onChange={event => setAlternativeSupplierFilter(event.target.value)}>
+                  <option value="all">Tüm tedarikçiler</option>
+                  {alternativeSupplierOptions.map(([supplierId, supplierName]) => (
+                    <option key={supplierId} value={supplierId}>{supplierName}</option>
+                  ))}
+                </select>
+                <button className="btn" type="button" onClick={resetAlternativeFilters}>Reset</button>
+                <button className="btn" type="button" onClick={exportApprovedAlternativeExcel}>Excel</button>
+                <button className="btn" type="button" onClick={() => printApprovedAlternativeRows('PDF')}>PDF</button>
+                <button className="btn" type="button" onClick={() => printApprovedAlternativeRows('PRINT')}>Yazdır</button>
+              </div>
+            </section>
+
+            <section className="lot-panel-section">
+              <div className="table-wrap approved-alternative-table-wrap">
+                <table className="data-table approved-alternative-table">
+                  <thead>
+                    <tr>
+                      <th>Muadil Ürün</th>
+                      <th>Öncelik</th>
+                      <th>Onay Durumu</th>
+                      <th>Kalite Onayı</th>
+                      <th>Son Kullanım</th>
+                      <th>Tedarikçi</th>
+                      <th>Fiyat</th>
+                      <th>Öneri Durumu</th>
+                      <th>Notlar</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {filteredAlternativeViews.length === 0 && (
+                      <tr><td colSpan={9} className="empty-cell">Bu filtrelere uygun muadil ürün bulunamadı.</td></tr>
+                    )}
+                    {filteredAlternativeViews.map(record => (
+                      <tr key={record.id}>
+                        <td>
+                          <strong>{record.alternativeMaterialName}</strong>
+                          <span className="muted small-text">{record.alternativeMaterialCode}</span>
+                        </td>
+                        <td>{record.priority}</td>
+                        <td>
+                          <span className={`status-pill ${getAlternativeApprovalStatusClass(record.approvalStatus)}`}>
+                            {APPROVED_ALTERNATIVE_MATERIAL_STATUS_LABELS[record.approvalStatus]}
+                          </span>
+                        </td>
+                        <td>
+                          <strong>{record.qualityApprovedBy || '-'}</strong>
+                          <span className="muted small-text">{ApprovedAlternativeMaterialService.formatDate(record.approvalDate)}</span>
+                        </td>
+                        <td>
+                          <strong>{ApprovedAlternativeMaterialService.formatDate(record.expireDate)}</strong>
+                          {record.expired && <span className="status-pill danger-pill">Süresi Doldu</span>}
+                        </td>
+                        <td>
+                          <strong>{record.preferredSupplierName}</strong>
+                          <span className="muted small-text">Son alım {ApprovedAlternativeMaterialService.formatDate(record.lastPurchaseDate)}</span>
+                        </td>
+                        <td>
+                          <strong>{ApprovedAlternativeMaterialService.formatCurrency(record.lastPrice, record.currency)}</strong>
+                          <span className="muted small-text">Ort. {ApprovedAlternativeMaterialService.formatCurrency(record.averagePrice, record.currency)}</span>
+                        </td>
+                        <td>
+                          <span className={`status-pill ${record.usable ? 'success' : 'muted-pill'}`}>
+                            {record.usable ? 'Önerilebilir' : record.unusableReason}
+                          </span>
+                        </td>
+                        <td>
+                          <strong>{record.reason}</strong>
+                          <span className="muted small-text">{record.notes || '-'}</span>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
               </div>
             </section>
           </div>
