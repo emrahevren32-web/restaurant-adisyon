@@ -1010,7 +1010,7 @@ export const BUSINESS_WORKSPACE_MODULE_REGISTRY: BusinessWorkspaceModule[] = def
     isVisible: true,
     displayOrder: 43,
     dependencies: [WORKSPACE_MODULE_CODES.DASHBOARD, WORKSPACE_MODULE_CODES.STOCK, WORKSPACE_MODULE_CODES.PURCHASE],
-    tags: ['business', 'reporting', 'kpi', 'dashboard', 'executive-dashboard', 'daily-production-analytics', 'weekly-production-analytics', 'production-kpi', 'inventory-kpi', 'quality-kpi', 'purchasing-kpi', 'shipment-kpi', 'industrial-kitchen'],
+    tags: ['business', 'reporting', 'kpi', 'dashboard', 'executive-dashboard', 'daily-production-analytics', 'weekly-production-analytics', 'shipment-analytics', 'waste-analytics', 'cost-analytics', 'warehouse-performance-analytics', 'personnel-performance-analytics', 'production-kpi', 'inventory-kpi', 'quality-kpi', 'purchasing-kpi', 'shipment-kpi', 'waste-kpi', 'cost-kpi', 'warehouse-kpi', 'personnel-kpi', 'industrial-kitchen'],
     supportedSectorIds: industrialKitchenSectorIds,
     pricing: { model: 'paid', currency: 'TRY' },
     marketplace: marketplaceReady,
@@ -1053,12 +1053,82 @@ export const BUSINESS_WORKSPACE_MODULE_REGISTRY: BusinessWorkspaceModule[] = def
         supportedLayouts: ['standard', 'wide'],
         requiredPermission: 'dashboard.read',
         renderComponent: 'reporting.weeklyProductionAnalytics.placeholder'
+      }),
+      dashboardWidget({
+        id: 'reporting.shipmentAnalytics',
+        title: 'Sevkiyat Analizi',
+        description: 'Sevkiyat emirleri, teslimat kayitlari, arac, sofor, rota, soguk zincir, lot ve HACCP sinyallerinden sevkiyat performansini izlemek icin kontrol paneli baslangic alani.',
+        icon: 'SA',
+        category: 'Raporlama',
+        order: 40,
+        defaultVisible: false,
+        defaultSize: 'large',
+        supportedLayouts: ['standard', 'wide'],
+        requiredPermission: 'dashboard.read',
+        renderComponent: 'reporting.shipmentAnalytics.placeholder'
+      }),
+      dashboardWidget({
+        id: 'reporting.wasteAnalytics',
+        title: 'Fire Analizi',
+        description: 'Waste Management, uretim, recete, hat, makine, operator, lot, kalite, HACCP ve karar destek sinyallerinden fire performansini izlemek icin kontrol paneli baslangic alani.',
+        icon: 'FA',
+        category: 'Raporlama',
+        order: 50,
+        defaultVisible: false,
+        defaultSize: 'large',
+        supportedLayouts: ['standard', 'wide'],
+        requiredPermission: 'dashboard.read',
+        renderComponent: 'reporting.wasteAnalytics.placeholder'
+      }),
+      dashboardWidget({
+        id: 'reporting.costAnalytics',
+        title: 'Maliyet Analizi',
+        description: 'Cost Engine, recete, satin alma, fire, sevkiyat, AI ve karar destek sinyallerinden maliyet ve karlilik performansini izlemek icin kontrol paneli baslangic alani.',
+        icon: 'MA',
+        category: 'Raporlama',
+        order: 60,
+        defaultVisible: false,
+        defaultSize: 'large',
+        supportedLayouts: ['standard', 'wide'],
+        requiredPermission: 'dashboard.read',
+        renderComponent: 'reporting.costAnalytics.placeholder'
+      }),
+      dashboardWidget({
+        id: 'reporting.warehousePerformanceAnalytics',
+        title: 'Depo Performansı',
+        description: 'Depo, raf, lokasyon, stok hareketi, lot, transfer, picking, putaway, sayim, fire, HACCP ve karar destek sinyallerinden depo performansini izlemek icin kontrol paneli baslangic alani.',
+        icon: 'DP',
+        category: 'Raporlama',
+        order: 70,
+        defaultVisible: false,
+        defaultSize: 'large',
+        supportedLayouts: ['standard', 'wide'],
+        requiredPermission: 'dashboard.read',
+        renderComponent: 'reporting.warehousePerformanceAnalytics.placeholder'
+      }),
+      dashboardWidget({
+        id: 'reporting.personnelPerformanceAnalytics',
+        title: 'Personel Performansı',
+        description: 'Personel, uretim emri, operasyon, vardiya, fire, kalite, HACCP, devamsizlik, fazla mesai, egitim ve karar destek sinyallerinden personel performansini izlemek icin kontrol paneli baslangic alani.',
+        icon: 'PP',
+        category: 'Raporlama',
+        order: 80,
+        defaultVisible: false,
+        defaultSize: 'large',
+        supportedLayouts: ['standard', 'wide'],
+        requiredPermission: 'dashboard.read',
+        renderComponent: 'reporting.personnelPerformanceAnalytics.placeholder'
       })
     ],
     menuItems: [
       menuItem({ key: 'kpi-dashboard', label: 'KPI Dashboard', route: 'kpi-dashboard', icon: 'KP', adminOnly: true, displayOrder: 10 }),
       menuItem({ key: 'daily-production-analytics', label: 'Günlük Üretim Analizi', route: 'daily-production-analytics', icon: 'GA', adminOnly: true, displayOrder: 20 }),
-      menuItem({ key: 'weekly-production-analytics', label: 'Haftalık Üretim Analizi', route: 'weekly-production-analytics', icon: 'HA', adminOnly: true, displayOrder: 30 })
+      menuItem({ key: 'weekly-production-analytics', label: 'Haftalık Üretim Analizi', route: 'weekly-production-analytics', icon: 'HA', adminOnly: true, displayOrder: 30 }),
+      menuItem({ key: 'shipment-analytics', label: 'Sevkiyat Analizi', route: 'shipment-analytics', icon: 'SA', adminOnly: true, displayOrder: 40 }),
+      menuItem({ key: 'waste-analytics', label: 'Fire Analizi', route: 'waste-analytics', icon: 'FA', adminOnly: true, displayOrder: 50 }),
+      menuItem({ key: 'cost-analytics', label: 'Maliyet Analizi', route: 'cost-analytics', icon: 'MA', adminOnly: true, displayOrder: 60 }),
+      menuItem({ key: 'warehouse-performance-analytics', label: 'Depo Performansı', route: 'warehouse-performance-analytics', icon: 'DP', adminOnly: true, displayOrder: 70 }),
+      menuItem({ key: 'personnel-performance-analytics', label: 'Personel Performansı', route: 'personnel-performance-analytics', icon: 'PP', adminOnly: true, displayOrder: 80 })
     ]
   },
   {

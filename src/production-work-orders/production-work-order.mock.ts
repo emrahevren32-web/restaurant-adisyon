@@ -92,13 +92,20 @@ const normalizeHistoryType = (value: unknown): ProductionWorkOrderHistoryType =>
 
 const normalizeStoredLine = (item: Partial<ProductionWorkOrderLine>, index: number): ProductionWorkOrderLine => {
   const quantity = Number(item.quantity)
+  const recipeVersionNo = Number(item.recipeVersionNo)
 
   return {
     id: String(item.id || `pwo_line_${index + 1}`),
     productName: String(item.productName || PRODUCTION_WORK_ORDER_PRODUCTS[0]).trim() || PRODUCTION_WORK_ORDER_PRODUCTS[0],
     quantity: Number.isFinite(quantity) ? quantity : 0,
     unit: normalizeUnit(item.unit),
-    note: String(item.note || '').trim()
+    note: String(item.note || '').trim(),
+    recipeId: item.recipeId ? String(item.recipeId) : undefined,
+    recipeMasterId: item.recipeMasterId ? String(item.recipeMasterId) : undefined,
+    recipeVersionId: item.recipeVersionId ? String(item.recipeVersionId) : undefined,
+    recipeVersionNo: Number.isFinite(recipeVersionNo) && recipeVersionNo > 0 ? Math.floor(recipeVersionNo) : undefined,
+    recipeSnapshotId: item.recipeSnapshotId ? String(item.recipeSnapshotId) : undefined,
+    recipeSnapshotDate: item.recipeSnapshotDate ? String(item.recipeSnapshotDate) : undefined
   }
 }
 

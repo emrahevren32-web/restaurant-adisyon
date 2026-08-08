@@ -885,7 +885,7 @@ export const evaluateShipmentOptimizationReport = (
     reportId,
     reportNo,
     index
-  )).filter(item => input.scope === ALL_FILTER || input.scope === 'all' || item.recommendationType === input.scope)
+  )).filter(item => input.scope === ALL_FILTER || item.recommendationType === input.scope)
 
   return {
     id: reportId,

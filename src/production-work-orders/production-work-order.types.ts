@@ -31,6 +31,12 @@ export type ProductionWorkOrderLine = {
   quantity: number
   unit: ProductionWorkOrderUnit
   note: string
+  recipeId?: string
+  recipeMasterId?: string
+  recipeVersionId?: string
+  recipeVersionNo?: number
+  recipeSnapshotId?: string
+  recipeSnapshotDate?: string
 }
 
 export type ProductionWorkOrder = {

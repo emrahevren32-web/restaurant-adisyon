@@ -1,10 +1,13 @@
 import React from 'react'
+import * as XLSX from 'xlsx'
 import {
   RECIPE_INGREDIENT_UNITS,
   RECIPE_MANAGEMENT_ROLES,
   RECIPE_MANAGEMENT_STATUSES,
   RECIPE_MANAGEMENT_TYPES,
   RECIPE_PRODUCT_OPTIONS,
+  RECIPE_VERSION_STATUSES,
+  enforceSingleActiveRecipeVersions,
   loadRecipeManagementRecords,
   saveRecipeManagementRecords
 } from '../recipe-management/recipe-management.mock'
@@ -16,17 +19,27 @@ import {
   calculateTotalBaseQuantity,
   convertToBaseUnit
 } from '../recipe-management/recipe-unit-converter'
+import {
+  RecipeSnapshotService,
+  buildRecipeSnapshotDiffRows
+} from '../recipe-management/recipe-snapshot.service'
 import type {
   RecipeIngredient,
   RecipeIngredientUnit,
   RecipeManagementRecord,
   RecipeManagementRole,
   RecipeManagementStatus,
-  RecipeManagementType
+  RecipeManagementType,
+  RecipeVersionStatus
 } from '../recipe-management/recipe-management.types'
+import type {
+  RecipeSnapshot,
+  RecipeSnapshotDiffRow
+} from '../recipe-management/recipe-snapshot.types'
 
 type StatusFilter = RecipeManagementStatus | 'all'
 type RoleFilter = RecipeManagementRole | 'all'
+type VersionStatusFilter = RecipeVersionStatus | 'all'
 type PanelMode = 'summary' | 'form'
 type ViewMode = 'list' | 'detail'
 type ToastTone = 'success' | 'info'
@@ -41,6 +54,13 @@ type RecipeFormState = {
   portions: string
   firePercent: string
   status: RecipeManagementStatus
+  versionStatus: RecipeVersionStatus
+  versionDescription: string
+  revisionNote: string
+  preparationMinutes: string
+  cookingMinutes: string
+  restingMinutes: string
+  yieldPercent: string
   description: string
 }
 
@@ -57,10 +77,21 @@ type ToastState = {
   tone: ToastTone
 }
 
+type RecipeVersionDiffRow = {
+  area: string
+  item: string
+  sourceValue: string
+  targetValue: string
+  difference: string
+}
+
+type RecipeSnapshotPrintMode = 'PDF' | 'PRINT'
+
 const MAX_INGREDIENT_QUANTITY = 100000
 const MAX_INGREDIENT_UNIT_COST = 1000000
 const MIN_FIRE_PERCENT = 0
 const MAX_FIRE_PERCENT = 100
+const MAX_RECIPE_MINUTES = 10080
 const TOTAL_GRAMAJ_BASE_UNIT = 'gr'
 
 const createId = (prefix: string) => `${prefix}_${Date.now()}_${Math.random().toString(16).slice(2)}`
@@ -104,9 +135,54 @@ const formatDateTime = (value?: string) => {
   })
 }
 
+const getRecipeMasterId = (record: RecipeManagementRecord) => record.masterId || record.id
+
+const getRecipeVersionNo = (record: RecipeManagementRecord) => record.versionNo || 1
+
+const getRecipeVersionStatus = (record: RecipeManagementRecord): RecipeVersionStatus => (
+  record.versionStatus || (record.status === 'Aktif' ? 'Aktif' : 'Arşiv')
+)
+
+const isRecipeVersionActive = (record: RecipeManagementRecord) => (
+  Boolean(record.isActiveVersion) || getRecipeVersionStatus(record) === 'Aktif'
+)
+
+const canEditRecipeVersionDirectly = (record: RecipeManagementRecord) => {
+  const versionStatus = getRecipeVersionStatus(record)
+  return versionStatus === 'Taslak' || versionStatus === 'İncelemede'
+}
+
+const getRecipeTotalMinutes = (record: RecipeManagementRecord) => {
+  const explicitTotalMinutes = Number(record.totalMinutes)
+  if(Number.isFinite(explicitTotalMinutes) && explicitTotalMinutes >= 0) return explicitTotalMinutes
+
+  const preparationMinutes = Number(record.preparationMinutes)
+  const cookingMinutes = Number(record.cookingMinutes)
+  const restingMinutes = Number(record.restingMinutes)
+
+  return [preparationMinutes, cookingMinutes, restingMinutes]
+    .filter(Number.isFinite)
+    .reduce((sum, value) => sum + Math.max(0, value), 0)
+}
+
+const getRecipeYieldPercent = (record: RecipeManagementRecord) => {
+  const yieldPercent = Number(record.yieldPercent)
+  if(Number.isFinite(yieldPercent) && yieldPercent >= 0 && yieldPercent <= 100) return yieldPercent
+
+  return Math.max(0, Math.min(100, 100 - record.firePercent))
+}
+
 const getStatusClass = (status: RecipeManagementStatus) => (
   status === 'Aktif' ? 'success' : 'muted-pill'
 )
+
+const getVersionStatusClass = (status: RecipeVersionStatus) => {
+  if(status === 'Aktif') return 'success'
+  if(status === 'Onaylandı') return 'info-pill'
+  if(status === 'İncelemede') return 'warning-pill'
+  if(status === 'Taslak') return 'muted-pill'
+  return 'danger-pill'
+}
 
 const getRecipeRoleLabel = (role: RecipeManagementRole) => (
   role === 'PRIMARY' ? 'Ana' : 'Alternatif'
@@ -131,7 +207,7 @@ const formatParentRecipe = (record: RecipeManagementRecord, records: RecipeManag
 
 const countAlternativeRecipes = (record: RecipeManagementRecord, records: RecipeManagementRecord[]) => (
   record.recipeRole === 'PRIMARY'
-    ? records.filter(item => item.parentRecipeId === record.id && item.recipeRole === 'ALTERNATIVE').length
+    ? records.filter(item => item.parentRecipeId === record.id && item.recipeRole === 'ALTERNATIVE' && isRecipeVersionActive(item)).length
     : 0
 )
 
@@ -144,6 +220,191 @@ const getNextRecipeCode = (records: RecipeManagementRecord[]) => {
   return `RC-${String(maxNo + 1).padStart(3, '0')}`
 }
 
+const getNextRecipeVersionNo = (records: RecipeManagementRecord[], masterId: string) => (
+  records
+    .filter(record => getRecipeMasterId(record) === masterId)
+    .reduce((max, record) => Math.max(max, getRecipeVersionNo(record)), 0) + 1
+)
+
+const getSafeDateTime = (value?: string) => {
+  const timestamp = Date.parse(value || '')
+  return Number.isFinite(timestamp) ? timestamp : 0
+}
+
+const sortRecipeVersionsDesc = (records: RecipeManagementRecord[]) => (
+  [...records].sort((first, second) => (
+    getRecipeVersionNo(second) - getRecipeVersionNo(first)
+    || getSafeDateTime(second.updatedAt || second.createdAt) - getSafeDateTime(first.updatedAt || first.createdAt)
+  ))
+)
+
+const sortRecipeSnapshotsDesc = (records: RecipeSnapshot[]) => (
+  [...records].sort((first, second) => (
+    getSafeDateTime(second.snapshotDate) - getSafeDateTime(first.snapshotDate)
+    || second.snapshotNo.localeCompare(first.snapshotNo, 'tr-TR')
+  ))
+)
+
+const formatVersionLabel = (record: RecipeManagementRecord) => (
+  `V${getRecipeVersionNo(record)} · ${getRecipeVersionStatus(record)}`
+)
+
+const formatSnapshotLabel = (snapshot: RecipeSnapshot) => (
+  `${snapshot.snapshotNo} · V${snapshot.versionNo} · ${formatDateTime(snapshot.snapshotDate)}`
+)
+
+const toSafeText = (value: unknown) => String(value ?? '')
+
+const escapeHtml = (value: unknown) => (
+  toSafeText(value)
+    .replaceAll('&', '&amp;')
+    .replaceAll('<', '&lt;')
+    .replaceAll('>', '&gt;')
+    .replaceAll('"', '&quot;')
+    .replaceAll("'", '&#39;')
+)
+
+const buildRecipeVersionDiffRows = (
+  sourceRecord: RecipeManagementRecord,
+  targetRecord: RecipeManagementRecord
+): RecipeVersionDiffRow[] => {
+  const sourceCost = calculateRecipeCost(sourceRecord)
+  const targetCost = calculateRecipeCost(targetRecord)
+  const rows: RecipeVersionDiffRow[] = [
+    {
+      area: 'Fire',
+      item: 'Fire oranı',
+      sourceValue: `${formatFirePercent(sourceRecord.firePercent)} %`,
+      targetValue: `${formatFirePercent(targetRecord.firePercent)} %`,
+      difference: `${formatFirePercent(targetRecord.firePercent - sourceRecord.firePercent)} puan`
+    },
+    {
+      area: 'Yield',
+      item: 'Verim',
+      sourceValue: `${formatFirePercent(getRecipeYieldPercent(sourceRecord))} %`,
+      targetValue: `${formatFirePercent(getRecipeYieldPercent(targetRecord))} %`,
+      difference: `${formatFirePercent(getRecipeYieldPercent(targetRecord) - getRecipeYieldPercent(sourceRecord))} puan`
+    },
+    {
+      area: 'Maliyet',
+      item: 'Toplam reçete maliyeti',
+      sourceValue: formatRecipeCostAmount(sourceCost.recipeCost),
+      targetValue: formatRecipeCostAmount(targetCost.recipeCost),
+      difference: formatRecipeCostAmount(targetCost.recipeCost - sourceCost.recipeCost)
+    },
+    {
+      area: 'Süre',
+      item: 'Toplam süre',
+      sourceValue: `${formatNumber(getRecipeTotalMinutes(sourceRecord))} dk`,
+      targetValue: `${formatNumber(getRecipeTotalMinutes(targetRecord))} dk`,
+      difference: `${formatNumber(getRecipeTotalMinutes(targetRecord) - getRecipeTotalMinutes(sourceRecord))} dk`
+    }
+  ]
+  const sourceIngredients = new Map(sourceRecord.ingredients.map(ingredient => [
+    ingredient.materialName.trim().toLocaleLowerCase('tr-TR'),
+    ingredient
+  ]))
+  const targetIngredients = new Map(targetRecord.ingredients.map(ingredient => [
+    ingredient.materialName.trim().toLocaleLowerCase('tr-TR'),
+    ingredient
+  ]))
+  const ingredientKeys = Array.from(new Set([
+    ...sourceIngredients.keys(),
+    ...targetIngredients.keys()
+  ])).sort((first, second) => first.localeCompare(second, 'tr-TR'))
+
+  ingredientKeys.forEach(key => {
+    const sourceIngredient = sourceIngredients.get(key)
+    const targetIngredient = targetIngredients.get(key)
+    const materialName = targetIngredient?.materialName || sourceIngredient?.materialName || key
+
+    if(!sourceIngredient && targetIngredient){
+      rows.push({
+        area: 'Malzeme',
+        item: materialName,
+        sourceValue: '-',
+        targetValue: `${formatNumber(targetIngredient.quantity)} ${targetIngredient.unit}`,
+        difference: 'Eklendi'
+      })
+      return
+    }
+
+    if(sourceIngredient && !targetIngredient){
+      rows.push({
+        area: 'Malzeme',
+        item: materialName,
+        sourceValue: `${formatNumber(sourceIngredient.quantity)} ${sourceIngredient.unit}`,
+        targetValue: '-',
+        difference: 'Çıkarıldı'
+      })
+      return
+    }
+
+    if(!sourceIngredient || !targetIngredient) return
+
+    const quantityDifference = targetIngredient.baseQuantity - sourceIngredient.baseQuantity
+    const costDifference = targetIngredient.unitCost - sourceIngredient.unitCost
+    if(quantityDifference === 0 && costDifference === 0 && sourceIngredient.unit === targetIngredient.unit) return
+
+    rows.push({
+      area: 'Gramaj',
+      item: materialName,
+      sourceValue: `${formatNumber(sourceIngredient.quantity)} ${sourceIngredient.unit}`,
+      targetValue: `${formatNumber(targetIngredient.quantity)} ${targetIngredient.unit}`,
+      difference: `${formatNumber(quantityDifference)} ${targetIngredient.baseUnit}`
+    })
+
+    if(costDifference !== 0){
+      rows.push({
+        area: 'Maliyet',
+        item: `${materialName} birim maliyet`,
+        sourceValue: formatRecipeCostAmount(sourceIngredient.unitCost),
+        targetValue: formatRecipeCostAmount(targetIngredient.unitCost),
+        difference: formatRecipeCostAmount(costDifference)
+      })
+    }
+  })
+
+  return rows
+}
+
+const openRecipePrintWindow = (
+  title: string,
+  columns: string[],
+  rows: Array<Array<string | number>>,
+  mode: 'PDF' | 'PRINT'
+) => {
+  const printWindow = window.open('', '_blank', 'width=1100,height=760')
+  if(!printWindow) return false
+
+  printWindow.document.write(`<!doctype html>
+    <html lang="tr">
+      <head>
+        <meta charset="utf-8" />
+        <title>${escapeHtml(title)} ${mode === 'PDF' ? 'PDF' : 'Yazdır'}</title>
+        <style>
+          body { font-family: Arial, sans-serif; color: #17202a; padding: 24px; }
+          h1 { font-size: 20px; margin: 0 0 12px; }
+          table { width: 100%; border-collapse: collapse; font-size: 12px; }
+          th, td { border: 1px solid #d8e0ea; padding: 8px; text-align: left; vertical-align: top; }
+          th { background: #eef4fb; }
+        </style>
+      </head>
+      <body>
+        <h1>${escapeHtml(title)}</h1>
+        <table>
+          <thead><tr>${columns.map(column => `<th>${escapeHtml(column)}</th>`).join('')}</tr></thead>
+          <tbody>
+            ${rows.map(row => `<tr>${row.map(cell => `<td>${escapeHtml(cell)}</td>`).join('')}</tr>`).join('')}
+          </tbody>
+        </table>
+        <script>window.onload = () => window.print()</script>
+      </body>
+    </html>`)
+  printWindow.document.close()
+  return true
+}
+
 const createInitialRecipeForm = (records: RecipeManagementRecord[]): RecipeFormState => ({
   code: getNextRecipeCode(records),
   recipeName: '',
@@ -154,6 +415,13 @@ const createInitialRecipeForm = (records: RecipeManagementRecord[]): RecipeFormS
   portions: '1',
   firePercent: '0',
   status: 'Aktif',
+  versionStatus: 'Aktif',
+  versionDescription: '',
+  revisionNote: 'İlk yayın',
+  preparationMinutes: '24',
+  cookingMinutes: '36',
+  restingMinutes: '0',
+  yieldPercent: '100',
   description: ''
 })
 
@@ -167,6 +435,13 @@ const createRecipeFormFromRecord = (record: RecipeManagementRecord): RecipeFormS
   portions: String(record.portions),
   firePercent: String(Number.isFinite(record.firePercent) ? record.firePercent : 0),
   status: record.status,
+  versionStatus: isRecipeVersionActive(record) ? 'Taslak' : getRecipeVersionStatus(record),
+  versionDescription: record.versionDescription || record.description,
+  revisionNote: record.revisionNote || `V${getRecipeVersionNo(record) + 1} revizyonu`,
+  preparationMinutes: String(record.preparationMinutes ?? 24),
+  cookingMinutes: String(record.cookingMinutes ?? 36),
+  restingMinutes: String(record.restingMinutes ?? 0),
+  yieldPercent: String(getRecipeYieldPercent(record)),
   description: record.description
 })
 
@@ -199,6 +474,7 @@ const validateRecipeForm = (
   const existingRecord = editingRecipeId
     ? records.find(record => record.id === editingRecipeId) || null
     : null
+  const existingMasterId = existingRecord ? getRecipeMasterId(existingRecord) : ''
   if(existingRecord?.recipeRole === 'PRIMARY' && form.recipeRole === 'ALTERNATIVE'){
     const alternativeCount = countAlternativeRecipes(existingRecord, records)
     if(alternativeCount > 0) return 'Bağlı alternatifleri olan ana reçetenin rolü değiştirilemez.'
@@ -209,6 +485,8 @@ const validateRecipeForm = (
     const duplicatePrimaryProduct = records.some(record => (
       record.id !== editingRecipeId
       && record.recipeRole === 'PRIMARY'
+      && isRecipeVersionActive(record)
+      && (!existingMasterId || getRecipeMasterId(record) !== existingMasterId)
       && record.productName.trim().toLocaleLowerCase('tr-TR') === normalizedProductName
     ))
     if(duplicatePrimaryProduct) return 'Bu ürün için zaten bir ana reçete tanımlı.'
@@ -237,6 +515,24 @@ const validateRecipeForm = (
   if(firePercent < MIN_FIRE_PERCENT) return 'Fire yüzdesi negatif olamaz.'
   if(firePercent > MAX_FIRE_PERCENT) return 'Fire yüzdesi 100 değerini geçemez.'
 
+  if(!RECIPE_VERSION_STATUSES.includes(form.versionStatus)) return 'Versiyon durumu geçerli olmalıdır.'
+  const preparationMinutes = Number(form.preparationMinutes)
+  const cookingMinutes = Number(form.cookingMinutes)
+  const restingMinutes = Number(form.restingMinutes)
+  const yieldPercent = Number(form.yieldPercent)
+  if(!form.preparationMinutes.trim() || !Number.isFinite(preparationMinutes) || preparationMinutes < 0 || preparationMinutes > MAX_RECIPE_MINUTES){
+    return 'Hazırlama süresi 0 ile 10080 dakika arasında olmalıdır.'
+  }
+  if(!form.cookingMinutes.trim() || !Number.isFinite(cookingMinutes) || cookingMinutes < 0 || cookingMinutes > MAX_RECIPE_MINUTES){
+    return 'Pişirme süresi 0 ile 10080 dakika arasında olmalıdır.'
+  }
+  if(!form.restingMinutes.trim() || !Number.isFinite(restingMinutes) || restingMinutes < 0 || restingMinutes > MAX_RECIPE_MINUTES){
+    return 'Dinlendirme süresi 0 ile 10080 dakika arasında olmalıdır.'
+  }
+  if(!form.yieldPercent.trim() || !Number.isFinite(yieldPercent) || yieldPercent < 0 || yieldPercent > 100){
+    return 'Yield değeri 0 ile 100 arasında olmalıdır.'
+  }
+
   if(ingredients.length === 0) return 'En az 1 malzeme eklenmelidir.'
   if(ingredients.some(ingredient => (
     !ingredient.materialName.trim()
@@ -254,6 +550,7 @@ const validateRecipeForm = (
   const duplicateCode = records.some(record => (
     record.id !== editingRecipeId
     && record.code.trim().toLocaleLowerCase('tr-TR') === normalizedCode
+    && (!existingMasterId || getRecipeMasterId(record) !== existingMasterId)
   ))
   if(duplicateCode) return 'Bu kod zaten kullanılıyor.'
 
@@ -284,7 +581,14 @@ export default function Recipes(){
   const [search, setSearch] = React.useState('')
   const [statusFilter, setStatusFilter] = React.useState<StatusFilter>('all')
   const [roleFilter, setRoleFilter] = React.useState<RoleFilter>('all')
+  const [versionStatusFilter, setVersionStatusFilter] = React.useState<VersionStatusFilter>('all')
   const [selectedRecordId, setSelectedRecordId] = React.useState('recipe_mgmt_001')
+  const [compareSourceId, setCompareSourceId] = React.useState('')
+  const [compareTargetId, setCompareTargetId] = React.useState('')
+  const [recipeSnapshots] = React.useState<RecipeSnapshot[]>(() => RecipeSnapshotService.load())
+  const [selectedSnapshotId, setSelectedSnapshotId] = React.useState('')
+  const [snapshotCompareSourceId, setSnapshotCompareSourceId] = React.useState('')
+  const [snapshotCompareTargetId, setSnapshotCompareTargetId] = React.useState('')
   const [panelMode, setPanelMode] = React.useState<PanelMode>('summary')
   const [viewMode, setViewMode] = React.useState<ViewMode>('list')
   const [editingRecipeId, setEditingRecipeId] = React.useState('')
@@ -307,8 +611,9 @@ export default function Recipes(){
       const nextRecords = typeof updater === 'function'
         ? (updater as (current: RecipeManagementRecord[]) => RecipeManagementRecord[])(prev)
         : updater
-      saveRecipeManagementRecords(nextRecords)
-      return nextRecords
+      const normalizedRecords = enforceSingleActiveRecipeVersions(nextRecords)
+      saveRecipeManagementRecords(normalizedRecords)
+      return normalizedRecords
     })
   }, [])
 
@@ -327,6 +632,7 @@ export default function Recipes(){
       const roleLabel = getRecipeRoleLabel(record.recipeRole)
       const roleText = record.recipeRole === 'PRIMARY' ? 'Ana Reçete' : 'Alternatif Reçete'
       const parentRecipeText = formatParentRecipe(record, records)
+      const versionText = `V${getRecipeVersionNo(record)} ${getRecipeVersionStatus(record)} ${record.revisionNote || ''}`
       const matchesSearch = !normalizedSearch
         || record.code.toLocaleLowerCase('tr-TR').includes(normalizedSearch)
         || record.recipeName.toLocaleLowerCase('tr-TR').includes(normalizedSearch)
@@ -334,12 +640,14 @@ export default function Recipes(){
         || roleLabel.toLocaleLowerCase('tr-TR').includes(normalizedSearch)
         || roleText.toLocaleLowerCase('tr-TR').includes(normalizedSearch)
         || parentRecipeText.toLocaleLowerCase('tr-TR').includes(normalizedSearch)
+        || versionText.toLocaleLowerCase('tr-TR').includes(normalizedSearch)
       const matchesStatus = statusFilter === 'all' || record.status === statusFilter
       const matchesRole = roleFilter === 'all' || record.recipeRole === roleFilter
+      const matchesVersionStatus = versionStatusFilter === 'all' || getRecipeVersionStatus(record) === versionStatusFilter
 
-      return matchesSearch && matchesStatus && matchesRole
+      return matchesSearch && matchesStatus && matchesRole && matchesVersionStatus
     })
-  }, [records, roleFilter, search, statusFilter])
+  }, [records, roleFilter, search, statusFilter, versionStatusFilter])
 
   React.useEffect(() => {
     if(panelMode === 'form' || viewMode === 'detail') return
@@ -376,7 +684,7 @@ export default function Recipes(){
   const alternativeRecipesByParentId = React.useMemo(() => {
     const nextAlternativesByParentId = new Map<string, RecipeManagementRecord[]>()
     records.forEach(record => {
-      if(record.recipeRole !== 'ALTERNATIVE' || !record.parentRecipeId) return
+      if(record.recipeRole !== 'ALTERNATIVE' || !record.parentRecipeId || !isRecipeVersionActive(record)) return
 
       const parentAlternatives = nextAlternativesByParentId.get(record.parentRecipeId) || []
       parentAlternatives.push(record)
@@ -396,8 +704,45 @@ export default function Recipes(){
       : null
   ), [recordsById, selectedRecord])
   const isEditingRecipe = Boolean(editingRecipeId)
-  const totalRecipes = records.length
-  const activeRecipes = records.filter(record => record.status === 'Aktif').length
+  const selectedMasterRecords = React.useMemo(() => (
+    selectedRecord
+      ? sortRecipeVersionsDesc(records.filter(record => getRecipeMasterId(record) === getRecipeMasterId(selectedRecord)))
+      : []
+  ), [records, selectedRecord])
+  React.useEffect(() => {
+    const versionIds = selectedMasterRecords.map(record => record.id)
+    if(versionIds.length === 0) return
+
+    setCompareSourceId(current => versionIds.includes(current) ? current : versionIds[0])
+    setCompareTargetId(current => versionIds.includes(current) ? current : versionIds[1] || versionIds[0])
+  }, [selectedMasterRecords])
+  const selectedRecipeSnapshots = React.useMemo(() => (
+    selectedRecord
+      ? sortRecipeSnapshotsDesc(recipeSnapshots.filter(snapshot => (
+          snapshot.recipeMasterId === getRecipeMasterId(selectedRecord)
+          || snapshot.recipeVersionId === selectedRecord.id
+        )))
+      : []
+  ), [recipeSnapshots, selectedRecord])
+  const snapshotsById = React.useMemo(() => {
+    const nextSnapshotsById = new Map<string, RecipeSnapshot>()
+    recipeSnapshots.forEach(snapshot => nextSnapshotsById.set(snapshot.id, snapshot))
+    return nextSnapshotsById
+  }, [recipeSnapshots])
+  const selectedSnapshot = snapshotsById.get(selectedSnapshotId)
+    || selectedRecipeSnapshots[0]
+    || null
+  React.useEffect(() => {
+    const snapshotIds = selectedRecipeSnapshots.map(snapshot => snapshot.id)
+    if(snapshotIds.length === 0) return
+
+    setSelectedSnapshotId(current => snapshotIds.includes(current) ? current : snapshotIds[0])
+    setSnapshotCompareSourceId(current => snapshotIds.includes(current) ? current : snapshotIds[0])
+    setSnapshotCompareTargetId(current => snapshotIds.includes(current) ? current : snapshotIds[1] || snapshotIds[0])
+  }, [selectedRecipeSnapshots])
+  const totalRecipeMasters = new Set(records.map(getRecipeMasterId)).size
+  const totalRecipeVersions = records.length
+  const activeRecipes = records.filter(isRecipeVersionActive).length
   const totalIngredients = records.reduce((sum, record) => sum + record.ingredients.length, 0)
   const totalPortions = records.reduce((sum, record) => sum + record.portions, 0)
   const productOptions = React.useMemo(() => {
@@ -409,7 +754,7 @@ export default function Recipes(){
     return Array.from(options)
   }, [records, recipeForm.productName])
   const primaryRecipeOptions = React.useMemo(() => (
-    records.filter(record => record.recipeRole === 'PRIMARY' && record.id !== editingRecipeId)
+    records.filter(record => record.recipeRole === 'PRIMARY' && isRecipeVersionActive(record) && record.id !== editingRecipeId)
   ), [editingRecipeId, records])
 
   const startNewRecipe = () => {
@@ -426,6 +771,11 @@ export default function Recipes(){
   }
 
   const startEditRecipe = (record: RecipeManagementRecord) => {
+    if(getRecipeVersionStatus(record) === 'Arşiv'){
+      showToast('Arşiv versiyon değiştirilemez. Yeni çalışma için aktif versiyondan yeni versiyon oluşturun.', 'info')
+      return
+    }
+
     setViewMode('list')
     setSelectedRecordId(record.id)
     setPanelMode('form')
@@ -562,15 +912,34 @@ export default function Recipes(){
 
   const deleteRecipe = (record: RecipeManagementRecord) => {
     if(record.recipeRole === 'PRIMARY' && (alternativeRecipesByParentId.get(record.id)?.length || 0) > 0){
-      showToast('Bu reçeteye bağlı alternatif reçeteler bulunmaktadır.', 'info')
+      showToast('Bu reçeteye bağlı aktif alternatif reçeteler bulunmaktadır.', 'info')
       return
     }
 
-    if(!window.confirm('Bu reçeteyi silmek istediğinize emin misiniz?')) return
+    if(getRecipeVersionStatus(record) === 'Arşiv'){
+      showToast('Bu versiyon zaten arşivde.', 'info')
+      return
+    }
 
-    const nextRecords = records.filter(item => item.id !== record.id)
+    if(!window.confirm('Bu reçete versiyonu soft archive ile arşivlenecek. Devam edilsin mi?')) return
+
+    const now = new Date().toISOString()
+    const archivedRecordId = record.id
+    const nextRecords = records.map(item => (
+      item.id === archivedRecordId
+        ? {
+            ...item,
+            status: 'Pasif' as RecipeManagementStatus,
+            versionStatus: 'Arşiv' as RecipeVersionStatus,
+            isActiveVersion: false,
+            archivedAt: now,
+            updatedAt: now
+          }
+        : item
+    ))
+
     commitRecords(nextRecords)
-    setSelectedRecordId(nextRecords[0]?.id || '')
+    setSelectedRecordId(nextRecords.find(item => item.id !== archivedRecordId && getRecipeMasterId(item) === getRecipeMasterId(record))?.id || nextRecords[0]?.id || '')
     setViewMode('list')
     setPanelMode('summary')
 
@@ -582,7 +951,232 @@ export default function Recipes(){
       setRecipeFormError('')
     }
 
-    showToast('Reçete silindi.')
+    showToast('Reçete versiyonu arşivlendi.')
+  }
+
+  const activateRecipeVersion = (record: RecipeManagementRecord) => {
+    if(getRecipeVersionStatus(record) === 'Arşiv'){
+      showToast('Arşiv versiyon aktif edilemez.', 'info')
+      return
+    }
+
+    if(isRecipeVersionActive(record)){
+      showToast('Bu versiyon zaten aktif.', 'info')
+      return
+    }
+
+    const now = new Date().toISOString()
+    const masterId = getRecipeMasterId(record)
+
+    commitRecords(prev => prev.map(item => {
+      if(getRecipeMasterId(item) !== masterId) return item
+
+      const isTargetVersion = item.id === record.id
+
+      return {
+        ...item,
+        status: isTargetVersion ? 'Aktif' : 'Pasif',
+        versionStatus: isTargetVersion ? 'Aktif' : (isRecipeVersionActive(item) ? 'Arşiv' : getRecipeVersionStatus(item)),
+        isActiveVersion: isTargetVersion,
+        publishedAt: isTargetVersion ? now : item.publishedAt,
+        archivedAt: !isTargetVersion && isRecipeVersionActive(item) ? now : item.archivedAt,
+        updatedAt: now
+      }
+    }))
+    setSelectedRecordId(record.id)
+    showToast(`V${getRecipeVersionNo(record)} aktif versiyon yapıldı.`)
+  }
+
+  const archiveRecipeVersion = (record: RecipeManagementRecord) => {
+    deleteRecipe(record)
+  }
+
+  const getVersionHistoryRows = (versionRecords = selectedMasterRecords) => (
+    versionRecords.map(record => [
+      record.code,
+      `V${getRecipeVersionNo(record)}`,
+      getRecipeVersionStatus(record),
+      record.createdBy || 'MIYOP Demo',
+      formatDateTime(record.createdAt),
+      formatDateTime(record.publishedAt),
+      record.revisionNote || '-',
+      isRecipeVersionActive(record) ? 'Evet' : 'Hayır'
+    ])
+  )
+
+  const exportVersionHistoryExcel = () => {
+    if(!selectedRecord) return
+
+    const worksheet = XLSX.utils.aoa_to_sheet([
+      ['Kod', 'Versiyon', 'Durum', 'Oluşturan', 'Oluşturulma', 'Yayın', 'Revizyon Notu', 'Aktif'],
+      ...getVersionHistoryRows()
+    ])
+    const workbook = XLSX.utils.book_new()
+    XLSX.utils.book_append_sheet(workbook, worksheet, 'Versiyon Geçmişi')
+    XLSX.writeFile(workbook, `recete-version-history-${selectedRecord.code}.xlsx`)
+    showToast('Versiyon geçmişi Excel oluşturuldu.')
+  }
+
+  const printVersionHistory = (mode: 'PDF' | 'PRINT') => {
+    if(!selectedRecord) return
+
+    const opened = openRecipePrintWindow(
+      `${selectedRecord.code} Versiyon Geçmişi`,
+      ['Kod', 'Versiyon', 'Durum', 'Oluşturan', 'Oluşturulma', 'Yayın', 'Revizyon Notu', 'Aktif'],
+      getVersionHistoryRows(),
+      mode
+    )
+
+    showToast(opened ? (mode === 'PDF' ? 'Versiyon geçmişi PDF hazırlandı.' : 'Versiyon geçmişi yazdırma hazırlandı.') : 'Yazdırma penceresi açılamadı.', opened ? 'success' : 'info')
+  }
+
+  const getSelectedDiffRows = () => {
+    const sourceRecord = recordsById.get(compareSourceId)
+    const targetRecord = recordsById.get(compareTargetId)
+    if(!sourceRecord || !targetRecord) return []
+
+    return buildRecipeVersionDiffRows(sourceRecord, targetRecord)
+  }
+
+  const exportDiffReportExcel = () => {
+    if(!selectedRecord) return
+
+    const worksheet = XLSX.utils.aoa_to_sheet([
+      ['Alan', 'Kalem', 'Kaynak Versiyon', 'Hedef Versiyon', 'Fark'],
+      ...getSelectedDiffRows().map(row => [row.area, row.item, row.sourceValue, row.targetValue, row.difference])
+    ])
+    const workbook = XLSX.utils.book_new()
+    XLSX.utils.book_append_sheet(workbook, worksheet, 'Fark Raporu')
+    XLSX.writeFile(workbook, `recete-diff-report-${selectedRecord.code}.xlsx`)
+    showToast('Fark raporu Excel oluşturuldu.')
+  }
+
+  const printDiffReport = (mode: 'PDF' | 'PRINT') => {
+    if(!selectedRecord) return
+
+    const opened = openRecipePrintWindow(
+      `${selectedRecord.code} Fark Raporu`,
+      ['Alan', 'Kalem', 'Kaynak Versiyon', 'Hedef Versiyon', 'Fark'],
+      getSelectedDiffRows().map(row => [row.area, row.item, row.sourceValue, row.targetValue, row.difference]),
+      mode
+    )
+
+    showToast(opened ? (mode === 'PDF' ? 'Fark raporu PDF hazırlandı.' : 'Fark raporu yazdırma hazırlandı.') : 'Yazdırma penceresi açılamadı.', opened ? 'success' : 'info')
+  }
+
+  const getSnapshotHistoryRows = (snapshots = selectedRecipeSnapshots) => (
+    snapshots.map(snapshot => [
+      snapshot.snapshotNo,
+      snapshot.productionOrderNo,
+      `V${snapshot.versionNo}`,
+      formatDateTime(snapshot.snapshotDate),
+      formatRecipeCostAmount(snapshot.totalCost),
+      snapshot.createdBy,
+      snapshot.ingredients.length
+    ])
+  )
+
+  const exportSnapshotHistoryExcel = () => {
+    if(!selectedRecord) return
+
+    const worksheet = XLSX.utils.aoa_to_sheet([
+      ['Snapshot No', 'Üretim Emri', 'Reçete Versiyonu', 'Snapshot Tarihi', 'Toplam Maliyet', 'Oluşturan', 'Malzeme Snapshot'],
+      ...getSnapshotHistoryRows()
+    ])
+    const workbook = XLSX.utils.book_new()
+    XLSX.utils.book_append_sheet(workbook, worksheet, 'Snapshot Geçmişi')
+    XLSX.writeFile(workbook, `recete-snapshot-history-${selectedRecord.code}.xlsx`)
+    showToast('Snapshot geçmişi Excel oluşturuldu.')
+  }
+
+  const printSnapshotHistory = (mode: RecipeSnapshotPrintMode) => {
+    if(!selectedRecord) return
+
+    const opened = openRecipePrintWindow(
+      `${selectedRecord.code} Snapshot Geçmişi`,
+      ['Snapshot No', 'Üretim Emri', 'Reçete Versiyonu', 'Snapshot Tarihi', 'Toplam Maliyet', 'Oluşturan', 'Malzeme Snapshot'],
+      getSnapshotHistoryRows(),
+      mode
+    )
+
+    showToast(opened ? (mode === 'PDF' ? 'Snapshot geçmişi PDF hazırlandı.' : 'Snapshot geçmişi yazdırma hazırlandı.') : 'Yazdırma penceresi açılamadı.', opened ? 'success' : 'info')
+  }
+
+  const getSnapshotDetailRows = (snapshot: RecipeSnapshot) => ([
+    ['Snapshot No', snapshot.snapshotNo],
+    ['Üretim Emri', snapshot.productionOrderNo],
+    ['Reçete', `${snapshot.recipeCode} · ${snapshot.recipeName}`],
+    ['Versiyon', `V${snapshot.versionNo}`],
+    ['Snapshot Tarihi', formatDateTime(snapshot.snapshotDate)],
+    ['Oluşturan', snapshot.createdBy],
+    ['Fire', `${formatFirePercent(snapshot.firePercent)} %`],
+    ['Yield', `${formatFirePercent(snapshot.yieldPercent)} %`],
+    ['Toplam Süre', `${formatNumber(snapshot.totalMinutes)} dk`],
+    ['Toplam Maliyet', formatRecipeCostAmount(snapshot.totalCost)],
+    ...snapshot.ingredients.map(ingredient => [
+      ingredient.materialName,
+      `${formatNumber(ingredient.quantity)} ${ingredient.unit} · ${formatRecipeCostAmount(ingredient.totalCost)}`
+    ])
+  ])
+
+  const exportSnapshotDetailExcel = () => {
+    if(!selectedSnapshot) return
+
+    const worksheet = XLSX.utils.aoa_to_sheet([
+      ['Alan', 'Değer'],
+      ...getSnapshotDetailRows(selectedSnapshot)
+    ])
+    const workbook = XLSX.utils.book_new()
+    XLSX.utils.book_append_sheet(workbook, worksheet, 'Snapshot Detay')
+    XLSX.writeFile(workbook, `recete-snapshot-detail-${selectedSnapshot.snapshotNo}.xlsx`)
+    showToast('Snapshot detayı Excel oluşturuldu.')
+  }
+
+  const printSnapshotDetail = (mode: RecipeSnapshotPrintMode) => {
+    if(!selectedSnapshot) return
+
+    const opened = openRecipePrintWindow(
+      `${selectedSnapshot.snapshotNo} Snapshot Detay`,
+      ['Alan', 'Değer'],
+      getSnapshotDetailRows(selectedSnapshot),
+      mode
+    )
+
+    showToast(opened ? (mode === 'PDF' ? 'Snapshot detayı PDF hazırlandı.' : 'Snapshot detayı yazdırma hazırlandı.') : 'Yazdırma penceresi açılamadı.', opened ? 'success' : 'info')
+  }
+
+  const getSnapshotCompareRows = () => {
+    const sourceSnapshot = snapshotsById.get(snapshotCompareSourceId)
+    const targetSnapshot = snapshotsById.get(snapshotCompareTargetId)
+    if(!sourceSnapshot || !targetSnapshot) return [] as RecipeSnapshotDiffRow[]
+
+    return buildRecipeSnapshotDiffRows(sourceSnapshot, targetSnapshot)
+  }
+
+  const exportSnapshotCompareExcel = () => {
+    if(!selectedRecord) return
+
+    const worksheet = XLSX.utils.aoa_to_sheet([
+      ['Alan', 'Kalem', 'Kaynak Snapshot', 'Hedef Snapshot', 'Fark'],
+      ...getSnapshotCompareRows().map(row => [row.area, row.item, row.sourceValue, row.targetValue, row.difference])
+    ])
+    const workbook = XLSX.utils.book_new()
+    XLSX.utils.book_append_sheet(workbook, worksheet, 'Snapshot Fark')
+    XLSX.writeFile(workbook, `recete-snapshot-compare-${selectedRecord.code}.xlsx`)
+    showToast('Snapshot karşılaştırma Excel oluşturuldu.')
+  }
+
+  const printSnapshotCompare = (mode: RecipeSnapshotPrintMode) => {
+    if(!selectedRecord) return
+
+    const opened = openRecipePrintWindow(
+      `${selectedRecord.code} Snapshot Karşılaştırma`,
+      ['Alan', 'Kalem', 'Kaynak Snapshot', 'Hedef Snapshot', 'Fark'],
+      getSnapshotCompareRows().map(row => [row.area, row.item, row.sourceValue, row.targetValue, row.difference]),
+      mode
+    )
+
+    showToast(opened ? (mode === 'PDF' ? 'Snapshot karşılaştırma PDF hazırlandı.' : 'Snapshot karşılaştırma yazdırma hazırlandı.') : 'Yazdırma penceresi açılamadı.', opened ? 'success' : 'info')
   }
 
   const submitRecipeForm = (event: React.FormEvent) => {
@@ -598,6 +1192,11 @@ export default function Recipes(){
     const portions = Number(recipeForm.portions)
     const firePercent = Number(recipeForm.firePercent)
     const normalizedCode = recipeForm.code.trim().toLocaleUpperCase('tr-TR')
+    const preparationMinutes = Number(recipeForm.preparationMinutes)
+    const cookingMinutes = Number(recipeForm.cookingMinutes)
+    const restingMinutes = Number(recipeForm.restingMinutes)
+    const totalMinutes = preparationMinutes + cookingMinutes + restingMinutes
+    const yieldPercent = Number(recipeForm.yieldPercent)
 
     if(isEditingRecipe){
       const existingRecord = records.find(record => record.id === editingRecipeId)
@@ -606,8 +1205,12 @@ export default function Recipes(){
         return
       }
 
-      const updatedRecord: RecipeManagementRecord = {
-        ...existingRecord,
+      if(getRecipeVersionStatus(existingRecord) === 'Arşiv'){
+        setRecipeFormError('Arşiv versiyon değiştirilemez.')
+        return
+      }
+
+      const commonVersionFields = {
         code: normalizedCode,
         recipeName: recipeForm.recipeName.trim(),
         recipeType: recipeForm.recipeType,
@@ -616,24 +1219,86 @@ export default function Recipes(){
         productName: recipeForm.productName.trim(),
         portions,
         firePercent,
-        status: recipeForm.status,
         description: recipeForm.description.trim(),
         ingredients: recipeFormIngredients,
-        updatedAt: now
+        versionDescription: recipeForm.versionDescription.trim(),
+        revisionNote: recipeForm.revisionNote.trim() || `V${getRecipeVersionNo(existingRecord)} revizyonu`,
+        preparationMinutes,
+        cookingMinutes,
+        restingMinutes,
+        totalMinutes,
+        yieldPercent
       }
 
-      commitRecords(prev => prev.map(record => record.id === updatedRecord.id ? updatedRecord : record))
-      setSelectedRecordId(updatedRecord.id)
+      if(canEditRecipeVersionDirectly(existingRecord)){
+        const isActiveVersion = recipeForm.versionStatus === 'Aktif'
+        const updatedRecord: RecipeManagementRecord = {
+          ...existingRecord,
+          ...commonVersionFields,
+          status: isActiveVersion ? 'Aktif' : 'Pasif',
+          versionStatus: recipeForm.versionStatus,
+          isActiveVersion,
+          publishedAt: isActiveVersion ? now : existingRecord.publishedAt,
+          updatedAt: now
+        }
+
+        commitRecords(prev => prev.map(record => {
+          if(record.id === updatedRecord.id) return updatedRecord
+          if(isActiveVersion && getRecipeMasterId(record) === getRecipeMasterId(updatedRecord) && isRecipeVersionActive(record)){
+            return {
+              ...record,
+              status: 'Pasif',
+              versionStatus: 'Arşiv',
+              isActiveVersion: false,
+              archivedAt: now,
+              updatedAt: now
+            }
+          }
+
+          return record
+        }))
+        setSelectedRecordId(updatedRecord.id)
+        showToast(isActiveVersion ? 'Taslak versiyon aktif edildi.' : 'Taslak versiyon güncellendi.')
+      } else {
+        const masterId = getRecipeMasterId(existingRecord)
+        const nextVersionNo = getNextRecipeVersionNo(records, masterId)
+        const newVersionRecord: RecipeManagementRecord = {
+          ...existingRecord,
+          ...commonVersionFields,
+          id: createId('recipe_version'),
+          masterId,
+          masterCode: existingRecord.masterCode || existingRecord.code,
+          masterName: existingRecord.masterName || existingRecord.recipeName,
+          masterStatus: existingRecord.masterStatus || 'Aktif',
+          versionNo: nextVersionNo,
+          versionStatus: 'Taslak',
+          versionDescription: recipeForm.versionDescription.trim() || `${existingRecord.recipeName} V${nextVersionNo} taslak çalışması`,
+          revisionNote: recipeForm.revisionNote.trim() || `V${nextVersionNo} revizyonu`,
+          status: 'Pasif',
+          isActiveVersion: false,
+          publishedAt: undefined,
+          archivedAt: undefined,
+          createdAt: now,
+          updatedAt: now,
+          createdBy: 'MIYOP Demo'
+        }
+
+        commitRecords(prev => [newVersionRecord, ...prev])
+        setSelectedRecordId(newVersionRecord.id)
+        showToast(`V${nextVersionNo} taslak versiyon oluşturuldu. Aktif reçete korunuyor.`)
+      }
+
       setPanelMode('summary')
       setEditingRecipeId('')
       setRecipeForm(createInitialRecipeForm(records))
       setRecipeFormIngredients([])
       resetRecipeIngredientForm()
       setRecipeFormError('')
-      showToast('Reçete güncellendi.')
       return
     }
 
+    const isActiveVersion = recipeForm.versionStatus === 'Aktif' && recipeForm.status === 'Aktif'
+    const masterId = createId('recipe_master')
     const newRecord: RecipeManagementRecord = {
       id: createId('recipe_mgmt'),
       code: normalizedCode,
@@ -644,11 +1309,27 @@ export default function Recipes(){
       productName: recipeForm.productName.trim(),
       portions,
       firePercent,
-      status: recipeForm.status,
+      status: isActiveVersion ? 'Aktif' : 'Pasif',
       description: recipeForm.description.trim(),
       ingredients: recipeFormIngredients,
       createdAt: now,
-      updatedAt: now
+      updatedAt: now,
+      masterId,
+      masterCode: normalizedCode,
+      masterName: recipeForm.recipeName.trim(),
+      masterStatus: isActiveVersion ? 'Aktif' : 'Pasif',
+      versionNo: 1,
+      versionStatus: isActiveVersion ? 'Aktif' : recipeForm.versionStatus,
+      versionDescription: recipeForm.versionDescription.trim(),
+      revisionNote: recipeForm.revisionNote.trim() || 'İlk yayın',
+      isActiveVersion,
+      publishedAt: isActiveVersion ? now : undefined,
+      createdBy: 'MIYOP Demo',
+      preparationMinutes,
+      cookingMinutes,
+      restingMinutes,
+      totalMinutes,
+      yieldPercent
     }
 
     commitRecords(prev => [newRecord, ...prev])
@@ -662,6 +1343,11 @@ export default function Recipes(){
   }
 
   const startAddIngredient = () => {
+    if(!selectedRecord || !canEditRecipeVersionDirectly(selectedRecord)){
+      showToast('Aktif ve arşiv versiyonlarda doğrudan malzeme değiştirilemez. Düzenleme yeni taslak versiyon oluşturur.', 'info')
+      return
+    }
+
     setIngredientFormVisible(true)
     setEditingIngredientId('')
     setIngredientForm(createInitialIngredientForm())
@@ -669,6 +1355,11 @@ export default function Recipes(){
   }
 
   const startEditIngredient = (ingredient: RecipeIngredient) => {
+    if(!selectedRecord || !canEditRecipeVersionDirectly(selectedRecord)){
+      showToast('Aktif ve arşiv versiyonlarda doğrudan malzeme değiştirilemez. Düzenleme yeni taslak versiyon oluşturur.', 'info')
+      return
+    }
+
     setIngredientFormVisible(true)
     setEditingIngredientId(ingredient.id)
     setIngredientForm(createIngredientFormFromRecord(ingredient))
@@ -685,6 +1376,10 @@ export default function Recipes(){
   const submitIngredientForm = (event: React.FormEvent) => {
     event.preventDefault()
     if(!selectedRecord) return
+    if(!canEditRecipeVersionDirectly(selectedRecord)){
+      showToast('Bu versiyon doğrudan değiştirilemez.', 'info')
+      return
+    }
 
     const validationError = validateIngredientForm(ingredientForm)
     if(validationError){
@@ -721,6 +1416,10 @@ export default function Recipes(){
 
   const deleteIngredient = (ingredient: RecipeIngredient) => {
     if(!selectedRecord) return
+    if(!canEditRecipeVersionDirectly(selectedRecord)){
+      showToast('Bu versiyon doğrudan değiştirilemez.', 'info')
+      return
+    }
     if(!window.confirm('Bu malzemeyi silmek istediğinize emin misiniz?')) return
     if(selectedRecord.ingredients.length <= 1){
       showToast('Reçetede en az 1 malzeme kalmalıdır.', 'info')
@@ -742,14 +1441,23 @@ export default function Recipes(){
     showToast('Malzeme silindi.')
   }
 
-  const renderRecipeFormPanel = () => (
-    <section className="card">
-      <div className="section-header compact">
-        <h3>{isEditingRecipe ? 'Reçete Düzenle' : 'Yeni Reçete'}</h3>
-        <button className="btn" type="button" onClick={cancelRecipeForm}>Vazgeç</button>
-      </div>
+  const renderRecipeFormPanel = () => {
+    const editingRecord = editingRecipeId ? recordsById.get(editingRecipeId) || null : null
+    const createsNewVersion = Boolean(editingRecord && !canEditRecipeVersionDirectly(editingRecord))
+
+    return (
+      <section className="card">
+        <div className="section-header compact">
+          <h3>{createsNewVersion ? 'Yeni Versiyon Hazırla' : isEditingRecipe ? 'Reçete Versiyonu Düzenle' : 'Yeni Reçete'}</h3>
+          <button className="btn" type="button" onClick={cancelRecipeForm}>Vazgeç</button>
+        </div>
 
       {recipeFormError && <div className="form-error">{recipeFormError}</div>}
+      {createsNewVersion && (
+        <div className="recipe-version-notice">
+          Aktif veya onaylı versiyon yerinde değişmez. Kaydettiğinizde mevcut aktif reçete korunur ve yeni taslak versiyon oluşur.
+        </div>
+      )}
 
       <form className="stacked-form recipe-management-form" onSubmit={submitRecipeForm}>
         <div className="form-row">
@@ -788,6 +1496,25 @@ export default function Recipes(){
               </select>
             </div>
           )}
+        </div>
+
+        <div className="form-row">
+          <div className="form-field">
+            <label>Versiyon Durumu</label>
+            <select
+              value={recipeForm.versionStatus}
+              disabled={createsNewVersion}
+              onChange={event => updateRecipeForm('versionStatus', event.target.value as RecipeVersionStatus)}
+            >
+              {RECIPE_VERSION_STATUSES.map(status => (
+                <option key={status} value={status}>{status}</option>
+              ))}
+            </select>
+          </div>
+          <div className="form-field">
+            <label>Revizyon Notu</label>
+            <input value={recipeForm.revisionNote} onChange={event => updateRecipeForm('revisionNote', event.target.value)} />
+          </div>
         </div>
 
         <div className="form-field">
@@ -849,6 +1576,66 @@ export default function Recipes(){
             onChange={event => updateRecipeForm('description', event.target.value)}
             placeholder="Reçete kartı notu"
           />
+        </div>
+
+        <div className="form-field">
+          <label>Versiyon Açıklaması</label>
+          <textarea
+            rows={3}
+            value={recipeForm.versionDescription}
+            onChange={event => updateRecipeForm('versionDescription', event.target.value)}
+            placeholder="Bu versiyonda yapılan değişikliklerin özeti"
+          />
+        </div>
+
+        <div className="form-row">
+          <div className="form-field">
+            <label>Hazırlama Süresi (dk)</label>
+            <input
+              type="number"
+              min="0"
+              max={MAX_RECIPE_MINUTES}
+              step="1"
+              value={recipeForm.preparationMinutes}
+              onChange={event => updateRecipeForm('preparationMinutes', event.target.value)}
+            />
+          </div>
+          <div className="form-field">
+            <label>Pişirme Süresi (dk)</label>
+            <input
+              type="number"
+              min="0"
+              max={MAX_RECIPE_MINUTES}
+              step="1"
+              value={recipeForm.cookingMinutes}
+              onChange={event => updateRecipeForm('cookingMinutes', event.target.value)}
+            />
+          </div>
+        </div>
+
+        <div className="form-row">
+          <div className="form-field">
+            <label>Dinlendirme Süresi (dk)</label>
+            <input
+              type="number"
+              min="0"
+              max={MAX_RECIPE_MINUTES}
+              step="1"
+              value={recipeForm.restingMinutes}
+              onChange={event => updateRecipeForm('restingMinutes', event.target.value)}
+            />
+          </div>
+          <div className="form-field">
+            <label>Yield (%)</label>
+            <input
+              type="number"
+              min="0"
+              max="100"
+              step="0.01"
+              value={recipeForm.yieldPercent}
+              onChange={event => updateRecipeForm('yieldPercent', event.target.value)}
+            />
+          </div>
         </div>
 
         <div className="recipe-form-ingredients">
@@ -922,11 +1709,12 @@ export default function Recipes(){
 
         <div className="form-actions">
           <button className="btn" type="button" onClick={cancelRecipeForm}>Vazgeç</button>
-          <button className="btn primary" type="submit">{isEditingRecipe ? 'Değişiklikleri Kaydet' : 'Reçete Oluştur'}</button>
+          <button className="btn primary" type="submit">{createsNewVersion ? 'Yeni Versiyon Oluştur' : isEditingRecipe ? 'Değişiklikleri Kaydet' : 'Reçete Oluştur'}</button>
         </div>
       </form>
     </section>
-  )
+    )
+  }
 
   const renderAlternativeCountSummary = (
     record: RecipeManagementRecord,
@@ -950,7 +1738,7 @@ export default function Recipes(){
     return (
       <div key={record.id} className="recipe-navigation-row">
         <div className="recipe-navigation-title">
-          <strong>{record.code}</strong>
+          <strong>{record.code} · V{getRecipeVersionNo(record)}</strong>
           <span>{record.recipeName}</span>
         </div>
         <div className="recipe-navigation-cost">
@@ -1000,6 +1788,202 @@ export default function Recipes(){
     )
   }
 
+  const renderVersionHistoryCard = () => {
+    if(!selectedRecord) return null
+
+    const compareSourceRecord = recordsById.get(compareSourceId) || selectedMasterRecords[0] || selectedRecord
+    const compareTargetRecord = recordsById.get(compareTargetId) || selectedMasterRecords[1] || compareSourceRecord
+    const diffRows = buildRecipeVersionDiffRows(compareSourceRecord, compareTargetRecord)
+
+    return (
+      <section className="card recipe-version-card">
+        <div className="section-header compact">
+          <div>
+            <h3>Versiyon Geçmişi</h3>
+            <p className="muted">{selectedMasterRecords.length} versiyon · aktif tek sürüm kuralı uygulanır.</p>
+          </div>
+        </div>
+
+        <div className="recipe-version-output-actions">
+          <button className="btn" type="button" onClick={exportVersionHistoryExcel}>Geçmiş Excel</button>
+          <button className="btn" type="button" onClick={() => printVersionHistory('PDF')}>Geçmiş PDF</button>
+          <button className="btn" type="button" onClick={() => printVersionHistory('PRINT')}>Yazdır</button>
+        </div>
+
+        <div className="recipe-version-list">
+          {selectedMasterRecords.map(record => (
+            <div key={record.id} className="recipe-version-row">
+              <div>
+                <strong>V{getRecipeVersionNo(record)}</strong>
+                <span>{record.revisionNote || '-'}</span>
+              </div>
+              <span className={`status-pill ${getVersionStatusClass(getRecipeVersionStatus(record))}`}>{getRecipeVersionStatus(record)}</span>
+              <small>{record.createdBy || 'MIYOP Demo'} · {formatDateTime(record.createdAt)}</small>
+              <div className="recipe-version-row-actions">
+                <button className="btn" type="button" onClick={() => openDetail(record)}>Aç</button>
+                <button className="btn" type="button" onClick={() => activateRecipeVersion(record)} disabled={isRecipeVersionActive(record) || getRecipeVersionStatus(record) === 'Arşiv'}>Aktifleştir</button>
+                <button className="btn danger" type="button" onClick={() => archiveRecipeVersion(record)} disabled={getRecipeVersionStatus(record) === 'Arşiv'}>Arşivle</button>
+              </div>
+            </div>
+          ))}
+        </div>
+
+        <div className="recipe-version-compare">
+          <div className="section-header compact">
+            <h3>Versiyon Karşılaştırma</h3>
+          </div>
+          <div className="recipe-version-compare-controls">
+            <select value={compareSourceRecord.id} onChange={event => setCompareSourceId(event.target.value)}>
+              {selectedMasterRecords.map(record => (
+                <option key={record.id} value={record.id}>{formatVersionLabel(record)}</option>
+              ))}
+            </select>
+            <select value={compareTargetRecord.id} onChange={event => setCompareTargetId(event.target.value)}>
+              {selectedMasterRecords.map(record => (
+                <option key={record.id} value={record.id}>{formatVersionLabel(record)}</option>
+              ))}
+            </select>
+          </div>
+          <div className="recipe-version-output-actions">
+            <button className="btn" type="button" onClick={exportDiffReportExcel}>Fark Excel</button>
+            <button className="btn" type="button" onClick={() => printDiffReport('PDF')}>Fark PDF</button>
+            <button className="btn" type="button" onClick={() => printDiffReport('PRINT')}>Fark Yazdır</button>
+          </div>
+          <div className="recipe-version-diff-list">
+            {diffRows.length === 0 ? (
+              <div className="recipe-relation-empty">Seçilen versiyonlar arasında fark bulunmuyor.</div>
+            ) : diffRows.slice(0, 8).map((row, index) => (
+              <div key={`${row.area}_${row.item}_${index}`} className="recipe-version-diff-row">
+                <span>{row.area}</span>
+                <strong>{row.item}</strong>
+                <small>{row.sourceValue} → {row.targetValue}</small>
+                <em>{row.difference}</em>
+              </div>
+            ))}
+          </div>
+        </div>
+      </section>
+    )
+  }
+
+  const renderSnapshotHistoryCard = () => {
+    if(!selectedRecord) return null
+
+    const compareSourceSnapshot = snapshotsById.get(snapshotCompareSourceId) || selectedRecipeSnapshots[0] || null
+    const compareTargetSnapshot = snapshotsById.get(snapshotCompareTargetId) || selectedRecipeSnapshots[1] || compareSourceSnapshot
+    const snapshotDiffRows = compareSourceSnapshot && compareTargetSnapshot
+      ? buildRecipeSnapshotDiffRows(compareSourceSnapshot, compareTargetSnapshot)
+      : []
+
+    return (
+      <section className="card recipe-snapshot-card">
+        <div className="section-header compact">
+          <div>
+            <h3>Snapshotlar</h3>
+            <p className="muted">{selectedRecipeSnapshots.length} immutable snapshot · üretim emri yalnızca referans tutar.</p>
+          </div>
+        </div>
+
+        <div className="recipe-version-output-actions">
+          <button className="btn" type="button" onClick={exportSnapshotHistoryExcel}>Geçmiş Excel</button>
+          <button className="btn" type="button" onClick={() => printSnapshotHistory('PDF')}>Geçmiş PDF</button>
+          <button className="btn" type="button" onClick={() => printSnapshotHistory('PRINT')}>Yazdır</button>
+        </div>
+
+        {selectedRecipeSnapshots.length === 0 ? (
+          <div className="recipe-relation-empty">Bu reçete için snapshot bulunmuyor.</div>
+        ) : (
+          <>
+            <div className="recipe-snapshot-list">
+              {selectedRecipeSnapshots.slice(0, 8).map(snapshot => (
+                <button
+                  key={snapshot.id}
+                  className={`recipe-snapshot-row ${snapshot.id === selectedSnapshot?.id ? 'active' : ''}`}
+                  type="button"
+                  onClick={() => setSelectedSnapshotId(snapshot.id)}
+                >
+                  <span>{snapshot.snapshotNo}</span>
+                  <strong>{snapshot.productionOrderNo}</strong>
+                  <small>V{snapshot.versionNo} · {formatDateTime(snapshot.snapshotDate)} · {formatRecipeCostAmount(snapshot.totalCost)}</small>
+                </button>
+              ))}
+            </div>
+
+            {selectedSnapshot && (
+              <div className="recipe-snapshot-detail">
+                <div className="section-header compact">
+                  <div>
+                    <h3>Snapshot Detay</h3>
+                    <p className="muted">{selectedSnapshot.snapshotNo} · {selectedSnapshot.ingredients.length} malzeme snapshot</p>
+                  </div>
+                </div>
+                <div className="recipe-version-output-actions">
+                  <button className="btn" type="button" onClick={exportSnapshotDetailExcel}>Detay Excel</button>
+                  <button className="btn" type="button" onClick={() => printSnapshotDetail('PDF')}>Detay PDF</button>
+                  <button className="btn" type="button" onClick={() => printSnapshotDetail('PRINT')}>Detay Yazdır</button>
+                </div>
+                <div className="recipe-summary-grid">
+                  <div><span>Üretim Emri</span><strong>{selectedSnapshot.productionOrderNo}</strong></div>
+                  <div><span>Reçete Versiyonu</span><strong>V{selectedSnapshot.versionNo}</strong></div>
+                  <div><span>Snapshot Tarihi</span><strong>{formatDateTime(selectedSnapshot.snapshotDate)}</strong></div>
+                  <div><span>Toplam Maliyet</span><strong>{formatRecipeCostAmount(selectedSnapshot.totalCost)}</strong></div>
+                  <div><span>Fire</span><strong>{formatFirePercent(selectedSnapshot.firePercent)} %</strong></div>
+                  <div><span>Yield</span><strong>{formatFirePercent(selectedSnapshot.yieldPercent)} %</strong></div>
+                  <div><span>Toplam Süre</span><strong>{formatNumber(selectedSnapshot.totalMinutes)} dk</strong></div>
+                  <div><span>Oluşturan</span><strong>{selectedSnapshot.createdBy}</strong></div>
+                </div>
+                <div className="recipe-snapshot-ingredient-list">
+                  {selectedSnapshot.ingredients.slice(0, 6).map(ingredient => (
+                    <div key={ingredient.id} className="recipe-snapshot-ingredient-row">
+                      <strong>{ingredient.materialName}</strong>
+                      <span>{formatNumber(ingredient.quantity)} {ingredient.unit} · {formatNumber(ingredient.baseQuantity)} {ingredient.baseUnit}</span>
+                      <em>{formatRecipeCostAmount(ingredient.totalCost)}</em>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            <div className="recipe-version-compare">
+              <div className="section-header compact">
+                <h3>Snapshot Karşılaştırma</h3>
+              </div>
+              <div className="recipe-version-compare-controls">
+                <select value={compareSourceSnapshot?.id || ''} onChange={event => setSnapshotCompareSourceId(event.target.value)}>
+                  {selectedRecipeSnapshots.map(snapshot => (
+                    <option key={snapshot.id} value={snapshot.id}>{formatSnapshotLabel(snapshot)}</option>
+                  ))}
+                </select>
+                <select value={compareTargetSnapshot?.id || ''} onChange={event => setSnapshotCompareTargetId(event.target.value)}>
+                  {selectedRecipeSnapshots.map(snapshot => (
+                    <option key={snapshot.id} value={snapshot.id}>{formatSnapshotLabel(snapshot)}</option>
+                  ))}
+                </select>
+              </div>
+              <div className="recipe-version-output-actions">
+                <button className="btn" type="button" onClick={exportSnapshotCompareExcel}>Fark Excel</button>
+                <button className="btn" type="button" onClick={() => printSnapshotCompare('PDF')}>Fark PDF</button>
+                <button className="btn" type="button" onClick={() => printSnapshotCompare('PRINT')}>Fark Yazdır</button>
+              </div>
+              <div className="recipe-version-diff-list">
+                {snapshotDiffRows.length === 0 ? (
+                  <div className="recipe-relation-empty">Seçilen snapshotlar arasında fark bulunmuyor.</div>
+                ) : snapshotDiffRows.slice(0, 8).map((row, index) => (
+                  <div key={`${row.area}_${row.item}_${index}`} className="recipe-version-diff-row">
+                    <span>{row.area}</span>
+                    <strong>{row.item}</strong>
+                    <small>{row.sourceValue} → {row.targetValue}</small>
+                    <em>{row.difference}</em>
+                  </div>
+                ))}
+              </div>
+            </div>
+          </>
+        )}
+      </section>
+    )
+  }
+
   const renderSummaryPanel = () => {
     if(!selectedRecord){
       return (
@@ -1012,6 +1996,7 @@ export default function Recipes(){
     const selectedRecipeCost = calculateRecipeCost(selectedRecord)
     const selectedAlternativeCount = selectedRecord.recipeRole === 'PRIMARY' ? selectedAlternativeRecipes.length : 0
     const selectedParentRecipe = formatParentRecipe(selectedRecord, records)
+    const selectedVersionStatus = getRecipeVersionStatus(selectedRecord)
 
     return (
       <section className="card recipe-management-summary">
@@ -1025,6 +2010,10 @@ export default function Recipes(){
 
         <div className="recipe-summary-grid">
           <div><span>Kod</span><strong>{selectedRecord.code}</strong></div>
+          <div><span>Versiyon</span><strong>V{getRecipeVersionNo(selectedRecord)}</strong></div>
+          <div><span>Versiyon Durumu</span><strong>{selectedVersionStatus}</strong></div>
+          <div><span>Aktif Versiyon</span><strong>{isRecipeVersionActive(selectedRecord) ? 'Evet' : 'Hayır'}</strong></div>
+          <div><span>Snapshot Sayısı</span><strong>{selectedRecipeSnapshots.length}</strong></div>
           <div><span>Reçete Adı</span><strong>{selectedRecord.recipeName}</strong></div>
           <div><span>Reçete Türü</span><strong>{selectedRecord.recipeType}</strong></div>
           <div><span>Rol</span><strong>{getRecipeRoleLabel(selectedRecord.recipeRole)}</strong></div>
@@ -1037,15 +2026,20 @@ export default function Recipes(){
           <div><span>Toplam Maliyet</span><strong>{formatRecipeCostAmount(selectedRecipeCost.recipeCost)}</strong></div>
           <div><span>Fire Maliyeti</span><strong>{formatRecipeCostAmount(selectedRecipeCost.fireAmount)}</strong></div>
           <div><span>Fire</span><strong>{formatFirePercent(selectedRecord.firePercent)} %</strong></div>
+          <div><span>Yield</span><strong>{formatFirePercent(getRecipeYieldPercent(selectedRecord))} %</strong></div>
+          <div><span>Toplam Süre</span><strong>{formatNumber(getRecipeTotalMinutes(selectedRecord))} dk</strong></div>
           <div><span>Porsiyon Maliyeti</span><strong>{formatRecipeCostAmount(selectedRecipeCost.portionCost)}</strong></div>
           <div><span>Son Güncelleme</span><strong>{formatDateTime(selectedRecord.updatedAt || selectedRecord.createdAt)}</strong></div>
+          <div><span>Revizyon Notu</span><strong>{selectedRecord.revisionNote || '-'}</strong></div>
           <div><span>Açıklama</span><strong>{selectedRecord.description || '-'}</strong></div>
         </div>
 
         <div className="recipe-side-actions">
           <button className="btn primary" type="button" onClick={() => openDetail(selectedRecord)}>Detay</button>
-          <button className="btn" type="button" onClick={() => startEditRecipe(selectedRecord)}>Düzenle</button>
-          <button className="btn danger" type="button" onClick={() => deleteRecipe(selectedRecord)}>Sil</button>
+          <button className="btn" type="button" onClick={() => startEditRecipe(selectedRecord)}>
+            {canEditRecipeVersionDirectly(selectedRecord) ? 'Düzenle' : 'Yeni Versiyon'}
+          </button>
+          <button className="btn danger" type="button" onClick={() => archiveRecipeVersion(selectedRecord)}>Arşivle</button>
         </div>
       </section>
     )
@@ -1119,11 +2113,13 @@ export default function Recipes(){
         <div className="page-title recipe-detail-title">
           <div>
             <h2>{selectedRecord.recipeName}</h2>
-            <p className="muted">{selectedRecord.code} · {selectedRecord.recipeType} · {selectedRecord.productName}</p>
+            <p className="muted">{selectedRecord.code} · V{getRecipeVersionNo(selectedRecord)} · {getRecipeVersionStatus(selectedRecord)} · {selectedRecord.recipeType} · {selectedRecord.productName}</p>
           </div>
           <div className="recipe-detail-actions">
             <button className="btn" type="button" onClick={backToList}>Listeye Dön</button>
-            <button className="btn" type="button" onClick={() => startEditRecipe(selectedRecord)}>Reçete Düzenle</button>
+            <button className="btn" type="button" onClick={() => startEditRecipe(selectedRecord)}>
+              {canEditRecipeVersionDirectly(selectedRecord) ? 'Reçete Düzenle' : 'Yeni Versiyon'}
+            </button>
           </div>
         </div>
 
@@ -1140,7 +2136,7 @@ export default function Recipes(){
                 <h3>Malzemeler</h3>
                 <p className="muted">{selectedRecord.ingredients.length} malzeme satırı gösteriliyor.</p>
               </div>
-              <button className="btn primary" type="button" onClick={startAddIngredient}>+ Malzeme Ekle</button>
+              <button className="btn primary" type="button" onClick={startAddIngredient} disabled={!canEditRecipeVersionDirectly(selectedRecord)}>+ Malzeme Ekle</button>
             </div>
 
             <div className="table-wrap recipe-ingredient-table-wrap">
@@ -1174,8 +2170,8 @@ export default function Recipes(){
                           <strong>{formatRecipeCostAmount(ingredientCost?.cost || 0)}</strong>
                         </td>
                         <td className="actions-cell" data-label="İşlemler">
-                          <button className="btn" type="button" onClick={() => startEditIngredient(ingredient)}>Düzenle</button>
-                          <button className="btn danger" type="button" onClick={() => deleteIngredient(ingredient)}>Sil</button>
+                          <button className="btn" type="button" onClick={() => startEditIngredient(ingredient)} disabled={!canEditRecipeVersionDirectly(selectedRecord)}>Düzenle</button>
+                          <button className="btn danger" type="button" onClick={() => deleteIngredient(ingredient)} disabled={!canEditRecipeVersionDirectly(selectedRecord)}>Sil</button>
                         </td>
                       </tr>
                     )
@@ -1186,7 +2182,7 @@ export default function Recipes(){
 
             {ingredientFormVisible ? renderIngredientForm() : (
               <div className="recipe-ingredient-add-row">
-                <button className="btn primary" type="button" onClick={startAddIngredient}>+ Malzeme Ekle</button>
+                <button className="btn primary" type="button" onClick={startAddIngredient} disabled={!canEditRecipeVersionDirectly(selectedRecord)}>+ Malzeme Ekle</button>
               </div>
             )}
           </section>
@@ -1199,6 +2195,9 @@ export default function Recipes(){
               </div>
               <div className="recipe-summary-grid">
                 <div><span>Kod</span><strong>{selectedRecord.code}</strong></div>
+                <div><span>Versiyon</span><strong>V{getRecipeVersionNo(selectedRecord)}</strong></div>
+                <div><span>Versiyon Durumu</span><strong>{getRecipeVersionStatus(selectedRecord)}</strong></div>
+                <div><span>Aktif Versiyon</span><strong>{isRecipeVersionActive(selectedRecord) ? 'Evet' : 'Hayır'}</strong></div>
                 <div><span>Reçete Adı</span><strong>{selectedRecord.recipeName}</strong></div>
                 <div><span>Reçete Türü</span><strong>{selectedRecord.recipeType}</strong></div>
                 <div><span>Rol</span><strong>{getRecipeRoleLabel(selectedRecord.recipeRole)}</strong></div>
@@ -1211,11 +2210,16 @@ export default function Recipes(){
                 <div><span>Toplam Maliyet</span><strong>{formatRecipeCostAmount(selectedRecipeCost.recipeCost)}</strong></div>
                 <div><span>Fire Maliyeti</span><strong>{formatRecipeCostAmount(selectedRecipeCost.fireAmount)}</strong></div>
                 <div><span>Fire</span><strong>{formatFirePercent(selectedRecord.firePercent)} %</strong></div>
+                <div><span>Yield</span><strong>{formatFirePercent(getRecipeYieldPercent(selectedRecord))} %</strong></div>
+                <div><span>Toplam Süre</span><strong>{formatNumber(getRecipeTotalMinutes(selectedRecord))} dk</strong></div>
                 <div><span>Porsiyon Maliyeti</span><strong>{formatRecipeCostAmount(selectedRecipeCost.portionCost)}</strong></div>
                 <div><span>Son Güncelleme</span><strong>{formatDateTime(selectedRecord.updatedAt || selectedRecord.createdAt)}</strong></div>
+                <div><span>Revizyon Notu</span><strong>{selectedRecord.revisionNote || '-'}</strong></div>
                 <div><span>Açıklama</span><strong>{selectedRecord.description || '-'}</strong></div>
               </div>
             </section>
+            {renderVersionHistoryCard()}
+            {renderSnapshotHistoryCard()}
             {renderRecipeRelationCard()}
           </aside>
         </div>
@@ -1244,20 +2248,20 @@ export default function Recipes(){
 
       <div className="metric-grid compact-metric-grid">
         <div className="metric-card compact-metric-card">
-          <span>Toplam Reçete</span>
-          <strong>{totalRecipes}</strong>
+          <span>Reçete Master</span>
+          <strong>{totalRecipeMasters}</strong>
         </div>
         <div className="metric-card compact-metric-card">
-          <span>Aktif Reçete</span>
+          <span>Aktif Versiyon</span>
           <strong>{activeRecipes}</strong>
+        </div>
+        <div className="metric-card compact-metric-card">
+          <span>Reçete Versiyon</span>
+          <strong>{totalRecipeVersions}</strong>
         </div>
         <div className="metric-card compact-metric-card">
           <span>Toplam Malzeme</span>
           <strong>{totalIngredients}</strong>
-        </div>
-        <div className="metric-card compact-metric-card">
-          <span>Toplam Porsiyon</span>
-          <strong>{formatNumber(totalPortions)}</strong>
         </div>
       </div>
 
@@ -1287,6 +2291,12 @@ export default function Recipes(){
                 <option value="PRIMARY">Ana Reçeteler</option>
                 <option value="ALTERNATIVE">Alternatif Reçeteler</option>
               </select>
+              <select value={versionStatusFilter} onChange={event => setVersionStatusFilter(event.target.value as VersionStatusFilter)}>
+                <option value="all">Tüm Versiyonlar</option>
+                {RECIPE_VERSION_STATUSES.map(status => (
+                  <option key={status} value={status}>{status}</option>
+                ))}
+              </select>
             </div>
           </div>
 
@@ -1294,6 +2304,7 @@ export default function Recipes(){
             <table className="data-table recipe-table">
               <colgroup>
                 <col className="recipe-col-code" />
+                <col className="recipe-col-version" />
                 <col className="recipe-col-name" />
                 <col className="recipe-col-type" />
                 <col className="recipe-col-role" />
@@ -1302,11 +2313,13 @@ export default function Recipes(){
                 <col className="recipe-col-ingredients" />
                 <col className="recipe-col-cost" />
                 <col className="recipe-col-status" />
+                <col className="recipe-col-version-status" />
                 <col className="recipe-col-actions" />
               </colgroup>
               <thead>
                 <tr>
                   <th>Kod</th>
+                  <th>Versiyon</th>
                   <th>Reçete Adı</th>
                   <th>Reçete Türü</th>
                   <th>Rol</th>
@@ -1315,13 +2328,14 @@ export default function Recipes(){
                   <th>Malzeme Sayısı</th>
                   <th>Toplam Maliyet</th>
                   <th>Durum</th>
+                  <th>Versiyon Durumu</th>
                   <th>İşlemler</th>
                 </tr>
               </thead>
               <tbody>
                 {records.length === 0 && (
                   <tr>
-                    <td colSpan={10} className="empty-cell">
+                    <td colSpan={12} className="empty-cell">
                       <div className="recipe-empty-list">
                         <strong>Henüz reçete bulunmuyor.</strong>
                         <span>İlk reçeteyi oluşturmak için "Yeni Reçete" butonunu kullanabilirsiniz.</span>
@@ -1331,7 +2345,7 @@ export default function Recipes(){
                   </tr>
                 )}
                 {records.length > 0 && visibleRecords.length === 0 && (
-                  <tr><td colSpan={10} className="empty-cell">Filtrelere uygun reçete bulunamadı.</td></tr>
+                  <tr><td colSpan={12} className="empty-cell">Filtrelere uygun reçete bulunamadı.</td></tr>
                 )}
                 {visibleRecords.map(record => {
                   const recipeCost = calculateRecipeCost(record)
@@ -1347,6 +2361,7 @@ export default function Recipes(){
                       onDoubleClick={() => openDetail(record)}
                     >
                       <td><strong>{record.code}</strong></td>
+                      <td><strong>V{getRecipeVersionNo(record)}</strong></td>
                       <td>
                         <strong>{record.recipeName}</strong>
                         {record.description && <div className="muted small-text">{record.description}</div>}
@@ -1362,6 +2377,7 @@ export default function Recipes(){
                       <td>{record.ingredients.length}</td>
                       <td>{formatRecipeCostAmount(recipeCost.recipeCost)}</td>
                       <td><span className={`status-pill ${getStatusClass(record.status)}`}>{record.status}</span></td>
+                      <td><span className={`status-pill ${getVersionStatusClass(getRecipeVersionStatus(record))}`}>{getRecipeVersionStatus(record)}</span></td>
                       <td className="actions-cell">
                         <button
                           className="btn"
@@ -1381,7 +2397,7 @@ export default function Recipes(){
                             startEditRecipe(record)
                           }}
                         >
-                          Düzenle
+                          {canEditRecipeVersionDirectly(record) ? 'Düzenle' : 'Yeni Versiyon'}
                         </button>
                         <button
                           className="btn danger"
@@ -1391,7 +2407,7 @@ export default function Recipes(){
                             deleteRecipe(record)
                           }}
                         >
-                          Sil
+                          Arşivle
                         </button>
                       </td>
                     </tr>

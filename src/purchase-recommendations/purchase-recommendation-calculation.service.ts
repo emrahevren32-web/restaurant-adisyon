@@ -813,8 +813,8 @@ const createProductionPlanCandidates = (
       }
     }))
   }))
-  .filter((item): item is PurchaseCandidate => Boolean(item))
-  .slice(0, 30)
+  .filter(Boolean)
+  .slice(0, 30) as PurchaseCandidate[]
 
 const createOpenRequestCandidates = (
   sourceData: KpiSourceData,
@@ -924,8 +924,8 @@ const createOpenRequestCandidates = (
       createdAt: `${createdDate}T10:${String((requestIndex * 13 + itemIndex * 5) % 60).padStart(2, '0')}:00.000Z`
     }
   }))
-  .filter((item): item is PurchaseCandidate => Boolean(item))
-  .slice(0, 40)
+  .filter(Boolean)
+  .slice(0, 40) as PurchaseCandidate[]
 
 const createPendingDeliveryCandidates = (
   sourceData: KpiSourceData,
@@ -984,8 +984,8 @@ const createPendingDeliveryCandidates = (
       createdAt: `${createdDate}T11:${String(index * 3 % 60).padStart(2, '0')}:00.000Z`
     }
   })
-  .filter((item): item is PurchaseCandidate => Boolean(item))
-  .slice(0, 16)
+  .filter(Boolean)
+  .slice(0, 16) as PurchaseCandidate[]
 
 const createExpiryRiskCandidates = (
   sourceData: KpiSourceData,
@@ -1040,8 +1040,8 @@ const createExpiryRiskCandidates = (
       createdAt: `${createdDate}T12:${String(index * 5 % 60).padStart(2, '0')}:00.000Z`
     }
   })
-  .filter((item): item is PurchaseCandidate => Boolean(item))
-  .slice(0, 12)
+  .filter(Boolean)
+  .slice(0, 12) as PurchaseCandidate[]
 
 const createLowerCostSupplierCandidates = (
   sourceData: KpiSourceData,
@@ -1108,7 +1108,7 @@ const createLowerCostSupplierCandidates = (
       createdAt: `${createdDate}T13:${String(index * 7 % 60).padStart(2, '0')}:00.000Z`
     }]
   })
-  .slice(0, 18)
+  .slice(0, 18) as PurchaseCandidate[]
 
 const seedRecommendationTypes: PurchaseRecommendationType[] = [
   'CRITICAL_STOCK',
@@ -1760,7 +1760,8 @@ const createSupplierOpportunityCandidates = (
       supplierName: maps.supplierNameById.get(product.supplierId) || product.supplierProductName || product.supplierId
     }
   })
-  .filter((item): item is PurchaseCandidate => Boolean(item))
+  .filter(Boolean)
+  .map(item => item as PurchaseCandidate)
   .sort((first, second) => (second.expectedSaving || 0) - (first.expectedSaving || 0))
   .slice(0, 8)
 

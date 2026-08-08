@@ -905,10 +905,10 @@ const getForecastRows = (): ExcelRow[] => {
 const getRecommendationRows = (): ExcelRow[] => {
   const sourceData = loadKpiSourceData()
 
-  return RecommendationService.list(sourceData).flatMap(report => report.items.map(item => ({
+  return RecommendationService.list(sourceData).flatMap(report => report.items.map((item, index) => ({
     id: report.id,
     lineId: item.id,
-    recommendationNo: item.recommendationNo,
+    recommendationNo: `${report.reportNo}-${String(index + 1).padStart(3, '0')}`,
     reportNo: report.reportNo,
     reportDate: report.reportDate,
     status: RECOMMENDATION_STATUS_LABELS[report.status],

@@ -80,6 +80,11 @@ export type ProductionPlanItem = {
   productCode: string
   recipeId: string
   recipeName: string
+  recipeMasterId?: string
+  recipeVersionId?: string
+  recipeVersionNo?: number
+  recipeSnapshotId?: string
+  recipeSnapshotDate?: string
   demandQuantity: number
   currentStock: number
   minimumStock: number

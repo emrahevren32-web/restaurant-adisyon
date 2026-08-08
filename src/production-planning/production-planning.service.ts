@@ -11,6 +11,10 @@ import { resolveReadModelList } from '../read-model/read-model-safety'
 import type { ProductionLine } from '../production-lines/production-line.types'
 import type { ProductionWorkOrder } from '../production-work-orders/production-work-order.types'
 import type { RecipeManagementRecord } from '../recipe-management/recipe-management.types'
+import {
+  createRecipeSnapshotId,
+  createSnapshotForProductionOrder
+} from '../recipe-management/recipe-snapshot.service'
 import type { StockItem, StockUnit } from '../types'
 import { WasteService } from '../waste-management/waste.service'
 import { createPlanningHistory, appendPlanningHistory } from './planning-history.service'
@@ -90,6 +94,10 @@ const isRecord = (value: unknown): value is Record<string, unknown> => (
 
 const normalizeText = (value: unknown) => String(value || '').trim()
 const normalizeSearchText = (value: unknown) => normalizeText(value).toLocaleLowerCase('tr-TR')
+
+const getRecipeMasterId = (recipe: RecipeManagementRecord) => recipe.masterId || recipe.id
+
+const getRecipeVersionNo = (recipe: RecipeManagementRecord) => recipe.versionNo || 1
 
 const normalizeQuantity = (value: unknown) => {
   const parsed = Number(value)
@@ -484,14 +492,21 @@ const createPlanItem = (
     ? Math.max(20, roundKpi((produceQuantity / capacity) * MINUTES_PER_SHIFT + product.recipe.ingredients.length * 4))
     : 0
   const priority = getPriority(produceQuantity, supply.currentStock, supply.minimumStock, demand.totalDemand, wastePercent)
+  const itemId = `${planId}_item_${index + 1}`
+  const recipeSnapshotId = createRecipeSnapshotId(itemId, product.recipe.id)
   const item: ProductionPlanItem = {
-    id: `${planId}_item_${index + 1}`,
+    id: itemId,
     planId,
     productId: product.productId,
     productName: product.productName,
     productCode: product.productCode,
     recipeId: product.recipe.id,
     recipeName: product.recipe.recipeName,
+    recipeMasterId: getRecipeMasterId(product.recipe),
+    recipeVersionId: product.recipe.id,
+    recipeVersionNo: getRecipeVersionNo(product.recipe),
+    recipeSnapshotId,
+    recipeSnapshotDate: new Date().toISOString(),
     demandQuantity: demand.totalDemand,
     currentStock: supply.currentStock,
     minimumStock: supply.minimumStock,
@@ -633,6 +648,36 @@ const createPlanFromContext = ({
   }
 }
 
+const attachRecipeSnapshotsToPlan = (
+  plan: ProductionPlan,
+  sourceData: KpiSourceData,
+  actorName: string
+): ProductionPlan => ({
+  ...plan,
+  items: plan.items.map((item, index) => {
+    const recipe = sourceData.recipeRecords.find(record => record.id === (item.recipeVersionId || item.recipeId))
+      || sourceData.recipeRecords.find(record => record.id === item.recipeId)
+      || null
+    if(!recipe) return item
+
+    const snapshot = createSnapshotForProductionOrder(recipe, {
+      productionOrderId: item.id,
+      productionOrderNo: `${plan.planNo || plan.id}-${String(index + 1).padStart(2, '0')}`,
+      snapshotDate: plan.createdAt,
+      createdBy: actorName
+    })
+
+    return {
+      ...item,
+      recipeMasterId: getRecipeMasterId(recipe),
+      recipeVersionId: recipe.id,
+      recipeVersionNo: getRecipeVersionNo(recipe),
+      recipeSnapshotId: snapshot.id,
+      recipeSnapshotDate: snapshot.snapshotDate
+    }
+  })
+})
+
 export const createProductionPlanningReadModelRecords = (
   sourceData: KpiSourceData
 ): ProductionPlan[] => {
@@ -708,10 +753,10 @@ export const createProductionPlanningReadModelRecords = (
     })
   ]
 
-  return seedPlans.map((plan, index) => ({
+  return seedPlans.map((plan, index) => attachRecipeSnapshotsToPlan({
     ...plan,
     planNo: getNextProductionPlanNo(seedPlans.slice(0, index), plan.planDate)
-  }))
+  }, sourceData, plan.createdBy))
 }
 
 const normalizeDemand = (
@@ -779,6 +824,11 @@ const normalizeItems = (
     productCode: normalizeText(item.productCode),
     recipeId: normalizeText(item.recipeId),
     recipeName: normalizeText(item.recipeName),
+    recipeMasterId: normalizeText(item.recipeMasterId),
+    recipeVersionId: normalizeText(item.recipeVersionId) || normalizeText(item.recipeId),
+    recipeVersionNo: Math.max(1, Math.floor(normalizeQuantity(item.recipeVersionNo || item.recipeVersion))),
+    recipeSnapshotId: normalizeText(item.recipeSnapshotId),
+    recipeSnapshotDate: normalizeText(item.recipeSnapshotDate),
     demandQuantity: normalizeQuantity(item.demandQuantity),
     currentStock: normalizeQuantity(item.currentStock),
     minimumStock: normalizeQuantity(item.minimumStock),
@@ -958,15 +1008,28 @@ export const addProductionPlan = (
     endDate: input.endDate,
     sourceType: 'ManualReadModel' as const,
     responsiblePerson: input.responsiblePerson,
-    items: plan.items.map((item, index) => ({ ...item, id: `${nextPlanId}_item_${index + 1}`, planId: nextPlanId })),
+    items: plan.items.map((item, index) => {
+      const itemId = `${nextPlanId}_item_${index + 1}`
+      const recipeVersionId = item.recipeVersionId || item.recipeId
+
+      return {
+        ...item,
+        id: itemId,
+        planId: nextPlanId,
+        recipeVersionId,
+        recipeSnapshotId: createRecipeSnapshotId(itemId, recipeVersionId),
+        recipeSnapshotDate: new Date().toISOString()
+      }
+    }),
     demands: plan.demands.map((demand, index) => ({ ...demand, id: `${nextPlanId}_demand_${index + 1}`, planId: nextPlanId })),
     supplies: plan.supplies.map((supply, index) => ({ ...supply, id: `${nextPlanId}_supply_${index + 1}`, planId: nextPlanId })),
     history: plan.history.map(history => ({ ...history, planId: nextPlanId }))
   }
-  const nextValidation = validateProductionPlan(nextPlan, sourceData)
+  const snapshotPlan = attachRecipeSnapshotsToPlan(nextPlan, sourceData, actorName)
+  const nextValidation = validateProductionPlan(snapshotPlan, sourceData)
   if(!nextValidation.valid) throw new Error(nextValidation.errors.join(' '))
-  saveProductionPlans([nextPlan, ...records])
-  return nextPlan
+  saveProductionPlans([snapshotPlan, ...records])
+  return snapshotPlan
 }
 
 export const updateProductionPlanStatus = (

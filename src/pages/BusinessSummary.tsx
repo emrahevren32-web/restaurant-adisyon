@@ -851,7 +851,7 @@ const buildExecutiveDashboardModel = (): ExecutiveDashboardModel => {
   const pendingSamples = sourceData.qualitySamples.filter(sample => isSamplePending(sample.status))
   const activeLines = sourceData.productionLines.filter(line => line.status !== 'Pasif')
   const dailyEfficiency = averageBy(activeLines, line => clampValue(line.estimatedUtilization, 0, 100))
-  const safeAverageCost = clampValue(costView.statistics.averageCostPerKg || costView.statistics.averageCostPerUnit || 95, 18, 450)
+  const safeAverageCost = clampValue(costView.statistics.averageCostPerKg || costView.statistics.averageCost || 95, 18, 450)
   const dailyCostBaseQuantity = dailyProductionQuantity || roundKpi(totalProductionQuantity / 30) || 1400
   const todayEstimatedCost = roundKpi(clampValue(dailyCostBaseQuantity * safeAverageCost + todayWasteCost, 0, MAX_TODAY_COST))
   const warehouseRows = createWarehouseOccupancyRows(sourceData)

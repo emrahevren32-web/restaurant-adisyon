@@ -863,7 +863,7 @@ export const calculateRecommendationReport = (
     machineSchedules,
     productionPlans,
     workforcePlans
-  }).predictions
+  })
   const context = {
     ...input,
     bottleneckReports,

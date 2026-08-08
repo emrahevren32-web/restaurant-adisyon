@@ -1361,7 +1361,8 @@ function BarChartCard({
   rows: BarChartRow[]
   title: string
 }){
-  const maxValue = Math.max(1, ...rows.map(row => row.value))
+  const chartValues = rows.map(row => Math.max(0, toFiniteNumber(row.value)))
+  const maxValue = Math.max(1, ...chartValues)
 
   return (
     <section className="card kpi-chart-card daily-production-chart-card">
@@ -1380,7 +1381,7 @@ function BarChartCard({
               <span>{row.detail || row.formattedValue}</span>
             </div>
             <div className="kpi-bar-track">
-              <span style={{ width: `${Math.max(3, (row.value / maxValue) * 100)}%` }} />
+              <span style={{ width: `${Math.max(3, (Math.max(0, toFiniteNumber(row.value)) / maxValue) * 100)}%` }} />
             </div>
             <em>{row.formattedValue}</em>
           </div>

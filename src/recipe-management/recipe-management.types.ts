@@ -6,6 +6,18 @@ export type RecipeManagementStatus =
   | 'Aktif'
   | 'Pasif'
 
+export type RecipeMasterStatus =
+  | 'Aktif'
+  | 'Pasif'
+  | 'Arşiv'
+
+export type RecipeVersionStatus =
+  | 'Taslak'
+  | 'İncelemede'
+  | 'Onaylandı'
+  | 'Aktif'
+  | 'Arşiv'
+
 export type RecipeManagementRole =
   | 'PRIMARY'
   | 'ALTERNATIVE'
@@ -40,6 +52,29 @@ export type RecipeIngredient = {
   unitCost: number
 }
 
+export type RecipeMaster = {
+  id: string
+  code: string
+  name: string
+  status: RecipeMasterStatus
+  createdAt: string
+  updatedAt?: string
+}
+
+export type RecipeVersion = {
+  id: string
+  masterId: string
+  versionNo: number
+  status: RecipeVersionStatus
+  description: string
+  createdAt: string
+  createdBy: string
+  publishedAt?: string
+  isActive: boolean
+  revisionNote: string
+  archivedAt?: string
+}
+
 export type RecipeManagementRecord = {
   id: string
   code: string
@@ -55,4 +90,21 @@ export type RecipeManagementRecord = {
   ingredients: RecipeIngredient[]
   createdAt: string
   updatedAt?: string
+  masterId?: string
+  masterCode?: string
+  masterName?: string
+  masterStatus?: RecipeMasterStatus
+  versionNo?: number
+  versionStatus?: RecipeVersionStatus
+  versionDescription?: string
+  createdBy?: string
+  publishedAt?: string
+  isActiveVersion?: boolean
+  revisionNote?: string
+  archivedAt?: string
+  preparationMinutes?: number
+  cookingMinutes?: number
+  restingMinutes?: number
+  totalMinutes?: number
+  yieldPercent?: number
 }

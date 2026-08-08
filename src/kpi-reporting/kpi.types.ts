@@ -25,7 +25,7 @@ import type { WitnessSample } from '../witness-samples/witness-sample.types'
 
 export type KpiPeriodFilter = 'TODAY' | 'WEEK' | 'MONTH' | 'YEAR'
 export type KpiDashboardTab = 'EXECUTIVE' | 'PRODUCTION' | 'INVENTORY' | 'QUALITY' | 'PURCHASING' | 'SHIPMENT'
-export type KpiExportFormat = 'CSV' | 'EXCEL' | 'PDF'
+export type KpiExportFormat = 'EXCEL' | 'PDF' | 'PRINT'
 export type KpiTone = 'neutral' | 'success' | 'warning' | 'danger'
 
 export type KpiFilters = {

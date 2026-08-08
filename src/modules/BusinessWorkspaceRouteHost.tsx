@@ -57,9 +57,6 @@ import PurchaseOrders from '../pages/PurchaseOrders'
 import GoodsReceipts from '../pages/GoodsReceipts'
 import SupplierPerformances from '../pages/SupplierPerformances'
 import ProcurementAnalytics from '../pages/ProcurementAnalytics'
-import KPIDashboard from '../pages/KPIDashboard'
-import DailyProductionAnalytics from '../pages/DailyProductionAnalytics'
-import WeeklyProductionAnalytics from '../pages/WeeklyProductionAnalytics'
 import LabelManagement from '../pages/LabelManagement'
 import OperationChecklists from '../pages/OperationChecklists'
 import LotSystem from '../pages/LotSystem'
@@ -131,6 +128,14 @@ const PurchaseRecommendations = React.lazy(() => import('../pages/PurchaseRecomm
 const ProductionPlanningRecommendations = React.lazy(() => import('../pages/ProductionPlanningRecommendations'))
 const WastePrediction = React.lazy(() => import('../pages/WastePrediction'))
 const ShipmentOptimization = React.lazy(() => import('../pages/ShipmentOptimization'))
+const KPIDashboard = React.lazy(() => import('../pages/KPIDashboard'))
+const DailyProductionAnalytics = React.lazy(() => import('../pages/DailyProductionAnalytics'))
+const WeeklyProductionAnalytics = React.lazy(() => import('../pages/WeeklyProductionAnalytics'))
+const ShipmentAnalytics = React.lazy(() => import('../pages/ShipmentAnalytics'))
+const WasteAnalytics = React.lazy(() => import('../pages/WasteAnalytics'))
+const CostAnalytics = React.lazy(() => import('../pages/CostAnalytics'))
+const WarehousePerformanceAnalytics = React.lazy(() => import('../pages/WarehousePerformanceAnalytics'))
+const PersonnelPerformanceAnalytics = React.lazy(() => import('../pages/PersonnelPerformanceAnalytics'))
 
 const onDecisionRouteRender: React.ProfilerOnRenderCallback = (
   id,
@@ -143,9 +148,13 @@ const onDecisionRouteRender: React.ProfilerOnRenderCallback = (
   }
 }
 
-const DecisionRouteSkeleton = React.memo(function DecisionRouteSkeleton(){
+const RouteSkeleton = React.memo(function RouteSkeleton({
+  label
+}: {
+  label: string
+}){
   return (
-    <section className="decision-route-skeleton" aria-label="Karar Destek yükleniyor">
+    <section className="decision-route-skeleton" aria-label={label}>
       <div className="decision-skeleton-hero">
         <span className="decision-skeleton-line short" />
         <span className="decision-skeleton-line title" />
@@ -175,6 +184,14 @@ const DecisionRouteSkeleton = React.memo(function DecisionRouteSkeleton(){
   )
 })
 
+const DecisionRouteSkeleton = React.memo(function DecisionRouteSkeleton(){
+  return <RouteSkeleton label="Karar Destek yükleniyor" />
+})
+
+const ReportingRouteSkeleton = React.memo(function ReportingRouteSkeleton(){
+  return <RouteSkeleton label="Raporlama yükleniyor" />
+})
+
 const DecisionRouteFrame = ({
   children,
   route
@@ -184,6 +201,20 @@ const DecisionRouteFrame = ({
 }) => (
   <React.Profiler id={`Karar Destek:${route}`} onRender={onDecisionRouteRender}>
     <React.Suspense fallback={<DecisionRouteSkeleton />}>
+      {children}
+    </React.Suspense>
+  </React.Profiler>
+)
+
+const ReportingRouteFrame = ({
+  children,
+  route
+}: {
+  children: React.ReactNode
+  route: BusinessWorkspaceRoute
+}) => (
+  <React.Profiler id={`Raporlama:${route}`} onRender={onDecisionRouteRender}>
+    <React.Suspense fallback={<ReportingRouteSkeleton />}>
       {children}
     </React.Suspense>
   </React.Profiler>
@@ -309,9 +340,14 @@ export default function BusinessWorkspaceRouteHost({
   if(route === 'goods-receipts') return <GoodsReceipts currentUser={currentUser} />
   if(route === 'supplier-performances') return <SupplierPerformances />
   if(route === 'procurement-analytics') return <ProcurementAnalytics />
-  if(route === 'kpi-dashboard') return <KPIDashboard currentUser={currentUser} />
-  if(route === 'daily-production-analytics') return <DailyProductionAnalytics currentUser={currentUser} />
-  if(route === 'weekly-production-analytics') return <WeeklyProductionAnalytics currentUser={currentUser} />
+  if(route === 'kpi-dashboard') return <ReportingRouteFrame route={route}><KPIDashboard currentUser={currentUser} /></ReportingRouteFrame>
+  if(route === 'daily-production-analytics') return <ReportingRouteFrame route={route}><DailyProductionAnalytics currentUser={currentUser} /></ReportingRouteFrame>
+  if(route === 'weekly-production-analytics') return <ReportingRouteFrame route={route}><WeeklyProductionAnalytics currentUser={currentUser} /></ReportingRouteFrame>
+  if(route === 'shipment-analytics') return <ReportingRouteFrame route={route}><ShipmentAnalytics currentUser={currentUser} /></ReportingRouteFrame>
+  if(route === 'waste-analytics') return <ReportingRouteFrame route={route}><WasteAnalytics currentUser={currentUser} /></ReportingRouteFrame>
+  if(route === 'cost-analytics') return <ReportingRouteFrame route={route}><CostAnalytics currentUser={currentUser} /></ReportingRouteFrame>
+  if(route === 'warehouse-performance-analytics') return <ReportingRouteFrame route={route}><WarehousePerformanceAnalytics currentUser={currentUser} /></ReportingRouteFrame>
+  if(route === 'personnel-performance-analytics') return <ReportingRouteFrame route={route}><PersonnelPerformanceAnalytics currentUser={currentUser} /></ReportingRouteFrame>
   if(route === 'decision-support') return <DecisionRouteFrame route={route}><DecisionSupport currentUser={currentUser} /></DecisionRouteFrame>
   if(route === 'critical-alerts') return <DecisionRouteFrame route={route}><CriticalAlerts currentUser={currentUser} /></DecisionRouteFrame>
   if(route === 'forecasting') return <DecisionRouteFrame route={route}><Forecasting currentUser={currentUser} /></DecisionRouteFrame>
