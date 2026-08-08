@@ -22,6 +22,7 @@ import { createProductionDecisionSuggestions } from './production-decision.servi
 import { createPurchasingDecisionSuggestions } from './purchasing-decision.service'
 import { createQualityDecisionSuggestions } from './quality-decision.service'
 import { createQualityFormDecisionSuggestions } from './quality-form-decision.service'
+import { createRecipeCostSimulationDecisionSuggestions } from './recipe-cost-simulation-decision.service'
 import { createShipmentDecisionSuggestions } from './shipment-decision.service'
 import { createShipmentFormDecisionSuggestions } from './shipment-form-decision.service'
 import { createWasteDecisionSuggestions } from './waste-decision.service'
@@ -49,6 +50,7 @@ type DecisionSuggestionSource =
   | 'recommendation-engine'
   | 'cost-engine'
   | 'historical-cost-snapshot'
+  | 'recipe-cost-simulation'
   | 'cost-optimization'
   | 'purchase-recommendations'
   | 'inventory'
@@ -123,6 +125,7 @@ export const createDecisionSuggestions = (
     ...createSafeDecisionSuggestions('recommendation-engine', options, () => createRecommendationEngineDecisionSuggestions(sourceData)),
     ...createSafeDecisionSuggestions('cost-engine', options, () => createCostEngineDecisionSuggestions(sourceData)),
     ...createSafeDecisionSuggestions('historical-cost-snapshot', options, () => createHistoricalCostDecisionSuggestions(sourceData)),
+    ...createSafeDecisionSuggestions('recipe-cost-simulation', options, () => createRecipeCostSimulationDecisionSuggestions(sourceData)),
     ...createSafeDecisionSuggestions('cost-optimization', options, () => createCostOptimizationDecisionSuggestions(sourceData)),
     ...createSafeDecisionSuggestions('purchase-recommendations', options, () => createPurchaseRecommendationDecisionSuggestions(sourceData)),
     ...createSafeDecisionSuggestions('inventory', options, () => createInventoryDecisionSuggestions(sourceData)),

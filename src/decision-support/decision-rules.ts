@@ -677,6 +677,24 @@ export const DECISION_RULES: DecisionRule[] = [
     thresholdLabel: 'Ortalama maliyete gore sapma >= 22% veya son 30 gun degisimi >= 18%'
   },
   {
+    id: 'recipe-cost-simulation-savings',
+    category: 'Production',
+    title: 'Recipe Cost Simulation tasarruf firsati',
+    description: 'What-if simülasyon sonucu tasarruf potansiyeli üretiyorsa manuel değerlendirme önerilir.',
+    baseRisk: 'MEDIUM',
+    priority: 'HIGH',
+    thresholdLabel: 'Tasarruf potansiyeli >= 500 TRY veya fark <= -4%'
+  },
+  {
+    id: 'recipe-cost-simulation-cost-increase',
+    category: 'Production',
+    title: 'Recipe Cost Simulation maliyet artisi',
+    description: 'What-if simülasyon sonucu kritik maliyet artışı gösteriyorsa üretim ve satın alma etkisi manuel incelenir.',
+    baseRisk: 'HIGH',
+    priority: 'HIGH',
+    thresholdLabel: 'Fark >= 8% veya maliyet artışı >= 1000 TRY'
+  },
+  {
     id: 'cost-optimization-raw-material',
     category: 'Purchasing',
     title: 'Maliyet Optimizasyonu hammadde maliyeti artışı',

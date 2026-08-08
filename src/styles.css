@@ -2139,6 +2139,50 @@ th { color:var(--muted-strong); font-size:13px; font-weight:750 }
 .recipe-cost-trend-row span:not(.recipe-cost-trend-bar) { color:var(--muted); font-size:11px; font-weight:850 }
 .recipe-cost-trend-bar { display:block; height:7px; border-radius:999px; background:var(--line); overflow:hidden }
 .recipe-cost-trend-bar i { display:block; height:100%; min-width:6px; border-radius:999px; background:var(--accent) }
+.recipe-cost-trend-bar.saving i { background:var(--success) }
+.recipe-cost-trend-bar.increase i { background:var(--danger) }
+.recipe-cost-simulation-card { min-width:0 }
+.recipe-cost-simulation-form { display:grid; grid-template-columns:repeat(4, minmax(0, 1fr)); gap:8px; align-items:end; border:1px solid var(--line); border-radius:var(--radius-md); padding:12px; background:var(--surface-muted); margin-bottom:12px }
+.recipe-cost-simulation-form .form-field { min-width:0 }
+.recipe-cost-simulation-note { grid-column:span 2 }
+.recipe-cost-simulation-form-actions { display:flex; justify-content:flex-end; min-width:0 }
+.recipe-cost-simulation-form-actions .btn { width:100%; min-height:var(--touch-target) }
+.recipe-cost-simulation-form-hint { grid-column:1 / -1; display:flex; justify-content:space-between; gap:12px; align-items:center; min-width:0; border:1px dashed var(--line); border-radius:var(--radius-md); padding:8px 10px; background:var(--surface) }
+.recipe-cost-simulation-form-hint span,
+.recipe-cost-simulation-form-hint strong { min-width:0; line-height:1.25; overflow-wrap:anywhere }
+.recipe-cost-simulation-form-hint span { color:var(--muted); font-size:12px; font-weight:850 }
+.recipe-cost-simulation-form-hint strong { color:var(--text); font-size:13px; font-weight:950 }
+.recipe-cost-simulation-list { display:flex; flex-direction:column; gap:8px; min-width:0; margin-bottom:12px }
+.recipe-cost-simulation-row { display:grid; grid-template-columns:auto minmax(0, 1fr) minmax(0, .9fr) auto; gap:8px; align-items:center; width:100%; min-width:0; border:1px solid var(--line); border-radius:var(--radius-md); padding:10px; background:var(--surface-muted); color:inherit; cursor:pointer; text-align:left; font:inherit }
+.recipe-cost-simulation-row:hover,
+.recipe-cost-simulation-row.active { border-color:var(--accent-line); background:var(--accent-soft); box-shadow:inset 4px 0 0 var(--accent) }
+.recipe-cost-simulation-row span:not(.status-pill),
+.recipe-cost-simulation-row strong,
+.recipe-cost-simulation-row small,
+.recipe-cost-simulation-row em { display:block; min-width:0; line-height:1.25; overflow-wrap:anywhere }
+.recipe-cost-simulation-row span:not(.status-pill) { color:var(--muted); font-size:11px; font-weight:900; text-transform:uppercase }
+.recipe-cost-simulation-row strong { color:var(--text); font-size:13px; font-weight:950 }
+.recipe-cost-simulation-row small { color:var(--muted); font-size:12px; font-weight:800 }
+.recipe-cost-simulation-row em { font-style:normal }
+.recipe-cost-simulation-summary { display:grid; grid-template-columns:repeat(4, minmax(0, 1fr)); gap:8px; margin-bottom:10px; min-width:0 }
+.recipe-cost-simulation-summary > div { min-width:0; border:1px solid var(--line); border-radius:var(--radius-md); padding:10px; background:var(--surface-muted) }
+.recipe-cost-simulation-summary span,
+.recipe-cost-simulation-summary strong { display:block; min-width:0; line-height:1.25; overflow-wrap:anywhere }
+.recipe-cost-simulation-summary span { color:var(--muted); font-size:11px; font-weight:900; text-transform:uppercase }
+.recipe-cost-simulation-summary strong { margin-top:4px; color:var(--text); font-size:13px; font-weight:950; font-variant-numeric:tabular-nums }
+.simulation-saving-text { color:var(--success) !important }
+.simulation-increase-text { color:var(--danger) !important }
+.recipe-cost-simulation-actions { display:flex; justify-content:flex-end; margin-bottom:10px }
+.recipe-version-diff-row.simulation-success { border-color:var(--success-line); background:var(--success-soft) }
+.recipe-version-diff-row.simulation-danger { border-color:var(--danger-line); background:var(--danger-soft) }
+.recipe-cost-simulation-chart-grid { display:grid; grid-template-columns:repeat(2, minmax(0, 1fr)); gap:10px; margin-top:12px; min-width:0 }
+.recipe-cost-simulation-opportunity { display:grid; gap:4px; min-width:0; border:1px solid var(--line); border-radius:var(--radius-md); padding:12px; background:var(--surface) }
+.recipe-cost-simulation-opportunity span,
+.recipe-cost-simulation-opportunity strong,
+.recipe-cost-simulation-opportunity small { display:block; min-width:0; line-height:1.25; overflow-wrap:anywhere }
+.recipe-cost-simulation-opportunity span { color:var(--muted); font-size:11px; font-weight:900; text-transform:uppercase }
+.recipe-cost-simulation-opportunity strong { color:var(--text); font-size:18px; font-weight:950; font-variant-numeric:tabular-nums }
+.recipe-cost-simulation-opportunity small { color:var(--muted); font-size:12px; font-weight:800 }
 .recipe-alternative-material-card { min-width:0 }
 .recipe-alternative-tabs { display:grid; grid-template-columns:repeat(auto-fit, minmax(150px, 1fr)); gap:8px; margin:10px 0 12px; min-width:0 }
 .recipe-alternative-tab { display:grid; gap:3px; width:100%; min-width:0; border:1px solid var(--line); border-radius:var(--radius-md); padding:10px; background:var(--surface-muted); color:inherit; cursor:pointer; text-align:left; font:inherit }
@@ -3213,7 +3257,14 @@ th { color:var(--muted-strong); font-size:13px; font-weight:750 }
   .recipe-snapshot-ingredient-row { grid-template-columns:1fr }
   .recipe-snapshot-ingredient-row em { text-align:left }
   .recipe-cost-component-grid,
-  .recipe-cost-trend-row { grid-template-columns:1fr }
+  .recipe-cost-trend-row,
+  .recipe-cost-simulation-form,
+  .recipe-cost-simulation-row,
+  .recipe-cost-simulation-summary,
+  .recipe-cost-simulation-chart-grid { grid-template-columns:1fr }
+  .recipe-cost-simulation-note { grid-column:auto }
+  .recipe-cost-simulation-form-hint { align-items:flex-start; flex-direction:column }
+  .recipe-cost-simulation-actions { justify-content:flex-start }
   .recipe-alternative-tabs,
   .recipe-alternative-cost-row { grid-template-columns:1fr }
   .recipe-form-ingredient-row { grid-template-columns:1fr }

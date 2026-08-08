@@ -29,6 +29,10 @@ import {
 import {
   RecipeCostSnapshotService
 } from '../recipe-management/recipe-cost-snapshot.service'
+import {
+  RECIPE_COST_SCENARIO_TYPES,
+  RecipeCostSimulationService
+} from '../recipe-management/recipe-cost-simulation.service'
 import type {
   RecipeIngredient,
   RecipeIngredientUnit,
@@ -53,6 +57,12 @@ import type {
   HistoricalCostSnapshotDiffRow,
   HistoricalCostTrendPoint
 } from '../recipe-management/recipe-cost-snapshot.types'
+import type {
+  RecipeCostScenarioType,
+  RecipeCostSimulation,
+  RecipeCostSimulationCompareRow,
+  RecipeCostSimulationTrendPoint
+} from '../recipe-management/recipe-cost-simulation.types'
 
 type StatusFilter = RecipeManagementStatus | 'all'
 type RoleFilter = RecipeManagementRole | 'all'
@@ -86,6 +96,18 @@ type IngredientFormState = {
   quantity: string
   unit: RecipeIngredientUnit
   unitCost: string
+}
+
+type CostSimulationFormState = {
+  simulationName: string
+  ingredientId: string
+  materialScenarioType: RecipeCostScenarioType
+  materialChangePercent: string
+  firePercent: string
+  yieldPercent: string
+  laborChangePercent: string
+  energyChangePercent: string
+  notes: string
 }
 
 type ToastState = {
@@ -223,6 +245,12 @@ const getAlternativeMaterialApprovalClass = (status: AlternativeMaterialApproval
 const getAlternativeMaterialCostClass = (alternative: AlternativeMaterial) => {
   if(alternative.costDifference < 0) return 'success'
   if(alternative.costDifference > 0) return 'warning-pill'
+  return 'info-pill'
+}
+
+const getCostSimulationDifferenceClass = (difference: number) => {
+  if(difference < 0) return 'success'
+  if(difference > 0) return 'danger-pill'
   return 'info-pill'
 }
 
@@ -501,6 +529,20 @@ const createIngredientFormFromRecord = (ingredient: RecipeIngredient): Ingredien
   unitCost: String(Number.isFinite(ingredient.unitCost) ? ingredient.unitCost : 0)
 })
 
+const createInitialCostSimulationForm = (
+  record?: RecipeManagementRecord | null
+): CostSimulationFormState => ({
+  simulationName: record ? `${record.recipeName} What If` : 'Yeni Maliyet Simülasyonu',
+  ingredientId: record?.ingredients[0]?.id || '',
+  materialScenarioType: 'Hammadde fiyatı arttı',
+  materialChangePercent: '5',
+  firePercent: '',
+  yieldPercent: '',
+  laborChangePercent: '',
+  energyChangePercent: '',
+  notes: ''
+})
+
 const validateRecipeForm = (
   form: RecipeFormState,
   ingredients: RecipeIngredient[],
@@ -629,6 +671,7 @@ export default function Recipes(){
   const [compareTargetId, setCompareTargetId] = React.useState('')
   const [recipeSnapshots] = React.useState<RecipeSnapshot[]>(() => RecipeSnapshotService.load())
   const [costSnapshots] = React.useState<HistoricalCostSnapshot[]>(() => RecipeCostSnapshotService.load(records, recipeSnapshots))
+  const [costSimulations, setCostSimulations] = React.useState<RecipeCostSimulation[]>(() => RecipeCostSimulationService.load(records, costSnapshots))
   const [alternativeMaterialGroups] = React.useState<AlternativeMaterialGroup[]>(() => RecipeAlternativeMaterialService.load(records))
   const [selectedSnapshotId, setSelectedSnapshotId] = React.useState('')
   const [snapshotCompareSourceId, setSnapshotCompareSourceId] = React.useState('')
@@ -636,6 +679,9 @@ export default function Recipes(){
   const [selectedCostSnapshotId, setSelectedCostSnapshotId] = React.useState('')
   const [costCompareSourceId, setCostCompareSourceId] = React.useState('')
   const [costCompareTargetId, setCostCompareTargetId] = React.useState('')
+  const [selectedCostSimulationId, setSelectedCostSimulationId] = React.useState('')
+  const [costSimulationForm, setCostSimulationForm] = React.useState<CostSimulationFormState>(() => createInitialCostSimulationForm())
+  const [costSimulationFormError, setCostSimulationFormError] = React.useState('')
   const [selectedIngredientId, setSelectedIngredientId] = React.useState('')
   const [panelMode, setPanelMode] = React.useState<PanelMode>('summary')
   const [viewMode, setViewMode] = React.useState<ViewMode>('list')
@@ -853,6 +899,32 @@ export default function Recipes(){
   const selectedCostTrendSummary = React.useMemo(() => (
     RecipeCostSnapshotService.buildTrendSummary(selectedCostSnapshots)
   ), [selectedCostSnapshots])
+  const selectedCostSimulations = React.useMemo(() => (
+    selectedRecord
+      ? RecipeCostSimulationService.getForRecipe(selectedRecord, costSimulations)
+      : []
+  ), [costSimulations, selectedRecord])
+  const costSimulationsById = React.useMemo(() => {
+    const nextCostSimulationsById = new Map<string, RecipeCostSimulation>()
+    costSimulations.forEach(simulation => nextCostSimulationsById.set(simulation.id, simulation))
+    return nextCostSimulationsById
+  }, [costSimulations])
+  const selectedCostSimulation = costSimulationsById.get(selectedCostSimulationId)
+    || selectedCostSimulations[0]
+    || null
+  const selectedCostSimulationTrend = React.useMemo(() => (
+    RecipeCostSimulationService.buildTrend(selectedCostSimulations)
+  ), [selectedCostSimulations])
+  React.useEffect(() => {
+    const simulationIds = selectedCostSimulations.map(simulation => simulation.id)
+    if(simulationIds.length === 0) return
+
+    setSelectedCostSimulationId(current => simulationIds.includes(current) ? current : simulationIds[0])
+  }, [selectedCostSimulations])
+  React.useEffect(() => {
+    setCostSimulationForm(createInitialCostSimulationForm(selectedRecord))
+    setCostSimulationFormError('')
+  }, [selectedRecord])
   const totalRecipeMasters = new Set(records.map(getRecipeMasterId)).size
   const totalRecipeVersions = records.length
   const activeRecipes = records.filter(isRecipeVersionActive).length
@@ -862,6 +934,7 @@ export default function Recipes(){
     RecipeAlternativeMaterialService.flatten(alternativeMaterialGroups).length
   ), [alternativeMaterialGroups])
   const totalCostSnapshots = costSnapshots.length
+  const totalCostSimulations = costSimulations.length
   const totalPortions = records.reduce((sum, record) => sum + record.portions, 0)
   const productOptions = React.useMemo(() => {
     const options = new Set<string>(RECIPE_PRODUCT_OPTIONS)
@@ -1026,6 +1099,148 @@ export default function Recipes(){
     setEditingIngredientId('')
     setIngredientFormError('')
     setPendingAlternativeScroll(false)
+  }
+
+  const commitCostSimulations = React.useCallback((nextSimulations: RecipeCostSimulation[]) => {
+    setCostSimulations(nextSimulations)
+    RecipeCostSimulationService.save(nextSimulations)
+  }, [])
+
+  const updateCostSimulationForm = <TKey extends keyof CostSimulationFormState>(
+    key: TKey,
+    value: CostSimulationFormState[TKey]
+  ) => {
+    setCostSimulationForm(prev => ({
+      ...prev,
+      [key]: value
+    }))
+    setCostSimulationFormError('')
+  }
+
+  const buildCostSimulationScenariosFromForm = () => {
+    if(!selectedRecord) return []
+
+    const selectedIngredient = selectedRecord.ingredients.find(ingredient => ingredient.id === costSimulationForm.ingredientId)
+      || selectedRecord.ingredients[0]
+      || null
+    const scenarios: Array<{
+      type: RecipeCostScenarioType
+      ingredientId?: string
+      materialName?: string
+      alternativeMaterialId?: string
+      alternativeMaterialName?: string
+      changePercent?: number
+      targetValue?: number
+      notes: string
+    }> = []
+    const materialChangePercent = Number(costSimulationForm.materialChangePercent)
+
+    if(selectedIngredient && Number.isFinite(materialChangePercent) && materialChangePercent !== 0){
+      const alternativeScenario = costSimulationForm.materialScenarioType === 'Alternatif hammadde kullanıldı'
+        ? RecipeCostSimulationService.findApprovedAlternativeScenarioForIngredient(selectedIngredient.materialName, selectedIngredient.id)
+        : null
+
+      scenarios.push({
+        type: costSimulationForm.materialScenarioType,
+        ingredientId: selectedIngredient.id,
+        materialName: selectedIngredient.materialName,
+        alternativeMaterialId: alternativeScenario?.alternativeMaterialId,
+        alternativeMaterialName: alternativeScenario?.alternativeMaterialName,
+        changePercent: costSimulationForm.materialScenarioType === 'Alternatif hammadde kullanıldı'
+          ? alternativeScenario?.changePercent ?? -Math.abs(materialChangePercent)
+          : Math.abs(materialChangePercent),
+        notes: 'Form üzerinden oluşturulan hammadde fiyat/alternatif senaryosu.'
+      })
+    }
+
+    const firePercent = Number(costSimulationForm.firePercent)
+    if(costSimulationForm.firePercent.trim() && Number.isFinite(firePercent)){
+      scenarios.push({
+        type: 'Fire oranı değişti',
+        targetValue: firePercent,
+        notes: 'Form üzerinden oluşturulan fire what-if girdisi.'
+      })
+    }
+
+    const yieldPercent = Number(costSimulationForm.yieldPercent)
+    if(costSimulationForm.yieldPercent.trim() && Number.isFinite(yieldPercent)){
+      scenarios.push({
+        type: 'Yield değişti',
+        targetValue: yieldPercent,
+        notes: 'Form üzerinden oluşturulan yield what-if girdisi.'
+      })
+    }
+
+    const laborChangePercent = Number(costSimulationForm.laborChangePercent)
+    if(costSimulationForm.laborChangePercent.trim() && Number.isFinite(laborChangePercent) && laborChangePercent !== 0){
+      scenarios.push({
+        type: 'İşçilik maliyeti değişti',
+        changePercent: laborChangePercent,
+        notes: 'Form üzerinden oluşturulan işçilik katsayısı senaryosu.'
+      })
+    }
+
+    const energyChangePercent = Number(costSimulationForm.energyChangePercent)
+    if(costSimulationForm.energyChangePercent.trim() && Number.isFinite(energyChangePercent) && energyChangePercent !== 0){
+      scenarios.push({
+        type: 'Enerji maliyeti değişti',
+        changePercent: energyChangePercent,
+        notes: 'Form üzerinden oluşturulan enerji katsayısı senaryosu.'
+      })
+    }
+
+    return scenarios
+  }
+
+  const submitCostSimulationForm = (event: React.FormEvent) => {
+    event.preventDefault()
+
+    if(!selectedRecord){
+      setCostSimulationFormError('Simülasyon için reçete seçilmelidir.')
+      return
+    }
+
+    if(!selectedCostSnapshot){
+      setCostSimulationFormError('Simülasyon için maliyet snapshot bulunmalıdır.')
+      return
+    }
+
+    if(!costSimulationForm.simulationName.trim()){
+      setCostSimulationFormError('Simülasyon adı zorunludur.')
+      return
+    }
+
+    const scenarios = buildCostSimulationScenariosFromForm()
+    if(scenarios.length === 0){
+      setCostSimulationFormError('En az bir what-if girdisi oluşturulmalıdır.')
+      return
+    }
+
+    const nextSimulation = RecipeCostSimulationService.create(selectedRecord, selectedCostSnapshot, {
+      simulationName: costSimulationForm.simulationName,
+      createdBy: 'MIYOP Demo',
+      status: 'Kaydedildi',
+      notes: costSimulationForm.notes || 'What-if simülasyonu; gerçek reçete, stok veya satın alma verisi değişmez.',
+      scenarios
+    }, costSimulations.length)
+    const nextSimulations = [
+      nextSimulation,
+      ...costSimulations.filter(simulation => simulation.id !== nextSimulation.id)
+    ]
+
+    commitCostSimulations(nextSimulations)
+    setSelectedCostSimulationId(nextSimulation.id)
+    setCostSimulationForm(createInitialCostSimulationForm(selectedRecord))
+    showToast('Maliyet simülasyonu kaydedildi.')
+  }
+
+  const deleteCostSimulation = (simulation: RecipeCostSimulation) => {
+    if(!window.confirm('Bu simülasyon silinecek. Gerçek reçete veya maliyet verisi etkilenmez. Devam edilsin mi?')) return
+
+    const nextSimulations = costSimulations.filter(item => item.id !== simulation.id)
+    commitCostSimulations(nextSimulations)
+    setSelectedCostSimulationId(current => current === simulation.id ? '' : current)
+    showToast('Maliyet simülasyonu silindi.', 'info')
   }
 
   const deleteRecipe = (record: RecipeManagementRecord) => {
@@ -1463,6 +1678,97 @@ export default function Recipes(){
     )
 
     showToast(opened ? (mode === 'PDF' ? 'Maliyet trend PDF hazırlandı.' : 'Maliyet trend yazdırma hazırlandı.') : 'Yazdırma penceresi açılamadı.', opened ? 'success' : 'info')
+  }
+
+  const getSimulationReportRows = (simulation: RecipeCostSimulation) => ([
+    ['Simülasyon', simulation.simulationName],
+    ['Durum', simulation.status],
+    ['Reçete', `${simulation.recipeCode} · ${simulation.recipeName}`],
+    ['Baseline Snapshot', simulation.baselineCostSnapshotId],
+    ['Oluşturan', simulation.createdBy],
+    ['Oluşturulma', formatDateTime(simulation.createdDate)],
+    ['Eski Toplam Maliyet', RecipeCostSimulationService.formatAmount(simulation.output.currentTotalCost, simulation.currency)],
+    ['Yeni Toplam Maliyet', RecipeCostSimulationService.formatAmount(simulation.output.simulatedTotalCost, simulation.currency)],
+    ['Eski Birim Maliyet', RecipeCostSimulationService.formatAmount(simulation.output.currentUnitCost, simulation.currency)],
+    ['Yeni Birim Maliyet', RecipeCostSimulationService.formatAmount(simulation.output.simulatedUnitCost, simulation.currency)],
+    ['Fark', RecipeCostSimulationService.formatAmount(simulation.output.difference, simulation.currency)],
+    ['Fark %', `${formatFirePercent(simulation.output.differencePercent)} %`],
+    ['Beklenen Karlılık', `${formatFirePercent(simulation.output.expectedProfitability)} %`],
+    ['Beklenen Fire Etkisi', RecipeCostSimulationService.formatAmount(simulation.output.expectedFireImpact, simulation.currency)],
+    ['Beklenen Yield', `${formatFirePercent(simulation.output.expectedYield)} %`],
+    ['Not', simulation.notes || '-'],
+    ...simulation.scenarios.map((scenario, index) => [
+      `Senaryo ${index + 1}`,
+      `${scenario.type} · ${scenario.materialName || scenario.alternativeMaterialName || '-'} · ${scenario.changePercent ?? scenario.targetValue ?? scenario.multiplier ?? '-'}`
+    ])
+  ])
+
+  const exportSimulationReportExcel = () => {
+    if(!selectedCostSimulation) return
+
+    const worksheet = XLSX.utils.aoa_to_sheet([
+      ['Alan', 'Değer'],
+      ...getSimulationReportRows(selectedCostSimulation)
+    ])
+    const workbook = XLSX.utils.book_new()
+    XLSX.utils.book_append_sheet(workbook, worksheet, 'Simulation Report')
+    XLSX.writeFile(workbook, `recete-cost-simulation-${selectedCostSimulation.recipeCode}.xlsx`)
+    showToast('Simulation report Excel oluşturuldu.')
+  }
+
+  const printSimulationReport = (mode: RecipeSnapshotPrintMode) => {
+    if(!selectedCostSimulation) return
+
+    const opened = openRecipePrintWindow(
+      `${selectedCostSimulation.recipeCode} Simulation Report`,
+      ['Alan', 'Değer'],
+      getSimulationReportRows(selectedCostSimulation),
+      mode
+    )
+
+    showToast(opened ? (mode === 'PDF' ? 'Simulation report PDF hazırlandı.' : 'Simulation report yazdırma hazırlandı.') : 'Yazdırma penceresi açılamadı.', opened ? 'success' : 'info')
+  }
+
+  const getSimulationCompareRows = (
+    simulation: RecipeCostSimulation
+  ): RecipeCostSimulationCompareRow[] => RecipeCostSimulationService.buildCompareRows(simulation)
+
+  const exportSimulationCompareExcel = () => {
+    if(!selectedCostSimulation) return
+
+    const worksheet = XLSX.utils.aoa_to_sheet([
+      ['Alan', 'Current Cost', 'Simulation', 'Fark', 'Fark %'],
+      ...getSimulationCompareRows(selectedCostSimulation).map(row => [
+        row.area,
+        row.currentValue,
+        row.simulatedValue,
+        row.difference,
+        row.differencePercent
+      ])
+    ])
+    const workbook = XLSX.utils.book_new()
+    XLSX.utils.book_append_sheet(workbook, worksheet, 'Cost Compare')
+    XLSX.writeFile(workbook, `recete-cost-simulation-compare-${selectedCostSimulation.recipeCode}.xlsx`)
+    showToast('Simulation cost compare Excel oluşturuldu.')
+  }
+
+  const printSimulationCompare = (mode: RecipeSnapshotPrintMode) => {
+    if(!selectedCostSimulation) return
+
+    const opened = openRecipePrintWindow(
+      `${selectedCostSimulation.recipeCode} Simulation Cost Compare`,
+      ['Alan', 'Current Cost', 'Simulation', 'Fark', 'Fark %'],
+      getSimulationCompareRows(selectedCostSimulation).map(row => [
+        row.area,
+        row.currentValue,
+        row.simulatedValue,
+        row.difference,
+        row.differencePercent
+      ]),
+      mode
+    )
+
+    showToast(opened ? (mode === 'PDF' ? 'Simulation cost compare PDF hazırlandı.' : 'Simulation cost compare yazdırma hazırlandı.') : 'Yazdırma penceresi açılamadı.', opened ? 'success' : 'info')
   }
 
   const getAlternativeMaterialRows = (groups = selectedAlternativeMaterialGroups) => (
@@ -2525,6 +2831,236 @@ export default function Recipes(){
     )
   }
 
+  const renderSimulationTrendRows = (
+    points: RecipeCostSimulationTrendPoint[]
+  ) => {
+    const maxAbsValue = Math.max(...points.map(point => Math.abs(point.value)), 1)
+
+    return (
+      <div className="recipe-cost-trend-panel">
+        <div className="section-header compact">
+          <h3>Simulation Trend</h3>
+        </div>
+        <div className="recipe-cost-trend-list">
+          {points.length === 0 ? (
+            <div className="recipe-relation-empty">Simülasyon trend verisi bulunmuyor.</div>
+          ) : points.map(point => (
+            <div key={point.dateKey} className="recipe-cost-trend-row">
+              <div>
+                <strong>{point.label}</strong>
+                <span>{point.formattedValue}</span>
+              </div>
+              <span className={`recipe-cost-trend-bar ${point.value <= 0 ? 'saving' : 'increase'}`}>
+                <i style={{ width: `${Math.max(6, (Math.abs(point.value) / maxAbsValue) * 100)}%` }} />
+              </span>
+            </div>
+          ))}
+        </div>
+      </div>
+    )
+  }
+
+  const renderCostSimulationCard = () => {
+    if(!selectedRecord) return null
+
+    const selectedIngredientForSimulation = selectedRecord.ingredients.find(ingredient => ingredient.id === costSimulationForm.ingredientId)
+      || selectedRecord.ingredients[0]
+      || null
+    const compareRows = selectedCostSimulation
+      ? getSimulationCompareRows(selectedCostSimulation)
+      : []
+    const maxMaterialDifference = selectedCostSimulation
+      ? Math.max(...selectedCostSimulation.output.materialBreakdown.map(row => Math.abs(row.difference)), 1)
+      : 1
+    const maxDistributionValue = selectedCostSimulation
+      ? Math.max(...selectedCostSimulation.output.costDistribution.map(row => row.value), 1)
+      : 1
+
+    return (
+      <section className="card recipe-cost-simulation-card">
+        <div className="section-header compact">
+          <div>
+            <h3>Maliyet Simülasyonu</h3>
+            <p className="muted">{selectedCostSimulations.length} kayıt · What-if motoru gerçek reçete, stok veya satın alma verisini değiştirmez.</p>
+          </div>
+          <span className="status-pill info-pill">What If</span>
+        </div>
+
+        <form className="recipe-cost-simulation-form" onSubmit={submitCostSimulationForm}>
+          <div className="form-field">
+            <label>Simülasyon Adı</label>
+            <input value={costSimulationForm.simulationName} onChange={event => updateCostSimulationForm('simulationName', event.target.value)} />
+          </div>
+          <div className="form-field">
+            <label>Malzeme</label>
+            <select value={costSimulationForm.ingredientId} onChange={event => updateCostSimulationForm('ingredientId', event.target.value)}>
+              {selectedRecord.ingredients.map(ingredient => (
+                <option key={ingredient.id} value={ingredient.id}>{ingredient.materialName}</option>
+              ))}
+            </select>
+          </div>
+          <div className="form-field">
+            <label>Senaryo</label>
+            <select value={costSimulationForm.materialScenarioType} onChange={event => updateCostSimulationForm('materialScenarioType', event.target.value as RecipeCostScenarioType)}>
+              {RECIPE_COST_SCENARIO_TYPES.slice(0, 3).map(scenarioType => (
+                <option key={scenarioType} value={scenarioType}>{scenarioType}</option>
+              ))}
+            </select>
+          </div>
+          <div className="form-field">
+            <label>Hammadde Değişim %</label>
+            <input type="number" step="0.1" value={costSimulationForm.materialChangePercent} onChange={event => updateCostSimulationForm('materialChangePercent', event.target.value)} />
+          </div>
+          <div className="form-field">
+            <label>Fire %</label>
+            <input type="number" min="0" max="100" step="0.1" value={costSimulationForm.firePercent} onChange={event => updateCostSimulationForm('firePercent', event.target.value)} placeholder="Opsiyonel" />
+          </div>
+          <div className="form-field">
+            <label>Yield %</label>
+            <input type="number" min="0" max="100" step="0.1" value={costSimulationForm.yieldPercent} onChange={event => updateCostSimulationForm('yieldPercent', event.target.value)} placeholder="Opsiyonel" />
+          </div>
+          <div className="form-field">
+            <label>İşçilik %</label>
+            <input type="number" step="0.1" value={costSimulationForm.laborChangePercent} onChange={event => updateCostSimulationForm('laborChangePercent', event.target.value)} placeholder="Opsiyonel" />
+          </div>
+          <div className="form-field">
+            <label>Enerji %</label>
+            <input type="number" step="0.1" value={costSimulationForm.energyChangePercent} onChange={event => updateCostSimulationForm('energyChangePercent', event.target.value)} placeholder="Opsiyonel" />
+          </div>
+          <div className="form-field recipe-cost-simulation-note">
+            <label>Not</label>
+            <input value={costSimulationForm.notes} onChange={event => updateCostSimulationForm('notes', event.target.value)} placeholder="Opsiyonel" />
+          </div>
+          <div className="recipe-cost-simulation-form-actions">
+            <button className="btn primary" type="submit" disabled={!selectedCostSnapshot}>Simülasyonu Kaydet</button>
+          </div>
+          {costSimulationFormError && <div className="form-error recipe-ingredient-error">{costSimulationFormError}</div>}
+          {selectedIngredientForSimulation && (
+            <div className="recipe-cost-simulation-form-hint">
+              <span>Seçili malzeme</span>
+              <strong>{selectedIngredientForSimulation.materialName}</strong>
+            </div>
+          )}
+        </form>
+
+        <div className="recipe-version-output-actions">
+          <button className="btn" type="button" onClick={exportSimulationReportExcel} disabled={!selectedCostSimulation}>Report Excel</button>
+          <button className="btn" type="button" onClick={() => printSimulationReport('PDF')} disabled={!selectedCostSimulation}>Report PDF</button>
+          <button className="btn" type="button" onClick={() => printSimulationReport('PRINT')} disabled={!selectedCostSimulation}>Report Yazdır</button>
+        </div>
+        <div className="recipe-version-output-actions">
+          <button className="btn" type="button" onClick={exportSimulationCompareExcel} disabled={!selectedCostSimulation}>Compare Excel</button>
+          <button className="btn" type="button" onClick={() => printSimulationCompare('PDF')} disabled={!selectedCostSimulation}>Compare PDF</button>
+          <button className="btn" type="button" onClick={() => printSimulationCompare('PRINT')} disabled={!selectedCostSimulation}>Compare Yazdır</button>
+        </div>
+
+        {selectedCostSimulations.length === 0 ? (
+          <div className="recipe-relation-empty">Bu reçete için kayıtlı simülasyon bulunmuyor.</div>
+        ) : (
+          <>
+            <div className="recipe-cost-simulation-list">
+              {selectedCostSimulations.slice(0, 8).map(simulation => (
+                <button
+                  key={simulation.id}
+                  className={`recipe-cost-simulation-row ${simulation.id === selectedCostSimulation?.id ? 'active' : ''}`}
+                  type="button"
+                  onClick={() => setSelectedCostSimulationId(simulation.id)}
+                >
+                  <span>{simulation.status}</span>
+                  <strong>{simulation.simulationName}</strong>
+                  <small>{formatDateTime(simulation.createdDate)} · {simulation.scenarios.length} senaryo</small>
+                  <em className={`status-pill ${getCostSimulationDifferenceClass(simulation.output.difference)}`}>
+                    {RecipeCostSimulationService.formatAmount(simulation.output.difference, simulation.currency)}
+                  </em>
+                </button>
+              ))}
+            </div>
+
+            {selectedCostSimulation && (
+              <>
+                <div className="recipe-cost-simulation-summary">
+                  <div><span>Eski Toplam</span><strong>{RecipeCostSimulationService.formatAmount(selectedCostSimulation.output.currentTotalCost, selectedCostSimulation.currency)}</strong></div>
+                  <div><span>Yeni Toplam</span><strong>{RecipeCostSimulationService.formatAmount(selectedCostSimulation.output.simulatedTotalCost, selectedCostSimulation.currency)}</strong></div>
+                  <div><span>Eski Birim</span><strong>{RecipeCostSimulationService.formatAmount(selectedCostSimulation.output.currentUnitCost, selectedCostSimulation.currency)}</strong></div>
+                  <div><span>Yeni Birim</span><strong>{RecipeCostSimulationService.formatAmount(selectedCostSimulation.output.simulatedUnitCost, selectedCostSimulation.currency)}</strong></div>
+                  <div><span>Fark</span><strong className={selectedCostSimulation.output.difference < 0 ? 'simulation-saving-text' : 'simulation-increase-text'}>{RecipeCostSimulationService.formatAmount(selectedCostSimulation.output.difference, selectedCostSimulation.currency)}</strong></div>
+                  <div><span>Fark %</span><strong>{formatFirePercent(selectedCostSimulation.output.differencePercent)} %</strong></div>
+                  <div><span>Karlılık</span><strong>{formatFirePercent(selectedCostSimulation.output.expectedProfitability)} %</strong></div>
+                  <div><span>Yield</span><strong>{formatFirePercent(selectedCostSimulation.output.expectedYield)} %</strong></div>
+                </div>
+
+                <div className="recipe-cost-simulation-actions">
+                  <button className="btn danger" type="button" onClick={() => deleteCostSimulation(selectedCostSimulation)}>Simülasyonu Sil</button>
+                </div>
+
+                <div className="recipe-version-diff-list">
+                  {compareRows.map(row => (
+                    <div key={row.area} className={`recipe-version-diff-row simulation-${row.tone}`}>
+                      <span>{row.area}</span>
+                      <strong>{row.difference}</strong>
+                      <small>{row.currentValue} → {row.simulatedValue}</small>
+                      <em>{row.differencePercent}</em>
+                    </div>
+                  ))}
+                </div>
+
+                <div className="recipe-cost-simulation-chart-grid">
+                  <div className="recipe-cost-trend-panel">
+                    <div className="section-header compact">
+                      <h3>Material Breakdown</h3>
+                    </div>
+                    <div className="recipe-cost-trend-list">
+                      {selectedCostSimulation.output.materialBreakdown.slice(0, 6).map(row => (
+                        <div key={row.ingredientId} className="recipe-cost-trend-row">
+                          <div>
+                            <strong>{row.materialName}</strong>
+                            <span>{RecipeCostSimulationService.formatAmount(row.difference, selectedCostSimulation.currency)} · {formatFirePercent(row.differencePercent)} %</span>
+                          </div>
+                          <span className={`recipe-cost-trend-bar ${row.difference <= 0 ? 'saving' : 'increase'}`}>
+                            <i style={{ width: `${Math.max(6, (Math.abs(row.difference) / maxMaterialDifference) * 100)}%` }} />
+                          </span>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                  <div className="recipe-cost-trend-panel">
+                    <div className="section-header compact">
+                      <h3>Cost Distribution</h3>
+                    </div>
+                    <div className="recipe-cost-trend-list">
+                      {selectedCostSimulation.output.costDistribution.map(row => (
+                        <div key={row.id} className="recipe-cost-trend-row">
+                          <div>
+                            <strong>{row.label}</strong>
+                            <span>{RecipeCostSimulationService.formatAmount(row.value, selectedCostSimulation.currency)} · {formatFirePercent(row.percent)} %</span>
+                          </div>
+                          <span className="recipe-cost-trend-bar">
+                            <i style={{ width: `${Math.max(6, (row.value / maxDistributionValue) * 100)}%` }} />
+                          </span>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                  <div className="recipe-cost-trend-panel">
+                    <div className="section-header compact">
+                      <h3>Savings Opportunity</h3>
+                    </div>
+                    <div className="recipe-cost-simulation-opportunity">
+                      <span>{selectedCostSimulation.output.savingsOpportunity > 0 ? 'Tasarruf' : 'Maliyet Artışı'}</span>
+                      <strong>{RecipeCostSimulationService.formatAmount(selectedCostSimulation.output.savingsOpportunity || Math.max(0, selectedCostSimulation.output.difference), selectedCostSimulation.currency)}</strong>
+                      <small>Simülasyon snapshot oluşturmaz; manuel karar desteği sağlar.</small>
+                    </div>
+                  </div>
+                  {renderSimulationTrendRows(selectedCostSimulationTrend)}
+                </div>
+              </>
+            )}
+          </>
+        )}
+      </section>
+    )
+  }
+
   const renderAlternativeMaterialCard = () => {
     if(!selectedRecord) return null
 
@@ -2687,6 +3223,7 @@ export default function Recipes(){
           <div><span>Aktif Versiyon</span><strong>{isRecipeVersionActive(selectedRecord) ? 'Evet' : 'Hayır'}</strong></div>
           <div><span>Snapshot Sayısı</span><strong>{selectedRecipeSnapshots.length}</strong></div>
           <div><span>Maliyet Snapshot</span><strong>{selectedCostSnapshots.length}</strong></div>
+          <div><span>Simülasyon</span><strong>{selectedCostSimulations.length}</strong></div>
           <div><span>Reçete Adı</span><strong>{selectedRecord.recipeName}</strong></div>
           <div><span>Reçete Türü</span><strong>{selectedRecord.recipeType}</strong></div>
           <div><span>Rol</span><strong>{getRecipeRoleLabel(selectedRecord.recipeRole)}</strong></div>
@@ -2863,6 +3400,7 @@ export default function Recipes(){
             </section>
 
             {renderAlternativeMaterialCard()}
+            {renderCostSimulationCard()}
           </div>
 
           <aside className="recipe-detail-side">
@@ -2877,6 +3415,7 @@ export default function Recipes(){
                 <div><span>Versiyon Durumu</span><strong>{getRecipeVersionStatus(selectedRecord)}</strong></div>
                 <div><span>Aktif Versiyon</span><strong>{isRecipeVersionActive(selectedRecord) ? 'Evet' : 'Hayır'}</strong></div>
                 <div><span>Maliyet Snapshot</span><strong>{selectedCostSnapshots.length}</strong></div>
+                <div><span>Simülasyon</span><strong>{selectedCostSimulations.length}</strong></div>
                 <div><span>Reçete Adı</span><strong>{selectedRecord.recipeName}</strong></div>
                 <div><span>Reçete Türü</span><strong>{selectedRecord.recipeType}</strong></div>
                 <div><span>Rol</span><strong>{getRecipeRoleLabel(selectedRecord.recipeRole)}</strong></div>
@@ -2956,6 +3495,10 @@ export default function Recipes(){
         <div className="metric-card compact-metric-card">
           <span>Maliyet Snapshot</span>
           <strong>{totalCostSnapshots}</strong>
+        </div>
+        <div className="metric-card compact-metric-card">
+          <span>Maliyet Simülasyonu</span>
+          <strong>{totalCostSimulations}</strong>
         </div>
       </div>
 
