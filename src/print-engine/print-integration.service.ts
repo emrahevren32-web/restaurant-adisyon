@@ -1,3 +1,4 @@
+import { PRINT_SPACING_VALUES } from '../design-system/LayoutSpacing'
 import { BarcodeIntegrationService } from '../barcode-engine/barcode-integration.service'
 import { QRIntegrationService } from '../qr-engine/qr-integration.service'
 import type {
@@ -343,36 +344,36 @@ const createHtml = async (
     @page { size: ${pageSizeCss(outputType, orientation)}; margin: ${outputType === 'A4' ? '14mm' : outputType === 'A5' ? '10mm' : '0'}; }
     * { box-sizing: border-box; }
     body { margin: 0; background: #fff; color: #111827; font-family: Arial, Helvetica, sans-serif; font-size: 12px; }
-    .toolbar { position: fixed; right: 16px; top: 16px; z-index: 2; display:flex; gap:8px; align-items:center; }
-    .toolbar button { padding: 8px 12px; font-weight: 700; }
+    .toolbar { position: fixed; right: 16px; top: 16px; z-index: 2; display:flex; gap:${PRINT_SPACING_VALUES.space8}; align-items:center; }
+    .toolbar button { padding: ${PRINT_SPACING_VALUES.space8} ${PRINT_SPACING_VALUES.space12}; font-weight: 700; }
     .print-root { display: grid; gap: ${outputType === 'A4' ? '12mm' : '6mm'}; }
     .print-document { min-height: ${outputType === 'A4' ? '260mm' : '185mm'}; page-break-after: always; }
-    .print-header { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 18px; align-items: start; border-bottom: 2px solid #111827; padding-bottom: 12px; margin-bottom: 14px; }
+    .print-header { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: ${PRINT_SPACING_VALUES.space16}; align-items: start; border-bottom: 2px solid #111827; padding-bottom: ${PRINT_SPACING_VALUES.space12}; margin-bottom: ${PRINT_SPACING_VALUES.space12}; }
     .print-header h1 { margin: 0; font-size: ${outputType === 'A4' ? '24px' : '19px'}; line-height: 1.15; letter-spacing: 0; }
-    .print-header p { margin: 5px 0 0; color: #6b7280; }
-    .print-header strong { border: 1px solid #111827; border-radius: 4px; padding: 6px 9px; overflow-wrap: anywhere; }
-    .print-field-grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px; margin-bottom: 14px; }
-    .print-field { border: 1px solid #d1d5db; border-radius: 4px; padding: 8px; min-height: 50px; }
+    .print-header p { margin: ${PRINT_SPACING_VALUES.space4} 0 0; color: #6b7280; }
+    .print-header strong { border: 1px solid #111827; border-radius: 4px; padding: ${PRINT_SPACING_VALUES.space4} ${PRINT_SPACING_VALUES.space8}; overflow-wrap: anywhere; }
+    .print-field-grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: ${PRINT_SPACING_VALUES.space8}; margin-bottom: ${PRINT_SPACING_VALUES.space12}; }
+    .print-field { border: 1px solid #d1d5db; border-radius: 4px; padding: ${PRINT_SPACING_VALUES.space8}; min-height: 50px; }
     .print-field span, .print-notes span { display: block; color: #6b7280; font-size: 10px; font-weight: 700; text-transform: uppercase; }
-    .print-field strong { display: block; margin-top: 4px; overflow-wrap: anywhere; }
-    .print-section { margin-top: 12px; }
-    .print-section h2 { margin: 0 0 8px; font-size: 14px; }
+    .print-field strong { display: block; margin-top: ${PRINT_SPACING_VALUES.space4}; overflow-wrap: anywhere; }
+    .print-section { margin-top: ${PRINT_SPACING_VALUES.space12}; }
+    .print-section h2 { margin: 0 0 ${PRINT_SPACING_VALUES.space8}; font-size: 14px; }
     table { width: 100%; border-collapse: collapse; }
-    th, td { border: 1px solid #d1d5db; padding: 6px; text-align: left; vertical-align: top; }
+    th, td { border: 1px solid #d1d5db; padding: ${PRINT_SPACING_VALUES.space4}; text-align: left; vertical-align: top; }
     th { background: #f3f4f6; font-size: 10px; text-transform: uppercase; }
-    .print-notes { border: 1px solid #d1d5db; border-radius: 4px; padding: 8px; margin-top: 12px; }
-    .print-notes p { margin: 4px 0 0; white-space: pre-wrap; }
-    .print-footer { display:flex; justify-content:space-between; gap:12px; color:#6b7280; border-top:1px solid #d1d5db; margin-top:18px; padding-top:8px; }
+    .print-notes { border: 1px solid #d1d5db; border-radius: 4px; padding: ${PRINT_SPACING_VALUES.space8}; margin-top: ${PRINT_SPACING_VALUES.space12}; }
+    .print-notes p { margin: ${PRINT_SPACING_VALUES.space4} 0 0; white-space: pre-wrap; }
+    .print-footer { display:flex; justify-content:space-between; gap:${PRINT_SPACING_VALUES.space12}; color:#6b7280; border-top:1px solid #d1d5db; margin-top:${PRINT_SPACING_VALUES.space16}; padding-top:${PRINT_SPACING_VALUES.space8}; }
     .print-label-card { width: 80mm; height: 50mm; padding: 4mm; border: 1px solid #111827; page-break-after: always; overflow: hidden; }
-    .print-label-card header { display:grid; gap:2px; border-bottom:1px solid #d1d5db; padding-bottom:3px; margin-bottom:4px; }
+    .print-label-card header { display:grid; gap:${PRINT_SPACING_VALUES.space2}; border-bottom:1px solid #d1d5db; padding-bottom:${PRINT_SPACING_VALUES.space2}; margin-bottom:${PRINT_SPACING_VALUES.space4}; }
     .print-label-card header strong { font-size:12px; overflow-wrap:anywhere; }
     .print-label-card header span { font-size:9px; color:#6b7280; overflow-wrap:anywhere; }
     .print-label-barcode { width:100%; height:15mm; object-fit:fill; }
     .print-label-qr { width:22mm; height:22mm; }
-    .print-label-fields { display:grid; grid-template-columns:repeat(2, minmax(0, 1fr)); gap:2px; margin-top:3px; }
-    .print-label-fields .print-field { padding:3px; min-height:0; border-radius:2px; }
+    .print-label-fields { display:grid; grid-template-columns:repeat(2, minmax(0, 1fr)); gap:${PRINT_SPACING_VALUES.space2}; margin-top:${PRINT_SPACING_VALUES.space2}; }
+    .print-label-fields .print-field { padding:${PRINT_SPACING_VALUES.space2}; min-height:0; border-radius:2px; }
     .print-label-fields .print-field span { font-size:6px; }
-    .print-label-fields .print-field strong { font-size:8px; margin-top:1px; }
+    .print-label-fields .print-field strong { font-size:8px; margin-top:${PRINT_SPACING_VALUES.space2}; }
     @media print { .toolbar { display: none; } body { print-color-adjust: exact; } }
   </style>
 </head>

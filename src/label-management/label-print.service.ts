@@ -1,3 +1,4 @@
+import { PRINT_SPACING_VALUES } from '../design-system/LayoutSpacing'
 import { BarcodeIntegrationService } from '../barcode-engine/barcode-integration.service'
 import type {
   Label,
@@ -86,18 +87,18 @@ export const createLabelPrintHtml = async (
     * { box-sizing: border-box; }
     body { margin: 0; background: #fff; color: #111827; font-family: Arial, Helvetica, sans-serif; }
     .toolbar { position: fixed; right: 16px; top: 16px; z-index: 2; }
-    .toolbar button { padding: 8px 12px; font-weight: 700; }
+    .toolbar button { padding: ${PRINT_SPACING_VALUES.space8} ${PRINT_SPACING_VALUES.space12}; font-weight: 700; }
     .sheet { display: grid; grid-template-columns: ${isA4 ? 'repeat(2, minmax(0, 1fr))' : '1fr'}; gap: ${isA4 ? '8mm' : '0'}; align-items: start; }
     .label-card { width: ${width}; min-height: ${height}; border: 1px solid #111827; padding: ${isA4 ? '5mm' : '3mm'}; page-break-inside: avoid; overflow: hidden; }
-    .label-card header { display: grid; grid-template-columns: 1fr auto; gap: 6px; align-items: start; border-bottom: 1px solid #d1d5db; padding-bottom: 4px; margin-bottom: 5px; }
+    .label-card header { display: grid; grid-template-columns: 1fr auto; gap: ${PRINT_SPACING_VALUES.space4}; align-items: start; border-bottom: 1px solid #d1d5db; padding-bottom: ${PRINT_SPACING_VALUES.space4}; margin-bottom: ${PRINT_SPACING_VALUES.space4}; }
     .label-card h2 { margin: 0; font-size: ${isA4 ? '15px' : '10px'}; line-height: 1.15; letter-spacing: 0; }
     .label-card header span, .label-card header strong { display: block; font-size: ${isA4 ? '10px' : '7px'}; }
-    .label-body { display: grid; grid-template-columns: 1fr ${isA4 ? '24mm' : '17mm'}; gap: 6px; align-items: start; }
-    .label-meta { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 3px 5px; }
+    .label-body { display: grid; grid-template-columns: 1fr ${isA4 ? '24mm' : '17mm'}; gap: ${PRINT_SPACING_VALUES.space4}; align-items: start; }
+    .label-meta { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: ${PRINT_SPACING_VALUES.space2} ${PRINT_SPACING_VALUES.space4}; }
     .label-meta span { display: block; color: #6b7280; font-size: ${isA4 ? '8px' : '6px'}; font-weight: 700; text-transform: uppercase; }
     .label-meta strong { display: block; font-size: ${isA4 ? '10px' : '7px'}; line-height: 1.15; overflow-wrap: anywhere; }
     .label-qr { width: 100%; height: auto; }
-    .label-barcode { display: block; width: 100%; height: ${isA4 ? '18mm' : '10mm'}; object-fit: fill; margin-top: 4px; }
+    .label-barcode { display: block; width: 100%; height: ${isA4 ? '18mm' : '10mm'}; object-fit: fill; margin-top: ${PRINT_SPACING_VALUES.space4}; }
     @media print { .toolbar { display: none; } body { print-color-adjust: exact; } }
   </style>
 </head>

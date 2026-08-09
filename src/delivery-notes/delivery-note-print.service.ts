@@ -1,3 +1,4 @@
+import { PRINT_SPACING_VALUES } from '../design-system/LayoutSpacing'
 import type {
   DeliveryNote,
   DeliveryNotePrintMode
@@ -47,27 +48,27 @@ export const createDeliveryNotePrintHtml = (
     * { box-sizing: border-box; }
     body { margin: 0; color: #111827; background: #fff; font-family: Arial, Helvetica, sans-serif; font-size: 12px; }
     .sheet { width: 100%; min-height: 267mm; }
-    .header { display: grid; grid-template-columns: 1fr auto; gap: 18px; align-items: start; border-bottom: 2px solid #111827; padding-bottom: 12px; margin-bottom: 14px; }
+    .header { display: grid; grid-template-columns: 1fr auto; gap: ${PRINT_SPACING_VALUES.space16}; align-items: start; border-bottom: 2px solid #111827; padding-bottom: ${PRINT_SPACING_VALUES.space12}; margin-bottom: ${PRINT_SPACING_VALUES.space12}; }
     h1 { margin: 0; font-size: 24px; line-height: 1.15; letter-spacing: 0; }
-    h2 { margin: 0 0 8px; font-size: 14px; }
+    h2 { margin: 0 0 ${PRINT_SPACING_VALUES.space8}; font-size: 14px; }
     .muted { color: #6b7280; }
-    .badge { display: inline-block; border: 1px solid #111827; border-radius: 4px; padding: 5px 8px; font-weight: 700; }
-    .grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; margin-bottom: 14px; }
-    .box { border: 1px solid #d1d5db; border-radius: 4px; padding: 8px; min-height: 54px; }
+    .badge { display: inline-block; border: 1px solid #111827; border-radius: 4px; padding: ${PRINT_SPACING_VALUES.space4} ${PRINT_SPACING_VALUES.space8}; font-weight: 700; }
+    .grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: ${PRINT_SPACING_VALUES.space8}; margin-bottom: ${PRINT_SPACING_VALUES.space12}; }
+    .box { border: 1px solid #d1d5db; border-radius: 4px; padding: ${PRINT_SPACING_VALUES.space8}; min-height: 54px; }
     .box span { display: block; color: #6b7280; font-size: 10px; font-weight: 700; text-transform: uppercase; }
-    .box strong { display: block; margin-top: 4px; overflow-wrap: anywhere; }
-    table { width: 100%; border-collapse: collapse; margin-top: 8px; }
-    th, td { border: 1px solid #d1d5db; padding: 6px; text-align: left; vertical-align: top; }
+    .box strong { display: block; margin-top: ${PRINT_SPACING_VALUES.space4}; overflow-wrap: anywhere; }
+    table { width: 100%; border-collapse: collapse; margin-top: ${PRINT_SPACING_VALUES.space8}; }
+    th, td { border: 1px solid #d1d5db; padding: ${PRINT_SPACING_VALUES.space4}; text-align: left; vertical-align: top; }
     th { background: #f3f4f6; font-size: 10px; text-transform: uppercase; }
     td.num, th.num { text-align: right; }
-    .summary { display: grid; grid-template-columns: repeat(6, 1fr); gap: 8px; margin-top: 12px; }
-    .signature { display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px; margin-top: 28px; }
-    .signature div { min-height: 72px; border-top: 1px solid #111827; padding-top: 6px; text-align: center; font-weight: 700; }
+    .summary { display: grid; grid-template-columns: repeat(6, 1fr); gap: ${PRINT_SPACING_VALUES.space8}; margin-top: ${PRINT_SPACING_VALUES.space12}; }
+    .signature { display: grid; grid-template-columns: repeat(3, 1fr); gap: ${PRINT_SPACING_VALUES.space16}; margin-top: ${PRINT_SPACING_VALUES.space24}; }
+    .signature div { min-height: 72px; border-top: 1px solid #111827; padding-top: ${PRINT_SPACING_VALUES.space4}; text-align: center; font-weight: 700; }
     @media print { .no-print { display: none; } body { print-color-adjust: exact; } }
   </style>
 </head>
 <body>
-  <button class="no-print" onclick="window.print()" style="position:fixed;right:16px;top:16px;padding:8px 12px;font-weight:700;">Yazdir</button>
+  <button class="no-print" onclick="window.print()" style="position:fixed;right:16px;top:16px;padding:${PRINT_SPACING_VALUES.space8} ${PRINT_SPACING_VALUES.space12};font-weight:700;">Yazdir</button>
   <main class="sheet">
     <section class="header">
       <div>
@@ -134,7 +135,7 @@ export const createDeliveryNotePrintHtml = (
       <div class="box"><span>Cost Engine</span><strong>${escapeHtml(formatMoney(totalCost))}</strong></div>
     </section>
 
-    <section class="box" style="margin-top:12px;">
+    <section class="box" style="margin-top:${PRINT_SPACING_VALUES.space12};">
       <span>Aciklama</span>
       <strong>${escapeHtml(record.description || '-')}</strong>
     </section>

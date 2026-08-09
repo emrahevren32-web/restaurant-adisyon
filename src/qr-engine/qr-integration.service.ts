@@ -1,3 +1,4 @@
+import { PRINT_SPACING_VALUES } from '../design-system/LayoutSpacing'
 import * as QRCode from 'qrcode'
 import type { InventoryLot } from '../inventory-lots/inventory-lot.types'
 import { loadKpiSourceData } from '../kpi-reporting/kpi-source.service'
@@ -506,16 +507,16 @@ const createPrintHtml = async (
     * { box-sizing: border-box; }
     body { margin: 0; background: #fff; color: #111827; font-family: Arial, Helvetica, sans-serif; }
     .toolbar { position: fixed; right: 16px; top: 16px; z-index: 2; }
-    .toolbar button { padding: 8px 12px; font-weight: 700; }
+    .toolbar button { padding: ${PRINT_SPACING_VALUES.space8} ${PRINT_SPACING_VALUES.space12}; font-weight: 700; }
     .qr-sheet { display: grid; grid-template-columns: ${labelMode ? '1fr' : 'repeat(2, minmax(0, 1fr))'}; gap: ${labelMode ? '0' : '8mm'}; }
     .qr-print-card, .qr-label-card { page-break-inside: avoid; overflow: hidden; border: 1px solid #111827; background: #fff; }
     .qr-print-card { min-height: 120mm; padding: 7mm; }
     .qr-label-card { width: 80mm; height: 50mm; padding: 4mm; page-break-after: always; }
-    header { display: grid; gap: 2px; border-bottom: 1px solid #d1d5db; padding-bottom: 4px; margin-bottom: 6px; }
+    header { display: grid; gap: ${PRINT_SPACING_VALUES.space2}; border-bottom: 1px solid #d1d5db; padding-bottom: ${PRINT_SPACING_VALUES.space4}; margin-bottom: ${PRINT_SPACING_VALUES.space4}; }
     header strong { font-size: ${labelMode ? '12px' : '16px'}; overflow-wrap: anywhere; }
     header span { color: #6b7280; font-size: ${labelMode ? '9px' : '11px'}; overflow-wrap: anywhere; }
     img { display: block; width: ${labelMode ? '22mm' : '48mm'}; height: ${labelMode ? '22mm' : '48mm'}; margin: ${labelMode ? '2mm 0' : '6mm auto'}; }
-    .qr-print-meta { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: ${labelMode ? '2px' : '6px'}; }
+    .qr-print-meta { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: ${labelMode ? PRINT_SPACING_VALUES.space2 : PRINT_SPACING_VALUES.space4}; }
     .qr-print-meta span { display: block; color: #6b7280; font-size: ${labelMode ? '6px' : '9px'}; font-weight: 700; text-transform: uppercase; }
     .qr-print-meta strong { display: block; font-size: ${labelMode ? '8px' : '11px'}; overflow-wrap: anywhere; }
     @media print { .toolbar { display: none; } body { print-color-adjust: exact; } }

@@ -1,3 +1,4 @@
+import { PRINT_SPACING_VALUES } from '../design-system/LayoutSpacing'
 import React from 'react'
 import { PRINT_THEME_COLORS } from '../design-system/ThemeColors'
 import { BarcodeIntegrationService } from '../barcode-engine/barcode-integration.service'
@@ -115,10 +116,10 @@ const printTableRows = (
       <head>
         <title>${escapeHtml(title)}</title>
         <style>
-          body{font-family:Arial,sans-serif;margin:24px;color:${PRINT_THEME_COLORS.text}}
-          h1{font-size:20px;margin:0 0 12px}
+          body{font-family:Arial,sans-serif;margin:${PRINT_SPACING_VALUES.space24};color:${PRINT_THEME_COLORS.text}}
+          h1{font-size:20px;margin:0 0 ${PRINT_SPACING_VALUES.space12}}
           table{width:100%;border-collapse:collapse;font-size:11px}
-          th,td{border:1px solid ${PRINT_THEME_COLORS.border};padding:7px;text-align:left;vertical-align:top}
+          th,td{border:1px solid ${PRINT_THEME_COLORS.border};padding:${PRINT_SPACING_VALUES.space8};text-align:left;vertical-align:top}
           th{background:${PRINT_THEME_COLORS.tableHeader}}
         </style>
       </head>

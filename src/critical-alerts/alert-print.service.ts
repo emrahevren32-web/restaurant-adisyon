@@ -1,3 +1,4 @@
+import { PRINT_SPACING_VALUES } from '../design-system/LayoutSpacing'
 import {
   ALERT_CATEGORY_LABELS,
   ALERT_LEVEL_LABELS,
@@ -45,20 +46,20 @@ export const createAlertPrintHtml = (
   <title>${escapeHtml(alert.alertNo)} Kritik Alarm</title>
   <style>
     * { box-sizing:border-box; }
-    body { margin:0; padding:24px; color:#111827; font-family:Inter, Arial, sans-serif; background:#f8fafc; }
-    .sheet { max-width:980px; margin:0 auto; padding:24px; border:1px solid #d1d5db; border-radius:8px; background:#fff; }
-    .header { display:flex; justify-content:space-between; gap:16px; align-items:flex-start; border-bottom:2px solid #111827; padding-bottom:16px; margin-bottom:18px; }
+    body { margin:0; padding:${PRINT_SPACING_VALUES.space24}; color:#111827; font-family:Inter, Arial, sans-serif; background:#f8fafc; }
+    .sheet { max-width:980px; margin:0 auto; padding:${PRINT_SPACING_VALUES.space24}; border:1px solid #d1d5db; border-radius:8px; background:#fff; }
+    .header { display:flex; justify-content:space-between; gap:${PRINT_SPACING_VALUES.space16}; align-items:flex-start; border-bottom:2px solid #111827; padding-bottom:${PRINT_SPACING_VALUES.space16}; margin-bottom:${PRINT_SPACING_VALUES.space16}; }
     h1 { margin:0; font-size:22px; line-height:1.2; }
-    h2 { margin:22px 0 10px; font-size:16px; }
+    h2 { margin:${PRINT_SPACING_VALUES.space20} 0 ${PRINT_SPACING_VALUES.space8}; font-size:16px; }
     .muted { color:#64748b; font-size:12px; font-weight:700; }
-    .pill { display:inline-block; border:1px solid #d1d5db; border-radius:999px; padding:6px 10px; font-size:12px; font-weight:800; }
-    .grid { display:grid; grid-template-columns:repeat(3, 1fr); gap:10px; }
-    .box { min-width:0; border:1px solid #e5e7eb; border-radius:6px; padding:9px 10px; background:#f9fafb; }
+    .pill { display:inline-block; border:1px solid #d1d5db; border-radius:999px; padding:${PRINT_SPACING_VALUES.space4} ${PRINT_SPACING_VALUES.space8}; font-size:12px; font-weight:800; }
+    .grid { display:grid; grid-template-columns:repeat(3, 1fr); gap:${PRINT_SPACING_VALUES.space8}; }
+    .box { min-width:0; border:1px solid #e5e7eb; border-radius:6px; padding:${PRINT_SPACING_VALUES.space8} ${PRINT_SPACING_VALUES.space8}; background:#f9fafb; }
     .box span { display:block; color:#64748b; font-size:11px; font-weight:800; }
-    .box strong { display:block; margin-top:4px; color:#111827; font-size:13px; overflow-wrap:anywhere; }
+    .box strong { display:block; margin-top:${PRINT_SPACING_VALUES.space4}; color:#111827; font-size:13px; overflow-wrap:anywhere; }
     p { line-height:1.55; }
     table { width:100%; border-collapse:collapse; font-size:12px; }
-    th, td { border:1px solid #e5e7eb; padding:8px; text-align:left; vertical-align:top; }
+    th, td { border:1px solid #e5e7eb; padding:${PRINT_SPACING_VALUES.space8}; text-align:left; vertical-align:top; }
     th { background:#f3f4f6; font-weight:900; }
     @media print {
       body { background:#fff; padding:0; }

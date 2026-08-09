@@ -1,3 +1,4 @@
+import { PRINT_SPACING_VALUES } from '../design-system/LayoutSpacing'
 import React from 'react'
 import { CHART_THEME_COLORS, PRINT_THEME_COLORS } from '../design-system/ThemeColors'
 import { AIAnalysisService } from '../ai-analysis/ai-analysis.service'
@@ -1260,19 +1261,19 @@ const createPrintHtml = (model: ExecutiveDashboardModel, mode: 'PDF' | 'PRINT') 
       <meta charset="utf-8" />
       <title>Yönetici Dashboard ${mode === 'PDF' ? 'PDF' : 'Yazdır'}</title>
       <style>
-        body { margin:0; padding:28px; color:${PRINT_THEME_COLORS.textDeep}; font-family:Arial, sans-serif; background:${PRINT_THEME_COLORS.background}; }
-        header { border-bottom:2px solid ${PRINT_THEME_COLORS.accent}; padding-bottom:12px; margin-bottom:18px; }
+        body { margin:0; padding:${PRINT_SPACING_VALUES.space24}; color:${PRINT_THEME_COLORS.textDeep}; font-family:Arial, sans-serif; background:${PRINT_THEME_COLORS.background}; }
+        header { border-bottom:2px solid ${PRINT_THEME_COLORS.accent}; padding-bottom:${PRINT_SPACING_VALUES.space12}; margin-bottom:${PRINT_SPACING_VALUES.space16}; }
         h1 { margin:0; font-size:24px; }
-        p { margin:6px 0 0; color:${PRINT_THEME_COLORS.textMutedStrong}; }
-        .grid { display:grid; grid-template-columns:repeat(4, 1fr); gap:10px; margin:18px 0; }
-        article { border:1px solid ${PRINT_THEME_COLORS.borderTable}; border-radius:8px; padding:12px; page-break-inside:avoid; }
+        p { margin:${PRINT_SPACING_VALUES.space4} 0 0; color:${PRINT_THEME_COLORS.textMutedStrong}; }
+        .grid { display:grid; grid-template-columns:repeat(4, 1fr); gap:${PRINT_SPACING_VALUES.space8}; margin:${PRINT_SPACING_VALUES.space16} 0; }
+        article { border:1px solid ${PRINT_THEME_COLORS.borderTable}; border-radius:8px; padding:${PRINT_SPACING_VALUES.space12}; page-break-inside:avoid; }
         article span, article small { display:block; color:${PRINT_THEME_COLORS.textMutedStrong}; font-size:12px; font-weight:700; }
-        article strong { display:block; margin:6px 0; font-size:20px; }
-        table { width:100%; border-collapse:collapse; margin-top:10px; font-size:12px; }
-        th, td { border:1px solid ${PRINT_THEME_COLORS.borderTable}; padding:8px; text-align:left; vertical-align:top; }
+        article strong { display:block; margin:${PRINT_SPACING_VALUES.space4} 0; font-size:20px; }
+        table { width:100%; border-collapse:collapse; margin-top:${PRINT_SPACING_VALUES.space8}; font-size:12px; }
+        th, td { border:1px solid ${PRINT_THEME_COLORS.borderTable}; padding:${PRINT_SPACING_VALUES.space8}; text-align:left; vertical-align:top; }
         th { background:${PRINT_THEME_COLORS.pageBackground}; }
-        section { margin-top:18px; page-break-inside:avoid; }
-        @media print { body { padding:16px; } .grid { grid-template-columns:repeat(3, 1fr); } }
+        section { margin-top:${PRINT_SPACING_VALUES.space16}; page-break-inside:avoid; }
+        @media print { body { padding:${PRINT_SPACING_VALUES.space16}; } .grid { grid-template-columns:repeat(3, 1fr); } }
       </style>
     </head>
     <body>

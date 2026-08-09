@@ -1,3 +1,4 @@
+import { PRINT_SPACING_VALUES } from '../design-system/LayoutSpacing'
 import React from 'react'
 import { PRINT_THEME_COLORS } from '../design-system/ThemeColors'
 import { ExcelIntegrationService } from '../excel-engine/excel-integration.service'
@@ -165,14 +166,14 @@ const createFilteredPrintHtml = (
   <title>Satın Alma Önerileri - Filtreli Liste</title>
   <style>
     * { box-sizing:border-box; }
-    body { margin:0; padding:22px; color:${PRINT_THEME_COLORS.text}; font-family:Inter, Arial, sans-serif; background:${PRINT_THEME_COLORS.pageBackground}; }
-    .sheet { max-width:1180px; margin:0 auto; padding:22px; border:1px solid ${PRINT_THEME_COLORS.border}; border-radius:8px; background:${PRINT_THEME_COLORS.background}; }
-    .header { display:flex; justify-content:space-between; gap:16px; align-items:flex-start; border-bottom:2px solid ${PRINT_THEME_COLORS.text}; padding-bottom:14px; margin-bottom:16px; }
+    body { margin:0; padding:${PRINT_SPACING_VALUES.space20}; color:${PRINT_THEME_COLORS.text}; font-family:Inter, Arial, sans-serif; background:${PRINT_THEME_COLORS.pageBackground}; }
+    .sheet { max-width:1180px; margin:0 auto; padding:${PRINT_SPACING_VALUES.space20}; border:1px solid ${PRINT_THEME_COLORS.border}; border-radius:8px; background:${PRINT_THEME_COLORS.background}; }
+    .header { display:flex; justify-content:space-between; gap:${PRINT_SPACING_VALUES.space16}; align-items:flex-start; border-bottom:2px solid ${PRINT_THEME_COLORS.text}; padding-bottom:${PRINT_SPACING_VALUES.space12}; margin-bottom:${PRINT_SPACING_VALUES.space16}; }
     h1 { margin:0; font-size:22px; line-height:1.2; }
     .muted { color:${PRINT_THEME_COLORS.textMuted}; font-size:12px; font-weight:700; }
-    .pill { display:inline-block; border:1px solid ${PRINT_THEME_COLORS.border}; border-radius:999px; padding:6px 10px; font-size:12px; font-weight:800; }
+    .pill { display:inline-block; border:1px solid ${PRINT_THEME_COLORS.border}; border-radius:999px; padding:${PRINT_SPACING_VALUES.space4} ${PRINT_SPACING_VALUES.space8}; font-size:12px; font-weight:800; }
     table { width:100%; border-collapse:collapse; font-size:11px; }
-    th, td { border:1px solid ${PRINT_THEME_COLORS.borderSoft}; padding:7px; text-align:left; vertical-align:top; }
+    th, td { border:1px solid ${PRINT_THEME_COLORS.borderSoft}; padding:${PRINT_SPACING_VALUES.space8}; text-align:left; vertical-align:top; }
     th { background:${PRINT_THEME_COLORS.tableHeader}; font-weight:900; }
     @media print {
       body { background:${PRINT_THEME_COLORS.background}; padding:0; }

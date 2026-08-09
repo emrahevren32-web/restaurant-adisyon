@@ -1,3 +1,4 @@
+import { PRINT_SPACING_VALUES } from '../design-system/LayoutSpacing'
 import React from 'react'
 import { AppIcon } from '../design-system/IconSystem'
 import { PRINT_THEME_COLORS } from '../design-system/ThemeColors'
@@ -247,13 +248,13 @@ const createPrintHtml = (
       <meta charset="utf-8" />
       <title>Modül Mağazası Çıktısı</title>
       <style>
-        body { font-family: Arial, sans-serif; margin: 28px; color: ${PRINT_THEME_COLORS.textInk}; }
-        h1 { margin: 0 0 8px; font-size: 24px; }
-        .meta { margin: 0 0 18px; color: ${PRINT_THEME_COLORS.textSoftAlt}; font-size: 13px; }
+        body { font-family: Arial, sans-serif; margin: ${PRINT_SPACING_VALUES.space24}; color: ${PRINT_THEME_COLORS.textInk}; }
+        h1 { margin: 0 0 ${PRINT_SPACING_VALUES.space8}; font-size: 24px; }
+        .meta { margin: 0 0 ${PRINT_SPACING_VALUES.space16}; color: ${PRINT_THEME_COLORS.textSoftAlt}; font-size: 13px; }
         table { width: 100%; border-collapse: collapse; font-size: 12px; }
-        th, td { border: 1px solid ${PRINT_THEME_COLORS.borderMarketplace}; padding: 8px; text-align: left; vertical-align: top; }
+        th, td { border: 1px solid ${PRINT_THEME_COLORS.borderMarketplace}; padding: ${PRINT_SPACING_VALUES.space8}; text-align: left; vertical-align: top; }
         th { background: ${PRINT_THEME_COLORS.tableHeaderMarketplace}; }
-        .pill { display: inline-block; margin-bottom: 14px; border: 1px solid ${PRINT_THEME_COLORS.borderAccent}; border-radius: 999px; padding: 5px 10px; color: ${PRINT_THEME_COLORS.pillText}; font-weight: 700; font-size: 12px; }
+        .pill { display: inline-block; margin-bottom: ${PRINT_SPACING_VALUES.space12}; border: 1px solid ${PRINT_THEME_COLORS.borderAccent}; border-radius: 999px; padding: ${PRINT_SPACING_VALUES.space4} ${PRINT_SPACING_VALUES.space8}; color: ${PRINT_THEME_COLORS.pillText}; font-weight: 700; font-size: 12px; }
         @media print { body { margin: 14mm; } }
       </style>
     </head>

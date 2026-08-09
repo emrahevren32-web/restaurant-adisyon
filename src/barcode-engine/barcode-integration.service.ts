@@ -1,3 +1,4 @@
+import { PRINT_SPACING_VALUES } from '../design-system/LayoutSpacing'
 import type { InventoryLot } from '../inventory-lots/inventory-lot.types'
 import type { QualitySample } from '../quality-samples/quality-sample.types'
 import type { ShipmentRecord } from '../shipments/shipment.types'
@@ -727,17 +728,17 @@ const createPrintHtml = async (
     * { box-sizing: border-box; }
     body { margin: 0; color: #111827; background: #fff; font-family: Arial, Helvetica, sans-serif; }
     .toolbar { position: fixed; right: 16px; top: 16px; z-index: 2; }
-    .toolbar button { padding: 8px 12px; font-weight: 700; }
+    .toolbar button { padding: ${PRINT_SPACING_VALUES.space8} ${PRINT_SPACING_VALUES.space12}; font-weight: 700; }
     .sheet { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8mm; align-items: start; }
     .barcode-print-card { min-height: 72mm; border: 1px solid #111827; padding: 5mm; page-break-inside: avoid; overflow: hidden; }
-    .barcode-print-card header { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 8px; align-items: start; border-bottom: 1px solid #d1d5db; padding-bottom: 5px; margin-bottom: 6px; }
+    .barcode-print-card header { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: ${PRINT_SPACING_VALUES.space8}; align-items: start; border-bottom: 1px solid #d1d5db; padding-bottom: ${PRINT_SPACING_VALUES.space4}; margin-bottom: ${PRINT_SPACING_VALUES.space4}; }
     .barcode-print-card h2 { margin: 0; font-size: 15px; line-height: 1.15; overflow-wrap: anywhere; }
     .barcode-print-card header span, .barcode-print-card header strong { display: block; font-size: 10px; }
     .barcode-main-image { display: block; width: 100%; height: 24mm; object-fit: fill; }
-    .barcode-print-meta { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 3px 6px; margin-top: 6px; }
+    .barcode-print-meta { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: ${PRINT_SPACING_VALUES.space2} ${PRINT_SPACING_VALUES.space4}; margin-top: ${PRINT_SPACING_VALUES.space4}; }
     .barcode-print-meta span { display: block; color: #6b7280; font-size: 8px; font-weight: 700; text-transform: uppercase; }
     .barcode-print-meta strong { display: block; font-size: 10px; line-height: 1.15; overflow-wrap: anywhere; }
-    .barcode-qr-reference { display: block; width: 21mm; height: 21mm; margin-top: 5px; }
+    .barcode-qr-reference { display: block; width: 21mm; height: 21mm; margin-top: ${PRINT_SPACING_VALUES.space4}; }
     @media print { .toolbar { display: none; } body { print-color-adjust: exact; } }
   </style>
 </head>

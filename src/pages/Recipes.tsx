@@ -1,3 +1,4 @@
+import { PRINT_SPACING_VALUES } from '../design-system/LayoutSpacing'
 import React from 'react'
 import { PRINT_THEME_COLORS } from '../design-system/ThemeColors'
 import PrintPreviewModal from '../components/PrintPreviewModal'
@@ -507,10 +508,10 @@ const openRecipePrintWindow = (
         <meta charset="utf-8" />
         <title>${escapeHtml(title)} ${mode === 'PDF' ? 'PDF' : 'Yazdır'}</title>
         <style>
-          body { font-family: Arial, sans-serif; color: ${PRINT_THEME_COLORS.textRecipe}; padding: 24px; }
-          h1 { font-size: 20px; margin: 0 0 12px; }
+          body { font-family: Arial, sans-serif; color: ${PRINT_THEME_COLORS.textRecipe}; padding: ${PRINT_SPACING_VALUES.space24}; }
+          h1 { font-size: 20px; margin: 0 0 ${PRINT_SPACING_VALUES.space12}; }
           table { width: 100%; border-collapse: collapse; font-size: 12px; }
-          th, td { border: 1px solid ${PRINT_THEME_COLORS.borderRecipe}; padding: 8px; text-align: left; vertical-align: top; }
+          th, td { border: 1px solid ${PRINT_THEME_COLORS.borderRecipe}; padding: ${PRINT_SPACING_VALUES.space8}; text-align: left; vertical-align: top; }
           th { background: ${PRINT_THEME_COLORS.tableHeaderRecipe}; }
         </style>
       </head>
