@@ -1,4 +1,5 @@
 import { BarcodeIntegrationService } from '../barcode-engine/barcode-integration.service'
+import { QRIntegrationService } from '../qr-engine/qr-integration.service'
 import type {
   PrintDocumentInput,
   PrintJob,
@@ -272,7 +273,7 @@ const createLabelDocumentHtml = async (
     ? BarcodeIntegrationService.createBarcodeDataUrl(document.barcodeValue || document.entityCode, 'CODE128', 300, 74)
     : ''
   const qrImage = outputType === 'QR_LABEL'
-    ? await BarcodeIntegrationService.createQrDataUrl(document.qrPayload || JSON.stringify({
+    ? await QRIntegrationService.createDataUrl(document.qrPayload || JSON.stringify({
       entityId: document.entityId,
       code: document.entityCode,
       module: document.moduleKey

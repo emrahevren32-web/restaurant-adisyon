@@ -2,6 +2,7 @@ import React from 'react'
 import { BarcodeIntegrationService } from '../barcode-engine/barcode-integration.service'
 import type { BarcodeGenerateInput } from '../barcode-engine/barcode.types'
 import BarcodePreviewModal from '../components/BarcodePreviewModal'
+import QRPreviewModal from '../components/QRPreviewModal'
 import PrintPreviewModal from '../components/PrintPreviewModal'
 import { ExcelIntegrationService } from '../excel-engine/excel-integration.service'
 import { loadKpiSourceData } from '../kpi-reporting/kpi-source.service'
@@ -14,6 +15,8 @@ import {
   formatQuantity
 } from '../kpi-reporting/kpi.utils'
 import type { PrintDocumentInput } from '../print-engine/print.types'
+import { QRIntegrationService } from '../qr-engine/qr-integration.service'
+import type { QRGenerateInput } from '../qr-engine/qr.types'
 import type { User } from '../types'
 import {
   WASTE_REASONS,
@@ -135,6 +138,7 @@ export default function WasteManagement({ currentUser }: { currentUser: User }){
   const [form, setForm] = React.useState<CreateFormState>(() => createInitialForm(lotOptions[0]?.id || ''))
   const [message, setMessage] = React.useState<Message | null>(null)
   const [barcodePreviewRequest, setBarcodePreviewRequest] = React.useState<BarcodeGenerateInput | null>(null)
+  const [qrPreviewRequest, setQrPreviewRequest] = React.useState<QRGenerateInput | null>(null)
   const [printDocuments, setPrintDocuments] = React.useState<PrintDocumentInput[]>([])
   const filteredRecords = React.useMemo(() => WasteService.filter(records, filters), [records, filters])
   const statistics = React.useMemo(() => WasteService.statistics(records, sourceData), [records, sourceData])
@@ -237,13 +241,7 @@ export default function WasteManagement({ currentUser }: { currentUser: User }){
     ],
     notes: record.description,
     barcodeValue: record.wasteNo,
-    qrPayload: JSON.stringify({
-      module: 'waste',
-      entityId: record.id,
-      code: record.wasteNo,
-      lot: record.lotNo || record.batchNo || '',
-      date: record.date
-    })
+    qrPayload: QRIntegrationService.createPayload(QRIntegrationService.fromWasteRecord(record))
   })
 
   const recordOutput = (action: Extract<WasteHistoryAction, 'PRINTED' | 'PDF' | 'EXCEL'>) => {
@@ -504,6 +502,7 @@ export default function WasteManagement({ currentUser }: { currentUser: User }){
               record={selectedRecord}
               analysis={analysis}
               onPreviewBarcode={record => setBarcodePreviewRequest(BarcodeIntegrationService.fromWasteRecord(record))}
+              onPreviewQR={record => setQrPreviewRequest(QRIntegrationService.fromWasteRecord(record))}
               onStatusChange={changeStatus}
               onOutput={recordOutput}
             />
@@ -521,6 +520,12 @@ export default function WasteManagement({ currentUser }: { currentUser: User }){
         userName={userName}
         onClose={() => setBarcodePreviewRequest(null)}
       />
+      <QRPreviewModal
+        request={qrPreviewRequest}
+        bulkRequests={filteredRecords.map(record => QRIntegrationService.fromWasteRecord(record))}
+        userName={userName}
+        onClose={() => setQrPreviewRequest(null)}
+      />
       <PrintPreviewModal
         moduleKey="waste"
         documents={printDocuments}
@@ -535,12 +540,14 @@ function WasteDetailPanel({
   analysis,
   onOutput,
   onPreviewBarcode,
+  onPreviewQR,
   onStatusChange,
   record
 }: {
   analysis: ReturnType<typeof WasteService.analysis>
   onOutput: (action: Extract<WasteHistoryAction, 'PRINTED' | 'PDF' | 'EXCEL'>) => void
   onPreviewBarcode: (record: WasteRecord) => void
+  onPreviewQR: (record: WasteRecord) => void
   onStatusChange: (status: WasteStatus) => void
   record: WasteRecord
 }){
@@ -557,6 +564,7 @@ function WasteDetailPanel({
 
         <div className="waste-output-actions">
           <button className="btn" type="button" onClick={() => onPreviewBarcode(record)}>Barkod Önizle</button>
+          <button className="btn" type="button" onClick={() => onPreviewQR(record)}>QR Önizle</button>
           <button className="btn" type="button" onClick={() => onOutput('PRINTED')}>Yazdir</button>
           <button className="btn" type="button" onClick={() => onOutput('PDF')}>PDF</button>
           <button className="btn" type="button" onClick={() => onOutput('EXCEL')}>Excel</button>

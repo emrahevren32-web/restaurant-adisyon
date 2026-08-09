@@ -2,6 +2,7 @@ import React from 'react'
 import { BarcodeIntegrationService } from '../barcode-engine/barcode-integration.service'
 import type { BarcodeGenerateInput } from '../barcode-engine/barcode.types'
 import BarcodePreviewModal from '../components/BarcodePreviewModal'
+import QRPreviewModal from '../components/QRPreviewModal'
 import PrintPreviewModal from '../components/PrintPreviewModal'
 import { ExcelIntegrationService } from '../excel-engine/excel-integration.service'
 import { loadFinalProducts } from '../final-products/final-product.mock'
@@ -39,6 +40,8 @@ import type {
   QualitySampleType
 } from '../quality-samples/quality-sample.types'
 import type { PrintDocumentInput } from '../print-engine/print.types'
+import { QRIntegrationService } from '../qr-engine/qr-integration.service'
+import type { QRGenerateInput } from '../qr-engine/qr.types'
 import { loadBranches, loadStockItems } from '../storage'
 import { loadSupplierManagementRecords } from '../supplier-management/supplier-management.mock'
 import { loadSupplierProductRecords } from '../supplier-management/supplier-product-mapping.mock'
@@ -232,6 +235,7 @@ export default function SampleTracking({ currentUser }: { currentUser: User }){
   ))
   const [formError, setFormError] = React.useState('')
   const [barcodePreviewRequest, setBarcodePreviewRequest] = React.useState<BarcodeGenerateInput | null>(null)
+  const [qrPreviewRequest, setQrPreviewRequest] = React.useState<QRGenerateInput | null>(null)
   const [printDocuments, setPrintDocuments] = React.useState<PrintDocumentInput[]>([])
 
   const { branches, inventoryLots, productRefs, productionOrders, stockItems } = initialData
@@ -321,13 +325,7 @@ export default function SampleTracking({ currentUser }: { currentUser: User }){
       ],
       notes: sample.notes,
       barcodeValue: sample.sampleNo,
-      qrPayload: JSON.stringify({
-        module: 'samples',
-        entityId: sample.id,
-        code: sample.sampleNo,
-        lot: lotNo,
-        date: sample.sampleDate
-      })
+      qrPayload: QRIntegrationService.createPayload(QRIntegrationService.fromQualitySample(sample, lot))
     }
   }
 
@@ -545,6 +543,7 @@ export default function SampleTracking({ currentUser }: { currentUser: User }){
             stockItemMap={stockItemMap}
             onEdit={startEdit}
             onPreviewBarcode={sample => setBarcodePreviewRequest(BarcodeIntegrationService.fromQualitySample(sample, lotMap.get(sample.inventoryLotId) || null))}
+            onPreviewQR={sample => setQrPreviewRequest(QRIntegrationService.fromQualitySample(sample, lotMap.get(sample.inventoryLotId) || null))}
             onPrint={sample => setPrintDocuments([createSamplePrintDocument(sample)])}
             onStatusChange={updateStatus}
           />
@@ -570,6 +569,12 @@ export default function SampleTracking({ currentUser }: { currentUser: User }){
         userName={getUserName(currentUser)}
         onClose={() => setBarcodePreviewRequest(null)}
       />
+      <QRPreviewModal
+        request={qrPreviewRequest}
+        bulkRequests={visibleSamples.map(sample => QRIntegrationService.fromQualitySample(sample, lotMap.get(sample.inventoryLotId) || null))}
+        userName={getUserName(currentUser)}
+        onClose={() => setQrPreviewRequest(null)}
+      />
       <PrintPreviewModal
         moduleKey="samples"
         documents={printDocuments}
@@ -589,6 +594,7 @@ function SampleDetailPanel({
   stockItemMap,
   onEdit,
   onPreviewBarcode,
+  onPreviewQR,
   onPrint,
   onStatusChange
 }: {
@@ -600,6 +606,7 @@ function SampleDetailPanel({
   stockItemMap: Map<string, StockItem>
   onEdit: (sample: QualitySample) => void
   onPreviewBarcode: (sample: QualitySample) => void
+  onPreviewQR: (sample: QualitySample) => void
   onPrint: (sample: QualitySample) => void
   onStatusChange: (sample: QualitySample, status: QualitySampleStatus) => void
 }){
@@ -636,6 +643,7 @@ function SampleDetailPanel({
             ))}
           </select>
           <button className="btn secondary" type="button" onClick={() => onPreviewBarcode(sample)}>Barkod Önizle</button>
+          <button className="btn secondary" type="button" onClick={() => onPreviewQR(sample)}>QR Önizle</button>
           <button className="btn secondary" type="button" onClick={() => onEdit(sample)}>Düzenle</button>
         </div>
       </section>

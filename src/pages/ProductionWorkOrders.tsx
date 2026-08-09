@@ -2,8 +2,11 @@ import React from 'react'
 import { BarcodeIntegrationService } from '../barcode-engine/barcode-integration.service'
 import type { BarcodeGenerateInput } from '../barcode-engine/barcode.types'
 import BarcodePreviewModal from '../components/BarcodePreviewModal'
+import QRPreviewModal from '../components/QRPreviewModal'
 import PrintPreviewModal from '../components/PrintPreviewModal'
 import type { PrintDocumentInput } from '../print-engine/print.types'
+import { QRIntegrationService } from '../qr-engine/qr-integration.service'
+import type { QRGenerateInput } from '../qr-engine/qr.types'
 import type { User } from '../types'
 import {
   PRODUCTION_WORK_ORDER_BRANCHES,
@@ -295,6 +298,7 @@ export default function ProductionWorkOrders({ currentUser }: Props){
   const [formError, setFormError] = React.useState('')
   const [toast, setToast] = React.useState<ToastState | null>(null)
   const [barcodePreviewRequest, setBarcodePreviewRequest] = React.useState<BarcodeGenerateInput | null>(null)
+  const [qrPreviewRequest, setQrPreviewRequest] = React.useState<QRGenerateInput | null>(null)
   const [printDocuments, setPrintDocuments] = React.useState<PrintDocumentInput[]>([])
 
   const actorName = currentUser.fullName || currentUser.username || 'Kullanıcı'
@@ -406,13 +410,7 @@ export default function ProductionWorkOrders({ currentUser }: Props){
     ],
     notes: order.notes || order.description,
     barcodeValue: order.workOrderNo,
-    qrPayload: JSON.stringify({
-      module: 'production-orders',
-      entityId: order.id,
-      code: order.workOrderNo,
-      lot: order.linkedShipmentNo || '',
-      date: order.deliveryDate
-    })
+    qrPayload: QRIntegrationService.createPayload(QRIntegrationService.fromProductionOrder(order))
   })
 
   React.useEffect(() => {
@@ -925,6 +923,7 @@ export default function ProductionWorkOrders({ currentUser }: Props){
           <div className="production-work-order-side-actions">
             <button className="btn primary" type="button" onClick={() => openDetail(selectedOrder.id)}>Detay</button>
             <button className="btn" type="button" onClick={() => setBarcodePreviewRequest(BarcodeIntegrationService.fromProductionOrder(selectedOrder))}>Barkod Önizle</button>
+            <button className="btn" type="button" onClick={() => setQrPreviewRequest(QRIntegrationService.fromProductionOrder(selectedOrder))}>QR Önizle</button>
             <button className="btn" type="button" onClick={() => startEditOrder(selectedOrder)}>Düzenle</button>
             <button className="btn" type="button" onClick={() => showPlaceholder('Kopyala')}>Kopyala</button>
             <button className="btn" type="button" onClick={() => openPrintPreview(selectedOrder.id)}>Yazdır</button>
@@ -974,6 +973,7 @@ export default function ProductionWorkOrders({ currentUser }: Props){
           <div className="production-work-order-detail-actions">
             <button className="btn" type="button" onClick={returnToList}>Listeye Dön</button>
             <button className="btn" type="button" onClick={() => setBarcodePreviewRequest(BarcodeIntegrationService.fromProductionOrder(selectedOrder))}>Barkod Önizle</button>
+            <button className="btn" type="button" onClick={() => setQrPreviewRequest(QRIntegrationService.fromProductionOrder(selectedOrder))}>QR Önizle</button>
             <button className="btn" type="button" onClick={() => startEditOrder(selectedOrder)}>Düzenle</button>
             <button className="btn primary" type="button" onClick={() => openPrintPreview(selectedOrder.id)}>İş Emri Yazdır</button>
           </div>
@@ -1062,6 +1062,12 @@ export default function ProductionWorkOrders({ currentUser }: Props){
           bulkRequests={visibleOrders.map(order => BarcodeIntegrationService.fromProductionOrder(order))}
           userName={actorName}
           onClose={() => setBarcodePreviewRequest(null)}
+        />
+        <QRPreviewModal
+          request={qrPreviewRequest}
+          bulkRequests={visibleOrders.map(order => QRIntegrationService.fromProductionOrder(order))}
+          userName={actorName}
+          onClose={() => setQrPreviewRequest(null)}
         />
         <PrintPreviewModal
           moduleKey="production-orders"
@@ -1291,6 +1297,12 @@ export default function ProductionWorkOrders({ currentUser }: Props){
         bulkRequests={visibleOrders.map(order => BarcodeIntegrationService.fromProductionOrder(order))}
         userName={actorName}
         onClose={() => setBarcodePreviewRequest(null)}
+      />
+      <QRPreviewModal
+        request={qrPreviewRequest}
+        bulkRequests={visibleOrders.map(order => QRIntegrationService.fromProductionOrder(order))}
+        userName={actorName}
+        onClose={() => setQrPreviewRequest(null)}
       />
       <PrintPreviewModal
         moduleKey="production-orders"

@@ -2,6 +2,7 @@ import React from 'react'
 import { BarcodeIntegrationService } from '../barcode-engine/barcode-integration.service'
 import type { BarcodeGenerateInput } from '../barcode-engine/barcode.types'
 import BarcodePreviewModal from '../components/BarcodePreviewModal'
+import QRPreviewModal from '../components/QRPreviewModal'
 import { loadFinalProducts } from '../final-products/final-product.mock'
 import type { FinalProduct } from '../final-products/final-product.types'
 import { loadGoodsReceiptRecords } from '../goods-receipts/goods-receipt.mock'
@@ -19,6 +20,8 @@ import { loadRequestForQuotationRecords } from '../request-for-quotations/reques
 import { loadQualitySampleRecords } from '../quality-samples/quality-sample.mock'
 import type { QualitySample } from '../quality-samples/quality-sample.types'
 import { loadBranches, loadStockItems } from '../storage'
+import { QRIntegrationService } from '../qr-engine/qr-integration.service'
+import type { QRGenerateInput } from '../qr-engine/qr.types'
 import { loadSupplierManagementRecords } from '../supplier-management/supplier-management.mock'
 import { loadSupplierProductRecords } from '../supplier-management/supplier-product-mapping.mock'
 import type { Branch, StockItem, StockUnit, User } from '../types'
@@ -236,6 +239,7 @@ export default function WitnessSamples({ currentUser }: { currentUser: User }){
   ))
   const [formError, setFormError] = React.useState('')
   const [barcodePreviewRequest, setBarcodePreviewRequest] = React.useState<BarcodeGenerateInput | null>(null)
+  const [qrPreviewRequest, setQrPreviewRequest] = React.useState<QRGenerateInput | null>(null)
 
   const { branches, inventoryLots, productRefs, productionOrders, qualitySamples, stockItems } = initialData
   const branchMap = React.useMemo(() => new Map(branches.map(branch => [branch.id, branch])), [branches])
@@ -503,6 +507,11 @@ export default function WitnessSamples({ currentUser }: { currentUser: User }){
               sampleMap.get(record.qualitySampleId) || null,
               getLotFromWitness(record, sampleMap, lotMap)
             ))}
+            onPreviewQR={record => setQrPreviewRequest(QRIntegrationService.fromWitnessSample(
+              record,
+              sampleMap.get(record.qualitySampleId) || null,
+              getLotFromWitness(record, sampleMap, lotMap)
+            ))}
             onStatusChange={updateStatus}
           />
           <WitnessFormPanel
@@ -531,6 +540,16 @@ export default function WitnessSamples({ currentUser }: { currentUser: User }){
         userName={getUserName(currentUser)}
         onClose={() => setBarcodePreviewRequest(null)}
       />
+      <QRPreviewModal
+        request={qrPreviewRequest}
+        bulkRequests={visibleRecords.map(record => QRIntegrationService.fromWitnessSample(
+          record,
+          sampleMap.get(record.qualitySampleId) || null,
+          getLotFromWitness(record, sampleMap, lotMap)
+        ))}
+        userName={getUserName(currentUser)}
+        onClose={() => setQrPreviewRequest(null)}
+      />
     </div>
   )
 }
@@ -545,6 +564,7 @@ function WitnessDetailPanel({
   stockItemMap,
   onEdit,
   onPreviewBarcode,
+  onPreviewQR,
   onStatusChange
 }: {
   branchMap: Map<string, Branch>
@@ -556,6 +576,7 @@ function WitnessDetailPanel({
   stockItemMap: Map<string, StockItem>
   onEdit: (record: WitnessSample) => void
   onPreviewBarcode: (record: WitnessSample) => void
+  onPreviewQR: (record: WitnessSample) => void
   onStatusChange: (record: WitnessSample, status: WitnessSampleStatus) => void
 }){
   if(!record){
@@ -591,6 +612,7 @@ function WitnessDetailPanel({
             ))}
           </select>
           <button className="btn secondary" type="button" onClick={() => onPreviewBarcode(record)}>Barkod Önizle</button>
+          <button className="btn secondary" type="button" onClick={() => onPreviewQR(record)}>QR Önizle</button>
           <button className="btn secondary" type="button" onClick={() => onEdit(record)}>Düzenle</button>
         </div>
       </section>

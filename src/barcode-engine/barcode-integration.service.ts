@@ -1,4 +1,3 @@
-import * as QRCode from 'qrcode'
 import type { InventoryLot } from '../inventory-lots/inventory-lot.types'
 import type { QualitySample } from '../quality-samples/quality-sample.types'
 import type { ShipmentRecord } from '../shipments/shipment.types'
@@ -7,6 +6,7 @@ import type { ProductionWorkOrder } from '../production-work-orders/production-w
 import type { WasteRecord } from '../waste-management/waste.types'
 import type { WitnessSample } from '../witness-samples/witness-sample.types'
 import { loadKpiSourceData } from '../kpi-reporting/kpi-source.service'
+import { QRIntegrationService } from '../qr-engine/qr-integration.service'
 import type {
   BarcodeEntityType,
   BarcodeGenerateInput,
@@ -161,12 +161,6 @@ const BARCODE_ENTITY_LABELS: Record<BarcodeEntityType, string> = {
 }
 
 const SUPPORTED_TYPES: BarcodeType[] = ['CODE128', 'CODE39', 'EAN13', 'QR']
-
-const QR_OPTIONS = {
-  errorCorrectionLevel: 'M' as const,
-  margin: 1,
-  width: 180
-}
 
 const isBrowserStorageAvailable = () => (
   typeof window !== 'undefined' && typeof localStorage !== 'undefined'
@@ -685,7 +679,7 @@ const createBarcodeDataUrl = (
   height = 82
 ) => svgToDataUrl(createBarcodeSvg(value, barcodeType, width, height))
 
-const createQrDataUrl = async (payload: string) => QRCode.toDataURL(payload, QR_OPTIONS)
+const createQrDataUrl = async (payload: string) => QRIntegrationService.createDataUrl(payload, { width: 180 })
 
 const createPrintCardHtml = (
   record: BarcodeRecord,

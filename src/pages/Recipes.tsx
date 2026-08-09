@@ -1,7 +1,9 @@
 import React from 'react'
 import PrintPreviewModal from '../components/PrintPreviewModal'
+import QRPreviewModal from '../components/QRPreviewModal'
 import { ExcelIntegrationService } from '../excel-engine/excel-integration.service'
 import { PrintIntegrationService } from '../print-engine/print-integration.service'
+import { QRIntegrationService } from '../qr-engine/qr-integration.service'
 import {
   RECIPE_INGREDIENT_UNITS,
   RECIPE_MANAGEMENT_ROLES,
@@ -74,6 +76,7 @@ import type {
   RecipeCostSimulationTrendPoint
 } from '../recipe-management/recipe-cost-simulation.types'
 import type { PrintDocumentInput } from '../print-engine/print.types'
+import type { QRGenerateInput } from '../qr-engine/qr.types'
 
 type StatusFilter = RecipeManagementStatus | 'all'
 type RoleFilter = RecipeManagementRole | 'all'
@@ -475,12 +478,17 @@ const openRecipePrintWindow = (
         }
       ],
       barcodeValue: title,
-      qrPayload: JSON.stringify({
-        module: 'recipes',
+      qrPayload: QRIntegrationService.createPayload({
+        moduleKey: 'recipes',
+        entityType: 'RECIPE',
         entityId: title,
         code: mode,
-        lot: '',
-        date: new Date().toISOString()
+        lotNo: '',
+        batch: '',
+        date: new Date().toISOString(),
+        version: 'report',
+        title,
+        description: 'Recete rapor QR referansi'
       })
     }],
     userName: EXCEL_USER_NAME,
@@ -747,6 +755,7 @@ export default function Recipes(){
   const [toast, setToast] = React.useState<ToastState | null>(null)
   const [pendingAlternativeScroll, setPendingAlternativeScroll] = React.useState(false)
   const [printDocuments, setPrintDocuments] = React.useState<PrintDocumentInput[]>([])
+  const [qrPreviewRequest, setQrPreviewRequest] = React.useState<QRGenerateInput | null>(null)
   const alternativeSectionRef = React.useRef<HTMLElement | null>(null)
 
   const commitRecords = React.useCallback((updater: React.SetStateAction<RecipeManagementRecord[]>) => {
@@ -857,13 +866,7 @@ export default function Recipes(){
       ],
       notes: record.revisionNote || record.description,
       barcodeValue: record.code,
-      qrPayload: JSON.stringify({
-        module: 'recipes',
-        entityId: record.id,
-        code: record.code,
-        lot: '',
-        date: record.updatedAt || record.createdAt
-      })
+      qrPayload: QRIntegrationService.createPayload(QRIntegrationService.fromRecipe(record))
     }
   }
 
@@ -3399,6 +3402,7 @@ export default function Recipes(){
         <div className="recipe-side-actions">
           <button className="btn primary" type="button" onClick={() => openDetail(selectedRecord)}>Detay</button>
           <button className="btn" type="button" onClick={() => setPrintDocuments([createRecipePrintDocument(selectedRecord)])}>Yazdır</button>
+          <button className="btn" type="button" onClick={() => setQrPreviewRequest(QRIntegrationService.fromRecipe(selectedRecord))}>QR Önizle</button>
           <button className="btn" type="button" onClick={() => startEditRecipe(selectedRecord)}>
             {canEditRecipeVersionDirectly(selectedRecord) ? 'Düzenle' : 'Yeni Versiyon'}
           </button>
@@ -3481,6 +3485,7 @@ export default function Recipes(){
           <div className="recipe-detail-actions">
             <button className="btn" type="button" onClick={backToList}>Listeye Dön</button>
             <button className="btn" type="button" onClick={() => setPrintDocuments([createRecipePrintDocument(selectedRecord)])}>Yazdır</button>
+            <button className="btn" type="button" onClick={() => setQrPreviewRequest(QRIntegrationService.fromRecipe(selectedRecord))}>QR Önizle</button>
             <button className="btn" type="button" onClick={() => startEditRecipe(selectedRecord)}>
               {canEditRecipeVersionDirectly(selectedRecord) ? 'Reçete Düzenle' : 'Yeni Versiyon'}
             </button>
@@ -3605,6 +3610,12 @@ export default function Recipes(){
             {renderRecipeRelationCard()}
           </aside>
         </div>
+        <QRPreviewModal
+          request={qrPreviewRequest}
+          bulkRequests={visibleRecords.map(record => QRIntegrationService.fromRecipe(record))}
+          userName={EXCEL_USER_NAME}
+          onClose={() => setQrPreviewRequest(null)}
+        />
       </div>
     )
   }
@@ -3822,6 +3833,12 @@ export default function Recipes(){
           {panelMode === 'form' ? renderRecipeFormPanel() : renderSummaryPanel()}
         </aside>
       </div>
+      <QRPreviewModal
+        request={qrPreviewRequest}
+        bulkRequests={visibleRecords.map(record => QRIntegrationService.fromRecipe(record))}
+        userName={EXCEL_USER_NAME}
+        onClose={() => setQrPreviewRequest(null)}
+      />
       <PrintPreviewModal
         moduleKey="recipes"
         documents={printDocuments}

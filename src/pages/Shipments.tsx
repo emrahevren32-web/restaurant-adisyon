@@ -2,6 +2,7 @@ import React from 'react'
 import { BarcodeIntegrationService } from '../barcode-engine/barcode-integration.service'
 import type { BarcodeGenerateInput } from '../barcode-engine/barcode.types'
 import BarcodePreviewModal from '../components/BarcodePreviewModal'
+import QRPreviewModal from '../components/QRPreviewModal'
 import PrintPreviewModal from '../components/PrintPreviewModal'
 import { ExcelIntegrationService } from '../excel-engine/excel-integration.service'
 import {
@@ -33,6 +34,8 @@ import { loadSupplierManagementRecords } from '../supplier-management/supplier-m
 import { loadSupplierProductRecords } from '../supplier-management/supplier-product-mapping.mock'
 import { loadBranches, loadStockItems } from '../storage'
 import type { PrintDocumentInput } from '../print-engine/print.types'
+import { QRIntegrationService } from '../qr-engine/qr-integration.service'
+import type { QRGenerateInput } from '../qr-engine/qr.types'
 import type { Branch, StockItem, User } from '../types'
 
 type Props = {
@@ -309,6 +312,7 @@ export default function Shipments({ currentUser }: Props){
   const [warehouseFilter, setWarehouseFilter] = React.useState('all')
   const [branchFilter, setBranchFilter] = React.useState('all')
   const [barcodePreviewRequest, setBarcodePreviewRequest] = React.useState<BarcodeGenerateInput | null>(null)
+  const [qrPreviewRequest, setQrPreviewRequest] = React.useState<QRGenerateInput | null>(null)
   const [printDocuments, setPrintDocuments] = React.useState<PrintDocumentInput[]>([])
 
   const { branches, inventoryLots, stockItems } = initialData
@@ -416,13 +420,7 @@ export default function Shipments({ currentUser }: Props){
     ],
     notes: record.notes,
     barcodeValue: record.shipmentNo,
-    qrPayload: JSON.stringify({
-      module: 'shipments',
-      entityId: record.id,
-      code: record.shipmentNo,
-      lot: record.items[0]?.inventoryLotId || '',
-      date: record.shipmentDate
-    })
+    qrPayload: QRIntegrationService.createPayload(QRIntegrationService.fromShipment(record))
   })
 
   const plannedCount = records.filter(record => (
@@ -866,6 +864,9 @@ export default function Shipments({ currentUser }: Props){
                   <button className="btn" type="button" onClick={() => setBarcodePreviewRequest(BarcodeIntegrationService.fromShipment(selectedRecord))}>
                     Barkod Önizle
                   </button>
+                  <button className="btn" type="button" onClick={() => setQrPreviewRequest(QRIntegrationService.fromShipment(selectedRecord))}>
+                    QR Önizle
+                  </button>
                   <label>
                     <span>Durum</span>
                     <select
@@ -965,6 +966,12 @@ export default function Shipments({ currentUser }: Props){
         bulkRequests={visibleRecords.map(record => BarcodeIntegrationService.fromShipment(record))}
         userName={getUserName(currentUser)}
         onClose={() => setBarcodePreviewRequest(null)}
+      />
+      <QRPreviewModal
+        request={qrPreviewRequest}
+        bulkRequests={visibleRecords.map(record => QRIntegrationService.fromShipment(record))}
+        userName={getUserName(currentUser)}
+        onClose={() => setQrPreviewRequest(null)}
       />
       <PrintPreviewModal
         moduleKey="shipments"

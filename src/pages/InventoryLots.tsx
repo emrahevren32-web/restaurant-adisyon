@@ -2,9 +2,12 @@ import React from 'react'
 import { BarcodeIntegrationService } from '../barcode-engine/barcode-integration.service'
 import type { BarcodeGenerateInput } from '../barcode-engine/barcode.types'
 import BarcodePreviewModal from '../components/BarcodePreviewModal'
+import QRPreviewModal from '../components/QRPreviewModal'
 import { ExcelIntegrationService } from '../excel-engine/excel-integration.service'
 import PrintPreviewModal from '../components/PrintPreviewModal'
 import type { PrintDocumentInput } from '../print-engine/print.types'
+import { QRIntegrationService } from '../qr-engine/qr-integration.service'
+import type { QRGenerateInput } from '../qr-engine/qr.types'
 import {
   INVENTORY_LOT_STATUSES,
   INVENTORY_LOT_STATUS_LABELS,
@@ -149,6 +152,7 @@ export default function InventoryLots(){
   const [stockItemFilter, setStockItemFilter] = React.useState('all')
   const [expiryFilter, setExpiryFilter] = React.useState<ExpiryFilter>('all')
   const [barcodePreviewRequest, setBarcodePreviewRequest] = React.useState<BarcodeGenerateInput | null>(null)
+  const [qrPreviewRequest, setQrPreviewRequest] = React.useState<QRGenerateInput | null>(null)
   const [printDocuments, setPrintDocuments] = React.useState<PrintDocumentInput[]>([])
 
   const { branches, goodsReceipts, purchaseOrders, purchaseRequests, stockItems, suppliers } = initialData
@@ -239,7 +243,7 @@ export default function InventoryLots(){
     ],
     notes: record.notes,
     barcodeValue: record.lotNo,
-    qrPayload: JSON.stringify({ module: 'lots', entityId: record.id, code: record.lotNo, lot: record.lotNo, date: record.productionDate })
+    qrPayload: QRIntegrationService.createPayload(QRIntegrationService.fromLot(record))
   })
 
   const activeCount = records.filter(record => record.status === 'ACTIVE').length
@@ -403,6 +407,7 @@ export default function InventoryLots(){
             onStatusChange={updateStatus}
             onPrint={lot => setPrintDocuments([createLotPrintDocument(lot)])}
             onPreviewBarcode={lot => setBarcodePreviewRequest(BarcodeIntegrationService.fromLot(lot))}
+            onPreviewQR={lot => setQrPreviewRequest(QRIntegrationService.fromLot(lot))}
           />
         </aside>
       </div>
@@ -411,6 +416,12 @@ export default function InventoryLots(){
         bulkRequests={visibleRecords.map(record => BarcodeIntegrationService.fromLot(record))}
         userName={ExcelIntegrationService.defaultUserName}
         onClose={() => setBarcodePreviewRequest(null)}
+      />
+      <QRPreviewModal
+        request={qrPreviewRequest}
+        bulkRequests={visibleRecords.map(record => QRIntegrationService.fromLot(record))}
+        userName={ExcelIntegrationService.defaultUserName}
+        onClose={() => setQrPreviewRequest(null)}
       />
       <PrintPreviewModal
         moduleKey="lots"
@@ -432,7 +443,8 @@ function InventoryLotDetailPanel({
   branchMap,
   onStatusChange,
   onPrint,
-  onPreviewBarcode
+  onPreviewBarcode,
+  onPreviewQR
 }: {
   lot: InventoryLot | null
   receiptMap: Map<string, GoodsReceiptRecord>
@@ -444,6 +456,7 @@ function InventoryLotDetailPanel({
   onStatusChange: (lot: InventoryLot, status: InventoryLotStatus) => void
   onPrint: (lot: InventoryLot) => void
   onPreviewBarcode: (lot: InventoryLot) => void
+  onPreviewQR: (lot: InventoryLot) => void
 }){
   if(!lot){
     return (
@@ -481,6 +494,7 @@ function InventoryLotDetailPanel({
           </select>
           <button className="btn" type="button" onClick={() => onPrint(lot)}>Yazdır</button>
           <button className="btn" type="button" onClick={() => onPreviewBarcode(lot)}>Barkod Önizle</button>
+          <button className="btn" type="button" onClick={() => onPreviewQR(lot)}>QR Önizle</button>
         </div>
       </section>
 

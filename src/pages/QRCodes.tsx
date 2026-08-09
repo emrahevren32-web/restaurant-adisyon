@@ -1,15 +1,9 @@
 import React from 'react'
-import * as QRCode from 'qrcode'
+import { QRIntegrationService } from '../qr-engine/qr-integration.service'
 import { TableState } from '../types'
 import { loadSettings, loadTables } from '../storage'
 
 type PrintMode = 'single' | 'all' | null
-
-const QR_OPTIONS = {
-  errorCorrectionLevel: 'M' as const,
-  margin: 2,
-  width: 240
-}
 
 const getQRPath = (table: TableState) => `/qr/${encodeURIComponent(table.id)}`
 
@@ -47,7 +41,7 @@ export default function QRCodes(){
     const createCodes = async () => {
       try {
         const entries = await Promise.all(tables.map(async table => {
-          const image = await QRCode.toDataURL(getQRPath(table), QR_OPTIONS)
+          const image = await QRIntegrationService.createDataUrl(getQRPath(table), { margin: 2, width: 240 })
           return [table.id, image] as const
         }))
 
