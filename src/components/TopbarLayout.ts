@@ -12,8 +12,9 @@ export type TopbarLayoutProps = {
   breadcrumbs?: TopbarBreadcrumbItem[]
   searchValue: string
   searchPlaceholder?: string
-  workspaceLabel: string
+  brandLabel?: string
   themeMode: 'light' | 'dark'
+  workspaceControl: React.ReactNode
   onSearchChange: (value: string) => void
   onSearchSubmit: (event: React.FormEvent<HTMLFormElement>) => void
   onOpenMobileNav: () => void
@@ -27,8 +28,9 @@ export const TopbarLayout = ({
   breadcrumbs = [],
   searchValue,
   searchPlaceholder = 'Ekran, modül veya işlem ara',
-  workspaceLabel,
+  brandLabel = 'MİYOP',
   themeMode,
+  workspaceControl,
   onSearchChange,
   onSearchSubmit,
   onOpenMobileNav,
@@ -53,9 +55,13 @@ export const TopbarLayout = ({
         React.createElement(AppIcon, { name: 'workspace', size: 'SM' })
       ),
       React.createElement(
+        'span',
+        { className: 'topbar-brand-mark', 'aria-label': brandLabel, title: brandLabel },
+        React.createElement(AppIcon, { name: 'company', size: 'SM', decorative: true })
+      ),
+      React.createElement(
         'div',
         { className: 'topbar-title' },
-        React.createElement('span', { className: 'topbar-eyebrow' }, eyebrow),
         breadcrumbs.length > 0
           ? React.createElement(
             'nav',
@@ -65,37 +71,43 @@ export const TopbarLayout = ({
                 'span',
                 {
                   key: `${item.label}-${index}`,
-                  className: item.current ? 'current' : undefined,
+                  className: ['topbar-breadcrumb-item', item.current ? 'current' : ''].filter(Boolean).join(' '),
                   'aria-current': item.current ? 'page' : undefined
                 },
-                item.label
+                React.createElement(
+                  'span',
+                  { className: 'topbar-breadcrumb-icon', 'aria-hidden': true },
+                  React.createElement(AppIcon, { name: index === 0 ? 'home' : 'workspace', size: 'XS' })
+                ),
+                React.createElement('span', null, item.label)
               )
             ))
           )
           : null,
+        React.createElement('span', { className: 'topbar-eyebrow' }, eyebrow),
         React.createElement('strong', null, title)
       )
     ),
     React.createElement(
       'form',
       { className: 'topbar-search', role: 'search', onSubmit: onSearchSubmit },
-      React.createElement(AppIcon, { name: 'search', size: 'SM' }),
+      React.createElement(
+        'span',
+        { className: 'topbar-search-icon', 'aria-hidden': true },
+        React.createElement(AppIcon, { name: 'search', size: 'SM' })
+      ),
       React.createElement('input', {
         value: searchValue,
         onChange: event => onSearchChange(event.target.value),
         placeholder: searchPlaceholder,
-        'aria-label': 'Global arama'
+        'aria-label': 'Global arama',
+        autoComplete: 'off'
       })
     ),
     React.createElement(
       'div',
       { className: 'topbar-actions' },
-      React.createElement(
-        'span',
-        { className: 'topbar-workspace-pill', title: workspaceLabel },
-        React.createElement(AppIcon, { name: 'workspace', size: 'XS' }),
-        React.createElement('span', null, workspaceLabel)
-      ),
+      workspaceControl,
       React.createElement(
         'button',
         {

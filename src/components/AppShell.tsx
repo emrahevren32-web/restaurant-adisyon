@@ -4,6 +4,8 @@ import ApplicationShell from './ApplicationShell'
 import NotificationToastHost from './NotificationToastHost'
 import SidebarLayout from './SidebarLayout'
 import TopbarLayout from './TopbarLayout'
+import TopbarProfileMenu from './TopbarProfileMenu'
+import TopbarWorkspaceControl from './TopbarWorkspaceControl'
 import WorkspaceLayout from './WorkspaceLayout'
 import { Branch, User } from '../types'
 import type { PermissionName } from '../authorization/permission.types'
@@ -525,22 +527,16 @@ export default function AppShell<
     )
   })
 
-  const branchSwitcher = (
-    <label className="branch-switcher">
-      <span>{isPlatformAdmin ? 'Kapsam' : 'Aktif Şube'}</span>
-      {isPlatformAdmin ? (
-        <select value="platform" disabled>
-          <option value="platform">EVREN360 Platform</option>
-        </select>
-      ) : (
-        <select value={hasSelectableBranch ? activeBranchId : ''} onChange={event => onActiveBranchChange(event.target.value)} disabled={!hasSelectableBranch}>
-          {!hasSelectableBranch && <option value="">Yetkili şube yok</option>}
-          {selectableBranches.map(branch => (
-            <option key={branch.id} value={branch.id}>{branch.name}</option>
-          ))}
-        </select>
-      )}
-    </label>
+  const workspaceLabel = isPlatformAdmin ? 'EVREN360 Platform' : activeBranch?.name || restaurantName
+  const workspaceControl = (
+    <TopbarWorkspaceControl
+      isPlatformAdmin={isPlatformAdmin}
+      workspaceLabel={workspaceLabel}
+      branches={selectableBranches}
+      activeBranchId={activeBranchId}
+      hasSelectableBranch={hasSelectableBranch}
+      onActiveBranchChange={onActiveBranchChange}
+    />
   )
 
   const notificationCenter = (
@@ -599,7 +595,6 @@ export default function AppShell<
     </div>
   )
 
-  const workspaceLabel = isPlatformAdmin ? 'EVREN360 Platform' : activeBranch?.name || restaurantName
   const workspaceFooter = (
     <>
       <span>MİYOP Industrial Kitchen ERP</span>
@@ -635,32 +630,26 @@ export default function AppShell<
               { label: activeNavLabel, current: true }
             ]}
             searchValue={globalSearch}
-            workspaceLabel={workspaceLabel}
+            brandLabel={restaurantName}
             themeMode={themeMode}
+            workspaceControl={workspaceControl}
             onSearchChange={setGlobalSearch}
             onSearchSubmit={handleGlobalSearchSubmit}
             onOpenMobileNav={() => setMobileSidebarOpen(true)}
             onToggleTheme={toggleThemeMode}
           >
-            {branchSwitcher}
             {notificationCenter}
             {onStartOnboarding && (
-              <button className="btn topbar-help" type="button" onClick={onStartOnboarding}>
+              <button className="topbar-help topbar-icon-action" type="button" aria-label="Yardım" title="Yardım" onClick={onStartOnboarding}>
                 <AppIcon name="help" size="SM" />
-                Yardım
               </button>
             )}
-            <div className="topbar-user-card" aria-label="Kullanıcı bilgisi" title="Kullanıcı bilgisi" data-onboarding-target="profile">
-              <span className="topbar-user-avatar">{getUserInitials(currentUser)}</span>
-              <span className="topbar-user-meta">
-                <strong>{currentUser.fullName || currentUser.username}</strong>
-                <span>{currentUser.role}</span>
-              </span>
-            </div>
-            <button className="btn topbar-logout" type="button" onClick={onLogout}>
-              <AppIcon name="logout" size="SM" />
-              Çıkış
-            </button>
+            <TopbarProfileMenu
+              currentUser={currentUser}
+              initials={getUserInitials(currentUser)}
+              onStartOnboarding={onStartOnboarding}
+              onLogout={onLogout}
+            />
           </TopbarLayout>
         )}
       >
