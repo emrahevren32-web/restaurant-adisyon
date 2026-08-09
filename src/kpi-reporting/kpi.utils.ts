@@ -8,21 +8,13 @@ import type {
   PieChartSlice,
   TrendPoint
 } from './kpi.types'
+import { KPI_CHART_COLORS } from '../design-system/ThemeColors'
 
 export const ALL_FILTER = 'all'
 const PERCENT_MULTIPLIER = 100
 const ROUNDING_FACTOR = 100
 
-export const KPI_COLORS = [
-  '#2563eb',
-  '#059669',
-  '#f97316',
-  '#9333ea',
-  '#dc2626',
-  '#0f766e',
-  '#ca8a04',
-  '#475569'
-]
+export const KPI_COLORS = [...KPI_CHART_COLORS]
 
 export const toFiniteNumber = (value: number, fallback = 0) => (
   Number.isFinite(value) ? value : fallback

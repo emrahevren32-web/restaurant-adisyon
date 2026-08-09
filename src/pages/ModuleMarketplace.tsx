@@ -1,4 +1,5 @@
 import React from 'react'
+import { PRINT_THEME_COLORS } from '../design-system/ThemeColors'
 import ModuleSetupWizard from '../components/ModuleSetupWizard'
 import { ExcelIntegrationService } from '../excel-engine/excel-integration.service'
 import {
@@ -245,13 +246,13 @@ const createPrintHtml = (
       <meta charset="utf-8" />
       <title>Modül Mağazası Çıktısı</title>
       <style>
-        body { font-family: Arial, sans-serif; margin: 28px; color: #172033; }
+        body { font-family: Arial, sans-serif; margin: 28px; color: ${PRINT_THEME_COLORS.textInk}; }
         h1 { margin: 0 0 8px; font-size: 24px; }
-        .meta { margin: 0 0 18px; color: #5d6678; font-size: 13px; }
+        .meta { margin: 0 0 18px; color: ${PRINT_THEME_COLORS.textSoftAlt}; font-size: 13px; }
         table { width: 100%; border-collapse: collapse; font-size: 12px; }
-        th, td { border: 1px solid #d8deea; padding: 8px; text-align: left; vertical-align: top; }
-        th { background: #f3f6fb; }
-        .pill { display: inline-block; margin-bottom: 14px; border: 1px solid #a8c7fa; border-radius: 999px; padding: 5px 10px; color: #2458c5; font-weight: 700; font-size: 12px; }
+        th, td { border: 1px solid ${PRINT_THEME_COLORS.borderMarketplace}; padding: 8px; text-align: left; vertical-align: top; }
+        th { background: ${PRINT_THEME_COLORS.tableHeaderMarketplace}; }
+        .pill { display: inline-block; margin-bottom: 14px; border: 1px solid ${PRINT_THEME_COLORS.borderAccent}; border-radius: 999px; padding: 5px 10px; color: ${PRINT_THEME_COLORS.pillText}; font-weight: 700; font-size: 12px; }
         @media print { body { margin: 14mm; } }
       </style>
     </head>

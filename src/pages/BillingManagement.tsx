@@ -1,4 +1,5 @@
 import React from 'react'
+import { CHART_THEME_COLORS, DISTRIBUTION_CHART_COLORS } from '../design-system/ThemeColors'
 import {
   BILLING_COLLECTION_STATUSES,
   BILLING_FOUNDATION_SERVICES,
@@ -18,7 +19,7 @@ type InvoiceStatusFilter = BillingInvoiceStatus | 'all'
 type CollectionStatusFilter = BillingCollectionStatus | 'all'
 
 const paymentChannels: BillingPaymentChannel[] = ['Kredi Kartı', 'Banka Transferi', 'Manuel Tahsilat', 'Havale/EFT']
-const distributionColors = ['#0891b2', '#16a34a', '#d97706', '#dc2626', '#7c3aed', '#475569']
+const distributionColors = [...DISTRIBUTION_CHART_COLORS]
 
 const normalizeLookup = (value: string) => value
   .toLocaleLowerCase('tr-TR')
@@ -55,7 +56,7 @@ const getStatusClassName = (status: string) => {
 
 const buildConicGradient = (items: BillingDistributionPoint[]) => {
   const total = items.reduce((sum, item) => sum + item.amount, 0)
-  if(total <= 0) return 'conic-gradient(#e5e7eb 0deg 360deg)'
+  if(total <= 0) return `conic-gradient(${CHART_THEME_COLORS.empty} 0deg 360deg)`
 
   let start = 0
   const segments = items.map(item => {

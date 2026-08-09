@@ -1,4 +1,5 @@
 import React from 'react'
+import { PRINT_THEME_COLORS } from '../design-system/ThemeColors'
 import PrintPreviewModal from '../components/PrintPreviewModal'
 import QRPreviewModal from '../components/QRPreviewModal'
 import { ExcelIntegrationService } from '../excel-engine/excel-integration.service'
@@ -506,11 +507,11 @@ const openRecipePrintWindow = (
         <meta charset="utf-8" />
         <title>${escapeHtml(title)} ${mode === 'PDF' ? 'PDF' : 'Yazdır'}</title>
         <style>
-          body { font-family: Arial, sans-serif; color: #17202a; padding: 24px; }
+          body { font-family: Arial, sans-serif; color: ${PRINT_THEME_COLORS.textRecipe}; padding: 24px; }
           h1 { font-size: 20px; margin: 0 0 12px; }
           table { width: 100%; border-collapse: collapse; font-size: 12px; }
-          th, td { border: 1px solid #d8e0ea; padding: 8px; text-align: left; vertical-align: top; }
-          th { background: #eef4fb; }
+          th, td { border: 1px solid ${PRINT_THEME_COLORS.borderRecipe}; padding: 8px; text-align: left; vertical-align: top; }
+          th { background: ${PRINT_THEME_COLORS.tableHeaderRecipe}; }
         </style>
       </head>
       <body>

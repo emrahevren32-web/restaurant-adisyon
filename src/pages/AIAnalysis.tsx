@@ -1,4 +1,5 @@
-﻿import React from 'react'
+import React from 'react'
+import { AI_ANALYSIS_CHART_COLORS, CHART_THEME_COLORS } from '../design-system/ThemeColors'
 import {
   AI_ANALYSIS_STATUS_LABELS,
   AI_ANALYSIS_TITLE_LABELS,
@@ -61,7 +62,7 @@ type HeatmapRow = {
   cells: Array<{ severity: AISeverity; count: number; averageRisk: number }>
 }
 
-const PIE_COLORS = ['#0f766e', '#2563eb', '#f59e0b', '#dc2626', '#7c3aed', '#0891b2']
+const PIE_COLORS = [...AI_ANALYSIS_CHART_COLORS]
 
 const getUserName = (currentUser: User) => currentUser.fullName || currentUser.username
 
@@ -303,8 +304,8 @@ export default function AIAnalysis({ currentUser }: { currentUser: User }){
   const firstAction = todayActions[0]?.title || 'Kritik risk sahipleriyle kısa aksiyon değerlendirmesi yap.'
   const riskSlices = React.useMemo(() => createPieSlices(statistics.severityRows), [statistics.severityRows])
   const heatmapRows = React.useMemo(() => createHeatmapRows(filteredInsights), [filteredInsights])
-  const wasteTrend = React.useMemo(() => createTrendSeries(reports, 'ai-waste-trend', 'Fire Trendi', '#dc2626', insight => insight.analysisTitle === 'WASTE'), [reports])
-  const kpiTrend = React.useMemo(() => createTrendSeries(reports, 'ai-kpi-trend', 'KPI Trendi', '#2563eb', insight => insight.sourceModule === 'KPIDashboard'), [reports])
+  const wasteTrend = React.useMemo(() => createTrendSeries(reports, 'ai-waste-trend', 'Fire Trendi', CHART_THEME_COLORS.danger, insight => insight.analysisTitle === 'WASTE'), [reports])
+  const kpiTrend = React.useMemo(() => createTrendSeries(reports, 'ai-kpi-trend', 'KPI Trendi', CHART_THEME_COLORS.primary, insight => insight.sourceModule === 'KPIDashboard'), [reports])
   const timelineInsights = React.useMemo(() => getTopInsights(filteredInsights, 7), [filteredInsights])
 
   React.useEffect(() => {
@@ -845,7 +846,7 @@ const PieChartCard = React.memo(function PieChartCard({ slices, title }: { slice
       offset = end
       return `${slice.color} ${start}% ${end}%`
     }).join(', ')
-    : '#e5e7eb 0% 100%'
+    : `${CHART_THEME_COLORS.empty} 0% 100%`
 
   return (
     <section className="card kpi-chart-card ai-analysis-pie-card">

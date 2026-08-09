@@ -1,4 +1,5 @@
 import React from 'react'
+import { PRINT_THEME_COLORS } from '../design-system/ThemeColors'
 import { BarcodeIntegrationService } from '../barcode-engine/barcode-integration.service'
 import type { BarcodeGenerateInput } from '../barcode-engine/barcode.types'
 import BarcodePreviewModal from '../components/BarcodePreviewModal'
@@ -114,11 +115,11 @@ const printTableRows = (
       <head>
         <title>${escapeHtml(title)}</title>
         <style>
-          body{font-family:Arial,sans-serif;margin:24px;color:#111827}
+          body{font-family:Arial,sans-serif;margin:24px;color:${PRINT_THEME_COLORS.text}}
           h1{font-size:20px;margin:0 0 12px}
           table{width:100%;border-collapse:collapse;font-size:11px}
-          th,td{border:1px solid #d1d5db;padding:7px;text-align:left;vertical-align:top}
-          th{background:#f3f4f6}
+          th,td{border:1px solid ${PRINT_THEME_COLORS.border};padding:7px;text-align:left;vertical-align:top}
+          th{background:${PRINT_THEME_COLORS.tableHeader}}
         </style>
       </head>
       <body>

@@ -1,4 +1,5 @@
 import React from 'react'
+import { CHART_THEME_COLORS, PRINT_THEME_COLORS } from '../design-system/ThemeColors'
 import { AIAnalysisService } from '../ai-analysis/ai-analysis.service'
 import { createCostEngineView, createDefaultCostEngineFilters } from '../cost-engine/cost-engine.service'
 import { CriticalAlertService } from '../critical-alerts/critical-alert.service'
@@ -1041,7 +1042,7 @@ const buildExecutiveDashboardModel = (): ExecutiveDashboardModel => {
     record => record.date || record.createdAt,
     record => record.quantity,
     'Fire Dağılımı',
-    '#dc2626'
+    CHART_THEME_COLORS.danger
   )
 
   const weeklyProductionRows = createDailyBarRows(
@@ -1259,17 +1260,17 @@ const createPrintHtml = (model: ExecutiveDashboardModel, mode: 'PDF' | 'PRINT') 
       <meta charset="utf-8" />
       <title>Yönetici Dashboard ${mode === 'PDF' ? 'PDF' : 'Yazdır'}</title>
       <style>
-        body { margin:0; padding:28px; color:#0f172a; font-family:Arial, sans-serif; background:#fff; }
-        header { border-bottom:2px solid #0f766e; padding-bottom:12px; margin-bottom:18px; }
+        body { margin:0; padding:28px; color:${PRINT_THEME_COLORS.textDeep}; font-family:Arial, sans-serif; background:${PRINT_THEME_COLORS.background}; }
+        header { border-bottom:2px solid ${PRINT_THEME_COLORS.accent}; padding-bottom:12px; margin-bottom:18px; }
         h1 { margin:0; font-size:24px; }
-        p { margin:6px 0 0; color:#475569; }
+        p { margin:6px 0 0; color:${PRINT_THEME_COLORS.textMutedStrong}; }
         .grid { display:grid; grid-template-columns:repeat(4, 1fr); gap:10px; margin:18px 0; }
-        article { border:1px solid #cbd5e1; border-radius:8px; padding:12px; page-break-inside:avoid; }
-        article span, article small { display:block; color:#475569; font-size:12px; font-weight:700; }
+        article { border:1px solid ${PRINT_THEME_COLORS.borderTable}; border-radius:8px; padding:12px; page-break-inside:avoid; }
+        article span, article small { display:block; color:${PRINT_THEME_COLORS.textMutedStrong}; font-size:12px; font-weight:700; }
         article strong { display:block; margin:6px 0; font-size:20px; }
         table { width:100%; border-collapse:collapse; margin-top:10px; font-size:12px; }
-        th, td { border:1px solid #cbd5e1; padding:8px; text-align:left; vertical-align:top; }
-        th { background:#f8fafc; }
+        th, td { border:1px solid ${PRINT_THEME_COLORS.borderTable}; padding:8px; text-align:left; vertical-align:top; }
+        th { background:${PRINT_THEME_COLORS.pageBackground}; }
         section { margin-top:18px; page-break-inside:avoid; }
         @media print { body { padding:16px; } .grid { grid-template-columns:repeat(3, 1fr); } }
       </style>

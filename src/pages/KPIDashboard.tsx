@@ -1,4 +1,5 @@
 import React from 'react'
+import { PRINT_THEME_COLORS } from '../design-system/ThemeColors'
 import { ExcelIntegrationService } from '../excel-engine/excel-integration.service'
 import { createDefaultKpiFilters, createKpiDashboardView } from '../kpi-reporting/kpi.service'
 import { loadKpiSourceData } from '../kpi-reporting/kpi-source.service'
@@ -321,17 +322,17 @@ const openKpiPrintWindow = (
         <meta charset="utf-8" />
         <title>KPI Dashboard ${mode === 'PDF' ? 'PDF' : 'Yazdır'}</title>
         <style>
-          body { margin:0; padding:28px; color:#0f172a; font-family:Arial, sans-serif; background:#fff; }
+          body { margin:0; padding:28px; color:${PRINT_THEME_COLORS.textDeep}; font-family:Arial, sans-serif; background:${PRINT_THEME_COLORS.background}; }
           h1 { margin:0; font-size:24px; }
           h2 { margin:22px 0 10px; font-size:16px; }
-          p { margin:6px 0 18px; color:#475569; }
+          p { margin:6px 0 18px; color:${PRINT_THEME_COLORS.textMutedStrong}; }
           .grid { display:grid; grid-template-columns:repeat(3, 1fr); gap:10px; margin-bottom:18px; }
-          article { border:1px solid #cbd5e1; border-radius:8px; padding:12px; page-break-inside:avoid; }
-          article span, article small { display:block; color:#475569; font-size:12px; font-weight:700; }
+          article { border:1px solid ${PRINT_THEME_COLORS.borderTable}; border-radius:8px; padding:12px; page-break-inside:avoid; }
+          article span, article small { display:block; color:${PRINT_THEME_COLORS.textMutedStrong}; font-size:12px; font-weight:700; }
           article strong { display:block; margin:6px 0; font-size:20px; }
           table { width:100%; border-collapse:collapse; font-size:11px; margin-bottom:16px; }
-          th, td { border:1px solid #cbd5e1; padding:7px; text-align:left; vertical-align:top; }
-          th { background:#f8fafc; }
+          th, td { border:1px solid ${PRINT_THEME_COLORS.borderTable}; padding:7px; text-align:left; vertical-align:top; }
+          th { background:${PRINT_THEME_COLORS.pageBackground}; }
           @media print { body { padding:16px; } }
         </style>
       </head>

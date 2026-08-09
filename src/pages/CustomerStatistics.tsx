@@ -1,4 +1,5 @@
 import React from 'react'
+import { CHART_THEME_COLORS, DISTRIBUTION_CHART_COLORS } from '../design-system/ThemeColors'
 import {
   LICENSE_MODULE_CATALOG,
   loadBranches,
@@ -31,7 +32,7 @@ type DistributionItem = {
 }
 
 const customerStatuses: CustomerStatus[] = ['Aktif', 'Pasif', 'Askıda', 'Deneme']
-const distributionColors = ['#0891b2', '#16a34a', '#d97706', '#dc2626', '#7c3aed', '#475569']
+const distributionColors = [...DISTRIBUTION_CHART_COLORS]
 const moduleLabels: Partial<Record<LicenseModuleKey, string>> = {
   adisyon: 'İşlem Yönetimi',
   'qr-menu': 'Dijital Katalog',
@@ -103,7 +104,7 @@ const getUserCount = (companyId: string, users: CompanyUser[]) => {
 
 const buildConicGradient = (items: DistributionItem[]) => {
   const total = items.reduce((sum, item) => sum + item.count, 0)
-  if(total === 0) return 'conic-gradient(#e5e7eb 0deg 360deg)'
+  if(total === 0) return `conic-gradient(${CHART_THEME_COLORS.empty} 0deg 360deg)`
 
   let start = 0
   const segments = items.map(item => {

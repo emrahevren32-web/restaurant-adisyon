@@ -1,4 +1,5 @@
 import React from 'react'
+import { PRINT_THEME_COLORS } from '../design-system/ThemeColors'
 import { ExcelIntegrationService } from '../excel-engine/excel-integration.service'
 import { loadKpiSourceData } from '../kpi-reporting/kpi-source.service'
 import type { BarChartRow, ChartSeries } from '../kpi-reporting/kpi.types'
@@ -187,17 +188,17 @@ const createFilteredPrintHtml = (
   <title>Sevkiyat Optimizasyonu - Filtreli Liste</title>
   <style>
     * { box-sizing:border-box; }
-    body { margin:0; padding:22px; color:#111827; font-family:Inter, Arial, sans-serif; background:#f8fafc; }
-    .sheet { max-width:1320px; margin:0 auto; padding:22px; border:1px solid #d1d5db; border-radius:8px; background:#fff; }
-    .header { display:flex; justify-content:space-between; gap:16px; align-items:flex-start; border-bottom:2px solid #111827; padding-bottom:14px; margin-bottom:16px; }
+    body { margin:0; padding:22px; color:${PRINT_THEME_COLORS.text}; font-family:Inter, Arial, sans-serif; background:${PRINT_THEME_COLORS.pageBackground}; }
+    .sheet { max-width:1320px; margin:0 auto; padding:22px; border:1px solid ${PRINT_THEME_COLORS.border}; border-radius:8px; background:${PRINT_THEME_COLORS.background}; }
+    .header { display:flex; justify-content:space-between; gap:16px; align-items:flex-start; border-bottom:2px solid ${PRINT_THEME_COLORS.text}; padding-bottom:14px; margin-bottom:16px; }
     h1 { margin:0; font-size:22px; line-height:1.2; }
-    .muted { color:#64748b; font-size:12px; font-weight:700; }
-    .pill { display:inline-block; border:1px solid #d1d5db; border-radius:999px; padding:6px 10px; font-size:12px; font-weight:800; }
+    .muted { color:${PRINT_THEME_COLORS.textMuted}; font-size:12px; font-weight:700; }
+    .pill { display:inline-block; border:1px solid ${PRINT_THEME_COLORS.border}; border-radius:999px; padding:6px 10px; font-size:12px; font-weight:800; }
     table { width:100%; border-collapse:collapse; font-size:10.5px; }
-    th, td { border:1px solid #e5e7eb; padding:7px; text-align:left; vertical-align:top; }
-    th { background:#f3f4f6; font-weight:900; }
+    th, td { border:1px solid ${PRINT_THEME_COLORS.borderSoft}; padding:7px; text-align:left; vertical-align:top; }
+    th { background:${PRINT_THEME_COLORS.tableHeader}; font-weight:900; }
     @media print {
-      body { background:#fff; padding:0; }
+      body { background:${PRINT_THEME_COLORS.background}; padding:0; }
       .sheet { border:0; border-radius:0; max-width:none; }
     }
   </style>

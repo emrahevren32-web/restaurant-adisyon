@@ -1,4 +1,5 @@
 import React from 'react'
+import { PRINT_THEME_COLORS } from '../design-system/ThemeColors'
 import { createDefaultDecisionSupportFilters, createDecisionSupportView } from '../decision-support/decision-support.service'
 import type {
   DecisionCategory,
@@ -176,13 +177,13 @@ const createFilteredPrintHtml = (
   <meta charset="utf-8" />
   <title>Karar Destek Filtreli Liste</title>
   <style>
-    body { font-family: Arial, sans-serif; color: #111827; margin: 24px; }
+    body { font-family: Arial, sans-serif; color: ${PRINT_THEME_COLORS.text}; margin: 24px; }
     h1 { margin: 0 0 6px; font-size: 22px; }
-    .muted { color: #64748b; font-size: 12px; }
-    .pill { display: inline-block; margin: 12px 0; padding: 4px 10px; border: 1px solid #cbd5e1; border-radius: 999px; font-size: 12px; }
+    .muted { color: ${PRINT_THEME_COLORS.textMuted}; font-size: 12px; }
+    .pill { display: inline-block; margin: 12px 0; padding: 4px 10px; border: 1px solid ${PRINT_THEME_COLORS.borderTable}; border-radius: 999px; font-size: 12px; }
     table { width: 100%; border-collapse: collapse; font-size: 11px; }
-    th, td { border-bottom: 1px solid #e5e7eb; padding: 8px; text-align: left; vertical-align: top; }
-    th { background: #f8fafc; color: #334155; }
+    th, td { border-bottom: 1px solid ${PRINT_THEME_COLORS.borderSoft}; padding: 8px; text-align: left; vertical-align: top; }
+    th { background: ${PRINT_THEME_COLORS.pageBackground}; color: ${PRINT_THEME_COLORS.textHeader}; }
     @media print { body { margin: 10mm; } }
   </style>
 </head>
