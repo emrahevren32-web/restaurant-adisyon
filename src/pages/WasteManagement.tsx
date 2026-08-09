@@ -2,6 +2,7 @@ import React from 'react'
 import { BarcodeIntegrationService } from '../barcode-engine/barcode-integration.service'
 import type { BarcodeGenerateInput } from '../barcode-engine/barcode.types'
 import BarcodePreviewModal from '../components/BarcodePreviewModal'
+import PrintPreviewModal from '../components/PrintPreviewModal'
 import { ExcelIntegrationService } from '../excel-engine/excel-integration.service'
 import { loadKpiSourceData } from '../kpi-reporting/kpi-source.service'
 import type { BarChartRow, ChartSeries } from '../kpi-reporting/kpi.types'
@@ -12,8 +13,8 @@ import {
   formatPercent,
   formatQuantity
 } from '../kpi-reporting/kpi.utils'
+import type { PrintDocumentInput } from '../print-engine/print.types'
 import type { User } from '../types'
-import { WastePrintService } from '../waste-management/waste-print.service'
 import {
   WASTE_REASONS,
   WASTE_REASON_LABELS,
@@ -134,6 +135,7 @@ export default function WasteManagement({ currentUser }: { currentUser: User }){
   const [form, setForm] = React.useState<CreateFormState>(() => createInitialForm(lotOptions[0]?.id || ''))
   const [message, setMessage] = React.useState<Message | null>(null)
   const [barcodePreviewRequest, setBarcodePreviewRequest] = React.useState<BarcodeGenerateInput | null>(null)
+  const [printDocuments, setPrintDocuments] = React.useState<PrintDocumentInput[]>([])
   const filteredRecords = React.useMemo(() => WasteService.filter(records, filters), [records, filters])
   const statistics = React.useMemo(() => WasteService.statistics(records, sourceData), [records, sourceData])
   const analysis = React.useMemo(() => WasteService.analysis(records, sourceData), [records, sourceData])
@@ -201,12 +203,59 @@ export default function WasteManagement({ currentUser }: { currentUser: User }){
     }
   }
 
+  const createWastePrintDocument = (record: WasteRecord): PrintDocumentInput => ({
+    moduleKey: 'waste',
+    entityId: record.id,
+    entityCode: record.wasteNo,
+    title: record.wasteNo,
+    subtitle: record.productName || record.stockItemName,
+    fields: [
+      { label: 'Tarih', value: formatDate(record.date) },
+      { label: 'Tur', value: WASTE_TYPE_LABELS[record.wasteType] },
+      { label: 'Neden', value: WASTE_REASON_LABELS[record.wasteReason] },
+      { label: 'Urun', value: record.productName || record.stockItemName },
+      { label: 'Lot / Batch', value: `${record.lotNo || '-'} / ${record.batchNo || '-'}` },
+      { label: 'Miktar', value: formatQuantity(record.quantity, record.unit) },
+      { label: 'Maliyet', value: formatCurrency(record.totalCost, record.currency) },
+      { label: 'Depo', value: record.warehouseName || '-' },
+      { label: 'Sube', value: record.branchName || '-' },
+      { label: 'Durum', value: WASTE_STATUS_LABELS[record.status] },
+      { label: 'Uretim Emri', value: record.productionOrderNo || '-' },
+      { label: 'Recipe', value: record.recipeName || '-' }
+    ],
+    tables: [
+      {
+        title: 'Kalite ve HACCP',
+        columns: ['Alan', 'Deger'],
+        rows: [
+          ['Kalite Karari', record.qualityDecision || '-'],
+          ['HACCP Referansi', record.haccpReference || '-'],
+          ['Duzeltici Faaliyet', record.correctiveAction || '-'],
+          ['Fotograf Notu', record.photoNote || '-']
+        ]
+      }
+    ],
+    notes: record.description,
+    barcodeValue: record.wasteNo,
+    qrPayload: JSON.stringify({
+      module: 'waste',
+      entityId: record.id,
+      code: record.wasteNo,
+      lot: record.lotNo || record.batchNo || '',
+      date: record.date
+    })
+  })
+
   const recordOutput = (action: Extract<WasteHistoryAction, 'PRINTED' | 'PDF' | 'EXCEL'>) => {
     if(!selectedRecord) return
 
     try{
-      if(action === 'PRINTED') WastePrintService.openPrintWindow(selectedRecord, 'A4')
-      if(action === 'PDF') WastePrintService.openPrintWindow(selectedRecord, 'PDF')
+      if(action === 'PRINTED' || action === 'PDF'){
+        setPrintDocuments([createWastePrintDocument(selectedRecord)])
+        setMessage({ type: 'success', text: `${selectedRecord.wasteNo} yazdirma onizlemesi acildi.` })
+        return
+      }
+
       if(action === 'EXCEL'){
         ExcelIntegrationService.exportModules({
           moduleKeys: ['waste'],
@@ -396,6 +445,7 @@ export default function WasteManagement({ currentUser }: { currentUser: User }){
               <p className="muted">Fire kayitlari read-model olarak yonetilir; stok transaction veya muhasebe fisi yazilmaz.</p>
             </div>
             <div className="waste-list-actions">
+              <button className="btn" type="button" onClick={() => setPrintDocuments(filteredRecords.map(createWastePrintDocument))}>Toplu Yazdır</button>
               <button className="btn" type="button" onClick={exportFilteredWasteRows}>Excel'e Aktar</button>
               <span className="status-pill">{formatNumber(analysis.recommendations.length)} DSS sinyali</span>
             </div>
@@ -470,6 +520,12 @@ export default function WasteManagement({ currentUser }: { currentUser: User }){
         bulkRequests={filteredRecords.map(record => BarcodeIntegrationService.fromWasteRecord(record))}
         userName={userName}
         onClose={() => setBarcodePreviewRequest(null)}
+      />
+      <PrintPreviewModal
+        moduleKey="waste"
+        documents={printDocuments}
+        userName={userName}
+        onClose={() => setPrintDocuments([])}
       />
     </div>
   )

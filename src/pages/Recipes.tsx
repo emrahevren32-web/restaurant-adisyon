@@ -1,5 +1,7 @@
 import React from 'react'
+import PrintPreviewModal from '../components/PrintPreviewModal'
 import { ExcelIntegrationService } from '../excel-engine/excel-integration.service'
+import { PrintIntegrationService } from '../print-engine/print-integration.service'
 import {
   RECIPE_INGREDIENT_UNITS,
   RECIPE_MANAGEMENT_ROLES,
@@ -71,6 +73,7 @@ import type {
   RecipeCostSimulationCompareRow,
   RecipeCostSimulationTrendPoint
 } from '../recipe-management/recipe-cost-simulation.types'
+import type { PrintDocumentInput } from '../print-engine/print.types'
 
 type StatusFilter = RecipeManagementStatus | 'all'
 type RoleFilter = RecipeManagementRole | 'all'
@@ -453,7 +456,40 @@ const openRecipePrintWindow = (
   rows: Array<Array<string | number>>,
   mode: 'PDF' | 'PRINT'
 ) => {
-  const printWindow = window.open('', '_blank', 'width=1100,height=760')
+  void PrintIntegrationService.openPrintWindow({
+    moduleKey: 'recipes',
+    documents: [{
+      moduleKey: 'recipes',
+      entityId: createId('recipe_report'),
+      entityCode: mode,
+      title,
+      fields: [
+        { label: 'Cikti', value: mode === 'PDF' ? 'PDF' : 'Yazdirma' },
+        { label: 'Satir Sayisi', value: rows.length }
+      ],
+      tables: [
+        {
+          title,
+          columns,
+          rows
+        }
+      ],
+      barcodeValue: title,
+      qrPayload: JSON.stringify({
+        module: 'recipes',
+        entityId: title,
+        code: mode,
+        lot: '',
+        date: new Date().toISOString()
+      })
+    }],
+    userName: EXCEL_USER_NAME,
+    outputType: 'A4',
+    orientation: 'LANDSCAPE'
+  })
+  return true
+
+  const printWindow = window.open('', '_blank', 'width=1100,height=760')!
   if(!printWindow) return false
 
   printWindow.document.write(`<!doctype html>
@@ -710,6 +746,7 @@ export default function Recipes(){
   const [ingredientFormError, setIngredientFormError] = React.useState('')
   const [toast, setToast] = React.useState<ToastState | null>(null)
   const [pendingAlternativeScroll, setPendingAlternativeScroll] = React.useState(false)
+  const [printDocuments, setPrintDocuments] = React.useState<PrintDocumentInput[]>([])
   const alternativeSectionRef = React.useRef<HTMLElement | null>(null)
 
   const commitRecords = React.useCallback((updater: React.SetStateAction<RecipeManagementRecord[]>) => {
@@ -778,6 +815,56 @@ export default function Recipes(){
       ]
     })
     showToast('Gorunen recete listesi Excel olarak aktarildi.')
+  }
+
+  const createRecipePrintDocument = (record: RecipeManagementRecord): PrintDocumentInput => {
+    const recipeCost = calculateRecipeCost(record)
+
+    return {
+      moduleKey: 'recipes',
+      entityId: record.id,
+      entityCode: record.code,
+      title: record.recipeName,
+      subtitle: `${record.code} - V${getRecipeVersionNo(record)} - ${record.productName}`,
+      fields: [
+        { label: 'Kod', value: record.code },
+        { label: 'Versiyon', value: `V${getRecipeVersionNo(record)}` },
+        { label: 'Versiyon Durumu', value: getRecipeVersionStatus(record) },
+        { label: 'Aktif Versiyon', value: isRecipeVersionActive(record) ? 'Evet' : 'Hayir' },
+        { label: 'Recete Turu', value: record.recipeType },
+        { label: 'Rol', value: getRecipeRoleLabel(record.recipeRole) },
+        { label: 'Urun', value: record.productName },
+        { label: 'Porsiyon', value: formatNumber(record.portions) },
+        { label: 'Malzeme Sayisi', value: record.ingredients.length },
+        { label: 'Toplam Gramaj', value: `${formatNumber(calculateTotalGrams(record.ingredients))} gr` },
+        { label: 'Toplam Maliyet', value: formatRecipeCostAmount(recipeCost.recipeCost) },
+        { label: 'Porsiyon Maliyeti', value: formatRecipeCostAmount(recipeCost.portionCost) },
+        { label: 'Fire', value: `${formatFirePercent(record.firePercent)} %` },
+        { label: 'Yield', value: `${formatFirePercent(getRecipeYieldPercent(record))} %` },
+        { label: 'Toplam Sure', value: `${formatNumber(getRecipeTotalMinutes(record))} dk` }
+      ],
+      tables: [
+        {
+          title: 'Malzemeler',
+          columns: ['Hammadde', 'Miktar', 'Baz Miktar', 'Birim Maliyet'],
+          rows: record.ingredients.map(ingredient => [
+            ingredient.materialName,
+            `${formatNumber(ingredient.quantity)} ${ingredient.unit}`,
+            `${formatNumber(ingredient.baseQuantity)} ${ingredient.baseUnit}`,
+            formatRecipeCostAmount(ingredient.unitCost)
+          ])
+        }
+      ],
+      notes: record.revisionNote || record.description,
+      barcodeValue: record.code,
+      qrPayload: JSON.stringify({
+        module: 'recipes',
+        entityId: record.id,
+        code: record.code,
+        lot: '',
+        date: record.updatedAt || record.createdAt
+      })
+    }
   }
 
   const exportRecipeMatrix = (
@@ -3311,6 +3398,7 @@ export default function Recipes(){
 
         <div className="recipe-side-actions">
           <button className="btn primary" type="button" onClick={() => openDetail(selectedRecord)}>Detay</button>
+          <button className="btn" type="button" onClick={() => setPrintDocuments([createRecipePrintDocument(selectedRecord)])}>Yazdır</button>
           <button className="btn" type="button" onClick={() => startEditRecipe(selectedRecord)}>
             {canEditRecipeVersionDirectly(selectedRecord) ? 'Düzenle' : 'Yeni Versiyon'}
           </button>
@@ -3392,6 +3480,7 @@ export default function Recipes(){
           </div>
           <div className="recipe-detail-actions">
             <button className="btn" type="button" onClick={backToList}>Listeye Dön</button>
+            <button className="btn" type="button" onClick={() => setPrintDocuments([createRecipePrintDocument(selectedRecord)])}>Yazdır</button>
             <button className="btn" type="button" onClick={() => startEditRecipe(selectedRecord)}>
               {canEditRecipeVersionDirectly(selectedRecord) ? 'Reçete Düzenle' : 'Yeni Versiyon'}
             </button>
@@ -3582,6 +3671,7 @@ export default function Recipes(){
               <p className="muted">{visibleRecords.length} reçete gösteriliyor.</p>
             </div>
             <div className="recipe-filters">
+              <button className="btn" type="button" onClick={() => setPrintDocuments(visibleRecords.map(createRecipePrintDocument))}>Toplu Yazdır</button>
               <button className="btn" type="button" onClick={exportVisibleRecipes}>Excel'e Aktar</button>
               <button className="btn primary" type="button" onClick={startNewRecipe}>Yeni Reçete</button>
               <input
@@ -3732,6 +3822,12 @@ export default function Recipes(){
           {panelMode === 'form' ? renderRecipeFormPanel() : renderSummaryPanel()}
         </aside>
       </div>
+      <PrintPreviewModal
+        moduleKey="recipes"
+        documents={printDocuments}
+        userName={EXCEL_USER_NAME}
+        onClose={() => setPrintDocuments([])}
+      />
     </div>
   )
 }

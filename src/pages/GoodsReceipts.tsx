@@ -1,6 +1,6 @@
 ﻿import React from 'react'
 import { ExcelIntegrationService } from '../excel-engine/excel-integration.service'
-import { GoodsReceiptPrintService } from '../goods-receipts/goods-receipt-print.service'
+import PrintPreviewModal from '../components/PrintPreviewModal'
 import {
   GOODS_RECEIPT_MANAGEMENT_STATUSES,
   GOODS_RECEIPT_MANAGEMENT_STATUS_LABELS,
@@ -23,6 +23,7 @@ import {
   formatQuantity
 } from '../kpi-reporting/kpi.utils'
 import type { PurchaseOrder } from '../purchase-orders/purchase-order.types'
+import type { PrintDocumentInput } from '../print-engine/print.types'
 import type { User } from '../types'
 
 type Message = {
@@ -155,6 +156,7 @@ export default function GoodsReceipts({ currentUser }: { currentUser: User }){
   const [selectedPurchaseOrderId, setSelectedPurchaseOrderId] = React.useState('')
   const [inspectionDraft, setInspectionDraft] = React.useState<GoodsReceiptInspection | null>(null)
   const [message, setMessage] = React.useState<Message | null>(null)
+  const [printDocuments, setPrintDocuments] = React.useState<PrintDocumentInput[]>([])
   const filteredRecords = React.useMemo(() => GoodsReceiptService.filter(records, filters), [records, filters])
   const statistics = React.useMemo(() => GoodsReceiptService.statistics(records), [records])
   const selectedRecord = filteredRecords.find(record => record.id === selectedRecordId)
@@ -240,12 +242,59 @@ export default function GoodsReceipts({ currentUser }: { currentUser: User }){
     }
   }
 
+  const createGoodsReceiptPrintDocument = (record: GoodsReceiptRecord): PrintDocumentInput => ({
+    moduleKey: 'goods-receipts',
+    entityId: record.id,
+    entityCode: record.receiptNo,
+    title: record.receiptNo,
+    subtitle: record.supplierName || record.supplierId,
+    fields: [
+      { label: 'Tarih', value: formatDate(record.receiptDate) },
+      { label: 'Durum', value: getStatusLabel(record.status) },
+      { label: 'Purchase Order', value: record.purchaseOrderNo || record.purchaseOrderId },
+      { label: 'Supplier', value: record.supplierName || record.supplierId },
+      { label: 'Depo', value: record.warehouseName || record.warehouseId },
+      { label: 'Teslim Eden', value: record.deliveredBy || '-' },
+      { label: 'Teslim Alan', value: record.receivedByName || record.receivedBy },
+      { label: 'Toplam Miktar', value: formatQuantity(getRecordTotalQuantity(record)) },
+      { label: 'Kabul / Red', value: `${formatQuantity(getRecordTotalAccepted(record))} / ${formatQuantity(getRecordTotalRejected(record))}` },
+      { label: 'Toplam Maliyet', value: formatCurrency(getRecordTotalCost(record)) }
+    ],
+    tables: [
+      {
+        title: 'Urunler ve Lotlar',
+        columns: ['Urun', 'Lot', 'Alinan', 'Kabul', 'Red', 'Maliyet'],
+        rows: record.items.map(item => [
+          item.productName || item.stockItemName || item.stockItemId,
+          item.lotNo || item.lotId || item.batchNo || '-',
+          formatQuantity(item.receivedQuantity, item.unit),
+          formatQuantity(item.acceptedQuantity, item.unit),
+          formatQuantity(item.rejectedQuantity, item.unit),
+          formatCurrency(item.totalCost || 0)
+        ])
+      }
+    ],
+    notes: record.description || record.notes,
+    barcodeValue: record.receiptNo,
+    qrPayload: JSON.stringify({
+      module: 'goods-receipts',
+      entityId: record.id,
+      code: record.receiptNo,
+      lot: record.items[0]?.lotNo || record.items[0]?.lotId || '',
+      date: record.receiptDate
+    })
+  })
+
   const recordOutput = (action: Extract<GoodsReceiptHistoryAction, 'PRINTED' | 'PDF' | 'EXCEL'>) => {
     if(!selectedRecord) return
 
     try{
-      if(action === 'PRINTED') GoodsReceiptPrintService.openPrintWindow(selectedRecord, 'A4')
-      if(action === 'PDF') GoodsReceiptPrintService.openPrintWindow(selectedRecord, 'PDF')
+      if(action === 'PRINTED' || action === 'PDF'){
+        setPrintDocuments([createGoodsReceiptPrintDocument(selectedRecord)])
+        setMessage({ type: 'success', text: `${selectedRecord.receiptNo} yazdirma onizlemesi acildi.` })
+        return
+      }
+
       if(action === 'EXCEL'){
         ExcelIntegrationService.exportModules({
           moduleKeys: ['goods-receipts'],
@@ -321,7 +370,10 @@ export default function GoodsReceipts({ currentUser }: { currentUser: User }){
               <h3>Goods Receipt Listesi</h3>
               <p className="muted">{formatNumber(filteredRecords.length)} / {formatNumber(records.length)} mal kabul listeleniyor.</p>
             </div>
-            <button className="btn" type="button" onClick={() => setFilters(GoodsReceiptService.createDefaultFilters())}>Sifirla</button>
+            <div className="goods-receipt-output-actions">
+              <button className="btn" type="button" onClick={() => setPrintDocuments(filteredRecords.map(createGoodsReceiptPrintDocument))}>Toplu Yazdır</button>
+              <button className="btn" type="button" onClick={() => setFilters(GoodsReceiptService.createDefaultFilters())}>Sifirla</button>
+            </div>
           </div>
 
           <div className="goods-receipt-toolbar">
@@ -540,6 +592,12 @@ export default function GoodsReceipts({ currentUser }: { currentUser: User }){
           )}
         </aside>
       </div>
+      <PrintPreviewModal
+        moduleKey="goods-receipts"
+        documents={printDocuments}
+        userName={userName}
+        onClose={() => setPrintDocuments([])}
+      />
     </div>
   )
 }

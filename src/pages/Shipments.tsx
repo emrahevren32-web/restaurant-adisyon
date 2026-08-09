@@ -2,6 +2,7 @@ import React from 'react'
 import { BarcodeIntegrationService } from '../barcode-engine/barcode-integration.service'
 import type { BarcodeGenerateInput } from '../barcode-engine/barcode.types'
 import BarcodePreviewModal from '../components/BarcodePreviewModal'
+import PrintPreviewModal from '../components/PrintPreviewModal'
 import { ExcelIntegrationService } from '../excel-engine/excel-integration.service'
 import {
   SHIPMENT_PRIORITIES,
@@ -31,6 +32,7 @@ import { loadPurchaseRequestRecords } from '../purchase-requests/purchase-reques
 import { loadSupplierManagementRecords } from '../supplier-management/supplier-management.mock'
 import { loadSupplierProductRecords } from '../supplier-management/supplier-product-mapping.mock'
 import { loadBranches, loadStockItems } from '../storage'
+import type { PrintDocumentInput } from '../print-engine/print.types'
 import type { Branch, StockItem, User } from '../types'
 
 type Props = {
@@ -307,6 +309,7 @@ export default function Shipments({ currentUser }: Props){
   const [warehouseFilter, setWarehouseFilter] = React.useState('all')
   const [branchFilter, setBranchFilter] = React.useState('all')
   const [barcodePreviewRequest, setBarcodePreviewRequest] = React.useState<BarcodeGenerateInput | null>(null)
+  const [printDocuments, setPrintDocuments] = React.useState<PrintDocumentInput[]>([])
 
   const { branches, inventoryLots, stockItems } = initialData
 
@@ -377,6 +380,50 @@ export default function Shipments({ currentUser }: Props){
       ]
     })
   }
+
+  const createShipmentPrintDocument = (record: ShipmentRecord): PrintDocumentInput => ({
+    moduleKey: 'shipments',
+    entityId: record.id,
+    entityCode: record.shipmentNo,
+    title: record.shipmentNo,
+    subtitle: getDestinationLabel(record, branchMap),
+    fields: [
+      { label: 'Shipment Date', value: formatDate(record.shipmentDate) },
+      { label: 'Planned Delivery', value: formatDate(record.plannedDeliveryDate) },
+      { label: 'Source Warehouse', value: getBranchLabel(record.sourceWarehouseId, branchMap) },
+      { label: 'Destination', value: getDestinationLabel(record, branchMap) },
+      { label: 'Priority', value: SHIPMENT_PRIORITY_LABELS[record.priority] },
+      { label: 'Status', value: SHIPMENT_STATUS_LABELS[record.status] },
+      { label: 'Created By', value: record.createdBy },
+      { label: 'Updated', value: formatDate(record.updatedAt) },
+      { label: 'Kalem', value: record.items.length }
+    ],
+    tables: [
+      {
+        title: 'Shipment Items',
+        columns: ['Lot', 'Urun', 'Miktar', 'Durum', 'Not'],
+        rows: record.items.map(item => {
+          const lot = lotMap.get(item.inventoryLotId)
+          return [
+            lot?.lotNo || item.inventoryLotId,
+            getStockItemLabel(item.stockItemId, stockItemMap),
+            formatQuantity(item.quantity, item.unit),
+            lot ? INVENTORY_LOT_STATUS_LABELS[lot.status] : '-',
+            item.notes || '-'
+          ]
+        })
+      }
+    ],
+    notes: record.notes,
+    barcodeValue: record.shipmentNo,
+    qrPayload: JSON.stringify({
+      module: 'shipments',
+      entityId: record.id,
+      code: record.shipmentNo,
+      lot: record.items[0]?.inventoryLotId || '',
+      date: record.shipmentDate
+    })
+  })
 
   const plannedCount = records.filter(record => (
     record.status === 'PLANNED'
@@ -514,7 +561,10 @@ export default function Shipments({ currentUser }: Props){
               <h3>Sevkiyat Listesi</h3>
               <p className="muted">{visibleRecords.length} kayıt gösteriliyor.</p>
             </div>
-            <button className="btn" type="button" onClick={exportVisibleShipments}>Excel'e Aktar</button>
+            <div className="waste-list-actions">
+              <button className="btn" type="button" onClick={() => setPrintDocuments(visibleRecords.map(createShipmentPrintDocument))}>Toplu Yazdır</button>
+              <button className="btn" type="button" onClick={exportVisibleShipments}>Excel'e Aktar</button>
+            </div>
           </div>
 
           <div className="shipment-toolbar">
@@ -807,6 +857,9 @@ export default function Shipments({ currentUser }: Props){
                   </span>
                 </div>
                 <div className="shipment-side-actions">
+                  <button className="btn" type="button" onClick={() => setPrintDocuments([createShipmentPrintDocument(selectedRecord)])}>
+                    Yazdır
+                  </button>
                   <button className="primary-button" type="button" onClick={() => openEditForm(selectedRecord)}>
                     Düzenle
                   </button>
@@ -912,6 +965,12 @@ export default function Shipments({ currentUser }: Props){
         bulkRequests={visibleRecords.map(record => BarcodeIntegrationService.fromShipment(record))}
         userName={getUserName(currentUser)}
         onClose={() => setBarcodePreviewRequest(null)}
+      />
+      <PrintPreviewModal
+        moduleKey="shipments"
+        documents={printDocuments}
+        userName={getUserName(currentUser)}
+        onClose={() => setPrintDocuments([])}
       />
     </div>
   )

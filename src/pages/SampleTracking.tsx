@@ -2,6 +2,7 @@ import React from 'react'
 import { BarcodeIntegrationService } from '../barcode-engine/barcode-integration.service'
 import type { BarcodeGenerateInput } from '../barcode-engine/barcode.types'
 import BarcodePreviewModal from '../components/BarcodePreviewModal'
+import PrintPreviewModal from '../components/PrintPreviewModal'
 import { ExcelIntegrationService } from '../excel-engine/excel-integration.service'
 import { loadFinalProducts } from '../final-products/final-product.mock'
 import type { FinalProduct } from '../final-products/final-product.types'
@@ -37,6 +38,7 @@ import type {
   QualitySampleStatus,
   QualitySampleType
 } from '../quality-samples/quality-sample.types'
+import type { PrintDocumentInput } from '../print-engine/print.types'
 import { loadBranches, loadStockItems } from '../storage'
 import { loadSupplierManagementRecords } from '../supplier-management/supplier-management.mock'
 import { loadSupplierProductRecords } from '../supplier-management/supplier-product-mapping.mock'
@@ -230,6 +232,7 @@ export default function SampleTracking({ currentUser }: { currentUser: User }){
   ))
   const [formError, setFormError] = React.useState('')
   const [barcodePreviewRequest, setBarcodePreviewRequest] = React.useState<BarcodeGenerateInput | null>(null)
+  const [printDocuments, setPrintDocuments] = React.useState<PrintDocumentInput[]>([])
 
   const { branches, inventoryLots, productRefs, productionOrders, stockItems } = initialData
   const availableLots = React.useMemo(() => getAvailableLots(inventoryLots), [inventoryLots])
@@ -291,6 +294,41 @@ export default function SampleTracking({ currentUser }: { currentUser: User }){
         { key: 'storageLocation', header: 'Storage Location', value: sample => sample.storageLocation || '-' }
       ]
     })
+  }
+
+  const createSamplePrintDocument = (sample: QualitySample): PrintDocumentInput => {
+    const lot = lotMap.get(sample.inventoryLotId) || null
+    const lotNo = lot?.lotNo || sample.inventoryLotId
+    const productName = getProductLabel(lot, productMap, stockItemMap)
+
+    return {
+      moduleKey: 'samples',
+      entityId: sample.id,
+      entityCode: sample.sampleNo,
+      title: sample.sampleNo,
+      subtitle: productName,
+      fields: [
+        { label: 'Lot', value: lotNo },
+        { label: 'Product', value: productName },
+        { label: 'Production Order', value: getProductionOrderLabel(lot, productionOrderMap) },
+        { label: 'Warehouse', value: getWarehouseLabel(lot, branchMap) },
+        { label: 'Sample Type', value: QUALITY_SAMPLE_TYPE_LABELS[sample.sampleType] },
+        { label: 'Sample Date', value: formatDate(sample.sampleDate) },
+        { label: 'Expiry Date', value: formatDate(sample.expiryDate) },
+        { label: 'Status', value: QUALITY_SAMPLE_STATUS_LABELS[sample.status] },
+        { label: 'Taken By', value: sample.takenBy },
+        { label: 'Storage', value: sample.storageLocation || '-' }
+      ],
+      notes: sample.notes,
+      barcodeValue: sample.sampleNo,
+      qrPayload: JSON.stringify({
+        module: 'samples',
+        entityId: sample.id,
+        code: sample.sampleNo,
+        lot: lotNo,
+        date: sample.sampleDate
+      })
+    }
   }
 
   const collectedCount = samples.filter(sample => sample.status === 'COLLECTED').length
@@ -385,6 +423,7 @@ export default function SampleTracking({ currentUser }: { currentUser: User }){
         </div>
         <div className="sample-tracking-header-actions">
           <span className="muted">Operatör: {getUserName(currentUser)}</span>
+          <button className="btn" type="button" onClick={() => setPrintDocuments(visibleSamples.map(createSamplePrintDocument))}>Toplu Yazdır</button>
           <button className="btn" type="button" onClick={exportVisibleSamples}>Excel'e Aktar</button>
           <button className="btn primary" type="button" onClick={startCreate}>Yeni Numune</button>
         </div>
@@ -506,6 +545,7 @@ export default function SampleTracking({ currentUser }: { currentUser: User }){
             stockItemMap={stockItemMap}
             onEdit={startEdit}
             onPreviewBarcode={sample => setBarcodePreviewRequest(BarcodeIntegrationService.fromQualitySample(sample, lotMap.get(sample.inventoryLotId) || null))}
+            onPrint={sample => setPrintDocuments([createSamplePrintDocument(sample)])}
             onStatusChange={updateStatus}
           />
           <SampleFormPanel
@@ -530,6 +570,12 @@ export default function SampleTracking({ currentUser }: { currentUser: User }){
         userName={getUserName(currentUser)}
         onClose={() => setBarcodePreviewRequest(null)}
       />
+      <PrintPreviewModal
+        moduleKey="samples"
+        documents={printDocuments}
+        userName={getUserName(currentUser)}
+        onClose={() => setPrintDocuments([])}
+      />
     </div>
   )
 }
@@ -543,6 +589,7 @@ function SampleDetailPanel({
   stockItemMap,
   onEdit,
   onPreviewBarcode,
+  onPrint,
   onStatusChange
 }: {
   branchMap: Map<string, Branch>
@@ -553,6 +600,7 @@ function SampleDetailPanel({
   stockItemMap: Map<string, StockItem>
   onEdit: (sample: QualitySample) => void
   onPreviewBarcode: (sample: QualitySample) => void
+  onPrint: (sample: QualitySample) => void
   onStatusChange: (sample: QualitySample, status: QualitySampleStatus) => void
 }){
   if(!sample){
@@ -581,6 +629,7 @@ function SampleDetailPanel({
           </span>
         </div>
         <div className="sample-tracking-side-actions">
+          <button className="btn secondary" type="button" onClick={() => onPrint(sample)}>Yazdır</button>
           <select value={sample.status} onChange={event => onStatusChange(sample, event.target.value as QualitySampleStatus)}>
             {QUALITY_SAMPLE_STATUSES.map(status => (
               <option key={status} value={status}>{QUALITY_SAMPLE_STATUS_LABELS[status]}</option>

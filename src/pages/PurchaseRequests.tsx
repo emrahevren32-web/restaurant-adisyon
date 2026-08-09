@@ -1,4 +1,5 @@
 import React from 'react'
+import PrintPreviewModal from '../components/PrintPreviewModal'
 import { ExcelIntegrationService } from '../excel-engine/excel-integration.service'
 import {
   ApprovedAlternativeMaterialService
@@ -39,6 +40,7 @@ import type {
   PurchaseRequestStatus,
   PurchaseRequestSuggestion
 } from '../purchase-requests/purchase-request.types'
+import type { PrintDocumentInput } from '../print-engine/print.types'
 import type { Branch, StockItem, User } from '../types'
 import type { Supplier, SupplierProduct } from '../supplier-management/supplier-management.types'
 
@@ -323,6 +325,7 @@ export default function PurchaseRequests({ currentUser }: Props){
   const [departmentFilter, setDepartmentFilter] = React.useState<DepartmentFilter>('all')
   const [productFilter, setProductFilter] = React.useState('all')
   const [dateFilter, setDateFilter] = React.useState('')
+  const [printDocuments, setPrintDocuments] = React.useState<PrintDocumentInput[]>([])
 
   const stockItemMap = React.useMemo(() => new Map(context.stockItems.map(item => [item.id, item])), [context.stockItems])
   const supplierMap = React.useMemo(() => new Map(context.suppliers.map(supplier => [supplier.id, supplier])), [context.suppliers])
@@ -413,6 +416,52 @@ export default function PurchaseRequests({ currentUser }: Props){
       ]
     })
   }
+
+  const createPurchaseRequestPrintDocument = (record: PurchaseRequestRecord): PrintDocumentInput => ({
+    moduleKey: 'purchase-requests',
+    entityId: record.id,
+    entityCode: record.requestNo,
+    title: record.requestNo,
+    subtitle: record.title,
+    fields: [
+      { label: 'Talep Tarihi', value: formatDate(record.requestDate) },
+      { label: 'Istenen Tarih', value: formatDate(record.requiredDate) },
+      { label: 'Talep Eden', value: record.requester },
+      { label: 'Departman', value: PURCHASE_REQUEST_DEPARTMENT_LABELS[record.department] },
+      { label: 'Depo', value: getBranchLabel(record.warehouseId, context.branches) },
+      { label: 'Sube', value: getBranchLabel(record.branchId, context.branches) },
+      { label: 'Kaynak', value: PURCHASE_REQUEST_SOURCE_LABELS[record.source] },
+      { label: 'Oncelik', value: PURCHASE_REQUEST_PRIORITY_LABELS[record.priority] },
+      { label: 'Durum', value: PURCHASE_REQUEST_STATUS_LABELS[record.status] },
+      { label: 'Tahmini Tutar', value: formatCurrency(calculatePurchaseRequestTotal(record)) }
+    ],
+    tables: [
+      {
+        title: 'Talep Kalemleri',
+        columns: ['Urun', 'Kategori', 'Miktar', 'Birim Fiyat', 'Supplier', 'Not'],
+        rows: record.items.map(item => {
+          const stockItem = stockItemMap.get(item.stockItemId)
+          return [
+            getStockItemLabel(item.stockItemId, stockItemMap),
+            stockItem ? getCategoryLabel(stockItem.categoryId, context) : '-',
+            formatQuantity(item.requestedQuantity || item.quantity, item.unit || stockItem?.unit || ''),
+            formatCurrency(item.estimatedUnitPrice || 0),
+            item.suggestedSupplierId ? getSupplierLabel(item.suggestedSupplierId, supplierMap) : '-',
+            item.notes || '-'
+          ]
+        })
+      }
+    ],
+    notes: record.notes || record.description,
+    barcodeValue: record.requestNo,
+    qrPayload: JSON.stringify({
+      module: 'purchase-requests',
+      entityId: record.id,
+      code: record.requestNo,
+      lot: '',
+      date: record.requestDate
+    })
+  })
 
   const resetFormState = (nextRecords = records) => {
     setForm(createEmptyForm(nextRecords, context, currentUser))
@@ -560,7 +609,10 @@ export default function PurchaseRequests({ currentUser }: Props){
               <h3>Talep Listesi</h3>
               <p className="muted">{visibleRecords.length} kayıt gösteriliyor.</p>
             </div>
-            <button className="btn" type="button" onClick={exportVisibleRequests}>Excel'e Aktar</button>
+            <div className="waste-list-actions">
+              <button className="btn" type="button" onClick={() => setPrintDocuments(visibleRecords.map(createPurchaseRequestPrintDocument))}>Toplu Yazdır</button>
+              <button className="btn" type="button" onClick={exportVisibleRequests}>Excel'e Aktar</button>
+            </div>
           </div>
 
           {context.stockItems.length === 0 && (
@@ -719,11 +771,18 @@ export default function PurchaseRequests({ currentUser }: Props){
               approvedAlternativeRecords={approvedAlternativeMaterialRecords}
               onCreate={startCreate}
               onEdit={startEdit}
+              onPrint={record => setPrintDocuments([createPurchaseRequestPrintDocument(record)])}
               onTransition={transitionRecord}
             />
           )}
         </aside>
       </div>
+      <PrintPreviewModal
+        moduleKey="purchase-requests"
+        documents={printDocuments}
+        userName={getUserName(currentUser)}
+        onClose={() => setPrintDocuments([])}
+      />
     </div>
   )
 }
@@ -878,6 +937,7 @@ function PurchaseRequestDetailPanel({
   approvedAlternativeRecords,
   onCreate,
   onEdit,
+  onPrint,
   onTransition
 }: {
   record: PurchaseRequestRecord | null
@@ -887,6 +947,7 @@ function PurchaseRequestDetailPanel({
   approvedAlternativeRecords: ReturnType<typeof ApprovedAlternativeMaterialService.load>
   onCreate: () => void
   onEdit: (record: PurchaseRequestRecord) => void
+  onPrint: (record: PurchaseRequestRecord) => void
   onTransition: (record: PurchaseRequestRecord, status: PurchaseRequestStatus, note?: string) => void
 }){
   if(!record){
@@ -921,6 +982,7 @@ function PurchaseRequestDetailPanel({
           </span>
         </div>
         <div className="purchase-request-side-actions">
+          <button className="btn" type="button" onClick={() => onPrint(record)}>Yazdır</button>
           <button className="btn" type="button" onClick={onCreate}>Yeni</button>
           {canEdit && <button className="btn primary" type="button" onClick={() => onEdit(record)}>Düzenle</button>}
           {canSubmit && <button className="btn" type="button" onClick={() => onTransition(record, 'SUBMITTED')}>{PURCHASE_REQUEST_WORKFLOW_ACTION_LABELS.SUBMITTED}</button>}

@@ -3,6 +3,8 @@ import { BarcodeIntegrationService } from '../barcode-engine/barcode-integration
 import type { BarcodeGenerateInput } from '../barcode-engine/barcode.types'
 import BarcodePreviewModal from '../components/BarcodePreviewModal'
 import { ExcelIntegrationService } from '../excel-engine/excel-integration.service'
+import PrintPreviewModal from '../components/PrintPreviewModal'
+import type { PrintDocumentInput } from '../print-engine/print.types'
 import {
   INVENTORY_LOT_STATUSES,
   INVENTORY_LOT_STATUS_LABELS,
@@ -147,6 +149,7 @@ export default function InventoryLots(){
   const [stockItemFilter, setStockItemFilter] = React.useState('all')
   const [expiryFilter, setExpiryFilter] = React.useState<ExpiryFilter>('all')
   const [barcodePreviewRequest, setBarcodePreviewRequest] = React.useState<BarcodeGenerateInput | null>(null)
+  const [printDocuments, setPrintDocuments] = React.useState<PrintDocumentInput[]>([])
 
   const { branches, goodsReceipts, purchaseOrders, purchaseRequests, stockItems, suppliers } = initialData
   const branchMap = React.useMemo(() => new Map(branches.map(branch => [branch.id, branch])), [branches])
@@ -218,6 +221,27 @@ export default function InventoryLots(){
     })
   }
 
+  const createLotPrintDocument = (record: InventoryLot): PrintDocumentInput => ({
+    moduleKey: 'lots',
+    entityId: record.id,
+    entityCode: record.lotNo,
+    title: record.lotNo,
+    subtitle: getStockItemLabel(record.stockItemId, stockItemMap),
+    fields: [
+      { label: 'Stock Item', value: getStockItemLabel(record.stockItemId, stockItemMap) },
+      { label: 'Supplier', value: getSupplierLabel(record.supplierId, supplierMap) },
+      { label: 'Warehouse', value: getWarehouseLabel(record.warehouseId, branchMap) },
+      { label: 'Production Date', value: formatDate(record.productionDate) },
+      { label: 'Expiry Date', value: formatDate(record.expiryDate) },
+      { label: 'Remaining Qty', value: formatQuantity(record.remainingQuantity, record.unit) },
+      { label: 'Status', value: INVENTORY_LOT_STATUS_LABELS[record.status] },
+      { label: 'SKT Uyarısı', value: getInventoryLotExpiryLabel(getInventoryLotExpirySignal(record)) }
+    ],
+    notes: record.notes,
+    barcodeValue: record.lotNo,
+    qrPayload: JSON.stringify({ module: 'lots', entityId: record.id, code: record.lotNo, lot: record.lotNo, date: record.productionDate })
+  })
+
   const activeCount = records.filter(record => record.status === 'ACTIVE').length
   const quarantineCount = records.filter(record => record.status === 'QUARANTINE').length
   const blockedCount = records.filter(record => record.status === 'BLOCKED').length
@@ -275,7 +299,10 @@ export default function InventoryLots(){
               <h3>Lot Listesi</h3>
               <p className="muted">{visibleRecords.length} kayıt gösteriliyor.</p>
             </div>
-            <button className="btn" type="button" onClick={exportVisibleLots}>Excel'e Aktar</button>
+            <div className="waste-list-actions">
+              <button className="btn" type="button" onClick={() => setPrintDocuments(visibleRecords.map(createLotPrintDocument))}>Toplu Yazdır</button>
+              <button className="btn" type="button" onClick={exportVisibleLots}>Excel'e Aktar</button>
+            </div>
           </div>
 
           <div className="inventory-lot-toolbar">
@@ -374,6 +401,7 @@ export default function InventoryLots(){
             stockItemMap={stockItemMap}
             branchMap={branchMap}
             onStatusChange={updateStatus}
+            onPrint={lot => setPrintDocuments([createLotPrintDocument(lot)])}
             onPreviewBarcode={lot => setBarcodePreviewRequest(BarcodeIntegrationService.fromLot(lot))}
           />
         </aside>
@@ -383,6 +411,12 @@ export default function InventoryLots(){
         bulkRequests={visibleRecords.map(record => BarcodeIntegrationService.fromLot(record))}
         userName={ExcelIntegrationService.defaultUserName}
         onClose={() => setBarcodePreviewRequest(null)}
+      />
+      <PrintPreviewModal
+        moduleKey="lots"
+        documents={printDocuments}
+        userName={ExcelIntegrationService.defaultUserName}
+        onClose={() => setPrintDocuments([])}
       />
     </div>
   )
@@ -397,6 +431,7 @@ function InventoryLotDetailPanel({
   stockItemMap,
   branchMap,
   onStatusChange,
+  onPrint,
   onPreviewBarcode
 }: {
   lot: InventoryLot | null
@@ -407,6 +442,7 @@ function InventoryLotDetailPanel({
   stockItemMap: Map<string, StockItem>
   branchMap: Map<string, Branch>
   onStatusChange: (lot: InventoryLot, status: InventoryLotStatus) => void
+  onPrint: (lot: InventoryLot) => void
   onPreviewBarcode: (lot: InventoryLot) => void
 }){
   if(!lot){
@@ -443,6 +479,7 @@ function InventoryLotDetailPanel({
               <option key={status} value={status}>{INVENTORY_LOT_STATUS_LABELS[status]}</option>
             ))}
           </select>
+          <button className="btn" type="button" onClick={() => onPrint(lot)}>Yazdır</button>
           <button className="btn" type="button" onClick={() => onPreviewBarcode(lot)}>Barkod Önizle</button>
         </div>
       </section>

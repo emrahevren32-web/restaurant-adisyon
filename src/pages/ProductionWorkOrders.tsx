@@ -2,6 +2,8 @@ import React from 'react'
 import { BarcodeIntegrationService } from '../barcode-engine/barcode-integration.service'
 import type { BarcodeGenerateInput } from '../barcode-engine/barcode.types'
 import BarcodePreviewModal from '../components/BarcodePreviewModal'
+import PrintPreviewModal from '../components/PrintPreviewModal'
+import type { PrintDocumentInput } from '../print-engine/print.types'
 import type { User } from '../types'
 import {
   PRODUCTION_WORK_ORDER_BRANCHES,
@@ -293,6 +295,7 @@ export default function ProductionWorkOrders({ currentUser }: Props){
   const [formError, setFormError] = React.useState('')
   const [toast, setToast] = React.useState<ToastState | null>(null)
   const [barcodePreviewRequest, setBarcodePreviewRequest] = React.useState<BarcodeGenerateInput | null>(null)
+  const [printDocuments, setPrintDocuments] = React.useState<PrintDocumentInput[]>([])
 
   const actorName = currentUser.fullName || currentUser.username || 'Kullanıcı'
 
@@ -370,6 +373,48 @@ export default function ProductionWorkOrders({ currentUser }: Props){
     order.updatedAt || getSortedHistory(order)[0]?.createdAt || order.createdAt
   )
 
+  const createProductionOrderPrintDocument = (order: ProductionWorkOrder): PrintDocumentInput => ({
+    moduleKey: 'production-orders',
+    entityId: order.id,
+    entityCode: order.workOrderNo,
+    title: order.workOrderNo,
+    subtitle: order.branch,
+    fields: [
+      { label: 'Talep Eden', value: order.requester },
+      { label: 'Sube', value: order.branch },
+      { label: 'Teslim Tarihi', value: formatDate(order.deliveryDate) },
+      { label: 'Oncelik', value: order.priority },
+      { label: 'Durum', value: order.status },
+      { label: 'Tahmini Sure', value: formatDuration(order.estimatedMinutes) },
+      { label: 'Bagli Sevkiyat', value: order.linkedShipmentNo || '-' },
+      { label: 'Toplam Miktar', value: formatTotalQuantity(order.lines) },
+      { label: 'Olusturan', value: getCreatedByName(order) },
+      { label: 'Son Guncelleyen', value: getLastUpdatedByName(order) }
+    ],
+    tables: [
+      {
+        title: 'Urun Satirlari',
+        columns: ['Sira', 'Urun', 'Miktar', 'Birim', 'Not'],
+        rows: order.lines.map((line, index) => [
+          String(index + 1),
+          line.productName,
+          formatNumber(line.quantity),
+          line.unit,
+          line.note || '-'
+        ])
+      }
+    ],
+    notes: order.notes || order.description,
+    barcodeValue: order.workOrderNo,
+    qrPayload: JSON.stringify({
+      module: 'production-orders',
+      entityId: order.id,
+      code: order.workOrderNo,
+      lot: order.linkedShipmentNo || '',
+      date: order.deliveryDate
+    })
+  })
+
   React.useEffect(() => {
     if(!toast) return undefined
 
@@ -422,10 +467,12 @@ export default function ProductionWorkOrders({ currentUser }: Props){
 
   const openPrintPreview = (orderId = selectedOrderId) => {
     if(!orderId) return
+    const order = orders.find(item => item.id === orderId)
+    if(!order) return
     setSelectedOrderId(orderId)
-    setPageMode('print')
     setPanelMode('summary')
     setToast(null)
+    setPrintDocuments([createProductionOrderPrintDocument(order)])
   }
 
   const updateForm = <TKey extends keyof WorkOrderFormState>(key: TKey, value: WorkOrderFormState[TKey]) => {
@@ -1016,6 +1063,12 @@ export default function ProductionWorkOrders({ currentUser }: Props){
           userName={actorName}
           onClose={() => setBarcodePreviewRequest(null)}
         />
+        <PrintPreviewModal
+          moduleKey="production-orders"
+          documents={printDocuments}
+          userName={actorName}
+          onClose={() => setPrintDocuments([])}
+        />
       </div>
     )
   }
@@ -1040,7 +1093,7 @@ export default function ProductionWorkOrders({ currentUser }: Props){
           </div>
           <div className="production-work-order-detail-actions">
             <button className="btn" type="button" onClick={returnToList}>Listeye Dön</button>
-            <button className="btn primary" type="button" onClick={() => window.print()}>Tarayıcıdan Yazdır</button>
+            <button className="btn primary" type="button" onClick={() => openPrintPreview(selectedOrder.id)}>Ortak Yazdır</button>
           </div>
         </div>
 
@@ -1139,6 +1192,7 @@ export default function ProductionWorkOrders({ currentUser }: Props){
               <p className="muted">{visibleOrders.length} iş emri gösteriliyor.</p>
             </div>
             <div className="production-work-order-toolbar">
+              <button className="btn" type="button" onClick={() => setPrintDocuments(visibleOrders.map(createProductionOrderPrintDocument))}>Toplu Yazdır</button>
               <button className="btn primary" type="button" onClick={startNewOrder}>Yeni İş Emri</button>
               <input
                 type="search"
@@ -1237,6 +1291,12 @@ export default function ProductionWorkOrders({ currentUser }: Props){
         bulkRequests={visibleOrders.map(order => BarcodeIntegrationService.fromProductionOrder(order))}
         userName={actorName}
         onClose={() => setBarcodePreviewRequest(null)}
+      />
+      <PrintPreviewModal
+        moduleKey="production-orders"
+        documents={printDocuments}
+        userName={actorName}
+        onClose={() => setPrintDocuments([])}
       />
     </div>
   )
