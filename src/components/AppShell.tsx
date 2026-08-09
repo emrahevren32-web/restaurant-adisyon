@@ -1,6 +1,10 @@
 import React from 'react'
 import { AppIcon } from '../design-system/IconSystem'
+import ApplicationShell from './ApplicationShell'
 import NotificationToastHost from './NotificationToastHost'
+import SidebarLayout from './SidebarLayout'
+import TopbarLayout from './TopbarLayout'
+import WorkspaceLayout from './WorkspaceLayout'
 import { Branch, User } from '../types'
 import type { PermissionName } from '../authorization/permission.types'
 import {
@@ -69,6 +73,29 @@ type AppShellProps<
   onLogout: () => void
   children: React.ReactNode
 }
+
+type ShellThemeMode = 'light' | 'dark'
+
+const THEME_STORAGE_KEY = 'miyop-theme'
+
+const getInitialThemeMode = (): ShellThemeMode => {
+  if(typeof window === 'undefined') return 'light'
+
+  try {
+    const storedTheme = window.localStorage.getItem(THEME_STORAGE_KEY)
+    if(storedTheme === 'light' || storedTheme === 'dark') return storedTheme
+  } catch {
+    return 'light'
+  }
+
+  return window.matchMedia?.('(prefers-color-scheme: dark)').matches ? 'dark' : 'light'
+}
+
+const normalizeSearchText = (value: string) => (
+  value
+    .trim()
+    .toLocaleLowerCase('tr-TR')
+)
 
 const getUserInitials = (user: User) => {
   const name = user.fullName || user.username
@@ -223,9 +250,19 @@ export default function AppShell<
   const hasSelectableBranch = selectableBranches.length > 0
   const [notificationPanelOpen, setNotificationPanelOpen] = React.useState(false)
   const [notifications, setNotifications] = React.useState<Evren360Notification[]>([])
+  const [sidebarCollapsed, setSidebarCollapsed] = React.useState(false)
+  const [mobileSidebarOpen, setMobileSidebarOpen] = React.useState(false)
+  const [globalSearch, setGlobalSearch] = React.useState('')
+  const [themeMode, setThemeMode] = React.useState<ShellThemeMode>(getInitialThemeMode)
   const [openTreeKeys, setOpenTreeKeys] = React.useState<Set<string>>(() => new Set(
     navGroups.flatMap(group => collectDefaultExpandedKeys(group.items))
   ))
+  const activeBranch = selectableBranches.find(branch => branch.id === activeBranchId)
+  const searchableNavItems = React.useMemo(() => (
+    visibleNavGroups
+      .flatMap(group => flattenNavItems(group.items))
+      .filter(item => Boolean(item.route) && !item.locked)
+  ), [visibleNavGroups])
   const unreadNotifications = React.useMemo(() => (
     notifications.filter(notification => !notification.readAt)
   ), [notifications])
@@ -249,7 +286,18 @@ export default function AppShell<
 
   React.useEffect(() => {
     setNotificationPanelOpen(false)
+    setMobileSidebarOpen(false)
   }, [activeNavKey])
+
+  React.useEffect(() => {
+    document.documentElement.dataset.theme = themeMode
+
+    try {
+      window.localStorage.setItem(THEME_STORAGE_KEY, themeMode)
+    } catch {
+      // Theme remains applied for the current session even if storage is unavailable.
+    }
+  }, [themeMode])
 
   React.useEffect(() => {
     const keysToOpen = visibleNavGroups.flatMap(group => [
@@ -274,6 +322,34 @@ export default function AppShell<
   const markAllNotificationsRead = () => {
     markAllEvren360NotificationsRead()
     setNotifications(loadEvren360Notifications())
+  }
+
+  const openNavItem = (item: ShellNavItem<Route, NavKey>) => {
+    onOpenNavItem(item)
+    setMobileSidebarOpen(false)
+  }
+
+  const handleGlobalSearchSubmit = (event: React.FormEvent<HTMLFormElement>) => {
+    event.preventDefault()
+    const normalizedSearch = normalizeSearchText(globalSearch)
+    if(!normalizedSearch) return
+
+    const matchedItem = searchableNavItems.find(item => (
+      normalizeSearchText([
+        item.label,
+        item.route,
+        item.moduleId,
+        item.parent
+      ].filter(Boolean).join(' ')).includes(normalizedSearch)
+    ))
+
+    if(!matchedItem) return
+    openNavItem(matchedItem)
+    setGlobalSearch('')
+  }
+
+  const toggleThemeMode = () => {
+    setThemeMode(current => current === 'dark' ? 'light' : 'dark')
   }
 
   const toggleTreeItem = (key: NavKey) => {
@@ -324,7 +400,7 @@ export default function AppShell<
               toggleTreeItem(item.key)
               return
             }
-            onOpenNavItem(item)
+            openNavItem(item)
           }}
         >
           <span className="side-nav-item-main">
@@ -361,172 +437,216 @@ export default function AppShell<
     )
   })
 
-  return (
-    <div className="app-shell">
-      <NotificationToastHost />
-      <div className="app-layout">
-        <aside className="side-nav" aria-label="Ana menü" data-onboarding-target="side-menu">
-          <div className="app-brand side-brand">
-            {logoUrl && <img src={logoUrl} alt={`${restaurantName} logosu`} />}
-            <div className="side-brand-copy">
-              <h1>{restaurantName}</h1>
-              <span>{isPlatformAdmin ? 'Yönetici Merkezi' : 'Yönetim Paneli'}</span>
-            </div>
-          </div>
-
-          <div className="side-nav-groups">
-            {visibleNavGroups.map(group => {
-              const visibleItems = group.items
-              const emptyAction = group.emptyAction
-              const visibleEmptyAction = emptyAction
-                && isNavItemVisible(emptyAction, currentUser, isPlatformAdmin)
-                ? emptyAction
-                : null
-              const hasEmptyState = visibleItems.length === 0 && Boolean(group.emptyTitle || group.emptyDescription)
-              if(visibleItems.length === 0 && !hasEmptyState) return null
-              const isOpen = openGroupKey === group.key
-              const isActiveGroup = activeGroupKey === group.key
-              const groupPanelId = `side-nav-group-${group.key}`
-
-              return (
-                <section className={`side-nav-group ${isOpen ? 'open' : ''} ${isActiveGroup ? 'active-group' : ''}`} key={group.key}>
-                  <button
-                    type="button"
-                    className="side-nav-title"
-                    aria-expanded={isOpen}
-                    aria-controls={groupPanelId}
-                    onClick={() => onToggleGroup(group.key)}
-                  >
-                    <span className="side-nav-title-main">
-                      <span className="side-nav-title-icon" aria-hidden="true">
-                        <AppIcon source={group.icon} label={group.title} context={String(group.key)} size="XS" />
-                      </span>
-                      <span>{group.title}</span>
-                    </span>
-                    <span className="side-nav-chevron" aria-hidden="true">
-                      <AppIcon name={isOpen ? 'chevronDown' : 'chevronRight'} size="XS" />
-                    </span>
-                  </button>
-                  <div className="side-nav-items" id={groupPanelId} hidden={!isOpen}>
-                    {renderNavItems(visibleItems)}
-                    {hasEmptyState && (
-                      <div className="side-nav-empty">
-                        {group.emptyTitle && <strong>{group.emptyTitle}</strong>}
-                        {group.emptyDescription && <span>{group.emptyDescription}</span>}
-                        {visibleEmptyAction && (
-                          <button className="side-nav-empty-action" type="button" onClick={() => onOpenNavItem(visibleEmptyAction)}>
-                            {visibleEmptyAction.label}
-                          </button>
-                        )}
-                      </div>
-                    )}
-                  </div>
-                </section>
-              )
-            })}
-          </div>
-        </aside>
-
-        <div className="app-main">
-          <header className="topbar">
-            <div className="topbar-title">
-              <span className="topbar-eyebrow">Aktif ekran</span>
-              <strong>{activeNavLabel}</strong>
-            </div>
-            <div className="topbar-actions">
-              <label className="branch-switcher">
-                <span>{isPlatformAdmin ? 'Kapsam' : 'Aktif Şube'}</span>
-                {isPlatformAdmin ? (
-                  <select value="platform" disabled>
-                    <option value="platform">EVREN360 Platform</option>
-                  </select>
-                ) : (
-                  <select value={hasSelectableBranch ? activeBranchId : ''} onChange={event => onActiveBranchChange(event.target.value)} disabled={!hasSelectableBranch}>
-                    {!hasSelectableBranch && <option value="">Yetkili şube yok</option>}
-                    {selectableBranches.map(branch => (
-                      <option key={branch.id} value={branch.id}>{branch.name}</option>
-                    ))}
-                  </select>
-                )}
-              </label>
-              <div className="topbar-notification-wrap">
-                <button
-                  className={`topbar-notification ${notificationPanelOpen ? 'active' : ''}`}
-                  type="button"
-                  aria-label={`Bildirimler${unreadNotificationCount > 0 ? `, ${unreadNotificationCount} okunmamış` : ''}`}
-                  aria-expanded={notificationPanelOpen}
-                  title="Bildirimler"
-                  onClick={() => setNotificationPanelOpen(current => !current)}
-                >
-                  <AppIcon name="notification" size="MD" />
-                  {unreadNotificationCount > 0 && (
-                    <span className="notification-badge" aria-hidden="true">{unreadNotificationCount > 99 ? '99+' : unreadNotificationCount}</span>
-                  )}
-                </button>
-                {notificationPanelOpen && (
-                  <section className="notification-panel" aria-label="Bildirimler">
-                    <div className="notification-panel-header">
-                      <div>
-                        <span>EVREN360</span>
-                        <h3>Bildirim Merkezi</h3>
-                      </div>
-                      {unreadNotificationCount > 0 && (
-                        <button className="btn" type="button" onClick={markAllNotificationsRead}>Tümünü Okundu Yap</button>
-                      )}
-                    </div>
-                    <div className="notification-list">
-                      {notifications.map(notification => (
-                        <button
-                          className={`notification-item ${notification.severity} ${notification.readAt ? 'read' : 'unread'}`}
-                          key={notification.id}
-                          type="button"
-                          onClick={() => openNotification(notification)}
-                        >
-                          <span className="notification-item-icon" aria-hidden="true">
-                            <AppIcon source={getNotificationIconSource(notification)} label={notification.title} size="SM" />
-                          </span>
-                          <span className="notification-item-copy">
-                            <strong>{notification.title}</strong>
-                            <span>{notification.description}</span>
-                            <small>{notification.targetLabel || 'EVREN360'} · {formatNotificationTime(notification.createdAt)}{notification.readAt ? ' · Okundu' : ''}</small>
-                          </span>
-                        </button>
-                      ))}
-                      {notifications.length === 0 && (
-                        <div className="notification-empty">
-                          <strong>Bildirim yok</strong>
-                          <span>Yeni başvuru, destek talebi ve lisans uyarıları burada görünecek.</span>
-                        </div>
-                      )}
-                    </div>
-                  </section>
-                )}
-              </div>
-              {onStartOnboarding && (
-                <button className="btn topbar-help" type="button" onClick={onStartOnboarding}>
-                  <AppIcon name="help" size="SM" />
-                  Yardım
-                </button>
-              )}
-              <div className="topbar-user-card" aria-label="Kullanıcı bilgisi" title="Kullanıcı bilgisi" data-onboarding-target="profile">
-                <span className="topbar-user-avatar">{getUserInitials(currentUser)}</span>
-                <span className="topbar-user-meta">
-                  <strong>{currentUser.fullName || currentUser.username}</strong>
-                  <span>{currentUser.role}</span>
-                </span>
-              </div>
-              <button className="btn topbar-logout" onClick={onLogout}>
-                <AppIcon name="logout" size="SM" />
-                Çıkış
-              </button>
-            </div>
-          </header>
-
-          <main className="app-content">
-            {children}
-          </main>
-        </div>
+  const sidebarBrand = (
+    <div className="app-brand side-brand">
+      {logoUrl && <img src={logoUrl} alt={`${restaurantName} logosu`} />}
+      <div className="side-brand-copy">
+        <h1>{restaurantName}</h1>
+        <span>{isPlatformAdmin ? 'Yönetici Merkezi' : 'Yönetim Paneli'}</span>
       </div>
     </div>
+  )
+
+  const sidebarFooter = (
+    <div className="side-nav-footer-copy">
+      <span>{isPlatformAdmin ? 'Platform Workspace' : 'Aktif Workspace'}</span>
+      <strong>{isPlatformAdmin ? 'EVREN360' : restaurantName}</strong>
+    </div>
+  )
+
+  const sidebarContent = visibleNavGroups.map(group => {
+    const visibleItems = group.items
+    const emptyAction = group.emptyAction
+    const visibleEmptyAction = emptyAction
+      && isNavItemVisible(emptyAction, currentUser, isPlatformAdmin)
+      ? emptyAction
+      : null
+    const hasEmptyState = visibleItems.length === 0 && Boolean(group.emptyTitle || group.emptyDescription)
+    if(visibleItems.length === 0 && !hasEmptyState) return null
+    const isOpen = openGroupKey === group.key
+    const isActiveGroup = activeGroupKey === group.key
+    const groupPanelId = `side-nav-group-${group.key}`
+
+    return (
+      <section className={`side-nav-group ${isOpen ? 'open' : ''} ${isActiveGroup ? 'active-group' : ''}`} key={group.key}>
+        <button
+          type="button"
+          className="side-nav-title"
+          aria-expanded={isOpen}
+          aria-controls={groupPanelId}
+          onClick={() => onToggleGroup(group.key)}
+        >
+          <span className="side-nav-title-main">
+            <span className="side-nav-title-icon" aria-hidden="true">
+              <AppIcon source={group.icon} label={group.title} context={String(group.key)} size="XS" />
+            </span>
+            <span>{group.title}</span>
+          </span>
+          <span className="side-nav-chevron" aria-hidden="true">
+            <AppIcon name={isOpen ? 'chevronDown' : 'chevronRight'} size="XS" />
+          </span>
+        </button>
+        <div className="side-nav-items" id={groupPanelId} hidden={!isOpen}>
+          {renderNavItems(visibleItems)}
+          {hasEmptyState && (
+            <div className="side-nav-empty">
+              {group.emptyTitle && <strong>{group.emptyTitle}</strong>}
+              {group.emptyDescription && <span>{group.emptyDescription}</span>}
+              {visibleEmptyAction && (
+                <button className="side-nav-empty-action" type="button" onClick={() => openNavItem(visibleEmptyAction)}>
+                  {visibleEmptyAction.label}
+                </button>
+              )}
+            </div>
+          )}
+        </div>
+      </section>
+    )
+  })
+
+  const branchSwitcher = (
+    <label className="branch-switcher">
+      <span>{isPlatformAdmin ? 'Kapsam' : 'Aktif Şube'}</span>
+      {isPlatformAdmin ? (
+        <select value="platform" disabled>
+          <option value="platform">EVREN360 Platform</option>
+        </select>
+      ) : (
+        <select value={hasSelectableBranch ? activeBranchId : ''} onChange={event => onActiveBranchChange(event.target.value)} disabled={!hasSelectableBranch}>
+          {!hasSelectableBranch && <option value="">Yetkili şube yok</option>}
+          {selectableBranches.map(branch => (
+            <option key={branch.id} value={branch.id}>{branch.name}</option>
+          ))}
+        </select>
+      )}
+    </label>
+  )
+
+  const notificationCenter = (
+    <div className="topbar-notification-wrap">
+      <button
+        className={`topbar-notification ${notificationPanelOpen ? 'active' : ''}`}
+        type="button"
+        aria-label={`Bildirimler${unreadNotificationCount > 0 ? `, ${unreadNotificationCount} okunmamış` : ''}`}
+        aria-expanded={notificationPanelOpen}
+        title="Bildirimler"
+        onClick={() => setNotificationPanelOpen(current => !current)}
+      >
+        <AppIcon name="notification" size="MD" />
+        {unreadNotificationCount > 0 && (
+          <span className="notification-badge" aria-hidden="true">{unreadNotificationCount > 99 ? '99+' : unreadNotificationCount}</span>
+        )}
+      </button>
+      {notificationPanelOpen && (
+        <section className="notification-panel" aria-label="Bildirimler">
+          <div className="notification-panel-header">
+            <div>
+              <span>EVREN360</span>
+              <h3>Bildirim Merkezi</h3>
+            </div>
+            {unreadNotificationCount > 0 && (
+              <button className="btn" type="button" onClick={markAllNotificationsRead}>Tümünü Okundu Yap</button>
+            )}
+          </div>
+          <div className="notification-list">
+            {notifications.map(notification => (
+              <button
+                className={`notification-item ${notification.severity} ${notification.readAt ? 'read' : 'unread'}`}
+                key={notification.id}
+                type="button"
+                onClick={() => openNotification(notification)}
+              >
+                <span className="notification-item-icon" aria-hidden="true">
+                  <AppIcon source={getNotificationIconSource(notification)} label={notification.title} size="SM" />
+                </span>
+                <span className="notification-item-copy">
+                  <strong>{notification.title}</strong>
+                  <span>{notification.description}</span>
+                  <small>{notification.targetLabel || 'EVREN360'} · {formatNotificationTime(notification.createdAt)}{notification.readAt ? ' · Okundu' : ''}</small>
+                </span>
+              </button>
+            ))}
+            {notifications.length === 0 && (
+              <div className="notification-empty">
+                <strong>Bildirim yok</strong>
+                <span>Yeni başvuru, destek talebi ve lisans uyarıları burada görünecek.</span>
+              </div>
+            )}
+          </div>
+        </section>
+      )}
+    </div>
+  )
+
+  const workspaceLabel = isPlatformAdmin ? 'EVREN360 Platform' : activeBranch?.name || restaurantName
+  const workspaceFooter = (
+    <>
+      <span>MİYOP Industrial Kitchen ERP</span>
+      <strong>{activeNavLabel}</strong>
+      <span>{currentUser.role}</span>
+    </>
+  )
+
+  return (
+    <>
+      <NotificationToastHost />
+      <ApplicationShell
+        sidebarCollapsed={sidebarCollapsed}
+        mobileSidebarOpen={mobileSidebarOpen}
+        onCloseMobileSidebar={() => setMobileSidebarOpen(false)}
+        sidebar={(
+          <SidebarLayout
+            brand={sidebarBrand}
+            collapsed={sidebarCollapsed}
+            mobileOpen={mobileSidebarOpen}
+            footer={sidebarFooter}
+            onToggleCollapsed={() => setSidebarCollapsed(current => !current)}
+            onCloseMobile={() => setMobileSidebarOpen(false)}
+          >
+            {sidebarContent}
+          </SidebarLayout>
+        )}
+        topbar={(
+          <TopbarLayout
+            title={activeNavLabel}
+            breadcrumbs={[
+              { label: isPlatformAdmin ? 'EVREN360' : restaurantName },
+              { label: activeNavLabel, current: true }
+            ]}
+            searchValue={globalSearch}
+            workspaceLabel={workspaceLabel}
+            themeMode={themeMode}
+            onSearchChange={setGlobalSearch}
+            onSearchSubmit={handleGlobalSearchSubmit}
+            onOpenMobileNav={() => setMobileSidebarOpen(true)}
+            onToggleTheme={toggleThemeMode}
+          >
+            {branchSwitcher}
+            {notificationCenter}
+            {onStartOnboarding && (
+              <button className="btn topbar-help" type="button" onClick={onStartOnboarding}>
+                <AppIcon name="help" size="SM" />
+                Yardım
+              </button>
+            )}
+            <div className="topbar-user-card" aria-label="Kullanıcı bilgisi" title="Kullanıcı bilgisi" data-onboarding-target="profile">
+              <span className="topbar-user-avatar">{getUserInitials(currentUser)}</span>
+              <span className="topbar-user-meta">
+                <strong>{currentUser.fullName || currentUser.username}</strong>
+                <span>{currentUser.role}</span>
+              </span>
+            </div>
+            <button className="btn topbar-logout" type="button" onClick={onLogout}>
+              <AppIcon name="logout" size="SM" />
+              Çıkış
+            </button>
+          </TopbarLayout>
+        )}
+      >
+        <WorkspaceLayout title={activeNavLabel} footer={workspaceFooter}>
+          {children}
+        </WorkspaceLayout>
+      </ApplicationShell>
+    </>
   )
 }
