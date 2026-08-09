@@ -1,6 +1,10 @@
 import { PRINT_RADIUS_VALUES } from '../design-system/BorderRadiusTheme'
 import { PRINT_SPACING_VALUES } from '../design-system/LayoutSpacing'
 import React from 'react'
+import {
+  DashboardExperienceHeader,
+  DashboardKpiCard
+} from '../components/DashboardExperience'
 import { CHART_THEME_COLORS, PRINT_THEME_COLORS } from '../design-system/ThemeColors'
 import { AIAnalysisService } from '../ai-analysis/ai-analysis.service'
 import { createCostEngineView, createDefaultCostEngineFilters } from '../cost-engine/cost-engine.service'
@@ -1346,19 +1350,23 @@ export default function BusinessSummary(){
   }
 
   return (
-    <div className="business-summary-page executive-dashboard-page">
-      <div className="page-header executive-dashboard-header">
-        <div>
-          <span className="status-pill success">Salt Okunur</span>
-          <h2>Executive Dashboard</h2>
-          <p className="muted">Endüstriyel mutfak operasyonları için üretim, depo, satın alma, kalite, sevkiyat, recall ve karar destek yönetici görünümü.</p>
-        </div>
-        <div className="executive-dashboard-actions">
-          <button className="btn" type="button" onClick={() => exportDashboardToExcel(model)}>Excel Dashboard</button>
-          <button className="btn" type="button" onClick={() => openPrintWindow(model, 'PDF')}>PDF Dashboard</button>
-          <button className="btn" type="button" onClick={() => openPrintWindow(model, 'PRINT')}>Yazdır</button>
-        </div>
-      </div>
+    <div className="business-summary-page executive-dashboard-page dashboard-experience-page">
+      <DashboardExperienceHeader
+        eyebrow="Executive Dashboard"
+        title="Executive Dashboard"
+        icon="dashboard"
+        description="Endüstriyel mutfak operasyonları için üretim, depo, satın alma, kalite, sevkiyat, recall ve karar destek yönetici görünümü."
+        meta={[
+          { key: 'readonly', label: 'Salt Okunur', icon: 'success', tone: 'success' },
+          { key: 'generated-at', label: formatDateTime(model.generatedAt), icon: 'report', tone: 'neutral' },
+          { key: 'load-ms', label: `${formatNumber(model.loadMs)} ms`, icon: 'analytics', tone: 'info' }
+        ]}
+        actions={[
+          { key: 'excel', label: 'Excel Dashboard', icon: 'excel', onClick: () => exportDashboardToExcel(model) },
+          { key: 'pdf', label: 'PDF Dashboard', icon: 'report', onClick: () => openPrintWindow(model, 'PDF') },
+          { key: 'print', label: 'Yazdır', icon: 'print', tone: 'primary', onClick: () => openPrintWindow(model, 'PRINT') }
+        ]}
+      />
 
       <div className="executive-dashboard-meta">
         <span>Oluşturulma: {formatDateTime(model.generatedAt)}</span>
@@ -1413,14 +1421,16 @@ export default function BusinessSummary(){
 
 function ExecutiveDashboardLoading({ progress }: { progress: number }){
   return (
-    <div className="business-summary-page executive-dashboard-page">
-      <div className="page-header executive-dashboard-header">
-        <div>
-          <span className="status-pill">Hazırlanıyor</span>
-          <h2>Executive Dashboard</h2>
-          <p className="muted">Yönetici görünümü oluşturuluyor.</p>
-        </div>
-      </div>
+    <div className="business-summary-page executive-dashboard-page dashboard-experience-page">
+      <DashboardExperienceHeader
+        eyebrow="Hazırlanıyor"
+        title="Executive Dashboard"
+        icon="dashboard"
+        description="Yönetici görünümü oluşturuluyor."
+        meta={[
+          { key: 'progress', label: `%${clampValue(progress, 8, 100)}`, icon: 'analytics', tone: 'info' }
+        ]}
+      />
       <section className="card executive-loading-card">
         <div className="executive-loading-progress">
           <span style={{ width: `${clampValue(progress, 8, 100)}%` }} />
@@ -1437,11 +1447,15 @@ function KpiCardGrid({ cards }: { cards: ExecutiveKpiCard[] }){
   return (
     <div className="metric-grid executive-dashboard-kpi-grid">
       {cards.map(card => (
-        <div className={`metric-card kpi-card executive-kpi-card ${card.tone}`} key={card.id}>
-          <span>{card.label}</span>
-          <strong>{card.value}</strong>
-          <small>{card.detail}</small>
-        </div>
+        <DashboardKpiCard
+          key={card.id}
+          label={card.label}
+          value={card.value}
+          detail={card.detail}
+          tone={card.tone}
+          icon="analytics"
+          trend={card.tone === 'success' ? 'İyi' : card.tone === 'warning' ? 'İzle' : card.tone === 'danger' ? 'Kritik' : 'Normal'}
+        />
       ))}
     </div>
   )

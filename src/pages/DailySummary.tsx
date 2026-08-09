@@ -1,4 +1,7 @@
 import React from 'react'
+import {
+  DashboardExperienceHeader
+} from '../components/DashboardExperience'
 import { AppIcon } from '../design-system/IconSystem'
 import {
   addDashboardWidget,
@@ -184,8 +187,19 @@ export default function DailySummary({ currentUser, onOpenMarketplace, onOpenWor
   }
 
   return (
-    <div className="summary-page dashboard-widget-page">
-      <div className="page-title dashboard-title" data-onboarding-target="control-panel">
+    <div className="summary-page dashboard-widget-page dashboard-experience-page">
+      <DashboardExperienceHeader
+        eyebrow="Dashboard Experience"
+        title={container.title}
+        description={container.description}
+        icon="dashboard"
+        dataOnboardingTarget="control-panel"
+        meta={container.isEmpty ? [] : [
+          { key: 'visible-widget-count', label: `${container.visibleWidgets.length} widget`, icon: 'dashboard', tone: 'info' },
+          { key: 'user-role', label: currentUser.role === 'Admin' ? 'Yönetici' : 'Kullanıcı', icon: 'user', tone: 'neutral' }
+        ]}
+      />
+      <div className="page-title dashboard-title dashboard-title-legacy" hidden>
         <div>
           <h2>{container.title}</h2>
           <p className="muted">

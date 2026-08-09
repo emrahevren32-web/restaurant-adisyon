@@ -1,6 +1,11 @@
 import { PRINT_RADIUS_VALUES } from '../design-system/BorderRadiusTheme'
 import { PRINT_SPACING_VALUES } from '../design-system/LayoutSpacing'
 import React from 'react'
+import {
+  DashboardEmptyState,
+  DashboardExperienceHeader,
+  DashboardKpiCard
+} from '../components/DashboardExperience'
 import { PRINT_THEME_COLORS } from '../design-system/ThemeColors'
 import { ExcelIntegrationService } from '../excel-engine/excel-integration.service'
 import { createDefaultKpiFilters, createKpiDashboardView } from '../kpi-reporting/kpi.service'
@@ -400,17 +405,18 @@ export default function KPIDashboard({ currentUser }: { currentUser: User }){
   }
 
   return (
-    <div className="kpi-dashboard-page">
-      <div className="page-header">
-        <div>
-          <h2>KPI Dashboard</h2>
-          <p className="muted">Read Model tabanlı yönetici, üretim, depo, kalite, satın alma ve sevkiyat KPI merkezi.</p>
-        </div>
-        <div className="kpi-header-actions">
-          <span className="status-pill success">Read Model</span>
-          <span className="muted">{getUserName(currentUser)}</span>
-        </div>
-      </div>
+    <div className="kpi-dashboard-page dashboard-experience-page">
+      <DashboardExperienceHeader
+        eyebrow="Dashboard Experience"
+        title="KPI Dashboard"
+        icon="kpi"
+        description="Read Model tabanlı yönetici, üretim, depo, kalite, satın alma ve sevkiyat KPI merkezi."
+        meta={[
+          { key: 'read-model', label: 'Read Model', icon: 'success', tone: 'success' },
+          { key: 'active-user', label: getUserName(currentUser), icon: 'user', tone: 'info' },
+          { key: 'generated-at', label: formatDateTime(dashboard.generatedAt), icon: 'report', tone: 'neutral' }
+        ]}
+      />
 
       <section className="card kpi-filter-card">
         <div className="section-header compact">
@@ -510,14 +516,29 @@ export default function KPIDashboard({ currentUser }: { currentUser: User }){
 }
 
 function KpiCardGrid({ cards }: { cards: KPICard[] }){
+  if(cards.length === 0){
+    return (
+      <DashboardEmptyState
+        compact
+        icon="kpi"
+        title="KPI verisi bulunamadı"
+        description="Seçili filtrelerde hesaplanacak KPI kaydı yok. Filtreleri genişleterek tekrar deneyin."
+      />
+    )
+  }
+
   return (
     <div className="metric-grid kpi-card-grid">
       {cards.map(card => (
-        <div className={`metric-card kpi-card ${card.tone}`} key={card.id}>
-          <span>{card.label}</span>
-          <strong>{card.value}</strong>
-          <small>{card.detail}</small>
-        </div>
+        <DashboardKpiCard
+          key={card.id}
+          label={card.label}
+          value={card.value}
+          detail={card.detail}
+          tone={card.tone}
+          icon="kpi"
+          trend={card.tone === 'success' ? 'Stabil' : card.tone === 'warning' ? 'İzle' : card.tone === 'danger' ? 'Kritik' : 'Normal'}
+        />
       ))}
     </div>
   )

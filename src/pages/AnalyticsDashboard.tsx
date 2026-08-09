@@ -1,4 +1,8 @@
 import React from 'react'
+import {
+  DashboardExperienceHeader,
+  DashboardKpiCard
+} from '../components/DashboardExperience'
 import { BusinessUsageSummary, ModuleUsageSummary, SystemUsageLog, UserActivitySummary, UsagePerformanceSummary } from '../types'
 import {
   calculateBusinessUsageSummaries,
@@ -163,11 +167,14 @@ const buildHourlyRows = (logs: SystemUsageLog[]): StatRow[] => {
 
 function KpiCard({ label, value, detail }: KpiCardProps){
   return (
-    <div className="metric-card dashboard-kpi-card">
-      <span>{label}</span>
-      <strong>{value}</strong>
-      {detail && <p className="muted">{detail}</p>}
-    </div>
+    <DashboardKpiCard
+      label={label}
+      value={value}
+      detail={detail}
+      tone="info"
+      icon="analytics"
+      trend="Analiz"
+    />
   )
 }
 
@@ -376,13 +383,18 @@ export default function AnalyticsDashboard(){
   })), [dailyRows])
 
   return (
-    <div className="analytics-dashboard-page">
-      <div className="page-title dashboard-title">
-        <div>
-          <h2>Analitik Kontrol Paneli</h2>
-          <p className="muted">Sistem kullanım verilerini ve analitik sonuçları tek ekrandan yönetin.</p>
-        </div>
-      </div>
+    <div className="analytics-dashboard-page dashboard-experience-page">
+      <DashboardExperienceHeader
+        eyebrow="Dashboard Experience"
+        title="Analitik Kontrol Paneli"
+        icon="analytics"
+        description="Sistem kullanım verilerini ve analitik sonuçları tek ekrandan yönetin."
+        meta={[
+          { key: 'active-range', label: `${activeRange.start || '-'} / ${activeRange.end || '-'}`, icon: 'report', tone: 'neutral' },
+          { key: 'visible-branches', label: `${formatNumber(visibleBranches.length)} şube`, icon: 'company', tone: 'info' },
+          { key: 'filtered-actions', label: `${formatNumber(totalActions)} işlem`, icon: 'analytics', tone: 'success' }
+        ]}
+      />
 
       <div className="metric-grid dashboard-kpi-grid">
         <KpiCard label="Toplam İşlem" value={formatNumber(totalActions)} detail="Filtreli kullanım kaydı" />
