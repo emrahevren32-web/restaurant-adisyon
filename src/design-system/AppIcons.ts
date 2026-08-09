@@ -11,6 +11,7 @@ import {
   CalendarDays,
   ChartNoAxesCombined,
   ChevronDown,
+  ChevronLeft,
   ChevronRight,
   CircleAlert,
   CircleCheckBig,
@@ -121,6 +122,7 @@ export type AppIconName =
   | 'close'
   | 'lock'
   | 'chevronDown'
+  | 'chevronLeft'
   | 'chevronRight'
   | 'hide'
   | 'show'
@@ -192,6 +194,7 @@ export const APP_ICON_REGISTRY: Record<AppIconName, LucideIcon> = {
   close: X,
   lock: Lock,
   chevronDown: ChevronDown,
+  chevronLeft: ChevronLeft,
   chevronRight: ChevronRight,
   hide: EyeOff,
   show: Eye,

@@ -25,7 +25,9 @@ export const SidebarLayout = ({
     {
       className: ['side-nav', collapsed ? 'collapsed' : '', mobileOpen ? 'mobile-open' : ''].filter(Boolean).join(' '),
       'aria-label': 'Ana menü',
-      'data-onboarding-target': 'side-menu'
+      'data-onboarding-target': 'side-menu',
+      'data-sidebar-state': collapsed ? 'collapsed' : 'expanded',
+      role: 'navigation'
     },
     React.createElement(
       'div',
@@ -40,10 +42,11 @@ export const SidebarLayout = ({
             type: 'button',
             className: 'side-nav-collapse-btn',
             'aria-label': collapsed ? 'Menüyü genişlet' : 'Menüyü daralt',
+            'aria-expanded': !collapsed,
             title: collapsed ? 'Menüyü genişlet' : 'Menüyü daralt',
             onClick: onToggleCollapsed
           },
-          React.createElement(AppIcon, { name: collapsed ? 'chevronRight' : 'minus', size: 'XS' })
+          React.createElement(AppIcon, { name: collapsed ? 'chevronRight' : 'chevronLeft', size: 'XS' })
         ),
         React.createElement(
           'button',

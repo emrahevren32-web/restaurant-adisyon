@@ -429,7 +429,11 @@ export default function AppShell<
           </span>
         </button>
         {hasChildren && (
-          <div className="side-nav-children" hidden={!isOpen}>
+          <div
+            className="side-nav-children"
+            data-state={isOpen ? 'open' : 'closed'}
+            aria-hidden={!isOpen}
+          >
             {renderNavItems(children, depth + 1)}
           </div>
         )}
@@ -439,18 +443,29 @@ export default function AppShell<
 
   const sidebarBrand = (
     <div className="app-brand side-brand">
-      {logoUrl && <img src={logoUrl} alt={`${restaurantName} logosu`} />}
+      <span className="side-brand-logo" aria-hidden={logoUrl ? undefined : true}>
+        {logoUrl ? (
+          <img src={logoUrl} alt={`${restaurantName} logosu`} />
+        ) : (
+          <AppIcon name="company" size="MD" />
+        )}
+      </span>
       <div className="side-brand-copy">
+        <span className="side-brand-kicker">MİYOP Workspace</span>
         <h1>{restaurantName}</h1>
-        <span>{isPlatformAdmin ? 'Yönetici Merkezi' : 'Yönetim Paneli'}</span>
+        <span className="side-brand-subtitle">{isPlatformAdmin ? 'Yönetici Merkezi' : 'Yönetim Paneli'}</span>
       </div>
     </div>
   )
 
   const sidebarFooter = (
-    <div className="side-nav-footer-copy">
-      <span>{isPlatformAdmin ? 'Platform Workspace' : 'Aktif Workspace'}</span>
-      <strong>{isPlatformAdmin ? 'EVREN360' : restaurantName}</strong>
+    <div className="side-nav-footer-card">
+      <span className="side-nav-footer-avatar" aria-hidden="true">{getUserInitials(currentUser)}</span>
+      <div className="side-nav-footer-copy">
+        <span>{isPlatformAdmin ? 'Platform Workspace' : 'Aktif Workspace'}</span>
+        <strong>{isPlatformAdmin ? 'EVREN360' : restaurantName}</strong>
+        <small>{currentUser.fullName || currentUser.username}</small>
+      </div>
     </div>
   )
 
@@ -474,6 +489,7 @@ export default function AppShell<
           className="side-nav-title"
           aria-expanded={isOpen}
           aria-controls={groupPanelId}
+          title={group.title}
           onClick={() => onToggleGroup(group.key)}
         >
           <span className="side-nav-title-main">
@@ -483,10 +499,15 @@ export default function AppShell<
             <span>{group.title}</span>
           </span>
           <span className="side-nav-chevron" aria-hidden="true">
-            <AppIcon name={isOpen ? 'chevronDown' : 'chevronRight'} size="XS" />
+            <AppIcon name="chevronRight" size="XS" />
           </span>
         </button>
-        <div className="side-nav-items" id={groupPanelId} hidden={!isOpen}>
+        <div
+          className="side-nav-items"
+          id={groupPanelId}
+          data-state={isOpen ? 'open' : 'closed'}
+          aria-hidden={!isOpen}
+        >
           {renderNavItems(visibleItems)}
           {hasEmptyState && (
             <div className="side-nav-empty">
