@@ -1,6 +1,6 @@
 import React from 'react'
-import * as XLSX from 'xlsx'
 import { DeliveryNoteService } from '../delivery-notes/delivery-note.service'
+import { ExcelIntegrationService } from '../excel-engine/excel-integration.service'
 import { loadKpiSourceData } from '../kpi-reporting/kpi-source.service'
 import type { BarChartRow, KpiSourceData, KpiTone } from '../kpi-reporting/kpi.types'
 import {
@@ -1146,10 +1146,15 @@ const mapRowsForOutput = (rows: ShipmentAnalyticsRecord[]) => rows.map(row => ({
 }))
 
 const exportFilteredRows = (rows: ShipmentAnalyticsRecord[]) => {
-  const workbook = XLSX.utils.book_new()
-  const worksheet = XLSX.utils.json_to_sheet(mapRowsForOutput(rows))
-  XLSX.utils.book_append_sheet(workbook, worksheet, 'Sevkiyat Analizi')
-  XLSX.writeFile(workbook, `sevkiyat-analizi-filtreli-${toDateKey(new Date())}.xlsx`)
+  ExcelIntegrationService.exportRows({
+    moduleKey: 'shipments',
+    moduleLabel: 'Sevkiyat Analizi',
+    sheetName: 'Sevkiyat Analizi',
+    fileNamePrefix: 'sevkiyat-analizi-filtreli',
+    fileName: `sevkiyat-analizi-filtreli-${toDateKey(new Date())}.xlsx`,
+    rows: mapRowsForOutput(rows),
+    userName: ExcelIntegrationService.defaultUserName
+  })
 }
 
 const openPrintWindow = (

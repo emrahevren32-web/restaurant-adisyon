@@ -1,6 +1,6 @@
-import React from 'react'
+﻿import React from 'react'
 import { DeliveryNoteService } from '../delivery-notes/delivery-note.service'
-import { ExcelExportService } from '../excel-engine/excel-export.service'
+import { ExcelIntegrationService } from '../excel-engine/excel-integration.service'
 import { loadKpiSourceData } from '../kpi-reporting/kpi-source.service'
 import type { BarChartRow, ChartSeries } from '../kpi-reporting/kpi.types'
 import {
@@ -198,7 +198,7 @@ export default function ShipmentForms({ currentUser }: { currentUser: User }){
       if(action === 'PRINTED') ShipmentPrintService.openPrintWindow(selectedRecord, 'A4')
       if(action === 'PDF') ShipmentPrintService.openPrintWindow(selectedRecord, 'PDF')
       if(action === 'EXCEL'){
-        ExcelExportService.exportModules({
+        ExcelIntegrationService.exportModules({
           moduleKeys: ['shipment-forms'],
           scope: 'SELECTED',
           filterText: '',

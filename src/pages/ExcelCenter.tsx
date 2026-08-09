@@ -1,8 +1,5 @@
 import React from 'react'
-import { ExcelDataSourceService } from '../excel-engine/excel-data-source.service'
-import { ExcelExportService } from '../excel-engine/excel-export.service'
-import { ExcelHistoryService } from '../excel-engine/excel-history.service'
-import { ExcelImportService } from '../excel-engine/excel-import.service'
+import { ExcelIntegrationService } from '../excel-engine/excel-integration.service'
 import type {
   ExcelExportScope,
   ExcelHistory,
@@ -12,12 +9,6 @@ import type {
   ExcelModuleKey,
   ExcelOperationType
 } from '../excel-engine/excel-engine.types'
-import {
-  EXCEL_EXPORT_MODULES,
-  EXCEL_IMPORT_MODULES,
-  EXCEL_MODULE_LABELS,
-  ExcelTemplateService
-} from '../excel-engine/excel-template.service'
 import { formatNumber } from '../kpi-reporting/kpi.utils'
 import type { User } from '../types'
 
@@ -70,14 +61,12 @@ const createDefaultHistoryFilters = (): ExcelHistoryFilters => ({
   status: ALL_FILTER
 })
 
-const hasBlockingErrors = (result: ExcelImportResult | null) => (
-  Boolean(result?.errors.some(error => error.columnKey !== '__row__'))
-)
-
 export default function ExcelCenter({ currentUser }: { currentUser: User }){
   const userName = getUserName(currentUser)
   const [historyVersion, setHistoryVersion] = React.useState(0)
-  const [importModule, setImportModule] = React.useState<ExcelModuleKey>('products')
+  const exportModuleOptions = React.useMemo(() => ExcelIntegrationService.listExportModules(), [])
+  const importModuleOptions = React.useMemo(() => ExcelIntegrationService.listImportModules(), [])
+  const [importModule, setImportModule] = React.useState<ExcelModuleKey>('raw-materials')
   const [importFile, setImportFile] = React.useState<File | null>(null)
   const [importResult, setImportResult] = React.useState<ExcelImportResult | null>(null)
   const [importLoading, setImportLoading] = React.useState(false)
@@ -88,12 +77,12 @@ export default function ExcelCenter({ currentUser }: { currentUser: User }){
   const [selectedRecordIds, setSelectedRecordIds] = React.useState<string[]>([])
   const [exportMessage, setExportMessage] = React.useState('')
   const [historyFilters, setHistoryFilters] = React.useState<ExcelHistoryFilters>(() => createDefaultHistoryFilters())
-  const statistics = React.useMemo(() => ExcelHistoryService.statistics(), [historyVersion])
-  const history = React.useMemo(() => ExcelHistoryService.filter(historyFilters), [historyFilters, historyVersion])
-  const importTemplates = React.useMemo(() => ExcelTemplateService.listImportTemplates(), [])
-  const exportSummaries = React.useMemo(() => EXCEL_EXPORT_MODULES.map(moduleKey => ExcelDataSourceService.summarizeRows(moduleKey)), [historyVersion])
+  const statistics = React.useMemo(() => ExcelIntegrationService.history.statistics(), [historyVersion])
+  const history = React.useMemo(() => ExcelIntegrationService.history.filter(historyFilters), [historyFilters, historyVersion])
+  const importTemplates = React.useMemo(() => ExcelIntegrationService.listImportTemplates(), [])
+  const exportSummaries = React.useMemo(() => exportModuleOptions.map(moduleKey => ExcelIntegrationService.summarizeRows(moduleKey)), [exportModuleOptions, historyVersion])
   const selectionModule = exportModules[0] || 'products'
-  const selectionDataSet = React.useMemo(() => ExcelDataSourceService.getDataSet(selectionModule, {
+  const selectionDataSet = React.useMemo(() => ExcelIntegrationService.getDataSet(selectionModule, {
     moduleKeys: [selectionModule],
     scope: exportScope === 'SELECTED' ? 'FILTERED' : exportScope,
     filterText: exportFilter,
@@ -130,7 +119,7 @@ export default function ExcelCenter({ currentUser }: { currentUser: User }){
     setImportMessage('')
 
     try {
-      const result = await ExcelImportService.parseFile(importFile, importModule, userName)
+      const result = await ExcelIntegrationService.previewImport(importFile, importModule, userName)
       setImportResult(result)
       setImportMessage(result.job.message)
       refreshHistory()
@@ -143,14 +132,14 @@ export default function ExcelCenter({ currentUser }: { currentUser: User }){
 
   const commitImport = () => {
     if(!importResult) return
-    const result = ExcelImportService.commitImport(importResult, currentUser)
+    const result = ExcelIntegrationService.commitImport(importResult, currentUser)
     setImportResult(result)
     setImportMessage(result.job.message)
     refreshHistory()
   }
 
   const runExport = () => {
-    const result = ExcelExportService.exportModules({
+    const result = ExcelIntegrationService.exportModules({
       moduleKeys: exportModules,
       scope: exportScope,
       filterText: exportFilter,
@@ -162,7 +151,7 @@ export default function ExcelCenter({ currentUser }: { currentUser: User }){
   }
 
   const downloadTemplate = (moduleKey: ExcelModuleKey) => {
-    const result = ExcelExportService.exportTemplate(moduleKey, userName)
+    const result = ExcelIntegrationService.downloadTemplate(moduleKey, userName)
     setExportMessage(`${result.fileName} sablonu indirildi.`)
     refreshHistory()
   }
@@ -199,7 +188,7 @@ export default function ExcelCenter({ currentUser }: { currentUser: User }){
               <h3>Excel Import</h3>
               <p className="muted">Dosya, sablon, kolon ve veri kontrolleri sonrasi onizleme uretir.</p>
             </div>
-            <span className="status-pill">{EXCEL_MODULE_LABELS[importModule]}</span>
+            <span className="status-pill">{ExcelIntegrationService.getModuleLabel(importModule)}</span>
           </div>
           <div className="excel-import-grid">
             <label className="form-field">
@@ -209,8 +198,8 @@ export default function ExcelCenter({ currentUser }: { currentUser: User }){
                 setImportResult(null)
                 setImportMessage('')
               }}>
-                {EXCEL_IMPORT_MODULES.map(moduleKey => (
-                  <option key={moduleKey} value={moduleKey}>{EXCEL_MODULE_LABELS[moduleKey]}</option>
+                {importModuleOptions.map(moduleKey => (
+                  <option key={moduleKey} value={moduleKey}>{ExcelIntegrationService.getModuleLabel(moduleKey)}</option>
                 ))}
               </select>
             </label>
@@ -225,7 +214,10 @@ export default function ExcelCenter({ currentUser }: { currentUser: User }){
             <button className="btn" type="button" disabled={importLoading || !importFile} onClick={validateImportFile}>
               {importLoading ? 'Kontrol ediliyor' : 'Sablon Dogrula'}
             </button>
-            <button className="btn primary" type="button" disabled={!importResult || hasBlockingErrors(importResult) || importResult.committed} onClick={commitImport}>
+            <button className="btn" type="button" onClick={() => downloadTemplate(importModule)}>
+              Excel Sablonunu Indir
+            </button>
+            <button className="btn primary" type="button" disabled={!importResult || importResult.validRows.length === 0 || importResult.committed} onClick={commitImport}>
               Ice Aktar
             </button>
           </div>
@@ -244,10 +236,10 @@ export default function ExcelCenter({ currentUser }: { currentUser: User }){
           </div>
 
           <div className="excel-export-modules">
-            {EXCEL_EXPORT_MODULES.map(moduleKey => (
+            {exportModuleOptions.map(moduleKey => (
               <label className="excel-check-row" key={moduleKey}>
                 <input type="checkbox" checked={exportModules.includes(moduleKey)} onChange={() => toggleExportModule(moduleKey)} />
-                <span>{EXCEL_MODULE_LABELS[moduleKey]}</span>
+                <span>{ExcelIntegrationService.getModuleLabel(moduleKey)}</span>
               </label>
             ))}
           </div>
@@ -341,7 +333,7 @@ export default function ExcelCenter({ currentUser }: { currentUser: User }){
               <span>Modul</span>
               <select value={historyFilters.moduleKey} onChange={event => updateHistoryFilter('moduleKey', event.target.value as ExcelHistoryFilters['moduleKey'])}>
                 <option value={ALL_FILTER}>Tum Moduller</option>
-                {EXCEL_EXPORT_MODULES.map(moduleKey => <option key={moduleKey} value={moduleKey}>{EXCEL_MODULE_LABELS[moduleKey]}</option>)}
+                {exportModuleOptions.map(moduleKey => <option key={moduleKey} value={moduleKey}>{ExcelIntegrationService.getModuleLabel(moduleKey)}</option>)}
               </select>
             </label>
             <label className="form-field">

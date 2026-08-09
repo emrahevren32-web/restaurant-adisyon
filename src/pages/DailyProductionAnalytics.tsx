@@ -1,5 +1,5 @@
 import React from 'react'
-import * as XLSX from 'xlsx'
+import { ExcelIntegrationService } from '../excel-engine/excel-integration.service'
 import { createDefaultKpiFilters, createKpiDashboardView } from '../kpi-reporting/kpi.service'
 import { loadKpiSourceData } from '../kpi-reporting/kpi-source.service'
 import type { BarChartRow, KpiSourceData, KpiTone } from '../kpi-reporting/kpi.types'
@@ -1075,10 +1075,15 @@ const mapRowsForOutput = (rows: DailyProductionRecord[]) => rows.map(row => ({
 }))
 
 const exportFilteredRows = (rows: DailyProductionRecord[]) => {
-  const workbook = XLSX.utils.book_new()
-  const worksheet = XLSX.utils.json_to_sheet(mapRowsForOutput(rows))
-  XLSX.utils.book_append_sheet(workbook, worksheet, 'Günlük Üretim')
-  XLSX.writeFile(workbook, `gunluk-uretim-analizi-filtreli-${TODAY_KEY()}.xlsx`)
+  ExcelIntegrationService.exportRows({
+    moduleKey: 'production-planning',
+    moduleLabel: 'Gunluk Uretim Analizi',
+    sheetName: 'Günlük Üretim',
+    fileNamePrefix: 'gunluk-uretim-analizi-filtreli',
+    fileName: `gunluk-uretim-analizi-filtreli-${TODAY_KEY()}.xlsx`,
+    rows: mapRowsForOutput(rows),
+    userName: ExcelIntegrationService.defaultUserName
+  })
 }
 
 const escapeHtml = (value: unknown) => normalizeText(value)

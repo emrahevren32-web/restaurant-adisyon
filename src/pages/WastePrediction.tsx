@@ -1,6 +1,5 @@
-import React from 'react'
-import * as XLSX from 'xlsx'
-import { ExcelExportService } from '../excel-engine/excel-export.service'
+﻿import React from 'react'
+import { ExcelIntegrationService } from '../excel-engine/excel-integration.service'
 import { loadKpiSourceData } from '../kpi-reporting/kpi-source.service'
 import type { BarChartRow, ChartSeries } from '../kpi-reporting/kpi.types'
 import {
@@ -165,10 +164,15 @@ const createFilteredOutputFileName = () => `fire-tahmini-filtreli-${new Date().t
 const exportFilteredRowsToExcel = (
   rows: WastePredictionRow[]
 ) => {
-  const workbook = XLSX.utils.book_new()
-  const worksheet = XLSX.utils.json_to_sheet(mapRowsForOutput(rows))
-  XLSX.utils.book_append_sheet(workbook, worksheet, 'Filtreli Liste')
-  XLSX.writeFile(workbook, createFilteredOutputFileName())
+  ExcelIntegrationService.exportRows({
+    moduleKey: 'waste-predictions',
+    moduleLabel: 'Fire Tahmini',
+    sheetName: 'Filtreli Liste',
+    fileNamePrefix: 'fire-tahmini-filtreli',
+    fileName: createFilteredOutputFileName(),
+    rows: mapRowsForOutput(rows),
+    userName: ExcelIntegrationService.defaultUserName
+  })
 }
 
 const createFilteredPrintHtml = (
@@ -350,7 +354,7 @@ export default function WastePrediction({ currentUser }: { currentUser: User }){
       if(action === 'PRINTED') WastePredictionPrintService.openPrintWindow(selectedReport, 'A4')
       if(action === 'PDF') WastePredictionPrintService.openPrintWindow(selectedReport, 'PDF')
       if(action === 'EXCEL'){
-        ExcelExportService.exportModules({
+        ExcelIntegrationService.exportModules({
           moduleKeys: ['waste-predictions'],
           scope: 'SELECTED',
           filterText: '',

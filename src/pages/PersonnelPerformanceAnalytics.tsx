@@ -1,7 +1,7 @@
 import React from 'react'
-import * as XLSX from 'xlsx'
 import { createDecisionSuggestions } from '../decision-support/decision-support.service'
 import type { DecisionSuggestion } from '../decision-support/decision-support.types'
+import { ExcelIntegrationService } from '../excel-engine/excel-integration.service'
 import { loadKpiSourceData } from '../kpi-reporting/kpi-source.service'
 import type { BarChartRow, KpiSourceData, KpiTone } from '../kpi-reporting/kpi.types'
 import {
@@ -999,10 +999,15 @@ const mapRowsForOutput = (rows: PersonnelPerformanceRecord[]) => rows.map(row =>
 }))
 
 const exportFilteredRows = (rows: PersonnelPerformanceRecord[]) => {
-  const workbook = XLSX.utils.book_new()
-  const worksheet = XLSX.utils.json_to_sheet(mapRowsForOutput(rows))
-  XLSX.utils.book_append_sheet(workbook, worksheet, 'Personel Performansı')
-  XLSX.writeFile(workbook, `personel-performansi-filtreli-${toDateKey(new Date())}.xlsx`)
+  ExcelIntegrationService.exportRows({
+    moduleKey: 'workforce-planning',
+    moduleLabel: 'Personel Performansi',
+    sheetName: 'Personel Performansı',
+    fileNamePrefix: 'personel-performansi-filtreli',
+    fileName: `personel-performansi-filtreli-${toDateKey(new Date())}.xlsx`,
+    rows: mapRowsForOutput(rows),
+    userName: ExcelIntegrationService.defaultUserName
+  })
 }
 
 const escapeHtml = (value: string) => value

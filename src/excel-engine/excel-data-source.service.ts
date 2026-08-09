@@ -61,6 +61,10 @@ import {
   QUALITY_STATUS_LABELS,
   QualityFormService
 } from '../quality-forms/quality-form.service'
+import {
+  QUALITY_SAMPLE_STATUS_LABELS,
+  QUALITY_SAMPLE_TYPE_LABELS
+} from '../quality-samples/quality-sample.mock'
 import { SHIPMENT_TEMPERATURE_STAGE_LABELS } from '../shipment-forms/shipment-checklist.service'
 import {
   SHIPMENT_CHECKLIST_STATUS_LABELS,
@@ -1248,6 +1252,31 @@ const getQualityRows = (): ExcelRow[] => {
   return [...qualityFormRows, ...sampleRows, ...recallRows]
 }
 
+const getSampleRows = (): ExcelRow[] => {
+  const sourceData = loadKpiSourceData()
+
+  return sourceData.qualitySamples.map(sample => {
+    const lot = sourceData.inventoryLots.find(record => record.id === sample.inventoryLotId) || null
+    const productName = lot
+      ? sourceData.productRefs.find(product => product.id === lot.productId)?.name || getStockItemName(lot.stockItemId, sourceData.stockItems)
+      : sample.inventoryLotId
+
+    return {
+      id: sample.id,
+      sampleNo: sample.sampleNo,
+      lotNo: lot?.lotNo || sample.inventoryLotId,
+      productName,
+      sampleType: QUALITY_SAMPLE_TYPE_LABELS[sample.sampleType],
+      sampleDate: sample.sampleDate,
+      expiryDate: sample.expiryDate,
+      status: QUALITY_SAMPLE_STATUS_LABELS[sample.status],
+      takenBy: sample.takenBy,
+      storageLocation: sample.storageLocation,
+      notes: sample.notes
+    }
+  })
+}
+
 const getShipmentRows = (): ExcelRow[] => {
   const sourceData = loadKpiSourceData()
 
@@ -1530,6 +1559,7 @@ const getRowsForModule = (
   if(moduleKey === 'labels') return getLabelRows()
   if(moduleKey === 'kpi') return getKpiRows()
   if(moduleKey === 'cost-engine') return getCostEngineRows()
+  if(moduleKey === 'samples') return getSampleRows()
   return []
 }
 

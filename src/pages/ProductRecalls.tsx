@@ -1,5 +1,5 @@
 import React from 'react'
-import * as XLSX from 'xlsx'
+import { ExcelIntegrationService } from '../excel-engine/excel-integration.service'
 import { loadKpiSourceData } from '../kpi-reporting/kpi-source.service'
 import type { KpiSourceData } from '../kpi-reporting/kpi.types'
 import {
@@ -550,10 +550,15 @@ const mapRowsForOutput = (rows: RecallRow[]) => rows.map(row => ({
 }))
 
 const exportRowsToExcel = (rows: RecallRow[]) => {
-  const workbook = XLSX.utils.book_new()
-  const worksheet = XLSX.utils.json_to_sheet(mapRowsForOutput(rows))
-  XLSX.utils.book_append_sheet(workbook, worksheet, 'Filtreli Recall')
-  XLSX.writeFile(workbook, `recall-management-filtreli-${todayKey()}.xlsx`)
+  ExcelIntegrationService.exportRows({
+    moduleKey: 'quality',
+    moduleLabel: 'Recall Management',
+    sheetName: 'Filtreli Recall',
+    fileNamePrefix: 'recall-management-filtreli',
+    fileName: `recall-management-filtreli-${todayKey()}.xlsx`,
+    rows: mapRowsForOutput(rows),
+    userName: ExcelIntegrationService.defaultUserName
+  })
 }
 
 const createPrintHtml = (rows: RecallRow[], mode: 'A4' | 'PDF') => `<!doctype html>

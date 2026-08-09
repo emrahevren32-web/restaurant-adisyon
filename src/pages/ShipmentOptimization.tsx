@@ -1,5 +1,5 @@
 import React from 'react'
-import * as XLSX from 'xlsx'
+import { ExcelIntegrationService } from '../excel-engine/excel-integration.service'
 import { loadKpiSourceData } from '../kpi-reporting/kpi-source.service'
 import type { BarChartRow, ChartSeries } from '../kpi-reporting/kpi.types'
 import {
@@ -166,10 +166,15 @@ const exportRowsToExcel = (
   rows: ShipmentOptimizationRow[],
   suffix?: string
 ) => {
-  const workbook = XLSX.utils.book_new()
-  const worksheet = XLSX.utils.json_to_sheet(mapRowsForOutput(rows))
-  XLSX.utils.book_append_sheet(workbook, worksheet, 'Sevkiyat Optimizasyonu')
-  XLSX.writeFile(workbook, createFilteredOutputFileName(suffix))
+  ExcelIntegrationService.exportRows({
+    moduleKey: 'shipments',
+    moduleLabel: 'Sevkiyat Optimizasyonu',
+    sheetName: 'Sevkiyat Optimizasyonu',
+    fileNamePrefix: `sevkiyat-optimizasyonu-${suffix || 'filtreli'}`,
+    fileName: createFilteredOutputFileName(suffix),
+    rows: mapRowsForOutput(rows),
+    userName: ExcelIntegrationService.defaultUserName
+  })
 }
 
 const createFilteredPrintHtml = (

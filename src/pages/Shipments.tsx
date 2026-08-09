@@ -1,4 +1,5 @@
 import React from 'react'
+import { ExcelIntegrationService } from '../excel-engine/excel-integration.service'
 import {
   SHIPMENT_PRIORITIES,
   SHIPMENT_PRIORITY_LABELS,
@@ -352,6 +353,27 @@ export default function Shipments({ currentUser }: Props){
     })
   }, [branchFilter, branchMap, priorityFilter, records, search, statusFilter, warehouseFilter])
 
+  const exportVisibleShipments = () => {
+    ExcelIntegrationService.exportModuleView({
+      moduleKey: 'shipments',
+      rows: visibleRecords,
+      userName: getUserName(currentUser),
+      fileNamePrefix: 'sevkiyat-listesi',
+      filterText: search,
+      sortLabel: 'Mevcut liste sirasi',
+      columns: [
+        { key: 'shipmentNo', header: 'Shipment No', value: record => record.shipmentNo },
+        { key: 'sourceWarehouse', header: 'Source Warehouse', value: record => getBranchLabel(record.sourceWarehouseId, branchMap) },
+        { key: 'destination', header: 'Destination', value: record => getDestinationLabel(record, branchMap) },
+        { key: 'shipmentDate', header: 'Shipment Date', value: record => record.shipmentDate },
+        { key: 'plannedDeliveryDate', header: 'Planned Delivery', value: record => record.plannedDeliveryDate },
+        { key: 'status', header: 'Status', value: record => SHIPMENT_STATUS_LABELS[record.status] },
+        { key: 'priority', header: 'Priority', value: record => SHIPMENT_PRIORITY_LABELS[record.priority] },
+        { key: 'itemCount', header: 'Kalem', type: 'number', value: record => record.items.length }
+      ]
+    })
+  }
+
   const plannedCount = records.filter(record => (
     record.status === 'PLANNED'
     || record.status === 'PICKING'
@@ -488,6 +510,7 @@ export default function Shipments({ currentUser }: Props){
               <h3>Sevkiyat Listesi</h3>
               <p className="muted">{visibleRecords.length} kayıt gösteriliyor.</p>
             </div>
+            <button className="btn" type="button" onClick={exportVisibleShipments}>Excel'e Aktar</button>
           </div>
 
           <div className="shipment-toolbar">

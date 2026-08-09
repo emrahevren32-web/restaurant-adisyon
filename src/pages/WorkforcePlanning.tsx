@@ -1,5 +1,5 @@
-import React from 'react'
-import { ExcelExportService } from '../excel-engine/excel-export.service'
+﻿import React from 'react'
+import { ExcelIntegrationService } from '../excel-engine/excel-integration.service'
 import { loadKpiSourceData } from '../kpi-reporting/kpi-source.service'
 import type { BarChartRow, ChartSeries } from '../kpi-reporting/kpi.types'
 import {
@@ -220,7 +220,7 @@ export default function WorkforcePlanning({ currentUser }: { currentUser: User }
       if(action === 'PRINTED') WorkforcePrintService.openPrintWindow(selectedRecord, 'A4')
       if(action === 'PDF') WorkforcePrintService.openPrintWindow(selectedRecord, 'PDF')
       if(action === 'EXCEL'){
-        ExcelExportService.exportModules({
+        ExcelIntegrationService.exportModules({
           moduleKeys: ['workforce-planning'],
           scope: 'SELECTED',
           filterText: '',

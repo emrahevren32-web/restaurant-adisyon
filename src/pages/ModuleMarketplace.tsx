@@ -1,6 +1,6 @@
 import React from 'react'
-import * as XLSX from 'xlsx'
 import ModuleSetupWizard from '../components/ModuleSetupWizard'
+import { ExcelIntegrationService } from '../excel-engine/excel-integration.service'
 import {
   getMarketplaceCatalog,
   getMarketplaceFilterOptions
@@ -212,12 +212,16 @@ const createOutputRows = (modules: MarketplaceModule[]) => modules.map(module =>
 const createOutputFileName = () => `modul-magazasi-filtreli-${new Date().toLocaleDateString('sv-SE')}.xlsx`
 
 const exportMarketplaceRowsToExcel = (modules: MarketplaceModule[]) => {
-  const workbook = XLSX.utils.book_new()
-  const worksheet = XLSX.utils.json_to_sheet(createOutputRows(modules))
-  XLSX.utils.book_append_sheet(workbook, worksheet, 'Modül Mağazası')
   const fileName = createOutputFileName()
-  XLSX.writeFile(workbook, fileName)
-  return fileName
+  return ExcelIntegrationService.exportRows({
+    moduleKey: 'module-marketplace',
+    moduleLabel: 'Modul Magazasi',
+    sheetName: 'Modül Mağazası',
+    fileNamePrefix: 'modul-magazasi-filtreli',
+    fileName,
+    rows: createOutputRows(modules),
+    userName: ExcelIntegrationService.defaultUserName
+  }).fileName
 }
 
 const createPrintHtml = (

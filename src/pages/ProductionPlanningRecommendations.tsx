@@ -1,6 +1,5 @@
-import React from 'react'
-import * as XLSX from 'xlsx'
-import { ExcelExportService } from '../excel-engine/excel-export.service'
+﻿import React from 'react'
+import { ExcelIntegrationService } from '../excel-engine/excel-integration.service'
 import { loadKpiSourceData } from '../kpi-reporting/kpi-source.service'
 import type { BarChartRow, ChartSeries } from '../kpi-reporting/kpi.types'
 import {
@@ -163,10 +162,15 @@ const createFilteredOutputFileName = () => `uretim-planlama-onerileri-filtreli-$
 const exportFilteredRowsToExcel = (
   rows: ProductionPlanningRecommendationRow[]
 ) => {
-  const workbook = XLSX.utils.book_new()
-  const worksheet = XLSX.utils.json_to_sheet(mapRowsForOutput(rows))
-  XLSX.utils.book_append_sheet(workbook, worksheet, 'Filtreli Liste')
-  XLSX.writeFile(workbook, createFilteredOutputFileName())
+  ExcelIntegrationService.exportRows({
+    moduleKey: 'production-planning-recommendations',
+    moduleLabel: 'Uretim Planlama Onerileri',
+    sheetName: 'Filtreli Liste',
+    fileNamePrefix: 'uretim-planlama-onerileri-filtreli',
+    fileName: createFilteredOutputFileName(),
+    rows: mapRowsForOutput(rows),
+    userName: ExcelIntegrationService.defaultUserName
+  })
 }
 
 const createFilteredPrintHtml = (
@@ -346,7 +350,7 @@ export default function ProductionPlanningRecommendations({ currentUser }: { cur
       if(action === 'PRINTED') ProductionPlanningRecommendationPrintService.openPrintWindow(selectedReport, 'A4')
       if(action === 'PDF') ProductionPlanningRecommendationPrintService.openPrintWindow(selectedReport, 'PDF')
       if(action === 'EXCEL'){
-        ExcelExportService.exportModules({
+        ExcelIntegrationService.exportModules({
           moduleKeys: ['production-planning-recommendations'],
           scope: 'SELECTED',
           filterText: '',

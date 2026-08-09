@@ -1,5 +1,5 @@
 import React from 'react'
-import { ExcelExportService } from '../excel-engine/excel-export.service'
+import { ExcelIntegrationService } from '../excel-engine/excel-integration.service'
 import { loadKpiSourceData } from '../kpi-reporting/kpi-source.service'
 import type { BarChartRow, ChartSeries } from '../kpi-reporting/kpi.types'
 import {
@@ -204,7 +204,7 @@ export default function WasteManagement({ currentUser }: { currentUser: User }){
       if(action === 'PRINTED') WastePrintService.openPrintWindow(selectedRecord, 'A4')
       if(action === 'PDF') WastePrintService.openPrintWindow(selectedRecord, 'PDF')
       if(action === 'EXCEL'){
-        ExcelExportService.exportModules({
+        ExcelIntegrationService.exportModules({
           moduleKeys: ['waste'],
           scope: 'SELECTED',
           filterText: '',
@@ -224,6 +224,31 @@ export default function WasteManagement({ currentUser }: { currentUser: User }){
     } catch (error) {
       setMessage({ type: 'error', text: error instanceof Error ? error.message : 'Cikti alinamadi.' })
     }
+  }
+
+  const exportFilteredWasteRows = () => {
+    ExcelIntegrationService.exportModuleView({
+      moduleKey: 'waste',
+      rows: filteredRecords,
+      userName,
+      fileNamePrefix: 'fire-listesi',
+      filterText: filters.search,
+      sortLabel: 'Mevcut liste sirasi',
+      columns: [
+        { key: 'wasteNo', header: 'Fire No', value: record => record.wasteNo },
+        { key: 'date', header: 'Tarih', value: record => record.date },
+        { key: 'wasteType', header: 'Tur', value: record => WASTE_TYPE_LABELS[record.wasteType] },
+        { key: 'wasteReason', header: 'Neden', value: record => WASTE_REASON_LABELS[record.wasteReason] },
+        { key: 'productName', header: 'Urun', value: record => record.productName || record.stockItemName },
+        { key: 'lotNo', header: 'Lot', value: record => record.lotNo || record.batchNo || '-' },
+        { key: 'warehouseName', header: 'Depo', value: record => record.warehouseName || '-' },
+        { key: 'quantity', header: 'Miktar', type: 'number', value: record => record.quantity },
+        { key: 'unit', header: 'Birim', value: record => record.unit },
+        { key: 'totalCost', header: 'Maliyet', value: record => formatCurrency(record.totalCost, record.currency) },
+        { key: 'status', header: 'Durum', value: record => WASTE_STATUS_LABELS[record.status] }
+      ]
+    })
+    setMessage({ type: 'success', text: `${formatNumber(filteredRecords.length)} fire kaydi Excel'e aktarildi.` })
   }
 
   return (
@@ -366,7 +391,10 @@ export default function WasteManagement({ currentUser }: { currentUser: User }){
               <h3>Fire Listesi</h3>
               <p className="muted">Fire kayitlari read-model olarak yonetilir; stok transaction veya muhasebe fisi yazilmaz.</p>
             </div>
-            <span className="status-pill">{formatNumber(analysis.recommendations.length)} DSS sinyali</span>
+            <div className="waste-list-actions">
+              <button className="btn" type="button" onClick={exportFilteredWasteRows}>Excel'e Aktar</button>
+              <span className="status-pill">{formatNumber(analysis.recommendations.length)} DSS sinyali</span>
+            </div>
           </div>
           <div className="table-wrap fire-table-wrap">
             <table className="data-table fire-table waste-table">

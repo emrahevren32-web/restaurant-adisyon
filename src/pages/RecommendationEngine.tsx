@@ -1,5 +1,5 @@
-import React from 'react'
-import { ExcelExportService } from '../excel-engine/excel-export.service'
+﻿import React from 'react'
+import { ExcelIntegrationService } from '../excel-engine/excel-integration.service'
 import { RecommendationPrintService } from '../recommendation-engine/recommendation-print.service'
 import {
   RECOMMENDATION_PRIORITIES,
@@ -197,7 +197,7 @@ export default function RecommendationEngine({ currentUser }: { currentUser: Use
       if(action === 'PRINTED') RecommendationPrintService.openPrintWindow(selectedReport, 'A4')
       if(action === 'PDF') RecommendationPrintService.openPrintWindow(selectedReport, 'PDF')
       if(action === 'EXCEL'){
-        ExcelExportService.exportModules({
+        ExcelIntegrationService.exportModules({
           moduleKeys: ['recommendation-engine'],
           scope: 'SELECTED',
           filterText: '',

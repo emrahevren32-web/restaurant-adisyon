@@ -1,4 +1,4 @@
-import React from 'react'
+﻿import React from 'react'
 import {
   COST_OPTIMIZATION_CATEGORIES,
   COST_OPTIMIZATION_CATEGORY_LABELS,
@@ -20,7 +20,7 @@ import type {
   CostOptimizationRisk,
   CostOptimizationStatus
 } from '../cost-optimization/cost-optimization.types'
-import { ExcelExportService } from '../excel-engine/excel-export.service'
+import { ExcelIntegrationService } from '../excel-engine/excel-integration.service'
 import { loadKpiSourceData } from '../kpi-reporting/kpi-source.service'
 import type { BarChartRow, ChartSeries } from '../kpi-reporting/kpi.types'
 import {
@@ -199,7 +199,7 @@ export default function CostOptimization({ currentUser }: { currentUser: User })
       if(action === 'PRINTED') CostPrintService.openPrintWindow(selectedReport, 'A4')
       if(action === 'PDF') CostPrintService.openPrintWindow(selectedReport, 'PDF')
       if(action === 'EXCEL'){
-        ExcelExportService.exportModules({
+        ExcelIntegrationService.exportModules({
           moduleKeys: ['cost-optimization'],
           scope: 'SELECTED',
           filterText: '',

@@ -1,5 +1,5 @@
-import React from 'react'
-import { ExcelExportService } from '../excel-engine/excel-export.service'
+﻿import React from 'react'
+import { ExcelIntegrationService } from '../excel-engine/excel-integration.service'
 import { GoodsReceiptPrintService } from '../goods-receipts/goods-receipt-print.service'
 import {
   GOODS_RECEIPT_MANAGEMENT_STATUSES,
@@ -247,7 +247,7 @@ export default function GoodsReceipts({ currentUser }: { currentUser: User }){
       if(action === 'PRINTED') GoodsReceiptPrintService.openPrintWindow(selectedRecord, 'A4')
       if(action === 'PDF') GoodsReceiptPrintService.openPrintWindow(selectedRecord, 'PDF')
       if(action === 'EXCEL'){
-        ExcelExportService.exportModules({
+        ExcelIntegrationService.exportModules({
           moduleKeys: ['goods-receipts'],
           scope: 'SELECTED',
           filterText: '',

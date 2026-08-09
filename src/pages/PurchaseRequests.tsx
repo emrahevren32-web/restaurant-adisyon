@@ -1,4 +1,5 @@
 import React from 'react'
+import { ExcelIntegrationService } from '../excel-engine/excel-integration.service'
 import {
   ApprovedAlternativeMaterialService
 } from '../approved-alternative-materials/approved-alternative-material.service'
@@ -389,6 +390,30 @@ export default function PurchaseRequests({ currentUser }: Props){
       .sort((first, second) => second.requestDate.localeCompare(first.requestDate) || second.requestNo.localeCompare(first.requestNo))
   }, [branchFilter, context.branches, dateFilter, departmentFilter, priorityFilter, productFilter, records, search, sourceFilter, statusFilter, stockItemMap, warehouseFilter])
 
+  const exportVisibleRequests = () => {
+    ExcelIntegrationService.exportModuleView({
+      moduleKey: 'purchase-requests',
+      rows: visibleRecords,
+      userName: getUserName(currentUser),
+      fileNamePrefix: 'satin-alma-talepleri',
+      filterText: search,
+      sortLabel: 'Talep tarihi ve talep no azalan',
+      columns: [
+        { key: 'requestNo', header: 'Talep No', value: record => record.requestNo },
+        { key: 'title', header: 'Baslik', value: record => record.title },
+        { key: 'requestDate', header: 'Talep Tarihi', value: record => record.requestDate },
+        { key: 'department', header: 'Departman', value: record => PURCHASE_REQUEST_DEPARTMENT_LABELS[record.department] },
+        { key: 'warehouseName', header: 'Depo', value: record => getBranchLabel(record.warehouseId, context.branches) },
+        { key: 'branchName', header: 'Sube', value: record => getBranchLabel(record.branchId, context.branches) },
+        { key: 'source', header: 'Kaynak', value: record => PURCHASE_REQUEST_SOURCE_LABELS[record.source] },
+        { key: 'priority', header: 'Oncelik', value: record => PURCHASE_REQUEST_PRIORITY_LABELS[record.priority] },
+        { key: 'status', header: 'Durum', value: record => PURCHASE_REQUEST_STATUS_LABELS[record.status] },
+        { key: 'itemCount', header: 'Kalem', type: 'number', value: record => record.items.length },
+        { key: 'estimatedTotal', header: 'Tahmini Tutar', value: record => formatCurrency(calculatePurchaseRequestTotal(record)) }
+      ]
+    })
+  }
+
   const resetFormState = (nextRecords = records) => {
     setForm(createEmptyForm(nextRecords, context, currentUser))
     setFormError('')
@@ -535,6 +560,7 @@ export default function PurchaseRequests({ currentUser }: Props){
               <h3>Talep Listesi</h3>
               <p className="muted">{visibleRecords.length} kayıt gösteriliyor.</p>
             </div>
+            <button className="btn" type="button" onClick={exportVisibleRequests}>Excel'e Aktar</button>
           </div>
 
           {context.stockItems.length === 0 && (

@@ -1,4 +1,5 @@
 import React from 'react'
+import { ExcelIntegrationService } from '../excel-engine/excel-integration.service'
 import {
   INVENTORY_LOT_STATUSES,
   INVENTORY_LOT_STATUS_LABELS,
@@ -190,6 +191,29 @@ export default function InventoryLots(){
     })
   }, [expiryFilter, records, search, statusFilter, stockItemFilter, stockItemMap, supplierFilter, supplierMap, warehouseFilter])
 
+  const exportVisibleLots = () => {
+    ExcelIntegrationService.exportModuleView({
+      moduleKey: 'lots',
+      rows: visibleRecords,
+      userName: ExcelIntegrationService.defaultUserName,
+      fileNamePrefix: 'lot-listesi',
+      filterText: search,
+      sortLabel: 'Mevcut liste sirasi',
+      columns: [
+        { key: 'lotNo', header: 'Lot No', value: record => record.lotNo },
+        { key: 'stockItemName', header: 'Stock Item', value: record => getStockItemLabel(record.stockItemId, stockItemMap) },
+        { key: 'supplierName', header: 'Supplier', value: record => getSupplierLabel(record.supplierId, supplierMap) },
+        { key: 'warehouseName', header: 'Warehouse', value: record => getWarehouseLabel(record.warehouseId, branchMap) },
+        { key: 'productionDate', header: 'Production Date', value: record => record.productionDate },
+        { key: 'expiryDate', header: 'Expiry Date', value: record => record.expiryDate },
+        { key: 'remainingQuantity', header: 'Remaining Qty', type: 'number', value: record => record.remainingQuantity },
+        { key: 'unit', header: 'Unit', value: record => record.unit },
+        { key: 'expirySignal', header: 'SKT Uyarisi', value: record => getInventoryLotExpiryLabel(getInventoryLotExpirySignal(record)) },
+        { key: 'status', header: 'Status', value: record => INVENTORY_LOT_STATUS_LABELS[record.status] }
+      ]
+    })
+  }
+
   const activeCount = records.filter(record => record.status === 'ACTIVE').length
   const quarantineCount = records.filter(record => record.status === 'QUARANTINE').length
   const blockedCount = records.filter(record => record.status === 'BLOCKED').length
@@ -247,6 +271,7 @@ export default function InventoryLots(){
               <h3>Lot Listesi</h3>
               <p className="muted">{visibleRecords.length} kayıt gösteriliyor.</p>
             </div>
+            <button className="btn" type="button" onClick={exportVisibleLots}>Excel'e Aktar</button>
           </div>
 
           <div className="inventory-lot-toolbar">

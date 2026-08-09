@@ -1,5 +1,5 @@
 import React from 'react'
-import * as XLSX from 'xlsx'
+import { ExcelIntegrationService } from '../excel-engine/excel-integration.service'
 import {
   APPROVED_ALTERNATIVE_MATERIAL_STATUS_LABELS,
   ApprovedAlternativeMaterialService
@@ -477,6 +477,36 @@ export default function StockCards({ currentUser, focus = 'cards' }: Props){
       emptyText: 'Bu filtrelere uygun stok kartı bulunamadı.'
     }
   }, [focus])
+
+  const exportVisibleStockItems = () => {
+    ExcelIntegrationService.exportModuleView({
+      moduleKey: 'raw-materials',
+      rows: sortedVisibleItems,
+      userName: currentUser.fullName || currentUser.username,
+      fileNamePrefix: 'hammadde-listesi',
+      filterText: search,
+      sortLabel: 'Kritik stok oncelikli',
+      columns: [
+        { key: 'name', header: 'Hammadde', value: item => item.name },
+        { key: 'sku', header: 'Stok Kodu', value: item => item.sku || '' },
+        { key: 'categoryName', header: 'Kategori', value: item => categoryMap.get(item.categoryId)?.name || '-' },
+        { key: 'unit', header: 'Birim', value: item => item.unit },
+        { key: 'currentQty', header: 'Mevcut Miktar', type: 'number', value: item => item.currentQty },
+        { key: 'minQty', header: 'Kritik Seviye', type: 'number', value: item => item.minQty },
+        { key: 'shortage', header: 'Eksik Miktar', type: 'number', value: item => getCriticalShortage(item) },
+        { key: 'expiryStatus', header: 'Gecerlilik', value: item => {
+          const expirySummary = getItemExpirySummary(item)
+          return expirySummary.tracked && expirySummary.status
+            ? formatExpiryStatusLabel(expirySummary.status)
+            : 'Takip yok'
+        } },
+        { key: 'alternativeCount', header: 'Onayli Muadil', type: 'number', value: item => alternativeCountByMaterialId[item.id]?.usable || 0 },
+        { key: 'status', header: 'Durum', value: item => item.active ? (isCriticalStock(item) ? 'Kritik' : 'Aktif') : 'Pasif' },
+        { key: 'stockValue', header: 'Stok Degeri', value: item => formatStockMoney(getStockValueByAverageCost(item), getStockCurrency(item)) }
+      ]
+    })
+  }
+
   const metricCards = React.useMemo(() => {
     if(focus === 'critical'){
       return [
@@ -782,13 +812,14 @@ export default function StockCards({ currentUser, focus = 'cards' }: Props){
     if(!alternativePanelItem) return
 
     const rows = ApprovedAlternativeMaterialService.getRows(filteredAlternativeViews)
-    const worksheet = XLSX.utils.aoa_to_sheet([
-      ApprovedAlternativeMaterialService.exportHeaders,
-      ...rows
-    ])
-    const workbook = XLSX.utils.book_new()
-    XLSX.utils.book_append_sheet(workbook, worksheet, 'Onayli Muadiller')
-    XLSX.writeFile(workbook, `${alternativePanelItem.name}-onayli-muadiller.xlsx`)
+    ExcelIntegrationService.exportMatrix({
+      moduleKey: 'raw-materials',
+      sheetName: 'Onayli Muadiller',
+      fileNamePrefix: `${alternativePanelItem.name}-onayli-muadiller`,
+      headers: ApprovedAlternativeMaterialService.exportHeaders,
+      rows,
+      userName: currentUser.fullName || currentUser.username
+    })
   }
 
   const printApprovedAlternativeRows = (mode: 'PDF' | 'PRINT') => {
@@ -843,6 +874,7 @@ export default function StockCards({ currentUser, focus = 'cards' }: Props){
               <p className="muted">{visibleItems.length} kayıt gösteriliyor.</p>
             </div>
             <div className="toolbar-controls stock-toolbar-controls">
+              <button className="btn" type="button" onClick={exportVisibleStockItems}>Excel'e Aktar</button>
               <input
                 type="search"
                 placeholder="Stok adı, kod, barkod veya kategori ara"

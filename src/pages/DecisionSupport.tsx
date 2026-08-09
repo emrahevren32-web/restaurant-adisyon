@@ -1,5 +1,4 @@
 import React from 'react'
-import * as XLSX from 'xlsx'
 import { createDefaultDecisionSupportFilters, createDecisionSupportView } from '../decision-support/decision-support.service'
 import type {
   DecisionCategory,
@@ -8,6 +7,7 @@ import type {
   DecisionSuggestion,
   DecisionSupportFilters
 } from '../decision-support/decision-support.types'
+import { ExcelIntegrationService } from '../excel-engine/excel-integration.service'
 import { loadKpiSourceData } from '../kpi-reporting/kpi-source.service'
 import type { KpiSourceData } from '../kpi-reporting/kpi.types'
 import {
@@ -155,10 +155,15 @@ const createFilteredOutputFileName = () => `karar-destek-filtreli-${new Date().t
 const exportFilteredRowsToExcel = (
   rows: DecisionOutputRow[]
 ) => {
-  const workbook = XLSX.utils.book_new()
-  const worksheet = XLSX.utils.json_to_sheet(mapRowsForOutput(rows))
-  XLSX.utils.book_append_sheet(workbook, worksheet, 'Filtreli Liste')
-  XLSX.writeFile(workbook, createFilteredOutputFileName())
+  ExcelIntegrationService.exportRows({
+    moduleKey: 'recommendation-engine',
+    moduleLabel: 'Karar Destek',
+    sheetName: 'Filtreli Liste',
+    fileNamePrefix: 'karar-destek-filtreli',
+    fileName: createFilteredOutputFileName(),
+    rows: mapRowsForOutput(rows),
+    userName: ExcelIntegrationService.defaultUserName
+  })
 }
 
 const createFilteredPrintHtml = (

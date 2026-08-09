@@ -1,5 +1,5 @@
-import React from 'react'
-import { ExcelExportService } from '../excel-engine/excel-export.service'
+﻿import React from 'react'
+import { ExcelIntegrationService } from '../excel-engine/excel-integration.service'
 import { loadKpiSourceData } from '../kpi-reporting/kpi-source.service'
 import type { BarChartRow, ChartSeries } from '../kpi-reporting/kpi.types'
 import {
@@ -217,7 +217,7 @@ export default function CapacityPlanning({ currentUser }: { currentUser: User })
       if(action === 'PRINTED') CapacityPrintService.openPrintWindow(selectedRecord, 'A4')
       if(action === 'PDF') CapacityPrintService.openPrintWindow(selectedRecord, 'PDF')
       if(action === 'EXCEL'){
-        ExcelExportService.exportModules({
+        ExcelIntegrationService.exportModules({
           moduleKeys: ['capacity-planning'],
           scope: 'SELECTED',
           filterText: '',

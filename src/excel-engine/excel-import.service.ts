@@ -60,7 +60,7 @@ import type {
   ExcelRow
 } from './excel-engine.types'
 import { createExcelJob, ExcelHistoryService } from './excel-history.service'
-import { EXCEL_MODULE_LABELS } from './excel-template.service'
+import { EXCEL_IMPORT_MODULES, EXCEL_MODULE_LABELS } from './excel-template.service'
 import { validateExcelRows } from './excel-validation.service'
 
 const STOCK_UNITS: StockUnit[] = ['adet', 'kg', 'gr', 'lt', 'ml', 'paket', 'koli']
@@ -100,6 +100,42 @@ const getDateValue = (row: ExcelRow, key: string, fallback = new Date().toLocale
 }
 
 const getUserName = (user: User) => user.fullName || user.username
+
+const cloneRecords = <TRecord, >(records: TRecord[]): TRecord[] => (
+  JSON.parse(JSON.stringify(records)) as TRecord[]
+)
+
+const createRollback = (
+  moduleKey: ExcelModuleKey
+) => {
+  if(moduleKey === 'products'){
+    const products = cloneRecords(loadProducts())
+    return () => saveProducts(products)
+  }
+
+  if(moduleKey === 'raw-materials' || moduleKey === 'stock'){
+    const stockItems = cloneRecords(loadStockItems())
+    return () => saveStockItems(stockItems)
+  }
+
+  if(moduleKey === 'suppliers'){
+    const suppliers = cloneRecords(SupplierService.listSuppliers())
+    return () => SupplierService.saveSuppliers(suppliers)
+  }
+
+  if(moduleKey === 'recipes'){
+    const recipes = cloneRecords(loadRecipeManagementRecords())
+    return () => saveRecipeManagementRecords(recipes)
+  }
+
+  if(moduleKey === 'purchase-requests'){
+    const { records } = loadPurchaseRequestServiceData()
+    const purchaseRequests = cloneRecords(records)
+    return () => persistPurchaseRequestRecords(purchaseRequests)
+  }
+
+  return () => undefined
+}
 
 const resolveBranchId = (branchName: string) => {
   const branches = loadBranches()
@@ -463,7 +499,7 @@ const createImportResult = (
   updatedCount = 0
 ): ExcelImportResult => {
   const blockingErrorCount = errors.filter(error => error.columnKey !== '__row__').length
-  const status = blockingErrorCount > 0 ? 'FAILED' : 'SUCCESS'
+  const status = committed || blockingErrorCount === 0 ? 'SUCCESS' : 'FAILED'
   const job = createExcelJob({
     operationType: 'IMPORT',
     status,
@@ -476,7 +512,7 @@ const createImportResult = (
     failedCount: invalidRows.length,
     message: status === 'SUCCESS'
       ? committed
-        ? `${createdCount} yeni, ${updatedCount} guncel kayit ice aktarildi.`
+        ? `${createdCount} yeni, ${updatedCount} guncel kayit ice aktarildi; ${invalidRows.length} hatali satir atlandi.`
         : 'Dosya dogrulandi ve onizleme hazirlandi.'
       : `${blockingErrorCount} validation hatasi bulundu.`
   })
@@ -502,6 +538,25 @@ export const ExcelImportService = {
     moduleKey: ExcelModuleKey,
     userName: string
   ): Promise<ExcelImportResult> => {
+    if(!EXCEL_IMPORT_MODULES.includes(moduleKey)){
+      const result = createImportResult(
+        moduleKey,
+        file.name,
+        userName,
+        [],
+        [],
+        [],
+        [{
+          rowNumber: 0,
+          columnKey: '__module__',
+          columnHeader: 'Modul',
+          message: `${EXCEL_MODULE_LABELS[moduleKey]} import icin aktif degil.`
+        }]
+      )
+      ExcelHistoryService.add(result.job)
+      return result
+    }
+
     const buffer = await file.arrayBuffer()
     const workbook = XLSX.read(buffer, { type: 'array', cellDates: false })
     const sheetName = workbook.SheetNames[0]
@@ -529,8 +584,7 @@ export const ExcelImportService = {
     result: ExcelImportResult,
     user: User
   ): ExcelImportResult => {
-    const blockingErrors = result.errors.filter(error => error.columnKey !== '__row__')
-    if(blockingErrors.length > 0){
+    if(result.validRows.length === 0){
       const failedResult = createImportResult(
         result.moduleKey,
         result.fileName,
@@ -545,21 +599,49 @@ export const ExcelImportService = {
       return failedResult
     }
 
-    const importResult = commitRows(result.moduleKey, result.validRows, user)
-    const committedResult = createImportResult(
-      result.moduleKey,
-      result.fileName,
-      getUserName(user),
-      result.rows,
-      result.validRows,
-      result.invalidRows,
-      result.errors,
-      true,
-      importResult.createdCount,
-      importResult.updatedCount
-    )
+    const rollback = createRollback(result.moduleKey)
 
-    ExcelHistoryService.add(committedResult.job)
-    return committedResult
+    try{
+      const importResult = commitRows(result.moduleKey, result.validRows, user)
+      const committedResult = createImportResult(
+        result.moduleKey,
+        result.fileName,
+        getUserName(user),
+        result.rows,
+        result.validRows,
+        result.invalidRows,
+        result.errors,
+        true,
+        importResult.createdCount,
+        importResult.updatedCount
+      )
+
+      ExcelHistoryService.add(committedResult.job)
+      return committedResult
+    } catch (error) {
+      rollback()
+      const failedResult = createImportResult(
+        result.moduleKey,
+        result.fileName,
+        getUserName(user),
+        result.rows,
+        [],
+        result.rows,
+        [
+          ...result.errors,
+          {
+            rowNumber: 0,
+            columnKey: '__commit__',
+            columnHeader: 'Commit',
+            message: error instanceof Error
+              ? `${error.message} Rollback uygulandi.`
+              : 'Import commit basarisiz oldu. Rollback uygulandi.'
+          }
+        ],
+        false
+      )
+      ExcelHistoryService.add(failedResult.job)
+      return failedResult
+    }
   }
 }

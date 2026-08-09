@@ -1,6 +1,6 @@
 import React from 'react'
-import * as XLSX from 'xlsx'
 import { CriticalAlertService } from '../critical-alerts/critical-alert.service'
+import { ExcelIntegrationService } from '../excel-engine/excel-integration.service'
 import { loadKpiSourceData } from '../kpi-reporting/kpi-source.service'
 import type { BarChartRow, KpiSourceData, KpiTone } from '../kpi-reporting/kpi.types'
 import {
@@ -1042,10 +1042,15 @@ const mapRowsForOutput = (rows: WeeklyProductionRecord[]) => rows.map(row => ({
 }))
 
 const exportFilteredRows = (rows: WeeklyProductionRecord[]) => {
-  const workbook = XLSX.utils.book_new()
-  const worksheet = XLSX.utils.json_to_sheet(mapRowsForOutput(rows))
-  XLSX.utils.book_append_sheet(workbook, worksheet, 'Haftalık Üretim')
-  XLSX.writeFile(workbook, `haftalik-uretim-analizi-filtreli-${toDateKey(new Date())}.xlsx`)
+  ExcelIntegrationService.exportRows({
+    moduleKey: 'production-planning',
+    moduleLabel: 'Haftalik Uretim Analizi',
+    sheetName: 'Haftalık Üretim',
+    fileNamePrefix: 'haftalik-uretim-analizi-filtreli',
+    fileName: `haftalik-uretim-analizi-filtreli-${toDateKey(new Date())}.xlsx`,
+    rows: mapRowsForOutput(rows),
+    userName: ExcelIntegrationService.defaultUserName
+  })
 }
 
 const escapeHtml = (value: unknown) => normalizeText(value)

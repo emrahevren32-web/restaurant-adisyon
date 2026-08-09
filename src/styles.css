@@ -430,7 +430,8 @@ th { color:var(--muted-strong); font-size:13px; font-weight:750 }
 .section-header .action-log-filters input,
 .section-header .action-log-filters select { min-height:var(--touch-target) }
 .toolbar-controls { display:grid; grid-template-columns:minmax(180px, 1fr) minmax(130px, .75fr) minmax(110px, .6fr); gap:8px; width:min(100%, 620px); min-width:0 }
-.stock-toolbar-controls { grid-template-columns:minmax(170px, 1fr) minmax(130px, .75fr) minmax(130px, .7fr) minmax(108px, .55fr); width:100%; max-width:760px; min-width:0 }
+.stock-toolbar-controls { grid-template-columns:auto minmax(170px, 1fr) minmax(130px, .75fr) minmax(130px, .7fr) minmax(108px, .55fr); width:100%; max-width:900px; min-width:0 }
+.stock-toolbar-controls .btn { white-space:nowrap }
 .production-work-order-toolbar { display:grid; grid-template-columns:auto minmax(220px, 1fr) minmax(145px, .6fr) minmax(150px, .6fr); gap:8px; width:min(100%, 900px); min-width:0 }
 .production-work-order-toolbar .btn { white-space:nowrap }
 .production-work-order-layout { grid-template-columns:minmax(0, 1fr) 390px }
@@ -1992,7 +1993,7 @@ th { color:var(--muted-strong); font-size:13px; font-weight:750 }
 .stock-current-hint em { color:var(--text-soft); font-size:12px; font-style:normal; font-weight:700 }
 .recipe-layout { grid-template-columns:minmax(0, 1fr) 420px }
 .recipe-side { display:flex; flex-direction:column; gap:12px }
-.recipe-filters { display:grid; grid-template-columns:auto minmax(240px, 1fr) minmax(140px, .5fr) minmax(150px, .55fr) minmax(150px, .55fr); gap:8px; width:min(100%, 1120px); min-width:0 }
+.recipe-filters { display:grid; grid-template-columns:auto auto minmax(240px, 1fr) minmax(140px, .5fr) minmax(150px, .55fr) minmax(150px, .55fr); gap:8px; width:min(100%, 1180px); min-width:0 }
 .recipe-filters .btn { white-space:nowrap }
 .recipe-table { min-width:1580px }
 .recipe-table tbody tr { cursor:pointer }
@@ -2308,7 +2309,8 @@ th { color:var(--muted-strong); font-size:13px; font-weight:750 }
 .supplier-dashboard-grid { grid-template-columns:repeat(7, minmax(0, 1fr)) }
 .supplier-dashboard-grid .metric-card strong { overflow-wrap:anywhere }
 .supplier-dashboard-grid .metric-card small { display:block; margin-top:6px; color:var(--muted); font-size:12px; font-weight:800; line-height:1.35; overflow-wrap:anywhere }
-.supplier-toolbar { display:grid; grid-template-columns:minmax(220px, 1.2fr) repeat(8, minmax(126px, .55fr)); gap:8px; width:100%; max-width:100%; min-width:0 }
+.supplier-toolbar { display:grid; grid-template-columns:auto minmax(220px, 1.2fr) repeat(8, minmax(126px, .55fr)); gap:8px; width:100%; max-width:100%; min-width:0 }
+.supplier-toolbar .btn { white-space:nowrap }
 .supplier-product-toolbar { display:grid; grid-template-columns:minmax(220px, 1.2fr) repeat(4, minmax(128px, .55fr)); gap:8px; width:100%; min-width:0; margin:0 0 14px }
 .supplier-toolbar input,
 .supplier-toolbar select,
@@ -5621,6 +5623,7 @@ th { color:var(--muted-strong); font-size:13px; font-weight:750 }
 .waste-create-actions select,
 .waste-create-actions input { min-width:0; width:100% }
 .waste-filter-grid { grid-template-columns:repeat(9, minmax(112px, 1fr)) }
+.waste-list-actions { display:flex; flex-wrap:wrap; gap:10px; align-items:center; justify-content:flex-end }
 .waste-output-actions,
 .waste-status-actions { display:grid; grid-template-columns:repeat(3, minmax(0, 1fr)); gap:9px; margin-bottom:10px }
 .waste-status-actions { grid-template-columns:repeat(4, minmax(0, 1fr)) }

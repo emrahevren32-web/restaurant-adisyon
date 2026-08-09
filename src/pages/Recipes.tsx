@@ -1,5 +1,5 @@
 import React from 'react'
-import * as XLSX from 'xlsx'
+import { ExcelIntegrationService } from '../excel-engine/excel-integration.service'
 import {
   RECIPE_INGREDIENT_UNITS,
   RECIPE_MANAGEMENT_ROLES,
@@ -140,6 +140,7 @@ const MIN_FIRE_PERCENT = 0
 const MAX_FIRE_PERCENT = 100
 const MAX_RECIPE_MINUTES = 10080
 const TOTAL_GRAMAJ_BASE_UNIT = 'gr'
+const EXCEL_USER_NAME = ExcelIntegrationService.defaultUserName
 
 const createId = (prefix: string) => `${prefix}_${Date.now()}_${Math.random().toString(16).slice(2)}`
 
@@ -753,6 +754,48 @@ export default function Recipes(){
       return matchesSearch && matchesStatus && matchesRole && matchesVersionStatus
     })
   }, [records, roleFilter, search, statusFilter, versionStatusFilter])
+
+  const exportVisibleRecipes = () => {
+    ExcelIntegrationService.exportModuleView({
+      moduleKey: 'recipes',
+      rows: visibleRecords,
+      userName: EXCEL_USER_NAME,
+      fileNamePrefix: 'recete-listesi',
+      filterText: search,
+      sortLabel: 'Mevcut liste sirasi',
+      columns: [
+        { key: 'code', header: 'Kod', value: record => record.code },
+        { key: 'versionNo', header: 'Versiyon', value: record => `V${getRecipeVersionNo(record)}` },
+        { key: 'recipeName', header: 'Recete Adi', value: record => record.recipeName },
+        { key: 'recipeType', header: 'Recete Turu', value: record => record.recipeType },
+        { key: 'recipeRole', header: 'Rol', value: record => getRecipeRoleLabel(record.recipeRole) },
+        { key: 'productName', header: 'Urun', value: record => record.productName },
+        { key: 'portions', header: 'Porsiyon', type: 'number', value: record => record.portions },
+        { key: 'ingredientCount', header: 'Malzeme Sayisi', type: 'number', value: record => record.ingredients.length },
+        { key: 'totalCost', header: 'Toplam Maliyet', value: record => formatRecipeCostAmount(calculateRecipeCost(record).recipeCost) },
+        { key: 'status', header: 'Durum', value: record => record.status },
+        { key: 'versionStatus', header: 'Versiyon Durumu', value: record => getRecipeVersionStatus(record) }
+      ]
+    })
+    showToast('Gorunen recete listesi Excel olarak aktarildi.')
+  }
+
+  const exportRecipeMatrix = (
+    fileNamePrefix: string,
+    sheetName: string,
+    headers: string[],
+    rows: Array<Array<string | number | boolean>>
+  ) => {
+    ExcelIntegrationService.exportMatrix({
+      moduleKey: 'recipes',
+      sheetName,
+      fileNamePrefix,
+      fileName: `${fileNamePrefix}.xlsx`,
+      headers,
+      rows,
+      userName: EXCEL_USER_NAME
+    })
+  }
 
   React.useEffect(() => {
     if(panelMode === 'form' || viewMode === 'detail') return
@@ -1375,13 +1418,12 @@ export default function Recipes(){
   const exportVersionHistoryExcel = () => {
     if(!selectedRecord) return
 
-    const worksheet = XLSX.utils.aoa_to_sheet([
+    exportRecipeMatrix(
+      `recete-version-history-${selectedRecord.code}`,
+      'Versiyon Gecmisi',
       ['Kod', 'Versiyon', 'Durum', 'Oluşturan', 'Oluşturulma', 'Yayın', 'Revizyon Notu', 'Aktif'],
-      ...getVersionHistoryRows()
-    ])
-    const workbook = XLSX.utils.book_new()
-    XLSX.utils.book_append_sheet(workbook, worksheet, 'Versiyon Geçmişi')
-    XLSX.writeFile(workbook, `recete-version-history-${selectedRecord.code}.xlsx`)
+      getVersionHistoryRows()
+    )
     showToast('Versiyon geçmişi Excel oluşturuldu.')
   }
 
@@ -1409,13 +1451,12 @@ export default function Recipes(){
   const exportDiffReportExcel = () => {
     if(!selectedRecord) return
 
-    const worksheet = XLSX.utils.aoa_to_sheet([
+    exportRecipeMatrix(
+      `recete-diff-report-${selectedRecord.code}`,
+      'Fark Raporu',
       ['Alan', 'Kalem', 'Kaynak Versiyon', 'Hedef Versiyon', 'Fark'],
-      ...getSelectedDiffRows().map(row => [row.area, row.item, row.sourceValue, row.targetValue, row.difference])
-    ])
-    const workbook = XLSX.utils.book_new()
-    XLSX.utils.book_append_sheet(workbook, worksheet, 'Fark Raporu')
-    XLSX.writeFile(workbook, `recete-diff-report-${selectedRecord.code}.xlsx`)
+      getSelectedDiffRows().map(row => [row.area, row.item, row.sourceValue, row.targetValue, row.difference])
+    )
     showToast('Fark raporu Excel oluşturuldu.')
   }
 
@@ -1447,13 +1488,12 @@ export default function Recipes(){
   const exportSnapshotHistoryExcel = () => {
     if(!selectedRecord) return
 
-    const worksheet = XLSX.utils.aoa_to_sheet([
+    exportRecipeMatrix(
+      `recete-snapshot-history-${selectedRecord.code}`,
+      'Snapshot Gecmisi',
       ['Snapshot No', 'Üretim Emri', 'Reçete Versiyonu', 'Snapshot Tarihi', 'Toplam Maliyet', 'Oluşturan', 'Malzeme Snapshot'],
-      ...getSnapshotHistoryRows()
-    ])
-    const workbook = XLSX.utils.book_new()
-    XLSX.utils.book_append_sheet(workbook, worksheet, 'Snapshot Geçmişi')
-    XLSX.writeFile(workbook, `recete-snapshot-history-${selectedRecord.code}.xlsx`)
+      getSnapshotHistoryRows()
+    )
     showToast('Snapshot geçmişi Excel oluşturuldu.')
   }
 
@@ -1490,13 +1530,12 @@ export default function Recipes(){
   const exportSnapshotDetailExcel = () => {
     if(!selectedSnapshot) return
 
-    const worksheet = XLSX.utils.aoa_to_sheet([
+    exportRecipeMatrix(
+      `recete-snapshot-detail-${selectedSnapshot.snapshotNo}`,
+      'Snapshot Detay',
       ['Alan', 'Değer'],
-      ...getSnapshotDetailRows(selectedSnapshot)
-    ])
-    const workbook = XLSX.utils.book_new()
-    XLSX.utils.book_append_sheet(workbook, worksheet, 'Snapshot Detay')
-    XLSX.writeFile(workbook, `recete-snapshot-detail-${selectedSnapshot.snapshotNo}.xlsx`)
+      getSnapshotDetailRows(selectedSnapshot)
+    )
     showToast('Snapshot detayı Excel oluşturuldu.')
   }
 
@@ -1524,13 +1563,12 @@ export default function Recipes(){
   const exportSnapshotCompareExcel = () => {
     if(!selectedRecord) return
 
-    const worksheet = XLSX.utils.aoa_to_sheet([
+    exportRecipeMatrix(
+      `recete-snapshot-compare-${selectedRecord.code}`,
+      'Snapshot Fark',
       ['Alan', 'Kalem', 'Kaynak Snapshot', 'Hedef Snapshot', 'Fark'],
-      ...getSnapshotCompareRows().map(row => [row.area, row.item, row.sourceValue, row.targetValue, row.difference])
-    ])
-    const workbook = XLSX.utils.book_new()
-    XLSX.utils.book_append_sheet(workbook, worksheet, 'Snapshot Fark')
-    XLSX.writeFile(workbook, `recete-snapshot-compare-${selectedRecord.code}.xlsx`)
+      getSnapshotCompareRows().map(row => [row.area, row.item, row.sourceValue, row.targetValue, row.difference])
+    )
     showToast('Snapshot karşılaştırma Excel oluşturuldu.')
   }
 
@@ -1562,13 +1600,12 @@ export default function Recipes(){
   const exportCostHistoryExcel = () => {
     if(!selectedRecord) return
 
-    const worksheet = XLSX.utils.aoa_to_sheet([
+    exportRecipeMatrix(
+      `recete-cost-history-${selectedRecord.code}`,
+      'Maliyet Gecmisi',
       ['Snapshot No', 'Tarih', 'Toplam Maliyet', 'Birim Maliyet', 'Versiyon', 'Üretim Emri', 'Oluşturan'],
-      ...getCostHistoryRows()
-    ])
-    const workbook = XLSX.utils.book_new()
-    XLSX.utils.book_append_sheet(workbook, worksheet, 'Maliyet Geçmişi')
-    XLSX.writeFile(workbook, `recete-cost-history-${selectedRecord.code}.xlsx`)
+      getCostHistoryRows()
+    )
     showToast('Maliyet geçmişi Excel oluşturuldu.')
   }
 
@@ -1612,13 +1649,12 @@ export default function Recipes(){
   const exportCostDetailExcel = () => {
     if(!selectedCostSnapshot) return
 
-    const worksheet = XLSX.utils.aoa_to_sheet([
+    exportRecipeMatrix(
+      `recete-cost-detail-${selectedCostSnapshot.snapshotNo}`,
+      'Maliyet Snapshot Detay',
       ['Alan', 'Değer'],
-      ...getCostDetailRows(selectedCostSnapshot)
-    ])
-    const workbook = XLSX.utils.book_new()
-    XLSX.utils.book_append_sheet(workbook, worksheet, 'Maliyet Snapshot Detay')
-    XLSX.writeFile(workbook, `recete-cost-detail-${selectedCostSnapshot.snapshotNo}.xlsx`)
+      getCostDetailRows(selectedCostSnapshot)
+    )
     showToast('Maliyet snapshot detayı Excel oluşturuldu.')
   }
 
@@ -1646,13 +1682,12 @@ export default function Recipes(){
   const exportCostCompareExcel = () => {
     if(!selectedRecord) return
 
-    const worksheet = XLSX.utils.aoa_to_sheet([
+    exportRecipeMatrix(
+      `recete-cost-compare-${selectedRecord.code}`,
+      'Maliyet Karsilastirma',
       ['Alan', 'Kaynak Snapshot', 'Hedef Snapshot', 'Mutlak Fark', 'Yüzde Fark'],
-      ...getCostCompareRows().map(row => [row.area, row.sourceValue, row.targetValue, row.absoluteDifference, row.percentDifference])
-    ])
-    const workbook = XLSX.utils.book_new()
-    XLSX.utils.book_append_sheet(workbook, worksheet, 'Maliyet Karşılaştırma')
-    XLSX.writeFile(workbook, `recete-cost-compare-${selectedRecord.code}.xlsx`)
+      getCostCompareRows().map(row => [row.area, row.sourceValue, row.targetValue, row.absoluteDifference, row.percentDifference])
+    )
     showToast('Maliyet karşılaştırma Excel oluşturuldu.')
   }
 
@@ -1692,13 +1727,12 @@ export default function Recipes(){
   const exportCostTrendExcel = () => {
     if(!selectedRecord) return
 
-    const worksheet = XLSX.utils.aoa_to_sheet([
+    exportRecipeMatrix(
+      `recete-cost-trend-${selectedRecord.code}`,
+      'Maliyet Trend',
       ['Periyot', 'Etiket', 'Değer'],
-      ...getCostTrendRows()
-    ])
-    const workbook = XLSX.utils.book_new()
-    XLSX.utils.book_append_sheet(workbook, worksheet, 'Maliyet Trend')
-    XLSX.writeFile(workbook, `recete-cost-trend-${selectedRecord.code}.xlsx`)
+      getCostTrendRows()
+    )
     showToast('Maliyet trend Excel oluşturuldu.')
   }
 
@@ -1741,13 +1775,12 @@ export default function Recipes(){
   const exportSimulationReportExcel = () => {
     if(!selectedCostSimulation) return
 
-    const worksheet = XLSX.utils.aoa_to_sheet([
+    exportRecipeMatrix(
+      `recete-cost-simulation-${selectedCostSimulation.recipeCode}`,
+      'Simulation Report',
       ['Alan', 'Değer'],
-      ...getSimulationReportRows(selectedCostSimulation)
-    ])
-    const workbook = XLSX.utils.book_new()
-    XLSX.utils.book_append_sheet(workbook, worksheet, 'Simulation Report')
-    XLSX.writeFile(workbook, `recete-cost-simulation-${selectedCostSimulation.recipeCode}.xlsx`)
+      getSimulationReportRows(selectedCostSimulation)
+    )
     showToast('Simulation report Excel oluşturuldu.')
   }
 
@@ -1771,19 +1804,18 @@ export default function Recipes(){
   const exportSimulationCompareExcel = () => {
     if(!selectedCostSimulation) return
 
-    const worksheet = XLSX.utils.aoa_to_sheet([
+    exportRecipeMatrix(
+      `recete-cost-simulation-compare-${selectedCostSimulation.recipeCode}`,
+      'Cost Compare',
       ['Alan', 'Current Cost', 'Simulation', 'Fark', 'Fark %'],
-      ...getSimulationCompareRows(selectedCostSimulation).map(row => [
+      getSimulationCompareRows(selectedCostSimulation).map(row => [
         row.area,
         row.currentValue,
         row.simulatedValue,
         row.difference,
         row.differencePercent
       ])
-    ])
-    const workbook = XLSX.utils.book_new()
-    XLSX.utils.book_append_sheet(workbook, worksheet, 'Cost Compare')
-    XLSX.writeFile(workbook, `recete-cost-simulation-compare-${selectedCostSimulation.recipeCode}.xlsx`)
+    )
     showToast('Simulation cost compare Excel oluşturuldu.')
   }
 
@@ -1831,13 +1863,12 @@ export default function Recipes(){
   const exportAlternativeMaterialExcel = () => {
     if(!selectedRecord) return
 
-    const worksheet = XLSX.utils.aoa_to_sheet([
+    exportRecipeMatrix(
+      `recete-alternatif-hammadde-${selectedRecord.code}`,
+      'Alternatif Hammaddeler',
       ['Reçete Kodu', 'Reçete', 'Birincil Malzeme', 'Alternatif Kod', 'Alternatif Malzeme', 'Öncelik', 'Kural', 'Katsayı', 'Maksimum Kullanım', 'Minimum Kalite', 'Alerjen', 'HACCP', 'Maliyet Etkisi', 'Kalite', 'Durum', 'Onay', 'Not'],
-      ...getAlternativeMaterialRows()
-    ])
-    const workbook = XLSX.utils.book_new()
-    XLSX.utils.book_append_sheet(workbook, worksheet, 'Alternatif Hammaddeler')
-    XLSX.writeFile(workbook, `recete-alternatif-hammadde-${selectedRecord.code}.xlsx`)
+      getAlternativeMaterialRows()
+    )
     showToast('Alternatif hammadde Excel oluşturuldu.')
   }
 
@@ -1872,13 +1903,12 @@ export default function Recipes(){
   const exportAlternativeCostComparisonExcel = () => {
     if(!selectedRecord) return
 
-    const worksheet = XLSX.utils.aoa_to_sheet([
+    exportRecipeMatrix(
+      `recete-alternatif-maliyet-${selectedRecord.code}`,
+      'Maliyet Karsilastirma',
       ['Reçete Kodu', 'Reçete', 'Birincil Malzeme', 'Alternatif Malzeme', 'Mevcut Maliyet', 'Alternatif Maliyet', 'Fark', 'Fark %', 'Kalite', 'Onay'],
-      ...getAlternativeCostComparisonRows()
-    ])
-    const workbook = XLSX.utils.book_new()
-    XLSX.utils.book_append_sheet(workbook, worksheet, 'Maliyet Karşılaştırma')
-    XLSX.writeFile(workbook, `recete-alternatif-maliyet-${selectedRecord.code}.xlsx`)
+      getAlternativeCostComparisonRows()
+    )
     showToast('Alternatif maliyet karşılaştırması Excel oluşturuldu.')
   }
 
@@ -3552,6 +3582,7 @@ export default function Recipes(){
               <p className="muted">{visibleRecords.length} reçete gösteriliyor.</p>
             </div>
             <div className="recipe-filters">
+              <button className="btn" type="button" onClick={exportVisibleRecipes}>Excel'e Aktar</button>
               <button className="btn primary" type="button" onClick={startNewRecipe}>Yeni Reçete</button>
               <input
                 type="search"

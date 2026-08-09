@@ -1,6 +1,5 @@
-import React from 'react'
-import * as XLSX from 'xlsx'
-import { ExcelExportService } from '../excel-engine/excel-export.service'
+﻿import React from 'react'
+import { ExcelIntegrationService } from '../excel-engine/excel-integration.service'
 import { loadKpiSourceData } from '../kpi-reporting/kpi-source.service'
 import type { BarChartRow, ChartSeries } from '../kpi-reporting/kpi.types'
 import {
@@ -144,10 +143,15 @@ const mapRowsForOutput = (rows: PurchaseRecommendationRow[]) => rows.map(row => 
 const createFilteredOutputFileName = () => `satin-alma-onerileri-filtreli-${new Date().toLocaleDateString('sv-SE')}.xlsx`
 
 const exportFilteredRowsToExcel = (rows: PurchaseRecommendationRow[]) => {
-  const workbook = XLSX.utils.book_new()
-  const worksheet = XLSX.utils.json_to_sheet(mapRowsForOutput(rows))
-  XLSX.utils.book_append_sheet(workbook, worksheet, 'Filtreli Liste')
-  XLSX.writeFile(workbook, createFilteredOutputFileName())
+  ExcelIntegrationService.exportRows({
+    moduleKey: 'purchase-recommendations',
+    moduleLabel: 'Satin Alma Onerileri',
+    sheetName: 'Filtreli Liste',
+    fileNamePrefix: 'satin-alma-onerileri-filtreli',
+    fileName: createFilteredOutputFileName(),
+    rows: mapRowsForOutput(rows),
+    userName: ExcelIntegrationService.defaultUserName
+  })
 }
 
 const createFilteredPrintHtml = (
@@ -320,7 +324,7 @@ export default function PurchaseRecommendations({ currentUser }: { currentUser: 
       if(action === 'PRINTED') PurchaseRecommendationPrintService.openPrintWindow(selectedReport, 'A4')
       if(action === 'PDF') PurchaseRecommendationPrintService.openPrintWindow(selectedReport, 'PDF')
       if(action === 'EXCEL'){
-        ExcelExportService.exportModules({
+        ExcelIntegrationService.exportModules({
           moduleKeys: ['purchase-recommendations'],
           scope: 'SELECTED',
           filterText: '',

@@ -5,6 +5,9 @@ import type {
   ExcelValidationError
 } from './excel-engine.types'
 import { getExcelTemplate } from './excel-template.service'
+import { loadRecipeManagementRecords } from '../recipe-management/recipe-management.mock'
+import { loadStockItems } from '../storage'
+import { SupplierService } from '../supplier-management/supplier.service'
 
 const BLANK_ROW = '__row__'
 
@@ -15,6 +18,12 @@ const DUPLICATE_KEYS: Partial<Record<ExcelModuleKey, string[]>> = {
   suppliers: ['supplierCode', 'name'],
   stock: ['name'],
   'purchase-requests': ['requestNo', 'title', 'stockItemName']
+}
+
+const CODE_UNIQUE_KEYS: Partial<Record<ExcelModuleKey, { codeKey: string; labelKey: string }>> = {
+  recipes: { codeKey: 'recipeCode', labelKey: 'recipeName' },
+  'raw-materials': { codeKey: 'sku', labelKey: 'name' },
+  suppliers: { codeKey: 'supplierCode', labelKey: 'name' }
 }
 
 const normalizeHeader = (value: unknown) => (
@@ -188,6 +197,80 @@ const validateDuplicates = (
   return errors
 }
 
+const getExistingCodeOwners = (
+  moduleKey: ExcelModuleKey
+) => {
+  if(moduleKey === 'recipes'){
+    return loadRecipeManagementRecords().reduce<Map<string, string>>((map, recipe) => {
+      if(recipe.code) map.set(normalizeHeader(recipe.code), recipe.recipeName)
+      return map
+    }, new Map())
+  }
+
+  if(moduleKey === 'raw-materials'){
+    return loadStockItems().reduce<Map<string, string>>((map, item) => {
+      if(item.sku) map.set(normalizeHeader(item.sku), item.name)
+      return map
+    }, new Map())
+  }
+
+  if(moduleKey === 'suppliers'){
+    return SupplierService.listSuppliers().reduce<Map<string, string>>((map, supplier) => {
+      if(supplier.supplierCode) map.set(normalizeHeader(supplier.supplierCode), supplier.name)
+      return map
+    }, new Map())
+  }
+
+  return new Map<string, string>()
+}
+
+const validateCodeUniqueness = (
+  moduleKey: ExcelModuleKey,
+  rows: ExcelRow[]
+): ExcelValidationError[] => {
+  const uniqueConfig = CODE_UNIQUE_KEYS[moduleKey]
+  if(!uniqueConfig) return []
+
+  const template = getExcelTemplate(moduleKey)
+  const codeColumn = template.columns.find(column => column.key === uniqueConfig.codeKey)
+  if(!codeColumn) return []
+
+  const existingOwners = getExistingCodeOwners(moduleKey)
+  const seen = new Map<string, { rowNumber: number; owner: string }>()
+  const errors: ExcelValidationError[] = []
+
+  rows.forEach((row, index) => {
+    const code = normalizeHeader(row[uniqueConfig.codeKey])
+    if(!code) return
+
+    const incomingOwner = normalizeHeader(row[uniqueConfig.labelKey])
+    const firstRow = seen.get(code)
+    if(firstRow && (moduleKey !== 'recipes' || firstRow.owner !== incomingOwner)){
+      errors.push({
+        rowNumber: index + 2,
+        columnKey: uniqueConfig.codeKey,
+        columnHeader: codeColumn.header,
+        message: `${codeColumn.header} dosya icinde benzersiz olmalidir; ilk tekrar satiri ${firstRow.rowNumber}.`
+      })
+      return
+    }
+
+    if(!firstRow) seen.set(code, { rowNumber: index + 2, owner: incomingOwner })
+
+    const existingOwner = existingOwners.get(code)
+    if(existingOwner && incomingOwner && normalizeHeader(existingOwner) !== incomingOwner){
+      errors.push({
+        rowNumber: index + 2,
+        columnKey: uniqueConfig.codeKey,
+        columnHeader: codeColumn.header,
+        message: `${codeColumn.header} sistemde ${existingOwner} kaydinda kullaniliyor.`
+      })
+    }
+  })
+
+  return errors
+}
+
 export const validateExcelRows = (
   moduleKey: ExcelModuleKey,
   rawRows: Array<Record<string, unknown>>
@@ -214,7 +297,8 @@ export const validateExcelRows = (
       ])
       .filter(Boolean) as ExcelValidationError[]
     ),
-    ...validateDuplicates(moduleKey, normalizedRows)
+    ...validateDuplicates(moduleKey, normalizedRows),
+    ...validateCodeUniqueness(moduleKey, normalizedRows)
   ]
   const errorRows = new Set(errors.filter(error => error.rowNumber > 0 && error.columnKey !== BLANK_ROW).map(error => error.rowNumber))
 

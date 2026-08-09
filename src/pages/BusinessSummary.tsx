@@ -1,9 +1,9 @@
 import React from 'react'
-import * as XLSX from 'xlsx'
 import { AIAnalysisService } from '../ai-analysis/ai-analysis.service'
 import { createCostEngineView, createDefaultCostEngineFilters } from '../cost-engine/cost-engine.service'
 import { CriticalAlertService } from '../critical-alerts/critical-alert.service'
 import type { CriticalAlert } from '../critical-alerts/critical-alert.types'
+import { ExcelIntegrationService } from '../excel-engine/excel-integration.service'
 import { ForecastService } from '../forecasting/forecast.service'
 import { createDefaultKpiFilters, createKpiDashboardView } from '../kpi-reporting/kpi.service'
 import { loadKpiSourceData } from '../kpi-reporting/kpi-source.service'
@@ -1209,16 +1209,16 @@ const createSheetRows = (model: ExecutiveDashboardModel) => ({
   }))
 })
 
-const appendSheet = (workbook: XLSX.WorkBook, name: string, rows: SheetRow[]) => {
-  const worksheet = XLSX.utils.json_to_sheet(rows.length > 0 ? rows : [{ Bilgi: 'Kayıt bulunamadı' }])
-  XLSX.utils.book_append_sheet(workbook, worksheet, name.slice(0, 31))
-}
-
 const exportDashboardToExcel = (model: ExecutiveDashboardModel) => {
-  const workbook = XLSX.utils.book_new()
   const sheets = createSheetRows(model)
-  Object.entries(sheets).forEach(([name, rows]) => appendSheet(workbook, name, rows))
-  XLSX.writeFile(workbook, `yonetici-dashboard-${toDateKey(new Date())}.xlsx`)
+  ExcelIntegrationService.exportWorkbook({
+    moduleKeys: ['kpi'],
+    moduleLabel: 'Yonetici Dashboard',
+    fileNamePrefix: 'yonetici-dashboard',
+    fileName: `yonetici-dashboard-${toDateKey(new Date())}.xlsx`,
+    userName: ExcelIntegrationService.defaultUserName,
+    sheets: Object.entries(sheets).map(([sheetName, rows]) => ({ sheetName, rows }))
+  })
 }
 
 const escapeHtml = (value: unknown) => normalizeText(value)

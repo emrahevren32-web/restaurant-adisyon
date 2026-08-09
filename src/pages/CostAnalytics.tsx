@@ -1,5 +1,4 @@
 import React from 'react'
-import * as XLSX from 'xlsx'
 import { AIAnalysisService } from '../ai-analysis/ai-analysis.service'
 import type { AIInsight } from '../ai-analysis/ai-analysis.types'
 import { createDefaultCostEngineFilters, createCostEngineView } from '../cost-engine/cost-engine.service'
@@ -8,6 +7,7 @@ import { CostOptimizationService } from '../cost-optimization/cost-optimization.
 import type { CostOptimizationItem } from '../cost-optimization/cost-optimization.types'
 import { createDecisionSuggestions } from '../decision-support/decision-support.service'
 import type { DecisionSuggestion } from '../decision-support/decision-support.types'
+import { ExcelIntegrationService } from '../excel-engine/excel-integration.service'
 import { loadKpiSourceData } from '../kpi-reporting/kpi-source.service'
 import type { BarChartRow, KpiSourceData, KpiTone } from '../kpi-reporting/kpi.types'
 import {
@@ -1223,10 +1223,15 @@ const mapRowsForOutput = (rows: CostAnalyticsRecord[]) => rows.map(row => ({
 }))
 
 const exportFilteredRows = (rows: CostAnalyticsRecord[]) => {
-  const workbook = XLSX.utils.book_new()
-  const worksheet = XLSX.utils.json_to_sheet(mapRowsForOutput(rows))
-  XLSX.utils.book_append_sheet(workbook, worksheet, 'Maliyet Analizi')
-  XLSX.writeFile(workbook, `maliyet-analizi-filtreli-${toDateKey(new Date())}.xlsx`)
+  ExcelIntegrationService.exportRows({
+    moduleKey: 'cost-engine',
+    moduleLabel: 'Maliyet Analizi',
+    sheetName: 'Maliyet Analizi',
+    fileNamePrefix: 'maliyet-analizi-filtreli',
+    fileName: `maliyet-analizi-filtreli-${toDateKey(new Date())}.xlsx`,
+    rows: mapRowsForOutput(rows),
+    userName: ExcelIntegrationService.defaultUserName
+  })
 }
 
 const escapeHtml = (value: string) => value

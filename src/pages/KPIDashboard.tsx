@@ -1,5 +1,5 @@
 import React from 'react'
-import * as XLSX from 'xlsx'
+import { ExcelIntegrationService } from '../excel-engine/excel-integration.service'
 import { createDefaultKpiFilters, createKpiDashboardView } from '../kpi-reporting/kpi.service'
 import { loadKpiSourceData } from '../kpi-reporting/kpi-source.service'
 import type {
@@ -257,13 +257,20 @@ const exportKpiDashboard = (
   activeTab: KpiDashboardTab,
   activeTabLabel: string
 ) => {
-  const workbook = XLSX.utils.book_new()
-  XLSX.utils.book_append_sheet(workbook, XLSX.utils.json_to_sheet(mapKpiCardsForOutput(cards, activeTabLabel)), 'KPI Kartları')
-  XLSX.utils.book_append_sheet(workbook, XLSX.utils.json_to_sheet(mapTrendRowsForOutput(charts)), 'Trendler')
-  XLSX.utils.book_append_sheet(workbook, XLSX.utils.json_to_sheet(mapBarRowsForOutput(charts)), 'Bar Grafikler')
-  XLSX.utils.book_append_sheet(workbook, XLSX.utils.json_to_sheet(mapPieRowsForOutput(charts, activeTab)), 'Dağılımlar')
-  XLSX.utils.book_append_sheet(workbook, XLSX.utils.json_to_sheet(mapReportsForOutput(dashboard)), 'Raporlar')
-  XLSX.writeFile(workbook, `kpi-dashboard-filtreli-${toExportDateKey()}.xlsx`)
+  ExcelIntegrationService.exportWorkbook({
+    moduleKeys: ['kpi'],
+    moduleLabel: 'KPI Dashboard',
+    fileNamePrefix: 'kpi-dashboard-filtreli',
+    fileName: `kpi-dashboard-filtreli-${toExportDateKey()}.xlsx`,
+    userName: ExcelIntegrationService.defaultUserName,
+    sheets: [
+      { sheetName: 'KPI Kartları', rows: mapKpiCardsForOutput(cards, activeTabLabel) },
+      { sheetName: 'Trendler', rows: mapTrendRowsForOutput(charts) },
+      { sheetName: 'Bar Grafikler', rows: mapBarRowsForOutput(charts) },
+      { sheetName: 'Dağılımlar', rows: mapPieRowsForOutput(charts, activeTab) },
+      { sheetName: 'Raporlar', rows: mapReportsForOutput(dashboard) }
+    ]
+  })
 }
 
 const openKpiPrintWindow = (

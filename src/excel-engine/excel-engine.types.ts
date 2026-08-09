@@ -32,6 +32,8 @@ export type ExcelModuleKey =
   | 'labels'
   | 'kpi'
   | 'cost-engine'
+  | 'module-marketplace'
+  | 'samples'
 
 export type ExcelOperationType = 'IMPORT' | 'EXPORT' | 'TEMPLATE'
 export type ExcelJobStatus = 'PENDING' | 'SUCCESS' | 'FAILED'
@@ -58,7 +60,9 @@ export type ExcelTemplate = {
   exportable: boolean
 }
 
-export type ExcelRow = Record<string, string | number | boolean>
+export type ExcelCellValue = string | number | boolean
+
+export type ExcelRow = Record<string, ExcelCellValue>
 
 export type ExcelValidationError = {
   rowNumber: number
@@ -142,4 +146,63 @@ export type ExcelDataSet = {
   moduleLabel: string
   columns: ExcelColumnDefinition[]
   rows: ExcelRow[]
+}
+
+export type ExcelVisibleColumn<TRow = Record<string, unknown>> = {
+  key: string
+  header: string
+  visible?: boolean
+  type?: ExcelColumnType
+  value?: (row: TRow) => ExcelCellValue
+}
+
+export type ExcelModuleViewExportInput<TRow = Record<string, unknown>> = {
+  moduleKey: ExcelModuleKey
+  moduleLabel?: string
+  sheetName?: string
+  rows: TRow[]
+  columns: Array<ExcelVisibleColumn<TRow>>
+  fileNamePrefix?: string
+  fileName?: string
+  userName: string
+  filterText?: string
+  sortLabel?: string
+}
+
+export type ExcelAdHocExportInput = {
+  moduleKey: ExcelModuleKey
+  moduleLabel?: string
+  sheetName: string
+  fileNamePrefix: string
+  fileName?: string
+  headers: string[]
+  rows: Array<Array<ExcelCellValue>>
+  userName: string
+}
+
+export type ExcelWorkbookSheetInput = {
+  sheetName: string
+  rows: Array<Record<string, unknown>>
+  emptyMessage?: string
+}
+
+export type ExcelRowsExportInput = {
+  moduleKey: ExcelModuleKey
+  moduleLabel?: string
+  sheetName: string
+  fileNamePrefix: string
+  fileName?: string
+  rows: Array<Record<string, unknown>>
+  userName?: string
+  message?: string
+}
+
+export type ExcelWorkbookExportInput = {
+  moduleKeys: ExcelModuleKey[]
+  moduleLabel: string
+  fileNamePrefix: string
+  fileName?: string
+  sheets: ExcelWorkbookSheetInput[]
+  userName: string
+  message?: string
 }

@@ -7,14 +7,14 @@ import type {
 export const EXCEL_MODULE_LABELS: Record<ExcelModuleKey, string> = {
   products: 'Urunler',
   recipes: 'Receteler',
-  'raw-materials': 'Hammaddeler',
-  suppliers: 'Supplier',
-  'purchase-requests': 'Purchase Request',
+  'raw-materials': 'Hammadde Listesi',
+  suppliers: 'Tedarikciler',
+  'purchase-requests': 'Satin Alma Talepleri',
   'purchase-orders': 'Purchase Order',
   'goods-receipts': 'Mal Kabul',
   stock: 'Stok',
-  lots: 'Lot',
-  waste: 'Fire',
+  lots: 'Lot Listesi',
+  waste: 'Fire Listesi',
   'production-planning': 'Uretim Planlama',
   'capacity-planning': 'Kapasite Planlama',
   'machine-scheduling': 'Makine Cizelgeleme',
@@ -37,7 +37,9 @@ export const EXCEL_MODULE_LABELS: Record<ExcelModuleKey, string> = {
   'delivery-notes': 'Irsaliyeler',
   labels: 'Etiket Yonetimi',
   kpi: 'KPI',
-  'cost-engine': 'Cost Engine'
+  'cost-engine': 'Cost Engine',
+  'module-marketplace': 'Modul Magazasi',
+  samples: 'Numune Takibi'
 }
 
 export const EXCEL_EXPORT_MODULES: ExcelModuleKey[] = [
@@ -73,16 +75,14 @@ export const EXCEL_EXPORT_MODULES: ExcelModuleKey[] = [
   'delivery-notes',
   'labels',
   'kpi',
-  'cost-engine'
+  'cost-engine',
+  'samples'
 ]
 
 export const EXCEL_IMPORT_MODULES: ExcelModuleKey[] = [
-  'products',
   'raw-materials',
   'suppliers',
-  'recipes',
-  'stock',
-  'purchase-requests'
+  'recipes'
 ]
 
 const column = (
@@ -124,6 +124,7 @@ const TEMPLATE_COLUMNS: Record<ExcelModuleKey, ExcelColumnDefinition[]> = {
     column('unitCost', 'Birim Maliyet', 'number', false, 0.08)
   ],
   'raw-materials': [
+    column('sku', 'Stok Kodu', 'string', false, 'RM-100'),
     column('name', 'Hammadde Adi', 'string', true, 'Dana Eti'),
     column('categoryName', 'Kategori', 'string', true, 'Hammadde'),
     column('unit', 'Birim', 'string', true, 'kg'),
@@ -134,7 +135,7 @@ const TEMPLATE_COLUMNS: Record<ExcelModuleKey, ExcelColumnDefinition[]> = {
     column('supplierName', 'Supplier', 'string', false, 'Et Tedarik')
   ],
   suppliers: [
-    column('supplierCode', 'Supplier Kodu', 'string', false, 'TD-100'),
+    column('supplierCode', 'Tedarikci Kodu', 'string', true, 'TD-100'),
     column('name', 'Supplier Adi', 'string', true, 'Et Tedarik'),
     column('tradeName', 'Ticari Unvan', 'string', false, 'Et Tedarik AS'),
     column('type', 'Tip', 'string', true, 'RAW_MATERIAL'),
@@ -871,6 +872,19 @@ const TEMPLATE_COLUMNS: Record<ExcelModuleKey, ExcelColumnDefinition[]> = {
     column('costPerKg', 'Maliyet / kg', 'number', false, 40),
     column('fireImpact', 'Fire Etkisi', 'number', false, 100),
     column('purchaseImpact', 'Satin Alma Etkisi', 'number', false, 120)
+  ],
+  'module-marketplace': [],
+  samples: [
+    column('sampleNo', 'Numune No', 'string', true, 'SMP-2026-000001'),
+    column('lotNo', 'Lot No', 'string', true, 'LOT-20260801-001'),
+    column('productName', 'Urun', 'string', true, 'Mercimek Corbasi'),
+    column('sampleType', 'Numune Tipi', 'string', true, 'FINISHED_PRODUCT'),
+    column('sampleDate', 'Numune Tarihi', 'date', true, '2026-08-01'),
+    column('expiryDate', 'Saklama Bitis', 'date', false, '2026-08-08'),
+    column('status', 'Durum', 'string', false, 'COLLECTED'),
+    column('takenBy', 'Alan Kisi', 'string', false, 'Kalite Uzmani'),
+    column('storageLocation', 'Saklama Lokasyonu', 'string', false, 'Kalite Dolabi A'),
+    column('notes', 'Not', 'string', false, 'Standart numune')
   ]
 }
 

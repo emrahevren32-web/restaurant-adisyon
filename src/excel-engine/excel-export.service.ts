@@ -40,12 +40,21 @@ const createFileName = (
 }
 
 export const ExcelExportService = {
-  exportModules: (options: ExcelExportOptions): ExcelExportResult => {
+  exportDataSets: (
+    dataSets: ExcelDataSet[],
+    options: {
+      moduleKeys: ExcelModuleKey[]
+      moduleLabel?: string
+      fileNamePrefix: string
+      fileName?: string
+      userName: string
+      message?: string
+    }
+  ): ExcelExportResult => {
     const workbook = XLSX.utils.book_new()
-    const dataSets = ExcelDataSourceService.getDataSets(options)
     dataSets.forEach(dataSet => appendDataSet(workbook, dataSet))
     const recordCount = dataSets.reduce((total, dataSet) => total + dataSet.rows.length, 0)
-    const fileName = createFileName('excel-export', options.moduleKeys)
+    const fileName = options.fileName || createFileName(options.fileNamePrefix, options.moduleKeys)
 
     XLSX.writeFile(workbook, fileName)
 
@@ -53,13 +62,13 @@ export const ExcelExportService = {
       operationType: 'EXPORT',
       status: 'SUCCESS',
       moduleKeys: options.moduleKeys,
-      moduleLabel: options.moduleKeys.map(moduleKey => EXCEL_MODULE_LABELS[moduleKey]).join(', '),
+      moduleLabel: options.moduleLabel || options.moduleKeys.map(moduleKey => EXCEL_MODULE_LABELS[moduleKey]).join(', '),
       fileName,
       userName: options.userName,
       recordCount,
       successCount: recordCount,
       failedCount: 0,
-      message: `${dataSets.length} sheet export edildi.`
+      message: options.message || `${dataSets.length} sheet export edildi.`
     }))
 
     return {
@@ -69,6 +78,17 @@ export const ExcelExportService = {
       sheetCount: dataSets.length,
       recordCount
     }
+  },
+
+  exportModules: (options: ExcelExportOptions): ExcelExportResult => {
+    const dataSets = ExcelDataSourceService.getDataSets(options)
+    return ExcelExportService.exportDataSets(dataSets, {
+      moduleKeys: options.moduleKeys,
+      moduleLabel: options.moduleKeys.map(moduleKey => EXCEL_MODULE_LABELS[moduleKey]).join(', '),
+      userName: options.userName,
+      fileNamePrefix: 'excel-export',
+      message: `${dataSets.length} sheet export edildi.`
+    })
   },
 
   exportTemplate: (moduleKey: ExcelModuleKey, userName: string): ExcelExportResult => {

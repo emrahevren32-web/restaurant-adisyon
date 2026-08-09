@@ -1,4 +1,5 @@
 import React from 'react'
+import { ExcelIntegrationService } from '../excel-engine/excel-integration.service'
 import {
   SUPPLIER_APPROVAL_STATUS_LABELS,
   SUPPLIER_APPROVAL_STATUSES,
@@ -488,6 +489,31 @@ export default function SupplierManagement(){
     })
   }, [approvalFilter, categoryFilter, cityFilter, companyTypeFilter, districtFilter, search, statusFilter, supplierTypeFilter, suppliers, workingStatusFilter])
 
+  const exportVisibleSuppliers = () => {
+    ExcelIntegrationService.exportModuleView({
+      moduleKey: 'suppliers',
+      rows: visibleSuppliers,
+      userName: ExcelIntegrationService.defaultUserName,
+      fileNamePrefix: 'tedarikci-listesi',
+      filterText: search,
+      sortLabel: 'Mevcut liste sirasi',
+      columns: [
+        { key: 'supplierCode', header: 'Kod', value: supplier => supplier.supplierCode },
+        { key: 'name', header: 'Firma', value: supplier => supplier.name },
+        { key: 'tradeName', header: 'Ticari Unvan', value: supplier => supplier.tradeName || '' },
+        { key: 'categoryName', header: 'Kategori', value: supplier => SupplierCategoryService.getCategoryNames(supplier).join(', ') || '-' },
+        { key: 'contactName', header: 'Yetkili', value: supplier => supplier.contactName || '-' },
+        { key: 'contactPhone', header: 'Telefon', value: supplier => supplier.contactPhone || supplier.mobilePhone || '-' },
+        { key: 'city', header: 'Sehir', value: supplier => supplier.city || '-' },
+        { key: 'status', header: 'Durum', value: supplier => SUPPLIER_STATUS_LABELS[supplier.status] },
+        { key: 'approvalStatus', header: 'Onay', value: supplier => SUPPLIER_APPROVAL_STATUS_LABELS[supplier.approvalStatus] },
+        { key: 'leadTimeDays', header: 'Teslim Suresi', type: 'number', value: supplier => supplier.leadTimeDays },
+        { key: 'paymentTermDays', header: 'Vade', type: 'number', value: supplier => supplier.paymentTermDays },
+        { key: 'lastOrderDate', header: 'Son Siparis', value: supplier => statisticsMap.get(supplier.id)?.lastOrderDate || '-' }
+      ]
+    })
+  }
+
   const activeCount = suppliers.filter(supplier => supplier.status === 'ACTIVE').length
   const passiveCount = suppliers.filter(supplier => supplier.status === 'PASSIVE').length
   const pendingCount = suppliers.filter(supplier => supplier.status === 'PENDING_APPROVAL' || supplier.approvalStatus === 'PENDING').length
@@ -653,6 +679,7 @@ export default function SupplierManagement(){
               <p className="muted">{visibleSuppliers.length} kayıt gösteriliyor.</p>
             </div>
             <div className="supplier-toolbar">
+              <button className="btn" type="button" onClick={exportVisibleSuppliers}>Excel'e Aktar</button>
               <input
                 type="search"
                 placeholder="Kod, firma, vergi no, yetkili, telefon veya şehir ara"

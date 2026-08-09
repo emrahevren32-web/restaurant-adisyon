@@ -1,5 +1,5 @@
-import React from 'react'
-import { ExcelExportService } from '../excel-engine/excel-export.service'
+﻿import React from 'react'
+import { ExcelIntegrationService } from '../excel-engine/excel-integration.service'
 import { ForecastPrintService } from '../forecasting/forecast-print.service'
 import {
   FORECAST_ANALYSIS_WINDOW_OPTIONS,
@@ -205,7 +205,7 @@ export default function Forecasting({ currentUser }: { currentUser: User }){
       if(action === 'PRINTED') ForecastPrintService.openPrintWindow(selectedReport, 'A4')
       if(action === 'PDF') ForecastPrintService.openPrintWindow(selectedReport, 'PDF')
       if(action === 'EXCEL'){
-        ExcelExportService.exportModules({
+        ExcelIntegrationService.exportModules({
           moduleKeys: ['forecasting'],
           scope: 'SELECTED',
           filterText: '',

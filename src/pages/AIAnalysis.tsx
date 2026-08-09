@@ -1,4 +1,4 @@
-import React from 'react'
+﻿import React from 'react'
 import {
   AI_ANALYSIS_STATUS_LABELS,
   AI_ANALYSIS_TITLE_LABELS,
@@ -27,7 +27,7 @@ import {
   getDecisionSeverityClass as getSeverityClass,
   getDecisionSourceModuleLabel as getSourceModuleLabel
 } from '../decision-support/decision-support-ui.utils'
-import { ExcelExportService } from '../excel-engine/excel-export.service'
+import { ExcelIntegrationService } from '../excel-engine/excel-integration.service'
 import { loadKpiSourceData } from '../kpi-reporting/kpi-source.service'
 import type { BarChartRow, ChartSeries, PieChartSlice } from '../kpi-reporting/kpi.types'
 import {
@@ -356,7 +356,7 @@ export default function AIAnalysis({ currentUser }: { currentUser: User }){
       if(action === 'PRINTED') AIPrintService.openPrintWindow(selectedReport, 'A4')
       if(action === 'PDF') AIPrintService.openPrintWindow(selectedReport, 'PDF')
       if(action === 'EXCEL'){
-        ExcelExportService.exportModules({
+        ExcelIntegrationService.exportModules({
           moduleKeys: ['ai-analysis'],
           scope: 'SELECTED',
           filterText: '',

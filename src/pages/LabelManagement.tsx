@@ -1,5 +1,5 @@
-import React from 'react'
-import { ExcelExportService } from '../excel-engine/excel-export.service'
+﻿import React from 'react'
+import { ExcelIntegrationService } from '../excel-engine/excel-integration.service'
 import { LabelPrintService } from '../label-management/label-print.service'
 import {
   LABEL_STATUS_LABELS,
@@ -222,7 +222,7 @@ export default function LabelManagement({ currentUser }: { currentUser: User }){
     if(!selectedLabel) return
 
     try{
-      ExcelExportService.exportModules({
+      ExcelIntegrationService.exportModules({
         moduleKeys: ['labels'],
         scope: 'SELECTED',
         filterText: '',

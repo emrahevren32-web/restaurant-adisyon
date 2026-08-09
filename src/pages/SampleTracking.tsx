@@ -1,4 +1,5 @@
 import React from 'react'
+import { ExcelIntegrationService } from '../excel-engine/excel-integration.service'
 import { loadFinalProducts } from '../final-products/final-product.mock'
 import type { FinalProduct } from '../final-products/final-product.types'
 import { loadGoodsReceiptRecords } from '../goods-receipts/goods-receipt.mock'
@@ -266,6 +267,28 @@ export default function SampleTracking({ currentUser }: { currentUser: User }){
     })
   }, [lotMap, productMap, sampleDateFilter, sampleTypeFilter, samples, search, statusFilter, stockItemMap])
 
+  const exportVisibleSamples = () => {
+    ExcelIntegrationService.exportModuleView({
+      moduleKey: 'samples',
+      rows: visibleSamples,
+      userName: getUserName(currentUser),
+      fileNamePrefix: 'numune-takibi',
+      filterText: search,
+      sortLabel: 'Mevcut liste sirasi',
+      columns: [
+        { key: 'sampleNo', header: 'Sample No', value: sample => sample.sampleNo },
+        { key: 'lotNo', header: 'Lot No', value: sample => lotMap.get(sample.inventoryLotId)?.lotNo || 'Lot bulunamadi' },
+        { key: 'productName', header: 'Product', value: sample => getProductLabel(lotMap.get(sample.inventoryLotId) || null, productMap, stockItemMap) },
+        { key: 'sampleType', header: 'Sample Type', value: sample => QUALITY_SAMPLE_TYPE_LABELS[sample.sampleType] },
+        { key: 'sampleDate', header: 'Sample Date', value: sample => sample.sampleDate },
+        { key: 'expiryDate', header: 'Expiry Date', value: sample => sample.expiryDate },
+        { key: 'status', header: 'Status', value: sample => QUALITY_SAMPLE_STATUS_LABELS[sample.status] },
+        { key: 'takenBy', header: 'Taken By', value: sample => sample.takenBy },
+        { key: 'storageLocation', header: 'Storage Location', value: sample => sample.storageLocation || '-' }
+      ]
+    })
+  }
+
   const collectedCount = samples.filter(sample => sample.status === 'COLLECTED').length
   const storedCount = samples.filter(sample => sample.status === 'STORED').length
   const reviewCount = samples.filter(sample => sample.status === 'UNDER_REVIEW').length
@@ -358,6 +381,7 @@ export default function SampleTracking({ currentUser }: { currentUser: User }){
         </div>
         <div className="sample-tracking-header-actions">
           <span className="muted">Operatör: {getUserName(currentUser)}</span>
+          <button className="btn" type="button" onClick={exportVisibleSamples}>Excel'e Aktar</button>
           <button className="btn primary" type="button" onClick={startCreate}>Yeni Numune</button>
         </div>
       </div>

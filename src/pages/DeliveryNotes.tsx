@@ -1,4 +1,4 @@
-import React from 'react'
+﻿import React from 'react'
 import { DeliveryNotePrintService } from '../delivery-notes/delivery-note-print.service'
 import {
   DELIVERY_NOTE_STATUS_LABELS,
@@ -11,7 +11,7 @@ import type {
   DeliveryNoteHistoryAction,
   DeliveryNoteStatus
 } from '../delivery-notes/delivery-note.types'
-import { ExcelExportService } from '../excel-engine/excel-export.service'
+import { ExcelIntegrationService } from '../excel-engine/excel-integration.service'
 import { loadKpiSourceData } from '../kpi-reporting/kpi-source.service'
 import {
   formatCurrency,
@@ -191,7 +191,7 @@ export default function DeliveryNotes({ currentUser }: { currentUser: User }){
       if(action === 'PRINTED') DeliveryNotePrintService.openPrintWindow(selectedRecord, 'A4')
       if(action === 'PDF') DeliveryNotePrintService.openPrintWindow(selectedRecord, 'PDF')
       if(action === 'EXCEL'){
-        ExcelExportService.exportModules({
+        ExcelIntegrationService.exportModules({
           moduleKeys: ['delivery-notes'],
           scope: 'SELECTED',
           filterText: '',
