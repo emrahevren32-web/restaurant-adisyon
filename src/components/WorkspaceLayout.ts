@@ -1,4 +1,5 @@
 import React from 'react'
+import { FadeTransition } from './Motion'
 
 export type WorkspaceLayoutProps = {
   title: string
@@ -26,8 +27,14 @@ export const WorkspaceLayout = ({
         { className: 'workspace-layout', 'data-workspace-title': title },
         navigation,
         React.createElement(
-          'div',
-          { className: 'workspace-content-shell', key: navigationKey || title },
+          FadeTransition,
+          {
+            as: 'div',
+            className: 'workspace-content-shell',
+            duration: 'normal',
+            easing: 'easeOut',
+            key: navigationKey || title
+          },
           React.createElement('div', { className: 'workspace-content' }, children)
         ),
         footer
