@@ -1,3 +1,4 @@
+import { PRINT_RADIUS_VALUES } from '../design-system/BorderRadiusTheme'
 import { PRINT_SPACING_VALUES } from '../design-system/LayoutSpacing'
 import React from 'react'
 import { PRINT_THEME_COLORS } from '../design-system/ThemeColors'
@@ -181,7 +182,7 @@ const createFilteredPrintHtml = (
     body { font-family: Arial, sans-serif; color: ${PRINT_THEME_COLORS.text}; margin: ${PRINT_SPACING_VALUES.space24}; }
     h1 { margin: 0 0 ${PRINT_SPACING_VALUES.space4}; font-size: 22px; }
     .muted { color: ${PRINT_THEME_COLORS.textMuted}; font-size: 12px; }
-    .pill { display: inline-block; margin: ${PRINT_SPACING_VALUES.space12} 0; padding: ${PRINT_SPACING_VALUES.space4} ${PRINT_SPACING_VALUES.space8}; border: 1px solid ${PRINT_THEME_COLORS.borderTable}; border-radius: 999px; font-size: 12px; }
+    .pill { display: inline-block; margin: ${PRINT_SPACING_VALUES.space12} 0; padding: ${PRINT_SPACING_VALUES.space4} ${PRINT_SPACING_VALUES.space8}; border: 1px solid ${PRINT_THEME_COLORS.borderTable}; border-radius: ${PRINT_RADIUS_VALUES.full}; font-size: 12px; }
     table { width: 100%; border-collapse: collapse; font-size: 11px; }
     th, td { border-bottom: 1px solid ${PRINT_THEME_COLORS.borderSoft}; padding: ${PRINT_SPACING_VALUES.space8}; text-align: left; vertical-align: top; }
     th { background: ${PRINT_THEME_COLORS.pageBackground}; color: ${PRINT_THEME_COLORS.textHeader}; }

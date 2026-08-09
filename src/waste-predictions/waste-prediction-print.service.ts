@@ -1,3 +1,4 @@
+import { PRINT_RADIUS_VALUES } from '../design-system/BorderRadiusTheme'
 import { PRINT_SPACING_VALUES } from '../design-system/LayoutSpacing'
 import {
   WASTE_PREDICTION_PRIORITY_LABELS,
@@ -72,14 +73,14 @@ export const createWastePredictionPrintHtml = (
   <style>
     * { box-sizing:border-box; }
     body { margin:0; padding:${PRINT_SPACING_VALUES.space24}; color:#111827; font-family:Inter, Arial, sans-serif; background:#f8fafc; }
-    .sheet { max-width:1280px; margin:0 auto; padding:${PRINT_SPACING_VALUES.space24}; border:1px solid #d1d5db; border-radius:8px; background:#fff; }
+    .sheet { max-width:1280px; margin:0 auto; padding:${PRINT_SPACING_VALUES.space24}; border:1px solid #d1d5db; border-radius:${PRINT_RADIUS_VALUES.card}; background:#fff; }
     .header { display:flex; justify-content:space-between; gap:${PRINT_SPACING_VALUES.space16}; align-items:flex-start; border-bottom:2px solid #111827; padding-bottom:${PRINT_SPACING_VALUES.space16}; margin-bottom:${PRINT_SPACING_VALUES.space16}; }
     h1 { margin:0; font-size:22px; line-height:1.2; }
     h2 { margin:${PRINT_SPACING_VALUES.space20} 0 ${PRINT_SPACING_VALUES.space8}; font-size:16px; }
     .muted { color:#64748b; font-size:12px; font-weight:700; }
-    .pill { display:inline-block; border:1px solid #d1d5db; border-radius:999px; padding:${PRINT_SPACING_VALUES.space4} ${PRINT_SPACING_VALUES.space8}; font-size:12px; font-weight:800; }
+    .pill { display:inline-block; border:1px solid #d1d5db; border-radius:${PRINT_RADIUS_VALUES.full}; padding:${PRINT_SPACING_VALUES.space4} ${PRINT_SPACING_VALUES.space8}; font-size:12px; font-weight:800; }
     .grid { display:grid; grid-template-columns:repeat(4, 1fr); gap:${PRINT_SPACING_VALUES.space8}; }
-    .box { min-width:0; border:1px solid #e5e7eb; border-radius:6px; padding:${PRINT_SPACING_VALUES.space8} ${PRINT_SPACING_VALUES.space8}; background:#f9fafb; }
+    .box { min-width:0; border:1px solid #e5e7eb; border-radius:${PRINT_RADIUS_VALUES.box}; padding:${PRINT_SPACING_VALUES.space8} ${PRINT_SPACING_VALUES.space8}; background:#f9fafb; }
     .box span { display:block; color:#64748b; font-size:11px; font-weight:800; }
     .box strong { display:block; margin-top:${PRINT_SPACING_VALUES.space4}; color:#111827; font-size:13px; overflow-wrap:anywhere; }
     table { width:100%; border-collapse:collapse; font-size:10.5px; }
@@ -88,7 +89,7 @@ export const createWastePredictionPrintHtml = (
     .note { color:#334155; font-size:12px; line-height:1.45; }
     @media print {
       body { background:#fff; padding:0; }
-      .sheet { border:0; border-radius:0; max-width:none; }
+      .sheet { border:0; border-radius:${PRINT_RADIUS_VALUES.none}; max-width:none; }
     }
   </style>
 </head>

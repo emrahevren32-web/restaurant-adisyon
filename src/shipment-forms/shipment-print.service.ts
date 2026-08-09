@@ -1,3 +1,4 @@
+import { PRINT_RADIUS_VALUES } from '../design-system/BorderRadiusTheme'
 import { PRINT_SPACING_VALUES } from '../design-system/LayoutSpacing'
 import {
   SHIPMENT_CHECKLIST_STATUS_LABELS,
@@ -46,9 +47,9 @@ export const createShipmentFormPrintHtml = (
     h1 { margin: 0; font-size: 24px; line-height: 1.15; letter-spacing: 0; }
     h2 { margin: 0 0 ${PRINT_SPACING_VALUES.space8}; font-size: 14px; }
     .muted { color: #6b7280; }
-    .badge { display: inline-block; border: 1px solid #111827; border-radius: 4px; padding: ${PRINT_SPACING_VALUES.space4} ${PRINT_SPACING_VALUES.space8}; font-weight: 700; }
+    .badge { display: inline-block; border: 1px solid #111827; border-radius: ${PRINT_RADIUS_VALUES.field}; padding: ${PRINT_SPACING_VALUES.space4} ${PRINT_SPACING_VALUES.space8}; font-weight: 700; }
     .grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: ${PRINT_SPACING_VALUES.space8}; margin-bottom: ${PRINT_SPACING_VALUES.space12}; }
-    .box { border: 1px solid #d1d5db; border-radius: 4px; padding: ${PRINT_SPACING_VALUES.space8}; min-height: 54px; }
+    .box { border: 1px solid #d1d5db; border-radius: ${PRINT_RADIUS_VALUES.field}; padding: ${PRINT_SPACING_VALUES.space8}; min-height: 54px; }
     .box span { display: block; color: #6b7280; font-size: 10px; font-weight: 700; text-transform: uppercase; }
     .box strong { display: block; margin-top: ${PRINT_SPACING_VALUES.space4}; overflow-wrap: anywhere; }
     table { width: 100%; border-collapse: collapse; margin-top: ${PRINT_SPACING_VALUES.space8}; }

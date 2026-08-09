@@ -1,3 +1,4 @@
+import { PRINT_RADIUS_VALUES } from '../design-system/BorderRadiusTheme'
 import { PRINT_SPACING_VALUES } from '../design-system/LayoutSpacing'
 import React from 'react'
 import { AppIcon } from '../design-system/IconSystem'
@@ -254,7 +255,7 @@ const createPrintHtml = (
         table { width: 100%; border-collapse: collapse; font-size: 12px; }
         th, td { border: 1px solid ${PRINT_THEME_COLORS.borderMarketplace}; padding: ${PRINT_SPACING_VALUES.space8}; text-align: left; vertical-align: top; }
         th { background: ${PRINT_THEME_COLORS.tableHeaderMarketplace}; }
-        .pill { display: inline-block; margin-bottom: ${PRINT_SPACING_VALUES.space12}; border: 1px solid ${PRINT_THEME_COLORS.borderAccent}; border-radius: 999px; padding: ${PRINT_SPACING_VALUES.space4} ${PRINT_SPACING_VALUES.space8}; color: ${PRINT_THEME_COLORS.pillText}; font-weight: 700; font-size: 12px; }
+        .pill { display: inline-block; margin-bottom: ${PRINT_SPACING_VALUES.space12}; border: 1px solid ${PRINT_THEME_COLORS.borderAccent}; border-radius: ${PRINT_RADIUS_VALUES.full}; padding: ${PRINT_SPACING_VALUES.space4} ${PRINT_SPACING_VALUES.space8}; color: ${PRINT_THEME_COLORS.pillText}; font-weight: 700; font-size: 12px; }
         @media print { body { margin: 14mm; } }
       </style>
     </head>

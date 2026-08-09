@@ -1,3 +1,4 @@
+import { PRINT_RADIUS_VALUES } from '../design-system/BorderRadiusTheme'
 import { PRINT_SPACING_VALUES } from '../design-system/LayoutSpacing'
 import React from 'react'
 import { PRINT_THEME_COLORS } from '../design-system/ThemeColors'
@@ -1102,7 +1103,7 @@ const openPrintWindow = (
           h1 { margin:0; font-size:24px; }
           p { margin:${PRINT_SPACING_VALUES.space4} 0 ${PRINT_SPACING_VALUES.space16}; color:${PRINT_THEME_COLORS.textMutedStrong}; }
           .grid { display:grid; grid-template-columns:repeat(3, 1fr); gap:${PRINT_SPACING_VALUES.space8}; margin-bottom:${PRINT_SPACING_VALUES.space16}; }
-          article { border:1px solid ${PRINT_THEME_COLORS.borderTable}; border-radius:8px; padding:${PRINT_SPACING_VALUES.space12}; page-break-inside:avoid; }
+          article { border:1px solid ${PRINT_THEME_COLORS.borderTable}; border-radius:${PRINT_RADIUS_VALUES.card}; padding:${PRINT_SPACING_VALUES.space12}; page-break-inside:avoid; }
           article span, article small { display:block; color:${PRINT_THEME_COLORS.textMutedStrong}; font-size:12px; font-weight:700; }
           article strong { display:block; margin:${PRINT_SPACING_VALUES.space4} 0; font-size:20px; }
           table { width:100%; border-collapse:collapse; font-size:11px; }

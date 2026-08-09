@@ -1,3 +1,4 @@
+import { PRINT_RADIUS_VALUES } from '../design-system/BorderRadiusTheme'
 import { PRINT_SPACING_VALUES } from '../design-system/LayoutSpacing'
 import { BarcodeIntegrationService } from '../barcode-engine/barcode-integration.service'
 import { QRIntegrationService } from '../qr-engine/qr-integration.service'
@@ -351,9 +352,9 @@ const createHtml = async (
     .print-header { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: ${PRINT_SPACING_VALUES.space16}; align-items: start; border-bottom: 2px solid #111827; padding-bottom: ${PRINT_SPACING_VALUES.space12}; margin-bottom: ${PRINT_SPACING_VALUES.space12}; }
     .print-header h1 { margin: 0; font-size: ${outputType === 'A4' ? '24px' : '19px'}; line-height: 1.15; letter-spacing: 0; }
     .print-header p { margin: ${PRINT_SPACING_VALUES.space4} 0 0; color: #6b7280; }
-    .print-header strong { border: 1px solid #111827; border-radius: 4px; padding: ${PRINT_SPACING_VALUES.space4} ${PRINT_SPACING_VALUES.space8}; overflow-wrap: anywhere; }
+    .print-header strong { border: 1px solid #111827; border-radius: ${PRINT_RADIUS_VALUES.field}; padding: ${PRINT_SPACING_VALUES.space4} ${PRINT_SPACING_VALUES.space8}; overflow-wrap: anywhere; }
     .print-field-grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: ${PRINT_SPACING_VALUES.space8}; margin-bottom: ${PRINT_SPACING_VALUES.space12}; }
-    .print-field { border: 1px solid #d1d5db; border-radius: 4px; padding: ${PRINT_SPACING_VALUES.space8}; min-height: 50px; }
+    .print-field { border: 1px solid #d1d5db; border-radius: ${PRINT_RADIUS_VALUES.field}; padding: ${PRINT_SPACING_VALUES.space8}; min-height: 50px; }
     .print-field span, .print-notes span { display: block; color: #6b7280; font-size: 10px; font-weight: 700; text-transform: uppercase; }
     .print-field strong { display: block; margin-top: ${PRINT_SPACING_VALUES.space4}; overflow-wrap: anywhere; }
     .print-section { margin-top: ${PRINT_SPACING_VALUES.space12}; }
@@ -361,7 +362,7 @@ const createHtml = async (
     table { width: 100%; border-collapse: collapse; }
     th, td { border: 1px solid #d1d5db; padding: ${PRINT_SPACING_VALUES.space4}; text-align: left; vertical-align: top; }
     th { background: #f3f4f6; font-size: 10px; text-transform: uppercase; }
-    .print-notes { border: 1px solid #d1d5db; border-radius: 4px; padding: ${PRINT_SPACING_VALUES.space8}; margin-top: ${PRINT_SPACING_VALUES.space12}; }
+    .print-notes { border: 1px solid #d1d5db; border-radius: ${PRINT_RADIUS_VALUES.field}; padding: ${PRINT_SPACING_VALUES.space8}; margin-top: ${PRINT_SPACING_VALUES.space12}; }
     .print-notes p { margin: ${PRINT_SPACING_VALUES.space4} 0 0; white-space: pre-wrap; }
     .print-footer { display:flex; justify-content:space-between; gap:${PRINT_SPACING_VALUES.space12}; color:#6b7280; border-top:1px solid #d1d5db; margin-top:${PRINT_SPACING_VALUES.space16}; padding-top:${PRINT_SPACING_VALUES.space8}; }
     .print-label-card { width: 80mm; height: 50mm; padding: 4mm; border: 1px solid #111827; page-break-after: always; overflow: hidden; }
@@ -371,7 +372,7 @@ const createHtml = async (
     .print-label-barcode { width:100%; height:15mm; object-fit:fill; }
     .print-label-qr { width:22mm; height:22mm; }
     .print-label-fields { display:grid; grid-template-columns:repeat(2, minmax(0, 1fr)); gap:${PRINT_SPACING_VALUES.space2}; margin-top:${PRINT_SPACING_VALUES.space2}; }
-    .print-label-fields .print-field { padding:${PRINT_SPACING_VALUES.space2}; min-height:0; border-radius:2px; }
+    .print-label-fields .print-field { padding:${PRINT_SPACING_VALUES.space2}; min-height:0; border-radius:${PRINT_RADIUS_VALUES.labelField}; }
     .print-label-fields .print-field span { font-size:6px; }
     .print-label-fields .print-field strong { font-size:8px; margin-top:${PRINT_SPACING_VALUES.space2}; }
     @media print { .toolbar { display: none; } body { print-color-adjust: exact; } }
