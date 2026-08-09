@@ -447,7 +447,7 @@ export const BUSINESS_WORKSPACE_MODULE_REGISTRY: BusinessWorkspaceModule[] = def
     description: 'Çalışma alanı bildirimleri için merkezi sistem modülü.',
     category: 'system',
     icon: 'BD',
-    route: 'settings',
+    route: 'notifications',
     permissions: ['company.read'],
     isCoreModule: true,
     isBusinessModule: false,
@@ -459,7 +459,7 @@ export const BUSINESS_WORKSPACE_MODULE_REGISTRY: BusinessWorkspaceModule[] = def
     pricing: includedPricing,
     marketplace: coreSystemMarketplace,
     menuItems: [
-      menuItem({ key: 'notifications', label: 'Bildirimler', route: 'settings', icon: 'BD', adminOnly: true, displayOrder: 60 })
+      menuItem({ key: 'notifications', label: 'Bildirimler', route: 'notifications', icon: 'BD', adminOnly: true, displayOrder: 60 })
     ]
   },
   {

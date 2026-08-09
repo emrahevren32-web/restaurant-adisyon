@@ -1,4 +1,5 @@
 import React from 'react'
+import NotificationToastHost from './NotificationToastHost'
 import { Branch, User } from '../types'
 import type { PermissionName } from '../authorization/permission.types'
 import {
@@ -340,6 +341,7 @@ export default function AppShell<
 
   return (
     <div className="app-shell">
+      <NotificationToastHost />
       <div className="app-layout">
         <aside className="side-nav" aria-label="Ana menü" data-onboarding-target="side-menu">
           <div className="app-brand side-brand">

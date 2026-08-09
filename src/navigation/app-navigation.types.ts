@@ -114,6 +114,7 @@ export type BusinessWorkspaceRoute =
   | 'collection-transactions'
   | 'current-account-movements'
   | 'settings'
+  | 'notifications'
   | 'marketplace'
   | 'integration-center'
   | 'excel-center'
