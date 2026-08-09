@@ -23,10 +23,12 @@ export const SidebarLayout = ({
   React.createElement(
     'aside',
     {
+      id: 'app-sidebar',
       className: ['side-nav', collapsed ? 'collapsed' : '', mobileOpen ? 'mobile-open' : ''].filter(Boolean).join(' '),
       'aria-label': 'Ana menü',
       'data-onboarding-target': 'side-menu',
       'data-sidebar-state': collapsed ? 'collapsed' : 'expanded',
+      'data-mobile-state': mobileOpen ? 'open' : 'closed',
       role: 'navigation'
     },
     React.createElement(

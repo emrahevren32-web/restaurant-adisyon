@@ -12,6 +12,7 @@ export type TopbarLayoutProps = {
   searchPlaceholder?: string
   brandLabel?: string
   themeMode: 'light' | 'dark'
+  mobileSidebarOpen?: boolean
   workspaceControl: React.ReactNode
   onSearchChange: (value: string) => void
   onSearchSubmit: (event: React.FormEvent<HTMLFormElement>) => void
@@ -28,6 +29,7 @@ export const TopbarLayout = ({
   searchPlaceholder = 'Ekran, modül veya işlem ara',
   brandLabel = 'MİYOP',
   themeMode,
+  mobileSidebarOpen = false,
   workspaceControl,
   onSearchChange,
   onSearchSubmit,
@@ -46,6 +48,8 @@ export const TopbarLayout = ({
         {
           type: 'button',
           className: 'topbar-mobile-menu',
+          'aria-controls': 'app-sidebar',
+          'aria-expanded': mobileSidebarOpen,
           'aria-label': 'Ana menüyü aç',
           title: 'Ana menüyü aç',
           onClick: onOpenMobileNav

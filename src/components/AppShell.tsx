@@ -306,6 +306,32 @@ export default function AppShell<
   }, [activeNavKey])
 
   React.useEffect(() => {
+    const mobileNavigationQuery = window.matchMedia('(max-width: 980px)')
+    const syncMobileNavigationLock = () => {
+      document.body.classList.toggle('mobile-navigation-open', mobileSidebarOpen && mobileNavigationQuery.matches)
+    }
+
+    const closeMobileNavigation = (event: KeyboardEvent) => {
+      if(event.key === 'Escape'){
+        setMobileSidebarOpen(false)
+      }
+    }
+
+    syncMobileNavigationLock()
+    mobileNavigationQuery.addEventListener('change', syncMobileNavigationLock)
+
+    if(mobileSidebarOpen){
+      document.addEventListener('keydown', closeMobileNavigation)
+    }
+
+    return () => {
+      document.body.classList.remove('mobile-navigation-open')
+      mobileNavigationQuery.removeEventListener('change', syncMobileNavigationLock)
+      document.removeEventListener('keydown', closeMobileNavigation)
+    }
+  }, [mobileSidebarOpen])
+
+  React.useEffect(() => {
     document.documentElement.dataset.theme = themeMode
 
     try {
@@ -641,6 +667,7 @@ export default function AppShell<
       <ApplicationShell
         sidebarCollapsed={sidebarCollapsed}
         mobileSidebarOpen={mobileSidebarOpen}
+        onOpenMobileSidebar={() => setMobileSidebarOpen(true)}
         onCloseMobileSidebar={() => setMobileSidebarOpen(false)}
         sidebar={(
           <SidebarLayout
@@ -665,6 +692,7 @@ export default function AppShell<
             searchValue={globalSearch}
             brandLabel={restaurantName}
             themeMode={themeMode}
+            mobileSidebarOpen={mobileSidebarOpen}
             workspaceControl={workspaceControl}
             onSearchChange={setGlobalSearch}
             onSearchSubmit={handleGlobalSearchSubmit}
