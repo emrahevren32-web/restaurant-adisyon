@@ -8300,3 +8300,170 @@ body.mobile-navigation-open { overflow:hidden; overscroll-behavior:contain }
   .label-table tbody tr:nth-child(even) td,
   .label-table tbody tr:hover td { text-align:left }
 }
+
+/* Faz 35.2.7 Layout Polish */
+:root {
+  --motion-fast:160ms;
+  --motion-medium:220ms;
+  --motion-slow:260ms;
+  --motion-ease-standard:cubic-bezier(.2, 0, 0, 1);
+  --motion-ease-productive:cubic-bezier(.2, .8, .2, 1);
+}
+
+:where(button, [role="button"], a, input, select, textarea, [tabindex]):focus-visible {
+  outline:2px solid var(--accent);
+  outline-offset:2px;
+  box-shadow:var(--shadow-input-focus);
+}
+
+:where(input, select, textarea):focus-visible {
+  border-color:var(--accent);
+}
+
+:where(.btn, .side-nav-title, .side-nav-item, .topbar-mobile-menu, .topbar-icon-action, .topbar-theme-btn, .topbar-notification, .topbar-user-card, .navigation-quick-access-item, .form-tab, .report-tab-btn, .notification-center-row, .table-tile, .product-pick-main, .marketplace-category-card) {
+  transition-duration:var(--motion-fast);
+  transition-timing-function:var(--motion-ease-standard);
+}
+
+:where(.app-layout, .side-nav, .workspace-content, .navigation-quick-access, .topbar-search, .topbar-user-chevron) {
+  transition-timing-function:var(--motion-ease-standard);
+}
+
+.workspace-scroll-region {
+  scroll-padding-block:calc(var(--topbar-height) + var(--layout-section-gap));
+}
+
+.workspace-content > [class$="-page"] {
+  align-content:start;
+}
+
+.workspace-content :where(.card, .dashboard-panel, .metric-card, .dashboard-kpi-card, .workspace-welcome-panel, .report-center-card) {
+  border-color:var(--line);
+  border-radius:var(--radius-card);
+  box-shadow:var(--shadow-card);
+}
+
+.workspace-content :where(.card, .dashboard-panel, .metric-card, .dashboard-kpi-card) {
+  transition:border-color var(--motion-fast) var(--motion-ease-standard), box-shadow var(--motion-fast) var(--motion-ease-standard), background var(--motion-fast) var(--motion-ease-standard);
+}
+
+.workspace-content :where(.card, .dashboard-panel, .metric-card) > :where(.section-header, .dashboard-panel-header):first-child {
+  padding-bottom:var(--space-8);
+  border-bottom:1px solid var(--line-soft);
+}
+
+:where(.page-title, .dashboard-title, .section-header, .dashboard-panel-header) {
+  column-gap:var(--space-16);
+  row-gap:var(--space-8);
+}
+
+:where(.page-title, .dashboard-title) {
+  min-height:calc(var(--touch-target) + var(--space-12));
+}
+
+:where(.page-title h2, .topbar-title strong) {
+  overflow-wrap:anywhere;
+}
+
+.section-header > :first-child,
+.dashboard-panel-header > :first-child {
+  min-width:min(100%, 260px);
+}
+
+.section-header > :last-child,
+.dashboard-panel-header > :last-child,
+.dashboard-title-actions {
+  max-width:100%;
+}
+
+.workspace-content :where(.metric-grid, .dashboard-kpi-grid, .dashboard-panel-kpi-grid, .excel-card-grid, .label-card-grid, .supplier-dashboard-grid, .purchase-request-dashboard-grid, .purchase-request-stat-grid, .purchase-request-suggestion-grid) {
+  align-items:stretch;
+  gap:var(--layout-widget-gap);
+}
+
+.workspace-content :where([class$="-layout"], [class*="-layout "], [class$="-grid"], [class*="-grid "]) > * {
+  min-width:0;
+}
+
+:where(.btn, .topbar-icon-action, .topbar-theme-btn, .topbar-notification, .topbar-mobile-menu, .side-nav-collapse-btn, .side-nav-mobile-close, .navigation-quick-access-item, .form-tab, .report-tab-btn) > svg,
+:where(.btn, .topbar-icon-action, .topbar-theme-btn, .topbar-notification, .topbar-mobile-menu, .side-nav-collapse-btn, .side-nav-mobile-close, .navigation-quick-access-item, .form-tab, .report-tab-btn) .app-icon,
+:where(.side-nav-icon, .side-nav-title-icon, .topbar-search-icon, .topbar-workspace-icon, .navigation-breadcrumb-icon, .navigation-quick-access-icon) {
+  flex-shrink:0;
+}
+
+:where(.table-wrap, .table-scroll, .data-table-wrap, .workspace-scroll-region, .side-nav-groups, .notification-list) {
+  overscroll-behavior:contain;
+  scrollbar-color:var(--line-strong) transparent;
+  scrollbar-gutter:stable;
+}
+
+:where(.table-wrap, .table-scroll, .data-table-wrap, .workspace-scroll-region, .side-nav-groups, .notification-list)::-webkit-scrollbar {
+  width:var(--space-8);
+  height:var(--space-8);
+}
+
+:where(.table-wrap, .table-scroll, .data-table-wrap, .workspace-scroll-region, .side-nav-groups, .notification-list)::-webkit-scrollbar-track {
+  background:transparent;
+}
+
+:where(.table-wrap, .table-scroll, .data-table-wrap, .workspace-scroll-region, .side-nav-groups, .notification-list)::-webkit-scrollbar-thumb {
+  border:2px solid transparent;
+  border-radius:var(--radius-full);
+  background:var(--line-strong);
+  background-clip:content-box;
+}
+
+:where(.table-wrap, .table-scroll, .data-table-wrap, .workspace-scroll-region, .side-nav-groups, .notification-list)::-webkit-scrollbar-thumb:hover {
+  background:var(--muted-strong);
+  background-clip:content-box;
+}
+
+@media (hover: hover) and (pointer: fine){
+  .workspace-content :where(.card, .dashboard-panel, .metric-card, .dashboard-kpi-card):hover {
+    border-color:var(--line-strong);
+  }
+
+  :where(.btn, .side-nav-item, .side-nav-title, .navigation-quick-access-item, .topbar-notification, .topbar-user-card, .topbar-theme-btn, .topbar-icon-action, .topbar-mobile-menu):hover {
+    transition-duration:var(--motion-fast);
+  }
+}
+
+@media (max-width: 980px){
+  :where(.page-title, .dashboard-title, .section-header, .dashboard-panel-header) {
+    align-items:flex-start;
+  }
+
+  :where(.page-title, .dashboard-title) > :not(:first-child),
+  :where(.section-header, .dashboard-panel-header) > :not(:first-child) {
+    margin-left:0;
+  }
+
+  .workspace-content :where(.card, .dashboard-panel, .metric-card) > :where(.section-header, .dashboard-panel-header):first-child {
+    padding-bottom:var(--space-8);
+  }
+}
+
+@media (max-width: 640px){
+  :where(.page-title, .dashboard-title, .section-header, .dashboard-panel-header) {
+    flex-direction:column;
+  }
+
+  :where(.page-title, .dashboard-title, .section-header, .dashboard-panel-header) > * {
+    width:100%;
+  }
+
+  :where(.page-title h2, .section-header h3) {
+    max-width:100%;
+  }
+}
+
+@media (prefers-reduced-motion: reduce){
+  *,
+  *::before,
+  *::after {
+    animation-duration:1ms !important;
+    animation-iteration-count:1 !important;
+    scroll-behavior:auto !important;
+    transition-duration:1ms !important;
+  }
+}
