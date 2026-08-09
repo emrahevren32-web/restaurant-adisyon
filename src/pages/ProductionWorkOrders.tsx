@@ -1,4 +1,7 @@
 import React from 'react'
+import { BarcodeIntegrationService } from '../barcode-engine/barcode-integration.service'
+import type { BarcodeGenerateInput } from '../barcode-engine/barcode.types'
+import BarcodePreviewModal from '../components/BarcodePreviewModal'
 import type { User } from '../types'
 import {
   PRODUCTION_WORK_ORDER_BRANCHES,
@@ -289,6 +292,7 @@ export default function ProductionWorkOrders({ currentUser }: Props){
   const [form, setForm] = React.useState<WorkOrderFormState>(() => createInitialForm(currentUser))
   const [formError, setFormError] = React.useState('')
   const [toast, setToast] = React.useState<ToastState | null>(null)
+  const [barcodePreviewRequest, setBarcodePreviewRequest] = React.useState<BarcodeGenerateInput | null>(null)
 
   const actorName = currentUser.fullName || currentUser.username || 'Kullanıcı'
 
@@ -873,6 +877,7 @@ export default function ProductionWorkOrders({ currentUser }: Props){
 
           <div className="production-work-order-side-actions">
             <button className="btn primary" type="button" onClick={() => openDetail(selectedOrder.id)}>Detay</button>
+            <button className="btn" type="button" onClick={() => setBarcodePreviewRequest(BarcodeIntegrationService.fromProductionOrder(selectedOrder))}>Barkod Önizle</button>
             <button className="btn" type="button" onClick={() => startEditOrder(selectedOrder)}>Düzenle</button>
             <button className="btn" type="button" onClick={() => showPlaceholder('Kopyala')}>Kopyala</button>
             <button className="btn" type="button" onClick={() => openPrintPreview(selectedOrder.id)}>Yazdır</button>
@@ -921,6 +926,7 @@ export default function ProductionWorkOrders({ currentUser }: Props){
           </div>
           <div className="production-work-order-detail-actions">
             <button className="btn" type="button" onClick={returnToList}>Listeye Dön</button>
+            <button className="btn" type="button" onClick={() => setBarcodePreviewRequest(BarcodeIntegrationService.fromProductionOrder(selectedOrder))}>Barkod Önizle</button>
             <button className="btn" type="button" onClick={() => startEditOrder(selectedOrder)}>Düzenle</button>
             <button className="btn primary" type="button" onClick={() => openPrintPreview(selectedOrder.id)}>İş Emri Yazdır</button>
           </div>
@@ -1004,6 +1010,12 @@ export default function ProductionWorkOrders({ currentUser }: Props){
           </div>
           {renderHistory(selectedOrder)}
         </section>
+        <BarcodePreviewModal
+          request={barcodePreviewRequest}
+          bulkRequests={visibleOrders.map(order => BarcodeIntegrationService.fromProductionOrder(order))}
+          userName={actorName}
+          onClose={() => setBarcodePreviewRequest(null)}
+        />
       </div>
     )
   }
@@ -1220,6 +1232,12 @@ export default function ProductionWorkOrders({ currentUser }: Props){
           {panelMode === 'form' ? renderFormPanel() : renderSummaryPanel()}
         </aside>
       </div>
+      <BarcodePreviewModal
+        request={barcodePreviewRequest}
+        bulkRequests={visibleOrders.map(order => BarcodeIntegrationService.fromProductionOrder(order))}
+        userName={actorName}
+        onClose={() => setBarcodePreviewRequest(null)}
+      />
     </div>
   )
 }

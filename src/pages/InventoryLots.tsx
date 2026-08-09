@@ -1,4 +1,7 @@
 import React from 'react'
+import { BarcodeIntegrationService } from '../barcode-engine/barcode-integration.service'
+import type { BarcodeGenerateInput } from '../barcode-engine/barcode.types'
+import BarcodePreviewModal from '../components/BarcodePreviewModal'
 import { ExcelIntegrationService } from '../excel-engine/excel-integration.service'
 import {
   INVENTORY_LOT_STATUSES,
@@ -143,6 +146,7 @@ export default function InventoryLots(){
   const [supplierFilter, setSupplierFilter] = React.useState('all')
   const [stockItemFilter, setStockItemFilter] = React.useState('all')
   const [expiryFilter, setExpiryFilter] = React.useState<ExpiryFilter>('all')
+  const [barcodePreviewRequest, setBarcodePreviewRequest] = React.useState<BarcodeGenerateInput | null>(null)
 
   const { branches, goodsReceipts, purchaseOrders, purchaseRequests, stockItems, suppliers } = initialData
   const branchMap = React.useMemo(() => new Map(branches.map(branch => [branch.id, branch])), [branches])
@@ -370,9 +374,16 @@ export default function InventoryLots(){
             stockItemMap={stockItemMap}
             branchMap={branchMap}
             onStatusChange={updateStatus}
+            onPreviewBarcode={lot => setBarcodePreviewRequest(BarcodeIntegrationService.fromLot(lot))}
           />
         </aside>
       </div>
+      <BarcodePreviewModal
+        request={barcodePreviewRequest}
+        bulkRequests={visibleRecords.map(record => BarcodeIntegrationService.fromLot(record))}
+        userName={ExcelIntegrationService.defaultUserName}
+        onClose={() => setBarcodePreviewRequest(null)}
+      />
     </div>
   )
 }
@@ -385,7 +396,8 @@ function InventoryLotDetailPanel({
   supplierMap,
   stockItemMap,
   branchMap,
-  onStatusChange
+  onStatusChange,
+  onPreviewBarcode
 }: {
   lot: InventoryLot | null
   receiptMap: Map<string, GoodsReceiptRecord>
@@ -395,6 +407,7 @@ function InventoryLotDetailPanel({
   stockItemMap: Map<string, StockItem>
   branchMap: Map<string, Branch>
   onStatusChange: (lot: InventoryLot, status: InventoryLotStatus) => void
+  onPreviewBarcode: (lot: InventoryLot) => void
 }){
   if(!lot){
     return (
@@ -430,6 +443,7 @@ function InventoryLotDetailPanel({
               <option key={status} value={status}>{INVENTORY_LOT_STATUS_LABELS[status]}</option>
             ))}
           </select>
+          <button className="btn" type="button" onClick={() => onPreviewBarcode(lot)}>Barkod Önizle</button>
         </div>
       </section>
 

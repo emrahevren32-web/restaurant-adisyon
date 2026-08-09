@@ -1,4 +1,7 @@
 import React from 'react'
+import { BarcodeIntegrationService } from '../barcode-engine/barcode-integration.service'
+import type { BarcodeGenerateInput } from '../barcode-engine/barcode.types'
+import BarcodePreviewModal from '../components/BarcodePreviewModal'
 import { ExcelIntegrationService } from '../excel-engine/excel-integration.service'
 import { loadKpiSourceData } from '../kpi-reporting/kpi-source.service'
 import type { BarChartRow, ChartSeries } from '../kpi-reporting/kpi.types'
@@ -130,6 +133,7 @@ export default function WasteManagement({ currentUser }: { currentUser: User }){
   const [selectedRecordId, setSelectedRecordId] = React.useState('')
   const [form, setForm] = React.useState<CreateFormState>(() => createInitialForm(lotOptions[0]?.id || ''))
   const [message, setMessage] = React.useState<Message | null>(null)
+  const [barcodePreviewRequest, setBarcodePreviewRequest] = React.useState<BarcodeGenerateInput | null>(null)
   const filteredRecords = React.useMemo(() => WasteService.filter(records, filters), [records, filters])
   const statistics = React.useMemo(() => WasteService.statistics(records, sourceData), [records, sourceData])
   const analysis = React.useMemo(() => WasteService.analysis(records, sourceData), [records, sourceData])
@@ -449,6 +453,7 @@ export default function WasteManagement({ currentUser }: { currentUser: User }){
             <WasteDetailPanel
               record={selectedRecord}
               analysis={analysis}
+              onPreviewBarcode={record => setBarcodePreviewRequest(BarcodeIntegrationService.fromWasteRecord(record))}
               onStatusChange={changeStatus}
               onOutput={recordOutput}
             />
@@ -460,6 +465,12 @@ export default function WasteManagement({ currentUser }: { currentUser: User }){
           )}
         </aside>
       </div>
+      <BarcodePreviewModal
+        request={barcodePreviewRequest}
+        bulkRequests={filteredRecords.map(record => BarcodeIntegrationService.fromWasteRecord(record))}
+        userName={userName}
+        onClose={() => setBarcodePreviewRequest(null)}
+      />
     </div>
   )
 }
@@ -467,11 +478,13 @@ export default function WasteManagement({ currentUser }: { currentUser: User }){
 function WasteDetailPanel({
   analysis,
   onOutput,
+  onPreviewBarcode,
   onStatusChange,
   record
 }: {
   analysis: ReturnType<typeof WasteService.analysis>
   onOutput: (action: Extract<WasteHistoryAction, 'PRINTED' | 'PDF' | 'EXCEL'>) => void
+  onPreviewBarcode: (record: WasteRecord) => void
   onStatusChange: (status: WasteStatus) => void
   record: WasteRecord
 }){
@@ -487,6 +500,7 @@ function WasteDetailPanel({
         </div>
 
         <div className="waste-output-actions">
+          <button className="btn" type="button" onClick={() => onPreviewBarcode(record)}>Barkod Önizle</button>
           <button className="btn" type="button" onClick={() => onOutput('PRINTED')}>Yazdir</button>
           <button className="btn" type="button" onClick={() => onOutput('PDF')}>PDF</button>
           <button className="btn" type="button" onClick={() => onOutput('EXCEL')}>Excel</button>

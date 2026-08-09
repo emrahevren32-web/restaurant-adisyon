@@ -1,3 +1,4 @@
+import { BarcodeIntegrationService } from '../barcode-engine/barcode-integration.service'
 import { getLabelTemplate } from './label-template.service'
 import type {
   Label,
@@ -36,6 +37,8 @@ export const validateLabel = (
     errors.push('Secilen sablon etiket turunu desteklemiyor.')
   }
   if(!label.barcodeValue.trim()) errors.push('Code-128 barkod degeri zorunludur.')
+  const barcodeValidation = BarcodeIntegrationService.validateValue(label.barcodeValue, 'CODE128')
+  if(label.barcodeValue.trim() && !barcodeValidation.valid) errors.push(...barcodeValidation.errors)
   if(!label.qrPayload.trim()) errors.push('QR payload zorunludur.')
   if(!Number.isFinite(label.netWeight) || label.netWeight < 0) errors.push('Net agirlik negatif olamaz.')
   if(!Number.isFinite(label.grossWeight) || label.grossWeight < 0) errors.push('Brut agirlik negatif olamaz.')

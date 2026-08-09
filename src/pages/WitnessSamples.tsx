@@ -1,4 +1,7 @@
 import React from 'react'
+import { BarcodeIntegrationService } from '../barcode-engine/barcode-integration.service'
+import type { BarcodeGenerateInput } from '../barcode-engine/barcode.types'
+import BarcodePreviewModal from '../components/BarcodePreviewModal'
 import { loadFinalProducts } from '../final-products/final-product.mock'
 import type { FinalProduct } from '../final-products/final-product.types'
 import { loadGoodsReceiptRecords } from '../goods-receipts/goods-receipt.mock'
@@ -232,6 +235,7 @@ export default function WitnessSamples({ currentUser }: { currentUser: User }){
     createEmptyForm(initialData.witnessSamples, initialData.qualitySamples, currentUser)
   ))
   const [formError, setFormError] = React.useState('')
+  const [barcodePreviewRequest, setBarcodePreviewRequest] = React.useState<BarcodeGenerateInput | null>(null)
 
   const { branches, inventoryLots, productRefs, productionOrders, qualitySamples, stockItems } = initialData
   const branchMap = React.useMemo(() => new Map(branches.map(branch => [branch.id, branch])), [branches])
@@ -494,6 +498,11 @@ export default function WitnessSamples({ currentUser }: { currentUser: User }){
             record={selectedRecord}
             stockItemMap={stockItemMap}
             onEdit={startEdit}
+            onPreviewBarcode={record => setBarcodePreviewRequest(BarcodeIntegrationService.fromWitnessSample(
+              record,
+              sampleMap.get(record.qualitySampleId) || null,
+              getLotFromWitness(record, sampleMap, lotMap)
+            ))}
             onStatusChange={updateStatus}
           />
           <WitnessFormPanel
@@ -512,6 +521,16 @@ export default function WitnessSamples({ currentUser }: { currentUser: User }){
           />
         </aside>
       </div>
+      <BarcodePreviewModal
+        request={barcodePreviewRequest}
+        bulkRequests={visibleRecords.map(record => BarcodeIntegrationService.fromWitnessSample(
+          record,
+          sampleMap.get(record.qualitySampleId) || null,
+          getLotFromWitness(record, sampleMap, lotMap)
+        ))}
+        userName={getUserName(currentUser)}
+        onClose={() => setBarcodePreviewRequest(null)}
+      />
     </div>
   )
 }
@@ -525,6 +544,7 @@ function WitnessDetailPanel({
   sampleMap,
   stockItemMap,
   onEdit,
+  onPreviewBarcode,
   onStatusChange
 }: {
   branchMap: Map<string, Branch>
@@ -535,6 +555,7 @@ function WitnessDetailPanel({
   sampleMap: Map<string, QualitySample>
   stockItemMap: Map<string, StockItem>
   onEdit: (record: WitnessSample) => void
+  onPreviewBarcode: (record: WitnessSample) => void
   onStatusChange: (record: WitnessSample, status: WitnessSampleStatus) => void
 }){
   if(!record){
@@ -569,6 +590,7 @@ function WitnessDetailPanel({
               <option key={status} value={status}>{WITNESS_SAMPLE_STATUS_LABELS[status]}</option>
             ))}
           </select>
+          <button className="btn secondary" type="button" onClick={() => onPreviewBarcode(record)}>Barkod Önizle</button>
           <button className="btn secondary" type="button" onClick={() => onEdit(record)}>Düzenle</button>
         </div>
       </section>

@@ -1,4 +1,7 @@
 import React from 'react'
+import { BarcodeIntegrationService } from '../barcode-engine/barcode-integration.service'
+import type { BarcodeGenerateInput } from '../barcode-engine/barcode.types'
+import BarcodePreviewModal from '../components/BarcodePreviewModal'
 import { ExcelIntegrationService } from '../excel-engine/excel-integration.service'
 import {
   SHIPMENT_PRIORITIES,
@@ -303,6 +306,7 @@ export default function Shipments({ currentUser }: Props){
   const [priorityFilter, setPriorityFilter] = React.useState<PriorityFilter>('all')
   const [warehouseFilter, setWarehouseFilter] = React.useState('all')
   const [branchFilter, setBranchFilter] = React.useState('all')
+  const [barcodePreviewRequest, setBarcodePreviewRequest] = React.useState<BarcodeGenerateInput | null>(null)
 
   const { branches, inventoryLots, stockItems } = initialData
 
@@ -806,6 +810,9 @@ export default function Shipments({ currentUser }: Props){
                   <button className="primary-button" type="button" onClick={() => openEditForm(selectedRecord)}>
                     Düzenle
                   </button>
+                  <button className="btn" type="button" onClick={() => setBarcodePreviewRequest(BarcodeIntegrationService.fromShipment(selectedRecord))}>
+                    Barkod Önizle
+                  </button>
                   <label>
                     <span>Durum</span>
                     <select
@@ -900,6 +907,12 @@ export default function Shipments({ currentUser }: Props){
           )}
         </aside>
       </div>
+      <BarcodePreviewModal
+        request={barcodePreviewRequest}
+        bulkRequests={visibleRecords.map(record => BarcodeIntegrationService.fromShipment(record))}
+        userName={getUserName(currentUser)}
+        onClose={() => setBarcodePreviewRequest(null)}
+      />
     </div>
   )
 }

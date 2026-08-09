@@ -1,4 +1,7 @@
 import React from 'react'
+import { BarcodeIntegrationService } from '../barcode-engine/barcode-integration.service'
+import type { BarcodeGenerateInput } from '../barcode-engine/barcode.types'
+import BarcodePreviewModal from '../components/BarcodePreviewModal'
 import { ExcelIntegrationService } from '../excel-engine/excel-integration.service'
 import { loadFinalProducts } from '../final-products/final-product.mock'
 import type { FinalProduct } from '../final-products/final-product.types'
@@ -226,6 +229,7 @@ export default function SampleTracking({ currentUser }: { currentUser: User }){
     createEmptyForm(initialData.samples, initialData.inventoryLots, currentUser)
   ))
   const [formError, setFormError] = React.useState('')
+  const [barcodePreviewRequest, setBarcodePreviewRequest] = React.useState<BarcodeGenerateInput | null>(null)
 
   const { branches, inventoryLots, productRefs, productionOrders, stockItems } = initialData
   const availableLots = React.useMemo(() => getAvailableLots(inventoryLots), [inventoryLots])
@@ -501,6 +505,7 @@ export default function SampleTracking({ currentUser }: { currentUser: User }){
             sample={selectedSample}
             stockItemMap={stockItemMap}
             onEdit={startEdit}
+            onPreviewBarcode={sample => setBarcodePreviewRequest(BarcodeIntegrationService.fromQualitySample(sample, lotMap.get(sample.inventoryLotId) || null))}
             onStatusChange={updateStatus}
           />
           <SampleFormPanel
@@ -519,6 +524,12 @@ export default function SampleTracking({ currentUser }: { currentUser: User }){
           />
         </aside>
       </div>
+      <BarcodePreviewModal
+        request={barcodePreviewRequest}
+        bulkRequests={visibleSamples.map(sample => BarcodeIntegrationService.fromQualitySample(sample, lotMap.get(sample.inventoryLotId) || null))}
+        userName={getUserName(currentUser)}
+        onClose={() => setBarcodePreviewRequest(null)}
+      />
     </div>
   )
 }
@@ -531,6 +542,7 @@ function SampleDetailPanel({
   sample,
   stockItemMap,
   onEdit,
+  onPreviewBarcode,
   onStatusChange
 }: {
   branchMap: Map<string, Branch>
@@ -540,6 +552,7 @@ function SampleDetailPanel({
   sample: QualitySample | null
   stockItemMap: Map<string, StockItem>
   onEdit: (sample: QualitySample) => void
+  onPreviewBarcode: (sample: QualitySample) => void
   onStatusChange: (sample: QualitySample, status: QualitySampleStatus) => void
 }){
   if(!sample){
@@ -573,6 +586,7 @@ function SampleDetailPanel({
               <option key={status} value={status}>{QUALITY_SAMPLE_STATUS_LABELS[status]}</option>
             ))}
           </select>
+          <button className="btn secondary" type="button" onClick={() => onPreviewBarcode(sample)}>Barkod Önizle</button>
           <button className="btn secondary" type="button" onClick={() => onEdit(sample)}>Düzenle</button>
         </div>
       </section>

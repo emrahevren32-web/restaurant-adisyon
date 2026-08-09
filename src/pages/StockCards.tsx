@@ -1,4 +1,7 @@
 import React from 'react'
+import { BarcodeIntegrationService } from '../barcode-engine/barcode-integration.service'
+import type { BarcodeGenerateInput } from '../barcode-engine/barcode.types'
+import BarcodePreviewModal from '../components/BarcodePreviewModal'
 import { ExcelIntegrationService } from '../excel-engine/excel-integration.service'
 import {
   APPROVED_ALTERNATIVE_MATERIAL_STATUS_LABELS,
@@ -177,6 +180,7 @@ export default function StockCards({ currentUser, focus = 'cards' }: Props){
   const [expiryEvents, setExpiryEvents] = React.useState(() => loadStockExpiryEvents())
   const [lotPanelItem, setLotPanelItem] = React.useState<StockItem | null>(null)
   const [alternativePanelItem, setAlternativePanelItem] = React.useState<StockItem | null>(null)
+  const [barcodePreviewRequest, setBarcodePreviewRequest] = React.useState<BarcodeGenerateInput | null>(null)
   const [alternativeSearch, setAlternativeSearch] = React.useState('')
   const [alternativeApprovalFilter, setAlternativeApprovalFilter] = React.useState<AlternativeApprovalFilter>('all')
   const [alternativeActiveFilter, setAlternativeActiveFilter] = React.useState<ApprovedAlternativeMaterialActiveFilter>('all')
@@ -992,6 +996,7 @@ export default function StockCards({ currentUser, focus = 'cards' }: Props){
                         </div>
                       </td>
                       <td className="actions-cell">
+                        <button className="btn" onClick={() => setBarcodePreviewRequest(BarcodeIntegrationService.fromRawMaterial(item))}>Barkod Önizle</button>
                         <button className="btn" onClick={() => setAlternativePanelItem(item)}>Muadiller</button>
                         <button className={`btn ${item.tracksExpiry ? 'lot-view-btn' : ''}`} onClick={() => setLotPanelItem(item)}>Lotları Gör</button>
                         <button className="btn" onClick={() => startEditItem(item)}>Düzenle</button>
@@ -1352,6 +1357,12 @@ export default function StockCards({ currentUser, focus = 'cards' }: Props){
           </div>
         </div>
       )}
+      <BarcodePreviewModal
+        request={barcodePreviewRequest}
+        bulkRequests={sortedVisibleItems.map(item => BarcodeIntegrationService.fromRawMaterial(item))}
+        userName={currentUser.fullName || currentUser.username}
+        onClose={() => setBarcodePreviewRequest(null)}
+      />
     </div>
   )
 }
