@@ -13,14 +13,22 @@ export const WorkspaceLayout = ({
 }: WorkspaceLayoutProps) => (
   React.createElement(
     'main',
-    { className: 'app-content', 'aria-label': `${title} çalışma alanı` },
+    { className: 'app-content', 'aria-label': `${title} çalışma alanı`, tabIndex: -1 },
     React.createElement(
       'div',
-      { className: 'workspace-layout' },
-      React.createElement('div', { className: 'workspace-content' }, children),
-      footer
-        ? React.createElement('footer', { className: 'workspace-footer' }, footer)
-        : null
+      { className: 'workspace-scroll-region' },
+      React.createElement(
+        'div',
+        { className: 'workspace-layout', 'data-workspace-title': title },
+        React.createElement(
+          'div',
+          { className: 'workspace-content-shell' },
+          React.createElement('div', { className: 'workspace-content' }, children)
+        ),
+        footer
+          ? React.createElement('footer', { className: 'workspace-footer' }, footer)
+          : null
+      )
     )
   )
 )
