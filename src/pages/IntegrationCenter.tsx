@@ -1,4 +1,5 @@
 import React from 'react'
+import { AppIcon } from '../design-system/IconSystem'
 import {
   getWorkspaceIntegrationCatalog,
   getWorkspaceIntegrationFilterOptions,
@@ -147,7 +148,14 @@ export default function IntegrationCenter(){
         {integrations.map(integration => (
           <article className="integration-card" key={integration.integrationId}>
             <div className="integration-card-header">
-              <span className="integration-card-icon" aria-hidden="true">{integration.icon}</span>
+              <span className="integration-card-icon" aria-hidden="true">
+                <AppIcon
+                  source={integration.icon}
+                  label={integration.name}
+                  context={`${integration.code} ${integration.category} ${integration.tags.join(' ')}`}
+                  size="XL"
+                />
+              </span>
               <div>
                 <span className={`status-pill ${statusClassNames[integration.status]}`}>{statusLabels[integration.status]}</span>
                 <h3>{integration.name}</h3>

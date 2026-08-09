@@ -1,4 +1,5 @@
 import React from 'react'
+import { AppIcon, type AppIconProps } from '../design-system/IconSystem'
 import {
   NotificationEngineService,
   NOTIFICATION_CATEGORIES,
@@ -66,6 +67,14 @@ const getNotificationTone = (record: NotificationRecord) => {
   if(record.type === 'CRITICAL' || record.type === 'ERROR') return 'danger'
   if(record.type === 'WARNING') return 'warning'
   if(record.type === 'SUCCESS') return 'success'
+  return 'info'
+}
+
+const getNotificationIconName = (type: NotificationType): NonNullable<AppIconProps['name']> => {
+  if(type === 'SUCCESS') return 'success'
+  if(type === 'WARNING') return 'warning'
+  if(type === 'ERROR') return 'error'
+  if(type === 'CRITICAL') return 'critical'
   return 'info'
 }
 
@@ -263,7 +272,9 @@ export default function NotificationCenter({ currentUser }: { currentUser: User 
                 type="button"
                 onClick={() => setSelectedNotificationId(record.id)}
               >
-                <span className="notification-center-row-icon" aria-hidden="true">{record.type.slice(0, 1)}</span>
+                <span className="notification-center-row-icon" aria-hidden="true">
+                  <AppIcon name={getNotificationIconName(record.type)} size="MD" />
+                </span>
                 <span className="notification-center-row-copy">
                   <span className="notification-center-row-meta">
                     <span>{record.notificationNo}</span>

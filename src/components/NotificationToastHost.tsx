@@ -1,4 +1,5 @@
 import React from 'react'
+import { AppIcon } from '../design-system/IconSystem'
 import {
   NotificationEngineService,
   NOTIFICATION_TYPE_LABELS
@@ -8,6 +9,14 @@ import type { ToastNotification } from '../notification-engine/notification-engi
 const getToastClass = (toast: ToastNotification) => (
   `notification-toast ${toast.type.toLocaleLowerCase('tr-TR')}`
 )
+
+const getToastIconName = (toast: ToastNotification) => {
+  if(toast.type === 'SUCCESS') return 'success'
+  if(toast.type === 'WARNING') return 'warning'
+  if(toast.type === 'ERROR') return 'error'
+  if(toast.type === 'CRITICAL') return 'critical'
+  return 'info'
+}
 
 export default function NotificationToastHost(){
   const [toasts, setToasts] = React.useState<ToastNotification[]>([])
@@ -29,6 +38,9 @@ export default function NotificationToastHost(){
     <div className="notification-toast-stack" aria-live="polite" aria-atomic="false">
       {toasts.map(toast => (
         <section className={getToastClass(toast)} key={toast.id}>
+          <span className="notification-toast-icon" aria-hidden="true">
+            <AppIcon name={getToastIconName(toast)} size="SM" />
+          </span>
           <div className="notification-toast-copy">
             <span>{NOTIFICATION_TYPE_LABELS[toast.type]} / {toast.moduleLabel}</span>
             <strong>{toast.title}</strong>
@@ -40,7 +52,7 @@ export default function NotificationToastHost(){
             aria-label="Bildirimi kapat"
             onClick={() => setToasts(current => current.filter(item => item.id !== toast.id))}
           >
-            x
+            <AppIcon name="close" size="SM" />
           </button>
         </section>
       ))}

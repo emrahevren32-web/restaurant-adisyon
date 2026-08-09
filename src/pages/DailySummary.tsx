@@ -1,4 +1,5 @@
 import React from 'react'
+import { AppIcon } from '../design-system/IconSystem'
 import {
   addDashboardWidget,
   DASHBOARD_WIDGET_LAYOUT_EVENT,
@@ -60,7 +61,12 @@ const WidgetCard = ({
 }) => (
   <article className={`dashboard-widget-card ${widget.size}`}>
     <span className="dashboard-widget-card-icon" aria-hidden="true">
-      {widget.definition.icon || widget.definition.moduleIcon}
+      <AppIcon
+        source={widget.definition.icon || widget.definition.moduleIcon}
+        label={widget.definition.title}
+        context={`${widget.definition.moduleCode} ${widget.definition.category} ${widget.definition.moduleName}`}
+        size="LG"
+      />
     </span>
     <div className="dashboard-widget-card-body">
       <div className="dashboard-widget-card-meta">
@@ -75,9 +81,11 @@ const WidgetCard = ({
     </div>
     <div className="dashboard-widget-card-actions">
       <button className="btn ghost" type="button" onClick={() => onHide(widget.id)}>
+        <AppIcon name="hide" size="SM" />
         Gizle
       </button>
       <button className="btn danger" type="button" onClick={() => onRemove(widget.id)}>
+        <AppIcon name="remove" size="SM" />
         Kaldır
       </button>
     </div>
@@ -204,7 +212,9 @@ export default function DailySummary({ currentUser, onOpenMarketplace, onOpenWor
               title={action.description}
               onClick={() => handleQuickAction(action)}
             >
-              <span className="dashboard-template-action-icon" aria-hidden="true">{action.icon}</span>
+              <span className="dashboard-template-action-icon" aria-hidden="true">
+                <AppIcon source={action.icon} label={action.label} context={action.actionType} size="XS" />
+              </span>
               <span>{action.label}</span>
             </button>
           ))}
@@ -213,7 +223,9 @@ export default function DailySummary({ currentUser, onOpenMarketplace, onOpenWor
 
       {container.isEmpty ? (
         <section className="dashboard-widget-empty" data-onboarding-target="widget-area">
-          <span className="dashboard-widget-empty-icon" aria-hidden="true">{dashboardEmptyState?.icon || 'KP'}</span>
+          <span className="dashboard-widget-empty-icon" aria-hidden="true">
+            <AppIcon source={dashboardEmptyState?.icon || 'KP'} label={dashboardEmptyState?.title} context="dashboard empty state" size="XXL" />
+          </span>
           <div>
             <h3>{dashboardEmptyState?.title || 'İlk widgetınızı ekleyin'}</h3>
             <p>{dashboardEmptyState?.description || 'Kontrol paneliniz, takip etmek istediğiniz özetleri tek alanda toplar.'}</p>
@@ -226,10 +238,12 @@ export default function DailySummary({ currentUser, onOpenMarketplace, onOpenWor
                   setWidgetMessage('')
                 }}
               >
+                <AppIcon name="plus" size="SM" />
                 {dashboardEmptyState?.actionLabel || 'Widget Ekle'}
               </button>
               {!hasBusinessModules && (
                 <button className="btn" type="button" onClick={onOpenMarketplace}>
+                  <AppIcon name="marketplace" size="SM" />
                   Modül Mağazasına Git
                 </button>
               )}
@@ -247,6 +261,7 @@ export default function DailySummary({ currentUser, onOpenMarketplace, onOpenWor
                 setWidgetMessage('')
               }}
             >
+              <AppIcon name="plus" size="SM" />
               + Widget Ekle
             </button>
           </div>
@@ -304,7 +319,12 @@ export default function DailySummary({ currentUser, onOpenMarketplace, onOpenWor
                       {group.widgets.map(widget => (
                         <article className="dashboard-widget-catalog-card compact" key={widget.id}>
                           <span className="dashboard-widget-card-icon" aria-hidden="true">
-                            {widget.icon || widget.moduleIcon}
+                            <AppIcon
+                              source={widget.icon || widget.moduleIcon}
+                              label={widget.title}
+                              context={`${widget.moduleCode} ${widget.category} ${widget.moduleName}`}
+                              size="MD"
+                            />
                           </span>
                           <div>
                             <strong>{widget.moduleName}</strong>
@@ -320,6 +340,7 @@ export default function DailySummary({ currentUser, onOpenMarketplace, onOpenWor
                             disabled={widget.added && widget.visibleInDashboard}
                             onClick={() => handleAddWidget(widget)}
                           >
+                            <AppIcon name={widget.added && widget.visibleInDashboard ? 'success' : 'plus'} size="SM" />
                             {getCatalogActionLabel(widget)}
                           </button>
                         </article>

@@ -1,4 +1,5 @@
 import React from 'react'
+import { AppIcon } from '../design-system/IconSystem'
 import {
   createBusinessSetupWizardPlan,
   getBusinessSetupModuleCategory,
@@ -106,7 +107,9 @@ const ModuleCard = ({
       ) : (
         <span className="first-login-module-marker" aria-hidden="true" />
       )}
-      <span>{module.icon || module.name.slice(0, 2).toLocaleUpperCase('tr-TR')}</span>
+      <span aria-hidden="true">
+        <AppIcon source={module.icon} label={module.name} context={module.moduleCode} size="LG" />
+      </span>
       <div>
         <h3>{module.name}</h3>
         <p>{module.description}</p>
@@ -122,7 +125,9 @@ const ModuleCard = ({
 
 const DependencyCard = ({ module }: { module: ModuleDependencyPlanItem }) => (
   <article className={`first-login-module-card dependency ${module.isFuture ? 'future' : ''}`}>
-    <span>{module.icon || module.name.slice(0, 2).toLocaleUpperCase('tr-TR')}</span>
+    <span aria-hidden="true">
+      <AppIcon source={module.icon} label={module.name} context={module.moduleCode} size="LG" />
+    </span>
     <div>
       <h3>{module.name}</h3>
       <p>{module.description}</p>
@@ -580,7 +585,9 @@ export default function FirstLoginWizard({ currentUser, onboardingState, onCompl
 
         {stepIndex === 6 && (
           <div className="first-login-complete">
-            <span className="first-login-success-icon" aria-hidden="true">✓</span>
+            <span className="first-login-success-icon" aria-hidden="true">
+              <AppIcon name="success" size="XXL" />
+            </span>
             <h3>Kurulum Tamamlandı</h3>
             <p className="muted">
               İşletmeniz artık kullanıma hazır.

@@ -1,4 +1,5 @@
 import React from 'react'
+import { AppIcon } from '../design-system/IconSystem'
 import { Discount, DiscountType, PaymentMethod, PaymentPart, Product, ProductCategory, TableState } from '../types'
 import {
   calculatePaymentsTotal,
@@ -281,7 +282,10 @@ export default function TableCard({
           <p className="muted">{table.open ? 'Açık işlem' : 'Kapalı alan'}</p>
         </div>
         <div className="table-header-actions">
-          <button className="btn" type="button" disabled={!table.open || table.orders.length === 0} onClick={printReceipt}>Yazdır</button>
+          <button className="btn" type="button" disabled={!table.open || table.orders.length === 0} onClick={printReceipt}>
+            <AppIcon name="print" size="SM" />
+            Yazdır
+          </button>
           <span className={`status-pill ${table.open ? 'success' : 'muted-pill'}`}>{table.open ? 'Açık' : 'Kapalı'}</span>
         </div>
       </div>
@@ -290,7 +294,10 @@ export default function TableCard({
         <div className="closed-table-panel">
           <strong>Bu alan şu anda kapalı.</strong>
           <p className="muted">Talep eklemek için önce alanı açın.</p>
-          <button className="btn primary" onClick={()=>onOpenTable(table.id)}>Alanı Aç</button>
+          <button className="btn primary" onClick={()=>onOpenTable(table.id)}>
+            <AppIcon name="plus" size="SM" />
+            Alanı Aç
+          </button>
         </div>
       ) : (
         <>
@@ -425,9 +432,13 @@ export default function TableCard({
                           </td>
                           <td>
                             <div className="qty-controls">
-                              <button className="btn icon-btn" onClick={()=>onUpdateOrderQty(table.id, order.id, order.qty - 1)}>-</button>
+                              <button className="btn icon-btn" aria-label="Adedi azalt" onClick={()=>onUpdateOrderQty(table.id, order.id, order.qty - 1)}>
+                                <AppIcon name="minus" size="SM" />
+                              </button>
                               <span>{order.qty}</span>
-                              <button className="btn icon-btn" onClick={()=>onUpdateOrderQty(table.id, order.id, order.qty + 1)}>+</button>
+                              <button className="btn icon-btn" aria-label="Adedi artır" onClick={()=>onUpdateOrderQty(table.id, order.id, order.qty + 1)}>
+                                <AppIcon name="plus" size="SM" />
+                              </button>
                             </div>
                           </td>
                           <td>
@@ -435,7 +446,10 @@ export default function TableCard({
                             {order.isGift && <div className="muted small-text">Normal: {formatCurrency(originalTotal)}</div>}
                           </td>
                           <td className="actions-cell">
-                            <button className="btn" onClick={() => onRemoveOrder(table.id, order.id)}>Kaldır</button>
+                            <button className="btn" onClick={() => onRemoveOrder(table.id, order.id)}>
+                              <AppIcon name="remove" size="SM" />
+                              Kaldır
+                            </button>
                           </td>
                         </tr>
                       )

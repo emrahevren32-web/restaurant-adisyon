@@ -1,4 +1,5 @@
 import React from 'react'
+import { AppIcon } from '../design-system/IconSystem'
 import type { ModuleSetupWizardSession } from '../workspace/module-setup-wizard.types'
 
 type Props = {
@@ -28,7 +29,14 @@ export default function ModuleSetupWizard({ session, onComplete }: Props){
   return (
     <section className="module-setup-wizard" aria-label={`${session.module.name} başlangıç sihirbazı`}>
       <div className="module-setup-wizard-header">
-        <span className="marketplace-module-icon" aria-hidden="true">{session.module.icon}</span>
+        <span className="marketplace-module-icon" aria-hidden="true">
+          <AppIcon
+            source={session.module.icon}
+            label={session.module.name}
+            context={`${session.module.code} ${session.module.category}`}
+            size="XL"
+          />
+        </span>
         <div>
           <span className="status-pill info-pill">Modül Başlangıç Sihirbazı</span>
           <h3>{session.definition.title}</h3>

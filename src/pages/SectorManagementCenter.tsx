@@ -1,4 +1,5 @@
 import React from 'react'
+import { AppIcon } from '../design-system/IconSystem'
 import type {
   BusinessWorkspaceNavKey,
   BusinessWorkspaceRoute
@@ -100,12 +101,13 @@ const SectorStatusPill = ({ status }: { status: SectorManagementStatus }) => (
 const SectorIcon = ({ sector }: { sector: SectorManagementSector }) => (
   <span
     className="sector-management-icon"
+    aria-hidden="true"
     style={{
       '--sector-primary': sector.primaryColor,
       '--sector-secondary': sector.secondaryColor
     } as React.CSSProperties}
   >
-    {sector.icon}
+    <AppIcon source={sector.icon} label={sector.name} context={sector.id} size="SM" />
   </span>
 )
 
@@ -216,7 +218,9 @@ const ModuleChecklist = ({
               checked={selected}
               onChange={event => onToggle(option.code, event.target.checked)}
             />
-            <span className="sector-management-module-icon">{option.icon}</span>
+            <span className="sector-management-module-icon" aria-hidden="true">
+              <AppIcon source={option.icon} label={option.name} context={option.code} size="SM" />
+            </span>
             <span>
               <strong>{option.name}</strong>
               <small>{option.registered ? 'Registry modülü' : 'Future module'} · {option.description}</small>

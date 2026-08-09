@@ -1,4 +1,5 @@
 import React from 'react'
+import { AppIcon } from '../design-system/IconSystem'
 import NotificationToastHost from './NotificationToastHost'
 import { Branch, User } from '../types'
 import type { PermissionName } from '../authorization/permission.types'
@@ -138,6 +139,12 @@ const flattenNavItems = <
 const getOnboardingTargetForNavItem = (key: string) => {
   if(key === 'marketplace') return 'module-store'
   return undefined
+}
+
+const getNotificationIconSource = (notification: Evren360Notification) => {
+  if(notification.type === 'business_application') return 'company'
+  if(notification.type === 'support_request') return 'help'
+  return 'finance'
 }
 
 const navItemHasActiveDescendant = <
@@ -321,13 +328,28 @@ export default function AppShell<
           }}
         >
           <span className="side-nav-item-main">
-            <span className="side-nav-icon" aria-hidden="true">{item.icon}</span>
+            <span className="side-nav-icon" aria-hidden="true">
+              <AppIcon
+                source={item.icon}
+                label={item.label}
+                context={`${String(item.key)} ${item.route || ''} ${item.moduleId || ''}`}
+                size="SM"
+              />
+            </span>
             <span className="side-nav-label">{item.label}</span>
           </span>
           <span className="side-nav-item-meta">
-            {item.locked && <span className="side-nav-lock" aria-hidden="true">K</span>}
+            {item.locked && (
+              <span className="side-nav-lock" aria-hidden="true">
+                <AppIcon name="lock" size="XS" />
+              </span>
+            )}
             {Boolean(item.badge) && <span className="nav-badge">{item.badge}</span>}
-            {hasChildren && <span className="side-nav-node-chevron" aria-hidden="true">{isOpen ? '▾' : '▸'}</span>}
+            {hasChildren && (
+              <span className="side-nav-node-chevron" aria-hidden="true">
+                <AppIcon name={isOpen ? 'chevronDown' : 'chevronRight'} size="XS" />
+              </span>
+            )}
           </span>
         </button>
         {hasChildren && (
@@ -376,10 +398,14 @@ export default function AppShell<
                     onClick={() => onToggleGroup(group.key)}
                   >
                     <span className="side-nav-title-main">
-                      <span className="side-nav-title-icon" aria-hidden="true">{group.icon}</span>
+                      <span className="side-nav-title-icon" aria-hidden="true">
+                        <AppIcon source={group.icon} label={group.title} context={String(group.key)} size="XS" />
+                      </span>
                       <span>{group.title}</span>
                     </span>
-                    <span className="side-nav-chevron" aria-hidden="true">{isOpen ? '▼' : '▶'}</span>
+                    <span className="side-nav-chevron" aria-hidden="true">
+                      <AppIcon name={isOpen ? 'chevronDown' : 'chevronRight'} size="XS" />
+                    </span>
                   </button>
                   <div className="side-nav-items" id={groupPanelId} hidden={!isOpen}>
                     {renderNavItems(visibleItems)}
@@ -432,7 +458,7 @@ export default function AppShell<
                   title="Bildirimler"
                   onClick={() => setNotificationPanelOpen(current => !current)}
                 >
-                  <span className="topbar-bell" aria-hidden="true"></span>
+                  <AppIcon name="notification" size="MD" />
                   {unreadNotificationCount > 0 && (
                     <span className="notification-badge" aria-hidden="true">{unreadNotificationCount > 99 ? '99+' : unreadNotificationCount}</span>
                   )}
@@ -457,7 +483,7 @@ export default function AppShell<
                           onClick={() => openNotification(notification)}
                         >
                           <span className="notification-item-icon" aria-hidden="true">
-                            {notification.type === 'business_application' ? 'B' : notification.type === 'support_request' ? 'D' : 'L'}
+                            <AppIcon source={getNotificationIconSource(notification)} label={notification.title} size="SM" />
                           </span>
                           <span className="notification-item-copy">
                             <strong>{notification.title}</strong>
@@ -478,6 +504,7 @@ export default function AppShell<
               </div>
               {onStartOnboarding && (
                 <button className="btn topbar-help" type="button" onClick={onStartOnboarding}>
+                  <AppIcon name="help" size="SM" />
                   Yardım
                 </button>
               )}
@@ -488,7 +515,10 @@ export default function AppShell<
                   <span>{currentUser.role}</span>
                 </span>
               </div>
-              <button className="btn topbar-logout" onClick={onLogout}>Çıkış</button>
+              <button className="btn topbar-logout" onClick={onLogout}>
+                <AppIcon name="logout" size="SM" />
+                Çıkış
+              </button>
             </div>
           </header>
 

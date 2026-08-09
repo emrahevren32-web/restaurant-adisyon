@@ -1,4 +1,5 @@
 import React from 'react'
+import { AppIcon } from '../design-system/IconSystem'
 import { BusinessApplicationFormInput, loadSectors, submitBusinessApplication } from '../storage'
 import { DEFAULT_SECTOR_ID } from '../sector/sector.registry'
 import type { BusinessApplication } from '../types'
@@ -63,7 +64,9 @@ export default function BusinessApplicationPublicForm(){
 
         {submittedApplication ? (
           <section className="public-application-success" aria-live="polite">
-            <div className="public-application-success-icon" aria-hidden="true">✓</div>
+            <div className="public-application-success-icon" aria-hidden="true">
+              <AppIcon name="success" size="XXL" />
+            </div>
             <h2>Başvurunuz başarıyla alınmıştır.</h2>
             <div className="public-application-reference">
               <span>Başvuru Numarası</span>

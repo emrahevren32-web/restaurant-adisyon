@@ -1,4 +1,5 @@
 import React from 'react'
+import { AppIcon } from '../design-system/IconSystem'
 import { Product, QRRequestItem, TableState, User } from '../types'
 import {
   addActionLog,
@@ -337,10 +338,17 @@ export default function QRMenu({ tableId }: Props){
                       <span>{formatCurrency(item.unitPrice)} x {item.qty}</span>
                     </div>
                     <div className="qr-cart-controls">
-                      <button className="btn icon-btn" onClick={() => updateQty(item.productId, item.qty - 1)}>-</button>
+                      <button className="btn icon-btn" aria-label="Adedi azalt" onClick={() => updateQty(item.productId, item.qty - 1)}>
+                        <AppIcon name="minus" size="SM" />
+                      </button>
                       <span>{item.qty}</span>
-                      <button className="btn icon-btn" onClick={() => updateQty(item.productId, item.qty + 1)}>+</button>
-                      <button className="btn" onClick={() => removeFromCart(item.productId)}>Sil</button>
+                      <button className="btn icon-btn" aria-label="Adedi artır" onClick={() => updateQty(item.productId, item.qty + 1)}>
+                        <AppIcon name="plus" size="SM" />
+                      </button>
+                      <button className="btn" onClick={() => removeFromCart(item.productId)}>
+                        <AppIcon name="remove" size="SM" />
+                        Sil
+                      </button>
                     </div>
                   </div>
                 ))}

@@ -1,4 +1,5 @@
 import React from 'react'
+import { AppIcon } from '../design-system/IconSystem'
 import { PRINT_THEME_COLORS } from '../design-system/ThemeColors'
 import ModuleSetupWizard from '../components/ModuleSetupWizard'
 import { ExcelIntegrationService } from '../excel-engine/excel-integration.service'
@@ -751,7 +752,14 @@ export default function ModuleMarketplace({ currentUser, onModuleLifecycleChange
         <div className="module-lifecycle-modal-backdrop" role="presentation">
           <section className="module-lifecycle-modal" role="dialog" aria-modal="true" aria-label={`${installDraft.module.name} kurulum onayı`}>
             <div className="module-lifecycle-modal-header">
-              <span className="marketplace-module-icon" aria-hidden="true">{installDraft.module.icon}</span>
+              <span className="marketplace-module-icon" aria-hidden="true">
+                <AppIcon
+                  source={installDraft.module.icon}
+                  label={installDraft.module.name}
+                  context={`${installDraft.module.category} ${installDraft.module.tags.join(' ')}`}
+                  size="XL"
+                />
+              </span>
               <div>
                 <span className="status-pill info-pill">Kurulum Sihirbazı</span>
                 <h3>{installDraft.module.name}</h3>
@@ -793,7 +801,14 @@ export default function ModuleMarketplace({ currentUser, onModuleLifecycleChange
         <div className="module-lifecycle-modal-backdrop" role="presentation">
           <section className="module-lifecycle-modal" role="dialog" aria-modal="true" aria-label={`${uninstallDraft.module.name} kaldırma etki analizi`}>
             <div className="module-lifecycle-modal-header">
-              <span className="marketplace-module-icon" aria-hidden="true">{uninstallDraft.module.icon}</span>
+              <span className="marketplace-module-icon" aria-hidden="true">
+                <AppIcon
+                  source={uninstallDraft.module.icon}
+                  label={uninstallDraft.module.name}
+                  context={`${uninstallDraft.module.category} ${uninstallDraft.module.tags.join(' ')}`}
+                  size="XL"
+                />
+              </span>
               <div>
                 <span className={`status-pill ${uninstallDraft.impact.blocked ? 'danger-pill' : 'warning-pill'}`}>
                   Kaldırma Etki Analizi
@@ -864,7 +879,14 @@ export default function ModuleMarketplace({ currentUser, onModuleLifecycleChange
       {managedModule && (
         <section className="module-setup-wizard" aria-label={`${managedModule.name} yönetimi`}>
           <div className="module-setup-wizard-header">
-            <span className="marketplace-module-icon" aria-hidden="true">{managedModule.icon}</span>
+            <span className="marketplace-module-icon" aria-hidden="true">
+              <AppIcon
+                source={managedModule.icon}
+                label={managedModule.name}
+                context={`${managedModule.category} ${managedModule.tags.join(' ')}`}
+                size="XL"
+              />
+            </span>
             <div>
               <span className="status-pill success">Kurulu</span>
               <h3>{managedModule.name} Yönetimi</h3>
@@ -1008,7 +1030,14 @@ export default function ModuleMarketplace({ currentUser, onModuleLifecycleChange
           return (
             <article className="marketplace-card" key={module.id}>
               <div className="marketplace-card-header">
-                <span className="marketplace-module-icon" aria-hidden="true">{module.icon}</span>
+                <span className="marketplace-module-icon" aria-hidden="true">
+                  <AppIcon
+                    source={module.icon}
+                    label={module.name}
+                    context={`${module.category} ${module.moduleType} ${module.tags.join(' ')}`}
+                    size="XL"
+                  />
+                </span>
                 <div>
                   <div className="marketplace-card-badges">
                     {module.badges.map(badge => (
