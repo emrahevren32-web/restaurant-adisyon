@@ -1,10 +1,8 @@
 import React from 'react'
 import { AppIcon } from '../design-system/IconSystem'
+import NavigationBreadcrumb, { type NavigationBreadcrumbItem } from './NavigationBreadcrumb'
 
-export type TopbarBreadcrumbItem = {
-  label: string
-  current?: boolean
-}
+export type TopbarBreadcrumbItem = NavigationBreadcrumbItem
 
 export type TopbarLayoutProps = {
   title: string
@@ -62,28 +60,7 @@ export const TopbarLayout = ({
       React.createElement(
         'div',
         { className: 'topbar-title' },
-        breadcrumbs.length > 0
-          ? React.createElement(
-            'nav',
-            { className: 'topbar-breadcrumb', 'aria-label': 'Breadcrumb' },
-            breadcrumbs.map((item, index) => (
-              React.createElement(
-                'span',
-                {
-                  key: `${item.label}-${index}`,
-                  className: ['topbar-breadcrumb-item', item.current ? 'current' : ''].filter(Boolean).join(' '),
-                  'aria-current': item.current ? 'page' : undefined
-                },
-                React.createElement(
-                  'span',
-                  { className: 'topbar-breadcrumb-icon', 'aria-hidden': true },
-                  React.createElement(AppIcon, { name: index === 0 ? 'home' : 'workspace', size: 'XS' })
-                ),
-                React.createElement('span', null, item.label)
-              )
-            ))
-          )
-          : null,
+        React.createElement(NavigationBreadcrumb, { items: breadcrumbs, className: 'topbar-breadcrumb' }),
         React.createElement('span', { className: 'topbar-eyebrow' }, eyebrow),
         React.createElement('strong', null, title)
       )

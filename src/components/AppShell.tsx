@@ -1,6 +1,7 @@
 import React from 'react'
 import { AppIcon } from '../design-system/IconSystem'
 import ApplicationShell from './ApplicationShell'
+import NavigationQuickAccess, { type NavigationQuickAccessItem } from './NavigationQuickAccess'
 import NotificationToastHost from './NotificationToastHost'
 import SidebarLayout from './SidebarLayout'
 import TopbarLayout from './TopbarLayout'
@@ -244,9 +245,10 @@ export default function AppShell<
       items: filterVisibleNavItems(group.items, currentUser, isPlatformAdmin)
     }))
   ), [currentUser, isPlatformAdmin, navGroups])
-  const activeGroupKey = visibleNavGroups.find(group => (
+  const activeGroup = visibleNavGroups.find(group => (
     flattenNavItems(group.items).some(item => item.key === activeNavKey)
-  ))?.key
+  ))
+  const activeGroupKey = activeGroup?.key
   const activeBranches = branches.filter(branch => branch.isActive)
   const selectableBranches = activeBranches.length > 0 ? activeBranches : branches
   const hasSelectableBranch = selectableBranches.length > 0
@@ -265,6 +267,18 @@ export default function AppShell<
       .flatMap(group => flattenNavItems(group.items))
       .filter(item => Boolean(item.route) && !item.locked)
   ), [visibleNavGroups])
+  const quickAccessNavItems = React.useMemo(() => {
+    const activeGroupItems = activeGroup
+      ? flattenNavItems(activeGroup.items)
+      : []
+    const primaryItems = activeGroupItems.filter(item => Boolean(item.route) && !item.locked)
+    const fallbackItems = searchableNavItems.filter(item => item.key !== activeNavKey)
+    const sourceItems = primaryItems.length > 1 ? primaryItems : fallbackItems
+
+    return sourceItems
+      .filter(item => item.key !== activeNavKey)
+      .slice(0, 5)
+  }, [activeGroup, activeNavKey, searchableNavItems])
   const unreadNotifications = React.useMemo(() => (
     notifications.filter(notification => !notification.readAt)
   ), [notifications])
@@ -396,6 +410,8 @@ export default function AppShell<
           aria-expanded={hasChildren ? isOpen : undefined}
           aria-disabled={item.locked ? true : undefined}
           title={item.locked ? item.disabledReason : item.label}
+          data-active={isActive ? 'true' : undefined}
+          data-active-branch={isActiveBranch ? 'true' : undefined}
           data-onboarding-target={onboardingTarget}
           onClick={() => {
             if(hasChildren){
@@ -485,7 +501,11 @@ export default function AppShell<
     const groupPanelId = `side-nav-group-${group.key}`
 
     return (
-      <section className={`side-nav-group ${isOpen ? 'open' : ''} ${isActiveGroup ? 'active-group' : ''}`} key={group.key}>
+      <section
+        className={`side-nav-group ${isOpen ? 'open' : ''} ${isActiveGroup ? 'active-group' : ''}`}
+        data-active={isActiveGroup ? 'true' : undefined}
+        key={group.key}
+      >
         <button
           type="button"
           className="side-nav-title"
@@ -602,6 +622,18 @@ export default function AppShell<
       <span>{currentUser.role}</span>
     </>
   )
+  const quickAccessItems: NavigationQuickAccessItem[] = quickAccessNavItems.map(item => ({
+    key: String(item.key),
+    label: item.label,
+    icon: item.icon,
+    onOpen: () => openNavItem(item)
+  }))
+  const workspaceNavigation = (
+    <NavigationQuickAccess
+      items={quickAccessItems}
+      activeLabel={activeGroup?.title || activeNavLabel}
+    />
+  )
 
   return (
     <>
@@ -626,8 +658,9 @@ export default function AppShell<
           <TopbarLayout
             title={activeNavLabel}
             breadcrumbs={[
-              { label: isPlatformAdmin ? 'EVREN360' : restaurantName },
-              { label: activeNavLabel, current: true }
+              { label: isPlatformAdmin ? 'EVREN360' : restaurantName, icon: 'home' },
+              ...(activeGroup ? [{ label: activeGroup.title, icon: 'module' as const }] : []),
+              { label: activeNavLabel, current: true, icon: 'workspace' }
             ]}
             searchValue={globalSearch}
             brandLabel={restaurantName}
@@ -653,7 +686,12 @@ export default function AppShell<
           </TopbarLayout>
         )}
       >
-        <WorkspaceLayout title={activeNavLabel} footer={workspaceFooter}>
+        <WorkspaceLayout
+          title={activeNavLabel}
+          navigationKey={String(activeNavKey)}
+          navigation={workspaceNavigation}
+          footer={workspaceFooter}
+        >
           {children}
         </WorkspaceLayout>
       </ApplicationShell>
