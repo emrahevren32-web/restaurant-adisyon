@@ -10,6 +10,7 @@ import { applyResponsiveSystem } from './design-system/ResponsiveSystem'
 import { applyShadowSystem } from './design-system/ShadowSystem'
 import { applySpacingSystem } from './design-system/SpacingSystem'
 import { applyTypographySystem } from './design-system/Typography'
+import { applyVisualPolishSystem } from './design-system/VisualPolishSystem'
 import { MotionProvider } from './components/Motion'
 import { ThemeProvider } from './components/ThemeProvider'
 import './styles.css'
@@ -23,6 +24,7 @@ applyTypographySystem()
 applyMotionSystem()
 applyPremiumThemeEngine()
 applyResponsiveSystem()
+applyVisualPolishSystem()
 
 const container = document.getElementById('root')!
 const root = createRoot(container)
