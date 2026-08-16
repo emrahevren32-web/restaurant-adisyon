@@ -4,6 +4,7 @@ import ApplicationShell from './ApplicationShell'
 import NavigationQuickAccess, { type NavigationQuickAccessItem } from './NavigationQuickAccess'
 import NotificationToastHost from './NotificationToastHost'
 import SidebarLayout from './SidebarLayout'
+import { useTheme } from './ThemeProvider'
 import TopbarLayout from './TopbarLayout'
 import TopbarProfileMenu from './TopbarProfileMenu'
 import TopbarWorkspaceControl from './TopbarWorkspaceControl'
@@ -75,23 +76,6 @@ type AppShellProps<
   onActiveBranchChange: (branchId: string) => void
   onLogout: () => void
   children: React.ReactNode
-}
-
-type ShellThemeMode = 'light' | 'dark'
-
-const THEME_STORAGE_KEY = 'miyop-theme'
-
-const getInitialThemeMode = (): ShellThemeMode => {
-  if(typeof window === 'undefined') return 'light'
-
-  try {
-    const storedTheme = window.localStorage.getItem(THEME_STORAGE_KEY)
-    if(storedTheme === 'light' || storedTheme === 'dark') return storedTheme
-  } catch {
-    return 'light'
-  }
-
-  return window.matchMedia?.('(prefers-color-scheme: dark)').matches ? 'dark' : 'light'
 }
 
 const normalizeSearchText = (value: string) => (
@@ -257,7 +241,7 @@ export default function AppShell<
   const [sidebarCollapsed, setSidebarCollapsed] = React.useState(false)
   const [mobileSidebarOpen, setMobileSidebarOpen] = React.useState(false)
   const [globalSearch, setGlobalSearch] = React.useState('')
-  const [themeMode, setThemeMode] = React.useState<ShellThemeMode>(getInitialThemeMode)
+  const { themeMode, toggleThemeMode } = useTheme()
   const [openTreeKeys, setOpenTreeKeys] = React.useState<Set<string>>(() => new Set(
     navGroups.flatMap(group => collectDefaultExpandedKeys(group.items))
   ))
@@ -332,16 +316,6 @@ export default function AppShell<
   }, [mobileSidebarOpen])
 
   React.useEffect(() => {
-    document.documentElement.dataset.theme = themeMode
-
-    try {
-      window.localStorage.setItem(THEME_STORAGE_KEY, themeMode)
-    } catch {
-      // Theme remains applied for the current session even if storage is unavailable.
-    }
-  }, [themeMode])
-
-  React.useEffect(() => {
     const keysToOpen = visibleNavGroups.flatMap(group => [
       ...collectDefaultExpandedKeys(group.items),
       ...collectActiveAncestorKeys(group.items, activeNavKey)
@@ -388,10 +362,6 @@ export default function AppShell<
     if(!matchedItem) return
     openNavItem(matchedItem)
     setGlobalSearch('')
-  }
-
-  const toggleThemeMode = () => {
-    setThemeMode(current => current === 'dark' ? 'light' : 'dark')
   }
 
   const toggleTreeItem = (key: NavKey) => {
