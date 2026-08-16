@@ -6,6 +6,7 @@ import { applyColorPaletteSystem } from './design-system/ColorPalette'
 import { applyPremiumThemeEngine } from './design-system/ColorTokenService'
 import { applyIconographySystem } from './design-system/IconSystem'
 import { applyMotionSystem } from './design-system/MotionSystem'
+import { applyResponsiveSystem } from './design-system/ResponsiveSystem'
 import { applyShadowSystem } from './design-system/ShadowSystem'
 import { applySpacingSystem } from './design-system/SpacingSystem'
 import { applyTypographySystem } from './design-system/Typography'
@@ -21,6 +22,7 @@ applyIconographySystem()
 applyTypographySystem()
 applyMotionSystem()
 applyPremiumThemeEngine()
+applyResponsiveSystem()
 
 const container = document.getElementById('root')!
 const root = createRoot(container)

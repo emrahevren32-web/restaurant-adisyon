@@ -290,7 +290,7 @@ export default function AppShell<
   }, [activeNavKey])
 
   React.useEffect(() => {
-    const mobileNavigationQuery = window.matchMedia('(max-width: 980px)')
+    const mobileNavigationQuery = window.matchMedia('(max-width: 1024px)')
     const syncMobileNavigationLock = () => {
       document.body.classList.toggle('mobile-navigation-open', mobileSidebarOpen && mobileNavigationQuery.matches)
     }

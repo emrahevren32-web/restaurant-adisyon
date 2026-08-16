@@ -2,6 +2,7 @@ import React from 'react'
 import { AppIcon, type AppIconProps } from '../design-system/IconSystem'
 import { PremiumEmptyState } from './PremiumEmptyState'
 import { PremiumSkeleton, PremiumSpinner } from './PremiumLoading'
+import { ResponsiveTable } from './ResponsiveTable'
 
 export type PremiumTableSortDirection = 'asc' | 'desc' | 'none'
 export type PremiumTableAlign = 'left' | 'center' | 'right'
@@ -252,7 +253,7 @@ export function PremiumTable<T>({
   return (
     <section className={['premium-table-shell', density, stickyHeader ? 'sticky-header' : '', zebra ? 'zebra' : '', className].filter(Boolean).join(' ')}>
       {toolbar}
-      <div className="table-wrap premium-table-wrap">
+      <ResponsiveTable className="table-wrap premium-table-wrap" mode="hybrid">
         <table className={['data-table', 'premium-table', tableClassName].filter(Boolean).join(' ')}>
           {caption && <caption>{caption}</caption>}
           <thead>
@@ -323,7 +324,7 @@ export function PremiumTable<T>({
             })}
           </tbody>
         </table>
-      </div>
+      </ResponsiveTable>
       {pagination}
     </section>
   )
