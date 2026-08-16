@@ -39,10 +39,10 @@ export const TopbarLayout = ({
 }: TopbarLayoutProps) => (
   React.createElement(
     'header',
-    { className: 'topbar' },
+    { className: 'topbar enterprise-topbar' },
     React.createElement(
       'div',
-      { className: 'topbar-leading' },
+      { className: 'topbar-leading topbar-context-zone' },
       React.createElement(
         'button',
         {
@@ -71,7 +71,7 @@ export const TopbarLayout = ({
     ),
     React.createElement(
       'form',
-      { className: 'topbar-search', role: 'search', 'data-onboarding-target': 'global-search', onSubmit: onSearchSubmit },
+      { className: 'topbar-search topbar-command-search', role: 'search', 'data-onboarding-target': 'global-search', onSubmit: onSearchSubmit },
       React.createElement(
         'span',
         { className: 'topbar-search-icon', 'aria-hidden': true },
@@ -87,8 +87,8 @@ export const TopbarLayout = ({
     ),
     React.createElement(
       'div',
-      { className: 'topbar-actions' },
-      workspaceControl,
+      { className: 'topbar-actions topbar-action-zone' },
+      React.createElement('div', { className: 'topbar-workspace-slot' }, workspaceControl),
       React.createElement(
         'button',
         {

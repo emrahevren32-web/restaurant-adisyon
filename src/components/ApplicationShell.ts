@@ -80,6 +80,7 @@ export const ApplicationShell = ({
     {
       className: [
         'app-shell',
+        'enterprise-shell',
         sidebarCollapsed ? 'sidebar-collapsed' : '',
         mobileSidebarOpen ? 'mobile-sidebar-open' : ''
       ].filter(Boolean).join(' '),

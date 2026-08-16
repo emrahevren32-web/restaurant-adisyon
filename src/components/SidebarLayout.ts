@@ -65,12 +65,16 @@ export const SidebarLayout = ({
     ),
     React.createElement(
       'div',
-      { className: 'side-nav-groups' },
-      children
-    ),
-    footer
-      ? React.createElement('div', { className: 'side-nav-footer' }, footer)
-      : null
+      { className: 'side-nav-body' },
+      React.createElement(
+        'div',
+        { className: 'side-nav-groups' },
+        children
+      ),
+      footer
+        ? React.createElement('div', { className: 'side-nav-footer' }, footer)
+        : null
+    )
   )
 )
 

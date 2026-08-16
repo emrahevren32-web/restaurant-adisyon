@@ -81,19 +81,19 @@ export const createBusinessWorkspaceNavGroups = (
   return [
     {
       key: 'system-modules',
-      title: 'ÇALIŞMA ALANI',
+      title: 'WORKSPACE',
       icon: 'WS',
       items: registry.systemModules.map(toShellNavItem)
     },
     {
       key: 'business-modules',
-      title: 'İŞ MODÜLLERİ',
+      title: 'OPERATIONS',
       icon: 'IM',
-      emptyTitle: options.businessModuleEmptyState?.title || 'Henüz modül yüklenmedi.',
-      emptyDescription: options.businessModuleEmptyState?.description || 'İş modülleri eklendiğinde menüde burada görünecek. İlk modülünüzü Modül Mağazası üzerinden keşfedebilirsiniz.',
+      emptyTitle: options.businessModuleEmptyState?.title || 'Henuz modul yuklenmedi.',
+      emptyDescription: options.businessModuleEmptyState?.description || 'Is modulleri eklendiginde menude burada gorunecek. Ilk modulunuzu Modul Magazasi uzerinden kesfedebilirsiniz.',
       emptyAction: options.showBusinessModuleEmptyAction ? {
         key: 'marketplace',
-        label: options.businessModuleEmptyState?.actionLabel || 'Modül Mağazasına Git',
+        label: options.businessModuleEmptyState?.actionLabel || 'Modul Magazasina Git',
         route: 'marketplace',
         icon: 'MP',
         adminOnly: true
@@ -102,7 +102,7 @@ export const createBusinessWorkspaceNavGroups = (
     },
     {
       key: 'integration-modules',
-      title: 'ENTEGRASYON MODÜLLERİ',
+      title: 'SYSTEM',
       icon: 'EN',
       items: registry.integrationModules.map(toShellNavItem)
     }

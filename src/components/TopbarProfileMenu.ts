@@ -48,7 +48,7 @@ export const TopbarProfileMenu = ({
       'button',
       {
         type: 'button',
-        className: ['topbar-user-card', open ? 'active' : ''].filter(Boolean).join(' '),
+        className: ['topbar-user-card', 'enterprise-field', open ? 'active' : ''].filter(Boolean).join(' '),
         'aria-label': 'Kullanıcı menüsü',
         'aria-haspopup': 'menu',
         'aria-expanded': open,

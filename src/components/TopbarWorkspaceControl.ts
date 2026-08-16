@@ -24,7 +24,7 @@ export const TopbarWorkspaceControl = ({
     { className: 'topbar-workspace-control', 'aria-label': 'Workspace ve şube seçimi' },
     React.createElement(
       'span',
-      { className: 'topbar-workspace-pill', title: workspaceLabel },
+      { className: 'topbar-workspace-pill enterprise-field', title: workspaceLabel },
       React.createElement(
         'span',
         { className: 'topbar-workspace-icon', 'aria-hidden': true },
@@ -39,7 +39,7 @@ export const TopbarWorkspaceControl = ({
     ),
     React.createElement(
       'label',
-      { className: 'branch-switcher' },
+      { className: 'branch-switcher enterprise-field' },
       React.createElement('span', null, isPlatformAdmin ? 'Kapsam' : 'Aktif Şube'),
       isPlatformAdmin
         ? React.createElement(

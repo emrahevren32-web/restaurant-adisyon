@@ -43,15 +43,19 @@ export const DashboardExperienceHeader = ({
   actions = [],
   children
 }: DashboardExperienceHeaderProps) => (
-  <section className={['dashboard-experience-header', className].filter(Boolean).join(' ')} data-onboarding-target={dataOnboardingTarget}>
+  <section className={['dashboard-experience-header', 'dashboard-enterprise-hero', className].filter(Boolean).join(' ')} data-onboarding-target={dataOnboardingTarget}>
     <div className="dashboard-experience-header-copy">
       <span className="dashboard-experience-header-icon" aria-hidden="true">
         <AppIcon source={icon} label={String(title)} context="dashboard header" size="LG" />
       </span>
-      <div>
+      <div className="dashboard-experience-header-main">
         {eyebrow && <span className="dashboard-experience-eyebrow">{eyebrow}</span>}
         <h2>{title}</h2>
         {description && <p>{description}</p>}
+      </div>
+    </div>
+    {(meta.length > 0 || actions.length > 0 || children) && (
+      <div className="dashboard-experience-hero-aside">
         {meta.length > 0 && (
           <div className="dashboard-experience-meta">
             {meta.map(item => (
@@ -62,10 +66,7 @@ export const DashboardExperienceHeader = ({
             ))}
           </div>
         )}
-      </div>
-    </div>
-    {(actions.length > 0 || children) && (
-      <div className="dashboard-experience-actions">
+        {(actions.length > 0 || children) && <div className="dashboard-experience-actions">
         {actions.map(action => (
           <button
             className={['btn', action.tone === 'primary' ? 'primary dashboard-experience-action-primary' : 'dashboard-experience-action'].filter(Boolean).join(' ')}
@@ -78,6 +79,7 @@ export const DashboardExperienceHeader = ({
           </button>
         ))}
         {children}
+        </div>}
       </div>
     )}
   </section>

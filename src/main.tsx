@@ -4,6 +4,7 @@ import App from './App'
 import { applyBorderRadiusSystem } from './design-system/BorderRadiusSystem'
 import { applyColorPaletteSystem } from './design-system/ColorPalette'
 import { applyPremiumThemeEngine } from './design-system/ColorTokenService'
+import { applyEnterpriseDesignLanguage } from './design-system/EnterpriseDesignLanguage'
 import { applyIconographySystem } from './design-system/IconSystem'
 import { applyMotionSystem } from './design-system/MotionSystem'
 import { applyResponsiveSystem } from './design-system/ResponsiveSystem'
@@ -25,6 +26,7 @@ applyMotionSystem()
 applyPremiumThemeEngine()
 applyResponsiveSystem()
 applyVisualPolishSystem()
+applyEnterpriseDesignLanguage()
 
 const container = document.getElementById('root')!
 const root = createRoot(container)
