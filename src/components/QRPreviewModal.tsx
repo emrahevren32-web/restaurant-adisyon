@@ -1,4 +1,5 @@
 import React from 'react'
+import { PremiumSpinner } from './PremiumLoading'
 import { QRIntegrationService } from '../qr-engine/qr-integration.service'
 import type {
   QRDecodeResult,
@@ -124,7 +125,10 @@ export default function QRPreviewModal({
         {message && <div className="settings-message error">{message}</div>}
 
         {loading ? (
+          <>
+            <PremiumSpinner size="medium" label="QR hazirlaniyor" showLabel />
           <div className="empty-state">QR hazırlanıyor.</div>
+          </>
         ) : preview ? (
           <div className="barcode-preview-grid qr-preview-grid">
             <div className="barcode-preview-card qr-preview-card">

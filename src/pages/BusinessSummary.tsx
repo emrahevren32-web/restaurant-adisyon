@@ -5,6 +5,7 @@ import {
   DashboardExperienceHeader,
   DashboardKpiCard
 } from '../components/DashboardExperience'
+import { PremiumLinearProgress, PremiumSkeleton } from '../components/PremiumLoading'
 import { CHART_THEME_COLORS, PRINT_THEME_COLORS } from '../design-system/ThemeColors'
 import { AIAnalysisService } from '../ai-analysis/ai-analysis.service'
 import { createCostEngineView, createDefaultCostEngineFilters } from '../cost-engine/cost-engine.service'
@@ -1432,12 +1433,14 @@ function ExecutiveDashboardLoading({ progress }: { progress: number }){
         ]}
       />
       <section className="card executive-loading-card">
-        <div className="executive-loading-progress">
-          <span style={{ width: `${clampValue(progress, 8, 100)}%` }} />
-        </div>
-        <div className="executive-skeleton-grid">
-          {Array.from({ length: 12 }, (_, index) => <div className="executive-skeleton-card" key={`skeleton-${index}`} />)}
-        </div>
+        <PremiumLinearProgress
+          value={clampValue(progress, 8, 100)}
+          status="running"
+          label="Executive Dashboard"
+          statusLabel="Hazirlaniyor"
+          size="large"
+        />
+        <PremiumSkeleton variant="dashboard" rows={6} columns={4} />
       </section>
     </div>
   )

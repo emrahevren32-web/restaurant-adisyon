@@ -1,5 +1,6 @@
 import React from 'react'
 import { AppIcon, type AppIconProps } from '../design-system/IconSystem'
+import { PremiumSkeleton, PremiumSpinner } from './PremiumLoading'
 
 export type PremiumTableSortDirection = 'asc' | 'desc' | 'none'
 export type PremiumTableAlign = 'left' | 'center' | 'right'
@@ -166,7 +167,7 @@ export const PremiumEmptyTable = ({
     <td colSpan={colSpan} className="empty-cell premium-table-empty-cell">
       {loading ? (
         <div className="premium-table-loading-state" aria-live="polite">
-          <span aria-hidden="true" />
+          <PremiumSpinner size="medium" tone="info" label="Tablo hazirlaniyor" />
           <strong>Tablo hazırlanıyor</strong>
           <small>Veriler yüklenirken tablo düzeni korunuyor.</small>
         </div>
@@ -282,7 +283,7 @@ export function PremiumTable<T>({
               <tr className="premium-table-skeleton-row" key={`loading-${rowIndex}`}>
                 {columns.map(column => (
                   <td key={column.key} className={column.align ? `align-${column.align}` : undefined}>
-                    <span className="premium-table-skeleton-line" />
+                    <PremiumSkeleton variant="line" className="premium-table-skeleton-line" />
                   </td>
                 ))}
               </tr>

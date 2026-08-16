@@ -1,4 +1,5 @@
 import React from 'react'
+import { PremiumSpinner } from './PremiumLoading'
 import { PrintIntegrationService } from '../print-engine/print-integration.service'
 import type {
   PrintDocumentInput,
@@ -189,7 +190,10 @@ export default function PrintPreviewModal({
 
           <div className="print-preview-frame-wrap">
             {loading ? (
+              <>
+                <PremiumSpinner size="medium" label="Onizleme hazirlaniyor" showLabel />
               <div className="empty-state">Önizleme hazırlanıyor.</div>
+              </>
             ) : preview?.html ? (
               <iframe className="print-preview-frame" title="Print Preview" srcDoc={preview.html} />
             ) : (

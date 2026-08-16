@@ -1,5 +1,6 @@
 import React from 'react'
 import { AppIcon } from '../design-system/IconSystem'
+import { PremiumSkeleton } from './PremiumLoading'
 
 export type DashboardKpiTone = 'success' | 'warning' | 'danger' | 'info' | 'neutral'
 
@@ -169,7 +170,7 @@ export const DashboardWidgetPanel = ({
       </div>
       {action && <div className="dashboard-experience-widget-action">{action}</div>}
     </div>
-    {loading ? <div className="dashboard-experience-widget-loading" aria-hidden="true" /> : children}
+    {loading ? <PremiumSkeleton variant="widget" className="dashboard-experience-widget-loading" /> : children}
   </section>
 )
 

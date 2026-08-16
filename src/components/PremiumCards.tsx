@@ -1,5 +1,6 @@
 import React from 'react'
 import { AppIcon, type AppIconProps } from '../design-system/IconSystem'
+import { PremiumSkeleton } from './PremiumLoading'
 
 export type PremiumCardTone = 'neutral' | 'success' | 'warning' | 'danger' | 'info'
 export type PremiumCardPadding = 'none' | 'compact' | 'comfortable'
@@ -286,11 +287,7 @@ export const PremiumEmptyCard = ({
 )
 
 export const PremiumCardLoading = () => (
-  <div className="premium-card-loading" aria-hidden="true">
-    <span />
-    <span />
-    <span />
-  </div>
+  <PremiumSkeleton variant="text" lines={3} className="premium-card-loading" />
 )
 
 export default PremiumCard

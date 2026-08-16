@@ -1,4 +1,5 @@
 import React from 'react'
+import { PremiumSkeleton } from '../components/PremiumLoading'
 import Products from '../pages/Products'
 import TableManagement from '../pages/TableManagement'
 import BusinessSummary from '../pages/BusinessSummary'
@@ -154,35 +155,7 @@ const RouteSkeleton = React.memo(function RouteSkeleton({
 }: {
   label: string
 }){
-  return (
-    <section className="decision-route-skeleton" aria-label={label}>
-      <div className="decision-skeleton-hero">
-        <span className="decision-skeleton-line short" />
-        <span className="decision-skeleton-line title" />
-        <span className="decision-skeleton-line medium" />
-      </div>
-      <div className="decision-skeleton-grid">
-        {Array.from({ length: 4 }).map((_, index) => (
-          <div className="decision-skeleton-card" key={index}>
-            <span className="decision-skeleton-line short" />
-            <span className="decision-skeleton-line value" />
-            <span className="decision-skeleton-line medium" />
-          </div>
-        ))}
-      </div>
-      <div className="decision-skeleton-filter">
-        <span className="decision-skeleton-line medium" />
-        <span className="decision-skeleton-line medium" />
-        <span className="decision-skeleton-line medium" />
-        <span className="decision-skeleton-line short" />
-      </div>
-      <div className="decision-skeleton-table">
-        {Array.from({ length: 6 }).map((_, index) => (
-          <span className="decision-skeleton-line table-row" key={index} />
-        ))}
-      </div>
-    </section>
-  )
+  return <PremiumSkeleton variant="dashboard" rows={6} columns={4} label={label} className="decision-route-skeleton" />
 })
 
 const DecisionRouteSkeleton = React.memo(function DecisionRouteSkeleton(){

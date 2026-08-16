@@ -1,6 +1,7 @@
 import { PRINT_RADIUS_VALUES } from '../design-system/BorderRadiusTheme'
 import { PRINT_SPACING_VALUES } from '../design-system/LayoutSpacing'
 import React from 'react'
+import { PremiumProgress } from '../components/PremiumLoading'
 import { PRINT_THEME_COLORS } from '../design-system/ThemeColors'
 import { ExcelIntegrationService } from '../excel-engine/excel-integration.service'
 import { loadKpiSourceData } from '../kpi-reporting/kpi-source.service'
@@ -411,11 +412,16 @@ export default function ShipmentOptimization({ currentUser }: { currentUser: Use
 
       {message && <div className={`settings-message ${message.type}`}>{message.text}</div>}
       {isAnalyzing && (
-        <div className="shipment-optimization-loading" role="status" aria-live="polite">
-          <span />
-          <strong>Sevkiyat sinyalleri analiz ediliyor</strong>
+        <PremiumProgress
+          kind="page"
+          title="Sevkiyat sinyalleri analiz ediliyor"
+          indeterminate
+          status="running"
+          showValue={false}
+          className="shipment-optimization-loading"
+        >
           <small>Plan, araç kapasitesi, rota, müşteri teslim saati ve soğuk zincir verileri birlikte değerlendiriliyor.</small>
-        </div>
+        </PremiumProgress>
       )}
 
       <div className="metric-grid shipment-optimization-metric-grid">

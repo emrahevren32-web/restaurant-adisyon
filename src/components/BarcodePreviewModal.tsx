@@ -1,4 +1,5 @@
 import React from 'react'
+import { PremiumSpinner } from './PremiumLoading'
 import { BarcodeIntegrationService } from '../barcode-engine/barcode-integration.service'
 import type {
   BarcodeGenerateInput,
@@ -137,7 +138,10 @@ export default function BarcodePreviewModal({
         {message && <div className="settings-message error">{message}</div>}
 
         {loading ? (
+          <>
+            <PremiumSpinner size="medium" label="Barkod hazirlaniyor" showLabel />
           <div className="empty-state">Barkod hazırlanıyor.</div>
+          </>
         ) : preview ? (
           <div className="barcode-preview-grid">
             <div className="barcode-preview-card">
