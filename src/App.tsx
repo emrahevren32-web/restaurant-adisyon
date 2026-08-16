@@ -561,6 +561,23 @@ export default function App(){
     setActiveNavKey('dashboard')
     setOpenGroupKey('system-modules')
   }
+  const openWorkspaceRouteFromWelcome = (
+    nextRoute: BusinessWorkspaceRoute,
+    nextNavKey: BusinessWorkspaceNavKey
+  ) => {
+    if(!isWorkspaceSetupCompletedForUser(currentUser) && nextRoute !== 'settings'){
+      setLicenseAccessError(INSTALLATION_LOCK_MESSAGE)
+      return
+    }
+
+    setLicenseAccessError('')
+    setRoute(nextRoute)
+    setActiveNavKey(nextNavKey)
+    const group = navGroupsForCurrentUser.find(navGroup => (
+      flattenAppNavItems(navGroup.items).some(item => item.key === nextNavKey)
+    ))
+    if(group) setOpenGroupKey(group.key)
+  }
   const startOnboardingExperience = () => {
     setOnboardingExperienceStartSignal(current => current + 1)
   }
@@ -749,6 +766,7 @@ export default function App(){
           onOpenMarketplace={openMarketplaceFromWelcome}
           onOpenIntegrationCenter={openIntegrationCenterFromWelcome}
           onOpenWorkspaceSettings={openWorkspaceSettingsFromWelcome}
+          onOpenWorkspaceRoute={openWorkspaceRouteFromWelcome}
           onModuleLifecycleChanged={handleWorkspaceModuleLifecycleChanged}
         />
       )}

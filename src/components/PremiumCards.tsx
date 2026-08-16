@@ -1,5 +1,6 @@
 import React from 'react'
 import { AppIcon, type AppIconProps } from '../design-system/IconSystem'
+import { PremiumEmptyState } from './PremiumEmptyState'
 import { PremiumSkeleton } from './PremiumLoading'
 
 export type PremiumCardTone = 'neutral' | 'success' | 'warning' | 'danger' | 'info'
@@ -274,16 +275,15 @@ export const PremiumEmptyCard = ({
   compact = false,
   className = ''
 }: PremiumEmptyCardProps) => (
-  <section className={['premium-card', 'premium-empty-card', compact ? 'compact' : '', className].filter(Boolean).join(' ')}>
-    <span className="premium-card-icon" aria-hidden="true">
-      <AppIcon name={icon} size={compact ? 'MD' : 'LG'} />
-    </span>
-    <div>
-      <h3>{title}</h3>
-      {description && <p>{description}</p>}
-      {action && <div className="premium-empty-actions">{action}</div>}
-    </div>
-  </section>
+  <PremiumEmptyState
+    title={title}
+    description={description}
+    icon={icon}
+    size={compact ? 'compact' : 'comfortable'}
+    className={['premium-card', 'premium-empty-card', compact ? 'compact' : '', className].filter(Boolean).join(' ')}
+  >
+    {action && <div className="premium-empty-actions">{action}</div>}
+  </PremiumEmptyState>
 )
 
 export const PremiumCardLoading = () => (

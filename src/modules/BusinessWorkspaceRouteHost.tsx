@@ -117,6 +117,7 @@ type Props = {
   onOpenMarketplace: () => void
   onOpenIntegrationCenter: () => void
   onOpenWorkspaceSettings: () => void
+  onOpenWorkspaceRoute: (route: BusinessWorkspaceRoute, navKey: BusinessWorkspaceNavKey) => void
   onModuleLifecycleChanged: (result: WorkspaceModuleLifecycleResult) => void
 }
 
@@ -203,6 +204,7 @@ export default function BusinessWorkspaceRouteHost({
   onOpenMarketplace,
   onOpenIntegrationCenter,
   onOpenWorkspaceSettings,
+  onOpenWorkspaceRoute,
   onModuleLifecycleChanged
 }: Props){
   const isAdmin = currentUser.role === 'Admin'
@@ -212,6 +214,7 @@ export default function BusinessWorkspaceRouteHost({
       <WorkspaceWelcome
         currentUser={currentUser}
         onOpenWorkspaceSettings={onOpenWorkspaceSettings}
+        onOpenWorkspaceRoute={onOpenWorkspaceRoute}
       />
     )
   }

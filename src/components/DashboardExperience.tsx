@@ -1,5 +1,6 @@
 import React from 'react'
 import { AppIcon } from '../design-system/IconSystem'
+import { PremiumEmptyState } from './PremiumEmptyState'
 import { PremiumSkeleton } from './PremiumLoading'
 
 export type DashboardKpiTone = 'success' | 'warning' | 'danger' | 'info' | 'neutral'
@@ -133,16 +134,16 @@ export const DashboardEmptyState = ({
   className = '',
   dataOnboardingTarget
 }: DashboardEmptyStateProps) => (
-  <section className={['dashboard-experience-empty-state', compact ? 'compact' : '', className].filter(Boolean).join(' ')} data-onboarding-target={dataOnboardingTarget}>
-    <span className="dashboard-experience-empty-icon" aria-hidden="true">
-      <AppIcon source={icon} label={String(title)} context="dashboard empty state" size={compact ? 'LG' : 'XXL'} />
-    </span>
-    <div>
-      <h3>{title}</h3>
-      {description && <p>{description}</p>}
-      {actions && <div className="dashboard-experience-empty-actions">{actions}</div>}
-    </div>
-  </section>
+  <PremiumEmptyState
+    title={title}
+    description={description}
+    iconSource={icon}
+    size={compact ? 'compact' : 'hero'}
+    className={['dashboard-experience-empty-state', compact ? 'compact' : '', className].filter(Boolean).join(' ')}
+    dataOnboardingTarget={dataOnboardingTarget}
+  >
+    {actions && <div className="dashboard-experience-empty-actions">{actions}</div>}
+  </PremiumEmptyState>
 )
 
 export type DashboardWidgetPanelProps = {

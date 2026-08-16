@@ -1,4 +1,5 @@
 import React from 'react'
+import { PremiumEmptyState } from '../components/PremiumEmptyState'
 import { AppIcon } from '../design-system/IconSystem'
 import {
   createBusinessSetupWizardPlan,
@@ -141,7 +142,13 @@ const DependencyCard = ({ module }: { module: ModuleDependencyPlanItem }) => (
 )
 
 const EmptyModuleState = ({ children }: { children: React.ReactNode }) => (
-  <div className="empty-state">{children}</div>
+  <PremiumEmptyState
+    title={children}
+    description="Bu adim icin ek kurulum aksiyonu gerekmiyor."
+    icon="empty"
+    size="compact"
+    className="first-login-empty-state"
+  />
 )
 
 const OptionalModuleGroup = ({

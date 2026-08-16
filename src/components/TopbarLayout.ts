@@ -71,7 +71,7 @@ export const TopbarLayout = ({
     ),
     React.createElement(
       'form',
-      { className: 'topbar-search', role: 'search', onSubmit: onSearchSubmit },
+      { className: 'topbar-search', role: 'search', 'data-onboarding-target': 'global-search', onSubmit: onSearchSubmit },
       React.createElement(
         'span',
         { className: 'topbar-search-icon', 'aria-hidden': true },

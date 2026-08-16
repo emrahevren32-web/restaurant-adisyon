@@ -1,4 +1,5 @@
 import React from 'react'
+import ProductTourProvider, { type ProductTourStep } from './ProductTourProvider'
 import {
   completeOnboardingExperience,
   ONBOARDING_EXPERIENCE_STEP_KEYS,
@@ -18,57 +19,82 @@ type Props = {
   onOpenModuleStore: () => void
 }
 
-type OnboardingStep = {
+type OnboardingStep = ProductTourStep & {
   key: OnboardingExperienceStepKey
-  title: string
-  description: string
-  target?: string
   routeTarget?: 'dashboard' | 'module-store'
 }
 
 const onboardingSteps: OnboardingStep[] = [
   {
     key: ONBOARDING_EXPERIENCE_STEP_KEYS.WELCOME,
-    title: 'Kurulum başarıyla tamamlandı',
-    description: 'İşletmeniz artık kullanıma hazır; şimdi birlikte sistemi tanıyalım.'
+    title: 'Kurulum basariyla tamamlandi',
+    description: 'Isletmeniz artik kullanima hazir. Simdi birlikte sistemi taniyalim.',
+    icon: 'success'
   },
   {
     key: ONBOARDING_EXPERIENCE_STEP_KEYS.DASHBOARD,
     title: 'Kontrol Paneli',
-    description: 'Burası kontrol panelinizdir; işletmenizin önemli bilgileri burada gösterilir.',
+    description: 'Isletmenizin onemli ozetleri ve gunluk aksiyonlari burada toplanir.',
     target: 'control-panel',
-    routeTarget: 'dashboard'
+    routeTarget: 'dashboard',
+    icon: 'dashboard'
   },
   {
     key: ONBOARDING_EXPERIENCE_STEP_KEYS.SIDE_MENU,
-    title: 'Sol Menü',
-    description: 'Sol menü, çalışma alanınızdaki ekranlara hızlı geçiş yapmanızı sağlar.',
-    target: 'side-menu'
+    title: 'Sidebar',
+    description: 'Sol menu calisma alaninizdaki ekranlara hizli gecis yapmanizi saglar.',
+    target: 'side-menu',
+    icon: 'workspace'
+  },
+  {
+    key: ONBOARDING_EXPERIENCE_STEP_KEYS.SEARCH,
+    title: 'Global Arama',
+    description: 'Arama kutusu ekran, modul ve islemleri hizli bulmaniza yardim eder.',
+    target: 'global-search',
+    icon: 'search'
+  },
+  {
+    key: ONBOARDING_EXPERIENCE_STEP_KEYS.NOTIFICATIONS,
+    title: 'Bildirim Merkezi',
+    description: 'Basvuru, lisans, destek ve sistem uyarilari bildirim merkezinde toplanir.',
+    target: 'notifications',
+    icon: 'notification'
+  },
+  {
+    key: ONBOARDING_EXPERIENCE_STEP_KEYS.WORKSPACE,
+    title: 'Workspace ve Sube',
+    description: 'Aktif workspace ve sube kapsamini buradan takip edebilirsiniz.',
+    target: 'workspace-control',
+    icon: 'workspace'
   },
   {
     key: ONBOARDING_EXPERIENCE_STEP_KEYS.WIDGETS,
-    title: 'Widget Alanı',
-    description: 'Widget alanı, takip etmek istediğiniz özetleri kontrol panelinde toplar.',
+    title: 'Widget Alani',
+    description: 'Takip etmek istediginiz ozetleri kontrol panelinde widget olarak toplayabilirsiniz.',
     target: 'widget-area',
-    routeTarget: 'dashboard'
+    routeTarget: 'dashboard',
+    icon: 'module'
   },
   {
     key: ONBOARDING_EXPERIENCE_STEP_KEYS.MODULE_STORE,
-    title: 'Modül Mağazası',
-    description: 'Modül mağazası, işletmenize uygun ek modülleri keşfetmeniz için kullanılır.',
+    title: 'Modul Magazasi',
+    description: 'Isletmenize uygun ek modulleri buradan kesfedebilir ve kurabilirsiniz.',
     target: 'module-store',
-    routeTarget: 'module-store'
+    routeTarget: 'module-store',
+    icon: 'marketplace'
   },
   {
     key: ONBOARDING_EXPERIENCE_STEP_KEYS.PROFILE,
-    title: 'Profil',
-    description: 'Profil alanı, kullanıcı ve oturum bilgilerinizi görmenizi sağlar.',
-    target: 'profile'
+    title: 'Profil Alani',
+    description: 'Kullanici, oturum ve yardim islemleri profil alaninda yer alir.',
+    target: 'profile',
+    icon: 'user'
   },
   {
     key: ONBOARDING_EXPERIENCE_STEP_KEYS.READY,
-    title: 'Hazırsınız',
-    description: "Hazırsınız; MIYOP'u kendi ritminizde keşfetmeye başlayabilirsiniz."
+    title: 'Hazirsiniz',
+    description: "MIYOP'u kendi ritminizde kesfetmeye baslayabilirsiniz.",
+    icon: 'success'
   }
 ]
 
@@ -76,8 +102,6 @@ const getStepIndex = (stepKey: string) => {
   const index = onboardingSteps.findIndex(step => step.key === stepKey)
   return index >= 0 ? index : 0
 }
-
-const getTargetSelector = (target: string) => `[data-onboarding-target="${target}"]`
 
 export default function OnboardingExperience({
   currentUser,
@@ -92,9 +116,6 @@ export default function OnboardingExperience({
   const lastStartSignalRef = React.useRef(startSignal)
   const activeStep = onboardingSteps[activeIndex] || onboardingSteps[0]
   const isWelcomeStep = activeStep.key === ONBOARDING_EXPERIENCE_STEP_KEYS.WELCOME
-  const isReadyStep = activeStep.key === ONBOARDING_EXPERIENCE_STEP_KEYS.READY
-  const guideStepNumber = Math.max(1, activeIndex)
-  const guideStepTotal = onboardingSteps.length - 1
 
   const openStepRoute = React.useCallback((step: OnboardingStep) => {
     if(step.routeTarget === 'dashboard') onOpenDashboard()
@@ -117,15 +138,15 @@ export default function OnboardingExperience({
     openStepRoute(nextStep)
   }, [currentUser, openStepRoute])
 
-  const skipExperience = () => {
+  const skipExperience = React.useCallback(() => {
     skipOnboardingExperience(currentUser)
     setVisible(false)
-  }
+  }, [currentUser])
 
-  const finishExperience = () => {
+  const finishExperience = React.useCallback(() => {
     completeOnboardingExperience(currentUser)
     setVisible(false)
-  }
+  }, [currentUser])
 
   React.useEffect(() => {
     if(!enabled){
@@ -149,69 +170,17 @@ export default function OnboardingExperience({
     openExperience('manual')
   }, [enabled, openExperience, startSignal])
 
-  React.useEffect(() => {
-    document.querySelectorAll('.onboarding-highlight').forEach(element => {
-      element.classList.remove('onboarding-highlight')
-    })
-
-    if(!visible || !activeStep.target) return undefined
-
-    const highlightTimer = window.setTimeout(() => {
-      const target = document.querySelector(getTargetSelector(activeStep.target || ''))
-      target?.classList.add('onboarding-highlight')
-      target?.scrollIntoView({ block: 'center', inline: 'center', behavior: 'smooth' })
-    }, 180)
-
-    return () => {
-      window.clearTimeout(highlightTimer)
-      document.querySelectorAll('.onboarding-highlight').forEach(element => {
-        element.classList.remove('onboarding-highlight')
-      })
-    }
-  }, [activeStep, visible])
-
-  if(!visible) return null
-
   return (
-    <div className={`onboarding-experience ${isWelcomeStep ? 'welcome' : 'guided'}`} role="presentation">
-      <div className="onboarding-scrim" />
-      <section className="onboarding-card" role="dialog" aria-modal="false" aria-label="MIYOP onboarding rehberi">
-        <div className="onboarding-card-header">
-          <span className="status-pill info-pill">
-            {isWelcomeStep ? 'Hoş Geldiniz' : `Adım ${guideStepNumber}/${guideStepTotal}`}
-          </span>
-          <button className="btn ghost onboarding-close" type="button" onClick={skipExperience}>Atla</button>
-        </div>
-        <div className="onboarding-card-copy">
-          <h3>{activeStep.title}</h3>
-          <p>{activeStep.description}</p>
-        </div>
-        {!isWelcomeStep && (
-          <div className="onboarding-progress-track" aria-hidden="true">
-            <span style={{ width: `${Math.round((guideStepNumber / guideStepTotal) * 100)}%` }} />
-          </div>
-        )}
-        <div className="onboarding-actions">
-          {!isWelcomeStep && (
-            <button className="btn" type="button" onClick={() => moveToStep(activeIndex - 1)}>
-              Geri
-            </button>
-          )}
-          {isWelcomeStep ? (
-            <button className="btn primary" type="button" onClick={() => moveToStep(1)}>
-              Rehberi Başlat
-            </button>
-          ) : isReadyStep ? (
-            <button className="btn primary" type="button" onClick={finishExperience}>
-              Bitir
-            </button>
-          ) : (
-            <button className="btn primary" type="button" onClick={() => moveToStep(activeIndex + 1)}>
-              Devam Et
-            </button>
-          )}
-        </div>
-      </section>
-    </div>
+    <ProductTourProvider
+      open={visible}
+      steps={onboardingSteps}
+      activeIndex={activeIndex}
+      welcome={isWelcomeStep}
+      onBack={() => moveToStep(activeIndex - 1)}
+      onNext={() => moveToStep(activeIndex + 1)}
+      onSkip={skipExperience}
+      onFinish={finishExperience}
+      className="onboarding-experience"
+    />
   )
 }

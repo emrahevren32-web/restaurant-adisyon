@@ -575,18 +575,20 @@ export default function AppShell<
 
   const workspaceLabel = isPlatformAdmin ? 'EVREN360 Platform' : activeBranch?.name || restaurantName
   const workspaceControl = (
-    <TopbarWorkspaceControl
-      isPlatformAdmin={isPlatformAdmin}
-      workspaceLabel={workspaceLabel}
-      branches={selectableBranches}
-      activeBranchId={activeBranchId}
-      hasSelectableBranch={hasSelectableBranch}
-      onActiveBranchChange={onActiveBranchChange}
-    />
+    <div className="topbar-workspace-tour-target" data-onboarding-target="workspace-control">
+      <TopbarWorkspaceControl
+        isPlatformAdmin={isPlatformAdmin}
+        workspaceLabel={workspaceLabel}
+        branches={selectableBranches}
+        activeBranchId={activeBranchId}
+        hasSelectableBranch={hasSelectableBranch}
+        onActiveBranchChange={onActiveBranchChange}
+      />
+    </div>
   )
 
   const notificationCenter = (
-    <div className="topbar-notification-wrap">
+    <div className="topbar-notification-wrap" data-onboarding-target="notifications">
       <button
         className={`topbar-notification ${notificationPanelOpen ? 'active' : ''}`}
         type="button"

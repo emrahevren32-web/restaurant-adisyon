@@ -1,5 +1,6 @@
 import React from 'react'
 import { AppIcon, type AppIconProps } from '../design-system/IconSystem'
+import { PremiumEmptyState } from './PremiumEmptyState'
 import { PremiumSkeleton, PremiumSpinner } from './PremiumLoading'
 
 export type PremiumTableSortDirection = 'asc' | 'desc' | 'none'
@@ -172,16 +173,15 @@ export const PremiumEmptyTable = ({
           <small>Veriler yüklenirken tablo düzeni korunuyor.</small>
         </div>
       ) : (
-        <div className="premium-table-empty-state">
-          <span className="premium-table-empty-icon" aria-hidden="true">
-            <AppIcon name={icon} size="LG" />
-          </span>
-          <div>
-            <strong>{title}</strong>
-            {description && <small>{description}</small>}
-            {action && <div className="premium-table-empty-action">{action}</div>}
-          </div>
-        </div>
+        <PremiumEmptyState
+          title={title}
+          description={description}
+          icon={icon}
+          size="compact"
+          className="premium-table-empty-state"
+        >
+          {action && <div className="premium-table-empty-action">{action}</div>}
+        </PremiumEmptyState>
       )}
     </td>
   </tr>
