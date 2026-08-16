@@ -2,7 +2,19 @@ import type { ThemeMode } from './ThemeColors'
 
 export type { ThemeMode } from './ThemeColors'
 
-export type PremiumAccentName = 'blue' | 'emerald' | 'purple' | 'orange' | 'red'
+export type PremiumAccentName =
+  | 'miyopBlue'
+  | 'softGreen'
+  | 'blue'
+  | 'indigo'
+  | 'purple'
+  | 'emerald'
+  | 'teal'
+  | 'orange'
+  | 'rose'
+  | 'slate'
+  | 'graphite'
+  | 'red'
 export type PremiumSurfaceLevel = 0 | 1 | 2 | 3 | 4
 export type PremiumElevationLevel = 0 | 1 | 2 | 3
 export type PremiumGlassSurface =
@@ -129,13 +141,20 @@ export type PremiumThemeTokens = {
 }
 
 export const DEFAULT_THEME_MODE: ThemeMode = 'light'
-export const DEFAULT_THEME_ACCENT: PremiumAccentName = 'blue'
+export const DEFAULT_THEME_ACCENT: PremiumAccentName = 'miyopBlue'
 
 export const PREMIUM_ACCENT_NAMES: PremiumAccentName[] = [
+  'miyopBlue',
+  'softGreen',
   'blue',
-  'emerald',
+  'indigo',
   'purple',
+  'emerald',
+  'teal',
   'orange',
+  'rose',
+  'slate',
+  'graphite',
   'red'
 ]
 
@@ -153,6 +172,22 @@ export const PREMIUM_GLASS_SURFACES: PremiumGlassSurface[] = [
 
 export const PREMIUM_ACCENT_PALETTES: Record<ThemeMode, Record<PremiumAccentName, PremiumColorRole>> = {
   light: {
+    miyopBlue: {
+      base: '#1f5eff',
+      hover: '#174ad6',
+      soft: '#eef4ff',
+      subtle: '#dce8ff',
+      line: '#b9cdfd',
+      contrast: '#ffffff'
+    },
+    softGreen: {
+      base: '#2f7a5f',
+      hover: '#255f4b',
+      soft: '#f0f8f2',
+      subtle: '#def0e5',
+      line: '#b9dfc8',
+      contrast: '#ffffff'
+    },
     blue: {
       base: '#2563eb',
       hover: '#1d4ed8',
@@ -161,12 +196,12 @@ export const PREMIUM_ACCENT_PALETTES: Record<ThemeMode, Record<PremiumAccentName
       line: '#bfdbfe',
       contrast: '#ffffff'
     },
-    emerald: {
-      base: '#047857',
-      hover: '#065f46',
-      soft: '#ecfdf5',
-      subtle: '#d1fae5',
-      line: '#a7f3d0',
+    indigo: {
+      base: '#4f46e5',
+      hover: '#4338ca',
+      soft: '#eef2ff',
+      subtle: '#e0e7ff',
+      line: '#c7d2fe',
       contrast: '#ffffff'
     },
     purple: {
@@ -177,6 +212,22 @@ export const PREMIUM_ACCENT_PALETTES: Record<ThemeMode, Record<PremiumAccentName
       line: '#c4b5fd',
       contrast: '#ffffff'
     },
+    emerald: {
+      base: '#047857',
+      hover: '#065f46',
+      soft: '#ecfdf5',
+      subtle: '#d1fae5',
+      line: '#a7f3d0',
+      contrast: '#ffffff'
+    },
+    teal: {
+      base: '#0f766e',
+      hover: '#115e59',
+      soft: '#f0fdfa',
+      subtle: '#ccfbf1',
+      line: '#99f6e4',
+      contrast: '#ffffff'
+    },
     orange: {
       base: '#c2410c',
       hover: '#9a3412',
@@ -185,55 +236,135 @@ export const PREMIUM_ACCENT_PALETTES: Record<ThemeMode, Record<PremiumAccentName
       line: '#fed7aa',
       contrast: '#ffffff'
     },
+    rose: {
+      base: '#be123c',
+      hover: '#9f1239',
+      soft: '#fff1f2',
+      subtle: '#ffe4e6',
+      line: '#fecdd3',
+      contrast: '#ffffff'
+    },
+    slate: {
+      base: '#475569',
+      hover: '#334155',
+      soft: '#f8fafc',
+      subtle: '#f1f5f9',
+      line: '#cbd5e1',
+      contrast: '#ffffff'
+    },
+    graphite: {
+      base: '#374151',
+      hover: '#1f2937',
+      soft: '#f7f7f8',
+      subtle: '#eceef1',
+      line: '#c8cdd4',
+      contrast: '#ffffff'
+    },
     red: {
-      base: '#dc2626',
-      hover: '#b91c1c',
-      soft: '#fff5f5',
-      subtle: '#fee2e2',
-      line: '#fecaca',
+      base: '#be123c',
+      hover: '#9f1239',
+      soft: '#fff1f2',
+      subtle: '#ffe4e6',
+      line: '#fecdd3',
       contrast: '#ffffff'
     }
   },
   dark: {
+    miyopBlue: {
+      base: '#7aa7ff',
+      hover: '#a7c4ff',
+      soft: 'rgba(74, 116, 255, .18)',
+      subtle: 'rgba(74, 116, 255, .25)',
+      line: 'rgba(154, 183, 255, .40)',
+      contrast: '#111827'
+    },
+    softGreen: {
+      base: '#8fd9ad',
+      hover: '#b6eac9',
+      soft: 'rgba(78, 160, 108, .18)',
+      subtle: 'rgba(78, 160, 108, .25)',
+      line: 'rgba(182, 234, 201, .38)',
+      contrast: '#111827'
+    },
     blue: {
       base: '#60a5fa',
       hover: '#93c5fd',
       soft: 'rgba(37, 99, 235, .18)',
-      subtle: 'rgba(37, 99, 235, .26)',
-      line: 'rgba(147, 197, 253, .42)',
-      contrast: '#07111f'
+      subtle: 'rgba(37, 99, 235, .25)',
+      line: 'rgba(147, 197, 253, .38)',
+      contrast: '#111827'
+    },
+    indigo: {
+      base: '#818cf8',
+      hover: '#a5b4fc',
+      soft: 'rgba(99, 102, 241, .18)',
+      subtle: 'rgba(99, 102, 241, .25)',
+      line: 'rgba(165, 180, 252, .40)',
+      contrast: '#111827'
+    },
+    purple: {
+      base: '#c084fc',
+      hover: '#d8b4fe',
+      soft: 'rgba(147, 51, 234, .18)',
+      subtle: 'rgba(147, 51, 234, .25)',
+      line: 'rgba(216, 180, 254, .38)',
+      contrast: '#111827'
     },
     emerald: {
       base: '#34d399',
       hover: '#6ee7b7',
-      soft: 'rgba(5, 150, 105, .18)',
-      subtle: 'rgba(5, 150, 105, .26)',
-      line: 'rgba(110, 231, 183, .42)',
-      contrast: '#07111f'
+      soft: 'rgba(16, 185, 129, .18)',
+      subtle: 'rgba(16, 185, 129, .25)',
+      line: 'rgba(110, 231, 183, .38)',
+      contrast: '#111827'
     },
-    purple: {
-      base: '#a78bfa',
-      hover: '#c4b5fd',
-      soft: 'rgba(124, 58, 237, .20)',
-      subtle: 'rgba(124, 58, 237, .28)',
-      line: 'rgba(196, 181, 253, .44)',
-      contrast: '#07111f'
+    teal: {
+      base: '#2dd4bf',
+      hover: '#5eead4',
+      soft: 'rgba(20, 184, 166, .18)',
+      subtle: 'rgba(20, 184, 166, .25)',
+      line: 'rgba(94, 234, 212, .38)',
+      contrast: '#111827'
     },
     orange: {
       base: '#fb923c',
       hover: '#fdba74',
-      soft: 'rgba(234, 88, 12, .18)',
-      subtle: 'rgba(234, 88, 12, .26)',
-      line: 'rgba(253, 186, 116, .44)',
-      contrast: '#07111f'
+      soft: 'rgba(249, 115, 22, .18)',
+      subtle: 'rgba(249, 115, 22, .25)',
+      line: 'rgba(253, 186, 116, .38)',
+      contrast: '#111827'
+    },
+    rose: {
+      base: '#fb7185',
+      hover: '#fda4af',
+      soft: 'rgba(244, 63, 94, .18)',
+      subtle: 'rgba(244, 63, 94, .25)',
+      line: 'rgba(253, 164, 175, .38)',
+      contrast: '#111827'
+    },
+    slate: {
+      base: '#cbd5e1',
+      hover: '#e2e8f0',
+      soft: 'rgba(148, 163, 184, .18)',
+      subtle: 'rgba(148, 163, 184, .25)',
+      line: 'rgba(203, 213, 225, .36)',
+      contrast: '#111827'
+    },
+    graphite: {
+      base: '#d1d5db',
+      hover: '#f3f4f6',
+      soft: 'rgba(156, 163, 175, .18)',
+      subtle: 'rgba(156, 163, 175, .25)',
+      line: 'rgba(209, 213, 219, .36)',
+      contrast: '#111827'
     },
     red: {
-      base: '#f87171',
-      hover: '#fca5a5',
-      soft: 'rgba(220, 38, 38, .18)',
-      subtle: 'rgba(220, 38, 38, .26)',
-      line: 'rgba(252, 165, 165, .44)',
-      contrast: '#07111f'
+      base: '#fb7185',
+      hover: '#fda4af',
+      soft: 'rgba(244, 63, 94, .18)',
+      subtle: 'rgba(244, 63, 94, .25)',
+      line: 'rgba(253, 164, 175, .38)',
+      contrast: '#111827'
     }
   }
 }
@@ -242,19 +373,19 @@ export const PREMIUM_THEME_TOKENS: Record<ThemeMode, PremiumThemeTokens> = {
   light: {
     mode: 'light',
     app: {
-      bg: '#f5f7fb',
-      muted: '#eef2f7',
-      canvas: 'linear-gradient(180deg, #f8fafc 0%, #f1f5f9 48%, #edf2f7 100%)'
+      bg: '#f4f6f1',
+      muted: '#edf2eb',
+      canvas: 'linear-gradient(180deg, #fbfaf6 0%, #f3f6f1 45%, #edf1e9 100%)'
     },
     color: {
-      white: '#ffffff',
+      white: '#fffdf8',
       black: '#111827'
     },
     text: {
-      primary: '#111827',
-      secondary: '#334155',
-      muted: '#64748b',
-      mutedStrong: '#475569',
+      primary: '#0f172a',
+      secondary: '#26364a',
+      muted: '#66758a',
+      mutedStrong: '#3f5066',
       inverse: '#ffffff'
     },
     icon: {
@@ -263,24 +394,24 @@ export const PREMIUM_THEME_TOKENS: Record<ThemeMode, PremiumThemeTokens> = {
       inverse: '#ffffff'
     },
     surface: {
-      0: '#ffffff',
-      1: '#fbfdff',
-      2: '#f8fafc',
-      3: '#f1f5f9',
-      4: '#e2e8f0'
+      0: '#fffdf8',
+      1: '#fafaf4',
+      2: '#f2f5ef',
+      3: '#e9eee6',
+      4: '#dbe3d8'
     },
     card: {
       background: 'var(--theme-surface-0)',
       raised: 'var(--theme-surface-1)'
     },
     border: {
-      subtle: '#e9eef6',
-      default: '#dbe3ee',
-      strong: '#b9c6d8',
-      focus: '#2563eb'
+      subtle: '#e3e7dc',
+      default: '#d3dbcf',
+      strong: '#b8c4b6',
+      focus: '#1f5eff'
     },
     semantic: {
-      primary: PREMIUM_ACCENT_PALETTES.light.blue,
+      primary: PREMIUM_ACCENT_PALETTES.light.miyopBlue,
       secondary: {
         base: '#7c3aed',
         hover: '#6d28d9',
@@ -339,22 +470,22 @@ export const PREMIUM_THEME_TOKENS: Record<ThemeMode, PremiumThemeTokens> = {
       }
     },
     state: {
-      hover: '#f8fafc',
-      active: '#eff6ff',
-      selected: '#eff6ff',
-      disabledBackground: '#eef2f7',
+      hover: '#f7f8f4',
+      active: '#eef4ff',
+      selected: '#e8f0ff',
+      disabledBackground: '#edf2eb',
       disabledText: '#94a3b8',
-      focusRing: '0 0 0 3px rgba(37, 99, 235, .18)'
+      focusRing: '0 0 0 3px rgba(31, 94, 255, .18)'
     },
     shadow: {
       none: 'none',
-      xs: '0 1px 2px rgba(15, 23, 42, .05)',
-      sm: '0 1px 2px rgba(15, 23, 42, .05), 0 8px 22px rgba(15, 23, 42, .04)',
-      md: '0 12px 32px rgba(15, 23, 42, .08)',
-      lg: '0 18px 44px rgba(15, 23, 42, .12)',
-      xl: '0 24px 70px rgba(15, 23, 42, .18)',
-      floating: '0 24px 64px rgba(15, 23, 42, .20)',
-      overlay: '0 28px 80px rgba(15, 23, 42, .24)'
+      xs: '0 1px 2px rgba(30, 41, 59, .04)',
+      sm: '0 1px 2px rgba(30, 41, 59, .035), 0 12px 28px rgba(30, 41, 59, .045)',
+      md: '0 18px 42px rgba(30, 41, 59, .075)',
+      lg: '0 24px 58px rgba(30, 41, 59, .105)',
+      xl: '0 32px 82px rgba(30, 41, 59, .14)',
+      floating: '0 28px 76px rgba(30, 41, 59, .16)',
+      overlay: '0 36px 96px rgba(30, 41, 59, .22)'
     },
     blur: {
       none: 'none',
@@ -375,47 +506,47 @@ export const PREMIUM_THEME_TOKENS: Record<ThemeMode, PremiumThemeTokens> = {
       mono: 'ui-monospace, SFMono-Regular, Menlo, Consolas, monospace'
     },
     motion: {
-      fast: '140ms',
-      normal: '220ms',
-      slow: '360ms',
+      fast: '150ms',
+      normal: '190ms',
+      slow: '220ms',
       surface: 'background var(--motion-fast) var(--motion-ease-standard), border-color var(--motion-fast) var(--motion-ease-standard), box-shadow var(--motion-fast) var(--motion-ease-standard), transform var(--motion-fast) var(--motion-ease-standard)',
       focus: 'border-color var(--motion-fast) var(--motion-ease-standard), box-shadow var(--motion-fast) var(--motion-ease-standard), outline-color var(--motion-fast) var(--motion-ease-standard)'
     },
     glass: {
       sidebar: {
-        background: 'rgba(255, 255, 255, .86)',
-        border: 'rgba(219, 227, 238, .88)',
-        shadow: '0 18px 46px rgba(15, 23, 42, .08)',
+        background: 'rgba(250, 250, 244, .88)',
+        border: 'rgba(211, 219, 207, .52)',
+        shadow: '0 16px 42px rgba(30, 41, 59, .06)',
         blur: 'var(--theme-blur-glass)'
       },
       topbar: {
-        background: 'rgba(255, 255, 255, .90)',
-        border: 'rgba(219, 227, 238, .92)',
-        shadow: '0 12px 30px rgba(15, 23, 42, .07)',
+        background: 'rgba(255, 253, 248, .90)',
+        border: 'rgba(211, 219, 207, .48)',
+        shadow: '0 12px 30px rgba(30, 41, 59, .055)',
         blur: 'var(--theme-blur-glass)'
       },
       card: {
-        background: 'rgba(255, 255, 255, .78)',
-        border: 'rgba(219, 227, 238, .72)',
-        shadow: '0 16px 42px rgba(15, 23, 42, .08)',
+        background: 'rgba(255, 253, 248, .78)',
+        border: 'rgba(211, 219, 207, .44)',
+        shadow: '0 18px 48px rgba(30, 41, 59, .07)',
         blur: 'var(--theme-blur-md)'
       },
       modal: {
-        background: 'rgba(255, 255, 255, .94)',
-        border: 'rgba(219, 227, 238, .94)',
-        shadow: '0 28px 80px rgba(15, 23, 42, .22)',
+        background: 'rgba(255, 253, 248, .96)',
+        border: 'rgba(211, 219, 207, .72)',
+        shadow: '0 34px 88px rgba(30, 41, 59, .20)',
         blur: 'var(--theme-blur-lg)'
       },
       drawer: {
-        background: 'rgba(255, 255, 255, .92)',
-        border: 'rgba(219, 227, 238, .88)',
-        shadow: '0 24px 70px rgba(15, 23, 42, .18)',
+        background: 'rgba(255, 253, 248, .92)',
+        border: 'rgba(211, 219, 207, .66)',
+        shadow: '0 28px 76px rgba(30, 41, 59, .16)',
         blur: 'var(--theme-blur-glass)'
       },
       dropdown: {
-        background: 'rgba(255, 255, 255, .96)',
-        border: 'rgba(219, 227, 238, .94)',
-        shadow: '0 22px 54px rgba(15, 23, 42, .16)',
+        background: 'rgba(255, 253, 248, .96)',
+        border: 'rgba(211, 219, 207, .70)',
+        shadow: '0 24px 60px rgba(30, 41, 59, .14)',
         blur: 'var(--theme-blur-md)'
       }
     },
@@ -439,62 +570,62 @@ export const PREMIUM_THEME_TOKENS: Record<ThemeMode, PremiumThemeTokens> = {
         blur: 'var(--theme-blur-sm)'
       },
       3: {
-        background: 'var(--theme-glass-card-background)',
-        border: 'var(--theme-glass-card-border)',
+        background: 'var(--theme-surface-1)',
+        border: 'var(--theme-border-default)',
         shadow: 'var(--theme-shadow-floating)',
-        blur: 'var(--theme-blur-glass)'
+        blur: 'var(--theme-blur-none)'
       }
     }
   },
   dark: {
     mode: 'dark',
     app: {
-      bg: '#0b1220',
-      muted: '#0f172a',
-      canvas: 'linear-gradient(180deg, #07111f 0%, #0b1220 54%, #111827 100%)'
+      bg: '#24282f',
+      muted: '#2a3037',
+      canvas: 'linear-gradient(180deg, #303640 0%, #262c34 48%, #222830 100%)'
     },
     color: {
       white: '#ffffff',
-      black: '#07111f'
+      black: '#24282f'
     },
     text: {
-      primary: '#f8fafc',
-      secondary: '#dbe7f5',
-      muted: '#94a3b8',
-      mutedStrong: '#cbd5e1',
-      inverse: '#07111f'
+      primary: '#f5f7fa',
+      secondary: '#d7dde6',
+      muted: '#9aa4b2',
+      mutedStrong: '#c5cbd5',
+      inverse: '#20242b'
     },
     icon: {
-      default: '#dbe7f5',
-      muted: '#94a3b8',
-      inverse: '#07111f'
+      default: '#d7dde6',
+      muted: '#9aa4b2',
+      inverse: '#20242b'
     },
     surface: {
-      0: '#0f172a',
-      1: '#111c2e',
-      2: '#17233a',
-      3: '#1f2d46',
-      4: '#2a3a56'
+      0: '#292f37',
+      1: '#303740',
+      2: '#38414c',
+      3: '#424c58',
+      4: '#505b68'
     },
     card: {
       background: 'var(--theme-surface-1)',
       raised: 'var(--theme-surface-2)'
     },
     border: {
-      subtle: 'rgba(148, 163, 184, .18)',
-      default: 'rgba(148, 163, 184, .28)',
-      strong: 'rgba(203, 213, 225, .38)',
-      focus: '#60a5fa'
+      subtle: 'rgba(226, 232, 240, .10)',
+      default: 'rgba(226, 232, 240, .16)',
+      strong: 'rgba(226, 232, 240, .26)',
+      focus: '#8fb5ff'
     },
     semantic: {
-      primary: PREMIUM_ACCENT_PALETTES.dark.blue,
+      primary: PREMIUM_ACCENT_PALETTES.dark.miyopBlue,
       secondary: {
         base: '#a78bfa',
         hover: '#c4b5fd',
         soft: 'rgba(124, 58, 237, .20)',
         subtle: 'rgba(124, 58, 237, .28)',
         line: 'rgba(196, 181, 253, .44)',
-        contrast: '#07111f'
+        contrast: '#111827'
       },
       success: {
         base: '#4ade80',
@@ -502,7 +633,7 @@ export const PREMIUM_THEME_TOKENS: Record<ThemeMode, PremiumThemeTokens> = {
         soft: 'rgba(22, 163, 74, .18)',
         subtle: 'rgba(22, 163, 74, .26)',
         line: 'rgba(134, 239, 172, .42)',
-        contrast: '#07111f'
+        contrast: '#111827'
       },
       warning: {
         base: '#fbbf24',
@@ -510,7 +641,7 @@ export const PREMIUM_THEME_TOKENS: Record<ThemeMode, PremiumThemeTokens> = {
         soft: 'rgba(217, 119, 6, .18)',
         subtle: 'rgba(217, 119, 6, .26)',
         line: 'rgba(252, 211, 77, .44)',
-        contrast: '#07111f'
+        contrast: '#111827'
       },
       danger: {
         base: '#f87171',
@@ -518,7 +649,7 @@ export const PREMIUM_THEME_TOKENS: Record<ThemeMode, PremiumThemeTokens> = {
         soft: 'rgba(220, 38, 38, .18)',
         subtle: 'rgba(220, 38, 38, .26)',
         line: 'rgba(252, 165, 165, .44)',
-        contrast: '#07111f'
+        contrast: '#111827'
       },
       error: {
         base: '#f87171',
@@ -526,7 +657,7 @@ export const PREMIUM_THEME_TOKENS: Record<ThemeMode, PremiumThemeTokens> = {
         soft: 'rgba(220, 38, 38, .18)',
         subtle: 'rgba(220, 38, 38, .26)',
         line: 'rgba(252, 165, 165, .44)',
-        contrast: '#07111f'
+        contrast: '#111827'
       },
       info: {
         base: '#38bdf8',
@@ -534,7 +665,7 @@ export const PREMIUM_THEME_TOKENS: Record<ThemeMode, PremiumThemeTokens> = {
         soft: 'rgba(14, 165, 233, .18)',
         subtle: 'rgba(14, 165, 233, .26)',
         line: 'rgba(125, 211, 252, .42)',
-        contrast: '#07111f'
+        contrast: '#111827'
       },
       neutral: {
         base: '#cbd5e1',
@@ -542,26 +673,26 @@ export const PREMIUM_THEME_TOKENS: Record<ThemeMode, PremiumThemeTokens> = {
         soft: 'rgba(148, 163, 184, .16)',
         subtle: 'rgba(148, 163, 184, .24)',
         line: 'rgba(203, 213, 225, .34)',
-        contrast: '#07111f'
+        contrast: '#111827'
       }
     },
     state: {
-      hover: 'rgba(148, 163, 184, .12)',
-      active: 'rgba(96, 165, 250, .16)',
-      selected: 'rgba(96, 165, 250, .20)',
-      disabledBackground: 'rgba(148, 163, 184, .12)',
-      disabledText: '#64748b',
-      focusRing: '0 0 0 3px rgba(96, 165, 250, .32)'
+      hover: 'rgba(226, 232, 240, .09)',
+      active: 'rgba(122, 167, 255, .16)',
+      selected: 'rgba(122, 167, 255, .20)',
+      disabledBackground: 'rgba(226, 232, 240, .08)',
+      disabledText: '#7f8a99',
+      focusRing: '0 0 0 3px rgba(122, 167, 255, .30)'
     },
     shadow: {
       none: 'none',
-      xs: '0 1px 2px rgba(0, 0, 0, .28)',
-      sm: '0 1px 2px rgba(0, 0, 0, .30), 0 8px 22px rgba(0, 0, 0, .24)',
-      md: '0 14px 34px rgba(0, 0, 0, .36)',
-      lg: '0 20px 48px rgba(0, 0, 0, .44)',
-      xl: '0 28px 76px rgba(0, 0, 0, .54)',
-      floating: '0 28px 70px rgba(0, 0, 0, .52)',
-      overlay: '0 34px 90px rgba(0, 0, 0, .64)'
+      xs: '0 1px 2px rgba(7, 12, 18, .14)',
+      sm: '0 1px 2px rgba(7, 12, 18, .14), 0 12px 28px rgba(7, 12, 18, .15)',
+      md: '0 18px 42px rgba(7, 12, 18, .20)',
+      lg: '0 24px 58px rgba(7, 12, 18, .26)',
+      xl: '0 32px 82px rgba(7, 12, 18, .32)',
+      floating: '0 30px 78px rgba(7, 12, 18, .34)',
+      overlay: '0 36px 96px rgba(7, 12, 18, .42)'
     },
     blur: {
       none: 'none',
@@ -582,47 +713,47 @@ export const PREMIUM_THEME_TOKENS: Record<ThemeMode, PremiumThemeTokens> = {
       mono: 'ui-monospace, SFMono-Regular, Menlo, Consolas, monospace'
     },
     motion: {
-      fast: '140ms',
-      normal: '220ms',
-      slow: '360ms',
+      fast: '150ms',
+      normal: '190ms',
+      slow: '220ms',
       surface: 'background var(--motion-fast) var(--motion-ease-standard), border-color var(--motion-fast) var(--motion-ease-standard), box-shadow var(--motion-fast) var(--motion-ease-standard), transform var(--motion-fast) var(--motion-ease-standard)',
       focus: 'border-color var(--motion-fast) var(--motion-ease-standard), box-shadow var(--motion-fast) var(--motion-ease-standard), outline-color var(--motion-fast) var(--motion-ease-standard)'
     },
     glass: {
       sidebar: {
-        background: 'rgba(15, 23, 42, .82)',
-        border: 'rgba(148, 163, 184, .24)',
-        shadow: '0 22px 58px rgba(0, 0, 0, .36)',
+        background: 'rgba(48, 55, 64, .88)',
+        border: 'rgba(226, 232, 240, .12)',
+        shadow: '0 18px 48px rgba(7, 12, 18, .20)',
         blur: 'var(--theme-blur-glass)'
       },
       topbar: {
-        background: 'rgba(15, 23, 42, .78)',
-        border: 'rgba(148, 163, 184, .26)',
-        shadow: '0 16px 38px rgba(0, 0, 0, .34)',
+        background: 'rgba(48, 55, 64, .86)',
+        border: 'rgba(226, 232, 240, .12)',
+        shadow: '0 14px 36px rgba(7, 12, 18, .20)',
         blur: 'var(--theme-blur-glass)'
       },
       card: {
-        background: 'rgba(17, 28, 46, .74)',
-        border: 'rgba(148, 163, 184, .24)',
-        shadow: '0 18px 48px rgba(0, 0, 0, .34)',
+        background: 'rgba(56, 65, 76, .80)',
+        border: 'rgba(226, 232, 240, .11)',
+        shadow: '0 20px 54px rgba(7, 12, 18, .24)',
         blur: 'var(--theme-blur-md)'
       },
       modal: {
-        background: 'rgba(17, 28, 46, .94)',
-        border: 'rgba(203, 213, 225, .28)',
-        shadow: '0 34px 90px rgba(0, 0, 0, .62)',
+        background: 'rgba(48, 55, 64, .96)',
+        border: 'rgba(226, 232, 240, .18)',
+        shadow: '0 34px 90px rgba(7, 12, 18, .40)',
         blur: 'var(--theme-blur-lg)'
       },
       drawer: {
-        background: 'rgba(15, 23, 42, .92)',
-        border: 'rgba(148, 163, 184, .28)',
-        shadow: '0 28px 80px rgba(0, 0, 0, .54)',
+        background: 'rgba(48, 55, 64, .92)',
+        border: 'rgba(226, 232, 240, .16)',
+        shadow: '0 30px 84px rgba(7, 12, 18, .36)',
         blur: 'var(--theme-blur-glass)'
       },
       dropdown: {
-        background: 'rgba(17, 28, 46, .96)',
-        border: 'rgba(203, 213, 225, .30)',
-        shadow: '0 26px 62px rgba(0, 0, 0, .52)',
+        background: 'rgba(48, 55, 64, .96)',
+        border: 'rgba(226, 232, 240, .18)',
+        shadow: '0 26px 62px rgba(7, 12, 18, .32)',
         blur: 'var(--theme-blur-md)'
       }
     },
@@ -646,10 +777,10 @@ export const PREMIUM_THEME_TOKENS: Record<ThemeMode, PremiumThemeTokens> = {
         blur: 'var(--theme-blur-sm)'
       },
       3: {
-        background: 'var(--theme-glass-card-background)',
-        border: 'var(--theme-glass-card-border)',
+        background: 'var(--theme-surface-2)',
+        border: 'var(--theme-border-default)',
         shadow: 'var(--theme-shadow-floating)',
-        blur: 'var(--theme-blur-glass)'
+        blur: 'var(--theme-blur-none)'
       }
     }
   }
