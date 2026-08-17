@@ -586,7 +586,7 @@ export default function App(){
     setLicenseAccessError('')
     setRoute('integration-center')
     setActiveNavKey('integration-center')
-    setOpenGroupKey('system-modules')
+    setOpenGroupKey('integration-modules')
   }
   const openWorkspaceSettingsFromWelcome = () => {
     setLicenseAccessError('')

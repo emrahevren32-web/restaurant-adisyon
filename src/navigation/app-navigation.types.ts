@@ -309,6 +309,11 @@ export type PlatformNavKey =
 
 export type AppNavKey = BusinessWorkspaceNavKey | PlatformNavKey
 
-export type BusinessWorkspaceNavGroupKey = 'system-modules' | 'business-modules' | 'integration-modules'
+export type BusinessWorkspaceNavGroupKey =
+  | 'system-modules'
+  | 'operations-modules'
+  | 'business-modules'
+  | 'report-modules'
+  | 'integration-modules'
 export type PlatformNavGroupKey = 'evren360-admin'
 export type AppNavGroupKey = BusinessWorkspaceNavGroupKey | PlatformNavGroupKey

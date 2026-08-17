@@ -78,6 +78,11 @@ type AppShellProps<
   children: React.ReactNode
 }
 
+type SidebarTooltipState = {
+  label: string
+  top: number
+}
+
 const normalizeSearchText = (value: string) => (
   value
     .trim()
@@ -239,6 +244,7 @@ export default function AppShell<
   const [notificationPanelOpen, setNotificationPanelOpen] = React.useState(false)
   const [notifications, setNotifications] = React.useState<Evren360Notification[]>([])
   const [sidebarCollapsed, setSidebarCollapsed] = React.useState(false)
+  const [sidebarTooltip, setSidebarTooltip] = React.useState<SidebarTooltipState | null>(null)
   const [mobileSidebarOpen, setMobileSidebarOpen] = React.useState(false)
   const [globalSearch, setGlobalSearch] = React.useState('')
   const { themeMode, toggleThemeMode } = useTheme()
@@ -288,6 +294,16 @@ export default function AppShell<
     setNotificationPanelOpen(false)
     setMobileSidebarOpen(false)
   }, [activeNavKey])
+
+  React.useEffect(() => {
+    if(sidebarCollapsed) return
+    setSidebarTooltip(null)
+  }, [sidebarCollapsed])
+
+  React.useEffect(() => {
+    if(!mobileSidebarOpen) return
+    setSidebarTooltip(null)
+  }, [mobileSidebarOpen])
 
   React.useEffect(() => {
     const mobileNavigationQuery = window.matchMedia('(max-width: 1024px)')
@@ -364,6 +380,22 @@ export default function AppShell<
     setGlobalSearch('')
   }
 
+  const showSidebarTooltip = (
+    label: string,
+    event: React.MouseEvent<HTMLButtonElement> | React.FocusEvent<HTMLButtonElement>
+  ) => {
+    if(!sidebarCollapsed || mobileSidebarOpen) return
+    const rect = event.currentTarget.getBoundingClientRect()
+    setSidebarTooltip({
+      label,
+      top: Math.round(rect.top + (rect.height / 2))
+    })
+  }
+
+  const hideSidebarTooltip = () => {
+    setSidebarTooltip(null)
+  }
+
   const toggleTreeItem = (key: NavKey) => {
     setOpenTreeKeys(current => {
       const next = new Set(current)
@@ -384,6 +416,9 @@ export default function AppShell<
     const isActive = activeNavKey === item.key
     const isActiveBranch = isActive || navItemHasActiveDescendant(item, activeNavKey)
     const onboardingTarget = getOnboardingTargetForNavItem(String(item.key))
+    const tooltipLabel = item.locked && item.disabledReason
+      ? `${item.label} - ${item.disabledReason}`
+      : item.label
     const buttonClassName = [
       'side-nav-item',
       hasChildren ? 'tree-parent' : '',
@@ -406,9 +441,17 @@ export default function AppShell<
           aria-expanded={hasChildren ? isOpen : undefined}
           aria-disabled={item.locked ? true : undefined}
           title={item.locked ? item.disabledReason : item.label}
+          aria-label={tooltipLabel}
           data-active={isActive ? 'true' : undefined}
           data-active-branch={isActiveBranch ? 'true' : undefined}
+          data-depth={depth}
+          data-nav-kind={hasChildren ? 'parent' : 'item'}
+          data-tooltip={tooltipLabel}
           data-onboarding-target={onboardingTarget}
+          onMouseEnter={event => showSidebarTooltip(tooltipLabel, event)}
+          onMouseLeave={hideSidebarTooltip}
+          onFocus={event => showSidebarTooltip(tooltipLabel, event)}
+          onBlur={hideSidebarTooltip}
           onClick={() => {
             if(hasChildren){
               toggleTreeItem(item.key)
@@ -495,11 +538,13 @@ export default function AppShell<
     const isOpen = openGroupKey === group.key
     const isActiveGroup = activeGroupKey === group.key
     const groupPanelId = `side-nav-group-${group.key}`
+    const groupTooltipLabel = `${group.title} bölümü`
 
     return (
       <section
         className={`side-nav-group ${isOpen ? 'open' : ''} ${isActiveGroup ? 'active-group' : ''}`}
         data-active={isActiveGroup ? 'true' : undefined}
+        data-section={group.title}
         key={group.key}
       >
         <button
@@ -508,6 +553,12 @@ export default function AppShell<
           aria-expanded={isOpen}
           aria-controls={groupPanelId}
           title={group.title}
+          aria-label={groupTooltipLabel}
+          data-tooltip={groupTooltipLabel}
+          onMouseEnter={event => showSidebarTooltip(group.title, event)}
+          onMouseLeave={hideSidebarTooltip}
+          onFocus={event => showSidebarTooltip(group.title, event)}
+          onBlur={hideSidebarTooltip}
           onClick={() => onToggleGroup(group.key)}
         >
           <span className="side-nav-title-main">
@@ -636,6 +687,15 @@ export default function AppShell<
   return (
     <>
       <NotificationToastHost />
+      {sidebarTooltip && (
+        <div
+          className="side-nav-floating-tooltip"
+          role="tooltip"
+          style={{ '--side-nav-tooltip-top': `${sidebarTooltip.top}px` } as React.CSSProperties}
+        >
+          {sidebarTooltip.label}
+        </div>
+      )}
       <ApplicationShell
         sidebarCollapsed={sidebarCollapsed}
         mobileSidebarOpen={mobileSidebarOpen}
