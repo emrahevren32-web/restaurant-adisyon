@@ -36,14 +36,14 @@ const ENTERPRISE_DESIGN_LANGUAGE_TOKENS = {
     cardPadding: 'var(--space-24)'
   },
   type: {
-    display: '28px',
-    heading: '22px',
-    title: '18px',
-    subtitle: '15px',
-    body: '13px',
-    caption: '11px',
-    label: '10px',
-    button: '12px'
+    display: 'var(--type-h1-size)',
+    heading: 'var(--type-h2-size)',
+    title: 'var(--type-title-size)',
+    subtitle: 'var(--type-subtitle-size)',
+    body: 'var(--type-body-size)',
+    caption: 'var(--type-caption-size)',
+    label: 'var(--type-label-size)',
+    button: 'var(--type-button-size)'
   },
   surface: {
     canvas: 'var(--theme-app-canvas)',

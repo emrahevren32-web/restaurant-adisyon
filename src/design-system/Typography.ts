@@ -51,65 +51,65 @@ export const TYPOGRAPHY_BREAKPOINTS = {
 export const TYPOGRAPHY_TOKENS: Record<TypographyTokenName, TypographyToken> = {
   displayXl: {
     cssName: 'display-xl',
-    fontSize: { desktop: '64px', tablet: '54px', mobile: '42px' },
+    fontSize: { desktop: '40px', tablet: '36px', mobile: '30px' },
     fontWeight: 900,
-    lineHeight: '1.04',
+    lineHeight: '1.08',
     letterSpacing: '0',
     textTransform: 'none'
   },
   displayLarge: {
     cssName: 'display-large',
-    fontSize: { desktop: '54px', tablet: '46px', mobile: '38px' },
-    fontWeight: 900,
-    lineHeight: '1.06',
-    letterSpacing: '0',
-    textTransform: 'none'
-  },
-  h1: {
-    cssName: 'h1',
-    fontSize: { desktop: '42px', tablet: '38px', mobile: '30px' },
+    fontSize: { desktop: '34px', tablet: '32px', mobile: '28px' },
     fontWeight: 900,
     lineHeight: '1.1',
     letterSpacing: '0',
     textTransform: 'none'
   },
+  h1: {
+    cssName: 'h1',
+    fontSize: { desktop: '30px', tablet: '28px', mobile: '26px' },
+    fontWeight: 900,
+    lineHeight: '1.14',
+    letterSpacing: '0',
+    textTransform: 'none'
+  },
   h2: {
     cssName: 'h2',
-    fontSize: { desktop: '30px', tablet: '28px', mobile: '24px' },
+    fontSize: { desktop: '24px', tablet: '23px', mobile: '22px' },
     fontWeight: 850,
-    lineHeight: '1.16',
+    lineHeight: '1.18',
     letterSpacing: '0',
     textTransform: 'none'
   },
   h3: {
     cssName: 'h3',
-    fontSize: { desktop: '24px', tablet: '22px', mobile: '20px' },
+    fontSize: { desktop: '20px', tablet: '19px', mobile: '18px' },
     fontWeight: 850,
-    lineHeight: '1.2',
+    lineHeight: '1.22',
     letterSpacing: '0',
     textTransform: 'none'
   },
   h4: {
     cssName: 'h4',
-    fontSize: { desktop: '20px', tablet: '18px', mobile: '17px' },
-    fontWeight: 850,
-    lineHeight: '1.24',
+    fontSize: { desktop: '18px', tablet: '17px', mobile: '16px' },
+    fontWeight: 800,
+    lineHeight: '1.25',
     letterSpacing: '0',
     textTransform: 'none'
   },
   title: {
     cssName: 'title',
-    fontSize: { desktop: '18px', tablet: '17px', mobile: '16px' },
-    fontWeight: 850,
-    lineHeight: '1.28',
+    fontSize: { desktop: '16px', tablet: '16px', mobile: '15px' },
+    fontWeight: 800,
+    lineHeight: '1.3',
     letterSpacing: '0',
     textTransform: 'none'
   },
   subtitle: {
     cssName: 'subtitle',
-    fontSize: { desktop: '16px', tablet: '16px', mobile: '15px' },
-    fontWeight: 750,
-    lineHeight: '1.4',
+    fontSize: { desktop: '15px', tablet: '15px', mobile: '14px' },
+    fontWeight: 700,
+    lineHeight: '1.42',
     letterSpacing: '0',
     textTransform: 'none'
   },
@@ -132,7 +132,7 @@ export const TYPOGRAPHY_TOKENS: Record<TypographyTokenName, TypographyToken> = {
   bodySmall: {
     cssName: 'body-small',
     fontSize: { desktop: '13px', tablet: '13px', mobile: '12px' },
-    fontWeight: 600,
+    fontWeight: 500,
     lineHeight: '1.45',
     letterSpacing: '0',
     textTransform: 'none'
@@ -148,23 +148,23 @@ export const TYPOGRAPHY_TOKENS: Record<TypographyTokenName, TypographyToken> = {
   overline: {
     cssName: 'overline',
     fontSize: { desktop: '11px', tablet: '11px', mobile: '10px' },
-    fontWeight: 850,
+    fontWeight: 700,
     lineHeight: '1.25',
-    letterSpacing: '.04em',
-    textTransform: 'uppercase'
+    letterSpacing: '0',
+    textTransform: 'none'
   },
   label: {
     cssName: 'label',
     fontSize: { desktop: '12px', tablet: '12px', mobile: '11px' },
-    fontWeight: 850,
+    fontWeight: 700,
     lineHeight: '1.25',
     letterSpacing: '0',
     textTransform: 'none'
   },
   button: {
     cssName: 'button',
-    fontSize: { desktop: '14px', tablet: '14px', mobile: '13px' },
-    fontWeight: 750,
+    fontSize: { desktop: '13px', tablet: '13px', mobile: '13px' },
+    fontWeight: 700,
     lineHeight: '1.2',
     letterSpacing: '0',
     textTransform: 'none'
@@ -180,7 +180,7 @@ export const TYPOGRAPHY_TOKENS: Record<TypographyTokenName, TypographyToken> = {
   tableHeader: {
     cssName: 'table-header',
     fontSize: { desktop: '12px', tablet: '12px', mobile: '11px' },
-    fontWeight: 850,
+    fontWeight: 700,
     lineHeight: '1.25',
     letterSpacing: '0',
     textTransform: 'none'
@@ -241,7 +241,7 @@ const SIZE_ALIASES: Record<number, TypographyTokenName> = {
   64: 'displayXl'
 }
 
-const WEIGHT_ALIASES = [400, 500, 600, 700, 750, 760, 780, 800, 850, 900, 950] as const
+const WEIGHT_ALIASES = [400, 450, 500, 550, 600, 650, 700, 750, 760, 780, 800, 850, 900, 950] as const
 const LINE_HEIGHT_ALIASES = ['1', '1.02', '1.1', '1.12', '1.14', '1.15', '1.16', '1.18', '1.2', '1.22', '1.24', '1.25', '1.28', '1.3', '1.35', '1.4', '1.45', '1.48', '1.5', '1.55', '1.6'] as const
 
 const getLineHeightAliasName = (value: string) => value.replace('.', '-')
