@@ -31,8 +31,8 @@ export const RESPONSIVE_BREAKPOINTS: Record<ResponsiveBreakpointName, number> = 
 
 export const RESPONSIVE_CONTAINER_WIDTHS = {
   wide: '1680px',
-  desktop: '1480px',
-  laptop: '1320px',
+  desktop: '1440px',
+  laptop: '1280px',
   tablet: '100%',
   mobile: '100%'
 } as const
@@ -71,10 +71,9 @@ export const createResponsiveTokenCssVariables = () => [
   '--responsive-page-padding:var(--layout-page-padding);',
   '--responsive-section-gap:var(--layout-section-gap);',
   '--responsive-grid-gap:var(--layout-widget-gap);',
-  '--responsive-card-min:260px;',
+  '--responsive-card-min:256px;',
   '--responsive-card-padding:var(--layout-card-padding);',
   '--responsive-table-min-width:760px;',
   '--responsive-sidebar-drawer-width:360px;',
   '--responsive-touch-target:var(--touch-target);'
 ].join('')
-

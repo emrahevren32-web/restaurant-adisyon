@@ -18,14 +18,32 @@ export const WorkspaceLayout = ({
 }: WorkspaceLayoutProps) => (
   React.createElement(
     'main',
-    { className: 'app-content', 'aria-label': `${title} çalışma alanı`, tabIndex: -1 },
+    {
+      className: 'app-content',
+      'aria-label': `${title} calisma alani`,
+      'data-enterprise-layout': 'workspace',
+      tabIndex: -1
+    },
     React.createElement(
       'div',
       { className: 'workspace-scroll-region' },
       React.createElement(
         'div',
-        { className: 'workspace-layout', 'data-workspace-title': title },
-        navigation,
+        {
+          className: 'workspace-layout',
+          'data-workspace-title': title,
+          'data-layout-grid': 'enterprise'
+        },
+        navigation
+          ? React.createElement(
+            'header',
+            {
+              className: 'workspace-header',
+              'aria-label': `${title} calisma alani basligi`
+            },
+            navigation
+          )
+          : null,
         React.createElement(
           FadeTransition,
           {

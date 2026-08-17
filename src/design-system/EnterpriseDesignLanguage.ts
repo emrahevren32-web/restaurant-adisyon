@@ -1,24 +1,39 @@
 const ENTERPRISE_DESIGN_LANGUAGE_STYLE_ELEMENT_ID = 'miyop-enterprise-design-language'
 
 const ENTERPRISE_DESIGN_LANGUAGE_TOKENS = {
-  grid: '4px',
+  grid: '8px',
   density: {
-    shellSidebar: '232px',
-    shellSidebarWide: '244px',
+    shellSidebar: '240px',
+    shellSidebarWide: '256px',
     shellSidebarCollapsed: '64px',
-    topbar: '60px',
+    topbar: '64px',
     topbarWide: '64px',
-    control: '36px',
+    control: '40px',
     controlCompact: '32px',
-    iconButton: '34px',
-    touch: '44px'
+    iconButton: '40px',
+    touch: '48px'
   },
   space: {
-    pageX: 'clamp(16px, 1.6vw, 24px)',
-    pageY: '18px',
-    section: '20px',
-    cluster: '12px',
+    pageX: 'var(--space-24)',
+    pageY: 'var(--space-24)',
+    section: 'var(--space-24)',
+    cluster: 'var(--space-16)',
     item: '8px'
+  },
+  layout: {
+    contentMax: '1440px',
+    contentWide: '1680px',
+    contentLaptop: '1280px',
+    contentCompact: '1120px',
+    readableMax: '960px',
+    headerMinHeight: '112px',
+    headerPaddingY: 'var(--space-24)',
+    headerPaddingX: 'var(--space-24)',
+    toolbarMinHeight: '56px',
+    toolbarGap: 'var(--space-12)',
+    contentGap: 'var(--space-24)',
+    cardGap: 'var(--space-16)',
+    cardPadding: 'var(--space-24)'
   },
   type: {
     display: '28px',
@@ -106,14 +121,26 @@ const flattenTokens = (
 export const createEnterpriseDesignLanguageCss = () => `
 :root{
 ${flattenTokens(ENTERPRISE_DESIGN_LANGUAGE_TOKENS).join('')}
+--enterprise-layout-grid:var(--edl-grid);
+--enterprise-content-max:var(--edl-layout-content-max);
+--enterprise-content-readable:var(--edl-layout-readable-max);
+--enterprise-page-gutter:var(--edl-space-page-x);
+--enterprise-section-gap:var(--edl-layout-content-gap);
+--enterprise-card-gap:var(--edl-layout-card-gap);
+--enterprise-card-padding:var(--edl-layout-card-padding);
+--enterprise-header-min-height:var(--edl-layout-header-min-height);
+--enterprise-header-padding-y:var(--edl-layout-header-padding-y);
+--enterprise-header-padding-x:var(--edl-layout-header-padding-x);
+--enterprise-toolbar-min-height:var(--edl-layout-toolbar-min-height);
+--enterprise-toolbar-gap:var(--edl-layout-toolbar-gap);
 --shell-sidebar:var(--edl-density-shell-sidebar);
 --shell-sidebar-collapsed:var(--edl-density-shell-sidebar-collapsed);
 --topbar-height:var(--edl-density-topbar);
---layout-page-padding:var(--edl-space-page-x);
---layout-section-gap:var(--edl-space-section);
---layout-widget-gap:var(--edl-space-section);
---layout-card-padding:var(--space-20);
---layout-card-gap:var(--space-12);
+--layout-page-padding:var(--enterprise-page-gutter);
+--layout-section-gap:var(--enterprise-section-gap);
+--layout-widget-gap:var(--enterprise-section-gap);
+--layout-card-padding:var(--enterprise-card-padding);
+--layout-card-gap:var(--enterprise-card-gap);
 --motion-fast:var(--edl-motion-fast);
 --motion-normal:var(--edl-motion-standard);
 --motion-medium:var(--edl-motion-standard);
@@ -123,8 +150,22 @@ ${flattenTokens(ENTERPRISE_DESIGN_LANGUAGE_TOKENS).join('')}
 :root{
 --shell-sidebar:var(--edl-density-shell-sidebar-wide);
 --topbar-height:var(--edl-density-topbar-wide);
---layout-page-padding:var(--space-24);
+--enterprise-content-max:var(--edl-layout-content-wide);
+--enterprise-page-gutter:var(--space-32);
+--layout-page-padding:var(--enterprise-page-gutter);
 --layout-card-padding:var(--space-24);
+}
+}
+@media (max-width:1440px){
+:root{
+--enterprise-content-max:var(--edl-layout-content-laptop);
+}
+}
+@media (max-width:1280px){
+:root{
+--enterprise-content-max:var(--edl-layout-content-compact);
+--enterprise-page-gutter:var(--space-24);
+--layout-page-padding:var(--enterprise-page-gutter);
 }
 }
 @media (max-width:1024px){
@@ -132,16 +173,33 @@ ${flattenTokens(ENTERPRISE_DESIGN_LANGUAGE_TOKENS).join('')}
 --shell-sidebar:min(var(--responsive-sidebar-drawer-width), calc(100vw - var(--space-48)));
 --shell-sidebar-collapsed:0px;
 --topbar-height:64px;
---layout-page-padding:var(--space-16);
---layout-card-padding:var(--space-16);
+--enterprise-content-max:100%;
+--enterprise-page-gutter:var(--space-16);
+--enterprise-section-gap:var(--space-16);
+--enterprise-card-padding:var(--space-16);
+--enterprise-header-min-height:96px;
+--enterprise-header-padding-y:var(--space-16);
+--enterprise-header-padding-x:var(--space-16);
+--layout-page-padding:var(--enterprise-page-gutter);
+--layout-section-gap:var(--enterprise-section-gap);
+--layout-card-padding:var(--enterprise-card-padding);
 }
 }
 @media (max-width:576px){
 :root{
 --shell-sidebar:calc(100vw - var(--space-24));
 --topbar-height:64px;
---layout-page-padding:var(--space-12);
---layout-card-padding:var(--space-12);
+--enterprise-page-gutter:var(--space-12);
+--enterprise-section-gap:var(--space-12);
+--enterprise-card-gap:var(--space-12);
+--enterprise-card-padding:var(--space-12);
+--enterprise-header-min-height:auto;
+--enterprise-header-padding-y:var(--space-12);
+--enterprise-header-padding-x:var(--space-12);
+--layout-page-padding:var(--enterprise-page-gutter);
+--layout-section-gap:var(--enterprise-section-gap);
+--layout-card-gap:var(--enterprise-card-gap);
+--layout-card-padding:var(--enterprise-card-padding);
 }
 }
 `.trim()

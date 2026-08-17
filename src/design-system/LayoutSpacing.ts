@@ -26,9 +26,9 @@ export type LayoutSpacingScale = Record<LayoutSpacingName, SpacingToken>
 export const LAYOUT_SPACING: Record<SpacingBreakpoint, LayoutSpacingScale> = {
   desktop: {
     pagePadding: '24',
-    sectionGap: '20',
+    sectionGap: '24',
     cardGap: '16',
-    cardPadding: '20',
+    cardPadding: '24',
     formGap: '12',
     inputGap: '8',
     buttonGap: '8',
@@ -40,7 +40,7 @@ export const LAYOUT_SPACING: Record<SpacingBreakpoint, LayoutSpacingScale> = {
     widgetGap: '12'
   },
   tablet: {
-    pagePadding: '20',
+    pagePadding: '16',
     sectionGap: '16',
     cardGap: '12',
     cardPadding: '16',
@@ -48,10 +48,10 @@ export const LAYOUT_SPACING: Record<SpacingBreakpoint, LayoutSpacingScale> = {
     inputGap: '8',
     buttonGap: '8',
     tableCellPadding: '8',
-    modalPadding: '20',
-    drawerPadding: '20',
+    modalPadding: '24',
+    drawerPadding: '24',
     sidebarPadding: '12',
-    navbarPadding: '20',
+    navbarPadding: '16',
     widgetGap: '12'
   },
   mobile: {
