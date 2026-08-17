@@ -40,28 +40,37 @@ export const TopbarWorkspaceControl = ({
     React.createElement(
       'label',
       { className: 'branch-switcher enterprise-field' },
-      React.createElement('span', null, isPlatformAdmin ? 'Kapsam' : 'Aktif Şube'),
-      isPlatformAdmin
-        ? React.createElement(
-          'select',
-          { value: 'platform', disabled: true, 'aria-label': 'Platform kapsamı' },
-          React.createElement('option', { value: 'platform' }, 'EVREN360 Platform')
-        )
-        : React.createElement(
-          'select',
-          {
-            value: hasSelectableBranch ? activeBranchId : '',
-            onChange: (event: React.ChangeEvent<HTMLSelectElement>) => onActiveBranchChange(event.target.value),
-            disabled: !hasSelectableBranch,
-            'aria-label': 'Aktif şube'
-          },
-          !hasSelectableBranch
-            ? React.createElement('option', { value: '' }, 'Yetkili şube yok')
-            : null,
-          branches.map(branch => (
-            React.createElement('option', { key: branch.id, value: branch.id }, branch.name)
-          ))
-        )
+      React.createElement(
+        'span',
+        { className: 'branch-switcher-icon', 'aria-hidden': true },
+        React.createElement(AppIcon, { name: 'company', size: 'XS' })
+      ),
+      React.createElement(
+        'span',
+        { className: 'branch-switcher-copy' },
+        React.createElement('span', { className: 'branch-switcher-label' }, isPlatformAdmin ? 'Kapsam' : 'Aktif Şube'),
+        isPlatformAdmin
+          ? React.createElement(
+            'select',
+            { value: 'platform', disabled: true, 'aria-label': 'Platform kapsamı' },
+            React.createElement('option', { value: 'platform' }, 'EVREN360 Platform')
+          )
+          : React.createElement(
+            'select',
+            {
+              value: hasSelectableBranch ? activeBranchId : '',
+              onChange: (event: React.ChangeEvent<HTMLSelectElement>) => onActiveBranchChange(event.target.value),
+              disabled: !hasSelectableBranch,
+              'aria-label': 'Aktif şube'
+            },
+            !hasSelectableBranch
+              ? React.createElement('option', { value: '' }, 'Yetkili şube yok')
+              : null,
+            branches.map(branch => (
+              React.createElement('option', { key: branch.id, value: branch.id }, branch.name)
+            ))
+          )
+      )
     )
   )
 )
