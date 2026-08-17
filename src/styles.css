@@ -22069,3 +22069,205 @@ html[data-theme-engine="premium"] :where(
     font-size:var(--type-button-size);
   }
 }
+
+/* Faz 35.12.10 Enterprise Theme & Accent Engine */
+html[data-theme-engine="premium"] {
+  color-scheme:light;
+  --enterprise-theme-canvas:var(--theme-app-canvas);
+  --enterprise-theme-workspace:color-mix(in srgb, var(--theme-app-bg) 72%, var(--theme-surface-1));
+  --enterprise-theme-surface:var(--theme-surface-1);
+  --enterprise-theme-surface-muted:var(--theme-surface-2);
+  --enterprise-theme-card:var(--theme-card-background);
+  --enterprise-theme-floating:var(--theme-elevation-3-background);
+  --enterprise-theme-overlay:var(--theme-glass-modal-background);
+  --enterprise-theme-border:color-mix(in srgb, var(--theme-border-default) 44%, transparent);
+  --enterprise-theme-border-soft:color-mix(in srgb, var(--theme-border-subtle) 30%, transparent);
+  --enterprise-theme-border-strong:color-mix(in srgb, var(--theme-border-strong) 58%, transparent);
+  --enterprise-theme-active-surface:color-mix(in srgb, var(--theme-state-active) 88%, var(--theme-surface-1));
+  --enterprise-theme-selected-surface:color-mix(in srgb, var(--theme-state-selected) 92%, var(--theme-surface-1));
+  --enterprise-theme-hover-surface:color-mix(in srgb, var(--theme-state-hover) 74%, var(--theme-surface-1));
+  --enterprise-theme-accent-rail:var(--theme-semantic-primary-base);
+  --enterprise-theme-focus-color:var(--theme-border-focus);
+  --enterprise-theme-focus-ring:var(--theme-state-focus-ring);
+  --enterprise-theme-primary-action:linear-gradient(180deg, var(--theme-semantic-primary-base), color-mix(in srgb, var(--theme-semantic-primary-hover) 86%, var(--theme-semantic-primary-base)));
+  --enterprise-theme-primary-action-hover:linear-gradient(180deg, var(--theme-semantic-primary-hover), color-mix(in srgb, var(--theme-semantic-primary-hover) 82%, var(--theme-color-black)));
+  --enterprise-theme-primary-action-text:var(--theme-semantic-primary-contrast);
+  --enterprise-theme-primary-action-shadow:0 10px 24px color-mix(in srgb, var(--theme-semantic-primary-base) 18%, transparent);
+  --enterprise-theme-selection:color-mix(in srgb, var(--theme-semantic-primary-soft) 88%, var(--theme-surface-1));
+  --enterprise-theme-selection-text:var(--theme-text-primary);
+  --enterprise-status-success-surface:color-mix(in srgb, var(--theme-semantic-success-soft) 76%, var(--theme-surface-1));
+  --enterprise-status-warning-surface:color-mix(in srgb, var(--theme-semantic-warning-soft) 76%, var(--theme-surface-1));
+  --enterprise-status-danger-surface:color-mix(in srgb, var(--theme-semantic-danger-soft) 76%, var(--theme-surface-1));
+  --enterprise-status-info-surface:color-mix(in srgb, var(--theme-semantic-info-soft) 76%, var(--theme-surface-1));
+}
+
+html[data-theme-engine="premium"][data-theme="dark"] {
+  color-scheme:dark;
+  --enterprise-theme-workspace:color-mix(in srgb, var(--theme-app-bg) 78%, var(--theme-surface-0));
+  --enterprise-theme-border:color-mix(in srgb, var(--theme-border-default) 72%, transparent);
+  --enterprise-theme-border-soft:color-mix(in srgb, var(--theme-border-subtle) 58%, transparent);
+  --enterprise-theme-border-strong:color-mix(in srgb, var(--theme-border-strong) 82%, transparent);
+  --enterprise-theme-active-surface:color-mix(in srgb, var(--theme-state-active) 58%, var(--theme-surface-1));
+  --enterprise-theme-selected-surface:color-mix(in srgb, var(--theme-state-selected) 62%, var(--theme-surface-1));
+  --enterprise-theme-hover-surface:color-mix(in srgb, var(--theme-state-hover) 52%, var(--theme-surface-1));
+  --enterprise-theme-primary-action-shadow:0 10px 24px color-mix(in srgb, var(--theme-semantic-primary-base) 14%, transparent);
+  --enterprise-theme-selection:color-mix(in srgb, var(--theme-semantic-primary-soft) 58%, var(--theme-surface-1));
+}
+
+html[data-theme-engine="premium"] body,
+html[data-theme-engine="premium"] :where(.app-shell, .workspace-content, .workspace-content-shell, .enterprise-shell) {
+  background:var(--enterprise-theme-canvas);
+  color:var(--theme-text-primary);
+}
+
+html[data-theme-engine="premium"] :where(.side-nav) {
+  background:linear-gradient(180deg, var(--theme-surface-1), var(--theme-surface-0) 46%, var(--theme-app-muted));
+  border-color:var(--enterprise-theme-border-soft);
+  box-shadow:var(--theme-glass-sidebar-shadow);
+}
+
+html[data-theme-engine="premium"] :where(.topbar, .app-topbar, .workspace-topbar) {
+  background:color-mix(in srgb, var(--theme-surface-0) 88%, transparent);
+  border-color:var(--enterprise-theme-border-soft);
+  box-shadow:var(--theme-glass-topbar-shadow);
+}
+
+html[data-theme-engine="premium"] :where(
+  .btn.primary,
+  .primary-button,
+  .dashboard-experience-action-primary,
+  .premium-empty-state-primary
+) {
+  background:var(--enterprise-theme-primary-action);
+  border-color:color-mix(in srgb, var(--theme-semantic-primary-base) 82%, transparent);
+  color:var(--enterprise-theme-primary-action-text);
+  box-shadow:var(--enterprise-theme-primary-action-shadow);
+}
+
+html[data-theme-engine="premium"] :where(
+  .btn.primary,
+  .primary-button,
+  .dashboard-experience-action-primary,
+  .premium-empty-state-primary
+):hover:not(:disabled) {
+  background:var(--enterprise-theme-primary-action-hover);
+  border-color:var(--theme-semantic-primary-hover);
+  color:var(--enterprise-theme-primary-action-text);
+  box-shadow:0 12px 28px color-mix(in srgb, var(--theme-semantic-primary-base) 22%, transparent);
+}
+
+html[data-theme-engine="premium"] :where(
+  a,
+  button,
+  input,
+  select,
+  textarea,
+  [role="button"],
+  [tabindex]:not([tabindex="-1"])
+):focus-visible {
+  outline:2px solid var(--enterprise-theme-focus-color);
+  outline-offset:2px;
+  box-shadow:var(--enterprise-theme-focus-ring);
+}
+
+html[data-theme-engine="premium"] :where(
+  .side-nav-item.active,
+  .side-nav-item.is-active,
+  .side-nav-title.active,
+  .navigation-quick-access-item.active,
+  .report-tab-btn.active,
+  .form-tab.active,
+  .tab.active,
+  [aria-current="page"],
+  [aria-selected="true"]
+) {
+  background:var(--enterprise-theme-active-surface);
+  color:var(--theme-text-primary);
+  box-shadow:inset 3px 0 0 var(--enterprise-theme-accent-rail), inset 0 0 0 1px color-mix(in srgb, var(--theme-semantic-primary-line) 38%, transparent);
+}
+
+html[data-theme-engine="premium"] :where(
+  .premium-table tr[aria-selected="true"],
+  .premium-table-row.selected,
+  .premium-table-row.is-selected,
+  tr.selected,
+  .selected-row,
+  .selected-card
+) {
+  background:var(--enterprise-theme-selected-surface);
+  color:var(--theme-text-primary);
+  box-shadow:inset 3px 0 0 var(--enterprise-theme-accent-rail);
+}
+
+html[data-theme-engine="premium"] :where(
+  .btn:not(.primary),
+  .topbar-icon-action,
+  .topbar-theme-btn,
+  .side-nav-collapse-btn,
+  .side-nav-mobile-close,
+  .menu-item,
+  .dropdown-item
+):hover:not(:disabled) {
+  background:var(--enterprise-theme-hover-surface);
+  border-color:var(--enterprise-theme-border);
+}
+
+html[data-theme-engine="premium"] :where(
+  .status.success,
+  .badge.success,
+  .chip.success,
+  .tone-success
+) {
+  background:var(--enterprise-status-success-surface);
+  color:var(--theme-semantic-success-base);
+}
+
+html[data-theme-engine="premium"] :where(
+  .status.warning,
+  .badge.warning,
+  .chip.warning,
+  .tone-warning
+) {
+  background:var(--enterprise-status-warning-surface);
+  color:var(--theme-semantic-warning-base);
+}
+
+html[data-theme-engine="premium"] :where(
+  .status.danger,
+  .badge.danger,
+  .chip.danger,
+  .tone-danger
+) {
+  background:var(--enterprise-status-danger-surface);
+  color:var(--theme-semantic-danger-base);
+}
+
+html[data-theme-engine="premium"] :where(
+  .status.info,
+  .badge.info,
+  .chip.info,
+  .tone-info
+) {
+  background:var(--enterprise-status-info-surface);
+  color:var(--theme-semantic-info-base);
+}
+
+html[data-theme-engine="premium"] ::selection {
+  background:var(--enterprise-theme-selection);
+  color:var(--enterprise-theme-selection-text);
+}
+
+@media (forced-colors: active){
+  html[data-theme-engine="premium"] :where(
+    a,
+    button,
+    input,
+    select,
+    textarea,
+    [role="button"],
+    [tabindex]:not([tabindex="-1"])
+  ):focus-visible {
+    outline:2px solid Highlight;
+    box-shadow:none;
+  }
+}
