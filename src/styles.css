@@ -20429,3 +20429,1044 @@ html[data-theme-engine="premium"] :where(.premium-pagination-actions .btn) {
     transition:none;
   }
 }
+
+/* Faz 35.12.8 Enterprise Forms Experience */
+html[data-theme-engine="premium"] {
+  --enterprise-form-surface:color-mix(in srgb, var(--enterprise-surface-card) 94%, var(--theme-surface-1));
+  --enterprise-form-section-surface:color-mix(in srgb, var(--enterprise-surface-section) 88%, var(--enterprise-surface-card));
+  --enterprise-form-group-surface:color-mix(in srgb, var(--enterprise-surface-inner) 58%, transparent);
+  --enterprise-form-control-surface:color-mix(in srgb, var(--theme-surface-0) 92%, var(--enterprise-surface-card));
+  --enterprise-form-control-hover:color-mix(in srgb, var(--theme-state-hover) 54%, var(--enterprise-form-control-surface));
+  --enterprise-form-control-focus:color-mix(in srgb, var(--theme-surface-1) 82%, var(--theme-semantic-primary-soft));
+  --enterprise-form-control-disabled:var(--theme-state-disabled-background);
+  --enterprise-form-control-readonly:color-mix(in srgb, var(--enterprise-surface-inner) 70%, var(--theme-state-disabled-background));
+  --enterprise-form-control-border:color-mix(in srgb, var(--theme-border-default) 52%, transparent);
+  --enterprise-form-control-border-hover:color-mix(in srgb, var(--theme-border-strong) 72%, transparent);
+  --enterprise-form-control-border-focus:var(--theme-border-focus);
+  --enterprise-form-control-shadow:inset 0 0 0 1px var(--enterprise-form-control-border), var(--theme-shadow-xs);
+  --enterprise-form-control-shadow-hover:inset 0 0 0 1px var(--enterprise-form-control-border-hover), var(--theme-shadow-sm);
+  --enterprise-form-control-shadow-focus:inset 0 0 0 1px var(--enterprise-form-control-border-focus), var(--theme-state-focus-ring);
+  --enterprise-form-section-shadow:var(--enterprise-card-inset-muted), var(--enterprise-card-shadow-rest);
+  --enterprise-form-section-shadow-hover:var(--enterprise-card-inset-strong), var(--enterprise-card-shadow-hover);
+  --enterprise-form-control-height:var(--space-40);
+  --enterprise-form-control-height-compact:var(--space-32);
+  --enterprise-form-control-height-touch:var(--space-48);
+  --enterprise-form-textarea-min-height:calc(var(--space-48) * 2);
+  --enterprise-form-radius:var(--enterprise-card-radius);
+  --enterprise-form-radius-inner:var(--enterprise-card-radius-inner);
+  --enterprise-form-grid-gap:var(--space-12);
+  --enterprise-form-section-gap:var(--space-16);
+  --enterprise-form-field-gap:var(--space-6, var(--space-4));
+  --enterprise-form-column-min:216px;
+  --enterprise-form-label-size:var(--edl-type-label);
+  --enterprise-form-control-size:var(--edl-type-body);
+  --enterprise-form-helper-size:var(--edl-type-caption);
+  --enterprise-form-label-weight:var(--font-weight-800);
+  --enterprise-form-control-weight:var(--font-weight-650);
+  --enterprise-form-label-color:var(--theme-text-muted-strong);
+  --enterprise-form-helper-color:var(--theme-text-muted);
+  --enterprise-form-required-color:var(--theme-semantic-danger-base);
+  --enterprise-form-accent:var(--theme-semantic-primary-base);
+  --enterprise-form-state-success:color-mix(in srgb, var(--theme-semantic-success-soft) 58%, var(--enterprise-form-surface));
+  --enterprise-form-state-warning:color-mix(in srgb, var(--theme-semantic-warning-soft) 58%, var(--enterprise-form-surface));
+  --enterprise-form-state-danger:color-mix(in srgb, var(--theme-semantic-danger-soft) 58%, var(--enterprise-form-surface));
+  --enterprise-form-state-info:color-mix(in srgb, var(--theme-semantic-info-soft) 58%, var(--enterprise-form-surface));
+  --enterprise-form-transition:background var(--edl-motion-fast) var(--edl-motion-ease), box-shadow var(--edl-motion-fast) var(--edl-motion-ease), color var(--edl-motion-fast) var(--edl-motion-ease), transform var(--edl-motion-fast) var(--edl-motion-ease);
+}
+
+html[data-theme-engine="premium"][data-theme="dark"],
+html[data-theme-engine="premium"].theme-dark {
+  --enterprise-form-surface:color-mix(in srgb, var(--enterprise-surface-card) 88%, var(--theme-app-bg));
+  --enterprise-form-section-surface:color-mix(in srgb, var(--enterprise-surface-section) 82%, var(--theme-app-bg));
+  --enterprise-form-group-surface:color-mix(in srgb, var(--enterprise-surface-inner) 46%, transparent);
+  --enterprise-form-control-surface:color-mix(in srgb, var(--theme-surface-1) 76%, var(--theme-app-bg));
+  --enterprise-form-control-hover:color-mix(in srgb, var(--theme-state-hover) 48%, var(--enterprise-form-control-surface));
+  --enterprise-form-control-focus:color-mix(in srgb, var(--theme-surface-2) 72%, var(--theme-semantic-primary-soft));
+  --enterprise-form-control-border:color-mix(in srgb, var(--theme-border-default) 70%, transparent);
+  --enterprise-form-control-border-hover:color-mix(in srgb, var(--theme-border-strong) 82%, transparent);
+}
+
+html[data-theme-engine="premium"] :where(
+  form.stacked-form,
+  form.recipe-cost-simulation-form,
+  form.recipe-ingredient-form,
+  .recipe-inline-ingredient-form,
+  .module-activation-test-form,
+  .inline-form,
+  .category-edit-form,
+  .qr-edit-add-row,
+  .qr-reject-row
+) {
+  display:grid;
+  gap:var(--enterprise-form-grid-gap);
+  min-width:0;
+  align-items:start;
+}
+
+html[data-theme-engine="premium"] :where(
+  .premium-form-section,
+  [class$="-form-section"],
+  [class*="-form-section "],
+  .package-license-form-card,
+  .recipe-form-ingredients,
+  .recipe-add-panel,
+  .recipe-cost-simulation-form,
+  .module-activation-test-form,
+  .public-application-shell .public-application-form,
+  .form-card
+) {
+  display:grid;
+  gap:var(--enterprise-form-section-gap);
+  min-width:0;
+  border:0;
+  border-radius:var(--enterprise-form-radius);
+  padding:var(--enterprise-card-padding-current);
+  background:var(--enterprise-form-section-surface);
+  box-shadow:var(--enterprise-form-section-shadow);
+  color:var(--theme-text-primary);
+}
+
+html[data-theme-engine="premium"] :where(
+  .premium-form-section.compact,
+  .recipe-cost-simulation-form,
+  .module-activation-test-form,
+  .recipe-inline-ingredient-form
+) {
+  gap:var(--space-12);
+  padding:var(--enterprise-card-padding-compact);
+}
+
+html[data-theme-engine="premium"] :where(
+  .premium-form-section-header,
+  [class$="-form-section"] > h4,
+  [class*="-form-section "] > h4
+) {
+  min-width:0;
+  margin:0;
+  padding:0;
+  border:0;
+  background:transparent;
+  box-shadow:none;
+}
+
+html[data-theme-engine="premium"] :where(.premium-form-section-header) {
+  display:flex;
+  align-items:flex-start;
+  justify-content:space-between;
+  gap:var(--space-16);
+}
+
+html[data-theme-engine="premium"] :where(.premium-form-section-title) {
+  display:grid;
+  grid-template-columns:auto minmax(0, 1fr);
+  gap:var(--space-12);
+  align-items:start;
+  min-width:0;
+}
+
+html[data-theme-engine="premium"] :where(.premium-form-section-title > span) {
+  width:var(--space-40);
+  height:var(--space-40);
+  border:0;
+  border-radius:var(--enterprise-form-radius-inner);
+  background:color-mix(in srgb, var(--theme-semantic-primary-soft) 72%, var(--enterprise-form-surface));
+  color:var(--enterprise-form-accent);
+  box-shadow:inset 0 0 0 1px color-mix(in srgb, var(--theme-semantic-primary-line) 42%, transparent);
+}
+
+html[data-theme-engine="premium"] :where(
+  .premium-form-section-title h2,
+  .premium-form-section-title h3,
+  [class$="-form-section"] > h4,
+  [class*="-form-section "] > h4
+) {
+  margin:0;
+  color:var(--theme-text-primary);
+  font-size:var(--edl-type-subtitle);
+  font-weight:var(--font-weight-850);
+  line-height:var(--line-height-1-25);
+  letter-spacing:0;
+  overflow-wrap:anywhere;
+}
+
+html[data-theme-engine="premium"] :where(.premium-form-section-title p) {
+  max-width:760px;
+  margin:var(--space-4) 0 0;
+  color:var(--theme-text-muted-strong);
+  font-size:var(--enterprise-form-helper-size);
+  font-weight:var(--font-weight-650);
+  line-height:var(--line-height-1-45);
+}
+
+html[data-theme-engine="premium"] :where(.premium-form-section-actions) {
+  display:flex;
+  flex-wrap:wrap;
+  justify-content:flex-end;
+  gap:var(--space-8);
+  min-width:0;
+}
+
+html[data-theme-engine="premium"] :where(
+  .premium-form-grid,
+  .form-row,
+  [class$="-form-grid"],
+  [class*="-form-grid "],
+  [class$="-input-grid"],
+  [class*="-input-grid "]
+) {
+  display:grid;
+  grid-template-columns:repeat(auto-fit, minmax(min(100%, var(--enterprise-form-column-min)), 1fr));
+  gap:var(--enterprise-form-grid-gap);
+  align-items:start;
+  min-width:0;
+}
+
+html[data-theme-engine="premium"] :where(
+  .premium-form-section.columns-one .premium-form-grid,
+  .stacked-form > .form-field,
+  .recipe-cost-simulation-note,
+  .nutrition-serving-field,
+  .system-announcements-wide-field,
+  .witness-sample-form-wide,
+  .premium-form-grid > .full-span,
+  .premium-form-field.full-span,
+  .premium-form-section .form-actions,
+  [class$="-form-grid"] > .full-span,
+  [class*="-form-grid "] > .full-span,
+  [class$="-form-grid"] > [class$="-wide"],
+  [class*="-form-grid "] > [class$="-wide"]
+) {
+  grid-column:1 / -1;
+}
+
+html[data-theme-engine="premium"] :where(
+  .premium-form-section.columns-three .premium-form-grid,
+  .nutrition-form-grid,
+  .shipment-execution-input-grid,
+  .transfer-receipt-input-grid
+) {
+  grid-template-columns:repeat(auto-fit, minmax(min(100%, 180px), 1fr));
+}
+
+html[data-theme-engine="premium"] :where(
+  .form-field,
+  label.form-field,
+  .premium-form-field,
+  .payment-field,
+  .first-login-credential-field,
+  .evren360-toolbar label,
+  .evren360-form-grid label,
+  .shipment-execution-input-grid label,
+  .transfer-receipt-input-grid label,
+  .customer-list-controls label,
+  .pending-applications-controls label,
+  .system-announcements-controls label,
+  .customer-statistics-filters label,
+  .billing-management-filters label
+) {
+  display:grid;
+  gap:var(--enterprise-form-field-gap);
+  align-content:start;
+  min-width:0;
+}
+
+html[data-theme-engine="premium"] :where(
+  .premium-field-label,
+  .form-field > label,
+  label.form-field > span:first-child,
+  .payment-field > span,
+  .evren360-toolbar label > span,
+  .evren360-form-grid label > span,
+  .shipment-execution-input-grid label > span,
+  .transfer-receipt-input-grid label > span,
+  .customer-list-controls label > span,
+  .pending-applications-controls label > span,
+  .system-announcements-controls label > span,
+  .customer-statistics-filters label > span,
+  .billing-management-filters label > span,
+  [class$="-filters"] label > span,
+  [class*="-filters "] label > span,
+  [class$="-toolbar"] label > span,
+  [class*="-toolbar "] label > span,
+  [class$="-controls"] label > span,
+  [class*="-controls "] label > span
+) {
+  display:flex;
+  align-items:center;
+  gap:var(--space-4);
+  min-width:0;
+  margin:0;
+  color:var(--enterprise-form-label-color);
+  font-size:var(--enterprise-form-label-size);
+  font-weight:var(--enterprise-form-label-weight);
+  line-height:var(--line-height-1-25);
+  letter-spacing:0;
+}
+
+html[data-theme-engine="premium"] :where(
+  .premium-field-label em,
+  .form-field:has(:required) > label::after,
+  label.form-field:has(:required) > span:first-child::after,
+  .premium-form-field:has(:required) .premium-field-label::after
+) {
+  width:6px;
+  height:6px;
+  border-radius:var(--radius-full);
+  background:var(--enterprise-form-required-color);
+  color:var(--enterprise-form-required-color);
+  font-size:0;
+  line-height:1;
+  content:"";
+}
+
+html[data-theme-engine="premium"] :where(.premium-field-label em) {
+  display:inline-flex;
+  flex:0 0 auto;
+  font-style:normal;
+}
+
+html[data-theme-engine="premium"] :where(
+  .premium-field-description,
+  .premium-field-messages small,
+  .form-field .muted,
+  .form-check-field .muted,
+  .payment-field small,
+  .first-login-credential-field small
+) {
+  margin:0;
+  color:var(--enterprise-form-helper-color);
+  font-size:var(--enterprise-form-helper-size);
+  font-weight:var(--font-weight-650);
+  line-height:var(--line-height-1-4);
+}
+
+html[data-theme-engine="premium"] :where(
+  form :where(input:not([type="checkbox"]):not([type="radio"]):not([type="range"]):not([type="file"]), select, textarea),
+  .form-field > :where(input:not([type="checkbox"]):not([type="radio"]):not([type="range"]):not([type="file"]), select, textarea),
+  label.form-field > :where(input:not([type="checkbox"]):not([type="radio"]):not([type="range"]):not([type="file"]), select, textarea),
+  .payment-field > :where(input:not([type="checkbox"]):not([type="radio"]):not([type="range"]):not([type="file"]), select, textarea),
+  .premium-input-control,
+  .premium-select-control,
+  .premium-textarea-control,
+  :where([class$="-filters"], [class*="-filters "], [class$="-toolbar"], [class*="-toolbar "], [class$="-controls"], [class*="-controls "]) :where(input:not([type="checkbox"]):not([type="radio"]):not([type="range"]):not([type="file"]), select, textarea)
+) {
+  width:100%;
+  min-width:0;
+  min-height:var(--enterprise-form-control-height);
+  border:0;
+  border-radius:var(--enterprise-form-radius-inner);
+  padding:var(--space-8) var(--space-12);
+  background:var(--enterprise-form-control-surface);
+  color:var(--theme-text-primary);
+  box-shadow:var(--enterprise-form-control-shadow);
+  font-size:var(--enterprise-form-control-size);
+  font-weight:var(--enterprise-form-control-weight);
+  line-height:var(--line-height-1-35);
+  letter-spacing:0;
+  transition:var(--enterprise-form-transition);
+}
+
+html[data-theme-engine="premium"] :where(
+  .premium-control-frame
+) {
+  display:flex;
+  align-items:center;
+  gap:var(--space-8);
+  min-width:0;
+  min-height:var(--enterprise-form-control-height);
+  border:0;
+  border-radius:var(--enterprise-form-radius-inner);
+  padding:0 var(--space-12);
+  background:var(--enterprise-form-control-surface);
+  color:var(--theme-text-primary);
+  box-shadow:var(--enterprise-form-control-shadow);
+  transition:var(--enterprise-form-transition);
+}
+
+html[data-theme-engine="premium"] .premium-control-frame :where(
+  input:not([type="checkbox"]):not([type="radio"]):not([type="range"]):not([type="file"]),
+  select
+) {
+  min-height:calc(var(--enterprise-form-control-height) - 2px);
+  border:0;
+  border-radius:0;
+  padding:0;
+  background:transparent;
+  box-shadow:none;
+}
+
+html[data-theme-engine="premium"] :where(textarea, .premium-textarea-control) {
+  min-height:var(--enterprise-form-textarea-min-height);
+  resize:vertical;
+}
+
+html[data-theme-engine="premium"] :where(select[multiple]) {
+  min-height:calc(var(--enterprise-form-control-height) * 3);
+  padding:var(--space-8);
+}
+
+html[data-theme-engine="premium"] :where(
+  input[type="number"],
+  input[type="date"],
+  input[type="time"],
+  input[type="datetime-local"]
+) {
+  font-variant-numeric:tabular-nums;
+}
+
+html[data-theme-engine="premium"] :where(input[type="search"]) {
+  -webkit-appearance:textfield;
+}
+
+html[data-theme-engine="premium"] :where(input[type="search"])::-webkit-search-cancel-button {
+  cursor:pointer;
+}
+
+html[data-theme-engine="premium"] :where(input::-webkit-calendar-picker-indicator) {
+  cursor:pointer;
+  opacity:.68;
+}
+
+html[data-theme-engine="premium"] :where(
+  input::placeholder,
+  textarea::placeholder,
+  .premium-input-control::placeholder,
+  .premium-textarea-control::placeholder
+) {
+  color:var(--theme-text-muted);
+  opacity:.76;
+}
+
+html[data-theme-engine="premium"] :where(
+  form :where(input:not([type="checkbox"]):not([type="radio"]):not([type="range"]):not([type="file"]), select, textarea):hover:not(:disabled):not([readonly]),
+  .form-field > :where(input:not([type="checkbox"]):not([type="radio"]):not([type="range"]):not([type="file"]), select, textarea):hover:not(:disabled):not([readonly]),
+  label.form-field > :where(input:not([type="checkbox"]):not([type="radio"]):not([type="range"]):not([type="file"]), select, textarea):hover:not(:disabled):not([readonly]),
+  .payment-field > :where(input:not([type="checkbox"]):not([type="radio"]):not([type="range"]):not([type="file"]), select, textarea):hover:not(:disabled):not([readonly]),
+  .premium-input-control:hover:not(:disabled):not([readonly]),
+  .premium-select-control:hover:not(:disabled),
+  .premium-textarea-control:hover:not(:disabled):not([readonly]),
+  .premium-control-frame:hover:not(.is-disabled)
+) {
+  background:var(--enterprise-form-control-hover);
+  box-shadow:var(--enterprise-form-control-shadow-hover);
+}
+
+html[data-theme-engine="premium"] :where(
+  form :where(input:not([type="checkbox"]):not([type="radio"]):not([type="range"]):not([type="file"]), select, textarea):focus,
+  .form-field > :where(input:not([type="checkbox"]):not([type="radio"]):not([type="range"]):not([type="file"]), select, textarea):focus,
+  label.form-field > :where(input:not([type="checkbox"]):not([type="radio"]):not([type="range"]):not([type="file"]), select, textarea):focus,
+  .payment-field > :where(input:not([type="checkbox"]):not([type="radio"]):not([type="range"]):not([type="file"]), select, textarea):focus,
+  .premium-input-control:focus,
+  .premium-select-control:focus,
+  .premium-textarea-control:focus,
+  .premium-control-frame:focus-within
+) {
+  background:var(--enterprise-form-control-focus);
+  box-shadow:var(--enterprise-form-control-shadow-focus);
+  outline:0;
+}
+
+html[data-theme-engine="premium"] :where(
+  form :where(input, select, textarea):disabled,
+  form :where(input, textarea)[readonly],
+  .form-field > :where(input, select, textarea):disabled,
+  .form-field > :where(input, textarea)[readonly],
+  .premium-input-control:disabled,
+  .premium-select-control:disabled,
+  .premium-textarea-control:disabled,
+  .premium-input-control[readonly],
+  .premium-textarea-control[readonly],
+  .premium-form-field.is-disabled .premium-control-frame
+) {
+  background:var(--enterprise-form-control-disabled);
+  color:var(--theme-state-disabled-text);
+  box-shadow:inset 0 0 0 1px color-mix(in srgb, var(--theme-border-subtle) 42%, transparent);
+  cursor:not-allowed;
+}
+
+html[data-theme-engine="premium"] :where(
+  form :where(input, textarea)[readonly],
+  .form-field > :where(input, textarea)[readonly],
+  .premium-input-control[readonly],
+  .premium-textarea-control[readonly]
+) {
+  background:var(--enterprise-form-control-readonly);
+  color:var(--theme-text-secondary);
+  cursor:default;
+}
+
+html[data-theme-engine="premium"] :where(
+  input[aria-invalid="true"],
+  select[aria-invalid="true"],
+  textarea[aria-invalid="true"],
+  .premium-form-field.is-error .premium-control-frame
+) {
+  background:var(--enterprise-form-state-danger);
+  box-shadow:inset 0 0 0 1px var(--theme-semantic-danger-line), 0 0 0 3px color-mix(in srgb, var(--theme-semantic-danger-soft) 54%, transparent);
+}
+
+html[data-theme-engine="premium"] :where(
+  .premium-form-field.is-success .premium-control-frame,
+  .premium-check-field.is-success,
+  .premium-switch-field.is-success
+) {
+  background:var(--enterprise-form-state-success);
+  box-shadow:inset 0 0 0 1px var(--theme-semantic-success-line);
+}
+
+html[data-theme-engine="premium"] :where(
+  .premium-form-field.is-warning .premium-control-frame,
+  .premium-check-field.is-warning,
+  .premium-switch-field.is-warning
+) {
+  background:var(--enterprise-form-state-warning);
+  box-shadow:inset 0 0 0 1px var(--theme-semantic-warning-line);
+}
+
+html[data-theme-engine="premium"] :where(
+  .premium-form-field.is-info .premium-control-frame,
+  .premium-check-field.is-info,
+  .premium-switch-field.is-info
+) {
+  background:var(--enterprise-form-state-info);
+  box-shadow:inset 0 0 0 1px var(--theme-semantic-info-line);
+}
+
+html[data-theme-engine="premium"] :where(
+  .premium-field-messages
+) {
+  display:grid;
+  gap:var(--space-4);
+  min-width:0;
+}
+
+html[data-theme-engine="premium"] :where(
+  .premium-field-validation,
+  .form-error,
+  .form-success,
+  .settings-message,
+  .unified-login-message
+) {
+  display:flex;
+  align-items:flex-start;
+  gap:var(--space-8);
+  min-width:0;
+  margin:0;
+  border:0;
+  border-radius:var(--enterprise-form-radius-inner);
+  padding:var(--space-8) var(--space-12);
+  background:var(--enterprise-form-group-surface);
+  color:var(--theme-text-muted-strong);
+  box-shadow:inset 0 0 0 1px color-mix(in srgb, var(--theme-border-default) 44%, transparent);
+  font-size:var(--enterprise-form-helper-size);
+  font-weight:var(--font-weight-750);
+  line-height:var(--line-height-1-4);
+}
+
+html[data-theme-engine="premium"] :where(
+  .premium-form-field.is-success .premium-field-validation,
+  .form-success,
+  .settings-message.success,
+  .unified-login-message.success
+) {
+  background:var(--enterprise-form-state-success);
+  color:var(--theme-semantic-success-base);
+  box-shadow:inset 0 0 0 1px var(--theme-semantic-success-line);
+}
+
+html[data-theme-engine="premium"] :where(
+  .premium-form-field.is-warning .premium-field-validation,
+  .settings-message.warning
+) {
+  background:var(--enterprise-form-state-warning);
+  color:var(--theme-semantic-warning-base);
+  box-shadow:inset 0 0 0 1px var(--theme-semantic-warning-line);
+}
+
+html[data-theme-engine="premium"] :where(
+  .premium-form-field.is-error .premium-field-validation,
+  .form-error,
+  .settings-message.error,
+  .unified-login-message.error
+) {
+  background:var(--enterprise-form-state-danger);
+  color:var(--theme-semantic-danger-base);
+  box-shadow:inset 0 0 0 1px var(--theme-semantic-danger-line);
+}
+
+html[data-theme-engine="premium"] :where(
+  .premium-form-field.is-info .premium-field-validation,
+  .settings-message.info
+) {
+  background:var(--enterprise-form-state-info);
+  color:var(--theme-semantic-info-base);
+  box-shadow:inset 0 0 0 1px var(--theme-semantic-info-line);
+}
+
+html[data-theme-engine="premium"] :where(
+  input[type="checkbox"],
+  input[type="radio"]
+) {
+  flex:0 0 auto;
+  width:18px;
+  min-width:18px;
+  height:18px;
+  min-height:18px;
+  border:0;
+  padding:0;
+  accent-color:var(--enterprise-form-accent);
+  box-shadow:none;
+  cursor:pointer;
+}
+
+html[data-theme-engine="premium"] :where(input[type="radio"]) {
+  border-radius:var(--radius-full);
+}
+
+html[data-theme-engine="premium"] :where(
+  .check-row,
+  .checkbox-row,
+  .toggle-row,
+  .form-check-field,
+  .premium-check-field,
+  .premium-switch-field,
+  .allergen-option,
+  .license-module-toggle
+) {
+  display:flex;
+  align-items:center;
+  gap:var(--space-8);
+  min-width:0;
+  min-height:var(--enterprise-form-control-height);
+  border:0;
+  border-radius:var(--enterprise-form-radius-inner);
+  padding:var(--space-8) var(--space-12);
+  background:var(--enterprise-form-group-surface);
+  color:var(--theme-text-secondary);
+  box-shadow:inset 0 0 0 1px color-mix(in srgb, var(--theme-border-default) 42%, transparent);
+  font-size:var(--enterprise-form-control-size);
+  font-weight:var(--font-weight-700);
+  line-height:var(--line-height-1-35);
+  cursor:pointer;
+  transition:var(--enterprise-form-transition);
+}
+
+html[data-theme-engine="premium"] :where(.form-check-field) {
+  align-items:stretch;
+  flex-direction:column;
+  cursor:default;
+}
+
+html[data-theme-engine="premium"] .form-check-field > .check-row {
+  min-height:auto;
+  padding:0;
+  background:transparent;
+  box-shadow:none;
+}
+
+html[data-theme-engine="premium"] :where(.premium-check-field, .premium-switch-field) {
+  display:grid;
+  gap:var(--space-8);
+  align-items:stretch;
+}
+
+html[data-theme-engine="premium"] :where(.premium-check-field label, .premium-switch-field label) {
+  display:grid;
+  grid-template-columns:auto minmax(0, 1fr);
+  gap:var(--space-8);
+  align-items:center;
+  min-width:0;
+}
+
+html[data-theme-engine="premium"] :where(.premium-check-field strong, .premium-switch-copy strong) {
+  display:block;
+  color:var(--theme-text-primary);
+  font-size:var(--enterprise-form-control-size);
+  font-weight:var(--font-weight-800);
+  line-height:var(--line-height-1-25);
+}
+
+html[data-theme-engine="premium"] :where(.premium-check-field small, .premium-switch-copy small) {
+  display:block;
+  margin-top:var(--space-4);
+  color:var(--enterprise-form-helper-color);
+  font-size:var(--enterprise-form-helper-size);
+  font-weight:var(--font-weight-650);
+  line-height:var(--line-height-1-35);
+}
+
+html[data-theme-engine="premium"] :where(
+  .check-row:has(input:checked),
+  .checkbox-row:has(input:checked),
+  .toggle-row:has(input:checked),
+  .premium-check-field:has(input:checked),
+  .allergen-option.selected,
+  .allergen-option:has(input:checked),
+  .license-module-toggle:has(input:checked)
+) {
+  background:color-mix(in srgb, var(--theme-semantic-primary-soft) 62%, var(--enterprise-form-group-surface));
+  color:var(--theme-text-primary);
+  box-shadow:inset 3px 0 0 var(--enterprise-form-accent), inset 0 0 0 1px color-mix(in srgb, var(--theme-semantic-primary-line) 56%, transparent);
+}
+
+html[data-theme-engine="premium"] :where(
+  .allergen-free-row:has(input:checked)
+) {
+  background:var(--enterprise-form-state-success);
+  box-shadow:inset 3px 0 0 var(--theme-semantic-success-base), inset 0 0 0 1px var(--theme-semantic-success-line);
+}
+
+html[data-theme-engine="premium"] :where(.premium-switch-field input) {
+  position:absolute;
+  width:1px;
+  min-width:1px;
+  height:1px;
+  min-height:1px;
+  opacity:0;
+  pointer-events:none;
+}
+
+html[data-theme-engine="premium"] :where(.premium-switch-track) {
+  position:relative;
+  display:inline-flex;
+  align-items:center;
+  width:42px;
+  height:24px;
+  border:0;
+  border-radius:var(--radius-full);
+  background:color-mix(in srgb, var(--theme-text-muted) 22%, var(--enterprise-form-control-surface));
+  box-shadow:inset 0 0 0 1px color-mix(in srgb, var(--theme-border-default) 52%, transparent);
+  transition:var(--enterprise-form-transition);
+}
+
+html[data-theme-engine="premium"] :where(.premium-switch-track i) {
+  position:absolute;
+  left:3px;
+  width:18px;
+  height:18px;
+  border-radius:var(--radius-full);
+  background:var(--theme-surface-0);
+  box-shadow:var(--theme-shadow-xs);
+  transition:transform var(--edl-motion-fast) var(--edl-motion-ease), background var(--edl-motion-fast) var(--edl-motion-ease);
+}
+
+html[data-theme-engine="premium"] :where(.premium-switch-field input:checked + .premium-switch-track) {
+  background:linear-gradient(135deg, var(--theme-semantic-primary-base), var(--theme-semantic-primary-hover));
+  box-shadow:0 8px 18px color-mix(in srgb, var(--theme-semantic-primary-base) 22%, transparent);
+}
+
+html[data-theme-engine="premium"] :where(.premium-switch-field input:checked + .premium-switch-track i) {
+  transform:translateX(18px);
+}
+
+html[data-theme-engine="premium"] :where(
+  .premium-switch-field input:focus-visible + .premium-switch-track,
+  .premium-check-field input:focus-visible,
+  .check-row input:focus-visible,
+  .checkbox-row input:focus-visible,
+  .toggle-row input:focus-visible,
+  .allergen-option input:focus-visible,
+  .license-module-toggle input:focus-visible
+) {
+  outline:2px solid var(--enterprise-form-accent);
+  outline-offset:2px;
+}
+
+html[data-theme-engine="premium"] :where(
+  .form-tabs
+) {
+  display:grid;
+  grid-template-columns:repeat(auto-fit, minmax(min(100%, 140px), 1fr));
+  gap:var(--space-4);
+  min-width:0;
+  border:0;
+  border-radius:var(--enterprise-form-radius-inner);
+  padding:var(--space-4);
+  background:var(--enterprise-form-group-surface);
+  box-shadow:inset 0 0 0 1px color-mix(in srgb, var(--theme-border-default) 42%, transparent);
+}
+
+html[data-theme-engine="premium"] :where(.form-tab) {
+  justify-content:center;
+  min-height:var(--enterprise-form-control-height-compact);
+  border:0;
+  border-radius:calc(var(--enterprise-form-radius-inner) - 2px);
+  padding:var(--space-8) var(--space-12);
+  background:transparent;
+  color:var(--theme-text-muted-strong);
+  box-shadow:none;
+  font-size:var(--enterprise-form-label-size);
+  font-weight:var(--font-weight-750);
+  line-height:var(--line-height-1-25);
+  transition:var(--enterprise-form-transition);
+}
+
+html[data-theme-engine="premium"] :where(.form-tab.active, .form-tab[aria-selected="true"]) {
+  background:var(--enterprise-form-control-surface);
+  color:var(--theme-text-primary);
+  box-shadow:inset 0 0 0 1px color-mix(in srgb, var(--theme-border-default) 44%, transparent), var(--theme-shadow-xs);
+}
+
+html[data-theme-engine="premium"] :where(
+  .premium-form-actions,
+  .form-actions,
+  .recipe-ingredient-form-actions,
+  .recipe-cost-simulation-form-actions,
+  .barcode-print-actions,
+  .print-preview-actions,
+  .quality-control-side-actions,
+  .witness-sample-side-actions,
+  .recipe-side-actions,
+  .recipe-detail-actions
+) {
+  display:flex;
+  flex-wrap:wrap;
+  gap:var(--space-8);
+  align-items:center;
+  justify-content:flex-end;
+  min-width:0;
+  padding-top:var(--space-4);
+}
+
+html[data-theme-engine="premium"] :where(.premium-form-actions.align-start) {
+  justify-content:flex-start;
+}
+
+html[data-theme-engine="premium"] :where(.premium-form-actions.align-between) {
+  justify-content:space-between;
+}
+
+html[data-theme-engine="premium"] :where(.premium-form-actions.sticky) {
+  position:sticky;
+  bottom:0;
+  z-index:3;
+  margin-inline:calc(var(--space-12) * -1);
+  border:0;
+  border-radius:var(--enterprise-form-radius) var(--enterprise-form-radius) 0 0;
+  padding:var(--space-12);
+  background:color-mix(in srgb, var(--enterprise-form-section-surface) 90%, transparent);
+  box-shadow:var(--theme-shadow-md);
+  backdrop-filter:var(--theme-blur-sm);
+  -webkit-backdrop-filter:var(--theme-blur-sm);
+}
+
+html[data-theme-engine="premium"] :where(
+  .toolbar-controls,
+  [class$="-filters"],
+  [class*="-filters "],
+  [class$="-toolbar"],
+  [class*="-toolbar "],
+  [class$="-controls"],
+  [class*="-controls "]
+) {
+  gap:var(--enterprise-form-grid-gap);
+}
+
+html[data-theme-engine="premium"] :where(
+  .recipe-add-controls,
+  .recipe-inline-ingredient-form,
+  .recipe-cost-simulation-form
+) {
+  grid-template-columns:repeat(auto-fit, minmax(min(100%, 168px), 1fr));
+  align-items:end;
+}
+
+html[data-theme-engine="premium"] :where(
+  .recipe-item-row,
+  .recipe-form-ingredient-row,
+  .recipe-cost-box div,
+  .recipe-cost-simulation-form-hint
+) {
+  min-width:0;
+  border:0;
+  border-radius:var(--enterprise-form-radius-inner);
+  padding:var(--space-12);
+  background:var(--enterprise-form-group-surface);
+  box-shadow:inset 0 0 0 1px color-mix(in srgb, var(--theme-border-default) 38%, transparent);
+}
+
+html[data-theme-engine="premium"] :where(.recipe-item-row) {
+  display:grid;
+  grid-template-columns:minmax(180px, 1.3fr) repeat(3, minmax(88px, .55fr)) minmax(144px, .8fr) auto;
+  gap:var(--enterprise-form-grid-gap);
+  align-items:end;
+}
+
+html[data-theme-engine="premium"] :where(.recipe-line-note) {
+  grid-column:1 / -1;
+}
+
+html[data-theme-engine="premium"] :where(.recipe-line-cost span, .recipe-cost-box span) {
+  color:var(--enterprise-form-helper-color);
+  font-size:var(--enterprise-form-helper-size);
+  font-weight:var(--font-weight-750);
+  line-height:var(--line-height-1-25);
+}
+
+html[data-theme-engine="premium"] :where(.recipe-line-cost strong, .recipe-cost-box strong) {
+  color:var(--theme-text-primary);
+  font-size:var(--edl-type-subtitle);
+  font-weight:var(--font-weight-850);
+  font-variant-numeric:tabular-nums;
+  line-height:var(--line-height-1-25);
+}
+
+html[data-theme-engine="premium"] :where(
+  .premium-table-search input,
+  .topbar-search input
+) {
+  min-height:auto;
+  border:0;
+  border-radius:0;
+  padding:0;
+  background:transparent;
+  box-shadow:none;
+}
+
+@media (hover: hover) and (pointer: fine){
+  html[data-theme-engine="premium"] :where(
+    .premium-form-section,
+    [class$="-form-section"],
+    [class*="-form-section "],
+    .recipe-form-ingredients,
+    .recipe-add-panel,
+    .recipe-cost-simulation-form
+  ):hover {
+    box-shadow:var(--enterprise-form-section-shadow-hover);
+  }
+
+  html[data-theme-engine="premium"] :where(
+    .check-row,
+    .checkbox-row,
+    .toggle-row,
+    .premium-check-field,
+    .premium-switch-field,
+    .allergen-option,
+    .license-module-toggle,
+    .form-tab
+  ):hover {
+    background:var(--enterprise-form-control-hover);
+    color:var(--theme-text-primary);
+    box-shadow:inset 0 0 0 1px var(--enterprise-form-control-border-hover), var(--theme-shadow-xs);
+  }
+}
+
+@media (max-width: 1024px){
+  html[data-theme-engine="premium"] {
+    --enterprise-form-column-min:188px;
+  }
+
+  html[data-theme-engine="premium"] :where(.premium-form-section-header) {
+    align-items:stretch;
+    flex-direction:column;
+  }
+
+  html[data-theme-engine="premium"] :where(.premium-form-section-actions) {
+    justify-content:flex-start;
+  }
+
+  html[data-theme-engine="premium"] :where(.recipe-item-row) {
+    grid-template-columns:repeat(auto-fit, minmax(min(100%, 156px), 1fr));
+  }
+}
+
+@media (max-width: 640px){
+  html[data-theme-engine="premium"] {
+    --enterprise-form-control-height:var(--enterprise-form-control-height-touch);
+    --enterprise-form-column-min:100%;
+    --enterprise-form-grid-gap:var(--space-12);
+    --enterprise-form-section-gap:var(--space-12);
+  }
+
+  html[data-theme-engine="premium"] :where(
+    .premium-form-section,
+    [class$="-form-section"],
+    [class*="-form-section "],
+    .package-license-form-card,
+    .recipe-form-ingredients,
+    .recipe-add-panel,
+    .recipe-cost-simulation-form,
+    .module-activation-test-form,
+    .form-card
+  ) {
+    padding:var(--space-12);
+  }
+
+  html[data-theme-engine="premium"] :where(
+    .premium-form-section-title
+  ) {
+    grid-template-columns:1fr;
+  }
+
+  html[data-theme-engine="premium"] :where(
+    .premium-form-grid,
+    .form-row,
+    [class$="-form-grid"],
+    [class*="-form-grid "],
+    [class$="-input-grid"],
+    [class*="-input-grid "],
+    .recipe-add-controls,
+    .recipe-item-row,
+    .recipe-inline-ingredient-form,
+    .recipe-cost-simulation-form,
+    .inline-form
+  ) {
+    grid-template-columns:1fr;
+    width:100%;
+  }
+
+  html[data-theme-engine="premium"] :where(
+    .premium-form-actions,
+    .form-actions,
+    .recipe-ingredient-form-actions,
+    .recipe-cost-simulation-form-actions,
+    .barcode-print-actions,
+    .print-preview-actions,
+    .quality-control-side-actions,
+    .witness-sample-side-actions,
+    .recipe-side-actions,
+    .recipe-detail-actions
+  ) {
+    align-items:stretch;
+    flex-direction:column;
+    justify-content:stretch;
+  }
+
+  html[data-theme-engine="premium"] :where(
+    .premium-form-actions .btn,
+    .form-actions .btn,
+    .recipe-ingredient-form-actions .btn,
+    .recipe-cost-simulation-form-actions .btn,
+    .barcode-print-actions .btn,
+    .print-preview-actions .btn,
+    .quality-control-side-actions .btn,
+    .witness-sample-side-actions .btn,
+    .recipe-side-actions .btn,
+    .recipe-detail-actions .btn
+  ) {
+    width:100%;
+  }
+}
+
+@media (prefers-reduced-motion: reduce){
+  html[data-theme-engine="premium"] :where(
+    .premium-form-section,
+    .premium-control-frame,
+    .premium-input-control,
+    .premium-select-control,
+    .premium-textarea-control,
+    input,
+    select,
+    textarea,
+    .check-row,
+    .checkbox-row,
+    .toggle-row,
+    .premium-check-field,
+    .premium-switch-field,
+    .premium-switch-track,
+    .premium-switch-track i,
+    .form-tab
+  ) {
+    transition:none;
+  }
+}
