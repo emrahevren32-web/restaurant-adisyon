@@ -18863,3 +18863,682 @@ html[data-theme-engine="premium"] .workspace-content > :where(
     padding:var(--space-12);
   }
 }
+
+/* Faz 35.12.6 Enterprise Card & Surface System */
+html[data-theme-engine="premium"] {
+  --enterprise-surface-canvas:var(--edl-surface-canvas);
+  --enterprise-surface-workspace:color-mix(in srgb, var(--theme-surface-1) 72%, var(--theme-app-bg));
+  --enterprise-surface-section:color-mix(in srgb, var(--theme-surface-1) 88%, var(--theme-surface-0));
+  --enterprise-surface-card:color-mix(in srgb, var(--theme-surface-0) 96%, var(--theme-surface-1));
+  --enterprise-surface-card-muted:color-mix(in srgb, var(--theme-surface-1) 88%, var(--theme-surface-2));
+  --enterprise-surface-card-hover:color-mix(in srgb, var(--theme-surface-0) 90%, var(--theme-semantic-primary-soft));
+  --enterprise-surface-widget:color-mix(in srgb, var(--theme-surface-0) 90%, var(--theme-surface-2));
+  --enterprise-surface-inner:color-mix(in srgb, var(--theme-surface-2) 66%, transparent);
+  --enterprise-surface-floating:var(--theme-surface-0);
+  --enterprise-surface-overlay:var(--theme-glass-modal-background);
+  --enterprise-card-border:color-mix(in srgb, var(--theme-border-subtle) 34%, transparent);
+  --enterprise-card-border-muted:color-mix(in srgb, var(--theme-border-subtle) 22%, transparent);
+  --enterprise-card-border-strong:color-mix(in srgb, var(--theme-border-default) 48%, transparent);
+  --enterprise-card-shadow-rest:0 1px 0 color-mix(in srgb, var(--theme-color-white) 72%, transparent), 0 12px 32px color-mix(in srgb, var(--theme-color-black) 6%, transparent);
+  --enterprise-card-shadow-hover:0 1px 0 color-mix(in srgb, var(--theme-color-white) 72%, transparent), 0 18px 44px color-mix(in srgb, var(--theme-color-black) 8%, transparent);
+  --enterprise-card-shadow-floating:0 24px 64px color-mix(in srgb, var(--theme-color-black) 14%, transparent);
+  --enterprise-card-inset:inset 0 0 0 1px var(--enterprise-card-border);
+  --enterprise-card-inset-muted:inset 0 0 0 1px var(--enterprise-card-border-muted);
+  --enterprise-card-inset-strong:inset 0 0 0 1px var(--enterprise-card-border-strong);
+  --enterprise-card-radius:var(--edl-radius-panel);
+  --enterprise-card-radius-inner:var(--edl-radius-control);
+  --enterprise-card-radius-item:var(--edl-radius-item);
+  --enterprise-card-padding-current:var(--enterprise-card-padding, var(--space-24));
+  --enterprise-card-padding-compact:var(--space-16);
+  --enterprise-card-padding-spacious:var(--space-24);
+  --enterprise-card-header-gap:var(--space-16);
+  --enterprise-card-body-gap:var(--space-16);
+  --enterprise-card-footer-gap:var(--space-12);
+  --enterprise-card-icon-frame:var(--space-40);
+  --enterprise-card-icon-frame-compact:var(--space-32);
+  --enterprise-card-transition:background var(--edl-motion-fast) var(--edl-motion-ease), box-shadow var(--edl-motion-fast) var(--edl-motion-ease), transform var(--edl-motion-fast) var(--edl-motion-ease), color var(--edl-motion-fast) var(--edl-motion-ease);
+  --premium-card-fill:var(--enterprise-surface-card);
+  --premium-card-fill-muted:var(--enterprise-surface-card-muted);
+  --premium-card-fill-hover:var(--enterprise-surface-card-hover);
+  --premium-layer-border:var(--enterprise-card-border);
+  --premium-layer-border-strong:var(--enterprise-card-border-strong);
+  --edl-shadow-rest:var(--enterprise-card-inset), var(--enterprise-card-shadow-rest);
+  --edl-shadow-hover:var(--enterprise-card-inset-strong), var(--enterprise-card-shadow-hover);
+}
+
+html[data-theme="dark"][data-theme-engine="premium"] {
+  --enterprise-surface-workspace:color-mix(in srgb, var(--theme-surface-0) 78%, var(--theme-app-bg));
+  --enterprise-surface-section:color-mix(in srgb, var(--theme-surface-1) 86%, var(--theme-app-bg));
+  --enterprise-surface-card:color-mix(in srgb, var(--theme-surface-1) 88%, var(--theme-app-bg));
+  --enterprise-surface-card-muted:color-mix(in srgb, var(--theme-surface-2) 78%, var(--theme-surface-1));
+  --enterprise-surface-card-hover:color-mix(in srgb, var(--theme-surface-2) 84%, var(--theme-semantic-primary-soft));
+  --enterprise-surface-widget:color-mix(in srgb, var(--theme-surface-2) 82%, var(--theme-surface-1));
+  --enterprise-surface-inner:color-mix(in srgb, var(--theme-surface-3) 46%, transparent);
+  --enterprise-surface-floating:color-mix(in srgb, var(--theme-surface-2) 88%, var(--theme-app-bg));
+  --enterprise-card-border:color-mix(in srgb, var(--theme-border-subtle) 72%, transparent);
+  --enterprise-card-border-muted:color-mix(in srgb, var(--theme-border-subtle) 48%, transparent);
+  --enterprise-card-border-strong:color-mix(in srgb, var(--theme-border-default) 74%, transparent);
+  --enterprise-card-shadow-rest:0 1px 0 color-mix(in srgb, var(--theme-color-white) 5%, transparent), 0 14px 34px color-mix(in srgb, var(--theme-color-black) 24%, transparent);
+  --enterprise-card-shadow-hover:0 1px 0 color-mix(in srgb, var(--theme-color-white) 7%, transparent), 0 20px 48px color-mix(in srgb, var(--theme-color-black) 30%, transparent);
+  --enterprise-card-shadow-floating:0 26px 68px color-mix(in srgb, var(--theme-color-black) 42%, transparent);
+}
+
+html[data-theme-engine="premium"] :where(.app-shell, .app-main, .app-content) {
+  background:transparent;
+}
+
+html[data-theme-engine="premium"] .workspace-scroll-region {
+  background:
+    radial-gradient(circle at 16% 0%, color-mix(in srgb, var(--theme-semantic-primary-soft) 18%, transparent), transparent 30%),
+    var(--enterprise-surface-canvas);
+}
+
+html[data-theme-engine="premium"] .workspace-layout {
+  isolation:isolate;
+}
+
+html[data-theme-engine="premium"] .theme-surface {
+  border:0;
+  border-radius:var(--enterprise-card-radius);
+  box-shadow:var(--enterprise-card-inset-muted);
+}
+
+html[data-theme-engine="premium"] .surface-level-0 { --theme-current-surface:var(--enterprise-surface-canvas) }
+html[data-theme-engine="premium"] .surface-level-1 { --theme-current-surface:var(--enterprise-surface-workspace) }
+html[data-theme-engine="premium"] .surface-level-2 { --theme-current-surface:var(--enterprise-surface-section) }
+html[data-theme-engine="premium"] .surface-level-3 { --theme-current-surface:var(--enterprise-surface-card) }
+html[data-theme-engine="premium"] .surface-level-4 { --theme-current-surface:var(--enterprise-surface-floating) }
+
+html[data-theme-engine="premium"] .elevation-level-0 {
+  --theme-current-elevation-background:var(--enterprise-surface-workspace);
+  --theme-current-elevation-border:transparent;
+  --theme-current-elevation-shadow:none;
+}
+
+html[data-theme-engine="premium"] .elevation-level-1 {
+  --theme-current-elevation-background:var(--enterprise-surface-card);
+  --theme-current-elevation-border:var(--enterprise-card-border-muted);
+  --theme-current-elevation-shadow:var(--enterprise-card-shadow-rest);
+}
+
+html[data-theme-engine="premium"] .elevation-level-2 {
+  --theme-current-elevation-background:var(--enterprise-surface-widget);
+  --theme-current-elevation-border:var(--enterprise-card-border);
+  --theme-current-elevation-shadow:var(--enterprise-card-shadow-rest);
+}
+
+html[data-theme-engine="premium"] .elevation-level-3 {
+  --theme-current-elevation-background:var(--enterprise-surface-floating);
+  --theme-current-elevation-border:var(--enterprise-card-border-strong);
+  --theme-current-elevation-shadow:var(--enterprise-card-shadow-floating);
+}
+
+html[data-theme-engine="premium"] .theme-elevation {
+  border:0;
+  background:var(--theme-current-elevation-background, var(--enterprise-surface-card));
+  box-shadow:inset 0 0 0 1px var(--theme-current-elevation-border, var(--enterprise-card-border)), var(--theme-current-elevation-shadow, var(--enterprise-card-shadow-rest));
+}
+
+html[data-theme-engine="premium"] :where(
+  .card,
+  .premium-card,
+  .premium-widget,
+  .premium-kpi-card,
+  .premium-stat-card,
+  .premium-action-card,
+  .premium-info-card,
+  .premium-empty-card,
+  .responsive-card,
+  .dashboard-panel,
+  .metric-card,
+  .dashboard-kpi-card,
+  .dashboard-widget-card,
+  .dashboard-widget-catalog-card,
+  .dashboard-template-action,
+  .dashboard-widget-container-shell,
+  .dashboard-widget-empty,
+  .workspace-welcome-panel,
+  .report-panel,
+  .report-center-card,
+  .report-kpi-card,
+  .executive-summary-card,
+  .financial-summary-card,
+  .analytics-dashboard-summary-card,
+  .analytics-dashboard-detail-card,
+  .first-login-summary-card,
+  .first-login-credential-card,
+  .evren360-panel,
+  .marketplace-hero,
+  .marketplace-card,
+  .marketplace-category-card,
+  .integration-center-hero,
+  .integration-card,
+  .table-tile,
+  .product-pick-main,
+  .premium-form-section,
+  .premium-empty-state,
+  .getting-started-card,
+  .feature-highlight,
+  .quick-tip,
+  .module-progress-shell,
+  .public-application-shell,
+  .public-application-success,
+  .public-application-reference,
+  .barcode-preview-card,
+  .history-card,
+  .notification-center-row,
+  .billing-management-chart-card
+) {
+  min-width:0;
+  border:0;
+  border-radius:var(--enterprise-card-radius);
+  background:var(--enterprise-surface-card);
+  box-shadow:var(--enterprise-card-inset), var(--enterprise-card-shadow-rest);
+  transition:var(--enterprise-card-transition);
+}
+
+html[data-theme-engine="premium"] :where(
+  .card,
+  .premium-card,
+  .premium-widget,
+  .responsive-card,
+  .dashboard-panel,
+  .dashboard-template-action,
+  .dashboard-widget-container-shell,
+  .workspace-welcome-panel,
+  .report-center-card,
+  .evren360-panel,
+  .marketplace-hero,
+  .marketplace-card,
+  .integration-center-hero,
+  .integration-card,
+  .product-pick-main,
+  .premium-form-section,
+  .premium-empty-state,
+  .getting-started-card,
+  .feature-highlight,
+  .quick-tip,
+  .module-progress-shell,
+  .public-application-shell
+) {
+  padding:var(--enterprise-card-padding-current);
+}
+
+html[data-theme-engine="premium"] :where(
+  .dashboard-panel,
+  .premium-widget,
+  .dashboard-experience-widget,
+  .dashboard-widget-card,
+  .dashboard-widget-catalog-card,
+  .dashboard-widget-container-shell,
+  .dashboard-widget-empty,
+  .analytics-dashboard-detail-card,
+  .report-panel,
+  .billing-management-chart-card
+) {
+  background:var(--enterprise-surface-widget);
+}
+
+html[data-theme-engine="premium"] :where(
+  .metric-card,
+  .dashboard-kpi-card,
+  .premium-kpi-card,
+  .premium-stat-card,
+  .report-kpi-card,
+  .executive-summary-card,
+  .financial-summary-card,
+  .analytics-dashboard-summary-card,
+  .first-login-summary-card,
+  .table-tile,
+  .marketplace-category-card,
+  .notification-center-row
+) {
+  background:var(--enterprise-surface-card-muted);
+}
+
+html[data-theme-engine="premium"] :where(
+  .page-title,
+  .dashboard-title,
+  .dashboard-experience-header,
+  .navigation-quick-access,
+  .workspace-footer,
+  .premium-table,
+  .data-table,
+  .label-table
+) {
+  border:0;
+  border-radius:var(--enterprise-card-radius);
+  background:var(--enterprise-surface-section);
+  box-shadow:var(--enterprise-card-inset-muted), var(--enterprise-card-shadow-rest);
+}
+
+html[data-theme-engine="premium"] :where(
+  .premium-table-wrap,
+  .data-table-wrap,
+  .table-wrap,
+  .premium-table-toolbar,
+  .premium-pagination
+) {
+  border:0;
+  border-radius:var(--enterprise-card-radius);
+  background:var(--enterprise-surface-card);
+  box-shadow:var(--enterprise-card-inset-muted);
+}
+
+html[data-theme-engine="premium"] :where(.premium-card.padding-none) {
+  padding:0;
+}
+
+html[data-theme-engine="premium"] :where(.premium-card.padding-compact, .compact-metric-card) {
+  padding:var(--enterprise-card-padding-compact);
+}
+
+html[data-theme-engine="premium"] :where(.premium-card.padding-comfortable) {
+  padding:var(--enterprise-card-padding-current);
+}
+
+html[data-theme-engine="premium"] :where(
+  .card,
+  .premium-card,
+  .premium-widget,
+  .dashboard-panel,
+  .dashboard-experience-widget,
+  .premium-form-section,
+  .evren360-panel,
+  .marketplace-card,
+  .integration-card
+) > :where(.section-header, .dashboard-panel-header, .dashboard-experience-widget-header, .premium-card-header, .premium-form-section-header, .evren360-panel-header, .marketplace-card-header, .integration-card-header):first-child {
+  margin:0 0 var(--enterprise-card-header-gap);
+  padding:0;
+  border:0;
+  background:transparent;
+  box-shadow:none;
+}
+
+html[data-theme-engine="premium"] :where(
+  .section-header,
+  .dashboard-panel-header,
+  .dashboard-experience-widget-header,
+  .premium-card-header,
+  .premium-form-section-header,
+  .evren360-panel-header,
+  .marketplace-card-header,
+  .integration-card-header,
+  .getting-started-card-header,
+  .onboarding-card-header
+) {
+  gap:var(--enterprise-card-header-gap);
+  min-width:0;
+}
+
+html[data-theme-engine="premium"] :where(
+  .premium-card-heading,
+  .premium-card-copy,
+  .premium-form-section-title,
+  .dashboard-experience-widget-copy,
+  .feature-highlight-copy,
+  .getting-started-card-copy,
+  .quick-tip-copy,
+  .premium-empty-state-copy
+) {
+  gap:var(--space-8);
+  min-width:0;
+}
+
+html[data-theme-engine="premium"] :where(
+  .section-header h2,
+  .section-header h3,
+  .dashboard-panel-header h3,
+  .dashboard-experience-widget-header h3,
+  .premium-card-header h3,
+  .premium-card-copy h2,
+  .premium-card-copy h3,
+  .premium-form-section-title h2,
+  .evren360-panel-header h3,
+  .marketplace-card h3,
+  .integration-card h3,
+  .dashboard-widget-card h4,
+  .first-login-summary-card h4
+) {
+  margin:0;
+  color:var(--theme-text-primary);
+  font-size:var(--edl-type-subtitle);
+  font-weight:var(--font-weight-850);
+  line-height:var(--line-height-1-25);
+  letter-spacing:0;
+}
+
+html[data-theme-engine="premium"] :where(
+  .section-header .muted,
+  .section-header p,
+  .dashboard-panel-header .muted,
+  .dashboard-experience-widget-header .muted,
+  .premium-card-header p,
+  .premium-card-copy p,
+  .premium-form-section-title p,
+  .evren360-panel-header p,
+  .marketplace-card p,
+  .integration-card p,
+  .dashboard-widget-card p,
+  .premium-empty-state-copy p,
+  .feature-highlight-copy p,
+  .getting-started-card-copy p,
+  .quick-tip-copy p
+) {
+  margin:0;
+  color:var(--theme-text-muted-strong);
+  font-size:var(--edl-type-body);
+  font-weight:var(--font-weight-650);
+  line-height:var(--line-height-1-5);
+}
+
+html[data-theme-engine="premium"] :where(.premium-card-body, .dashboard-widget-card-body) {
+  display:grid;
+  gap:var(--enterprise-card-body-gap);
+  min-width:0;
+}
+
+html[data-theme-engine="premium"] :where(
+  .premium-card-footer,
+  .marketplace-card-footer,
+  .integration-card-footer,
+  .dashboard-widget-card-actions,
+  .premium-card-actions,
+  .dashboard-widget-toolbar,
+  .premium-empty-actions
+) {
+  display:flex;
+  align-items:center;
+  flex-wrap:wrap;
+  gap:var(--enterprise-card-footer-gap);
+  border:0;
+  background:transparent;
+}
+
+html[data-theme-engine="premium"] :where(.premium-card-footer, .marketplace-card-footer, .integration-card-footer) {
+  margin-top:auto;
+  padding-top:var(--space-16);
+  color:var(--theme-text-muted);
+  box-shadow:none;
+}
+
+html[data-theme-engine="premium"] :where(
+  .premium-card-icon,
+  .dashboard-experience-kpi-icon,
+  .dashboard-widget-card-icon,
+  .dashboard-widget-empty-icon,
+  .premium-empty-state-visual,
+  .feature-highlight-icon,
+  .getting-started-card-icon,
+  .quick-tip-icon
+) {
+  width:var(--enterprise-card-icon-frame);
+  height:var(--enterprise-card-icon-frame);
+  flex:0 0 var(--enterprise-card-icon-frame);
+  border:0;
+  border-radius:var(--enterprise-card-radius-inner);
+  background:var(--enterprise-surface-inner);
+  color:var(--theme-text-muted-strong);
+  box-shadow:var(--enterprise-card-inset-muted);
+}
+
+html[data-theme-engine="premium"] :where(
+  .premium-card.success .premium-card-icon,
+  .metric-card.success .dashboard-experience-kpi-icon,
+  .status-pill.success
+) {
+  background:var(--theme-semantic-success-soft);
+  color:var(--theme-semantic-success-base);
+  box-shadow:inset 0 0 0 1px color-mix(in srgb, var(--theme-semantic-success-line) 42%, transparent);
+}
+
+html[data-theme-engine="premium"] :where(
+  .premium-card.warning .premium-card-icon,
+  .metric-card.warning .dashboard-experience-kpi-icon,
+  .status-pill.warning
+) {
+  background:var(--theme-semantic-warning-soft);
+  color:var(--theme-semantic-warning-base);
+  box-shadow:inset 0 0 0 1px color-mix(in srgb, var(--theme-semantic-warning-line) 42%, transparent);
+}
+
+html[data-theme-engine="premium"] :where(
+  .premium-card.danger .premium-card-icon,
+  .metric-card.danger .dashboard-experience-kpi-icon,
+  .status-pill.danger
+) {
+  background:var(--theme-semantic-danger-soft);
+  color:var(--theme-semantic-danger-base);
+  box-shadow:inset 0 0 0 1px color-mix(in srgb, var(--theme-semantic-danger-line) 42%, transparent);
+}
+
+html[data-theme-engine="premium"] :where(
+  .premium-card.info .premium-card-icon,
+  .metric-card.info .dashboard-experience-kpi-icon
+) {
+  background:var(--theme-semantic-info-soft);
+  color:var(--theme-semantic-info-base);
+  box-shadow:inset 0 0 0 1px color-mix(in srgb, var(--theme-semantic-info-line) 42%, transparent);
+}
+
+html[data-theme-engine="premium"] :where(.premium-card-eyebrow, .premium-kpi-label, .metric-card span, .dashboard-widget-card-meta span, .marketplace-badge, .dashboard-date-pill) {
+  color:var(--theme-text-muted);
+  font-size:var(--edl-type-label);
+  font-weight:var(--font-weight-800);
+  line-height:var(--line-height-1-25);
+  letter-spacing:0;
+  text-transform:none;
+}
+
+html[data-theme-engine="premium"] :where(.premium-card-eyebrow, .marketplace-badge, .dashboard-date-pill, .status-pill, .nav-badge) {
+  border:0;
+  border-radius:var(--edl-radius-pill);
+  padding:var(--space-4) var(--space-8);
+  background:var(--enterprise-surface-inner);
+  box-shadow:var(--enterprise-card-inset-muted);
+}
+
+html[data-theme-engine="premium"] :where(.premium-kpi-value, .metric-card strong, .executive-summary-card strong) {
+  margin:0;
+  color:var(--theme-text-primary);
+  font-size:var(--font-size-24);
+  font-weight:var(--font-weight-900);
+  line-height:var(--line-height-1-12);
+  letter-spacing:0;
+  font-variant-numeric:tabular-nums;
+}
+
+html[data-theme-engine="premium"] :where(.premium-kpi-description, .metric-card small, .executive-summary-card span, .executive-summary-card p) {
+  color:var(--theme-text-muted-strong);
+  font-size:var(--edl-type-caption);
+  font-weight:var(--font-weight-650);
+  line-height:var(--line-height-1-45);
+}
+
+html[data-theme-engine="premium"] .metric-card::before {
+  width:2px;
+  opacity:.74;
+  background:linear-gradient(180deg, var(--theme-semantic-primary-base), color-mix(in srgb, var(--theme-semantic-primary-base) 18%, transparent));
+}
+
+html[data-theme-engine="premium"] :where(.metric-card.success, .premium-kpi-card.success) {
+  --enterprise-surface-card-muted:color-mix(in srgb, var(--theme-semantic-success-soft) 48%, var(--enterprise-surface-card));
+}
+
+html[data-theme-engine="premium"] :where(.metric-card.warning, .premium-kpi-card.warning) {
+  --enterprise-surface-card-muted:color-mix(in srgb, var(--theme-semantic-warning-soft) 44%, var(--enterprise-surface-card));
+}
+
+html[data-theme-engine="premium"] :where(.metric-card.danger, .premium-kpi-card.danger) {
+  --enterprise-surface-card-muted:color-mix(in srgb, var(--theme-semantic-danger-soft) 42%, var(--enterprise-surface-card));
+}
+
+html[data-theme-engine="premium"] :where(.premium-card.success, .premium-info-card.success) {
+  box-shadow:inset 0 0 0 1px color-mix(in srgb, var(--theme-semantic-success-line) 42%, transparent), var(--enterprise-card-shadow-rest);
+}
+
+html[data-theme-engine="premium"] :where(.premium-card.warning, .premium-info-card.warning) {
+  box-shadow:inset 0 0 0 1px color-mix(in srgb, var(--theme-semantic-warning-line) 42%, transparent), var(--enterprise-card-shadow-rest);
+}
+
+html[data-theme-engine="premium"] :where(.premium-card.danger, .premium-info-card.danger) {
+  box-shadow:inset 0 0 0 1px color-mix(in srgb, var(--theme-semantic-danger-line) 42%, transparent), var(--enterprise-card-shadow-rest);
+}
+
+html[data-theme-engine="premium"] :where(.glass-card, .glass-modal, .glass-drawer, .glass-dropdown, .glass-surface) {
+  border:0;
+  background:var(--enterprise-surface-floating);
+  box-shadow:var(--enterprise-card-inset), var(--enterprise-card-shadow-floating);
+  backdrop-filter:none;
+  -webkit-backdrop-filter:none;
+}
+
+html[data-theme-engine="premium"] :where(.notification-panel, .topbar-profile-panel, .modal, .drawer, .dropdown-menu, .product-tour-card, .premium-loading-overlay-shell, .dashboard-widget-drawer) {
+  border:0;
+  border-radius:var(--enterprise-card-radius);
+  background:var(--enterprise-surface-floating);
+  color:var(--theme-text-primary);
+  box-shadow:var(--enterprise-card-inset), var(--enterprise-card-shadow-floating);
+}
+
+html[data-theme-engine="premium"] :where(.premium-table thead th, .data-table thead th, .label-table thead th) {
+  border-bottom-color:var(--enterprise-card-border-muted);
+  background:var(--enterprise-surface-inner);
+}
+
+html[data-theme-engine="premium"] :where(.premium-table tbody td, .data-table tbody td, .label-table tbody td, th, td) {
+  border-bottom-color:var(--enterprise-card-border-muted);
+}
+
+html[data-theme-engine="premium"] :where(
+  .card,
+  .premium-card,
+  .premium-widget,
+  .responsive-card,
+  .dashboard-panel,
+  .metric-card,
+  .dashboard-kpi-card,
+  .dashboard-widget-card,
+  .dashboard-widget-catalog-card,
+  .dashboard-template-action,
+  .marketplace-category-card,
+  .marketplace-card,
+  .integration-card,
+  .report-center-card,
+  .table-tile,
+  .product-pick-main,
+  .getting-started-card,
+  .feature-highlight,
+  .quick-tip
+):focus-within {
+  box-shadow:var(--enterprise-card-inset-strong), var(--enterprise-card-shadow-rest);
+}
+
+html[data-theme-engine="premium"] :where(.premium-action-card, .dashboard-template-action, .marketplace-category-card, .table-tile):focus-visible {
+  outline:2px solid var(--theme-border-focus);
+  outline-offset:var(--space-4);
+  box-shadow:var(--theme-state-focus-ring), var(--enterprise-card-inset-strong), var(--enterprise-card-shadow-rest);
+}
+
+@media (hover: hover) and (pointer: fine){
+  html[data-theme-engine="premium"] :where(
+    .premium-card.interactive,
+    .premium-action-card,
+    .responsive-card.interactive,
+    .dashboard-template-action,
+    .dashboard-widget-card,
+    .dashboard-widget-catalog-card,
+    .marketplace-category-card,
+    .marketplace-card,
+    .integration-card,
+    .table-tile,
+    .product-pick-main,
+    .getting-started-card:not(.disabled),
+    .feature-highlight,
+    .quick-tip
+  ):hover {
+    background:var(--enterprise-surface-card-hover);
+    box-shadow:var(--enterprise-card-inset-strong), var(--enterprise-card-shadow-hover);
+    transform:translateY(-1px);
+  }
+
+  html[data-theme-engine="premium"] :where(
+    .card,
+    .dashboard-panel,
+    .metric-card,
+    .dashboard-kpi-card,
+    .report-center-card,
+    .dashboard-widget-container-shell
+  ):hover {
+    box-shadow:var(--enterprise-card-inset-strong), var(--enterprise-card-shadow-hover);
+  }
+
+  html[data-theme-engine="premium"] :where(.premium-table tbody tr:hover td, .data-table tbody tr:hover td, .label-table tbody tr:hover td) {
+    background:color-mix(in srgb, var(--theme-state-hover) 66%, transparent);
+  }
+}
+
+@media (min-width: 1920px){
+  html[data-theme-engine="premium"] {
+    --enterprise-card-padding-current:var(--space-32);
+    --enterprise-card-padding-spacious:var(--space-32);
+    --enterprise-card-header-gap:var(--space-24);
+    --enterprise-card-body-gap:var(--space-24);
+  }
+}
+
+@media (max-width: 1024px){
+  html[data-theme-engine="premium"] {
+    --enterprise-card-padding-current:var(--space-16);
+    --enterprise-card-padding-compact:var(--space-12);
+    --enterprise-card-header-gap:var(--space-12);
+    --enterprise-card-body-gap:var(--space-12);
+    --enterprise-card-icon-frame:var(--space-32);
+  }
+}
+
+@media (max-width: 576px){
+  html[data-theme-engine="premium"] {
+    --enterprise-card-padding-current:var(--space-12);
+    --enterprise-card-padding-compact:var(--space-12);
+    --enterprise-card-header-gap:var(--space-12);
+    --enterprise-card-footer-gap:var(--space-8);
+  }
+
+  html[data-theme-engine="premium"] :where(
+    .premium-card-footer,
+    .marketplace-card-footer,
+    .integration-card-footer,
+    .dashboard-widget-card-actions,
+    .premium-card-actions,
+    .dashboard-widget-toolbar,
+    .premium-empty-actions
+  ) {
+    align-items:stretch;
+    flex-direction:column;
+  }
+}
+
+@media (prefers-reduced-motion: reduce){
+  html[data-theme-engine="premium"] :where(
+    .card,
+    .premium-card,
+    .premium-widget,
+    .responsive-card,
+    .dashboard-panel,
+    .metric-card,
+    .dashboard-widget-card,
+    .dashboard-widget-catalog-card,
+    .dashboard-template-action,
+    .marketplace-category-card,
+    .marketplace-card,
+    .integration-card,
+    .table-tile,
+    .product-pick-main,
+    .getting-started-card,
+    .feature-highlight,
+    .quick-tip
+  ) {
+    transition:none;
+  }
+}
