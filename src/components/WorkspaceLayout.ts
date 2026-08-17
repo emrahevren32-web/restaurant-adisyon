@@ -1,8 +1,14 @@
 import React from 'react'
+import { AppIcon } from '../design-system/IconSystem'
 import { FadeTransition } from './Motion'
+import NavigationBreadcrumb, { type NavigationBreadcrumbItem } from './NavigationBreadcrumb'
 
 export type WorkspaceLayoutProps = {
   title: string
+  subtitle?: React.ReactNode
+  breadcrumbs?: NavigationBreadcrumbItem[]
+  context?: React.ReactNode
+  status?: React.ReactNode
   navigationKey?: string
   navigation?: React.ReactNode
   children: React.ReactNode
@@ -11,16 +17,23 @@ export type WorkspaceLayoutProps = {
 
 export const WorkspaceLayout = ({
   title,
+  subtitle,
+  breadcrumbs = [],
+  context,
+  status,
   navigationKey,
   navigation,
   children,
   footer
-}: WorkspaceLayoutProps) => (
-  React.createElement(
+}: WorkspaceLayoutProps) => {
+  const titleId = `workspace-title-${(navigationKey || title).replace(/[^a-z0-9_-]/gi, '-').toLocaleLowerCase('en-US')}`
+  const hasHeaderAside = Boolean(status || navigation)
+
+  return React.createElement(
     'main',
     {
       className: 'app-content',
-      'aria-label': `${title} calisma alani`,
+      'aria-labelledby': titleId,
       'data-enterprise-layout': 'workspace',
       tabIndex: -1
     },
@@ -34,16 +47,68 @@ export const WorkspaceLayout = ({
           'data-workspace-title': title,
           'data-layout-grid': 'enterprise'
         },
-        navigation
-          ? React.createElement(
-            'header',
-            {
-              className: 'workspace-header',
-              'aria-label': `${title} calisma alani basligi`
-            },
-            navigation
-          )
-          : null,
+        React.createElement(
+          'header',
+          {
+            className: 'workspace-header enterprise-workspace-header',
+            'aria-labelledby': titleId
+          },
+          React.createElement(
+            'div',
+            { className: 'workspace-header-main' },
+            breadcrumbs.length > 0
+              ? React.createElement(NavigationBreadcrumb, {
+                items: breadcrumbs,
+                className: 'workspace-header-breadcrumb'
+              })
+              : null,
+            React.createElement(
+              'div',
+              { className: 'workspace-header-title-row' },
+              React.createElement(
+                'span',
+                { className: 'workspace-header-icon', 'aria-hidden': true },
+                React.createElement(AppIcon, { name: 'workspace', size: 'SM' })
+              ),
+              React.createElement(
+                'div',
+                { className: 'workspace-header-copy' },
+                React.createElement('span', { className: 'workspace-header-kicker' }, 'Workspace'),
+                React.createElement('h1', { id: titleId }, title),
+                subtitle
+                  ? React.createElement('p', null, subtitle)
+                  : null
+              )
+            )
+          ),
+          context
+            ? React.createElement(
+              'div',
+              { className: 'workspace-header-context', 'aria-label': 'Sayfa bağlamı' },
+              context
+            )
+            : null,
+          hasHeaderAside
+            ? React.createElement(
+              'div',
+              { className: 'workspace-header-aside' },
+              status
+                ? React.createElement(
+                  'div',
+                  { className: 'workspace-header-status', 'aria-label': 'Sayfa durumu' },
+                  status
+                )
+                : null,
+              navigation
+                ? React.createElement(
+                  'div',
+                  { className: 'workspace-header-actions', 'aria-label': 'Hızlı sayfa aksiyonları' },
+                  navigation
+                )
+                : null
+            )
+            : null
+        ),
         React.createElement(
           FadeTransition,
           {
@@ -61,6 +126,6 @@ export const WorkspaceLayout = ({
       )
     )
   )
-)
+}
 
 export default WorkspaceLayout

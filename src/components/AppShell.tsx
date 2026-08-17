@@ -671,18 +671,59 @@ export default function AppShell<
       <span>{currentUser.role}</span>
     </>
   )
+  const workspaceBreadcrumbs = [
+    { label: isPlatformAdmin ? 'EVREN360' : restaurantName, icon: 'home' as const },
+    ...(activeGroup ? [{ label: activeGroup.title, icon: 'module' as const }] : []),
+    { label: activeNavLabel, current: true, icon: 'workspace' as const }
+  ]
+  const workspaceHeaderSubtitle = activeGroup
+    ? `${activeGroup.title} bağlamında ekran özeti, hızlı geçişler ve çalışma durumu.`
+    : 'Workspace bağlamı, hızlı geçişler ve çalışma durumu.'
+  const workspaceHeaderContext = (
+    <div className="workspace-context-grid">
+      <span className="workspace-context-chip">
+        <span className="workspace-context-chip-icon" aria-hidden="true">
+          <AppIcon name="module" size="XS" />
+        </span>
+        <span>
+          <small>Bölüm</small>
+          <strong>{activeGroup?.title || 'Workspace'}</strong>
+        </span>
+      </span>
+      <span className="workspace-context-chip">
+        <span className="workspace-context-chip-icon" aria-hidden="true">
+          <AppIcon name={isPlatformAdmin ? 'company' : 'workspace'} size="XS" />
+        </span>
+        <span>
+          <small>{isPlatformAdmin ? 'Kapsam' : 'Workspace'}</small>
+          <strong>{workspaceLabel}</strong>
+        </span>
+      </span>
+    </div>
+  )
+  const workspaceHeaderStatus = (
+    <div className="workspace-status-list">
+      <span className="workspace-status-chip active">
+        <span className="workspace-status-dot" aria-hidden="true" />
+        {isPlatformAdmin ? 'Platform modu' : 'Aktif workspace'}
+      </span>
+      <span className="workspace-status-chip">{currentUser.role}</span>
+    </div>
+  )
   const quickAccessItems: NavigationQuickAccessItem[] = quickAccessNavItems.map(item => ({
     key: String(item.key),
     label: item.label,
     icon: item.icon,
     onOpen: () => openNavItem(item)
   }))
-  const workspaceNavigation = (
-    <NavigationQuickAccess
-      items={quickAccessItems}
-      activeLabel={activeGroup?.title || activeNavLabel}
-    />
-  )
+  const workspaceNavigation = quickAccessItems.length > 0
+    ? (
+      <NavigationQuickAccess
+        items={quickAccessItems}
+        activeLabel={activeGroup?.title || activeNavLabel}
+      />
+    )
+    : null
 
   return (
     <>
@@ -716,11 +757,7 @@ export default function AppShell<
         topbar={(
           <TopbarLayout
             title={activeNavLabel}
-            breadcrumbs={[
-              { label: isPlatformAdmin ? 'EVREN360' : restaurantName, icon: 'home' },
-              ...(activeGroup ? [{ label: activeGroup.title, icon: 'module' as const }] : []),
-              { label: activeNavLabel, current: true, icon: 'workspace' }
-            ]}
+            breadcrumbs={workspaceBreadcrumbs}
             searchValue={globalSearch}
             brandLabel={restaurantName}
             themeMode={themeMode}
@@ -748,6 +785,10 @@ export default function AppShell<
       >
         <WorkspaceLayout
           title={activeNavLabel}
+          subtitle={workspaceHeaderSubtitle}
+          breadcrumbs={workspaceBreadcrumbs}
+          context={workspaceHeaderContext}
+          status={workspaceHeaderStatus}
           navigationKey={String(activeNavKey)}
           navigation={workspaceNavigation}
           footer={workspaceFooter}
