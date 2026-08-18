@@ -22271,3 +22271,500 @@ html[data-theme-engine="premium"] ::selection {
     box-shadow:none;
   }
 }
+
+/* Faz 35.12.11 Enterprise Motion & Micro Interactions */
+html[data-theme-engine="premium"] {
+  --motion-micro:100ms;
+  --motion-fast:150ms;
+  --motion-normal:200ms;
+  --motion-medium:200ms;
+  --motion-slow:250ms;
+  --motion-slower:300ms;
+  --motion-ease-standard:cubic-bezier(.2, 0, 0, 1);
+  --motion-ease-out:cubic-bezier(.22, 1, .36, 1);
+  --motion-ease-in:cubic-bezier(.32, 0, .67, 0);
+  --motion-ease-in-out:cubic-bezier(.65, 0, .35, 1);
+  --motion-ease-spring:cubic-bezier(.16, 1, .3, 1);
+  --motion-hover-lift:1px;
+  --motion-hover-lift-strong:2px;
+  --motion-press-scale:.985;
+  --motion-focus-offset:2px;
+  --motion-enter-distance:var(--space-8);
+  --motion-enter-distance-sm:var(--space-4);
+  --motion-enter-distance-lg:var(--space-16);
+  --enterprise-motion-hover-shadow:var(--theme-shadow-sm);
+  --enterprise-motion-surface-hover-shadow:var(--enterprise-card-shadow-hover, var(--theme-shadow-md));
+  --enterprise-motion-press-shadow:var(--theme-shadow-xs);
+  --enterprise-motion-focus-shadow:var(--theme-state-focus-ring);
+  --enterprise-motion-feedback-scale:1.012;
+  --enterprise-motion-overlay-blur:var(--theme-blur-sm);
+  --enterprise-motion-button-transition:var(--motion-transition-button);
+  --enterprise-motion-sidebar-transition:var(--motion-transition-sidebar);
+  --enterprise-motion-table-transition:var(--motion-transition-table);
+  --enterprise-motion-form-transition:var(--motion-transition-form);
+  --enterprise-motion-dialog-transition:var(--motion-transition-dialog);
+  --enterprise-motion-menu-transition:var(--motion-transition-menu);
+  --enterprise-motion-tooltip-transition:var(--motion-transition-tooltip);
+  --enterprise-motion-collapse-transition:var(--motion-transition-collapse);
+}
+
+html[data-theme-engine="premium"] :where(
+  .app-layout,
+  .side-nav,
+  .side-nav-body,
+  .side-nav-group,
+  .side-nav-items,
+  .side-nav-children,
+  .side-nav-item,
+  .side-nav-title,
+  .side-nav-chevron,
+  .side-nav-node-chevron,
+  .side-nav-icon,
+  .side-nav-floating-tooltip
+) {
+  transition:var(--enterprise-motion-sidebar-transition);
+}
+
+html[data-theme-engine="premium"] :where(
+  .side-nav-items,
+  .side-nav-children,
+  .accordion,
+  .accordion-panel,
+  .collapse,
+  .collapsible,
+  details > :where(div, section, article)
+) {
+  transition:var(--enterprise-motion-collapse-transition);
+}
+
+html[data-theme-engine="premium"] :where(
+  .btn,
+  button,
+  [role="button"],
+  .primary-button,
+  .topbar-theme-btn,
+  .topbar-notification,
+  .topbar-icon-action,
+  .topbar-mobile-menu,
+  .topbar-user-card,
+  .topbar-profile-action,
+  .navigation-quick-access-item,
+  .form-tab,
+  .report-tab-btn,
+  .dashboard-template-action,
+  .premium-table-action,
+  .quick-tip-close,
+  .notification-toast-close
+) {
+  transform-origin:center;
+  transition:var(--enterprise-motion-button-transition);
+}
+
+html[data-theme-engine="premium"] :where(
+  input,
+  select,
+  textarea,
+  .premium-input-control,
+  .premium-select-control,
+  .premium-textarea-control,
+  .premium-control-frame,
+  .premium-check-field,
+  .premium-switch-field,
+  .premium-switch-track,
+  .check-row,
+  .checkbox-row,
+  .toggle-row,
+  .form-field,
+  .form-control
+) {
+  transition:var(--enterprise-motion-form-transition);
+}
+
+html[data-theme-engine="premium"] :where(
+  .card,
+  .premium-card,
+  .premium-widget,
+  .premium-kpi-card,
+  .premium-stat-card,
+  .premium-action-card,
+  .premium-info-card,
+  .dashboard-panel,
+  .dashboard-kpi-card,
+  .dashboard-widget-card,
+  .dashboard-widget-catalog-card,
+  .metric-card,
+  .responsive-card,
+  .getting-started-card,
+  .feature-highlight,
+  .quick-tip,
+  .table-tile,
+  .product-pick-main,
+  .marketplace-card,
+  .integration-card
+) {
+  transform-origin:center;
+  transition:var(--motion-transition-surface);
+}
+
+html[data-theme-engine="premium"] :where(
+  .data-table tbody tr,
+  .premium-table tbody tr,
+  .premium-table-row,
+  .label-table tbody tr,
+  .responsive-table-row,
+  .table-row,
+  tr[aria-selected],
+  .selected-row,
+  .selected-card
+) {
+  transition:var(--enterprise-motion-table-transition);
+}
+
+html[data-theme-engine="premium"] :where(
+  .notification-panel,
+  .topbar-profile-panel,
+  .dropdown,
+  .dropdown-menu,
+  .menu,
+  .menu-panel,
+  [role="menu"],
+  [role="listbox"]
+) {
+  transform-origin:top right;
+  transition:var(--enterprise-motion-menu-transition);
+}
+
+html[data-theme-engine="premium"] :where(
+  .tooltip,
+  [role="tooltip"],
+  .quick-tip,
+  .side-nav-floating-tooltip
+) {
+  transition:var(--enterprise-motion-tooltip-transition);
+}
+
+html[data-theme-engine="premium"] :where(
+  .modal-backdrop,
+  .barcode-preview-backdrop,
+  .print-preview-backdrop,
+  .module-lifecycle-modal-backdrop,
+  .module-progress-overlay,
+  .dashboard-widget-drawer-overlay
+) {
+  animation-duration:var(--motion-normal);
+  animation-timing-function:var(--motion-ease-out);
+  backdrop-filter:var(--enterprise-motion-overlay-blur);
+}
+
+html[data-theme-engine="premium"] :where(
+  .credit-payment-modal,
+  .stock-lot-modal,
+  .barcode-preview-modal,
+  .print-preview-modal,
+  .module-lifecycle-modal,
+  .onboarding-card,
+  .product-tour-card,
+  .modal,
+  [role="dialog"]
+) {
+  animation-duration:var(--motion-slow);
+  animation-timing-function:var(--motion-ease-spring);
+  transition:var(--enterprise-motion-dialog-transition);
+  transform-origin:center;
+}
+
+html[data-theme-engine="premium"] :where(
+  .dashboard-widget-drawer,
+  .drawer,
+  [data-drawer]
+) {
+  animation-duration:var(--motion-slower);
+  animation-timing-function:var(--motion-ease-spring);
+  transition:var(--motion-transition-drawer);
+}
+
+html[data-theme-engine="premium"] :where(
+  .motion-fade-transition,
+  .motion-slide-transition,
+  .motion-scale-transition,
+  .workspace-content,
+  .workspace-content-shell
+) {
+  animation-duration:var(--motion-slow);
+  animation-timing-function:var(--motion-ease-out);
+}
+
+html[data-theme-engine="premium"] :where(
+  .premium-progress-bar-fill,
+  .premium-progress-linear-fill,
+  .premium-linear-progress-fill,
+  .onboarding-progress-track span,
+  .executive-loading-progress span
+) {
+  transition:width var(--motion-normal) var(--motion-ease-standard), transform var(--motion-normal) var(--motion-ease-standard), background var(--motion-fast) var(--motion-ease-standard);
+}
+
+html[data-theme-engine="premium"] :where(
+  .decision-skeleton-line,
+  .executive-skeleton-card,
+  .premium-skeleton,
+  .premium-card-loading span,
+  .dashboard-experience-loading span,
+  .premium-table-skeleton-line
+) {
+  animation-duration:var(--motion-loading);
+  animation-timing-function:var(--motion-ease-in-out);
+  transition:var(--motion-transition-skeleton);
+}
+
+html[data-theme-engine="premium"] :where(
+  .premium-spinner-ring,
+  .premium-circular-progress.indeterminate .premium-circular-progress-ring,
+  .shipment-optimization-loading:not(.premium-progress) span
+) {
+  animation-duration:var(--motion-spinner);
+  animation-timing-function:var(--motion-ease-linear);
+}
+
+html[data-theme-engine="premium"] :where(
+  .notification-toast,
+  .module-toast,
+  .blast-chiller-toast,
+  .dispatch-toast,
+  .recipe-toast,
+  .final-product-toast,
+  .packaging-toast,
+  .labeling-toast,
+  .intermediate-product-toast,
+  .production-line-toast,
+  .production-work-order-toast,
+  .form-validation-message,
+  .premium-validation-message,
+  .helper-text,
+  .error-text,
+  .success-text,
+  .warning-text
+) {
+  transition:var(--motion-transition-feedback);
+}
+
+@media (hover: hover) and (pointer: fine){
+  html[data-theme-engine="premium"] :where(
+    .btn,
+    button,
+    [role="button"],
+    .primary-button,
+    .topbar-theme-btn,
+    .topbar-notification,
+    .topbar-icon-action,
+    .topbar-mobile-menu,
+    .topbar-user-card,
+    .navigation-quick-access-item,
+    .form-tab,
+    .report-tab-btn,
+    .premium-table-action,
+    .quick-tip-close
+  ):hover:not(:disabled):not([aria-disabled="true"]) {
+    transform:translateY(calc(var(--motion-hover-lift) * -1));
+    box-shadow:inset 0 0 0 1px color-mix(in srgb, var(--theme-semantic-primary-line) 30%, transparent), var(--enterprise-motion-hover-shadow);
+  }
+
+  html[data-theme-engine="premium"] :where(
+    .card,
+    .premium-card.interactive,
+    .premium-action-card,
+    .responsive-card.interactive,
+    .dashboard-panel,
+    .metric-card,
+    .dashboard-kpi-card,
+    .dashboard-widget-card,
+    .dashboard-widget-catalog-card,
+    .report-center-card,
+    .table-tile,
+    .product-pick-main,
+    .getting-started-card:not(.disabled),
+    .feature-highlight,
+    .quick-tip
+  ):hover {
+    transform:translateY(calc(var(--motion-hover-lift-strong) * -1));
+    box-shadow:var(--enterprise-card-inset-strong, inset 0 0 0 1px var(--enterprise-theme-border)), var(--enterprise-motion-surface-hover-shadow);
+  }
+
+  html[data-theme-engine="premium"] :where(
+    .data-table tbody tr,
+    .premium-table tbody tr,
+    .premium-table-row,
+    .label-table tbody tr,
+    .responsive-table-row
+  ):hover {
+    transform:translateY(calc(var(--motion-hover-lift) * -1));
+  }
+
+  html[data-theme-engine="premium"] :where(
+    input,
+    select,
+    textarea,
+    .premium-control-frame,
+    .premium-input-control,
+    .premium-select-control,
+    .premium-textarea-control,
+    .check-row,
+    .checkbox-row,
+    .toggle-row
+  ):hover:not(:disabled) {
+    transform:translateY(calc(var(--motion-hover-lift) * -1));
+  }
+}
+
+html[data-theme-engine="premium"] :where(
+  .btn,
+  button,
+  [role="button"],
+  .primary-button,
+  .side-nav-item,
+  .side-nav-title,
+  .topbar-theme-btn,
+  .topbar-notification,
+  .topbar-icon-action,
+  .topbar-mobile-menu,
+  .topbar-user-card,
+  .navigation-quick-access-item,
+  .form-tab,
+  .report-tab-btn,
+  .premium-table-action
+):active:not(:disabled):not([aria-disabled="true"]) {
+  transform:translateY(0) scale(var(--motion-press-scale));
+  box-shadow:var(--enterprise-motion-press-shadow);
+  transition:var(--motion-transition-press);
+}
+
+html[data-theme-engine="premium"] :where(
+  input,
+  select,
+  textarea,
+  .premium-control-frame,
+  .premium-input-control,
+  .premium-select-control,
+  .premium-textarea-control,
+  .premium-focus
+):focus-visible,
+html[data-theme-engine="premium"] :where(
+  .premium-control-frame,
+  .premium-focus.focus-within
+):focus-within {
+  transition:var(--motion-transition-focus);
+  box-shadow:var(--enterprise-motion-focus-shadow);
+}
+
+html[data-theme-engine="premium"] :where(
+  .side-nav-item.active,
+  .side-nav-item.active-branch,
+  .navigation-quick-access-item.active,
+  .form-tab.active,
+  .report-tab-btn.active,
+  [aria-selected="true"],
+  [aria-current="page"],
+  .premium-table-row.selected,
+  .selected-row,
+  .selected-card
+) {
+  transition:var(--motion-transition-selection);
+}
+
+@keyframes motionPageIn {
+  from { opacity:0; transform:translateY(var(--motion-enter-distance)) }
+  to { opacity:1; transform:translateY(0) }
+}
+
+@keyframes motionPageContentIn {
+  from { opacity:.82; transform:translateY(var(--motion-enter-distance-sm)) }
+  to { opacity:1; transform:translateY(0) }
+}
+
+@keyframes motionSlideUpIn {
+  from { opacity:0; transform:translateY(var(--motion-enter-distance)) }
+  to { opacity:1; transform:translateY(0) }
+}
+
+@keyframes motionSlideRightIn {
+  from { opacity:0; transform:translateX(calc(var(--motion-enter-distance) * -1)) }
+  to { opacity:1; transform:translateX(0) }
+}
+
+@keyframes motionSlideDownIn {
+  from { opacity:0; transform:translateY(calc(var(--motion-enter-distance) * -1)) }
+  to { opacity:1; transform:translateY(0) }
+}
+
+@keyframes motionSlideLeftIn {
+  from { opacity:0; transform:translateX(var(--motion-enter-distance)) }
+  to { opacity:1; transform:translateX(0) }
+}
+
+@keyframes motionScaleIn {
+  from { opacity:0; transform:scale(.985) }
+  to { opacity:1; transform:scale(1) }
+}
+
+@keyframes motionOverlayIn {
+  from { opacity:0 }
+  to { opacity:1 }
+}
+
+@keyframes motionModalIn {
+  from { opacity:0; transform:translateY(var(--motion-enter-distance)) scale(.985) }
+  to { opacity:1; transform:translateY(0) scale(1) }
+}
+
+@keyframes motionDrawerIn {
+  from { opacity:.7; transform:translateX(var(--motion-enter-distance-lg)) }
+  to { opacity:1; transform:translateX(0) }
+}
+
+@keyframes motionDropdownIn {
+  from { opacity:0; transform:translateY(calc(var(--motion-enter-distance-sm) * -1)) scale(.99) }
+  to { opacity:1; transform:translateY(0) scale(1) }
+}
+
+@keyframes motionToastIn {
+  from { opacity:0; transform:translateY(var(--motion-enter-distance)) scale(.99) }
+  to { opacity:1; transform:translateY(0) scale(1) }
+}
+
+@media (prefers-reduced-motion: reduce){
+  html[data-theme-engine="premium"] {
+    --motion-hover-lift:0px;
+    --motion-hover-lift-strong:0px;
+    --motion-press-scale:1;
+    --motion-enter-distance:0px;
+    --motion-enter-distance-sm:0px;
+    --motion-enter-distance-lg:0px;
+  }
+
+  html[data-theme-engine="premium"] *,
+  html[data-theme-engine="premium"] *::before,
+  html[data-theme-engine="premium"] *::after {
+    animation-duration:var(--motion-instant) !important;
+    animation-iteration-count:1 !important;
+    scroll-behavior:auto !important;
+    transition-duration:var(--motion-instant) !important;
+  }
+
+  html[data-theme-engine="premium"] :where(
+    .workspace-content-shell,
+    .workspace-content,
+    .motion-fade-transition,
+    .motion-slide-transition,
+    .motion-scale-transition,
+    .credit-payment-modal,
+    .stock-lot-modal,
+    .barcode-preview-modal,
+    .print-preview-modal,
+    .module-lifecycle-modal,
+    .dashboard-widget-drawer,
+    .notification-toast,
+    .module-toast
+  ) {
+    transform:none !important;
+  }
+}

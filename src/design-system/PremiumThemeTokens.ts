@@ -471,10 +471,10 @@ export const PREMIUM_THEME_TOKENS: Record<ThemeMode, PremiumThemeTokens> = {
     },
     motion: {
       fast: '150ms',
-      normal: '190ms',
-      slow: '220ms',
-      surface: 'background var(--motion-fast) var(--motion-ease-standard), border-color var(--motion-fast) var(--motion-ease-standard), box-shadow var(--motion-fast) var(--motion-ease-standard), transform var(--motion-fast) var(--motion-ease-standard)',
-      focus: 'border-color var(--motion-fast) var(--motion-ease-standard), box-shadow var(--motion-fast) var(--motion-ease-standard), outline-color var(--motion-fast) var(--motion-ease-standard)'
+      normal: '200ms',
+      slow: '250ms',
+      surface: 'var(--motion-transition-surface)',
+      focus: 'var(--motion-transition-focus)'
     },
     glass: {
       sidebar: {
@@ -678,10 +678,10 @@ export const PREMIUM_THEME_TOKENS: Record<ThemeMode, PremiumThemeTokens> = {
     },
     motion: {
       fast: '150ms',
-      normal: '190ms',
-      slow: '220ms',
-      surface: 'background var(--motion-fast) var(--motion-ease-standard), border-color var(--motion-fast) var(--motion-ease-standard), box-shadow var(--motion-fast) var(--motion-ease-standard), transform var(--motion-fast) var(--motion-ease-standard)',
-      focus: 'border-color var(--motion-fast) var(--motion-ease-standard), box-shadow var(--motion-fast) var(--motion-ease-standard), outline-color var(--motion-fast) var(--motion-ease-standard)'
+      normal: '200ms',
+      slow: '250ms',
+      surface: 'var(--motion-transition-surface)',
+      focus: 'var(--motion-transition-focus)'
     },
     glass: {
       sidebar: {

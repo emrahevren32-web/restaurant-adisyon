@@ -74,9 +74,11 @@ const ENTERPRISE_DESIGN_LANGUAGE_TOKENS = {
     pill: '999px'
   },
   motion: {
+    micro: '100ms',
     fast: '150ms',
-    standard: '170ms',
-    slow: '180ms',
+    standard: '200ms',
+    slow: '250ms',
+    deliberate: '300ms',
     ease: 'cubic-bezier(.2, 0, 0, 1)'
   },
   icon: {
@@ -145,6 +147,8 @@ ${flattenTokens(ENTERPRISE_DESIGN_LANGUAGE_TOKENS).join('')}
 --motion-normal:var(--edl-motion-standard);
 --motion-medium:var(--edl-motion-standard);
 --motion-slow:var(--edl-motion-slow);
+--motion-micro:var(--edl-motion-micro);
+--motion-slower:var(--edl-motion-deliberate);
 }
 @media (min-width:1920px){
 :root{
