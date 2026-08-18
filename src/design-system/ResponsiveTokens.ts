@@ -1,4 +1,9 @@
 export type ResponsiveBreakpointName =
+  | 'xl'
+  | 'lg'
+  | 'md'
+  | 'sm'
+  | 'xs'
   | 'wide1920'
   | 'desktop1600'
   | 'laptop1440'
@@ -8,6 +13,8 @@ export type ResponsiveBreakpointName =
   | 'tablet768'
   | 'mobile576'
   | 'mobile480'
+  | 'mobile390'
+  | 'mobile360'
 
 export type ResponsiveViewport =
   | 'wide'
@@ -18,6 +25,11 @@ export type ResponsiveViewport =
   | 'compact'
 
 export const RESPONSIVE_BREAKPOINTS: Record<ResponsiveBreakpointName, number> = {
+  xl: 1920,
+  lg: 1280,
+  md: 1024,
+  sm: 768,
+  xs: 480,
   wide1920: 1920,
   desktop1600: 1600,
   laptop1440: 1440,
@@ -26,7 +38,9 @@ export const RESPONSIVE_BREAKPOINTS: Record<ResponsiveBreakpointName, number> = 
   tablet1024: 1024,
   tablet768: 768,
   mobile576: 576,
-  mobile480: 480
+  mobile480: 480,
+  mobile390: 390,
+  mobile360: 360
 }
 
 export const RESPONSIVE_CONTAINER_WIDTHS = {
@@ -75,5 +89,10 @@ export const createResponsiveTokenCssVariables = () => [
   '--responsive-card-padding:var(--layout-card-padding);',
   '--responsive-table-min-width:760px;',
   '--responsive-sidebar-drawer-width:360px;',
+  '--responsive-breakpoint-current:desktop;',
+  '--responsive-shell-mode:desktop;',
+  '--responsive-topbar-rows:1;',
+  '--responsive-form-columns:2;',
+  '--responsive-density:comfortable;',
   '--responsive-touch-target:var(--touch-target);'
 ].join('')
