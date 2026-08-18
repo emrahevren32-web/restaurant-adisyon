@@ -22768,3 +22768,601 @@ html[data-theme-engine="premium"] :where(
     transform:none !important;
   }
 }
+
+/* Faz 35.12.12 Enterprise Dialog, Modal & Drawer Experience */
+html[data-theme-engine="premium"] {
+  --enterprise-overlay-z:var(--edl-z-index-overlay, 1400);
+  --enterprise-overlay-backdrop:color-mix(in srgb, var(--theme-color-black) 28%, transparent);
+  --enterprise-overlay-backdrop-strong:color-mix(in srgb, var(--theme-color-black) 36%, transparent);
+  --enterprise-overlay-blur:var(--theme-blur-sm);
+  --enterprise-overlay-padding:var(--space-24);
+  --enterprise-overlay-panel-gap:var(--space-16);
+  --enterprise-overlay-panel-padding:var(--space-20);
+  --enterprise-overlay-header-padding:var(--space-16) var(--space-20);
+  --enterprise-overlay-content-padding:var(--space-20);
+  --enterprise-overlay-footer-padding:var(--space-12) var(--space-20);
+  --enterprise-overlay-radius:var(--enterprise-card-radius, var(--edl-radius-panel));
+  --enterprise-overlay-radius-inner:var(--enterprise-card-radius-inner, var(--edl-radius-control));
+  --enterprise-overlay-surface:color-mix(in srgb, var(--enterprise-surface-floating, var(--theme-surface-0)) 94%, var(--theme-surface-1));
+  --enterprise-overlay-surface-muted:color-mix(in srgb, var(--enterprise-surface-inner, var(--theme-surface-2)) 58%, transparent);
+  --enterprise-overlay-header-surface:color-mix(in srgb, var(--enterprise-overlay-surface) 88%, transparent);
+  --enterprise-overlay-footer-surface:color-mix(in srgb, var(--enterprise-overlay-surface) 92%, transparent);
+  --enterprise-overlay-border:color-mix(in srgb, var(--theme-border-default) 46%, transparent);
+  --enterprise-overlay-border-soft:color-mix(in srgb, var(--theme-border-subtle) 34%, transparent);
+  --enterprise-overlay-shadow:var(--theme-shadow-overlay);
+  --enterprise-overlay-inset:inset 0 0 0 1px var(--enterprise-overlay-border);
+  --enterprise-dialog-sm:440px;
+  --enterprise-dialog-md:600px;
+  --enterprise-dialog-lg:840px;
+  --enterprise-dialog-xl:1120px;
+  --enterprise-dialog-full:min(1440px, calc(100vw - calc(var(--enterprise-overlay-padding) * 2)));
+  --enterprise-dialog-width:var(--enterprise-dialog-md);
+  --enterprise-dialog-max-height:calc(100dvh - calc(var(--enterprise-overlay-padding) * 2));
+  --enterprise-drawer-width:min(560px, calc(100vw - var(--space-32)));
+  --enterprise-drawer-wide-width:min(720px, calc(100vw - var(--space-32)));
+  --enterprise-sheet-height:min(720px, calc(100dvh - var(--space-32)));
+}
+
+html[data-theme="dark"][data-theme-engine="premium"] {
+  --enterprise-overlay-backdrop:color-mix(in srgb, var(--theme-color-black) 34%, transparent);
+  --enterprise-overlay-backdrop-strong:color-mix(in srgb, var(--theme-color-black) 44%, transparent);
+  --enterprise-overlay-surface:color-mix(in srgb, var(--enterprise-surface-floating, var(--theme-surface-2)) 92%, var(--theme-app-bg));
+  --enterprise-overlay-header-surface:color-mix(in srgb, var(--enterprise-overlay-surface) 90%, transparent);
+  --enterprise-overlay-footer-surface:color-mix(in srgb, var(--enterprise-overlay-surface) 94%, transparent);
+  --enterprise-overlay-border:color-mix(in srgb, var(--theme-border-default) 72%, transparent);
+  --enterprise-overlay-border-soft:color-mix(in srgb, var(--theme-border-subtle) 58%, transparent);
+}
+
+html[data-theme-engine="premium"] :where(
+  .modal-backdrop,
+  .barcode-preview-backdrop,
+  .print-preview-backdrop,
+  .module-lifecycle-modal-backdrop,
+  .module-progress-overlay
+) {
+  position:fixed;
+  inset:0;
+  z-index:var(--enterprise-overlay-z);
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  min-width:0;
+  overflow:auto;
+  overscroll-behavior:contain;
+  padding:var(--enterprise-overlay-padding);
+  background:
+    radial-gradient(circle at 50% 0%, color-mix(in srgb, var(--theme-semantic-primary-soft) 24%, transparent), transparent 36%),
+    var(--enterprise-overlay-backdrop);
+  backdrop-filter:saturate(135%) var(--enterprise-overlay-blur);
+  -webkit-backdrop-filter:saturate(135%) var(--enterprise-overlay-blur);
+  animation:motionOverlayIn var(--motion-normal) var(--motion-ease-out) both;
+}
+
+html[data-theme-engine="premium"] :where(.dashboard-widget-drawer-overlay) {
+  position:fixed;
+  inset:0;
+  z-index:var(--enterprise-overlay-z);
+  display:flex;
+  align-items:stretch;
+  justify-content:flex-end;
+  min-width:0;
+  overflow:hidden;
+  padding:var(--space-12);
+  background:var(--enterprise-overlay-backdrop);
+  backdrop-filter:saturate(135%) var(--enterprise-overlay-blur);
+  -webkit-backdrop-filter:saturate(135%) var(--enterprise-overlay-blur);
+  animation:motionOverlayIn var(--motion-normal) var(--motion-ease-out) both;
+}
+
+html[data-theme-engine="premium"] :where(
+  .credit-payment-modal,
+  .stock-lot-modal,
+  .barcode-preview-modal,
+  .qr-preview-modal,
+  .print-preview-modal,
+  .module-lifecycle-modal,
+  .module-progress-shell,
+  .product-tour-card,
+  .onboarding-card,
+  .modal,
+  .dialog,
+  [data-dialog]
+) {
+  --enterprise-dialog-width-current:var(--enterprise-dialog-width);
+  position:relative;
+  display:grid;
+  grid-auto-rows:max-content;
+  gap:var(--enterprise-overlay-panel-gap);
+  width:min(var(--enterprise-dialog-width-current), calc(100vw - calc(var(--enterprise-overlay-padding) * 2)));
+  max-height:var(--enterprise-dialog-max-height);
+  min-width:0;
+  overflow:auto;
+  overscroll-behavior:contain;
+  scrollbar-gutter:stable;
+  border:0;
+  border-radius:var(--enterprise-overlay-radius);
+  padding:var(--enterprise-overlay-panel-padding);
+  background:var(--enterprise-overlay-surface);
+  color:var(--theme-text-primary);
+  box-shadow:var(--enterprise-overlay-inset), var(--enterprise-overlay-shadow);
+  animation:motionModalIn var(--motion-slow) var(--motion-ease-spring) both;
+  transition:var(--motion-transition-dialog);
+}
+
+html[data-theme-engine="premium"] :where(.credit-payment-modal, .module-progress-shell) {
+  --enterprise-dialog-width-current:var(--enterprise-dialog-sm);
+}
+
+html[data-theme-engine="premium"] :where(.barcode-preview-modal, .qr-preview-modal) {
+  --enterprise-dialog-width-current:var(--enterprise-dialog-lg);
+}
+
+html[data-theme-engine="premium"] :where(.stock-lot-modal, .module-lifecycle-modal) {
+  --enterprise-dialog-width-current:var(--enterprise-dialog-xl);
+}
+
+html[data-theme-engine="premium"] :where(.approved-alternative-modal, .print-preview-modal) {
+  --enterprise-dialog-width-current:var(--enterprise-dialog-full);
+}
+
+html[data-theme-engine="premium"] :where(
+  .dialog-sm,
+  .modal-sm,
+  [data-dialog-size="small"]
+) { --enterprise-dialog-width-current:var(--enterprise-dialog-sm) }
+
+html[data-theme-engine="premium"] :where(
+  .dialog-md,
+  .modal-md,
+  [data-dialog-size="medium"]
+) { --enterprise-dialog-width-current:var(--enterprise-dialog-md) }
+
+html[data-theme-engine="premium"] :where(
+  .dialog-lg,
+  .modal-lg,
+  [data-dialog-size="large"]
+) { --enterprise-dialog-width-current:var(--enterprise-dialog-lg) }
+
+html[data-theme-engine="premium"] :where(
+  .dialog-xl,
+  .modal-xl,
+  [data-dialog-size="xl"]
+) { --enterprise-dialog-width-current:var(--enterprise-dialog-xl) }
+
+html[data-theme-engine="premium"] :where(
+  .dialog-fullscreen,
+  .modal-fullscreen,
+  [data-dialog-size="fullscreen"]
+) {
+  --enterprise-dialog-width-current:calc(100vw - calc(var(--enterprise-overlay-padding) * 2));
+  min-height:var(--enterprise-dialog-max-height);
+}
+
+html[data-theme-engine="premium"] :where(
+  .dashboard-widget-drawer,
+  .drawer,
+  [data-drawer]
+) {
+  position:relative;
+  display:grid;
+  grid-template-rows:auto minmax(0, 1fr);
+  gap:var(--enterprise-overlay-panel-gap);
+  width:var(--enterprise-drawer-width);
+  height:100%;
+  max-height:calc(100dvh - var(--space-24));
+  min-width:0;
+  overflow:auto;
+  overscroll-behavior:contain;
+  scrollbar-gutter:stable;
+  border:0;
+  border-radius:var(--enterprise-overlay-radius);
+  padding:var(--enterprise-overlay-panel-padding);
+  background:var(--enterprise-overlay-surface);
+  color:var(--theme-text-primary);
+  box-shadow:var(--enterprise-overlay-inset), var(--theme-shadow-overlay);
+  animation:motionDrawerIn var(--motion-slower) var(--motion-ease-spring) both;
+  transition:var(--motion-transition-drawer);
+}
+
+html[data-theme-engine="premium"] :where(.drawer-wide, [data-drawer-size="wide"]) {
+  width:var(--enterprise-drawer-wide-width);
+}
+
+html[data-theme-engine="premium"] :where(.drawer-left, [data-drawer-position="left"]) {
+  margin-right:auto;
+  animation-name:motionDrawerLeftIn;
+}
+
+html[data-theme-engine="premium"] :where(.drawer-bottom, [data-drawer-position="bottom"]) {
+  align-self:flex-end;
+  width:100%;
+  height:var(--enterprise-sheet-height);
+  max-height:var(--enterprise-sheet-height);
+  animation-name:motionDrawerBottomIn;
+}
+
+html[data-theme-engine="premium"] :where(
+  .credit-payment-modal,
+  .stock-lot-modal,
+  .barcode-preview-modal,
+  .print-preview-modal,
+  .module-lifecycle-modal,
+  .module-progress-shell,
+  .dashboard-widget-drawer
+) > :where(
+  .section-header:first-child,
+  .barcode-preview-header,
+  .module-lifecycle-modal-header,
+  .module-progress-header,
+  .dashboard-widget-drawer-header,
+  .modal-header,
+  .dialog-header,
+  .drawer-header
+) {
+  position:sticky;
+  top:calc(var(--enterprise-overlay-panel-padding) * -1);
+  z-index:3;
+  margin:calc(var(--enterprise-overlay-panel-padding) * -1) calc(var(--enterprise-overlay-panel-padding) * -1) 0;
+  border:0;
+  border-radius:var(--enterprise-overlay-radius) var(--enterprise-overlay-radius) 0 0;
+  padding:var(--enterprise-overlay-header-padding);
+  background:var(--enterprise-overlay-header-surface);
+  box-shadow:inset 0 -1px 0 var(--enterprise-overlay-border-soft);
+  backdrop-filter:saturate(135%) var(--theme-blur-sm);
+  -webkit-backdrop-filter:saturate(135%) var(--theme-blur-sm);
+}
+
+html[data-theme-engine="premium"] :where(
+  .credit-payment-modal,
+  .stock-lot-modal,
+  .barcode-preview-modal,
+  .print-preview-modal,
+  .module-lifecycle-modal,
+  .module-progress-shell,
+  .dashboard-widget-drawer
+) > :where(
+  .section-header:first-child,
+  .barcode-preview-header,
+  .module-lifecycle-modal-header,
+  .module-progress-header,
+  .dashboard-widget-drawer-header,
+  .modal-header,
+  .dialog-header,
+  .drawer-header
+) :where(h2, h3, h4) {
+  margin:0;
+  color:var(--theme-text-primary);
+  font-size:var(--enterprise-type-card-title, var(--type-title-size));
+  font-weight:var(--font-weight-850);
+  line-height:var(--line-height-1-25);
+}
+
+html[data-theme-engine="premium"] :where(
+  .credit-payment-modal,
+  .stock-lot-modal,
+  .barcode-preview-modal,
+  .print-preview-modal,
+  .module-lifecycle-modal,
+  .module-progress-shell,
+  .dashboard-widget-drawer
+) > :where(
+  .section-header:first-child,
+  .barcode-preview-header,
+  .module-lifecycle-modal-header,
+  .module-progress-header,
+  .dashboard-widget-drawer-header,
+  .modal-header,
+  .dialog-header,
+  .drawer-header
+) :where(p, .muted) {
+  margin-top:var(--space-4);
+  color:var(--theme-text-muted-strong);
+  font-size:var(--enterprise-type-body-s-size, var(--type-body-small-size));
+  line-height:var(--line-height-1-4);
+}
+
+html[data-theme-engine="premium"] :where(
+  .print-preview-actions,
+  .module-lifecycle-modal-actions,
+  .module-progress-actions,
+  .dashboard-widget-drawer-actions,
+  .modal-actions,
+  .dialog-actions,
+  .drawer-actions,
+  .credit-payment-modal .form-actions:last-child
+) {
+  position:sticky;
+  bottom:calc(var(--enterprise-overlay-panel-padding) * -1);
+  z-index:3;
+  display:flex;
+  flex-wrap:wrap;
+  align-items:center;
+  justify-content:flex-end;
+  gap:var(--space-8);
+  margin:0 calc(var(--enterprise-overlay-panel-padding) * -1) calc(var(--enterprise-overlay-panel-padding) * -1);
+  border:0;
+  border-radius:0 0 var(--enterprise-overlay-radius) var(--enterprise-overlay-radius);
+  padding:var(--enterprise-overlay-footer-padding);
+  background:var(--enterprise-overlay-footer-surface);
+  box-shadow:inset 0 1px 0 var(--enterprise-overlay-border-soft);
+  backdrop-filter:saturate(135%) var(--theme-blur-sm);
+  -webkit-backdrop-filter:saturate(135%) var(--theme-blur-sm);
+}
+
+html[data-theme-engine="premium"] :where(
+  .credit-payment-modal,
+  .stock-lot-modal,
+  .barcode-preview-modal,
+  .qr-preview-modal,
+  .print-preview-modal,
+  .module-lifecycle-modal,
+  .module-progress-shell,
+  .dashboard-widget-drawer
+) :where(
+  .section-header:not(:first-child),
+  .lot-panel-section,
+  .module-lifecycle-list,
+  .module-lifecycle-summary-grid > div,
+  .barcode-preview-card,
+  .barcode-preview-meta > div,
+  .print-selection-panel,
+  .print-preview-frame-wrap,
+  .credit-payment-summary > div
+) {
+  border:0;
+  border-radius:var(--enterprise-overlay-radius-inner);
+  background:var(--enterprise-overlay-surface-muted);
+  box-shadow:inset 0 0 0 1px var(--enterprise-overlay-border-soft);
+}
+
+html[data-theme-engine="premium"] :where(
+  .module-lifecycle-detail-grid,
+  .module-lifecycle-summary-grid,
+  .barcode-preview-grid,
+  .print-preview-layout,
+  .metric-grid,
+  .report-metric-grid,
+  .credit-payment-summary,
+  .barcode-preview-toolbar,
+  .print-preview-toolbar
+) {
+  min-width:0;
+}
+
+html[data-theme-engine="premium"] :where(
+  .stock-lot-modal .table-wrap,
+  .approved-alternative-modal .table-wrap,
+  .print-selection-list,
+  .print-preview-frame-wrap,
+  .barcode-preview-meta,
+  .module-lifecycle-detail-grid,
+  .lot-event-list
+) {
+  min-height:0;
+  overscroll-behavior:contain;
+}
+
+html[data-theme-engine="premium"] :where(
+  .print-preview-layout,
+  .barcode-preview-grid,
+  .module-lifecycle-detail-grid
+) {
+  align-items:stretch;
+}
+
+html[data-theme-engine="premium"] :where(.print-preview-frame-wrap) {
+  min-height:min(620px, 58dvh);
+}
+
+html[data-theme-engine="premium"] :where(.print-preview-frame) {
+  width:100%;
+  min-height:min(620px, 58dvh);
+  border:0;
+  border-radius:var(--enterprise-overlay-radius-inner);
+  background:var(--theme-surface-0);
+  box-shadow:inset 0 0 0 1px var(--enterprise-overlay-border-soft);
+}
+
+html[data-theme-engine="premium"] :where(.module-progress-shell) {
+  text-align:left;
+}
+
+html[data-theme-engine="premium"] :where(.module-progress-header) {
+  display:grid;
+  gap:var(--space-8);
+}
+
+html[data-theme-engine="premium"] :where(.module-progress-meter) {
+  overflow:hidden;
+  border-radius:var(--edl-radius-pill);
+  background:var(--enterprise-overlay-surface-muted);
+  box-shadow:inset 0 0 0 1px var(--enterprise-overlay-border-soft);
+}
+
+html[data-theme-engine="premium"] :where(.module-progress-meter span) {
+  display:block;
+  height:100%;
+  border-radius:inherit;
+  background:linear-gradient(90deg, var(--theme-semantic-primary-base), var(--theme-semantic-success-base));
+  transition:width var(--motion-normal) var(--motion-ease-standard);
+}
+
+html[data-theme-engine="premium"] :where(
+  .credit-payment-modal,
+  .stock-lot-modal,
+  .barcode-preview-modal,
+  .print-preview-modal,
+  .module-lifecycle-modal,
+  .module-progress-shell,
+  .dashboard-widget-drawer
+)::-webkit-scrollbar {
+  width:8px;
+  height:8px;
+}
+
+html[data-theme-engine="premium"] :where(
+  .credit-payment-modal,
+  .stock-lot-modal,
+  .barcode-preview-modal,
+  .print-preview-modal,
+  .module-lifecycle-modal,
+  .module-progress-shell,
+  .dashboard-widget-drawer
+)::-webkit-scrollbar-track {
+  background:transparent;
+}
+
+html[data-theme-engine="premium"] :where(
+  .credit-payment-modal,
+  .stock-lot-modal,
+  .barcode-preview-modal,
+  .print-preview-modal,
+  .module-lifecycle-modal,
+  .module-progress-shell,
+  .dashboard-widget-drawer
+)::-webkit-scrollbar-thumb {
+  border:2px solid transparent;
+  border-radius:var(--edl-radius-pill);
+  background:color-mix(in srgb, var(--theme-text-muted) 32%, transparent);
+  background-clip:padding-box;
+}
+
+@keyframes motionDrawerLeftIn {
+  from { opacity:.7; transform:translateX(calc(var(--motion-enter-distance-lg) * -1)) }
+  to { opacity:1; transform:translateX(0) }
+}
+
+@keyframes motionDrawerBottomIn {
+  from { opacity:.7; transform:translateY(var(--motion-enter-distance-lg)) }
+  to { opacity:1; transform:translateY(0) }
+}
+
+@media (max-width: 768px){
+  html[data-theme-engine="premium"] {
+    --enterprise-overlay-padding:0px;
+    --enterprise-overlay-panel-padding:var(--space-16);
+    --enterprise-overlay-header-padding:var(--space-14, var(--space-12)) var(--space-16);
+    --enterprise-overlay-content-padding:var(--space-16);
+    --enterprise-overlay-footer-padding:var(--space-12) var(--space-16);
+    --enterprise-dialog-max-height:100dvh;
+    --enterprise-drawer-width:100vw;
+    --enterprise-drawer-wide-width:100vw;
+  }
+
+  html[data-theme-engine="premium"] :where(
+    .modal-backdrop,
+    .barcode-preview-backdrop,
+    .print-preview-backdrop,
+    .module-lifecycle-modal-backdrop,
+    .module-progress-overlay,
+    .dashboard-widget-drawer-overlay
+  ) {
+    align-items:stretch;
+    justify-content:center;
+    padding:0;
+  }
+
+  html[data-theme-engine="premium"] :where(
+    .credit-payment-modal,
+    .stock-lot-modal,
+    .barcode-preview-modal,
+    .qr-preview-modal,
+    .print-preview-modal,
+    .module-lifecycle-modal,
+    .module-progress-shell,
+    .dashboard-widget-drawer,
+    .modal,
+    .dialog,
+    .drawer,
+    [data-dialog],
+    [data-drawer]
+  ) {
+    width:100vw;
+    max-width:none;
+    min-height:100dvh;
+    max-height:100dvh;
+    border-radius:0;
+  }
+
+  html[data-theme-engine="premium"] :where(
+    .credit-payment-modal,
+    .stock-lot-modal,
+    .barcode-preview-modal,
+    .print-preview-modal,
+    .module-lifecycle-modal,
+    .module-progress-shell,
+    .dashboard-widget-drawer
+  ) > :where(
+    .section-header:first-child,
+    .barcode-preview-header,
+    .module-lifecycle-modal-header,
+    .module-progress-header,
+    .dashboard-widget-drawer-header,
+    .modal-header,
+    .dialog-header,
+    .drawer-header
+  ) {
+    border-radius:0;
+  }
+
+  html[data-theme-engine="premium"] :where(
+    .print-preview-actions,
+    .module-lifecycle-modal-actions,
+    .module-progress-actions,
+    .dashboard-widget-drawer-actions,
+    .modal-actions,
+    .dialog-actions,
+    .drawer-actions,
+    .credit-payment-modal .form-actions:last-child
+  ) {
+    border-radius:0;
+  }
+
+  html[data-theme-engine="premium"] :where(
+    .print-preview-actions .btn,
+    .module-lifecycle-modal-actions .btn,
+    .module-progress-actions .btn,
+    .dashboard-widget-drawer-actions .btn,
+    .modal-actions .btn,
+    .dialog-actions .btn,
+    .drawer-actions .btn,
+    .credit-payment-modal .form-actions:last-child .btn
+  ) {
+    flex:1 1 160px;
+  }
+
+  html[data-theme-engine="premium"] :where(
+    .print-preview-layout,
+    .barcode-preview-grid,
+    .module-lifecycle-detail-grid,
+    .module-lifecycle-summary-grid,
+    .credit-payment-summary
+  ) {
+    grid-template-columns:1fr;
+  }
+
+  html[data-theme-engine="premium"] :where(.print-preview-frame-wrap, .print-preview-frame) {
+    min-height:52dvh;
+  }
+}
+
+@media (prefers-reduced-motion: reduce){
+  html[data-theme-engine="premium"] :where(
+    .modal-backdrop,
+    .barcode-preview-backdrop,
+    .print-preview-backdrop,
+    .module-lifecycle-modal-backdrop,
+    .module-progress-overlay,
+    .dashboard-widget-drawer-overlay,
+    .credit-payment-modal,
+    .stock-lot-modal,
+    .barcode-preview-modal,
+    .print-preview-modal,
+    .module-lifecycle-modal,
+    .module-progress-shell,
+    .dashboard-widget-drawer
+  ) {
+    animation-duration:var(--motion-instant) !important;
+    transform:none !important;
+  }
+}
