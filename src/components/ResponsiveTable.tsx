@@ -21,10 +21,17 @@ export const ResponsiveTable = ({
     ...style
   } as ResponsiveTableStyle
   if(minWidth) responsiveStyle['--responsive-table-min-width'] = minWidth
+  const resolvedRole = props.role ?? 'region'
+  const hasAccessibleName = Boolean(props['aria-label'] || props['aria-labelledby'])
+  const ariaLabel = hasAccessibleName || resolvedRole === 'presentation' || resolvedRole === 'none'
+    ? props['aria-label']
+    : 'Kaydirilabilir tablo alani'
 
   return (
     <div
       {...props}
+      role={resolvedRole}
+      aria-label={ariaLabel}
       className={['responsive-table', `mode-${mode}`, className].filter(Boolean).join(' ')}
       style={responsiveStyle}
       tabIndex={props.tabIndex ?? 0}

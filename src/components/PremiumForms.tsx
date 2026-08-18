@@ -167,7 +167,12 @@ export const PremiumFieldChrome = ({
       {label && (
         <label className={hideLabel ? 'premium-sr-only' : 'premium-field-label'} htmlFor={controlId}>
           <span>{label}</span>
-          {required && <em aria-hidden="true">*</em>}
+          {required && (
+            <>
+              <em aria-hidden="true">*</em>
+              <span className="premium-sr-only">Zorunlu alan</span>
+            </>
+          )}
         </label>
       )}
       {description && <p className="premium-field-description" id={descriptionId}>{description}</p>}
@@ -176,7 +181,12 @@ export const PremiumFieldChrome = ({
         <div className="premium-field-messages">
           {helperText && <small id={helperId}>{helperText}</small>}
           {validationText && (
-            <strong className="premium-field-validation" id={validationId}>
+            <strong
+              className="premium-field-validation"
+              id={validationId}
+              role={validationState === 'error' ? 'alert' : 'status'}
+              aria-live={validationState === 'error' ? 'assertive' : 'polite'}
+            >
               {validationState && <AppIcon name={validationIconMap[validationState]} size="XS" />}
               {validationText}
             </strong>
@@ -359,7 +369,17 @@ export const PremiumCheckbox = ({
           {description && <small id={descriptionId}>{description}</small>}
         </span>
       </label>
-      {validationText && <strong className="premium-field-validation" id={validationId}>{validationState && <AppIcon name={validationIconMap[validationState]} size="XS" />}{validationText}</strong>}
+      {validationText && (
+        <strong
+          className="premium-field-validation"
+          id={validationId}
+          role={validationState === 'error' ? 'alert' : 'status'}
+          aria-live={validationState === 'error' ? 'assertive' : 'polite'}
+        >
+          {validationState && <AppIcon name={validationIconMap[validationState]} size="XS" />}
+          {validationText}
+        </strong>
+      )}
     </div>
   )
 }
@@ -398,7 +418,17 @@ export const PremiumRadio = ({
           {description && <small id={descriptionId}>{description}</small>}
         </span>
       </label>
-      {validationText && <strong className="premium-field-validation" id={validationId}>{validationState && <AppIcon name={validationIconMap[validationState]} size="XS" />}{validationText}</strong>}
+      {validationText && (
+        <strong
+          className="premium-field-validation"
+          id={validationId}
+          role={validationState === 'error' ? 'alert' : 'status'}
+          aria-live={validationState === 'error' ? 'assertive' : 'polite'}
+        >
+          {validationState && <AppIcon name={validationIconMap[validationState]} size="XS" />}
+          {validationText}
+        </strong>
+      )}
     </div>
   )
 }
@@ -439,7 +469,17 @@ export const PremiumSwitch = ({
           {description && <small id={descriptionId}>{description}</small>}
         </span>
       </label>
-      {validationText && <strong className="premium-field-validation" id={validationId}>{validationState && <AppIcon name={validationIconMap[validationState]} size="XS" />}{validationText}</strong>}
+      {validationText && (
+        <strong
+          className="premium-field-validation"
+          id={validationId}
+          role={validationState === 'error' ? 'alert' : 'status'}
+          aria-live={validationState === 'error' ? 'assertive' : 'polite'}
+        >
+          {validationState && <AppIcon name={validationIconMap[validationState]} size="XS" />}
+          {validationText}
+        </strong>
+      )}
     </div>
   )
 }

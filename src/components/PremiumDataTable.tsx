@@ -249,11 +249,15 @@ export function PremiumTable<T>({
   const selectedKeys = React.useMemo(() => new Set(selectedRowKeys.map(key => String(key))), [selectedRowKeys])
   const activeKey = activeRowKey === undefined ? undefined : String(activeRowKey)
   const columnCount = Math.max(1, columns.length)
+  const tableRegionLabel = typeof caption === 'string' ? `${caption} tablosu` : 'Veri tablosu'
 
   return (
-    <section className={['premium-table-shell', density, stickyHeader ? 'sticky-header' : '', zebra ? 'zebra' : '', className].filter(Boolean).join(' ')}>
+    <section
+      className={['premium-table-shell', density, stickyHeader ? 'sticky-header' : '', zebra ? 'zebra' : '', className].filter(Boolean).join(' ')}
+      aria-busy={loading || undefined}
+    >
       {toolbar}
-      <ResponsiveTable className="table-wrap premium-table-wrap" mode="hybrid">
+      <ResponsiveTable className="table-wrap premium-table-wrap" mode="hybrid" aria-label={tableRegionLabel}>
         <table className={['data-table', 'premium-table', tableClassName].filter(Boolean).join(' ')}>
           {caption && <caption>{caption}</caption>}
           <thead>

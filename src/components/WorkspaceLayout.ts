@@ -27,14 +27,18 @@ export const WorkspaceLayout = ({
   footer
 }: WorkspaceLayoutProps) => {
   const titleId = `workspace-title-${(navigationKey || title).replace(/[^a-z0-9_-]/gi, '-').toLocaleLowerCase('en-US')}`
+  const subtitleId = subtitle ? `${titleId}-description` : undefined
   const hasHeaderAside = Boolean(status || navigation)
 
   return React.createElement(
     'main',
     {
+      id: 'workspace-main-content',
       className: 'app-content',
       'aria-labelledby': titleId,
+      'aria-describedby': subtitleId,
       'data-enterprise-layout': 'workspace',
+      'data-skip-target': 'main',
       tabIndex: -1
     },
     React.createElement(
@@ -76,7 +80,7 @@ export const WorkspaceLayout = ({
                 React.createElement('span', { className: 'workspace-header-kicker' }, 'Workspace'),
                 React.createElement('h1', { id: titleId }, title),
                 subtitle
-                  ? React.createElement('p', null, subtitle)
+                  ? React.createElement('p', { id: subtitleId }, subtitle)
                   : null
               )
             )

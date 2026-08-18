@@ -91,6 +91,14 @@ export const ApplicationShell = ({
       onPointerCancel: resetSwipe
     },
     React.createElement(
+      'a',
+      {
+        className: 'skip-navigation-link',
+        href: '#workspace-main-content'
+      },
+      'Icerige gec'
+    ),
+    React.createElement(
       'div',
       { className: 'app-layout' },
       sidebar,
@@ -118,6 +126,8 @@ export const ApplicationShell = ({
         type: 'button',
         className: 'mobile-sidebar-backdrop',
         'aria-label': 'Menüyü kapat',
+        'aria-controls': 'app-sidebar',
+        'aria-expanded': mobileSidebarOpen,
         hidden: !mobileSidebarOpen,
         onClick: onCloseMobileSidebar
       }

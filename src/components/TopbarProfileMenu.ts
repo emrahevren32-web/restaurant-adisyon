@@ -17,6 +17,8 @@ export const TopbarProfileMenu = ({
 }: TopbarProfileMenuProps) => {
   const [open, setOpen] = React.useState(false)
   const rootRef = React.useRef<HTMLDivElement | null>(null)
+  const triggerRef = React.useRef<HTMLButtonElement | null>(null)
+  const menuId = React.useId()
 
   React.useEffect(() => {
     if(!open) return undefined
@@ -27,7 +29,9 @@ export const TopbarProfileMenu = ({
     }
 
     const closeOnEscape = (event: KeyboardEvent) => {
-      if(event.key === 'Escape') setOpen(false)
+      if(event.key !== 'Escape') return
+      setOpen(false)
+      triggerRef.current?.focus()
     }
 
     document.addEventListener('pointerdown', closeOnPointerDown)
@@ -48,9 +52,11 @@ export const TopbarProfileMenu = ({
       'button',
       {
         type: 'button',
+        ref: triggerRef,
         className: ['topbar-user-card', 'enterprise-field', open ? 'active' : ''].filter(Boolean).join(' '),
         'aria-label': 'Kullanıcı menüsü',
         'aria-haspopup': 'menu',
+        'aria-controls': open ? menuId : undefined,
         'aria-expanded': open,
         title: 'Kullanıcı menüsü',
         onClick: () => setOpen(current => !current)
@@ -71,7 +77,7 @@ export const TopbarProfileMenu = ({
     open
       ? React.createElement(
         'div',
-        { className: 'topbar-profile-panel', role: 'menu', 'aria-label': 'Profil işlemleri' },
+        { id: menuId, className: 'topbar-profile-panel', role: 'menu', 'aria-label': 'Profil işlemleri' },
         React.createElement(
           'div',
           { className: 'topbar-profile-panel-header' },

@@ -248,6 +248,9 @@ export default function AppShell<
   const [mobileSidebarOpen, setMobileSidebarOpen] = React.useState(false)
   const [globalSearch, setGlobalSearch] = React.useState('')
   const { themeMode, toggleThemeMode } = useTheme()
+  const notificationButtonRef = React.useRef<HTMLButtonElement | null>(null)
+  const notificationPanelRef = React.useRef<HTMLElement | null>(null)
+  const notificationPanelId = 'workspace-notification-panel'
   const [openTreeKeys, setOpenTreeKeys] = React.useState<Set<string>>(() => new Set(
     navGroups.flatMap(group => collectDefaultExpandedKeys(group.items))
   ))
@@ -304,6 +307,31 @@ export default function AppShell<
     if(!mobileSidebarOpen) return
     setSidebarTooltip(null)
   }, [mobileSidebarOpen])
+
+  React.useEffect(() => {
+    if(!notificationPanelOpen) return undefined
+
+    const closeOnPointerDown = (event: PointerEvent) => {
+      const target = event.target as Node
+      if(notificationButtonRef.current?.contains(target)) return
+      if(notificationPanelRef.current?.contains(target)) return
+      setNotificationPanelOpen(false)
+    }
+
+    const closeOnEscape = (event: KeyboardEvent) => {
+      if(event.key !== 'Escape') return
+      setNotificationPanelOpen(false)
+      notificationButtonRef.current?.focus()
+    }
+
+    document.addEventListener('pointerdown', closeOnPointerDown)
+    document.addEventListener('keydown', closeOnEscape)
+
+    return () => {
+      document.removeEventListener('pointerdown', closeOnPointerDown)
+      document.removeEventListener('keydown', closeOnEscape)
+    }
+  }, [notificationPanelOpen])
 
   React.useEffect(() => {
     const mobileNavigationQuery = window.matchMedia('(max-width: 1024px)')
@@ -413,6 +441,9 @@ export default function AppShell<
     const children = item.children || []
     const hasChildren = children.length > 0
     const isOpen = hasChildren && openTreeKeys.has(String(item.key))
+    const childrenPanelId = hasChildren
+      ? `side-nav-tree-${String(item.key).replace(/[^a-z0-9_-]/gi, '-')}`
+      : undefined
     const isActive = activeNavKey === item.key
     const isActiveBranch = isActive || navItemHasActiveDescendant(item, activeNavKey)
     const onboardingTarget = getOnboardingTargetForNavItem(String(item.key))
@@ -439,6 +470,7 @@ export default function AppShell<
           className={buttonClassName}
           aria-current={isActive ? 'page' : undefined}
           aria-expanded={hasChildren ? isOpen : undefined}
+          aria-controls={childrenPanelId}
           aria-disabled={item.locked ? true : undefined}
           title={item.locked ? item.disabledReason : item.label}
           aria-label={tooltipLabel}
@@ -487,6 +519,7 @@ export default function AppShell<
         </button>
         {hasChildren && (
           <div
+            id={childrenPanelId}
             className="side-nav-children"
             data-state={isOpen ? 'open' : 'closed'}
             aria-hidden={!isOpen}
@@ -613,7 +646,9 @@ export default function AppShell<
       <button
         className={`topbar-notification ${notificationPanelOpen ? 'active' : ''}`}
         type="button"
+        ref={notificationButtonRef}
         aria-label={`Bildirimler${unreadNotificationCount > 0 ? `, ${unreadNotificationCount} okunmamış` : ''}`}
+        aria-controls={notificationPanelOpen ? notificationPanelId : undefined}
         aria-expanded={notificationPanelOpen}
         title="Bildirimler"
         onClick={() => setNotificationPanelOpen(current => !current)}
@@ -624,7 +659,7 @@ export default function AppShell<
         )}
       </button>
       {notificationPanelOpen && (
-        <section className="notification-panel" aria-label="Bildirimler">
+        <section id={notificationPanelId} ref={notificationPanelRef} className="notification-panel" aria-label="Bildirimler">
           <div className="notification-panel-header">
             <div>
               <span>EVREN360</span>
