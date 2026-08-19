@@ -25598,3 +25598,202 @@ html[data-theme-engine="premium"] :where(.modal-actions, .drawer-actions, .modul
     transition-duration:var(--motion-instant) !important;
   }
 }
+
+/* Faz 35.12.17 Enterprise Design QA & Release Candidate */
+html[data-theme-engine="premium"] {
+  --enterprise-rc-control-target:max(var(--enterprise-cleanup-control-height, 40px), var(--enterprise-a11y-touch-target, 44px));
+  --enterprise-rc-sidebar-row-height:36px;
+  --enterprise-rc-sidebar-child-height:34px;
+  --enterprise-rc-section-gap:var(--enterprise-cleanup-section-gap, var(--enterprise-section-gap, var(--space-24)));
+  --enterprise-rc-inner-gap:var(--enterprise-cleanup-inner-gap, var(--space-16));
+  --enterprise-rc-divider:color-mix(in srgb, var(--enterprise-cleanup-border, var(--theme-border-subtle)) 72%, transparent);
+}
+
+html[data-theme-engine="premium"] :where(.app-main, .app-content, .workspace-content-shell, .workspace-content) {
+  background:transparent;
+}
+
+html[data-theme-engine="premium"] :where(.workspace-content > *, .responsive-layout > *, .responsive-grid > *, .premium-table-shell, .premium-form-section, .premium-card, .responsive-card) {
+  min-width:0;
+}
+
+html[data-theme-engine="premium"] :where(.workspace-content, .responsive-layout, .responsive-grid, .premium-form-grid, .premium-card-body, .premium-table-shell) {
+  gap:var(--enterprise-rc-section-gap);
+}
+
+html[data-theme-engine="premium"] :where(.section-header, .dashboard-panel-header, .premium-card-header, .premium-form-section-header, .premium-table-toolbar, .premium-pagination, .form-actions, .premium-form-actions) {
+  gap:var(--enterprise-rc-inner-gap);
+}
+
+html[data-theme-engine="premium"] :where(.side-nav-scroll) {
+  overflow-y:auto;
+  overscroll-behavior-y:contain;
+  scrollbar-gutter:stable both-edges;
+}
+
+html[data-theme-engine="premium"] :where(.side-nav-item, .side-nav-title) {
+  min-height:var(--enterprise-rc-sidebar-row-height);
+}
+
+html[data-theme-engine="premium"] :where(.side-nav-tree-node.depth-1 .side-nav-item, .side-nav-tree-node.depth-2 .side-nav-item, .side-nav-tree-node.depth-3 .side-nav-item) {
+  min-height:var(--enterprise-rc-sidebar-child-height);
+}
+
+html[data-theme-engine="premium"] :where(.topbar-command-search, .topbar-workspace-pill, .branch-switcher, .topbar-user-card) {
+  min-height:var(--enterprise-rc-control-target);
+}
+
+html[data-theme-engine="premium"] :where(.topbar-command-search) {
+  height:var(--enterprise-rc-control-target);
+}
+
+html[data-theme-engine="premium"] :where(.topbar-theme-btn, .topbar-icon-action, .topbar-notification, .topbar-mobile-menu, .side-nav-collapse-btn, .side-nav-mobile-close, .icon-btn, .quick-tip-close) {
+  width:var(--enterprise-rc-control-target);
+  min-width:var(--enterprise-rc-control-target);
+  height:var(--enterprise-rc-control-target);
+  min-height:var(--enterprise-rc-control-target);
+}
+
+html[data-theme-engine="premium"] :where(.premium-control-frame input, .premium-control-frame select, .premium-control-frame textarea, .topbar-search input, .premium-table-search input, .branch-switcher select) {
+  border:0;
+  background:transparent;
+  color:var(--theme-text-primary);
+  box-shadow:none;
+}
+
+html[data-theme-engine="premium"] :where(.premium-control-frame input:focus, .premium-control-frame select:focus, .premium-control-frame textarea:focus, .topbar-search input:focus, .premium-table-search input:focus, .branch-switcher select:focus) {
+  outline:0;
+  box-shadow:none;
+}
+
+html[data-theme-engine="premium"] :where(.btn:not(.primary):not(.warning):not(.danger):not(.success):not(.btn-primary):not(.btn-warning):not(.btn-danger):not(.btn-success), .btn-secondary, .btn.secondary) {
+  background:var(--enterprise-cleanup-surface-muted);
+  color:var(--theme-text-secondary);
+  box-shadow:var(--enterprise-cleanup-inset);
+}
+
+html[data-theme-engine="premium"] :where(.btn.ghost, .btn.btn-ghost, .btn-ghost, .topbar-profile-action, .notification-item, .premium-table-action) {
+  background:transparent;
+  color:var(--theme-text-secondary);
+  box-shadow:none;
+}
+
+html[data-theme-engine="premium"] :where(.btn.primary, .btn.btn-primary, .btn-primary, .primary-button, .premium-empty-state-primary) {
+  border-color:color-mix(in srgb, var(--theme-semantic-primary-base) 72%, transparent);
+  background:linear-gradient(180deg, var(--theme-semantic-primary-base), color-mix(in srgb, var(--theme-semantic-primary-hover) 88%, var(--theme-semantic-primary-base)));
+  color:var(--theme-semantic-primary-contrast);
+  box-shadow:0 8px 18px color-mix(in srgb, var(--theme-semantic-primary-base) 18%, transparent);
+}
+
+html[data-theme-engine="premium"] :where(.btn.warning, .btn.btn-warning, .btn-warning) {
+  border-color:color-mix(in srgb, var(--theme-semantic-warning-line) 66%, transparent);
+  background:var(--theme-semantic-warning-soft);
+  color:var(--theme-semantic-warning-base);
+  box-shadow:inset 0 0 0 1px color-mix(in srgb, var(--theme-semantic-warning-line) 52%, transparent);
+}
+
+html[data-theme-engine="premium"] :where(.btn.danger, .btn.btn-danger, .btn-danger) {
+  border-color:color-mix(in srgb, var(--theme-semantic-danger-line) 66%, transparent);
+  background:var(--theme-semantic-danger-soft);
+  color:var(--theme-semantic-danger-base);
+  box-shadow:inset 0 0 0 1px color-mix(in srgb, var(--theme-semantic-danger-line) 52%, transparent);
+}
+
+html[data-theme-engine="premium"] :where(.btn.success, .btn.btn-success, .btn-success) {
+  border-color:color-mix(in srgb, var(--theme-semantic-success-line) 66%, transparent);
+  background:var(--theme-semantic-success-soft);
+  color:var(--theme-semantic-success-base);
+  box-shadow:inset 0 0 0 1px color-mix(in srgb, var(--theme-semantic-success-line) 52%, transparent);
+}
+
+html[data-theme-engine="premium"] :where(.nav-badge, .notification-badge) {
+  background:var(--theme-semantic-danger-base);
+  color:var(--theme-semantic-danger-contrast);
+  box-shadow:0 0 0 2px var(--enterprise-cleanup-surface), 0 6px 14px color-mix(in srgb, var(--theme-semantic-danger-base) 22%, transparent);
+}
+
+html[data-theme-engine="premium"] :where(.status-pill.success, .premium-tag.success, .badge.success, .chip.success, .tone-success) {
+  background:var(--theme-semantic-success-soft);
+  color:var(--theme-semantic-success-base);
+  box-shadow:inset 0 0 0 1px color-mix(in srgb, var(--theme-semantic-success-line) 48%, transparent);
+}
+
+html[data-theme-engine="premium"] :where(.status-pill.warning, .premium-tag.warning, .badge.warning, .chip.warning, .tone-warning) {
+  background:var(--theme-semantic-warning-soft);
+  color:var(--theme-semantic-warning-base);
+  box-shadow:inset 0 0 0 1px color-mix(in srgb, var(--theme-semantic-warning-line) 48%, transparent);
+}
+
+html[data-theme-engine="premium"] :where(.status-pill.danger, .premium-tag.error, .premium-tag.danger, .badge.danger, .chip.danger, .tone-danger) {
+  background:var(--theme-semantic-danger-soft);
+  color:var(--theme-semantic-danger-base);
+  box-shadow:inset 0 0 0 1px color-mix(in srgb, var(--theme-semantic-danger-line) 48%, transparent);
+}
+
+html[data-theme-engine="premium"] :where(.status-pill.info, .premium-tag.info, .badge.info, .chip.info, .tone-info) {
+  background:var(--theme-semantic-info-soft);
+  color:var(--theme-semantic-info-base);
+  box-shadow:inset 0 0 0 1px color-mix(in srgb, var(--theme-semantic-info-line) 48%, transparent);
+}
+
+html[data-theme-engine="premium"] :where(.data-table tbody tr[aria-selected="true"]:hover td, .premium-table tbody tr[aria-selected="true"]:hover td, .label-table tbody tr[aria-selected="true"]:hover td) {
+  background:color-mix(in srgb, var(--enterprise-cleanup-surface-selected) 86%, var(--theme-state-hover));
+  color:var(--theme-text-primary);
+  box-shadow:inset 3px 0 0 var(--theme-semantic-primary-base);
+}
+
+html[data-theme-engine="premium"] :where(.notification-panel, .topbar-profile-panel, .dropdown-menu, .menu-panel, .modal, .dialog, .drawer, [role="dialog"]) {
+  max-width:calc(100vw - var(--space-24));
+}
+
+html[data-theme-engine="premium"] :where(.modal, .dialog, .drawer, .credit-payment-modal, .stock-lot-modal, .barcode-preview-modal, .qr-preview-modal, .print-preview-modal, .module-lifecycle-modal, .dashboard-widget-drawer) {
+  overflow:hidden;
+}
+
+html[data-theme-engine="premium"] :where(.modal-body, .drawer-body, .module-lifecycle-modal-body, .dashboard-widget-drawer-body, .notification-list) {
+  min-height:0;
+  overflow:auto;
+  overscroll-behavior:contain;
+}
+
+@media (hover: hover) and (pointer: fine){
+  html[data-theme-engine="premium"] :where(.btn.primary, .btn.btn-primary, .btn-primary, .primary-button, .premium-empty-state-primary):hover:not(:disabled):not([aria-disabled="true"]) {
+    background:linear-gradient(180deg, var(--theme-semantic-primary-hover), color-mix(in srgb, var(--theme-semantic-primary-hover) 84%, var(--theme-semantic-primary-base)));
+    color:var(--theme-semantic-primary-contrast);
+    box-shadow:0 10px 24px color-mix(in srgb, var(--theme-semantic-primary-base) 24%, transparent);
+  }
+
+  html[data-theme-engine="premium"] :where(.btn.warning, .btn.btn-warning, .btn-warning):hover:not(:disabled):not([aria-disabled="true"]) {
+    background:color-mix(in srgb, var(--theme-semantic-warning-soft) 78%, var(--theme-state-hover));
+    color:var(--theme-semantic-warning-base);
+  }
+
+  html[data-theme-engine="premium"] :where(.btn.danger, .btn.btn-danger, .btn-danger):hover:not(:disabled):not([aria-disabled="true"]) {
+    background:color-mix(in srgb, var(--theme-semantic-danger-soft) 78%, var(--theme-state-hover));
+    color:var(--theme-semantic-danger-base);
+  }
+
+  html[data-theme-engine="premium"] :where(.btn.success, .btn.btn-success, .btn-success):hover:not(:disabled):not([aria-disabled="true"]) {
+    background:color-mix(in srgb, var(--theme-semantic-success-soft) 78%, var(--theme-state-hover));
+    color:var(--theme-semantic-success-base);
+  }
+}
+
+@media (pointer: coarse), (max-width: 1024px){
+  html[data-theme-engine="premium"] {
+    --enterprise-rc-sidebar-row-height:48px;
+    --enterprise-rc-sidebar-child-height:44px;
+  }
+}
+
+@media (max-width: 576px){
+  html[data-theme-engine="premium"] :where(.notification-panel, .topbar-profile-panel, .dropdown-menu, .menu-panel, .modal, .dialog, .drawer, [role="dialog"]) {
+    max-width:100vw;
+  }
+}
+
+@media (prefers-reduced-motion: reduce){
+  html[data-theme-engine="premium"] :where(.btn.primary, .btn.btn-primary, .btn-primary, .btn.warning, .btn.btn-warning, .btn-warning, .btn.danger, .btn.btn-danger, .btn-danger, .btn.success, .btn.btn-success, .btn-success):hover {
+    transform:none !important;
+  }
+}
