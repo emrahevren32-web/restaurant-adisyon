@@ -2,8 +2,11 @@ export type SpacingToken =
   | '0'
   | '2'
   | '4'
+  | '6'
   | '8'
+  | '10'
   | '12'
+  | '14'
   | '16'
   | '20'
   | '24'
@@ -20,8 +23,11 @@ export const SPACING_TOKEN_KEYS: SpacingToken[] = [
   '0',
   '2',
   '4',
+  '6',
   '8',
+  '10',
   '12',
+  '14',
   '16',
   '20',
   '24',
@@ -39,8 +45,11 @@ export const SPACING_TOKENS: Record<SpacingToken, string> = {
   0: '0',
   2: '2px',
   4: '4px',
+  6: '6px',
   8: '8px',
+  10: '10px',
   12: '12px',
+  14: '14px',
   16: '16px',
   20: '20px',
   24: '24px',

@@ -40,6 +40,9 @@ const shouldIncludeModule = (
   module: BusinessWorkspaceModule,
   options: CreateWorkspaceNavigationTreeOptions
 ) => {
+  // ADR-002: Production Foundation kapsamı dışındaki modüller hiç üretilmez.
+  // Lisans/marketplace kontrollerinden ÖNCE gelir; bu bir kod kararıdır, tercih değil.
+  if(module.foundationScope === 'frozen') return false
   if(module.scope !== MODULE_SCOPES.SYSTEM && module.scope !== MODULE_SCOPES.BUSINESS) return false
   if(module.isCoreModule && options.isCoreModuleVisible && !options.isCoreModuleVisible(module)) return false
   if(module.isCoreModule || module.isAlwaysActive) return true
@@ -67,7 +70,9 @@ const createMenuNode = (
     order: item.order ?? item.displayOrder ?? module.displayOrder,
     children: hasChildren ? children : undefined,
     requiredPermission: item.requiredPermission ?? module.permissions[0],
-    visible: item.visible !== false && !item.hidden && (Boolean(item.route) || hasChildren),
+    // ADR-002: kapsam dışı menü ögesi üretilmez (modülü core olsa bile).
+    visible: item.foundationScope !== 'frozen'
+      && item.visible !== false && !item.hidden && (Boolean(item.route) || hasChildren),
     expandedByDefault: item.expandedByDefault ?? false,
     adminOnly: item.adminOnly,
     platformAdminOnly: item.platformAdminOnly,

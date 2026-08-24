@@ -46,10 +46,6 @@ const getInitialThemeMode = (): ThemeMode => {
   const storedTheme = getStoredValue(THEME_STORAGE_KEY)
   if(isThemeMode(storedTheme)) return storedTheme
 
-  if(typeof window !== 'undefined' && window.matchMedia?.('(prefers-color-scheme: dark)').matches){
-    return 'dark'
-  }
-
   return DEFAULT_THEME_MODE
 }
 

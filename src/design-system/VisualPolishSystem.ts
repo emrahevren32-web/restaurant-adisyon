@@ -9,10 +9,10 @@ const VISUAL_POLISH_STYLE_ELEMENT_ID = 'miyop-visual-polish-system'
 
 export const createVisualPolishSystemCss = () => `
 :root{${createVisualPolishTokenCssVariables()}}
-@media (min-width:${RESPONSIVE_BREAKPOINTS.wide1920}px){:root{--polish-sidebar-width:252px;--polish-topbar-height:66px;--polish-section-gap:var(--space-24);--polish-grid-gap:var(--space-16);}}
+@media (min-width:${RESPONSIVE_BREAKPOINTS.wide1920}px){:root{--polish-sidebar-width:260px;--polish-topbar-height:58px;--polish-section-gap:var(--space-20);--polish-grid-gap:var(--space-16);}}
 @media (max-width:${RESPONSIVE_BREAKPOINTS.desktop1280}px){:root{--polish-sidebar-width:236px;--polish-sidebar-collapsed-width:68px;--polish-topbar-gap:var(--space-8);}}
 @media (max-width:${RESPONSIVE_BREAKPOINTS.tablet1024}px){:root{--polish-sidebar-width:min(var(--responsive-sidebar-drawer-width), calc(100vw - var(--space-48)));--polish-sidebar-collapsed-width:0px;--polish-section-gap:var(--space-16);--polish-grid-gap:var(--space-12);--polish-card-padding:var(--space-16);}}
-@media (max-width:${RESPONSIVE_BREAKPOINTS.mobile576}px){:root{--polish-sidebar-width:calc(100vw - var(--space-24));--polish-section-gap:var(--space-12);--polish-grid-gap:var(--space-8);--polish-card-padding:var(--space-12);--polish-control-height:var(--responsive-touch-target);--polish-topbar-height:64px;}}
+@media (max-width:${RESPONSIVE_BREAKPOINTS.mobile576}px){:root{--polish-sidebar-width:calc(100vw - var(--space-24));--polish-section-gap:var(--space-12);--polish-grid-gap:var(--space-8);--polish-card-padding:var(--space-12);--polish-control-height:var(--responsive-touch-target);--polish-topbar-height:54px;}}
 `.trim()
 
 export const applyVisualPolishSystem = (targetDocument: Document = document) => {

@@ -72,6 +72,8 @@ type AppShellProps<
   onToggleGroup: (groupKey: GroupKey) => void
   onOpenNavItem: (item: ShellNavItem<Route, NavKey>) => void
   onOpenNotification?: (notification: Evren360Notification) => void
+  onOpenMyProfile?: () => void
+  onOpenCompanyProfile?: () => void
   onStartOnboarding?: () => void
   onActiveBranchChange: (branchId: string) => void
   onLogout: () => void
@@ -205,6 +207,26 @@ const collectActiveAncestorKeys = <
   return []
 }
 
+const SIDEBAR_PINNED_STORAGE_KEY = 'miyop-sidebar-pinned'
+
+const readSidebarPinned = () => {
+  if(typeof window === 'undefined') return true
+  try {
+    return window.localStorage.getItem(SIDEBAR_PINNED_STORAGE_KEY) !== 'false'
+  } catch {
+    return true
+  }
+}
+
+const writeSidebarPinned = (pinned: boolean) => {
+  if(typeof window === 'undefined') return
+  try {
+    window.localStorage.setItem(SIDEBAR_PINNED_STORAGE_KEY, String(pinned))
+  } catch {
+    // Preference is per-session when storage is blocked; behaviour is unchanged.
+  }
+}
+
 export default function AppShell<
   Route extends string,
   NavKey extends string,
@@ -223,6 +245,8 @@ export default function AppShell<
   onToggleGroup,
   onOpenNavItem,
   onOpenNotification,
+  onOpenMyProfile,
+  onOpenCompanyProfile,
   onStartOnboarding,
   onActiveBranchChange,
   onLogout,
@@ -243,7 +267,12 @@ export default function AppShell<
   const hasSelectableBranch = selectableBranches.length > 0
   const [notificationPanelOpen, setNotificationPanelOpen] = React.useState(false)
   const [notifications, setNotifications] = React.useState<Evren360Notification[]>([])
-  const [sidebarCollapsed, setSidebarCollapsed] = React.useState(false)
+  const [sidebarPinned, setSidebarPinned] = React.useState(readSidebarPinned)
+  const [sidebarPeeked, setSidebarPeeked] = React.useState(false)
+  // The rail reserves its narrow column whenever unpinned; a peek overlays the
+  // content instead of pushing it, so hovering never reflows the page.
+  const sidebarRail = !sidebarPinned
+  const sidebarCollapsed = sidebarRail && !sidebarPeeked
   const [sidebarTooltip, setSidebarTooltip] = React.useState<SidebarTooltipState | null>(null)
   const [mobileSidebarOpen, setMobileSidebarOpen] = React.useState(false)
   const [globalSearch, setGlobalSearch] = React.useState('')
@@ -373,6 +402,31 @@ export default function AppShell<
     })
   }, [activeNavKey, visibleNavGroups])
 
+  // Fasto's icon-hover rail is a plain CSS :hover — it opens the instant the
+  // pointer touches it and closes the instant it leaves. We keep the state in
+  // React (rather than pure CSS) only because the collapsed-rail tooltips and
+  // the aria state have to agree with what is on screen; the timing is the
+  // same as CSS hover, i.e. none.
+  const setPeek = React.useCallback((next: boolean) => {
+    if(!sidebarRail) return
+    setSidebarPeeked(next)
+  }, [sidebarRail])
+
+  // Leaving rail mode should not strand a half-open peek.
+  React.useEffect(() => {
+    if(sidebarRail) return
+    setSidebarPeeked(false)
+  }, [sidebarRail])
+
+  const toggleSidebarPinned = React.useCallback(() => {
+    setSidebarPinned(current => {
+      const next = !current
+      writeSidebarPinned(next)
+      return next
+    })
+    setSidebarPeeked(false)
+  }, [])
+
   const openNotification = (notification: Evren360Notification) => {
     markEvren360NotificationRead(notification.id)
     setNotifications(loadEvren360Notifications())
@@ -501,7 +555,9 @@ export default function AppShell<
                 size="SM"
               />
             </span>
-            <span className="side-nav-label">{item.label}</span>
+            <span className="side-nav-label">
+              <span className="side-nav-label-text">{item.label}</span>
+            </span>
           </span>
           <span className="side-nav-item-meta">
             {item.locked && (
@@ -524,7 +580,10 @@ export default function AppShell<
             data-state={isOpen ? 'open' : 'closed'}
             aria-hidden={!isOpen}
           >
-            {renderNavItems(children, depth + 1)}
+            {/* single grid row: lets the panel animate to its exact content height and collapse fully */}
+            <div className="side-nav-collapse-inner">
+              {renderNavItems(children, depth + 1)}
+            </div>
           </div>
         )}
       </div>
@@ -543,7 +602,7 @@ export default function AppShell<
       <div className="side-brand-copy">
         <span className="side-brand-kicker">MİYOP Workspace</span>
         <h1>{restaurantName}</h1>
-        <span className="side-brand-subtitle">{isPlatformAdmin ? 'Yönetici Merkezi' : 'Yönetim Paneli'}</span>
+        <span className="side-brand-subtitle">{isPlatformAdmin ? 'Yönetici Merkezi' : 'Kurumsal Workspace'}</span>
       </div>
     </div>
   )
@@ -598,7 +657,9 @@ export default function AppShell<
             <span className="side-nav-title-icon" aria-hidden="true">
               <AppIcon source={group.icon} label={group.title} context={String(group.key)} size="XS" />
             </span>
-            <span>{group.title}</span>
+            <span className="side-nav-title-copy">
+              <span className="side-nav-title-text">{group.title}</span>
+            </span>
           </span>
           <span className="side-nav-chevron" aria-hidden="true">
             <AppIcon name="chevronRight" size="XS" />
@@ -610,18 +671,21 @@ export default function AppShell<
           data-state={isOpen ? 'open' : 'closed'}
           aria-hidden={!isOpen}
         >
-          {renderNavItems(visibleItems)}
-          {hasEmptyState && (
-            <div className="side-nav-empty">
-              {group.emptyTitle && <strong>{group.emptyTitle}</strong>}
-              {group.emptyDescription && <span>{group.emptyDescription}</span>}
-              {visibleEmptyAction && (
-                <button className="side-nav-empty-action" type="button" onClick={() => openNavItem(visibleEmptyAction)}>
-                  {visibleEmptyAction.label}
-                </button>
-              )}
-            </div>
-          )}
+          {/* single grid row: lets the panel animate to its exact content height and collapse fully */}
+          <div className="side-nav-collapse-inner">
+            {renderNavItems(visibleItems)}
+            {hasEmptyState && (
+              <div className="side-nav-empty">
+                {group.emptyTitle && <strong>{group.emptyTitle}</strong>}
+                {group.emptyDescription && <span>{group.emptyDescription}</span>}
+                {visibleEmptyAction && (
+                  <button className="side-nav-empty-action" type="button" onClick={() => openNavItem(visibleEmptyAction)}>
+                    {visibleEmptyAction.label}
+                  </button>
+                )}
+              </div>
+            )}
+          </div>
         </div>
       </section>
     )
@@ -644,7 +708,7 @@ export default function AppShell<
   const notificationCenter = (
     <div className="topbar-notification-wrap" data-onboarding-target="notifications">
       <button
-        className={`topbar-notification ${notificationPanelOpen ? 'active' : ''}`}
+        className={`topbar-icon-btn topbar-notification ${notificationPanelOpen ? 'active' : ''}`}
         type="button"
         ref={notificationButtonRef}
         aria-label={`Bildirimler${unreadNotificationCount > 0 ? `, ${unreadNotificationCount} okunmamış` : ''}`}
@@ -711,31 +775,6 @@ export default function AppShell<
     ...(activeGroup ? [{ label: activeGroup.title, icon: 'module' as const }] : []),
     { label: activeNavLabel, current: true, icon: 'workspace' as const }
   ]
-  const workspaceHeaderSubtitle = activeGroup
-    ? `${activeGroup.title} bağlamında ekran özeti, hızlı geçişler ve çalışma durumu.`
-    : 'Workspace bağlamı, hızlı geçişler ve çalışma durumu.'
-  const workspaceHeaderContext = (
-    <div className="workspace-context-grid">
-      <span className="workspace-context-chip">
-        <span className="workspace-context-chip-icon" aria-hidden="true">
-          <AppIcon name="module" size="XS" />
-        </span>
-        <span>
-          <small>Bölüm</small>
-          <strong>{activeGroup?.title || 'Workspace'}</strong>
-        </span>
-      </span>
-      <span className="workspace-context-chip">
-        <span className="workspace-context-chip-icon" aria-hidden="true">
-          <AppIcon name={isPlatformAdmin ? 'company' : 'workspace'} size="XS" />
-        </span>
-        <span>
-          <small>{isPlatformAdmin ? 'Kapsam' : 'Workspace'}</small>
-          <strong>{workspaceLabel}</strong>
-        </span>
-      </span>
-    </div>
-  )
   const workspaceHeaderStatus = (
     <div className="workspace-status-list">
       <span className="workspace-status-chip active">
@@ -773,7 +812,8 @@ export default function AppShell<
         </div>
       )}
       <ApplicationShell
-        sidebarCollapsed={sidebarCollapsed}
+        sidebarCollapsed={sidebarRail}
+        sidebarPeeked={sidebarPeeked}
         mobileSidebarOpen={mobileSidebarOpen}
         onOpenMobileSidebar={() => setMobileSidebarOpen(true)}
         onCloseMobileSidebar={() => setMobileSidebarOpen(false)}
@@ -781,9 +821,14 @@ export default function AppShell<
           <SidebarLayout
             brand={sidebarBrand}
             collapsed={sidebarCollapsed}
+            rail={sidebarRail}
+            peeked={sidebarPeeked}
+            pinned={sidebarPinned}
             mobileOpen={mobileSidebarOpen}
             footer={sidebarFooter}
-            onToggleCollapsed={() => setSidebarCollapsed(current => !current)}
+            onTogglePinned={toggleSidebarPinned}
+            onPeekStart={() => setPeek(true)}
+            onPeekEnd={() => setPeek(false)}
             onCloseMobile={() => setMobileSidebarOpen(false)}
           >
             {sidebarContent}
@@ -797,21 +842,25 @@ export default function AppShell<
             brandLabel={restaurantName}
             themeMode={themeMode}
             mobileSidebarOpen={mobileSidebarOpen}
+            sidebarCollapsed={sidebarRail}
             workspaceControl={workspaceControl}
             onSearchChange={setGlobalSearch}
             onSearchSubmit={handleGlobalSearchSubmit}
             onOpenMobileNav={() => setMobileSidebarOpen(true)}
+            onToggleSidebar={toggleSidebarPinned}
             onToggleTheme={toggleThemeMode}
           >
             {notificationCenter}
             {onStartOnboarding && (
-              <button className="topbar-help topbar-icon-action" type="button" aria-label="Yardım" title="Yardım" onClick={onStartOnboarding}>
+              <button className="topbar-icon-btn topbar-help" type="button" aria-label="Yardım" title="Yardım" onClick={onStartOnboarding}>
                 <AppIcon name="help" size="SM" />
               </button>
             )}
             <TopbarProfileMenu
               currentUser={currentUser}
               initials={getUserInitials(currentUser)}
+              onOpenMyProfile={onOpenMyProfile}
+              onOpenCompanyProfile={onOpenCompanyProfile}
               onStartOnboarding={onStartOnboarding}
               onLogout={onLogout}
             />
@@ -820,9 +869,7 @@ export default function AppShell<
       >
         <WorkspaceLayout
           title={activeNavLabel}
-          subtitle={workspaceHeaderSubtitle}
           breadcrumbs={workspaceBreadcrumbs}
-          context={workspaceHeaderContext}
           status={workspaceHeaderStatus}
           navigationKey={String(activeNavKey)}
           navigation={workspaceNavigation}

@@ -51,87 +51,87 @@ export const TYPOGRAPHY_BREAKPOINTS = {
 export const TYPOGRAPHY_TOKENS: Record<TypographyTokenName, TypographyToken> = {
   displayXl: {
     cssName: 'display-xl',
-    fontSize: { desktop: '40px', tablet: '36px', mobile: '30px' },
-    fontWeight: 900,
+    fontSize: { desktop: '34px', tablet: '31px', mobile: '27px' },
+    fontWeight: 800,
     lineHeight: '1.08',
-    letterSpacing: '0',
+    letterSpacing: '-0.02em',
     textTransform: 'none'
   },
   displayLarge: {
     cssName: 'display-large',
-    fontSize: { desktop: '34px', tablet: '32px', mobile: '28px' },
-    fontWeight: 900,
+    fontSize: { desktop: '29px', tablet: '27px', mobile: '25px' },
+    fontWeight: 780,
     lineHeight: '1.1',
-    letterSpacing: '0',
+    letterSpacing: '-0.018em',
     textTransform: 'none'
   },
   h1: {
     cssName: 'h1',
-    fontSize: { desktop: '30px', tablet: '28px', mobile: '26px' },
-    fontWeight: 900,
+    fontSize: { desktop: '25px', tablet: '24px', mobile: '22px' },
+    fontWeight: 760,
     lineHeight: '1.14',
-    letterSpacing: '0',
+    letterSpacing: '-0.015em',
     textTransform: 'none'
   },
   h2: {
     cssName: 'h2',
-    fontSize: { desktop: '24px', tablet: '23px', mobile: '22px' },
-    fontWeight: 850,
+    fontSize: { desktop: '21px', tablet: '20px', mobile: '19px' },
+    fontWeight: 730,
     lineHeight: '1.18',
-    letterSpacing: '0',
+    letterSpacing: '-0.012em',
     textTransform: 'none'
   },
   h3: {
     cssName: 'h3',
-    fontSize: { desktop: '20px', tablet: '19px', mobile: '18px' },
-    fontWeight: 850,
+    fontSize: { desktop: '18px', tablet: '17px', mobile: '16px' },
+    fontWeight: 710,
     lineHeight: '1.22',
-    letterSpacing: '0',
+    letterSpacing: '-0.008em',
     textTransform: 'none'
   },
   h4: {
     cssName: 'h4',
-    fontSize: { desktop: '18px', tablet: '17px', mobile: '16px' },
-    fontWeight: 800,
+    fontSize: { desktop: '16px', tablet: '15px', mobile: '15px' },
+    fontWeight: 700,
     lineHeight: '1.25',
-    letterSpacing: '0',
+    letterSpacing: '-0.005em',
     textTransform: 'none'
   },
   title: {
     cssName: 'title',
-    fontSize: { desktop: '16px', tablet: '16px', mobile: '15px' },
-    fontWeight: 800,
+    fontSize: { desktop: '15px', tablet: '15px', mobile: '14px' },
+    fontWeight: 690,
     lineHeight: '1.3',
     letterSpacing: '0',
     textTransform: 'none'
   },
   subtitle: {
     cssName: 'subtitle',
-    fontSize: { desktop: '15px', tablet: '15px', mobile: '14px' },
+    fontSize: { desktop: '14px', tablet: '14px', mobile: '13px' },
     fontWeight: 700,
-    lineHeight: '1.42',
+    lineHeight: '1.4',
     letterSpacing: '0',
     textTransform: 'none'
   },
   bodyLarge: {
     cssName: 'body-large',
-    fontSize: { desktop: '15px', tablet: '15px', mobile: '14px' },
-    fontWeight: 500,
-    lineHeight: '1.55',
-    letterSpacing: '0',
-    textTransform: 'none'
-  },
-  body: {
-    cssName: 'body',
     fontSize: { desktop: '14px', tablet: '14px', mobile: '13px' },
     fontWeight: 500,
     lineHeight: '1.5',
     letterSpacing: '0',
     textTransform: 'none'
   },
+  body: {
+    cssName: 'body',
+    fontSize: { desktop: '13px', tablet: '13px', mobile: '13px' },
+    fontWeight: 500,
+    lineHeight: '1.45',
+    letterSpacing: '0',
+    textTransform: 'none'
+  },
   bodySmall: {
     cssName: 'body-small',
-    fontSize: { desktop: '13px', tablet: '13px', mobile: '12px' },
+    fontSize: { desktop: '12px', tablet: '12px', mobile: '12px' },
     fontWeight: 500,
     lineHeight: '1.45',
     letterSpacing: '0',
@@ -139,7 +139,7 @@ export const TYPOGRAPHY_TOKENS: Record<TypographyTokenName, TypographyToken> = {
   },
   caption: {
     cssName: 'caption',
-    fontSize: { desktop: '12px', tablet: '12px', mobile: '11px' },
+    fontSize: { desktop: '11px', tablet: '11px', mobile: '11px' },
     fontWeight: 700,
     lineHeight: '1.35',
     letterSpacing: '0',
@@ -155,7 +155,7 @@ export const TYPOGRAPHY_TOKENS: Record<TypographyTokenName, TypographyToken> = {
   },
   label: {
     cssName: 'label',
-    fontSize: { desktop: '12px', tablet: '12px', mobile: '11px' },
+    fontSize: { desktop: '11px', tablet: '11px', mobile: '11px' },
     fontWeight: 700,
     lineHeight: '1.25',
     letterSpacing: '0',
@@ -171,15 +171,15 @@ export const TYPOGRAPHY_TOKENS: Record<TypographyTokenName, TypographyToken> = {
   },
   badge: {
     cssName: 'badge',
-    fontSize: { desktop: '12px', tablet: '12px', mobile: '11px' },
-    fontWeight: 800,
+    fontSize: { desktop: '11px', tablet: '11px', mobile: '11px' },
+    fontWeight: 720,
     lineHeight: '1.2',
     letterSpacing: '0',
     textTransform: 'none'
   },
   tableHeader: {
     cssName: 'table-header',
-    fontSize: { desktop: '12px', tablet: '12px', mobile: '11px' },
+    fontSize: { desktop: '11px', tablet: '11px', mobile: '10px' },
     fontWeight: 700,
     lineHeight: '1.25',
     letterSpacing: '0',
@@ -187,7 +187,7 @@ export const TYPOGRAPHY_TOKENS: Record<TypographyTokenName, TypographyToken> = {
   },
   tableCell: {
     cssName: 'table-cell',
-    fontSize: { desktop: '13px', tablet: '13px', mobile: '12px' },
+    fontSize: { desktop: '12px', tablet: '12px', mobile: '12px' },
     fontWeight: 500,
     lineHeight: '1.35',
     letterSpacing: '0',

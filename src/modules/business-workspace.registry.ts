@@ -198,6 +198,7 @@ const defineModuleRegistry = (modules: BusinessWorkspaceModuleInput[]): Business
 export const BUSINESS_WORKSPACE_MODULE_REGISTRY: BusinessWorkspaceModule[] = defineModuleRegistry([
   {
     id: 'system-workspace-welcome',
+    foundationScope: 'frozen',
     code: WORKSPACE_MODULE_CODES.WORKSPACE_WELCOME,
     name: 'Çalışma Alanı Karşılama',
     description: 'Yeni işletme çalışma alanı ilk açılış deneyimini ve modül mağazası başlangıç yönlendirmesini gösterir.',
@@ -220,6 +221,7 @@ export const BUSINESS_WORKSPACE_MODULE_REGISTRY: BusinessWorkspaceModule[] = def
   },
   {
     id: 'system-dashboard',
+    foundationScope: 'core',
     code: WORKSPACE_MODULE_CODES.DASHBOARD,
     name: 'Kontrol Paneli',
     description: 'İşletme çalışma alanı genel durum ve günlük operasyon özetini gösterir.',
@@ -257,6 +259,7 @@ export const BUSINESS_WORKSPACE_MODULE_REGISTRY: BusinessWorkspaceModule[] = def
   },
   {
     id: 'system-workspace',
+    foundationScope: 'frozen',
     code: WORKSPACE_MODULE_CODES.WORKSPACE,
     name: 'İşletme Çalışma Alanı',
     description: 'İşletme çalışma alanı kimliği, temel profil bilgisi ve çalışma alanı bağlamını yönetir.',
@@ -279,6 +282,7 @@ export const BUSINESS_WORKSPACE_MODULE_REGISTRY: BusinessWorkspaceModule[] = def
   },
   {
     id: 'system-marketplace',
+    foundationScope: 'frozen',
     code: WORKSPACE_MODULE_CODES.MARKETPLACE,
     name: 'Modül Mağazası',
     description: 'İşletme çalışma alanı için iş ve entegrasyon modül kataloğunu gösterir.',
@@ -301,6 +305,7 @@ export const BUSINESS_WORKSPACE_MODULE_REGISTRY: BusinessWorkspaceModule[] = def
   },
   {
     id: 'system-integration-center',
+    foundationScope: 'frozen',
     code: WORKSPACE_MODULE_CODES.INTEGRATION_CENTER,
     name: 'Entegrasyon Merkezi',
     description: 'İşletme çalışma alanı ile dış sistemler arasındaki soyut entegrasyon kataloğunu ve bağlantı altyapısını yönetir.',
@@ -323,6 +328,7 @@ export const BUSINESS_WORKSPACE_MODULE_REGISTRY: BusinessWorkspaceModule[] = def
   },
   {
     id: 'system-tools',
+    foundationScope: 'frozen',
     code: WORKSPACE_MODULE_CODES.TOOLS,
     name: 'Araclar',
     description: 'Workspace genelinde kullanilan veri aktarimi ve toplu operasyon araclarini toplar.',
@@ -354,6 +360,7 @@ export const BUSINESS_WORKSPACE_MODULE_REGISTRY: BusinessWorkspaceModule[] = def
   },
   {
     id: 'system-executive-center',
+    foundationScope: 'frozen',
     code: WORKSPACE_MODULE_CODES.EXECUTIVE_CENTER,
     name: 'Executive Dashboard',
     description: 'Endüstriyel mutfak yönetimi için KPI, operasyon özeti, kritik uyarı ve karar destek yönetici görünümü.',
@@ -376,6 +383,7 @@ export const BUSINESS_WORKSPACE_MODULE_REGISTRY: BusinessWorkspaceModule[] = def
   },
   {
     id: 'system-users',
+    foundationScope: 'core',
     code: WORKSPACE_MODULE_CODES.USERS,
     name: 'Kullanıcılar',
     description: 'Çalışma alanı kullanıcılarının yönetildiği zorunlu sistem modülü.',
@@ -398,6 +406,7 @@ export const BUSINESS_WORKSPACE_MODULE_REGISTRY: BusinessWorkspaceModule[] = def
   },
   {
     id: 'system-roles',
+    foundationScope: 'core',
     code: WORKSPACE_MODULE_CODES.ROLES,
     name: 'Roller',
     description: 'Rol ve yetki modelinin işletme çalışma alanı içinde yönetilmesini sağlar.',
@@ -420,6 +429,7 @@ export const BUSINESS_WORKSPACE_MODULE_REGISTRY: BusinessWorkspaceModule[] = def
   },
   {
     id: 'system-branches',
+    foundationScope: 'frozen',
     code: WORKSPACE_MODULE_CODES.BRANCHES,
     name: 'Şubeler',
     description: 'Her işletmenin temel şube yapısını yöneten sistem modülü.',
@@ -442,6 +452,7 @@ export const BUSINESS_WORKSPACE_MODULE_REGISTRY: BusinessWorkspaceModule[] = def
   },
   {
     id: 'system-notifications',
+    foundationScope: 'frozen',
     code: WORKSPACE_MODULE_CODES.NOTIFICATIONS,
     name: 'Bildirimler',
     description: 'Çalışma alanı bildirimleri için merkezi sistem modülü.',
@@ -464,6 +475,7 @@ export const BUSINESS_WORKSPACE_MODULE_REGISTRY: BusinessWorkspaceModule[] = def
   },
   {
     id: 'system-license',
+    foundationScope: 'frozen',
     code: WORKSPACE_MODULE_CODES.LICENSE,
     name: 'Lisans',
     description: 'Çalışma alanı lisans kapsamını ve modül erişim temelini gösterir.',
@@ -486,6 +498,7 @@ export const BUSINESS_WORKSPACE_MODULE_REGISTRY: BusinessWorkspaceModule[] = def
   },
   {
     id: 'system-subscription',
+    foundationScope: 'frozen',
     code: WORKSPACE_MODULE_CODES.SUBSCRIPTION,
     name: 'Abonelik',
     description: 'Abonelik ve kullanım haklarının yönetileceği sistem modülü.',
@@ -508,6 +521,7 @@ export const BUSINESS_WORKSPACE_MODULE_REGISTRY: BusinessWorkspaceModule[] = def
   },
   {
     id: 'system-audit',
+    foundationScope: 'core',
     code: WORKSPACE_MODULE_CODES.AUDIT,
     name: 'Audit',
     description: 'Çalışma alanı içindeki kritik kullanıcı işlemlerinin denetlendiği çekirdek audit kaydı.',
@@ -530,6 +544,7 @@ export const BUSINESS_WORKSPACE_MODULE_REGISTRY: BusinessWorkspaceModule[] = def
   },
   {
     id: 'system-settings',
+    foundationScope: 'core',
     code: WORKSPACE_MODULE_CODES.SETTINGS,
     name: 'Sistem Ayarları',
     description: 'Çalışma alanı profil, görünüm ve veri yönetimi ayarlarını toplar.',
@@ -552,6 +567,7 @@ export const BUSINESS_WORKSPACE_MODULE_REGISTRY: BusinessWorkspaceModule[] = def
   },
   {
     id: 'system-support',
+    foundationScope: 'frozen',
     code: WORKSPACE_MODULE_CODES.SUPPORT,
     name: 'Destek',
     description: 'Destek taleplerinin workspace içinden yönetileceği sistem modülü.',
@@ -574,6 +590,7 @@ export const BUSINESS_WORKSPACE_MODULE_REGISTRY: BusinessWorkspaceModule[] = def
   },
   {
     id: 'system-ai-center',
+    foundationScope: 'frozen',
     code: WORKSPACE_MODULE_CODES.AI_CENTER,
     name: 'AI Merkezi',
     description: 'AI destekli sistem önerileri ve otomasyonlar için hazırlanmış modül yuvası.',
@@ -611,6 +628,7 @@ export const BUSINESS_WORKSPACE_MODULE_REGISTRY: BusinessWorkspaceModule[] = def
   },
   {
     id: 'business-adisyon',
+    foundationScope: 'frozen',
     code: WORKSPACE_MODULE_CODES.ADISYON,
     name: 'İşlem Yönetimi',
     description: 'Alan, ürün/hizmet, hazırlık ve işlem akışlarını yöneten iş modülü.',
@@ -677,6 +695,7 @@ export const BUSINESS_WORKSPACE_MODULE_REGISTRY: BusinessWorkspaceModule[] = def
   },
   {
     id: 'business-qr-menu',
+    foundationScope: 'frozen',
     code: WORKSPACE_MODULE_CODES.QR_MENU,
     name: 'Dijital Katalog',
     description: 'Dijital katalog, talep ve görevli çağrısı akışlarını yönetir.',
@@ -717,6 +736,7 @@ export const BUSINESS_WORKSPACE_MODULE_REGISTRY: BusinessWorkspaceModule[] = def
   },
   {
     id: 'business-stock',
+    foundationScope: 'core',
     code: WORKSPACE_MODULE_CODES.STOCK,
     name: 'Stok',
     description: 'Stok kartları, hareketleri, kritik stok, geçerlilik ve kayıp yönetimini kapsar.',
@@ -808,21 +828,22 @@ export const BUSINESS_WORKSPACE_MODULE_REGISTRY: BusinessWorkspaceModule[] = def
       menuItem({ key: 'expiry-lots', label: 'Geçerlilik Takibi', route: 'stock-cards', icon: 'GT', adminOnly: true, displayOrder: 40 }),
       menuItem({ key: 'inventory-lots', label: 'Lot / Batch Yönetimi', route: 'inventory-lots', icon: 'LB', adminOnly: true, displayOrder: 50 }),
       menuItem({ key: 'goods-receipts', label: 'Mal Kabul', route: 'goods-receipts', icon: 'MK', adminOnly: true, displayOrder: 60 }),
-      menuItem({ key: 'waste', label: 'Kayıp Analizi', route: 'stock-movements', icon: 'KA', adminOnly: true, displayOrder: 70 }),
+      menuItem({ key: 'waste', foundationScope: 'frozen', label: 'Kayıp Analizi', route: 'stock-movements', icon: 'KA', adminOnly: true, displayOrder: 70 }),
       menuItem({
-        key: 'stock-reports',
+        key: 'stock-reports', foundationScope: 'frozen',
         label: 'Raporlar',
         icon: 'RP',
         adminOnly: true,
         displayOrder: 80,
         children: [
-          menuItem({ key: 'stock-risk-center', label: 'Stok ve Risk', route: 'stock-risk-center', icon: 'SR', adminOnly: true, displayOrder: 10 })
+          menuItem({ key: 'stock-risk-center', foundationScope: 'frozen', label: 'Stok ve Risk', route: 'stock-risk-center', icon: 'SR', adminOnly: true, displayOrder: 10 })
         ]
       })
     ]
   },
   {
     id: 'business-warehouse',
+    foundationScope: 'frozen',
     code: SECTOR_TEMPLATE_MODULE_CODES.WAREHOUSE,
     name: 'Depo',
     description: 'Endüstriyel mutfak depo süreçleri, kimyasal ürün güvenliği ve depo bazlı ürün yönetimi için iş modülü.',
@@ -861,6 +882,7 @@ export const BUSINESS_WORKSPACE_MODULE_REGISTRY: BusinessWorkspaceModule[] = def
   },
   {
     id: 'business-recipe',
+    foundationScope: 'core',
     code: WORKSPACE_MODULE_CODES.RECIPE,
     name: 'Reçete Yönetimi',
     description: 'Endüstriyel mutfak standart reçete kartları ve malzeme satırlarını yöneten iş modülü.',
@@ -900,6 +922,7 @@ export const BUSINESS_WORKSPACE_MODULE_REGISTRY: BusinessWorkspaceModule[] = def
   },
   {
     id: 'business-purchase',
+    foundationScope: 'core',
     code: WORKSPACE_MODULE_CODES.PURCHASE,
     name: 'Satın Alma',
     description: 'Endüstriyel mutfak satın alma talepleri, teklif yönetimi, onay süreçleri ve tedarikçi kartlarını yöneten iş modülü.',
@@ -987,16 +1010,17 @@ export const BUSINESS_WORKSPACE_MODULE_REGISTRY: BusinessWorkspaceModule[] = def
     ],
     menuItems: [
       menuItem({ key: 'purchase-requests', label: 'Satın Alma Talepleri', route: 'purchase-requests', icon: 'ST', adminOnly: true, displayOrder: 10 }),
-      menuItem({ key: 'request-for-quotations', label: 'Teklif Yönetimi', route: 'request-for-quotations', icon: 'TK', adminOnly: true, displayOrder: 20 }),
-      menuItem({ key: 'purchase-approvals', label: 'Satın Alma Onayları', route: 'purchase-approvals', icon: 'OA', adminOnly: true, displayOrder: 30 }),
+      menuItem({ key: 'request-for-quotations', foundationScope: 'frozen', label: 'Teklif Yönetimi', route: 'request-for-quotations', icon: 'TK', adminOnly: true, displayOrder: 20 }),
+      menuItem({ key: 'purchase-approvals', foundationScope: 'frozen', label: 'Satın Alma Onayları', route: 'purchase-approvals', icon: 'OA', adminOnly: true, displayOrder: 30 }),
       menuItem({ key: 'purchase-orders', label: 'Satın Alma Siparişleri', route: 'purchase-orders', icon: 'PO', adminOnly: true, displayOrder: 40 }),
       menuItem({ key: 'suppliers', label: 'Tedarikçiler', route: 'suppliers', icon: 'TD', adminOnly: true, displayOrder: 50 }),
-      menuItem({ key: 'supplier-performances', label: 'Tedarikçi Performansı', route: 'supplier-performances', icon: 'TP', adminOnly: true, displayOrder: 60 }),
-      menuItem({ key: 'procurement-analytics', label: 'Procurement Analytics', route: 'procurement-analytics', icon: 'PA', adminOnly: true, displayOrder: 70 })
+      menuItem({ key: 'supplier-performances', foundationScope: 'frozen', label: 'Tedarikçi Performansı', route: 'supplier-performances', icon: 'TP', adminOnly: true, displayOrder: 60 }),
+      menuItem({ key: 'procurement-analytics', foundationScope: 'frozen', label: 'Procurement Analytics', route: 'procurement-analytics', icon: 'PA', adminOnly: true, displayOrder: 70 })
     ]
   },
   {
     id: 'business-kpi-reporting',
+    foundationScope: 'frozen',
     code: KPI_REPORTING_MODULE_CODE,
     name: 'Raporlama',
     description: 'Industrial Kitchen KPI Dashboard, executive summary ve domain bazli read-model raporlama motoru.',
@@ -1133,6 +1157,7 @@ export const BUSINESS_WORKSPACE_MODULE_REGISTRY: BusinessWorkspaceModule[] = def
   },
   {
     id: 'business-decision-support-workspace',
+    foundationScope: 'frozen',
     code: DECISION_SUPPORT_WORKSPACE_MODULE_CODE,
     name: 'Karar Destek',
     description: 'Industrial Kitchen karar destek merkezi, kritik alarm, tahminleme, otomatik oneri, AI analiz, maliyet optimizasyonu, satin alma, uretim planlama, fire ve sevkiyat optimizasyonu onerileri icin ana calisma alani.',
@@ -1297,6 +1322,7 @@ export const BUSINESS_WORKSPACE_MODULE_REGISTRY: BusinessWorkspaceModule[] = def
   },
   {
     id: 'business-quality',
+    foundationScope: 'core',
     code: SECTOR_TEMPLATE_MODULE_CODES.QUALITY,
     name: 'Kalite ve İzlenebilirlik',
     description: 'Endüstriyel mutfak lot izlenebilirliği, numune, şahit numune ve recall takibi, inventory lot kalite kontrol kararları, checklist şablonları, red sonrası iade süreçleri ve tedarikçi iade sevklerini yöneten iş modülü.',
@@ -1486,23 +1512,24 @@ export const BUSINESS_WORKSPACE_MODULE_REGISTRY: BusinessWorkspaceModule[] = def
       })
     ],
     menuItems: [
-      menuItem({ key: 'label-management', label: 'Etiket Yönetimi', route: 'label-management', icon: 'ET', adminOnly: true, displayOrder: 4 }),
+      menuItem({ key: 'label-management', foundationScope: 'frozen', label: 'Etiket Yönetimi', route: 'label-management', icon: 'ET', adminOnly: true, displayOrder: 4 }),
       menuItem({ key: 'lot-system', label: 'Lot Sistemi', route: 'lot-system', icon: 'LS', adminOnly: true, displayOrder: 5 }),
-      menuItem({ key: 'sample-tracking', label: 'Numune Takibi', route: 'sample-tracking', icon: 'NT', adminOnly: true, displayOrder: 6 }),
-      menuItem({ key: 'witness-samples', label: 'Şahit Numune', route: 'witness-samples', icon: 'SN', adminOnly: true, displayOrder: 7 }),
+      menuItem({ key: 'sample-tracking', foundationScope: 'frozen', label: 'Numune Takibi', route: 'sample-tracking', icon: 'NT', adminOnly: true, displayOrder: 6 }),
+      menuItem({ key: 'witness-samples', foundationScope: 'frozen', label: 'Şahit Numune', route: 'witness-samples', icon: 'SN', adminOnly: true, displayOrder: 7 }),
       menuItem({ key: 'product-recalls', label: 'Geri Çağırma', route: 'product-recalls', icon: 'RC', adminOnly: true, displayOrder: 8 }),
       menuItem({ key: 'product-history', label: 'Ürün Geçmişi', route: 'product-history', icon: 'UG', adminOnly: true, displayOrder: 9 }),
-      menuItem({ key: 'haccp-management', label: 'HACCP', route: 'haccp-management', icon: 'HC', adminOnly: true, displayOrder: 10 }),
-      menuItem({ key: 'quality-controls', label: 'Kalite Kontrol', route: 'quality-controls', icon: 'KL', adminOnly: true, displayOrder: 11 }),
-      menuItem({ key: 'waste-management', label: 'Fire Yonetimi', route: 'waste-management', icon: 'FY', adminOnly: true, displayOrder: 12 }),
-      menuItem({ key: 'operation-checklists', label: 'Operasyon Kontrol Listeleri', route: 'operation-checklists', icon: 'OC', adminOnly: true, displayOrder: 13 }),
-      menuItem({ key: 'quality-control-forms', label: 'Kalite Kontrol Formları', route: 'quality-control-forms', icon: 'KF', adminOnly: true, displayOrder: 20 }),
-      menuItem({ key: 'return-processes', label: 'Red ve İade Süreci', route: 'return-processes', icon: 'RI', adminOnly: true, displayOrder: 30 }),
-      menuItem({ key: 'supplier-returns', label: 'Tedarikçi İade Süreci', route: 'supplier-returns', icon: 'TI', adminOnly: true, displayOrder: 40 })
+      menuItem({ key: 'haccp-management', foundationScope: 'frozen', label: 'HACCP', route: 'haccp-management', icon: 'HC', adminOnly: true, displayOrder: 10 }),
+      menuItem({ key: 'quality-controls', foundationScope: 'frozen', label: 'Kalite Kontrol', route: 'quality-controls', icon: 'KL', adminOnly: true, displayOrder: 11 }),
+      menuItem({ key: 'waste-management', foundationScope: 'frozen', label: 'Fire Yonetimi', route: 'waste-management', icon: 'FY', adminOnly: true, displayOrder: 12 }),
+      menuItem({ key: 'operation-checklists', foundationScope: 'frozen', label: 'Operasyon Kontrol Listeleri', route: 'operation-checklists', icon: 'OC', adminOnly: true, displayOrder: 13 }),
+      menuItem({ key: 'quality-control-forms', foundationScope: 'frozen', label: 'Kalite Kontrol Formları', route: 'quality-control-forms', icon: 'KF', adminOnly: true, displayOrder: 20 }),
+      menuItem({ key: 'return-processes', foundationScope: 'frozen', label: 'Red ve İade Süreci', route: 'return-processes', icon: 'RI', adminOnly: true, displayOrder: 30 }),
+      menuItem({ key: 'supplier-returns', foundationScope: 'frozen', label: 'Tedarikçi İade Süreci', route: 'supplier-returns', icon: 'TI', adminOnly: true, displayOrder: 40 })
     ]
   },
   {
     id: 'business-production-work-orders',
+    foundationScope: 'core',
     code: SECTOR_TEMPLATE_MODULE_CODES.PRODUCTION,
     name: 'Üretim',
     description: 'Endüstriyel mutfak üretim iş emirleri, üretim hatları, ara ürünler, son ürünler, şoklama, paketleme, etiketleme, sevkiyat ve reçete yönetimi süreçleri için UI, domain modeli ve örnek veri hazırlığı.',
@@ -1744,36 +1771,37 @@ export const BUSINESS_WORKSPACE_MODULE_REGISTRY: BusinessWorkspaceModule[] = def
       })
     ],
     menuItems: [
-      menuItem({ key: 'production-planning', label: 'Uretim Planlama', route: 'production-planning', icon: 'PP', adminOnly: true, displayOrder: 5 }),
-      menuItem({ key: 'capacity-planning', label: 'Kapasite Planlama', route: 'capacity-planning', icon: 'CP', adminOnly: true, displayOrder: 7 }),
-      menuItem({ key: 'machine-scheduling', label: 'Makine Cizelgeleme', route: 'machine-scheduling', icon: 'MS', adminOnly: true, displayOrder: 8 }),
-      menuItem({ key: 'workforce-planning', label: 'Personel Planlama', route: 'workforce-planning', icon: 'WP', adminOnly: true, displayOrder: 9 }),
-      menuItem({ key: 'bottleneck-analysis', label: 'Darbogaz Analizi', route: 'bottleneck-analysis', icon: 'BN', adminOnly: true, displayOrder: 9.5 }),
-      menuItem({ key: 'continuous-improvement', label: 'Iyilestirme Firsatlari', route: 'continuous-improvement', icon: 'CI', adminOnly: true, displayOrder: 9.7 }),
+      menuItem({ key: 'production-planning', foundationScope: 'frozen', label: 'Uretim Planlama', route: 'production-planning', icon: 'PP', adminOnly: true, displayOrder: 5 }),
+      menuItem({ key: 'capacity-planning', foundationScope: 'frozen', label: 'Kapasite Planlama', route: 'capacity-planning', icon: 'CP', adminOnly: true, displayOrder: 7 }),
+      menuItem({ key: 'machine-scheduling', foundationScope: 'frozen', label: 'Makine Cizelgeleme', route: 'machine-scheduling', icon: 'MS', adminOnly: true, displayOrder: 8 }),
+      menuItem({ key: 'workforce-planning', foundationScope: 'frozen', label: 'Personel Planlama', route: 'workforce-planning', icon: 'WP', adminOnly: true, displayOrder: 9 }),
+      menuItem({ key: 'bottleneck-analysis', foundationScope: 'frozen', label: 'Darbogaz Analizi', route: 'bottleneck-analysis', icon: 'BN', adminOnly: true, displayOrder: 9.5 }),
+      menuItem({ key: 'continuous-improvement', foundationScope: 'frozen', label: 'Iyilestirme Firsatlari', route: 'continuous-improvement', icon: 'CI', adminOnly: true, displayOrder: 9.7 }),
       menuItem({ key: 'production-work-orders', label: 'Üretim Emirleri', route: 'production-work-orders', icon: 'UE', adminOnly: true, displayOrder: 10 }),
-      menuItem({ key: 'production-lines', label: 'Üretim Hatları', route: 'production-lines', icon: 'UH', adminOnly: true, displayOrder: 20 }),
-      menuItem({ key: 'intermediate-products', label: 'Ara Ürünler', route: 'intermediate-products', icon: 'AU', adminOnly: true, displayOrder: 30 }),
-      menuItem({ key: 'final-products', label: 'Son Ürünler', route: 'final-products', icon: 'SU', adminOnly: true, displayOrder: 40 }),
-      menuItem({ key: 'blast-chiller-processes', label: 'Şoklama Süreçleri', route: 'blast-chiller-processes', icon: 'SS', adminOnly: true, displayOrder: 50 }),
-      menuItem({ key: 'packaging-processes', label: 'Paketleme', route: 'packaging-processes', icon: 'PK', adminOnly: true, displayOrder: 60 }),
-      menuItem({ key: 'labeling-processes', label: 'Etiketleme', route: 'labeling-processes', icon: 'ET', adminOnly: true, displayOrder: 70 }),
-      menuItem({ key: 'dispatch-processes', label: 'Sevkiyat', route: 'dispatch-processes', icon: 'SV', adminOnly: true, displayOrder: 80 }),
+      menuItem({ key: 'production-lines', foundationScope: 'frozen', label: 'Üretim Hatları', route: 'production-lines', icon: 'UH', adminOnly: true, displayOrder: 20 }),
+      menuItem({ key: 'intermediate-products', foundationScope: 'frozen', label: 'Ara Ürünler', route: 'intermediate-products', icon: 'AU', adminOnly: true, displayOrder: 30 }),
+      menuItem({ key: 'final-products', foundationScope: 'frozen', label: 'Son Ürünler', route: 'final-products', icon: 'SU', adminOnly: true, displayOrder: 40 }),
+      menuItem({ key: 'blast-chiller-processes', foundationScope: 'frozen', label: 'Şoklama Süreçleri', route: 'blast-chiller-processes', icon: 'SS', adminOnly: true, displayOrder: 50 }),
+      menuItem({ key: 'packaging-processes', foundationScope: 'frozen', label: 'Paketleme', route: 'packaging-processes', icon: 'PK', adminOnly: true, displayOrder: 60 }),
+      menuItem({ key: 'labeling-processes', foundationScope: 'frozen', label: 'Etiketleme', route: 'labeling-processes', icon: 'ET', adminOnly: true, displayOrder: 70 }),
+      menuItem({ key: 'dispatch-processes', foundationScope: 'frozen', label: 'Sevkiyat', route: 'dispatch-processes', icon: 'SV', adminOnly: true, displayOrder: 80 }),
       menuItem({
-        key: 'recipe-cost',
+        key: 'recipe-cost', foundationScope: 'frozen',
         label: 'Reçete ve Maliyet',
         icon: 'RM',
         adminOnly: true,
         displayOrder: 90,
         children: [
-          menuItem({ key: 'recipes', label: 'Reçete Yönetimi', route: 'recipes', icon: 'RC', adminOnly: true, displayOrder: 10 }),
-          menuItem({ key: 'fire-analysis', label: 'Fire Analizi', route: 'fire-analysis', icon: 'FA', adminOnly: true, displayOrder: 20 }),
-          menuItem({ key: 'cost-engine', label: 'Cost Engine', route: 'cost-engine', icon: 'CE', adminOnly: true, displayOrder: 30 })
+          menuItem({ key: 'recipes', foundationScope: 'frozen', label: 'Reçete Yönetimi', route: 'recipes', icon: 'RC', adminOnly: true, displayOrder: 10 }),
+          menuItem({ key: 'fire-analysis', foundationScope: 'frozen', label: 'Fire Analizi', route: 'fire-analysis', icon: 'FA', adminOnly: true, displayOrder: 20 }),
+          menuItem({ key: 'cost-engine', foundationScope: 'frozen', label: 'Cost Engine', route: 'cost-engine', icon: 'CE', adminOnly: true, displayOrder: 30 })
         ]
       })
     ]
   },
   {
     id: 'business-logistics',
+    foundationScope: 'core',
     code: SECTOR_TEMPLATE_MODULE_CODES.COURIER,
     name: 'Lojistik',
     description: 'Merkez depo, üretim, şube ve depo arası sevkiyat emirlerini lot bazında planlayan iş modülü.',
@@ -1937,21 +1965,22 @@ export const BUSINESS_WORKSPACE_MODULE_REGISTRY: BusinessWorkspaceModule[] = def
       })
     ],
     menuItems: [
-      menuItem({ key: 'shipment-work-orders', label: 'İş Emirleri', route: 'shipment-work-orders', icon: 'IE', adminOnly: true, displayOrder: 5 }),
-      menuItem({ key: 'shipment-pallets', label: 'Paletleme', route: 'shipment-pallets', icon: 'PL', adminOnly: true, displayOrder: 7 }),
-      menuItem({ key: 'shipment-vehicles', label: 'Araç Planlama', route: 'shipment-vehicles', icon: 'AP', adminOnly: true, displayOrder: 8 }),
-      menuItem({ key: 'shipment-plans', label: 'Sevkiyat Planı', route: 'shipment-plans', icon: 'SP', adminOnly: true, displayOrder: 9 }),
-      menuItem({ key: 'shipments', label: 'Sevkiyatlar', route: 'shipments', icon: 'SV', adminOnly: true, displayOrder: 10 }),
+      menuItem({ key: 'shipment-work-orders', foundationScope: 'frozen', label: 'İş Emirleri', route: 'shipment-work-orders', icon: 'IE', adminOnly: true, displayOrder: 5 }),
+      menuItem({ key: 'shipment-pallets', foundationScope: 'frozen', label: 'Paletleme', route: 'shipment-pallets', icon: 'PL', adminOnly: true, displayOrder: 7 }),
+      menuItem({ key: 'shipment-vehicles', foundationScope: 'frozen', label: 'Araç Planlama', route: 'shipment-vehicles', icon: 'AP', adminOnly: true, displayOrder: 8 }),
+      menuItem({ key: 'shipment-plans', foundationScope: 'frozen', label: 'Sevkiyat Planı', route: 'shipment-plans', icon: 'SP', adminOnly: true, displayOrder: 9 }),
+      menuItem({ key: 'shipments', foundationScope: 'frozen', label: 'Sevkiyatlar', route: 'shipments', icon: 'SV', adminOnly: true, displayOrder: 10 }),
       menuItem({ key: 'delivery-notes', label: 'Irsaliyeler', route: 'delivery-notes', icon: 'DN', adminOnly: true, displayOrder: 12 }),
-      menuItem({ key: 'shipment-forms', label: 'Sevkiyat Formlari', route: 'shipment-forms', icon: 'SF', adminOnly: true, displayOrder: 14 }),
+      menuItem({ key: 'shipment-forms', foundationScope: 'frozen', label: 'Sevkiyat Formlari', route: 'shipment-forms', icon: 'SF', adminOnly: true, displayOrder: 14 }),
       menuItem({ key: 'shipment-executions', label: 'Sevkiyat Operasyonu', route: 'shipment-executions', icon: 'SO', adminOnly: true, displayOrder: 20 }),
-      menuItem({ key: 'transfer-receipts', label: 'Depoya Kabul', route: 'transfer-receipts', icon: 'DK', adminOnly: true, displayOrder: 30 }),
-      menuItem({ key: 'shipment-returns', label: 'İade Süreci', route: 'shipment-returns', icon: 'IS', adminOnly: true, displayOrder: 40 }),
+      menuItem({ key: 'transfer-receipts', foundationScope: 'frozen', label: 'Depoya Kabul', route: 'transfer-receipts', icon: 'DK', adminOnly: true, displayOrder: 30 }),
+      menuItem({ key: 'shipment-returns', foundationScope: 'frozen', label: 'İade Süreci', route: 'shipment-returns', icon: 'IS', adminOnly: true, displayOrder: 40 }),
       menuItem({ key: 'shipment-waybills', label: 'İrsaliye Süreci', route: 'shipment-waybills', icon: 'IR', adminOnly: true, displayOrder: 50 })
     ]
   },
   {
     id: 'business-current',
+    foundationScope: 'frozen',
     code: WORKSPACE_MODULE_CODES.CURRENT,
     name: 'Cari',
     description: 'Cari kart, cari hareket, risk ve cari raporlama süreçlerini yönetir.',
@@ -2016,6 +2045,7 @@ export const BUSINESS_WORKSPACE_MODULE_REGISTRY: BusinessWorkspaceModule[] = def
   },
   {
     id: 'business-credit',
+    foundationScope: 'frozen',
     code: WORKSPACE_MODULE_CODES.CREDIT,
     name: 'Veresiye',
     description: 'Veresiye işlem ve tahsilat takiplerini Cari modülünün tamamlayıcı parçası olarak sunar.',
@@ -2055,6 +2085,7 @@ export const BUSINESS_WORKSPACE_MODULE_REGISTRY: BusinessWorkspaceModule[] = def
   },
   {
     id: 'business-finance',
+    foundationScope: 'frozen',
     code: WORKSPACE_MODULE_CODES.FINANCE,
     name: 'Finans',
     description: 'Kasa, tedarikçi, gelir-gider, gün sonu ve finans raporlarını yönetir.',
@@ -2121,6 +2152,7 @@ export const BUSINESS_WORKSPACE_MODULE_REGISTRY: BusinessWorkspaceModule[] = def
   },
   {
     id: 'business-personnel',
+    foundationScope: 'frozen',
     code: WORKSPACE_MODULE_CODES.PERSONNEL,
     name: 'Personel',
     description: 'Personel kartları, vardiya, puantaj, performans ve denetim süreçlerini yönetir.',
@@ -2214,6 +2246,7 @@ export const BUSINESS_WORKSPACE_MODULE_REGISTRY: BusinessWorkspaceModule[] = def
   },
   {
     id: 'business-multi-branch',
+    foundationScope: 'core',
     code: WORKSPACE_MODULE_CODES.MULTI_BRANCH,
     name: 'Çoklu Şube',
     description: 'Şube raporlama, şubeler arası stok transferi ve merkez ofis yönetimini kapsar.',
@@ -2247,14 +2280,16 @@ export const BUSINESS_WORKSPACE_MODULE_REGISTRY: BusinessWorkspaceModule[] = def
       })
     ],
     menuItems: [
+      menuItem({ key: 'branch-directory', label: 'Şube Yönetimi', route: 'branches', icon: 'SB', adminOnly: true, displayOrder: 5 }),
       menuItem({ key: 'branch-permissions', label: 'Şube Yetkilendirme', route: 'branch-permissions', icon: 'SY', adminOnly: true, displayOrder: 10 }),
-      menuItem({ key: 'branch-reporting', label: 'Şubeler Arası Raporlama', route: 'branch-reporting', icon: 'SR', adminOnly: true, displayOrder: 20 }),
-      menuItem({ key: 'branch-stock-transfers', label: 'Şubeler Arası Stok Transferi', route: 'branch-stock-transfers', icon: 'ST', adminOnly: true, displayOrder: 30 }),
-      menuItem({ key: 'head-office-management', label: 'Merkez Ofis Yönetimi', route: 'head-office-management', icon: 'MO', adminOnly: true, displayOrder: 40 })
+      menuItem({ key: 'branch-reporting', foundationScope: 'frozen', label: 'Şubeler Arası Raporlama', route: 'branch-reporting', icon: 'SR', adminOnly: true, displayOrder: 20 }),
+      menuItem({ key: 'branch-stock-transfers', foundationScope: 'frozen', label: 'Şubeler Arası Stok Transferi', route: 'branch-stock-transfers', icon: 'ST', adminOnly: true, displayOrder: 30 }),
+      menuItem({ key: 'head-office-management', foundationScope: 'frozen', label: 'Merkez Ofis Yönetimi', route: 'head-office-management', icon: 'MO', adminOnly: true, displayOrder: 40 })
     ]
   },
   {
     id: 'business-manager-alerts',
+    foundationScope: 'frozen',
     code: WORKSPACE_MODULE_CODES.MANAGER_ALERTS,
     name: 'Yönetici Uyarı Merkezi',
     description: 'İşletme yöneticisi için kritik uyarı ve aksiyon önerilerini gösterir.',
@@ -2343,3 +2378,60 @@ export const getBusinessWorkspaceMenuItems = (moduleType: WorkspaceModuleType) =
       .sort((first, second) => (first.displayOrder || 0) - (second.displayOrder || 0))
     )
 }
+
+/**
+ * Navigasyon ağacında yer almayan ama kapsamda olması gereken rotalar.
+ *
+ * - `workspace-welcome` : ilk giriş / kurulum tamamlanmamış kullanıcının indiği ekran.
+ *   Menüde olmamalı ama erişilemezse giriş akışı kırılır.
+ * - `my-profile`, `company-profile` : profil menüsünden açılır.
+ * - `marketplace`, `integration-center` : Kontrol Paneli üzerindeki butonlardan açılır.
+ *   Modülleri donduruldu (menüde yoklar) ama butonlar hâlâ duruyor; Kontrol Paneli
+ *   Dilim 4'te yeniden yazılırken bu butonlar da kalkacak. Ölü buton bırakmamak için
+ *   şimdilik rotaları açık.
+ */
+export const NON_NAV_CORE_ROUTES: BusinessWorkspaceRoute[] = [
+  'workspace-welcome',
+  'my-profile',
+  'company-profile',
+  'marketplace',
+  'integration-center'
+]
+
+/**
+ * ADR-002 · Production Foundation kapsamındaki rotalar.
+ *
+ * Beyaz liste mantığı: bir rota, ona işaret eden en az bir `core` menü ögesi varsa
+ * açıktır. Kara liste kullanmıyoruz çünkü rotalar paylaşılıyor — örneğin
+ * `stock-movements` hem `stock-movements` (core) hem `waste` (frozen) ögesinin
+ * hedefi; core bir öge işaret ettiği sürece rota açık kalmalı.
+ *
+ * Menüde yer almayan rotalar (profil sayfaları gibi) buraya girmez; onlar
+ * `App.tsx` içinde ayrıca eklenir.
+ */
+export const getCoreWorkspaceRoutes = (): Set<BusinessWorkspaceRoute> => {
+  const routes = new Set<BusinessWorkspaceRoute>()
+
+  const walk = (items: BusinessWorkspaceModule['menuItems']) => {
+    items.forEach(item => {
+      if(item.foundationScope === 'frozen') return
+      if(item.route) routes.add(item.route)
+      if(item.children) walk(item.children)
+    })
+  }
+
+  BUSINESS_WORKSPACE_MODULE_REGISTRY.forEach(module => {
+    if(module.foundationScope === 'frozen') return
+    if(module.route) routes.add(module.route)
+    walk(module.menuItems)
+  })
+
+  NON_NAV_CORE_ROUTES.forEach(route => routes.add(route))
+
+  return routes
+}
+
+/** Rota Production Foundation kapsamının dışında mı? */
+export const isFrozenWorkspaceRoute = (route: BusinessWorkspaceRoute) => (
+  !getCoreWorkspaceRoutes().has(route)
+)

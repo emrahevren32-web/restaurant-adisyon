@@ -6,6 +6,7 @@ export type ApplicationShellProps = {
   children: React.ReactNode
   footer?: React.ReactNode
   sidebarCollapsed?: boolean
+  sidebarPeeked?: boolean
   mobileSidebarOpen?: boolean
   onOpenMobileSidebar?: () => void
   onCloseMobileSidebar?: () => void
@@ -30,6 +31,7 @@ export const ApplicationShell = ({
   children,
   footer,
   sidebarCollapsed = false,
+  sidebarPeeked = false,
   mobileSidebarOpen = false,
   onOpenMobileSidebar,
   onCloseMobileSidebar
@@ -82,9 +84,11 @@ export const ApplicationShell = ({
         'app-shell',
         'enterprise-shell',
         sidebarCollapsed ? 'sidebar-collapsed' : '',
+        sidebarPeeked ? 'sidebar-peeked' : '',
         mobileSidebarOpen ? 'mobile-sidebar-open' : ''
       ].filter(Boolean).join(' '),
       'data-sidebar-state': sidebarCollapsed ? 'collapsed' : 'expanded',
+      'data-sidebar-peek': sidebarPeeked ? 'open' : undefined,
       'data-mobile-sidebar': mobileSidebarOpen ? 'open' : 'closed',
       onPointerDown: mobileSidebarOpen ? handleSwipeStart : undefined,
       onPointerUp: mobileSidebarOpen ? handleSwipeEnd : undefined,

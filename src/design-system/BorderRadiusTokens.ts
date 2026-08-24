@@ -27,10 +27,10 @@ export const BORDER_RADIUS_TOKENS: BorderRadiusTokenMap = {
   none: '0',
   xs: '2px',
   sm: '4px',
-  md: '6px',
-  lg: '8px',
-  xl: '12px',
-  xxl: '16px',
+  md: '8px',
+  lg: '10px',
+  xl: '14px',
+  xxl: '20px',
   full: '999px',
   circle: '50%'
 }

@@ -1284,7 +1284,7 @@ const createPrintHtml = (model: ExecutiveDashboardModel, mode: 'PDF' | 'PRINT') 
     </head>
     <body>
       <header>
-        <h1>Executive Dashboard</h1>
+        <h1>Industrial Kitchen Operations</h1>
         <p>Oluşturulma: ${escapeHtml(formatDateTime(model.generatedAt))} / Yükleme: ${escapeHtml(model.loadMs)} ms</p>
       </header>
       <section class="grid">${kpiRows}</section>
@@ -1315,6 +1315,13 @@ const openPrintWindow = (model: ExecutiveDashboardModel, mode: 'PDF' | 'PRINT') 
   printWindow.document.close()
 }
 
+const KPI_TREND_LABEL: Record<KpiTone, string> = {
+  success: 'İyi',
+  warning: 'İzle',
+  danger: 'Kritik',
+  neutral: 'Normal'
+}
+
 export default function BusinessSummary(){
   const [model, setModel] = React.useState<ExecutiveDashboardModel | null>(null)
   const [loadProgress, setLoadProgress] = React.useState(18)
@@ -1333,7 +1340,7 @@ export default function BusinessSummary(){
         setLoadProgress(100)
       } catch(error) {
         if(cancelled) return
-        setLoadError(error instanceof Error ? error : new Error('Executive Dashboard yüklenemedi.'))
+        setLoadError(error instanceof Error ? error : new Error('Operasyon merkezi yüklenemedi.'))
       }
     }, 40)
 
@@ -1350,72 +1357,50 @@ export default function BusinessSummary(){
     return <ExecutiveDashboardLoading progress={loadProgress} />
   }
 
+  const criticalCount = model.criticalWarnings.filter(warning => warning.severity === 'CRITICAL').length
+  const highCount = model.criticalWarnings.filter(warning => warning.severity === 'HIGH').length
+
   return (
     <div className="business-summary-page executive-dashboard-page dashboard-experience-page">
       <DashboardExperienceHeader
-        eyebrow="Executive Dashboard"
-        title="Executive Dashboard"
+        eyebrow="Industrial Kitchen"
+        title="Operasyon Merkezi"
         icon="dashboard"
-        description="Endüstriyel mutfak operasyonları için üretim, depo, satın alma, kalite, sevkiyat, recall ve karar destek yönetici görünümü."
+        description="Üretim, depo, satın alma, kalite/HACCP, sevkiyat ve karar destek sinyalleri tek ekranda."
         meta={[
           { key: 'readonly', label: 'Salt Okunur', icon: 'success', tone: 'success' },
           { key: 'generated-at', label: formatDateTime(model.generatedAt), icon: 'report', tone: 'neutral' },
-          { key: 'load-ms', label: `${formatNumber(model.loadMs)} ms`, icon: 'analytics', tone: 'info' }
+          { key: 'timeline-count', label: `${formatNumber(model.timeline.length)} son işlem`, icon: 'analytics', tone: 'info' },
+          { key: 'load-ms', label: `${formatNumber(model.loadMs)} ms`, icon: 'analytics', tone: 'neutral' }
         ]}
         actions={[
-          { key: 'excel', label: 'Excel Dashboard', icon: 'excel', onClick: () => exportDashboardToExcel(model) },
-          { key: 'pdf', label: 'PDF Dashboard', icon: 'report', onClick: () => openPrintWindow(model, 'PDF') },
+          { key: 'excel', label: 'Excel', icon: 'excel', onClick: () => exportDashboardToExcel(model) },
+          { key: 'pdf', label: 'PDF Rapor', icon: 'report', onClick: () => openPrintWindow(model, 'PDF') },
           { key: 'print', label: 'Yazdır', icon: 'print', tone: 'primary', onClick: () => openPrintWindow(model, 'PRINT') }
         ]}
       />
 
-      <div className="executive-dashboard-meta">
-        <span>Oluşturulma: {formatDateTime(model.generatedAt)}</span>
-        <span>Yükleme: {formatNumber(model.loadMs)} ms</span>
-        <span>{formatNumber(model.timeline.length)} son işlem</span>
+      <OperationalKpiStrip cards={model.kpiCards} />
+
+      <AttentionRequiredPanel warnings={model.criticalWarnings} criticalCount={criticalCount} highCount={highCount} />
+
+      <div className="op-main-grid">
+        <div className="op-main-column">
+          <OperationRatesPanel items={model.operationSummary} />
+          <div className="op-chart-grid">
+            {model.trendCharts.map(series => <LineChartCard key={series.id} series={series} />)}
+            {model.barCharts.map(chart => <BarChartCard key={chart.id} title={chart.title} rows={chart.rows} />)}
+          </div>
+        </div>
+        <div className="op-side-column">
+          <DecisionSupportPanel items={model.decisionSummary} />
+          <UpcomingPanel items={model.upcoming} />
+        </div>
       </div>
 
-      <KpiCardGrid cards={model.kpiCards} />
+      <TimelineTable items={model.timeline} />
 
-      <section className="card executive-dashboard-section">
-        <div className="section-header compact">
-          <div>
-            <h3>Operasyon Özeti</h3>
-            <p className="muted">Üretim, sevkiyat, satın alma, depo ve HACCP sinyalleri aynı read-model üzerinden hesaplandı.</p>
-          </div>
-        </div>
-        <OperationSummaryGrid items={model.operationSummary} />
-      </section>
-
-      <section className="executive-dashboard-section">
-        <div className="section-header compact">
-          <div>
-            <h3>Grafikler</h3>
-            <p className="muted">Günlük trendler, doluluklar, fire ve maliyet kırılımları.</p>
-          </div>
-        </div>
-        <div className="executive-dashboard-chart-grid">
-          {model.trendCharts.map(series => <LineChartCard key={series.id} series={series} />)}
-          {model.barCharts.map(chart => <BarChartCard key={chart.id} title={chart.title} rows={chart.rows} />)}
-        </div>
-      </section>
-
-      <section className="card executive-dashboard-section">
-        <div className="section-header compact">
-          <div>
-            <h3>Karar Destek Özeti</h3>
-            <p className="muted">Kritik alarm, tahminleme, otomatik öneriler ve optimizasyon motorları.</p>
-          </div>
-        </div>
-        <DecisionSummaryGrid items={model.decisionSummary} />
-      </section>
-
-      <section className="executive-dashboard-bottom-grid">
-        <TimelinePanel items={model.timeline} />
-        <UpcomingPanel items={model.upcoming} />
-        <CriticalWarningsPanel warnings={model.criticalWarnings} />
-        <QuickAccessPanel items={model.quickAccess} />
-      </section>
+      <QuickAccessRow items={model.quickAccess} />
     </div>
   )
 }
@@ -1425,9 +1410,9 @@ function ExecutiveDashboardLoading({ progress }: { progress: number }){
     <div className="business-summary-page executive-dashboard-page dashboard-experience-page">
       <DashboardExperienceHeader
         eyebrow="Hazırlanıyor"
-        title="Executive Dashboard"
+        title="Operasyon Merkezi"
         icon="dashboard"
-        description="Yönetici görünümü oluşturuluyor."
+        description="Operasyon merkezi görünümü oluşturuluyor."
         meta={[
           { key: 'progress', label: `%${clampValue(progress, 8, 100)}`, icon: 'analytics', tone: 'info' }
         ]}
@@ -1436,7 +1421,7 @@ function ExecutiveDashboardLoading({ progress }: { progress: number }){
         <PremiumLinearProgress
           value={clampValue(progress, 8, 100)}
           status="running"
-          label="Executive Dashboard"
+          label="Operasyon Merkezi"
           statusLabel="Hazirlaniyor"
           size="large"
         />
@@ -1446,9 +1431,9 @@ function ExecutiveDashboardLoading({ progress }: { progress: number }){
   )
 }
 
-function KpiCardGrid({ cards }: { cards: ExecutiveKpiCard[] }){
+function OperationalKpiStrip({ cards }: { cards: ExecutiveKpiCard[] }){
   return (
-    <div className="metric-grid executive-dashboard-kpi-grid">
+    <section className="op-kpi-strip" aria-label="Operasyonel KPI özeti">
       {cards.map(card => (
         <DashboardKpiCard
           key={card.id}
@@ -1456,30 +1441,131 @@ function KpiCardGrid({ cards }: { cards: ExecutiveKpiCard[] }){
           value={card.value}
           detail={card.detail}
           tone={card.tone}
-          icon="analytics"
-          trend={card.tone === 'success' ? 'İyi' : card.tone === 'warning' ? 'İzle' : card.tone === 'danger' ? 'Kritik' : 'Normal'}
+          trend={KPI_TREND_LABEL[card.tone]}
         />
       ))}
-    </div>
+    </section>
   )
 }
 
-function OperationSummaryGrid({ items }: { items: OperationSummaryItem[] }){
+function AttentionRequiredPanel({
+  warnings,
+  criticalCount,
+  highCount
+}: {
+  warnings: CriticalWarning[]
+  criticalCount: number
+  highCount: number
+}){
+  const visibleWarnings = warnings.slice(0, 8)
+  const remaining = warnings.length - visibleWarnings.length
+  const panelClassName = [
+    'op-attention-panel',
+    criticalCount > 0 ? 'has-critical' : highCount > 0 ? 'has-warning' : ''
+  ].filter(Boolean).join(' ')
+
   return (
-    <div className="executive-operation-grid">
-      {items.map(item => (
-        <div className={`executive-operation-row ${item.tone}`} key={item.id}>
-          <div>
-            <strong>{item.label}</strong>
-            <span>{item.detail}</span>
-          </div>
-          <em>{item.formattedValue}</em>
-          <div className="executive-progress-track" aria-hidden="true">
-            <span style={{ width: `${clampValue(item.value, 0, 100)}%` }} />
-          </div>
+    <section className={panelClassName} aria-label="Acil dikkat gerektiren konular">
+      <div className="op-attention-header">
+        <h3>Dikkat Gerektiren Konular</h3>
+        <span className="op-attention-count">
+          {warnings.length === 0
+            ? 'Kritik risk sinyali yok'
+            : `${formatNumber(criticalCount)} kritik / ${formatNumber(highCount)} yüksek / ${formatNumber(warnings.length)} toplam`}
+        </span>
+      </div>
+      {visibleWarnings.length === 0 ? (
+        <p className="op-attention-empty">Şu anda üretim, stok, kalite veya sevkiyat tarafında kritik bir risk sinyali bulunmuyor.</p>
+      ) : (
+        <div className="op-attention-list">
+          {visibleWarnings.map(warning => (
+            <div className={`op-attention-row ${warning.severity.toLocaleLowerCase('tr-TR')}`} key={warning.id}>
+              <span className="op-attention-dot" aria-hidden="true" />
+              <div className="op-attention-copy">
+                <span>{warning.category}</span>
+                <strong>{warning.title}</strong>
+                <small>{warning.detail}</small>
+              </div>
+            </div>
+          ))}
         </div>
-      ))}
-    </div>
+      )}
+      {remaining > 0 && <span className="op-attention-more">+{formatNumber(remaining)} kayıt daha</span>}
+    </section>
+  )
+}
+
+function OperationRatesPanel({ items }: { items: OperationSummaryItem[] }){
+  return (
+    <section className="operational-panel">
+      <div className="operational-panel-header">
+        <div>
+          <h3>Operasyon Oranları</h3>
+          <p className="muted">Üretim, sevkiyat, satın alma, depo ve HACCP oranları aynı read-model üzerinden hesaplandı.</p>
+        </div>
+      </div>
+      <div className="op-rate-list">
+        {items.map(item => (
+          <div className={`op-rate-row ${item.tone}`} key={item.id}>
+            <span className="op-rate-label">{item.label}</span>
+            <span className="op-rate-value">{item.formattedValue}</span>
+            <span className="op-rate-track" aria-hidden="true">
+              <span style={{ width: `${clampValue(item.value, 0, 100)}%` }} />
+            </span>
+            <span className="op-rate-detail">{item.detail}</span>
+          </div>
+        ))}
+      </div>
+    </section>
+  )
+}
+
+function DecisionSupportPanel({ items }: { items: DecisionSummaryItem[] }){
+  return (
+    <section className="operational-panel">
+      <div className="operational-panel-header">
+        <div>
+          <h3>Karar Destek</h3>
+          <p className="muted">Alarm, tahmin, öneri ve optimizasyon motorlarının özeti.</p>
+        </div>
+      </div>
+      <div className="op-decision-list">
+        {items.map(item => (
+          <div className={`op-decision-row ${item.tone}`} key={item.id}>
+            <div className="op-decision-copy">
+              <strong>{item.label}</strong>
+              <small>{item.detail}</small>
+            </div>
+            <span className="op-decision-value">{item.value}</span>
+          </div>
+        ))}
+      </div>
+    </section>
+  )
+}
+
+function UpcomingPanel({ items }: { items: UpcomingItem[] }){
+  return (
+    <section className="operational-panel">
+      <div className="operational-panel-header">
+        <div>
+          <h3>Yaklaşan İşler</h3>
+          <p className="muted">{formatNumber(items.length)} yaklaşan kayıt</p>
+        </div>
+      </div>
+      <div className="op-upcoming-list">
+        {items.length === 0 && <div className="empty-cell">Yaklaşan kayıt bulunamadı.</div>}
+        {items.slice(0, 10).map(item => (
+          <div className={`op-upcoming-row ${item.tone}`} key={item.id}>
+            <div className="op-upcoming-copy">
+              <strong>{item.title}</strong>
+              <small>{item.category} · {item.detail}</small>
+            </div>
+            <span className="op-upcoming-date">{formatDate(item.date)}</span>
+          </div>
+        ))}
+      </div>
+    </section>
   )
 }
 
@@ -1543,111 +1629,63 @@ function BarChartCard({
   )
 }
 
-function DecisionSummaryGrid({ items }: { items: DecisionSummaryItem[] }){
-  return (
-    <div className="executive-decision-grid">
-      {items.map(item => (
-        <article className={`executive-decision-card ${item.tone}`} key={item.id}>
-          <span>{item.label}</span>
-          <strong>{item.value}</strong>
-          <small>{item.detail}</small>
-        </article>
-      ))}
-    </div>
-  )
-}
+function TimelineTable({ items }: { items: ExecutiveTimelineItem[] }){
+  const visibleItems = items.slice(0, 40)
 
-function TimelinePanel({ items }: { items: ExecutiveTimelineItem[] }){
   return (
-    <section className="card executive-list-panel executive-timeline-panel">
-      <div className="section-header compact">
+    <section className="operational-panel">
+      <div className="operational-panel-header">
         <div>
-          <h3>Son İşlemler</h3>
-          <p className="muted">Son {formatNumber(items.length)} kayıt</p>
+          <h3>Operasyonel Zaman Çizelgesi</h3>
+          <p className="muted">Son {formatNumber(visibleItems.length)} / {formatNumber(items.length)} kayıt</p>
         </div>
       </div>
-      <div className="executive-timeline-list">
-        {items.length === 0 && <div className="empty-cell">Timeline kaydı bulunamadı.</div>}
-        {items.map(item => (
-          <div className={`executive-timeline-row ${item.tone}`} key={item.id}>
-            <span>{item.module}</span>
-            <strong>{item.title}</strong>
-            <small>{item.detail}</small>
-            <em>{item.status} / {formatDateTime(item.timestamp)}</em>
-          </div>
-        ))}
+      <div className="op-table-wrap">
+        <table className="op-data-table">
+          <thead>
+            <tr>
+              <th>Modül</th>
+              <th>Başlık</th>
+              <th>Detay</th>
+              <th>Durum</th>
+              <th>Zaman</th>
+            </tr>
+          </thead>
+          <tbody>
+            {visibleItems.length === 0 && (
+              <tr><td className="op-table-empty" colSpan={5}>Timeline kaydı bulunamadı.</td></tr>
+            )}
+            {visibleItems.map(item => (
+              <tr key={item.id}>
+                <td>{item.module}</td>
+                <td className="op-table-title">{item.title}</td>
+                <td>{item.detail}</td>
+                <td><span className={`status-pill ${item.tone}`}>{item.status}</span></td>
+                <td className="numeric">{formatDateTime(item.timestamp)}</td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
       </div>
     </section>
   )
 }
 
-function UpcomingPanel({ items }: { items: UpcomingItem[] }){
+function QuickAccessRow({ items }: { items: QuickAccessItem[] }){
   return (
-    <section className="card executive-list-panel">
-      <div className="section-header compact">
-        <div>
-          <h3>Yaklaşan İşler</h3>
-          <p className="muted">{formatNumber(items.length)} yaklaşan kayıt</p>
-        </div>
-      </div>
-      <div className="executive-compact-list">
-        {items.length === 0 && <div className="empty-cell">Yaklaşan kayıt bulunamadı.</div>}
-        {items.map(item => (
-          <div className={`executive-compact-row ${item.tone}`} key={item.id}>
-            <div>
-              <span>{item.category}</span>
-              <strong>{item.title}</strong>
-              <small>{item.detail}</small>
-            </div>
-            <em>{formatDate(item.date)}</em>
-          </div>
-        ))}
-      </div>
-    </section>
-  )
-}
-
-function CriticalWarningsPanel({ warnings }: { warnings: CriticalWarning[] }){
-  return (
-    <section className="card executive-list-panel executive-warning-panel">
-      <div className="section-header compact">
-        <div>
-          <h3>Kritik Uyarılar</h3>
-          <p className="muted">{formatNumber(warnings.length)} risk sinyali</p>
-        </div>
-      </div>
-      <div className="executive-warning-list">
-        {warnings.length === 0 && <div className="empty-cell">Kritik uyarı bulunamadı.</div>}
-        {warnings.map(warning => (
-          <div className={`executive-warning-row ${warning.severity.toLocaleLowerCase('tr-TR')}`} key={warning.id}>
-            <span>{warning.category}</span>
-            <strong>{warning.title}</strong>
-            <small>{warning.detail}</small>
-            <em>{warning.severity}</em>
-          </div>
-        ))}
-      </div>
-    </section>
-  )
-}
-
-function QuickAccessPanel({ items }: { items: QuickAccessItem[] }){
-  return (
-    <section className="card executive-list-panel">
-      <div className="section-header compact">
+    <section className="operational-panel">
+      <div className="operational-panel-header">
         <div>
           <h3>Hızlı Erişim</h3>
           <p className="muted">Temel operasyon modülleri</p>
         </div>
       </div>
-      <div className="executive-quick-access-grid">
+      <div className="op-quick-access-row">
         {items.map(item => (
-          <article className={`executive-quick-access-card ${item.tone}`} key={item.id}>
-            <span>{item.module}</span>
-            <strong>{item.label}</strong>
-            <small>{item.detail}</small>
-            <em>{item.route}</em>
-          </article>
+          <span className="op-quick-access-chip" key={item.id} title={item.detail}>
+            <span className="op-quick-access-module">{item.module}</span>
+            {item.label}
+          </span>
         ))}
       </div>
     </section>

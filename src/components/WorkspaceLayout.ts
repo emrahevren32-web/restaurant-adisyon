@@ -28,7 +28,8 @@ export const WorkspaceLayout = ({
 }: WorkspaceLayoutProps) => {
   const titleId = `workspace-title-${(navigationKey || title).replace(/[^a-z0-9_-]/gi, '-').toLocaleLowerCase('en-US')}`
   const subtitleId = subtitle ? `${titleId}-description` : undefined
-  const hasHeaderAside = Boolean(status || navigation)
+  const hasHeaderDetails = Boolean(context || status)
+  const hasHeaderCommandbar = Boolean(navigation)
 
   return React.createElement(
     'main',
@@ -54,62 +55,56 @@ export const WorkspaceLayout = ({
         React.createElement(
           'header',
           {
-            className: 'workspace-header enterprise-workspace-header',
+            className: 'workspace-header enterprise-workspace-header workspace-header-v2',
             'aria-labelledby': titleId
           },
           React.createElement(
             'div',
-            { className: 'workspace-header-main' },
-            breadcrumbs.length > 0
-              ? React.createElement(NavigationBreadcrumb, {
-                items: breadcrumbs,
-                className: 'workspace-header-breadcrumb'
-              })
-              : null,
+            { className: 'workspace-header-top-row' },
             React.createElement(
               'div',
-              { className: 'workspace-header-title-row' },
-              React.createElement(
-                'span',
-                { className: 'workspace-header-icon', 'aria-hidden': true },
-                React.createElement(AppIcon, { name: 'workspace', size: 'SM' })
-              ),
+              { className: 'workspace-header-title-zone' },
+              breadcrumbs.length > 0
+                ? React.createElement(NavigationBreadcrumb, {
+                  items: breadcrumbs,
+                  className: 'workspace-header-breadcrumb'
+                })
+                : null,
               React.createElement(
                 'div',
-                { className: 'workspace-header-copy' },
-                React.createElement('span', { className: 'workspace-header-kicker' }, 'Workspace'),
+                { className: 'workspace-header-heading' },
                 React.createElement('h1', { id: titleId }, title),
                 subtitle
-                  ? React.createElement('p', { id: subtitleId }, subtitle)
+                  ? React.createElement('span', { id: subtitleId, className: 'workspace-header-subtitle' }, subtitle)
                   : null
               )
-            )
+            ),
+            hasHeaderDetails
+              ? React.createElement(
+                'div',
+                { className: 'workspace-header-meta-zone' },
+                context
+                  ? React.createElement(
+                    'div',
+                    { className: 'workspace-header-context', 'aria-label': 'Sayfa bağlamı' },
+                    context
+                  )
+                  : null,
+                status
+                  ? React.createElement(
+                    'div',
+                    { className: 'workspace-header-status', 'aria-label': 'Sayfa durumu' },
+                    status
+                  )
+                  : null
+              )
+              : null
           ),
-          context
+          hasHeaderCommandbar
             ? React.createElement(
               'div',
-              { className: 'workspace-header-context', 'aria-label': 'Sayfa bağlamı' },
-              context
-            )
-            : null,
-          hasHeaderAside
-            ? React.createElement(
-              'div',
-              { className: 'workspace-header-aside' },
-              status
-                ? React.createElement(
-                  'div',
-                  { className: 'workspace-header-status', 'aria-label': 'Sayfa durumu' },
-                  status
-                )
-                : null,
+              { className: 'workspace-header-commandbar' },
               navigation
-                ? React.createElement(
-                  'div',
-                  { className: 'workspace-header-actions', 'aria-label': 'Hızlı sayfa aksiyonları' },
-                  navigation
-                )
-                : null
             )
             : null
         ),

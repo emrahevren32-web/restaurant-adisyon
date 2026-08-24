@@ -169,11 +169,11 @@ export const PREMIUM_GLASS_SURFACES: PremiumGlassSurface[] = [
 export const PREMIUM_ACCENT_PALETTES: Record<ThemeMode, Record<PremiumAccentName, PremiumColorRole>> = {
   light: {
     miyopBlue: {
-      base: '#2557d6',
-      hover: '#1f49b8',
-      soft: '#edf3ff',
-      subtle: '#dfe9ff',
-      line: '#b9cdfb',
+      base: '#0d9488',
+      hover: '#0f766e',
+      soft: '#ecfdf9',
+      subtle: '#c7f4ea',
+      line: '#7ee6d3',
       contrast: '#ffffff'
     },
     blue: {
@@ -195,9 +195,9 @@ export const PREMIUM_ACCENT_PALETTES: Record<ThemeMode, Record<PremiumAccentName
     teal: {
       base: '#0f766e',
       hover: '#115e59',
-      soft: '#eefbf8',
-      subtle: '#d7f3ee',
-      line: '#a8ded7',
+      soft: '#f0fdfa',
+      subtle: '#ccfbf1',
+      line: '#99f6e4',
       contrast: '#ffffff'
     },
     indigo: {
@@ -251,12 +251,12 @@ export const PREMIUM_ACCENT_PALETTES: Record<ThemeMode, Record<PremiumAccentName
   },
   dark: {
     miyopBlue: {
-      base: '#8ab4ff',
-      hover: '#a8c8ff',
-      soft: 'rgba(77, 123, 255, .18)',
-      subtle: 'rgba(77, 123, 255, .25)',
-      line: 'rgba(154, 189, 255, .42)',
-      contrast: '#23272e'
+      base: '#2dd4bf',
+      hover: '#5eead4',
+      soft: 'rgba(45, 212, 191, .16)',
+      subtle: 'rgba(45, 212, 191, .24)',
+      line: 'rgba(45, 212, 191, .38)',
+      contrast: '#0b0f17'
     },
     blue: {
       base: '#93c5fd',
@@ -337,119 +337,119 @@ export const PREMIUM_THEME_TOKENS: Record<ThemeMode, PremiumThemeTokens> = {
   light: {
     mode: 'light',
     app: {
-      bg: '#f5f4f0',
-      muted: '#eceae4',
-      canvas: 'linear-gradient(180deg, #fbfaf6 0%, #f4f3ef 46%, #eceae4 100%)'
+      bg: '#f8fafc',
+      muted: '#f1f5f9',
+      canvas: '#f8fafc'
     },
     color: {
-      white: '#fffdf8',
-      black: '#161b22'
+      white: '#ffffff',
+      black: '#0f172a'
     },
     text: {
-      primary: '#161b22',
-      secondary: '#303a46',
-      muted: '#687382',
-      mutedStrong: '#4b5563',
+      primary: '#0f172a',
+      secondary: '#334155',
+      muted: '#64748b',
+      mutedStrong: '#475569',
       inverse: '#ffffff'
     },
     icon: {
-      default: '#3f4854',
-      muted: '#687382',
+      default: '#475569',
+      muted: '#64748b',
       inverse: '#ffffff'
     },
     surface: {
-      0: '#fffdf8',
-      1: '#faf9f5',
-      2: '#f3f1ec',
-      3: '#ebe7df',
-      4: '#ddd8ce'
+      0: '#ffffff',
+      1: '#ffffff',
+      2: '#f8fafc',
+      3: '#f1f5f9',
+      4: '#e2e8f0'
     },
     card: {
       background: 'var(--theme-surface-0)',
-      raised: 'var(--theme-surface-1)'
+      raised: 'var(--theme-surface-0)'
     },
     border: {
-      subtle: '#e6e1d8',
-      default: '#d5cec2',
-      strong: '#b9afa1',
-      focus: '#2557d6'
+      subtle: '#f1f5f9',
+      default: '#e2e8f0',
+      strong: '#cbd5e1',
+      focus: '#0f766e'
     },
     semantic: {
       primary: PREMIUM_ACCENT_PALETTES.light.miyopBlue,
       secondary: {
         base: '#475569',
         hover: '#334155',
-        soft: '#f3f6f9',
-        subtle: '#e7edf3',
-        line: '#c4cedb',
+        soft: '#f1f5f9',
+        subtle: '#e2e8f0',
+        line: '#cbd5e1',
         contrast: '#ffffff'
       },
       success: {
-        base: '#047857',
-        hover: '#065f46',
-        soft: '#edfdf6',
-        subtle: '#d8f7e8',
-        line: '#a9e8ca',
+        base: '#059669',
+        hover: '#047857',
+        soft: '#ecfdf5',
+        subtle: '#d1fae5',
+        line: '#a7f3d0',
         contrast: '#ffffff'
       },
       warning: {
-        base: '#b45309',
-        hover: '#92400e',
-        soft: '#fff8ed',
-        subtle: '#ffedcf',
-        line: '#f3ca8f',
+        base: '#d97706',
+        hover: '#b45309',
+        soft: '#fffbeb',
+        subtle: '#fef3c7',
+        line: '#fde68a',
         contrast: '#ffffff'
       },
       danger: {
-        base: '#b42318',
-        hover: '#991b1b',
-        soft: '#fff3f2',
-        subtle: '#ffe3e1',
-        line: '#f6bbb6',
+        base: '#dc2626',
+        hover: '#b91c1c',
+        soft: '#fef2f2',
+        subtle: '#fee2e2',
+        line: '#fecaca',
         contrast: '#ffffff'
       },
       error: {
-        base: '#b42318',
-        hover: '#991b1b',
-        soft: '#fff3f2',
-        subtle: '#ffe3e1',
-        line: '#f6bbb6',
+        base: '#dc2626',
+        hover: '#b91c1c',
+        soft: '#fef2f2',
+        subtle: '#fee2e2',
+        line: '#fecaca',
         contrast: '#ffffff'
       },
       info: {
-        base: '#2563eb',
-        hover: '#1d4ed8',
-        soft: '#eff6ff',
-        subtle: '#dbeafe',
-        line: '#bfdbfe',
+        base: '#0284c7',
+        hover: '#0369a1',
+        soft: '#f0f9ff',
+        subtle: '#e0f2fe',
+        line: '#bae6fd',
         contrast: '#ffffff'
       },
       neutral: {
         base: '#475569',
         hover: '#334155',
-        soft: '#f3f4f6',
-        subtle: '#e8eaee',
-        line: '#ccd2da',
+        soft: '#f8fafc',
+        subtle: '#f1f5f9',
+        line: '#e2e8f0',
         contrast: '#ffffff'
       }
     },
     state: {
-      hover: '#f0eee8',
-      active: '#edf3ff',
-      selected: '#e7efff',
-      disabledBackground: '#eceae4',
+      hover: '#f8fafc',
+      active: '#f0fdfa',
+      selected: '#f0fdfa',
+      disabledBackground: '#f1f5f9',
       disabledText: '#94a3b8',
-      focusRing: '0 0 0 3px rgba(37, 87, 214, .18)'
+      focusRing: '0 0 0 3px rgba(15, 118, 110, .20)'
     },
     shadow: {
       none: 'none',
-      xs: '0 1px 2px rgba(22, 27, 34, .035)',
-      sm: '0 1px 2px rgba(22, 27, 34, .03), 0 12px 28px rgba(22, 27, 34, .045)',
-      md: '0 18px 42px rgba(22, 27, 34, .07)',
-      lg: '0 24px 58px rgba(22, 27, 34, .095)',
-      xl: '0 32px 82px rgba(22, 27, 34, .13)',
-      floating: '0 28px 76px rgba(22, 27, 34, .15)',
-      overlay: '0 36px 96px rgba(22, 27, 34, .22)'
+      xs: '0 1px 2px rgba(15, 23, 42, .04)',
+      sm: '0 1px 2px rgba(15, 23, 42, .03), 0 10px 24px rgba(15, 23, 42, .05)',
+      md: '0 16px 36px rgba(15, 23, 42, .07)',
+      lg: '0 22px 52px rgba(15, 23, 42, .09)',
+      xl: '0 30px 76px rgba(15, 23, 42, .12)',
+      floating: '0 26px 70px rgba(15, 23, 42, .14)',
+      overlay: '0 34px 92px rgba(15, 23, 42, .20)'
     },
     blur: {
       none: 'none',

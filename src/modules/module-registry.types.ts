@@ -15,6 +15,18 @@ export const MODULE_SCOPES = {
   PLATFORM: 'PLATFORM'
 } as const
 
+/**
+ * Production Foundation kapsamı — ADR-002.
+ *
+ * 'core'   : gerçek veri katmanına taşınan, menüde görünen, testleri yazılan modül.
+ * 'frozen' : kodu repoda duran ama menüde ve rotada kapalı olan modül.
+ *
+ * Bu alan `scope` (SYSTEM/BUSINESS/PLATFORM) ile karıştırılmamalıdır; o organizasyonel
+ * yerleşimi, bu ise teslim kapsamını anlatır. `isEnabled`/`isVisible` ile de aynı şey
+ * değildir: onlar lisans ve marketplace kavramlarıdır.
+ */
+export type FoundationScope = 'core' | 'frozen'
+
 export type WorkspaceModuleType = typeof WORKSPACE_MODULE_TYPES[keyof typeof WORKSPACE_MODULE_TYPES]
 export type ModuleScope = typeof MODULE_SCOPES[keyof typeof MODULE_SCOPES]
 export type WorkspaceModuleCategory = WorkspaceModuleType
@@ -70,6 +82,8 @@ export type WorkspaceModuleMenuItem<Route extends string, NavKey extends string>
   hidden?: boolean
   disabledReason?: string
   displayOrder?: number
+  /** Belirtilmezse modülün foundationScope'u geçerlidir. Bkz. ADR-002. */
+  foundationScope?: FoundationScope
 }
 
 export type WorkspaceModuleRegistryItem<Route extends string, NavKey extends string> = {
@@ -80,6 +94,8 @@ export type WorkspaceModuleRegistryItem<Route extends string, NavKey extends str
   category: WorkspaceModuleCategory
   moduleType: WorkspaceModuleType
   scope: ModuleScope
+  /** Production Foundation teslim kapsamı — zorunlu. Bkz. ADR-002. */
+  foundationScope: FoundationScope
   icon: string
   route: Route
   permissions: PermissionName[]

@@ -81,6 +81,7 @@ import {
   KPI_REPORTING_MODULE_CODE,
   getBusinessWorkspaceModuleByCode,
   getBusinessWorkspaceModuleByLicenseKey,
+  getCoreWorkspaceRoutes,
   isBusinessWorkspaceModuleAvailableForSector
 } from './modules/business-workspace.registry'
 
@@ -104,12 +105,10 @@ const allBusinessWorkspaceNavGroups = createBusinessWorkspaceNavGroups() as NavG
 const platformRouteSet = getPlatformRoutes() as Set<Route>
 const platformNavGroups: NavGroup[] = createPlatformNavGroups() as NavGroup[]
 
-const businessWorkspaceRouteSet = new Set<Route>(
-  allBusinessWorkspaceNavGroups
-    .flatMap(group => flattenAppNavItems(group.items))
-    .map(item => item.route)
-    .filter(Boolean) as Route[]
-)
+// ADR-002: tek kaynak registry'deki beyaz liste. Dondurulmuş modüllerin ve menü
+// ögelerinin rotaları buraya hiç girmez; navigasyon dışından açılan rotalar
+// (profil, karşılama vb.) NON_NAV_CORE_ROUTES üzerinden gelir.
+const businessWorkspaceRouteSet = getCoreWorkspaceRoutes() as Set<Route>
 
 const isBusinessWorkspaceRoute = (nextRoute: Route): nextRoute is BusinessWorkspaceRoute => {
   return businessWorkspaceRouteSet.has(nextRoute)
@@ -733,6 +732,8 @@ export default function App(){
       onToggleGroup={toggleNavGroup}
       onOpenNavItem={openNavItem}
       onOpenNotification={openEvren360NotificationTarget}
+      onOpenMyProfile={!isPlatformAdmin ? () => setRoute('my-profile') : undefined}
+      onOpenCompanyProfile={!isPlatformAdmin ? () => setRoute('company-profile') : undefined}
       onStartOnboarding={!isPlatformAdmin && workspaceSetupCompleted ? startOnboardingExperience : undefined}
       onActiveBranchChange={changeActiveBranch}
       onLogout={logout}

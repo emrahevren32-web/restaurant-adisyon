@@ -762,7 +762,12 @@ export type Company = {
   city: string
   district: string
   address: string
+  postalCode?: string
+  website?: string
+  /** Short trading name, when the legal name is unwieldy. */
+  shortName?: string
   authorizedPerson: string
+  authorizedTitle?: string
   authorizedPhone: string
   authorizedEmail: string
   status: CompanyStatus
@@ -942,19 +947,38 @@ export type PlatformSettings = {
   updatedAt: string
 }
 
+/** Operating character of a location — drives nothing yet, but reporting will group on it. */
+export type BranchType = 'merkez' | 'sube' | 'uretim' | 'depo' | 'satis'
+
+export const BRANCH_TYPE_LABELS: Record<BranchType, string> = {
+  merkez: 'Merkez',
+  sube: 'Şube',
+  uretim: 'Üretim Tesisi',
+  depo: 'Depo',
+  satis: 'Satış Noktası'
+}
+
 export type Branch = {
   id: string
   tenantId?: string
   companyId?: string
   code: string
   name: string
+  branchType?: BranchType
   phone: string
   email: string
   address: string
   city: string
   district?: string
+  postalCode?: string
   managerName: string
   isActive: boolean
+  /**
+   * Marks the company's head office. Authoritative source stays
+   * `Company.defaultBranchId`; this flag mirrors it so a branch row can be
+   * judged on its own. Never both true for one company.
+   */
+  isHeadOffice?: boolean
   createdAt: string
   updatedAt: string
 }
@@ -1252,6 +1276,10 @@ export type CollectionTransaction = {
 }
 
 export type ActionLogType =
+  | 'Merkez şube değiştirildi'
+  | 'Şube pasife alındı'
+  | 'Firma profili güncellendi'
+  | 'Profil güncellendi'
   | 'Masa oluşturuldu'
   | 'Masa silindi'
   | 'Masa adı değiştirildi'

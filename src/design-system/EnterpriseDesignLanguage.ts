@@ -3,22 +3,22 @@ const ENTERPRISE_DESIGN_LANGUAGE_STYLE_ELEMENT_ID = 'miyop-enterprise-design-lan
 const ENTERPRISE_DESIGN_LANGUAGE_TOKENS = {
   grid: '8px',
   density: {
-    shellSidebar: '240px',
-    shellSidebarWide: '256px',
-    shellSidebarCollapsed: '64px',
+    shellSidebar: '260px',
+    shellSidebarWide: '260px',
+    shellSidebarCollapsed: '68px',
     topbar: '64px',
     topbarWide: '64px',
-    control: '40px',
-    controlCompact: '32px',
-    iconButton: '40px',
-    touch: '48px'
+    control: '36px',
+    controlCompact: '30px',
+    iconButton: '36px',
+    touch: '40px'
   },
   space: {
     pageX: 'var(--space-24)',
-    pageY: 'var(--space-24)',
-    section: 'var(--space-24)',
-    cluster: 'var(--space-16)',
-    item: '8px'
+    pageY: 'var(--space-16)',
+    section: 'var(--space-16)',
+    cluster: 'var(--space-12)',
+    item: '6px'
   },
   layout: {
     contentMax: '1440px',
@@ -26,14 +26,14 @@ const ENTERPRISE_DESIGN_LANGUAGE_TOKENS = {
     contentLaptop: '1280px',
     contentCompact: '1120px',
     readableMax: '960px',
-    headerMinHeight: '112px',
-    headerPaddingY: 'var(--space-24)',
-    headerPaddingX: 'var(--space-24)',
-    toolbarMinHeight: '56px',
-    toolbarGap: 'var(--space-12)',
-    contentGap: 'var(--space-24)',
-    cardGap: 'var(--space-16)',
-    cardPadding: 'var(--space-24)'
+    headerMinHeight: 'auto',
+    headerPaddingY: 'var(--space-12)',
+    headerPaddingX: 'var(--space-20)',
+    toolbarMinHeight: '48px',
+    toolbarGap: 'var(--space-8)',
+    contentGap: 'var(--space-16)',
+    cardGap: 'var(--space-12)',
+    cardPadding: 'var(--space-16)'
   },
   type: {
     display: 'var(--type-h1-size)',
@@ -50,17 +50,17 @@ const ENTERPRISE_DESIGN_LANGUAGE_TOKENS = {
     base: 'var(--theme-surface-0)',
     raised: 'var(--theme-surface-1)',
     muted: 'var(--theme-surface-2)',
-    chrome: 'linear-gradient(180deg, color-mix(in srgb, var(--theme-surface-1) 94%, var(--theme-app-muted)), var(--theme-surface-1))',
-    card: 'linear-gradient(180deg, var(--theme-surface-0), color-mix(in srgb, var(--theme-surface-1) 92%, var(--theme-app-muted)))',
-    cardHover: 'linear-gradient(180deg, var(--theme-surface-0), color-mix(in srgb, var(--theme-surface-1) 84%, var(--theme-semantic-primary-soft)))',
-    control: 'linear-gradient(180deg, color-mix(in srgb, var(--theme-surface-0) 92%, var(--theme-surface-1)), var(--theme-surface-1))',
-    selected: 'linear-gradient(90deg, var(--theme-semantic-primary-soft), color-mix(in srgb, var(--theme-surface-1) 76%, transparent))'
+    chrome: 'var(--theme-surface-0)',
+    card: 'var(--theme-surface-0)',
+    cardHover: 'var(--theme-surface-0)',
+    control: 'var(--theme-surface-0)',
+    selected: 'var(--theme-semantic-primary-soft)'
   },
   border: {
-    subtle: 'color-mix(in srgb, var(--theme-border-subtle) 28%, transparent)',
-    default: 'color-mix(in srgb, var(--theme-border-default) 42%, transparent)',
-    strong: 'color-mix(in srgb, var(--theme-border-default) 58%, transparent)',
-    accent: 'color-mix(in srgb, var(--theme-semantic-primary-line) 48%, transparent)'
+    subtle: 'var(--line-soft)',
+    default: 'var(--line)',
+    strong: 'var(--line-strong)',
+    accent: 'var(--accent-line)'
   },
   shadow: {
     rest: '0 1px 2px color-mix(in srgb, var(--theme-text-primary) 4%, transparent), 0 12px 28px color-mix(in srgb, var(--theme-text-primary) 5%, transparent)',

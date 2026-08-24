@@ -5,6 +5,8 @@ import type { User } from '../types'
 export type TopbarProfileMenuProps = {
   currentUser: User
   initials: string
+  onOpenMyProfile?: () => void
+  onOpenCompanyProfile?: () => void
   onStartOnboarding?: () => void
   onLogout: () => void
 }
@@ -12,6 +14,8 @@ export type TopbarProfileMenuProps = {
 export const TopbarProfileMenu = ({
   currentUser,
   initials,
+  onOpenMyProfile,
+  onOpenCompanyProfile,
   onStartOnboarding,
   onLogout
 }: TopbarProfileMenuProps) => {
@@ -84,11 +88,45 @@ export const TopbarProfileMenu = ({
           React.createElement('span', { className: 'topbar-user-avatar large', 'aria-hidden': true }, initials),
           React.createElement(
             'div',
-            null,
+            { className: 'topbar-profile-panel-identity' },
             React.createElement('strong', null, userName),
             React.createElement('span', null, currentUser.role)
           )
         ),
+        onOpenMyProfile
+          ? React.createElement(
+            'button',
+            {
+              type: 'button',
+              className: 'topbar-profile-action',
+              role: 'menuitem',
+              onClick: () => {
+                setOpen(false)
+                onOpenMyProfile()
+              }
+            },
+            React.createElement(AppIcon, { name: 'user', size: 'SM' }),
+            React.createElement('span', null, 'Profilim')
+          )
+          : null,
+        // company-level settings are an admin concern, so the entry only
+        // appears for users who can actually act on that screen
+        onOpenCompanyProfile && currentUser.role === 'Admin'
+          ? React.createElement(
+            'button',
+            {
+              type: 'button',
+              className: 'topbar-profile-action',
+              role: 'menuitem',
+              onClick: () => {
+                setOpen(false)
+                onOpenCompanyProfile()
+              }
+            },
+            React.createElement(AppIcon, { name: 'company', size: 'SM' }),
+            React.createElement('span', null, 'Şirket Profili')
+          )
+          : null,
         onStartOnboarding
           ? React.createElement(
             'button',

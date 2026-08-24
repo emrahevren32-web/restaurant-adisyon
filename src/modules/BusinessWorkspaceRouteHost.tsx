@@ -1,4 +1,5 @@
 import React from 'react'
+import { isFrozenWorkspaceRoute } from './business-workspace.registry'
 import { PremiumSkeleton } from '../components/PremiumLoading'
 import Products from '../pages/Products'
 import TableManagement from '../pages/TableManagement'
@@ -81,6 +82,8 @@ import SupplierManagement from '../pages/SupplierManagement'
 import Users from '../pages/Users'
 import Settings from '../pages/Settings'
 import BranchManagement from '../pages/BranchManagement'
+import CompanyProfile from '../pages/CompanyProfile'
+import UserProfile from '../pages/UserProfile'
 import BranchPermissions from '../pages/BranchPermissions'
 import BranchReporting from '../pages/BranchReporting'
 import BranchStockTransfers from '../pages/BranchStockTransfers'
@@ -207,6 +210,10 @@ export default function BusinessWorkspaceRouteHost({
   onOpenWorkspaceRoute,
   onModuleLifecycleChanged
 }: Props){
+  // ADR-002: Production Foundation kapsamı dışındaki bir rota, elle çağrılsa bile
+  // render edilmez. App.tsx zaten yönlendirmiyor; bu ikinci savunma hattı.
+  if(isFrozenWorkspaceRoute(route)) return null
+
   const isAdmin = currentUser.role === 'Admin'
 
   if(route === 'workspace-welcome'){
@@ -387,6 +394,8 @@ export default function BusinessWorkspaceRouteHost({
   if(route === 'collection-transactions') return <CollectionTransactions currentUser={currentUser} />
   if(route === 'current-account-movements') return <CurrentAccountMovements />
   if(route === 'settings') return <Settings currentUser={currentUser} onSettingsChange={onSettingsChange} />
+  if(route === 'company-profile') return <CompanyProfile currentUser={currentUser} />
+  if(route === 'my-profile') return <UserProfile currentUser={currentUser} />
 
   return null
 }

@@ -1,13 +1,20 @@
 import React from 'react'
-import { Branch, User } from '../types'
+import { BRANCH_TYPE_LABELS, Branch, BranchType, User } from '../types'
 import {
   addActionLog,
   checkUserLicenseLimit,
   getCompanyIdForUser,
-  getVisibleBranchesForUser,
-  loadBranches,
-  saveBranches
+  getVisibleBranchesForUser
 } from '../storage'
+import {
+  assignHeadOffice,
+  canDeactivateBranch,
+  canDeleteBranch,
+  findDuplicateCode,
+  getCompanyForUser,
+  persistCompanyBranches,
+  resolveHeadOfficeId
+} from '../companies/branch-directory.service'
 
 type Props = {
   currentUser: User
@@ -18,13 +25,18 @@ type StatusFilter = 'all' | 'active' | 'inactive'
 type BranchFormValues = {
   code: string
   name: string
+  branchType: BranchType
   phone: string
   email: string
   city: string
+  district: string
+  postalCode: string
   address: string
   managerName: string
   isActive: boolean
 }
+
+const BRANCH_TYPE_OPTIONS = Object.entries(BRANCH_TYPE_LABELS) as Array<[BranchType, string]>
 
 const createId = () => `branch_${Date.now()}_${Math.random().toString(16).slice(2)}`
 
@@ -43,9 +55,12 @@ const createBranchCode = (items: Branch[]) => {
 const createEmptyValues = (items: Branch[]): BranchFormValues => ({
   code: createBranchCode(items),
   name: '',
+  branchType: 'sube',
   phone: '',
   email: '',
   city: '',
+  district: '',
+  postalCode: '',
   address: '',
   managerName: '',
   isActive: true
@@ -57,9 +72,12 @@ const toFormValues = (branch: Branch | null, items: Branch[]): BranchFormValues 
   return {
     code: branch.code,
     name: branch.name,
+    branchType: branch.branchType || 'sube',
     phone: branch.phone,
     email: branch.email,
     city: branch.city,
+    district: branch.district || '',
+    postalCode: branch.postalCode || '',
     address: branch.address,
     managerName: branch.managerName,
     isActive: branch.isActive
@@ -69,9 +87,12 @@ const toFormValues = (branch: Branch | null, items: Branch[]): BranchFormValues 
 const normalizeFormValues = (values: BranchFormValues): BranchFormValues => ({
   code: values.code.trim().toLocaleUpperCase('tr-TR'),
   name: values.name.trim(),
+  branchType: values.branchType,
   phone: values.phone.trim(),
   email: values.email.trim(),
   city: values.city.trim(),
+  district: values.district.trim(),
+  postalCode: values.postalCode.trim(),
   address: values.address.trim(),
   managerName: values.managerName.trim(),
   isActive: values.isActive
@@ -98,11 +119,35 @@ export default function BranchManagement({ currentUser, onBranchesChange }: Prop
     setEditingBranch(null)
   }, [currentUser])
 
+  const [notice, setNotice] = React.useState('')
+
+  // Head office is resolved from the company pointer, so the guards below stay
+  // correct even for companies whose branches predate the mirror flag.
+  const headOfficeId = React.useMemo(
+    () => resolveHeadOfficeId(items, getCompanyForUser(currentUser)),
+    [currentUser, items]
+  )
+
   const persistScopedBranches = (nextItems: Branch[]) => {
-    const companyId = getCompanyIdForUser(currentUser)
-    const otherTenantBranches = loadBranches().filter(branch => branch.companyId !== companyId)
-    saveBranches([...nextItems, ...otherTenantBranches])
+    persistCompanyBranches(currentUser, nextItems)
     onBranchesChange?.(nextItems)
+  }
+
+  const makeHeadOffice = (branch: Branch) => {
+    if(!branch.isActive){
+      setFormError('Pasif bir şube merkez yapılamaz. Önce şubeyi aktif edin.')
+      return
+    }
+    const nextItems = assignHeadOffice(currentUser, items, branch.id)
+    setItems(nextItems)
+    onBranchesChange?.(nextItems)
+    setFormError('')
+    setNotice(`${branch.name} artık merkez şube.`)
+    addActionLog({
+      operationType: 'Merkez şube değiştirildi',
+      user: currentUser,
+      description: `${branch.code} kodlu ${branch.name} merkez şube olarak işaretlendi.`
+    })
   }
 
   const cityOptions = React.useMemo(() => {
@@ -158,13 +203,7 @@ export default function BranchManagement({ currentUser, onBranchesChange }: Prop
       return false
     }
 
-    const duplicatedCode = items.some(item => {
-      const sameCode = item.code.toLocaleLowerCase('tr-TR') === normalized.code.toLocaleLowerCase('tr-TR')
-      const sameItem = editingBranch && item.id === editingBranch.id
-      return sameCode && !sameItem
-    })
-
-    if(duplicatedCode){
+    if(findDuplicateCode(items, normalized.code, editingBranch?.id)){
       setFormError('Şube kodu benzersiz olmalıdır.')
       return false
     }
@@ -219,6 +258,14 @@ export default function BranchManagement({ currentUser, onBranchesChange }: Prop
   }
 
   const toggleBranchStatus = (branch: Branch) => {
+    if(branch.isActive){
+      const guard = canDeactivateBranch(branch, headOfficeId)
+      if(!guard.allowed){
+        setFormError(guard.reason)
+        return
+      }
+    }
+
     const updatedBranch: Branch = {
       ...branch,
       isActive: !branch.isActive,
@@ -237,17 +284,37 @@ export default function BranchManagement({ currentUser, onBranchesChange }: Prop
     })
   }
 
-  const deleteBranch = (branch: Branch) => {
-    if(!confirm(`${branch.name} şubesi silinecek. Emin misiniz?`)) return
+  /**
+   * Soft delete by default: a branch is referenced by stock movements, orders
+   * and transfers, so removing the row would orphan history. Passivation keeps
+   * the record and takes it out of the active-branch selector, which is what
+   * "delete" means operationally here.
+   */
+  const archiveBranch = (branch: Branch) => {
+    const guard = canDeleteBranch(branch, headOfficeId)
+    if(!guard.allowed){
+      setFormError(guard.reason)
+      return
+    }
 
-    const nextItems = items.filter(item => item.id !== branch.id)
+    if(!branch.isActive){
+      setFormError('Bu şube zaten pasif durumda.')
+      return
+    }
+
+    if(!confirm(`${branch.name} şubesi pasife alınacak. Geçmiş kayıtlar korunur. Devam edilsin mi?`)) return
+
+    const updatedBranch: Branch = { ...branch, isActive: false, updatedAt: new Date().toISOString() }
+    const nextItems = items.map(item => item.id === branch.id ? updatedBranch : item)
     setItems(nextItems)
     persistScopedBranches(nextItems)
-    if(editingBranch?.id === branch.id) setEditingBranch(null)
+    if(editingBranch?.id === branch.id) setEditingBranch(updatedBranch)
+    setFormError('')
+    setNotice(`${branch.name} pasife alındı.`)
     addActionLog({
-      operationType: 'Şube silindi',
+      operationType: 'Şube pasife alındı',
       user: currentUser,
-      description: `${branch.code} kodlu ${branch.name} şubesi silindi.`
+      description: `${branch.code} kodlu ${branch.name} şubesi pasife alındı.`
     })
   }
 
@@ -311,45 +378,66 @@ export default function BranchManagement({ currentUser, onBranchesChange }: Prop
                 <tr>
                   <th>Kod</th>
                   <th>Şube Adı</th>
-                  <th>Şehir</th>
+                  <th>Tip</th>
+                  <th>İl / İlçe</th>
                   <th>Telefon</th>
-                  <th>Şube Müdürü</th>
+                  <th>Şube Yetkilisi</th>
                   <th>Durum</th>
                   <th>İşlemler</th>
                 </tr>
               </thead>
               <tbody>
                 {visibleItems.length === 0 && (
-                  <tr><td colSpan={7} className="empty-cell">Bu filtrelere uygun şube bulunamadı.</td></tr>
+                  <tr><td colSpan={8} className="empty-cell">Bu filtrelere uygun şube bulunamadı.</td></tr>
                 )}
-                {visibleItems.map(item => (
-                  <tr key={item.id}>
-                    <td><strong>{item.code}</strong></td>
-                    <td>
-                      <strong>{item.name}</strong>
-                      {(item.email || item.address) && (
-                        <div className="muted small-text">
-                          {[item.email, item.address].filter(Boolean).join(' · ')}
-                        </div>
-                      )}
-                    </td>
-                    <td>{item.city}</td>
-                    <td>{item.phone || '-'}</td>
-                    <td>{item.managerName || '-'}</td>
-                    <td>
-                      <span className={`status-pill ${item.isActive ? 'success' : 'muted-pill'}`}>
-                        {item.isActive ? 'Aktif' : 'Pasif'}
-                      </span>
-                    </td>
-                    <td className="actions-cell">
-                      <button className="btn" type="button" onClick={() => startEdit(item)}>Düzenle</button>
-                      <button className="btn" type="button" onClick={() => toggleBranchStatus(item)}>
-                        {item.isActive ? 'Pasif Yap' : 'Aktif Yap'}
-                      </button>
-                      <button className="btn" type="button" onClick={() => deleteBranch(item)}>Sil</button>
-                    </td>
-                  </tr>
-                ))}
+                {visibleItems.map(item => {
+                  const isHead = item.id === headOfficeId
+
+                  return (
+                    <tr key={item.id}>
+                      <td><strong>{item.code}</strong></td>
+                      <td>
+                        <strong>{item.name}</strong>
+                        {isHead && <span className="status-pill success branch-head-pill">Merkez</span>}
+                        {(item.email || item.address) && (
+                          <div className="muted small-text">
+                            {[item.email, item.address].filter(Boolean).join(' · ')}
+                          </div>
+                        )}
+                      </td>
+                      <td>{BRANCH_TYPE_LABELS[item.branchType || 'sube']}</td>
+                      <td>{[item.city, item.district].filter(Boolean).join(' / ') || '-'}</td>
+                      <td>{item.phone || '-'}</td>
+                      <td>{item.managerName || '-'}</td>
+                      <td>
+                        <span className={`status-pill ${item.isActive ? 'success' : 'muted-pill'}`}>
+                          {item.isActive ? 'Aktif' : 'Pasif'}
+                        </span>
+                      </td>
+                      <td className="actions-cell">
+                        <button className="btn" type="button" onClick={() => startEdit(item)}>Düzenle</button>
+                        {!isHead && (
+                          <button className="btn" type="button" onClick={() => toggleBranchStatus(item)}>
+                            {item.isActive ? 'Pasif Yap' : 'Aktif Yap'}
+                          </button>
+                        )}
+                        {!isHead && item.isActive && (
+                          <button
+                            className="btn"
+                            type="button"
+                            title="Merkez şube olarak işaretle"
+                            onClick={() => makeHeadOffice(item)}
+                          >
+                            Merkez Yap
+                          </button>
+                        )}
+                        {!isHead && (
+                          <button className="btn danger" type="button" onClick={() => archiveBranch(item)}>Arşivle</button>
+                        )}
+                      </td>
+                    </tr>
+                  )
+                })}
               </tbody>
             </table>
           </div>
@@ -362,9 +450,11 @@ export default function BranchManagement({ currentUser, onBranchesChange }: Prop
               {editingBranch && <span className="status-pill">Düzenleme</span>}
             </div>
             {formError && <div className="form-error">{formError}</div>}
+            {notice && !formError && <div className="form-success">{notice}</div>}
             <BranchForm
               branch={editingBranch}
               branches={items}
+              isHeadOfficeBranch={Boolean(editingBranch && editingBranch.id === headOfficeId)}
               onSave={saveBranch}
               onCancel={editingBranch ? () => {
                 setEditingBranch(null)
@@ -381,11 +471,13 @@ export default function BranchManagement({ currentUser, onBranchesChange }: Prop
 function BranchForm({
   branch,
   branches,
+  isHeadOfficeBranch = false,
   onSave,
   onCancel
 }: {
   branch: Branch | null
   branches: Branch[]
+  isHeadOfficeBranch?: boolean
   onSave: (values: BranchFormValues) => boolean
   onCancel?: () => void
 }){
@@ -417,6 +509,12 @@ function BranchForm({
         <input value={values.name} onChange={event => updateField('name', event.target.value)} required />
       </div>
       <div className="form-field">
+        <label>Şube Tipi</label>
+        <select value={values.branchType} onChange={event => updateField('branchType', event.target.value as BranchType)}>
+          {BRANCH_TYPE_OPTIONS.map(([value, label]) => <option key={value} value={value}>{label}</option>)}
+        </select>
+      </div>
+      <div className="form-field">
         <label>Telefon</label>
         <input value={values.phone} onChange={event => updateField('phone', event.target.value)} />
       </div>
@@ -425,25 +523,37 @@ function BranchForm({
         <input type="email" value={values.email} onChange={event => updateField('email', event.target.value)} />
       </div>
       <div className="form-field">
-        <label>Şehir</label>
+        <label>İl</label>
         <input value={values.city} onChange={event => updateField('city', event.target.value)} required />
+      </div>
+      <div className="form-field">
+        <label>İlçe</label>
+        <input value={values.district} onChange={event => updateField('district', event.target.value)} />
+      </div>
+      <div className="form-field">
+        <label>Posta Kodu</label>
+        <input value={values.postalCode} onChange={event => updateField('postalCode', event.target.value)} inputMode="numeric" />
       </div>
       <div className="form-field">
         <label>Adres</label>
         <textarea rows={3} value={values.address} onChange={event => updateField('address', event.target.value)} />
       </div>
       <div className="form-field">
-        <label>Şube Müdürü</label>
+        <label>Şube Yetkilisi</label>
         <input value={values.managerName} onChange={event => updateField('managerName', event.target.value)} />
       </div>
       <label className="check-row form-check-field">
         <input
           type="checkbox"
           checked={values.isActive}
+          disabled={isHeadOfficeBranch}
           onChange={event => updateField('isActive', event.target.checked)}
         />
         Aktif
       </label>
+      {isHeadOfficeBranch && (
+        <p className="muted small-text">Merkez şube her zaman aktif kalır.</p>
+      )}
       <div className="form-actions">
         <button className="btn primary" type="submit">Kaydet</button>
         {onCancel && <button className="btn" type="button" onClick={onCancel}>İptal</button>}
