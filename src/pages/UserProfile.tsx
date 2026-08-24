@@ -1,6 +1,7 @@
 import React from 'react'
 import { addActionLog, loadUsers, saveUsers } from '../storage'
 import { getCompanyForUser, loadCompanyBranches, resolveHeadOfficeId } from '../companies/branch-directory.service'
+import { isSameIdentifier } from '../core/identifier'
 import type { User } from '../types'
 
 type Props = {
@@ -77,9 +78,11 @@ export default function UserProfile({ currentUser, onProfileChange }: Props){
     }
 
     const users = loadUsers()
+    // Kullanıcı adı bir tanımlayıcıdır; Türkçe yerel ayarıyla küçültülemez.
+    // Bkz. core/identifier.ts — 'IBRAHIM' ile 'ibrahim' aksi halde eşleşmez ve
+    // aynı adla ikinci bir hesap açılabilirdi.
     const taken = users.some(user => (
-      user.id !== currentUser.id
-      && user.username.toLocaleLowerCase('tr-TR') === username.toLocaleLowerCase('tr-TR')
+      user.id !== currentUser.id && isSameIdentifier(user.username, username)
     ))
     if(taken){
       setError('Bu kullanıcı adı başka bir hesapta kullanılıyor.')

@@ -113,11 +113,20 @@ describe('merkez şube korumaları', () => {
 })
 
 describe('findDuplicateCode', () => {
-  it('şube kodunu Türkçe büyük/küçük harf farkını yok sayarak karşılaştırır', () => {
+  it('şube kodunu büyük/küçük harf farkını yok sayarak karşılaştırır', () => {
     const branches = [branch({ id: 'a', code: 'ISTANBUL' })]
 
     expect(findDuplicateCode(branches, 'istanbul')).toBe(true)
     expect(findDuplicateCode(branches, 'ANKARA')).toBe(false)
+  })
+
+  // Regresyon: Türkçe yerel ayarıyla küçültme kullanıldığında 'ISTANBUL' → 'ıstanbul'
+  // oluyor ve 'istanbul' ile eşleşmiyordu; sistem aynı kodla ikinci şube açtırıyordu.
+  it('Türkçe noktalı/noktasız i varyantlarını aynı kod sayar', () => {
+    const branches = [branch({ id: 'a', code: 'İSTANBUL' })]
+
+    expect(findDuplicateCode(branches, 'istanbul')).toBe(true)
+    expect(findDuplicateCode(branches, 'ıstanbul')).toBe(true)
   })
 
   it('şubenin kendi kodunu çakışma saymaz', () => {

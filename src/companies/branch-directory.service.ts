@@ -6,6 +6,7 @@ import {
   saveBranches,
   saveCompanies
 } from '../storage'
+import { normalizeIdentifier } from '../core/identifier'
 import type { Branch, Company, User } from '../types'
 
 /**
@@ -25,8 +26,6 @@ export type BranchSaveResult =
 export type BranchGuardResult = { allowed: true } | { allowed: false; reason: string }
 
 const now = () => new Date().toISOString()
-
-const normalizeKey = (value: string) => value.trim().toLocaleLowerCase('tr-TR')
 
 export const getCompanyForUser = (user: User): Company | undefined => {
   const companyId = getCompanyIdForUser(user)
@@ -117,7 +116,9 @@ export const assignHeadOffice = (user: User, branches: Branch[], branchId: strin
 export const loadCompanyBranches = (user: User) => getVisibleBranchesForUser(user)
 
 export const findDuplicateCode = (branches: Branch[], code: string, ignoreId?: string) => (
-  branches.some(branch => normalizeKey(branch.code) === normalizeKey(code) && branch.id !== ignoreId)
+  branches.some(branch => (
+    normalizeIdentifier(branch.code) === normalizeIdentifier(code) && branch.id !== ignoreId
+  ))
 )
 
 /** Corporate profile lives on the company record, never on a branch. */
