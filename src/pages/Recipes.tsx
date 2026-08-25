@@ -1,5 +1,6 @@
 import { PRINT_SPACING_VALUES } from '../design-system/LayoutSpacing'
 import React from 'react'
+import { isSameIdentifier } from '../core/identifier'
 import { PRINT_THEME_COLORS } from '../design-system/ThemeColors'
 import PrintPreviewModal from '../components/PrintPreviewModal'
 import QRPreviewModal from '../components/QRPreviewModal'
@@ -685,10 +686,10 @@ const validateRecipeForm = (
     return 'Tüm malzemelerde hammadde, miktar, birim ve birim maliyet geçerli olmalıdır.'
   }
 
-  const normalizedCode = form.code.trim().toLocaleLowerCase('tr-TR')
+  // Reçete kodu bir tanımlayıcıdır; bkz. core/identifier.ts
   const duplicateCode = records.some(record => (
     record.id !== editingRecipeId
-    && record.code.trim().toLocaleLowerCase('tr-TR') === normalizedCode
+    && isSameIdentifier(record.code, form.code)
     && (!existingMasterId || getRecipeMasterId(record) !== existingMasterId)
   ))
   if(duplicateCode) return 'Bu kod zaten kullanılıyor.'

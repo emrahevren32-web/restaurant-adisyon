@@ -1,4 +1,5 @@
 import React from 'react'
+import { isSameIdentifier } from '../core/identifier'
 import { ExcelIntegrationService } from '../excel-engine/excel-integration.service'
 import {
   SUPPLIER_APPROVAL_STATUS_LABELS,
@@ -345,10 +346,10 @@ const validateSupplierForm = (
   if(!name) return 'Firma adı zorunludur.'
   if(!supplierCode) return 'Tedarikçi kodu zorunludur.'
 
-  const normalizedCode = supplierCode.toLocaleLowerCase('tr-TR')
+  // Tedarikçi kodu bir tanımlayıcıdır; bkz. core/identifier.ts
   const duplicateCode = suppliers.some(supplier => (
     supplier.id !== editingSupplierId
-    && supplier.supplierCode.toLocaleLowerCase('tr-TR') === normalizedCode
+    && isSameIdentifier(supplier.supplierCode, supplierCode)
   ))
   if(duplicateCode) return 'Bu tedarikçi kodu zaten kullanılıyor.'
 

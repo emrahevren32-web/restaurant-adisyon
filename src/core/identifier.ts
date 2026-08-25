@@ -18,6 +18,10 @@
 export const normalizeIdentifier = (value: string) => (
   value
     .trim()
+    // Önce kanonik forma indir: 'I' + birleşen nokta (U+0307) ile tek karakterlik
+    // 'İ' (U+0130) görsel olarak aynıdır ama farklı baytlardır. NFC olmadan bu ikisi
+    // farklı tanımlayıcı sayılır. Aynı durum é / e+́ gibi tüm birleşen işaretler için geçerli.
+    .normalize('NFC')
     .replace(/İ/g, 'I')
     .replace(/ı/g, 'i')
     .toUpperCase()

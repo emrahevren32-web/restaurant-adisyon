@@ -3,6 +3,7 @@ import {
   saveCompanies
 } from '../storage'
 import type { Company, CompanyStatus, User } from '../types'
+import { normalizeIdentifier } from '../core/identifier'
 import { DEFAULT_SECTOR_ID } from '../sector/sector.registry'
 import {
   recordCompanyAuditEvent,
@@ -82,7 +83,9 @@ const resolveActor = (context: ActorContext = {}) => ({
   actorName: context.actorName || context.user?.fullName || context.user?.username || 'System'
 })
 
-const normalizeUniqueValue = (value: string) => value.trim().toLocaleLowerCase('tr-TR')
+// Firma kodu, vergi no, workspace ve tenant kimlikleri TANIMLAYICIDIR.
+// Türkçe yerel ayarıyla küçültme burada veri bütünlüğünü bozar — bkz. core/identifier.ts
+const normalizeUniqueValue = (value: string) => normalizeIdentifier(value)
 
 const assertUniqueCompanyFields = (candidate: Company, companies: Company[], currentCompanyId = '') => {
   const uniqueFields: Array<keyof Pick<Company, 'companyCode' | 'taxNumber' | 'workspaceId' | 'tenantId'>> = [

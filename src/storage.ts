@@ -1,3 +1,4 @@
+import { normalizeIdentifier } from './core/identifier'
 import {
   ActionLog,
   ActionLogType,
@@ -5633,11 +5634,12 @@ const slugifySetupValue = (value: string) => {
 
 const createUniqueCompanyAdminUsername = (baseValue: string, users: User[]) => {
   const base = slugifySetupValue(baseValue)
-  const existingUsernames = new Set(users.map(user => user.username.toLocaleLowerCase('tr-TR')))
+  // Kullanıcı adı bir tanımlayıcıdır; bkz. core/identifier.ts
+  const existingUsernames = new Set(users.map(user => normalizeIdentifier(user.username)))
   let username = base
   let index = 2
 
-  while(existingUsernames.has(username.toLocaleLowerCase('tr-TR'))){
+  while(existingUsernames.has(normalizeIdentifier(username))){
     username = `${base}${index}`
     index += 1
   }

@@ -102,4 +102,6 @@ Ayrı bir üründür. Endüstriyel mutfak çekirdeği satılabilir hâle geldikt
 
 | Tarih | Fikir | Kimden |
 |-------|-------|--------|
-| | | |
+| 2026-08-24 | **Dondurulmuş modüllerdeki tanımlayıcı karşılaştırması.** `UserSubscriptionManagement.tsx` (satır 295, 303, 307) hâlâ `toLocaleLowerCase('tr-TR')` ile kullanıcı adı karşılaştırıyor. Modül dondurulduğu için ürün yüzeyinde değil; geri açılırken `core/identifier.ts`'e bağlanacak. | Codex incelemesi |
+| 2026-08-24 | **Lot numarası karşılaştırması.** `inventory-lot.mock.ts` (satır 103, 226, 238, 246) aynı hatayı taşıyor. Dosya bir mock ve Dilim 1'de gerçek servisle değiştirilecek; yama yapmak yerine yeni serviste doğru yazılacak. İzlenebilirliğin temeli olduğu için Dilim 1'in bitti tanımına dahil. | Codex incelemesi |
+| 2026-08-24 | **Sol menü tipografisi.** Supabase'in kenar çubuğundaki yazılar daha ince ve daha okunaklı; MİYOP'unki hâlâ kalın ve iri duruyor. Menü ögesi ağırlığı, punto ve satır aralığı yeniden ele alınmalı. Dilim 4'te Kontrol Paneli yeniden yazılırken kabuk tipografisiyle birlikte yapılacak — şimdi yapılmaz, kapsam dışı. | Emrah |

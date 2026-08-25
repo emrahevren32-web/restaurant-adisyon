@@ -3,8 +3,8 @@
 > Bu dosya **mevcut durumu** anlatır. Kararların gerekçesi `docs/adr/` içindedir.
 > Her dilim bittiğinde bu dosya güncellenir. Tek doğruluk kaynağı budur.
 
-**Durum:** Dilim 0 — başlamadı
-**Son güncelleme:** 2026-08-23
+**Durum:** Dilim 0 — sürüyor (G0–G2 bitti, sırada G3 veritabanı)
+**Son güncelleme:** 2026-08-24
 
 ---
 
@@ -43,7 +43,7 @@ değiştirmek isteyen yeni bir ADR açar.
 
 | Dilim | Konu | Durum | Test |
 |-------|------|-------|------|
-| **0** | Çekirdek şema · Auth · Tenant · RBAC · RLS · repository sınırı · test altyapısı | ⬜ Başlamadı | — |
+| **0** | Çekirdek şema · Auth · Tenant · RBAC · RLS · repository sınırı · test altyapısı | 🟡 Sürüyor | 13 ✅ |
 | **1** | Stok hareket defteri (append-only, reversal, idempotency, lot, türetilmiş miktar) | ⬜ | — |
 | **2** | Satın Alma → Mal Kabul → Stok · **pilot burada başlar** | ⬜ | — |
 | **3** | Reçete → Üretim İş Emri → Tüketim → Mamul | ⬜ | — |
@@ -95,6 +95,26 @@ Tam liste: `docs/adr/002-migrasyon-kapsami.md`
 
 ---
 
-## 7. Sonraki adım
+## 7. Dilim 0 ilerlemesi
 
-Dilim 0 görev listesi: `docs/dilim-0-gorevler.md`
+| Paket | Konu | Durum |
+|---|---|---|
+| G0 | Hazırlık — build, dal, docs | ✅ |
+| G1 | Test altyapısı — Vitest, CI, ilk testler | ✅ 13 test |
+| G2 | Kapsam daraltma — 138 → 24 menü ögesi | ✅ |
+| G3 | Veritabanı ve şema | ⬜ **sırada** |
+| G4 | Kimlik doğrulama | ⬜ |
+| G5 | Yetkilendirme | ⬜ |
+| G6 | Repository sınırı | ⬜ |
+| G7 | Kabul | ⬜ |
+
+**G1'de bulunan hata:** Şube kodu ve kullanıcı adı karşılaştırması Türkçe yerel ayarıyla
+küçültme yapıyordu; `'ISTANBUL'` → `'ıstanbul'` olduğu için `'istanbul'` ile eşleşmiyor,
+aynı kodla ikinci şube ve aynı adla ikinci kullanıcı açılabiliyordu. `core/identifier.ts`
+ile düzeltildi, 4 regresyon testi yazıldı. Test altyapısı ilk gününde işini yaptı.
+
+## 8. Sonraki adım
+
+G3 — veritabanı. **Ön koşul: Supabase hesabı** (ADR-005). Hesap açma Emrah'ta.
+
+Görev listesi: `docs/dilim-0-gorevler.md`

@@ -18,6 +18,14 @@ describe('normalizeIdentifier', () => {
     expect(isSameIdentifier('İstanbul', 'ISTANBUL')).toBe(true)
   })
 
+  // Codex incelemesi (2026-08-24): NFC olmadan 'İ' (tek karakter U+0130) ile
+  // 'I' + birleşen nokta (U+0049 U+0307) farklı tanımlayıcı sayılıyordu.
+  it('kanonik olarak eşdeğer Unicode dizilerini aynı sayar', () => {
+    expect(isSameIdentifier('\u0130STANBUL', 'I\u0307STANBUL')).toBe(true)
+    expect(isSameIdentifier('\u0130STANBUL', 'istanbul')).toBe(true)
+    expect(isSameIdentifier('R\u00c9\u00c7ETE', 'RE\u0301\u00c7ETE')).toBe(true)
+  })
+
   it('baştaki ve sondaki boşlukları yok sayar', () => {
     expect(isSameIdentifier('  MERKEZ  ', 'merkez')).toBe(true)
   })

@@ -2332,8 +2332,14 @@ const compareByDisplayOrder = <T extends { displayOrder: number }>(first: T, sec
   return first.displayOrder - second.displayOrder
 }
 
+/**
+ * ADR-002: dondurulmuş modüller ürünün HİÇBİR yüzeyinde görünmez — navigasyon,
+ * modül mağazası, kontrol paneli widget kataloğu ve modül yaşam döngüsü dahil.
+ * Bu fonksiyon registry'nin tek okuma kapısı olduğu için süzme burada yapılır.
+ */
 export const getBusinessWorkspaceModules = (moduleType?: WorkspaceModuleType) => {
   return BUSINESS_WORKSPACE_MODULE_REGISTRY
+    .filter(module => module.foundationScope !== 'frozen')
     .filter(module => module.isEnabled && module.isVisible && (!moduleType || module.moduleType === moduleType))
     .sort(compareByDisplayOrder)
 }
@@ -2420,9 +2426,12 @@ export const getCoreWorkspaceRoutes = (): Set<BusinessWorkspaceRoute> => {
     })
   }
 
+  // module.route KASTEN eklenmiyor. Bir core modülün kendi `route` alanı, o modülün
+  // menüde frozen olan bir ögesini gösterebiliyor (business-logistics → 'shipments',
+  // business-multi-branch → 'branch-reporting'). Koşulsuz eklemek bu iki ekranı
+  // programatik olarak açık bırakıyordu. Rotalar yalnızca core menü ögelerinden gelir.
   BUSINESS_WORKSPACE_MODULE_REGISTRY.forEach(module => {
     if(module.foundationScope === 'frozen') return
-    if(module.route) routes.add(module.route)
     walk(module.menuItems)
   })
 
