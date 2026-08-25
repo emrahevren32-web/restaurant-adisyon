@@ -3,8 +3,8 @@
 > Bu dosya **mevcut durumu** anlatır. Kararların gerekçesi `docs/adr/` içindedir.
 > Her dilim bittiğinde bu dosya güncellenir. Tek doğruluk kaynağı budur.
 
-**Durum:** Dilim 0 — sürüyor (G0–G2 bitti, sırada G3 veritabanı)
-**Son güncelleme:** 2026-08-24
+**Durum:** Dilim 0 — sürüyor (G0–G3 bitti, sırada G4 kimlik doğrulama)
+**Son güncelleme:** 2026-08-25
 
 ---
 
@@ -43,7 +43,7 @@ değiştirmek isteyen yeni bir ADR açar.
 
 | Dilim | Konu | Durum | Test |
 |-------|------|-------|------|
-| **0** | Çekirdek şema · Auth · Tenant · RBAC · RLS · repository sınırı · test altyapısı | 🟡 Sürüyor | 13 ✅ |
+| **0** | Çekirdek şema · Auth · Tenant · RBAC · RLS · repository sınırı · test altyapısı | 🟡 Sürüyor | 14 ✅ · 12 şema ✅ |
 | **1** | Stok hareket defteri (append-only, reversal, idempotency, lot, türetilmiş miktar) | ⬜ | — |
 | **2** | Satın Alma → Mal Kabul → Stok · **pilot burada başlar** | ⬜ | — |
 | **3** | Reçete → Üretim İş Emri → Tüketim → Mamul | ⬜ | — |
@@ -102,8 +102,8 @@ Tam liste: `docs/adr/002-migrasyon-kapsami.md`
 | G0 | Hazırlık — build, dal, docs | ✅ |
 | G1 | Test altyapısı — Vitest, CI, ilk testler | ✅ 13 test |
 | G2 | Kapsam daraltma — 138 → 24 menü ögesi | ✅ |
-| G3 | Veritabanı ve şema | ⬜ **sırada** |
-| G4 | Kimlik doğrulama | ⬜ |
+| G3 | Veritabanı ve şema | ✅ 14 tablo · 12 şema kontrolü |
+| G4 | Kimlik doğrulama | ⬜ **sırada** |
 | G5 | Yetkilendirme | ⬜ |
 | G6 | Repository sınırı | ⬜ |
 | G7 | Kabul | ⬜ |
@@ -113,8 +113,26 @@ küçültme yapıyordu; `'ISTANBUL'` → `'ıstanbul'` olduğu için `'istanbul'
 aynı kodla ikinci şube ve aynı adla ikinci kullanıcı açılabiliyordu. `core/identifier.ts`
 ile düzeltildi, 4 regresyon testi yazıldı. Test altyapısı ilk gününde işini yaptı.
 
+**G3'te bulunan tuzak:** Supabase'in "Enable automatic RLS" ayarı public şemasındaki
+her tabloda RLS'i otomatik açıyor. İyi bir varsayılan, ama **politikası olmayan RLS
+herkese kapalı** demektir. Tenant'a ait olmayan beş referans tablosu (`permission`,
+`role`, `role_permission`, `uom`, `uom_conversion`) politikasız kalmıştı; uygulama
+bağlandığında yetki listesini okuyamaz, birim dönüşümü yapamazdı. `0005` ile okuma
+politikası eklendi. Kural: durum sorgusunda `politika` sütunu 0 olan satır kalmamalı.
+
+### Veritabanı durumu
+
+- **14 tablo**, hepsinde RLS açık + force + en az bir politika
+- `stock_movement` append-only (UPDATE/DELETE tetikleyiciyle reddediliyor)
+- Idempotency, ters kayıt tekilliği, lot zorunluluğu, birim dönüşümü şemada
+- `stock_item` tablosunda `current_qty` kolonu **yok** — miktar `stock_balance`
+  görünümünden türetiliyor
+- Migration'lar: `db/migrations/0000`–`0005`, hepsi tekrar çalıştırılabilir
+
 ## 8. Sonraki adım
 
-G3 — veritabanı. **Ön koşul: Supabase hesabı** (ADR-005). Hesap açma Emrah'ta.
+G4 — kimlik doğrulama. `storage.ts` içindeki düz metin parola karşılaştırması
+silinip yerine Supabase Auth gelecek. Uygulamanın ilk kez bir sunucuyla
+konuşacağı yer burası.
 
 Görev listesi: `docs/dilim-0-gorevler.md`
