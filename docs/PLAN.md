@@ -43,7 +43,7 @@ değiştirmek isteyen yeni bir ADR açar.
 
 | Dilim | Konu | Durum | Test |
 |-------|------|-------|------|
-| **0** | Çekirdek şema · Auth · Tenant · RBAC · RLS · repository sınırı · test altyapısı | 🟡 Sürüyor | 14 ✅ · 12 şema ✅ |
+| **0** | Çekirdek şema · Auth · Tenant · RBAC · RLS · repository sınırı · test altyapısı | 🟡 Sürüyor | 17 ✅ · 12 şema ✅ |
 | **1** | Stok hareket defteri (append-only, reversal, idempotency, lot, türetilmiş miktar) | ⬜ | — |
 | **2** | Satın Alma → Mal Kabul → Stok · **pilot burada başlar** | ⬜ | — |
 | **3** | Reçete → Üretim İş Emri → Tüketim → Mamul | ⬜ | — |
@@ -103,7 +103,7 @@ Tam liste: `docs/adr/002-migrasyon-kapsami.md`
 | G1 | Test altyapısı — Vitest, CI, ilk testler | ✅ 13 test |
 | G2 | Kapsam daraltma — 138 → 24 menü ögesi | ✅ |
 | G3 | Veritabanı ve şema | ✅ 14 tablo · 12 şema kontrolü |
-| G4 | Kimlik doğrulama | ⬜ **sırada** |
+| G4 | Kimlik doğrulama | 🟡 Bağlantı kuruldu, oturum açma kaldı |
 | G5 | Yetkilendirme | ⬜ |
 | G6 | Repository sınırı | ⬜ |
 | G7 | Kabul | ⬜ |
@@ -127,12 +127,34 @@ politikası eklendi. Kural: durum sorgusunda `politika` sütunu 0 olan satır ka
 - Idempotency, ters kayıt tekilliği, lot zorunluluğu, birim dönüşümü şemada
 - `stock_item` tablosunda `current_qty` kolonu **yok** — miktar `stock_balance`
   görünümünden türetiliyor
-- Migration'lar: `db/migrations/0000`–`0005`, hepsi tekrar çalıştırılabilir
+- Migration'lar: `db/migrations/0000`–`0007`, hepsi tekrar çalıştırılabilir
+- `anon` rolü müşteri verisinin hiçbirine erişemiyor; yalnızca beş referans tablosu açık
+
+**G4'te bulunan iki açık:**
+
+1. **Görünümler RLS'i deliyordu.** PostgreSQL'de görünümler varsayılan olarak sahibinin
+   yetkileriyle çalışır. `stock_balance` görünümünü sorgulayan bir kullanıcı altındaki
+   `stock_movement` tablosunun RLS politikasını atlayıp **tüm tenant'ların stoklarını**
+   görürdü. Tenant izolasyonunu tabloda kurmuştuk ama stok miktarını okuduğumuz asıl yer
+   o görünümdü. `security_invoker = on` ile kapatıldı (`0006`). RLS kurulmuş sistemlerde
+   en sık gözden kaçan açık budur.
+
+2. **`anon` rolünün her tabloda GRANT'i vardı.** Supabase'in public şemasındaki varsayılan
+   izinlerinden geliyordu. Veri sızmıyordu — RLS süzüyordu — ama koruma tek katmana
+   inmişti. Politikadaki tek bir yazım hatası doğrudan sızıntıya dönerdi. `0007` ile
+   `anon` müşteri verisinden tamamen çıkarıldı; iki bağımsız savunma hattı geri geldi.
+
+> Bu iki açığı da **test yakalamadı** — yetki tablosuna bakıldığı için görüldü. Testler
+> "çalışıyor mu" diye sorar, "fazla yetki var mı" diye sormaz. G7'deki iki-tenant
+> kontrolü bu boşluğu kapatacak.
 
 ## 8. Sonraki adım
 
-G4 — kimlik doğrulama. `storage.ts` içindeki düz metin parola karşılaştırması
-silinip yerine Supabase Auth gelecek. Uygulamanın ilk kez bir sunucuyla
-konuşacağı yer burası.
+G4'ün kalan yarısı — **oturum açma**. Bağlantı kuruldu ve güvenlik sıkılaştırıldı;
+sırada `storage.ts:5064`'teki düz metin parola karşılaştırmasının silinip yerine
+Supabase Auth'un gelmesi var.
+
+Ön koşul: ilk yönetici hesabının Supabase Authentication tarafında oluşturulması
+ve `app_user` tablosuyla eşleştirilmesi.
 
 Görev listesi: `docs/dilim-0-gorevler.md`
