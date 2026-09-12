@@ -588,11 +588,14 @@ body.mobile-navigation-open { overflow:hidden; overscroll-behavior:contain }
 .section-header .dispatch-toolbar,
 .section-header .history-controls,
 .section-header .action-log-filters,
-.section-header .kitchen-filters { align-self:flex-start }
+.section-header .kitchen-filters,
+.section-header .zayi-filtreler { align-self:flex-start }
 .section-header .toolbar-controls input,
 .section-header .toolbar-controls select,
 .section-header .stock-movement-filters input,
 .section-header .stock-movement-filters select,
+.section-header .zayi-filtreler input,
+.section-header .zayi-filtreler .btn,
 .section-header .recipe-filters input,
 .section-header .recipe-filters select,
 .section-header .recipe-filters .btn,
@@ -2178,6 +2181,11 @@ body.mobile-navigation-open { overflow:hidden; overscroll-behavior:contain }
 .stock-movement-layout.waste-focus .stock-movement-side { order:-1 }
 .stock-movement-main, .stock-movement-side { min-width:0 }
 .stock-movement-filters { display:grid; grid-template-columns:repeat(3, minmax(0, 1fr)); gap:var(--space-8); width:min(100%, 760px); min-width:0 }
+/* Aşama 4 · Fire/zayi raporunun tarih aralığı süzgeci.
+   Dar ekranda tek sütuna iner: `auto-fit` ile ayrı bir medya sorgusu
+   yazmadan sarmalıyor. */
+.zayi-filtreler { display:grid; grid-template-columns:repeat(auto-fit, minmax(150px, 1fr)); gap:var(--space-8); width:min(100%, 520px); min-width:0; align-items:end }
+.zayi-filtreler label { display:grid; gap:var(--space-4); font-size:var(--font-size-13); color:var(--muted) }
 .stock-movement-table th, .stock-movement-table td { white-space:nowrap }
 .stock-movement-table td:nth-child(2), .stock-movement-table th:nth-child(2),
 .stock-movement-table td:nth-child(7), .stock-movement-table th:nth-child(7) { min-width:180px; white-space:normal }

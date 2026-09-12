@@ -539,7 +539,16 @@ export const BUSINESS_WORKSPACE_MODULE_REGISTRY: BusinessWorkspaceModule[] = def
     description: 'Çalışma alanı içindeki kritik kullanıcı işlemlerinin denetlendiği çekirdek audit kaydı.',
     category: 'system',
     icon: 'AU',
-    route: 'actions',
+    // ⚠️ BU MODÜL MENÜDE HİÇ ÜRETİLMİYOR.
+    //
+    // Sebebi ne `isEnabled` ne izin: `workspace-navigation.registry.ts`
+    // içindeki `CORE_WORKSPACE_MODULE_CODES` SABİT BİR BEYAZ LİSTE ve
+    // WORKSPACE bölümünde yalnızca o listedeki altı kod görünüyor. Audit o
+    // listede yok — dolayısıyla buraya konan hiçbir öge ekrana çıkmaz.
+    //
+    // Gerçek denetim ekranı bu yüzden STOK modülünün altında duruyor.
+    // Buradaki rota yalnızca modül kaydı tutarlı kalsın diye var.
+    route: 'islem-gecmisi',
     permissions: ['audit.read', 'company.read'],
     isCoreModule: true,
     isBusinessModule: false,
@@ -551,7 +560,11 @@ export const BUSINESS_WORKSPACE_MODULE_REGISTRY: BusinessWorkspaceModule[] = def
     pricing: includedPricing,
     marketplace: coreSystemMarketplace,
     menuItems: [
-      menuItem({ key: 'action-history', label: 'Audit', route: 'actions', icon: 'AU', adminOnly: true, displayOrder: 90 })
+      // ⚠️ DONDURULDU (2026-09-12). Adisyon döneminden kalma, localStorage
+      // üzerinde çalışan sahte ekran ("Masa açıldı", "Sipariş eklendi").
+      // Yerine gerçek denetim kaydı geldi — ama BU MODÜLÜN ALTINA DEĞİL,
+      // Stok'un altına (aşağıdaki nota bakın).
+      menuItem({ key: 'action-history', foundationScope: 'frozen', label: 'Audit', route: 'actions', icon: 'AU', adminOnly: true, displayOrder: 90 })
     ]
   },
   {
@@ -852,6 +865,32 @@ export const BUSINESS_WORKSPACE_MODULE_REGISTRY: BusinessWorkspaceModule[] = def
       // En tehlikelisi "Mal Kabul" idi: demonun ortasındaki adım, ve müşteri
       // ona tıkladığında sahte bir ekran görüyordu. Kod duruyor, menüde yok.
       // Kural: "Menüde gördüğünüz her şey çalışıyor."
+      // Aşama 4 · Güven katmanı — Fiziksel sayım.
+      // ⚠️ STOK modülünün altında: bu modül bu kiracıda AÇIK ('depo' burada
+      // duruyor ve menüde görünüyor). Sevkiyat'ta Lojistik, HACCP'te Kalite
+      // modülüyle iki kez düşülen tuzak burada tekrarlanmasın diye not:
+      // kapalı bir modüle konan öge menüde HİÇ üretilmez.
+      // Depo'nun hemen ardında: sayım, deponun doğruluk denetimidir.
+      menuItem({ key: 'sayimlar', label: 'Sayım', route: 'sayimlar', icon: 'SY', adminOnly: true, displayOrder: 6 }),
+      // Fire/zayi/imha — sayımın hemen ardında: sayımda çıkan eksiğin
+      // sebebi çoğu zaman burada yazılır.
+      menuItem({ key: 'zayi-imha', label: 'Fire ve Zayi', route: 'zayi-imha', icon: 'FZ', adminOnly: true, displayOrder: 7 }),
+      // Aşama 4 · Denetim kaydı.
+      //
+      // ⚠️ ÜÇÜNCÜ KEZ AYNI DERS, YENİ BİR BİÇİMDE. Öge önce doğal yeri olan
+      // "Audit" (system-audit) modülüne konuldu ve menüde HİÇ görünmedi.
+      // Sebep bu sefer ne kapalı modül (Sevkiyat/Lojistik) ne eksik izin
+      // (HACCP/Kalite) idi: WORKSPACE bölümü SABİT BİR BEYAZ LİSTEDEN
+      // (`CORE_WORKSPACE_MODULE_CODES`) besleniyor ve Audit o listede yok.
+      //
+      // Kural artık şu: bir ögeyi menüde GÖRDÜĞÜMÜZ bir modülün altına koy.
+      // Stok bu kiracıda çalışıyor (Depo, Sayım, Fire ve Zayi görünüyor).
+      // `module-route-health.test.ts` bunu artık gerçek menü çıktısı
+      // üzerinden sınıyor; kayıt dosyasına bakmak yetmiyor.
+      //
+      // İzin `audit.read` kaldı: ekran Stok başlığı altında ama YETKİSİ
+      // denetimin. Stok izni olan biri bunu görmez (0015 departman ayrımı).
+      menuItem({ key: 'islem-gecmisi', label: 'İşlem Geçmişi', route: 'islem-gecmisi', icon: 'IG', requiredPermission: 'audit.read', adminOnly: true, displayOrder: 8 }),
       menuItem({ key: 'stock-cards', foundationScope: 'frozen', label: 'Kartlar', route: 'stock-cards', icon: 'SK', adminOnly: true, displayOrder: 10 }),
       menuItem({ key: 'stock-movements', foundationScope: 'frozen', label: 'Hareketler', route: 'stock-movements', icon: 'SH', adminOnly: true, displayOrder: 20 }),
       menuItem({ key: 'critical-stock', foundationScope: 'frozen', label: 'Kritik Stok', route: 'stock-cards', icon: 'KS', adminOnly: true, displayOrder: 30 }),

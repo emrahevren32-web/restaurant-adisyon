@@ -225,7 +225,7 @@ describe('Depo · çıkış (FEFO)', () => {
   it('lotsuz kalemde tek hareket yazıyor', async () => {
     await servis.malKabul(ctx, { stokKalemiId: UN, miktar: 100, birim: 'kg' }, 'kabul-un')
     const hareketler = await servis.cikis(ctx, {
-      stokKalemiId: UN, miktar: 30, birim: 'kg', neden: 'WASTE',
+      stokKalemiId: UN, miktar: 30, birim: 'kg', neden: 'WASTE', not: 'İşlenirken kayıp',
     }, 'cikis-un')
 
     expect(hareketler).toHaveLength(1)
@@ -291,12 +291,12 @@ describe('Depo · birim dönüşümü', () => {
     await servis.malKabul(ctx, { stokKalemiId: BAHARAT, miktar: 2, birim: 'kg' }, 'kabul-b4')
 
     // 500 gram çıkar → 1500 g kalır.
-    await servis.cikis(ctx, { stokKalemiId: BAHARAT, miktar: 500, birim: 'g', neden: 'WASTE' }, 'cikis-b4')
+    await servis.cikis(ctx, { stokKalemiId: BAHARAT, miktar: 500, birim: 'g', neden: 'WASTE', not: 'Döküldü' }, 'cikis-b4')
     expect(await miktar(BAHARAT)).toBe(1500)
 
     // 1 KİLO çıkar → 500 g kalır. Kıyas çevrilmeseydi "1 < 1500, yeter" denip
     // yalnızca 1 gram düşerdi ve bakiye 1499 kalırdı.
-    await servis.cikis(ctx, { stokKalemiId: BAHARAT, miktar: 1, birim: 'kg', neden: 'WASTE' }, 'cikis-b5')
+    await servis.cikis(ctx, { stokKalemiId: BAHARAT, miktar: 1, birim: 'kg', neden: 'WASTE', not: 'Döküldü' }, 'cikis-b5')
     expect(await miktar(BAHARAT)).toBe(500)
   })
 
@@ -331,7 +331,7 @@ describe('Depo · birim dönüşümü', () => {
 
     // Kütle ile adet arasında dönüşüm yok — uydurmak yerine reddediyoruz.
     await expect(
-      servis.cikis(ctx, { stokKalemiId: UN, miktar: 3, birim: 'adet', neden: 'WASTE' }, 'cikis-b8'),
+      servis.cikis(ctx, { stokKalemiId: UN, miktar: 3, birim: 'adet', neden: 'WASTE', not: 'Döküldü' }, 'cikis-b8'),
     ).rejects.toBeInstanceOf(BirimCevrilemezError)
 
     expect(await miktar(UN)).toBe(100)
@@ -469,7 +469,7 @@ describe('Depo · raf ömrü uyarısı', () => {
 
     // Süresi geçen mal imha ediliyor: lot boşalıyor.
     await servis.cikis(ctx, {
-      stokKalemiId: TAVUK, miktar: 12, birim: 'kg', neden: 'EXPIRY_WRITE_OFF',
+      stokKalemiId: TAVUK, miktar: 12, birim: 'kg', neden: 'EXPIRY_WRITE_OFF', not: 'SKT geçti',
     }, 'skt-5')
 
     // Lot kaydı hâlâ duruyor (defter append-only), ama uyarı yok: uyarıyı

@@ -34,6 +34,9 @@ import WorkOrders from '../pages/WorkOrders'
 import Traceability from '../pages/Traceability'
 import SevkiyatEkrani from '../pages/Sevkiyatlar'
 import HaccpEkrani from '../pages/Haccp'
+import SayimEkrani from '../pages/Sayimlar'
+import ZayiImhaEkrani from '../pages/ZayiImha'
+import IslemGecmisiEkrani from '../pages/IslemGecmisi'
 import KontrolPaneli from '../pages/KontrolPaneli'
 import StockCards from '../pages/StockCards'
 import StockMovements from '../pages/StockMovements'
@@ -312,6 +315,9 @@ export default function BusinessWorkspaceRouteHost({
   // Aşama 3.5 · Kalite departmanının GERÇEK ekranı. Eski 'haccp-management'
   // (mock veri üstünde çalışan) dondurulmuş olarak yerinde duruyor.
   if(route === 'haccp-kayitlari') return <HaccpEkrani currentUser={currentUser} />
+  if(route === 'sayimlar') return <SayimEkrani currentUser={currentUser} />
+  if(route === 'zayi-imha') return <ZayiImhaEkrani currentUser={currentUser} />
+  if(route === 'islem-gecmisi') return <IslemGecmisiEkrani currentUser={currentUser} />
 
   if(route === 'stock-cards'){
     return (

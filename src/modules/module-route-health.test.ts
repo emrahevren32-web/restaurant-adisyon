@@ -17,6 +17,7 @@ import { describe, it, expect } from 'vitest'
 import { BUSINESS_WORKSPACE_MODULE_REGISTRY } from './business-workspace.registry'
 import type { BusinessWorkspaceModule } from './business-workspace.registry'
 import type { BusinessWorkspaceRoute } from '../navigation/app-navigation.types'
+import { createBusinessWorkspaceNavGroups } from './business-workspace.navigation'
 
 const MODULLER: BusinessWorkspaceModule[] = BUSINESS_WORKSPACE_MODULE_REGISTRY
 
@@ -75,18 +76,49 @@ describe('Menüde ikiz yok', () => {
   })
 })
 
-describe('Aşama 2–3.5 ekranları menüde CANLI', () => {
+describe('Aşama 2–4 ekranları menüde CANLI', () => {
   // Bu ekranlar gerçek veritabanına konuşuyor ve demonun kendisi.
   // Biri kazara dondurulursa ya da menüden düşerse burada kırmızı olur.
   const olmasiGerekenler: BusinessWorkspaceRoute[] = [
     'depo', 'tedarikciler', 'satinalma',
     'receteler', 'uretim-emirleri', 'sevkiyatlar', 'izlenebilirlik',
     'haccp-kayitlari',
+    'sayimlar',
+    'zayi-imha',
+    'islem-gecmisi',
   ]
 
   it.each(olmasiGerekenler)('%s menüde canlı bir ögede duruyor', rota => {
     const bulunan = canliOgeler().filter(x => x.oge.route === rota)
     expect(bulunan.length, `${rota} canlı menüde yok`).toBe(1)
+  })
+
+  // ── EN ÖNEMLİ TEST ────────────────────────────────────────────────────
+  // Yukarıdaki testler KAYIT DOSYASINA bakıyor. Ama menüyü kayıt dosyası
+  // değil `createBusinessWorkspaceNavGroups` üretiyor ve arada üç ayrı
+  // eleme var:
+  //   1. `isModuleEnabled`  → kapalı modül (Sevkiyat, Lojistik'e konmuştu)
+  //   2. `hasPermission`    → izinsiz öge (HACCP, Kalite'ye konmuştu)
+  //   3. `CORE_WORKSPACE_MODULE_CODES` → SABİT BEYAZ LİSTE; WORKSPACE
+  //      bölümünde yalnız altı kod var. "Audit" modülü bu listede olmadığı
+  //      için altına konan İşlem Geçmişi hiç görünmedi.
+  //
+  // Üçü de kayıt dosyasında DOĞRU görünüyordu. Bu yüzden asıl sınama,
+  // gerçekten üretilen menü ağacında aramak olmalı.
+  it('hepsi GERÇEKTEN ÜRETİLEN menüde var (kayıt dosyasında olmak yetmez)', () => {
+    const gruplar = createBusinessWorkspaceNavGroups()
+
+    const rotalar = new Set<string>()
+    const gez = (dugumler: ReadonlyArray<{ route?: string; children?: unknown }>) =>
+      dugumler.forEach(d => {
+        if(d.route) rotalar.add(d.route)
+        const cocuklar = (d as { children?: ReadonlyArray<{ route?: string }> }).children
+        if(cocuklar) gez(cocuklar)
+      })
+    gruplar.forEach(g => gez(g.items as ReadonlyArray<{ route?: string }>))
+
+    const eksikler = olmasiGerekenler.filter(r => !rotalar.has(r))
+    expect(eksikler, 'ekran menü ağacında hiç üretilmiyor').toEqual([])
   })
 
   it('hepsi AÇIK bir modülün altında (kapalı modül menüde hiç üretilmez)', () => {

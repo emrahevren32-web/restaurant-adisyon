@@ -33,6 +33,8 @@ import {
   type DepoUyarilari,
 } from '../warehouse/warehouse.service'
 import { depoBaglamiKur, type DepoBaglami } from '../warehouse/warehouse.context'
+import { ZAYI_ACIKLAMALARI, zayiNedeniMi, type ZayiNedeni } from '../warehouse/write-off.repository'
+import { gerekceYeterliMi } from '../warehouse/write-off.service'
 import { satirlariYaz } from '../core/import/sheet'
 import {
   KALEM_SUTUNLARI,
@@ -62,6 +64,7 @@ const NEDEN_ETIKETLERI: Record<MovementReason, string> = {
   COUNT_SHORTAGE: 'Sayım eksiği',
   EXPIRY_WRITE_OFF: 'SKT imhası',
   WASTE: 'Fire',
+  LOSS: 'Zayi',
   TRANSFER_IN: 'Transfer girişi',
   TRANSFER_OUT: 'Transfer çıkışı',
   OPENING_BALANCE: 'Açılış bakiyesi',
@@ -72,6 +75,7 @@ const CIKIS_NEDENLERI: Array<{ deger: CikisNedeni; etiket: string }> = [
   { deger: 'PRODUCTION_CONSUME', etiket: 'Üretim tüketimi' },
   { deger: 'SHIPMENT_OUT', etiket: 'Sevkiyat çıkışı' },
   { deger: 'WASTE', etiket: 'Fire' },
+  { deger: 'LOSS', etiket: 'Zayi' },
   { deger: 'EXPIRY_WRITE_OFF', etiket: 'SKT imhası' },
   { deger: 'PURCHASE_RETURN', etiket: 'Tedarikçiye iade' },
 ]
@@ -965,6 +969,9 @@ function CikisFormu({ kalem, lotlar, birimler, onKaydet, onIptal }: {
   const doluLotlar = lotlar.filter(lot => lot.miktar > 0)
   const secenekler = kullanilabilirBirimler(kalem, birimler)
   const temelKarsilik = temelKarsiligi(miktar, birim, kalem)
+  // Fire/zayi/imha seçildiğinde "Not" alanı "Gerekçe"ye dönüşür ve zorunlu olur.
+  const gerekceZorunlu = zayiNedeniMi(neden)
+  const gonderilebilir = !gerekceZorunlu || gerekceYeterliMi(not)
 
   return (
     <form className="stacked-form" onSubmit={e => {
@@ -1011,11 +1018,23 @@ function CikisFormu({ kalem, lotlar, birimler, onKaydet, onIptal }: {
         </div>
       )}
 
-      <div className="form-field"><label>Not</label>
-        <input value={not} onChange={e => setNot(e.target.value)} /></div>
+      <div className="form-field">
+        <label>{gerekceZorunlu ? 'Gerekçe' : 'Not'}</label>
+        <input value={not} onChange={e => setNot(e.target.value)}
+          required={gerekceZorunlu}
+          placeholder={gerekceZorunlu ? ZAYI_ACIKLAMALARI[neden as ZayiNedeni] : ''} />
+        {gerekceZorunlu && (
+          // Servis de aynı kuralı uyguluyor; buradaki metin kuralı AÇIKLAMAK
+          // için, engellemek için değil. Engel serviste (write-off.service).
+          <small className="muted">
+            Fire, zayi ve imhanın belgesi yoktur; tek dayanağı bu satırdır.
+            Denetimde sorulan ilk şey budur.
+          </small>
+        )}
+      </div>
 
       <div className="form-actions">
-        <button className="btn primary" type="submit">Deftere yaz</button>
+        <button className="btn primary" type="submit" disabled={!gonderilebilir}>Deftere yaz</button>
         <button className="btn" type="button" onClick={onIptal}>İptal</button>
       </div>
     </form>

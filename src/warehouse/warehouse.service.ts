@@ -28,6 +28,8 @@ import type {
 } from '../core/stock/stock.repository'
 import { convertUom } from '../core/stock/uom'
 import type { KatalogKalemi, KatalogLotu, StokKatalogu, YeniKalem } from './warehouse.catalog'
+import { zayiNedeniMi } from './write-off.repository'
+import { GerekceGerekliError, gerekceYeterliMi } from './write-off.service'
 
 /** Ekranda gösterilen kalem: kart bilgisi + defterden türetilmiş miktar. */
 export type DepoKalemi = KatalogKalemi & {
@@ -97,6 +99,7 @@ export type CikisNedeni =
   | 'PRODUCTION_WASTE'
   | 'SHIPMENT_OUT'
   | 'WASTE'
+  | 'LOSS'
   | 'EXPIRY_WRITE_OFF'
   | 'PURCHASE_RETURN'
 
@@ -156,6 +159,18 @@ export type SayimGirdisi = {
   birim: string
   /** Lot takipli kalemlerde zorunlu: sayım hangi lot için yapıldı. */
   lotId?: string
+  not?: string
+}
+
+/** Sayım BELGESİNDEN gelen fark. Fark önceden hesaplanmıştır, temel birimdedir. */
+export type SayimFarkiGirdisi = {
+  stokKalemiId: string
+  lotId?: string
+  /** İşaretli fark: fazla +, eksik −. Temel birimde. */
+  fark: number
+  birim: string
+  /** Sayım belgesinin kimliği — kilidin tanıdığı anahtar. */
+  sayimId: string
   not?: string
 }
 
@@ -512,6 +527,13 @@ export class DepoServisi {
   ): Promise<Movement[]> {
     if(girdi.miktar <= 0) throw new Error('Çıkış miktarı 0’dan büyük olmalıdır.')
 
+    // Fire/zayi/imhanın belgesi yoktur; tek dayanağı yazanın beyanıdır.
+    // Bu yüzden gerekçe EKRAN kuralı değil SERVİS kuralı: hangi ekrandan,
+    // hangi toplu işten gelirse gelsin boş geçilemez.
+    if(zayiNedeniMi(girdi.neden) && !gerekceYeterliMi(girdi.not)){
+      throw new GerekceGerekliError(girdi.neden)
+    }
+
     const kalem = await this.kalemiBul(ctx, girdi.stokKalemiId)
     // Kıyaslar temel birimde yapılır; girilen değer önce oraya çevrilir.
     const istenenTemel = temeleCevir(girdi.miktar, girdi.birim, kalem)
@@ -573,6 +595,68 @@ export class DepoServisi {
     return hareketler
   }
 
+  // ── SKT İMHASI ───────────────────────────────────────────────────────────
+  /**
+   * SKT'si geçmiş lotların TOPLU imhası.
+   *
+   * ── Neden lotun tamamı ────────────────────────────────────────────────
+   * Süresi geçmiş bir lotun bir kısmını imha edip kalanını depoda bırakmak
+   * anlamsızdır; kalan da geçmiştir. Bu yüzden miktar kullanıcıdan değil
+   * DEFTERDEN gelir: imha anındaki tam bakiye. Kullanıcının ekranda gördüğü
+   * rakamı geri göndermesini beklemek, arada değişmiş bir bakiyeyi sessizce
+   * yanlış yazmak demek olurdu.
+   *
+   * ── Neden `imha:lotId` anahtarı ───────────────────────────────────────
+   * Düğmeye iki kez basılırsa ikinci imha YAZILMAZ (I2). Anahtar lota
+   * sabitlenmiş: bir lot bir kez imha edilir. Sonradan aynı lota mal
+   * girer ve o da imha edilmesi gerekirse ayrı çıkış ekranı kullanılır —
+   * nadir durum, ve sessiz mükerrer kayıttan iyidir.
+   *
+   * ── Neden tek tek, toplu değil ────────────────────────────────────────
+   * Bir lotun imhası hata verirse (bakiye değişmiş, kilit var) diğerleri
+   * yazılmaya devam eder ve hangi lotta ne olduğu raporlanır. Hepsini tek
+   * işleme bağlamak, tek bir sorunlu lot yüzünden 30 lotun imhasını
+   * engellerdi.
+   */
+  async imhaEt(
+    ctx: TenantCtx,
+    lotlar: Array<{ kalemId: string; lotId: string }>,
+    gerekce: string,
+  ): Promise<{ yazilan: Movement[]; hatalar: Array<{ lotId: string; mesaj: string }> }> {
+    if(!gerekceYeterliMi(gerekce)) throw new GerekceGerekliError('EXPIRY_WRITE_OFF')
+
+    const yazilan: Movement[] = []
+    const hatalar: Array<{ lotId: string; mesaj: string }> = []
+
+    for(const hedef of lotlar){
+      try {
+        const kalem = await this.kalemiBul(ctx, hedef.kalemId)
+        const lot = (await this.lotBakiyeleri(ctx, hedef.kalemId))
+          .find(l => l.id === hedef.lotId)
+        if(!lot) throw new Error('Lot bu kaleme ait değil.')
+        if(lot.miktar <= 0) throw new Error('Lotta imha edilecek bakiye kalmamış.')
+
+        const hareketler = await this.cikis(ctx, {
+          stokKalemiId: hedef.kalemId,
+          // Bakiye TEMEL birimdedir; imha da temel birimde yazılır.
+          miktar: lot.miktar,
+          birim: kalem.temelBirim,
+          neden: 'EXPIRY_WRITE_OFF',
+          lotId: hedef.lotId,
+          not: gerekce.trim(),
+        }, `imha:${hedef.lotId}`)
+        yazilan.push(...hareketler)
+      } catch(hata){
+        hatalar.push({
+          lotId: hedef.lotId,
+          mesaj: hata instanceof Error ? hata.message : 'Bilinmeyen hata',
+        })
+      }
+    }
+
+    return { yazilan, hatalar }
+  }
+
   // ── SAYIM ────────────────────────────────────────────────────────────────
   /**
    * Fiziksel sayım sonucunu deftere işler.
@@ -616,6 +700,41 @@ export class DepoServisi {
       sourceType: 'count',
       note: girdi.not
         ?? `Sayım: ${girdi.sayilan} ${girdi.birim} (defterde ${mevcut} ${kalem.temelBirim})`,
+    }, idempotencyKey)
+  }
+
+  /**
+   * Sayım BELGESİNİN yazdığı fark hareketi.
+   *
+   * `sayim()`'den farkı: fark burada ZATEN HESAPLANMIŞTIR ve belge kimliğiyle
+   * birlikte gelir. Belge kimliği şart, çünkü 0025'teki sayım kilidi tam olarak
+   * ona bakıyor: açık bir sayımdaki kaleme yazılabilen tek hareket, o sayımın
+   * kendi hareketidir (`source_type = 'count'` ve `source_id = sayım kimliği`).
+   * Kimliği geçmezsek kendi kilidimize takılırız.
+   */
+  async sayimFarki(
+    ctx: TenantCtx,
+    girdi: SayimFarkiGirdisi,
+    idempotencyKey: string,
+  ): Promise<Movement> {
+    if(girdi.fark === 0){
+      throw new Error('Fark sıfırken hareket yazılmaz.')
+    }
+    const kalem = await this.kalemiBul(ctx, girdi.stokKalemiId)
+    if(kalem.lotTakipli && !girdi.lotId) throw new LotGerekliError(kalem.ad)
+
+    return this.defter.postMovement(ctx, {
+      stockItemId: kalem.id,
+      lotId: girdi.lotId,
+      // Fark zaten temel birimde geldi (beklenen de sayılan da temel birimde
+      // tutuluyor); burada ikinci bir dönüşüm YAPILMAZ — çift dönüşüm bin
+      // katlık sessiz hatanın klasik yeridir.
+      quantity: girdi.fark,
+      uom: kalem.temelBirim,
+      reason: girdi.fark > 0 ? 'COUNT_SURPLUS' : 'COUNT_SHORTAGE',
+      sourceType: 'count',
+      sourceId: girdi.sayimId,
+      note: girdi.not,
     }, idempotencyKey)
   }
 

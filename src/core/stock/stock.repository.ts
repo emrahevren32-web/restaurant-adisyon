@@ -92,6 +92,10 @@ export type MovementReason =
   | 'COUNT_SHORTAGE'
   | 'EXPIRY_WRITE_OFF'
   | 'WASTE'
+  // 0025 · zayi. Fire (WASTE) ile aynı şey değil: fire işlenirken oluşan
+  // kayıp, zayi ise malın kaybolması/kırılması/çalınması. Ayrı kod olmasa
+  // "fire oranımız yükseldi mi" sorusu cevaplanamazdı.
+  | 'LOSS'
   | 'TRANSFER_IN'
   | 'TRANSFER_OUT'
   | 'OPENING_BALANCE'
