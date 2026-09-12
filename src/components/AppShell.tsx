@@ -1,4 +1,5 @@
 import React from 'react'
+import { SIDEBAR_PEEK_EVENT } from './ProductTour'
 import { AppIcon } from '../design-system/IconSystem'
 import ApplicationShell from './ApplicationShell'
 import NavigationQuickAccess, { type NavigationQuickAccessItem } from './NavigationQuickAccess'
@@ -418,6 +419,23 @@ export default function AppShell<
     setSidebarPeeked(false)
   }, [sidebarRail])
 
+  // Ürün rehberi, "Sidebar" adımında dar moddaki menüyü geçici olarak açar.
+  // Kapalı bir menüyü anlatmak anlamsız olurdu. Adım bitince kendisi kapatıyor.
+  //
+  // Neden olay: menünün durumu burada, React state içinde. Rehber ona doğrudan
+  // erişemez ve erişebilmesi için AppShell'in state'ini yukarı taşımak, tek bir
+  // rehber adımı uğruna ekranın tamamını yeniden bağlamak olurdu.
+  //
+  // Menü sabitlenmişse `setPeek` zaten hiçbir şey yapmaz — kullanıcının kendi
+  // tercihi bu olaydan etkilenmez.
+  React.useEffect(() => {
+    const rehberIstedi = (olay: Event) => {
+      setPeek((olay as CustomEvent<boolean>).detail === true)
+    }
+    window.addEventListener(SIDEBAR_PEEK_EVENT, rehberIstedi)
+    return () => window.removeEventListener(SIDEBAR_PEEK_EVENT, rehberIstedi)
+  }, [setPeek])
+
   const toggleSidebarPinned = React.useCallback(() => {
     setSidebarPinned(current => {
       const next = !current
@@ -618,6 +636,24 @@ export default function AppShell<
     </div>
   )
 
+  /**
+   * Ana ekran (Kontrol Paneli) menü ögesi.
+   *
+   * Üst bardaki marka simgesi buna bağlanıyor. Ayrı bir "ana sayfa" rotası
+   * uydurmuyoruz: menüde hangi öge dashboard ise o çağrılıyor — böylece izin
+   * süzmesi ve rota çözümü tek yerde kalıyor.
+   */
+  const homeNavItem = React.useMemo(() => {
+    for(const group of navGroups){
+      const found = group.items.find(item => (
+        String(item.key) === 'dashboard' || String(item.route) === 'summary'
+      ))
+      if(found) return found
+    }
+    return null
+  }, [navGroups])
+
+
   const sidebarContent = visibleNavGroups.map(group => {
     const visibleItems = group.items
     const emptyAction = group.emptyAction
@@ -771,7 +807,13 @@ export default function AppShell<
     </>
   )
   const workspaceBreadcrumbs = [
-    { label: isPlatformAdmin ? 'EVREN360' : restaurantName, icon: 'home' as const },
+    // İlk basamak ana ekrana götürüyor. Ev simgesi zaten her sayfada
+    // görünüyordu; tıklanamaz olması "geri dönüş yolu yok" hissi veriyordu.
+    {
+      label: isPlatformAdmin ? 'EVREN360' : restaurantName,
+      icon: 'home' as const,
+      onSelect: homeNavItem ? () => onOpenNavItem(homeNavItem) : undefined,
+    },
     ...(activeGroup ? [{ label: activeGroup.title, icon: 'module' as const }] : []),
     { label: activeNavLabel, current: true, icon: 'workspace' as const }
   ]
@@ -849,6 +891,7 @@ export default function AppShell<
             onOpenMobileNav={() => setMobileSidebarOpen(true)}
             onToggleSidebar={toggleSidebarPinned}
             onToggleTheme={toggleThemeMode}
+            onOpenHome={homeNavItem ? () => onOpenNavItem(homeNavItem) : undefined}
           >
             {notificationCenter}
             {onStartOnboarding && (

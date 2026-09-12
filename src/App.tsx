@@ -74,6 +74,8 @@ import { WORKSPACE_PROVISIONING_EVENT } from './workspace-provisioning/workspace
 import type { Evren360Notification } from './notifications/evren360-notification.service'
 import { hasConnectedWorkspaceIntegrationsForUser } from './integrations/workspace-integration.service'
 import { createPlatformNavGroups, getPlatformRoutes } from './platform/platform.registry'
+import { syncWorkspaceCompanyFromDatabase } from './companies/company-bridge'
+import { getDefaultModules } from './sector/sector-template.service'
 import { getBusinessMenuEmptyState, getWorkspaceTemplateViewForUser } from './workspace-template/workspace-template.service'
 import { WORKSPACE_MODULE_CODES } from './modules/module-code.registry'
 import {
@@ -132,13 +134,34 @@ const getPrimarySectorIdForUser = (user: User | null | undefined) => {
   return loadCompanies({ allTenants: true }).find(company => company.id === companyId)?.primarySectorId || ''
 }
 
+/**
+ * Bu modül, işletmenin sektöründe VARSAYILAN mı?
+ *
+ * ── ÖNCEKİ HÂLİ VE NEDEN YANLIŞTI ────────────────────────────────────────
+ * Eskiden tek bir modül elle sabitlenmişti:
+ *
+ *     moduleCode === WORKSPACE_MODULE_CODES.PURCHASE && Boolean(primarySectorId)
+ *
+ * Yani "Satın Alma" her sektörde açıktı, diğer bütün varsayılan modüller ise
+ * ayrıca AKTİVE edilmedikçe menüde hiç görünmüyordu. Oysa sektör şablonu
+ * (`sector-template.registry.ts`) zaten `defaultModules` / `optionalModules`
+ * ayrımını yapıyor ve "varsayılan" kelimesinin anlamı tam olarak budur:
+ * işletme o sektörde ise o modül baştan açıktır.
+ *
+ * Sonuç, Endüstriyel Mutfak'ta şuydu: sektör doğru kurulsa bile Depo, Stok,
+ * Reçete, Üretim ve Cari menüde çıkmıyordu — çünkü hiçbiri "PURCHASE" değildi.
+ * Kullanıcı boş bir OPERATIONS bölümü görüyor ve sebebini bulamıyordu.
+ *
+ * Artık kaynak şablonun kendisi. OPSİYONEL modüller değişmedi: onlar hâlâ
+ * Modül Mağazası'ndan aktive edilmeyi bekler.
+ */
 const isWorkspaceNavigationBaseModule = (
   moduleCode: string,
   primarySectorId: string
-) => (
-  moduleCode === WORKSPACE_MODULE_CODES.PURCHASE
-  && Boolean(primarySectorId)
-)
+) => {
+  if(!primarySectorId) return false
+  return (getDefaultModules(primarySectorId) as readonly string[]).includes(moduleCode)
+}
 
 const isDecisionSupportWorkspaceNavigationEnabled = (
   user: User | null,
@@ -179,6 +202,9 @@ const lockWorkspaceNavGroupsUntilInstallation = (groups: NavGroup[], setupComple
 }
 
 const createWorkspaceNavGroupsForUser = (user: User | null) => {
+  // Kapanışta `user`ın null olabileceğini TypeScript daraltamadığı için
+  // izin listesi önce yerel bir değişkene alınıyor.
+  const userPermissions = user?.permissions
   const setupCompleted = isWorkspaceSetupCompletedForUser(user)
   const primarySectorId = getPrimarySectorIdForUser(user)
   const businessMenuEmptyState = setupCompleted
@@ -186,6 +212,15 @@ const createWorkspaceNavGroupsForUser = (user: User | null) => {
     : undefined
 
   const groups = createBusinessWorkspaceNavGroups({
+    // Aşama 1 · "Yetkisiz uç yok": izni olmayan menü ögesi hiç üretilmez.
+    // `user.permissions` girişte veritabanından yüklenir (0014 +
+    // authorization/permission.repository.ts). `undefined` ise (bu
+    // değişiklikten önce açılmış bir oturum) süzme yapılmaz — gerekçe
+    // authorization/route-permission.ts dosya başında.
+    // İkinci savunma hattı: BusinessWorkspaceRouteHost'taki rota kontrolü.
+    hasPermission: userPermissions
+      ? permission => !permission || userPermissions.includes(permission)
+      : undefined,
     isCoreModuleVisible: module => {
       if(module.code === WORKSPACE_MODULE_CODES.WORKSPACE_WELCOME) return !setupCompleted
       if(module.code === WORKSPACE_MODULE_CODES.MARKETPLACE) return true
@@ -232,7 +267,36 @@ const getFirstVisibleWorkspaceNavItem = (user: User | null) => {
     .find(({ item }) => item.route && (!item.adminOnly || user?.role === 'Admin'))
 }
 
+/**
+ * Platform (EVREN360) yöneticisi mi?
+ *
+ * ── ESKİ ÖLÇÜT VE NEDEN DEĞİŞTİ (2026-08-29) ─────────────────────────────
+ * Önceki kural şuydu: `role === 'Admin' && hiçbir firmaya bağlı değil`.
+ * Bu, gerçek bir izin sistemi yokken kullanılan bir VEKİLDİ — "firması olmayan
+ * admin" demek, "platform admini" demenin dolaylı yoluydu. Tek platform admini
+ * de `storage.ts` içindeki `admin/admin123` tohum kaydıydı.
+ *
+ * G4'te o düz metin parolalı tohum kaldırıldı (PLAN.md §5) ve giriş Supabase
+ * Auth'a taşındı. Ama kimse şunu fark etmedi: platform paneline giden TEK yol
+ * o tohum hesaptı. `0008` ile oluşturulan gerçek yönetici bir firmaya bağlı
+ * olduğu için ölçüt onu platform admini saymıyor — yani panel, kimse karar
+ * vermeden sessizce erişilemez hâle geldi. Bu bir regresyondu, tasarım değil.
+ *
+ * Artık gerçek bir izin kataloğu var (0014/0015): `platform.manage`. Ölçüt
+ * dolaylı ipucu yerine doğrudan o izne bakıyor — yetki çerçevesinin
+ * (docs/yetki-cercevesi.md) zaten öngördüğü şey buydu.
+ *
+ * ⚠️ Bu bir GÜVENLİK SINIRI DEĞİLDİR; `route-permission.ts` dosya başındaki
+ * gerekçenin aynısı geçerli: liste tarayıcıda duruyor. Gerçek koruma
+ * veritabanındadır (RLS + sütun GRANT'leri). Buradaki kontrol, kullanıcıya
+ * çalışmayacak kapılar göstermemek içindir.
+ */
 const isPlatformAdminUser = (user?: User | null) => {
+  // İzinler yüklendiyse ölçüt izindir. `[]` ("hiçbir izni yok") da geçerli bir
+  // cevaptır ve `false` döner — `undefined` ("henüz yüklenmedi") ile aynı şey değil.
+  if(user?.permissions) return user.permissions.includes('platform.manage')
+
+  // İzinler yüklenmemiş (bu değişiklikten önce açılmış oturum): eski ölçüt.
   return user?.role === 'Admin' && !getCompanyIdForUser(user)
 }
 
@@ -434,6 +498,32 @@ export default function App(){
     setActiveNavKey(workspaceSetupCompleted ? 'dashboard' : 'workspace-welcome')
     setOpenGroupKey('system-modules')
   }, [currentUser, isPlatformAdmin, route, workspaceSetupCompleted])
+  // Firma köprüsü — AÇILIŞTA da çalışır, yalnızca girişte değil.
+  //
+  // Köprü ilk hâlinde sadece `authenticateCredentials` içinde çağrılıyordu.
+  // Ama bir oturum zaten açıksa (sayfa yenilendi, sekme kapanıp açıldı)
+  // giriş akışı hiç koşmaz: `getInitialAuthenticationState()` kullanıcıyı
+  // doğrudan localStorage'dan geri yükler. Yani mevcut oturumu olan herkes
+  // köprüden hiç geçmiyor, sektörü boş kalıyor ve iş menüleri görünmüyordu —
+  // "çıkış yapıp tekrar gir" demek bir çözüm değil, kusuru kullanıcıya
+  // yıkmaktır.
+  //
+  // Köprü yazma yapmadıysa gereksiz yere yeniden çizmiyoruz: `sektor` yalnızca
+  // gerçekten bir firma aynalandığında dolu döner.
+  React.useEffect(() => {
+    if(!currentUser) return
+    let iptal = false
+
+    void syncWorkspaceCompanyFromDatabase(currentUser).then(sektor => {
+      if(iptal || !sektor) return
+      // Menü ağacı `moduleInstallRefreshKey`e bağlı; köprü firmayı yazdıktan
+      // sonra yeniden kurulması gerekiyor.
+      setModuleInstallRefreshKey(current => current + 1)
+    })
+
+    return () => { iptal = true }
+  }, [currentUser])
+
   React.useEffect(() => {
     const refreshWorkspaceModules = () => setModuleInstallRefreshKey(current => current + 1)
 
@@ -613,8 +703,15 @@ export default function App(){
     setLicenseAccessError('')
   }
   const navGroupsForCurrentUser = React.useMemo<NavGroup[]>(() => {
+    // Platform admini AYNI ZAMANDA bir firmanın yöneticisi olabilir — kurucu
+    // durumu tam olarak budur. Eskiden ikisi birbirini dışlıyordu: platform
+    // admini olan kullanıcı kendi işletme menüsünü hiç göremiyordu.
+    // Artık firması olan bir platform admini İKİ yüzeyi birden görür;
+    // firması olmayan (saf platform yöneticisi) yalnızca paneli görür.
     const scopedGroups = isPlatformAdmin
-      ? platformNavGroups
+      ? (getCompanyIdForUser(currentUser)
+        ? [...createWorkspaceNavGroupsForUser(currentUser), ...platformNavGroups]
+        : platformNavGroups)
       : createWorkspaceNavGroupsForUser(currentUser)
 
     return scopedGroups.map(group => ({

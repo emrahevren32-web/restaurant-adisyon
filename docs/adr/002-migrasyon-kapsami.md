@@ -3,6 +3,48 @@
 - **Durum:** Kabul edildi (Claude · GPT · Emrah, 2026-08-23)
 - **Ölçüm:** `business-workspace.registry.ts` içinde **34 modül**, **138 menü ögesi**
 - **Karar:** 34 modülün **12'si** migre edilir, **22'si** dondurulur
+- **Revizyon (2026-08-29):** kapsam **20 core / 14 frozen** olarak genişletildi — aşağıya bakınız
+
+---
+
+## Revizyon · 2026-08-29 · Endüstriyel Mutfak kapsamı
+
+**Karar veren:** Emrah (ürün sahibi). **Uygulayan:** Claude.
+
+Kapsam listesi genişletildi: **12 core / 22 frozen → 20 core / 14 frozen.**
+
+**Mekanizma DEĞİŞMEDİ.** `foundationScope` alanı, süzme noktaları, iki savunma
+hattı — hepsi olduğu gibi duruyor. Değişen yalnızca hangi modülün hangi listede
+olduğudur; bu zaten ürün sahibinin kararıdır ve ADR'nin "Bu bir kod kararıdır"
+bölümü de kapsamın sabit olduğunu değil, kapsam dışının kod tarafından
+zorlandığını söyler.
+
+**Açılan 8 modül ve gerekçeleri:**
+
+| Modül | Gerekçe |
+|---|---|
+| `system-marketplace` (Modül Mağazası) | Modül aktive etmenin tek yolu. Kapalıyken çalışma alanı hiçbir iş modülü kuramıyordu. |
+| `system-branches` (Şubeler) | Şube yetkisi verilemeden başlıktaki "Yetkili şube yok" uyarısı çözülemiyordu. |
+| `system-notifications` (Bildirimler) | Başlıktaki bildirim zili zaten duruyordu; merkezi erişilemezdi. |
+| `business-warehouse` (Depo) | Endüstriyel Mutfak sektör şablonunun **varsayılan** modülü. |
+| `business-current` (Cari) | Aynı şablonun **varsayılan** modülü. |
+| `business-kpi-reporting` (Raporlama) | Sektöre özel raporlama yüzeyi: üretim, sevkiyat, fire, maliyet, depo performansı. |
+| `business-decision-support-workspace` (Karar Destek) | Sektöre özel karar destek yüzeyi. |
+| `business-personnel` (Personel) | Aynı şablonun **opsiyonel** modülü. |
+
+**Neden 22'nin tamamı açılmadı:** Restoran POS tarafı (`business-adisyon`,
+`business-qr-menu`), finans/kredi (`business-finance`, `business-credit`),
+platform/kurumsal yüzeyler ve AI merkezi kapalı kaldı. Bunlar Endüstriyel
+Mutfak sektörünün ne varsayılan ne opsiyonel listesinde; açmak, ADR'nin asıl
+gerekçesini (demoda boşluğa düşecek ekran bırakmamak) hiçbir karşılık almadan
+zayıflatırdı.
+
+**Kaydedilen ders:** Bu revizyonun tetikleyicisi bir kapsam tartışması değil,
+bir **hata**ydı. Menülerin boş görünmesinin asıl sebebi ADR-002 değil, giriş
+Supabase'e taşındıktan sonra kullanıcının Postgres `company.id`'sinin
+localStorage'daki firma listesinde bulunamaması ve sektörün `''` kalmasıydı
+(bkz. `src/companies/company-bridge.ts`). Kapsam daraltması suçlanmadan önce
+teşhis konması gerekti — "görünmüyor" ile "kapatılmış" aynı şey değil.
 
 ---
 
@@ -228,6 +270,10 @@ Bu kural `PLAN.md` §1'in birinci maddesidir.
 
 **Kabul ettiğimiz bedel:** Uygulama görsel olarak küçülecek. 138 menü ögesi 24-26'ya
 inecek. Bu, ilk bakışta geri adım gibi görünür.
+
+> **2026-08-29 revizyonundan sonra** bu sayı ~60 menü ögesine çıktı (8 modül
+> açıldı). Bedel-karşılık dengesi aynı kaldı: açılanların hepsi Endüstriyel
+> Mutfak sektör şablonunun parçası, yani demoda gösterilecek yüzeyler.
 
 **Karşılığında aldığımız:** Menüdeki her ögenin gerçekten çalıştığı bir ürün.
 Demoda hiçbir ekranın "burası henüz bağlı değil" cümlesini gerektirmemesi.

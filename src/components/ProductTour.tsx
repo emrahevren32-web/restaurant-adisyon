@@ -1,4 +1,5 @@
 import React from 'react'
+import { createPortal } from 'react-dom'
 import { AppIcon, type AppIconProps } from '../design-system/IconSystem'
 
 export type ProductTourStep = {
@@ -83,64 +84,174 @@ const getTourDomId = (value: string) => value.replace(/[^a-zA-Z0-9_-]/g, '-')
 
 type TourPlacement = 'center' | 'bottom' | 'top' | 'right' | 'left'
 
+/** Buzlamanın DIŞINDA kalacak dikdörtgen — ekran koordinatı, piksel. */
+export type TourHole = { top: number; right: number; bottom: number; left: number }
+
 type TourCardLayout = {
   placement: TourPlacement
   style: React.CSSProperties
+  hole?: TourHole
 }
 
-const TOUR_CARD_MARGIN = 16
-const TOUR_TARGET_GAP = 14
-const TOUR_CARD_FALLBACK_HEIGHT = 260
+/**
+ * Rehber ile `AppShell` arasındaki tek sözleşme: yan menüyü geçici olarak aç.
+ *
+ * Yan menü dar (rail) moddayken yalnızca ikonlar görünür ve fareyle üzerine
+ * gelince açılır. Rehberin "Sidebar" adımında kapalı bir menüyü göstermek
+ * anlamsız — anlatılan şey görünmüyor. Menünün açık/kapalı durumu `AppShell`
+ * içinde React state; rehber ona doğrudan erişemez.
+ *
+ * Bu yüzden bir olayla haber veriliyor: rehber "aç" der, adım bitince "kapat".
+ * Menü zaten sabitlenmişse `AppShell` bunu yok sayar — kullanıcının tercihi
+ * bozulmaz.
+ */
+export const SIDEBAR_PEEK_EVENT = 'miyop:tour-sidebar-peek'
 
-const clamp = (value: number, min: number, max: number) => Math.min(Math.max(value, min), Math.max(min, max))
+/** Yan menüyü hedefleyen adımın anahtarı (`OnboardingExperience` ile aynı). */
+const SIDEBAR_TARGET = 'side-menu'
 
-const getViewportBoundedLayout = (target: Element | null, card: HTMLElement | null): TourCardLayout => {
-  const viewportWidth = window.innerWidth
-  const viewportHeight = window.innerHeight
-  const maxWidth = Math.max(0, viewportWidth - (TOUR_CARD_MARGIN * 2))
-  const maxHeight = Math.max(0, viewportHeight - (TOUR_CARD_MARGIN * 2))
-  const cardRect = card?.getBoundingClientRect()
-  const cardWidth = Math.min(cardRect?.width || Math.min(430, maxWidth), maxWidth)
-  const cardHeight = Math.min(cardRect?.height || Math.min(TOUR_CARD_FALLBACK_HEIGHT, maxHeight), maxHeight)
-  const centerLayout = {
-    left: clamp((viewportWidth - cardWidth) / 2, TOUR_CARD_MARGIN, viewportWidth - cardWidth - TOUR_CARD_MARGIN),
-    top: clamp((viewportHeight - cardHeight) / 2, TOUR_CARD_MARGIN, viewportHeight - cardHeight - TOUR_CARD_MARGIN)
+const setSidebarPeek = (acik: boolean) => {
+  window.dispatchEvent(new CustomEvent(SIDEBAR_PEEK_EVENT, { detail: acik }))
+}
+
+/** Kartın köşeden uzaklığı. */
+const TOUR_CARD_MARGIN = 24
+
+/** Vurgulanan alanın çevresinde buzlamadan bırakılan pay — kenarlık payı. */
+const TOUR_HOLE_PADDING = 8
+
+/**
+ * ═══════════════════════════════════════════════════════════════════════════
+ * KART ARTIK GEZMİYOR — ve bu bilinçli bir geri adım.
+ * ═══════════════════════════════════════════════════════════════════════════
+ *
+ * Kartı hedefin yanına koymayı beş kez denedim; her seferinde başka bir adım
+ * kırıldı. Denenenler ve neden yetmedikleri:
+ *
+ *   1) Kartın ÖLÇÜLEN genişliğiyle hesap  → ölçüm adım geçişlerinde yanılıyor
+ *   2) `overflow-y:auto` ile taşma kontrolü → yatay kaydırma kabı doğurdu,
+ *      metin kırpıldı ("l Paneli")
+ *   3) CSS `clamp()` ile kırpma           → üst sınır kart genişliğini bilmeyi
+ *      gerektiriyor, o da temaya göre değişiyor
+ *   4) Portal + kenardan hizalama         → sağ kenar düzeldi, başka adımlar
+ *      bozuldu
+ *   5) `scrollIntoView(inline:'center')`  → sayfayı yatayda kaydırıp hedefi
+ *      kartın altından çekiyordu
+ *
+ * Ortak kök sebep: hedefin yanına koymak, hedefin kutusunu + kartın kutusunu +
+ * ekranı + kaydırma durumunu AYNI ANDA doğru bilmeyi gerektiriyor. Bu dört
+ * bilginin her biri ayrı ayrı yanılabiliyor ve uygulamada 10 adım × her ekran
+ * boyu kadar ihtimal var. Kapatılamayacak kadar geniş bir yüzey.
+ *
+ * ── ŞİMDİKİ KARAR ────────────────────────────────────────────────────────
+ * Kart SABİT bir köşede durur. Hiçbir şey ölçülmez, dolayısıyla hiçbir şey
+ * yanılamaz. İşaret etme işini kart değil, BUZLAMADAKİ DELİK ve hedefin
+ * çevresindeki çerçeve yapar — ve o kısım çalışıyor.
+ *
+ * Tek kural: hedef ekranın alt yarısındaysa kart sağ ÜSTE, değilse sağ ALTA
+ * gider. Yoksa kart, tanıttığı şeyin üstüne oturur. İki konum var, ikisi de
+ * köşeye iki kenardan yapışık (`right` + `top`/`bottom`); bir kutu iki kenardan
+ * içeride duruyorsa taşması matematiksel olarak imkânsızdır — kart ne kadar
+ * geniş ya da yüksek olursa olsun.
+ * ═══════════════════════════════════════════════════════════════════════════
+ */
+const SAG_ALT: React.CSSProperties = {
+  left: 'auto',
+  right: `${TOUR_CARD_MARGIN}px`,
+  top: 'auto',
+  bottom: `${TOUR_CARD_MARGIN}px`,
+  transform: 'none'
+}
+
+const SAG_UST: React.CSSProperties = {
+  left: 'auto',
+  right: `${TOUR_CARD_MARGIN}px`,
+  top: `${TOUR_CARD_MARGIN}px`,
+  bottom: 'auto',
+  transform: 'none'
+}
+
+/**
+ * Hedefi olmayan (ya da hedefi sayfada bulunamayan) adım.
+ *
+ * "Hazırsınız" adımının hedefi yoktur — kapanış metnidir. Eskiden bu durumda
+ * `style: {}` dönüyordu ve CSS kartı sağ alt köşeye atıyordu; ekranda
+ * vurgulanan bir şey olmadığı için de her yer buzlanıyordu. Dışarıdan "popup
+ * bozuk" görünüyordu, oysa gösterilecek bir yer yoktu.
+ */
+const ORTA_YERLESIM: TourCardLayout = {
+  placement: 'center',
+  style: {
+    left: '50%',
+    right: 'auto',
+    top: '50%',
+    bottom: 'auto',
+    transform: 'translate(-50%, -50%)'
   }
+}
 
-  if(!target){
-    return {
-      placement: 'center',
-      style: { ...centerLayout, right: 'auto', bottom: 'auto', transform: 'none' }
-    }
-  }
+const getViewportBoundedLayout = (target: Element | null): TourCardLayout => {
+  if(!target) return ORTA_YERLESIM
 
-  const targetRect = target.getBoundingClientRect()
-  const centeredLeft = targetRect.left + ((targetRect.width - cardWidth) / 2)
-  const centeredTop = targetRect.top + ((targetRect.height - cardHeight) / 2)
-  const candidates: Array<{ placement: TourPlacement; left: number; top: number }> = [
-    { placement: 'bottom', left: centeredLeft, top: targetRect.bottom + TOUR_TARGET_GAP },
-    { placement: 'right', left: targetRect.right + TOUR_TARGET_GAP, top: centeredTop },
-    { placement: 'left', left: targetRect.left - cardWidth - TOUR_TARGET_GAP, top: centeredTop },
-    { placement: 'top', left: centeredLeft, top: targetRect.top - cardHeight - TOUR_TARGET_GAP }
-  ]
+  const hedef = target.getBoundingClientRect()
+  // `clientWidth/Height` kaydırma çubuğunu dışarıda bırakır; `innerWidth` ve
+  // `100vw` bırakmaz. Delik hesabında bu fark kenarda hataya yol açıyordu.
+  const ekranGenisligi = document.documentElement.clientWidth
+  const ekranYuksekligi = document.documentElement.clientHeight
 
-  const fittingCandidate = candidates.find(candidate => (
-    candidate.left >= TOUR_CARD_MARGIN
-    && candidate.top >= TOUR_CARD_MARGIN
-    && candidate.left + cardWidth <= viewportWidth - TOUR_CARD_MARGIN
-    && candidate.top + cardHeight <= viewportHeight - TOUR_CARD_MARGIN
-  )) || candidates[0]
+  const hedefDikeyMerkezi = hedef.top + (hedef.height / 2)
+  const hedefAltYarida = hedefDikeyMerkezi > ekranYuksekligi / 2
 
   return {
-    placement: fittingCandidate.placement,
-    style: {
-      left: clamp(fittingCandidate.left, TOUR_CARD_MARGIN, viewportWidth - cardWidth - TOUR_CARD_MARGIN),
-      top: clamp(fittingCandidate.top, TOUR_CARD_MARGIN, viewportHeight - cardHeight - TOUR_CARD_MARGIN),
-      right: 'auto',
-      bottom: 'auto',
-      transform: 'none'
+    placement: 'center',
+    style: hedefAltYarida ? SAG_UST : SAG_ALT,
+    hole: {
+      top: Math.max(0, hedef.top - TOUR_HOLE_PADDING),
+      left: Math.max(0, hedef.left - TOUR_HOLE_PADDING),
+      right: Math.min(ekranGenisligi, hedef.right + TOUR_HOLE_PADDING),
+      bottom: Math.min(ekranYuksekligi, hedef.bottom + TOUR_HOLE_PADDING)
     }
   }
+}
+
+/**
+ * Buzlamayı tek bir örtü yerine DÖRT ŞERİT olarak çizer.
+ *
+ * ── NEDEN ────────────────────────────────────────────────────────────────
+ * Vurgulanan öge eskiden `z-index: 151` ile örtünün ÜSTÜNE çıkıyordu. Rehber
+ * portal ile `document.body` altına taşınınca bu bitti: artık iki öge farklı
+ * yığınlama bağlamlarında ve uygulamanın içindeki hiçbir `z-index` gövde
+ * seviyesindeki örtüyü geçemez. Sonuç: tanıtılan yer de buzlanıyordu.
+ *
+ * `z-index` yarışını kazanmaya çalışmak yerine örtüyü hedefin çevresinden
+ * dolaştırıyoruz — hedefin üstünde çizilecek bir şey kalmıyor. Bu çözüm
+ * yığınlama bağlamından, tema efektlerinden ve `backdrop-filter`dan tamamen
+ * bağımsız; kırılacak bir varsayımı yok.
+ */
+const TourScrim = ({ hole }: { hole?: TourHole }) => {
+  if(!hole) return <div className="product-tour-scrim" />
+
+  const yukseklik = document.documentElement.clientHeight
+  const genislik = document.documentElement.clientWidth
+
+  const seritler: React.CSSProperties[] = [
+    // üst
+    { top: 0, left: 0, right: 0, bottom: `${Math.round(yukseklik - hole.top)}px` },
+    // alt
+    { top: `${Math.round(hole.bottom)}px`, left: 0, right: 0, bottom: 0 },
+    // sol
+    { top: `${Math.round(hole.top)}px`, bottom: `${Math.round(yukseklik - hole.bottom)}px`, left: 0, right: `${Math.round(genislik - hole.left)}px` },
+    // sağ
+    { top: `${Math.round(hole.top)}px`, bottom: `${Math.round(yukseklik - hole.bottom)}px`, left: `${Math.round(hole.right)}px`, right: 0 }
+  ]
+
+  return (
+    <>
+      {seritler.map((stil, sira) => (
+        <div className="product-tour-scrim" key={sira} style={{ inset: 'auto', ...stil }} />
+      ))}
+    </>
+  )
 }
 
 const clearHighlights = () => {
@@ -262,18 +373,60 @@ export const ProductTourProvider = ({
     const updateLayout = () => {
       window.cancelAnimationFrame(frame)
       frame = window.requestAnimationFrame(() => {
-        setCardLayout(getViewportBoundedLayout(getTarget(), cardRef.current))
+        setCardLayout(getViewportBoundedLayout(getTarget()))
       })
     }
 
+    // Yan menü adımıysa menüyü aç; adım değişince ya da rehber kapanınca
+    // aşağıdaki temizlikte tekrar kapanıyor.
+    const yanMenuAdimi = activeStep?.target === SIDEBAR_TARGET
+    if(yanMenuAdimi) setSidebarPeek(true)
+
     const timer = window.setTimeout(() => {
       const target = getTarget()
+
+      // Adım bir hedef bildiriyor ama o öge sayfada yoksa, bu bir REHBER
+      // HATASIDIR — yerleşim hatası değil. Sessiz kalırsa köşeye düşen bir
+      // kart olarak görünür ve saatlerce yanlış yerde aranır ("Widget Alanı"
+      // adımında tam olarak bu oldu). Bu yüzden adıyla söylüyor.
+      if(targetSelector && !target && import.meta.env?.DEV){
+        console.warn(
+          `[MİYOP rehber] "${activeStep?.key}" adımının hedefi sayfada yok: `
+          + `${targetSelector} — kart ekranın ortasında gösterilecek.`
+        )
+      }
+
       target?.classList.add('product-tour-highlight')
-      target?.scrollIntoView({
-        block: 'center',
-        inline: 'center',
-        behavior: getReducedMotion() ? 'auto' : 'smooth'
-      })
+
+      // ── KAYDIRMA: EN AZ MÜDAHALE ────────────────────────────────────
+      // Önceden `inline: 'center'` kullanılıyordu. Bu, hedefi YATAYDA da
+      // ortalamaya çalışır: sağ üstteki profil ya da bildirim düğmesi gibi
+      // kenardaki bir hedefte tarayıcı, yatayda kaydırılabilen ilk üst kabı
+      // bulup kaydırır. Sayfa o sırada altından kayar; kart ekrana sabit
+      // durduğu için hedefin yanından ayrılır, hedef de kenara sıvanır.
+      // Dışarıdan bakınca "popup yine kaydı" görünür — oysa kayan sayfaydı.
+      //
+      // Artık: hedef zaten tamamen görünüyorsa HİÇ kaydırmıyoruz; gerekiyorsa
+      // yalnızca dikeyde ve `inline: 'nearest'` ile — yatayda zaten görünen
+      // bir ögeyi 'nearest' oynatmaz.
+      const hedefKutusu = target?.getBoundingClientRect()
+      const ekraniDolduruyor = Boolean(
+        hedefKutusu && hedefKutusu.height >= window.innerHeight * 0.9
+      )
+      const tamamenGorunuyor = Boolean(
+        hedefKutusu
+        && hedefKutusu.top >= 0
+        && hedefKutusu.left >= 0
+        && hedefKutusu.bottom <= document.documentElement.clientHeight
+        && hedefKutusu.right <= document.documentElement.clientWidth
+      )
+      if(target && !ekraniDolduruyor && !tamamenGorunuyor){
+        target.scrollIntoView({
+          block: 'center',
+          inline: 'nearest',
+          behavior: getReducedMotion() ? 'auto' : 'smooth'
+        })
+      }
       updateLayout()
       settleTimer = window.setTimeout(updateLayout, getReducedMotion() ? 0 : 240)
     }, getReducedMotion() ? 0 : 160)
@@ -287,6 +440,7 @@ export const ProductTourProvider = ({
       window.cancelAnimationFrame(frame)
       window.removeEventListener('resize', updateLayout)
       window.removeEventListener('scroll', updateLayout, true)
+      if(yanMenuAdimi) setSidebarPeek(false)
       clearHighlights()
     }
   }, [activeStep, open, welcome])
@@ -299,9 +453,28 @@ export const ProductTourProvider = ({
 
   if(!open || !activeStep) return null
 
-  return (
+  // ── ASIL SEBEP: KART UYGULAMANIN İÇİNDE RENDER EDİLİYORDU ───────────────
+  // Rehber `AppShell`'in içinde duruyordu. `position: fixed` normalde EKRANA
+  // göre konumlanır — ama üst ögelerden birinde `transform`, `filter`,
+  // `backdrop-filter`, `contain` ya da `will-change` varsa, tarayıcı referansı
+  // ekrandan O ÖGEYE çevirir. AppShell'in cam/bulanıklık efektleri tam olarak
+  // bunu yapıyordu.
+  //
+  // Sonuç: `getBoundingClientRect()` ekran koordinatı veriyor, `100vw` ekran
+  // genişliğini ölçüyor, ama kart bambaşka bir kutuya göre yerleşiyordu. Sayfa
+  // yatayda da kaydırılabilir olduğu için fark büyüyor ve kart ekranın dışına
+  // taşıyordu. Konum hesabını üç kez düzelttim; hiçbiri işe yaramadı çünkü
+  // hesap zaten doğruydu — YANLIŞ OLAN, hesabın uygulandığı yerdi.
+  //
+  // Portal, rehberi doğrudan `document.body` altına taşıyor. Artık üstünde
+  // hiçbir öge yok, `fixed` gerçekten ekrana göre çalışıyor ve `100vw` ile
+  // `getBoundingClientRect()` aynı şeyden bahsediyor.
+  //
+  // Yan kazanç: kart sayfa kaydırmasından etkilenmiyor. Hedef ekranın altında
+  // kalsa bile (`scrollIntoView` onu ortaya getiriyor) kart hep görünür kalıyor.
+  return createPortal(
     <div className={['product-tour-shell', welcome ? 'welcome' : 'guided', className].filter(Boolean).join(' ')} role="presentation">
-      <div className="product-tour-scrim" />
+      <TourScrim hole={welcome ? undefined : cardLayout.hole} />
       <div ref={cardRef} tabIndex={-1} data-tour-placement={cardLayout.placement} style={welcome ? undefined : cardLayout.style}>
         <TourStep
           step={activeStep}
@@ -315,7 +488,8 @@ export const ProductTourProvider = ({
           onFinish={onFinish}
         />
       </div>
-    </div>
+    </div>,
+    document.body
   )
 }
 

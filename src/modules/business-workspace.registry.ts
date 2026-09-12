@@ -282,7 +282,11 @@ export const BUSINESS_WORKSPACE_MODULE_REGISTRY: BusinessWorkspaceModule[] = def
   },
   {
     id: 'system-marketplace',
-    foundationScope: 'frozen',
+    // ⚠️ 2026-08-29'da AÇILDI (donduruluyken). Gerekçe: Endüstriyel Mutfak
+    // sektör şablonunun ihtiyaç duyduğu yüzey. Kapsam kararı ADR-002'nindir ve
+    // ürün sahibi tarafından güncellenmiştir — mekanizma değişmedi, liste değişti.
+    // Sebep: Modül aktive edebilmek için mağazaya menüden ulaşılmalı.
+    foundationScope: 'core',
     code: WORKSPACE_MODULE_CODES.MARKETPLACE,
     name: 'Modül Mağazası',
     description: 'İşletme çalışma alanı için iş ve entegrasyon modül kataloğunu gösterir.',
@@ -390,7 +394,7 @@ export const BUSINESS_WORKSPACE_MODULE_REGISTRY: BusinessWorkspaceModule[] = def
     category: 'system',
     icon: 'KU',
     route: 'users',
-    permissions: ['company.manage'],
+    permissions: ['users.manage', 'users.read', 'company.manage'],
     isCoreModule: true,
     isBusinessModule: false,
     isEnabled: true,
@@ -413,7 +417,7 @@ export const BUSINESS_WORKSPACE_MODULE_REGISTRY: BusinessWorkspaceModule[] = def
     category: 'system',
     icon: 'RL',
     route: 'users',
-    permissions: ['company.manage'],
+    permissions: ['roles.manage', 'users.read', 'company.manage'],
     isCoreModule: true,
     isBusinessModule: false,
     isEnabled: true,
@@ -429,7 +433,11 @@ export const BUSINESS_WORKSPACE_MODULE_REGISTRY: BusinessWorkspaceModule[] = def
   },
   {
     id: 'system-branches',
-    foundationScope: 'frozen',
+    // ⚠️ 2026-08-29'da AÇILDI (donduruluyken). Gerekçe: Endüstriyel Mutfak
+    // sektör şablonunun ihtiyaç duyduğu yüzey. Kapsam kararı ADR-002'nindir ve
+    // ürün sahibi tarafından güncellenmiştir — mekanizma değişmedi, liste değişti.
+    // Sebep: Şube yetkisi verilemeden "Yetkili şube yok" uyarısı çözülemiyor.
+    foundationScope: 'core',
     code: WORKSPACE_MODULE_CODES.BRANCHES,
     name: 'Şubeler',
     description: 'Her işletmenin temel şube yapısını yöneten sistem modülü.',
@@ -452,7 +460,11 @@ export const BUSINESS_WORKSPACE_MODULE_REGISTRY: BusinessWorkspaceModule[] = def
   },
   {
     id: 'system-notifications',
-    foundationScope: 'frozen',
+    // ⚠️ 2026-08-29'da AÇILDI (donduruluyken). Gerekçe: Endüstriyel Mutfak
+    // sektör şablonunun ihtiyaç duyduğu yüzey. Kapsam kararı ADR-002'nindir ve
+    // ürün sahibi tarafından güncellenmiştir — mekanizma değişmedi, liste değişti.
+    // Sebep: Bildirim zili başlıkta zaten var; merkezi de erişilebilir olmalı.
+    foundationScope: 'core',
     code: WORKSPACE_MODULE_CODES.NOTIFICATIONS,
     name: 'Bildirimler',
     description: 'Çalışma alanı bildirimleri için merkezi sistem modülü.',
@@ -528,7 +540,7 @@ export const BUSINESS_WORKSPACE_MODULE_REGISTRY: BusinessWorkspaceModule[] = def
     category: 'system',
     icon: 'AU',
     route: 'actions',
-    permissions: ['company.read'],
+    permissions: ['audit.read', 'company.read'],
     isCoreModule: true,
     isBusinessModule: false,
     isEnabled: true,
@@ -551,7 +563,7 @@ export const BUSINESS_WORKSPACE_MODULE_REGISTRY: BusinessWorkspaceModule[] = def
     category: 'system',
     icon: 'SA',
     route: 'settings',
-    permissions: ['company.manage'],
+    permissions: ['settings.manage', 'company.manage'],
     isCoreModule: true,
     isBusinessModule: false,
     isEnabled: true,
@@ -742,7 +754,8 @@ export const BUSINESS_WORKSPACE_MODULE_REGISTRY: BusinessWorkspaceModule[] = def
     description: 'Stok kartları, hareketleri, kritik stok, geçerlilik ve kayıp yönetimini kapsar.',
     category: 'business',
     icon: 'SK',
-    route: 'stock-cards',
+    // Açılış rotası 'stock-cards' idi; o ekran donduruldu (yerine Depo).
+    route: 'depo',
     permissions: ['stock.read', 'stock.write'],
     isCoreModule: false,
     isBusinessModule: true,
@@ -822,12 +835,29 @@ export const BUSINESS_WORKSPACE_MODULE_REGISTRY: BusinessWorkspaceModule[] = def
       })
     ],
     menuItems: [
-      menuItem({ key: 'stock-cards', label: 'Kartlar', route: 'stock-cards', icon: 'SK', adminOnly: true, displayOrder: 10 }),
-      menuItem({ key: 'stock-movements', label: 'Hareketler', route: 'stock-movements', icon: 'SH', adminOnly: true, displayOrder: 20 }),
-      menuItem({ key: 'critical-stock', label: 'Kritik Stok', route: 'stock-cards', icon: 'KS', adminOnly: true, displayOrder: 30 }),
-      menuItem({ key: 'expiry-lots', label: 'Geçerlilik Takibi', route: 'stock-cards', icon: 'GT', adminOnly: true, displayOrder: 40 }),
-      menuItem({ key: 'inventory-lots', label: 'Lot / Batch Yönetimi', route: 'inventory-lots', icon: 'LB', adminOnly: true, displayOrder: 50 }),
-      menuItem({ key: 'goods-receipts', label: 'Mal Kabul', route: 'goods-receipts', icon: 'MK', adminOnly: true, displayOrder: 60 }),
+      // Aşama 2 · Depo çekirdeği — gerçek veritabanına (Postgres) konuşan ilk
+      // iş ekranı. Aşağıdaki "Kartlar"/"Hareketler" hâlâ localStorage üzerinde
+      // çalışıyor; ADR-003'ün dikey dilim yaklaşımı gereği yenisi yanına
+      // kuruluyor, eskisi geçiş bitene kadar yerinde kalıyor.
+      // Başta duruyor: satılabilir çekirdek burasıdır.
+      menuItem({ key: 'depo', label: 'Depo', route: 'depo', icon: 'DP', adminOnly: true, displayOrder: 5 }),
+      // ⚠️ AŞAĞIDAKİ ALTI ÖGE DONDURULDU (2026-09-11, Emrah onayı).
+      //
+      // Hepsi localStorage üzerinde çalışan ESKİ ekranlardı ve yaptıkları işin
+      // tamamı gerçek veriyle zaten var:
+      //   Kartlar / Hareketler / Kritik Stok / Geçerlilik Takibi → "Depo"
+      //   Lot / Batch Yönetimi                                   → "İzlenebilirlik"
+      //   Mal Kabul                                              → "Talep ve Sipariş"
+      //
+      // En tehlikelisi "Mal Kabul" idi: demonun ortasındaki adım, ve müşteri
+      // ona tıkladığında sahte bir ekran görüyordu. Kod duruyor, menüde yok.
+      // Kural: "Menüde gördüğünüz her şey çalışıyor."
+      menuItem({ key: 'stock-cards', foundationScope: 'frozen', label: 'Kartlar', route: 'stock-cards', icon: 'SK', adminOnly: true, displayOrder: 10 }),
+      menuItem({ key: 'stock-movements', foundationScope: 'frozen', label: 'Hareketler', route: 'stock-movements', icon: 'SH', adminOnly: true, displayOrder: 20 }),
+      menuItem({ key: 'critical-stock', foundationScope: 'frozen', label: 'Kritik Stok', route: 'stock-cards', icon: 'KS', adminOnly: true, displayOrder: 30 }),
+      menuItem({ key: 'expiry-lots', foundationScope: 'frozen', label: 'Geçerlilik Takibi', route: 'stock-cards', icon: 'GT', adminOnly: true, displayOrder: 40 }),
+      menuItem({ key: 'inventory-lots', foundationScope: 'frozen', label: 'Lot / Batch Yönetimi', route: 'inventory-lots', icon: 'LB', adminOnly: true, displayOrder: 50 }),
+      menuItem({ key: 'goods-receipts', foundationScope: 'frozen', label: 'Mal Kabul', route: 'goods-receipts', icon: 'MK', adminOnly: true, displayOrder: 60 }),
       menuItem({ key: 'waste', foundationScope: 'frozen', label: 'Kayıp Analizi', route: 'stock-movements', icon: 'KA', adminOnly: true, displayOrder: 70 }),
       menuItem({
         key: 'stock-reports', foundationScope: 'frozen',
@@ -843,6 +873,12 @@ export const BUSINESS_WORKSPACE_MODULE_REGISTRY: BusinessWorkspaceModule[] = def
   },
   {
     id: 'business-warehouse',
+    // ⚠️ 2026-08-29'da AÇILDI (donduruluyken). Gerekçe: Endüstriyel Mutfak
+    // sektör şablonunun ihtiyaç duyduğu yüzey. Kapsam kararı ADR-002'nindir ve
+    // ürün sahibi tarafından güncellenmiştir — mekanizma değişmedi, liste değişti.
+    // Sebep: Endüstriyel Mutfak sektör şablonunun VARSAYILAN modülü.
+    // ⚠️ Canlı ögesi kalmadı: tek ekranı 'Kimyasal Ürünler' (sahte veri)
+    // donduruldu. Modül kodu duruyor, menüde yok.
     foundationScope: 'frozen',
     code: SECTOR_TEMPLATE_MODULE_CODES.WAREHOUSE,
     name: 'Depo',
@@ -877,19 +913,22 @@ export const BUSINESS_WORKSPACE_MODULE_REGISTRY: BusinessWorkspaceModule[] = def
       })
     ],
     menuItems: [
-      menuItem({ key: 'chemical-products', label: 'Kimyasal Ürünler', route: 'chemical-products', icon: 'KM', adminOnly: true, displayOrder: 10 })
+      menuItem({ key: 'chemical-products', foundationScope: 'frozen', label: 'Kimyasal Ürünler', route: 'chemical-products', icon: 'KM', adminOnly: true, displayOrder: 10 })
     ]
   },
   {
     id: 'business-recipe',
-    foundationScope: 'core',
+    // ⚠️ Tek menü ögesi ('Reçete Yönetimi', localStorage) donduruldu; yeni
+    // Reçeteler ekranı Üretim modülünün altında. Bu modülün canlı ekranı
+    // kalmadı — kodu duruyor, menüde yok (ADR-002/ADR-003).
+    foundationScope: 'frozen',
     code: WORKSPACE_MODULE_CODES.RECIPE,
     name: 'Reçete Yönetimi',
     description: 'Endüstriyel mutfak standart reçete kartları ve malzeme satırlarını yöneten iş modülü.',
     category: 'business',
     icon: 'RC',
     route: 'recipes',
-    permissions: ['operations.read', 'operations.write'],
+    permissions: ['recipe.read', 'recipe.write', 'operations.read', 'operations.write'],
     isCoreModule: false,
     isBusinessModule: true,
     isEnabled: true,
@@ -917,7 +956,7 @@ export const BUSINESS_WORKSPACE_MODULE_REGISTRY: BusinessWorkspaceModule[] = def
       })
     ],
     menuItems: [
-      menuItem({ key: 'recipes', label: 'Reçete Yönetimi', route: 'recipes', icon: 'RC', adminOnly: true, displayOrder: 10 })
+      menuItem({ key: 'recipes', foundationScope: 'frozen', label: 'Reçete Yönetimi', route: 'recipes', icon: 'RC', adminOnly: true, displayOrder: 10 })
     ]
   },
   {
@@ -928,8 +967,9 @@ export const BUSINESS_WORKSPACE_MODULE_REGISTRY: BusinessWorkspaceModule[] = def
     description: 'Endüstriyel mutfak satın alma talepleri, teklif yönetimi, onay süreçleri ve tedarikçi kartlarını yöneten iş modülü.',
     category: 'business',
     icon: 'SA',
-    route: 'purchase-requests',
-    permissions: ['finance.read', 'finance.write'],
+    // Açılış rotası dondurulmuş bir ekranı gösteriyordu.
+    route: 'tedarikciler',
+    permissions: ['purchase.read', 'purchase.write', 'finance.read', 'finance.write'],
     isCoreModule: false,
     isBusinessModule: true,
     isEnabled: true,
@@ -1009,18 +1049,43 @@ export const BUSINESS_WORKSPACE_MODULE_REGISTRY: BusinessWorkspaceModule[] = def
       })
     ],
     menuItems: [
-      menuItem({ key: 'purchase-requests', label: 'Satın Alma Talepleri', route: 'purchase-requests', icon: 'ST', adminOnly: true, displayOrder: 10 }),
+      // Postgres'e bağlı YENİ tedarikçi ekranı. Eski `suppliers` rotası
+      // (SupplierManagement) hâlâ localStorage üzerinde çalışıyor ve yerinde
+      // duruyor — ADR-003'ün dikey dilim yaklaşımı gereği yenisi yanına
+      // kuruluyor. Başta duruyor: satın alma zincirinin ilk halkası budur.
+      menuItem({ key: 'tedarikciler', label: 'Tedarikçiler', route: 'tedarikciler', icon: 'TD', adminOnly: true, displayOrder: 5 }),
+      // Talep ve sipariş TEK ekranda, iki sekmede. İkisi ayrı kayıttır ama tek
+      // bir hikâyenin iki adımıdır: "buna ihtiyacım var" → "bunu şundan aldım".
+      // Ayrı menü ögelerine bölmek, kullanıcıyı akışın ortasında başka bir
+      // ekrana gönderirdi.
+      menuItem({ key: 'satinalma', label: 'Talep ve Sipariş', route: 'satinalma', icon: 'SA', adminOnly: true, displayOrder: 6 }),
+      // ⚠️ 2026-09-03'te MENÜDEN KALDIRILDI (frozen).
+      //
+      // Yerini `satinalma` (Talep ve Sipariş) aldı. Kod repoda duruyor — ADR-003
+      // dikey dilim yaklaşımı: eski çekirdek, verisi taşınana kadar silinmez.
+      // Ama menüde İKİSİ BİRDEN durursa kullanıcı hangisinin gerçek olduğunu
+      // bilemez: biri localStorage'a, diğeri veritabanına yazar ve ikisi
+      // birbirini görmez. Aynı işi yapan iki düğme, hiç düğme olmamasından
+      // daha kötüdür.
+      menuItem({ key: 'purchase-requests', foundationScope: 'frozen', label: 'Satın Alma Talepleri', route: 'purchase-requests', icon: 'ST', adminOnly: true, displayOrder: 10 }),
       menuItem({ key: 'request-for-quotations', foundationScope: 'frozen', label: 'Teklif Yönetimi', route: 'request-for-quotations', icon: 'TK', adminOnly: true, displayOrder: 20 }),
       menuItem({ key: 'purchase-approvals', foundationScope: 'frozen', label: 'Satın Alma Onayları', route: 'purchase-approvals', icon: 'OA', adminOnly: true, displayOrder: 30 }),
-      menuItem({ key: 'purchase-orders', label: 'Satın Alma Siparişleri', route: 'purchase-orders', icon: 'PO', adminOnly: true, displayOrder: 40 }),
-      menuItem({ key: 'suppliers', label: 'Tedarikçiler', route: 'suppliers', icon: 'TD', adminOnly: true, displayOrder: 50 }),
+      // ⚠️ 2026-09-03'te MENÜDEN KALDIRILDI (frozen). Yerini `satinalma` aldı.
+      menuItem({ key: 'purchase-orders', foundationScope: 'frozen', label: 'Satın Alma Siparişleri', route: 'purchase-orders', icon: 'PO', adminOnly: true, displayOrder: 40 }),
+      // ⚠️ 2026-09-03'te MENÜDEN KALDIRILDI (frozen). Yerini `tedarikciler` aldı.
+      // Menüde iki tane "Tedarikçiler" görünüyordu; ikisi ayrı yere yazıyordu.
+      menuItem({ key: 'suppliers', foundationScope: 'frozen', label: 'Tedarikçiler', route: 'suppliers', icon: 'TD', adminOnly: true, displayOrder: 50 }),
       menuItem({ key: 'supplier-performances', foundationScope: 'frozen', label: 'Tedarikçi Performansı', route: 'supplier-performances', icon: 'TP', adminOnly: true, displayOrder: 60 }),
       menuItem({ key: 'procurement-analytics', foundationScope: 'frozen', label: 'Procurement Analytics', route: 'procurement-analytics', icon: 'PA', adminOnly: true, displayOrder: 70 })
     ]
   },
   {
     id: 'business-kpi-reporting',
-    foundationScope: 'frozen',
+    // ⚠️ 2026-08-29'da AÇILDI (donduruluyken). Gerekçe: Endüstriyel Mutfak
+    // sektör şablonunun ihtiyaç duyduğu yüzey. Kapsam kararı ADR-002'nindir ve
+    // ürün sahibi tarafından güncellenmiştir — mekanizma değişmedi, liste değişti.
+    // Sebep: Sektöre özel raporlama yüzeyi (üretim/sevkiyat/fire/maliyet).
+    foundationScope: 'core',
     code: KPI_REPORTING_MODULE_CODE,
     name: 'Raporlama',
     description: 'Industrial Kitchen KPI Dashboard, executive summary ve domain bazli read-model raporlama motoru.',
@@ -1157,7 +1222,11 @@ export const BUSINESS_WORKSPACE_MODULE_REGISTRY: BusinessWorkspaceModule[] = def
   },
   {
     id: 'business-decision-support-workspace',
-    foundationScope: 'frozen',
+    // ⚠️ 2026-08-29'da AÇILDI (donduruluyken). Gerekçe: Endüstriyel Mutfak
+    // sektör şablonunun ihtiyaç duyduğu yüzey. Kapsam kararı ADR-002'nindir ve
+    // ürün sahibi tarafından güncellenmiştir — mekanizma değişmedi, liste değişti.
+    // Sebep: Sektöre özel karar destek yüzeyi.
+    foundationScope: 'core',
     code: DECISION_SUPPORT_WORKSPACE_MODULE_CODE,
     name: 'Karar Destek',
     description: 'Industrial Kitchen karar destek merkezi, kritik alarm, tahminleme, otomatik oneri, AI analiz, maliyet optimizasyonu, satin alma, uretim planlama, fire ve sevkiyat optimizasyonu onerileri icin ana calisma alani.',
@@ -1328,8 +1397,11 @@ export const BUSINESS_WORKSPACE_MODULE_REGISTRY: BusinessWorkspaceModule[] = def
     description: 'Endüstriyel mutfak lot izlenebilirliği, numune, şahit numune ve recall takibi, inventory lot kalite kontrol kararları, checklist şablonları, red sonrası iade süreçleri ve tedarikçi iade sevklerini yöneten iş modülü.',
     category: 'business',
     icon: 'KL',
-    route: 'lot-system',
-    permissions: ['operations.read', 'operations.write', 'stock.read'],
+    // ⚠️ Modülün rotası 'lot-system' idi; o ekran donduruldu (yeni
+    // İzlenebilirlik onun yerine geçti) ve modül kendi kendine kapalı bir
+    // rotayı gösteriyordu. Kalite departmanının canlı ekranı artık HACCP.
+    route: 'haccp-kayitlari',
+    permissions: ['quality.read', 'quality.write', 'operations.read', 'operations.write', 'stock.read'],
     isCoreModule: false,
     isBusinessModule: true,
     isEnabled: true,
@@ -1513,11 +1585,11 @@ export const BUSINESS_WORKSPACE_MODULE_REGISTRY: BusinessWorkspaceModule[] = def
     ],
     menuItems: [
       menuItem({ key: 'label-management', foundationScope: 'frozen', label: 'Etiket Yönetimi', route: 'label-management', icon: 'ET', adminOnly: true, displayOrder: 4 }),
-      menuItem({ key: 'lot-system', label: 'Lot Sistemi', route: 'lot-system', icon: 'LS', adminOnly: true, displayOrder: 5 }),
+      menuItem({ key: 'lot-system', foundationScope: 'frozen', label: 'Lot Sistemi', route: 'lot-system', icon: 'LS', adminOnly: true, displayOrder: 5 }),
       menuItem({ key: 'sample-tracking', foundationScope: 'frozen', label: 'Numune Takibi', route: 'sample-tracking', icon: 'NT', adminOnly: true, displayOrder: 6 }),
       menuItem({ key: 'witness-samples', foundationScope: 'frozen', label: 'Şahit Numune', route: 'witness-samples', icon: 'SN', adminOnly: true, displayOrder: 7 }),
-      menuItem({ key: 'product-recalls', label: 'Geri Çağırma', route: 'product-recalls', icon: 'RC', adminOnly: true, displayOrder: 8 }),
-      menuItem({ key: 'product-history', label: 'Ürün Geçmişi', route: 'product-history', icon: 'UG', adminOnly: true, displayOrder: 9 }),
+      menuItem({ key: 'product-recalls', foundationScope: 'frozen', label: 'Geri Çağırma', route: 'product-recalls', icon: 'RC', adminOnly: true, displayOrder: 8 }),
+      menuItem({ key: 'product-history', foundationScope: 'frozen', label: 'Ürün Geçmişi', route: 'product-history', icon: 'UG', adminOnly: true, displayOrder: 9 }),
       menuItem({ key: 'haccp-management', foundationScope: 'frozen', label: 'HACCP', route: 'haccp-management', icon: 'HC', adminOnly: true, displayOrder: 10 }),
       menuItem({ key: 'quality-controls', foundationScope: 'frozen', label: 'Kalite Kontrol', route: 'quality-controls', icon: 'KL', adminOnly: true, displayOrder: 11 }),
       menuItem({ key: 'waste-management', foundationScope: 'frozen', label: 'Fire Yonetimi', route: 'waste-management', icon: 'FY', adminOnly: true, displayOrder: 12 }),
@@ -1535,8 +1607,11 @@ export const BUSINESS_WORKSPACE_MODULE_REGISTRY: BusinessWorkspaceModule[] = def
     description: 'Endüstriyel mutfak üretim iş emirleri, üretim hatları, ara ürünler, son ürünler, şoklama, paketleme, etiketleme, sevkiyat ve reçete yönetimi süreçleri için UI, domain modeli ve örnek veri hazırlığı.',
     category: 'business',
     icon: 'UR',
-    route: 'production-work-orders',
-    permissions: ['operations.read', 'operations.write', 'products.read'],
+    // ⚠️ Modülün açılış rotası 'production-work-orders' idi; o ekran
+    // donduruldu (yeni İş Emirleri onun yerine geçti) ve modül kendi
+    // kendine kapalı bir rotayı gösteriyordu.
+    route: 'uretim-emirleri',
+    permissions: ['production.read', 'production.write', 'operations.read', 'operations.write', 'products.read'],
     isCoreModule: false,
     isBusinessModule: true,
     isEnabled: true,
@@ -1777,7 +1852,31 @@ export const BUSINESS_WORKSPACE_MODULE_REGISTRY: BusinessWorkspaceModule[] = def
       menuItem({ key: 'workforce-planning', foundationScope: 'frozen', label: 'Personel Planlama', route: 'workforce-planning', icon: 'WP', adminOnly: true, displayOrder: 9 }),
       menuItem({ key: 'bottleneck-analysis', foundationScope: 'frozen', label: 'Darbogaz Analizi', route: 'bottleneck-analysis', icon: 'BN', adminOnly: true, displayOrder: 9.5 }),
       menuItem({ key: 'continuous-improvement', foundationScope: 'frozen', label: 'Iyilestirme Firsatlari', route: 'continuous-improvement', icon: 'CI', adminOnly: true, displayOrder: 9.7 }),
-      menuItem({ key: 'production-work-orders', label: 'Üretim Emirleri', route: 'production-work-orders', icon: 'UE', adminOnly: true, displayOrder: 10 }),
+      // Postgres'e bağlı YENİ reçete ekranı. Üretimin ilk halkası budur:
+      // iş emri reçetenin üzerine kurulur, o yüzden menüde de önce geliyor.
+      menuItem({ key: 'receteler', label: 'Reçeteler', route: 'receteler', icon: 'RC', adminOnly: true, displayOrder: 5 }),
+      // Postgres'e bağlı YENİ iş emri ekranı. Reçetenin hemen ardında:
+      // zincirin sırası menüde de görünsün.
+      menuItem({ key: 'uretim-emirleri', label: 'İş Emirleri', route: 'uretim-emirleri', icon: 'IE', adminOnly: true, displayOrder: 6 }),
+      // ⚠️ Sevkiyat ÜRETİM modülünün altında duruyor, Lojistik'in değil.
+      // Lojistik modülü bu kiracıda açık değil; oraya konulan öge menüde hiç
+      // görünmedi. Zincirin sırası da bunu destekliyor: reçete → iş emri →
+      // sevkiyat → izlenebilirlik hepsi aynı hikâyenin parçası.
+      menuItem({ key: 'sevkiyatlar', label: 'Sevkiyatlar', route: 'sevkiyatlar', icon: 'SK', adminOnly: true, displayOrder: 6.5 }),
+      // İzlenebilirlik üretimin ARDINDAN gelir: önce zincir kurulur, sonra okunur.
+      menuItem({ key: 'izlenebilirlik', label: 'İzlenebilirlik', route: 'izlenebilirlik', icon: 'IZ', adminOnly: true, displayOrder: 7 }),
+      // ⚠️ HACCP, Kalite modülünün DEĞİL Üretim modülünün altında.
+      //
+      // Sebebi ADR-002 değil, `shouldIncludeModule`: bir modül `isModuleEnabled`
+      // ile kapalıysa menüde HİÇ üretilmez. "Kalite ve İzlenebilirlik" modülü
+      // bu kiracıda açık değil — bu yüzden oraya konan öge görünmedi.
+      // (Aynı tuzağa Sevkiyat'ta Lojistik modülüyle de düşüldü.)
+      //
+      // `requiredPermission` yine `quality.read`: ekran Üretim başlığı altında
+      // duruyor ama YETKİSİ kalitenin. Üretim izni olan biri bunu görmez;
+      // departman ayrımı (0015) korunuyor.
+      menuItem({ key: 'haccp-kayitlari', label: 'HACCP', route: 'haccp-kayitlari', icon: 'HC', requiredPermission: 'quality.read', adminOnly: true, displayOrder: 8 }),
+      menuItem({ key: 'production-work-orders', foundationScope: 'frozen', label: 'Üretim Emirleri', route: 'production-work-orders', icon: 'UE', adminOnly: true, displayOrder: 10 }),
       menuItem({ key: 'production-lines', foundationScope: 'frozen', label: 'Üretim Hatları', route: 'production-lines', icon: 'UH', adminOnly: true, displayOrder: 20 }),
       menuItem({ key: 'intermediate-products', foundationScope: 'frozen', label: 'Ara Ürünler', route: 'intermediate-products', icon: 'AU', adminOnly: true, displayOrder: 30 }),
       menuItem({ key: 'final-products', foundationScope: 'frozen', label: 'Son Ürünler', route: 'final-products', icon: 'SU', adminOnly: true, displayOrder: 40 }),
@@ -1807,8 +1906,9 @@ export const BUSINESS_WORKSPACE_MODULE_REGISTRY: BusinessWorkspaceModule[] = def
     description: 'Merkez depo, üretim, şube ve depo arası sevkiyat emirlerini lot bazında planlayan iş modülü.',
     category: 'business',
     icon: 'LJ',
-    route: 'shipments',
-    permissions: ['stock.read', 'operations.read', 'operations.write'],
+    // Açılış rotası dondurulmuş 'shipments' ekranını gösteriyordu.
+    route: 'delivery-notes',
+    permissions: ['logistics.read', 'logistics.write', 'stock.read', 'operations.read', 'operations.write'],
     isCoreModule: false,
     isBusinessModule: true,
     isEnabled: true,
@@ -1980,7 +2080,11 @@ export const BUSINESS_WORKSPACE_MODULE_REGISTRY: BusinessWorkspaceModule[] = def
   },
   {
     id: 'business-current',
-    foundationScope: 'frozen',
+    // ⚠️ 2026-08-29'da AÇILDI (donduruluyken). Gerekçe: Endüstriyel Mutfak
+    // sektör şablonunun ihtiyaç duyduğu yüzey. Kapsam kararı ADR-002'nindir ve
+    // ürün sahibi tarafından güncellenmiştir — mekanizma değişmedi, liste değişti.
+    // Sebep: Endüstriyel Mutfak sektör şablonunun VARSAYILAN modülü.
+    foundationScope: 'core',
     code: WORKSPACE_MODULE_CODES.CURRENT,
     name: 'Cari',
     description: 'Cari kart, cari hareket, risk ve cari raporlama süreçlerini yönetir.',
@@ -2152,7 +2256,11 @@ export const BUSINESS_WORKSPACE_MODULE_REGISTRY: BusinessWorkspaceModule[] = def
   },
   {
     id: 'business-personnel',
-    foundationScope: 'frozen',
+    // ⚠️ 2026-08-29'da AÇILDI (donduruluyken). Gerekçe: Endüstriyel Mutfak
+    // sektör şablonunun ihtiyaç duyduğu yüzey. Kapsam kararı ADR-002'nindir ve
+    // ürün sahibi tarafından güncellenmiştir — mekanizma değişmedi, liste değişti.
+    // Sebep: Endüstriyel Mutfak şablonunun OPSİYONEL modülü.
+    foundationScope: 'core',
     code: WORKSPACE_MODULE_CODES.PERSONNEL,
     name: 'Personel',
     description: 'Personel kartları, vardiya, puantaj, performans ve denetim süreçlerini yönetir.',
@@ -2252,8 +2360,9 @@ export const BUSINESS_WORKSPACE_MODULE_REGISTRY: BusinessWorkspaceModule[] = def
     description: 'Şube raporlama, şubeler arası stok transferi ve merkez ofis yönetimini kapsar.',
     category: 'business',
     icon: 'CS',
-    route: 'branch-reporting',
-    permissions: ['company.read', 'company.manage'],
+    // Açılış rotası dondurulmuş bir ekranı gösteriyordu.
+    route: 'branches',
+    permissions: ['branch.read', 'branch.manage', 'company.read', 'company.manage'],
     isCoreModule: false,
     isBusinessModule: true,
     isEnabled: true,

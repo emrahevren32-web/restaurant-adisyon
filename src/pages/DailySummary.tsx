@@ -1,3 +1,19 @@
+// ═══════════════════════════════════════════════════════════════════════════
+// ⛔ DEVRE DIŞI — ARTIK HİÇBİR ROTA BU EKRANI GÖSTERMİYOR  (2026-09-11)
+//
+// Yerine geçen: `pages/KontrolPaneli.tsx` (rota: `summary`).
+//
+// Sebep: bu panel otuza yakın MOCK dosyasından besleniyordu — `SHP-000001`
+// geciken sevkiyat, `RCL-000021` aktif recall, "%75 HACCP uygunluk",
+// "15 uygunsuz ölçüm". Hiçbiri gerçek stok defterinden gelmiyordu ve bu,
+// demoda müşterinin GÖRDÜĞÜ İLK EKRANDI.
+//
+// Kod ADR-003 (dikey dilim) gereği yerinde duruyor: widget düzeni, katalog ve
+// boş durum akışları burada ve ileride gerçek veriyle yeniden kullanılabilir.
+// Ama bu dosyadaki hiçbir rakam gerçek değildir — buraya bakarak karar
+// verilmez, ve bu ekran menüye GERİ AÇILMAZ.
+// ═══════════════════════════════════════════════════════════════════════════
+
 import React from 'react'
 import {
   DashboardExperienceHeader
@@ -622,7 +638,15 @@ export default function DailySummary({ currentUser, onOpenMarketplace, onOpenWor
 
       <TodayActivityTable rows={overview.activity} />
 
-      <section className="operational-panel">
+      {/*
+        `data-onboarding-target="widget-area"`: rehberin "Widget Alanı" adımı
+        bu ögeyi arıyordu ama işaret hiçbir yerde tanımlı DEĞİLDİ. Hedef
+        bulunamayınca kart sağ alt köşeye düşüyor ve ekranda vurgulanacak bir
+        şey olmadığı için her yer buzlanıyordu — "popup bozuk" gibi görünen
+        şey aslında eksik bir çapaydı. (Aynı adımın "control-panel" kardeşi
+        yukarıdaki başlıkta tanımlıydı ve o yüzden düzgün çalışıyordu.)
+      */}
+      <section className="operational-panel" data-onboarding-target="widget-area">
         <div className="operational-panel-header">
           <div>
             <h3>Kontrol Paneli Widget'ları</h3>

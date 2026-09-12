@@ -1,6 +1,7 @@
 import React from 'react'
 import { User, Role } from '../types'
 import { addActionLog, checkUserLicenseLimit, loadUsers, saveUsers } from '../storage'
+import RoleAssignmentPanel from './RoleAssignmentPanel'
 
 type Props = { currentUser: User }
 
@@ -13,7 +14,8 @@ export default function Users({ currentUser }: Props){
 
   const startAdd = () => {
     setFormError('')
-    setEditing({ id: Date.now().toString(), fullName:'', username:'', password:'', role:'Personel', active:true })
+    // `password` BİLEREK verilmiyor — bkz. aşağıdaki form notu (PLAN.md §5).
+    setEditing({ id: Date.now().toString(), fullName:'', username:'', role:'Personel', active:true })
   }
   const save = (u: User) => {
     const existingUser = users.find(x=>x.id===u.id)
@@ -112,6 +114,14 @@ export default function Users({ currentUser }: Props){
           )}
         </aside>
       </div>
+
+      {/*
+        Rol atama paneli — veritabanındaki GERÇEK kullanıcılara rol tikler.
+        Yukarıdaki tablo hâlâ localStorage'dan besleniyor (Dilim 1'de gerçek
+        veriye bağlanacak); bu panel ise `app_user`/`user_role` tablolarını
+        kullanır. İkisi geçici olarak yan yana; panel bunu başlığında saklamıyor.
+      */}
+      <RoleAssignmentPanel currentUser={currentUser} />
     </div>
   )
 }
@@ -132,10 +142,20 @@ function UserForm({ user, onSave, onCancel }: { user: User, onSave: (u: User)=>v
         <label>Kullanıcı Adı</label>
         <input value={u.username} onChange={e=>setU({...u, username: e.target.value})} />
       </div>
-      <div className="form-field">
-        <label>Şifre</label>
-        <input value={u.password} onChange={e=>setU({...u, password: e.target.value})} />
-      </div>
+      {/*
+        Şifre alanı 2026-08-27'de KALDIRILDI.
+
+        Buradaki kutu şifreyi düz metin olarak localStorage'a yazıyordu —
+        PLAN.md §5 ("Parola hiçbir yerde düz metin saklanmaz. İstisna yok.")
+        ile doğrudan çelişiyordu. Üstelik hiçbir işe de yaramıyordu: giriş
+        Supabase Auth üzerinden yapılıyor (storage.ts `authenticateUser`),
+        bu ekranda yazılan şifre hiçbir zaman okunmuyordu. Yani tek etkisi,
+        çalışmayan bir alanda gerçek şifrelerin açıkta saklanmasıydı.
+
+        Gerçek kullanıcı oluşturma (Supabase Auth hesabı + app_user kaydı)
+        Dilim 1'in işidir. O gelene kadar hesap açma Supabase Dashboard'dan
+        yapılır; rol atama ise aşağıdaki Rol Atama panelinden.
+      */}
       <div className="form-field">
         <label>Rol</label>
         <select value={u.role} onChange={e=>setU({...u, role: e.target.value as Role})}>

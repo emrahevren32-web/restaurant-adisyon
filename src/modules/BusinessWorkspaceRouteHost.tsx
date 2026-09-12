@@ -1,5 +1,6 @@
 import React from 'react'
 import { isFrozenWorkspaceRoute } from './business-workspace.registry'
+import { isWorkspaceRouteAllowed } from '../authorization/route-permission'
 import { PremiumSkeleton } from '../components/PremiumLoading'
 import Products from '../pages/Products'
 import TableManagement from '../pages/TableManagement'
@@ -10,7 +11,6 @@ import StockRiskCenter from '../pages/StockRiskCenter'
 import CurrentFinanceCenter from '../pages/CurrentFinanceCenter'
 import PersonnelPerformanceCenter from '../pages/PersonnelPerformanceCenter'
 import ManagerAlertCenter from '../pages/ManagerAlertCenter'
-import DailySummary from '../pages/DailySummary'
 import BillHistory from '../pages/BillHistory'
 import ActionHistory from '../pages/ActionHistory'
 import StaffTracking from '../pages/StaffTracking'
@@ -26,6 +26,15 @@ import RiskyCurrentAccounts from '../pages/RiskyCurrentAccounts'
 import Kitchen from '../pages/Kitchen'
 import QROrders from '../pages/QROrders'
 import QRCodes from '../pages/QRCodes'
+import Warehouse from '../pages/Warehouse'
+import Suppliers from '../pages/Suppliers'
+import PurchaseFlow from '../pages/PurchaseFlow'
+import ProductionRecipes from '../pages/ProductionRecipes'
+import WorkOrders from '../pages/WorkOrders'
+import Traceability from '../pages/Traceability'
+import SevkiyatEkrani from '../pages/Sevkiyatlar'
+import HaccpEkrani from '../pages/Haccp'
+import KontrolPaneli from '../pages/KontrolPaneli'
 import StockCards from '../pages/StockCards'
 import StockMovements from '../pages/StockMovements'
 import InventoryLots from '../pages/InventoryLots'
@@ -214,6 +223,13 @@ export default function BusinessWorkspaceRouteHost({
   // render edilmez. App.tsx zaten yönlendirmiyor; bu ikinci savunma hattı.
   if(isFrozenWorkspaceRoute(route)) return null
 
+  // Aşama 1 · "Yetkisiz uç yok": izni olmayan rota, elle çağrılsa bile
+  // render edilmez. Menüde gizlemek TEK BAŞINA yetmez — adres çubuğuna
+  // rotayı yazan kullanıcı ekranı yine açardı. Bu, izin tarafının ikinci
+  // savunma hattı; birincisi menü üretimi (workspace-navigation.registry.ts).
+  // Bkz. src/authorization/route-permission.ts
+  if(!isWorkspaceRouteAllowed(route, currentUser.permissions)) return null
+
   const isAdmin = currentUser.role === 'Admin'
 
   if(route === 'workspace-welcome'){
@@ -237,11 +253,17 @@ export default function BusinessWorkspaceRouteHost({
 
   if(route === 'products') return <Products currentUser={currentUser} />
   if(route === 'summary'){
+    // ⚠️ Eski panel (`pages/DailySummary.tsx`) otuza yakın MOCK dosyasından
+    // besleniyordu: `SHP-000001` geciken sevkiyat, `RCL-000021` aktif recall,
+    // "%75 HACCP uygunluk"… Hiçbiri gerçek defterden gelmiyordu ve bu,
+    // müşterinin GÖRDÜĞÜ İLK EKRANDI. Kodu yerinde duruyor (ADR-003 dikey
+    // dilim) ama artık hiçbir rota onu göstermiyor.
     return (
-      <DailySummary
+      <KontrolPaneli
         currentUser={currentUser}
         onOpenMarketplace={onOpenMarketplace}
         onOpenWorkspaceSettings={onOpenWorkspaceSettings}
+        onOpenWorkspaceRoute={onOpenWorkspaceRoute}
       />
     )
   }
@@ -270,6 +292,27 @@ export default function BusinessWorkspaceRouteHost({
   if(route === 'integration-center') return <IntegrationCenter />
   if(route === 'excel-center') return <ExcelCenter currentUser={currentUser} />
   if(route === 'notifications') return <NotificationCenter currentUser={currentUser} />
+  // Aşama 2 · Depo çekirdeği — Postgres'e konuşan ilk iş ekranı.
+  if(route === 'depo') return <Warehouse currentUser={currentUser} />
+  if(route === 'tedarikciler') return <Suppliers currentUser={currentUser} />
+  if(route === 'satinalma') return <PurchaseFlow currentUser={currentUser} />
+  // Aşama 3 · Üretim — reçete, iş emrinin dayandığı zemindir.
+  // ⚠️ Eski `recipes` rotası (localStorage üzerinde çalışan `pages/Recipes`)
+  // yerinde duruyor — ADR-003 dikey dilim: yenisi YANINA kuruluyor.
+  if(route === 'receteler') return <ProductionRecipes currentUser={currentUser} />
+  // İş emri, reçeteyi gerçek üretime çeviren belge. Eski `production-work-orders`
+  // rotası (localStorage) yerinde duruyor — ADR-003 dikey dilim.
+  if(route === 'uretim-emirleri') return <WorkOrders currentUser={currentUser} />
+  // Zincirin okunduğu yer. Defterden türetiliyor; ayrı bir kayıt yok.
+  if(route === 'izlenebilirlik') return <Traceability currentUser={currentUser} />
+  // Sevkiyat, zincirin son halkası: mal müşteriye çıkarken hangi partiden
+  // gittiği deftere yazılır. Eski `shipments` rotası (localStorage) yerinde
+  // duruyor — ADR-003 dikey dilim.
+  if(route === 'sevkiyatlar') return <SevkiyatEkrani currentUser={currentUser} />
+  // Aşama 3.5 · Kalite departmanının GERÇEK ekranı. Eski 'haccp-management'
+  // (mock veri üstünde çalışan) dondurulmuş olarak yerinde duruyor.
+  if(route === 'haccp-kayitlari') return <HaccpEkrani currentUser={currentUser} />
+
   if(route === 'stock-cards'){
     return (
       <StockCards

@@ -1,6 +1,7 @@
 # ADR-005 · Teknoloji yığını
 
-- **Durum:** Kabul edildi (Claude · GPT · Emrah, 2026-08-23)
+- **Durum:** Kabul edildi (Claude · GPT · Emrah, 2026-08-23) — **2026-08-25'te iki satır
+  revize edildi**, aşağıdaki "2026-08-25 revizyonu" bölümüne bakın.
 - **Bağlam:** Tek geliştirici + AI desteği. Öncelik: **en kısa sürede güvenli hâle gelmek.**
 
 ---
@@ -11,11 +12,39 @@
 |--------|-------|-----|
 | Veritabanı | **PostgreSQL** | RLS yerel olarak destekleniyor (ADR-004) |
 | Barındırma | **Supabase** | Auth + RLS + depolama + realtime tek pakette |
-| Şema / migration | **Drizzle** | TypeScript; `types.ts` ile tip paylaşımı |
-| Doğrulama | **Zod** | Sınır doğrulaması — her giren nesne şemadan geçer |
+| Şema / migration | ~~Drizzle~~ → **düz SQL migration dosyaları** | Bkz. revizyon notu |
+| Doğrulama | ~~Zod~~ → **henüz yok, gerektiğinde eklenir** | Bkz. revizyon notu |
 | Test | **Vitest** | Vite zaten var, sıfır yapılandırma |
-| Parola | **argon2id** | Tartışmaya kapalı |
+| Parola | ~~argon2id (kendi hash sistemimiz)~~ → **Supabase Auth** | Bkz. revizyon notu |
 | Arayüz | **mevcut React + Vite** | Değişmiyor |
+
+---
+
+## 2026-08-25 revizyonu
+
+G3 ve G4 uygulanırken iki karar fiilen değişti; bu bölüm bunu resmîleştiriyor.
+
+**1 · Drizzle ve Zod kullanılmadı.** Migration'lar `db/migrations/*.sql` altında düz,
+tekrar çalıştırılabilir SQL dosyaları olarak yazıldı ve Supabase SQL Editor'e elle
+yapıştırılıp çalıştırıldı. Uygulama tarafı doğrudan `supabase-js` istemcisiyle
+konuşuyor (`core/supabase.ts`). Gerekçe: tek geliştiricili bir ekipte RLS ağırlıklı
+bir şemada düz SQL, Drizzle'ın soyutlama katmanından daha az sürtünmeli çıktı —
+RLS politikaları, trigger'lar ve view'lar zaten SQL'de düşünülüyor, ekstra bir ORM
+katmanı bunu iki kere yazmak anlamına geliyordu. Zod hiç gerekmedi çünkü sınır
+doğrulaması henüz kurulmadı (API katmanı G5/G6'da geliyor); o noktada tekrar
+değerlendirilebilir, bu ADR'yi bağlamıyor.
+
+**2 · Kendi parola hash/sıfırlama sistemimiz yazılmayacak, Supabase Auth'un hazırı
+kullanılacak.** Bu satır zaten "Karar" tablosunda **argon2id** olarak yazılıydı, ama
+"Barındırma: Supabase" seçimiyle **çelişiyordu** — Supabase zaten kendi Auth'unda
+parolayı güvenli hashliyor ve hazır bir parola sıfırlama e-postası sunuyor; bunun
+üzerine ayrıca kendi argon2id + sıfırlama akışımızı yazmak, ADR'nin kendi gerekçesini
+("kendi auth'unu yazmak en olası güvenlik açığı kaynağıdır") ihlal ederdi. `storage.ts`
+`authenticateUser()` artık `supabase.auth.signInWithPassword()` kullanıyor (2026-08-25,
+bkz. PLAN.md §7). `docs/dilim-0-gorevler.md` G4.1 ve G4.3 bu karara göre kapatıldı.
+
+Bu iki değişiklik ADR-005'in ana kararını (Supabase + PostgreSQL + Vitest) etkilemiyor,
+yalnızca "Drizzle/Zod/argon2id" ayrıntı satırlarını gerçek uygulamaya uydurdu.
 
 ---
 

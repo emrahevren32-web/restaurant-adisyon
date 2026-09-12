@@ -129,6 +129,11 @@ const TEMPLATE_COLUMNS: Record<ExcelModuleKey, ExcelColumnDefinition[]> = {
     column('categoryName', 'Kategori', 'string', true, 'Hammadde'),
     column('unit', 'Birim', 'string', true, 'kg'),
     column('currentQty', 'Mevcut Miktar', 'number', false, 120),
+    // SKT ve SKT Takibi, "Mevcut Miktar" sütununun karşılığıdır: içe aktarılan
+    // miktar artık deftere bir açılış sayımı olarak yazılıyor ve SKT takipli bir
+    // kalemin miktarı tarihsiz artırılamaz. Bkz. excel-import.service.ts
+    column('expiryDate', 'SKT', 'date', false, '2026-12-31'),
+    column('tracksExpiry', 'SKT Takibi', 'boolean', false, true),
     column('minQty', 'Minimum Miktar', 'number', false, 30),
     column('averageCost', 'Ortalama Maliyet', 'number', false, 180),
     column('lastPurchasePrice', 'Son Alis Fiyati', 'number', false, 190),
@@ -198,6 +203,9 @@ const TEMPLATE_COLUMNS: Record<ExcelModuleKey, ExcelColumnDefinition[]> = {
     column('categoryName', 'Kategori', 'string', true, 'Hammadde'),
     column('unit', 'Birim', 'string', true, 'kg'),
     column('currentQty', 'Mevcut Miktar', 'number', false, 120),
+    // Bkz. yukarıdaki not (raw-materials).
+    column('expiryDate', 'SKT', 'date', false, '2026-12-31'),
+    column('tracksExpiry', 'SKT Takibi', 'boolean', false, true),
     column('minQty', 'Minimum Miktar', 'number', false, 30),
     column('sku', 'SKU', 'string', false, 'STK-100'),
     column('barcode', 'Barkod', 'string', false, '8680000000000'),

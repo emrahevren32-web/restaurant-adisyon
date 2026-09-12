@@ -5,11 +5,10 @@ import type { InventoryLot } from '../inventory-lots/inventory-lot.types'
 import type { ShipmentRecord } from '../shipments/shipment.types'
 import {
   addActionLog,
-  addStockMovementAuditEvent,
+  applyStockMovement,
   loadAllStockItems,
-  loadAllStockMovements,
-  saveAllStockItems,
-  saveAllStockMovements
+  saveStockItems,
+  withBranchScope
 } from '../storage'
 import type {
   StockItem,
@@ -35,14 +34,8 @@ type StockEffectResult = {
 }
 
 const QUANTITY_ROUNDING_FACTOR = 1000
-const COST_ROUNDING_FACTOR = 100
-
 const roundQuantity = (value: number) => (
   Math.round((value + Number.EPSILON) * QUANTITY_ROUNDING_FACTOR) / QUANTITY_ROUNDING_FACTOR
-)
-
-const roundMoney = (value: number) => (
-  Math.round((value + Number.EPSILON) * COST_ROUNDING_FACTOR) / COST_ROUNDING_FACTOR
 )
 
 const createId = (prefix: string) => `${prefix}_${Date.now()}_${Math.random().toString(16).slice(2)}`
@@ -54,84 +47,27 @@ const getStockUnitCost = (item: StockItem) => {
   return Number.isFinite(cost) && cost >= 0 ? cost : 0
 }
 
-const getStockCurrency = (item: StockItem) => item.currency || 'TRY'
-
-const buildStockMovement = ({
-  stockItem,
-  type,
-  quantity,
-  previousQuantity,
-  nextQuantity,
-  branchId,
-  execution,
-  counterpartyName,
-  user,
-  now
-}: {
-  stockItem: StockItem
-  type: 'Giriş' | 'Çıkış'
-  quantity: number
-  previousQuantity: number
-  nextQuantity: number
-  branchId: string
-  execution: ShipmentExecutionRecord
-  counterpartyName: string
-  user: User
-  now: string
-}): StockMovement => {
-  const unitCost = getStockUnitCost(stockItem)
-
-  return {
-    id: createId('stock_move'),
-    branchId,
-    stockItemId: stockItem.id,
-    stockItemName: stockItem.name,
-    type,
-    source: 'Transfer',
-    reason: 'Diğer',
-    qty: quantity,
-    unit: stockItem.unit,
-    previousQty: previousQuantity,
-    nextQty: nextQuantity,
-    currency: getStockCurrency(stockItem),
-    unitCost: roundMoney(unitCost),
-    totalCost: roundMoney(quantity * unitCost),
-    previousAverageCost: roundMoney(unitCost),
-    nextAverageCost: roundMoney(unitCost),
-    previousStockValue: roundMoney(Math.max(0, previousQuantity) * unitCost),
-    nextStockValue: roundMoney(Math.max(0, nextQuantity) * unitCost),
-    supplierName: '',
-    invoiceNo: execution.executionNo,
-    description: `${execution.executionNo} sevkiyat operasyonu. Karşı taraf: ${counterpartyName}.`,
-    movementDate: now,
-    createdAt: now,
-    createdByUserId: user.id,
-    createdByFullName: getUserName(user),
-    sourceEntityType: 'ShipmentExecution',
-    sourceEntityId: execution.id
-  }
-}
-
-const recordMovementAudit = (
-  movement: StockMovement,
-  before: StockItem,
-  after: StockItem,
-  user: User,
-  now: string
-) => {
-  addStockMovementAuditEvent({
-    id: createId('stock_audit'),
-    movementId: movement.id,
-    stockItemId: movement.stockItemId,
-    eventType: 'created',
-    userId: user.id,
-    userName: getUserName(user),
-    timestamp: now,
-    before,
-    after,
-    note: `${movement.stockItemName}: Shipment Execution kaynaklı ${movement.type} ${movement.qty} ${movement.unit}. ${before.currentQty} -> ${after.currentQty}.`
-  })
-}
+// ═══════════════════════════════════════════════════════════════════════════
+// STOK YAZMALARI ARTIK KAPIDAN GEÇİYOR (2026-08-31)
+//
+// Buradaki `buildStockMovement()` ve `recordMovementAudit()` silindi. İkisi de
+// `applyStockMovement()`in — stoka yazan tek kapının — işini elle taklit
+// ediyordu: hareketi kuruyor, önceki/sonraki bakiyeyi kendi hesaplıyor,
+// denetim kaydını kendi düşüyordu. Kapıdaki hiçbir kural (SKT lotu tüketimi,
+// ortalama maliyet, kritik stok uyarısı, negatif bakiye engeli) bu yoldan
+// geçen harekete uygulanmıyordu.
+//
+// Kapıyı atlamasının sebebi dikkatsizlik değildi: kapı ŞUBE KAPSAMLI, sevkiyat
+// ise şubeler ARASI. Eksik olan kapının kendisiydi. `withBranchScope()` bu
+// boşluğu kapatıyor (bkz. storage.ts).
+//
+// İki aşamalı akış — önce PLAN, sonra YAZ:
+//   Kapı her çağrıda anında yazar; eskisi ise hepsini biriktirip sonda tek
+//   seferde yazıyordu. Doğrudan çevirseydik üçüncü kalem hata verdiğinde ilk
+//   ikisi yazılmış olurdu — yarım kalmış bir sevkiyat, defterde iz bırakarak.
+//   Bu yüzden önce bütün kalemler doğrulanıyor; tek bir sorun varsa HİÇBİR
+//   hareket yazılmıyor.
+// ═══════════════════════════════════════════════════════════════════════════
 
 const findTargetStockItem = (
   stockItems: StockItem[],
@@ -341,15 +277,21 @@ export const shipShipmentExecution = ({
 
   const now = new Date().toISOString()
   const shipmentItemMap = getShipmentItemMap(shipment)
-  let nextInventoryLots = [...inventoryLots]
-  let nextStockItems = loadAllStockItems()
-  const movements: StockMovement[] = []
+  const stockItems = loadAllStockItems()
+
+  // ── 1. AŞAMA: PLAN — hiçbir şey yazılmaz, yalnızca doğrulanır ──────────
+  type CikisPlani = {
+    stokKalemi: StockItem
+    kaynakLot: InventoryLot
+    miktar: number
+  }
+  const plan: CikisPlani[] = []
 
   const items = normalizeExecutionItems(execution.items.map(item => {
     const shipmentItem = shipmentItemMap.get(item.shipmentItemId)
     if(!shipmentItem) throw new Error('Shipment Item bulunamadı.')
 
-    const sourceLot = nextInventoryLots.find(lot => lot.id === shipmentItem.inventoryLotId)
+    const sourceLot = inventoryLots.find(lot => lot.id === shipmentItem.inventoryLotId)
     if(!sourceLot) throw new Error('Kaynak Inventory Lot bulunamadı.')
 
     const targetShippedQuantity = roundQuantity(item.packedQuantity)
@@ -361,40 +303,17 @@ export const shipShipmentExecution = ({
     }
 
     if(delta > 0){
-      const sourceItem = nextStockItems.find(stockItem => stockItem.id === shipmentItem.stockItemId)
+      const sourceItem = stockItems.find(stockItem => stockItem.id === shipmentItem.stockItemId)
       if(!sourceItem) throw new Error('Kaynak Stock Item bulunamadı.')
+
+      // Kapı da aynı kontrolü yapar ve orada da hata fırlatır. Burada tekrar
+      // ediyoruz çünkü PLAN aşamasında yakalamak, hiçbir hareket yazılmadan
+      // durmak demektir — ve mesaj kalemin adını taşır.
       if(sourceItem.currentQty < delta){
         throw new Error(`${sourceItem.name} için stok kartı negative stock oluşturamaz.`)
       }
 
-      const sourceAfter: StockItem = {
-        ...sourceItem,
-        currentQty: roundQuantity(sourceItem.currentQty - delta),
-        updatedAt: now
-      }
-      const updatedLot: InventoryLot = {
-        ...sourceLot,
-        remainingQuantity: roundQuantity(sourceLot.remainingQuantity - delta),
-        status: resolveInventoryLotStatus(sourceLot.status, roundQuantity(sourceLot.remainingQuantity - delta), sourceLot.expiryDate),
-        updatedAt: now
-      }
-      const movement = buildStockMovement({
-        stockItem: sourceItem,
-        type: 'Çıkış',
-        quantity: delta,
-        previousQuantity: sourceItem.currentQty,
-        nextQuantity: sourceAfter.currentQty,
-        branchId: sourceLot.warehouseId,
-        execution,
-        counterpartyName: warehouseLabel(getDestinationWarehouseId(shipment)),
-        user,
-        now
-      })
-
-      nextStockItems = nextStockItems.map(stockItem => stockItem.id === sourceItem.id ? sourceAfter : stockItem)
-      nextInventoryLots = nextInventoryLots.map(lot => lot.id === sourceLot.id ? updatedLot : lot)
-      recordMovementAudit(movement, sourceItem, sourceAfter, user, now)
-      movements.push(movement)
+      plan.push({ stokKalemi: sourceItem, kaynakLot: sourceLot, miktar: delta })
     }
 
     return {
@@ -404,6 +323,38 @@ export const shipShipmentExecution = ({
     }
   }))
 
+  // ── 2. AŞAMA: YAZ — her hareket kapıdan geçer ──────────────────────────
+  let nextInventoryLots = [...inventoryLots]
+  const movements: StockMovement[] = []
+  const counterpartyName = warehouseLabel(getDestinationWarehouseId(shipment))
+
+  plan.forEach(({ stokKalemi, kaynakLot, miktar }) => {
+    const movement = withBranchScope(kaynakLot.warehouseId, () => applyStockMovement({
+      stockItemId: stokKalemi.id,
+      type: 'Çıkış',
+      source: 'Transfer',
+      reason: 'Diğer',
+      qty: miktar,
+      invoiceNo: execution.executionNo,
+      description: `${execution.executionNo} sevkiyat operasyonu. Karşı taraf: ${counterpartyName}.`,
+      movementDate: now,
+      user,
+      sourceEntityType: 'ShipmentExecution',
+      sourceEntityId: execution.id
+    }))
+
+    movements.push(movement)
+
+    const kalanMiktar = roundQuantity(kaynakLot.remainingQuantity - miktar)
+    const guncelLot: InventoryLot = {
+      ...kaynakLot,
+      remainingQuantity: kalanMiktar,
+      status: resolveInventoryLotStatus(kaynakLot.status, kalanMiktar, kaynakLot.expiryDate),
+      updatedAt: now
+    }
+    nextInventoryLots = nextInventoryLots.map(lot => lot.id === kaynakLot.id ? guncelLot : lot)
+  })
+
   const nextExecution = updateExecutionStatus(execution, {
     status: 'SHIPPED',
     shippedBy: getUserName(user),
@@ -412,8 +363,6 @@ export const shipShipmentExecution = ({
   })
 
   if(movements.length > 0){
-    saveAllStockItems(nextStockItems)
-    saveAllStockMovements([...movements, ...loadAllStockMovements()])
     addActionLog({
       operationType: 'Transfer tamamlandı',
       user,
@@ -496,9 +445,24 @@ export const deliverShipmentExecution = ({
 
   const now = new Date().toISOString()
   const shipmentItemMap = getShipmentItemMap(shipment)
-  let nextStockItems = loadAllStockItems()
-  const movements: StockMovement[] = []
-  const createdInventoryLots: InventoryLot[] = []
+  const stockItems = loadAllStockItems()
+
+  // ── 1. AŞAMA: PLAN ─────────────────────────────────────────────────────
+  type GirisPlani = {
+    kaynakKalem: StockItem
+    hedefKalem: StockItem
+    hedefKalemYeni: boolean
+    kaynakLot: InventoryLot
+    miktar: number
+    birim: StockUnit
+    sira: number
+  }
+  const plan: GirisPlani[] = []
+
+  // Hedef şubede aynı kalem birden fazla satırda geçebilir. İlk satırda
+  // oluşturulan kartı ikinci satır da bulabilsin diye planlanan yeni kartları
+  // burada tutuyoruz — yoksa aynı ürün için iki kart açılırdı.
+  const planlananHedefler = new Map<string, StockItem>()
 
   const items = normalizeExecutionItems(execution.items.map((item, index) => {
     const shipmentItem = shipmentItemMap.get(item.shipmentItemId)
@@ -515,45 +479,24 @@ export const deliverShipmentExecution = ({
 
     const delta = roundQuantity(targetDeliveredQuantity - item.deliveredQuantity)
     if(delta > 0){
-      const sourceItem = nextStockItems.find(stockItem => stockItem.id === shipmentItem.stockItemId)
+      const sourceItem = stockItems.find(stockItem => stockItem.id === shipmentItem.stockItemId)
       if(!sourceItem) throw new Error('Kaynak Stock Item bulunamadı.')
 
-      const matchedTargetItem = findTargetStockItem(nextStockItems, sourceItem, destinationWarehouseId)
+      const anahtar = `${sourceItem.name.trim().toLocaleLowerCase('tr-TR')}|${sourceItem.unit}`
+      const planlanan = planlananHedefler.get(anahtar)
+      const matchedTargetItem = planlanan || findTargetStockItem(stockItems, sourceItem, destinationWarehouseId)
       const targetItem = matchedTargetItem || createTargetStockItem(sourceItem, destinationWarehouseId, now)
-      const targetAfter: StockItem = {
-        ...targetItem,
-        currentQty: roundQuantity(targetItem.currentQty + delta),
-        updatedAt: now
-      }
-      const movement = buildStockMovement({
-        stockItem: targetItem,
-        type: 'Giriş',
-        quantity: delta,
-        previousQuantity: targetItem.currentQty,
-        nextQuantity: targetAfter.currentQty,
-        branchId: destinationWarehouseId,
-        execution,
-        counterpartyName: warehouseLabel(shipment.sourceWarehouseId),
-        user,
-        now
-      })
-      const deliveredLot = createDeliveredInventoryLot({
-        sourceLot,
-        targetStockItem: targetAfter,
-        destinationWarehouseId,
-        execution,
-        quantity: delta,
-        unit: shipmentItem.unit,
-        now,
-        index
-      })
+      if(!matchedTargetItem) planlananHedefler.set(anahtar, targetItem)
 
-      nextStockItems = matchedTargetItem
-        ? nextStockItems.map(stockItem => stockItem.id === targetItem.id ? targetAfter : stockItem)
-        : [targetAfter, ...nextStockItems]
-      recordMovementAudit(movement, targetItem, targetAfter, user, now)
-      movements.push(movement)
-      createdInventoryLots.push(deliveredLot)
+      plan.push({
+        kaynakKalem: sourceItem,
+        hedefKalem: targetItem,
+        hedefKalemYeni: !matchedTargetItem,
+        kaynakLot: sourceLot,
+        miktar: delta,
+        birim: shipmentItem.unit,
+        sira: index
+      })
     }
 
     return {
@@ -562,6 +505,55 @@ export const deliverShipmentExecution = ({
       remainingQuantity: roundQuantity(Math.max(0, item.plannedQuantity - targetDeliveredQuantity))
     }
   }))
+
+  // ── 2. AŞAMA: YAZ ──────────────────────────────────────────────────────
+  const movements: StockMovement[] = []
+  const createdInventoryLots: InventoryLot[] = []
+  const counterpartyName = warehouseLabel(shipment.sourceWarehouseId)
+
+  plan.forEach(({ kaynakKalem, hedefKalem, hedefKalemYeni, kaynakLot, miktar, birim, sira }) => {
+    const movement = withBranchScope(destinationWarehouseId, () => {
+      // Hedef şubede kart yoksa önce SIFIR miktarla açılır. Miktar buradan
+      // YAZILMAZ — kartın işi ad, birim, kategori gibi bilgiyi taşımaktır;
+      // bakiye her zaman bir hareketin sonucudur (ADR-001). Excel içe
+      // aktarmada da aynı iki aşamalı düzen kullanılıyor.
+      if(hedefKalemYeni){
+        saveStockItems([hedefKalem, ...loadAllStockItems().filter(kalem => kalem.branchId === destinationWarehouseId)])
+      }
+
+      return applyStockMovement({
+        stockItemId: hedefKalem.id,
+        type: 'Giriş',
+        source: 'Transfer',
+        reason: 'Diğer',
+        qty: miktar,
+        // Maliyet kaynaktan taşınıyor. Eski kod bunu yapmıyordu: hedefteki
+        // ortalama maliyet olduğu gibi kalıyor, yeni açılan kart ise sıfır
+        // maliyetle başlıyordu. Transfer edilen mal bedava değildir.
+        purchasePrice: getStockUnitCost(kaynakKalem),
+        // SKT takipli kalemde kapı bunu ZORUNLU tutar; kaynak lottan taşıyoruz.
+        expiryDate: kaynakLot.expiryDate,
+        invoiceNo: execution.executionNo,
+        description: `${execution.executionNo} sevkiyat operasyonu. Karşı taraf: ${counterpartyName}.`,
+        movementDate: now,
+        user,
+        sourceEntityType: 'ShipmentExecution',
+        sourceEntityId: execution.id
+      })
+    })
+
+    movements.push(movement)
+    createdInventoryLots.push(createDeliveredInventoryLot({
+      sourceLot: kaynakLot,
+      targetStockItem: hedefKalem,
+      destinationWarehouseId,
+      execution,
+      quantity: miktar,
+      unit: birim,
+      now,
+      index: sira
+    }))
+  })
 
   const isFullyDelivered = items.every(item => item.shippedQuantity > 0 && item.deliveredQuantity >= item.shippedQuantity)
   const nextStatus: ShipmentExecutionStatus = isFullyDelivered ? 'DELIVERED' : 'PARTIALLY_DELIVERED'
@@ -576,8 +568,6 @@ export const deliverShipmentExecution = ({
   })
 
   if(movements.length > 0){
-    saveAllStockItems(nextStockItems)
-    saveAllStockMovements([...movements, ...loadAllStockMovements()])
     addActionLog({
       operationType: 'Transfer tamamlandı',
       user,

@@ -5,6 +5,14 @@ export type NavigationBreadcrumbItem = {
   label: string
   current?: boolean
   icon?: 'home' | 'workspace' | 'module'
+  /**
+   * Verilirse bu basamak tıklanabilir olur.
+   *
+   * Kırıntı yolu (breadcrumb) her ekranda görünür ve ilk basamağın yanında bir
+   * ev simgesi durur — kullanıcı ona tıklamayı bekler. Tıklanamaz bir ev
+   * simgesi, "geri dönüş yolu yok" hissi veriyordu.
+   */
+  onSelect?: () => void
 }
 
 export type NavigationBreadcrumbProps = {
@@ -35,12 +43,34 @@ export const NavigationBreadcrumb = ({
             className: item.current ? 'current' : undefined,
             'aria-current': item.current ? 'page' : undefined
           },
-          React.createElement(
-            'span',
-            { className: 'navigation-breadcrumb-icon', 'aria-hidden': true },
-            React.createElement(AppIcon, { name: item.icon || (index === 0 ? 'home' : 'workspace'), size: 'XS' })
-          ),
-          React.createElement('span', null, item.label)
+          ...(item.onSelect && !item.current
+            ? [React.createElement(
+                'button',
+                {
+                  type: 'button',
+                  className: 'navigation-breadcrumb-link',
+                  title: item.label,
+                  onClick: item.onSelect
+                },
+                React.createElement(
+                  'span',
+                  { className: 'navigation-breadcrumb-icon', 'aria-hidden': true },
+                  React.createElement(AppIcon, {
+                    name: item.icon || (index === 0 ? 'home' : 'workspace'), size: 'XS',
+                  })
+                ),
+                React.createElement('span', null, item.label)
+              )]
+            : [
+                React.createElement(
+                  'span',
+                  { className: 'navigation-breadcrumb-icon', 'aria-hidden': true },
+                  React.createElement(AppIcon, {
+                    name: item.icon || (index === 0 ? 'home' : 'workspace'), size: 'XS',
+                  })
+                ),
+                React.createElement('span', null, item.label),
+              ])
         )
       ))
     )

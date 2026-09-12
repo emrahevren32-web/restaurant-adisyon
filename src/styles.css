@@ -3666,6 +3666,15 @@ body.mobile-navigation-open { overflow:hidden; overscroll-behavior:contain }
 
   .branch-switcher { flex-basis:116px; min-width:108px }
   .page-title { flex-direction:column }
+  /* ⚠️ Yön 'column' olunca `.page-title > div:first-child` üzerindeki
+     `flex:1 1 420px` ARTIK YÜKSEKLİK demektir: başlığın altında 420 px'lik
+     boş bir blok açılıyor ve düğme ekranın dibine iniyor. Telefonda her
+     yeni ekran (Depo, Satın Alma, Reçeteler, İş Emirleri, İzlenebilirlik,
+     Sevkiyatlar) bu yüzden bozuk görünüyordu.
+     Bir alttaki uzun sayfa listesi bunu SEÇEREK düzeltiyordu — yani her
+     yeni sayfanın o listeye eklenmesi gerekiyordu ve unutulunca sessizce
+     bozuluyordu. Kural artık genel: liste gereksiz ama zararsız. */
+  .page-title > div:first-child { flex-basis:auto }
   .business-summary-page .page-title > div:first-child, .sales-analysis-page .page-title > div:first-child, .product-performance-page .page-title > div:first-child, .stock-risk-page .page-title > div:first-child, .current-finance-page .page-title > div:first-child, .personnel-performance-center-page .page-title > div:first-child, .manager-alert-center-page .page-title > div:first-child, .branch-reporting-page .page-title > div:first-child, .branch-stock-transfer-page .page-title > div:first-child, .head-office-page .page-title > div:first-child, .system-usage-page .page-title > div:first-child, .user-activity-page .page-title > div:first-child, .module-usage-page .page-title > div:first-child, .business-usage-page .page-title > div:first-child, .usage-performance-page .page-title > div:first-child, .analytics-dashboard-page .page-title > div:first-child, .system-health-page .page-title > div:first-child, .business-registration-page .page-title > div:first-child, .company-setup-page .page-title > div:first-child, .package-license-page .page-title > div:first-child, .branch-permissions-page .page-title > div:first-child, .branch-management-page .page-title > div:first-child { flex-basis:auto }
   .page-title .btn, .report-export-actions, .report-export-actions .btn { width:100% }
   .metric-grid { grid-template-columns:1fr }
@@ -26123,8 +26132,8 @@ html[data-theme="dark"][data-theme-engine="premium"] .enterprise-workspace-heade
 .op-stat-card.accent-violet .op-stat-bar { background:#7c3aed }
 .op-stat-card.accent-blue .op-stat-bar { background:#0284c7 }
 .op-stat-body { display:flex; flex-direction:column; gap:3px; min-width:0 }
-.op-stat-value { font-size:32px; font-weight:800; color:var(--text); line-height:1.1; font-variant-numeric:tabular-nums }
-.op-stat-label { font-size:13px; font-weight:700; color:var(--text-soft) }
+.op-stat-value { font-size:32px; font-weight:var(--font-weight-800); color:var(--text); line-height:1.1; font-variant-numeric:tabular-nums }
+.op-stat-label { font-size:13px; font-weight:var(--font-weight-700); color:var(--text-soft) }
 .op-stat-detail { font-size:12px; color:var(--muted); overflow:hidden; text-overflow:ellipsis; white-space:nowrap }
 .op-stat-icon { flex:0 0 auto; display:inline-flex; align-items:center; justify-content:center; width:52px; height:52px; border-radius:14px }
 .op-stat-card.accent-primary .op-stat-icon { background:rgba(13, 148, 136, .14); color:#0f766e }
@@ -26143,9 +26152,9 @@ html[data-theme="dark"][data-theme-engine="premium"] .enterprise-workspace-heade
 .op-gauge-value { stroke:#0f766e; transition:stroke-dashoffset .5s ease }
 .op-gauge-card.tone-warning .op-gauge-value { stroke:var(--warning) }
 .op-gauge-card.tone-danger .op-gauge-value { stroke:var(--danger) }
-.op-gauge-text { font-size:15px; font-weight:800; fill:var(--text) }
+.op-gauge-text { font-size:15px; font-weight:var(--font-weight-800); fill:var(--text) }
 .op-gauge-copy { display:flex; flex-direction:column; gap:2px; min-width:0 }
-.op-gauge-copy strong { font-size:13px; font-weight:750; color:var(--text) }
+.op-gauge-copy strong { font-size:13px; font-weight:var(--font-weight-750); color:var(--text) }
 .op-gauge-copy span { font-size:12px; color:var(--muted) }
 
 @media (max-width: 640px){
@@ -27845,4 +27854,506 @@ html body .user-profile-branch-list span.small-text { margin-left:auto }
   html body .form-grid { grid-template-columns:1fr }
   html body .user-profile-facts > div { flex-direction:column; align-items:flex-start; gap:2px }
   html body .user-profile-facts strong { text-align:left }
+}
+
+
+/* ── Rol atama paneli (Aşama 1 · docs/yetki-cercevesi.md) ─────────────────
+   Kullanıcılar ekranındaki "Rol Atama" bölümü. Diğer sınıflar (check-row,
+   form-error, form-success, actions-cell) zaten mevcut; burada yalnızca bu
+   panele özgü iki yerleşim kuralı var. */
+.role-assignment-editor{
+  margin-top:16px;
+  padding-top:16px;
+  border-top:1px solid var(--border, #e2e5e2);
+}
+.role-assignment-editor h4{
+  margin:0 0 4px;
+  font-size:15px;
+}
+.role-checkbox-grid{
+  display:grid;
+  grid-template-columns:repeat(auto-fill, minmax(280px, 1fr));
+  gap:8px 16px;
+  margin:12px 0 16px;
+}
+.role-checkbox-grid .check-row{
+  align-items:flex-start;
+  gap:8px;
+  padding:6px 0;
+}
+.role-checkbox-grid .check-row small{
+  display:block;
+  font-size:12px;
+  line-height:1.35;
+}
+.data-table tr.is-selected{
+  background:var(--surface-selected, rgba(0,0,0,.04));
+}
+
+/* ── Aşama 2 · Depo çekirdeği ─────────────────────────────────────────── */
+.warehouse-layout{
+  display:grid;
+  grid-template-columns:minmax(0, 1.15fr) minmax(320px, 0.85fr);
+  gap:16px;
+  align-items:start;
+}
+@media (max-width: 1100px){
+  .warehouse-layout{ grid-template-columns:1fr; }
+}
+.warehouse-side{
+  display:flex;
+  flex-direction:column;
+  gap:16px;
+}
+.warehouse-main .data-table tbody tr{ cursor:pointer; }
+.data-table th.num,
+.data-table td.num{ text-align:right; font-variant-numeric:tabular-nums; }
+.warehouse-qty{ font-weight:var(--font-weight-600); }
+/* Kritik stok: renk TEK BAŞINA taşıyıcı değil — sol kenardaki kalın çizgi
+   renk körlüğünde de görünür. */
+.warehouse-main .data-table tr.is-critical td:first-child{
+  box-shadow:inset 3px 0 0 var(--danger, #c0392b);
+}
+.warehouse-main .data-table tr.is-critical .warehouse-qty{
+  color:var(--danger, #c0392b);
+}
+.warehouse-qty-big{
+  font-size:20px;
+  font-weight:var(--font-weight-700);
+  font-variant-numeric:tabular-nums;
+}
+.data-table td.is-negative{ color:var(--danger, #c0392b); }
+.data-table td.is-positive{ color:var(--success, #1f7a4d); }
+
+/* Eksik / uyarı vurgusu.
+   ⚠️ Bu kural bilerek `.warehouse-main` ALTINA yazılmadı. Yalnız ana tabloya
+   bağlı kalsaydı, yan paneldeki "Eksik" sütunu ve uyarı cümleleri sessizce
+   renksiz kalırdı — kural çalışıyor sanılır, ekranda hiçbir şey olmazdı. */
+.data-table td.is-critical{
+  color:var(--danger, #c0392b);
+  font-weight:var(--font-weight-600);
+}
+p.is-critical,
+span.is-critical{ color:var(--danger, #c0392b); }
+.form-info{
+  padding:10px 12px;
+  margin:0 0 12px;
+  border-radius:6px;
+  border:1px solid var(--success-border, #bfe3cd);
+  background:var(--success-bg, #eef8f2);
+  color:var(--success-text, #1f5c3d);
+  font-size:14px;
+}
+.warehouse-page .stacked-form small.muted{ line-height:1.4; }
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   Rehber (ProductTour) — kart sabit köşede
+   ---------------------------------------------------------------------------
+   Rehber kartı artık hedefin yanına GİTMİYOR; sağ altta (hedef alt yarıdaysa
+   sağ üstte) sabit duruyor. Gerekçe `ProductTour.tsx` içinde uzun uzun yazılı:
+   hedefin yanına koymak, hedefin kutusunu + kartın kutusunu + ekranı +
+   kaydırma durumunu aynı anda doğru bilmeyi gerektiriyordu ve bu yüzey beş
+   denemede kapatılamadı.
+
+   Bunun sonucu olarak `data-tour-placement` her zaman "center" — yani premium
+   temadaki ok (`::after`) hep gizli. İşaret etme işini buzlamadaki DELİK ve
+   hedefin çevresindeki çerçeve yapıyor.
+
+   Burada bir kural yok; bu blok yalnızca "ok kuralları neden ölü göründü"
+   sorusunun cevabıdır. Ok mantığı geri gelirse `.guided > div:last-child`
+   üstündeki `[data-tour-placement="bottom"|"top"|…]` kuralları yeniden
+   devreye girer.
+   ═══════════════════════════════════════════════════════════════════════════ */
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   Yazı kalınlığı — tarayıcı varsayılanlarını da ölçeğe bağla
+   ---------------------------------------------------------------------------
+   Ağırlık jetonları `design-system/Typography.ts` içindeki `inceltilmisAgirlik()`
+   eşlemesiyle tek yerden inceltiliyor. Ama bazı ögeler ağırlığını hiçbir
+   jetondan almaz: `<strong>`, `<b>`, `<th>` ve başlıklar tarayıcının kendi
+   `bold` (700) değerini kullanır ve ölçekten habersizdir. Sayfada kalan
+   "tek tük kalın" yerler bunlardı.
+
+   Buradaki kural onları da ölçeğe bağlıyor. Kendi ağırlığını açıkça yazan
+   bileşenler etkilenmez — bu yalnızca varsayılanı devralanlar için.
+
+   Hiyerarşi korunuyor: başlıklar hâlâ gövde metninden kalın, `strong` hâlâ
+   çevresinden ayrık. Değişen şey ölçeğin tamamının aşağı kayması.
+   ═══════════════════════════════════════════════════════════════════════════ */
+h1, h2, h3, h4, h5, h6 { font-weight:var(--font-weight-700); }
+strong, b, th, dt, legend, caption, optgroup, summary { font-weight:var(--font-weight-600); }
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   Aşama 2 ekranları — Depo uyarıları, Tedarikçiler, Satın Alma
+   ---------------------------------------------------------------------------
+   ── BULUNAN HATA (2026-09-03) ─────────────────────────────────────────────
+   Bu blokların ilk hâli `var(--surface-2, #eef1f3)` gibi değişkenler
+   kullanıyordu. `--surface-2` bu temada TANIMLI DEĞİL; dolayısıyla her zaman
+   yedek değere düşüyordu ve o yedekler AÇIK renkti. Koyu temada sonuç:
+   açık zemin üzerine açık yazı — sekmedeki sayı rozetleri boş beyaz daireler
+   olarak göründü.
+
+   Ders: var olmayan bir jetona yedek yazmak, hatayı gizler. Kod doğru görünür,
+   ekran yanlış çalışır ve sebebi hiçbir yerde yazmaz.
+
+   Bu yüzden aşağıda YALNIZCA gerçekten tanımlı jetonlar kullanılıyor:
+     --surface, --surface-subtle, --surface-muted, --surface-raised
+     --line, --line-soft, --line-strong
+     --text, --text-soft, --muted
+     --accent, --danger, --warning, --success
+   Renkli zeminler `color-mix()` ile bu jetonlardan TÜRETİLİYOR; sabit renk
+   yazılmıyor. Böylece açık ve koyu tema kendiliğinden doğru çıkıyor.
+   ═══════════════════════════════════════════════════════════════════════════ */
+
+/* ── Depo · uyarı şeridi ─────────────────────────────────────────────────── */
+.warehouse-alerts{ display:flex; flex-direction:column; gap:12px; margin-bottom:14px }
+.warehouse-alerts.is-clear{ padding:12px 14px; font-size:14px }
+.warehouse-alert{
+  padding:12px 14px;
+  border-radius:8px;
+  border-left:4px solid var(--muted);
+  background:var(--surface-subtle);
+}
+.warehouse-alert.danger{
+  border-left-color:var(--danger);
+  background:color-mix(in srgb, var(--danger) 10%, var(--surface));
+}
+.warehouse-alert.warning{
+  border-left-color:var(--warning);
+  background:color-mix(in srgb, var(--warning) 10%, var(--surface));
+}
+.warehouse-alert.notice{
+  border-left-color:var(--accent);
+  background:color-mix(in srgb, var(--accent) 10%, var(--surface));
+}
+.warehouse-alert-head{
+  display:flex; flex-wrap:wrap; align-items:baseline; gap:10px; margin-bottom:7px;
+}
+.warehouse-alert-head strong{ font-size:14px }
+.warehouse-alert-head .muted{ font-size:13px }
+.warehouse-alert-list{
+  list-style:none; margin:0; padding:0;
+  display:flex; flex-direction:column; gap:4px; font-size:13.5px;
+}
+.warehouse-alert-age{ font-weight:var(--font-weight-700) }
+.warehouse-alert.danger .warehouse-alert-age{ color:var(--danger) }
+.warehouse-alert.warning .warehouse-alert-age{ color:var(--warning) }
+
+/* Metin gibi görünen ama gerçekten düğme olan bağlantı. */
+.linklike{
+  border:0; background:none; padding:0; font:inherit;
+  font-weight:var(--font-weight-700);
+  color:var(--accent); cursor:pointer;
+  text-decoration:underline; text-underline-offset:2px;
+}
+.linklike:hover{ text-decoration-thickness:2px }
+.linklike:focus-visible{ outline:2px solid var(--accent); outline-offset:2px; border-radius:3px }
+
+/* Stok listesindeki miktar: ürünün en önemli iddiası buraya asılı —
+   "bu sayı saklanmıyor, altındaki hareketlerden doğuyor". Tıklanabilir
+   olduğu görünmeli. */
+.warehouse-qty-btn{
+  border:0; background:none; padding:2px 4px; margin:-2px -4px;
+  border-radius:4px; font:inherit; font-variant-numeric:tabular-nums;
+  color:inherit; cursor:pointer;
+  text-decoration:underline dotted; text-underline-offset:3px;
+}
+.warehouse-qty-btn:hover{
+  background:color-mix(in srgb, var(--accent) 12%, transparent);
+  text-decoration:underline solid;
+}
+.warehouse-qty-btn:focus-visible{ outline:2px solid var(--accent); outline-offset:1px }
+
+/* ── Tedarikçiler ────────────────────────────────────────────────────────── */
+.supplier-toolbar{
+  display:flex; flex-wrap:wrap; align-items:center; gap:12px; margin-bottom:12px;
+}
+.supplier-toolbar input[type="search"]{
+  flex:1 1 260px; min-width:0; padding:8px 10px;
+  border:1px solid var(--line); border-radius:6px;
+  background:var(--surface); color:var(--text); font:inherit;
+}
+.supplier-toggle{
+  display:inline-flex; align-items:center; gap:7px;
+  font-size:13.5px; color:var(--text-soft); white-space:nowrap;
+}
+.supplier-toggle input{ margin:0 }
+
+/* Pasif tedarikçi soluk ama okunur kalır: silinmediğini görmek gerekiyor. */
+.data-table tr.is-passive td{ opacity:.62 }
+.data-table td.row-actions{
+  display:flex; gap:6px; justify-content:flex-end; white-space:nowrap;
+}
+
+/* ── Satın alma ──────────────────────────────────────────────────────────── */
+.purchase-tabs{ display:flex; gap:2px; margin:0 0 14px; border-bottom:1px solid var(--line) }
+.purchase-tabs button{
+  appearance:none; border:0; background:none; padding:9px 16px;
+  font:inherit; font-size:14px; color:var(--text-soft); cursor:pointer;
+  border-bottom:2px solid transparent; margin-bottom:-1px;
+  display:inline-flex; align-items:center; gap:8px;
+}
+.purchase-tabs button:hover{ color:var(--text) }
+.purchase-tabs button.is-active{ color:var(--text); border-bottom-color:var(--accent) }
+.purchase-tabs button:focus-visible{
+  outline:2px solid var(--accent); outline-offset:-2px; border-radius:4px 4px 0 0;
+}
+/* Sayı rozeti: zemin de yazı da aynı jeton ailesinden geliyor, dolayısıyla
+   iki temada da okunur kalıyor. Önceki hâlinde yazı zemine karışıyordu. */
+.purchase-tab-count{
+  min-width:20px; padding:1px 7px; border-radius:10px;
+  background:color-mix(in srgb, var(--text) 12%, transparent);
+  color:var(--text); font-size:11.5px;
+  font-variant-numeric:tabular-nums; line-height:1.5;
+}
+.purchase-tabs button.is-active .purchase-tab-count{
+  background:color-mix(in srgb, var(--accent) 22%, transparent);
+  color:var(--accent);
+}
+
+.purchase-lines{
+  display:flex; flex-direction:column; gap:10px; padding:12px;
+  border:1px solid var(--line); border-radius:8px; background:var(--surface-subtle);
+}
+.purchase-line{
+  display:grid; grid-template-columns:minmax(0,2fr) minmax(0,1fr) minmax(0,1fr) auto;
+  gap:8px; align-items:end;
+}
+.purchase-line:has(> label:nth-of-type(4)){
+  grid-template-columns:minmax(0,2fr) repeat(3, minmax(0,1fr)) auto;
+}
+.purchase-line label{
+  display:flex; flex-direction:column; gap:4px; min-width:0;
+  font-size:12px; color:var(--text-soft);
+}
+.purchase-line input,
+.purchase-line select{
+  width:100%; min-width:0; padding:6px 8px;
+  border:1px solid var(--line); border-radius:6px;
+  background:var(--surface); color:var(--text); font:inherit; font-size:13.5px;
+}
+.purchase-line-remove{ min-height:34px; height:34px; padding:0 10px; line-height:1 }
+.purchase-price-input{
+  width:110px; padding:5px 7px;
+  border:1px solid var(--line); border-radius:6px;
+  background:var(--surface); color:var(--text); font:inherit; font-size:13.5px;
+  text-align:right; font-variant-numeric:tabular-nums;
+}
+
+@media (max-width: 900px){
+  .purchase-line,
+  .purchase-line:has(> label:nth-of-type(4)){ grid-template-columns:1fr 1fr }
+  .purchase-line-remove{ grid-column:1 / -1; justify-self:end }
+}
+
+/* Belge detayı: etiket–değer çiftleri. */
+.detail-grid{
+  display:grid; grid-template-columns:auto 1fr; gap:6px 14px;
+  margin:0 0 14px; font-size:13.5px;
+}
+.detail-grid dt{ color:var(--text-soft) }
+.detail-grid dd{ margin:0 }
+.detail-hint{ margin:10px 0 0; font-size:13px; line-height:1.45 }
+.data-table.compact th,
+.data-table.compact td{ padding:6px 8px; font-size:13px }
+.data-table.compact tfoot td{ border-top:1px solid var(--line); font-variant-numeric:tabular-nums }
+.form-actions.wrap{ flex-wrap:wrap; gap:8px }
+
+/* Durum rozetleri — ikisi de gerçek jetondan türetiliyor. */
+.status-pill.warning-pill{
+  background:color-mix(in srgb, var(--warning) 16%, var(--surface));
+  color:var(--warning);
+  border:1px solid color-mix(in srgb, var(--warning) 35%, transparent);
+}
+.status-pill.muted-pill{
+  background:color-mix(in srgb, var(--text) 8%, transparent);
+  color:var(--text-soft);
+  border:1px solid var(--line);
+}
+
+
+/* ── Mal kabul satırları ─────────────────────────────────────────────────── */
+.receipt-line{
+  display:flex; flex-direction:column; gap:8px;
+  padding:10px 12px; border:1px solid var(--line-soft); border-radius:6px;
+  background:var(--surface);
+}
+.receipt-line-head{
+  display:flex; flex-wrap:wrap; align-items:baseline; gap:10px;
+  font-size:13.5px;
+}
+.receipt-line-head .muted{ font-size:12.5px; font-variant-numeric:tabular-nums }
+.receipt-line-grid{
+  display:grid; grid-template-columns:repeat(auto-fit, minmax(120px, 1fr));
+  gap:8px; align-items:end;
+}
+.receipt-line label{
+  display:flex; flex-direction:column; gap:4px; min-width:0;
+  font-size:12px; color:var(--text-soft);
+}
+.receipt-line input{
+  width:100%; min-width:0; padding:6px 8px;
+  border:1px solid var(--line); border-radius:6px;
+  background:var(--surface); color:var(--text); font:inherit; font-size:13.5px;
+}
+.receipt-line label.narrow input{ font-variant-numeric:tabular-nums }
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   GÖLGESİZ ETKİLEŞİM YÜZEYLERİ                            (Emrah · 2026-09-10)
+
+   Karar: "gölgeli buton asla istemiyorum, hiçbir yerde. Sadece butonun üstüne
+   gelindiğinde biraz açık renge dönüşsün yeterli."
+
+   ── NEDEN BU BLOK EN SONDA VE NEDEN `!important` ────────────────────────
+   Bu dosyada 790'dan fazla `box-shadow` bildirimi var ve bir kısmı
+   `.unified-login-hero-actions .btn.primary` gibi derin seçicilerde. Tek tek
+   temizlemek hem uzun sürer hem de bir sonraki eklemede geri gelir: yeni bir
+   ekran gölgeli bir buton yazdığında kimse fark etmez.
+   Bu yüzden kural TEK YERDE ve üstün: gölge burada kapanıyor, aşağısı yok.
+   Gölge isteyen yeni bir kural yazılsa bile bu blok onu ezer — istenen de bu.
+
+   ── KLAVYE ODAĞI İSTİSNASI ───────────────────────────────────────────────
+   Odak halkası da teknik olarak bir gölgedir ama gölge SÜSÜ değil, erişim
+   aracıdır: klavyeyle gezen biri nerede olduğunu ondan anlar. `:focus-visible`
+   yalnızca klavye odağında görünür, fareyle tıklayanda görünmez — o yüzden
+   "gölgeli buton" hissi doğurmaz ve geri veriliyor.
+   ═══════════════════════════════════════════════════════════════════════════ */
+
+/* 1 · Etkileşim yüzeylerinde gölge YOK — dinlenirken de, üstüne gelince de. */
+:where(
+  .btn, button, [role="button"], a.btn,
+  input, select, textarea,
+  .status-pill, .marketplace-badge,
+  .topbar-search, .topbar-workspace-pill, .topbar-icon-action,
+  .topbar-user-card, .branch-switcher, .branch-switcher select
+),
+:where(.btn, button, [role="button"], input, select, textarea):hover,
+:where(.btn, button, [role="button"], input, select, textarea):active,
+:where(.btn, button, [role="button"], input, select, textarea):focus {
+  box-shadow: none !important;
+}
+
+/* 2 · Açılır paneller: gölge yerine kenar çizgisi taşıyor.
+      Hepsinde zaten `border:1px solid var(--line)` var; gölge fazlalıktı. */
+:where(
+  .branch-select-menu, .notification-panel, .topbar-profile-panel,
+  .side-nav-floating-tooltip
+) {
+  box-shadow: none !important;
+}
+
+/* 3 · Klavye odağı geri geliyor (yalnızca klavyede görünür). */
+:where(.btn, button, [role="button"], input, select, textarea):focus-visible {
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--accent) 32%, transparent) !important;
+  outline: 0;
+}
+
+/* 4 · Gölgenin yerine geçen tek geri bildirim: RENK.
+      `color-mix(--text, --surface)` iki temada da doğru yöne gidiyor —
+      koyu temada yüzeyi AÇAR, açık temada hafifçe koyulaştırır. Sabit bir
+      renk yazsaydık temalardan birinde kaybolurdu. */
+.btn:hover:not(:disabled),
+button:hover:not(:disabled):not(.primary) {
+  background: color-mix(in srgb, var(--text) 8%, var(--surface));
+  border-color: var(--line-strong);
+  color: var(--text);
+}
+
+/* Vurgulu buton: üstüne gelince gerçekten AÇILIYOR (beyaza doğru karışım). */
+.btn.primary:hover:not(:disabled) {
+  background: color-mix(in srgb, var(--accent) 80%, #ffffff);
+  border-color: color-mix(in srgb, var(--accent) 80%, #ffffff);
+  color: #ffffff;
+}
+
+/* Uyarı ve tehlike butonları da kendi renginden açılıyor. */
+.btn.warning:hover:not(:disabled) {
+  background: color-mix(in srgb, var(--warning) 22%, var(--surface));
+  border-color: var(--warning);
+}
+.btn.danger:hover:not(:disabled) {
+  background: color-mix(in srgb, var(--danger) 22%, var(--surface));
+  border-color: var(--danger);
+}
+
+/* Basılı an: kaymak yerine bir tık daha koyu — hareket yok, gölge yok. */
+.btn:active:not(:disabled) {
+  background: color-mix(in srgb, var(--text) 14%, var(--surface));
+  transform: none;
+}
+.btn.primary:active:not(:disabled) {
+  background: var(--accent);
+  border-color: var(--accent);
+}
+
+/* Kapalı buton: gölgesiz, soluk, ve imleç "olmaz" diyor. */
+.btn:disabled, button:disabled {
+  box-shadow: none !important;
+  cursor: not-allowed;
+  opacity: .55;
+}
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   ANA EKRANA DÖNÜŞ                                        (Emrah · 2026-09-11)
+
+   Bulgu: "Alt sayfalara gittikçe ana sayfaya dönmek için bir tuş yok."
+   Doğruydu — Kontrol Paneli yalnızca sol menünün WORKSPACE grubundan
+   açılabiliyordu ve o grup alt ekranlarda kapalı duruyor.
+
+   İki yer açıldı, ikisi de kullanıcının zaten baktığı yerler:
+     • kırıntı yolundaki EV SİMGESİ (her ekranda görünür)
+     • üst bardaki marka simgesi (dar ekranlarda görünen hâli)
+
+   Yeni bir düğme eklemek yerine var olan iki simgeyi tıklanabilir yapmak,
+   üst barı kalabalıklaştırmıyor ve alışkanlıkla örtüşüyor.
+   ═══════════════════════════════════════════════════════════════════════════ */
+
+.navigation-breadcrumb-link {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-4, 4px);
+  min-width: 0;
+  max-width: 100%;
+  height: auto;
+  min-height: 0;
+  margin: 0;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  color: inherit;
+  font: inherit;
+  cursor: pointer;
+}
+.navigation-breadcrumb-link > span:last-child {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+/* Gölge yok, altı çizili değil — yalnızca renk. Üstüne gelince "buraya
+   basılabilir" bilgisini renk taşıyor. */
+.navigation-breadcrumb-link:hover {
+  color: var(--accent);
+}
+.navigation-breadcrumb-link:hover .navigation-breadcrumb-icon {
+  color: var(--accent);
+}
+.navigation-breadcrumb li:has(> .navigation-breadcrumb-link):hover {
+  border-color: var(--line);
+  background: color-mix(in srgb, var(--text) 6%, transparent);
+}
+
+/* Marka simgesi düğme hâli — görünürlük kuralları eskisiyle aynı kalıyor,
+   yalnızca tıklanabilirlik ve imleç ekleniyor. */
+.topbar-brand-home {
+  border: 0;
+  padding: 0;
+  cursor: pointer;
+  background: var(--accent-soft);
+  color: var(--accent);
+  transition: background var(--motion-fast, 120ms) var(--motion-ease-standard, ease),
+              color var(--motion-fast, 120ms) var(--motion-ease-standard, ease);
+}
+.topbar-brand-home:hover {
+  background: color-mix(in srgb, var(--accent) 22%, var(--surface));
+  color: var(--accent);
 }

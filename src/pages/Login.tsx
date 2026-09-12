@@ -97,10 +97,11 @@ const buildAnnouncementContext = () => ({
 })
 
 export default function Login({ onLogin }: Props){
-  const [username, setUsername] = React.useState('')
+  const [email, setEmail] = React.useState('')
   const [password, setPassword] = React.useState('')
   const [error, setError] = React.useState('')
   const [notice, setNotice] = React.useState('')
+  const [submitting, setSubmitting] = React.useState(false)
   const loginPanelRef = React.useRef<HTMLElement | null>(null)
 
   const announcements = React.useMemo(() => {
@@ -109,14 +110,22 @@ export default function Login({ onLogin }: Props){
       .slice(0, 3)
   }, [])
 
-  const submit = (event: React.FormEvent) => {
+  const submit = async (event: React.FormEvent) => {
     event.preventDefault()
     setNotice('')
-    const result = authenticateCredentials(username, password, {
-      requestedPath: window.location.pathname
-    })
-    if(result.success) onLogin(result.state)
-    else setError('Geçersiz kullanıcı adı veya şifre ya da kullanıcı pasif.')
+    setError('')
+    setSubmitting(true)
+    try {
+      const result = await authenticateCredentials(email, password, {
+        requestedPath: window.location.pathname
+      })
+      if(result.success) onLogin(result.state)
+      else setError('Geçersiz e-posta veya şifre ya da kullanıcı pasif.')
+    } catch {
+      setError('Giriş yapılamadı. İnternet bağlantınızı kontrol edip tekrar deneyin.')
+    } finally {
+      setSubmitting(false)
+    }
   }
 
   const scrollToLogin = () => {
@@ -174,13 +183,14 @@ export default function Login({ onLogin }: Props){
               </div>
               <form onSubmit={submit}>
                 <label>
-                  <span>Kullanıcı Adı</span>
+                  <span>E-posta</span>
                   <input
-                    autoComplete="username"
-                    placeholder="kullanici@firma"
-                    value={username}
+                    autoComplete="email"
+                    type="email"
+                    placeholder="ornek@firma.com"
+                    value={email}
                     onChange={event => {
-                      setUsername(event.target.value)
+                      setEmail(event.target.value)
                       setError('')
                     }}
                   />
@@ -200,7 +210,9 @@ export default function Login({ onLogin }: Props){
                 </label>
                 {error && <div className="unified-login-message error">{error}</div>}
                 {notice && <div className="unified-login-message">{notice}</div>}
-                <button className="btn primary unified-login-submit" type="submit">Giriş Yap</button>
+                <button className="btn primary unified-login-submit" type="submit" disabled={submitting}>
+                  {submitting ? 'Giriş yapılıyor…' : 'Giriş Yap'}
+                </button>
                 <div className="unified-login-secondary-actions">
                   <button type="button" onClick={forgotPassword}>Şifremi Unuttum</button>
                   <button type="button" onClick={openApplication}>İşletme Başvurusu</button>

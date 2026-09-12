@@ -20,6 +20,14 @@ export type TopbarLayoutProps = {
   onOpenMobileNav: () => void
   onToggleSidebar?: () => void
   onToggleTheme: () => void
+  /**
+   * Marka simgesine basıldığında ana ekrana (Kontrol Paneli) döner.
+   *
+   * Verilmezse simge eskisi gibi süs kalır. Verildiğinde gerçek bir düğme
+   * olur: alt ekranlarda "ana sayfaya nasıl dönerim" sorusunun cevabı budur
+   * ve her uygulamada beklenen yer sol üstteki logodur.
+   */
+  onOpenHome?: () => void
   children: React.ReactNode
 }
 
@@ -46,6 +54,7 @@ export const TopbarLayout = ({
   onOpenMobileNav,
   onToggleSidebar,
   onToggleTheme,
+  onOpenHome,
   children
 }: TopbarLayoutProps) => (
   React.createElement(
@@ -87,11 +96,23 @@ export const TopbarLayout = ({
           React.createElement(AppIcon, { name: 'module', size: 'SM' })
         )
         : null,
-      React.createElement(
-        'span',
-        { className: 'topbar-brand-mark', 'aria-label': brandLabel, title: brandLabel },
-        React.createElement(AppIcon, { name: 'company', size: 'SM', decorative: true })
-      ),
+      onOpenHome
+        ? React.createElement(
+            'button',
+            {
+              type: 'button',
+              className: 'topbar-brand-mark topbar-brand-home',
+              'aria-label': `${brandLabel} · Kontrol Paneli`,
+              title: 'Kontrol Paneli',
+              onClick: onOpenHome
+            },
+            React.createElement(AppIcon, { name: 'company', size: 'SM', decorative: true })
+          )
+        : React.createElement(
+            'span',
+            { className: 'topbar-brand-mark', 'aria-label': brandLabel, title: brandLabel },
+            React.createElement(AppIcon, { name: 'company', size: 'SM', decorative: true })
+          ),
       React.createElement(
         'div',
         { className: 'topbar-title topbar-page-context' },

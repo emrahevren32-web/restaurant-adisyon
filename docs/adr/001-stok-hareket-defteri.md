@@ -272,6 +272,66 @@ Bunlar Dilim 1'in test listesidir. Her biri bir test dosyasına karşılık geli
 
 ---
 
+> **2026-08-26 eki — I12 şeması ve uygulaması:** Bu tabloda I12 tanımlanmıştı ama
+> hiçbir migration'da (0001-0009) bunu tutacak bir sütun yoktu. `negative_stock_policy`
+> (`allow`\|`warn`\|`block`, varsayılan `block`) `db/migrations/0010_negatif_bakiye_politikasi.sql`
+> ile `tenant` tablosuna eklendi (bkz. 0001 — `tenant` tablosunun kendisi). Zorlama
+> veritabanı tetikleyicisinde değil, repository katmanındadır: her iki uygulama da
+> (`LocalStorageStockRepository`, `PostgresStockRepository`) `postMovement()` içinde,
+> hareketten SONRAKİ bakiyeyi hesaplayıp negatifse politikayı okur — `block` reddeder
+> (`NegativeBalanceBlockedError`), `warn` kabul edip döndürülen `Movement.warning`
+> alanını doldurur (kalıcı bir sütun değil, yalnızca yazma anındaki bir ekran ipucu),
+> `allow` sessizce kabul eder.
+>
+> **`reverseMovement()` bu kontrolden BİLİNÇLİ olarak muaftır.** I3 ("ters kayıt
+> bakiyeyi tam olarak eski değerine döndürür") I12'den önceliklidir — bir ters kaydın
+> `block` politikasıyla reddedilmesi, asıl hatalı hareketi düzeltilemez bırakırdı.
+
+> **2026-08-26 · İKİNCİ EK — yukarıdaki "zorlama repository katmanındadır" kararı
+> GERİ ALINDI (Codex incelemesi):** Ek'in ilk hâli, DB kısıtı yerine uygulama
+> katmanını seçmeyi şöyle gerekçelendiriyordu: *"sert bir DB kısıtı `warn`/`allow`
+> politikalarını imkansız kılardı."* Gerekçenin öncülü doğru, sonucu yanlıştı.
+>
+> - Bir `check` **kısıtı** gerçekten tenant politikasını okuyamaz. Ama bir
+>   **tetikleyici** okuyabilir ve yalnızca `block` politikasında reddedebilir;
+>   `warn`/`allow` hiç etkilenmez. Yani seçenek "sert DB kısıtı ya da uygulama
+>   katmanı" değildi — üçüncü ve doğru seçenek atlanmıştı.
+> - Uygulama katmanındaki zorlama ise aslında **zorlama değildi**:
+>   `0006_yetkiler.sql` her `authenticated` kullanıcıya `stock_movement` üzerinde
+>   doğrudan `INSERT` verdiği için kontrol, repository'ye hiç uğramayan tek bir REST
+>   çağrısıyla atlanabiliyordu. Yalnızca uygulama kodunun uyduğu bir kural bir
+>   invariant değil, bir gelenektir.
+> - Ayrıca okuma (`quantityOf`) ile yazma (`insert`) arasında **TOCTOU** yarışı vardı:
+>   bakiye 10 iken iki terminal aynı anda −6 yazarsa ikisi de "sonuç 4" hesaplar,
+>   defter −2'ye düşerdi. Endüstriyel mutfakta aynı hammaddenin iki istasyondan
+>   eşzamanlı düşülmesi olağandır; bu teorik bir risk değildi.
+>
+> **Yeni karar:** I12'nin zorlaması `db/migrations/0011_negatif_bakiye_zorlamasi.sql`
+> içindeki `app.stock_movement_negative_guard()` **BEFORE INSERT tetikleyicisindedir**.
+> Tetikleyici (a) ters kayıtları ve bakiyeyi artıran hareketleri erken atlar,
+> (b) politikayı tenant satırından okur ve yalnızca `block` için reddeder
+> (`SQLSTATE MI012`), (c) `pg_advisory_xact_lock` ile aynı (tenant, şube, kalem)
+> üçlüsüne yazan işlemleri sıraya sokarak TOCTOU'yu kapatır.
+>
+> Repository katmanındaki kontrol **kaldı** ama rolü değişti: artık bir invariant
+> değil, (1) hızlı başarısızlık, (2) iki uygulamada birebir aynı hata tipi ve
+> (3) `warn` politikasındaki `Movement.warning` metnini üretme aracıdır. Son sözü
+> veritabanı söyler; yarış nedeniyle repository kontrolü geçse bile tetikleyici
+> `MI012` ile reddeder ve o hata da aynı `NegativeBalanceBlockedError`'a çevrilir.
+>
+> Politikayı kimin değiştirebileceği ayrı bir açıktı ve `0012_yetki_sertlestirme.sql`
+> ile kapandı: `tenant` ve `app_user` üzerindeki geniş `UPDATE` yetkisi sütun
+> seviyesine indirildi (sıradan bir kullanıcı politikayı `allow` yapamaz, kendi
+> `role_code`'unu `admin` yapamaz), politika değişikliği yetki kontrollü
+> `app.set_negative_stock_policy()` RPC'sine taşındı.
+>
+> `Movement.warning` alanının sözleşmesi de netleşti: **hiçbir uygulamada kalıcı
+> değildir.** Önceden `LocalStorageStockRepository` tüm nesneyi sakladığı için onda
+> kalıcı oluyor, `PostgresStockRepository`'de olmuyordu; aynı sözleşme testlerinden
+> geçmesi gereken iki uygulamada bu kabul edilemez bir sapmaydı.
+
+---
+
 ## Uygulama arayüzü
 
 ```ts
@@ -292,6 +352,7 @@ export type NewMovement = {
   unitCost?:   number
   currency?:   string
   occurredAt?: Date        // verilmezse now()
+  note?:       string      // 2026-08-25 eki — şemada zaten var (stock_movement.note)
 }
 
 export interface StockRepository {

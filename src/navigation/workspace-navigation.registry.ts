@@ -20,9 +20,20 @@ export type WorkspaceNavigationNode = NavigationRegistryNode<
 
 export type WorkspaceModuleActivationResolver = (module: BusinessWorkspaceModule) => boolean
 
+export type WorkspacePermissionResolver = (permission: string | undefined) => boolean
+
 export type CreateWorkspaceNavigationTreeOptions = {
   isModuleEnabled?: WorkspaceModuleActivationResolver
   isCoreModuleVisible?: WorkspaceModuleActivationResolver
+  /**
+   * Kullanıcının bu izne sahip olup olmadığını söyler. Verilmezse izin
+   * kontrolü YAPILMAZ (her öge görünür) — mevcut çağıranların davranışı
+   * değişmesin diye. Gerçek kullanımda `App.tsx` bunu geçer.
+   *
+   * Bkz. `src/authorization/route-permission.ts` — aynı iznin rota
+   * tarafındaki ikinci savunma hattı.
+   */
+  hasPermission?: WorkspacePermissionResolver
 }
 
 const CORE_WORKSPACE_MODULE_CODES = [
@@ -52,13 +63,27 @@ const shouldIncludeModule = (
 const createMenuNode = (
   module: BusinessWorkspaceModule,
   parent: BusinessWorkspaceNavKey,
-  item: BusinessWorkspaceModule['menuItems'][number]
+  item: BusinessWorkspaceModule['menuItems'][number],
+  options: CreateWorkspaceNavigationTreeOptions = {}
 ): WorkspaceNavigationNode => {
   const children = (item.children || [])
-    .map(child => createMenuNode(module, item.key, child))
+    .map(child => createMenuNode(module, item.key, child, options))
     .filter(child => child.visible)
     .sort(compareByOrder)
   const hasChildren = children.length > 0
+
+  const requiredPermission = item.requiredPermission ?? module.permissions[0]
+
+  // Yetki kontrolü — BİRİNCİ savunma hattı (ikincisi rota tarafında,
+  // bkz. src/authorization/route-permission.ts). İzni olmayan öge menüde
+  // hiç ÜRETİLMEZ; "kilitli göster" değil, yok say.
+  //
+  // Çocuğu olan bir başlık, izin gerektirse bile çocukları üzerinden
+  // değerlendirilir: izinli tek bir alt öge kalmışsa başlık görünür kalmalı,
+  // çocukların hepsi süzülmüşse `hasChildren` zaten false olur.
+  const permissionAllows = hasChildren
+    || !options.hasPermission
+    || options.hasPermission(requiredPermission)
 
   return {
     moduleId: module.id,
@@ -69,9 +94,11 @@ const createMenuNode = (
     parent,
     order: item.order ?? item.displayOrder ?? module.displayOrder,
     children: hasChildren ? children : undefined,
-    requiredPermission: item.requiredPermission ?? module.permissions[0],
+    requiredPermission,
     // ADR-002: kapsam dışı menü ögesi üretilmez (modülü core olsa bile).
+    // + Aşama 1: izni olmayan öge de üretilmez (varsayılan reddet).
     visible: item.foundationScope !== 'frozen'
+      && permissionAllows
       && item.visible !== false && !item.hidden && (Boolean(item.route) || hasChildren),
     expandedByDefault: item.expandedByDefault ?? false,
     adminOnly: item.adminOnly,
@@ -85,9 +112,10 @@ const createMenuNode = (
 
 const createModuleChildren = (
   module: BusinessWorkspaceModule,
-  parent: BusinessWorkspaceNavKey
+  parent: BusinessWorkspaceNavKey,
+  options: CreateWorkspaceNavigationTreeOptions = {}
 ) => module.menuItems
-  .map(item => createMenuNode(module, parent, item))
+  .map(item => createMenuNode(module, parent, item, options))
   .filter(item => item.visible)
   .sort(compareByOrder)
 
@@ -102,7 +130,7 @@ const createCoreSystemNavigation = (
   return CORE_WORKSPACE_MODULE_CODES
     .flatMap(moduleCode => {
       const module = coreModuleByCode.get(moduleCode)
-      return module ? createModuleChildren(module, 'system-tree-workspace') : []
+      return module ? createModuleChildren(module, 'system-tree-workspace', options) : []
     })
     .sort(compareByOrder)
 }
@@ -115,7 +143,7 @@ const createInstallableModuleNavigation = (
     .filter(module => shouldIncludeModule(module, options))
     .map(module => {
       const key = `module-${module.code}` as BusinessWorkspaceNavKey
-      const children = createModuleChildren(module, key)
+      const children = createModuleChildren(module, key, options)
 
       return {
         moduleId: module.id,

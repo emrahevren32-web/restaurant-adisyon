@@ -1,4 +1,5 @@
 import { normalizeIdentifier } from './core/identifier'
+import { getSupabase, isSupabaseConfigured } from './core/supabase'
 import {
   ActionLog,
   ActionLogType,
@@ -579,6 +580,56 @@ export function setActiveBranchId(branchId: string, user?: User){
   }
 
   return nextBranchId
+}
+
+/**
+ * Bir işi GEÇİCİ olarak başka bir şubenin kapsamında koşturur.
+ *
+ * ── NEDEN GEREKTİ ────────────────────────────────────────────────────────
+ * `applyStockMovement()` — stoka yazan tek kapı — şube kapsamlıdır: içeride
+ * `loadStockItems()` / `saveStockItems()` çağırır ve bunlar AKTİF şubeyi
+ * süzer. Bu, tek şubede çalışan her akış için doğru.
+ *
+ * Ama sevkiyat şubeler ARASI bir iştir: mal, aktif şube hangisi olursa olsun,
+ * kaynak depodan çıkar ve hedef depoya girer. Kapı bu işi ifade edemediği için
+ * sevkiyat servisi kapıyı hiç kullanmamış, kendi hareketini kurup
+ * `saveAllStockMovements` ile doğrudan yazmıştı. Mimari testteki son borç
+ * buydu ve sebebi dikkatsizlik değil, kapının eksik olmasıydı.
+ *
+ * ── NEDEN "SESSİZCE DEĞİŞTİR" DEĞİL ──────────────────────────────────────
+ * `getActiveBranchId()` istenen şubeyi doğrular: kullanıcı o şubeyi göremiyorsa
+ * ya da şube pasifse BAŞKA bir şubeye düşer. Bunu fark etmezsek hareket yanlış
+ * şubeye yazılır — sessiz ve bulunması çok zor bir hata. Bu yüzden çözülen
+ * şube istenenle aynı değilse iş HİÇ yapılmaz, hata fırlatılır.
+ *
+ * Eski değer `finally` içinde geri yüklenir; iş hata fırlatsa bile kullanıcının
+ * aktif şubesi değişmiş olmaz.
+ *
+ * Bu, kapsamı LOCALSTORAGE dünyasında ifade etmenin yoludur. Postgres tarafında
+ * karşılığı yoktur ve olmamalıdır: orada kapsamı RLS ve `TenantCtx` taşır
+ * (ADR-004). Ekranlar Postgres'e geçtikçe bu yardımcı da kaybolacaktır.
+ */
+export const withBranchScope = <T>(branchId: string, islem: () => T): T => {
+  const istenen = String(branchId || '').trim()
+  if(!istenen) throw new Error('Şube kapsamı için şube kimliği zorunludur.')
+
+  const onceki = String(localStorage.getItem(KEY_ACTIVE_BRANCH) || '')
+  localStorage.setItem(KEY_ACTIVE_BRANCH, istenen)
+
+  try{
+    const cozulen = getActiveBranchId()
+    if(cozulen !== istenen){
+      const sube = readBranchesFromStorage().find(item => item.id === istenen)
+      throw new Error(
+        sube
+          ? `${sube.name} şubesinde işlem yapma yetkiniz yok (veya şube pasif).`
+          : 'İşlem yapılacak şube bulunamadı.'
+      )
+    }
+    return islem()
+  } finally {
+    localStorage.setItem(KEY_ACTIVE_BRANCH, onceki)
+  }
 }
 
 const normalizeBranchScopedItems = <T extends BranchScopedRecord>(
@@ -5042,13 +5093,15 @@ export const runTenantIsolationTest = ({
   }
 }
 
+/**
+ * Geçmişte düz metin 'admin' / 'admin123' hesabı oluşturuyordu. PLAN.md §5
+ * kuralı gereği ("parola hiçbir yerde düz metin saklanmaz, istisna yok")
+ * bu tohumlama kaldırıldı. İmza geriye dönük uyumluluk için duruyor —
+ * App.tsx ve yedek geri yükleme akışları hâlâ çağırıyor, artık sadece
+ * sektör önbelleğini ısıtıyor.
+ */
 export const ensureDefaultAdmin = () => {
   loadSectors({ includeInactive: true })
-  const users = loadUsers({ allTenants: true })
-  if(!users.find(u => u.username === 'admin')){
-    const admin: User = { id: 'u_admin', fullName: 'Yönetici', username: 'admin', password: 'admin123', role: 'Admin', active: true }
-    saveUsers([admin, ...users])
-  }
 }
 
 export const setCurrentUser = (user: User | null) => {
@@ -5060,14 +5113,66 @@ export const getCurrentUser = (): User | null => {
   return readJson<User | null>(KEY_AUTH, null)
 }
 
-export const authenticateUser = (username: string, password: string): User | null => {
-  const users = loadUsers({ allTenants: true })
-  const u = users.find(x => x.username === username && x.password === password && x.active)
-  if(u){
-    setCurrentUser(u)
-    return u
+/**
+ * Gerçek kimlik doğrulama — Supabase Auth üzerinden.
+ * PLAN.md §5: "Parola hiçbir yerde düz metin saklanmaz. İstisna yok."
+ *
+ * `email`, artık yerel bir kullanıcı adı değil, Supabase Authentication'daki
+ * gerçek e-postadır. Eşleşme app_user.auth_user_id üzerinden yapılır —
+ * bkz. db/migrations/0008_ilk_yonetici.sql, ADR-004.
+ */
+/**
+ * Eski `Role` tipinde 'Admin' sayılan rol kodları.
+ *
+ * 'super_admin' ve 'admin' platform tarafı; 'isletme_sahibi' ve
+ * 'isletme_muduru' ise kendi firması kapsamında tam yetkili (bkz.
+ * docs/yetki-cercevesi.md ve 0015_departman_rolleri.sql). Platform yönetimi
+ * bu ikisine AÇILMAZ — o ayrım `platform.manage` izniyle yapılır, bu bayrakla
+ * değil.
+ */
+const COMPANY_WIDE_ROLE_CODES = ['super_admin', 'admin', 'isletme_sahibi', 'isletme_muduru']
+
+export const authenticateUser = async (email: string, password: string): Promise<User | null> => {
+  if(!isSupabaseConfigured()) return null
+
+  const supabase = getSupabase()
+  const { data: authData, error: authError } = await supabase.auth.signInWithPassword({ email, password })
+  if(authError || !authData?.user) return null
+
+  const { data: appUserRow, error: appUserError } = await supabase
+    .from('app_user')
+    .select('id, tenant_id, company_id, username, full_name, phone, profile_photo_url, role_code, is_active')
+    .eq('auth_user_id', authData.user.id)
+    .maybeSingle()
+
+  if(appUserError || !appUserRow || !appUserRow.is_active){
+    // Supabase'te hesap var ama app_user'da eşleşme yok ya da pasif —
+    // güvenlik açısından oturumu hemen kapat, yarım bir oturum bırakma.
+    await supabase.auth.signOut()
+    return null
   }
-  return null
+
+  const user: User = {
+    id: appUserRow.id,
+    tenantId: appUserRow.tenant_id,
+    companyId: appUserRow.company_id || undefined,
+    fullName: appUserRow.full_name,
+    phone: appUserRow.phone || undefined,
+    profilePhotoUrl: appUserRow.profile_photo_url || undefined,
+    username: appUserRow.username,
+    // Eski `Role` tipi yalnızca iki değer taşıyor. Firma kapsamında tam yetkili
+    // roller ('isletme_sahibi', 'isletme_muduru') buraya 'Personel' olarak
+    // düşerse, `adminOnly` işaretli menü ögelerinin TAMAMI onlara kapanır —
+    // yani firma sahibi kendi işletmesini göremez. Kaba ayrım bu yüzden
+    // "firma kapsamında tam yetkili mi" sorusuna göre yapılıyor.
+    role: COMPANY_WIDE_ROLE_CODES.includes(appUserRow.role_code) ? 'Admin' : 'Personel',
+    // Gerçek rol kodu KORUNUYOR — yetkiler bundan yükleniyor (bkz. types.ts).
+    roleCode: appUserRow.role_code || undefined,
+    active: appUserRow.is_active
+  }
+
+  setCurrentUser(user)
+  return user
 }
 
 export const updateUser = (user: User) => {

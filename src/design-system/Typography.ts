@@ -241,6 +241,43 @@ const SIZE_ALIASES: Record<number, TypographyTokenName> = {
   64: 'displayXl'
 }
 
+/**
+ * ═══════════════════════════════════════════════════════════════════════════
+ * KALINLIK ÖLÇEĞİ — tek kaldıraç
+ * ═══════════════════════════════════════════════════════════════════════════
+ * Emrah'ın isteği: "font güzel ama ince olsun; kalın yazılar da incelsin."
+ *
+ * ── NEDEN TEK YERDEN ─────────────────────────────────────────────────────
+ * Kalınlık iki yerden geliyor: ölçek jetonları (`--type-*-weight`) ve takma
+ * adlar (`--font-weight-800` gibi, stylesheet'te 400'den fazla yerde). Bunları
+ * CSS'te tek tek geçersiz kılmak, her yeni kuralda tekrar unutulacak bir borç
+ * yaratırdı. Onun yerine jetonların KAYNAĞINI eğiyoruz: aşağıdaki eşleme her
+ * iki üreticiden de geçiyor, dolayısıyla bugünkü ve yarınki her kullanım
+ * kendiliğinden uyuyor.
+ *
+ * ── ÖLÇEK NEDEN DÜZ BİR ÇIKARMA DEĞİL ────────────────────────────────────
+ * Her ağırlıktan sabit bir sayı düşmek hiyerarşiyi ezerdi: gövde metni ile
+ * başlık arasındaki fark, kalınlıktaki ORAN kadar okunur. Bu yüzden ağır uçtan
+ * daha çok, hafif uçtan daha az kırpılıyor — başlık hâlâ başlık gibi duruyor,
+ * ama sayfa "kalın" görünmüyor.
+ *
+ * Geri almak isteyen: bu eşlemeyi birebir yap, her şey eskisine döner.
+ */
+const INCELTME: Readonly<Record<number, number>> = {
+  400: 400, 450: 400,
+  500: 400, 550: 450,
+  600: 450, 650: 500,
+  690: 500, 700: 500,
+  710: 520, 720: 520, 730: 520,
+  750: 550, 760: 550, 780: 550,
+  800: 600, 850: 600,
+  900: 650, 950: 650
+}
+
+/** Eşlemede karşılığı olmayan bir ağırlık gelirse yaklaşık aynı oranda incelt. */
+export const inceltilmisAgirlik = (agirlik: number): number =>
+  INCELTME[agirlik] ?? Math.max(400, Math.round(agirlik * 0.75 / 10) * 10)
+
 const WEIGHT_ALIASES = [400, 450, 500, 550, 600, 650, 700, 750, 760, 780, 800, 850, 900, 950] as const
 const LINE_HEIGHT_ALIASES = ['1', '1.02', '1.1', '1.12', '1.14', '1.15', '1.16', '1.18', '1.2', '1.22', '1.24', '1.25', '1.28', '1.3', '1.35', '1.4', '1.45', '1.48', '1.5', '1.55', '1.6'] as const
 
@@ -249,7 +286,7 @@ const getLineHeightAliasName = (value: string) => value.replace('.', '-')
 const createScaleVariables = (viewport: TypographyViewport) => (
   Object.entries(TYPOGRAPHY_TOKENS).flatMap(([, token]) => [
     `--type-${token.cssName}-size:${token.fontSize[viewport]};`,
-    `--type-${token.cssName}-weight:${token.fontWeight};`,
+    `--type-${token.cssName}-weight:${inceltilmisAgirlik(token.fontWeight)};`,
     `--type-${token.cssName}-line-height:${token.lineHeight};`,
     `--type-${token.cssName}-letter-spacing:${token.letterSpacing};`,
     `--type-${token.cssName}-text-transform:${token.textTransform};`,
@@ -262,7 +299,7 @@ const createAliasVariables = () => [
     `--font-size-${size}:var(--type-${TYPOGRAPHY_TOKENS[tokenName].cssName}-size);`
   )),
   ...WEIGHT_ALIASES.map(weight => (
-    `--font-weight-${weight}:${weight === 950 ? 900 : weight};`
+    `--font-weight-${weight}:${inceltilmisAgirlik(weight)};`
   )),
   ...LINE_HEIGHT_ALIASES.map(lineHeight => (
     `--line-height-${getLineHeightAliasName(lineHeight)}:${lineHeight};`
@@ -283,7 +320,7 @@ export const createTypographySystemCss = () => `
 :root{${createTypographyCssVariables('desktop')}}
 @media (max-width:${TYPOGRAPHY_BREAKPOINTS.tablet}px){:root{${createScaleVariables('tablet')}}}
 @media (max-width:${TYPOGRAPHY_BREAKPOINTS.mobile}px){:root{${createScaleVariables('mobile')}}}
-@media (prefers-color-scheme:dark){:root{--type-body-weight:550;--type-body-large-weight:550;--type-body-small-weight:650;--font-weight-750:780;--font-weight-850:870;}}
+@media (prefers-color-scheme:dark){:root{--type-body-weight:${inceltilmisAgirlik(550)};--type-body-large-weight:${inceltilmisAgirlik(550)};--type-body-small-weight:${inceltilmisAgirlik(650)};--font-weight-750:${inceltilmisAgirlik(780)};--font-weight-850:${inceltilmisAgirlik(870)};}}
 `.trim()
 
 export const getTypographyToken = (tokenName: TypographyTokenName) => TYPOGRAPHY_TOKENS[tokenName]

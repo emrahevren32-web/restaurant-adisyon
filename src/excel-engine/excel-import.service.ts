@@ -1,10 +1,12 @@
 import * as XLSX from 'xlsx'
 import {
+  applyStockMovement,
   loadCategories,
   loadBranches,
   loadProducts,
   loadStockCategories,
   loadStockItems,
+  reverseStockMovement,
   saveProducts,
   saveStockItems
 } from '../storage'
@@ -55,9 +57,11 @@ import type {
 } from '../supplier-management/supplier-management.types'
 import type { Product, StockItem, StockUnit, User } from '../types'
 import type {
+  ExcelCellValue,
   ExcelImportResult,
   ExcelModuleKey,
-  ExcelRow
+  ExcelRow,
+  ExcelValidationError
 } from './excel-engine.types'
 import { createExcelJob, ExcelHistoryService } from './excel-history.service'
 import { EXCEL_IMPORT_MODULES, EXCEL_MODULE_LABELS } from './excel-template.service'
@@ -242,11 +246,44 @@ const importProducts = (rows: ExcelRow[]) => {
   return { createdCount, updatedCount }
 }
 
-const importStockItems = (rows: ExcelRow[]) => {
-  const existingItems = loadStockItems()
+type ImportSonucu = {
+  createdCount: number
+  updatedCount: number
+  /** Kart yazıldı ama açılış miktarı deftere geçirilemedi — kullanıcıya gösterilir. */
+  errors?: ExcelValidationError[]
+}
+
+/**
+ * Excel'deki "Mevcut Miktar" sütunu ARTIK `currentQty` alanına yazılmıyor.
+ *
+ * ADR-001'in temel kuralı: miktar defterden türetilir, dışarıdan atanmaz. Eski
+ * kod bu kuralı deliyordu — kart doğrudan yazıldığı için ortada hareketi olmayan
+ * bir bakiye oluşuyor ve "bu rakam nereden geldi?" sorusunun cevabı kalmıyordu.
+ *
+ * Doğrusu: Excel'den gelen miktar bir AÇILIŞ SAYIMIDIR. Bu yüzden içe aktarma
+ * iki aşamalı:
+ *   1) Kart bilgisi yazılır (ad, birim, kategori, fiyat…) — miktara dokunulmaz.
+ *   2) Miktar, `applyStockMovement()` kapısından bir "Sayım Düzeltme" hareketi
+ *      olarak geçirilir. Bakiyeyi kapı hesaplar, biz değil.
+ *
+ * Kazanç: içe aktarılan her rakamın artık bir hareket kaydı, bir kullanıcısı ve
+ * bir zamanı var. Kart üzerindeki sayının altına tıklayınca "Excel içe aktarma ·
+ * açılış sayımı" satırı görünür.
+ */
+const importStockItems = (
+  rows: ExcelRow[],
+  user: User,
+  // Hata mesajlarında doğru satır numarasını verebilmek için: `rows` yalnızca
+  // GEÇERLİ satırları içerir, numaralandırma ise dosyanın tamamına göre yapılır.
+  tumSatirlar: ExcelRow[] = rows
+): ImportSonucu => {
   const now = new Date().toISOString()
   let createdCount = 0
   let updatedCount = 0
+
+  // ── 1. AŞAMA · Kart bilgisi ─────────────────────────────────────────────
+  const satirinKalemi = new Map<ExcelRow, string>()
+
   const nextItems = rows.reduce<StockItem[]>((items, row) => {
     const name = getString(row, 'name')
     const sku = getString(row, 'sku')
@@ -260,9 +297,11 @@ const importStockItems = (rows: ExcelRow[]) => {
       name,
       categoryId: resolveStockCategoryId(getString(row, 'categoryName')),
       unit: normalizeStockUnit(getString(row, 'unit', existing?.unit || 'adet')),
-      currentQty: getNumber(row, 'currentQty', existing?.currentQty || 0),
+      // ⛔ Excel'den GELMİYOR. Yeni kart 0'dan başlar, mevcut kartın bakiyesi
+      //    olduğu gibi korunur. Değişim yalnızca 2. aşamadaki hareketle olur.
+      currentQty: existing?.currentQty ?? 0,
       minQty: getNumber(row, 'minQty', existing?.minQty || 0),
-      tracksExpiry: existing?.tracksExpiry ?? true,
+      tracksExpiry: getBoolean(row, 'tracksExpiry', existing?.tracksExpiry ?? true),
       expiryWarningDays: existing?.expiryWarningDays ?? 7,
       sku: sku || existing?.sku,
       barcode: getString(row, 'barcode', existing?.barcode || ''),
@@ -278,6 +317,8 @@ const importStockItems = (rows: ExcelRow[]) => {
       lastSupplierName: getString(row, 'supplierName', existing?.lastSupplierName || '')
     }
 
+    satirinKalemi.set(row, item.id)
+
     if(existing){
       updatedCount += 1
       return items.map(record => record.id === existing.id ? item : record)
@@ -285,10 +326,108 @@ const importStockItems = (rows: ExcelRow[]) => {
 
     createdCount += 1
     return [item, ...items]
-  }, existingItems)
+  }, loadStockItems())
 
   saveStockItems(nextItems)
-  return { createdCount, updatedCount }
+
+  // ── 2. AŞAMA · Açılış sayımı, kapıdan ───────────────────────────────────
+  const errors: ExcelValidationError[] = []
+  const yazilanHareketler: string[] = []
+
+  // Aynı kalem dosyada iki kez geçebilir. Her seferinde diskten okumak yerine
+  // bakiyeyi burada takip ediyoruz; ikinci satır birincinin sonucunu görsün.
+  const guncelMiktar = new Map<string, number>(nextItems.map(item => [item.id, item.currentQty]))
+
+  const satirNo = (row: ExcelRow) => {
+    const sira = tumSatirlar.indexOf(row)
+    return sira >= 0 ? sira + 2 : 0
+  }
+
+  try{
+    for(const row of rows){
+      // Sütun hiç doldurulmamışsa miktara KARIŞMIYORUZ.
+      //
+      // Burada `getNumber` kullanılamaz: o, boş hücreyi 0'a çevirir ve boş
+      // bırakılan her satır "sayım sonucu 0" sayılıp mevcut stoğu silerdi.
+      // `normalizeText` de kullanılamaz: `String(0 || '')` boş metin verir, yani
+      // gerçek bir 0 ("stok bitti" sayımı) boş hücreyle karışırdı. Bu yüzden
+      // ham değere doğrudan bakıyoruz.
+      //
+      // Tip, çalışma zamanında sözleşmesinden daha geniş olabilir (xlsx boş
+      // hücre için undefined/null verebilir); bu yüzden açıkça genişletiliyor.
+      const hamMiktar = row['currentQty'] as ExcelCellValue | null | undefined
+      if(hamMiktar === undefined || hamMiktar === null) continue
+      if(typeof hamMiktar === 'string' && hamMiktar.trim() === '') continue
+
+      const kalemId = satirinKalemi.get(row)
+      const kalem = kalemId ? nextItems.find(item => item.id === kalemId) : undefined
+      if(!kalem) continue
+
+      const sayilan = Number(hamMiktar)
+      if(!Number.isFinite(sayilan) || sayilan < 0){
+        errors.push({
+          rowNumber: satirNo(row),
+          columnKey: 'currentQty',
+          columnHeader: 'Mevcut Miktar',
+          message: `${kalem.name}: miktar sayı değil veya negatif. Kart yazıldı, miktar aktarılmadı.`
+        })
+        continue
+      }
+
+      const mevcut = guncelMiktar.get(kalem.id) ?? kalem.currentQty
+      if(sayilan === mevcut) continue
+
+      const skt = getString(row, 'expiryDate')
+      if(kalem.tracksExpiry && sayilan > mevcut && !skt){
+        // Sessizce geçmiyoruz. SKT takipli bir kalemin miktarını tarihsiz
+        // artırmak, endüstriyel mutfakta izlenemeyen bir parti demektir.
+        errors.push({
+          rowNumber: satirNo(row),
+          columnKey: 'expiryDate',
+          columnHeader: 'SKT',
+          message: `${kalem.name}: SKT takipli kalem. Miktarı aktarmak için "SKT" sütununu doldur ya da "SKT Takibi" sütununa hayır yaz. Kart yazıldı, miktar aktarılmadı.`
+        })
+        continue
+      }
+
+      const hareket = applyStockMovement({
+        stockItemId: kalem.id,
+        type: 'Sayım Düzeltme',
+        source: 'Sayım',
+        reason: sayilan > mevcut ? 'Sayım Fazlası' : 'Sayım Eksiği',
+        // 'Sayım Düzeltme'de miktar FARK değil, sayılan MUTLAK değerdir.
+        qty: sayilan,
+        expiryDate: skt || undefined,
+        purchasePrice: getNumber(row, 'unitPurchasePrice', 0) || undefined,
+        supplierName: getString(row, 'supplierName') || undefined,
+        description: 'Excel içe aktarma · açılış sayımı',
+        user
+      })
+
+      yazilanHareketler.push(hareket.id)
+      guncelMiktar.set(kalem.id, sayilan)
+    }
+  } catch (error) {
+    // Defter silinmez (ADR-001). Yazılmış hareketler TERS KAYITLA kapatılır;
+    // kartları ise dışarıdaki `rollback()` eski hâline döndürür. İkisi birlikte
+    // tutarlı bir zemin bırakır: kart eski hâlinde, defterde ise net etkisi
+    // sıfır olan bir hareket–ters hareket çifti.
+    for(const id of [...yazilanHareketler].reverse()){
+      try{
+        reverseStockMovement(id, user)
+      } catch {
+        // Ters kayıt da başarısız olduysa yapılabilecek bir şey yok; asıl
+        // hatayı yutmamak daha önemli.
+      }
+    }
+    throw error
+  }
+
+  return {
+    createdCount,
+    updatedCount,
+    errors: errors.length > 0 ? errors : undefined
+  }
 }
 
 const importSuppliers = (rows: ExcelRow[]) => {
@@ -476,10 +615,13 @@ const importPurchaseRequests = (rows: ExcelRow[], user: User) => {
 const commitRows = (
   moduleKey: ExcelModuleKey,
   rows: ExcelRow[],
-  user: User
-) => {
+  user: User,
+  // Yalnızca stok içe aktarma kullanıyor: satır numarasını dosyanın tamamına
+  // göre verebilmek için (`rows` burada sadece geçerli satırlardır).
+  tumSatirlar: ExcelRow[]
+): ImportSonucu => {
   if(moduleKey === 'products') return importProducts(rows)
-  if(moduleKey === 'raw-materials' || moduleKey === 'stock') return importStockItems(rows)
+  if(moduleKey === 'raw-materials' || moduleKey === 'stock') return importStockItems(rows, user, tumSatirlar)
   if(moduleKey === 'suppliers') return importSuppliers(rows)
   if(moduleKey === 'recipes') return importRecipes(rows)
   if(moduleKey === 'purchase-requests') return importPurchaseRequests(rows, user)
@@ -602,7 +744,7 @@ export const ExcelImportService = {
     const rollback = createRollback(result.moduleKey)
 
     try{
-      const importResult = commitRows(result.moduleKey, result.validRows, user)
+      const importResult = commitRows(result.moduleKey, result.validRows, user, result.rows)
       const committedResult = createImportResult(
         result.moduleKey,
         result.fileName,
@@ -610,7 +752,9 @@ export const ExcelImportService = {
         result.rows,
         result.validRows,
         result.invalidRows,
-        result.errors,
+        // Kart yazıldı ama miktarı aktarılamayan satırlar burada görünür.
+        // İş BAŞARILI sayılır (kartlar geldi), uyarı ise kaybolmaz.
+        [...result.errors, ...(importResult.errors ?? [])],
         true,
         importResult.createdCount,
         importResult.updatedCount

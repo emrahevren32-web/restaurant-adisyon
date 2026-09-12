@@ -688,9 +688,40 @@ export type User = {
   phone?: string
   profilePhotoUrl?: string
   username: string
-  password: string
+  // Gerçek kimlik doğrulama Supabase Auth'tadır (bkz. storage.ts authenticateUser).
+  // Bu alan yalnızca henüz backend'e taşınmamış, dondurulmuş demo/başvuru
+  // akışlarında (CompanySetupWizard, BusinessRegistrationSystem) kalan eski
+  // veri şeklidir — yeni kod bu alana YAZMAZ. PLAN.md §5.
+  password?: string
   role: Role
+  /**
+   * `app_user.role_code` — veritabanındaki GERÇEK rol kodu (0014/0015'teki 12
+   * rolden biri: super_admin, admin, isletme_sahibi, depo_sorumlusu, …).
+   *
+   * Neden `role` alanı yetmiyor: eski `Role` tipi yalnızca 'Admin' | 'Personel'
+   * taşır. Rol kodu oraya sıkıştırılınca KAYBOLUYOR ve sonra tahminle geri
+   * üretiliyordu (`Admin` → 'admin'). Sonuç sessiz bir hataydı: bir
+   * `super_admin` ya da `isletme_sahibi` giriş yaptığında izinleri kendi
+   * rolünden değil, `admin` rolünden yükleniyordu.
+   *
+   * `role` alanı eski ekranların beklediği kaba ayrım olarak kalıyor;
+   * yetkilendirmenin kaynağı ise budur.
+   */
+  roleCode?: string
   active: boolean
+  // Aşama 1 eki (2026-08-27) — kullanıcının VERİTABANINDAN okunmuş izinleri
+  // (`role_permission` → `app_user.role_code`). Girişte doldurulur.
+  //
+  // Bu alan bir GÖRÜNÜRLÜK bilgisidir, güvenlik sınırı DEĞİLDİR: menüyü ve
+  // rotaları süzmek için kullanılır, ama tarayıcıda durduğu için tek başına
+  // hiçbir şeyi korumaz. Gerçek koruma veritabanındadır (RLS + kolon
+  // seviyesi GRANT — bkz. 0006, 0012). Buradaki liste değiştirilse bile
+  // kullanıcı erişemediği veriyi göremez.
+  //
+  // `undefined` ile `[]` farklıdır: `undefined` "henüz yüklenmedi"
+  // (izin kontrolü yapılmaz), `[]` "hiçbir izni yok" (her şey kapalı).
+  // Bkz. src/authorization/permission.repository.ts
+  permissions?: string[]
 }
 
 export type BusinessRegistrationStatus = 'Başvuru Bekliyor' | 'Onaylandı' | 'Reddedildi' | 'Pasif'

@@ -8,6 +8,7 @@ import type { LicenseModuleKey } from '../types'
 import {
   createWorkspaceNavigationRegistry,
   type WorkspaceModuleActivationResolver,
+  type WorkspacePermissionResolver,
   type WorkspaceNavigationNode
 } from '../navigation/workspace-navigation.registry'
 import {
@@ -25,6 +26,12 @@ export type BusinessWorkspaceNavGroup = ShellNavGroup<
 type CreateBusinessWorkspaceNavGroupsOptions = {
   isModuleEnabled?: WorkspaceModuleActivationResolver
   isCoreModuleVisible?: WorkspaceModuleActivationResolver
+  /**
+   * Yetki süzgeci — izni olmayan menü ögesi hiç üretilmez.
+   * `createWorkspaceNavigationRegistry`'ye olduğu gibi geçilir.
+   * Bkz. src/authorization/route-permission.ts (ikinci savunma hattı).
+   */
+  hasPermission?: WorkspacePermissionResolver
   showBusinessModuleEmptyAction?: boolean
   businessModuleEmptyState?: {
     title?: string
