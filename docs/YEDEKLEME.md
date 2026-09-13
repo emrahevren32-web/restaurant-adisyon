@@ -91,54 +91,94 @@ Beklenen: `pg_dump (PostgreSQL) 18.x`
 sunucusundan yedek alabilir (yeni istemci eski sunucuyu okur). Tersi
 çalışmaz. Sorun çıkarsa `pg_dump --version` çıktısını bana ilet.
 
-### 2.2 Bağlantı adresi
+### 2.2 Hazır betik
 
-Supabase panelinde: **Project Settings → Database → Connection string →
-URI**. Şuna benzer:
+Elle komut yazmana gerek yok. Depoda hazır duruyor:
 
 ```
-postgresql://postgres.xxxxx:[PAROLA]@aws-0-eu-central-1.pooler.supabase.com:5432/postgres
+C:\Users\90544\Documents\restaurant-adisyon\scripts\yedek-al.ps1
 ```
 
-⚠️ **Bu adres parola içerir. Bana gönderme.** Sadece kendi bilgisayarında
-kullan.
+Betik şunları yapıyor: dökümü alır · dosyanın gerçekten oluştuğunu ve
+boş olmadığını doğrular · 7 günden eski yedekleri siler ama **her ayın
+1'ini saklar** · her çalışmayı `yedek-gunlugu.txt`'ye yazar.
 
-### 2.3 Yedek alma
+### 2.3 Kurulum — üç adım
+
+**Adım 1 · Betiği yedek klasörüne kopyala**
 
 ```powershell
-$env:PGPASSWORD = "<veritabanı parolan>"
-pg_dump "postgresql://postgres.xxxxx@aws-0-eu-central-1.pooler.supabase.com:5432/postgres" `
-  --format=custom `
-  --no-owner --no-privileges `
-  --file "F:\MIYOP_BACKUP\miyop-$(Get-Date -Format 'yyyy-MM-dd-HHmm').dump"
+New-Item -ItemType Directory -Force -Path "F:\MIYOP_BACKUP" | Out-Null
+Copy-Item "C:\Users\90544\Documents\restaurant-adisyon\scripts\yedek-al.ps1" `
+  -Destination "F:\MIYOP_BACKUP\" -Force
+Write-Host "Kopyalandi."
 ```
 
-`--format=custom` seçili tablo geri yüklemeye izin verir; düz SQL'de
-"sadece şu tabloyu geri al" diyemezsin.
+**Adım 2 · Bağlantı adresini kendi elinle yaz**
 
-`--no-owner --no-privileges`: Supabase'in kullanıcı adları başka bir
-kuruluma taşınmaz. Bunları koymazsan geri yükleme yüzlerce "role does
-not exist" hatası verir.
+Supabase panelinde: **Project Settings → Database → Connection string →
+URI**. Kopyala, sonra:
 
-### 2.4 Günlük otomatik hâle getirme (Windows Görev Zamanlayıcı)
+```powershell
+notepad F:\MIYOP_BACKUP\baglanti.txt
+```
 
-Yukarıdaki komutu `F:\MIYOP_BACKUP\yedek-al.ps1` olarak kaydet, sonra:
+Açılan boş dosyaya adresi **tek satır** yapıştır ve kaydet. Şuna benzer:
+
+```
+postgresql://postgres.xxxxx:PAROLA@aws-0-eu-central-1.pooler.supabase.com:5432/postgres
+```
+
+⚠️ **Bu dosya parola içerir.** F:\ sürücüsünde durur, git deposuna asla
+girmez, kimseye gönderilmez — bana da. Yedek klasörünü buluta yüklerken
+bu dosyayı hariç tut.
+
+**Adım 3 · Önce ELLE dene, sonra zamanla**
+
+```powershell
+powershell -NoProfile -ExecutionPolicy Bypass -File "F:\MIYOP_BACKUP\yedek-al.ps1"
+```
+
+Beklenen çıktı:
+
+```
+2026-09-13 14:20:01  Yedek basliyor -> F:\MIYOP_BACKUP\miyop-2026-09-13-1420.dump
+2026-09-13 14:20:14  Tamam. 3,2 MB
+2026-09-13 14:20:14  Bitti.
+```
+
+**Çalıştığını gördükten sonra** her gece 03:00'e kur:
 
 ```powershell
 $eylem = New-ScheduledTaskAction -Execute "powershell.exe" `
-  -Argument "-NoProfile -ExecutionPolicy Bypass -File F:\MIYOP_BACKUP\yedek-al.ps1"
+  -Argument '-NoProfile -ExecutionPolicy Bypass -File "F:\MIYOP_BACKUP\yedek-al.ps1"'
 $zaman = New-ScheduledTaskTrigger -Daily -At 03:00
-Register-ScheduledTask -TaskName "MIYOP gunluk yedek" -Action $eylem -Trigger $zaman
+$ayar  = New-ScheduledTaskSettingsSet -StartWhenAvailable -WakeToRun
+Register-ScheduledTask -TaskName "MIYOP gunluk yedek" `
+  -Action $eylem -Trigger $zaman -Settings $ayar -Description "MIYOP veritabani gunluk dokumu"
 ```
 
-⚠️ **Bilgisayar kapalıysa yedek alınmaz.** Kalıcı çözüm A5'te: Hetzner
-sunucusunda `cron`. Bu adım o güne kadarki köprüdür.
+`-StartWhenAvailable`: bilgisayar 03:00'te kapalıysa, açılınca kaçırılan
+yedeği alır. Yoksa kapalı geçen her gece sessizce yedeksiz kalırdı.
 
-### 2.5 Kaç yedek saklanmalı
+**Kurulduğunu doğrula:**
 
-En az **7 günlük** + **her ayın 1'i** ayrı klasörde. Sebebi şu: bozulmayı
-aynı gün fark etmezsin. Bir hafta önce silinen bir kayıt, üç gün saklanan
-yedekle geri gelmez.
+```powershell
+Get-ScheduledTask -TaskName "MIYOP gunluk yedek" | Select-Object TaskName, State
+Get-ScheduledTaskInfo -TaskName "MIYOP gunluk yedek" | Select-Object LastRunTime, NextRunTime, LastTaskResult
+```
+
+`LastTaskResult` **0** olmalı. Başka bir sayı hatadır;
+`F:\MIYOP_BACKUP\yedek-gunlugu.txt` sebebini yazar.
+
+⚠️ **Bilgisayar tamamen kapalıysa yedek alınmaz.** Kalıcı çözüm A5'te:
+Hetzner sunucusunda `cron`. Bu adım o güne kadarki köprüdür.
+
+### 2.4 Kaç yedek saklanmalı
+
+Betik bunu **kendisi yapıyor**: 7 günden eski yedekleri siler ama her
+ayın 1'ini bırakır. Sebebi şu: bozulmayı aynı gün fark etmezsin. Bir hafta
+önce silinen bir kayıt, üç gün saklanan yedekle geri gelmez.
 
 ⚠️ **Yedek aynı diskte olmazsa yedek değildir.** `F:` sürücüsü aynı
 bilgisayardaysa, o bilgisayar giderse ikisi birden gider. Aylık kopyayı
@@ -219,7 +259,7 @@ A4D'de kurulacak davet akışı bunun da cevabı olacak.
 
 | Durum | Yapılacak |
 |---|---|
-| Her gece 03:00 | Otomatik `pg_dump` (2.4) |
+| Her gece 03:00 | Otomatik `pg_dump` (§2.3) |
 | Her göç (`0029`, `0030`…) öncesi | Elle bir yedek al |
 | Ayda bir | Harici diske kopya |
 | 6 ayda bir | **Geri yükleme provası** (3) |
