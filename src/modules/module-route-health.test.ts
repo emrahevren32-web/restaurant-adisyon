@@ -18,6 +18,7 @@ import { BUSINESS_WORKSPACE_MODULE_REGISTRY } from './business-workspace.registr
 import type { BusinessWorkspaceModule } from './business-workspace.registry'
 import type { BusinessWorkspaceRoute } from '../navigation/app-navigation.types'
 import { createBusinessWorkspaceNavGroups } from './business-workspace.navigation'
+import { cekirdekModulGorunur } from '../navigation/core-module-visibility'
 
 const MODULLER: BusinessWorkspaceModule[] = BUSINESS_WORKSPACE_MODULE_REGISTRY
 
@@ -107,7 +108,20 @@ describe('Aşama 2–4 ekranları menüde CANLI', () => {
   // Üçü de kayıt dosyasında DOĞRU görünüyordu. Bu yüzden asıl sınama,
   // gerçekten üretilen menü ağacında aramak olmalı.
   it('hepsi GERÇEKTEN ÜRETİLEN menüde var (kayıt dosyasında olmak yetmez)', () => {
-    const gruplar = createBusinessWorkspaceNavGroups()
+    // ⚠️ SEÇENEKLER GERÇEK UYGULAMADAKİ GİBİ VERİLİYOR.
+    //
+    // Önce seçeneksiz çağrılıyordu ve o hâlde bütün çekirdek modüller
+    // görünür sayılıyordu. Sonuç: test "Ayarlar menüde" diyordu, ekranda
+    // yoktu. Bir testin yeşil olup ekranın boş kalması, testin hiç
+    // olmamasından kötüdür — yanlış bir güven verir.
+    //
+    // `cekirdekModulGorunur` App.tsx'in kullandığı işlevin ta kendisi.
+    const gruplar = createBusinessWorkspaceNavGroups({
+      isCoreModuleVisible: modul => cekirdekModulGorunur(modul.code, {
+        kurulumTamam: true,
+        entegrasyonVar: false,
+      }),
+    })
 
     const rotalar = new Set<string>()
     const gez = (dugumler: ReadonlyArray<{ route?: string; children?: unknown }>) =>
@@ -120,6 +134,31 @@ describe('Aşama 2–4 ekranları menüde CANLI', () => {
 
     const eksikler = olmasiGerekenler.filter(r => !rotalar.has(r))
     expect(eksikler, 'ekran menü ağacında hiç üretilmiyor').toEqual([])
+  })
+
+  // Ayarlar `olmasiGerekenler` listesinde DEĞİL çünkü orada her rotanın
+  // TEK bir ögede geçmesi bekleniyor; 'settings' rotası birkaç ögede
+  // paylaşılıyor (Abonelik, Ayarlar…) ve bu meşru. Ama menüde bulunması
+  // şart: Veri Yedeği onun altında duruyor ve iki kapıdan da geçmesi
+  // gerekiyordu (beyaz liste + görünürlük kuralı).
+  it('AYARLAR menüde üretiliyor — Veri Yedeği onun altında', () => {
+    const gruplar = createBusinessWorkspaceNavGroups({
+      isCoreModuleVisible: modul => cekirdekModulGorunur(modul.code, {
+        kurulumTamam: true,
+        entegrasyonVar: false,
+      }),
+    })
+    const rotalar = new Set<string>()
+    const gez = (dugumler: ReadonlyArray<{ route?: string; children?: unknown }>) =>
+      dugumler.forEach(d => {
+        if(d.route) rotalar.add(d.route)
+        const cocuklar = (d as { children?: ReadonlyArray<{ route?: string }> }).children
+        if(cocuklar) gez(cocuklar)
+      })
+    gruplar.forEach(g => gez(g.items as ReadonlyArray<{ route?: string }>))
+
+    expect(rotalar.has('settings'), 'Ayarlar menüde yok').toBe(true)
+    expect(rotalar.has('veri-yedegi'), 'Veri Yedeği menüde yok').toBe(true)
   })
 
   it('hepsi AÇIK bir modülün altında (kapalı modül menüde hiç üretilmez)', () => {

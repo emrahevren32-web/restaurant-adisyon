@@ -2134,11 +2134,20 @@ export const BUSINESS_WORKSPACE_MODULE_REGISTRY: BusinessWorkspaceModule[] = def
   },
   {
     id: 'business-current',
-    // ⚠️ 2026-08-29'da AÇILDI (donduruluyken). Gerekçe: Endüstriyel Mutfak
-    // sektör şablonunun ihtiyaç duyduğu yüzey. Kapsam kararı ADR-002'nindir ve
-    // ürün sahibi tarafından güncellenmiştir — mekanizma değişmedi, liste değişti.
-    // Sebep: Endüstriyel Mutfak sektör şablonunun VARSAYILAN modülü.
-    foundationScope: 'core',
+    // ⚠️ 2026-09-13'te YENİDEN DONDURULDU (Emrah kararı).
+    //
+    // Modül SAHTE VERİ gösteriyordu: Kartlar, Hareketler ve Raporlar
+    // tarayıcı hafızasındaki uydurma kayıtlardan besleniyordu. Kural net:
+    // "Müşterinin görmemesi gereken hiçbir şey müşteri ekranında olmasın."
+    // Demoda müşteri oraya tıklarsa bütün hikâye çöker.
+    //
+    // GERİ GELECEK — A4C'de, gerçek veriyle. Tek başına bağlanamazdı:
+    // cari ancak müşteri kartı ve sipariş belgesi varsa gerçek olabilir,
+    // ikisi de A4C'nin işi.
+    //
+    // 2026-08-29'da açılmıştı (sektör şablonunun varsayılan modülü olduğu
+    // için). O gerekçe hâlâ doğru; eksik olan veri.
+    foundationScope: 'frozen',
     code: WORKSPACE_MODULE_CODES.CURRENT,
     name: 'Cari',
     description: 'Cari kart, cari hareket, risk ve cari raporlama süreçlerini yönetir.',

@@ -50,6 +50,7 @@ import {
 import { getFirstLoginOnboardingState } from './onboarding/onboarding.service'
 import { Branch, LicenseModuleKey, User } from './types'
 import BusinessWorkspaceRouteHost from './modules/BusinessWorkspaceRouteHost'
+import { cekirdekModulGorunur } from './navigation/core-module-visibility'
 import {
   createBusinessWorkspaceNavGroups,
   createLicensedNavModuleMap,
@@ -221,12 +222,14 @@ const createWorkspaceNavGroupsForUser = (user: User | null) => {
     hasPermission: userPermissions
       ? permission => !permission || userPermissions.includes(permission)
       : undefined,
-    isCoreModuleVisible: module => {
-      if(module.code === WORKSPACE_MODULE_CODES.WORKSPACE_WELCOME) return !setupCompleted
-      if(module.code === WORKSPACE_MODULE_CODES.MARKETPLACE) return true
-      if(module.code === WORKSPACE_MODULE_CODES.INTEGRATION_CENTER) return setupCompleted && hasConnectedWorkspaceIntegrationsForUser(user)
-      return module.code === WORKSPACE_MODULE_CODES.DASHBOARD || module.code === WORKSPACE_MODULE_CODES.WORKSPACE
-    },
+    // Kural `src/navigation/core-module-visibility.ts` içinde — hem burası
+    // hem `module-route-health.test.ts` aynı işlevi çağırıyor. Kural burada
+    // gömülüyken test onu hiç görmüyordu ve "menüde var" diyen test yeşilken
+    // Ayarlar ekranda yoktu.
+    isCoreModuleVisible: module => cekirdekModulGorunur(module.code, {
+      kurulumTamam: setupCompleted,
+      entegrasyonVar: hasConnectedWorkspaceIntegrationsForUser(user),
+    }),
     isModuleEnabled: module => {
       if(!isBusinessWorkspaceModuleAvailableForSector(module, primarySectorId)) return false
       if(isWorkspaceNavigationBaseModule(module.code, primarySectorId)) return true
