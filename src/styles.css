@@ -1222,7 +1222,7 @@ body.mobile-navigation-open { overflow:hidden; overscroll-behavior:contain }
 .daily-production-layout { grid-template-columns:minmax(0, 1fr) minmax(360px, 460px); align-items:start }
 .daily-production-side { display:flex; flex-direction:column; gap:var(--space-12); min-width:0 }
 .daily-production-table-wrap { min-width:0 }
-.daily-production-table-wrap .table-scroll { max-height:min(72vh, 760px); overflow:auto; overscroll-behavior:contain }
+.daily-production-table-wrap .table-scroll { max-height:min(72vh, 760px); overflow-x:auto; overflow-y:auto; overscroll-behavior:contain }
 .daily-production-table { min-width:1720px }
 .daily-production-table thead th { position:sticky; top:0; z-index:3; background:var(--surface); box-shadow:var(--shadow-row-divider)}
 .daily-production-table tbody tr { cursor:pointer }
@@ -2477,7 +2477,16 @@ body.mobile-navigation-open { overflow:hidden; overscroll-behavior:contain }
 .card:has(.table-wrap) > .section-header { gap:var(--space-12); margin-bottom:var(--space-12) }
 .card:has(.table-wrap) > .section-header .muted { max-width:720px }
 .card:has(.table-wrap) > .section-header > :last-child { flex:0 1 auto }
-.table-wrap { width:100%; max-width:100%; min-width:0; overflow:auto; overscroll-behavior-x:contain; -webkit-overflow-scrolling:touch; border:1px solid var(--line); border-radius:var(--radius-card); background:var(--surface); box-shadow:var(--shadow-xs) }
+/* ⚠️ overflow-y HIDDEN, auto DEĞİL.
+   `overflow:auto` iki ekseni birden kaydırma kutusu yapar. Tablo dikey
+   sığsa bile kenarlık ve `scrollbar-gutter` yüzünden içerik 1 piksel
+   taşar; Chrome o 1 pikseli "kaydırılabilir" sayar ve fare tekerleğini
+   YUTAR. Kullanıcı tekerleği çevirir, hiçbir şey olmaz — "çalışmıyor"
+   hissi tam olarak budur.
+   Bu kutuların dikey kaydırmaya ihtiyacı yok (max-height verilmiyor,
+   içerik kadar uzuyorlar). Dikeyi kapatınca tekerlek her zaman sayfaya
+   ulaşıyor; yatay kaydırma olduğu gibi duruyor. */
+.table-wrap { width:100%; max-width:100%; min-width:0; overflow-x:auto; overflow-y:hidden; overscroll-behavior-x:contain; -webkit-overflow-scrolling:touch; border:1px solid var(--line); border-radius:var(--radius-card); background:var(--surface); box-shadow:var(--shadow-xs) }
 .table-wrap::-webkit-scrollbar { height:9px; width:9px }
 .table-wrap::-webkit-scrollbar-track { background:var(--surface-muted); border-radius:var(--radius-full)}
 .table-wrap::-webkit-scrollbar-thumb { background:var(--line-strong); border:2px solid var(--surface-muted); border-radius:var(--radius-full)}
@@ -9143,7 +9152,11 @@ body.mobile-navigation-open { overflow:hidden; overscroll-behavior:contain }
   width:100%;
   max-width:100%;
   min-width:0;
-  overflow:auto;
+  /* Aynı gerekçe (bkz. .table-wrap): dikey eksen kapalı, tekerlek sayfaya
+     ulaşsın. `max-height` verilen yerler (ör. .daily-production-table-wrap
+     .table-scroll) kendi kuralında dikeyi geri açıyor. */
+  overflow-x:auto;
+  overflow-y:hidden;
   overscroll-behavior-x:contain;
   -webkit-overflow-scrolling:touch;
 }

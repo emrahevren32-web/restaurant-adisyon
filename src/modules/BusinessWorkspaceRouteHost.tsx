@@ -37,6 +37,7 @@ import HaccpEkrani from '../pages/Haccp'
 import SayimEkrani from '../pages/Sayimlar'
 import ZayiImhaEkrani from '../pages/ZayiImha'
 import IslemGecmisiEkrani from '../pages/IslemGecmisi'
+import VeriYedegiEkrani from '../pages/VeriYedegi'
 import KontrolPaneli from '../pages/KontrolPaneli'
 import StockCards from '../pages/StockCards'
 import StockMovements from '../pages/StockMovements'
@@ -318,6 +319,7 @@ export default function BusinessWorkspaceRouteHost({
   if(route === 'sayimlar') return <SayimEkrani currentUser={currentUser} />
   if(route === 'zayi-imha') return <ZayiImhaEkrani currentUser={currentUser} />
   if(route === 'islem-gecmisi') return <IslemGecmisiEkrani currentUser={currentUser} />
+  if(route === 'veri-yedegi') return <VeriYedegiEkrani currentUser={currentUser} />
 
   if(route === 'stock-cards'){
     return (

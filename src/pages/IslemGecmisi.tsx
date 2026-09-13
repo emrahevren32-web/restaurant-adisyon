@@ -25,7 +25,6 @@ import type { User } from '../types'
 import { getSupabase, isSupabaseConfigured } from '../core/supabase'
 import { resolveStockRepositoryMode } from '../core/stock/index'
 import { depoBaglamiKur, type DepoBaglami } from '../warehouse/warehouse.context'
-import type { TenantCtx } from '../core/context'
 import {
   ISLEM_ETIKETLERI, PostgresDenetimDefteri, TABLO_ETIKETLERI, alanAdi, tabloAdi,
   type DenetimIslemi, type DenetimKaydi,
@@ -33,14 +32,6 @@ import {
 import {
   alanDegeriniYaz, baslik, denetimOzeti, gunOnce, islemAdi, kisaOzet,
 } from '../audit/audit.service'
-import {
-  boyutOku, dosyaAdi, kiraciyiDisaAktar, kunyeOzeti,
-  type DisaAktarmaKunyesi,
-} from '../tenant-export/tenant-export'
-import {
-  PostgresYedekGunlugu, UYARI_ESIGI_GUN, yedekDurumu,
-  type YedekKaydi,
-} from '../tenant-export/backup-log'
 
 type Props = { currentUser: User }
 
@@ -163,17 +154,11 @@ export default function IslemGecmisi({ currentUser }: Props){
       <div className="page-title">
         <div>
           <h2>İşlem Geçmişi</h2>
-          <p className="muted">Aşama 4 · Kim ne yaptı · Veri yedeği</p>
+          <p className="muted">Aşama 4 · Kim, ne zaman, neyi değiştirdi</p>
         </div>
       </div>
 
       {hata && <div className="form-error">{hata}</div>}
-
-      {/* ⚠️ Yedek kartı LİSTENİN ÜSTÜNDE. Önce altına konmuştu ve
-          görülmedi: denetim listesi 300 satıra kadar uzuyor, kimse
-          o kadar aşağı inmiyor. Ekranda var olmak, sayfada var olmak
-          demek değildir. */}
-      <VeriYedegi ctx={aktif.ctx} yetkili={gorebilir} aktorAd={currentUser.fullName || currentUser.username} />
 
       <section className="card">
         <div className="section-header">
@@ -284,174 +269,6 @@ export default function IslemGecmisi({ currentUser }: Props){
       </section>
 
     </div>
-  )
-}
-
-/**
- * Veri dışa aktarma / yedek kartı.
- *
- * ── NEDEN BU SAYFADA ─────────────────────────────────────────────────────
- * Denetim kaydı ve yedek aynı soruya hizmet ediyor: "bu sisteme
- * güvenebilir miyim". Biri "kim ne yaptı", öteki "veri benim ve
- * kaybolmayacak" diyor. Ayrı menü ögesi açmak yerine aynı sayfada
- * duruyorlar. (A5'te yönetim ögelerine ayrı bir başlık açılacak.)
- *
- * ── NE VAAT EDİYOR, NE ETMİYOR ───────────────────────────────────────────
- * Bu düğme İŞ VERİSİNİ çıkarır. Veritabanı şemasını, tetikleyicileri, RLS
- * politikalarını ve giriş hesaplarını ÇIKARMAZ. Ekranda da böyle yazıyor —
- * çünkü yedeği olduğunu sanıp olmamak, hiç yedek almamaktan kötüdür.
- */
-function VeriYedegi({
-  ctx, yetkili, aktorAd,
-}: { ctx: TenantCtx; yetkili: boolean; aktorAd?: string }){
-  const [calisiyor, setCalisiyor] = React.useState(false)
-  const [durum, setDurum] = React.useState('')
-  const [kunye, setKunye] = React.useState<DisaAktarmaKunyesi | null>(null)
-  const [boyut, setBoyut] = React.useState('')
-  const [hata, setHata] = React.useState('')
-  const [gunluk, setGunluk] = React.useState<YedekKaydi[]>([])
-
-  const defter = React.useMemo(() => new PostgresYedekGunlugu(getSupabase()), [])
-
-  const gunlugüOku = React.useCallback(async () => {
-    // Günlük tablosu henüz kurulmamış olabilir (0029 çalıştırılmadıysa).
-    // Bu, yedek almayı engellemez — sadece geçmişi gösteremeyiz.
-    try { setGunluk(await defter.son(ctx)) } catch { setGunluk([]) }
-  }, [defter, ctx])
-
-  React.useEffect(() => { void gunlugüOku() }, [gunlugüOku])
-
-  const dstm = yedekDurumu(gunluk)
-
-  const indir = async () => {
-    setCalisiyor(true); setHata(''); setKunye(null); setDurum('Hazırlanıyor…')
-    try{
-      const sonuc = await kiraciyiDisaAktar(getSupabase(), ctx, (tablo, sira, toplam) => {
-        setDurum(`${sira}/${toplam} · ${tablo}`)
-      })
-      const metin = JSON.stringify(sonuc, null, 2)
-      setKunye(sonuc.kunye)
-      setBoyut(boyutOku(metin))
-
-      // Tarayıcıdan indirme: dosya sunucuya hiç uğramıyor, doğrudan
-      // kullanıcının diskine iniyor. Aracı bir yer olmaması, verinin
-      // başka hiçbir yere kopyalanmadığının garantisi.
-      const bag = URL.createObjectURL(new Blob([metin], { type: 'application/json' }))
-      const a = document.createElement('a')
-      a.href = bag
-      a.download = dosyaAdi(ctx.tenantId)
-      a.click()
-      URL.revokeObjectURL(bag)
-      setDurum('İndirildi.')
-
-      // Günlüğe yaz — "son yedek ne zaman" sorusunun tek kaynağı burası.
-      // Yazamazsa yedek yine alınmıştır; kullanıcıya hata gösterilmez.
-      await defter.yaz(ctx, {
-        satir: sonuc.kunye.toplamSatir,
-        bayt: new Blob([metin]).size,
-        eksiksiz: sonuc.kunye.eksikTablolar.length === 0,
-        alanAd: aktorAd,
-        not: sonuc.kunye.uyari,
-      })
-      await gunlugüOku()
-    } catch(e){
-      setHata(hataMetni(e)); setDurum('')
-    } finally { setCalisiyor(false) }
-  }
-
-  return (
-    <section className="card">
-      <div className="section-header">
-        <div>
-          <h3>Veri Dışa Aktarma ve Yedek</h3>
-          <p className="muted" style={{ margin: '4px 0 0' }}>
-            İşletmenizin bütün iş verisi tek dosyada. Dosya doğrudan
-            bilgisayarınıza iner; hiçbir aracı sunucuya uğramaz.
-          </p>
-        </div>
-        {yetkili && (
-          <button className="btn primary" type="button" disabled={calisiyor}
-            onClick={() => void indir()}>
-            {calisiyor ? (durum || 'Hazırlanıyor…') : 'Yedeği İndir'}
-          </button>
-        )}
-      </div>
-
-      {hata && <div className="form-error">{hata}</div>}
-
-      {/* Son yedek ne zaman alındı. Tarayıcı zamanlanmış iş çalıştıramaz —
-          vaat edebileceğimiz şey otomatik yedek değil, UNUTTURMAMAK. */}
-      <p className={dstm.uyari ? 'is-critical' : 'muted'} style={{ marginTop: 0 }}>
-        {dstm.uyari ? <strong>⚠ {dstm.mesaj}</strong> : dstm.mesaj}
-        {dstm.sonEksiksiz?.alanAd && (
-          <span className="muted"> · {dstm.sonEksiksiz.alanAd}</span>
-        )}
-      </p>
-
-      {kunye && (
-        <>
-          <p className={kunye.uyari ? 'is-critical' : 'muted'} style={{ marginTop: 0 }}>
-            {kunye.uyari
-              ? <strong>{kunye.uyari}</strong>
-              : <>Alındı: {kunyeOzeti(kunye).join(' · ')} · {boyut}</>}
-          </p>
-          <div className="table-wrap">
-            <table className="data-table compact">
-              <thead><tr><th>Tablo</th><th className="num">Satır</th><th>Not</th></tr></thead>
-              <tbody>
-                {kunye.tablolar.map(t => (
-                  <tr key={t.tablo}>
-                    <td>{t.tablo}</td>
-                    <td className={`num ${t.satir === 0 ? 'muted' : ''}`}>{t.satir}</td>
-                    <td className={t.atlandi ? 'muted' : ''}>{t.atlandi ?? ''}</td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        </>
-      )}
-
-      {gunluk.length > 1 && (
-        <details style={{ marginBottom: 12 }}>
-          <summary className="muted">Yedek geçmişi ({gunluk.length})</summary>
-          <div className="table-wrap" style={{ marginTop: 8 }}>
-            <table className="data-table compact">
-              <thead><tr><th>Tarih</th><th>Alan</th><th className="num">Satır</th><th>Durum</th></tr></thead>
-              <tbody>
-                {gunluk.map(k => (
-                  <tr key={k.id}>
-                    <td>{new Date(k.tarih).toLocaleString('tr-TR')}</td>
-                    <td className="muted">{k.alanAd ?? '—'}</td>
-                    <td className="num">{k.satir ?? '—'}</td>
-                    <td className={k.eksiksiz ? 'muted' : 'is-critical'}>
-                      {k.eksiksiz ? 'eksiksiz' : 'EKSİK'}
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        </details>
-      )}
-
-      <p className="muted detail-hint">
-        <strong>Otomatik yedek diye bir düğme yok</strong> — ve olmayacak.
-        Tarayıcı kapalıyken hiçbir şey çalışmaz; "her gece indir" diyen bir
-        web uygulaması yalan söyler. Yapabildiğimiz, {UYARI_ESIGI_GUN} günden
-        eskiyse yüzünüze söylemek. Gerçek otomatik yedek sunucu tarafında
-        kurulur (<code>docs/YEDEKLEME.md</code>).
-      </p>
-
-      <p className="muted detail-hint">
-        <strong>Bu dosya sunucu yedeği DEĞİLDİR.</strong> İş verisini taşır;
-        veritabanı şemasını, tetikleyicileri, yetki politikalarını ve giriş
-        hesaplarını taşımaz. "Sunucu yandı, her şeyi geri kur" senaryosunun
-        yolu <code>pg_dump</code>'tır ve <code>docs/YEDEKLEME.md</code>'de
-        adım adım yazılıdır. İkisini birbirinin yerine koymak, yedeği olduğunu
-        sanıp olmamak demektir.
-      </p>
-    </section>
   )
 }
 

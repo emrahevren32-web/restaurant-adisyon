@@ -24,6 +24,9 @@ import React from 'react'
 import type { User } from '../types'
 import type { BusinessWorkspaceNavKey, BusinessWorkspaceRoute } from '../navigation/app-navigation.types'
 import { getSupabase, isSupabaseConfigured } from '../core/supabase'
+import {
+  PostgresYedekGunlugu, yedekDurumu, type YedekKaydi,
+} from '../tenant-export/backup-log'
 import { createStockRepository, resolveStockRepositoryMode } from '../core/stock/index'
 import { InMemoryStockItemLookup } from '../core/stock/stock-item-lookup'
 import { depoBaglamiKur, type DepoBaglami } from '../warehouse/warehouse.context'
@@ -70,6 +73,8 @@ type PanelVerisi = {
   olcumler: Olcum[]
   faaliyetler: DuzelticiFaaliyet[]
   katalog: KatalogKalemi[]
+  /** Yedek günlüğü. Tablo henüz kurulmadıysa boş kalır, panel yine çalışır. */
+  yedekler: YedekKaydi[]
 }
 
 export default function KontrolPaneli({
@@ -112,8 +117,19 @@ export default function KontrolPaneli({
             katalogServisi.kalemler(kurulan.ctx),
           ])
 
+        // Yedek günlüğü ayrı ve HATA YUTARAK okunuyor: 0029 göçü henüz
+        // çalıştırılmamışsa tablo yoktur ve bu, kontrol panelinin tamamının
+        // açılmamasına sebep olmamalı. Yedek uyarısı bir ek; panelin kendisi
+        // ondan önemli.
+        let yedekler: YedekKaydi[] = []
+        try { yedekler = await new PostgresYedekGunlugu(client).son(kurulan.ctx, 5) }
+        catch { yedekler = [] }
+
         if(iptal) return
-        setVeri({ kalemler, uyarilar, isEmirleri, sevkiyatlar, olcumler, faaliyetler, katalog })
+        setVeri({
+          kalemler, uyarilar, isEmirleri, sevkiyatlar, olcumler, faaliyetler,
+          katalog, yedekler,
+        })
       } catch (e) {
         if(!iptal) setHata(hataMetni(e))
       } finally {
@@ -180,7 +196,9 @@ export default function KontrolPaneli({
     )
   }
 
-  const { kalemler, uyarilar, isEmirleri, sevkiyatlar, olcumler, faaliyetler, katalog } = veri
+  const {
+    kalemler, uyarilar, isEmirleri, sevkiyatlar, olcumler, faaliyetler, katalog, yedekler,
+  } = veri
   const bugun = bugunAnahtari()
 
   const acikIsEmirleri = isEmirleri.filter(i => i.durum === 'DRAFT' || i.durum === 'STARTED')
@@ -237,6 +255,19 @@ export default function KontrolPaneli({
       rota: 'satinalma' as BusinessWorkspaceRoute,
       navKey: 'satinalma' as BusinessWorkspaceNavKey,
     })),
+    // Yedek uyarısı. Gıda güvenliğinden sonra ama stoktan ÖNCE geliyor:
+    // kritik stok siparişle çözülür, kaybolan veri çözülmez.
+    ...(() => {
+      const d = yedekDurumu(yedekler)
+      return d.uyari ? [{
+        id: 'yedek-uyarisi',
+        aciliyet: 'kritik' as const,
+        baslik: 'Veri yedeği',
+        ayrinti: d.mesaj,
+        rota: 'veri-yedegi' as BusinessWorkspaceRoute,
+        navKey: 'veri-yedegi' as BusinessWorkspaceNavKey,
+      }] : []
+    })(),
     ...baslatilamayanlar.map(x => ({
       id: `yetersiz-${x.isEmri.id}`,
       aciliyet: 'uyari' as const,
