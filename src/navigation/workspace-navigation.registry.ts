@@ -36,13 +36,28 @@ export type CreateWorkspaceNavigationTreeOptions = {
   hasPermission?: WorkspacePermissionResolver
 }
 
+/**
+ * WORKSPACE bölümünde görünecek çekirdek modüller.
+ *
+ * ⚠️ BU SABİT BİR BEYAZ LİSTEDİR. Buraya yazılmayan bir çekirdek modül,
+ * `isEnabled: true` olsa ve kullanıcının izni olsa bile menüde HİÇ
+ * üretilmez. Kayıt dosyasına bakan biri bunu göremez — İşlem Geçmişi
+ * "Audit" modülüne konulduğunda tam olarak bu yaşandı.
+ *
+ * `module-route-health.test.ts` artık gerçek menü ağacını geziyor ve bu
+ * tuzağı yakalıyor.
+ *
+ * 'settings' 2026-09-13'te eklendi: müşterinin yapılandırma yapabileceği
+ * tek yerdi ve menüde hiç görünmüyordu. Veri yedeği oraya konuluyor.
+ */
 const CORE_WORKSPACE_MODULE_CODES = [
   'workspace-welcome',
   'dashboard',
   'workspace',
   'marketplace',
   'integration-center',
-  'tools'
+  'tools',
+  'settings'
 ]
 
 const compareByOrder = <T extends { order: number }>(first: T, second: T) => first.order - second.order

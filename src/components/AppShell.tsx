@@ -75,7 +75,6 @@ type AppShellProps<
   onOpenNotification?: (notification: Evren360Notification) => void
   onOpenMyProfile?: () => void
   onOpenCompanyProfile?: () => void
-  onOpenVeriYedegi?: () => void
   onStartOnboarding?: () => void
   onActiveBranchChange: (branchId: string) => void
   onLogout: () => void
@@ -249,7 +248,6 @@ export default function AppShell<
   onOpenNotification,
   onOpenMyProfile,
   onOpenCompanyProfile,
-  onOpenVeriYedegi,
   onStartOnboarding,
   onActiveBranchChange,
   onLogout,
@@ -906,7 +904,6 @@ export default function AppShell<
               initials={getUserInitials(currentUser)}
               onOpenMyProfile={onOpenMyProfile}
               onOpenCompanyProfile={onOpenCompanyProfile}
-              onOpenVeriYedegi={onOpenVeriYedegi}
               onStartOnboarding={onStartOnboarding}
               onLogout={onLogout}
             />

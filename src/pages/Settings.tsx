@@ -1,12 +1,10 @@
 import React from 'react'
 import { SystemSettings, User } from '../types'
 import {
-  createSystemBackup,
   getCompanyIdForUser,
   loadCompanies,
   loadSettings,
   loadTenantSettings,
-  restoreSystemBackup,
   saveCompanies,
   saveSettings,
   saveTenantSettings
@@ -29,11 +27,6 @@ const currencyOptions = [
   { value: 'GBP', label: 'Sterlin (GBP)' }
 ]
 
-const createBackupFileName = () => {
-  const date = new Date().toLocaleDateString('sv-SE')
-  return `miyop-workspace-yedek-${date}.json`
-}
-
 const getScopedSettings = (user: User): SystemSettings => {
   const baseSettings = loadSettings()
   const companyId = getCompanyIdForUser(user)
@@ -54,7 +47,6 @@ const getScopedSettings = (user: User): SystemSettings => {
 
 export default function Settings({ currentUser, onSettingsChange }: Props){
   const [settings, setSettings] = React.useState<SystemSettings>(() => getScopedSettings(currentUser))
-  const [restoreFile, setRestoreFile] = React.useState<File | null>(null)
   const [message, setMessage] = React.useState<Message>(null)
 
   React.useEffect(() => {
@@ -125,53 +117,16 @@ export default function Settings({ currentUser, onSettingsChange }: Props){
     setMessage({ type: 'success', text: 'Genel ayarlar kaydedildi.' })
   }
 
-  const downloadBackup = () => {
-    const backup = createSystemBackup()
-    const blob = new Blob([JSON.stringify(backup, null, 2)], { type: 'application/json' })
-    const url = URL.createObjectURL(blob)
-    const link = document.createElement('a')
-
-    link.href = url
-    link.download = createBackupFileName()
-    document.body.appendChild(link)
-    link.click()
-    document.body.removeChild(link)
-    URL.revokeObjectURL(url)
-
-    setMessage({ type: 'success', text: 'Sistem yedeği JSON dosyası olarak hazırlandı.' })
-  }
-
-  const restoreBackup = async () => {
-    if(!restoreFile){
-      setMessage({ type: 'error', text: 'Geri yüklemek için bir JSON dosyası seçin.' })
-      return
-    }
-
-    try {
-      const text = await restoreFile.text()
-      const backup = JSON.parse(text)
-      const restoredCount = restoreSystemBackup(backup)
-      setSettings(loadSettings())
-      onSettingsChange?.()
-      setRestoreFile(null)
-      setMessage({
-        type: 'success',
-        text: `Geri yükleme tamamlandı. ${restoredCount} veri alanı içe aktarıldı. Güncel veriler için ekranları yeniden açabilirsiniz.`
-      })
-    } catch (error) {
-      setMessage({
-        type: 'error',
-        text: error instanceof Error ? error.message : 'Yedek dosyası geri yüklenemedi.'
-      })
-    }
-  }
 
   return (
     <div className="settings-page">
       <div className="page-title">
         <div>
           <h2>Ayarlar</h2>
-          <p className="muted">Çalışma alanı bilgileri, yedekleme, geri yükleme ve demo veri işlemlerini yönetin.</p>
+          <p className="muted">
+            Çalışma alanı bilgileri. Veri yedeği için soldaki
+            <strong> Veri Yedeği</strong> ekranını kullanın.
+          </p>
         </div>
       </div>
 
@@ -242,30 +197,26 @@ export default function Settings({ currentUser, onSettingsChange }: Props){
           </form>
         </section>
 
-        <section className="card">
-          <div className="section-header compact">
-            <h3>Yedekleme</h3>
-          </div>
-          <p className="muted">Tüm sistem verilerini tek bir JSON dosyası olarak dışa aktarın.</p>
-          <div className="settings-action-box">
-            <button className="btn primary" onClick={downloadBackup} type="button">Yedek Al</button>
-          </div>
-        </section>
+        {/* ⚠️ BURADA "Yedekleme" ve "Geri Yükleme" BÖLÜMLERİ VARDI. KALDIRILDI.
+            (2026-09-13)
 
-        <section className="card">
-          <div className="section-header compact">
-            <h3>Geri Yükleme</h3>
-          </div>
-          <p className="muted">Daha önce alınmış JSON yedeğini seçerek sistemi geri yükleyin.</p>
-          <div className="settings-action-box">
-            <input
-              type="file"
-              accept="application/json,.json"
-              onChange={event => setRestoreFile(event.target.files?.[0] || null)}
-            />
-            <button className="btn primary" disabled={!restoreFile} onClick={restoreBackup} type="button">Yükle</button>
-          </div>
-        </section>
+            İkisi de TARAYICI HAFIZASINI (localStorage) yedekliyor ve geri
+            yüklüyordu. Gerçek iş verisi Postgres'te; o düğmeye basan bir
+            müşteri "yedeğim var" sanıyor ama elindeki dosyada stok defteri,
+            sayım, sevkiyat, HACCP kaydı YOK.
+
+            Yedeği olduğunu sanıp olmamak, hiç yedek almamaktan tehlikelidir.
+            Bu yüzden düğmeyi düzeltmedik, KALDIRDIK.
+
+            Gerçek yedek: Ayarlar → Veri Yedeği (src/pages/VeriYedegi.tsx).
+            Kiracının bütün iş verisini Postgres'ten okur, doğrulaması var,
+            her alış günlüğe yazılır.
+
+            "Geri Yükleme" düğmesi ise BİLEREK YENİDEN YAPILMADI. Yanlış
+            yapılmış bir geri yükleme veri kaybından kötüdür: iki dönemin
+            verisi karışır ve hangisinin doğru olduğu bir daha bilinemez.
+            Karar (Emrah, 2026-09-13): geri yükleme talebi MİYOP'a gelir,
+            elle ve kayıt altında yapılır. Bkz. docs/YEDEKLEME.md §4.6 */}
       </div>
     </div>
   )

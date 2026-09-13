@@ -587,7 +587,17 @@ export const BUSINESS_WORKSPACE_MODULE_REGISTRY: BusinessWorkspaceModule[] = def
     pricing: includedPricing,
     marketplace: coreSystemMarketplace,
     menuItems: [
-      menuItem({ key: 'settings', label: 'Sistem Ayarları', route: 'settings', icon: 'SA', adminOnly: true, displayOrder: 100 })
+      menuItem({ key: 'settings', label: 'Ayarlar', route: 'settings', icon: 'SA', adminOnly: true, displayOrder: 100 }),
+      // Veri yedeği burada. Dördüncü ve son yeri.
+      //
+      // Denenen ve yanlış çıkan yerler:
+      //   İşlem Geçmişi sayfasının kartı → bulunamadı, iki kez
+      //   Stok → Veri Yedeği           → "sadece stokçuyu ilgilendiriyor"
+      //   Profil menüsü                → profil KİŞİSELdir, yedek KURUMSAL
+      //
+      // Yapılandırma alanı doğru yer: yedek bir işlem değil, işletmenin
+      // veri politikasının parçası. Kullanıcı burada arar.
+      menuItem({ key: 'veri-yedegi', label: 'Veri Yedeği', route: 'veri-yedegi', icon: 'VY', requiredPermission: 'audit.read', adminOnly: true, displayOrder: 110 })
     ]
   },
   {
