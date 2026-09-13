@@ -831,6 +831,7 @@ export default function App(){
       onOpenNotification={openEvren360NotificationTarget}
       onOpenMyProfile={!isPlatformAdmin ? () => setRoute('my-profile') : undefined}
       onOpenCompanyProfile={!isPlatformAdmin ? () => setRoute('company-profile') : undefined}
+      onOpenVeriYedegi={!isPlatformAdmin ? () => setRoute('veri-yedegi') : undefined}
       onStartOnboarding={!isPlatformAdmin && workspaceSetupCompleted ? startOnboardingExperience : undefined}
       onActiveBranchChange={changeActiveBranch}
       onLogout={logout}

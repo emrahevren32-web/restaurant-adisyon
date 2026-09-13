@@ -7,6 +7,12 @@ export type TopbarProfileMenuProps = {
   initials: string
   onOpenMyProfile?: () => void
   onOpenCompanyProfile?: () => void
+  /**
+   * Veri yedeği. Şirket profilinin yanında duruyor çünkü yedek TÜM
+   * işletmenin verisidir — bir departmanın işi değil. Önce Stok menüsüne
+   * konulmuştu ve orada "sadece stokçuyu ilgilendiriyormuş" gibi görünüyordu.
+   */
+  onOpenVeriYedegi?: () => void
   onStartOnboarding?: () => void
   onLogout: () => void
 }
@@ -16,6 +22,7 @@ export const TopbarProfileMenu = ({
   initials,
   onOpenMyProfile,
   onOpenCompanyProfile,
+  onOpenVeriYedegi,
   onStartOnboarding,
   onLogout
 }: TopbarProfileMenuProps) => {
@@ -125,6 +132,22 @@ export const TopbarProfileMenu = ({
             },
             React.createElement(AppIcon, { name: 'company', size: 'SM' }),
             React.createElement('span', null, 'Şirket Profili')
+          )
+          : null,
+        onOpenVeriYedegi && currentUser.role === 'Admin'
+          ? React.createElement(
+            'button',
+            {
+              type: 'button',
+              className: 'topbar-profile-action',
+              role: 'menuitem',
+              onClick: () => {
+                setOpen(false)
+                onOpenVeriYedegi()
+              }
+            },
+            React.createElement(AppIcon, { name: 'download', size: 'SM' }),
+            React.createElement('span', null, 'Veri Yedeği')
           )
           : null,
         onStartOnboarding

@@ -86,7 +86,6 @@ describe('Aşama 2–4 ekranları menüde CANLI', () => {
     'sayimlar',
     'zayi-imha',
     'islem-gecmisi',
-    'veri-yedegi',
   ]
 
   it.each(olmasiGerekenler)('%s menüde canlı bir ögede duruyor', rota => {

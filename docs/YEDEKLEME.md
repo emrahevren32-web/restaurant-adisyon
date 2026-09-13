@@ -260,6 +260,59 @@ senin sorumluluğundaki yedek.
 
 ---
 
+## 4.6 Geri dönüş kimin işi — ve ücretli mi
+
+**Karar (Emrah, 2026-09-13): geri yükleme müşteri tarafından YAPILMAZ.
+Talep gelir, MİYOP yapar.**
+
+Doğru karar, ve sebebi teknik: geri yükleme yanlış yapıldığında veri
+kaybından **daha kötü** bir sonuç üretir — iki dönemin verisi birbirine
+karışır ve hangisinin doğru olduğu bir daha bilinemez. Bu yüzden
+uygulamada "İçeri Al" düğmesi **yok** ve olmayacak.
+
+### Ücretlendirme — ikiye ayır
+
+Bu ayrım sözleşmede net yazmalı, yoksa ilk olayda tartışma çıkar:
+
+| Sebep | Ücret | Neden |
+|---|---|---|
+| **Sunucu arızası, göç hatası, MİYOP kaynaklı bir hata** | **Ücretsiz** | Kendi hatanı onarmak için para istemek satılabilir bir ilişki bırakmaz. Sözleşmede taahhüt edilmiş hizmetin parçası. |
+| **Müşteri kaynaklı** — yanlış silme, "geçen haftaya dönelim", yanlış toplu içe aktarma | **Ücretli** | Gerçek bir uzman işi: veri kurtarma. Piyasada da böyle fiyatlanır. |
+
+Sınırdaki durumlarda **müşteri lehine** karar ver. Bir geri yükleme
+ücretinden kazanacağın para, kaybedeceğin güvenden azdır.
+
+### Geri yükleme yapılırken uyulacaklar
+
+1. **Yazılı talep.** Kim istedi, hangi tarihe dönülecek, neden. Sözlü
+   talebe geri yükleme yapılmaz — sonradan "ben öyle demedim" denir.
+2. **Önce mevcut durumun yedeği.** Geri yüklemeden ÖNCE `pg_dump` al.
+   Dönülen nokta yanlışsa geri dönecek bir yer kalsın.
+3. **Kiracı kimliği doğrulanır.** Dosyanın hangi işletmeye ait olduğu
+   künyede yazar; uygulamadaki **Yedeği Doğrula** bunu tek bakışta
+   söyler. Yanlış işletmenin dosyası ASLA yüklenmez.
+4. **Kayıt tut.** Ne zaman, kim istedi, hangi dosyadan dönüldü, kaç satır.
+   Denetimde ilk sorulacak budur.
+
+### "İki müşteri birbirinin yedeğini çaldı" — cevap
+
+Emrah'ın sorusu. Bugün ve yarın için cevap:
+
+- **Bugün:** geri yükleme diye bir şey yok. Dosya bir çıktı, giriş kapısı
+  değil. Çalınan dosyayla yapılabilecek tek şey onu okumaktır.
+- **İçeri alma yazılırsa** (bugünkü karara göre yazılmayacak, ama
+  yazılırsa): RLS `with check (tenant_id = app.current_tenant_id())`
+  başka kiracının kimliğiyle satır yazılmasını **veritabanı seviyesinde**
+  reddeder. Dosyadaki kimlikler kullanılmaz; satırlar oturumun kiracısına
+  yazılır. Yani çalınan dosya, çalanın kendi verisine dönüşür — kurbanın
+  verisine açılan bir pencere olmaz.
+- **Asıl risk geri yükleme değil, dosyanın kendisi.** Sızarsa Not
+  Defteri'yle okunur. Onun için dosya sunucuya hiç uğramıyor, yalnızca
+  yetkili kullanıcı üretebiliyor, ve her üretim günlüğe yazılıyor (0029):
+  kim, ne zaman, kaç satır.
+
+---
+
 ## 5. Bu belgenin dürüst sınırı
 
 Buradaki hiçbir adım **henüz yapılmadı**. Belge, yapılacakların

@@ -75,7 +75,9 @@ export default function VeriYedegiSayfasi({ currentUser }: Props){
       <div className="page-title">
         <div>
           <h2>Veri Yedeği</h2>
-          <p className="muted">Aşama 4 · Veriniz sizin; istediğiniz an alın</p>
+          <p className="muted">
+            Aşama 4 · İşletmenizin tüm verisi · Veriniz sizin, istediğiniz an alın
+          </p>
         </div>
       </div>
       {icerik}
@@ -251,28 +253,49 @@ function VeriYedegi({
         </>
       )}
 
-      {gunluk.length > 1 && (
-        <details style={{ marginBottom: 12 }}>
-          <summary className="muted">Yedek geçmişi ({gunluk.length})</summary>
-          <div className="table-wrap" style={{ marginTop: 8 }}>
-            <table className="data-table compact">
-              <thead><tr><th>Tarih</th><th>Alan</th><th className="num">Satır</th><th>Durum</th></tr></thead>
-              <tbody>
-                {gunluk.map(k => (
-                  <tr key={k.id}>
-                    <td>{new Date(k.tarih).toLocaleString('tr-TR')}</td>
-                    <td className="muted">{k.alanAd ?? '—'}</td>
-                    <td className="num">{k.satir ?? '—'}</td>
-                    <td className={k.eksiksiz ? 'muted' : 'is-critical'}>
-                      {k.eksiksiz ? 'eksiksiz' : 'EKSİK'}
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        </details>
-      )}
+      {/* ── YEDEK GEÇMİŞİ ─────────────────────────────────────────────
+          Depo hareketleri gibi açıkta duruyor, katlanmış değil. "Düzenli
+          yedek alınıyor mu" sorusunun cevabı bir tıkın arkasında kalmamalı;
+          denetimde sorulan da tam olarak budur. */}
+      <div className="section-header" style={{ marginTop: 20, marginBottom: 8 }}>
+        <div><h3 style={{ fontSize: '1rem' }}>Yedek Geçmişi</h3></div>
+        <span className="muted">{gunluk.length} kayıt</span>
+      </div>
+      <div className="table-wrap" style={{ marginBottom: 12 }}>
+        <table className="data-table compact">
+          <thead>
+            <tr>
+              <th>Tarih</th><th>Alan</th><th>Tür</th>
+              <th className="num">Satır</th><th className="num">Boyut</th><th>Durum</th>
+            </tr>
+          </thead>
+          <tbody>
+            {gunluk.length === 0 && (
+              <tr>
+                <td colSpan={6} className="muted">
+                  Henüz yedek alınmamış. Yukarıdaki düğmeyle ilk yedeğinizi alın.
+                </td>
+              </tr>
+            )}
+            {gunluk.map(k => (
+              <tr key={k.id}>
+                <td>{new Date(k.tarih).toLocaleString('tr-TR')}</td>
+                <td className="muted">{k.alanAd ?? '—'}</td>
+                <td className="muted">
+                  {k.tur === 'pg_dump' ? 'Sunucu dökümü' : 'Uygulama'}
+                </td>
+                <td className="num">{k.satir ?? '—'}</td>
+                <td className="num muted">
+                  {k.bayt ? `${(k.bayt / 1024).toFixed(0)} KB` : '—'}
+                </td>
+                <td className={k.eksiksiz ? 'muted' : 'is-critical'}>
+                  {k.eksiksiz ? 'eksiksiz' : 'EKSİK'}
+                </td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
 
       {/* ── YEDEĞİ DOĞRULA ────────────────────────────────────────────
           "Alındığı sanılan yedeğin çalışmaması" en tehlikeli durumdur.
@@ -286,9 +309,9 @@ function VeriYedegi({
             <strong> bu işletmeye mi ait</strong>. Hiçbir şey değiştirilmez.
           </p>
         </div>
-        <button className="btn" type="button"
+        <button className="btn primary" type="button"
           onClick={() => dosyaSecici.current?.click()}>
-          Dosya Seç
+          Yedek Dosyası Seç
         </button>
       </div>
       <input

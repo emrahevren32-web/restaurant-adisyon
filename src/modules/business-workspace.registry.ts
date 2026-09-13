@@ -891,10 +891,11 @@ export const BUSINESS_WORKSPACE_MODULE_REGISTRY: BusinessWorkspaceModule[] = def
       // İzin `audit.read` kaldı: ekran Stok başlığı altında ama YETKİSİ
       // denetimin. Stok izni olan biri bunu görmez (0015 departman ayrımı).
       menuItem({ key: 'islem-gecmisi', label: 'İşlem Geçmişi', route: 'islem-gecmisi', icon: 'IG', requiredPermission: 'audit.read', adminOnly: true, displayOrder: 8 }),
-      // Veri yedeği. Önce İşlem Geçmişi sayfasının bir kartıydı ve Emrah
-      // iki kez bulamadı: başka bir ekranın içine gömülen işlev yok sayılır.
-      // Yedek almak günlük bir iştir, menüde kendi adıyla durmalı.
-      menuItem({ key: 'veri-yedegi', label: 'Veri Yedeği', route: 'veri-yedegi', icon: 'VY', requiredPermission: 'audit.read', adminOnly: true, displayOrder: 9 }),
+      // ⚠️ VERİ YEDEĞİ BURADA DEĞİL — sağ üstteki profil menüsünde,
+      // "Şirket Profili"nin yanında. Sebep: yedek TÜM işletmenin verisidir.
+      // Stok başlığının altında dururken "sadece stokçuyu ilgilendiriyor"
+      // gibi görünüyordu. Rotası (`veri-yedegi`) duruyor; menü ögesi
+      // `TopbarProfileMenu` içinde.
       menuItem({ key: 'stock-cards', foundationScope: 'frozen', label: 'Kartlar', route: 'stock-cards', icon: 'SK', adminOnly: true, displayOrder: 10 }),
       menuItem({ key: 'stock-movements', foundationScope: 'frozen', label: 'Hareketler', route: 'stock-movements', icon: 'SH', adminOnly: true, displayOrder: 20 }),
       menuItem({ key: 'critical-stock', foundationScope: 'frozen', label: 'Kritik Stok', route: 'stock-cards', icon: 'KS', adminOnly: true, displayOrder: 30 }),
