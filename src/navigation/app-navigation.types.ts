@@ -346,6 +346,7 @@ export type BusinessWorkspaceNavGroupKey =
   | 'operations-modules'
   | 'business-modules'
   | 'report-modules'
+  | 'yonetim-modules'
   | 'integration-modules'
 export type PlatformNavGroupKey = 'evren360-admin'
 export type AppNavGroupKey = BusinessWorkspaceNavGroupKey | PlatformNavGroupKey

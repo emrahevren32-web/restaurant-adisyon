@@ -161,16 +161,29 @@ describe('Aşama 2–4 ekranları menüde CANLI', () => {
     expect(rotalar.has('veri-yedegi'), 'Veri Yedeği menüde yok').toBe(true)
   })
 
-  it('hepsi AÇIK bir modülün altında (kapalı modül menüde hiç üretilmez)', () => {
-    // `shouldIncludeModule`: modül `isModuleEnabled` ile kapalıysa altındaki
-    // hiçbir öge üretilmez. Bu kiracıda Kalite ve Lojistik modülleri kapalı;
-    // ekranlarımız o modüllerin altına konulmamalı.
-    const kapaliModuller = new Set(['business-quality', 'business-logistics'])
-    const yanlisYerdekiler = canliOgeler()
-      .filter(x => x.oge.route && olmasiGerekenler.includes(x.oge.route as BusinessWorkspaceRoute))
-      .filter(x => kapaliModuller.has(x.modul))
-      .map(x => `${x.oge.route} → ${x.modul}`)
+  it('hiçbir canlı ekran DONDURULMUŞ bir modülün altında değil', () => {
+    // `shouldIncludeModule` dondurulmuş modülü HER ZAMAN eler — kiracı ne
+    // yaparsa yapsın. Canlı bir ekranı oraya koymak, ekranı yok etmektir.
+    // Cari (business-current) 2026-09-13'te donduruldu; yarın biri oraya
+    // gerçek bir ekran koyarsa bu test kırmızı olur.
+    //
+    // ⚠️ Bu test eskiden 'business-quality' ve 'business-logistics'i SABİT
+    // olarak "kapalı" varsayıyordu. business-quality 2026-09-13'te
+    // `isAlwaysActive` oldu (gıda üretiminde kalite eklenti değildir) ve test
+    // yanlış bir gerçeği savunur hâle geldi. Sabit liste yerine kuralın
+    // kendisi sınanıyor.
+    const modulSahibi = new Map<string, BusinessWorkspaceModule>()
+    MODULLER.forEach(m =>
+      ((m.menuItems ?? []) as unknown as Oge[]).forEach(o => {
+        if(o.route) modulSahibi.set(o.route, m)
+        o.children?.forEach(c => { if(c.route) modulSahibi.set(c.route, m) })
+      }))
 
-    expect(yanlisYerdekiler, 'ekran kapalı bir modülün altında').toEqual([])
+    const riskliler = olmasiGerekenler
+      .map(rota => ({ rota, modul: modulSahibi.get(rota) }))
+      .filter(x => x.modul?.foundationScope === 'frozen')
+      .map(x => `${x.rota} → ${x.modul!.id}`)
+
+    expect(riskliler, 'canlı ekran DONDURULMUŞ bir modülün altında').toEqual([])
   })
 })

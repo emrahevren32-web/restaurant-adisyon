@@ -81,6 +81,9 @@ const flattenModuleMenuItems = (
 )
 
 const OPERATION_MODULE_IDS = new Set([
+  // Stok, Kalite ve Sevkiyat da operasyondur. Departmanlar aynı seviyede.
+  'business-stock',
+  'business-quality',
   'business-adisyon',
   'business-qr-menu',
   'business-recipe',
@@ -90,8 +93,16 @@ const OPERATION_MODULE_IDS = new Set([
   'business-logistics'
 ])
 
+/**
+ * OPERASYON bölümündeki departmanlar.
+ *
+ * ⚠️ 2026-09-13 · Bilgi mimarisi yeniden kuruldu (ADR-009).
+ * `business-stock` buraya TAŞINDI. Önce ayrı bir "BUSINESS" başlığı altındaydı
+ * ve kullanıcı "Stok neden Satın Alma'dan farklı bir başlıkta" sorusunu
+ * cevaplayamıyordu. Stok da bir operasyondur; ayrı başlık kavramsal bir
+ * ayrım değil, kodun büyüme biçiminin izidir.
+ */
 const BUSINESS_MODULE_IDS = new Set([
-  'business-stock',
   'business-warehouse',
   'business-current',
   'business-credit',
@@ -99,6 +110,16 @@ const BUSINESS_MODULE_IDS = new Set([
   'business-personnel',
   'business-multi-branch'
 ])
+
+/**
+ * YÖNETİM bölümü: sistemin nasıl davranacağını belirleyen ekranlar.
+ *
+ * ⚠️ Bu bölüm bir ÇÖPLÜK DEĞİLDİR (ADR-009 §6). Buraya yalnızca "sistemin
+ * davranışını değiştiren" ya da "işletmenin verisini yöneten" ekranlar
+ * girer. Nereye koyacağımızı bilemediğimiz bir ekran buraya atılmaz;
+ * doğru yeri bulunana kadar menüye hiç konmaz.
+ */
+const YONETIM_MODULE_IDS = new Set(['system-settings'])
 
 const REPORT_MODULE_IDS = new Set([
   'business-kpi-reporting',
@@ -132,16 +153,37 @@ export const createBusinessWorkspaceNavGroups = (
   const reportItems = getNavigationSectionItems(businessModules, REPORT_MODULE_IDS)
   const showBusinessModuleEmptyState = businessModules.length === 0
 
+  // ── ÜÇ ÜST BAŞLIK ───────────────────────────────────────────────────────
+  // Başlıklar "aradığım şeyi nerede bulurum" sorusunu cevaplamalı.
+  // Eski WORKSPACE / OPERATIONS / BUSINESS ayrımı bunu yapmıyordu: stok da
+  // işletmedir, satın alma da operasyondur; başlıklar birbirini dışlamıyordu.
+  //
+  //   GENEL     → her sabah açılan yer
+  //   OPERASYON → günlük iş; departman departman
+  //   YÖNETİM   → sistemin ve verinin yönetimi
+  //
+  // Başlıklar TÜRKÇE. Aynı menüde iki dil kullanmak yarım kalmış bir
+  // yerelleştirme izlenimi veriyordu (ADR-009 §1).
+  const sistemOgeleri = registry.systemModules.map(toShellNavItem)
+  // ⚠️ Süzme MODÜL kimliğine göre, öge anahtarına göre DEĞİL.
+  // Çekirdek modüller menüye ÖGELERİ olarak düzleşiyor (modül düğümü
+  // oluşmuyor). Öge anahtarına bakınca yalnızca 'settings' ögesi YÖNETİM'e
+  // gidiyor, aynı modüldeki "Veri ve Yedekleme" GENEL'de kalıyordu.
+  const yonetime = (item: BusinessWorkspaceNavItem) =>
+    YONETIM_MODULE_IDS.has(String(item.moduleId ?? ''))
+  const genelItems = sistemOgeleri.filter(item => !yonetime(item))
+  const yonetimItems = sistemOgeleri.filter(yonetime)
+
   return [
     {
       key: 'system-modules',
-      title: 'WORKSPACE',
+      title: 'GENEL',
       icon: 'WS',
-      items: registry.systemModules.map(toShellNavItem)
+      items: genelItems
     },
     {
       key: 'operations-modules',
-      title: 'OPERATIONS',
+      title: 'OPERASYON',
       icon: 'IM',
       emptyTitle: showBusinessModuleEmptyState
         ? options.businessModuleEmptyState?.title || 'Henuz modul yuklenmedi.'
@@ -160,19 +202,25 @@ export const createBusinessWorkspaceNavGroups = (
     },
     {
       key: 'business-modules',
-      title: 'BUSINESS',
+      title: 'İŞLETME',
       icon: 'BS',
       items: businessItems
     },
     {
       key: 'report-modules',
-      title: 'REPORTS',
+      title: 'RAPORLAR',
       icon: 'RP',
       items: reportItems
     },
     {
+      key: 'yonetim-modules',
+      title: 'YÖNETİM',
+      icon: 'YN',
+      items: yonetimItems
+    },
+    {
       key: 'integration-modules',
-      title: 'SYSTEM',
+      title: 'ENTEGRASYONLAR',
       icon: 'EN',
       items: registry.integrationModules.map(toShellNavItem)
     }

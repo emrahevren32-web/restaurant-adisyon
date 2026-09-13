@@ -587,7 +587,7 @@ export const BUSINESS_WORKSPACE_MODULE_REGISTRY: BusinessWorkspaceModule[] = def
     pricing: includedPricing,
     marketplace: coreSystemMarketplace,
     menuItems: [
-      menuItem({ key: 'settings', label: 'Ayarlar', route: 'settings', icon: 'SA', adminOnly: true, displayOrder: 100 }),
+      menuItem({ key: 'settings', label: 'Şirket Ayarları', route: 'settings', icon: 'SA', adminOnly: true, displayOrder: 100 }),
       // Veri yedeği burada. Dördüncü ve son yeri.
       //
       // Denenen ve yanlış çıkan yerler:
@@ -597,7 +597,10 @@ export const BUSINESS_WORKSPACE_MODULE_REGISTRY: BusinessWorkspaceModule[] = def
       //
       // Yapılandırma alanı doğru yer: yedek bir işlem değil, işletmenin
       // veri politikasının parçası. Kullanıcı burada arar.
-      menuItem({ key: 'veri-yedegi', label: 'Veri Yedeği', route: 'veri-yedegi', icon: 'VY', requiredPermission: 'audit.read', adminOnly: true, displayOrder: 110 })
+      menuItem({ key: 'veri-yedegi', label: 'Veri ve Yedekleme', route: 'veri-yedegi', icon: 'VY', requiredPermission: 'audit.read', adminOnly: true, displayOrder: 110 }),
+      // Sistemin bütün belgelerindeki değişiklikler. Stok'un altındayken
+      // adı da yeri de yanlıştı (bkz. business-stock'taki not).
+      menuItem({ key: 'islem-gecmisi', label: 'Değişiklik Kaydı', route: 'islem-gecmisi', icon: 'DK', requiredPermission: 'audit.read', adminOnly: true, displayOrder: 120 })
     ]
   },
   {
@@ -773,7 +776,10 @@ export const BUSINESS_WORKSPACE_MODULE_REGISTRY: BusinessWorkspaceModule[] = def
     id: 'business-stock',
     foundationScope: 'core',
     code: WORKSPACE_MODULE_CODES.STOCK,
-    name: 'Stok',
+    // Departman adı: bir BİRİMİN adı, tekil (ADR-009 §3 adlandırma standardı).
+    // İçindeki ekran "Stok Durumu"; departmanla ekranın aynı adı taşıması
+    // ("Stok → Depo") kullanıcıya iki farklı şey söylüyordu.
+    name: 'Depo',
     description: 'Stok kartları, hareketleri, kritik stok, geçerlilik ve kayıp yönetimini kapsar.',
     category: 'business',
     icon: 'SK',
@@ -784,7 +790,7 @@ export const BUSINESS_WORKSPACE_MODULE_REGISTRY: BusinessWorkspaceModule[] = def
     isBusinessModule: true,
     isEnabled: true,
     isVisible: true,
-    displayOrder: 30,
+    displayOrder: 20,
     dependencies: [],
     tags: ['business', 'inventory', 'lot', 'batch', 'traceability', 'goods-receipt', 'receiving'],
     licenseModuleKey: LICENSE_MODULE_CODES.STOCK,
@@ -863,7 +869,7 @@ export const BUSINESS_WORKSPACE_MODULE_REGISTRY: BusinessWorkspaceModule[] = def
       // çalışıyor; ADR-003'ün dikey dilim yaklaşımı gereği yenisi yanına
       // kuruluyor, eskisi geçiş bitene kadar yerinde kalıyor.
       // Başta duruyor: satılabilir çekirdek burasıdır.
-      menuItem({ key: 'depo', label: 'Depo', route: 'depo', icon: 'DP', adminOnly: true, displayOrder: 5 }),
+      menuItem({ key: 'depo', label: 'Stok Durumu', route: 'depo', icon: 'DP', adminOnly: true, displayOrder: 5 }),
       // ⚠️ AŞAĞIDAKİ ALTI ÖGE DONDURULDU (2026-09-11, Emrah onayı).
       //
       // Hepsi localStorage üzerinde çalışan ESKİ ekranlardı ve yaptıkları işin
@@ -881,10 +887,10 @@ export const BUSINESS_WORKSPACE_MODULE_REGISTRY: BusinessWorkspaceModule[] = def
       // modülüyle iki kez düşülen tuzak burada tekrarlanmasın diye not:
       // kapalı bir modüle konan öge menüde HİÇ üretilmez.
       // Depo'nun hemen ardında: sayım, deponun doğruluk denetimidir.
-      menuItem({ key: 'sayimlar', label: 'Sayım', route: 'sayimlar', icon: 'SY', adminOnly: true, displayOrder: 6 }),
+      menuItem({ key: 'sayimlar', label: 'Stok Sayımları', route: 'sayimlar', icon: 'SY', adminOnly: true, displayOrder: 6 }),
       // Fire/zayi/imha — sayımın hemen ardında: sayımda çıkan eksiğin
       // sebebi çoğu zaman burada yazılır.
-      menuItem({ key: 'zayi-imha', label: 'Fire ve Zayi', route: 'zayi-imha', icon: 'FZ', adminOnly: true, displayOrder: 7 }),
+      menuItem({ key: 'zayi-imha', label: 'Fire ve Kayıplar', route: 'zayi-imha', icon: 'FZ', adminOnly: true, displayOrder: 7 }),
       // Aşama 4 · Denetim kaydı.
       //
       // ⚠️ ÜÇÜNCÜ KEZ AYNI DERS, YENİ BİR BİÇİMDE. Öge önce doğal yeri olan
@@ -900,7 +906,11 @@ export const BUSINESS_WORKSPACE_MODULE_REGISTRY: BusinessWorkspaceModule[] = def
       //
       // İzin `audit.read` kaldı: ekran Stok başlığı altında ama YETKİSİ
       // denetimin. Stok izni olan biri bunu görmez (0015 departman ayrımı).
-      menuItem({ key: 'islem-gecmisi', label: 'İşlem Geçmişi', route: 'islem-gecmisi', icon: 'IG', requiredPermission: 'audit.read', adminOnly: true, displayOrder: 8 }),
+      // ⚠️ DEĞİŞİKLİK KAYDI BURADA DEĞİL — YÖNETİM → Değişiklik Kaydı.
+      // Adı "İşlem Geçmişi" idi ve muğlaktı: neyin geçmişi? Stok'un altında
+      // durunca "stok hareketleri" sanılıyordu — oysa sayım, sevkiyat,
+      // HACCP ölçümü ve stok kartı değişikliklerini de tutuyor. Ad muğlaktı
+      // çünkü YERİ yanlıştı; şey gerçekten geneldi. (ADR-009 §3)
       // ⚠️ VERİ YEDEĞİ BURADA DEĞİL — sağ üstteki profil menüsünde,
       // "Şirket Profili"nin yanında. Sebep: yedek TÜM işletmenin verisidir.
       // Stok başlığının altında dururken "sadece stokçuyu ilgilendiriyor"
@@ -1028,7 +1038,7 @@ export const BUSINESS_WORKSPACE_MODULE_REGISTRY: BusinessWorkspaceModule[] = def
     isBusinessModule: true,
     isEnabled: true,
     isVisible: true,
-    displayOrder: 42,
+    displayOrder: 10,
     dependencies: [],
     tags: ['business', 'purchase', 'procurement', 'purchase-request', 'rfq', 'purchase-approval', 'purchase-order', 'goods-receipt', 'supplier-management', 'supplier-performance', 'procurement-analytics', 'industrial-kitchen'],
     supportedSectorIds: industrialKitchenSectorIds,
@@ -1112,7 +1122,7 @@ export const BUSINESS_WORKSPACE_MODULE_REGISTRY: BusinessWorkspaceModule[] = def
       // bir hikâyenin iki adımıdır: "buna ihtiyacım var" → "bunu şundan aldım".
       // Ayrı menü ögelerine bölmek, kullanıcıyı akışın ortasında başka bir
       // ekrana gönderirdi.
-      menuItem({ key: 'satinalma', label: 'Talep ve Sipariş', route: 'satinalma', icon: 'SA', adminOnly: true, displayOrder: 6 }),
+      menuItem({ key: 'satinalma', label: 'Satın Alma Siparişleri', route: 'satinalma', icon: 'SA', adminOnly: true, displayOrder: 6 }),
       // ⚠️ 2026-09-03'te MENÜDEN KALDIRILDI (frozen).
       //
       // Yerini `satinalma` (Talep ve Sipariş) aldı. Kod repoda duruyor — ADR-003
@@ -1447,7 +1457,8 @@ export const BUSINESS_WORKSPACE_MODULE_REGISTRY: BusinessWorkspaceModule[] = def
     id: 'business-quality',
     foundationScope: 'core',
     code: SECTOR_TEMPLATE_MODULE_CODES.QUALITY,
-    name: 'Kalite ve İzlenebilirlik',
+    // Departman adı: birim adı, tekil (ADR-009 §3).
+    name: 'Kalite',
     description: 'Endüstriyel mutfak lot izlenebilirliği, numune, şahit numune ve recall takibi, inventory lot kalite kontrol kararları, checklist şablonları, red sonrası iade süreçleri ve tedarikçi iade sevklerini yöneten iş modülü.',
     category: 'business',
     icon: 'KL',
@@ -1459,8 +1470,20 @@ export const BUSINESS_WORKSPACE_MODULE_REGISTRY: BusinessWorkspaceModule[] = def
     isCoreModule: false,
     isBusinessModule: true,
     isEnabled: true,
+    // ⚠️ 2026-09-13 · HER ZAMAN AÇIK.
+    //
+    // Bu modül kiracı tarafından etkinleştirilmemişti ve altına konan hiçbir
+    // öge menüde görünmüyordu; HACCP bu yüzden Üretim'e taşınmıştı.
+    // Ama gıda üretiminde kalite İSTEĞE BAĞLI BİR EKLENTİ DEĞİLDİR —
+    // HACCP yasal bir zorunluluk. "Kalite modülünü satın almamış bir gıda
+    // fabrikası" diye bir şey olamaz.
+    //
+    // `isAlwaysActive` bu gerçeği koda geçiriyor: modül kiracı seçiminden
+    // bağımsız olarak üretiliyor. İzin ayrımı (0015) korunuyor: ögeleri
+    // yalnızca `quality.read` izni olan görür.
+    isAlwaysActive: true,
     isVisible: true,
-    displayOrder: 44,
+    displayOrder: 40,
     dependencies: [WORKSPACE_MODULE_CODES.STOCK, WORKSPACE_MODULE_CODES.PURCHASE],
     tags: ['business', 'quality', 'label-management', 'barcode', 'qr-code', 'operation-checklist', 'operation-checklists', 'operations-checklist', 'lot-system', 'sample-tracking', 'quality-sample', 'witness-sample', 'witness-samples', 'product-recall', 'product-recalls', 'recall-management', 'product-history', 'traceability-timeline', 'haccp', 'critical-control-point', 'quality-control', 'quality-form', 'waste-management', 'fire-management', 'waste', 'fire', 'return-process', 'supplier-return', 'supplier-return-shipment', 'checklist', 'inventory-lot', 'traceability', 'industrial-kitchen'],
     supportedSectorIds: industrialKitchenSectorIds,
@@ -1638,6 +1661,15 @@ export const BUSINESS_WORKSPACE_MODULE_REGISTRY: BusinessWorkspaceModule[] = def
       })
     ],
     menuItems: [
+      // ── CANLI EKRANLAR ────────────────────────────────────────────────
+      // Aşağıdaki dondurulmuş ögeler adisyon/mock döneminden kalma.
+      // Bu ikisi gerçek veritabanına konuşuyor.
+      //
+      // Adlandırma (ADR-009 §3): ekran adı ne olduğunu söylemeli.
+      // "HACCP" tek başına bir metodolojinin adıydı, bir ekranın değil.
+      // "İzlenebilirlik" neyin izlenebilirliği belli değildi.
+      menuItem({ key: 'haccp-kayitlari', label: 'HACCP Kontrolleri', route: 'haccp-kayitlari', icon: 'HC', requiredPermission: 'quality.read', adminOnly: true, displayOrder: 1 }),
+      menuItem({ key: 'izlenebilirlik', label: 'Ürün İzlenebilirliği', route: 'izlenebilirlik', icon: 'IZ', requiredPermission: 'quality.read', adminOnly: true, displayOrder: 2 }),
       menuItem({ key: 'label-management', foundationScope: 'frozen', label: 'Etiket Yönetimi', route: 'label-management', icon: 'ET', adminOnly: true, displayOrder: 4 }),
       menuItem({ key: 'lot-system', foundationScope: 'frozen', label: 'Lot Sistemi', route: 'lot-system', icon: 'LS', adminOnly: true, displayOrder: 5 }),
       menuItem({ key: 'sample-tracking', foundationScope: 'frozen', label: 'Numune Takibi', route: 'sample-tracking', icon: 'NT', adminOnly: true, displayOrder: 6 }),
@@ -1670,7 +1702,7 @@ export const BUSINESS_WORKSPACE_MODULE_REGISTRY: BusinessWorkspaceModule[] = def
     isBusinessModule: true,
     isEnabled: true,
     isVisible: true,
-    displayOrder: 45,
+    displayOrder: 30,
     dependencies: [],
     tags: ['business', 'production', 'production-planning', 'planning', 'forecast', 'capacity', 'machine-scheduling', 'workforce-planning', 'bottleneck-analysis', 'continuous-improvement', 'operation', 'industrial-kitchen', 'work-order', 'production-line', 'intermediate-product', 'final-product', 'blast-chiller', 'packaging', 'labeling', 'dispatch', 'recipe-management', 'fire-analysis', 'cost-analysis'],
     supportedSectorIds: industrialKitchenSectorIds,
@@ -1917,19 +1949,16 @@ export const BUSINESS_WORKSPACE_MODULE_REGISTRY: BusinessWorkspaceModule[] = def
       // görünmedi. Zincirin sırası da bunu destekliyor: reçete → iş emri →
       // sevkiyat → izlenebilirlik hepsi aynı hikâyenin parçası.
       menuItem({ key: 'sevkiyatlar', label: 'Sevkiyatlar', route: 'sevkiyatlar', icon: 'SK', adminOnly: true, displayOrder: 6.5 }),
-      // İzlenebilirlik üretimin ARDINDAN gelir: önce zincir kurulur, sonra okunur.
-      menuItem({ key: 'izlenebilirlik', label: 'İzlenebilirlik', route: 'izlenebilirlik', icon: 'IZ', adminOnly: true, displayOrder: 7 }),
-      // ⚠️ HACCP, Kalite modülünün DEĞİL Üretim modülünün altında.
+      // ⚠️ İZLENEBİLİRLİK VE HACCP BURADA DEĞİL — Kalite departmanında.
       //
-      // Sebebi ADR-002 değil, `shouldIncludeModule`: bir modül `isModuleEnabled`
-      // ile kapalıysa menüde HİÇ üretilmez. "Kalite ve İzlenebilirlik" modülü
-      // bu kiracıda açık değil — bu yüzden oraya konan öge görünmedi.
-      // (Aynı tuzağa Sevkiyat'ta Lojistik modülüyle de düşüldü.)
+      // Buraya konulmuşlardı çünkü Kalite modülü bu kiracıda kapalıydı ve
+      // kapalı modüle konan öge menüde hiç üretilmiyor. Ama sonuç kavramsal
+      // olarak bozuktu: Reçeteler bir KAYIT, İş Emirleri ve Sevkiyatlar
+      // BELGE, İzlenebilirlik bir YETENEK, HACCP bir METODOLOJİ. Dördü aynı
+      // seviyeye konunca menü büyüdükçe çöker. (ADR-009 §4)
       //
-      // `requiredPermission` yine `quality.read`: ekran Üretim başlığı altında
-      // duruyor ama YETKİSİ kalitenin. Üretim izni olan biri bunu görmez;
-      // departman ayrımı (0015) korunuyor.
-      menuItem({ key: 'haccp-kayitlari', label: 'HACCP', route: 'haccp-kayitlari', icon: 'HC', requiredPermission: 'quality.read', adminOnly: true, displayOrder: 8 }),
+      // Çözüm ögeyi taşımak değil, Kalite modülünü GERÇEKTEN AÇMAK oldu:
+      // gıda üretiminde kalite isteğe bağlı bir eklenti değildir.
       menuItem({ key: 'production-work-orders', foundationScope: 'frozen', label: 'Üretim Emirleri', route: 'production-work-orders', icon: 'UE', adminOnly: true, displayOrder: 10 }),
       menuItem({ key: 'production-lines', foundationScope: 'frozen', label: 'Üretim Hatları', route: 'production-lines', icon: 'UH', adminOnly: true, displayOrder: 20 }),
       menuItem({ key: 'intermediate-products', foundationScope: 'frozen', label: 'Ara Ürünler', route: 'intermediate-products', icon: 'AU', adminOnly: true, displayOrder: 30 }),
@@ -1967,7 +1996,7 @@ export const BUSINESS_WORKSPACE_MODULE_REGISTRY: BusinessWorkspaceModule[] = def
     isBusinessModule: true,
     isEnabled: true,
     isVisible: true,
-    displayOrder: 46,
+    displayOrder: 50,
     dependencies: [WORKSPACE_MODULE_CODES.STOCK],
     tags: ['business', 'logistics', 'shipment-work-order', 'shipment-pallet', 'shipment-vehicle', 'vehicle-planning', 'shipment-plan', 'shipment-form', 'shipment-forms', 'delivery-note', 'shipment-return', 'shipment-waybill', 'waybill', 'shipment', 'shipment-execution', 'transfer-receipt', 'warehouse', 'branch', 'inventory-lot', 'industrial-kitchen'],
     supportedSectorIds: industrialKitchenSectorIds,
