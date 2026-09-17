@@ -52,11 +52,13 @@ import type { TenantCtx } from '../core/context'
  */
 export const DISA_AKTARILAN_TABLOLAR = [
   // Kimlik ve yapı
-  'tenant', 'company', 'branch', 'app_user', 'user_role',
+  'tenant', 'company', 'branch', 'app_user', 'user_role', 'user_branch_access',
   // Stok çekirdeği
   'stock_item', 'stock_lot', 'stock_movement',
   // Satın alma
-  'supplier', 'purchase_request', 'purchase_order',
+  'supplier',
+  'purchase_request', 'purchase_request_line',
+  'purchase_order', 'purchase_order_line',
   'goods_receipt', 'goods_receipt_line',
   'supplier_return', 'supplier_return_line',
   // Üretim
@@ -72,6 +74,29 @@ export const DISA_AKTARILAN_TABLOLAR = [
 ] as const
 
 export type DisaAktarilanTablo = (typeof DISA_AKTARILAN_TABLOLAR)[number]
+
+/**
+ * Kiracıya ait olduğu hâlde yedeğe BİLEREK alınmayan tablolar.
+ *
+ * Bu liste bir muafiyet değil, bir GEREKÇE listesidir. `tenant-export.arch.test.ts`
+ * her `tenant_id` taşıyan tablonun ya yukarıdaki listede ya burada olmasını
+ * zorunlu kılar. Yeni bir kiracı tablosu eklenip ikisine de yazılmazsa test
+ * kırmızıya döner.
+ *
+ * Bu koruma olmadan neye çarptığımız: satın alma talepleri ve siparişleri
+ * yedeğe giriyordu ama KALEMLERİ girmiyordu. Yedek dosyası "eksiksiz"
+ * damgası alıyordu, çünkü kendi listesine göre eksiksizdi. Listenin kendisi
+ * eksikti ve bunu hiçbir şey söylemiyordu. `user_branch_access` de yoktu —
+ * geri yüklenince kullanıcılar şube yetkilerini kaybederdi.
+ */
+export const YEDEK_DISI_TABLOLAR: Record<string, string> = {
+  client_error:
+    'Teknik hata kaydı, işletme verisi değil. Müşteriye okuma yetkisi de yok ' +
+    '(0030): yığın izi müşteri ekranına ait değil, yedeğine de ait değil.',
+  tenant_backup_log:
+    'Yedek alma geçmişi, KURULUMA ait bir üstveri. Başka bir kuruluma ' +
+    'taşınırken eski kurulumun yedek geçmişi anlam taşımaz.',
+}
 
 export type TabloSonucu = {
   tablo: string
