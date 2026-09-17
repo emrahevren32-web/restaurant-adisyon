@@ -196,20 +196,79 @@ harici diske ya da buluta al.
 Provayı **canlı veritabanında yapmıyoruz.** Supabase'de ücretsiz ikinci
 bir proje aç (`miyop-prova`), provayı orada yap, bitince sil.
 
-### 3.2 Adımlar
+### 3.2 Adımlar — `scripts\yedek-geri-yukle-provasi.ps1`
+
+Provanın tamamı tek betikte. Elle `pg_restore` yazmıyoruz; çünkü provanın
+asıl işi yüklemek değil, **yüklenenin doğru olduğunu kanıtlamak.**
+
+**Kurulum (bir kez):**
+
+1. Supabase'de **ikinci** bir ücretsiz proje aç. Adı: `miyop-prova`.
+2. O projenin **Session pooler** adresini al (üstteki **Connect** düğmesi).
+3. `F:\MIYOP_BACKUP\` altına iki dosya:
+   - `prova-baglanti.txt` → prova projesinin adresi, **parolasız**
+   - `prova-parola.txt` → prova projesinin parolası, tek satır
+4. Betiği yanına kopyala: `scripts\yedek-geri-yukle-provasi.ps1` →
+   `F:\MIYOP_BACKUP\`
+
+**Çalıştırma:**
 
 ```powershell
-# 1 · Prova projesinin bağlantı adresini al (Settings → Database → URI)
-
-# 2 · Yedeği prova projesine yükle
-pg_restore --dbname "postgresql://postgres.PROVA@...:5432/postgres" `
-  --no-owner --no-privileges --clean --if-exists `
-  "F:\MIYOP_BACKUP\miyop-2026-09-13-0300.dump"
+powershell -ExecutionPolicy Bypass -File "F:\MIYOP_BACKUP\yedek-geri-yukle-provasi.ps1"
 ```
+
+Betik en son `.dump` dosyasını kendisi bulur, prova projesine yükler ve
+§3.3'teki **altı** kontrolü çalıştırıp **TAMAM / KALDI** olarak raporlar.
+
+⚠️ **GÜVENLİK KİLİDİ.** Betik `--clean` kullanır — yani yüklemeden önce
+var olanı siler. Bu, yanlış adrese çalıştırıldığında canlı veriyi silebilir.
+Bu yüzden betik ilk iş olarak prova adresinin proje kimliğini canlı
+`baglanti.txt`'teki kimlikle karşılaştırır. **Aynıysa hiçbir şey yapmadan
+durur.** Kilit çalışmadıysa (kimlik okunamadıysa) da durur — sessizce
+devam etmez.
+
+⚠️ Yalnız **`public` ve `app`** şemaları yüklenir. `auth`, `storage`,
+`realtime` Supabase'in kendi şemalarıdır; prova projesinde zaten varlar,
+üzerlerine yazmayız.
+
+⚠️⚠️ **`app` ŞEMASI ELLE YARATILIR — bu tuzağa bir kez düştük.**
+`pg_restore --schema=app` dendiğinde, şemanın **kendisini yaratan** satır o
+seçime **girmez** (`pg_dump` o satırın şemasını boş bırakır). Yaratmazsak
+`app` içindeki 18 fonksiyon ve onlara dayanan **43 tetikleyicinin tamamı**
+"böyle bir şema yok" diyerek düşer. Betik bu yüzden `pg_restore`'dan önce
+`create schema if not exists app` çalıştırıyor ve başarısız olursa durur.
+
+Bu tuzağın kötü tarafı: **veri sorunsuz gelir.** Tabloları açar, satırları
+sayar, "yedek çalışıyor" dersin. Oysa geri kurduğun veritabanında sayım
+kilidi yok, denetim kaydı yok. İlk provada tam olarak bu oldu:
+veri TAMAM, tetikleyici **0**.
+
+⚠️ **`--no-privileges` KULLANILMAZ.** GRANT'lar da yedeğin parçası.
+RLS ve GRANT ayrı kapılardır (bkz. §1); GRANT'sız geri yüklenen bir
+veritabanında politikalar doğru olsa bile kimse hiçbir şey okuyamaz.
+İlk taslakta bu bayrak vardı, kaldırıldı.
+
+**Prova bitince prova projesini Supabase panelinden sil.** Yedek dosyası
+işletmenin tüm verisidir; ortada duran ikinci bir kopya risktir.
 
 ### 3.3 Prova başarılı sayılır Kİ
 
-Prova projesinin SQL Editor'ünde şunu çalıştır:
+Betik bu altı kontrolü kendisi yapar ve hepsi geçmeden "başarılı" demez:
+
+| # | Kontrol | Eşik | Neden |
+|---|---|---|---|
+| 1 | Sekiz tablonun satır sayısı | hiçbiri 0 | Veri geldi mi |
+| 2 | `public` tetikleyicileri | ≥ 10 | Sayım kilidi + denetim kaydı |
+| 3 | RLS açık kritik tablo | 4/4 | Kiracı izolasyonu |
+| 4 | `public` yetki politikası | ≥ 20 | İzolasyonun kuralları |
+| 5 | `anon`/`authenticated`/`service_role` GRANT'ı | ≥ 20 | Okuma izni |
+| 6 | `app` şemasındaki fonksiyon | ≥ 10 | Tetikleyicilerin dayandığı kod |
+
+**2026-09-17 provası (miyop-2026-09-14-0300.dump):** çıkış kodu 0, hata
+satırı 0 · veri TAMAM · tetikleyici 31 · RLS 4 · politika **41 (canlıyla
+birebir)** · GRANT 840 · `app` fonksiyonu 18. **BAŞARILI.**
+
+Elle bakmak istersen prova projesinin SQL Editor'ünde şunu çalıştır:
 
 ```sql
 -- Beklenen: her satırda gerçek bir sayı, hiçbiri 0 değil
