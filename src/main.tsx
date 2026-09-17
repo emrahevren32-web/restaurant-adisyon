@@ -14,6 +14,7 @@ import { applyTypographySystem } from './design-system/Typography'
 import { applyVisualPolishSystem } from './design-system/VisualPolishSystem'
 import { MotionProvider } from './components/Motion'
 import { ThemeProvider } from './components/ThemeProvider'
+import { pencereHatalariniYakala } from './errors/reporter'
 import './styles.css'
 
 applyColorPaletteSystem()
@@ -27,6 +28,12 @@ applyPremiumThemeEngine()
 applyResponsiveSystem()
 applyVisualPolishSystem()
 applyEnterpriseDesignLanguage()
+
+// Kimsenin yakalamadığı hatalar da bir yere düşsün (0030).
+// ⚠️ React sınırı yalnız ÇİZİM sırasındaki hatayı görür. Olay işleyicisinde
+// fırlayan bir hata ya da catch'i unutulmuş bir Promise sınıra hiç uğramaz;
+// onların tek yakalayıcısı bu iki pencere olayı.
+pencereHatalariniYakala(window)
 
 const container = document.getElementById('root')!
 const root = createRoot(container)
