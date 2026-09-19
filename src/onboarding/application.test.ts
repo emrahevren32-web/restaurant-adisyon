@@ -17,7 +17,7 @@ import {
 } from './application.repository'
 import {
   GECISLER, basvuruDogrula, basvuruOzeti, beklemeGunu, durumEtiketi,
-  gecisGecerliMi, gerekceYeterliMi, sonDurumMu,
+  gecisGecerliMi, gerekceYeterliMi, sonDurumMu, vergiBilgisiEksik,
 } from './application.service'
 import { basvuruGecisleriGocten } from '../core/test-support/goc-tarama'
 
@@ -37,6 +37,27 @@ const gecerliForm = (yama: Partial<YeniBasvuru> = {}): YeniBasvuru => ({
   vergiNo: '1234567890',
   vergiDairesi: 'Bornova',
   ...yama,
+})
+
+describe('Vergi bilgisi eksikliği', () => {
+  // Eksiklik sessiz kalmamalı: fatura kesileceği gün fark edilmesi iş durdurur.
+  it('ikisi de boşsa eksik', () => {
+    expect(vergiBilgisiEksik({})).toBe(true)
+    expect(vergiBilgisiEksik({ vergiNo: '', vergiDairesi: '' })).toBe(true)
+  })
+
+  it('yalnız biri doluysa DA eksik', () => {
+    expect(vergiBilgisiEksik({ vergiNo: '1234567890' })).toBe(true)
+    expect(vergiBilgisiEksik({ vergiDairesi: 'Bornova' })).toBe(true)
+  })
+
+  it('sadece boşluk yazılmışsa eksik sayılır', () => {
+    expect(vergiBilgisiEksik({ vergiNo: '  ', vergiDairesi: '  ' })).toBe(true)
+  })
+
+  it('ikisi de doluysa eksik değil', () => {
+    expect(vergiBilgisiEksik({ vergiNo: '1234567890', vergiDairesi: 'Bornova' })).toBe(false)
+  })
 })
 
 describe('Form doğrulaması', () => {

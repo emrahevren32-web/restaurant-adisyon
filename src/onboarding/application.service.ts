@@ -142,6 +142,18 @@ export const basvuruDogrula = (basvuru: YeniBasvuru): string[] => {
   return hatalar
 }
 
+/**
+ * Vergi bilgisi eksik mi?
+ *
+ * 0038'den sonra bu alan başvuruda isteğe bağlı. Eksiklik SESSİZ KALMAMALI:
+ * fatura kesileceği gün fark edilirse iş durur. Ekran bunu hem listede hem
+ * onay kartında söylüyor; kural tek yerde dursun diye burada.
+ */
+export const vergiBilgisiEksik = (
+  b: { vergiNo?: string; vergiDairesi?: string },
+): boolean =>
+  (b.vergiDairesi ?? '').trim().length === 0 || (b.vergiNo ?? '').trim().length === 0
+
 // ── Liste özeti ───────────────────────────────────────────────────────────
 
 export type BasvuruOzeti = {

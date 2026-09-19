@@ -256,7 +256,8 @@ export default function BusinessApplicationPublicForm(){
             </div>
           </div>
           <p className="muted small-text">
-            Vergi bilgisini şimdi vermek zorunda değilsiniz; sözleşme aşamasında alıyoruz.
+            Vergi bilgisini şimdi paylaşmak isterseniz yazabilirsiniz; dilerseniz
+            sözleşme aşamasında birlikte tamamlarız.
           </p>
           <div className="form-row">
             <div className="form-field">

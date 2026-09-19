@@ -35,6 +35,7 @@ import {
 } from '../onboarding/application.repository'
 import {
   GEREKCE_EN_AZ, basvuruOzeti, beklemeGunu, durumEtiketi, gecisGecerliMi,
+  vergiBilgisiEksik,
 } from '../onboarding/application.service'
 
 type Props = {
@@ -83,7 +84,7 @@ const aramaAnahtari = (deger: string) => deger
 const vergiMetni = (b: Basvuru): string => {
   const daire = (b.vergiDairesi ?? '').trim()
   const no = (b.vergiNo ?? '').trim()
-  if(!daire && !no) return 'Verilmedi — ön görüşmede alınacak'
+  if(!daire && !no) return 'Henüz alınmadı — ön görüşmede sorun'
   if(daire && no) return `${daire} / ${no}`
   return daire || no
 }
@@ -170,7 +171,9 @@ export default function PendingApplications({ currentUser, initialApplicationId 
   const [olaylar, setOlaylar] = React.useState<BasvuruOlayi[]>([])
   const [karar, setKarar] = React.useState<{ tur: KararTuru; basvuru: Basvuru } | null>(null)
   const [onaySonucu, setOnaySonucu] =
-    React.useState<(OnaySonucu & { firmaAdi: string; subeSayisi?: number }) | null>(null)
+    React.useState<
+      (OnaySonucu & { firmaAdi: string; subeSayisi?: number; vergiEksik?: boolean }) | null
+    >(null)
 
   const tazele = React.useCallback(async () => {
     if(!defter) { setYukleniyor(false); return }
@@ -289,7 +292,12 @@ export default function PendingApplications({ currentUser, initialApplicationId 
     const { tur, basvuru } = karar
     if(tur === 'onay'){
       const sonuc = await defter.onayla(basvuru.id, not)
-      setOnaySonucu({ ...sonuc, firmaAdi: basvuru.firmaAdi, subeSayisi: basvuru.subeSayisi })
+      setOnaySonucu({
+        ...sonuc,
+        firmaAdi: basvuru.firmaAdi,
+        subeSayisi: basvuru.subeSayisi,
+        vergiEksik: vergiBilgisiEksik(basvuru),
+      })
       setMesaj('')
     } else {
       await defter.karar(basvuru.id, { durum: KARAR_METNI[tur].hedef, gerekce: not })
@@ -326,6 +334,14 @@ export default function PendingApplications({ currentUser, initialApplicationId 
           {/* ⚠️ Onay TEK şube açar. Başvuruda daha fazlası bildirildiyse
               bunu söylemek zorundayız; yoksa "kurulum tamam" sanılır ve
               eksik kurulmuş bir işletme müşteriye teslim edilir. */}
+          {/* Fatura kesilmeden önce mutlaka tamamlanmalı. Onay anında
+              söylemek, fatura gününde fark etmekten iyidir. */}
+          {onaySonucu.vergiEksik && (
+            <p className="muted">
+              <strong>Vergi bilgisi eksik.</strong> Bu işletme başvuruda vergi dairesi /
+              numarası vermedi. Fatura kesilmeden önce Firma Profili ekranından girilmeli.
+            </p>
+          )}
           {typeof onaySonucu.subeSayisi === 'number' && onaySonucu.subeSayisi > 1 && (
             <p className="muted">
               <strong>Bu işletme {onaySonucu.subeSayisi} şube bildirdi.</strong> Şu an yalnızca
@@ -425,6 +441,12 @@ export default function PendingApplications({ currentUser, initialApplicationId 
                   <td>
                     <strong>{b.firmaAdi}</strong>
                     <span className="muted small-text">{b.il} / {b.ilce}</span>
+                    {/* Vergi bilgisi başvuruda isteğe bağlı (0038). Eksikse
+                        listede de görünsün — Emrah'ın bunu onaydan önce,
+                        tek bakışta bilmesi gerekiyor. */}
+                    {vergiBilgisiEksik(b) && (
+                      <span className="muted small-text">· vergi bilgisi alınmadı</span>
+                    )}
                   </td>
                   <td>{b.yetkiliAdi}</td>
                   <td>{b.eposta}</td>
