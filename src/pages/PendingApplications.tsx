@@ -32,6 +32,7 @@ import {
   type BasvuruDurumu,
   type BasvuruOlayi,
   type OnaySonucu,
+  type HesapSonucu,
 } from '../onboarding/application.repository'
 import {
   GEREKCE_EN_AZ, basvuruOzeti, beklemeGunu, durumEtiketi, gecisGecerliMi,
@@ -170,9 +171,17 @@ export default function PendingApplications({ currentUser, initialApplicationId 
   const [secilenId, setSecilenId] = React.useState(initialApplicationId ?? '')
   const [olaylar, setOlaylar] = React.useState<BasvuruOlayi[]>([])
   const [karar, setKarar] = React.useState<{ tur: KararTuru; basvuru: Basvuru } | null>(null)
+  const [hesapAciliyor, setHesapAciliyor] = React.useState(false)
+  const [hesapSonucu, setHesapSonucu] = React.useState<HesapSonucu | null>(null)
   const [onaySonucu, setOnaySonucu] =
     React.useState<
-      (OnaySonucu & { firmaAdi: string; subeSayisi?: number; vergiEksik?: boolean }) | null
+      | (OnaySonucu & {
+          basvuruId: string
+          firmaAdi: string
+          subeSayisi?: number
+          vergiEksik?: boolean
+        })
+      | null
     >(null)
 
   const tazele = React.useCallback(async () => {
@@ -292,8 +301,10 @@ export default function PendingApplications({ currentUser, initialApplicationId 
     const { tur, basvuru } = karar
     if(tur === 'onay'){
       const sonuc = await defter.onayla(basvuru.id, not)
+      setHesapSonucu(null)
       setOnaySonucu({
         ...sonuc,
+        basvuruId: basvuru.id,
         firmaAdi: basvuru.firmaAdi,
         subeSayisi: basvuru.subeSayisi,
         vergiEksik: vergiBilgisiEksik(basvuru),
@@ -307,6 +318,29 @@ export default function PendingApplications({ currentUser, initialApplicationId 
     setKarar(null)
     setSecilenId(basvuru.id)
     await tazele()
+  }
+
+  /**
+   * Giriş hesabı açma.
+   *
+   * ⚠️ Bu çağrı bir Edge Function'a gider ve E-POSTA GÖNDERİR — geri
+   * alınamaz. O yüzden düğme çalışırken kilitleniyor ve sonuç, tahmin
+   * değil, sunucunun döndürdüğü kullanıcı adıyla yazılıyor.
+   */
+  const girisHesabiAc = async (basvuruId: string) => {
+    if(!defter || hesapAciliyor) return
+    setHesapAciliyor(true)
+    setHata('')
+    try {
+      const sonuc = await defter.girisHesabiAc(basvuruId)
+      setHesapSonucu(sonuc)
+      setMesaj(`Davet gönderildi: ${sonuc.eposta}`)
+      await tazele()
+    } catch(e){
+      setHata(e instanceof Error ? e.message : 'Giriş hesabı açılamadı.')
+    } finally {
+      setHesapAciliyor(false)
+    }
   }
 
   return kabuk(
@@ -349,13 +383,39 @@ export default function PendingApplications({ currentUser, initialApplicationId 
               siz eklemelisiniz.
             </p>
           )}
-          {/* ⚠️ Bu uyarı kaldırılmayacak. Eskiden burada geçici şifreli bir
-              "İlk Giriş Bilgileri" kartı vardı ve o şifre ÇALIŞMIYORDU. */}
-          <p className="muted">
-            <strong>Giriş hesabı henüz açılmadı.</strong> Kullanıcı hesabı
-            Supabase Auth tarafında oluşturulur; o adım (davet e-postası ve
-            ilk şifre) henüz bağlanmadı. Müşteri şu an giriş yapamaz.
-          </p>
+          {/* ⚠️ BURADA ASLA GEÇİCİ ŞİFRE GÖSTERİLMEYECEK. Eskiden bir
+              "İlk Giriş Bilgileri" kartı vardı ve yazdığı şifre
+              ÇALIŞMIYORDU. Şifreyi müşteri davet bağlantısından KENDİSİ
+              belirler; biz hiçbir zaman görmeyiz. */}
+          {hesapSonucu ? (
+            <div className="karar-ozet">
+              <div className="karar-ozet-satir">
+                <span>Giriş hesabı</span><strong>{hesapSonucu.kullaniciAdi}</strong>
+              </div>
+              <div className="karar-ozet-satir">
+                <span>Davet gönderildi</span><strong>{hesapSonucu.eposta}</strong>
+              </div>
+              <div className="karar-ozet-satir">
+                <span>Şifre</span>
+                <strong>Müşteri davet bağlantısından kendisi belirleyecek</strong>
+              </div>
+            </div>
+          ) : (
+            <div className="form-actions">
+              <button
+                className="btn primary"
+                type="button"
+                disabled={hesapAciliyor}
+                onClick={() => void girisHesabiAc(onaySonucu.basvuruId)}
+              >
+                {hesapAciliyor ? 'Davet gönderiliyor…' : 'Giriş hesabı aç ve davet gönder'}
+              </button>
+              <span className="muted small-text">
+                İşletme sahibine davet e-postası gider; şifresini kendisi belirler.
+                Hesap açılana kadar müşteri giriş yapamaz.
+              </span>
+            </div>
+          )}
         </section>
       )}
 
@@ -539,9 +599,39 @@ export default function PendingApplications({ currentUser, initialApplicationId 
             <div><span>Şube Sayısı</span><strong>{sayiMetni(secilen.subeSayisi)}</strong></div>
             <div><span>Personel Sayısı</span><strong>{sayiMetni(secilen.personelSayisi)}</strong></div>
             <div><span>Adres</span><strong>{secilen.adres}, {secilen.il} / {secilen.ilce}</strong></div>
+            {/* Onaylanmış ama hesabı olmayan işletme, müşterinin giremediği
+                bir işletmedir. Bunu ekranda söylemek zorundayız. */}
+            {secilen.durum === 'APPROVED' && (
+              <div>
+                <span>Giriş hesabı</span>
+                <strong>
+                  {secilen.davetZamani
+                    ? `Açıldı · davet ${tarihSaat(secilen.davetZamani)}`
+                    : 'Henüz açılmadı — müşteri giriş yapamaz'}
+                </strong>
+              </div>
+            )}
             {secilen.not && <div><span>Başvuru notu</span><strong>{secilen.not}</strong></div>}
             {secilen.kararNotu && <div><span>Karar gerekçesi</span><strong>{secilen.kararNotu}</strong></div>}
           </div>
+
+          {/* Onay kartı kapatılmış olabilir; hesabı buradan da açabilmeli. */}
+          {secilen.durum === 'APPROVED' && !secilen.davetZamani && (
+            <div className="form-actions">
+              <button
+                className="btn primary"
+                type="button"
+                disabled={hesapAciliyor}
+                onClick={() => void girisHesabiAc(secilen.id)}
+              >
+                {hesapAciliyor ? 'Davet gönderiliyor…' : 'Giriş hesabı aç ve davet gönder'}
+              </button>
+              <span className="muted small-text">
+                {secilen.yetkiliAdi} ({secilen.eposta}) adresine davet gider; şifresini
+                kendisi belirler.
+              </span>
+            </div>
+          )}
 
           <div className="section-header compact">
             <div>

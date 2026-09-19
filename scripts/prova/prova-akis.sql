@@ -220,3 +220,91 @@ end $$;
 
 -- Prova satırlarını bırakma: bakım fonksiyonu @example.com satırlarını siler.
 select app.dogrulama_kayitlarini_sil() as prova_satiri_silindi;
+
+-- ═══════════════════════════════════════════════════════════════════════════
+-- GİRİŞ HESABI (0039) — Edge Function'ın veritabanı tarafı
+--
+-- Edge Function burada YOK: Auth kullanıcısını o yaratıyor. Provada onun
+-- yerine uydurma bir Auth kimliği veriyoruz. Sınanan şey, kimlik geldikten
+-- SONRA olan her şey: app_user, rol, şube erişimi, başvuru damgası ve
+-- ikinci çağrının reddi.
+-- ═══════════════════════════════════════════════════════════════════════════
+
+do $$
+declare
+  v_ref     text;
+  v_id      uuid;
+  v_onay    record;
+  v_auth    uuid := gen_random_uuid();
+  v_sonuc   record;
+  v_ikinci  boolean := false;
+  v_kullanici record;
+begin
+  v_ref := public.basvuru_gonder(
+    'Hesap Provasi Gida', 'Hesap Yetkili', '05321234777',
+    'Hesap.Yetkili@hesapprovasi.example.com', 'izmir', 'bornova',
+    'hesap provasi adresi', 1, 8, null, null, 'industrial-kitchen');
+  select id into v_id from business_application where reference = v_ref;
+  update business_application set status = 'IN_REVIEW' where id = v_id;
+  select * into v_onay from public.basvuruyu_onayla(v_id, 'hesap provasi onayi');
+
+  -- Edge Function'ın yaptığı çağrı
+  select * into v_sonuc from app.isletme_kullanicisi_ac(v_id, v_auth);
+
+  if v_sonuc.kullanici_adi <> 'hesapyetkili' then
+    raise exception 'Kullanici adi e-postadan turetilmedi: %', v_sonuc.kullanici_adi;
+  end if;
+
+  select u.tenant_id, u.company_id, u.role_code, u.is_active, u.full_name
+    into v_kullanici
+    from app_user u where u.id = v_sonuc.kullanici_id;
+
+  if v_kullanici.tenant_id <> v_onay.kiraci_id then
+    raise exception 'Kullanici yanlis kiraciya baglandi.';
+  end if;
+  if v_kullanici.role_code <> 'isletme_sahibi' then
+    raise exception 'Birincil rol isletme_sahibi degil: %', v_kullanici.role_code;
+  end if;
+  if not exists (select 1 from user_role
+                  where user_id = v_sonuc.kullanici_id and role_code = 'isletme_sahibi') then
+    raise exception 'Ek rol satiri (user_role) acilmadi.';
+  end if;
+  if not exists (select 1 from user_branch_access ub
+                  join branch b on b.id = ub.branch_id
+                 where ub.user_id = v_sonuc.kullanici_id and b.is_head_office) then
+    raise exception 'Merkez sube erisimi verilmedi.';
+  end if;
+  if not exists (select 1 from business_application
+                  where id = v_id and owner_user_id = v_sonuc.kullanici_id
+                    and invited_at is not null) then
+    raise exception 'Basvuruya davet damgasi vurulmadi.';
+  end if;
+
+  -- ⚠️ İkinci çağrı YENİ HESAP AÇMAMALI. Edge Function ağ hatasında
+  -- yeniden denenebilir.
+  begin
+    perform app.isletme_kullanicisi_ac(v_id, gen_random_uuid());
+  exception when others then v_ikinci := true;
+  end;
+  if not v_ikinci then
+    raise exception 'Ikinci hesap acma cagrisi reddedilmedi.';
+  end if;
+
+  -- İşletme sahibi PLATFORM yetkisi ALMAMALI. "Firması kapsamında her şey,
+  -- benim işimi bozamayacak derecede" tam olarak buranın sınavı.
+  if exists (
+    select 1 from role_permission rp
+     where rp.permission_code like 'platform.%'
+       and ( rp.role_code = v_kullanici.role_code
+             or exists (select 1 from user_role ur
+                         where ur.user_id = v_sonuc.kullanici_id
+                           and ur.role_code = rp.role_code))
+  ) then
+    raise exception 'Isletme sahibi platform yetkisi aldi. Izolasyon kirik.';
+  end if;
+
+  raise notice 'GIRIS HESABI GECTI · kullanici: % · kiraci: % · platform yetkisi: yok',
+    v_sonuc.kullanici_adi, v_sonuc.kiraci_kodu;
+end $$;
+
+select app.dogrulama_kayitlarini_sil() as hesap_provasi_temizlendi;

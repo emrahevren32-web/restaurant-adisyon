@@ -70,6 +70,9 @@ export type Basvuru = {
   /** Eski kayıtlarda yok — o başvurulara bu soru hiç sorulmadı. */
   subeSayisi?: number
   personelSayisi?: number
+  /** Giriş hesabı açıldıysa dolu. Boşsa müşteri henüz giriş yapamaz. */
+  davetZamani?: string
+  sahipKullaniciId?: string
   not?: string
   kararNotu?: string
   kararZamani?: string
@@ -101,6 +104,14 @@ export type OnaySonucu = {
   subeId: string
 }
 
+/** `isletme-hesabi-ac` Edge Function'ının döndürdüğü şey. */
+export type HesapSonucu = {
+  kullaniciId: string
+  kullaniciAdi: string
+  eposta: string
+  kiraciKodu: string
+}
+
 export interface BasvuruDefteri {
   /**
    * Herkese açık form. Oturum gerektirmez.
@@ -120,6 +131,15 @@ export interface BasvuruDefteri {
    * (A4D madde 4). Ekran bunu açıkça söylemek zorunda.
    */
   onayla(id: string, gerekce: string): Promise<OnaySonucu>
+
+  /**
+   * Onaylanmış işletmeye giriş hesabı açar ve davet e-postası gönderir.
+   *
+   * ⚠️ Bu iş TARAYICIDA YAPILAMAZ: Supabase Auth'ta kullanıcı yaratmak
+   * `service_role` anahtarı ister ve o anahtar tarayıcıya inemez. Çağrı bir
+   * Edge Function'a gider; anahtar orada, Supabase'in sunucusunda durur.
+   */
+  girisHesabiAc(id: string): Promise<HesapSonucu>
 }
 
 type Satir = {
@@ -140,6 +160,8 @@ type Satir = {
   address: string
   branch_count: number | null
   staff_count: number | null
+  invited_at: string | null
+  owner_user_id: string | null
   note: string | null
   decision_note: string | null
   decided_at: string | null
@@ -149,7 +171,7 @@ type Satir = {
 const KOLONLAR =
   'id, reference, created_at, updated_at, status, sector_code, company_name, owner_name, ' +
   'phone, email, tax_number, tax_office, city, district, address, ' +
-  'branch_count, staff_count, note, ' +
+  'branch_count, staff_count, invited_at, owner_user_id, note, ' +
   'decision_note, decided_at, tenant_id'
 
 const durumaCevir = (ham: string): BasvuruDurumu =>
@@ -173,6 +195,8 @@ const basvuruyaCevir = (s: Satir): Basvuru => ({
   adres: s.address,
   subeSayisi: s.branch_count ?? undefined,
   personelSayisi: s.staff_count ?? undefined,
+  davetZamani: s.invited_at ?? undefined,
+  sahipKullaniciId: s.owner_user_id ?? undefined,
   not: s.note ?? undefined,
   kararNotu: s.decision_note ?? undefined,
   kararZamani: s.decided_at ?? undefined,
@@ -277,6 +301,33 @@ export class PostgresBasvuruDefteri implements BasvuruDefteri {
     }
   }
 
+  async girisHesabiAc(id: string): Promise<HesapSonucu> {
+    // ⚠️ RPC DEĞİL, Edge Function. Auth'ta kullanıcı yaratmak service_role
+    // anahtarı ister; o anahtar tarayıcıya inemez (bkz. 0039 başlığı).
+    const { data, error } = await this.client.functions.invoke('isletme-hesabi-ac', {
+      body: { basvuruId: id, yonlendirme: `${window.location.origin}/` },
+    })
+
+    // Edge Function 4xx/5xx döndürdüğünde istemci `error` verir ama asıl
+    // CÜMLE gövdededir. Ham "Edge Function returned a non-2xx status code"
+    // metnini ekrana basmak, kullanıcıya hiçbir şey söylemez.
+    if(error){
+      const govdedeki = (data as { hata?: string } | null)?.hata
+      throw new Error(govdedeki || `Giriş hesabı açılamadı: ${error.message}`)
+    }
+    const sonuc = data as { tamam?: boolean; hata?: string } & Partial<HesapSonucu>
+    if(!sonuc?.tamam) throw new Error(sonuc?.hata || 'Giriş hesabı açılamadı.')
+    if(!sonuc.kullaniciId || !sonuc.kullaniciAdi){
+      throw new Error('Hesap açıldı ama bilgileri okunamadı. Ekranı yenileyin.')
+    }
+    return {
+      kullaniciId: sonuc.kullaniciId,
+      kullaniciAdi: sonuc.kullaniciAdi,
+      eposta: sonuc.eposta ?? '',
+      kiraciKodu: sonuc.kiraciKodu ?? '',
+    }
+  }
+
   async karar(id: string, girdi: KararGirdisi): Promise<void> {
     const { error } = await this.client
       .from('business_application')
@@ -363,6 +414,24 @@ export class BellekBasvuruDefteri implements BasvuruDefteri {
     return {
       kiraciId: `kiraci-${kod}`, kiraciKodu: kod,
       firmaId: `firma-${kod}`, subeId: `sube-${kod}`,
+    }
+  }
+
+  async girisHesabiAc(id: string): Promise<HesapSonucu> {
+    const kayit = this.kayitlar.find(k => k.id === id)
+    if(!kayit) throw new Error('Başvuru bulunamadı.')
+    if(kayit.durum !== 'APPROVED'){
+      throw new Error('Giriş hesabı yalnız onaylanmış başvuru için açılır.')
+    }
+    if(kayit.davetZamani) throw new Error('Bu işletmenin giriş hesabı zaten açılmış.')
+    const ad = kayit.eposta.split('@')[0].replace(/[^a-z0-9]/g, '') || 'kullanici'
+    kayit.davetZamani = new Date().toISOString()
+    kayit.sahipKullaniciId = `kullanici-${ad}`
+    return {
+      kullaniciId: kayit.sahipKullaniciId,
+      kullaniciAdi: ad,
+      eposta: kayit.eposta,
+      kiraciKodu: kayit.kiraciId ?? '',
     }
   }
 

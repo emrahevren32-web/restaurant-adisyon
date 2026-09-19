@@ -43,10 +43,24 @@ const kaynakDosyalar = (dizin: string, toplanan: string[] = []): string[] => {
   return toplanan
 }
 
+/**
+ * Taranacak dizinler.
+ *
+ * ⚠️ `supabase/functions` SONRADAN EKLENDİ ve sebebi somut: 0039'un Edge
+ * Function'ını yazarken çağrıyı önce `app` şemasına yapmıştım. Bu test
+ * yalnız `src` altına baktığı için görmezdi — kural vardı, kapsamı eksikti.
+ * Bir kuralın kapsamı, korumak istediği YERLERİN tamamı olmalı.
+ */
+const TARANAN_DIZINLER = ['src', 'supabase/functions']
+
 /** Koddan `.rpc('ad'` biçiminde çağrılan fonksiyon adları. */
 const cagrilanRpcler = (): Map<string, string[]> => {
   const bulunan = new Map<string, string[]>()
-  for(const yol of kaynakDosyalar(join(kok, 'src'))){
+  const dosyalar = TARANAN_DIZINLER.flatMap(d => {
+    const yol = join(kok, d)
+    try { return kaynakDosyalar(yol) } catch { return [] as string[] }
+  })
+  for(const yol of dosyalar){
     const metin = readFileSync(yol, 'utf8') as string
     const re = /\.rpc\(\s*['"`]([a-zA-Z0-9_]+)['"`]/g
     let m: RegExpExecArray | null

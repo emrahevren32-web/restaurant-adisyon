@@ -2752,7 +2752,22 @@ body.mobile-navigation-open { overflow:hidden; overscroll-behavior:contain }
    verilen şey özet olarak görünür, gerekçe eşiği düğmeyi kapalı tutar.
    Bkz. src/components/KararPenceresi.tsx */
 .karar-backdrop { z-index:96; align-items:center }
-.karar-penceresi { width:min(560px, 100%); display:grid; gap:var(--space-12) }
+/* ⚠️ `height:auto` ŞART. Pencere `.card` sınıfını da kullanıyor ve `.card`ın
+   `height:100%` kuralı var (satır 98). Esnek kutu içinde bu, pencereyi ekran
+   boyuna GERİYORDU: ızgara satırları aralara dağılıyor, "Onayla" düğmesi
+   ekranın altına düşüyordu — Emrah düğmeye ulaşmak için sayfayı küçültmek
+   zorunda kaldı. `align-content:start` satırları yukarı toplar,
+   `max-height` + `overflow:auto` uzun içerikte pencerenin KENDİSİNİ
+   kaydırır, sayfayı değil. */
+.karar-penceresi {
+  width:min(560px, 100%);
+  height:auto;
+  max-height:calc(100vh - 48px);
+  overflow:auto;
+  display:grid;
+  align-content:start;
+  gap:var(--space-12);
+}
 .karar-ozet { display:grid; gap:var(--space-6); border:1px solid var(--line); border-radius:var(--radius-card); padding:var(--space-12); background:var(--surface-muted) }
 .karar-ozet-satir { display:flex; justify-content:space-between; gap:var(--space-12); align-items:baseline; flex-wrap:wrap }
 .karar-ozet-satir span { color:var(--muted); font-size:var(--font-size-12) }

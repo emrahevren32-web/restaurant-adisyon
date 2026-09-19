@@ -39,6 +39,44 @@ const gecerliForm = (yama: Partial<YeniBasvuru> = {}): YeniBasvuru => ({
   ...yama,
 })
 
+describe('Giriş hesabı açma (bellek defteri)', () => {
+  const onaylanmis = async () => {
+    const defter = new BellekBasvuruDefteri()
+    await defter.gonder(gecerliForm({ eposta: 'Turgut.Ozer@tavukcu.com' }))
+    const [b] = await defter.liste()
+    await defter.karar(b.id, { durum: 'IN_REVIEW', gerekce: 'incelemeye alindi' })
+    await defter.onayla(b.id, 'belgeler tam')
+    return { defter, id: b.id }
+  }
+
+  it('onaylanmamış başvuruda hesap açılmaz', async () => {
+    const defter = new BellekBasvuruDefteri()
+    await defter.gonder(gecerliForm())
+    const [b] = await defter.liste()
+    await expect(defter.girisHesabiAc(b.id)).rejects.toThrow(/onaylanmış/)
+  })
+
+  it('onaylanmış başvuruda hesap açılır ve kullanıcı adı e-postadan türer', async () => {
+    const { defter, id } = await onaylanmis()
+    const sonuc = await defter.girisHesabiAc(id)
+    expect(sonuc.kullaniciAdi).toBe('turgutozer')
+    expect(sonuc.eposta).toBe('turgut.ozer@tavukcu.com')
+  })
+
+  it('ikinci çağrı reddedilir — davet iki kez gitmez', async () => {
+    const { defter, id } = await onaylanmis()
+    await defter.girisHesabiAc(id)
+    await expect(defter.girisHesabiAc(id)).rejects.toThrow(/zaten açılmış/)
+  })
+
+  it('hesap açıldıktan sonra başvuruda davet zamanı görünür', async () => {
+    const { defter, id } = await onaylanmis()
+    expect((await defter.tekil(id))?.davetZamani).toBeUndefined()
+    await defter.girisHesabiAc(id)
+    expect((await defter.tekil(id))?.davetZamani).toBeTruthy()
+  })
+})
+
 describe('Vergi bilgisi eksikliği', () => {
   // Eksiklik sessiz kalmamalı: fatura kesileceği gün fark edilmesi iş durdurur.
   it('ikisi de boşsa eksik', () => {
