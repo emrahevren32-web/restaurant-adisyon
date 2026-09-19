@@ -1,3 +1,23 @@
+// ═══════════════════════════════════════════════════════════════════════════
+// MİYOP · Bildirim merkezi (zil ikonu)
+//
+// ⚠️ İKİ AYRI ŞEY BURADA:
+//   1. `localStorage`da SAKLANAN bildirimler — eski yol. Yeni bildirimler
+//      saklanmıyor, başvuru defterinden TÜRETİLİYOR (basvuru-bildirimleri.ts).
+//   2. OKUNDU bilgisi — hangi bildirimi Emrah gördü. Bu gerçekten kişisel
+//      ekran durumu, veri değil; `localStorage` doğru yer.
+//
+// Türetilen bildirimlerin `readAt` alanı (2)'den geliyor. Böylece defter
+// değişse de "okudum" bilgisi kaybolmuyor.
+//
+// ── SAHTE BİLDİRİMLER KALDIRILDI (2026-09-19) ────────────────────────────
+// Burada `ensureEvren360NotificationPlaceholders` diye bir işlev vardı ve
+// zile iki uydurma satır yazıyordu ("Placeholder: destek talebi servisi
+// bağlandığında..."). Kural açıktı: müşterinin — ve sahibinin — görmemesi
+// gereken hiçbir şey ekranda olmaz. Bir şey henüz yoksa zil SUSAR; olmayan
+// bir şeyi varmış gibi göstermez.
+// ═══════════════════════════════════════════════════════════════════════════
+
 export type Evren360NotificationType =
   | 'business_application'
   | 'support_request'
@@ -24,6 +44,8 @@ type BusinessApplicationNotificationInput = {
 }
 
 const STORAGE_KEY = 'evren360_notification_center'
+/** Bildirim kimliği → okunma zamanı. Türetilen bildirimler bunu kullanır. */
+const OKUNDU_KEY = 'evren360_bildirim_okundu'
 export const EVREN360_NOTIFICATION_EVENT = 'evren360-notifications-updated'
 
 const isBrowser = () => typeof window !== 'undefined' && typeof localStorage !== 'undefined'
@@ -102,35 +124,19 @@ export const loadUnreadEvren360Notifications = () => {
   return loadEvren360Notifications().filter(notification => !notification.readAt)
 }
 
-export const ensureEvren360NotificationPlaceholders = () => {
+/**
+ * Eskiden zile yazılmış sahte satırları TEMİZLER.
+ *
+ * Kaldırmak yetmiyor: o iki satır kullanıcıların tarayıcısına çoktan
+ * yazıldı ve orada duruyor. Kod değişikliği onları silmez — bu işlev siler.
+ * Zil her açıldığında çağrılıyor; bir kez temizlendikten sonra hiçbir şey
+ * yapmıyor.
+ */
+export const eskiSahteBildirimleriTemizle = () => {
   const notifications = readNotifications()
-  const now = new Date().toISOString()
-  const placeholders: Evren360Notification[] = [
-    normalizeNotification({
-      id: 'evren360_placeholder_support_request',
-      type: 'support_request',
-      title: 'Yeni destek talebi',
-      description: 'Placeholder: destek talebi servisi bağlandığında canlı talepler burada listelenecek.',
-      targetLabel: 'Destek Merkezi',
-      severity: 'warning',
-      createdAt: now
-    }),
-    normalizeNotification({
-      id: 'evren360_placeholder_license_expiry',
-      type: 'license_expiry',
-      title: 'Yaklaşan lisans bitişi',
-      description: 'Placeholder: lisans bitiş takibi canlı lisans verisiyle beslenecek.',
-      targetLabel: 'Lisans Takibi',
-      severity: 'warning',
-      createdAt: now
-    })
-  ]
-  const missingPlaceholders = placeholders.filter(placeholder => (
-    !notifications.some(notification => notification.id === placeholder.id)
-  ))
-
-  if(missingPlaceholders.length === 0) return
-  saveNotifications(sortByNewest([...missingPlaceholders, ...notifications]))
+  const temiz = notifications.filter(n => !n.id.startsWith('evren360_placeholder_'))
+  if(temiz.length === notifications.length) return
+  saveNotifications(temiz)
 }
 
 export const recordBusinessApplicationNotification = (input: BusinessApplicationNotificationInput) => {
@@ -148,25 +154,71 @@ export const recordBusinessApplicationNotification = (input: BusinessApplication
   return upsertNotification(notification)
 }
 
-export const markEvren360NotificationRead = (notificationId: string) => {
-  const now = new Date().toISOString()
-  saveNotifications(readNotifications().map(notification => (
-    notification.id === notificationId ? { ...notification, readAt: notification.readAt || now } : notification
-  )))
+/**
+ * Okundu defteri.
+ *
+ * Bozuksa boş sayılıyor — okunmamış göstermek, hiç göstermemekten iyidir.
+ */
+export const loadOkunanBildirimler = (): Record<string, string> => {
+  if(!isBrowser()) return {}
+  try {
+    const parsed = JSON.parse(localStorage.getItem(OKUNDU_KEY) || '{}')
+    return parsed && typeof parsed === 'object' && !Array.isArray(parsed)
+      ? parsed as Record<string, string>
+      : {}
+  } catch {
+    return {}
+  }
 }
 
-export const markAllEvren360NotificationsRead = () => {
+const saveOkunanBildirimler = (kayit: Record<string, string>) => {
+  if(!isBrowser()) return
+  // ⚠️ Sınırsız büyümesin: başvurular kapandıkça eski kimlikler ölü kalır.
+  // En yeni 500 kayıt fazlasıyla yeter; zil zaten en çok 30 satır gösteriyor.
+  const girdiler = Object.entries(kayit)
+    .sort((a, b) => b[1].localeCompare(a[1]))
+    .slice(0, 500)
+  localStorage.setItem(OKUNDU_KEY, JSON.stringify(Object.fromEntries(girdiler)))
+  emitNotificationUpdate()
+}
+
+export const markEvren360NotificationRead = (notificationId: string) => {
+  const now = new Date().toISOString()
+  // Saklanan bildirimler (eski yol)
+  saveNotifications(readNotifications().map(notification => (
+    notification.id === notificationId ? { ...notification, readAt: notification.readAt || now } : notification
+  )), false)
+  // Türetilen bildirimler (yeni yol)
+  const okunanlar = loadOkunanBildirimler()
+  if(!okunanlar[notificationId]) okunanlar[notificationId] = now
+  saveOkunanBildirimler(okunanlar)
+}
+
+/**
+ * Hepsini okundu işaretler.
+ *
+ * ⚠️ Kimlikleri DIŞARIDAN alıyor. Türetilen bildirimler bu dosyada
+ * tutulmuyor; "hepsi"nin ne olduğunu bilen taraf, ekranın o an gösterdiği
+ * listedir. Burada uydurmak, görülmemiş bir bildirimi okundu saymak olurdu.
+ */
+export const markAllEvren360NotificationsRead = (kimlikler: string[] = []) => {
   const now = new Date().toISOString()
   saveNotifications(readNotifications().map(notification => (
     notification.readAt ? notification : { ...notification, readAt: now }
-  )))
+  )), false)
+
+  const okunanlar = loadOkunanBildirimler()
+  for(const kimlik of kimlikler){
+    if(!okunanlar[kimlik]) okunanlar[kimlik] = now
+  }
+  saveOkunanBildirimler(okunanlar)
 }
 
 export const subscribeEvren360Notifications = (listener: () => void) => {
   if(!isBrowser()) return () => {}
 
   const handleStorage = (event: StorageEvent) => {
-    if(event.key === STORAGE_KEY) listener()
+    if(event.key === STORAGE_KEY || event.key === OKUNDU_KEY) listener()
   }
   const handleCustomEvent = () => listener()
 

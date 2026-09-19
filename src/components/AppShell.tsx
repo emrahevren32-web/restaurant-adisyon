@@ -14,12 +14,16 @@ import { Branch, User } from '../types'
 import type { PermissionName } from '../authorization/permission.types'
 import {
   Evren360Notification,
-  ensureEvren360NotificationPlaceholders,
+  eskiSahteBildirimleriTemizle,
   loadEvren360Notifications,
+  loadOkunanBildirimler,
   markAllEvren360NotificationsRead,
   markEvren360NotificationRead,
   subscribeEvren360Notifications
 } from '../notifications/evren360-notification.service'
+import { basvuruBildirimleriniYukle } from '../notifications/basvuru-bildirimleri'
+import { PostgresBasvuruDefteri } from '../onboarding/application.repository'
+import { getSupabase, isSupabaseConfigured } from '../core/supabase'
 
 export type ShellNavItem<Route extends string, NavKey extends string> = {
   key: NavKey
@@ -307,21 +311,67 @@ export default function AppShell<
   ), [notifications])
   const unreadNotificationCount = unreadNotifications.length
 
-  const refreshNotifications = React.useCallback(() => {
+  /**
+   * Başvuru defteri — zilin asıl kaynağı.
+   *
+   * ⚠️ Zil eskiden `localStorage` okuyordu. Form Postgres'e yazmaya
+   * başlayınca zil hiçbir şey görmez oldu; Emrah dört kez "bildirim
+   * gelmiyor" dedi. Artık defterden okuyor.
+   */
+  const bildirimDefteri = React.useMemo(() => (
+    isSupabaseConfigured() ? new PostgresBasvuruDefteri(getSupabase()) : null
+  ), [])
+
+  const refreshNotifications = React.useCallback(async () => {
     if(!isPlatformAdmin){
       setNotifications([])
       return
     }
 
-    ensureEvren360NotificationPlaceholders()
-    setNotifications(loadEvren360Notifications())
-  }, [isPlatformAdmin])
+    // Tarayıcılarda duran eski sahte satırları sil (bkz. servis dosyası).
+    eskiSahteBildirimleriTemizle()
+
+    const okunanlar = loadOkunanBildirimler()
+    const turetilen = bildirimDefteri
+      ? await basvuruBildirimleriniYukle(bildirimDefteri, okunanlar)
+      : []
+
+    // Saklanan eski bildirimler de görünsün; ikisi kimliğe göre birleşiyor.
+    const saklanan = loadEvren360Notifications().map(n => (
+      n.readAt ? n : { ...n, readAt: okunanlar[n.id] ?? '' }
+    ))
+    const haritada = new Map(saklanan.map(n => [n.id, n]))
+    for(const n of turetilen) haritada.set(n.id, n)
+
+    setNotifications(
+      [...haritada.values()].sort((a, b) => b.createdAt.localeCompare(a.createdAt)),
+    )
+  }, [isPlatformAdmin, bildirimDefteri])
 
   React.useEffect(() => {
-    refreshNotifications()
+    void refreshNotifications()
     if(!isPlatformAdmin) return undefined
-    return subscribeEvren360Notifications(refreshNotifications)
+
+    const abonelik = subscribeEvren360Notifications(() => { void refreshNotifications() })
+
+    // ⚠️ Başvuru BAŞKA BİR TARAYICIDAN geliyor: müşteri formu doldurduğunda
+    // bu sekmede hiçbir olay tetiklenmez. O yüzden iki tetikleyici var:
+    // dakikada bir yoklama ve sekmeye geri dönüldüğünde tazeleme.
+    const sayac = window.setInterval(() => { void refreshNotifications() }, 60_000)
+    const odaklanma = () => { void refreshNotifications() }
+    window.addEventListener('focus', odaklanma)
+
+    return () => {
+      abonelik()
+      window.clearInterval(sayac)
+      window.removeEventListener('focus', odaklanma)
+    }
   }, [isPlatformAdmin, refreshNotifications])
+
+  // Zil açıldığı anda da tazele: bir dakika beklemeye gerek yok.
+  React.useEffect(() => {
+    if(notificationPanelOpen) void refreshNotifications()
+  }, [notificationPanelOpen, refreshNotifications])
 
   React.useEffect(() => {
     setNotificationPanelOpen(false)
@@ -447,13 +497,14 @@ export default function AppShell<
 
   const openNotification = (notification: Evren360Notification) => {
     markEvren360NotificationRead(notification.id)
-    setNotifications(loadEvren360Notifications())
+    // ⚠️ `loadEvren360Notifications()` ile tazelemiyoruz: o yalnız SAKLANAN
+    // bildirimleri okur, türetilenleri siler götürürdü. Okundu işareti
+    // olayı tetikliyor, tazeleme oradan geliyor.
     onOpenNotification?.(notification)
   }
 
   const markAllNotificationsRead = () => {
-    markAllEvren360NotificationsRead()
-    setNotifications(loadEvren360Notifications())
+    markAllEvren360NotificationsRead(notifications.map(n => n.id))
   }
 
   const openNavItem = (item: ShellNavItem<Route, NavKey>) => {
