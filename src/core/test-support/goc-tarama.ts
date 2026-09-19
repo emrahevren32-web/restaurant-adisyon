@@ -133,3 +133,33 @@ export const denetimIzlenenTablolar = (sql = gocMetni()): string[] => {
     .map(s => s.replace(/'/g, ''))
     .sort()
 }
+
+/**
+ * 0032'deki başvuru durum geçişleri.
+ *
+ * Kural iki yerde duruyor (veritabanı + ekran) ve iki yerde duran kural
+ * ayrışır. Bu okuyucu, testin ikisini karşılaştırmasını sağlıyor.
+ */
+export const basvuruGecisleriGocten = (
+  sql = gocMetni(),
+): Record<string, string[]> => {
+  const blok = /case OLD\.status([\s\S]*?)end;/.exec(sql)
+  if(!blok) throw new Error(
+    '0032 içindeki başvuru geçiş tablosu bulunamadı. Tetikleyici ' +
+    'değiştiyse bu okuyucu da güncellenmeli — yoksa test sessizce zayıflar.',
+  )
+  const gecisler: Record<string, string[]> = {}
+  const re = /when '([A-Z_]+)'\s*then\s*array\[([^\]]*)\]/g
+  let m: RegExpExecArray | null
+  while((m = re.exec(blok[1])) !== null){
+    gecisler[m[1]] = (m[2].match(/'([A-Z_]+)'/g) ?? []).map(x => x.replace(/'/g, ''))
+  }
+  // `else array[]::text[]` — son duraklar. Hangi durumların son durak
+  // olduğunu tablo kısıtından okuyoruz.
+  const kisit = /status in \('PENDING','IN_REVIEW','APPROVED','REJECTED','CANCELLED'\)/.test(sql)
+  if(!kisit) throw new Error('0032 durum listesi beklenen biçimde değil.')
+  for(const d of ['APPROVED', 'REJECTED', 'CANCELLED']){
+    if(!(d in gecisler)) gecisler[d] = []
+  }
+  return gecisler
+}

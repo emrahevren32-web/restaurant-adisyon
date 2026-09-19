@@ -1,310 +1,441 @@
+// ═══════════════════════════════════════════════════════════════════════════
+// MİYOP · Aşama 4D / KAPI — Onay Bekleyen İşletmeler
+//
+// Demonun 1. perdesinin ikinci yarısı. Müşteri başvurusunu gönderdi; bu
+// ekran MİYOP'un ona baktığı yer.
+//
+// ── ÖNCEKİ HÂLİNİN ÜÇ SORUNU ─────────────────────────────────────────────
+// 1. TARAYICI HAFIZASINI okuyordu (`storage.ts`). Başvuru veritabanına
+//    yazılıyordu ama bu ekran oraya bakmıyordu: müşteri başvurdu, liste boş
+//    kaldı. Aynı sebepten bildirim zili ve arama da göremiyordu.
+// 2. `window.prompt` ile onay notu istiyordu. Tarayıcı diyaloğu sayfayı
+//    kilitler, ne karar verdiğini göstermez, gerekçe kuralını uygulatamaz.
+//    Yerine `KararPenceresi` geldi.
+// 3. ONAY BİR YALANDI. Tarayıcıda firma/kullanıcı/geçici şifre üretip
+//    "İlk Giriş Bilgileri" kartı basıyordu; o şifreyle giriş denenince
+//    "Geçersiz e-posta veya şifre" alınıyordu. Kart kaldırıldı.
+//
+// ── ŞİMDİ NE YAPIYOR, NE YAPMIYOR ───────────────────────────────────────
+// YAPIYOR : gerçek defteri okur; incelemeye alır, onaylar, reddeder, iptal
+//           eder. Onay kiracı + firma + merkez şube açar (0035).
+// YAPMIYOR: GİRİŞ HESABI. Ekran bunu saklamıyor, yazıyor.
+// ═══════════════════════════════════════════════════════════════════════════
+
 import React from 'react'
-import { ApplicationNote, ApplicationStatus, BusinessApplication, User } from '../types'
-import FirstLoginCredentialsCard from '../components/FirstLoginCredentialsCard'
+import type { User } from '../types'
+import KararPenceresi from '../components/KararPenceresi'
+import { getSupabase, isSupabaseConfigured } from '../core/supabase'
+import { resolveStockRepositoryMode } from '../core/stock/index'
 import {
-  addApplicationNote,
-  approveBusinessApplication,
-  loadApplicationNotes,
-  loadBusinessApplications,
-  markBusinessApplicationInReview,
-  rejectBusinessApplication
-} from '../storage'
-import type { FirstLoginCredentialDelivery } from '../storage'
+  PostgresBasvuruDefteri,
+  type Basvuru,
+  type BasvuruDurumu,
+  type BasvuruOlayi,
+  type OnaySonucu,
+} from '../onboarding/application.repository'
+import {
+  GEREKCE_EN_AZ, basvuruOzeti, beklemeGunu, durumEtiketi, gecisGecerliMi,
+} from '../onboarding/application.service'
 
 type Props = {
   currentUser: User
   initialApplicationId?: string
 }
 
-type QueueStatus = Extract<ApplicationStatus, 'Beklemede' | 'İnceleniyor'>
-type StatusFilter = QueueStatus | 'all'
-type DetailMode = 'review' | 'notes' | 'history'
+/** Kuyrukta görünen durumlar: karar bekleyenler. */
+const ACIK_DURUMLAR: BasvuruDurumu[] = ['PENDING', 'IN_REVIEW']
 
-const queueStatuses: QueueStatus[] = ['Beklemede', 'İnceleniyor']
+type DurumSuzgeci = 'acik' | 'hepsi' | BasvuruDurumu
 
-const formatNumber = (value: number) => value.toLocaleString('tr-TR')
+const sayi = (n: number) => n.toLocaleString('tr-TR')
 
-const normalizeLookup = (value: string) => value
+const tarihSaat = (ham: string) => {
+  const t = new Date(ham)
+  if(Number.isNaN(t.getTime())) return '-'
+  return `${t.toLocaleDateString('tr-TR')} ${t.toLocaleTimeString('tr-TR', { hour: '2-digit', minute: '2-digit' })}`
+}
+
+const gunKey = (ham: string) => {
+  const t = new Date(ham)
+  return Number.isNaN(t.getTime()) ? '' : t.toLocaleDateString('sv-SE')
+}
+
+const haftaBasi = () => {
+  const t = new Date()
+  t.setHours(0, 0, 0, 0)
+  const gun = t.getDay() || 7
+  t.setDate(t.getDate() - gun + 1)
+  return t
+}
+
+/** Türkçe duyarlı, işaretsiz arama anahtarı. */
+const aramaAnahtari = (deger: string) => deger
   .toLocaleLowerCase('tr-TR')
   .normalize('NFD')
-  .replace(/[\u0300-\u036f]/g, '')
-  .replace(/Ä±/g, 'i')
+  .replace(/[̀-ͯ]/g, '')
   .replace(/ı/g, 'i')
   .replace(/[^a-z0-9]+/g, '')
 
-const getDate = (value: string) => {
-  const date = new Date(value)
-  return Number.isNaN(date.getTime()) ? null : date
+const durumSinifi = (durum: BasvuruDurumu) => {
+  if(durum === 'APPROVED') return 'success'
+  if(durum === 'REJECTED' || durum === 'CANCELLED') return 'danger'
+  if(durum === 'IN_REVIEW') return 'info'
+  return 'warning'
 }
 
-const getDateKey = (value: string | Date) => {
-  const date = typeof value === 'string' ? getDate(value) : value
-  return date && !Number.isNaN(date.getTime()) ? date.toLocaleDateString('sv-SE') : ''
+/** Açık başvuruların ortalama bekleme süresi. */
+const ortalamaBekleme = (liste: Basvuru[]) => {
+  const acik = liste.filter(b => ACIK_DURUMLAR.includes(b.durum))
+  if(acik.length === 0) return '–'
+  const saatler = acik.map(b => {
+    const bas = new Date(b.olusturmaZamani).getTime()
+    return Math.max(0, (Date.now() - bas) / 3_600_000)
+  })
+  const ort = saatler.reduce((a, b) => a + b, 0) / saatler.length
+  if(ort < 1) return 'bir saatten az'
+  if(ort < 48) return `${Math.round(ort)} saat`
+  return `${Math.round(ort / 24)} gün`
 }
 
-const formatDateTime = (value: string) => {
-  const date = getDate(value)
-  if(!date) return '-'
-  return `${date.toLocaleDateString('tr-TR')} ${date.toLocaleTimeString('tr-TR', { hour: '2-digit', minute: '2-digit' })}`
+type KararTuru = 'onay' | 'ret' | 'iptal'
+
+const KARAR_METNI: Record<KararTuru, {
+  baslik: string; aciklama: string; notEtiketi: string
+  notIpucu: string; eylem: string; tur: 'olumlu' | 'tehlikeli'
+  hedef: BasvuruDurumu
+}> = {
+  onay: {
+    baslik: 'Başvuruyu onayla',
+    aciklama: 'Onay işletmeyi açar: kiracı, firma ve merkez şube oluşturulur. Geri alınamaz.',
+    notEtiketi: 'Onay gerekçesi',
+    notIpucu: 'Örnek: belgeler tam, ilk ödemeyi 6. ay yapacak şekilde onaylandı.',
+    eylem: 'Onayla ve işletmeyi aç',
+    tur: 'olumlu',
+    hedef: 'APPROVED',
+  },
+  ret: {
+    baslik: 'Başvuruyu reddet',
+    aciklama: 'Ret kalıcı kayda geçer. Müşteri eksiğini tamamlayıp yeniden başvurabilir.',
+    notEtiketi: 'Ret gerekçesi',
+    notIpucu: 'Örnek: vergi numarası doğrulanamadı.',
+    eylem: 'Reddet',
+    tur: 'tehlikeli',
+    hedef: 'REJECTED',
+  },
+  iptal: {
+    baslik: 'Başvuruyu iptal et',
+    aciklama: 'İptal, başvurandan gelen vazgeçme ya da mükerrer kayıt için kullanılır.',
+    notEtiketi: 'İptal gerekçesi',
+    notIpucu: 'Örnek: başvuran telefonla vazgeçtiğini bildirdi.',
+    eylem: 'İptal et',
+    tur: 'tehlikeli',
+    hedef: 'CANCELLED',
+  },
 }
 
-const getStartOfWeek = () => {
-  const today = new Date()
-  today.setHours(0, 0, 0, 0)
-  const day = today.getDay() || 7
-  today.setDate(today.getDate() - day + 1)
-  return today
-}
+export default function PendingApplications({ currentUser, initialApplicationId }: Props){
+  const gercekVeritabani = resolveStockRepositoryMode() === 'postgres' && isSupabaseConfigured()
+  const yetkili = !currentUser.permissions
+    || currentUser.permissions.includes('platform.manage')
 
-const getWaitingHours = (application: BusinessApplication) => {
-  const createdAt = getDate(application.createdAt)
-  if(!createdAt) return 0
-  return Math.max(0, Date.now() - createdAt.getTime()) / 3600000
-}
+  const defter = React.useMemo(
+    () => (gercekVeritabani ? new PostgresBasvuruDefteri(getSupabase()) : null),
+    [gercekVeritabani],
+  )
 
-const formatAverageWaitingTime = (applications: BusinessApplication[]) => {
-  if(applications.length === 0) return '-'
-  const averageHours = applications.reduce((sum, application) => sum + getWaitingHours(application), 0) / applications.length
-  if(averageHours < 24) return `${formatNumber(Math.max(1, Math.round(averageHours)))} saat`
-  return `${formatNumber(Math.max(1, Math.round(averageHours / 24)))} gün`
-}
+  const [liste, setListe] = React.useState<Basvuru[]>([])
+  const [yukleniyor, setYukleniyor] = React.useState(true)
+  const [hata, setHata] = React.useState('')
+  const [mesaj, setMesaj] = React.useState('')
+  const [arama, setArama] = React.useState('')
+  const [durumSuzgeci, setDurumSuzgeci] = React.useState<DurumSuzgeci>('acik')
+  const [tarihSuzgeci, setTarihSuzgeci] = React.useState('')
+  const [secilenId, setSecilenId] = React.useState(initialApplicationId ?? '')
+  const [olaylar, setOlaylar] = React.useState<BasvuruOlayi[]>([])
+  const [karar, setKarar] = React.useState<{ tur: KararTuru; basvuru: Basvuru } | null>(null)
+  const [onaySonucu, setOnaySonucu] = React.useState<(OnaySonucu & { firmaAdi: string }) | null>(null)
 
-const getStatusClassName = (status: ApplicationStatus) => {
-  if(status === 'Onaylandı') return 'success'
-  if(status === 'Reddedildi') return 'danger-pill'
-  if(status === 'İnceleniyor') return 'info-pill'
-  return 'warning-pill'
-}
-
-const sortApplications = (applications: BusinessApplication[]) => {
-  return [...applications].sort((first, second) => second.createdAt.localeCompare(first.createdAt))
-}
-
-export default function PendingApplications({ currentUser, initialApplicationId = '' }: Props){
-  const [applications, setApplications] = React.useState<BusinessApplication[]>(() => loadBusinessApplications())
-  const [notes, setNotes] = React.useState<ApplicationNote[]>(() => loadApplicationNotes())
-  const [search, setSearch] = React.useState('')
-  const [statusFilter, setStatusFilter] = React.useState<StatusFilter>('all')
-  const [applicationDate, setApplicationDate] = React.useState('')
-  const [selectedApplicationId, setSelectedApplicationId] = React.useState('')
-  const [detailMode, setDetailMode] = React.useState<DetailMode>('review')
-  const [message, setMessage] = React.useState('')
-  const [error, setError] = React.useState('')
-  const [approvalCredentials, setApprovalCredentials] = React.useState<FirstLoginCredentialDelivery | null>(null)
-
-  const refresh = (selectedId = selectedApplicationId) => {
-    const nextApplications = loadBusinessApplications()
-    const nextNotes = loadApplicationNotes()
-    setApplications(nextApplications)
-    setNotes(nextNotes)
-
-    const nextQueue = nextApplications.filter(application => queueStatuses.includes(application.status as QueueStatus))
-    setSelectedApplicationId(selectedId && nextQueue.some(application => application.id === selectedId)
-      ? selectedId
-      : nextQueue[0]?.id || '')
-  }
-
-  React.useEffect(() => {
-    if(!initialApplicationId) return
-    setSearch('')
-    setStatusFilter('all')
-    setApplicationDate('')
-    setDetailMode('review')
-    refresh(initialApplicationId)
-  }, [initialApplicationId])
-
-  const queueApplications = React.useMemo(() => {
-    return applications.filter(application => queueStatuses.includes(application.status as QueueStatus))
-  }, [applications])
-
-  React.useEffect(() => {
-    if(selectedApplicationId || queueApplications.length === 0) return
-    setSelectedApplicationId(queueApplications[0].id)
-  }, [queueApplications, selectedApplicationId])
-
-  const selectedApplication = queueApplications.find(application => application.id === selectedApplicationId) || queueApplications[0]
-  const selectedNotes = notes
-    .filter(note => note.applicationId === selectedApplication?.id)
-    .sort((first, second) => second.createdAt.localeCompare(first.createdAt))
-
-  const visibleApplications = React.useMemo(() => {
-    const searchValue = normalizeLookup(search)
-    return sortApplications(queueApplications).filter(application => {
-      const matchesSearch = !searchValue || [
-        application.companyName,
-        application.ownerName,
-        application.email
-      ].some(value => normalizeLookup(value).includes(searchValue))
-      const matchesStatus = statusFilter === 'all' || application.status === statusFilter
-      const matchesDate = !applicationDate || getDateKey(application.createdAt) === applicationDate
-      return matchesSearch && matchesStatus && matchesDate
-    })
-  }, [applicationDate, queueApplications, search, statusFilter])
-
-  const todayKey = getDateKey(new Date())
-  const weekStart = getStartOfWeek()
-  const summary = React.useMemo(() => ({
-    pending: queueApplications.length,
-    today: queueApplications.filter(application => getDateKey(application.createdAt) === todayKey).length,
-    thisWeek: queueApplications.filter(application => {
-      const createdAt = getDate(application.createdAt)
-      return createdAt ? createdAt >= weekStart : false
-    }).length,
-    averageWaiting: formatAverageWaitingTime(queueApplications)
-  }), [queueApplications, todayKey, weekStart])
-
-  const runAction = (action: () => void) => {
-    setMessage('')
-    setError('')
-    setApprovalCredentials(null)
+  const tazele = React.useCallback(async () => {
+    if(!defter) { setYukleniyor(false); return }
+    setYukleniyor(true)
     try {
-      action()
-    } catch (actionError) {
-      setError(actionError instanceof Error ? actionError.message : 'İşlem tamamlanamadı.')
+      setListe(await defter.liste())
+      setHata('')
+    } catch(e){
+      setHata(e instanceof Error ? e.message : 'Başvurular okunamadı.')
+    } finally {
+      setYukleniyor(false)
     }
-  }
+  }, [defter])
 
-  const selectApplication = (application: BusinessApplication, mode: DetailMode) => {
-    setSelectedApplicationId(application.id)
-    setDetailMode(mode)
-  }
+  React.useEffect(() => { void tazele() }, [tazele])
 
-  const inspectApplication = (application: BusinessApplication) => runAction(() => {
-    const updated = markBusinessApplicationInReview(application.id, currentUser)
-    refresh(updated.id)
-    setDetailMode('review')
-    setMessage(`${updated.companyName} başvurusu incelemeye alındı.`)
-  })
+  // Seçilen başvurunun geçmişi. Defter değişmeden okunmaz.
+  React.useEffect(() => {
+    if(!defter || !secilenId){ setOlaylar([]); return }
+    let iptal = false
+    void (async () => {
+      try {
+        const o = await defter.olaylar(secilenId)
+        if(!iptal) setOlaylar(o)
+      } catch { if(!iptal) setOlaylar([]) }
+    })()
+    return () => { iptal = true }
+  }, [defter, secilenId])
 
-  const approveApplication = (application: BusinessApplication) => runAction(() => {
-    const approvalNote = window.prompt('Onay notu (yalnızca EVREN360)', application.approvalNote || '') || ''
-    const result = approveBusinessApplication(application.id, approvalNote, currentUser)
-    refresh()
-    setApprovalCredentials(result.firstLoginCredentials)
-    setMessage(`${result.company.companyName} onaylandı. Tenant: ${result.tenant.tenantCode}. İlk giriş bilgileri aşağıdaki kartta hazırlandı.`)
-  })
+  const gorunen = React.useMemo(() => {
+    const anahtar = aramaAnahtari(arama)
+    return liste.filter(b => {
+      if(durumSuzgeci === 'acik' && !ACIK_DURUMLAR.includes(b.durum)) return false
+      if(durumSuzgeci !== 'acik' && durumSuzgeci !== 'hepsi' && b.durum !== durumSuzgeci) return false
+      if(tarihSuzgeci && gunKey(b.olusturmaZamani) !== tarihSuzgeci) return false
+      if(anahtar){
+        // ⚠️ BAŞVURU NUMARASI da aranıyor. Müşteri telefonda onu söylüyor;
+        // aranamıyorsa numara vermenin anlamı kalmaz.
+        const alan = aramaAnahtari(
+          `${b.referans} ${b.firmaAdi} ${b.yetkiliAdi} ${b.eposta} ${b.telefon}`,
+        )
+        if(!alan.includes(anahtar)) return false
+      }
+      return true
+    })
+  }, [liste, arama, durumSuzgeci, tarihSuzgeci])
 
-  const rejectApplication = (application: BusinessApplication) => runAction(() => {
-    const reason = window.prompt('Red sebebi', application.approvalNote || '')
-    if(reason === null) return
-    const updated = rejectBusinessApplication(application.id, reason, currentUser)
-    refresh()
-    setMessage(`${updated.companyName} başvurusu reddedildi.`)
-  })
+  const ozet = React.useMemo(() => basvuruOzeti(liste), [liste])
+  const bugun = React.useMemo(() => {
+    const k = new Date().toLocaleDateString('sv-SE')
+    return liste.filter(b => gunKey(b.olusturmaZamani) === k).length
+  }, [liste])
+  const buHafta = React.useMemo(() => {
+    const bas = haftaBasi().getTime()
+    return liste.filter(b => new Date(b.olusturmaZamani).getTime() >= bas).length
+  }, [liste])
 
-  const addNoteToApplication = (application: BusinessApplication) => runAction(() => {
-    const note = window.prompt('Ek Notlar (Opsiyonel)', '')
-    if(note === null) return
-    addApplicationNote(application.id, note, currentUser)
-    refresh(application.id)
-    setDetailMode('notes')
-    setMessage('Ek not kaydedildi.')
-  })
+  const secilen = gorunen.find(b => b.id === secilenId)
+    ?? liste.find(b => b.id === secilenId)
+    ?? null
 
-  return (
+  const kabuk = (icerik: React.ReactNode) => (
     <div className="pending-applications-page">
       <div className="evren360-hero">
         <div>
           <span>EVREN360</span>
           <h2>Onay Bekleyen İşletmeler</h2>
-          <p>Bekleyen işletme başvurularını inceleyin, onaylayın, reddedin ve operasyon notlarını yönetin.</p>
+          <p>Başvuruları inceleyin, onaylayın ya da reddedin. Her karar gerekçesiyle kalıcı kayda geçer.</p>
         </div>
         <div className="evren360-hero-meta">
-          <strong>{formatNumber(visibleApplications.length)} kayıt</strong>
+          <strong>{sayi(gorunen.length)} kayıt</strong>
           <span>Operasyon kuyruğu</span>
         </div>
       </div>
+      {icerik}
+    </div>
+  )
 
-      {message && <div className="evren360-feedback">{message}</div>}
-      {error && <div className="evren360-feedback error">{error}</div>}
-      {approvalCredentials && <FirstLoginCredentialsCard credentials={approvalCredentials} />}
+  if(!gercekVeritabani){
+    return kabuk(
+      <section className="card empty-state">
+        <p><strong>Bu ekran gerçek veritabanı ile çalışır.</strong></p>
+        <p>
+          Başvurular tarayıcı hafızasında tutulmaz; bu kurulumda okunacak bir
+          defter yok.
+        </p>
+      </section>,
+    )
+  }
+
+  if(!yetkili){
+    return kabuk(
+      <section className="card empty-state">
+        <p><strong>Bu ekran platform yetkisi ister.</strong></p>
+        <p>Başvuruları yalnızca MİYOP personeli görebilir.</p>
+      </section>,
+    )
+  }
+
+  const incelemeyeAl = async (basvuru: Basvuru) => {
+    if(!defter) return
+    setMesaj(''); setHata('')
+    try {
+      // İncelemeye almak bir KARAR değil; gerekçe istemiyor (0032).
+      await defter.karar(basvuru.id, { durum: 'IN_REVIEW', gerekce: 'incelemeye alındı' })
+      setMesaj(`${basvuru.firmaAdi} incelemeye alındı.`)
+      setSecilenId(basvuru.id)
+      await tazele()
+    } catch(e){
+      setHata(e instanceof Error ? e.message : 'İşlem tamamlanamadı.')
+    }
+  }
+
+  const kararVer = async (not: string) => {
+    if(!defter || !karar) return
+    const { tur, basvuru } = karar
+    if(tur === 'onay'){
+      const sonuc = await defter.onayla(basvuru.id, not)
+      setOnaySonucu({ ...sonuc, firmaAdi: basvuru.firmaAdi })
+      setMesaj('')
+    } else {
+      await defter.karar(basvuru.id, { durum: KARAR_METNI[tur].hedef, gerekce: not })
+      setOnaySonucu(null)
+      setMesaj(`${basvuru.firmaAdi} · ${durumEtiketi(KARAR_METNI[tur].hedef)}.`)
+    }
+    setKarar(null)
+    setSecilenId(basvuru.id)
+    await tazele()
+  }
+
+  return kabuk(
+    <>
+      {mesaj && <div className="evren360-feedback">{mesaj}</div>}
+      {hata && <div className="evren360-feedback error">{hata}</div>}
+
+      {onaySonucu && (
+        <section className="card" role="status">
+          <div className="section-header compact">
+            <div>
+              <h3>İşletme açıldı</h3>
+              <p className="muted">{onaySonucu.firmaAdi}</p>
+            </div>
+            <button className="btn" type="button" onClick={() => setOnaySonucu(null)}>Kapat</button>
+          </div>
+          <div className="karar-ozet">
+            <div className="karar-ozet-satir">
+              <span>İşletme kodu</span><strong>{onaySonucu.kiraciKodu}</strong>
+            </div>
+            <div className="karar-ozet-satir">
+              <span>Oluşturulanlar</span><strong>Kiracı · Firma · Merkez şube</strong>
+            </div>
+          </div>
+          {/* ⚠️ Bu uyarı kaldırılmayacak. Eskiden burada geçici şifreli bir
+              "İlk Giriş Bilgileri" kartı vardı ve o şifre ÇALIŞMIYORDU. */}
+          <p className="muted">
+            <strong>Giriş hesabı henüz açılmadı.</strong> Kullanıcı hesabı
+            Supabase Auth tarafında oluşturulur; o adım (davet e-postası ve
+            ilk şifre) henüz bağlanmadı. Müşteri şu an giriş yapamaz.
+          </p>
+        </section>
+      )}
 
       <div className="evren360-kpi-grid">
         <div className="evren360-kpi warning">
-          <span>Bekleyen Başvuru</span>
-          <strong>{formatNumber(summary.pending)}</strong>
+          <span>İlgi Bekleyen</span>
+          <strong>{sayi(ozet.ilgiBekleyen)}</strong>
           <p>Beklemede veya inceleniyor.</p>
         </div>
         <div className="evren360-kpi">
           <span>Bugün Gelen</span>
-          <strong>{formatNumber(summary.today)}</strong>
-          <p>Bugün oluşturulan açık kayıtlar.</p>
+          <strong>{sayi(bugun)}</strong>
+          <p>Bugün oluşturulan kayıtlar.</p>
         </div>
         <div className="evren360-kpi success">
           <span>Bu Hafta Gelen</span>
-          <strong>{formatNumber(summary.thisWeek)}</strong>
+          <strong>{sayi(buHafta)}</strong>
           <p>Pazartesi başlangıçlı hafta.</p>
         </div>
-        <div className="evren360-kpi muted">
-          <span>Ortalama Bekleme Süresi</span>
-          <strong>{summary.averageWaiting}</strong>
+        <div className="evren360-kpi">
+          <span>Ortalama Bekleme</span>
+          <strong>{ortalamaBekleme(liste)}</strong>
           <p>Açık başvurular üzerinden.</p>
         </div>
       </div>
 
-      <section className="evren360-panel pending-applications-panel">
-        <div className="evren360-panel-header">
+      <section className="evren360-panel">
+        <div className="section-header">
           <div>
             <h3>Başvuru Listesi</h3>
-            <p>Beklemede ve inceleniyor durumundaki işletme başvuruları.</p>
+            <p className="muted">Toplam {sayi(liste.length)} başvuru · {sayi(ozet.onaylanan)} onaylı</p>
           </div>
-          <div className="pending-applications-controls">
-            <label>
-              <span>Arama</span>
-              <input
-                value={search}
-                onChange={event => setSearch(event.target.value)}
-                placeholder="Firma, yetkili veya e-posta"
-              />
-            </label>
-            <label>
-              <span>Başvuru Durumu</span>
-              <select value={statusFilter} onChange={event => setStatusFilter(event.target.value as StatusFilter)}>
-                <option value="all">Tüm açık durumlar</option>
-                {queueStatuses.map(status => <option key={status} value={status}>{status}</option>)}
-              </select>
-            </label>
-            <label>
-              <span>Başvuru Tarihi</span>
-              <input type="date" value={applicationDate} onChange={event => setApplicationDate(event.target.value)} />
-            </label>
-          </div>
+          <button className="btn" type="button" onClick={() => void tazele()} disabled={yukleniyor}>
+            {yukleniyor ? 'Yükleniyor…' : 'Yenile'}
+          </button>
+        </div>
+
+        <div className="pending-applications-controls">
+          <label>
+            <span>Arama</span>
+            <input
+              value={arama}
+              onChange={e => setArama(e.target.value)}
+              placeholder="Numara, firma, yetkili, e-posta veya telefon"
+            />
+          </label>
+          <label>
+            <span>Başvuru Durumu</span>
+            <select value={durumSuzgeci} onChange={e => setDurumSuzgeci(e.target.value as DurumSuzgeci)}>
+              <option value="acik">Karar bekleyenler</option>
+              <option value="hepsi">Tümü</option>
+              <option value="PENDING">{durumEtiketi('PENDING')}</option>
+              <option value="IN_REVIEW">{durumEtiketi('IN_REVIEW')}</option>
+              <option value="APPROVED">{durumEtiketi('APPROVED')}</option>
+              <option value="REJECTED">{durumEtiketi('REJECTED')}</option>
+              <option value="CANCELLED">{durumEtiketi('CANCELLED')}</option>
+            </select>
+          </label>
+          <label>
+            <span>Başvuru Tarihi</span>
+            <input type="date" value={tarihSuzgeci} onChange={e => setTarihSuzgeci(e.target.value)} />
+          </label>
         </div>
 
         <div className="table-scroll">
           <table className="data-table pending-applications-table">
             <thead>
               <tr>
+                <th>Numara</th>
                 <th>Firma Adı</th>
                 <th>Yetkili</th>
                 <th>E-posta</th>
-                <th>Telefon</th>
                 <th>Başvuru Tarihi</th>
-                <th>Başvuru Durumu</th>
+                <th>Bekleme</th>
+                <th>Durum</th>
                 <th>İşlemler</th>
               </tr>
             </thead>
             <tbody>
-              {visibleApplications.map(application => (
-                <tr key={application.id} className={selectedApplication?.id === application.id ? 'selected-row' : ''}>
-                  <td><strong>{application.companyName}</strong><span className="muted small-text">{application.city} / {application.district}</span></td>
-                  <td>{application.ownerName}</td>
-                  <td>{application.email}</td>
-                  <td>{application.phone}</td>
-                  <td>{formatDateTime(application.createdAt)}</td>
-                  <td><span className={`status-pill ${getStatusClassName(application.status)}`}>{application.status}</span></td>
+              {gorunen.map(b => (
+                <tr key={b.id} className={secilenId === b.id ? 'selected-row' : ''}>
+                  <td><strong>{b.referans}</strong></td>
+                  <td>
+                    <strong>{b.firmaAdi}</strong>
+                    <span className="muted small-text">{b.il} / {b.ilce}</span>
+                  </td>
+                  <td>{b.yetkiliAdi}</td>
+                  <td>{b.eposta}</td>
+                  <td>{tarihSaat(b.olusturmaZamani)}</td>
+                  <td>{ACIK_DURUMLAR.includes(b.durum) ? `${beklemeGunu(b)} gün` : '–'}</td>
+                  <td><span className={`status-pill ${durumSinifi(b.durum)}`}>{durumEtiketi(b.durum)}</span></td>
                   <td className="actions-cell">
-                    <button className="btn" type="button" onClick={() => inspectApplication(application)}>İncele</button>
-                    <button className="btn primary" type="button" onClick={() => approveApplication(application)}>Onayla</button>
-                    <button className="btn" type="button" onClick={() => rejectApplication(application)}>Reddet</button>
-                    <button className="btn" type="button" onClick={() => addNoteToApplication(application)}>Notlar</button>
-                    <button className="btn" type="button" onClick={() => selectApplication(application, 'history')}>Geçmiş</button>
+                    <button className="btn" type="button" onClick={() => setSecilenId(b.id)}>İncele</button>
+                    {/* ⚠️ Düğmeler geçiş tablosuna göre açılıyor. Yapılamayacak
+                        bir işi sunan düğme, kullanıcıyı hataya gönderir. */}
+                    {gecisGecerliMi(b.durum, 'IN_REVIEW') && (
+                      <button className="btn" type="button" onClick={() => void incelemeyeAl(b)}>
+                        İncelemeye Al
+                      </button>
+                    )}
+                    {gecisGecerliMi(b.durum, 'APPROVED') && (
+                      <button className="btn primary" type="button" onClick={() => setKarar({ tur: 'onay', basvuru: b })}>
+                        Onayla
+                      </button>
+                    )}
+                    {gecisGecerliMi(b.durum, 'REJECTED') && (
+                      <button className="btn" type="button" onClick={() => setKarar({ tur: 'ret', basvuru: b })}>
+                        Reddet
+                      </button>
+                    )}
+                    {gecisGecerliMi(b.durum, 'CANCELLED') && (
+                      <button className="btn" type="button" onClick={() => setKarar({ tur: 'iptal', basvuru: b })}>
+                        İptal
+                      </button>
+                    )}
                   </td>
                 </tr>
               ))}
-              {visibleApplications.length === 0 && (
+              {gorunen.length === 0 && (
                 <tr>
-                  <td className="empty-cell" colSpan={7}>Bekleyen başvuru bulunamadı.</td>
+                  <td className="empty-cell" colSpan={8}>
+                    {yukleniyor ? 'Yükleniyor…' : 'Bu süzgeçle başvuru bulunamadı.'}
+                  </td>
                 </tr>
               )}
             </tbody>
@@ -312,56 +443,81 @@ export default function PendingApplications({ currentUser, initialApplicationId 
         </div>
       </section>
 
-      {selectedApplication && (
+      {secilen && (
         <section className="evren360-panel pending-applications-detail">
           <div className="evren360-panel-header">
             <div>
-              <h3>{selectedApplication.companyName}</h3>
-              <p>Başlangıç kapsamı çekirdek sistem modülleri olan yeni işletme çalışma alanı başvurusu.</p>
+              <h3>{secilen.firmaAdi}</h3>
+              <p>{secilen.referans} · {secilen.sektorKodu}</p>
             </div>
-            <span className={`status-pill ${getStatusClassName(selectedApplication.status)}`}>{selectedApplication.status}</span>
+            <span className={`status-pill ${durumSinifi(secilen.durum)}`}>{durumEtiketi(secilen.durum)}</span>
           </div>
 
-          <div className="pending-applications-tabs">
-            <button className={`btn ${detailMode === 'review' ? 'primary' : ''}`} type="button" onClick={() => setDetailMode('review')}>İnceleme</button>
-            <button className={`btn ${detailMode === 'notes' ? 'primary' : ''}`} type="button" onClick={() => setDetailMode('notes')}>Notlar</button>
-            <button className={`btn ${detailMode === 'history' ? 'primary' : ''}`} type="button" onClick={() => setDetailMode('history')}>Geçmiş</button>
+          <div className="pending-applications-detail-grid">
+            <div><span>Yetkili</span><strong>{secilen.yetkiliAdi}</strong></div>
+            <div><span>E-posta</span><strong>{secilen.eposta}</strong></div>
+            <div><span>Telefon</span><strong>{secilen.telefon}</strong></div>
+            <div><span>Vergi Bilgisi</span><strong>{secilen.vergiDairesi} / {secilen.vergiNo}</strong></div>
+            <div><span>Adres</span><strong>{secilen.adres}, {secilen.il} / {secilen.ilce}</strong></div>
+            {secilen.not && <div><span>Başvuru notu</span><strong>{secilen.not}</strong></div>}
+            {secilen.kararNotu && <div><span>Karar gerekçesi</span><strong>{secilen.kararNotu}</strong></div>}
           </div>
 
-          {detailMode === 'review' && (
-            <div className="pending-applications-detail-grid">
-              <div><span>Firma</span><strong>{selectedApplication.companyName}</strong></div>
-              <div><span>Yetkili</span><strong>{selectedApplication.ownerName}</strong></div>
-              <div><span>E-posta</span><strong>{selectedApplication.email}</strong></div>
-              <div><span>Telefon</span><strong>{selectedApplication.phone}</strong></div>
-              <div><span>Vergi Bilgisi</span><strong>{selectedApplication.taxOffice} / {selectedApplication.taxNumber}</strong></div>
-              <div><span>Adres</span><strong>{selectedApplication.address}, {selectedApplication.city} / {selectedApplication.district}</strong></div>
+          <div className="section-header compact">
+            <div>
+              <h3>Geçmiş</h3>
+              <p className="muted">
+                Kaydı veritabanı tutuyor, ekran değil — hiçbir adım atlanamaz.
+              </p>
             </div>
-          )}
-
-          {detailMode === 'notes' && (
-            <div className="pending-applications-note-list">
-              {selectedNotes.length === 0 && <p className="muted">Not bulunmuyor.</p>}
-              {selectedNotes.map(note => (
-                <div className="business-application-note" key={note.id}>
-                  <strong>{note.createdBy}</strong>
-                  <span>{formatDateTime(note.createdAt)}</span>
-                  <p>{note.note}</p>
-                </div>
-              ))}
-            </div>
-          )}
-
-          {detailMode === 'history' && (
-            <div className="business-application-history pending-applications-history">
-              <div><span>Oluşturuldu</span><strong>{formatDateTime(selectedApplication.createdAt)}</strong></div>
-              <div><span>Son Güncelleme</span><strong>{formatDateTime(selectedApplication.updatedAt)}</strong></div>
-              <div><span>Durum</span><strong>{selectedApplication.status}</strong></div>
-              <div><span>Bekleme Süresi</span><strong>{formatAverageWaitingTime([selectedApplication])}</strong></div>
-            </div>
-          )}
+          </div>
+          <div className="business-application-history pending-applications-history">
+            {olaylar.length === 0 && <p className="muted">Geçmiş okunamadı.</p>}
+            {olaylar.map(o => (
+              <div key={o.id}>
+                <span>{tarihSaat(o.zaman)}</span>
+                <strong>
+                  {o.oncekiDurum
+                    ? `${durumEtiketi(o.oncekiDurum)} → ${durumEtiketi(o.yeniDurum)}`
+                    : durumEtiketi(o.yeniDurum)}
+                  {o.aktorAd ? ` · ${o.aktorAd}` : ''}
+                  {o.not ? ` · ${o.not}` : ''}
+                </strong>
+              </div>
+            ))}
+          </div>
         </section>
       )}
-    </div>
+
+      {karar && (
+        <KararPenceresi
+          baslik={KARAR_METNI[karar.tur].baslik}
+          aciklama={KARAR_METNI[karar.tur].aciklama}
+          ozet={
+            <>
+              <div className="karar-ozet-satir">
+                <span>Başvuru</span><strong>{karar.basvuru.referans}</strong>
+              </div>
+              <div className="karar-ozet-satir">
+                <span>Firma</span><strong>{karar.basvuru.firmaAdi}</strong>
+              </div>
+              <div className="karar-ozet-satir">
+                <span>Yetkili</span><strong>{karar.basvuru.yetkiliAdi}</strong>
+              </div>
+              <div className="karar-ozet-satir">
+                <span>E-posta</span><strong>{karar.basvuru.eposta}</strong>
+              </div>
+            </>
+          }
+          notEtiketi={KARAR_METNI[karar.tur].notEtiketi}
+          notIpucu={KARAR_METNI[karar.tur].notIpucu}
+          enAzKarakter={GEREKCE_EN_AZ}
+          eylemEtiketi={KARAR_METNI[karar.tur].eylem}
+          tur={KARAR_METNI[karar.tur].tur}
+          onIptal={() => setKarar(null)}
+          onOnayla={kararVer}
+        />
+      )}
+    </>
   )
 }

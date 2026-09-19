@@ -243,17 +243,30 @@ sayar, "yedek çalışıyor" dersin. Oysa geri kurduğun veritabanında sayım
 kilidi yok, denetim kaydı yok. İlk provada tam olarak bu oldu:
 veri TAMAM, tetikleyici **0**.
 
-⚠️ **`--no-privileges` KULLANILMAZ.** GRANT'lar da yedeğin parçası.
-RLS ve GRANT ayrı kapılardır (bkz. §1); GRANT'sız geri yüklenen bir
-veritabanında politikalar doğru olsa bile kimse hiçbir şey okuyamaz.
-İlk taslakta bu bayrak vardı, kaldırıldı.
+⚠️ **`--no-privileges` KULLANILMAZ — İKİ TARAFTA DA.** GRANT'lar da
+yedeğin parçası. RLS ve GRANT ayrı kapılardır (bkz. §1).
+
+**2026-09-19'da bulunan hata:** bu satır yalnızca `pg_restore` için
+yazılmıştı. `pg_dump` tarafında (`yedek-al.ps1`) bayrak duruyordu. Yani
+yetki satırları dökümün İÇİNE HİÇ GİRMİYORDU; geri yüklerken kaldırılacak
+bir şey de yoktu.
+
+Görünmemesinin sebebi tehlikeli: Supabase yeni tablolara `anon` ve
+`authenticated` için varsayılan yetkiyi kendi verir. Geri yüklenen kopyada
+GRANT'lar "vardı" — ama bizim yazdıklarımız değil, Supabase'in
+varsayılanları. Bizim 0007'de `anon`dan **aldığımız** yetkiler geri
+gelmiyordu. Sonuç: yedekten dönülen bir veritabanında anonim kullanıcı
+müşteri tablolarını okuyabilirdi.
+
+Bayrak `yedek-al.ps1`den kaldırıldı ve prova 7. kontrolü kazandı: sayı
+saymak yerine **yanlış olanı arıyor** (bkz. §3.3).
 
 **Prova bitince prova projesini Supabase panelinden sil.** Yedek dosyası
 işletmenin tüm verisidir; ortada duran ikinci bir kopya risktir.
 
 ### 3.3 Prova başarılı sayılır Kİ
 
-Betik bu altı kontrolü kendisi yapar ve hepsi geçmeden "başarılı" demez:
+Betik bu yedi kontrolü kendisi yapar ve hepsi geçmeden "başarılı" demez:
 
 | # | Kontrol | Eşik | Neden |
 |---|---|---|---|
@@ -261,12 +274,24 @@ Betik bu altı kontrolü kendisi yapar ve hepsi geçmeden "başarılı" demez:
 | 2 | `public` tetikleyicileri | ≥ 10 | Sayım kilidi + denetim kaydı |
 | 3 | RLS açık kritik tablo | 4/4 | Kiracı izolasyonu |
 | 4 | `public` yetki politikası | ≥ 20 | İzolasyonun kuralları |
-| 5 | `anon`/`authenticated`/`service_role` GRANT'ı | ≥ 20 | Okuma izni |
+| 5 | `anon`/`authenticated`/`service_role` GRANT'ı | ≥ 20 | Kapı açık mı |
 | 6 | `app` şemasındaki fonksiyon | ≥ 10 | Tetikleyicilerin dayandığı kod |
+| 7 | **`anon`ın okumaması gereken tabloda SELECT'i** | **= 0** | Kapı kapalı mı |
+
+5 ile 7 aynı şeyi ölçmez ve ikisi de gerekli. 5 "yetkiler geldi mi" der,
+7 "gelmemesi gereken yetki var mı" der. Eşiği en az değil **en fazla**
+olan tek kontrol 7'dir.
 
 **2026-09-17 provası (miyop-2026-09-14-0300.dump):** çıkış kodu 0, hata
 satırı 0 · veri TAMAM · tetikleyici 31 · RLS 4 · politika **41 (canlıyla
 birebir)** · GRANT 840 · `app` fonksiyonu 18. **BAŞARILI.**
+
+⚠️ **O provanın GRANT satırı yanlış güven veriyordu** (2026-09-19'da
+anlaşıldı, bkz. §3.2): 840 sayısı Supabase'in varsayılan yetkilerinden
+geliyordu, dökümden değil. Veri, tetikleyici, RLS ve politika sonuçları
+geçerliliğini koruyor. Yetki tarafı, `--no-privileges` kaldırıldıktan
+sonra alınan ilk yedekle **yeniden prova edilecek**; o prova yapılana
+kadar "yedekten dönme yetkileriyle birlikte kanıtlandı" DENMEZ.
 
 Elle bakmak istersen prova projesinin SQL Editor'ünde şunu çalıştır:
 

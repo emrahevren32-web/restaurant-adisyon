@@ -1,4 +1,4 @@
-# ═══════════════════════════════════════════════════════════════════════════
+﻿# ═══════════════════════════════════════════════════════════════════════════
 # MİYOP · Günlük veritabanı yedeği
 #
 # Bu betik `pg_dump` ile Supabase veritabanının TAM dökümünü alır: şema,
@@ -119,13 +119,30 @@ $hedef = Join-Path $kok "miyop-$damga.dump"
 
 Yaz "Yedek basliyor -> $hedef"
 try {
-  # --no-owner --no-privileges : Supabase'in kullanici adlari baska kuruluma
-  # tasinmaz; bunlar olmadan geri yukleme yuzlerce "role does not exist"
-  # hatasi verir.
+  # ── `--no-privileges` KALDIRILDI (2026-09-19) · ÖNEMLİ ──────────────────
+  # Eskiden burada `--no-privileges` vardı. Gerekçesi yanlıştı: o seçenek
+  # SAHİPLİK değil YETKİ taşır. `--no-owner` sahiplik sorununu zaten çözüyor;
+  # `--no-privileges` ise GRANT ve REVOKE satırlarının tamamını dökümden
+  # ÇIKARIYORDU.
+  #
+  # Sonucu şuydu: bu yedek geri yüklendiğinde `anon`dan aldığımız bütün
+  # yetkiler (0007) geri gelmiyordu. Supabase yeni tablolara `anon` ve
+  # `authenticated` için varsayılan yetkiyi KENDİ verdiği için, geri yüklenen
+  # kopyada anonim kullanıcı tabloları OKUYABİLİR hâle geliyordu. Yani yedek
+  # "geri geldi" ama kapılar açık geri geldi.
+  #
+  # Geri yükleme provasının "5. GRANT ... TAMAM" satırı da bu yüzden YANLIŞ
+  # GÜVEN veriyordu: saydığı GRANT'lar bizim dökümden değil, Supabase'in
+  # varsayılanlarından geliyordu. O kontrol de düzeltildi
+  # (yedek-geri-yukle-provasi.ps1, kontrol 7).
+  #
+  # `anon`, `authenticated`, `service_role` her Supabase projesinde vardır;
+  # bu yüzden GRANT satırları hedefte "role does not exist" vermez.
+  #
   # `--dbname=` ile AÇIKÇA geçiriliyor. Konumsal argüman olarak verilseydi
   # ve adres tanınmasaydı, pg_dump onu veritabanı adı sayardı — sessiz
   # yanlış davranış yerine açık hata istiyoruz.
-  & $pgDump "--dbname=$baglanti" --format=custom --no-owner --no-privileges --file $hedef
+  & $pgDump "--dbname=$baglanti" --format=custom --no-owner --file $hedef
   if ($LASTEXITCODE -ne 0) { throw "pg_dump cikis kodu $LASTEXITCODE" }
 } catch {
   Yaz "HATA: $($_.Exception.Message)"

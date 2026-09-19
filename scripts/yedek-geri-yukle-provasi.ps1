@@ -175,6 +175,32 @@ try {
   $grant = Sor "select count(*) from information_schema.role_table_grants where table_schema = 'public' and grantee in ('anon','authenticated','service_role');"
   $appFn = Sor "select count(*) from pg_proc p join pg_namespace n on n.oid = p.pronamespace where n.nspname = 'app';"
 
+  # ---- Kontrol 7 - ANONIM FAZLA YETKI (2026-09-19'da eklendi) -----------
+  # Neden: 5. kontrol "GRANT sayisi >= 20" diyordu ve her zaman TAMAM
+  # veriyordu. Ama yedek `--no-privileges` ile alindigi icin o GRANT'lar
+  # BIZIM dokumumuzden degil, Supabase'in yeni tablolara kendi verdigi
+  # varsayilan yetkilerden geliyordu. Yani kontrol gecti, yedek ise
+  # `anon`dan aldigimiz yetkileri (0007) geri getirmiyordu.
+  #
+  # Sayi saymak yetmez; YANLIS OLANI aramak gerekir. Bu sorgu, anonim
+  # kullanicinin OKUMAMASI gereken tablolarda SELECT yetkisi olup olmadigina
+  # bakar. 0007'de `anon`a yalnizca bes referans tablosu birakildi.
+  # Beklenen sonuc: 0. Sifirdan buyuk her sayi, geri yuklenen kopyada
+  # musteri verisinin anonim olarak okunabilecegi anlamina gelir.
+  $anonFazla = Sor @"
+select count(*) from information_schema.role_table_grants
+ where table_schema = 'public' and grantee = 'anon'
+   and privilege_type = 'SELECT'
+   and table_name not in ('uom','uom_conversion','permission','role','role_permission');
+"@
+  $anonOrnek = Sor @"
+select coalesce(string_agg(distinct table_name, ', '), '-')
+  from information_schema.role_table_grants
+ where table_schema = 'public' and grantee = 'anon'
+   and privilege_type = 'SELECT'
+   and table_name not in ('uom','uom_conversion','permission','role','role_permission');
+"@
+
   Write-Host ""
   Write-Host "================ PROVA SONUCU ================"
   Write-Host ("1. Veri                    {0}" -f $(if ($veriTamam) { "TAMAM" } else { "KALDI  (yukaridaki BOS/SORULAMADI satirlarina bak)" }))
@@ -187,6 +213,7 @@ try {
     @{ ad = "5. GRANT (okuma izni)"; deger = $grant; esik = 20; ek = "RLS ve GRANT ayri kapilardir" },
     @{ ad = "6. app fonksiyonu"; deger = $appFn; esik = 10; ek = "tetikleyicilerin dayandigi kod" }
   )
+  # Bu kontrol TERSTIR: buyuk sayi iyi degil, SIFIR iyidir.
   foreach ($k in $kontroller) {
     $d = $k.deger
     if ($null -eq $d -or $d -notmatch '^\d+$') {
@@ -199,10 +226,23 @@ try {
       Write-Host ("{0,-26} {1,-6} TAMAM  ({2})" -f $k.ad, $d, $k.ek)
     }
   }
+
+  # 7. kontrol ayri, cunku olcut ters: en az degil, EN FAZLA sifir.
+  if ($null -eq $anonFazla -or $anonFazla -notmatch '^\d+$') {
+    Write-Host ("{0,-26} SORULAMADI   ({1})" -f "7. Anonim fazla yetki", "sorgu calismadi")
+    $gecti = $false
+  } elseif ([int]$anonFazla -gt 0) {
+    Write-Host ("{0,-26} {1,-6} KALDI  (0 olmali; anonim bu tablolari okuyabiliyor)" -f "7. Anonim fazla yetki", $anonFazla)
+    Write-Host ("                           -> {0}" -f $anonOrnek)
+    $gecti = $false
+  } else {
+    Write-Host ("{0,-26} {1,-6} TAMAM  (anonim yalnizca referans tablolarini okuyor)" -f "7. Anonim fazla yetki", 0)
+  }
+
   Write-Host "=============================================="
 
   if ($gecti) {
-    Yaz "PROVA BASARILI. Alti kontrolun altisi da gecti. Yedek geri yuklenebilir."
+    Yaz "PROVA BASARILI. Yedi kontrolun yedisi de gecti. Yedek geri yuklenebilir."
   } else {
     Yaz "PROVA BASARISIZ. Yukaridaki KALDI satirlarina bak. Bu yedege guvenilmez."
   }

@@ -96,6 +96,12 @@ export const YEDEK_DISI_TABLOLAR: Record<string, string> = {
   tenant_backup_log:
     'Yedek alma geçmişi, KURULUMA ait bir üstveri. Başka bir kuruluma ' +
     'taşınırken eski kurulumun yedek geçmişi anlam taşımaz.',
+  business_application:
+    'Başvuru PLATFORMA ait, işletmeye değil (0032). İçindeki tenant_id bir ' +
+    'SAHİPLİK kolonu değil, SONUÇ BAĞI: başvurunun hangi işletmeye ' +
+    'dönüştüğünü gösterir. Bir işletmenin veri dosyasında, o işletmeyi ' +
+    'değerlendirirken MİYOP personelinin yazdığı karar notlarının bulunması ' +
+    'yanlış olurdu.',
 }
 
 export type TabloSonucu = {

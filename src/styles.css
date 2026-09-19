@@ -2746,6 +2746,19 @@ body.mobile-navigation-open { overflow:hidden; overscroll-behavior:contain }
 .modal-backdrop { position:fixed; inset:0; z-index:50; display:flex; align-items:flex-start; justify-content:center; overflow:auto; padding:var(--space-24); background:var(--color-rgba-17-24-39-55) }
 .stock-lot-modal { width:min(1180px, 100%); max-height:calc(100vh - 48px); overflow:auto; background:var(--surface); border-radius:var(--radius-card); padding:var(--space-16); box-shadow:var(--shadow-modal)}
 .barcode-preview-backdrop { z-index:95; align-items:center }
+
+/* ── Karar penceresi (A4D) ───────────────────────────────────────────────
+   Tarayıcının `prompt` diyaloğunun yerini alır: sayfa kilitlenmez, karar
+   verilen şey özet olarak görünür, gerekçe eşiği düğmeyi kapalı tutar.
+   Bkz. src/components/KararPenceresi.tsx */
+.karar-backdrop { z-index:96; align-items:center }
+.karar-penceresi { width:min(560px, 100%); display:grid; gap:var(--space-12) }
+.karar-ozet { display:grid; gap:var(--space-6); border:1px solid var(--line); border-radius:var(--radius-card); padding:var(--space-12); background:var(--surface-muted) }
+.karar-ozet-satir { display:flex; justify-content:space-between; gap:var(--space-12); align-items:baseline; flex-wrap:wrap }
+.karar-ozet-satir span { color:var(--muted); font-size:var(--font-size-12) }
+.karar-ozet-satir strong { overflow-wrap:anywhere }
+.karar-zorunlu { color:var(--danger) }
+.karar-esik { margin:0; font-size:var(--font-size-12) }
 .barcode-preview-modal { width:min(860px, 100%); max-height:calc(100vh - 48px); overflow:auto; background:var(--surface); border:1px solid var(--line); border-radius:var(--radius-card); padding:var(--space-16); box-shadow:var(--shadow-modal); display:grid; gap:var(--space-12) }
 .barcode-preview-header { align-items:start }
 .barcode-preview-toolbar { display:grid; grid-template-columns:repeat(2, minmax(0, 1fr)); gap:var(--space-12) }
