@@ -26,11 +26,16 @@ const gecerliForm = (yama: Partial<YeniBasvuru> = {}): YeniBasvuru => ({
   yetkiliAdi: 'Deneme Yetkili',
   telefon: '05321234567',
   eposta: 'deneme@ornek.com',
-  vergiNo: '1234567890',
-  vergiDairesi: 'Bornova',
   il: 'İzmir',
   ilce: 'Bornova',
   adres: 'Deneme Mahallesi 1. Sokak No 2',
+  // 0038: zorunlu olanlar bunlar.
+  subeSayisi: 1,
+  personelSayisi: 12,
+  // 0038: vergi bilgisi ARTIK ZORUNLU DEĞİL. Fikstürde dolu duruyor ki
+  // "dolu yazıldığında biçim kuralı hâlâ işliyor mu" sınanabilsin.
+  vergiNo: '1234567890',
+  vergiDairesi: 'Bornova',
   ...yama,
 })
 
@@ -60,6 +65,31 @@ describe('Form doğrulaması', () => {
   it('vergi numarası yalnız rakam', () => {
     expect(basvuruDogrula(gecerliForm({ vergiNo: '12345ABCDE' })))
       .toContain('Vergi/TC numarası yalnız rakamlardan oluşur.')
+  })
+
+  it('vergi bilgisi BOŞ bırakılabilir (0038)', () => {
+    // Başvuru anı sözleşme anı değil. Bu alanı zorunlu tutmak, henüz fiyat
+    // bile konuşmamış birinden vergi levhası istemek olurdu.
+    expect(basvuruDogrula(gecerliForm({ vergiNo: '', vergiDairesi: '' }))).toEqual([])
+    expect(basvuruDogrula(gecerliForm({ vergiNo: undefined, vergiDairesi: undefined }))).toEqual([])
+  })
+
+  it('şube sayısı zorunlu ve 1-500 arası', () => {
+    expect(basvuruDogrula(gecerliForm({ subeSayisi: null })))
+      .toContain('Şube sayısı zorunludur.')
+    expect(basvuruDogrula(gecerliForm({ subeSayisi: 0 })))
+      .toContain('Şube sayısı en az 1 olmalı.')
+    expect(basvuruDogrula(gecerliForm({ subeSayisi: 501 })))
+      .toContain('Şube sayısı en fazla 500 olabilir.')
+    expect(basvuruDogrula(gecerliForm({ subeSayisi: 1.5 })))
+      .toContain('Şube sayısı tam sayı olmalı.')
+    expect(basvuruDogrula(gecerliForm({ subeSayisi: Number('abc') })))
+      .toContain('Şube sayısı bir sayı olmalı.')
+  })
+
+  it('personel sayısı zorunlu', () => {
+    expect(basvuruDogrula(gecerliForm({ personelSayisi: null })))
+      .toContain('Yaklaşık personel sayısı zorunludur.')
   })
 
   it('vergi numarası 10 hane (vergi) ya da 11 hane (TC) olabilir', () => {
@@ -229,6 +259,7 @@ describe('Liste özeti', () => {
     firmaAdi: 'X', yetkiliAdi: 'Y', telefon: '05321234567',
     eposta: 'x@y.com', vergiNo: '1234567890', vergiDairesi: 'Z',
     il: 'İzmir', ilce: 'Bornova', adres: 'Adres',
+    subeSayisi: 1, personelSayisi: 10,
   })
 
   it('ilgi bekleyen sayısı beklemede + inceleniyor', () => {

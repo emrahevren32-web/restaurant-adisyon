@@ -36,11 +36,16 @@ export type YeniBasvuru = {
   yetkiliAdi: string
   telefon: string
   eposta: string
-  vergiNo: string
-  vergiDairesi: string
   il: string
   ilce: string
   adres: string
+  /** Bildirilen şube sayısı. ZORUNLU: onayda yalnız merkez şube açılıyor. */
+  subeSayisi: number | null
+  /** Yaklaşık personel sayısı. ZORUNLU: kaç hesap açılacağını bu söyler. */
+  personelSayisi: number | null
+  // ⚠️ 0038: vergi bilgisi ZORUNLU DEĞİL. Başvuru anı sözleşme anı değil.
+  vergiNo?: string
+  vergiDairesi?: string
   not?: string
 }
 
@@ -56,11 +61,15 @@ export type Basvuru = {
   yetkiliAdi: string
   telefon: string
   eposta: string
-  vergiNo: string
-  vergiDairesi: string
+  /** Boş olabilir (0038): başvuruda vergi bilgisi zorunlu değil. */
+  vergiNo?: string
+  vergiDairesi?: string
   il: string
   ilce: string
   adres: string
+  /** Eski kayıtlarda yok — o başvurulara bu soru hiç sorulmadı. */
+  subeSayisi?: number
+  personelSayisi?: number
   not?: string
   kararNotu?: string
   kararZamani?: string
@@ -124,11 +133,13 @@ type Satir = {
   owner_name: string
   phone: string
   email: string
-  tax_number: string
-  tax_office: string
+  tax_number: string | null
+  tax_office: string | null
   city: string
   district: string
   address: string
+  branch_count: number | null
+  staff_count: number | null
   note: string | null
   decision_note: string | null
   decided_at: string | null
@@ -137,7 +148,8 @@ type Satir = {
 
 const KOLONLAR =
   'id, reference, created_at, updated_at, status, sector_code, company_name, owner_name, ' +
-  'phone, email, tax_number, tax_office, city, district, address, note, ' +
+  'phone, email, tax_number, tax_office, city, district, address, ' +
+  'branch_count, staff_count, note, ' +
   'decision_note, decided_at, tenant_id'
 
 const durumaCevir = (ham: string): BasvuruDurumu =>
@@ -154,11 +166,13 @@ const basvuruyaCevir = (s: Satir): Basvuru => ({
   yetkiliAdi: s.owner_name,
   telefon: s.phone,
   eposta: s.email,
-  vergiNo: s.tax_number,
-  vergiDairesi: s.tax_office,
+  vergiNo: s.tax_number ?? undefined,
+  vergiDairesi: s.tax_office ?? undefined,
   il: s.city,
   ilce: s.district,
   adres: s.address,
+  subeSayisi: s.branch_count ?? undefined,
+  personelSayisi: s.staff_count ?? undefined,
   not: s.note ?? undefined,
   kararNotu: s.decision_note ?? undefined,
   kararZamani: s.decided_at ?? undefined,
@@ -177,11 +191,15 @@ export class PostgresBasvuruDefteri implements BasvuruDefteri {
       p_owner_name: basvuru.yetkiliAdi.trim(),
       p_phone: basvuru.telefon.trim(),
       p_email: basvuru.eposta.trim().toLowerCase(),
-      p_tax_number: basvuru.vergiNo.trim(),
-      p_tax_office: basvuru.vergiDairesi.trim(),
       p_city: basvuru.il.trim(),
       p_district: basvuru.ilce.trim(),
       p_address: basvuru.adres.trim(),
+      p_branch_count: basvuru.subeSayisi,
+      p_staff_count: basvuru.personelSayisi,
+      // ⚠️ Boş vergi alanı boş METİN değil `null` gitmeli: '' veritabanında
+      // "yazıldı ama boş" demektir, null "sorulmadı/verilmedi" demektir.
+      p_tax_number: basvuru.vergiNo?.trim() || null,
+      p_tax_office: basvuru.vergiDairesi?.trim() || null,
       p_sector_code: basvuru.sektorKodu ?? 'industrial-kitchen',
       p_note: basvuru.not?.trim() || null,
     })
@@ -303,8 +321,10 @@ export class BellekBasvuruDefteri implements BasvuruDefteri {
       yetkiliAdi: basvuru.yetkiliAdi.trim(),
       telefon: basvuru.telefon.trim(),
       eposta: basvuru.eposta.trim().toLowerCase(),
-      vergiNo: basvuru.vergiNo.trim(),
-      vergiDairesi: basvuru.vergiDairesi.trim(),
+      vergiNo: basvuru.vergiNo?.trim() || undefined,
+      vergiDairesi: basvuru.vergiDairesi?.trim() || undefined,
+      subeSayisi: basvuru.subeSayisi ?? undefined,
+      personelSayisi: basvuru.personelSayisi ?? undefined,
       il: basvuru.il.trim(),
       ilce: basvuru.ilce.trim(),
       adres: basvuru.adres.trim(),

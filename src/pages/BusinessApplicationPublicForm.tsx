@@ -46,11 +46,32 @@ const createEmptyForm = (): BusinessApplicationFormInput => ({
 
 type Sonuc = { referans: string; gercekKayit: boolean }
 
+/**
+ * Şube ve personel sayısı (0038).
+ *
+ * ⚠️ Bunlar `BusinessApplicationFormInput` içinde DEĞİL, bilerek. O tip
+ * eski localStorage yolunun da tipi; oraya alan eklemek, hiç kullanılmayan
+ * bir kod yolunu değiştirmek olurdu. Bu iki alan yeni veritabanı yolunun
+ * alanları, o yüzden ayrı duruyorlar.
+ *
+ * Metin olarak tutuluyorlar: sayı girdisi boşken `NaN` yerine boş metin
+ * olsun ki "yazmadı" ile "0 yazdı" ayrılabilsin.
+ */
+type OlcuAlanlari = { subeSayisi: string; personelSayisi: string }
+
+/** '' → null (yazmadı), '3' → 3, 'abc' → NaN (hatalı). */
+const sayiyaCevir = (metin: string): number | null => {
+  const temiz = metin.trim()
+  if(temiz.length === 0) return null
+  return Number(temiz)
+}
+
 export default function BusinessApplicationPublicForm(){
   const [values, setValues] = React.useState<BusinessApplicationFormInput>(() => createEmptyForm())
   const [sonuc, setSonuc] = React.useState<Sonuc | null>(null)
   const [hatalar, setHatalar] = React.useState<string[]>([])
   const [gonderiliyor, setGonderiliyor] = React.useState(false)
+  const [olcu, setOlcu] = React.useState<OlcuAlanlari>({ subeSayisi: '', personelSayisi: '' })
   const sectors = React.useMemo(() => loadSectors(), [])
 
   const gercekVeritabani = resolveStockRepositoryMode() === 'postgres' && isSupabaseConfigured()
@@ -68,11 +89,14 @@ export default function BusinessApplicationPublicForm(){
     yetkiliAdi: values.ownerName,
     telefon: values.phone,
     eposta: values.email,
-    vergiNo: values.taxNumber,
-    vergiDairesi: values.taxOffice,
+    // 0038: vergi bilgisi isteğe bağlı. Boş metin değil `undefined` gidiyor.
+    vergiNo: values.taxNumber.trim() || undefined,
+    vergiDairesi: values.taxOffice.trim() || undefined,
     il: values.city,
     ilce: values.district,
     adres: values.address,
+    subeSayisi: sayiyaCevir(olcu.subeSayisi),
+    personelSayisi: sayiyaCevir(olcu.personelSayisi),
     not: values.note,
   })
 
@@ -96,6 +120,7 @@ export default function BusinessApplicationPublicForm(){
         setSonuc({ referans: eski.id, gercekKayit: false })
       }
       setValues(createEmptyForm())
+      setOlcu({ subeSayisi: '', personelSayisi: '' })
     } catch(e){
       setHatalar([e instanceof Error ? e.message : 'Başvuru gönderilemedi.'])
     } finally {
@@ -107,6 +132,7 @@ export default function BusinessApplicationPublicForm(){
 
   const createNewApplication = () => {
     setValues(createEmptyForm())
+    setOlcu({ subeSayisi: '', personelSayisi: '' })
     setSonuc(null)
     setHatalar([])
   }
@@ -192,16 +218,46 @@ export default function BusinessApplicationPublicForm(){
               <input inputMode="email" value={values.email} onChange={event => updateField('email', event.target.value)} />
             </div>
           </div>
+          {/* ⚠️ Şube sayısı bir FİYAT sorusu değil, KURULUM sorusu: onayda
+              sistem tek bir merkez şube açıyor. Dört şubeli bir işletmeyi
+              onaydan sonra öğrenmek, kurulumu baştan yapmak demek. */}
           <div className="form-row">
             <div className="form-field">
-              <label>Vergi Dairesi</label>
+              <label>Şube Sayısı</label>
+              <input
+                inputMode="numeric"
+                placeholder="örn. 1"
+                value={olcu.subeSayisi}
+                onChange={event => setOlcu(o => ({ ...o, subeSayisi: event.target.value }))}
+              />
+              <span className="muted small-text">Merkez dâhil, toplam kaç noktada üretim/servis var?</span>
+            </div>
+            <div className="form-field">
+              <label>Yaklaşık Personel Sayısı</label>
+              <input
+                inputMode="numeric"
+                placeholder="örn. 25"
+                value={olcu.personelSayisi}
+                onChange={event => setOlcu(o => ({ ...o, personelSayisi: event.target.value }))}
+              />
+              <span className="muted small-text">Tam sayı olması gerekmiyor, yaklaşık yeterli.</span>
+            </div>
+          </div>
+          {/* Vergi bilgisi ZORUNLU DEĞİL (0038). Başvuru anı sözleşme anı
+              değil; bu bilgi fatura kesilirken kesin olarak alınacak. */}
+          <div className="form-row">
+            <div className="form-field">
+              <label>Vergi Dairesi <span className="muted small-text">· isteğe bağlı</span></label>
               <input value={values.taxOffice} onChange={event => updateField('taxOffice', event.target.value)} />
             </div>
             <div className="form-field">
-              <label>Vergi / TC Numarası</label>
+              <label>Vergi / TC Numarası <span className="muted small-text">· isteğe bağlı</span></label>
               <input inputMode="numeric" value={values.taxNumber} onChange={event => updateField('taxNumber', event.target.value)} />
             </div>
           </div>
+          <p className="muted small-text">
+            Vergi bilgisini şimdi vermek zorunda değilsiniz; sözleşme aşamasında alıyoruz.
+          </p>
           <div className="form-row">
             <div className="form-field">
               <label>İl</label>

@@ -67,9 +67,9 @@ declare
 begin
   v_ref := public.basvuru_gonder(
     'Gümüş Tavukçuluk', 'Turgut Özer', '02324786854',
-    'prova-akis@example.com', '39432904234', 'bornova',
-    'izmir', 'bornova', 'pınarbaşı çamlık parkı karşısı',
-    'industrial-kitchen', 'prova akis notu');
+    'prova-akis@example.com', 'izmir', 'bornova',
+    'pınarbaşı çamlık parkı karşısı', 2, 18,
+    '39432904234', 'bornova', 'industrial-kitchen', 'prova akis notu');
 
   if v_ref !~ '^MIY-[23456789ACDEFGHJKMNPQRTUVWXYZ]{5}$' then
     raise exception 'Numara bicimi beklenmedik: %', v_ref;
@@ -154,8 +154,8 @@ declare
 begin
   v_ref := public.basvuru_gonder(
     'Gümüş Tavukçuluk', 'Ikinci Yetkili', '02324786855',
-    'prova-akis-2@example.com', '39432904235', 'bornova',
-    'izmir', 'bornova', 'ikinci adres', 'industrial-kitchen');
+    'prova-akis-2@example.com', 'izmir', 'bornova', 'ikinci adres',
+    1, 6, '39432904235', 'bornova', 'industrial-kitchen');
   select id into v_id from business_application where reference = v_ref;
   update business_application set status = 'IN_REVIEW' where id = v_id;
   select kiraci_kodu into v_kod from public.basvuruyu_onayla(v_id, 'ikinci isletme');
@@ -171,3 +171,52 @@ union all
 select 'acilan kiraci', count(*)::text from tenant where name = 'Gümüş Tavukçuluk'
 union all
 select 'onaylanan basvuru', count(*)::text from business_application where status = 'APPROVED';
+
+-- ═══════════════════════════════════════════════════════════════════════════
+-- EKRANIN YETKİSİYLE KARAR VERME (0037'den sonra eklendi)
+--
+-- ⚠️ Buraya kadarki her şey SAHİP oturumunda koştu. Canlıda ekran `authenticated`
+-- rolüyle konuşuyor ve tam orada patladı:
+--     "permission denied for table business_application_event"
+-- Sebep: olay tetikleyicisi çağıranın yetkisiyle yazmaya çalışıyordu.
+--
+-- Prova sahip yetkisiyle koştuğu için bunu göremedi. Artık rol değiştirip
+-- ekranın yaptığı işi ekranın yetkisiyle yapıyoruz.
+-- ═══════════════════════════════════════════════════════════════════════════
+
+select public.basvuru_gonder(
+  'Yetki Provasi Gida', 'Deneme Yetkili', '05321234999',
+  'yetki-provasi@example.com', 'izmir', 'bornova', 'yetki provasi adresi',
+  1, 4, null, null, 'industrial-kitchen') as yeni_basvuru \gset
+
+set role authenticated;
+
+-- "İncelemeye Al" düğmesinin yaptığı iş.
+update business_application set status = 'IN_REVIEW'
+ where reference = :'yeni_basvuru';
+
+-- "Onayla" düğmesinin yaptığı iş — dış kapıdan.
+select kiraci_kodu as onayla_kiraci_kodu
+  from public.basvuruyu_onayla(
+    (select id from business_application where reference = :'yeni_basvuru'),
+    'ekran yetkisiyle onay provasi');
+
+reset role;
+
+do $$
+declare
+  v_olay int;
+begin
+  select count(*) into v_olay
+    from business_application_event e
+    join business_application a on a.id = e.application_id
+   where a.reference is not null and a.email = 'yetki-provasi@example.com';
+
+  if v_olay <> 3 then
+    raise exception 'Ekran yetkisiyle olay defteri dolmadi (beklenen 3, gelen %).', v_olay;
+  end if;
+  raise notice 'Ekran yetkisiyle karar verildi ve olay defteri doldu (% olay).', v_olay;
+end $$;
+
+-- Prova satırlarını bırakma: bakım fonksiyonu @example.com satırlarını siler.
+select app.dogrulama_kayitlarini_sil() as prova_satiri_silindi;

@@ -76,6 +76,22 @@ const aramaAnahtari = (deger: string) => deger
   .replace(/ı/g, 'i')
   .replace(/[^a-z0-9]+/g, '')
 
+/**
+ * Vergi bilgisi başvuruda isteğe bağlı (0038). Eksikliği GİZLEMİYORUZ:
+ * boş bir kutu "yok mu, yüklenmedi mi" belirsizliği bırakır.
+ */
+const vergiMetni = (b: Basvuru): string => {
+  const daire = (b.vergiDairesi ?? '').trim()
+  const no = (b.vergiNo ?? '').trim()
+  if(!daire && !no) return 'Verilmedi — ön görüşmede alınacak'
+  if(daire && no) return `${daire} / ${no}`
+  return daire || no
+}
+
+/** Eski başvurularda bu soru hiç sorulmadı; "0" yazmak uydurmak olurdu. */
+const sayiMetni = (deger?: number): string =>
+  typeof deger === 'number' ? String(deger) : 'Sorulmamış'
+
 const durumSinifi = (durum: BasvuruDurumu) => {
   if(durum === 'APPROVED') return 'success'
   if(durum === 'REJECTED' || durum === 'CANCELLED') return 'danger'
@@ -153,7 +169,8 @@ export default function PendingApplications({ currentUser, initialApplicationId 
   const [secilenId, setSecilenId] = React.useState(initialApplicationId ?? '')
   const [olaylar, setOlaylar] = React.useState<BasvuruOlayi[]>([])
   const [karar, setKarar] = React.useState<{ tur: KararTuru; basvuru: Basvuru } | null>(null)
-  const [onaySonucu, setOnaySonucu] = React.useState<(OnaySonucu & { firmaAdi: string }) | null>(null)
+  const [onaySonucu, setOnaySonucu] =
+    React.useState<(OnaySonucu & { firmaAdi: string; subeSayisi?: number }) | null>(null)
 
   const tazele = React.useCallback(async () => {
     if(!defter) { setYukleniyor(false); return }
@@ -272,7 +289,7 @@ export default function PendingApplications({ currentUser, initialApplicationId 
     const { tur, basvuru } = karar
     if(tur === 'onay'){
       const sonuc = await defter.onayla(basvuru.id, not)
-      setOnaySonucu({ ...sonuc, firmaAdi: basvuru.firmaAdi })
+      setOnaySonucu({ ...sonuc, firmaAdi: basvuru.firmaAdi, subeSayisi: basvuru.subeSayisi })
       setMesaj('')
     } else {
       await defter.karar(basvuru.id, { durum: KARAR_METNI[tur].hedef, gerekce: not })
@@ -306,6 +323,16 @@ export default function PendingApplications({ currentUser, initialApplicationId 
               <span>Oluşturulanlar</span><strong>Kiracı · Firma · Merkez şube</strong>
             </div>
           </div>
+          {/* ⚠️ Onay TEK şube açar. Başvuruda daha fazlası bildirildiyse
+              bunu söylemek zorundayız; yoksa "kurulum tamam" sanılır ve
+              eksik kurulmuş bir işletme müşteriye teslim edilir. */}
+          {typeof onaySonucu.subeSayisi === 'number' && onaySonucu.subeSayisi > 1 && (
+            <p className="muted">
+              <strong>Bu işletme {onaySonucu.subeSayisi} şube bildirdi.</strong> Şu an yalnızca
+              merkez şube açıldı — diğer {onaySonucu.subeSayisi - 1} şubeyi Şube Yönetimi'nden
+              siz eklemelisiniz.
+            </p>
+          )}
           {/* ⚠️ Bu uyarı kaldırılmayacak. Eskiden burada geçici şifreli bir
               "İlk Giriş Bilgileri" kartı vardı ve o şifre ÇALIŞMIYORDU. */}
           <p className="muted">
@@ -407,17 +434,31 @@ export default function PendingApplications({ currentUser, initialApplicationId 
                   <td className="actions-cell">
                     <button className="btn" type="button" onClick={() => setSecilenId(b.id)}>İncele</button>
                     {/* ⚠️ Düğmeler geçiş tablosuna göre açılıyor. Yapılamayacak
-                        bir işi sunan düğme, kullanıcıyı hataya gönderir. */}
+                        bir işi sunan düğme, kullanıcıyı hataya gönderir.
+                        AMA düğmeyi tamamen GİZLEMEK de yanlış: Emrah haklı
+                        olarak "Onayla düğmesi nerede?" diye sordu. Bekleyen
+                        bir başvuruda onay yok, çünkü önce incelenmesi
+                        gerekiyor — ekran bunu söylemiyordu. Artık düğme
+                        duruyor, pasif ve sebebini yazıyor. */}
                     {gecisGecerliMi(b.durum, 'IN_REVIEW') && (
                       <button className="btn" type="button" onClick={() => void incelemeyeAl(b)}>
                         İncelemeye Al
                       </button>
                     )}
-                    {gecisGecerliMi(b.durum, 'APPROVED') && (
+                    {gecisGecerliMi(b.durum, 'APPROVED') ? (
                       <button className="btn primary" type="button" onClick={() => setKarar({ tur: 'onay', basvuru: b })}>
                         Onayla
                       </button>
-                    )}
+                    ) : b.durum === 'PENDING' ? (
+                      <button
+                        className="btn"
+                        type="button"
+                        disabled
+                        title="Onay, incelemeye alınmış başvurular için açılır. Önce “İncelemeye Al” deyin."
+                      >
+                        Onayla
+                      </button>
+                    ) : null}
                     {gecisGecerliMi(b.durum, 'REJECTED') && (
                       <button className="btn" type="button" onClick={() => setKarar({ tur: 'ret', basvuru: b })}>
                         Reddet
@@ -440,6 +481,15 @@ export default function PendingApplications({ currentUser, initialApplicationId 
               )}
             </tbody>
           </table>
+
+          {/* Akış tek cümleyle yazılı duruyor. Sıra bilinmeden bakan biri
+              "Onayla nerede?" diye sorar — bir kez soruldu. */}
+          <p className="muted small-text">
+            Sıra: <strong>İncele</strong> → <strong>İncelemeye Al</strong> → <strong>Onayla</strong>{' '}
+            ya da <strong>Reddet</strong>. Onay yalnızca incelemeye alınmış başvurularda
+            açılır; böylece hiçbir işletme okunmadan açılmaz. Her karar gerekçesiyle
+            birlikte kalıcı kayda geçer.
+          </p>
         </div>
       </section>
 
@@ -457,7 +507,15 @@ export default function PendingApplications({ currentUser, initialApplicationId 
             <div><span>Yetkili</span><strong>{secilen.yetkiliAdi}</strong></div>
             <div><span>E-posta</span><strong>{secilen.eposta}</strong></div>
             <div><span>Telefon</span><strong>{secilen.telefon}</strong></div>
-            <div><span>Vergi Bilgisi</span><strong>{secilen.vergiDairesi} / {secilen.vergiNo}</strong></div>
+            {/* 0038: vergi bilgisi başvuruda zorunlu değil. Eksikse ekran
+                bunu AÇIKÇA söyler — boş bir kutu "bilinmiyor" demez. */}
+            <div>
+              <span>Vergi Bilgisi</span>
+              <strong>{vergiMetni(secilen)}</strong>
+            </div>
+            {/* Şube sayısı kurulum kararıdır: onayda yalnız merkez açılıyor. */}
+            <div><span>Şube Sayısı</span><strong>{sayiMetni(secilen.subeSayisi)}</strong></div>
+            <div><span>Personel Sayısı</span><strong>{sayiMetni(secilen.personelSayisi)}</strong></div>
             <div><span>Adres</span><strong>{secilen.adres}, {secilen.il} / {secilen.ilce}</strong></div>
             {secilen.not && <div><span>Başvuru notu</span><strong>{secilen.not}</strong></div>}
             {secilen.kararNotu && <div><span>Karar gerekçesi</span><strong>{secilen.kararNotu}</strong></div>}
