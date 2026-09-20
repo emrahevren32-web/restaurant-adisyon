@@ -25,7 +25,10 @@
 //   sessizce silmek, "sildim" deyip silememek riskini taşırdı.
 // ═══════════════════════════════════════════════════════════════════════════
 
-import { createClient } from 'jsr:@supabase/supabase-js@2'
+// ⚠️ `npm:` öneki. Supabase panelinin kod düzenleyicisi bu biçimi her
+// zaman çözüyor; `jsr:` bazı çalışma ortamlarında bulunamıyor ve fonksiyon
+// daha ilk satırda çöküyor — dışarıdan görünen tek şey "non-2xx" oluyor.
+import { createClient } from 'npm:@supabase/supabase-js@2'
 
 const BASLIKLAR = {
   'Access-Control-Allow-Origin': '*',
@@ -35,11 +38,31 @@ const BASLIKLAR = {
 }
 
 /** Tek biçimli cevap. Ekran `hata` alanını kullanıcıya olduğu gibi gösterir. */
-const cevap = (govde: Record<string, unknown>, durum = 200) =>
-  new Response(JSON.stringify(govde), { status: durum, headers: BASLIKLAR })
+const cevap = (govde: Record<string, unknown>, durum = 200) => {
+  // ⚠️ Her hata Logs'a da yazılıyor. Tarayıcıya giden cümle kısa ve
+  // Türkçe; burada ise tam metin kalıyor, çünkü teşhis panelden yapılıyor.
+  if (durum >= 400) console.error('[isletme-hesabi-ac]', durum, JSON.stringify(govde))
+  return new Response(JSON.stringify(govde), { status: durum, headers: BASLIKLAR })
+}
 
 Deno.serve(async (istek: Request) => {
   if (istek.method === 'OPTIONS') return new Response('ok', { headers: BASLIKLAR })
+
+  // ⚠️ Beklenmeyen bir çökme de ANLAŞILIR bir cevap dönmeli. Yakalanmayan
+  // hata, tarayıcıya gövdesiz bir 500 olarak gider ve ekranda yalnızca
+  // "non-2xx" görünür — yani sebep kaybolur.
+  try {
+    return await isleyici(istek)
+  } catch (e) {
+    const metin = e instanceof Error ? `${e.message}` : String(e)
+    console.error('[isletme-hesabi-ac] beklenmeyen hata:', metin)
+    return cevap({ hata: `Sunucu tarafında beklenmeyen hata: ${metin}` }, 500)
+  }
+})
+
+// Bildirim biçiminde (arrow değil): böylece `Deno.serve` modül daha
+// yüklenirken bir istek alsa bile bu ad tanımlı olur.
+async function isleyici(istek: Request): Promise<Response> {
   if (istek.method !== 'POST') return cevap({ hata: 'Yalnız POST.' }, 405)
 
   const url = Deno.env.get('SUPABASE_URL')
@@ -151,4 +174,4 @@ Deno.serve(async (istek: Request) => {
     eposta: satir?.eposta ?? basvuru.email,
     kiraciKodu: satir?.kiraci_kodu ?? null,
   })
-})
+}

@@ -28415,3 +28415,26 @@ button:hover:not(:disabled):not(.primary) {
   background: color-mix(in srgb, var(--accent) 22%, var(--surface));
   color: var(--accent);
 }
+
+/* ── Davet / şifre belirleme ekranı (A4D madde 6) ────────────────────────
+   Müşterinin MİYOP'la ilk teması. Giriş ekranının tanıtım bölümü YOK:
+   burada tek bir iş var ve dikkat dağıtacak hiçbir şey olmamalı. */
+.auth-screen {
+  min-height:100vh;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  padding:var(--space-24);
+  background:var(--bg);
+}
+.auth-card {
+  width:min(440px, 100%);
+  height:auto;                 /* ⚠️ `.card`ın height:100% kuralını kırar */
+  display:grid;
+  align-content:start;
+  gap:var(--space-12);
+}
+.auth-card form { display:grid; gap:var(--space-12) }
+.auth-card ul.form-error { margin:0; padding-left:var(--space-20) }
+.form-check { display:flex; align-items:center; gap:var(--space-8); font-size:var(--font-size-13) }
+.form-check input { width:auto; margin:0 }

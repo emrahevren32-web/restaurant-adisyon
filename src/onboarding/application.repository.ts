@@ -203,6 +203,71 @@ const basvuruyaCevir = (s: Satir): Basvuru => ({
   kiraciId: s.tenant_id ?? undefined,
 })
 
+/**
+ * Edge Function'ın GÖVDESİNDEKİ hata cümlesini okur.
+ *
+ * ⚠️ supabase-js, fonksiyon 2xx dışında bir şey döndürdüğünde `data`yı
+ * null yapar ve gövdeyi `error.context` (bir `Response`) içinde saklar.
+ * Okumazsak kullanıcı yalnızca "returned a non-2xx status code" görür —
+ * yani sunucunun özenle yazdığı Türkçe açıklama çöpe gider.
+ *
+ * Okunamazsa boş döner; çağıran genel bir cümleye düşer.
+ */
+const edgeGovdesindekiHata = async (error: unknown): Promise<string> => {
+  const baglam = (error as { context?: unknown })?.context
+  if(!baglam || typeof (baglam as Response).text !== 'function') return ''
+  try {
+    const metin = await (baglam as Response).clone().text()
+    if(!metin) return ''
+    try {
+      const govde = JSON.parse(metin) as { hata?: string; error?: string; message?: string }
+      return govde.hata || govde.error || govde.message || ''
+    } catch {
+      // JSON değilse ham metin yine de bir şey söyler (ör. Deno çökme izi).
+      return metin.slice(0, 300)
+    }
+  } catch {
+    return ''
+  }
+}
+
+/**
+ * Veritabanı hatasını insan cümlesine çevirir.
+ *
+ * ── NEDEN VAR ─────────────────────────────────────────────────────────────
+ * Ekran şunu gösterdi: "Başvuru okunamadı: permission denied for table
+ * business_application". Bu cümle Emrah'a hiçbir şey söylemiyor, üstelik
+ * YANLIŞ yöne bakmasına sebep oluyor — sanki yetki ayarı bozulmuş gibi.
+ *
+ * Gerçek sebep başkaydı: `anon` rolünün o tabloda okuma yetkisi YOK ve
+ * OLMAMALI (0032, bilinçli). Bu hatayı alıyorsak istek oturumsuz gitmiş
+ * demektir; yani Supabase oturumu düşmüş, tarayıcı `anon` olarak
+ * konuşuyor. Ekran ise kullanıcı bilgisini kendi hafızasında tuttuğu için
+ * hâlâ "Emrah Evren · ADMIN" yazıyor. İkisi ayrışınca ortaya çıkan tablo
+ * bir yetki arızası gibi görünüyor, oysa tek gereken yeniden giriş.
+ */
+export const veritabaniHatasiniCevir = (
+  error: { message?: string; code?: string } | null,
+  islem: string,
+): string => {
+  const ham = error?.message ?? ''
+
+  if(/permission denied/i.test(ham)){
+    return 'Oturumunuzun süresi dolmuş görünüyor. Çıkış yapıp tekrar giriş '
+      + 'yapın; sonra bu ekran yeniden çalışacak. (Sunucu isteği oturumsuz '
+      + 'olarak gördü.)'
+  }
+  if(/JWT expired|token is expired|invalid claim/i.test(ham)){
+    return 'Oturumunuzun süresi dolmuş. Çıkış yapıp tekrar giriş yapın.'
+  }
+  if(/schema cache/i.test(ham)){
+    return `${islem}: veritabanı yenilendi ama Supabase'in şema önbelleği eski. `
+      + 'scripts/tani/postgrest-onbellek-yenile.sql dosyasını SQL Editor\'de '
+      + 'çalıştırın.'
+  }
+  return `${islem}: ${ham || 'bilinmeyen hata'}`
+}
+
 export class PostgresBasvuruDefteri implements BasvuruDefteri {
   constructor(private readonly client: SupabaseClient) {}
 
@@ -250,14 +315,14 @@ export class PostgresBasvuruDefteri implements BasvuruDefteri {
       .order('created_at', { ascending: false })
     if(durumlar && durumlar.length > 0) sorgu = sorgu.in('status', durumlar)
     const { data, error } = await sorgu
-    if(error) throw new Error(`Başvurular okunamadı: ${error.message}`)
+    if(error) throw new Error(veritabaniHatasiniCevir(error, 'Başvurular okunamadı'))
     return ((data as unknown as Satir[] | null) ?? []).map(basvuruyaCevir)
   }
 
   async tekil(id: string): Promise<Basvuru | null> {
     const { data, error } = await this.client
       .from('business_application').select(KOLONLAR).eq('id', id).maybeSingle()
-    if(error) throw new Error(`Başvuru okunamadı: ${error.message}`)
+    if(error) throw new Error(veritabaniHatasiniCevir(error, 'Başvuru okunamadı'))
     return data ? basvuruyaCevir(data as unknown as Satir) : null
   }
 
@@ -267,7 +332,7 @@ export class PostgresBasvuruDefteri implements BasvuruDefteri {
       .select('id, occurred_at, from_status, to_status, actor_name, note')
       .eq('application_id', id)
       .order('occurred_at', { ascending: true })
-    if(error) throw new Error(`Başvuru geçmişi okunamadı: ${error.message}`)
+    if(error) throw new Error(veritabaniHatasiniCevir(error, 'Başvuru geçmişi okunamadı'))
     type OlaySatiri = {
       id: number; occurred_at: string; from_status: string | null
       to_status: string; actor_name: string | null; note: string | null
@@ -308,16 +373,17 @@ export class PostgresBasvuruDefteri implements BasvuruDefteri {
       body: { basvuruId: id, yonlendirme: `${window.location.origin}/` },
     })
 
-    // Edge Function 4xx/5xx döndürdüğünde istemci `error` verir ama asıl
-    // CÜMLE gövdededir. Ham "Edge Function returned a non-2xx status code"
-    // metnini ekrana basmak, kullanıcıya hiçbir şey söylemez.
     if(error){
-      const govdedeki = (data as { hata?: string } | null)?.hata
+      // ⚠️ BURADA BİR KEZ YANLIŞ YAPTIM VE HATANIN SEBEBİNİ SAKLADIM.
+      // supabase-js, fonksiyon 4xx/5xx döndürdüğünde `data`yı NULL yapar;
+      // sunucunun yazdığı cümle `error.context` içindeki Response
+      // nesnesindedir. `data.hata` okumak hiçbir zaman çalışmıyordu ve
+      // ekrana "Edge Function returned a non-2xx status code" basılıyordu —
+      // yani gerçek sebep hiç görünmüyordu.
+      const govdedeki = await edgeGovdesindekiHata(error)
       if(govdedeki) throw new Error(govdedeki)
 
-      // ⚠️ "Failed to send a request to the Edge Function" hemen her zaman
-      // TEK bir şey demektir: fonksiyon henüz Supabase'e kurulmamış. Ham
-      // İngilizce metni ekrana basmak kullanıcıya hiçbir şey söylemez.
+      // Fonksiyon hiç kurulmamışsa istek sunucuya ulaşamaz.
       if(/Failed to send a request|Function not found|404/i.test(error.message)){
         throw new Error(
           'Giriş hesabı servisi Supabase\'e henüz kurulmamış. ' +
@@ -325,7 +391,25 @@ export class PostgresBasvuruDefteri implements BasvuruDefteri {
           'fonksiyonunu kurun (docs/edge-function-kurulum.md).',
         )
       }
-      throw new Error(`Giriş hesabı açılamadı: ${error.message}`)
+
+      // Kimlik doğrulama kapısı: fonksiyonun "Verify JWT" ayarı açıkken,
+      // oturum jetonu o ayarın beklediği biçimde imzalanmamışsa sunucu
+      // gövdesiz 401 döner ve yukarıdaki okuma boş kalır.
+      const durum = (error as { context?: { status?: number } }).context?.status
+      if(durum === 401 || durum === 403){
+        throw new Error(
+          'Giriş hesabı servisi isteği reddetti (' + durum + '). Supabase panelinde '
+          + 'Edge Functions → isletme-hesabi-ac → Settings altındaki '
+          + '"Verify JWT with legacy secret" ayarını KAPATIN. Yetki denetimi '
+          + 'zaten fonksiyonun kendi içinde yapılıyor.',
+        )
+      }
+
+      throw new Error(
+        `Giriş hesabı açılamadı${durum ? ` (${durum})` : ''}: ${error.message}. `
+        + 'Ayrıntı için Supabase panelinde Edge Functions → isletme-hesabi-ac → '
+        + 'Logs sekmesine bakın.',
+      )
     }
     const sonuc = data as { tamam?: boolean; hata?: string } & Partial<HesapSonucu>
     if(!sonuc?.tamam) throw new Error(sonuc?.hata || 'Giriş hesabı açılamadı.')
@@ -352,7 +436,7 @@ export class PostgresBasvuruDefteri implements BasvuruDefteri {
         updated_at: new Date().toISOString(),
       })
       .eq('id', id)
-    if(error) throw new Error(`Başvuru kararı yazılamadı: ${error.message}`)
+    if(error) throw new Error(veritabaniHatasiniCevir(error, 'Başvuru kararı yazılamadı'))
   }
 }
 

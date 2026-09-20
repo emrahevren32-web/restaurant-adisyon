@@ -18,6 +18,8 @@ import BillingManagement from './pages/BillingManagement'
 import SectorManagementCenter from './pages/SectorManagementCenter'
 import QRMenu from './pages/QRMenu'
 import Login from './pages/Login'
+import SifreBelirle from './pages/SifreBelirle'
+import { davetiCozumle, type DavetBilgisi } from './auth/davet'
 import AppShell, { ShellNavGroup, ShellNavItem } from './components/AppShell'
 import OnboardingExperience from './components/OnboardingExperience'
 import RouteErrorBoundary from './components/RouteErrorBoundary'
@@ -394,7 +396,19 @@ const getRouteSecurityTarget = (route: Route, authState: AuthenticationState) =>
   return resolveSecurityTargetForIdentity(authState.pipeline.identity)
 }
 
+/**
+ * Davet bağlantısı, adresin `#` kısmında gelir (A4D madde 6).
+ *
+ * ⚠️ BİR KEZ, MODÜL YÜKLENİRKEN okunuyor. Sebebi: `SifreBelirle` ekranı
+ * jetonu oturuma çevirir çevirmez adres çubuğunu TEMİZLİYOR. Sonradan
+ * okusaydık, ilk çizimden sonra parça kaybolmuş olurdu ve kullanıcı
+ * "davet yok" sayılıp normal giriş ekranına düşerdi.
+ */
+const ILK_DAVET: DavetBilgisi =
+  typeof window === 'undefined' ? { durum: 'yok' } : davetiCozumle(window.location.hash)
+
 export default function App(){
+  const [davet, setDavet] = React.useState<DavetBilgisi>(ILK_DAVET)
   const qrRouteMatch = window.location.pathname.match(/^\/qr\/([^/?#]+)/)
   const businessApplicationRouteMatch = window.location.pathname.match(/^\/(?:basvuru|apply)\/?$/)
   const initialAuthState = React.useMemo(() => getInitialAuthenticationState({
@@ -807,6 +821,45 @@ export default function App(){
 
   if(businessApplicationRouteMatch){
     return <BusinessApplicationPublicForm />
+  }
+
+  // ⚠️ GİRİŞ EKRANINDAN ÖNCE. Davetli kullanıcının henüz şifresi yok;
+  // giriş ekranına düşerse hiçbir şey yapamaz ve neden yapamadığını da
+  // anlamaz.
+  if(davet.durum === 'var'){
+    return (
+      <div className="app-shell unified-auth-shell">
+        <SifreBelirle
+          tur={davet.tur}
+          erisimJetonu={davet.erisimJetonu}
+          yenilemeJetonu={davet.yenilemeJetonu}
+          onTamamlandi={() => setDavet({ durum: 'yok' })}
+          onVazgec={() => setDavet({ durum: 'yok' })}
+        />
+      </div>
+    )
+  }
+
+  if(davet.durum === 'hata'){
+    return (
+      <div className="app-shell unified-auth-shell">
+        <div className="auth-screen">
+          <section className="card auth-card">
+            <h2>Bağlantı çalışmadı</h2>
+            <p className="form-error">{davet.mesaj}</p>
+            <p className="muted">
+              Davet bağlantıları güvenlik gereği kısa ömürlüdür. MİYOP ekibinden
+              yeni bir davet istemeniz yeterli.
+            </p>
+            <div className="form-actions">
+              <button className="btn" type="button" onClick={() => setDavet({ durum: 'yok' })}>
+                Giriş ekranına dön
+              </button>
+            </div>
+          </section>
+        </div>
+      </div>
+    )
   }
 
   if(!currentUser){

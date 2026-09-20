@@ -30,13 +30,50 @@ göndermeyin.
    yapıştırın.
 5. **Deploy** deyin. Bir dakika sürebilir.
 
+## Supabase'de iki ayar (bir kez)
+
+Davet e-postasındaki bağlantı, müşteriyi bizim uygulamamıza geri gönderir.
+Supabase **yalnızca izin verilen adreslere** geri gönderir; liste boşsa
+bağlantı çalışmaz.
+
+Panelde **Authentication → URL Configuration**:
+
+| Alan | Değer |
+|---|---|
+| Site URL | `http://localhost:5173` |
+| Redirect URLs | `http://localhost:5173/**` |
+
+A5'te (Hetzner + alan adı) bu iki satır gerçek adresle değişecek.
+
 ## Doğrulama
 
 Panelde fonksiyonun durumu **Active** görünmeli.
 
-Sonra ekranda: onaylanmış bir işletmede **"Giriş hesabı aç ve davet gönder"**
-düğmesine basın. Başarılıysa kart kullanıcı adını ve davetin gittiği adresi
-yazar.
+### Uçtan uca prova — kendi e-postanızla
+
+Davet gerçek bir e-posta adresine gider, o yüzden provayı **kendi
+adresinizle** yapın. Adım adım:
+
+1. **Tarayıcıyı gizli pencerede aç** (Ctrl+Shift+N). Sebebi: kendi
+   yönetici oturumunuz açıkken davete tıklarsanız iki oturum çakışır.
+2. Gizli pencerede `http://localhost:5173/basvuru` adresine gidin ve formu
+   **kendi e-posta adresinizle** doldurun. (Aynı adresle bekleyen bir
+   başvuru varsa sistem ikinciyi kabul etmez; farklı bir adres kullanın,
+   ör. Gmail'de `adiniz+prova1@gmail.com` gibi.)
+3. Normal pencerede (yönetici oturumunuz) **Onay Bekleyen İşletmeler** →
+   yeni başvuru → **İncelemeye Al** → **Onayla ve işletmeyi aç**.
+4. Açılan kartta **"Giriş hesabı aç ve davet gönder"**. Kart, kullanıcı
+   adını ve davetin gittiği adresi yazmalı.
+5. **E-postanızı kontrol edin.** Konu İngilizce olacak (Supabase'in
+   şablonu), içinde bir bağlantı var. Gelen kutusunda yoksa **Spam**
+   klasörüne bakın.
+6. Bağlantıya **gizli pencerede** tıklayın. "Hoş geldiniz — kendinize bir
+   şifre belirleyin" ekranı açılmalı.
+7. Şifre belirleyin, sonra o şifreyle giriş yapın. İçeride kendi
+   işletmenizi görmelisiniz — MİYOP'un platform menülerini DEĞİL.
+
+7. adım aynı zamanda izolasyonun ilk kanıtı: davetli kullanıcı platform
+   yöneticisi değildir, "EVREN360 Yönetici Paneli" menüsünü görmemelidir.
 
 ## Dürüst sınırlar
 

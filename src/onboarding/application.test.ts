@@ -12,7 +12,7 @@
 
 import { describe, it, expect } from 'vitest'
 import {
-  BellekBasvuruDefteri, DURUM_ETIKETLERI, SON_DURUMLAR,
+  BellekBasvuruDefteri, DURUM_ETIKETLERI, SON_DURUMLAR, veritabaniHatasiniCevir,
   type BasvuruDurumu, type YeniBasvuru,
 } from './application.repository'
 import {
@@ -74,6 +74,39 @@ describe('Giriş hesabı açma (bellek defteri)', () => {
     expect((await defter.tekil(id))?.davetZamani).toBeUndefined()
     await defter.girisHesabiAc(id)
     expect((await defter.tekil(id))?.davetZamani).toBeTruthy()
+  })
+})
+
+describe('Veritabanı hatasının insan cümlesine çevrilmesi', () => {
+  it('"permission denied" oturum düşmesi olarak açıklanıyor', () => {
+    // ⚠️ Ekranda "permission denied for table business_application" çıktı ve
+    // yetki ayarı bozulmuş gibi göründü. Oysa `anon`un o tabloda okuma
+    // yetkisi YOK ve olmamalı (0032); bu hata "istek oturumsuz gitti"
+    // demektir.
+    const c = veritabaniHatasiniCevir(
+      { message: 'permission denied for table business_application' },
+      'Başvurular okunamadı',
+    )
+    expect(c).toMatch(/Oturumunuzun süresi dolmuş/)
+    expect(c).not.toMatch(/permission denied/)
+  })
+
+  it('süresi dolmuş jeton da aynı yere çıkıyor', () => {
+    expect(veritabaniHatasiniCevir({ message: 'JWT expired' }, 'x'))
+      .toMatch(/tekrar giriş/)
+  })
+
+  it('şema önbelleği hatası ne yapılacağını söylüyor', () => {
+    expect(veritabaniHatasiniCevir(
+      { message: "Could not find the table 'public.x' in the schema cache" }, 'Okunamadı',
+    )).toMatch(/onbellek-yenile\.sql/)
+  })
+
+  it('tanımadığı hatayı GİZLEMİYOR', () => {
+    // Bilmediği bir hatayı "bir şeyler ters gitti"ye çevirmek, teşhisi
+    // imkânsız kılar. Ham metin korunuyor.
+    expect(veritabaniHatasiniCevir({ message: 'deadlock detected' }, 'Yazılamadı'))
+      .toBe('Yazılamadı: deadlock detected')
   })
 })
 
