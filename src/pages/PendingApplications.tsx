@@ -124,7 +124,13 @@ const KARAR_METNI: Record<KararTuru, {
 }> = {
   onay: {
     baslik: 'Başvuruyu onayla',
-    aciklama: 'Onay işletmeyi açar: kiracı, firma ve merkez şube oluşturulur. Geri alınamaz.',
+    // ⚠️ "Onayla ve işletmeyi aç deyince ne olacak?" — Emrah sordu, demek
+    // ki ekran söylemiyordu. Artık adım adım yazıyor.
+    aciklama:
+      'Bu düğme şunları yapar: (1) müşteriye ait bir işletme kaydı (kiracı) açar, '
+      + '(2) başvurudaki bilgilerle firmayı oluşturur, (3) bir merkez şube açar. '
+      + 'GİRİŞ HESABI AÇMAZ — o ayrı bir adım, onaydan sonra düğmeyle yapılır. '
+      + 'Geri alınamaz.',
     notEtiketi: 'Onay gerekçesi',
     notIpucu: 'Örnek: belgeler tam, ilk ödemeyi 6. ay yapacak şekilde onaylandı.',
     eylem: 'Onayla ve işletmeyi aç',

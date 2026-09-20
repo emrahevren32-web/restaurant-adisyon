@@ -53,7 +53,13 @@ export default function KararPenceresi({
   const alanRef = React.useRef<HTMLTextAreaElement | null>(null)
 
   // Açılınca imleç nota gitsin: kullanıcı fareye uzanmak zorunda kalmasın.
-  React.useEffect(() => { alanRef.current?.focus() }, [])
+  //
+  // ⚠️ `preventScroll: true` ŞART. Düz `focus()` çağrısı tarayıcıya "bu
+  // alanı görünür yap" der; tarayıcı da bunu EN YAKIN KAYDIRILABİLİR ATAYI
+  // kaydırarak yapar — o da pencerenin zemini. Sonuç: pencere ekranın
+  // altına kayıyor, düğmelere ulaşmak için sayfayı küçültmek gerekiyordu.
+  // Pencere zaten ortalanmış; kaydırmaya ihtiyacı yok.
+  React.useEffect(() => { alanRef.current?.focus({ preventScroll: true }) }, [])
 
   // Esc ile kapanmak beklenen davranış. ⚠️ İşlem sürerken kapanmaz —
   // yarıda kesilen bir karar, kararsız bir kayıt bırakabilir.

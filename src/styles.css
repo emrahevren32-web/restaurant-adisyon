@@ -470,10 +470,14 @@ body.mobile-navigation-open { overflow:hidden; overscroll-behavior:contain }
 .notification-item-icon { display:inline-flex; align-items:center; justify-content:center; width:32px; height:32px; border:1px solid var(--accent-line); border-radius:var(--radius-md); background:var(--accent-soft); color:var(--accent) }
 .notification-item.warning .notification-item-icon { border-color:var(--warning-line); background:var(--warning-soft); color:var(--warning) }
 .notification-item.success .notification-item-icon { border-color:var(--success-line); background:var(--success-soft); color:var(--success) }
-.notification-item-copy { min-width:0 }
-.notification-item-copy strong { color:var(--text); font-size:13px; font-weight:var(--font-weight-600) }
-.notification-item-copy span { margin-top:2px; color:var(--text-soft); font-size:12px; font-weight:var(--font-weight-400) }
-.notification-item-copy small { margin-top:3px; color:var(--muted); font-size:11px; font-weight:var(--font-weight-400) }
+/* ⚠️ `display:block` ŞART. Bunlar satır içi öğe; alt alta yazılmış olmaları
+   ekranda alt alta çıkacakları anlamına gelmiyordu. Başlık, açıklama ve
+   alt satır birbirine yapışık akıyordu: "Giriş hesabı açılmadıGümüş
+   Tavukçuluk onaylandı ama…". `margin-top` da satır içi öğede etkisizdi. */
+.notification-item-copy { min-width:0; display:grid; gap:2px }
+.notification-item-copy strong { display:block; color:var(--text); font-size:13px; font-weight:var(--font-weight-600) }
+.notification-item-copy span { display:block; color:var(--text-soft); font-size:12px; font-weight:var(--font-weight-400); overflow-wrap:anywhere }
+.notification-item-copy small { display:block; margin-top:3px; color:var(--muted); font-size:11px; font-weight:var(--font-weight-400) }
 .notification-empty { padding:var(--space-20); text-align:center }
 .notification-empty strong { color:var(--text); font-size:13px; font-weight:var(--font-weight-600) }
 .notification-empty span { margin-top:4px; color:var(--muted); font-size:12px; font-weight:var(--font-weight-400) }
@@ -2751,7 +2755,12 @@ body.mobile-navigation-open { overflow:hidden; overscroll-behavior:contain }
    Tarayıcının `prompt` diyaloğunun yerini alır: sayfa kilitlenmez, karar
    verilen şey özet olarak görünür, gerekçe eşiği düğmeyi kapalı tutar.
    Bkz. src/components/KararPenceresi.tsx */
-.karar-backdrop { z-index:96; align-items:center }
+/* ⚠️ `overflow:hidden` bilinçli. Zemin `.modal-backdrop`tan `overflow:auto`
+   miras alıyordu; bir odaklanma ya da uzun içerik ZEMİNİ kaydırıyor,
+   pencere ekranın dışına çıkıyordu. Uzun içeriği pencerenin KENDİSİ
+   kaydırıyor (`.karar-penceresi`, max-height + overflow), o yüzden
+   zeminin kaymasına hiç gerek yok. */
+.karar-backdrop { z-index:96; align-items:center; overflow:hidden }
 /* ⚠️ `height:auto` ŞART. Pencere `.card` sınıfını da kullanıyor ve `.card`ın
    `height:100%` kuralı var (satır 98). Esnek kutu içinde bu, pencereyi ekran
    boyuna GERİYORDU: ızgara satırları aralara dağılıyor, "Onayla" düğmesi

@@ -69,6 +69,50 @@ const KURALLAR: Kural[] = [
 ]
 
 /**
+ * TC kimlik numarası geçerli mi?
+ *
+ * ── KURALLAR ─────────────────────────────────────────────────────────────
+ *   · 11 hane, hepsi rakam
+ *   · İlk hane 0 olamaz
+ *   · 10. hane = ((1,3,5,7,9. hanelerin toplamı × 7) − (2,4,6,8. hanelerin
+ *     toplamı)) mod 10
+ *   · 11. hane = ilk 10 hanenin toplamı mod 10
+ *
+ * ── "SON HANE HER ZAMAN ÇİFTTİR" ─────────────────────────────────────────
+ * Emrah bunu hatırlattı ve doğru. Üstelik kuralın kendisinden çıkıyor:
+ *   T = tek konumdaki haneler (1,3,5,7,9), C = çift konumdakiler (2,4,6,8)
+ *   d10 ≡ 7T − C          (mod 10)
+ *   d11 ≡ T + C + d10 ≡ T + C + 7T − C ≡ 8T   (mod 10)
+ * 8T her zaman çift olduğundan d11 de her zaman çifttir.
+ *
+ * Yani AYRI bir "son hane çift olmalı" kuralı yazmıyoruz: aşağıdaki
+ * hesap onu zaten kapsıyor. Ayrıca yazmak, aynı kuralı iki yere koymak
+ * olurdu — bu depoda o hatanın bedelini ödedik (0036).
+ *
+ * ⚠️ 10 HANELİ VERGİ NUMARASI SINANMIYOR. VKN'nin de bir kontrol
+ * algoritması var ama yanlış uygulanmış bir kontrol, GEÇERLİ numarayla
+ * gelen gerçek bir müşteriyi kapıda durdurur. Emin olmadığım bir kuralı
+ * kapı bekçisi yapmıyorum; şimdilik yalnız "10 hane, hepsi rakam".
+ */
+export const tcKimlikGecerliMi = (deger: string): boolean => {
+  const n = deger.trim()
+  if(!/^\d{11}$/.test(n)) return false
+  if(n[0] === '0') return false
+
+  const h = n.split('').map(Number)
+  const tek  = h[0] + h[2] + h[4] + h[6] + h[8]
+  const cift = h[1] + h[3] + h[5] + h[7]
+
+  const onuncu = ((tek * 7) - cift) % 10
+  // ⚠️ JavaScript'te `%` negatif sonuç verebilir (-3 % 10 === -3).
+  // `+ 10) % 10` olmadan geçerli numaralar reddedilirdi.
+  if(((onuncu + 10) % 10) !== h[9]) return false
+
+  const onbirinci = (h.slice(0, 10).reduce((t, x) => t + x, 0)) % 10
+  return onbirinci === h[10]
+}
+
+/**
  * Zorunlu bir sayı alanını doğrular. Boş bırakılan alanla 0 yazılan alanı
  * AYIRIYOR: biri "cevaplamadı", diğeri "sıfır dedi" — ikisi aynı cümleyi
  * hak etmiyor.
@@ -120,8 +164,11 @@ export const basvuruDogrula = (basvuru: YeniBasvuru): string[] => {
   const vergi = (basvuru.vergiNo ?? '').trim()
   if(vergi.length > 0){
     if(!/^\d+$/.test(vergi)) hatalar.push('Vergi/TC numarası yalnız rakamlardan oluşur.')
-    else if(vergi.length < 10 || vergi.length > 11){
+    else if(vergi.length !== 10 && vergi.length !== 11){
       hatalar.push('Vergi/TC numarası 10 ya da 11 haneli olmalı. Boş da bırakabilirsiniz.')
+    }
+    else if(vergi.length === 11 && !tcKimlikGecerliMi(vergi)){
+      hatalar.push('TC kimlik numarası geçerli görünmüyor. Lütfen kontrol edin.')
     }
   }
   const vergiDairesi = (basvuru.vergiDairesi ?? '').trim()

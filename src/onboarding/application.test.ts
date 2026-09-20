@@ -17,7 +17,7 @@ import {
 } from './application.repository'
 import {
   GECISLER, basvuruDogrula, basvuruOzeti, beklemeGunu, durumEtiketi,
-  gecisGecerliMi, gerekceYeterliMi, sonDurumMu, vergiBilgisiEksik,
+  gecisGecerliMi, gerekceYeterliMi, sonDurumMu, tcKimlikGecerliMi, vergiBilgisiEksik,
 } from './application.service'
 import { basvuruGecisleriGocten } from '../core/test-support/goc-tarama'
 
@@ -74,6 +74,67 @@ describe('Giriş hesabı açma (bellek defteri)', () => {
     expect((await defter.tekil(id))?.davetZamani).toBeUndefined()
     await defter.girisHesabiAc(id)
     expect((await defter.tekil(id))?.davetZamani).toBeTruthy()
+  })
+})
+
+describe('TC kimlik numarası', () => {
+  /**
+   * Geçerli bir numara ÜRETİYORUZ, sabit yazmıyoruz: gerçek bir kimlik
+   * numarasını depoya koymak doğru olmaz. İlk 9 haneden son iki hane
+   * kuralın kendisiyle hesaplanıyor.
+   */
+  const uret = (ilkDokuz: string): string => {
+    const h = ilkDokuz.split('').map(Number)
+    const tek = h[0] + h[2] + h[4] + h[6] + h[8]
+    const cift = h[1] + h[3] + h[5] + h[7]
+    const d10 = (((tek * 7) - cift) % 10 + 10) % 10
+    const d11 = ([...h, d10].reduce((t, x) => t + x, 0)) % 10
+    return `${ilkDokuz}${d10}${d11}`
+  }
+
+  it('kural gereği üretilen numara geçerli', () => {
+    for(const kok of ['123456789', '987654321', '111111111', '246813579']){
+      expect(tcKimlikGecerliMi(uret(kok))).toBe(true)
+    }
+  })
+
+  it('SON HANE HER ZAMAN ÇİFT — kuralın kendisinden çıkıyor', () => {
+    // Emrah'ın hatırlattığı kural. Ayrı bir denetim yazmadık çünkü
+    // hesabın sonucu zaten bu; test onu kanıtlıyor.
+    for(let i = 0; i < 200; i++){
+      const kok = String(100000000 + i * 4337)
+      const no = uret(kok)
+      expect(Number(no[10]) % 2).toBe(0)
+    }
+  })
+
+  it('son hanesi tek olan numara reddedilir', () => {
+    const gecerli = uret('123456789')
+    const tekSonlu = `${gecerli.slice(0, 10)}${(Number(gecerli[10]) + 1) % 10}`
+    expect(tcKimlikGecerliMi(tekSonlu)).toBe(false)
+  })
+
+  it('sıfırla başlayan numara reddedilir', () => {
+    expect(tcKimlikGecerliMi(uret('012345678'))).toBe(false)
+  })
+
+  it('hane sayısı ya da içeriği yanlışsa reddedilir', () => {
+    expect(tcKimlikGecerliMi('1234567890')).toBe(false)   // 10 hane
+    expect(tcKimlikGecerliMi('123456789012')).toBe(false) // 12 hane
+    expect(tcKimlikGecerliMi('1234567890a')).toBe(false)  // harf
+    expect(tcKimlikGecerliMi('')).toBe(false)
+  })
+
+  it('formda geçersiz TC uyarı veriyor, geçerli TC geçiyor', () => {
+    expect(basvuruDogrula(gecerliForm({ vergiNo: '12345678901' })))
+      .toContain('TC kimlik numarası geçerli görünmüyor. Lütfen kontrol edin.')
+    expect(basvuruDogrula(gecerliForm({ vergiNo: uret('123456789') }))).toEqual([])
+  })
+
+  it('10 haneli vergi numarası TC kuralına sokulmaz', () => {
+    // VKN'nin kendi algoritması var ama uygulamıyoruz (bkz. servis notu):
+    // yanlış bir kontrol, geçerli numarayla gelen müşteriyi kapıda durdurur.
+    expect(basvuruDogrula(gecerliForm({ vergiNo: '1234567890' }))).toEqual([])
   })
 })
 
@@ -153,7 +214,10 @@ describe('Form doğrulaması', () => {
 
   it('vergi numarası 10 hane (vergi) ya da 11 hane (TC) olabilir', () => {
     expect(basvuruDogrula(gecerliForm({ vergiNo: '1234567890' }))).toEqual([])
-    expect(basvuruDogrula(gecerliForm({ vergiNo: '12345678901' }))).toEqual([])
+    // ⚠️ 11 hanelik örnek ARTIK RASTGELE OLAMAZ: 11 hane TC demektir ve
+    // TC kuralına sokuluyor (Emrah'ın hatırlattığı kural). Bu testin eski
+    // hâli '12345678901' bekliyordu; o numara kurala uymuyor.
+    expect(basvuruDogrula(gecerliForm({ vergiNo: '12345678950' }))).toEqual([])
     expect(basvuruDogrula(gecerliForm({ vergiNo: '123456789' })).length).toBeGreaterThan(0)
   })
 

@@ -125,18 +125,23 @@ export const loadUnreadEvren360Notifications = () => {
 }
 
 /**
- * Eskiden zile yazılmış sahte satırları TEMİZLER.
+ * `localStorage`da kalmış ESKİ bildirim deposunu boşaltır.
  *
- * Kaldırmak yetmiyor: o iki satır kullanıcıların tarayıcısına çoktan
- * yazıldı ve orada duruyor. Kod değişikliği onları silmez — bu işlev siler.
- * Zil her açıldığında çağrılıyor; bir kez temizlendikten sonra hiçbir şey
- * yapmıyor.
+ * İki tür çöp vardı:
+ *   · `evren360_placeholder_*` — hiç var olmamış "destek talebi" ve
+ *     "lisans bitişi" örnekleri.
+ *   · `evren360_business_application_*` — form Postgres'e geçmeden önceki
+ *     dönemden kalan başvuru bildirimleri. Veritabanında karşılıkları
+ *     YOK; zilde durup tıklanınca hiçbir yere gitmiyorlardı.
+ *
+ * Kodu değiştirmek bunları silmez: kullanıcının tarayıcısında duruyorlar.
+ * Bu işlev siler. Zil her tazelendiğinde çağrılıyor; bir kez
+ * temizlendikten sonra hiçbir şey yapmıyor.
  */
 export const eskiSahteBildirimleriTemizle = () => {
   const notifications = readNotifications()
-  const temiz = notifications.filter(n => !n.id.startsWith('evren360_placeholder_'))
-  if(temiz.length === notifications.length) return
-  saveNotifications(temiz)
+  if(notifications.length === 0) return
+  saveNotifications([])
 }
 
 export const recordBusinessApplicationNotification = (input: BusinessApplicationNotificationInput) => {

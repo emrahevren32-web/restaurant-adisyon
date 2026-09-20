@@ -15,7 +15,6 @@ import type { PermissionName } from '../authorization/permission.types'
 import {
   Evren360Notification,
   eskiSahteBildirimleriTemizle,
-  loadEvren360Notifications,
   loadOkunanBildirimler,
   markAllEvren360NotificationsRead,
   markEvren360NotificationRead,
@@ -328,7 +327,8 @@ export default function AppShell<
       return
     }
 
-    // Tarayıcılarda duran eski sahte satırları sil (bkz. servis dosyası).
+    // Tarayıcılarda duran eski satırları sil: sahte "Placeholder" örnekleri
+    // ve localStorage döneminden kalan başvuru bildirimleri.
     eskiSahteBildirimleriTemizle()
 
     const okunanlar = loadOkunanBildirimler()
@@ -336,16 +336,14 @@ export default function AppShell<
       ? await basvuruBildirimleriniYukle(bildirimDefteri, okunanlar)
       : []
 
-    // Saklanan eski bildirimler de görünsün; ikisi kimliğe göre birleşiyor.
-    const saklanan = loadEvren360Notifications().map(n => (
-      n.readAt ? n : { ...n, readAt: okunanlar[n.id] ?? '' }
-    ))
-    const haritada = new Map(saklanan.map(n => [n.id, n]))
-    for(const n of turetilen) haritada.set(n.id, n)
-
-    setNotifications(
-      [...haritada.values()].sort((a, b) => b.createdAt.localeCompare(a.createdAt)),
-    )
+    // ⚠️ SAKLANAN ESKİ BİLDİRİMLER ARTIK GÖSTERİLMİYOR.
+    // Zil bir süre hem defterden hem `localStorage`dan okudu ve sonuç
+    // hayalet satırlar oldu: "Tongalı osman kasap", "Testc firması"…
+    // Bunlar tarayıcıda kalmış eski deneme kayıtları; veritabanında
+    // karşılıkları YOK. Tıklayınca hiçbir yere gitmiyorlar.
+    //
+    // Tek gerçek defterdir. Zil defteri gösterir, başka bir şeyi değil.
+    setNotifications(turetilen)
   }, [isPlatformAdmin, bildirimDefteri])
 
   React.useEffect(() => {

@@ -313,7 +313,19 @@ export class PostgresBasvuruDefteri implements BasvuruDefteri {
     // metnini ekrana basmak, kullanıcıya hiçbir şey söylemez.
     if(error){
       const govdedeki = (data as { hata?: string } | null)?.hata
-      throw new Error(govdedeki || `Giriş hesabı açılamadı: ${error.message}`)
+      if(govdedeki) throw new Error(govdedeki)
+
+      // ⚠️ "Failed to send a request to the Edge Function" hemen her zaman
+      // TEK bir şey demektir: fonksiyon henüz Supabase'e kurulmamış. Ham
+      // İngilizce metni ekrana basmak kullanıcıya hiçbir şey söylemez.
+      if(/Failed to send a request|Function not found|404/i.test(error.message)){
+        throw new Error(
+          'Giriş hesabı servisi Supabase\'e henüz kurulmamış. ' +
+          'Supabase panelinde Edge Functions bölümünden "isletme-hesabi-ac" ' +
+          'fonksiyonunu kurun (docs/edge-function-kurulum.md).',
+        )
+      }
+      throw new Error(`Giriş hesabı açılamadı: ${error.message}`)
     }
     const sonuc = data as { tamam?: boolean; hata?: string } & Partial<HesapSonucu>
     if(!sonuc?.tamam) throw new Error(sonuc?.hata || 'Giriş hesabı açılamadı.')
