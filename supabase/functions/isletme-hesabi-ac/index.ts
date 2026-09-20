@@ -124,7 +124,20 @@ async function isleyici(istek: Request): Promise<Response> {
     return cevap({ hata: 'Bu işletmenin giriş hesabı zaten açılmış.' }, 409)
   }
 
-  // ── 3 · Auth'ta davet ───────────────────────────────────────────────────
+  // ── 3 · Auth kimliği: davet, ya da ZATEN KAYITLIYSA şifre yenileme ──────
+  //
+  // ⚠️ "A user with this email address has already been registered"
+  // BEKLENEN BİR DURUM, arıza değil. Aynı kişi ikinci bir işletme için
+  // başvurabilir; ya da adres daha önce elle Auth'a eklenmiş olabilir.
+  // Bu yola "hata" deyip durmak, MİYOP personelini Supabase panelinde
+  // kullanıcı silmeye zorlar — yani ürünün işini insana yıkar.
+  //
+  // Doğru davranış: mevcut Auth kullanıcısını bul, işletmeye bağla, ona
+  // ŞİFRE BELİRLEME bağlantısı gönder. Ekran iki yolu da karşılıyor
+  // (`type=invite` ve `type=recovery`, bkz. src/auth/davet.ts).
+  let authKullaniciId = ''
+  let yol: 'davet' | 'sifre-yenileme' = 'davet'
+
   const { data: davet, error: davetHatasi } = await yonetim.auth.admin.inviteUserByEmail(
     basvuru.email,
     {
@@ -133,17 +146,41 @@ async function isleyici(istek: Request): Promise<Response> {
     },
   )
 
-  if (davetHatasi || !davet?.user?.id) {
+  if (!davetHatasi && davet?.user?.id) {
+    authKullaniciId = davet.user.id
+  } else {
     const metin = davetHatasi?.message ?? 'Auth kullanıcı kimliği dönmedi.'
-    // Sınırı kullanıcının anlayacağı cümleye çeviriyoruz; ham metni de
-    // ekliyoruz ki gerçek sebep kaybolmasın.
-    const hizSiniri = /rate limit|too many/i.test(metin)
-    return cevap({
-      hata: hizSiniri
-        ? `Davet e-postası gönderilemedi: Supabase'in e-posta sınırına takıldık. ` +
-          `Bir süre sonra tekrar deneyin. (${metin})`
-        : `Davet e-postası gönderilemedi: ${metin}`,
-    }, 502)
+
+    if (/rate limit|too many/i.test(metin)) {
+      return cevap({
+        hata: `Davet e-postası gönderilemedi: Supabase'in e-posta sınırına takıldık. `
+          + `Bir süre sonra tekrar deneyin. (${metin})`,
+      }, 502)
+    }
+
+    const zatenKayitli = /already (been )?registered|already exists|email_exists/i.test(metin)
+    if (!zatenKayitli) {
+      return cevap({ hata: `Davet e-postası gönderilemedi: ${metin}` }, 502)
+    }
+
+    // Zaten kayıtlı. `generateLink` hem adresin gerçekten var olduğunu
+    // doğrular hem de kullanıcının kimliğini döndürür — bu yüzden ayrıca
+    // bütün kullanıcı listesini taramamız gerekmiyor.
+    yol = 'sifre-yenileme'
+    const { data: baglanti, error: baglantiHatasi } = await yonetim.auth.admin.generateLink({
+      type: 'recovery',
+      email: basvuru.email,
+      options: { redirectTo: yonlendirme },
+    })
+
+    if (baglantiHatasi || !baglanti?.user?.id) {
+      return cevap({
+        hata: `Bu e-posta Auth tarafında zaten kayıtlı ama hesabı bulunamadı: `
+          + `${baglantiHatasi?.message ?? 'kimlik dönmedi'}. Supabase panelinde `
+          + `Authentication → Users altında ${basvuru.email} kaydına bakın.`,
+      }, 502)
+    }
+    authKullaniciId = baglanti.user.id
   }
 
   // ── 4 · Veritabanı tarafı, tek işlemde ──────────────────────────────────
@@ -153,22 +190,45 @@ async function isleyici(istek: Request): Promise<Response> {
   const { data: kurulum, error: kurulumHatasi } = await yonetim
     .rpc('isletme_kullanicisi_ac', {
       p_basvuru_id: basvuruId,
-      p_auth_user_id: davet.user.id,
+      p_auth_user_id: authKullaniciId,
     })
 
   if (kurulumHatasi) {
-    // ⚠️ Auth'ta davet AÇILDI ama bağlanamadı. Sessizce geçmiyoruz.
+    // ⚠️ Auth tarafı HALLOLDU ama bağlanamadı. Sessizce geçmiyoruz.
     return cevap({
       hata:
-        `Davet gönderildi ama hesap işletmeye bağlanamadı: ${kurulumHatasi.message}. ` +
-        `Supabase panelinde Authentication → Users altında ${basvuru.email} için ` +
-        `bekleyen bir davet kaldı; tekrar denemeden önce onu silin.`,
+        `Auth hesabı hazır ama işletmeye bağlanamadı: ${kurulumHatasi.message}. ` +
+        `Supabase panelinde Authentication → Users altında ${basvuru.email} kaydı ` +
+        `duruyor; tekrar denemeden önce oraya bakın.`,
     }, 500)
   }
 
   const satir = Array.isArray(kurulum) ? kurulum[0] : kurulum
+
+  // ── 5 · Şifre belirleme e-postası (yalnız "zaten kayıtlı" yolunda) ──────
+  // Davet yolunda e-posta `inviteUserByEmail` tarafından zaten gönderildi.
+  // Burada ise kullanıcı Auth'ta var; ona şifre belirleme bağlantısı
+  // yollamamız gerekiyor. ⚠️ Bu adım düşse bile hesap KURULDU — o yüzden
+  // hata döndürmüyoruz, `epostaNotu` ile durumu söylüyoruz.
+  let epostaNotu = ''
+  if (yol === 'sifre-yenileme') {
+    const acik = createClient(url, anon, { auth: { persistSession: false } })
+    const { error: postaHatasi } = await acik.auth.resetPasswordForEmail(
+      basvuru.email, { redirectTo: yonlendirme },
+    )
+    epostaNotu = postaHatasi
+      ? `Bu e-posta Auth tarafında zaten kayıtlıydı. Hesap işletmeye bağlandı ama `
+        + `şifre belirleme e-postası gönderilemedi: ${postaHatasi.message}. `
+        + `Müşteri giriş ekranındaki "Şifremi unuttum" ile kendi şifresini `
+        + `belirleyebilir.`
+      : `Bu e-posta Auth tarafında zaten kayıtlıydı; yeni davet yerine ŞİFRE `
+        + `BELİRLEME bağlantısı gönderildi.`
+  }
+
   return cevap({
     tamam: true,
+    yol,
+    epostaNotu,
     kullaniciId: satir?.kullanici_id ?? null,
     kullaniciAdi: satir?.kullanici_adi ?? null,
     eposta: satir?.eposta ?? basvuru.email,

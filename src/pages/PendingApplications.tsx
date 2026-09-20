@@ -340,7 +340,11 @@ export default function PendingApplications({ currentUser, initialApplicationId 
     try {
       const sonuc = await defter.girisHesabiAc(basvuruId)
       setHesapSonucu(sonuc)
-      setMesaj(`Davet gönderildi: ${sonuc.eposta}`)
+      setMesaj(
+        sonuc.yol === 'sifre-yenileme'
+          ? `Hesap bağlandı, şifre belirleme bağlantısı gönderildi: ${sonuc.eposta}`
+          : `Davet gönderildi: ${sonuc.eposta}`,
+      )
       await tazele()
     } catch(e){
       setHata(e instanceof Error ? e.message : 'Giriş hesabı açılamadı.')
@@ -394,18 +398,30 @@ export default function PendingApplications({ currentUser, initialApplicationId 
               ÇALIŞMIYORDU. Şifreyi müşteri davet bağlantısından KENDİSİ
               belirler; biz hiçbir zaman görmeyiz. */}
           {hesapSonucu ? (
-            <div className="karar-ozet">
-              <div className="karar-ozet-satir">
-                <span>Giriş hesabı</span><strong>{hesapSonucu.kullaniciAdi}</strong>
+            <>
+              <div className="karar-ozet">
+                <div className="karar-ozet-satir">
+                  <span>Giriş hesabı</span><strong>{hesapSonucu.kullaniciAdi}</strong>
+                </div>
+                {/* ⚠️ Etiket yola göre değişiyor. "Davet gönderildi" yazıp
+                    şifre belirleme bağlantısı göndermek yanlış olurdu. */}
+                <div className="karar-ozet-satir">
+                  <span>
+                    {hesapSonucu.yol === 'sifre-yenileme'
+                      ? 'Şifre bağlantısı gönderildi'
+                      : 'Davet gönderildi'}
+                  </span>
+                  <strong>{hesapSonucu.eposta}</strong>
+                </div>
+                <div className="karar-ozet-satir">
+                  <span>Şifre</span>
+                  <strong>Müşteri bağlantıdan kendisi belirleyecek</strong>
+                </div>
               </div>
-              <div className="karar-ozet-satir">
-                <span>Davet gönderildi</span><strong>{hesapSonucu.eposta}</strong>
-              </div>
-              <div className="karar-ozet-satir">
-                <span>Şifre</span>
-                <strong>Müşteri davet bağlantısından kendisi belirleyecek</strong>
-              </div>
-            </div>
+              {hesapSonucu.epostaNotu && (
+                <p className="muted">{hesapSonucu.epostaNotu}</p>
+              )}
+            </>
           ) : (
             <div className="form-actions">
               <button

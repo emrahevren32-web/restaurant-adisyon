@@ -110,6 +110,15 @@ export type HesapSonucu = {
   kullaniciAdi: string
   eposta: string
   kiraciKodu: string
+  /**
+   * Hangi yoldan gidildi?
+   *   `davet`          → adres Auth'ta yoktu, davet e-postası gitti
+   *   `sifre-yenileme` → adres Auth'ta zaten kayıtlıydı, şifre belirleme
+   *                      bağlantısı gitti
+   */
+  yol?: 'davet' | 'sifre-yenileme'
+  /** İkinci yolda ekranda gösterilecek açıklama. Boş olabilir. */
+  epostaNotu?: string
 }
 
 export interface BasvuruDefteri {
@@ -421,6 +430,8 @@ export class PostgresBasvuruDefteri implements BasvuruDefteri {
       kullaniciAdi: sonuc.kullaniciAdi,
       eposta: sonuc.eposta ?? '',
       kiraciKodu: sonuc.kiraciKodu ?? '',
+      yol: sonuc.yol,
+      epostaNotu: sonuc.epostaNotu,
     }
   }
 
