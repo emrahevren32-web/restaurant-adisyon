@@ -78,3 +78,24 @@ describe('Rehber kartı sabit durur', () => {
     expect(govde).not.toContain('overflow-x:hidden')
   })
 })
+
+describe('Rehber anlattığı yeri gösterebiliyor (2026-09-21)', () => {
+  it('ekran geç çizilse de hedefi BEKLİYOR, bir kez bakıp vazgeçmiyor', () => {
+    // "Kontrol Paneli" ve "Widget Alanı" önce ekranı açıyor; hedef bir kez
+    // aranınca bulunamıyor, bütün ekran buzlu kalıyordu.
+    expect(tour).toContain('ENCOK_DENEME')
+    expect(tour).toMatch(/setTimeout\(hedefiHazirla, 100\)/)
+  })
+
+  it('büyük hedef hiç kaydırılmadan bırakılmıyor', () => {
+    // Eskiden "ekranı dolduruyor" denip kaydırılmıyordu; ekranın
+    // altındaysa hiç görünmüyordu.
+    expect(tour).not.toContain('ekraniDolduruyor')
+    expect(tour).toContain("block: buyukHedef ? 'start' : 'center'")
+  })
+
+  it('rehber açıkken fare tekerleği sayfayı kaydırabiliyor', () => {
+    expect(tour).toContain("addEventListener('wheel', tekerlek")
+    expect(tour).toContain("removeEventListener('wheel', tekerlek)")
+  })
+})

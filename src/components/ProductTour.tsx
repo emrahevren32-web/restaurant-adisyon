@@ -198,6 +198,13 @@ const getViewportBoundedLayout = (target: Element | null): TourCardLayout => {
   const ekranGenisligi = document.documentElement.clientWidth
   const ekranYuksekligi = document.documentElement.clientHeight
 
+  // Hedef tamamen ekran dışındaysa (henüz kaydırılmamış) kırpılmış delik
+  // ters döner: üst kenar alt kenarın altına düşer ve dört şerit eksi
+  // yükseklikle çizilir. O an delik YOK sayılır; kaydırma bitince gelir.
+  const gorunurUst = Math.max(0, hedef.top - TOUR_HOLE_PADDING)
+  const gorunurAlt = Math.min(ekranYuksekligi, hedef.bottom + TOUR_HOLE_PADDING)
+  if(gorunurAlt - gorunurUst < 4) return HEDEFSIZ_YERLESIM
+
   return {
     placement: 'center',
     // ⚠️ Burada ARTIK KARAR VERİLMİYOR. Konum sabit. Bir gün biri "şu adımda
@@ -381,54 +388,101 @@ export const ProductTourProvider = ({
     const yanMenuAdimi = activeStep?.target === SIDEBAR_TARGET
     if(yanMenuAdimi) setSidebarPeek(true)
 
-    const timer = window.setTimeout(() => {
+    // ── HEDEFİ BEKLE ────────────────────────────────────────────────────
+    // ⚠️ 2026-09-21: "Kontrol Paneli" ve "Widget Alanı" adımları önce
+    // Kontrol Paneli ekranını AÇIYOR, sonra o ekrandaki bir alanı gösteriyor.
+    // Eskiden hedef 160 ms sonra BİR KEZ aranıyordu; ekran o an henüz
+    // çizilmemişse hedef bulunamıyor, delik açılmıyor, bütün ekran buzlu
+    // kalıyordu. Kullanıcı "anlattığı yer hiçbir yerde net değil" diye gördü.
+    // Artık hedef gelene kadar kısa aralıklarla aranıyor (en fazla ~3 sn).
+    let deneme = 0
+    const ENCOK_DENEME = 30
+    let timer = 0
+
+    const hedefiHazirla = () => {
       const target = getTarget()
 
-      // Adım bir hedef bildiriyor ama o öge sayfada yoksa, bu bir REHBER
-      // HATASIDIR — yerleşim hatası değil. Sessiz kalırsa köşeye düşen bir
-      // kart olarak görünür ve saatlerce yanlış yerde aranır ("Widget Alanı"
-      // adımında tam olarak bu oldu). Bu yüzden adıyla söylüyor.
+      if(targetSelector && !target && deneme < ENCOK_DENEME){
+        deneme += 1
+        timer = window.setTimeout(hedefiHazirla, 100)
+        return
+      }
+
+      // Adım bir hedef bildiriyor ama o öge ~3 sn sonra da sayfada yoksa bu
+      // bir REHBER HATASIDIR — yerleşim hatası değil. Adıyla söylüyor.
       if(targetSelector && !target && import.meta.env?.DEV){
         console.warn(
           `[MİYOP rehber] "${activeStep?.key}" adımının hedefi sayfada yok: `
-          + `${targetSelector} — kart ekranın ortasında gösterilecek.`
+          + `${targetSelector} — kart köşede, ekran tamamen buzlu gösterilecek.`
         )
       }
 
       target?.classList.add('product-tour-highlight')
 
-      // ── KAYDIRMA: EN AZ MÜDAHALE ────────────────────────────────────
-      // Önceden `inline: 'center'` kullanılıyordu. Bu, hedefi YATAYDA da
-      // ortalamaya çalışır: sağ üstteki profil ya da bildirim düğmesi gibi
-      // kenardaki bir hedefte tarayıcı, yatayda kaydırılabilen ilk üst kabı
-      // bulup kaydırır. Sayfa o sırada altından kayar; kart ekrana sabit
-      // durduğu için hedefin yanından ayrılır, hedef de kenara sıvanır.
-      // Dışarıdan bakınca "popup yine kaydı" görünür — oysa kayan sayfaydı.
+      // ── KAYDIRMA ────────────────────────────────────────────────────
+      // Yatayda HİÇ kaydırılmıyor (`inline: 'nearest'`): kenardaki bir hedefte
+      // sayfa yana kayıp hedefi kenara sıvıyordu.
       //
-      // Artık: hedef zaten tamamen görünüyorsa HİÇ kaydırmıyoruz; gerekiyorsa
-      // yalnızca dikeyde ve `inline: 'nearest'` ile — yatayda zaten görünen
-      // bir ögeyi 'nearest' oynatmaz.
+      // ⚠️ 2026-09-21: Ekrandan BÜYÜK hedefler (Widget Alanı gibi) eskiden
+      // hiç kaydırılmıyordu — "zaten ekranı dolduruyor" sayılıyordu. Oysa
+      // ekranın altındaysa hiç görünmüyordu. Artık büyük hedefin ÜSTÜ
+      // ekranın üstüne getiriliyor; küçük hedef ortalanıyor.
       const hedefKutusu = target?.getBoundingClientRect()
-      const ekraniDolduruyor = Boolean(
-        hedefKutusu && hedefKutusu.height >= window.innerHeight * 0.9
-      )
+      const ekranYuksekligi = document.documentElement.clientHeight
+      const buyukHedef = Boolean(hedefKutusu && hedefKutusu.height >= ekranYuksekligi * 0.6)
       const tamamenGorunuyor = Boolean(
         hedefKutusu
         && hedefKutusu.top >= 0
-        && hedefKutusu.left >= 0
-        && hedefKutusu.bottom <= document.documentElement.clientHeight
-        && hedefKutusu.right <= document.documentElement.clientWidth
+        && hedefKutusu.bottom <= ekranYuksekligi
       )
-      if(target && !ekraniDolduruyor && !tamamenGorunuyor){
+      // Büyük hedefin başı zaten ekranın üst kısmındaysa dokunma.
+      const buyugunBasiGorunuyor = Boolean(
+        hedefKutusu && buyukHedef
+        && hedefKutusu.top >= 0 && hedefKutusu.top <= ekranYuksekligi * 0.3
+      )
+      // Sabit konumlu ögeler (yan menü, üst çubuk) kaydırılamaz; denemek
+      // bazı tarayıcılarda başka bir kabı oynatıyor.
+      const sabitOge = target ? getComputedStyle(target).position === 'fixed' : false
+
+      if(target && !sabitOge && !tamamenGorunuyor && !buyugunBasiGorunuyor){
         target.scrollIntoView({
-          block: 'center',
+          block: buyukHedef ? 'start' : 'center',
           inline: 'nearest',
           behavior: getReducedMotion() ? 'auto' : 'smooth'
         })
       }
       updateLayout()
-      settleTimer = window.setTimeout(updateLayout, getReducedMotion() ? 0 : 240)
-    }, getReducedMotion() ? 0 : 160)
+      settleTimer = window.setTimeout(updateLayout, getReducedMotion() ? 0 : 400)
+    }
+
+    timer = window.setTimeout(hedefiHazirla, getReducedMotion() ? 0 : 160)
+
+    // ── FARE TEKERLEĞİ ──────────────────────────────────────────────────
+    // ⚠️ 2026-09-21: Rehber açıkken sayfa kaydırılamıyordu. Buzlu örtü
+    // tıklamaları engellemek için fareyi yakalıyor; tekerlek olayı da örtüye
+    // düşüyor ve arkadaki sayfa kabı (ekran `document` değil, uygulamanın iç
+    // kabı kaydırıyor) bunu hiç duymuyordu. Tıklamalar hâlâ engelli; yalnız
+    // tekerlek, hedefin içinde bulunduğu kaydırılabilir kaba iletiliyor.
+    // Kartın kendi içindeki tekerlek kartı kaydırır, dokunulmaz.
+    const kaydirmaKabi = (oge: Element | null): Element => {
+      let simdiki = oge?.parentElement ?? null
+      while(simdiki && simdiki !== document.body){
+        const stil = getComputedStyle(simdiki)
+        if(/(auto|scroll)/.test(stil.overflowY) && simdiki.scrollHeight > simdiki.clientHeight){
+          return simdiki
+        }
+        simdiki = simdiki.parentElement
+      }
+      return document.scrollingElement || document.documentElement
+    }
+    const tekerlek = (olay: WheelEvent) => {
+      const hedefOge = olay.target as Element | null
+      if(!hedefOge?.closest?.('.product-tour-shell')) return
+      if(hedefOge.closest('.product-tour-card')) return
+      const kap = kaydirmaKabi(getTarget() || document.querySelector('main'))
+      kap.scrollBy({ top: olay.deltaY, left: 0 })
+    }
+    window.addEventListener('wheel', tekerlek, { passive: true })
 
     window.addEventListener('resize', updateLayout)
     window.addEventListener('scroll', updateLayout, true)
@@ -439,6 +493,7 @@ export const ProductTourProvider = ({
       window.cancelAnimationFrame(frame)
       window.removeEventListener('resize', updateLayout)
       window.removeEventListener('scroll', updateLayout, true)
+      window.removeEventListener('wheel', tekerlek)
       if(yanMenuAdimi) setSidebarPeek(false)
       clearHighlights()
     }
