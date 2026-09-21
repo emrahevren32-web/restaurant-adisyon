@@ -28473,11 +28473,46 @@ button:hover:not(:disabled):not(.primary) {
   right:24px;
   bottom:24px;
   transform:none;
+  box-sizing:border-box;
+  width:min(420px, calc(100vw - 48px));
+  max-width:calc(100vw - 48px);
+  /* Kaydırma KARTIN işi, sarmalayıcının değil. Sarmalayıcı kırparsa kartın
+     taşan yarısı sessizce kaybolur — 2026-09-21'de tam olarak bu oldu. */
+  overflow:visible;
+  opacity:.92;
+  transition:opacity var(--motion-normal) var(--motion-ease-out);
+}
+
+/* ⚠️ ASIL SEBEP (2026-09-21): premium temadaki genel diyalog kuralı
+   (`.modal, .dialog, .product-tour-card …`) karta
+   `width:min(var(--enterprise-dialog-width-current) = 600px, …)` veriyordu.
+   Sarmalayıcı 420-430px, kart 600px: kart sağa doğru EKRANIN DIŞINA
+   taşıyordu. Kartın konumu doğruydu; GENİŞLİĞİ kutusuna sığmıyordu.
+   Kart artık sarmalayıcının genişliğini alıyor, başka hiçbir kuralın
+   genişliğini değil. */
+.product-tour-shell.guided > div:last-child > .product-tour-card {
+  box-sizing:border-box;
+  width:100%;
+  max-width:100%;
+  min-width:0;
   max-height:calc(100dvh - 48px);
   overflow-y:auto;
   overflow-x:hidden;
-  opacity:.92;
-  transition:opacity var(--motion-normal) var(--motion-ease-out);
+}
+
+.product-tour-shell.guided .product-tour-copy,
+.product-tour-shell.guided .product-tour-copy > div {
+  min-width:0;
+}
+
+.product-tour-shell.guided .product-tour-copy p,
+.product-tour-shell.guided .product-tour-copy h3 {
+  white-space:normal;
+  overflow-wrap:anywhere;
+}
+
+.product-tour-shell.guided .product-tour-actions {
+  flex-wrap:wrap;
 }
 
 .product-tour-shell.guided > div:last-child.soluk {
@@ -28503,6 +28538,7 @@ button:hover:not(:disabled):not(.primary) {
     bottom:12px;
     left:12px;
     width:auto;
+    max-width:none;
     max-height:calc(100dvh - 24px);
     /* Küçük ekranda saydamlık okumayı zorlaştırıyor; orada net duruyor. */
     opacity:1;

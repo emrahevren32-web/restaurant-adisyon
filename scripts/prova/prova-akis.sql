@@ -105,7 +105,7 @@ begin
                     and default_branch_id = v_sonuc.sube_id
                     and tax_number = '39432904234'
                     and authorized_person = 'Turgut Özer'
-                    and primary_sector_id = 'industrial-kitchen') then
+                    and primary_sector_id = 'sector_industrial_kitchen') then  -- 0041: tek yazim
     raise exception 'Firma olusmadi ya da basvuru bilgileri tasinmadi.';
   end if;
 
@@ -308,3 +308,15 @@ begin
 end $$;
 
 select app.dogrulama_kayitlarini_sil() as hesap_provasi_temizlendi;
+
+-- ── 0041 · Onaydan doğan firmanın sektörü tek yazımda mı ────────────────
+do $$
+declare v_kotu int;
+begin
+  select count(*) into v_kotu from company
+   where primary_sector_id is not null and primary_sector_id not like 'sector\_%';
+  if v_kotu > 0 then
+    raise exception 'AKIS: onaydan doğan % firmanın sektörü kod yazımında kaldı', v_kotu;
+  end if;
+  raise notice 'AKIS: onaydan doğan firmaların sektörü sector_ yazımında · GECTI';
+end $$;

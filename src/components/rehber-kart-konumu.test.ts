@@ -58,4 +58,23 @@ describe('Rehber kartı sabit durur', () => {
     // Yatayda kaydırma kabı bir kez başlığı kırpmıştı ("l Paneli").
     expect(blok).toContain('overflow-x:hidden')
   })
+
+  it('kart sarmalayıcısından GENİŞ olamaz (2026-09-21 taşması)', () => {
+    // Premium temanın genel diyalog kuralı karta 600px veriyordu; sarmalayıcı
+    // 420px. Kart konumu doğruyken yarısı ekranın dışındaydı.
+    const blok = css.slice(css.indexOf('REHBER KARTI · SABİT SAĞ ALT KÖŞE'))
+    const kartKurali = blok.slice(blok.indexOf('> div:last-child > .product-tour-card {'))
+    const govde = kartKurali.slice(0, kartKurali.indexOf('}'))
+    expect(govde).toContain('width:100%')
+    expect(govde).toContain('max-width:100%')
+    expect(govde).toContain('box-sizing:border-box')
+  })
+
+  it('sarmalayıcı kartı KIRPMIYOR (kaydırma kartın işi)', () => {
+    const blok = css.slice(css.indexOf('REHBER KARTI · SABİT SAĞ ALT KÖŞE'))
+    const sarmalayici = blok.slice(blok.indexOf('.product-tour-shell.guided > div:last-child {'))
+    const govde = sarmalayici.slice(0, sarmalayici.indexOf('}'))
+    expect(govde).toContain('overflow:visible')
+    expect(govde).not.toContain('overflow-x:hidden')
+  })
 })
