@@ -12,7 +12,7 @@ import type {
 } from './module-registry.types'
 import { LICENSE_MODULE_CODES, SECTOR_TEMPLATE_MODULE_CODES, WORKSPACE_MODULE_CODES } from './module-code.registry'
 import { MODULE_SCOPES, WORKSPACE_MODULE_TYPES } from './module-registry.types'
-import { SECTOR_CODES, createSectorId } from '../sector/sector.registry'
+import { SECTOR_CODES, SECTOR_ID_PREFIX, createSectorId } from '../sector/sector.registry'
 import type {
   ProvisionManifest,
   ProvisionManifestMenuItem
@@ -2545,12 +2545,37 @@ export const getBusinessWorkspaceModules = (moduleType?: WorkspaceModuleType) =>
     .sort(compareByDisplayOrder)
 }
 
+/**
+ * Sektör KİMLİĞİ mi, sektör KODU mu?
+ *
+ * ── BULUNAN TUTARSIZLIK (2026-09-20) ─────────────────────────────────────
+ * Sektör iki ayrı yazımla dolaşıyor:
+ *
+ *   kod    : 'industrial-kitchen'          ← başvuru formu bunu gönderiyor
+ *   kimlik : 'sector_industrial_kitchen'   ← modül kaydı bunu bekliyor
+ *
+ * `basvuru_onayla` (0035) firmaya başvurudaki KODU yazıyor; bu dosyadaki
+ * `supportedSectorIds` ise KİMLİK tutuyor. İkisi ham karşılaştırıldığında
+ * hiçbir zaman eşleşmiyor. `sector-template.service.ts` aynı durumu zaten
+ * normalleştiriyordu (satır 20) — yani bir yol kodu kabul ediyor, diğeri
+ * etmiyordu. Sonuç: aynı firma için "varsayılan modül" evet, "sektöründe
+ * mevcut" hayır diyen iki cevap.
+ *
+ * ⚠️ Burada tek doğru yazım YOK diye davranmıyoruz; iki yazımı da KABUL
+ * ediyoruz. Veritabanındaki değeri tek yazıma çekmek ayrı bir iş (göç) ve
+ * o yapılana kadar menüsü boş kalan bir müşteri olmamalı.
+ */
+const sektorKimligineCevir = (deger: string) => (
+  deger.startsWith(SECTOR_ID_PREFIX) ? deger : createSectorId(deger)
+)
+
 export const isBusinessWorkspaceModuleAvailableForSector = (
   module: BusinessWorkspaceModule,
   sectorId?: string
 ) => {
   if(!module.supportedSectorIds || module.supportedSectorIds.length === 0) return true
-  return Boolean(sectorId && module.supportedSectorIds.includes(sectorId))
+  if(!sectorId) return false
+  return module.supportedSectorIds.includes(sektorKimligineCevir(sectorId))
 }
 
 export const getCoreSystemModules = () => getBusinessWorkspaceModules(WORKSPACE_MODULE_TYPES.CORE_SYSTEM)

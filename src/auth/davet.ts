@@ -97,6 +97,16 @@ export const adresiTemizle = (pencere: Window = window) => {
 /** Şifre kuralı. Kısa şifre, kapıyı açık bırakmaktır. */
 export const SIFRE_EN_AZ = 8
 
+/**
+ * "İki şifre aynı değil" cümlesi TEK yerde yazılı.
+ *
+ * ⚠️ Ekran bu uyarıyı diğerlerinden AYIRMAK zorunda: kural hataları ilk
+ * alanın altında, eşleşme hatası ikinci alanın altında gösteriliyor. Ayırma
+ * metne bakarak yapılıyor; metin iki yerde ayrı ayrı yazılsaydı biri
+ * değiştiğinde ayırma sessizce bozulur ve uyarı yanlış alanın altına düşerdi.
+ */
+export const SIFRE_ESLESMIYOR = 'İki şifre aynı değil.'
+
 export const sifreDogrula = (sifre: string, tekrar: string): string[] => {
   const hatalar: string[] = []
   const s = sifre ?? ''
@@ -106,7 +116,7 @@ export const sifreDogrula = (sifre: string, tekrar: string): string[] => {
   if(!/[a-zçğıöşü]/i.test(s)) hatalar.push('Şifre en az bir harf içermeli.')
   if(!/\d/.test(s)) hatalar.push('Şifre en az bir rakam içermeli.')
   if(/^\s|\s$/.test(s)) hatalar.push('Şifrenin başında ya da sonunda boşluk olmamalı.')
-  if(s !== tekrar) hatalar.push('İki şifre aynı değil.')
+  if(s !== tekrar) hatalar.push(SIFRE_ESLESMIYOR)
 
   return hatalar
 }

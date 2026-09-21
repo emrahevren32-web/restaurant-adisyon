@@ -14,7 +14,9 @@
 
 import React from 'react'
 import { getSupabase, isSupabaseConfigured } from '../core/supabase'
-import { adresiTemizle, sifreDogrula, SIFRE_EN_AZ, type DavetTuru } from '../auth/davet'
+import {
+  adresiTemizle, sifreDogrula, SIFRE_EN_AZ, SIFRE_ESLESMIYOR, type DavetTuru,
+} from '../auth/davet'
 
 type Props = {
   tur: DavetTuru
@@ -37,6 +39,25 @@ export default function SifreBelirle({
   const [eposta, setEposta] = React.useState('')
   const [oturumHatasi, setOturumHatasi] = React.useState('')
   const [bitti, setBitti] = React.useState(false)
+  // Alan "dokunulmuş" sayılmadan uyarı çıkmaz. Yoksa ekran açılır açılmaz
+  // "şifre en az 8 karakter olmalı" diye bağırır; kullanıcı daha hiçbir şey
+  // yazmamıştır ve karşılandığı ilk şey bir hata listesi olur.
+  const [sifreyeDokunuldu, setSifreyeDokunuldu] = React.useState(false)
+  const [tekraraDokunuldu, setTekraraDokunuldu] = React.useState(false)
+
+  // ── CANLI DENETİM ───────────────────────────────────────────────────────
+  // ⚠️ Eskiden bütün denetim yalnızca "Şifreyi kaydet"e basınca çalışıyordu.
+  // Kullanıcı iki alana FARKLI şifre yazıp hiçbir uyarı görmeden düğmeye
+  // gidiyor, orada reddediliyordu. İki alanı da dikkatle doldurmuş biri için
+  // bu, yazarken görülebilecek bir hatanın en geç anda söylenmesi demek.
+  // Artık yazarken söyleniyor; kaydetme denetimi aynen yerinde duruyor
+  // (ikinci savunma hattı — ekran değişse de kural değişmez).
+  const tumHatalar = sifreDogrula(sifre, tekrar)
+  const kuralHatalari = sifreyeDokunuldu && sifre.length > 0
+    ? tumHatalar.filter(h => h !== SIFRE_ESLESMIYOR)
+    : []
+  const eslesmiyor = tekraraDokunuldu && tekrar.length > 0 && sifre !== tekrar
+  const hazir = tumHatalar.length === 0
 
   // ── Jetonu oturuma çevir ────────────────────────────────────────────────
   // Bağlantıdaki jeton tek başına şifre değiştirmeye yetmez; önce oturum
@@ -79,8 +100,13 @@ export default function SifreBelirle({
     olay.preventDefault()
     if(calisiyor) return
 
-    const bulunanlar = sifreDogrula(sifre, tekrar)
-    if(bulunanlar.length > 0){ setHatalar(bulunanlar); return }
+    // ⚠️ Kural hataları ARTIK burada listelenmiyor; alanların altında zaten
+    // canlı duruyorlar. Burada yalnızca iki alanı "dokunuldu" sayıyoruz ki
+    // hiç yazmadan düğmeye basan biri de uyarıları görsün. Kural denetiminin
+    // kendisi duruyor — ekran değişse bile zayıf şifre buradan geçemez.
+    setSifreyeDokunuldu(true)
+    setTekraraDokunuldu(true)
+    if(sifreDogrula(sifre, tekrar).length > 0) return
 
     setHatalar([])
     setCalisiyor(true)
@@ -165,8 +191,14 @@ export default function SifreBelirle({
               autoComplete="new-password"
               value={sifre}
               disabled={calisiyor}
-              onChange={e => setSifre(e.target.value)}
+              aria-invalid={kuralHatalari.length > 0}
+              onChange={e => { setSifreyeDokunuldu(true); setSifre(e.target.value) }}
             />
+            {kuralHatalari.length > 0 && (
+              <ul className="form-error" aria-live="polite">
+                {kuralHatalari.map(h => <li key={h}>{h}</li>)}
+              </ul>
+            )}
           </div>
           <div className="form-field">
             <label htmlFor="miyop-sifre-tekrar">Şifrenizi tekrar yazın</label>
@@ -176,8 +208,18 @@ export default function SifreBelirle({
               autoComplete="new-password"
               value={tekrar}
               disabled={calisiyor}
-              onChange={e => setTekrar(e.target.value)}
+              aria-invalid={eslesmiyor}
+              onChange={e => { setTekraraDokunuldu(true); setTekrar(e.target.value) }}
             />
+            {/* Uyarı YAZARKEN çıkar, kaydete basınca değil. */}
+            {eslesmiyor && (
+              <p className="form-error" aria-live="polite">{SIFRE_ESLESMIYOR}</p>
+            )}
+            {!eslesmiyor && tekraraDokunuldu && tekrar.length > 0 && hazir && (
+              <p className="form-success small-text" aria-live="polite">
+                İki şifre aynı.
+              </p>
+            )}
           </div>
 
           <label className="form-check">

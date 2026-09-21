@@ -47,7 +47,33 @@ type Props = {
 /** Kuyrukta görünen durumlar: karar bekleyenler. */
 const ACIK_DURUMLAR: BasvuruDurumu[] = ['PENDING', 'IN_REVIEW']
 
-type DurumSuzgeci = 'acik' | 'hepsi' | BasvuruDurumu
+/**
+ * Süzgeç seçenekleri.
+ *
+ * ── NEDEN DÖRT, YEDİ DEĞİL ────────────────────────────────────────────────
+ * Önce her duruma bir seçenek koymuştum: Beklemede, İnceleniyor, Onaylandı,
+ * Reddedildi, İptal edildi + Karar bekleyenler + Tümü. Emrah haklı olarak
+ * "bunların hepsi gerekli mi?" diye sordu. Değil.
+ *
+ * Ekranın işi karar vermek. Günlük iş "karar bekleyenler"; ara sıra
+ * "onaylanmış işletmeler" (hesabı açılmamış olanı bulmak için); nadiren
+ * kapatılmış kayıtlar. Beklemede/İnceleniyor ayrımı zaten "karar
+ * bekleyenler"in içinde ve DURUM sütununda yazıyor — süzgeçte ikinci kez
+ * sunmak aynı bilgiyi iki yere koymak olurdu.
+ *
+ * `kapatilan` red ve iptali birleştiriyor: ikisi de "artık iş yok" demek.
+ * Aradaki fark kaybolmuyor, satırın DURUM sütununda duruyor.
+ */
+type DurumSuzgeci = 'acik' | 'APPROVED' | 'kapatilan' | 'hepsi'
+
+const KAPATILAN_DURUMLAR: BasvuruDurumu[] = ['REJECTED', 'CANCELLED']
+
+const SUZGEC_ETIKETLERI: Record<DurumSuzgeci, string> = {
+  acik: 'Karar bekleyenler',
+  APPROVED: 'Onaylanmış işletmeler',
+  kapatilan: 'Reddedilen / iptal edilen',
+  hepsi: 'Tümü',
+}
 
 const sayi = (n: number) => n.toLocaleString('tr-TR')
 
@@ -218,11 +244,28 @@ export default function PendingApplications({ currentUser, initialApplicationId 
     return () => { iptal = true }
   }, [defter, secilenId])
 
+  /**
+   * Bildirimden bir başvuruya gelindiğinde süzgeci ona göre aç.
+   *
+   * ⚠️ Yalnız BİLDİRİMDEN gelişte. Emrah elle bir süzgeç seçtiğinde onu
+   * altından çekmiyoruz; ekranın kendi kendine davrandığı hissi güveni
+   * bozar.
+   */
+  React.useEffect(() => {
+    if(!initialApplicationId || liste.length === 0) return
+    const hedef = liste.find(b => b.id === initialApplicationId)
+    if(!hedef) return
+    if(durumSuzgeci === 'acik' && !ACIK_DURUMLAR.includes(hedef.durum)){
+      setDurumSuzgeci('hepsi')
+    }
+  }, [initialApplicationId, liste, durumSuzgeci])
+
   const gorunen = React.useMemo(() => {
     const anahtar = aramaAnahtari(arama)
     return liste.filter(b => {
       if(durumSuzgeci === 'acik' && !ACIK_DURUMLAR.includes(b.durum)) return false
-      if(durumSuzgeci !== 'acik' && durumSuzgeci !== 'hepsi' && b.durum !== durumSuzgeci) return false
+      if(durumSuzgeci === 'kapatilan' && !KAPATILAN_DURUMLAR.includes(b.durum)) return false
+      if(durumSuzgeci === 'APPROVED' && b.durum !== 'APPROVED') return false
       if(tarihSuzgeci && gunKey(b.olusturmaZamani) !== tarihSuzgeci) return false
       if(anahtar){
         // ⚠️ BAŞVURU NUMARASI da aranıyor. Müşteri telefonda onu söylüyor;
@@ -249,6 +292,19 @@ export default function PendingApplications({ currentUser, initialApplicationId 
   const secilen = gorunen.find(b => b.id === secilenId)
     ?? liste.find(b => b.id === secilenId)
     ?? null
+
+  /**
+   * Seçili kayıt süzgecin dışında mı?
+   *
+   * Emrah şunu sordu: "Bildirimden gelince Evrenler Gıda'yı görüyorum,
+   * soldan gelince göremiyorum. Farklı sayfalar mı?" Aynı sayfa. Fark
+   * süzgeçte. Bildirimden gelirken kayıt SEÇİLİ geldiği için altta detay
+   * kartı açılıyor ama listede görünmüyor — ekran aynı anda iki farklı
+   * gerçek gösteriyordu.
+   */
+  const secilenSuzgecDisinda = Boolean(
+    secilen && !gorunen.some(b => b.id === secilen.id),
+  )
 
   const kabuk = (icerik: React.ReactNode) => (
     <div className="pending-applications-page">
@@ -421,6 +477,38 @@ export default function PendingApplications({ currentUser, initialApplicationId 
               {hesapSonucu.epostaNotu && (
                 <p className="muted">{hesapSonucu.epostaNotu}</p>
               )}
+
+              {/* ⚠️ E-POSTA HER ZAMAN VARMAZ. Supabase'in yerleşik servisi
+                  ücretsiz planda yalnız proje üyelerinin adreslerine
+                  gönderiyor; başkasına "gönderildi" der, mesaj ulaşmaz.
+                  Bu bağlantı o boşluğu kapatıyor — ilk seçenek olarak
+                  değil, e-posta gelmediğinde. Kendi SMTP'miz A5'te. */}
+              {hesapSonucu.baglanti && (
+                <details className="karar-baglanti">
+                  <summary>E-posta gelmediyse: bağlantıyı elden iletin</summary>
+                  <p className="muted small-text">
+                    Bu bağlantı müşteriyi doğrudan şifre belirleme ekranına götürür.
+                    Tek kullanımlıktır ve kısa ömürlüdür. Yalnızca işletme sahibine,
+                    telefonla ya da mesajla iletin.
+                  </p>
+                  <textarea
+                    readOnly
+                    rows={3}
+                    value={hesapSonucu.baglanti}
+                    onFocus={e => e.currentTarget.select()}
+                  />
+                  <button
+                    className="btn"
+                    type="button"
+                    onClick={() => {
+                      void navigator.clipboard?.writeText(hesapSonucu.baglanti ?? '')
+                      setMesaj('Bağlantı kopyalandı.')
+                    }}
+                  >
+                    Bağlantıyı kopyala
+                  </button>
+                </details>
+              )}
             </>
           ) : (
             <div className="form-actions">
@@ -488,12 +576,9 @@ export default function PendingApplications({ currentUser, initialApplicationId 
             <span>Başvuru Durumu</span>
             <select value={durumSuzgeci} onChange={e => setDurumSuzgeci(e.target.value as DurumSuzgeci)}>
               <option value="acik">Karar bekleyenler</option>
+              <option value="APPROVED">Onaylanmış işletmeler</option>
+              <option value="kapatilan">Reddedilen / iptal edilen</option>
               <option value="hepsi">Tümü</option>
-              <option value="PENDING">{durumEtiketi('PENDING')}</option>
-              <option value="IN_REVIEW">{durumEtiketi('IN_REVIEW')}</option>
-              <option value="APPROVED">{durumEtiketi('APPROVED')}</option>
-              <option value="REJECTED">{durumEtiketi('REJECTED')}</option>
-              <option value="CANCELLED">{durumEtiketi('CANCELLED')}</option>
             </select>
           </label>
           <label>
@@ -579,7 +664,26 @@ export default function PendingApplications({ currentUser, initialApplicationId 
               {gorunen.length === 0 && (
                 <tr>
                   <td className="empty-cell" colSpan={8}>
-                    {yukleniyor ? 'Yükleniyor…' : 'Bu süzgeçle başvuru bulunamadı.'}
+                    {yukleniyor ? 'Yükleniyor…' : (
+                      <>
+                        Bu süzgeçle başvuru bulunamadı.
+                        {/* ⚠️ "Bulunamadı" ile "hiç yok" aynı şey değil.
+                            Defterde 5 kayıt varken boş tablo görmek, "veri
+                            kayboldu" gibi okunuyordu. */}
+                        {liste.length > 0 && (
+                          <>
+                            {' '}Defterde {sayi(liste.length)} başvuru var.{' '}
+                            <button
+                              className="btn"
+                              type="button"
+                              onClick={() => { setDurumSuzgeci('hepsi'); setTarihSuzgeci(''); setArama('') }}
+                            >
+                              Tümünü göster
+                            </button>
+                          </>
+                        )}
+                      </>
+                    )}
                   </td>
                 </tr>
               )}
@@ -606,6 +710,21 @@ export default function PendingApplications({ currentUser, initialApplicationId 
             </div>
             <span className={`status-pill ${durumSinifi(secilen.durum)}`}>{durumEtiketi(secilen.durum)}</span>
           </div>
+
+          {/* Aynı ekranda iki farklı gerçek göstermemek için. */}
+          {secilenSuzgecDisinda && (
+            <p className="muted">
+              Bu başvuru yukarıdaki listede görünmüyor, çünkü seçili süzgeç
+              ({SUZGEC_ETIKETLERI[durumSuzgeci]}) onu kapsamıyor.{' '}
+              <button
+                className="btn"
+                type="button"
+                onClick={() => { setDurumSuzgeci('hepsi'); setTarihSuzgeci(''); setArama('') }}
+              >
+                Listede göster
+              </button>
+            </p>
+          )}
 
           <div className="pending-applications-detail-grid">
             <div><span>Yetkili</span><strong>{secilen.yetkiliAdi}</strong></div>

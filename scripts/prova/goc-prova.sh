@@ -124,6 +124,24 @@ if [ -f "$AKIS" ] && [ "$SON" = "9999" ]; then
   echo "  ✓ akis provasi"
 fi
 
+# ── 6. Izolasyon provasi (A4D madde 10) ───────────────────────────────────
+# "Iki firma birbirini gormuyor" cumlesi bu urunde bir ozellik degil, var
+# olma sarti. Inanilarak degil KANITLANARAK tasinir; kanit her kosuda
+# tekrarlanir.
+IZO=/home/claude/miyop-work/izolasyon-provasi.sql
+if [ -f "$IZO" ] && [ "$SON" = "9999" ]; then
+  echo
+  echo "── İZOLASYON ─────────────────────────────────────────────────"
+  cikti=$(psql -h $SOCK -p $PORT -U postgres -d miyop_prova -v ON_ERROR_STOP=1 -q -f "$IZO" 2>&1)
+  if [ $? -ne 0 ]; then
+    echo "  ✗ izolasyon provasi"
+    echo "$cikti" | grep -E "^psql:|ERROR|HATA|DETAIL|CONTEXT|NOTICE" | head -14 | sed 's/^/      /'
+    exit 1
+  fi
+  echo "$cikti" | grep -E "NOTICE|GECTI" | sed 's/^/  /' | head -10
+  echo "  ✓ izolasyon provasi"
+fi
+
 echo
 echo "── SONUÇ ─────────────────────────────────────────────────────"
 psql -h $SOCK -p $PORT -U postgres -d miyop_prova -q -c "

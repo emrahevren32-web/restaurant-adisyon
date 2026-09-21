@@ -86,3 +86,22 @@ describe('Şifre kuralı', () => {
     expect(sifreDogrula('şeker2026', 'şeker2026')).toEqual([])
   })
 })
+
+describe('Canlı eşleşme uyarısı', () => {
+  it('eşleşme mesajı tek bir sabitten gelir', async () => {
+    // Ekran, kural hatalarını ilk alanın altında, eşleşme hatasını ikinci
+    // alanın altında gösteriyor ve ayrımı METNE bakarak yapıyor. Metin iki
+    // yerde ayrı yazılsaydı biri değiştiğinde uyarı yanlış alanın altına
+    // düşer, kimse fark etmezdi.
+    const { SIFRE_ESLESMIYOR } = await import('./davet')
+    expect(sifreDogrula('Mutfak2026', 'Mutfak2027')).toContain(SIFRE_ESLESMIYOR)
+    expect(sifreDogrula('Mutfak2026', 'Mutfak2026')).not.toContain(SIFRE_ESLESMIYOR)
+  })
+
+  it('yalnızca eşleşme bozuksa TEK hata döner', () => {
+    // Ekran bu durumda ilk alanın altına hiçbir şey yazmamalı: şifrenin
+    // kendisinde bir sorun yok, yalnızca tekrarı farklı.
+    const hatalar = sifreDogrula('Mutfak2026', 'Mutfak2027')
+    expect(hatalar).toHaveLength(1)
+  })
+})

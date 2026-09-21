@@ -2,6 +2,7 @@ import React from 'react'
 import { authenticateCredentials, AuthenticationState } from '../auth/authentication.service'
 import { loadCompanies, loadLicensePackages } from '../storage'
 import { loadSystemAnnouncements } from '../notifications/notification.service'
+import { getSupabase, isSupabaseConfigured } from '../core/supabase'
 
 type Props = { onLogin: (state: AuthenticationState) => void }
 
@@ -136,9 +137,58 @@ export default function Login({ onLogin }: Props){
     window.location.href = '/apply'
   }
 
-  const forgotPassword = () => {
+  /**
+   * Şifremi unuttum.
+   *
+   * ── NEDEN ŞİMDİ BAĞLANDI ────────────────────────────────────────────────
+   * Burada şu yazıyordu: "Şifre sıfırlama akışı sonraki servis fazı için
+   * hazırlanacaktır." Yani düğme vardı, işi yoktu. O gün geldi: şifre
+   * belirleme ekranı hazır (`SifreBelirle`, A4D madde 6) ve aynı bağlantıyı
+   * karşılıyor (`type=recovery`).
+   *
+   * ⚠️ HESABIN VAR OLUP OLMADIĞINI SÖYLEMİYORUZ. Cevap her iki durumda da
+   * aynı: "bağlantı gönderildi". Aksi hâlde bu ekran, hangi e-postaların
+   * sistemde kayıtlı olduğunu isteyen herkese söyleyen bir araca dönerdi.
+   */
+  const [sifreGonderiliyor, setSifreGonderiliyor] = React.useState(false)
+
+  const forgotPassword = async () => {
     setError('')
-    setNotice('Şifre sıfırlama akışı sonraki servis fazı için hazırlanacaktır. Lütfen platform yöneticinizle iletişime geçin.')
+    setNotice('')
+
+    const adres = email.trim().toLowerCase()
+    if(!adres){
+      setError('Şifre bağlantısı için e-posta adresinizi yazın.')
+      return
+    }
+    if(!isSupabaseConfigured()){
+      setError('Sunucu bağlantısı yapılandırılmamış. Platform yöneticinize bildirin.')
+      return
+    }
+
+    setSifreGonderiliyor(true)
+    try {
+      const { error: hata } = await getSupabase().auth.resetPasswordForEmail(adres, {
+        redirectTo: `${window.location.origin}/`,
+      })
+      if(hata){
+        // Hız sınırı gerçek ve sık: ham İngilizce metin yerine ne yapması
+        // gerektiğini söylüyoruz.
+        setError(/rate limit|too many/i.test(hata.message)
+          ? 'Çok sık denendi. Birkaç dakika sonra tekrar deneyin.'
+          : `Şifre bağlantısı gönderilemedi: ${hata.message}`)
+        return
+      }
+      setNotice(
+        `${adres} adresine şifre belirleme bağlantısı gönderildi. `
+        + 'Gelen kutunuzda yoksa gereksiz/spam klasörüne bakın. '
+        + 'Bağlantı kısa ömürlüdür.',
+      )
+    } catch(e){
+      setError(e instanceof Error ? e.message : 'Şifre bağlantısı gönderilemedi.')
+    } finally {
+      setSifreGonderiliyor(false)
+    }
   }
 
   return (
@@ -214,7 +264,9 @@ export default function Login({ onLogin }: Props){
                   {submitting ? 'Giriş yapılıyor…' : 'Giriş Yap'}
                 </button>
                 <div className="unified-login-secondary-actions">
-                  <button type="button" onClick={forgotPassword}>Şifremi Unuttum</button>
+                  <button type="button" onClick={() => void forgotPassword()} disabled={sifreGonderiliyor}>
+                    {sifreGonderiliyor ? 'Gönderiliyor…' : 'Şifremi Unuttum'}
+                  </button>
                   <button type="button" onClick={openApplication}>İşletme Başvurusu</button>
                 </div>
               </form>

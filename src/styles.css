@@ -23809,8 +23809,11 @@ html[data-theme-engine="premium"] :where(.product-tour-shell.guided > div:last-c
   max-height:var(--enterprise-tour-max-height);
   outline:0;
   pointer-events:auto;
-  transition:left var(--motion-normal) var(--motion-ease-out), top var(--motion-normal) var(--motion-ease-out), transform var(--motion-normal) var(--motion-ease-out);
-  will-change:left, top;
+  /* ⚠️ Konum gecisi ve `will-change` KALDIRILDI (2026-09-20). Kart artik tek
+     bir yerde duruyor; `left/top` animasyonu yalnizca gezinmeyi yumusatmak
+     icin vardi ve gezinmenin kendisi kaldirildi. Buraya tekrar eklenirse
+     kartin oynadigi da geri gelmis olur. */
+  transition:opacity var(--motion-normal) var(--motion-ease-out);
 }
 
 html[data-theme-engine="premium"] :where(.product-tour-shell.welcome > div:last-child) {
@@ -28438,3 +28441,74 @@ button:hover:not(:disabled):not(.primary) {
 .auth-card ul.form-error { margin:0; padding-left:var(--space-20) }
 .form-check { display:flex; align-items:center; gap:var(--space-8); font-size:var(--font-size-13) }
 .form-check input { width:auto; margin:0 }
+
+/* Onay kartındaki "bağlantıyı elden iletin" bölümü. Kapalı başlıyor:
+   e-posta yolu asıl yol, bu yalnız kurtarıcı. */
+.karar-baglanti { display:grid; gap:var(--space-8) }
+.karar-baglanti summary { cursor:pointer; color:var(--text-soft); font-size:var(--font-size-13) }
+.karar-baglanti textarea { font-family:var(--font-mono, monospace); font-size:var(--font-size-12); word-break:break-all }
+
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   REHBER KARTI · SABİT SAĞ ALT KÖŞE
+   ═══════════════════════════════════════════════════════════════════════════
+   Kart ekranda gezmiyor. Konumu TEK yerde tanımlı ve iki kenardan köşeye
+   yapışık: bir kutu iki kenardan içerideyse taşması matematiksel olarak
+   imkânsızdır — ne kadar geniş ya da yüksek olursa olsun.
+
+   Yükseklik sınırı + `overflow-y` birlikte duruyor: uzun bir adım metni
+   kartı ekranın dışına uzatıp "yarım görünen kutu" üretemesin. `overflow-x`
+   bilerek `hidden` — daha önce `auto` bırakılınca yatay kaydırma kabı doğdu
+   ve başlık "l Paneli" diye kırpıldı.
+
+   Saydamlık: kart normalde hafif saydam (arkası seziliyor), fare üstüne
+   gelince ya da içine odak düşünce tamamen netleşiyor. Tanıtılan yer kartın
+   altına denk gelirse (`.soluk`) daha da saydamlaşıyor — ama YERİNDEN
+   OYNAMIYOR.
+   ═══════════════════════════════════════════════════════════════════════════ */
+.product-tour-shell.guided > div:last-child {
+  position:fixed;
+  left:auto;
+  top:auto;
+  right:24px;
+  bottom:24px;
+  transform:none;
+  max-height:calc(100dvh - 48px);
+  overflow-y:auto;
+  overflow-x:hidden;
+  opacity:.92;
+  transition:opacity var(--motion-normal) var(--motion-ease-out);
+}
+
+.product-tour-shell.guided > div:last-child.soluk {
+  opacity:.34;
+}
+
+.product-tour-shell.guided > div:last-child:hover,
+.product-tour-shell.guided > div:last-child:focus-within,
+.product-tour-shell.guided > div:last-child.soluk:hover,
+.product-tour-shell.guided > div:last-child.soluk:focus-within {
+  opacity:1;
+}
+
+@media (prefers-reduced-motion: reduce){
+  .product-tour-shell.guided > div:last-child {
+    transition:none;
+  }
+}
+
+@media (max-width: 640px){
+  .product-tour-shell.guided > div:last-child {
+    right:12px;
+    bottom:12px;
+    left:12px;
+    width:auto;
+    max-height:calc(100dvh - 24px);
+    /* Küçük ekranda saydamlık okumayı zorlaştırıyor; orada net duruyor. */
+    opacity:1;
+  }
+
+  .product-tour-shell.guided > div:last-child.soluk {
+    opacity:.5;
+  }
+}

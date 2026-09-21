@@ -91,6 +91,13 @@ type TourCardLayout = {
   placement: TourPlacement
   style: React.CSSProperties
   hole?: TourHole
+  /**
+   * Kart, tanıttığı yerin üstüne mi denk geliyor?
+   *
+   * Konumu DEĞİŞTİRMİYORUZ (kart hep sağ altta). Yalnızca saydamlaştırıyoruz;
+   * fare kartın üstüne gelince ya da içine odak düşünce tekrar netleşiyor.
+   */
+  soluk?: boolean
 }
 
 /**
@@ -122,7 +129,7 @@ const TOUR_HOLE_PADDING = 8
 
 /**
  * ═══════════════════════════════════════════════════════════════════════════
- * KART ARTIK GEZMİYOR — ve bu bilinçli bir geri adım.
+ * KART TEK BİR YERDE DURUR: SAĞ ALT KÖŞE. BAŞKA HİÇBİR YERE GİTMEZ.
  * ═══════════════════════════════════════════════════════════════════════════
  *
  * Kartı hedefin yanına koymayı beş kez denedim; her seferinde başka bir adım
@@ -139,20 +146,21 @@ const TOUR_HOLE_PADDING = 8
  *      kartın altından çekiyordu
  *
  * Ortak kök sebep: hedefin yanına koymak, hedefin kutusunu + kartın kutusunu +
- * ekranı + kaydırma durumunu AYNI ANDA doğru bilmeyi gerektiriyor. Bu dört
- * bilginin her biri ayrı ayrı yanılabiliyor ve uygulamada 10 adım × her ekran
- * boyu kadar ihtimal var. Kapatılamayacak kadar geniş bir yüzey.
+ * ekranı + kaydırma durumunu AYNI ANDA doğru bilmeyi gerektiriyor. Dördü de
+ * ayrı ayrı yanılabiliyor.
  *
- * ── ŞİMDİKİ KARAR ────────────────────────────────────────────────────────
- * Kart SABİT bir köşede durur. Hiçbir şey ölçülmez, dolayısıyla hiçbir şey
- * yanılamaz. İşaret etme işini kart değil, BUZLAMADAKİ DELİK ve hedefin
- * çevresindeki çerçeve yapar — ve o kısım çalışıyor.
+ * ── SONRA BİR ADIM DAHA GERİ GİDİLDİ (2026-09-20) ────────────────────────
+ * Kart "sağ üst" ile "sağ alt" ARASINDA gidip geliyordu: hedef ekranın alt
+ * yarısındaysa yukarı kaçsın diye. İki nokta da köşeye yapışıktı, yani
+ * taşmıyordu — ama kullanıcı açısından hâlâ GEZİYORDU. Her adımda bir öbür
+ * köşede beliren bir kutu, okunmadan önce yerini arattırıyor.
  *
- * Tek kural: hedef ekranın alt yarısındaysa kart sağ ÜSTE, değilse sağ ALTA
- * gider. Yoksa kart, tanıttığı şeyin üstüne oturur. İki konum var, ikisi de
- * köşeye iki kenardan yapışık (`right` + `top`/`bottom`); bir kutu iki kenardan
- * içeride duruyorsa taşması matematiksel olarak imkânsızdır — kart ne kadar
- * geniş ya da yüksek olursa olsun.
+ * Artık tek konum var: SAĞ ALT. Ölçülen hiçbir şey konumu değiştirmiyor.
+ *
+ * Kart tanıttığı yerin üstüne oturursa diye ikinci bir kural var ama o da
+ * kartı OYNATMIYOR: hedef sağ alt çeyrekteyse kart `soluk` sınıfını alıyor,
+ * yani saydamlaşıyor — fare üstüne gelince ya da içine odak düşünce tekrar
+ * netleşiyor. Konum sabit, görünürlük değişken.
  * ═══════════════════════════════════════════════════════════════════════════
  */
 const SAG_ALT: React.CSSProperties = {
@@ -163,35 +171,26 @@ const SAG_ALT: React.CSSProperties = {
   transform: 'none'
 }
 
-const SAG_UST: React.CSSProperties = {
-  left: 'auto',
-  right: `${TOUR_CARD_MARGIN}px`,
-  top: `${TOUR_CARD_MARGIN}px`,
-  bottom: 'auto',
-  transform: 'none'
-}
-
 /**
  * Hedefi olmayan (ya da hedefi sayfada bulunamayan) adım.
  *
  * "Hazırsınız" adımının hedefi yoktur — kapanış metnidir. Eskiden bu durumda
- * `style: {}` dönüyordu ve CSS kartı sağ alt köşeye atıyordu; ekranda
- * vurgulanan bir şey olmadığı için de her yer buzlanıyordu. Dışarıdan "popup
- * bozuk" görünüyordu, oysa gösterilecek bir yer yoktu.
+ * kart ekranın ORTASINA gidiyordu. Bu da bir gezinmedir: dokuz adım boyunca
+ * sağ altta duran kutu, onuncu adımda ekranın göbeğinde beliriyordu. Artık
+ * o adımda da aynı köşede duruyor; yalnızca delik yok, bütün ekran buzlu.
  */
-const ORTA_YERLESIM: TourCardLayout = {
+const HEDEFSIZ_YERLESIM: TourCardLayout = {
   placement: 'center',
-  style: {
-    left: '50%',
-    right: 'auto',
-    top: '50%',
-    bottom: 'auto',
-    transform: 'translate(-50%, -50%)'
-  }
+  style: SAG_ALT
 }
 
+/** Sağ alt çeyrek: kartın durduğu bölge. Hedef buraya düşerse kart solar. */
+const hedefKartinAltindaMi = (hedef: DOMRect, genislik: number, yukseklik: number) => (
+  hedef.right > genislik / 2 && hedef.bottom > yukseklik / 2
+)
+
 const getViewportBoundedLayout = (target: Element | null): TourCardLayout => {
-  if(!target) return ORTA_YERLESIM
+  if(!target) return HEDEFSIZ_YERLESIM
 
   const hedef = target.getBoundingClientRect()
   // `clientWidth/Height` kaydırma çubuğunu dışarıda bırakır; `innerWidth` ve
@@ -199,12 +198,12 @@ const getViewportBoundedLayout = (target: Element | null): TourCardLayout => {
   const ekranGenisligi = document.documentElement.clientWidth
   const ekranYuksekligi = document.documentElement.clientHeight
 
-  const hedefDikeyMerkezi = hedef.top + (hedef.height / 2)
-  const hedefAltYarida = hedefDikeyMerkezi > ekranYuksekligi / 2
-
   return {
     placement: 'center',
-    style: hedefAltYarida ? SAG_UST : SAG_ALT,
+    // ⚠️ Burada ARTIK KARAR VERİLMİYOR. Konum sabit. Bir gün biri "şu adımda
+    // biraz yukarı alsak" derse, kartın gezmesi oradan geri gelir.
+    style: SAG_ALT,
+    soluk: hedefKartinAltindaMi(hedef, ekranGenisligi, ekranYuksekligi),
     hole: {
       top: Math.max(0, hedef.top - TOUR_HOLE_PADDING),
       left: Math.max(0, hedef.left - TOUR_HOLE_PADDING),
@@ -338,7 +337,7 @@ export const ProductTourProvider = ({
 }: ProductTourProviderProps) => {
   const activeStep = steps[activeIndex] || steps[0]
   const cardRef = React.useRef<HTMLDivElement | null>(null)
-  const [cardLayout, setCardLayout] = React.useState<TourCardLayout>({ placement: 'center', style: {} })
+  const [cardLayout, setCardLayout] = React.useState<TourCardLayout>(HEDEFSIZ_YERLESIM)
   const ready = activeIndex >= steps.length - 1
 
   React.useEffect(() => {
@@ -361,7 +360,7 @@ export const ProductTourProvider = ({
   React.useEffect(() => {
     clearHighlights()
     if(!open || welcome){
-      setCardLayout({ placement: 'center', style: {} })
+      setCardLayout(HEDEFSIZ_YERLESIM)
       return undefined
     }
 
@@ -475,7 +474,15 @@ export const ProductTourProvider = ({
   return createPortal(
     <div className={['product-tour-shell', welcome ? 'welcome' : 'guided', className].filter(Boolean).join(' ')} role="presentation">
       <TourScrim hole={welcome ? undefined : cardLayout.hole} />
-      <div ref={cardRef} tabIndex={-1} data-tour-placement={cardLayout.placement} style={welcome ? undefined : cardLayout.style}>
+      <div
+        ref={cardRef}
+        tabIndex={-1}
+        data-tour-placement={cardLayout.placement}
+        // ⚠️ `soluk` yalnızca SAYDAMLIK değiştirir, konum değil. CSS'te de
+        //    öyle tanımlı; oraya bir `left/top` eklenirse kart yine gezer.
+        className={!welcome && cardLayout.soluk ? 'soluk' : undefined}
+        style={welcome ? undefined : cardLayout.style}
+      >
         <TourStep
           step={activeStep}
           activeIndex={activeIndex}

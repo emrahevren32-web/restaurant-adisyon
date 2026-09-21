@@ -119,6 +119,15 @@ export type HesapSonucu = {
   yol?: 'davet' | 'sifre-yenileme'
   /** İkinci yolda ekranda gösterilecek açıklama. Boş olabilir. */
   epostaNotu?: string
+  /**
+   * Müşteriye elden iletilebilecek şifre belirleme bağlantısı.
+   *
+   * ⚠️ Supabase'in yerleşik e-posta servisi ücretsiz planda yalnız proje
+   * üyelerinin adreslerine gönderiyor; başka adreslere "gönderildi" der
+   * ama mesaj varmaz. Bu alan o boşluğu kapatıyor: e-posta gelmediyse
+   * MİYOP personeli bağlantıyı müşteriye kendisi iletir.
+   */
+  baglanti?: string
 }
 
 export interface BasvuruDefteri {
@@ -432,6 +441,7 @@ export class PostgresBasvuruDefteri implements BasvuruDefteri {
       kiraciKodu: sonuc.kiraciKodu ?? '',
       yol: sonuc.yol,
       epostaNotu: sonuc.epostaNotu,
+      baglanti: sonuc.baglanti,
     }
   }
 

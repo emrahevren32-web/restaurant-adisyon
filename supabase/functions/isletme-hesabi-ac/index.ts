@@ -137,6 +137,15 @@ async function isleyici(istek: Request): Promise<Response> {
   // (`type=invite` ve `type=recovery`, bkz. src/auth/davet.ts).
   let authKullaniciId = ''
   let yol: 'davet' | 'sifre-yenileme' = 'davet'
+  // ⚠️ E-POSTA HER ZAMAN VARMAZ. Supabase'in yerleşik e-posta servisi
+  // ücretsiz planda yalnız proje üyelerinin adreslerine gönderiyor; başka
+  // bir adrese "gönderildi" der, mesaj hiç ulaşmaz. Kendi SMTP'mize
+  // geçmeden bu değişmez (A5).
+  //
+  // O yüzden bağlantının kendisini de döndürüyoruz: MİYOP personeli
+  // gerektiğinde müşteriye telefonla/WhatsApp'la iletebilir. Ekran bunu
+  // "e-posta gelmediyse" notuyla sunuyor, ilk seçenek olarak değil.
+  let paylasilabilirBaglanti = ''
 
   const { data: davet, error: davetHatasi } = await yonetim.auth.admin.inviteUserByEmail(
     basvuru.email,
@@ -172,6 +181,8 @@ async function isleyici(istek: Request): Promise<Response> {
       email: basvuru.email,
       options: { redirectTo: yonlendirme },
     })
+
+    paylasilabilirBaglanti = baglanti?.properties?.action_link ?? ''
 
     if (baglantiHatasi || !baglanti?.user?.id) {
       return cevap({
@@ -225,10 +236,24 @@ async function isleyici(istek: Request): Promise<Response> {
         + `BELİRLEME bağlantısı gönderildi.`
   }
 
+  // Davet yolunda da paylaşılabilir bir bağlantı üret: e-posta varmazsa
+  // elimizde bir şey olsun. Yeni bir belirteç üretir; davet e-postasındaki
+  // eski bağlantı geçersizleşir — ikisi de aynı yere gittiği için sakıncası
+  // yok, ve gönderilemeyen bir bağlantının geçerli kalmasının değeri de yok.
+  if (!paylasilabilirBaglanti) {
+    const { data: ek } = await yonetim.auth.admin.generateLink({
+      type: 'recovery',
+      email: basvuru.email,
+      options: { redirectTo: yonlendirme },
+    })
+    paylasilabilirBaglanti = ek?.properties?.action_link ?? ''
+  }
+
   return cevap({
     tamam: true,
     yol,
     epostaNotu,
+    baglanti: paylasilabilirBaglanti,
     kullaniciId: satir?.kullanici_id ?? null,
     kullaniciAdi: satir?.kullanici_adi ?? null,
     eposta: satir?.eposta ?? basvuru.email,
