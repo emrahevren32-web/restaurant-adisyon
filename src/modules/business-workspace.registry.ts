@@ -54,6 +54,28 @@ const integrationModuleLifecycle: WorkspaceModuleLifecycle = {
   canBeActivatedManually: true
 }
 const industrialKitchenSectorIds = [createSectorId(SECTOR_CODES.INDUSTRIAL_KITCHEN)]
+
+/**
+ * Adisyon ve dijital katalog: masa/servis işletmelerinin kavramları.
+ *
+ * ── NEDEN LİSTE BURAYA GELDİ (2026-09-22 · Emrah kararı) ─────────────────
+ * "İşlem Yönetimi" (adisyon) ve "Dijital Katalog" (QR menü) sektörsüzdü,
+ * yani ENDÜSTRİYEL MUTFAK menüsünde de görünüyorlardı. Yemek fabrikasında
+ * masa yoktur; müşteri "bu benim işim değil" diyerek ürüne güvenini yitirir.
+ *
+ * Liste sektör şablonundan alınmıştır (`sector-template.registry.ts`):
+ * adisyon + QR menü, Restaurant şablonunun varsayılanı; Cafe ve Pastane de
+ * o şablonu temel alıyor. Yani iki dosya artık AYNI şeyi söylüyor.
+ *
+ * ⚠️ Kural: her sektöre ait olan modül (Finans, Personel, Kullanıcılar…)
+ * sektörsüz kalır ve herkese açıktır — bu bilinçli. Yalnızca BİR sektörün
+ * kavramı olan modül burada bağlanır.
+ */
+const masaServisiSektorleri = [
+  createSectorId(SECTOR_CODES.RESTAURANT),
+  createSectorId(SECTOR_CODES.CAFE),
+  createSectorId(SECTOR_CODES.PATISSERIE)
+]
 export const KPI_REPORTING_MODULE_CODE = 'kpi-reporting'
 export const DECISION_SUPPORT_WORKSPACE_MODULE_CODE = 'decision-support-workspace'
 
@@ -673,6 +695,7 @@ export const BUSINESS_WORKSPACE_MODULE_REGISTRY: BusinessWorkspaceModule[] = def
     category: 'business',
     icon: 'AD',
     route: 'tables',
+    supportedSectorIds: masaServisiSektorleri,
     permissions: ['operations.read', 'operations.write'],
     isCoreModule: false,
     isBusinessModule: true,
@@ -740,6 +763,7 @@ export const BUSINESS_WORKSPACE_MODULE_REGISTRY: BusinessWorkspaceModule[] = def
     category: 'business',
     icon: 'QR',
     route: 'qr-orders',
+    supportedSectorIds: masaServisiSektorleri,
     permissions: ['operations.read', 'operations.write'],
     isCoreModule: false,
     isBusinessModule: true,

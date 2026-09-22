@@ -30,13 +30,35 @@ const KUAFOR_KIMLIK = createSectorId(SECTOR_CODES.HAIRDRESSER)
 const sektorluModuller = BUSINESS_WORKSPACE_MODULE_REGISTRY
   .filter(m => (m.supportedSectorIds?.length ?? 0) > 0)
 
+/** Endüstriyel mutfağa bağlı modüller (iki yazım sınaması bunlar için). */
+const mutfakModulleri = BUSINESS_WORKSPACE_MODULE_REGISTRY
+  .filter(m => m.supportedSectorIds?.includes(createSectorId(SECTOR_CODES.INDUSTRIAL_KITCHEN)))
+
 describe('Sektör süzmesi', () => {
   it('sektörü bildirilmiş en az bir modül var (süzme gerçekten çalışıyor)', () => {
     // Bu satır olmasaydı, aşağıdaki testler boş listede dönüp yeşil kalırdı.
     expect(sektorluModuller.length).toBeGreaterThan(0)
   })
 
-  it('endüstriyel mutfak modülü kuaförde GÖRÜNMEZ', () => {
+  it('masa servisi kavramları endüstriyel mutfakta GÖRÜNMEZ', () => {
+    // Emrah kararı (2026-09-22): yemek fabrikasında masa ve dijital menü
+    // yoktur. Bu iki modül bugün ayrıca 'frozen' olduğu için menüye hiç
+    // çıkmıyor; ama dondurma bir gün kalkarsa sektör süzmesi tutmalı.
+    const masaModulleri = ['business-adisyon', 'business-qr-menu']
+    masaModulleri.forEach(id => {
+      const modul = getBusinessWorkspaceModuleById(id)
+      expect(modul, `${id} kayıtta yok`).toBeTruthy()
+      expect(
+        isBusinessWorkspaceModuleAvailableForSector(modul!, MUTFAK_KIMLIK),
+        `${id} endüstriyel mutfakta görünüyor`
+      ).toBe(false)
+      expect(isBusinessWorkspaceModuleAvailableForSector(
+        modul!, createSectorId(SECTOR_CODES.RESTAURANT)
+      )).toBe(true)
+    })
+  })
+
+  it('sektöre bağlı modül BAŞKA sektörde görünmez', () => {
     sektorluModuller.forEach(modul => {
       expect(
         isBusinessWorkspaceModuleAvailableForSector(modul, KUAFOR_KIMLIK),
@@ -55,7 +77,8 @@ describe('Sektör süzmesi', () => {
   it('sektörün İKİ yazımı da aynı cevabı verir', () => {
     // 'industrial-kitchen'  → başvuru onayının firmaya yazdığı değer
     // 'sector_industrial_kitchen' → modül kaydındaki değer
-    sektorluModuller.forEach(modul => {
+    expect(mutfakModulleri.length).toBeGreaterThan(0)
+    mutfakModulleri.forEach(modul => {
       expect(isBusinessWorkspaceModuleAvailableForSector(modul, MUTFAK_KIMLIK)).toBe(true)
       expect(
         isBusinessWorkspaceModuleAvailableForSector(modul, MUTFAK_KOD),
