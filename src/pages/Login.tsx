@@ -174,9 +174,18 @@ export default function Login({ onLogin }: Props){
       if(hata){
         // Hız sınırı gerçek ve sık: ham İngilizce metin yerine ne yapması
         // gerektiğini söylüyoruz.
+        //
+        // ⚠️ 2026-09-21: "Şifre bağlantısı gönderilemedi: Error sending
+        // recovery email" müşteriye olduğu gibi gösteriliyordu. Bu metin
+        // bizim tarafımızdaki bir arızadır (e-posta sunucusu ayarı) ve
+        // müşteriye hiçbir şey anlatmaz. Müşteri ne yapacağını görür; ham
+        // metin yalnızca konsola düşer (oturum açılmadan hata defterine
+        // yazılamıyor — anon'a yazma yetkisi bilerek verilmedi).
+        console.warn('[MİYOP] Şifre bağlantısı gönderilemedi:', hata.message)
         setError(/rate limit|too many/i.test(hata.message)
           ? 'Çok sık denendi. Birkaç dakika sonra tekrar deneyin.'
-          : `Şifre bağlantısı gönderilemedi: ${hata.message}`)
+          : 'Şifre bağlantısı şu an gönderilemedi. Lütfen birkaç dakika sonra '
+            + 'tekrar deneyin; sorun sürerse MİYOP destek ekibine yazın.')
         return
       }
       setNotice(
@@ -185,7 +194,8 @@ export default function Login({ onLogin }: Props){
         + 'Bağlantı kısa ömürlüdür.',
       )
     } catch(e){
-      setError(e instanceof Error ? e.message : 'Şifre bağlantısı gönderilemedi.')
+      console.warn('[MİYOP] Şifre bağlantısı gönderilemedi:', e)
+      setError('Şifre bağlantısı şu an gönderilemedi. Lütfen birkaç dakika sonra tekrar deneyin.')
     } finally {
       setSifreGonderiliyor(false)
     }
