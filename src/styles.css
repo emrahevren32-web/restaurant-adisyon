@@ -28548,3 +28548,21 @@ button:hover:not(:disabled):not(.primary) {
     opacity:.5;
   }
 }
+
+/* Lisans kartındaki modül listesi: rozet gibi, alt alta değil yan yana. */
+.lisans-modul-listesi {
+  display:flex;
+  flex-wrap:wrap;
+  gap:var(--space-8);
+  margin:0 0 var(--space-12);
+  padding:0;
+  list-style:none;
+}
+
+.lisans-modul-listesi li {
+  padding:2px 10px;
+  border:1px solid var(--line-soft);
+  border-radius:999px;
+  color:var(--text-soft);
+  font-size:var(--font-size-13);
+}

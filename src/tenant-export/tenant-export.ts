@@ -96,6 +96,11 @@ export const YEDEK_DISI_TABLOLAR: Record<string, string> = {
   tenant_backup_log:
     'Yedek alma geçmişi, KURULUMA ait bir üstveri. Başka bir kuruluma ' +
     'taşınırken eski kurulumun yedek geçmişi anlam taşımaz.',
+  tenant_license:
+    'Lisans, işletmenin verisi değil MİYOP ile arasındaki TİCARİ ilişkidir ' +
+    '(0042). Eski bir yedekten geri yüklenmesi, süresi dolmuş ya da ' +
+    'değiştirilmiş bir lisansı geri getirirdi. Müşteriye yazma yetkisi de ' +
+    'yok; kendi dosyasından kendi lisansını taşıyabilmesi doğru olmazdı.',
   business_application:
     'Başvuru PLATFORMA ait, işletmeye değil (0032). İçindeki tenant_id bir ' +
     'SAHİPLİK kolonu değil, SONUÇ BAĞI: başvurunun hangi işletmeye ' +

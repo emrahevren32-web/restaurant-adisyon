@@ -320,3 +320,40 @@ begin
   end if;
   raise notice 'AKIS: onaydan doğan firmaların sektörü sector_ yazımında · GECTI';
 end $$;
+
+-- ── 0042 · Onaydan doğan işletmenin lisansı ──────────────────────────────
+-- A4D madde 3. Lisans tarayıcıda değil defterde doğuyor mu?
+do $$
+declare
+  v_kiraci uuid; v_paket text; v_durum text; v_bitis date; v_adet int;
+begin
+  select id into v_kiraci from tenant where code = 'GUM001';
+  if v_kiraci is null then raise exception 'AKIS: GUM001 kiracisi yok'; end if;
+
+  select p.code, l.status, l.end_date into v_paket, v_durum, v_bitis
+    from tenant_license l join license_package p on p.id = l.package_id
+   where l.tenant_id = v_kiraci and l.status in ('Deneme','Aktif');
+
+  if v_paket is null then
+    raise exception 'AKIS: onaydan doğan kiracının lisansı YOK';
+  end if;
+  if v_paket <> 'endustriyel-mutfak-baslangic' then
+    raise exception 'AKIS: sektör paketi seçilmedi (gelen: %)', v_paket;
+  end if;
+  if v_durum <> 'Deneme' then
+    raise exception 'AKIS: lisans Deneme durumunda açılmadı (gelen: %)', v_durum;
+  end if;
+  if v_bitis <= current_date then
+    raise exception 'AKIS: lisans doğar doğmaz bitmiş (bitiş: %)', v_bitis;
+  end if;
+
+  -- İkinci kez çağrılırsa ikinci lisans DOĞMAMALI
+  perform app.kiraci_lisansi_ac(v_kiraci, 'sector_industrial_kitchen');
+  select count(*) into v_adet from tenant_license
+   where tenant_id = v_kiraci and status in ('Deneme','Aktif');
+  if v_adet <> 1 then
+    raise exception 'AKIS: ikinci lisans doğdu (adet: %)', v_adet;
+  end if;
+
+  raise notice 'AKIS: lisans defterde · paket % · % · bitiş % · GECTI', v_paket, v_durum, v_bitis;
+end $$;

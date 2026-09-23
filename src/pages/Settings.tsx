@@ -1,5 +1,6 @@
 import React from 'react'
 import { SystemSettings, User } from '../types'
+import LisansKarti from '../components/LisansKarti'
 import {
   getCompanyIdForUser,
   loadCompanies,
@@ -133,6 +134,10 @@ export default function Settings({ currentUser, onSettingsChange }: Props){
       {message && <div className={`settings-message ${message.type}`}>{message.text}</div>}
 
       <div className="settings-layout">
+        {/* Lisans EN ÜSTTE: müşterinin "ne zamana kadar kullanabilirim"
+            sorusu, yazı tipi ve para birimi ayarlarından önce gelir. */}
+        <LisansKarti />
+
         <section className="card">
           <div className="section-header compact">
             <h3>Genel Ayarlar</h3>
