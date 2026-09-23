@@ -63,7 +63,12 @@ for r in anon authenticated service_role supabase_auth_admin supabase_admin dash
 done
 
 $PSQL <<'SQL' >/dev/null
-create extension if not exists pgcrypto;
+-- ⚠️ 2026-09-23: pgcrypto ARTIK `extensions` ŞEMASINA kuruluyor — Supabase de
+-- öyle yapıyor. Eskiden `public` içine kuruluyordu ve bu, 0042'nin canlıda
+-- düşen `gen_random_bytes` çağrısını provada GİZLEDİ. Prova, canlının kolay
+-- tarafını taklit ederse prova değildir.
+create schema if not exists extensions;
+create extension if not exists pgcrypto schema extensions;
 create schema if not exists auth;
 
 -- TAKLİT: gerçek Supabase'de oturumun kullanıcı kimliğini döndürür.

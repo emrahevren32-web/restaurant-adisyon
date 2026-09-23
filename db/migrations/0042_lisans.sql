@@ -36,6 +36,9 @@ create table if not exists license_package (
   sector_id     text,
   monthly_price numeric(12,2) not null default 0,
   yearly_price  numeric(12,2) not null default 0,
+  -- ⚠️ NULL = SINIRSIZ (Emrah kararı, 2026-09-23): "hepsini yapabilsin,
+  -- müşteri yeteneğimizi görsün". Sayı yazmak teknik bir sınırımız varmış
+  -- gibi göstermek olurdu; yok.
   max_users     integer,
   max_branches  integer,
   trial_days    integer not null default 30 check (trial_days >= 0),
@@ -97,10 +100,10 @@ insert into license_package (code, name, description, sector_id, trial_days, max
 values
   ('endustriyel-mutfak-baslangic', 'Endüstriyel Mutfak · Başlangıç',
    'Depo, stok, reçete, üretim, satın alma ve cari modülleriyle endüstriyel mutfak paketi.',
-   'sector_industrial_kitchen', 30, 10, 3),
+   'sector_industrial_kitchen', 30, null, null),
   ('genel-baslangic', 'Genel · Başlangıç',
    'Sektörü belirlenmemiş işletmeler için çekirdek paket.',
-   null, 30, 5, 1)
+   null, 30, null, null)
 on conflict (code) do nothing;
 
 insert into license_package_module (package_id, module_key)
@@ -119,14 +122,21 @@ on conflict do nothing;
 
 -- ── 4 · Lisans anahtarı ──────────────────────────────────────────────────
 -- Okunabilir ve tekrarlanamaz: MIY-LIS-XXXXXXXX.
+-- ⚠️ 2026-09-23 · CANLIDA DÜŞTÜ: `gen_random_bytes` pgcrypto'dan gelir ve
+-- Supabase pgcrypto'yu `extensions` şemasına kurar. Fonksiyonun arama yolunda
+-- o şema yoktu: "function gen_random_bytes(integer) does not exist".
+-- Yerel provada geçmişti çünkü prova pgcrypto'yu `public` içine kuruyordu —
+-- provanın kendisi yanlış kurulmuştu (düzeltildi).
+-- `gen_random_uuid` PostgreSQL'in ÇEKİRDEĞİNDE; eklentiye bağlı değil.
 create or replace function app.lisans_anahtari_uret()
 returns text
-language plpgsql volatile as $$
+language plpgsql volatile
+set search_path = public, app, pg_temp as $$
 declare
   v_anahtar text;
 begin
   loop
-    v_anahtar := 'MIY-LIS-' || upper(substr(encode(gen_random_bytes(6), 'hex'), 1, 8));
+    v_anahtar := 'MIY-LIS-' || upper(substr(replace(gen_random_uuid()::text, '-', ''), 1, 8));
     exit when not exists (select 1 from tenant_license where license_key = v_anahtar);
   end loop;
   return v_anahtar;
@@ -249,6 +259,132 @@ create trigger denetim_tenant_license
   after insert or update or delete on tenant_license
   for each row execute function app.denetim_yaz();
 
+-- ── 9B · Lisansı uzatma (YALNIZ PLATFORM) ────────────────────────────────
+-- Emrah kararı: süreyi biz uzatırız — ya tarih vererek ya da ay ekleyerek.
+-- Müşteri kendi lisansını uzatamaz; bu yüzden tabloya değil FONKSİYONA yetki
+-- veriliyor ve fonksiyon yetkiyi kendisi sınıyor.
+create or replace function app.lisansi_uzat(
+  p_tenant     uuid,
+  p_yeni_bitis date default null,
+  p_ay         integer default null,
+  p_not        text default null
+)
+returns tenant_license
+language plpgsql security definer set search_path = public, app, pg_temp as $$
+declare
+  v_lisans tenant_license%rowtype;
+  v_bitis  date;
+begin
+  select * into v_lisans from tenant_license
+   where tenant_id = p_tenant and status in ('Deneme','Aktif')
+   limit 1;
+
+  -- Yürürlükte lisans yoksa süresi dolmuş SON lisansı canlandırıyoruz;
+  -- yeni satır açmak geçmişi ikizler.
+  if not found then
+    select * into v_lisans from tenant_license
+     where tenant_id = p_tenant
+     order by end_date desc limit 1;
+    if not found then
+      raise exception 'Bu kiracının lisansı yok.' using errcode = 'MI404';
+    end if;
+  end if;
+
+  if p_yeni_bitis is not null then
+    v_bitis := p_yeni_bitis;
+  elsif p_ay is not null then
+    -- Süresi geçmişse BUGÜNDEN, geçmemişse bitişten uzatılır. Geçmiş bir
+    -- tarihe ay eklemek, uzatmayı ilk günden yer.
+    v_bitis := greatest(v_lisans.end_date, current_date) + make_interval(months => p_ay);
+  else
+    raise exception 'Uzatma için ya yeni bitiş tarihi ya da ay sayısı gerekir.'
+      using errcode = 'MI400';
+  end if;
+
+  if v_bitis <= current_date then
+    raise exception 'Yeni bitiş tarihi bugünden ileride olmalı.' using errcode = 'MI400';
+  end if;
+
+  update tenant_license
+     set end_date   = v_bitis,
+         status     = 'Aktif',
+         is_trial   = false,
+         note       = coalesce(p_not, note),
+         updated_at = now()
+   where id = v_lisans.id
+   returning * into v_lisans;
+
+  return v_lisans;
+end $$;
+
+-- ⚠️ PostgREST yalnız `public` şemasını yayınlar (tuzak: 0012→0016, 0038, 0039).
+create or replace function public.lisansi_uzat(
+  p_tenant     uuid,
+  p_yeni_bitis date default null,
+  p_ay         integer default null,
+  p_not        text default null
+)
+returns tenant_license
+language plpgsql security definer set search_path = public, app, pg_temp as $$
+begin
+  if not app.yetkim_var('platform.manage') then
+    raise exception 'Lisans uzatma yetkiniz yok.' using errcode = 'MI403';
+  end if;
+  return app.lisansi_uzat(p_tenant, p_yeni_bitis, p_ay, p_not);
+end $$;
+
+revoke all on function public.lisansi_uzat(uuid, date, integer, text) from public, anon;
+grant execute on function public.lisansi_uzat(uuid, date, integer, text)
+  to authenticated, service_role;
+
+-- ── 9C · Süre uzatma TALEBİ (müşteriden bize) ────────────────────────────
+-- Emrah kararı: lisans bitince müşteri ek süre TALEP edebilsin, ama süre
+-- ancak BİZİM onayımızla uzasın. Talep bir istek kaydıdır; kendi kendine
+-- hiçbir şeyi uzatmaz.
+create table if not exists license_extension_request (
+  id           uuid primary key default gen_random_uuid(),
+  tenant_id    uuid not null default app.current_tenant_id() references tenant(id),
+  requested_by uuid references app_user(id),
+  requested_at timestamptz not null default now(),
+  reason       text,
+  status       text not null default 'Bekliyor'
+                 check (status in ('Bekliyor','Onaylandı','Reddedildi')),
+  decided_by   uuid references app_user(id),
+  decided_at   timestamptz,
+  decision_note text
+);
+
+comment on table license_extension_request is
+  'Müşterinin ek süre talebi. Talep lisansı UZATMAZ; yalnız platformdan '
+  'uzatma ister. Karar `public.lisansi_uzat` ile ayrıca verilir.';
+
+-- Aynı anda tek bekleyen talep: müşteri arka arkaya basınca kuyruk şişmesin.
+create unique index if not exists license_extension_request_tek_bekleyen
+  on license_extension_request (tenant_id) where status = 'Bekliyor';
+
+alter table license_extension_request enable row level security;
+
+drop policy if exists ler_okuma on license_extension_request;
+create policy ler_okuma on license_extension_request
+  for select using (tenant_id = app.current_tenant_id());
+
+-- ⚠️ `tenant_id` ve `requested_by` KOLON VARSAYILANINDAN dolar ve yazma
+-- yetkisinin DIŞINDA kalır (0030'daki kalıp): müşteri talebi başkasının
+-- üstüne yazamaz.
+drop policy if exists ler_yazma on license_extension_request;
+create policy ler_yazma on license_extension_request
+  for insert with check (tenant_id = app.current_tenant_id());
+
+revoke all on license_extension_request from anon, authenticated;
+grant select on license_extension_request to authenticated;
+grant insert (reason) on license_extension_request to authenticated;
+grant select, insert, update on license_extension_request to service_role;
+
+drop trigger if exists denetim_license_extension_request on license_extension_request;
+create trigger denetim_license_extension_request
+  after insert or update or delete on license_extension_request
+  for each row execute function app.denetim_yaz();
+
 -- ── 10 · API önbelleği ───────────────────────────────────────────────────
 -- Tuzak 31: yeni tablo PostgREST'te hemen görünmez.
 notify pgrst, 'reload schema';
@@ -285,6 +421,23 @@ begin
   if not (select relrowsecurity from pg_class where oid = 'public.tenant_license'::regclass) then
     raise exception '0042: tenant_license üzerinde RLS kapalı.';
   end if;
+
+  -- Uzatma gerçekten uzatıyor mu? (Sınama için bir kiracı seç, uzat, geri al.)
+  declare
+    v_t uuid; v_eski date; v_yeni date;
+  begin
+    select tenant_id, end_date into v_t, v_eski from tenant_license
+     where status in ('Deneme','Aktif') limit 1;
+    if v_t is not null then
+      select end_date into v_yeni from app.lisansi_uzat(v_t, null, 1, '0042 sınaması');
+      if v_yeni <= v_eski then
+        raise exception '0042: uzatma bitiş tarihini ileri almadı (% → %).', v_eski, v_yeni;
+      end if;
+      update tenant_license set end_date = v_eski, status = 'Deneme', is_trial = true,
+                                note = 'Başvuru onayıyla açıldı'
+       where tenant_id = v_t and status = 'Aktif';
+    end if;
+  end;
 
   raise notice '0042 TAMAM · % paket · % modül · % lisans · yazma kapalı · RLS açık',
     v_paket, v_modul, v_lisans;

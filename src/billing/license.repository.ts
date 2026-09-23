@@ -116,3 +116,59 @@ export const lisansiOku = async (client: SupabaseClient): Promise<Lisans | null>
       .sort(),
   }
 }
+
+// ═══════════════════════════════════════════════════════════════════════════
+// EK SÜRE TALEBİ
+//
+// Emrah kararı (2026-09-23): lisans bitince müşteri ek süre İSTEYEBİLİR ama
+// süre ancak platform onayıyla uzar. Talep hiçbir şeyi uzatmaz; yalnız bize
+// haber verir. Uzatmayı `public.lisansi_uzat` yapar ve o da `platform.manage`
+// yetkisi ister.
+//
+// ⚠️ Talebin `tenant_id` ve `requested_by` alanlarını UYGULAMA YAZMAZ; kolon
+// varsayılanından dolar ve yazma yetkisinin dışındadır (0042). Bir kiracı
+// başkasının üstüne talep açamaz.
+// ═══════════════════════════════════════════════════════════════════════════
+
+export type EkSureTalebi = {
+  id: string
+  durum: 'Bekliyor' | 'Onaylandı' | 'Reddedildi'
+  istenmeZamani: string
+  gerekce: string
+  kararNotu: string
+}
+
+export const bekleyenTalep = async (client: SupabaseClient): Promise<EkSureTalebi | null> => {
+  const { data, error } = await client
+    .from('license_extension_request')
+    .select('id, status, requested_at, reason, decision_note')
+    .order('requested_at', { ascending: false })
+    .limit(1)
+    .maybeSingle()
+
+  if(error) throw new Error(`Süre talebi okunamadı: ${error.message}`)
+  if(!data) return null
+
+  const satir = data as { id: string; status: string; requested_at: string; reason: string | null; decision_note: string | null }
+  return {
+    id: satir.id,
+    durum: satir.status as EkSureTalebi['durum'],
+    istenmeZamani: satir.requested_at,
+    gerekce: satir.reason ?? '',
+    kararNotu: satir.decision_note ?? '',
+  }
+}
+
+export const ekSureTalepEt = async (client: SupabaseClient, gerekce: string): Promise<void> => {
+  const { error } = await client
+    .from('license_extension_request')
+    .insert({ reason: gerekce.trim().slice(0, 500) })
+
+  if(error){
+    // Aynı anda tek bekleyen talep olabilir (kısmi benzersiz indeks).
+    if(/duplicate key|unique/i.test(error.message)){
+      throw new Error('Zaten bekleyen bir süre talebiniz var.')
+    }
+    throw new Error(`Süre talebi iletilemedi: ${error.message}`)
+  }
+}

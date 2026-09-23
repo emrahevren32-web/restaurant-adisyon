@@ -101,6 +101,9 @@ export const YEDEK_DISI_TABLOLAR: Record<string, string> = {
     '(0042). Eski bir yedekten geri yüklenmesi, süresi dolmuş ya da ' +
     'değiştirilmiş bir lisansı geri getirirdi. Müşteriye yazma yetkisi de ' +
     'yok; kendi dosyasından kendi lisansını taşıyabilmesi doğru olmazdı.',
+  license_extension_request:
+    'Lisans süre talebi, MİYOP ile aradaki ticari yazışmadır (0042); ' +
+    'işletmenin iş verisi değil.',
   business_application:
     'Başvuru PLATFORMA ait, işletmeye değil (0032). İçindeki tenant_id bir ' +
     'SAHİPLİK kolonu değil, SONUÇ BAĞI: başvurunun hangi işletmeye ' +

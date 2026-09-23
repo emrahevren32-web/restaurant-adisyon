@@ -12,7 +12,10 @@
 
 import React from 'react'
 import { getSupabase, isSupabaseConfigured } from '../core/supabase'
-import { lisansiOku, lisansUyarisi, type Lisans } from '../billing/license.repository'
+import {
+  lisansiOku, lisansUyarisi, bekleyenTalep, ekSureTalepEt,
+  type Lisans, type EkSureTalebi,
+} from '../billing/license.repository'
 import { getBusinessWorkspaceModuleByLicenseKey } from '../modules/business-workspace.registry'
 import type { LicenseModuleKey } from '../types'
 
@@ -28,6 +31,11 @@ export default function LisansKarti(){
   const [lisans, setLisans] = React.useState<Lisans | null>(null)
   const [yukleniyor, setYukleniyor] = React.useState(true)
   const [hata, setHata] = React.useState('')
+  const [talep, setTalep] = React.useState<EkSureTalebi | null>(null)
+  const [gerekce, setGerekce] = React.useState('')
+  const [formAcik, setFormAcik] = React.useState(false)
+  const [gonderiliyor, setGonderiliyor] = React.useState(false)
+  const [talepHatasi, setTalepHatasi] = React.useState('')
 
   React.useEffect(() => {
     let iptal = false
@@ -37,6 +45,8 @@ export default function LisansKarti(){
       try {
         const okunan = await lisansiOku(getSupabase())
         if(!iptal) setLisans(okunan)
+        const acik = await bekleyenTalep(getSupabase())
+        if(!iptal) setTalep(acik)
       } catch(e){
         if(!iptal) setHata(e instanceof Error ? e.message : 'Lisans okunamadı.')
       } finally {
@@ -69,6 +79,24 @@ export default function LisansKarti(){
   }
 
   const uyari = lisansUyarisi(lisans)
+  const talepEdilebilir = uyari.seviye !== 'iyi' && talep?.durum !== 'Bekliyor'
+
+  const talebiGonder = async (olay: React.FormEvent) => {
+    olay.preventDefault()
+    if(gonderiliyor) return
+    setGonderiliyor(true)
+    setTalepHatasi('')
+    try {
+      await ekSureTalepEt(getSupabase(), gerekce)
+      setTalep(await bekleyenTalep(getSupabase()))
+      setFormAcik(false)
+      setGerekce('')
+    } catch(e){
+      setTalepHatasi(e instanceof Error ? e.message : 'Talep iletilemedi.')
+    } finally {
+      setGonderiliyor(false)
+    }
+  }
 
   return (
     <section className="card">
@@ -93,6 +121,54 @@ export default function LisansKarti(){
             {lisans.moduller.map(m => <li key={m}>{modulAdi(m)}</li>)}
           </ul>
         </>
+      )}
+
+      {/* ── EK SÜRE TALEBİ ──────────────────────────────────────────────
+          Talep hiçbir şeyi uzatmaz; yalnız MİYOP'a iletir. Süreyi MİYOP
+          uzatır. Müşteriye de bu cümleyle söyleniyor ki bastıktan sonra
+          "uzadı mı" diye beklemesin. */}
+      {talep?.durum === 'Bekliyor' && (
+        <p className="muted small-text">
+          Ek süre talebiniz MİYOP'a iletildi. Onaylandığında lisansınız
+          buradan güncellenecek.
+        </p>
+      )}
+
+      {talepEdilebilir && !formAcik && (
+        <div className="form-actions">
+          <button className="btn" type="button" onClick={() => setFormAcik(true)}>
+            Ek süre talep et
+          </button>
+        </div>
+      )}
+
+      {formAcik && (
+        <form onSubmit={talebiGonder}>
+          <div className="form-field">
+            <label htmlFor="lisans-gerekce">Talebinizin sebebi (isteğe bağlı)</label>
+            <textarea
+              id="lisans-gerekce"
+              rows={2}
+              value={gerekce}
+              disabled={gonderiliyor}
+              onChange={e => setGerekce(e.target.value)}
+              placeholder="Örnek: Kurulumumuz sürüyor, iki hafta daha gerekiyor."
+            />
+          </div>
+          {talepHatasi && <p className="form-error">{talepHatasi}</p>}
+          <div className="form-actions">
+            <button className="btn primary" type="submit" disabled={gonderiliyor}>
+              {gonderiliyor ? 'İletiliyor…' : 'Talebi ilet'}
+            </button>
+            <button className="btn" type="button" disabled={gonderiliyor}
+                    onClick={() => { setFormAcik(false); setTalepHatasi('') }}>
+              Vazgeç
+            </button>
+          </div>
+          <p className="muted small-text">
+            Talep süreyi kendiliğinden uzatmaz; MİYOP onayıyla uzar.
+          </p>
+        </form>
       )}
 
       <p className="muted small-text">
