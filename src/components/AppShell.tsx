@@ -21,6 +21,7 @@ import {
   subscribeEvren360Notifications
 } from '../notifications/evren360-notification.service'
 import { basvuruBildirimleriniYukle } from '../notifications/basvuru-bildirimleri'
+import { lisansBildirimleriniYukle } from '../notifications/lisans-bildirimleri'
 import { PostgresBasvuruDefteri } from '../onboarding/application.repository'
 import { getSupabase, isSupabaseConfigured } from '../core/supabase'
 
@@ -332,9 +333,14 @@ export default function AppShell<
     eskiSahteBildirimleriTemizle()
 
     const okunanlar = loadOkunanBildirimler()
-    const turetilen = bildirimDefteri
-      ? await basvuruBildirimleriniYukle(bildirimDefteri, okunanlar)
-      : []
+    // İki kaynak, tek zil: başvurular ve lisans (ek süre talebi + biten süre).
+    // İkisi de DEFTERDEN türetiliyor, hiçbiri saklanmıyor.
+    const [basvurular, lisanslar] = await Promise.all([
+      bildirimDefteri ? basvuruBildirimleriniYukle(bildirimDefteri, okunanlar) : [],
+      isSupabaseConfigured() ? lisansBildirimleriniYukle(getSupabase(), okunanlar) : [],
+    ])
+    const turetilen = [...basvurular, ...lisanslar]
+      .sort((a, b) => b.createdAt.localeCompare(a.createdAt))
 
     // ⚠️ SAKLANAN ESKİ BİLDİRİMLER ARTIK GÖSTERİLMİYOR.
     // Zil bir süre hem defterden hem `localStorage`dan okudu ve sonuç

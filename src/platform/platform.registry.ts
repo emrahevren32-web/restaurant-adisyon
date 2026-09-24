@@ -73,6 +73,22 @@ export const PLATFORM_MODULE_REGISTRY: PlatformRegistryItem[] = [
     tags: ['platform', 'applications']
   },
   {
+    // ⚠️ Kayıtta ZATEN 'platform-licenses' var (eski SaaS aracı, route
+    // 'evren360-licenses'). Aynı kimliği ikinci kez kullanmak, iki menü
+    // ögesinin aynı yere gitmesi demekti. Yeni ekran kendi kimliğiyle ve
+    // kendi rotasıyla duruyor.
+    id: 'platform-license-center',
+    code: 'platform-license-center',
+    name: 'Lisans Yönetimi',
+    description: 'Müşteri lisansları, uzatma geçmişi ve ek süre talepleri.',
+    icon: 'LS',
+    route: 'evren360-license-management',
+    navKey: 'evren360-license-management',
+    scope: MODULE_SCOPES.PLATFORM,
+    displayOrder: 35,
+    tags: ['platform', 'license']
+  },
+  {
     id: 'platform-notifications',
     code: 'platform-notifications',
     name: 'Sistem Duyuruları',

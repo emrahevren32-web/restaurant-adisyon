@@ -136,7 +136,7 @@ export default function Settings({ currentUser, onSettingsChange }: Props){
       <div className="settings-layout">
         {/* Lisans EN ÜSTTE: müşterinin "ne zamana kadar kullanabilirim"
             sorusu, yazı tipi ve para birimi ayarlarından önce gelir. */}
-        <LisansKarti />
+        <LisansKarti currentUser={currentUser} />
 
         <section className="card">
           <div className="section-header compact">

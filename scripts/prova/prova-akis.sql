@@ -357,3 +357,51 @@ begin
 
   raise notice 'AKIS: lisans defterde · paket % · % · bitiş % · GECTI', v_paket, v_durum, v_bitis;
 end $$;
+
+-- ── 0043 · Lisans defteri, platform muafiyeti, süre talebi ───────────────
+do $$
+declare
+  v_kiraci uuid; v_platform int; v_uzatma int; v_bitis1 date; v_bitis2 date; v_olay int;
+begin
+  -- 1) Platformun lisansı OLMAMALI
+  select count(*) into v_platform
+    from tenant_license l join tenant t on t.id = l.tenant_id
+   where t.is_platform;
+  if v_platform > 0 then
+    raise exception 'AKIS: platform kiracısında lisans var (%).', v_platform;
+  end if;
+
+  select id into v_kiraci from tenant where code = 'GUM001';
+
+  -- 2) İki kez uzat → defter iki UZATILDI satırı tutmalı
+  select end_date into v_bitis1 from app.lisansi_uzat(v_kiraci, null, 1, 'prova 1');
+  select end_date into v_bitis2 from app.lisansi_uzat(v_kiraci, null, 2, 'prova 2');
+  if v_bitis2 <= v_bitis1 then
+    raise exception 'AKIS: ikinci uzatma ileri almadı (% → %).', v_bitis1, v_bitis2;
+  end if;
+
+  select count(*) into v_uzatma from license_event
+   where tenant_id = v_kiraci and kind = 'UZATILDI';
+  if v_uzatma <> 2 then
+    raise exception 'AKIS: uzatma sayısı defterde 2 değil (%).', v_uzatma;
+  end if;
+
+  -- 3) Süre talebi açılınca deftere düşmeli
+  insert into license_extension_request (tenant_id, reason)
+  values (v_kiraci, 'prova talebi');
+  select count(*) into v_olay from license_event
+   where tenant_id = v_kiraci and kind = 'SURE_TALEBI';
+  if v_olay <> 1 then
+    raise exception 'AKIS: süre talebi deftere düşmedi (%).', v_olay;
+  end if;
+
+  -- 4) Aynı anda ikinci bekleyen talep AÇILAMAMALI
+  begin
+    insert into license_extension_request (tenant_id, reason)
+    values (v_kiraci, 'ikinci talep');
+    raise exception 'AKIS: ikinci bekleyen talep açıldı, kuyruk şişiyor.';
+  exception when unique_violation then null;
+  end;
+
+  raise notice 'AKIS: lisans defteri · % uzatma · platform lisanssız · talep kuyruğu tek · GECTI', v_uzatma;
+end $$;

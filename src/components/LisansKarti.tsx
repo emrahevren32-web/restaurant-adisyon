@@ -11,6 +11,7 @@
 // ═══════════════════════════════════════════════════════════════════════════
 
 import React from 'react'
+import type { User } from '../types'
 import { getSupabase, isSupabaseConfigured } from '../core/supabase'
 import {
   lisansiOku, lisansUyarisi, bekleyenTalep, ekSureTalepEt,
@@ -27,7 +28,17 @@ const tarih = (deger: string) => {
 const modulAdi = (anahtar: string) =>
   getBusinessWorkspaceModuleByLicenseKey(anahtar as LicenseModuleKey)?.name ?? anahtar
 
-export default function LisansKarti(){
+type Props = { currentUser?: User }
+
+/**
+ * ⚠️ PLATFORMUN LİSANSI YOKTUR (Emrah, 2026-09-23: "adminin lisans süresi
+ * olduğu nerede görülmüş?"). Lisans müşteri içindir. Platform kullanıcısına
+ * bu kart HİÇ gösterilmiyor — boş ya da hatalı bir kart göstermek de olmaz.
+ */
+const platformKullanicisi = (user?: User) =>
+  Boolean(user?.permissions?.includes('platform.manage'))
+
+export default function LisansKarti({ currentUser }: Props){
   const [lisans, setLisans] = React.useState<Lisans | null>(null)
   const [yukleniyor, setYukleniyor] = React.useState(true)
   const [hata, setHata] = React.useState('')
@@ -37,8 +48,11 @@ export default function LisansKarti(){
   const [gonderiliyor, setGonderiliyor] = React.useState(false)
   const [talepHatasi, setTalepHatasi] = React.useState('')
 
+  const platform = platformKullanicisi(currentUser)
+
   React.useEffect(() => {
     let iptal = false
+    if(platform){ setYukleniyor(false); return }
     if(!isSupabaseConfigured()){ setYukleniyor(false); return }
 
     ;(async () => {
@@ -55,7 +69,9 @@ export default function LisansKarti(){
     })()
 
     return () => { iptal = true }
-  }, [])
+  }, [platform])
+
+  if(platform) return null
 
   if(yukleniyor){
     return (

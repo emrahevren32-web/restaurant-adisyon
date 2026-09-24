@@ -11,6 +11,7 @@ import SaasManagementCenter, { SaasManagementView } from './pages/SaasManagement
 import CustomerList from './pages/CustomerList'
 import CustomerDetail from './pages/CustomerDetail'
 import PendingApplications from './pages/PendingApplications'
+import LisansYonetimi from './pages/LisansYonetimi'
 import SystemAnnouncements from './pages/SystemAnnouncements'
 import CustomerStatistics from './pages/CustomerStatistics'
 import CompanyManagement from './pages/CompanyManagement'
@@ -950,6 +951,9 @@ export default function App(){
       )}
       {route === 'evren360-pending-applications' && currentUser.role === 'Admin' && (
         isPlatformAdmin ? <PendingApplications currentUser={currentUser} initialApplicationId={selectedPendingApplicationId} /> : <PlatformAccessDenied />
+      )}
+      {route === 'evren360-license-management' && currentUser.role === 'Admin' && (
+        isPlatformAdmin ? <LisansYonetimi /> : <PlatformAccessDenied />
       )}
       {route === 'evren360-system-announcements' && currentUser.role === 'Admin' && (
         isPlatformAdmin ? <SystemAnnouncements currentUserName={currentUser.fullName || currentUser.username} /> : <PlatformAccessDenied />
