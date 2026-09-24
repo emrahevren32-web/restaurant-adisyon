@@ -26,6 +26,25 @@ export type LisansOzeti = {
   uzatmaSayisi: number
   toplamGun: number
   bekleyenTalep: boolean
+  /** Deneme + ücretsiz uzatmalarla verilen gün. */
+  ucretsizGun: number
+  /** Ücretli uzatmalarla verilen gün. */
+  ucretliGun: number
+  ucretsizUzatma: number
+  ucretliUzatma: number
+}
+
+/** Lisans defterinin bir satırı (0043/0044). */
+export type LisansOlayi = {
+  zaman: string
+  olay: string
+  eskiBitis: string
+  yeniBitis: string
+  gun: number
+  /** null = uzatma dışı olay (açılış, talep, karar). */
+  ucretli: boolean | null
+  kim: string
+  aciklama: string
 }
 
 export type SureTalebi = {
@@ -55,6 +74,10 @@ export const lisansOzetiniOku = async (client: SupabaseClient): Promise<LisansOz
     uzatmaSayisi: Number(satir.uzatma_sayisi ?? 0),
     toplamGun: Number(satir.toplam_gun ?? 0),
     bekleyenTalep: Boolean(satir.bekleyen_talep),
+    ucretsizGun: Number(satir.ucretsiz_gun ?? 0),
+    ucretliGun: Number(satir.ucretli_gun ?? 0),
+    ucretsizUzatma: Number(satir.ucretsiz_uzatma ?? 0),
+    ucretliUzatma: Number(satir.ucretli_uzatma ?? 0),
   }))
 }
 
@@ -74,19 +97,46 @@ export const sureTalepleriniOku = async (client: SupabaseClient): Promise<SureTa
   }))
 }
 
-/** Ay ekleyerek ya da tarih vererek uzatır. İkisinden biri zorunlu. */
+/**
+ * Ay ekleyerek ya da tarih vererek uzatır. İkisinden biri zorunlu.
+ *
+ * ⚠️ `ucretli` bilgisi UZATMA ANINDA yazılır ve deftere geçer. Sonradan
+ * "galiba bunu bedava vermiştik" diye hatırlanmaz.
+ */
 export const lisansiUzat = async (
   client: SupabaseClient,
   tenantId: string,
-  secim: { ay?: number; yeniBitis?: string; not?: string },
+  secim: { ay?: number; yeniBitis?: string; not?: string; ucretli?: boolean },
 ): Promise<void> => {
   const { error } = await client.rpc('lisansi_uzat', {
     p_tenant: tenantId,
     p_yeni_bitis: secim.yeniBitis ?? null,
     p_ay: secim.ay ?? null,
     p_not: secim.not ?? null,
+    p_ucretli: Boolean(secim.ucretli),
   })
   if(error) throw new Error(`Lisans uzatılamadı: ${error.message}`)
+}
+
+export const lisansGecmisiniOku = async (
+  client: SupabaseClient,
+  tenantId: string,
+): Promise<LisansOlayi[]> => {
+  const { data, error } = await client.rpc('lisans_gecmisi', { p_tenant: tenantId })
+  if(error) throw new Error(`Lisans geçmişi okunamadı: ${error.message}`)
+
+  return ((data as Record<string, unknown>[] | null) ?? []).map(satir => ({
+    zaman: String(satir.zaman ?? ''),
+    olay: String(satir.olay ?? ''),
+    eskiBitis: String(satir.eski_bitis ?? ''),
+    yeniBitis: String(satir.yeni_bitis ?? ''),
+    gun: Number(satir.gun ?? 0),
+    ucretli: satir.ucretli === null || satir.ucretli === undefined
+      ? null
+      : Boolean(satir.ucretli),
+    kim: String(satir.kim ?? ''),
+    aciklama: String(satir.aciklama ?? ''),
+  }))
 }
 
 export const talebiKararaBagla = async (
@@ -95,12 +145,14 @@ export const talebiKararaBagla = async (
   onay: boolean,
   ay: number,
   not: string,
+  ucretli = false,
 ): Promise<void> => {
   const { error } = await client.rpc('sure_talebini_karara_bagla', {
     p_talep: talepId,
     p_onay: onay,
     p_ay: ay,
     p_not: not || null,
+    p_ucretli: ucretli,
   })
   if(error) throw new Error(`Talep karara bağlanamadı: ${error.message}`)
 }

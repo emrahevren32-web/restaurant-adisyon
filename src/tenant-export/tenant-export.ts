@@ -101,6 +101,11 @@ export const YEDEK_DISI_TABLOLAR: Record<string, string> = {
     '(0042). Eski bir yedekten geri yüklenmesi, süresi dolmuş ya da ' +
     'değiştirilmiş bir lisansı geri getirirdi. Müşteriye yazma yetkisi de ' +
     'yok; kendi dosyasından kendi lisansını taşıyabilmesi doğru olmazdı.',
+  license_event:
+    'Lisansın hayat defteri (0043): ne zaman açıldı, kim uzattı, ücretli mi ' +
+    'ücretsiz mi. Bu MİYOP ile aradaki TİCARİ geçmiştir, işletmenin iş ' +
+    'verisi değil. Eski bir yedekten geri yüklenmesi, bugünkü ticari ' +
+    'gerçekle çelişen bir geçmiş yaratırdı.',
   license_extension_request:
     'Lisans süre talebi, MİYOP ile aradaki ticari yazışmadır (0042); ' +
     'işletmenin iş verisi değil.',

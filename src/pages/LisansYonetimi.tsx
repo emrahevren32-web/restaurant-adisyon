@@ -14,7 +14,8 @@ import React from 'react'
 import { getSupabase, isSupabaseConfigured } from '../core/supabase'
 import {
   lisansOzetiniOku, sureTalepleriniOku, lisansiUzat, talebiKararaBagla,
-  type LisansOzeti, type SureTalebi,
+  lisansGecmisiniOku,
+  type LisansOzeti, type SureTalebi, type LisansOlayi,
 } from '../billing/license-platform.repository'
 
 const tarih = (deger: string) => {
@@ -25,6 +26,23 @@ const tarih = (deger: string) => {
 
 const kalanMetni = (gun: number) =>
   gun < 0 ? `${Math.abs(gun)} gün geçti` : gun === 0 ? 'bugün bitiyor' : `${gun} gün`
+
+const zaman = (deger: string) => {
+  const d = new Date(deger)
+  return Number.isNaN(d.getTime()) ? deger : d.toLocaleString('tr-TR')
+}
+
+/** Defterdeki olay kodlarının Türkçesi. Ham kod müşteri ekranına ait değil. */
+const OLAY_ADI: Record<string, string> = {
+  ACILDI: 'Lisans açıldı',
+  UZATILDI: 'Uzatıldı',
+  ASKIYA_ALINDI: 'Askıya alındı',
+  SURDURULDU: 'Sürdürüldü',
+  IPTAL: 'İptal edildi',
+  SURE_TALEBI: 'Müşteri ek süre istedi',
+  TALEP_ONAYLANDI: 'Talep onaylandı',
+  TALEP_REDDEDILDI: 'Talep reddedildi',
+}
 
 export default function LisansYonetimi(){
   const [lisanslar, setLisanslar] = React.useState<LisansOzeti[]>([])
@@ -37,6 +55,8 @@ export default function LisansYonetimi(){
   const [ay, setAy] = React.useState('1')
   const [yeniBitis, setYeniBitis] = React.useState('')
   const [not, setNot] = React.useState('')
+  const [ucretli, setUcretli] = React.useState(false)
+  const [gecmis, setGecmis] = React.useState<{ lisans: LisansOzeti; olaylar: LisansOlayi[] } | null>(null)
 
   const yenile = React.useCallback(async () => {
     if(!isSupabaseConfigured()){ setYukleniyor(false); return }
@@ -64,10 +84,10 @@ export default function LisansYonetimi(){
     try {
       await lisansiUzat(getSupabase(), uzatilan.tenantId,
         yeniBitis
-          ? { yeniBitis, not }
-          : { ay: Number(ay) || 1, not })
-      setBilgi(`${uzatilan.isletme} lisansı uzatıldı.`)
-      setUzatilan(null); setNot(''); setYeniBitis(''); setAy('1')
+          ? { yeniBitis, not, ucretli }
+          : { ay: Number(ay) || 1, not, ucretli })
+      setBilgi(`${uzatilan.isletme} lisansı ${ucretli ? 'ÜCRETLİ' : 'ücretsiz'} olarak uzatıldı.`)
+      setUzatilan(null); setNot(''); setYeniBitis(''); setAy('1'); setUcretli(false)
       await yenile()
     } catch(e){
       setHata(e instanceof Error ? e.message : 'Uzatma yapılamadı.')
@@ -76,19 +96,27 @@ export default function LisansYonetimi(){
     }
   }
 
-  const karar = async (talep: SureTalebi, onay: boolean) => {
+  const karar = async (talep: SureTalebi, onay: boolean, ucretliKarar = false) => {
     if(islemde) return
     setIslemde(talep.id)
     try {
-      await talebiKararaBagla(getSupabase(), talep.id, onay, 1, '')
+      await talebiKararaBagla(getSupabase(), talep.id, onay, 1, '', ucretliKarar)
       setBilgi(onay
-        ? `${talep.isletme} talebi onaylandı, lisans 1 ay uzatıldı.`
+        ? `${talep.isletme} talebi onaylandı, lisans 1 ay ${ucretliKarar ? 'ÜCRETLİ' : 'ücretsiz'} uzatıldı.`
         : `${talep.isletme} talebi reddedildi.`)
       await yenile()
     } catch(e){
       setHata(e instanceof Error ? e.message : 'Karar verilemedi.')
     } finally {
       setIslemde('')
+    }
+  }
+
+  const gecmisiAc = async (l: LisansOzeti) => {
+    try {
+      setGecmis({ lisans: l, olaylar: await lisansGecmisiniOku(getSupabase(), l.tenantId) })
+    } catch(e){
+      setHata(e instanceof Error ? e.message : 'Geçmiş okunamadı.')
     }
   }
 
@@ -137,8 +165,13 @@ export default function LisansYonetimi(){
                     <td>
                       <button className="btn primary" type="button"
                               disabled={islemde === t.id}
-                              onClick={() => void karar(t, true)}>
-                        Onayla · 1 ay
+                              onClick={() => void karar(t, true, false)}>
+                        Ücretsiz · 1 ay
+                      </button>
+                      <button className="btn" type="button"
+                              disabled={islemde === t.id}
+                              onClick={() => void karar(t, true, true)}>
+                        Ücretli · 1 ay
                       </button>
                       <button className="btn" type="button"
                               disabled={islemde === t.id}
@@ -167,7 +200,8 @@ export default function LisansYonetimi(){
               <thead>
                 <tr>
                   <th>İşletme</th><th>Paket</th><th>Durum</th>
-                  <th>Bitiş</th><th>Kalan</th><th>Uzatma</th><th>Toplam gün</th><th></th>
+                  <th>Bitiş</th><th>Kalan</th><th>Uzatma</th>
+                  <th>Ücretsiz</th><th>Ücretli</th><th>Toplam gün</th><th></th>
                 </tr>
               </thead>
               <tbody>
@@ -186,11 +220,23 @@ export default function LisansYonetimi(){
                     <td>{tarih(l.bitis)}</td>
                     <td>{kalanMetni(l.kalanGun)}</td>
                     <td>{l.uzatmaSayisi} kez</td>
+                    <td>
+                      {l.ucretsizGun} gün
+                      <div className="muted small-text">{l.ucretsizUzatma} uzatma</div>
+                    </td>
+                    <td>
+                      {l.ucretliGun} gün
+                      <div className="muted small-text">{l.ucretliUzatma} uzatma</div>
+                    </td>
                     <td>{l.toplamGun} gün</td>
                     <td>
                       <button className="btn" type="button"
-                              onClick={() => { setUzatilan(l); setYeniBitis(''); setAy('1') }}>
+                              onClick={() => { setUzatilan(l); setYeniBitis(''); setAy('1'); setUcretli(false) }}>
                         Uzat
+                      </button>
+                      <button className="btn" type="button"
+                              onClick={() => void gecmisiAc(l)}>
+                        Geçmiş
                       </button>
                     </td>
                   </tr>
@@ -200,6 +246,46 @@ export default function LisansYonetimi(){
           </div>
         )}
       </section>
+
+      {gecmis && (
+        <section className="card">
+          <div className="section-header compact">
+            <h3>{gecmis.lisans.isletme} · lisans geçmişi</h3>
+            <button className="btn" type="button" onClick={() => setGecmis(null)}>Kapat</button>
+          </div>
+          {gecmis.olaylar.length === 0 ? <p className="muted">Kayıt yok.</p> : (
+            <div className="table-wrap">
+              <table>
+                <thead>
+                  <tr><th>Tarih</th><th>Olay</th><th>Ücret</th><th>Gün</th>
+                      <th>Bitiş</th><th>Kim</th><th>Açıklama</th></tr>
+                </thead>
+                <tbody>
+                  {gecmis.olaylar.map((o, i) => (
+                    <tr key={`${o.zaman}-${i}`}>
+                      <td>{zaman(o.zaman)}</td>
+                      <td>{OLAY_ADI[o.olay] ?? o.olay}</td>
+                      <td>
+                        {o.ucretli === null ? '—'
+                         : o.ucretli
+                           ? <span className="status-pill success">Ücretli</span>
+                           : <span className="status-pill warning-pill">Ücretsiz</span>}
+                      </td>
+                      <td>{o.gun ? `${o.gun} gün` : '—'}</td>
+                      <td>{o.yeniBitis ? tarih(o.yeniBitis) : '—'}</td>
+                      <td>{o.kim}</td>
+                      <td className="muted">{o.aciklama || '—'}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          )}
+          <p className="muted small-text">
+            Bu defter yalnız eklenir; hiçbir satırı değiştirilemez ya da silinemez.
+          </p>
+        </section>
+      )}
 
       {uzatilan && (
         <section className="card">
@@ -222,6 +308,15 @@ export default function LisansYonetimi(){
                 ay ekleme BUGÜNDEN başlar.
               </p>
             </div>
+            <label className="form-check">
+              <input type="checkbox" checked={ucretli}
+                     onChange={e => setUcretli(e.target.checked)} />
+              <span>Bu uzatma ÜCRETLİ</span>
+            </label>
+            <p className="muted small-text">
+              İşaretlenmezse ücretsiz (deneme) uzatma sayılır ve lisans deneme
+              olarak kalır. Bu bilgi deftere yazılır, sonradan değiştirilemez.
+            </p>
             <div className="form-field">
               <label htmlFor="lisans-not">Not (isteğe bağlı)</label>
               <input id="lisans-not" value={not} onChange={e => setNot(e.target.value)} />
