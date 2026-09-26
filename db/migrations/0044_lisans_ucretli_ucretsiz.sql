@@ -249,33 +249,48 @@ grant execute on function public.lisans_gecmisi(uuid) to authenticated, service_
 notify pgrst, 'reload schema';
 
 -- ── DOĞRULAMA ────────────────────────────────────────────────────────────
+-- ⚠️ 2026-09-26 · BU BLOK CANLIDA DÜŞTÜ ve hata BENİM DOĞRULAMAMDAYDI.
+-- Eski hâli "ücretsiz uzatmadan sonra durum Deneme olmalı" diyordu. Oysa
+-- canlıda seçilen lisans ZATEN 'Aktif'ti (dün ücretli sayılan bir uzatma
+-- yapılmıştı). Fonksiyon doğru çalıştı, doğrulama yanlış varsaydı.
+--
+-- Doğru değişmez şudur: **ücretsiz uzatma durumu DEĞİŞTİRMEZ.** Önceki
+-- değeri okuyup sonrasıyla karşılaştırıyoruz; "Deneme olmalı" gibi
+-- dışarıdan bir varsayım yok. (İkinci kez aynı hataya düştüm: 0043'te de
+-- doğrulama, sınadığı şeyin dışında bir varsayıma dayanmıştı.)
 do $$
 declare
   v_t uuid; v_bitis1 date; v_bitis2 date;
-  v_ucretsiz int; v_ucretli int; v_durum text; v_deneme boolean;
+  v_durum_once text; v_deneme_once boolean;
+  v_durum text; v_deneme boolean;
+  v_ucretsiz int; v_ucretli int;
 begin
-  select tenant_id into v_t from tenant_license
-   where status in ('Deneme','Aktif') limit 1;
+  select tenant_id, status, is_trial into v_t, v_durum_once, v_deneme_once
+    from tenant_license where status in ('Deneme','Aktif') limit 1;
 
   if v_t is null then
     raise notice '0044 TAMAM (sınanacak lisans yok)';
     return;
   end if;
 
-  -- 1) Ücretsiz uzatma denemeyi BOZMAMALI
+  -- 1) ÜCRETSİZ uzatma: süreyi uzatır, durumu ve deneme bayrağını DEĞİŞTİRMEZ
   select end_date into v_bitis1 from app.lisansi_uzat(v_t, null, 1, '0044 ücretsiz', false);
-  select status, is_trial into v_durum, v_deneme from tenant_license
-   where tenant_id = v_t and status in ('Deneme','Aktif');
-  if v_durum <> 'Deneme' or not v_deneme then
-    raise exception '0044: ücretsiz uzatma lisansı ücretliye çevirdi (% / %).', v_durum, v_deneme;
+  select status, is_trial into v_durum, v_deneme
+    from tenant_license where tenant_id = v_t and status in ('Deneme','Aktif');
+  if v_durum is distinct from v_durum_once or v_deneme is distinct from v_deneme_once then
+    raise exception '0044: ücretsiz uzatma durumu değiştirdi (% / % → % / %).',
+      v_durum_once, v_deneme_once, v_durum, v_deneme;
   end if;
 
-  -- 2) Ücretli uzatma Aktif'e çekmeli
+  -- 2) ÜCRETLİ uzatma: her hâlükârda Aktif ve deneme değil
   select end_date into v_bitis2 from app.lisansi_uzat(v_t, null, 1, '0044 ücretli', true);
-  select status, is_trial into v_durum, v_deneme from tenant_license
-   where tenant_id = v_t and status in ('Deneme','Aktif');
+  select status, is_trial into v_durum, v_deneme
+    from tenant_license where tenant_id = v_t and status in ('Deneme','Aktif');
   if v_durum <> 'Aktif' or v_deneme then
     raise exception '0044: ücretli uzatma Aktif yapmadı (% / %).', v_durum, v_deneme;
+  end if;
+  if v_bitis2 <= v_bitis1 then
+    raise exception '0044: ikinci uzatma tarihi ileri almadı (% → %).', v_bitis1, v_bitis2;
   end if;
 
   -- 3) Defter ikisini AYIRT etmeli
