@@ -154,10 +154,22 @@ revoke all on function public.sure_talebini_karara_bagla(uuid, boolean, integer,
 grant execute on function public.sure_talebini_karara_bagla(uuid, boolean, integer, text, boolean)
   to authenticated, service_role;
 
--- ── Geçmiş açılışı da ücretsiz sayılır ───────────────────────────────────
--- İlk 30 gün deneme, yani ücretsiz. Eski satırlarda `paid` boş kalmasın.
-update license_event set paid = false
- where kind = 'UZATILDI' and paid is null;
+-- ── ESKİ SATIRLARA DOKUNULMUYOR ──────────────────────────────────────────
+-- ⚠️ 2026-09-24 · CANLIDA DÜŞTÜ. Burada şu vardı:
+--     update license_event set paid = false where kind='UZATILDI' and paid is null;
+-- Defterin değişmezlik tetikleyicisi bunu REDDETTİ:
+--     MI403: Lisans defteri değiştirilemez ve silinemez.
+-- Tetikleyici DOĞRU davrandı; yanlış olan benim göçümdü. Append-only bir
+-- defteri "sadece bir kolonu doldurmak için" güncellemek, defteri defter
+-- olmaktan çıkarır — bir kez izin verilirse ikincisi kolay gelir.
+--
+-- Yerel provada geçmişti çünkü provada o an UZATILDI satırı YOKTU: göçler
+-- akış provasından ÖNCE koşuyor. Prova, canlının verisine sahip değildi.
+-- Ders: "0 satırı güncelleyen" bir ifade sınanmış sayılmaz.
+--
+-- Gerek de yok: okuma tarafı `paid is not true` diyor, yani NULL zaten
+-- ÜCRETSİZ sayılıyor. 0044 öncesi uzatmalar ücretsiz kabul edilir — o
+-- dönemde ücret ayrımı hiç sorulmamıştı, dolayısıyla doğru varsayım budur.
 
 -- ── Özet: ücretsiz ve ücretli gün ayrı ayrı ──────────────────────────────
 -- ⚠️ `create or replace` DÖNÜŞ TİPİNİ değiştiremez ("cannot change return

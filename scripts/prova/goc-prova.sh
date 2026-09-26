@@ -129,6 +129,29 @@ if [ -f "$AKIS" ] && [ "$SON" = "9999" ]; then
   echo "  ✓ akis provasi"
 fi
 
+# ── 5B. SON GOC, DOLU VERITABANINDA TEKRAR ────────────────────────────────
+# ⚠️ 2026-09-24: 0044 burada gecti, canlida DUSTU. Sebep: goc, akis provasi
+# ILE ayni anda degil ONCE kosuyor; o yuzden gocun dokundugu tablolar BOSTU.
+# "0 satiri guncelleyen" bir ifade sinanmis sayilmaz.
+#
+# Bu adim son gocu, akis provasinin doldurdugu veritabaninda BIR KEZ DAHA
+# kosar. Iki seyi birden yakalar:
+#   · gocun gercek veriyle carpismasi (append-only defteri guncellemek gibi)
+#   · gocun tekrar kosulabilir olmasi (canlida bir gocu iki kez calistirmak
+#     olagan bir kazadir)
+if [ "$SON" = "9999" ]; then
+  SONGOC=$(ls $REPO/db/migrations/[0-9]*.sql | sort | tail -1)
+  echo
+  echo "── SON GÖÇ · DOLU VERİTABANINDA TEKRAR ───────────────────────"
+  cikti=$(psql -h $SOCK -p $PORT -U postgres -d miyop_prova -v ON_ERROR_STOP=1 -q -f "$SONGOC" 2>&1)
+  if [ $? -ne 0 ]; then
+    echo "  ✗ $(basename $SONGOC) dolu veritabaninda düştü"
+    echo "$cikti" | grep -E "^psql:|ERROR|HATA|DETAIL|CONTEXT" | head -10 | sed 's/^/      /'
+    exit 1
+  fi
+  echo "  ✓ $(basename $SONGOC) dolu veritabanında da geçti"
+fi
+
 # ── 6. Izolasyon provasi (A4D madde 10) ───────────────────────────────────
 # "Iki firma birbirini gormuyor" cumlesi bu urunde bir ozellik degil, var
 # olma sarti. Inanilarak degil KANITLANARAK tasinir; kanit her kosuda

@@ -21,6 +21,7 @@ const lisans = (uzer: Partial<LisansOzeti> = {}): LisansOzeti => ({
   paket: 'Endüstriyel Mutfak · Başlangıç', durum: 'Deneme',
   baslangic: '2026-09-23', bitis: '2026-10-23', kalanGun: 30,
   uzatmaSayisi: 0, toplamGun: 30, bekleyenTalep: false,
+  ucretsizGun: 30, ucretliGun: 0, ucretsizUzatma: 0, ucretliUzatma: 0,
   ...uzer,
 })
 
