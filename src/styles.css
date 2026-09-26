@@ -28566,3 +28566,542 @@ button:hover:not(:disabled):not(.primary) {
   color:var(--text-soft);
   font-size:var(--font-size-13);
 }
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   SADE TEMA · AÇIK MOD (2026-09-26)
+   ═══════════════════════════════════════════════════════════════════════════
+   Emrah'ın isteği: "Kolay İK gibi sade." Sakin gri zemin, beyaz kartlar, ince
+   çizgiler, cam/bulanıklık yok, gölge neredeyse yok, tek vurgu rengi.
+
+   ── NEDEN YALNIZCA AÇIK MODA DOKUNUYOR ──────────────────────────────────
+   Koyu tema OLDUĞU GİBİ duruyor. Böylece karşılaştırma tek tuşla yapılabiliyor:
+   üst çubuktaki palet düğmesi açık ↔ koyu arasında geçiyor. Beğenilmezse bu
+   blok tek parça hâlinde silinir; başka hiçbir kural değişmedi.
+
+   ── NEDEN JETON, NEDEN TEK TEK KURAL DEĞİL ───────────────────────────────
+   `styles.css` 28.500 satır ama %98'i jetonla yazılmış (15.386 `var(--…)`
+   kullanımı). Yani rengi kuralların içinde değil, KAYNAĞINDA değiştiriyoruz:
+   tek blok bütün ekranlara yayılıyor ve hiçbir ekranın kendi kuralı ezilmiyor.
+   ═══════════════════════════════════════════════════════════════════════════ */
+html[data-theme="light"][data-theme-engine="premium"] {
+  /* Zemin ve yüzeyler: sayfa hafif gri, kartlar saf beyaz. */
+  --theme-app-bg:#F4F6F8;
+  --theme-app-muted:#EEF1F5;
+  --theme-surface-0:#FFFFFF;
+  --theme-surface-1:#FFFFFF;
+  --theme-surface-2:#F7F9FB;
+  --theme-surface-3:#F1F4F8;
+  --theme-surface-4:#E9EEF4;
+
+  /* Yazı: saf siyah değil; kontrast yeterli ama sert değil. */
+  --theme-text-primary:#1F2937;
+  --theme-text-secondary:#374151;
+  --theme-text-muted:#6B7280;
+  --theme-text-muted-strong:#4B5563;
+
+  /* Çizgiler ince ve gri; kutuları gölge değil ÇİZGİ ayırıyor. */
+  --theme-border-subtle:#E7EBF1;
+  --theme-border-default:#DDE3EC;
+  --theme-border-focus:#2563EB;
+
+  /* Tek vurgu rengi. Turkuaz yerine sakin mavi. */
+  --theme-semantic-primary-base:#2563EB;
+  --theme-semantic-primary-hover:#1D4ED8;
+  --theme-semantic-primary-soft:rgba(37, 99, 235, .08);
+  --theme-semantic-primary-line:rgba(37, 99, 235, .26);
+  --theme-state-hover:rgba(15, 23, 42, .04);
+  --theme-state-focus-ring:rgba(37, 99, 235, .25);
+
+  /* Eski (Faz öncesi) jetonlar — bazı ekranlar hâlâ bunları kullanıyor. */
+  --bg:#F4F6F8;
+  --surface:#FFFFFF;
+  --surface-muted:#F7F9FB;
+  --surface-subtle:#F1F4F8;
+  --surface-raised:#FFFFFF;
+  --card:#FFFFFF;
+  --text:#1F2937;
+  --text-soft:#374151;
+  --muted:#6B7280;
+  --muted-strong:#4B5563;
+  --line:#E7EBF1;
+  --line-soft:#EEF2F7;
+  --line-strong:#D7DEE8;
+  --accent:#2563EB;
+  --accent-hover:#1D4ED8;
+  --accent-soft:#EFF4FF;
+  --accent-subtle:#DCE7FE;
+  --accent-line:#C7D7FE;
+
+  /* Cam, bulanıklık ve derin gölge KALKTI. Sadeliği bozan asıl şey buydu. */
+  --polish-glass-gradient:#FFFFFF;
+  --polish-blur-glass:none;
+  --enterprise-first-surface:#FFFFFF;
+  --enterprise-first-border:#E7EBF1;
+  --enterprise-first-shadow:0 1px 2px rgba(16, 24, 40, .04);
+  --enterprise-first-inset:none;
+  --enterprise-surface-card:#FFFFFF;
+  --enterprise-surface-inner:#F7F9FB;
+  --enterprise-card-shadow-rest:0 1px 2px rgba(16, 24, 40, .05);
+  --card-shadow:0 1px 2px rgba(16, 24, 40, .05);
+  --shadow-xs:0 1px 2px rgba(16, 24, 40, .05);
+  --shadow-sm:0 1px 3px rgba(16, 24, 40, .07);
+  --theme-shadow-xs:0 1px 2px rgba(16, 24, 40, .05);
+
+  /* Yan menü beyaz. */
+  --sidebar-bg:#FFFFFF;
+  --sidebar-surface:#F7F9FB;
+  --sidebar-border:#E7EBF1;
+  --sidebar-text:#1F2937;
+  --sidebar-text-muted:#6B7280;
+  --sidebar-accent:#2563EB;
+  --sidebar-accent-soft:rgba(37, 99, 235, .10);
+}
+
+/* NOT (üçüncü tur): açık moddaki BEYAZ yan menü kuralı kaldırıldı.
+   Emrah kararı 2026-09-26: yan menü koyu kalacak. Ayarı aşağıdaki
+   "ÜÇÜNCÜ TUR" bloğu yapıyor. */
+
+
+/* Üst çubuk da beyaz ve tek çizgiyle ayrılıyor. */
+html[data-theme="light"][data-theme-engine="premium"] :where(.topbar, .enterprise-topbar) {
+  background:#FFFFFF;
+  border-bottom:1px solid #E7EBF1;
+  box-shadow:none;
+  backdrop-filter:none;
+  -webkit-backdrop-filter:none;
+}
+
+/* Kartlar: cam değil kâğıt. */
+html[data-theme="light"][data-theme-engine="premium"] :where(
+  .card, .premium-card, .dashboard-panel, .metric-card, .dashboard-kpi-card,
+  .responsive-card, .premium-form-section, .premium-empty-state,
+  .getting-started-card, .feature-highlight, .quick-tip, .report-panel
+) {
+  background:#FFFFFF;
+  border:1px solid #E7EBF1;
+  box-shadow:0 1px 2px rgba(16, 24, 40, .05);
+  backdrop-filter:none;
+  -webkit-backdrop-filter:none;
+}
+
+/* Tablo başlığı: gri şerit, ince çizgi, büyük harf küçük punto. */
+html[data-theme="light"][data-theme-engine="premium"] :where(.table-wrap thead th, table thead th) {
+  background:#F7F9FB;
+  border-bottom:1px solid #E7EBF1;
+  color:#6B7280;
+}
+
+/* Rozetler: dolgulu değil, yumuşak. */
+html[data-theme="light"][data-theme-engine="premium"] :where(.status-pill) {
+  box-shadow:none;
+  font-weight:600;
+}
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   SADE TEMA · İKİNCİ TUR (2026-09-26)
+   Emrah'ın geri bildirimi: "çizgiler biraz fazla silik", "ekranda boşluk var,
+   puntolar birbirinden uzak". Bir de dışarıdan gelen değerlendirme:
+   üst alan gevşek, KPI rakamları zayıf.
+   ═══════════════════════════════════════════════════════════════════════════ */
+
+/* ── 1 · ÇİZGİLER GÖRÜNSÜN ────────────────────────────────────────────────
+   Sade olsun derken kutuların sınırını kaybetmişiz. Gri bir tık koyulaştı;
+   hâlâ sessiz ama artık nerede bittiğini söylüyor. */
+html[data-theme="light"][data-theme-engine="premium"] {
+  --theme-border-subtle:#DCE2EA;
+  --theme-border-default:#C9D2DE;
+  --line:#DCE2EA;
+  --line-soft:#E6EBF1;
+  --line-strong:#C2CBD8;
+  --enterprise-first-border:#DCE2EA;
+}
+
+html[data-theme="light"][data-theme-engine="premium"] :where(
+  .card, .premium-card, .dashboard-panel, .metric-card, .dashboard-kpi-card,
+  .responsive-card, .premium-form-section, .premium-empty-state,
+  .getting-started-card, .feature-highlight, .quick-tip, .report-panel
+) {
+  border:1px solid #DCE2EA;
+}
+
+/* ── 2 · DAHA SIKI YERLEŞİM ───────────────────────────────────────────────
+   Boşluk kötü değil ama fazlası, ekrandaki bilgiyi azaltıyor. Sayfa iç
+   boşluğu ve kart aralıkları kısaldı; satır yüksekliği biraz toplandı.
+   ⚠️ Yazı BOYUTLARINA dokunulmadı — onlar bütün ekranların hizasını
+   kaydırır. Değişen yalnızca aradaki boşluk. */
+html[data-theme="light"][data-theme-engine="premium"] {
+  --layout-page-padding:clamp(var(--space-12), 1.4vw, var(--space-20));
+  --polish-card-padding:var(--space-16);
+  --enterprise-overlay-panel-gap:var(--space-12);
+  --line-height-1-5:1.45;
+}
+
+html[data-theme="light"][data-theme-engine="premium"] :where(.workspace-layout) {
+  gap:var(--space-12);
+}
+
+html[data-theme="light"][data-theme-engine="premium"] :where(
+  .workspace-header, .enterprise-workspace-header
+) {
+  padding-block:var(--space-12);
+  min-height:0;
+}
+
+html[data-theme="light"][data-theme-engine="premium"] :where(
+  .card, .premium-card, .dashboard-panel, .report-panel
+) {
+  padding:var(--space-16);
+}
+
+html[data-theme="light"][data-theme-engine="premium"] :where(.section-header) {
+  margin-bottom:var(--space-12);
+}
+
+/* Tablo satırları: 44px'lik dokunma hedefi korunuyor ama nefeslik azaldı. */
+html[data-theme="light"][data-theme-engine="premium"] :where(table td, table th) {
+  padding-block:var(--space-8);
+}
+
+/* ── 3 · KPI RAKAMLARI BASKIN OLSUN ───────────────────────────────────────
+   "4" ile "Depodaki kalem" aynı ağırlıktaydı. Önce rakam okunmalı: panelin
+   işi sayı göstermek, etiket açıklamak. */
+html[data-theme="light"][data-theme-engine="premium"] .operational-kpi-value {
+  font-size:var(--font-size-32, 32px);
+  font-weight:800;
+  line-height:1.1;
+  letter-spacing:-.02em;
+  color:#111827;
+}
+
+html[data-theme="light"][data-theme-engine="premium"] .operational-kpi-label {
+  font-size:var(--font-size-12, 12px);
+  font-weight:600;
+  letter-spacing:.04em;
+  text-transform:uppercase;
+  color:#6B7280;
+}
+
+/* Kritik bir alt açıklama ("2 tanesi stok yetersizliğinden başlatılamıyor")
+   düz metin gibi duruyordu; artık kendi rengiyle konuşuyor. */
+html[data-theme="light"][data-theme-engine="premium"] :where(.metric-card.danger, .operational-kpi-card.danger) .operational-kpi-detail,
+html[data-theme="light"][data-theme-engine="premium"] :where(.metric-card.warning, .operational-kpi-card.warning) .operational-kpi-detail {
+  font-weight:600;
+}
+
+html[data-theme="light"][data-theme-engine="premium"] :where(.operational-kpi-card.danger) {
+  border-left:3px solid var(--danger);
+}
+
+html[data-theme="light"][data-theme-engine="premium"] :where(.operational-kpi-card.warning) {
+  border-left:3px solid var(--warning);
+}
+
+/* ── 4 · BAŞLIK TEKRARI ───────────────────────────────────────────────────
+   Sayfa başlığı "Kontrol Paneli" diyor, hemen altındaki kart yine
+   "Kontrol Paneli" diyordu. Aynı şeyi iki kez söylemek bilgi değil gürültü.
+   Açıklama cümlesi duruyor — asıl bilgi orada. */
+.dashboard-experience-page .dashboard-operational-title-row h2 {
+  display:none;
+}
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   YÖNETİM MENÜSÜ AŞAĞIDA (Emrah isteği · temadan BAĞIMSIZ)
+   ═══════════════════════════════════════════════════════════════════════════
+   Günlük iş yukarıda, ayar ve yönetim aşağıda. Kolay İK'daki yerleşim mantığı
+   da bu: sık kullanılan üstte, kurulum işleri altta.
+
+   Yerleşim CSS ile yapılıyor, menü sırası KODDA değişmiyor: gruplar zaten
+   `data-section` ile kendi adını taşıyor, biz yalnızca YÖNETİM'i alta itiyoruz.
+   Bir grup eklenir/çıkarılırsa bu kural kendiliğinden doğru kalır.
+   ═══════════════════════════════════════════════════════════════════════════ */
+.side-nav-scroll {
+  display:flex;
+  flex-direction:column;
+  min-height:100%;
+}
+
+.side-nav-groups {
+  display:flex;
+  flex-direction:column;
+  flex:1 1 auto;
+}
+
+.side-nav-group[data-section="YÖNETİM"] {
+  margin-top:auto;
+}
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   SADE TEMA · ÜÇÜNCÜ TUR — MAKET UYGULAMASI (2026-09-26)
+   ═══════════════════════════════════════════════════════════════════════════
+   Onaylanan maket: docs/tasarim/miyop-ekran-onerisi.html
+   Emrah kararı: "menü koyu, aralık sık olmalı, net!"
+
+   ── ÜÇ TEMEL KURAL ───────────────────────────────────────────────────────
+   1. SAYFA GRİ, KART BEYAZ. İkinci turda zemin #F4F6F8 ile kart beyazı
+      birbirine fazla yakındı; kutular kayboluyordu. Zemin bir tık koyulaştı
+      (#EEF1F4). Kart beyazı değişmedi. Fark artık gözle görülüyor.
+   2. AYRIMI ÇİZGİ YAPAR, BOŞLUK DEĞİL. Çizgi bir tık daha koyu (#D8DEE6);
+      karşılığında aradaki boşluk kısaldı. "Uzay boşluğu" hissi buradan
+      geliyordu: ayrım görevi boşluğa yüklenmişti.
+   3. YAN MENÜ KOYU. İkinci turda beyaza çevrilmişti, o kural kaldırıldı.
+      Koyu menü çalışma alanının nerede başladığını tek bakışta söylüyor.
+
+   ── NE DEĞİŞMEDİ ─────────────────────────────────────────────────────────
+   Koyu tema, menü sırası, yazı tipi ölçek tablosu, hiçbir ekranın kendi
+   kuralı. Değişen yalnızca jetonlar ve kabuk ölçüleri. Beğenilmezse bu blok
+   tek parça silinir.
+   ═══════════════════════════════════════════════════════════════════════════ */
+
+/* ── 1 · YÜZEYLER VE ÇİZGİLER ───────────────────────────────────────────── */
+html[data-theme="light"][data-theme-engine="premium"] {
+  --theme-app-bg:#EEF1F4;
+  --theme-app-muted:#E7EBF0;
+  --bg:#EEF1F4;
+
+  --theme-border-subtle:#E3E8EE;
+  --theme-border-default:#D8DEE6;
+  --line:#D8DEE6;
+  --line-soft:#E3E8EE;
+  --line-strong:#C3CCD8;
+  --enterprise-first-border:#D8DEE6;
+}
+
+html[data-theme="light"][data-theme-engine="premium"] :where(
+  .card, .premium-card, .dashboard-panel, .metric-card, .dashboard-kpi-card,
+  .responsive-card, .premium-form-section, .premium-empty-state,
+  .getting-started-card, .feature-highlight, .quick-tip, .report-panel
+) {
+  background:#FFFFFF;
+  border:1px solid #D8DEE6;
+  box-shadow:0 1px 2px rgba(16, 24, 40, .06);
+}
+
+/* ── 2 · YAN MENÜ KOYU, VURGU MAVİ ──────────────────────────────────────
+   Kabuk katmanı menüyü grafit yapıyor ama vurgu rengi turkuaz. Gövdedeki
+   tek vurgu mavi olduğuna göre menü de mavi olmalı; iki vurgu rengi bir
+   arayüzü dağıtır. */
+html[data-theme="light"][data-theme-engine="premium"] .side-nav,
+html[data-theme="dark"][data-theme-engine="premium"] .side-nav {
+  --theme-semantic-primary-base:#3B82F6;
+  --theme-semantic-primary-hover:#60A5FA;
+  --theme-semantic-primary-soft:rgba(59, 130, 246, .18);
+  --theme-semantic-primary-subtle:rgba(59, 130, 246, .26);
+  --theme-semantic-primary-line:rgba(59, 130, 246, .40);
+  --theme-semantic-primary-contrast:#FFFFFF;
+  --theme-state-active:rgba(59, 130, 246, .18);
+  --theme-state-selected:rgba(59, 130, 246, .18);
+  --sidebar-accent:#FFFFFF;
+  --sidebar-accent-soft:rgba(59, 130, 246, .20);
+}
+
+/* Etkin satır: mavi zemin, BEYAZ yazı. Maketteki hâli bu; renkli yazı
+   koyu zeminde okunurluğu düşürüyordu. */
+html body .side-nav .side-nav-item.active {
+  background:rgba(59, 130, 246, .20);
+  color:#FFFFFF;
+  box-shadow:inset 2px 0 0 #3B82F6;
+}
+
+/* Menü satırları toplandı: 36px → 32px. Aynı ekranda iki satır daha fazla
+   modül görünüyor, tıklama hedefi hâlâ rahat. */
+html body .side-nav .side-nav-item { min-height:32px }
+html body .side-nav .side-nav-title { padding-top:var(--space-8); padding-bottom:var(--space-2) }
+html body .side-nav .side-nav-groups { gap:var(--space-2) }
+
+/* ── 3 · ÜST ÇUBUK ──────────────────────────────────────────────────────
+   Boş görünmesinin sebebi yüksekliği değil, içinin azlığıydı; ama gereksiz
+   yüksekliği de vardı. Sabit 52px. */
+html[data-theme="light"][data-theme-engine="premium"] :where(.topbar, .enterprise-topbar) {
+  min-height:52px;
+  background:#FFFFFF;
+  border-bottom:1px solid #D8DEE6;
+  box-shadow:none;
+}
+
+/* ── 4 · SIKI YERLEŞİM ──────────────────────────────────────────────────
+   Yazı BOYUTLARI yine değişmedi. Değişen: sayfa iç boşluğu, kart iç
+   boşluğu, kartlar arası aralık. */
+html[data-theme="light"][data-theme-engine="premium"] {
+  --layout-page-padding:var(--space-16);
+  --layout-widget-gap:var(--space-12);
+  --layout-card-padding:var(--space-14, 14px);
+  --polish-card-padding:var(--space-14, 14px);
+}
+
+html[data-theme="light"][data-theme-engine="premium"] :where(.workspace-layout) { gap:var(--space-12) }
+html[data-theme="light"][data-theme-engine="premium"] :where(.warehouse-page) { gap:var(--space-12) }
+html[data-theme="light"][data-theme-engine="premium"] :where(
+  .card, .premium-card, .dashboard-panel, .report-panel
+) { padding:var(--space-14, 14px) }
+html[data-theme="light"][data-theme-engine="premium"] :where(.section-header) { margin-bottom:var(--space-10) }
+
+/* ── 5 · KPI KARTLARI ───────────────────────────────────────────────────
+   ⚠️ DÜZELTME: ikinci turdaki kural `.operational-kpi-value` hedefliyordu.
+   Kontrol Paneli o sınıfı KULLANMIYOR — kartları `.metric-card > span /
+   strong / p` olarak yazılmış. Yani o kural bu ekranda hiç çalışmadı.
+   Doğru hedef aşağıda. Ders: bir kuralı yazmadan önce ekranın gerçek
+   işaretlemesine bakılır. */
+html[data-theme="light"][data-theme-engine="premium"] .metric-card {
+  min-height:0;
+  gap:var(--space-6);
+  padding:var(--space-14, 14px);
+}
+
+html[data-theme="light"][data-theme-engine="premium"] .metric-card span {
+  font-size:var(--font-size-11, 11px);
+  font-weight:var(--font-weight-700);
+  letter-spacing:.055em;
+  text-transform:uppercase;
+  color:#6B7280;
+}
+
+html[data-theme="light"][data-theme-engine="premium"] .metric-card strong {
+  margin-top:var(--space-4);
+  font-size:var(--font-size-30, 30px);
+  font-weight:var(--font-weight-800);
+  line-height:1.05;
+  letter-spacing:-.03em;
+  color:#111827;
+}
+
+html[data-theme="light"][data-theme-engine="premium"] .metric-card p {
+  font-size:var(--font-size-12, 12px);
+  color:#6B7280;
+}
+
+/* Kritik alt açıklama düz metin gibi durmasın. */
+html[data-theme="light"][data-theme-engine="premium"] .metric-card p.is-critical {
+  color:#C0261F;
+  font-weight:var(--font-weight-600);
+}
+
+/* Sol kenardaki 3px anlam şeridi: `.danger` / `.warning` sınıfları zaten
+   tanımlı, Kontrol Paneli artık bunları veriyor. */
+html[data-theme="light"][data-theme-engine="premium"] .metric-card.danger::before { background:#D3352C; opacity:1 }
+html[data-theme="light"][data-theme-engine="premium"] .metric-card.warning::before { background:#D79A1C; opacity:1 }
+html[data-theme="light"][data-theme-engine="premium"] .metric-card.success::before { background:#2E9B5C; opacity:1 }
+
+/* ── 6 · TABLOLAR ───────────────────────────────────────────────────────
+   Başlık satırı: küçük punto, büyük harf, gri şerit. Gövde satırları
+   arasında ince çizgi; üzerine gelince hafif vurgu. */
+html[data-theme="light"][data-theme-engine="premium"] :where(.table-wrap thead th, table thead th) {
+  padding-block:var(--space-6);
+  background:#F6F8FA;
+  border-bottom:1px solid #D8DEE6;
+  color:#6B7280;
+  font-size:var(--font-size-11, 11px);
+  font-weight:var(--font-weight-700);
+  letter-spacing:.06em;
+  text-transform:uppercase;
+}
+
+html[data-theme="light"][data-theme-engine="premium"] :where(table tbody td) {
+  padding-block:var(--space-8);
+  border-bottom:1px solid #E6EAF0;
+}
+
+html[data-theme="light"][data-theme-engine="premium"] :where(table tbody tr:hover) {
+  background:#F8FAFC;
+}
+
+/* Sayı sütunları alt alta hizalansın. */
+html[data-theme="light"][data-theme-engine="premium"] :where(table td.num, table th.num) {
+  font-variant-numeric:tabular-nums;
+}
+
+/* ── 7 · ÖNEM ROZETİ (Kontrol Paneli · dikkat tablosu) ──────────────────
+   Renk tek başına bilgi taşımaz: renk körü bir kullanıcı kırmızıyı
+   ayırt edemez. O yüzden rozet hem renkli hem YAZILI. */
+.onem-rozeti {
+  display:inline-flex;
+  align-items:center;
+  gap:5px;
+  padding:2px 7px;
+  border:1px solid transparent;
+  border-radius:var(--radius-sm, 5px);
+  font-size:var(--font-size-11, 11px);
+  font-weight:var(--font-weight-700);
+  white-space:nowrap;
+}
+
+.onem-rozeti::before {
+  content:"";
+  width:6px;
+  height:6px;
+  border-radius:50%;
+  background:currentColor;
+  flex:0 0 auto;
+}
+
+.onem-rozeti.kritik { color:#C0261F; background:#FCECEA; border-color:#F3C9C4 }
+.onem-rozeti.uyari  { color:#8A5A00; background:#FDF3DC; border-color:#F0DBAB }
+.onem-rozeti.bilgi  { color:#1D4ED8; background:#E8EEFC; border-color:#CBD9F7 }
+
+html[data-theme="dark"][data-theme-engine="premium"] .onem-rozeti.kritik { color:#FCA5A5; background:rgba(220, 38, 38, .16); border-color:rgba(220, 38, 38, .34) }
+html[data-theme="dark"][data-theme-engine="premium"] .onem-rozeti.uyari  { color:#FCD34D; background:rgba(217, 154, 28, .16); border-color:rgba(217, 154, 28, .34) }
+html[data-theme="dark"][data-theme-engine="premium"] .onem-rozeti.bilgi  { color:#93C5FD; background:rgba(59, 130, 246, .16); border-color:rgba(59, 130, 246, .34) }
+
+/* ── 8 · SATIR SONU "AÇ ›" DÜĞMESİ ──────────────────────────────────────
+   Genel `.btn` bir satır içinde fazla ağır kalıyordu. Tabloda hafif,
+   mavi, tek satırlık bir düğme. */
+html[data-theme="light"][data-theme-engine="premium"] .actions-cell .btn {
+  min-height:26px;
+  padding:0 var(--space-10);
+  background:#FFFFFF;
+  border:1px solid #D8DEE6;
+  color:#1D4ED8;
+  font-size:var(--font-size-12, 12px);
+  font-weight:var(--font-weight-600);
+  white-space:nowrap;
+}
+
+html[data-theme="light"][data-theme-engine="premium"] .actions-cell .btn:hover {
+  background:#E8EEFC;
+  border-color:#BBCDF4;
+}
+
+/* ── 9 · ÖZGÜLLÜK DÜZELTMELERİ ──────────────────────────────────────────
+   Yukarıdaki kuralların bir kısmı tarayıcıda kaybediyordu. Sebep: `:where()`
+   ÖZGÜLLÜK TAŞIMAZ. Yani `html[a][b] :where(table thead th)` = iki nitelik
+   kadar ağır sayılıyor ve `.data-table.compact th` (iki sınıf + bir eleman)
+   onu yeniyor. Ölçüm başlıkta 13px gösterdi, 11px değil.
+
+   Bu bölüm aynı kuralları `:where()` OLMADAN, yarışı kazanacak seçicilerle
+   yeniden yazıyor. Tarayıcıda ölçülerek doğrulandı.
+   ═══════════════════════════════════════════════════════════════════════ */
+
+/* Tablo başlığı — `.data-table.compact th` kuralını geçecek özgüllük. */
+html[data-theme="light"][data-theme-engine="premium"] table thead th,
+html[data-theme="light"][data-theme-engine="premium"] .table-wrap thead th {
+  padding-block:var(--space-6);
+  background:#F6F8FA;
+  border-bottom:1px solid #D8DEE6;
+  color:#6B7280;
+  font-size:var(--font-size-11);
+  font-weight:var(--font-weight-700);
+  letter-spacing:.06em;
+  text-transform:uppercase;
+}
+
+html[data-theme="light"][data-theme-engine="premium"] table tbody td,
+html[data-theme="light"][data-theme-engine="premium"] .table-wrap tbody td {
+  padding-block:var(--space-8);
+  border-bottom:1px solid #E6EAF0;
+}
+
+/* Yan menü — açık modda gövdeye ait bir kural menüyü açık gri degradeye
+   çekiyordu. Menü her iki temada da grafit. */
+html[data-theme="light"][data-theme-engine="premium"] .side-nav,
+html[data-theme="dark"][data-theme-engine="premium"] .side-nav {
+  background:#101826;
+  border-right:1px solid rgba(226, 232, 240, .08);
+  box-shadow:none;
+}
+
+/* Üst çubuk — yüksekliği `--tb-h` belirliyor; kuralla değil JETONLA
+   değiştiriyoruz, yoksa `topbar-v2` katmanının beş sınıflık seçicisi
+   her zaman kazanır. 64px → 52px, içindeki kontroller 38px → 32px. */
+html[data-theme="light"] body .topbar.enterprise-topbar.topbar-v2.topbar-v2.topbar-v2 {
+  --tb-h:52px;
+  --tb-control:32px;
+}

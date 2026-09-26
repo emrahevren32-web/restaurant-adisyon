@@ -52,7 +52,7 @@ export default function LisansYonetimi(){
   const [bilgi, setBilgi] = React.useState('')
   const [islemde, setIslemde] = React.useState('')
   const [uzatilan, setUzatilan] = React.useState<LisansOzeti | null>(null)
-  const [ay, setAy] = React.useState('1')
+  const [ay, setAy] = React.useState('3')
   const [yeniBitis, setYeniBitis] = React.useState('')
   const [not, setNot] = React.useState('')
   const [ucretli, setUcretli] = React.useState(false)
@@ -87,7 +87,7 @@ export default function LisansYonetimi(){
           ? { yeniBitis, not, ucretli }
           : { ay: Number(ay) || 1, not, ucretli })
       setBilgi(`${uzatilan.isletme} lisansı ${ucretli ? 'ÜCRETLİ' : 'ücretsiz'} olarak uzatıldı.`)
-      setUzatilan(null); setNot(''); setYeniBitis(''); setAy('1'); setUcretli(false)
+      setUzatilan(null); setNot(''); setYeniBitis(''); setAy('3'); setUcretli(false)
       await yenile()
     } catch(e){
       setHata(e instanceof Error ? e.message : 'Uzatma yapılamadı.')
@@ -96,13 +96,18 @@ export default function LisansYonetimi(){
     }
   }
 
-  const karar = async (talep: SureTalebi, onay: boolean, ucretliKarar = false) => {
+  /**
+   * ⚠️ STANDART 3+3 (Emrah kararı): ücretsiz ek süre varsayılan olarak 3 ay.
+   * Bu bir sınır değil — başka bir süre gerekiyorsa "Uzat" formundan ay ya da
+   * doğrudan tarih verilir.
+   */
+  const karar = async (talep: SureTalebi, onay: boolean, ucretliKarar = false, ay = 3) => {
     if(islemde) return
     setIslemde(talep.id)
     try {
-      await talebiKararaBagla(getSupabase(), talep.id, onay, 1, '', ucretliKarar)
+      await talebiKararaBagla(getSupabase(), talep.id, onay, ay, '', ucretliKarar)
       setBilgi(onay
-        ? `${talep.isletme} talebi onaylandı, lisans 1 ay ${ucretliKarar ? 'ÜCRETLİ' : 'ücretsiz'} uzatıldı.`
+        ? `${talep.isletme} talebi onaylandı, lisans ${ay} ay ${ucretliKarar ? 'ÜCRETLİ' : 'ücretsiz'} uzatıldı.`
         : `${talep.isletme} talebi reddedildi.`)
       await yenile()
     } catch(e){
@@ -165,12 +170,12 @@ export default function LisansYonetimi(){
                     <td>
                       <button className="btn primary" type="button"
                               disabled={islemde === t.id}
-                              onClick={() => void karar(t, true, false)}>
-                        Ücretsiz · 1 ay
+                              onClick={() => void karar(t, true, false, 3)}>
+                        Ücretsiz · 3 ay
                       </button>
                       <button className="btn" type="button"
                               disabled={islemde === t.id}
-                              onClick={() => void karar(t, true, true)}>
+                              onClick={() => void karar(t, true, true, 1)}>
                         Ücretli · 1 ay
                       </button>
                       <button className="btn" type="button"
@@ -231,7 +236,7 @@ export default function LisansYonetimi(){
                     <td>{l.toplamGun} gün</td>
                     <td>
                       <button className="btn" type="button"
-                              onClick={() => { setUzatilan(l); setYeniBitis(''); setAy('1'); setUcretli(false) }}>
+                              onClick={() => { setUzatilan(l); setYeniBitis(''); setAy('3'); setUcretli(false) }}>
                         Uzat
                       </button>
                       <button className="btn" type="button"

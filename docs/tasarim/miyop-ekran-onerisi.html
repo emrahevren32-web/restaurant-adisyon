@@ -1,0 +1,417 @@
+<!doctype html>
+<html lang="tr" data-yan="koyu" data-yogunluk="siki">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>MİYOP · Ekran Önerisi</title>
+<style>
+:root{
+  /* ---- Yüzeyler: sayfa GRİ, kartlar BEYAZ ---- */
+  --zemin:#EEF1F4;          /* sayfa arka planı (gri) */
+  --kart:#FFFFFF;           /* kart / tablo / panel (beyaz) */
+  --kart-ikinci:#F7F8FA;    /* tablo başlığı, satır vurgusu */
+  --cizgi:#D8DEE6;          /* görünür kenar */
+  --cizgi-soluk:#E8ECF1;
+  /* ---- Yazı ---- */
+  --yazi:#111827;
+  --yazi-ikinci:#4B5563;
+  --yazi-soluk:#7A8595;
+  /* ---- Anlam renkleri ---- */
+  --mavi:#1D4ED8; --mavi-soluk:#E8EEFC;
+  --kirmizi:#C0261F; --kirmizi-soluk:#FCECEA;
+  --amber:#8A5A00; --amber-soluk:#FDF3DC;
+  --yesil:#136A3A; --yesil-soluk:#E6F4EB;
+  /* ---- Ölçek ---- */
+  --r:8px;
+  --bosluk:12px;
+  --kart-ic:14px;
+  --satir:36px;
+  --golge:0 1px 2px rgba(16,24,40,.06);
+}
+html[data-yogunluk="ferah"]{ --bosluk:18px; --kart-ic:20px; --satir:44px; }
+
+*{box-sizing:border-box}
+html,body{height:100%}
+body{
+  margin:0; background:var(--zemin); color:var(--yazi);
+  font:14px/1.45 "Segoe UI Variable Text","Segoe UI",Inter,system-ui,-apple-system,Roboto,Arial,sans-serif;
+  -webkit-font-smoothing:antialiased;
+}
+button{font:inherit;cursor:pointer}
+
+/* ================= KABUK ================= */
+.kabuk{display:grid;grid-template-columns:232px 1fr;min-height:100vh}
+html[data-yogunluk="ferah"] .kabuk{grid-template-columns:248px 1fr}
+
+/* ================= SOL MENÜ ================= */
+.yan{
+  background:#101826; color:#C3CBD7; display:flex; flex-direction:column;
+  border-right:1px solid #0B1220; position:sticky; top:0; height:100vh;
+}
+html[data-yan="acik"] .yan{background:#FFFFFF;color:var(--yazi-ikinci);border-right:1px solid var(--cizgi)}
+
+.marka{display:flex;align-items:center;gap:9px;height:52px;padding:0 14px;border-bottom:1px solid rgba(255,255,255,.07);flex:0 0 auto}
+html[data-yan="acik"] .marka{border-bottom:1px solid var(--cizgi-soluk)}
+.marka-im{width:26px;height:26px;border-radius:7px;background:linear-gradient(135deg,#2563EB,#1E40AF);color:#fff;display:grid;place-items:center;font-weight:700;font-size:13px;letter-spacing:-.02em}
+.marka-ad{font-weight:650;font-size:14.5px;color:#fff;letter-spacing:-.01em}
+html[data-yan="acik"] .marka-ad{color:var(--yazi)}
+.marka-alt{font-size:10.5px;color:#7A879A;margin-top:-2px}
+
+.kiraci{margin:10px;padding:8px 10px;border-radius:7px;background:rgba(255,255,255,.05);display:flex;align-items:center;gap:8px;flex:0 0 auto}
+html[data-yan="acik"] .kiraci{background:var(--kart-ikinci);border:1px solid var(--cizgi-soluk)}
+.kiraci b{display:block;font-size:12.5px;color:#EAEEF4;font-weight:600}
+html[data-yan="acik"] .kiraci b{color:var(--yazi)}
+.kiraci span{font-size:10.5px;color:#7A879A}
+.kiraci .ok{margin-left:auto;color:#6B7890;font-size:11px}
+
+.menu{flex:1 1 auto;overflow:auto;padding:4px 8px 8px}
+.menu-baslik{font-size:10px;letter-spacing:.09em;text-transform:uppercase;color:#6B7890;padding:12px 8px 5px;font-weight:650}
+html[data-yan="acik"] .menu-baslik{color:var(--yazi-soluk)}
+.mi{display:flex;align-items:center;gap:9px;padding:0 9px;height:32px;border-radius:6px;color:inherit;text-decoration:none;font-size:13.5px;position:relative}
+html[data-yogunluk="ferah"] .mi{height:38px}
+.mi:hover{background:rgba(255,255,255,.06);color:#fff}
+html[data-yan="acik"] .mi:hover{background:var(--kart-ikinci);color:var(--yazi)}
+.mi.acik{background:rgba(37,99,235,.20);color:#fff;font-weight:600}
+html[data-yan="acik"] .mi.acik{background:var(--mavi-soluk);color:var(--mavi)}
+.mi.acik::before{content:"";position:absolute;left:-8px;top:6px;bottom:6px;width:3px;border-radius:0 3px 3px 0;background:#3B82F6}
+.mi i{width:16px;text-align:center;font-style:normal;opacity:.85;font-size:13px}
+.mi .sayi{margin-left:auto;font-size:10.5px;font-weight:700;background:var(--kirmizi);color:#fff;border-radius:9px;padding:1px 6px;min-width:19px;text-align:center}
+.mi .sayi.nötr{background:rgba(255,255,255,.14);color:#D6DDE7}
+html[data-yan="acik"] .mi .sayi.nötr{background:var(--cizgi-soluk);color:var(--yazi-ikinci)}
+.menu-alt{flex:0 0 auto;padding:6px 8px;border-top:1px solid rgba(255,255,255,.07)}
+html[data-yan="acik"] .menu-alt{border-top:1px solid var(--cizgi-soluk)}
+.hesap{display:flex;align-items:center;gap:9px;padding:8px;border-radius:7px}
+.hesap:hover{background:rgba(255,255,255,.06)}
+html[data-yan="acik"] .hesap:hover{background:var(--kart-ikinci)}
+.avatar{width:28px;height:28px;border-radius:50%;background:#2A3648;color:#DCE3EC;display:grid;place-items:center;font-size:11.5px;font-weight:700}
+html[data-yan="acik"] .avatar{background:var(--mavi-soluk);color:var(--mavi)}
+.hesap b{font-size:12.5px;color:#EAEEF4;font-weight:600;display:block}
+html[data-yan="acik"] .hesap b{color:var(--yazi)}
+.hesap span{font-size:10.5px;color:#7A879A}
+
+/* ================= ÜST BANT ================= */
+.govde{display:flex;flex-direction:column;min-width:0}
+.ust{
+  height:52px;flex:0 0 auto;background:var(--kart);border-bottom:1px solid var(--cizgi);
+  display:flex;align-items:center;gap:10px;padding:0 16px;position:sticky;top:0;z-index:5;
+}
+.iz{font-size:12.5px;color:var(--yazi-soluk);white-space:nowrap}
+.iz b{color:var(--yazi);font-weight:600}
+.ara{margin-left:auto;display:flex;align-items:center;gap:7px;width:290px;max-width:34vw;height:32px;padding:0 10px;border:1px solid var(--cizgi);border-radius:7px;background:var(--kart-ikinci);color:var(--yazi-soluk);font-size:13px}
+.ara kbd{margin-left:auto;font:inherit;font-size:10.5px;border:1px solid var(--cizgi);border-radius:4px;padding:0 4px;background:#fff}
+.ust-dugme{height:32px;width:32px;border:1px solid var(--cizgi);background:var(--kart);border-radius:7px;display:grid;place-items:center;color:var(--yazi-ikinci);position:relative}
+.ust-dugme .nokta{position:absolute;top:5px;right:6px;width:7px;height:7px;border-radius:50%;background:var(--kirmizi);border:1.5px solid #fff}
+
+/* ================= SAYFA ================= */
+.sayfa{padding:var(--bosluk) 16px 26px;display:flex;flex-direction:column;gap:var(--bosluk);min-width:0}
+.sayfa-basi{display:flex;align-items:flex-end;gap:12px;flex-wrap:wrap}
+.sayfa-basi h1{margin:0;font-size:19px;font-weight:650;letter-spacing:-.015em}
+.sayfa-basi p{margin:2px 0 0;font-size:12.5px;color:var(--yazi-soluk)}
+.sayfa-araclar{margin-left:auto;display:flex;gap:7px;flex-wrap:wrap}
+.d{height:32px;padding:0 12px;border-radius:7px;border:1px solid var(--cizgi);background:var(--kart);color:var(--yazi);font-size:13px;font-weight:550;display:inline-flex;align-items:center;gap:6px;box-shadow:var(--golge)}
+.d.ana{background:var(--mavi);border-color:var(--mavi);color:#fff}
+.d.ana:hover{background:#1A45C2}
+
+/* ---- KPI ---- */
+.kpi-satir{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:var(--bosluk)}
+.kpi{background:var(--kart);border:1px solid var(--cizgi);border-radius:var(--r);padding:var(--kart-ic);box-shadow:var(--golge);position:relative;overflow:hidden}
+.kpi::before{content:"";position:absolute;left:0;top:0;bottom:0;width:3px;background:var(--cizgi)}
+.kpi.iyi::before{background:#2E9B5C}.kpi.uyari::before{background:#D79A1C}.kpi.kritik::before{background:#D3352C}.kpi.bilgi::before{background:#2563EB}
+.kpi-et{font-size:11px;letter-spacing:.055em;text-transform:uppercase;color:var(--yazi-soluk);font-weight:650}
+.kpi-alt-satir{display:flex;align-items:baseline;gap:8px;margin-top:6px}
+.kpi-deger{font-size:29px;line-height:1.05;font-weight:720;letter-spacing:-.03em;font-variant-numeric:tabular-nums}
+.kpi-birim{font-size:12.5px;color:var(--yazi-soluk);font-weight:550}
+.kpi-fark{font-size:11.5px;font-weight:650;border-radius:5px;padding:1px 5px;white-space:nowrap}
+.f-yesil{color:var(--yesil);background:var(--yesil-soluk)}
+.f-kirmizi{color:var(--kirmizi);background:var(--kirmizi-soluk)}
+.f-nötr{color:var(--yazi-soluk);background:var(--kart-ikinci)}
+.kpi-not{margin-top:7px;font-size:11.5px;color:var(--yazi-soluk);display:flex;align-items:center;gap:6px}
+.cubuklar{display:flex;align-items:flex-end;gap:2px;height:16px;margin-left:auto}
+.cubuklar span{width:4px;background:#C9D4E4;border-radius:1px}
+
+/* ---- Izgara ---- */
+.izgara{display:grid;grid-template-columns:minmax(0,1.62fr) minmax(0,1fr);gap:var(--bosluk);align-items:start}
+.panel{background:var(--kart);border:1px solid var(--cizgi);border-radius:var(--r);box-shadow:var(--golge);overflow:hidden}
+.panel-basi{display:flex;align-items:center;gap:9px;padding:10px var(--kart-ic);border-bottom:1px solid var(--cizgi-soluk);background:var(--kart)}
+.panel-basi h2{margin:0;font-size:13.5px;font-weight:650;letter-spacing:-.01em}
+.panel-basi .adet{font-size:11px;font-weight:700;color:var(--yazi-ikinci);background:var(--kart-ikinci);border:1px solid var(--cizgi-soluk);border-radius:20px;padding:1px 7px}
+.panel-basi .sag{margin-left:auto;display:flex;gap:6px}
+.kucuk-d{height:26px;padding:0 9px;border-radius:6px;border:1px solid var(--cizgi);background:var(--kart);font-size:12px;color:var(--yazi-ikinci)}
+.kucuk-d.secili{background:var(--yazi);border-color:var(--yazi);color:#fff;font-weight:600}
+
+/* ---- Tablo ---- */
+table{width:100%;border-collapse:collapse}
+thead th{
+  text-align:left;font-size:10.5px;letter-spacing:.06em;text-transform:uppercase;color:var(--yazi-soluk);
+  font-weight:650;background:var(--kart-ikinci);border-bottom:1px solid var(--cizgi);padding:7px var(--kart-ic);white-space:nowrap;
+}
+tbody td{padding:0 var(--kart-ic);height:var(--satir);border-bottom:1px solid var(--cizgi-soluk);font-size:13px;vertical-align:middle}
+tbody tr:last-child td{border-bottom:0}
+tbody tr:hover{background:#F8FAFC}
+td.sag,th.sag{text-align:right}
+.sayi-hucre{font-variant-numeric:tabular-nums;font-weight:600}
+.ikincil{color:var(--yazi-soluk);font-size:11.5px}
+.ana-metin{font-weight:550}
+
+/* ---- Rozet ---- */
+.rozet{display:inline-flex;align-items:center;gap:5px;font-size:11px;font-weight:650;border-radius:5px;padding:2px 7px;white-space:nowrap;border:1px solid transparent}
+.r-kritik{color:var(--kirmizi);background:var(--kirmizi-soluk);border-color:#F3C9C4}
+.r-uyari{color:var(--amber);background:var(--amber-soluk);border-color:#F0DBAB}
+.r-bilgi{color:var(--mavi);background:var(--mavi-soluk);border-color:#CBD9F7}
+.r-tamam{color:var(--yesil);background:var(--yesil-soluk);border-color:#BFE2CC}
+.r-nötr{color:var(--yazi-ikinci);background:var(--kart-ikinci);border-color:var(--cizgi-soluk)}
+.nokta-im{width:6px;height:6px;border-radius:50%;background:currentColor;flex:0 0 auto}
+.ac{display:inline-flex;align-items:center;gap:4px;white-space:nowrap;height:26px;padding:0 9px;border:1px solid var(--cizgi);border-radius:6px;background:var(--kart);color:var(--mavi);font-size:12px;font-weight:600;text-decoration:none}
+.ac:hover{background:var(--mavi-soluk);border-color:#BBCDF4}
+
+/* ---- Akış / liste panelleri ---- */
+.panel-ic{padding:var(--kart-ic)}
+.akis{display:flex;flex-direction:column;gap:9px}
+.akis-satir{display:grid;grid-template-columns:120px 1fr 44px;align-items:center;gap:9px}
+.akis-ad{font-size:12.5px;color:var(--yazi-ikinci)}
+.cubuk{height:8px;border-radius:5px;background:var(--kart-ikinci);overflow:hidden;border:1px solid var(--cizgi-soluk)}
+.cubuk i{display:block;height:100%;border-radius:5px}
+.akis-sayi{text-align:right;font-size:13px;font-weight:700;font-variant-numeric:tabular-nums}
+
+.oda{display:flex;align-items:center;gap:10px;padding:9px 0;border-bottom:1px solid var(--cizgi-soluk)}
+.oda:last-child{border-bottom:0;padding-bottom:0}
+.oda-im{width:32px;height:32px;border-radius:7px;display:grid;place-items:center;font-size:11.5px;font-weight:700;background:var(--mavi-soluk);color:var(--mavi)}
+.oda-im.kritik{background:var(--kirmizi-soluk);color:var(--kirmizi)}
+.oda b{display:block;font-size:12.5px;font-weight:600}
+.oda span{font-size:11.5px;color:var(--yazi-soluk)}
+.oda .derece{margin-left:auto;font-size:15px;font-weight:700;font-variant-numeric:tabular-nums}
+.oda .derece.kritik{color:var(--kirmizi)}
+
+/* ---- Ayar çubuğu (yalnız maket) ---- */
+.ayar{position:fixed;right:14px;bottom:14px;z-index:20;display:flex;gap:6px;background:#111827;color:#fff;padding:7px;border-radius:10px;box-shadow:0 8px 24px rgba(16,24,40,.28);font-size:12px;align-items:center}
+.ayar b{font-weight:600;opacity:.7;padding:0 4px}
+.ayar button{background:rgba(255,255,255,.12);border:0;color:#fff;border-radius:6px;padding:5px 9px;font-size:12px}
+.ayar button.secili{background:#2563EB}
+
+@media (max-width:1180px){ .kpi-satir{grid-template-columns:repeat(2,minmax(0,1fr))} .izgara{grid-template-columns:1fr} }
+@media (max-width:820px){ .kabuk{grid-template-columns:1fr} .yan{display:none} .kpi-satir{grid-template-columns:1fr} }
+</style>
+</head>
+<body>
+<div class="kabuk">
+
+  <!-- ===== SOL MENÜ ===== -->
+  <aside class="yan">
+    <div class="marka">
+      <div class="marka-im">M</div>
+      <div><div class="marka-ad">MİYOP</div><div class="marka-alt">Endüstriyel Mutfak</div></div>
+    </div>
+
+    <div class="kiraci">
+      <div class="avatar">EG</div>
+      <div><b>Evren Gıda A.Ş.</b><span>Merkez Üretim · Vardiya 1</span></div>
+      <div class="ok">▾</div>
+    </div>
+
+    <nav class="menu">
+      <a class="mi acik" href="#"><i>▣</i> Kontrol Paneli</a>
+      <a class="mi" href="#"><i>☰</i> Siparişler <span class="sayi">12</span></a>
+      <a class="mi" href="#"><i>⚙</i> Üretim <span class="sayi nötr">4</span></a>
+      <a class="mi" href="#"><i>▦</i> Depo ve Stok</a>
+      <a class="mi" href="#"><i>❄</i> Soğuk Zincir <span class="sayi">1</span></a>
+      <a class="mi" href="#"><i>⇄</i> Sevkiyat</a>
+      <a class="mi" href="#"><i>◱</i> Müşteriler</a>
+      <a class="mi" href="#"><i>▤</i> Raporlar</a>
+
+      <div class="menu-baslik">Yönetim</div>
+      <a class="mi" href="#"><i>◉</i> Kullanıcılar ve Yetki</a>
+      <a class="mi" href="#"><i>◈</i> Şirket Ayarları</a>
+      <a class="mi" href="#"><i>◌</i> Lisans</a>
+    </nav>
+
+    <div class="menu-alt">
+      <div class="hesap">
+        <div class="avatar">EE</div>
+        <div><b>Emrah Evren</b><span>Yönetici</span></div>
+        <div class="ok" style="margin-left:auto;color:#6B7890">▾</div>
+      </div>
+    </div>
+  </aside>
+
+  <!-- ===== GÖVDE ===== -->
+  <div class="govde">
+
+    <header class="ust">
+      <div class="iz">Kontrol Paneli <span style="opacity:.5">·</span> <b>26 Eylül 2026, Cuma</b></div>
+      <div class="ara">🔍 Sipariş, ürün, müşteri ara… <kbd>Ctrl K</kbd></div>
+      <button class="ust-dugme" title="Bildirimler">🔔<span class="nokta"></span></button>
+      <button class="ust-dugme" title="Yardım">?</button>
+    </header>
+
+    <main class="sayfa">
+
+      <div class="sayfa-basi">
+        <div>
+          <h1>Günün Durumu</h1>
+          <p>Son güncelleme 09:41 · Vardiya 1 · 3 uyarı bekliyor</p>
+        </div>
+        <div class="sayfa-araclar">
+          <button class="d">Bugün ▾</button>
+          <button class="d">Dışa aktar</button>
+          <button class="d ana">+ Yeni Sipariş</button>
+        </div>
+      </div>
+
+      <!-- KPI -->
+      <section class="kpi-satir">
+        <div class="kpi bilgi">
+          <div class="kpi-et">Bugünkü Sipariş</div>
+          <div class="kpi-alt-satir"><div class="kpi-deger">128</div><span class="kpi-fark f-yesil">▲ %12</span></div>
+          <div class="kpi-not">Dün aynı saatte 114
+            <span class="cubuklar"><span style="height:6px"></span><span style="height:9px"></span><span style="height:7px"></span><span style="height:12px"></span><span style="height:10px"></span><span style="height:14px"></span><span style="height:16px"></span></span>
+          </div>
+        </div>
+        <div class="kpi uyari">
+          <div class="kpi-et">Sevk Bekleyen</div>
+          <div class="kpi-alt-satir"><div class="kpi-deger">23</div><span class="kpi-fark f-kirmizi">▲ 6</span></div>
+          <div class="kpi-not">4 sipariş saat 11:00 kesiminde</div>
+        </div>
+        <div class="kpi kritik">
+          <div class="kpi-et">Kritik Stok</div>
+          <div class="kpi-alt-satir"><div class="kpi-deger">7</div><span class="kpi-birim">kalem</span></div>
+          <div class="kpi-not">2 kalem bugün tükeniyor</div>
+        </div>
+        <div class="kpi iyi">
+          <div class="kpi-et">Üretim Gerçekleşme</div>
+          <div class="kpi-alt-satir"><div class="kpi-deger">%94</div><span class="kpi-fark f-yesil">▲ %3</span></div>
+          <div class="kpi-not">Planlanan 4.200 / üretilen 3.948 porsiyon</div>
+        </div>
+        <div class="kpi bilgi">
+          <div class="kpi-et">Porsiyon Maliyeti</div>
+          <div class="kpi-alt-satir"><div class="kpi-deger">18,40</div><span class="kpi-birim">₺</span><span class="kpi-fark f-kirmizi">▲ %2,1</span></div>
+          <div class="kpi-not">Ağırlıklı ortalama · hafta başına göre</div>
+        </div>
+      </section>
+
+      <!-- İKİ KOLON -->
+      <section class="izgara">
+
+        <!-- SOL: Uyarı merkezi -->
+        <div class="panel">
+          <div class="panel-basi">
+            <h2>Dikkat Gerektiren Konular</h2>
+            <span class="adet">9</span>
+            <div class="sag">
+              <button class="kucuk-d secili">Tümü</button>
+              <button class="kucuk-d">Kritik 3</button>
+              <button class="kucuk-d">Uyarı 4</button>
+            </div>
+          </div>
+          <table>
+            <thead><tr><th style="width:96px">Önem</th><th>Konu</th><th style="width:150px">Yer</th><th class="sag" style="width:92px">Süre</th><th style="width:86px"></th></tr></thead>
+            <tbody>
+              <tr>
+                <td><span class="rozet r-kritik"><span class="nokta-im"></span>Kritik</span></td>
+                <td><div class="ana-metin">Şoklama odası −24 °C eşiğini aştı</div><div class="ikincil">Ölçüm −19,2 °C · alarm tekrarı 3</div></td>
+                <td>Şoklama 2</td><td class="sag sayi-hucre">14 dk</td>
+                <td class="sag"><a class="ac" href="#">Aç ›</a></td>
+              </tr>
+              <tr>
+                <td><span class="rozet r-kritik"><span class="nokta-im"></span>Kritik</span></td>
+                <td><div class="ana-metin">Migros sevkiyatı kesim saatini kaçırıyor</div><div class="ikincil">Sipariş SP-24188 · 11:00 kesimi</div></td>
+                <td>Sevkiyat</td><td class="sag sayi-hucre">38 dk</td>
+                <td class="sag"><a class="ac" href="#">Aç ›</a></td>
+              </tr>
+              <tr>
+                <td><span class="rozet r-kritik"><span class="nokta-im"></span>Kritik</span></td>
+                <td><div class="ana-metin">Dana kıyma stoğu bugün tükeniyor</div><div class="ikincil">Kalan 46 kg · günlük tüketim 71 kg</div></td>
+                <td>Ana Depo +4</td><td class="sag sayi-hucre">1 sa</td>
+                <td class="sag"><a class="ac" href="#">Aç ›</a></td>
+              </tr>
+              <tr>
+                <td><span class="rozet r-uyari"><span class="nokta-im"></span>Uyarı</span></td>
+                <td><div class="ana-metin">6 kalemin son kullanma tarihi 3 gün içinde</div><div class="ikincil">Toplam 118 kg · tahmini değer 9.400 ₺</div></td>
+                <td>Kuru Depo</td><td class="sag sayi-hucre">2 sa</td>
+                <td class="sag"><a class="ac" href="#">Aç ›</a></td>
+              </tr>
+              <tr>
+                <td><span class="rozet r-uyari"><span class="nokta-im"></span>Uyarı</span></td>
+                <td><div class="ana-metin">Üretim emri onay bekliyor</div><div class="ikincil">ÜE-1042 · 900 porsiyon mercimek çorbası</div></td>
+                <td>Üretim</td><td class="sag sayi-hucre">3 sa</td>
+                <td class="sag"><a class="ac" href="#">Aç ›</a></td>
+              </tr>
+              <tr>
+                <td><span class="rozet r-uyari"><span class="nokta-im"></span>Uyarı</span></td>
+                <td><div class="ana-metin">Sayım farkı kapatılmadı</div><div class="ikincil">−12 kg tavuk but · 25.09 sayımı</div></td>
+                <td>Ana Depo +4</td><td class="sag sayi-hucre">1 gün</td>
+                <td class="sag"><a class="ac" href="#">Aç ›</a></td>
+              </tr>
+              <tr>
+                <td><span class="rozet r-bilgi"><span class="nokta-im"></span>Bilgi</span></td>
+                <td><div class="ana-metin">Şok A101 siparişi revize edildi</div><div class="ikincil">SP-24176 · 2. revizyon · 240 → 300 kutu</div></td>
+                <td>Siparişler</td><td class="sag sayi-hucre">4 sa</td>
+                <td class="sag"><a class="ac" href="#">Aç ›</a></td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+
+        <!-- SAĞ KOLON -->
+        <div style="display:flex;flex-direction:column;gap:var(--bosluk)">
+
+          <div class="panel">
+            <div class="panel-basi"><h2>Sipariş Akışı</h2><span class="adet">Bugün</span></div>
+            <div class="panel-ic akis">
+              <div class="akis-satir"><span class="akis-ad">Alındı</span><span class="cubuk"><i style="width:100%;background:#2563EB"></i></span><span class="akis-sayi">128</span></div>
+              <div class="akis-satir"><span class="akis-ad">Üretimde</span><span class="cubuk"><i style="width:68%;background:#3B82F6"></i></span><span class="akis-sayi">87</span></div>
+              <div class="akis-satir"><span class="akis-ad">Hazır</span><span class="cubuk"><i style="width:48%;background:#2E9B5C"></i></span><span class="akis-sayi">61</span></div>
+              <div class="akis-satir"><span class="akis-ad">Sevk edildi</span><span class="cubuk"><i style="width:30%;background:#136A3A"></i></span><span class="akis-sayi">38</span></div>
+              <div class="akis-satir"><span class="akis-ad">İptal / vazgeçildi</span><span class="cubuk"><i style="width:5%;background:#D3352C"></i></span><span class="akis-sayi">6</span></div>
+            </div>
+          </div>
+
+          <div class="panel">
+            <div class="panel-basi"><h2>Soğuk Zincir</h2><span class="adet">5 oda</span><div class="sag"><button class="kucuk-d">Geçmiş</button></div></div>
+            <div class="panel-ic">
+              <div class="oda"><div class="oda-im kritik">−24</div><div><b>Şoklama 2</b><span>Eşik −24 °C · 14 dk sapma</span></div><div class="derece kritik">−19,2°</div></div>
+              <div class="oda"><div class="oda-im">−18</div><div><b>Derin Dondurucu 1</b><span>Eşik −18 °C · normal</span></div><div class="derece">−18,6°</div></div>
+              <div class="oda"><div class="oda-im">+4</div><div><b>Ana Depo</b><span>Eşik +4 °C · normal</span></div><div class="derece">+3,8°</div></div>
+              <div class="oda"><div class="oda-im">+4</div><div><b>Et Hazırlık</b><span>Eşik +4 °C · normal</span></div><div class="derece">+4,1°</div></div>
+              <div class="oda"><div class="oda-im">0</div><div><b>Sebze Odası</b><span>Eşik 0 °C · normal</span></div><div class="derece">+0,6°</div></div>
+            </div>
+          </div>
+
+          <div class="panel">
+            <div class="panel-basi"><h2>Bekleyen Onaylar</h2><span class="adet">4</span></div>
+            <table>
+              <tbody>
+                <tr><td><div class="ana-metin">Satın alma talebi · 4 kalem</div><div class="ikincil">Ahmet K. · 25.09</div></td><td class="sag"><a class="ac" href="#">Aç ›</a></td></tr>
+                <tr><td><div class="ana-metin">Üretim emri ÜE-1042</div><div class="ikincil">Şef Onur · bugün 07:20</div></td><td class="sag"><a class="ac" href="#">Aç ›</a></td></tr>
+                <tr><td><div class="ana-metin">Sipariş revizyonu SP-24176</div><div class="ikincil">Satış · bugün 05:40</div></td><td class="sag"><a class="ac" href="#">Aç ›</a></td></tr>
+                <tr><td><div class="ana-metin">Fire kaydı · 12 kg</div><div class="ikincil">Depo · 25.09</div></td><td class="sag"><a class="ac" href="#">Aç ›</a></td></tr>
+              </tbody>
+            </table>
+          </div>
+
+        </div>
+      </section>
+    </main>
+  </div>
+</div>
+
+<!-- Yalnızca maket için: karşılaştırma düğmeleri -->
+<div class="ayar">
+  <b>Menü</b>
+  <button id="y-koyu" class="secili">Koyu</button>
+  <button id="y-acik">Açık</button>
+  <b>Aralık</b>
+  <button id="g-siki" class="secili">Sıkı</button>
+  <button id="g-ferah">Ferah</button>
+</div>
+<script>
+  var h=document.documentElement;
+  function sec(a,b,ac){a.classList.toggle('secili',ac);b.classList.toggle('secili',!ac);}
+  var yk=document.getElementById('y-koyu'),ya=document.getElementById('y-acik'),
+      gs=document.getElementById('g-siki'),gf=document.getElementById('g-ferah');
+  yk.onclick=function(){h.dataset.yan='koyu';sec(yk,ya,true)};
+  ya.onclick=function(){h.dataset.yan='acik';sec(ya,yk,true)};
+  gs.onclick=function(){h.dataset.yogunluk='siki';sec(gs,gf,true)};
+  gf.onclick=function(){h.dataset.yogunluk='ferah';sec(gf,gs,true)};
+</script>
+</body>
+</html>

@@ -289,6 +289,14 @@ export default function KontrolPaneli({
     })),
   ]
 
+  // Sıralama listenin kurulma sırasına bırakılamaz: "veri yedeği" kritik
+  // olmasına rağmen listeye kritik stoktan SONRA ekleniyor. Ekranda önce
+  // kritikler görünmeli — yöneticinin gözü ilk satırdan başlar.
+  const ACILIYET_SIRASI: Record<DikkatSatiri['aciliyet'], number> = { kritik: 0, uyari: 1 }
+  const dikkatSirali = [...dikkat].sort(
+    (a, b) => ACILIYET_SIRASI[a.aciliyet] - ACILIYET_SIRASI[b.aciliyet],
+  )
+
   const kritikSayisi = dikkat.filter(d => d.aciliyet === 'kritik').length
 
   // ── BUGÜN ─────────────────────────────────────────────────────────────
@@ -310,7 +318,7 @@ export default function KontrolPaneli({
 
       {/* ── SAYILAR ─────────────────────────────────────────────────────── */}
       <div className="metric-grid">
-        <div className="metric-card">
+        <div className={`metric-card${uyarilar.kritikKalemler.length > 0 ? ' danger' : ''}`}>
           <span>Depodaki kalem</span>
           <strong>{kalemler.length}</strong>
           <p className={uyarilar.kritikKalemler.length > 0 ? 'is-critical' : 'muted'}>
@@ -319,7 +327,7 @@ export default function KontrolPaneli({
               : 'kritik seviyede kalem yok'}
           </p>
         </div>
-        <div className="metric-card">
+        <div className={`metric-card${baslatilamayanlar.length > 0 ? ' warning' : ''}`}>
           <span>Açık iş emri</span>
           <strong>{acikIsEmirleri.length}</strong>
           <p className={baslatilamayanlar.length > 0 ? 'is-critical' : 'muted'}>
@@ -328,7 +336,7 @@ export default function KontrolPaneli({
               : `${isEmirleri.length} iş emrinin tamamı`}
           </p>
         </div>
-        <div className="metric-card">
+        <div className={`metric-card${bekleyenSevkiyatlar.length > 0 ? ' warning' : ''}`}>
           <span>Sevk bekleyen</span>
           <strong>{bekleyenSevkiyatlar.length}</strong>
           <p className="muted">
@@ -337,7 +345,7 @@ export default function KontrolPaneli({
               : 'bugün sevkiyat çıkmadı'}
           </p>
         </div>
-        <div className="metric-card">
+        <div className={`metric-card${ozet.bugunUygunsuz > 0 ? ' danger' : ozet.bugunOlcum > 0 ? ' success' : ''}`}>
           <span>HACCP · bugün</span>
           <strong className={ozet.bugunUygunsuz > 0 ? 'is-critical' : undefined}>
             {ozet.bugunOlcum}
@@ -377,22 +385,25 @@ export default function KontrolPaneli({
             <div className="table-wrap">
               <table className="data-table compact">
                 <thead>
-                  <tr><th>Konu</th><th>Ayrıntı</th><th></th></tr>
+                  <tr><th>Önem</th><th>Konu</th><th>Ayrıntı</th><th></th></tr>
                 </thead>
                 <tbody>
-                  {dikkat.map(d => (
+                  {dikkatSirali.map(d => (
                     <tr key={d.id}>
+                      {/* Rozet hem renkli hem YAZILI: rengi ayırt edemeyen
+                          bir kullanıcı da hangisinin kritik olduğunu görür. */}
                       <td>
-                        <span className={d.aciliyet === 'kritik' ? 'is-critical' : ''}>
-                          <strong>{d.baslik}</strong>
+                        <span className={`onem-rozeti ${d.aciliyet}`}>
+                          {d.aciliyet === 'kritik' ? 'Kritik' : 'Uyarı'}
                         </span>
                       </td>
+                      <td><strong>{d.baslik}</strong></td>
                       <td className="muted">{d.ayrinti}</td>
                       <td className="actions-cell">
                         {d.rota && onOpenWorkspaceRoute && (
                           <button className="btn" type="button"
                             onClick={() => git(d.rota, d.navKey)}>
-                            Aç
+                            Aç ›
                           </button>
                         )}
                       </td>
