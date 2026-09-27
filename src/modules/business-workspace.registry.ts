@@ -1968,6 +1968,11 @@ export const BUSINESS_WORKSPACE_MODULE_REGISTRY: BusinessWorkspaceModule[] = def
       // Postgres'e bağlı YENİ iş emri ekranı. Reçetenin hemen ardında:
       // zincirin sırası menüde de görünsün.
       menuItem({ key: 'uretim-emirleri', label: 'İş Emirleri', route: 'uretim-emirleri', icon: 'IE', adminOnly: true, displayOrder: 6 }),
+      // Müşteri kartı sevkiyatın hemen ÖNÜNDE: sevkiyat bir müşteriye
+      // çıkar, o yüzden zincirin sırası menüde de görünsün. Sevkiyatla aynı
+      // modülde çünkü Lojistik modülü bu kiracıda kapalı — oraya konan öge
+      // menüde hiç görünmüyor (module-route-health.test.ts'in yazılma sebebi).
+      menuItem({ key: 'musteriler', label: 'Müşteriler', route: 'musteriler', icon: 'MU', adminOnly: true, displayOrder: 6.4 }),
       // ⚠️ Sevkiyat ÜRETİM modülünün altında duruyor, Lojistik'in değil.
       // Lojistik modülü bu kiracıda açık değil; oraya konulan öge menüde hiç
       // görünmedi. Zincirin sırası da bunu destekliyor: reçete → iş emri →

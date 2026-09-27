@@ -7,6 +7,10 @@ export type BusinessWorkspaceRoute =
   // "dikey dilim": yenisi yanına kurulur, eskisi yerinde kalır).
   | 'depo'
   | 'tedarikciler'
+  // A4C1 · Müşteri kartı, teslim noktaları ve fiyat defteri (0047).
+  // Sipariş müşteriye değil TESLİM NOKTASINA yazılır; bu ekran o noktanın
+  // doğduğu yer.
+  | 'musteriler'
   | 'satinalma'
   | 'receteler'
   | 'uretim-emirleri'
@@ -196,6 +200,7 @@ export type BusinessWorkspaceNavKey =
   | 'qr-codes'
   | 'depo'
   | 'tedarikciler'
+  | 'musteriler'
   | 'satinalma'
   | 'receteler'
   | 'uretim-emirleri'

@@ -81,7 +81,7 @@ describe('Aşama 2–4 ekranları menüde CANLI', () => {
   // Bu ekranlar gerçek veritabanına konuşuyor ve demonun kendisi.
   // Biri kazara dondurulursa ya da menüden düşerse burada kırmızı olur.
   const olmasiGerekenler: BusinessWorkspaceRoute[] = [
-    'depo', 'tedarikciler', 'satinalma',
+    'depo', 'tedarikciler', 'musteriler', 'satinalma',
     'receteler', 'uretim-emirleri', 'sevkiyatlar', 'izlenebilirlik',
     'haccp-kayitlari',
     'sayimlar',
