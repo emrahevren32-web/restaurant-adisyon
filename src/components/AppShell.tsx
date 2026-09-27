@@ -246,8 +246,6 @@ export default function AppShell<
   branches,
   activeBranchId,
   isPlatformAdmin = false,
-  openGroupKey,
-  onToggleGroup,
   onOpenNavItem,
   onOpenNotification,
   onOpenMyProfile,
@@ -673,9 +671,8 @@ export default function AppShell<
         )}
       </span>
       <div className="side-brand-copy">
-        <span className="side-brand-kicker">MİYOP Workspace</span>
         <h1>{restaurantName}</h1>
-        <span className="side-brand-subtitle">{isPlatformAdmin ? 'Yönetici Merkezi' : 'Kurumsal Workspace'}</span>
+        <span className="side-brand-subtitle">{isPlatformAdmin ? 'Yönetici Merkezi' : 'MİYOP Workspace'}</span>
       </div>
     </div>
   )
@@ -718,10 +715,18 @@ export default function AppShell<
       : null
     const hasEmptyState = visibleItems.length === 0 && Boolean(group.emptyTitle || group.emptyDescription)
     if(visibleItems.length === 0 && !hasEmptyState) return null
-    const isOpen = openGroupKey === group.key
+    // ── MENÜ DÜZ ─────────────────────────────────────────────────────
+    // Eskiden akordiyondu: `openGroupKey` tek bir grup tutuyordu, yani
+    // ekranda aynı anda YALNIZCA BİR grubun modülleri görünüyordu. Emrah'ın
+    // "menüdeki isimler senin dediğin gibi değil" demesinin sebebi buydu —
+    // modüller kayıp değildi, kapalı grubun içindeydi.
+    //
+    // Artık bütün gruplar açık, grup başlığı da tıklanmıyor: küçük bir
+    // etiket. Kolay İK'daki yerleşim de bu. `openGroupKey`/`onToggleGroup`
+    // bileşene artık verilmiyor.
+    const isOpen = true
     const isActiveGroup = activeGroupKey === group.key
     const groupPanelId = `side-nav-group-${group.key}`
-    const groupTooltipLabel = `${group.title} bölümü`
 
     return (
       <section
@@ -730,37 +735,17 @@ export default function AppShell<
         data-section={group.title}
         key={group.key}
       >
-        <button
-          type="button"
-          className="side-nav-title"
-          aria-expanded={isOpen}
-          aria-controls={groupPanelId}
-          title={group.title}
-          aria-label={groupTooltipLabel}
-          data-tooltip={groupTooltipLabel}
-          onMouseEnter={event => showSidebarTooltip(group.title, event)}
-          onMouseLeave={hideSidebarTooltip}
-          onFocus={event => showSidebarTooltip(group.title, event)}
-          onBlur={hideSidebarTooltip}
-          onClick={() => onToggleGroup(group.key)}
-        >
+        <div className="side-nav-title side-nav-title-static" title={group.title}>
           <span className="side-nav-title-main">
-            <span className="side-nav-title-icon" aria-hidden="true">
-              <AppIcon source={group.icon} label={group.title} context={String(group.key)} size="XS" />
-            </span>
             <span className="side-nav-title-copy">
               <span className="side-nav-title-text">{group.title}</span>
             </span>
           </span>
-          <span className="side-nav-chevron" aria-hidden="true">
-            <AppIcon name="chevronRight" size="XS" />
-          </span>
-        </button>
+        </div>
         <div
           className="side-nav-items"
           id={groupPanelId}
-          data-state={isOpen ? 'open' : 'closed'}
-          aria-hidden={!isOpen}
+          data-state="open"
         >
           {/* single grid row: lets the panel animate to its exact content height and collapse fully */}
           <div className="side-nav-collapse-inner">

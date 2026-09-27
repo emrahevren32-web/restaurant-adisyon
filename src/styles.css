@@ -29105,3 +29105,56 @@ html[data-theme="light"] body .topbar.enterprise-topbar.topbar-v2.topbar-v2.topb
   --tb-h:52px;
   --tb-control:32px;
 }
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   MENÜ DÜZ · GRUP BAŞLIĞI ETİKET (2026-09-26 · ikinci geri bildirim)
+   ═══════════════════════════════════════════════════════════════════════════
+   Emrah: "menüdeki isimler senin dediğin gibi değil".
+   Sebep maketle uyuşmazlık değildi: menü AKORDİYONDU, aynı anda tek grup
+   açılıyordu. OPERASYON kapalıyken Sipariş, Üretim, Depo, Sevkiyat...
+   hiçbiri görünmüyordu. AppShell'de akordiyon kaldırıldı; burada da grup
+   başlığı satır görünümünden çıkıp küçük bir ETİKETE dönüşüyor.
+   ═══════════════════════════════════════════════════════════════════════════ */
+
+html body .side-nav .side-nav-title.side-nav-title-static {
+  display:flex;
+  align-items:center;
+  width:100%;
+  min-height:0;
+  margin:0;
+  padding:var(--space-12) var(--space-8) var(--space-4);
+  border:0;
+  background:none;
+  color:#7D8BAB;
+  cursor:default;
+  font-size:var(--font-size-10);
+  font-weight:var(--font-weight-700);
+  letter-spacing:.09em;
+  text-transform:uppercase;
+}
+
+html body .side-nav .side-nav-title.side-nav-title-static:hover {
+  background:none;
+  color:#7D8BAB;
+}
+
+/* İlk grubun başlığı tepede fazladan boşluk açmasın. */
+html body .side-nav .side-nav-group:first-child .side-nav-title.side-nav-title-static {
+  padding-top:var(--space-4);
+}
+
+/* Marka bloğu: asıl bilgi MÜŞTERİ ADI. Eskiden üstteki "MİYOP Workspace"
+   parlak, müşteri adı sönüktü — okunmuyordu bile. Sıra tersine döndü. */
+html body .side-nav .side-brand h1 {
+  margin:0;
+  color:#F1F5F9;
+  font-size:var(--font-size-14);
+  font-weight:var(--font-weight-650);
+  line-height:1.25;
+  letter-spacing:-.01em;
+}
+
+html body .side-nav .side-brand .side-brand-subtitle {
+  color:#7D8BAB;
+  font-size:var(--font-size-11);
+}

@@ -147,7 +147,6 @@ export default function KontrolPaneli({
   const baslik = (
     <div className="page-title">
       <div>
-        <h2>Kontrol Paneli</h2>
         <p className="muted">
           {currentUser.fullName} · bütün rakamlar stok defterinden okunuyor
         </p>
@@ -366,7 +365,7 @@ export default function KontrolPaneli({
           <h3>Dikkat gerektiren konular</h3>
           <div>
             {kritikSayisi > 0 && (
-              <span className="status-pill warning-pill">{kritikSayisi} kritik</span>
+              <span className="onem-rozeti kritik">{kritikSayisi} kritik</span>
             )}
             <span className="muted">{dikkat.length} konu</span>
           </div>
