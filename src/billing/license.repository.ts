@@ -62,7 +62,15 @@ export const lisansUyarisi = (
   const gun = kalanGun(lisans.bitis, bugun)
 
   if(lisans.durum === 'Süresi Doldu' || gun < 0){
-    return { seviye: 'kritik', mesaj: 'Lisans süresi doldu. MİYOP ile iletişime geçin.' }
+    // Süre bittiğinde veritabanı YENİ KAYIT yazımını kapatıyor (0046) ama
+    // okumayı açık bırakıyor. Müşteriye tam olarak bunu söylüyoruz:
+    // "iletişime geçin" tek başına, verisine ne olduğunu sormakla geçen
+    // bir telefon görüşmesi demekti.
+    return {
+      seviye: 'kritik',
+      mesaj: 'Lisans süresi doldu. Kayıtlarınız yerinde ve okunabilir; '
+        + 'yeni kayıt eklenemez. Aşağıdan ek süre talebi iletebilirsiniz.',
+    }
   }
   if(lisans.durum === 'Askıya Alındı'){
     return { seviye: 'kritik', mesaj: 'Lisans askıya alındı. MİYOP ile iletişime geçin.' }

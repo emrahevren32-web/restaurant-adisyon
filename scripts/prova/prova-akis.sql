@@ -405,3 +405,109 @@ begin
 
   raise notice 'AKIS: lisans defteri · % uzatma · platform lisanssız · talep kuyruğu tek · GECTI', v_uzatma;
 end $$;
+
+-- ── 0046 · LİSANS BİTİNCE YAZMA KİLİDİ ───────────────────────────────────
+-- A4D'nin son maddesi. Sınanan cümle: "Lisans bitince yeni kayıt girilemez
+-- AMA veri okunabilir." Bu cümlenin üç ayağı var ve üçü de ayrı ayrı
+-- kanıtlanmalı — ikisi doğru, biri yanlış olursa ürün ya müşteriyi kilitler
+-- ya da sınırı hiç uygulamaz.
+--
+-- ⚠️ Bu blok göç dosyasında DEĞİL, burada: oturum taklidi gerekiyor. Göç,
+-- kiracısız bir oturumda koşar ve kilit tam olarak orada devreye GİRMEZ.
+-- Yani göçün kendi doğrulaması bu davranışı sınayamaz; burada sınanır.
+do $$
+declare
+  v_kiraci uuid;
+  v_sube   uuid;
+  v_bitis  date;
+  v_baslar date;
+  v_okundu int;
+  v_kalem  uuid;
+begin
+  select id into v_kiraci from tenant where code = 'GUM001';
+  select id into v_sube   from branch where tenant_id = v_kiraci limit 1;
+  if v_sube is null then raise exception '0046 prova: GUM001 şubesi yok'; end if;
+
+  select start_date, end_date into v_baslar, v_bitis from tenant_license
+   where tenant_id = v_kiraci and status in ('Deneme','Aktif');
+
+  -- ── 1) LİSANS GEÇERLİ · yazma AÇIK olmalı ──────────────────────────────
+  -- Önce olumlu tarafı kanıtlıyoruz. Bu olmadan, aşağıdaki reddin lisanstan
+  -- mı yoksa başka bir engelden mi geldiğini bilemezdik.
+  perform set_config('app.tenant_id', v_kiraci::text, false);
+
+  insert into stock_item (tenant_id, branch_id, code, code_key, name, base_uom)
+  values (v_kiraci, v_sube, 'KLT-0046', 'klt-0046', '0046 kilit provasi kalemi', 'kg')
+  returning id into v_kalem;
+
+  if v_kalem is null then
+    raise exception '0046 prova: lisans geçerliyken yazma çalışmadı.';
+  end if;
+
+  -- ── 2) LİSANSI BİTİR ───────────────────────────────────────────────────
+  -- Kiracı oturumu bunu yapamaz (tenant_license müşteriye salt okunur).
+  -- Provada süper kullanıcıyız, o yüzden tarihi elle geriye alıyoruz.
+  -- Canlıda bu iş kendiliğinden olur: takvim ilerler.
+  -- ⚠️ `end_date >= start_date` kısıtı var (0042). Bu yüzden başlangıcı da
+  -- geriye almak gerekiyor; canlıda süresi dolmuş bir lisansta bu ikisi
+  -- zaten tutarlıdır — sınama gerçeğin şeklini bozmasın.
+  perform set_config('app.tenant_id', '', false);
+  update tenant_license
+     set start_date = current_date - 60,
+         end_date   = current_date - 1
+   where tenant_id = v_kiraci and status in ('Deneme','Aktif');
+  perform set_config('app.tenant_id', v_kiraci::text, false);
+
+  -- ── 3) YAZMA KAPALI olmalı ─────────────────────────────────────────────
+  begin
+    insert into stock_item (tenant_id, branch_id, code, code_key, name, base_uom)
+    values (v_kiraci, v_sube, 'KLT-0046-B', 'klt-0046-b', '0046 bu kalem girmemeli', 'kg');
+    raise exception '0046 prova: lisans bittiği hâlde YENİ KAYIT GİRDİ.';
+  exception when sqlstate 'MI410' then null;
+  end;
+
+  -- Güncelleme de kapalı olmalı: "yeni kayıt giremez" demek "var olanı
+  -- değiştirebilir" demek değil. Fiyatı değiştirip kaçmak da yazmaktır.
+  begin
+    update stock_item set name = 'degistirilmis' where id = v_kalem;
+    raise exception '0046 prova: lisans bittiği hâlde KAYIT DEĞİŞTİRDİ.';
+  exception when sqlstate 'MI410' then null;
+  end;
+
+  -- Silme de kapalı olmalı.
+  begin
+    delete from stock_item where id = v_kalem;
+    raise exception '0046 prova: lisans bittiği hâlde KAYIT SİLDİ.';
+  exception when sqlstate 'MI410' then null;
+  end;
+
+  -- ── 4) OKUMA AÇIK olmalı ───────────────────────────────────────────────
+  -- Kilidin can alıcı yarısı. Müşteri kendi verisine her zaman erişir.
+  select count(*) into v_okundu from stock_item where tenant_id = v_kiraci;
+  if v_okundu = 0 then
+    raise exception '0046 prova: lisans bitince OKUMA da kapandı — '
+                    'bu bir rehin alma, abonelik sınırı değil.';
+  end if;
+
+  -- ── 5) EK SÜRE TALEBİ AÇIK olmalı ──────────────────────────────────────
+  -- Kapıyı kilitleyip anahtarı içeride bırakmadığımızın kanıtı. Müşteri ek
+  -- süreyi tam da lisansı bittiğinde talep eder; o tablo muaf.
+  delete from license_extension_request where tenant_id = v_kiraci;
+  insert into license_extension_request (tenant_id, reason)
+  values (v_kiraci, '0046 lisans bitmisken talep');
+
+  if not exists (select 1 from license_extension_request
+                  where tenant_id = v_kiraci and status = 'Bekliyor') then
+    raise exception '0046 prova: lisans bitince ek süre TALEBİ DE kapandı.';
+  end if;
+
+  -- ── 6) TOPARLA ─────────────────────────────────────────────────────────
+  perform set_config('app.tenant_id', '', false);
+  update tenant_license set start_date = v_baslar, end_date = v_bitis
+   where tenant_id = v_kiraci and status in ('Deneme','Aktif');
+  delete from stock_item where id = v_kalem;
+  perform set_config('app.tenant_id', (select id::text from tenant where code = 'MIYOP'), false);
+
+  raise notice '0046: yazma kilidi · ekleme/güncelleme/silme kapalı · '
+               'okuma açık (% satır) · süre talebi açık · GECTI', v_okundu;
+end $$;
