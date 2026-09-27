@@ -63,6 +63,10 @@ export const DISA_AKTARILAN_TABLOLAR = [
   'supplier_return', 'supplier_return_line',
   // Üretim
   'recipe', 'recipe_line', 'work_order', 'work_order_line', 'lot_genealogy',
+  // Müşteri ve fiyat — sevkiyattan ÖNCE: 0047'den sonra shipment müşteri
+  // kartına atıf yapıyor, geri yüklemede kart önce durmalı. customer_price
+  // stok kalemine de bakıyor, o zaten yukarıda.
+  'customer', 'delivery_point', 'customer_price',
   // Sevkiyat
   'shipment', 'shipment_line',
   // Kalite

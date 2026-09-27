@@ -511,3 +511,137 @@ begin
   raise notice '0046: yazma kilidi · ekleme/güncelleme/silme kapalı · '
                'okuma açık (% satır) · süre talebi açık · GECTI', v_okundu;
 end $$;
+
+-- ── 0047 · MÜŞTERİ KARTI, TESLİM NOKTASI, FİYAT DEFTERİ ──────────────────
+-- Buradaki iki kural ekranda değil FONKSİYONDA duruyor ve ikisi de sessizce
+-- yanlış çalışabilir: fiyat seçimi ve pencere çözümü. Yanlış fiyat, yanlış
+-- kesilmiş bir irsaliye demektir — müşteriyle para tartışması.
+do $$
+declare
+  v_kiraci uuid; v_sube uuid; v_kalem uuid;
+  v_musteri uuid; v_nokta_a uuid; v_nokta_b uuid;
+  v_fiyat numeric; v_kesim time; v_fark smallint; v_kaynak text;
+begin
+  select id into v_kiraci from tenant where code = 'GUM001';
+  select id into v_sube   from branch where tenant_id = v_kiraci limit 1;
+  perform set_config('app.tenant_id', v_kiraci::text, false);
+
+  insert into stock_item (tenant_id, branch_id, code, code_key, name, base_uom)
+  values (v_kiraci, v_sube, 'FYT-01', 'fyt-01', 'Mercimek çorbası 5 kg', 'kg')
+  returning id into v_kalem;
+
+  -- Müşteride varsayılan pencere VAR: 10:00, ertesi gün.
+  insert into customer (tenant_id, code, code_key, name, payment_term_days,
+                        order_cutoff_time, delivery_lead_days)
+  values (v_kiraci, 'MIG', 'MIG', 'Migros', 45, '10:00', 1)
+  returning id into v_musteri;
+
+  -- A noktası: KENDİ penceresi var (06:00, aynı gün).
+  insert into delivery_point (tenant_id, customer_id, code, code_key, name,
+                              order_cutoff_time, delivery_lead_days)
+  values (v_kiraci, v_musteri, 'ATA', 'ATA', 'Migros Ataşehir', '06:00', 0)
+  returning id into v_nokta_a;
+
+  -- B noktası: kendi penceresi YOK → müşterinin varsayılanına düşmeli.
+  insert into delivery_point (tenant_id, customer_id, code, code_key, name)
+  values (v_kiraci, v_musteri, 'KAD', 'KAD', 'Migros Kadıköy')
+  returning id into v_nokta_b;
+
+  -- ── 1) PENCERE ÇÖZÜMÜ · nokta → müşteri → yok ──────────────────────────
+  select kesim_saati, gun_farki, kaynak into v_kesim, v_fark, v_kaynak
+    from app.siparis_penceresi(v_nokta_a);
+  if v_kesim <> '06:00'::time or v_fark <> 0 or v_kaynak <> 'nokta' then
+    raise exception '0047 prova: noktanın kendi penceresi kullanılmadı (% / % / %).',
+      v_kesim, v_fark, v_kaynak;
+  end if;
+
+  select kesim_saati, gun_farki, kaynak into v_kesim, v_fark, v_kaynak
+    from app.siparis_penceresi(v_nokta_b);
+  if v_kesim <> '10:00'::time or v_fark <> 1 or v_kaynak <> 'musteri' then
+    raise exception '0047 prova: penceresiz nokta müşteri varsayılanına düşmedi (% / % / %).',
+      v_kesim, v_fark, v_kaynak;
+  end if;
+
+  -- ── 2) FİYAT · müşteri geneli ──────────────────────────────────────────
+  insert into customer_price (tenant_id, customer_id, stock_item_id,
+                              unit_price, uom_code, valid_from)
+  values (v_kiraci, v_musteri, v_kalem, 100, 'kg', current_date - 10);
+
+  v_fiyat := app.musteri_fiyati(v_nokta_a, v_kalem);
+  if v_fiyat <> 100 then
+    raise exception '0047 prova: müşteri geneli fiyat okunmadı (%).', v_fiyat;
+  end if;
+
+  -- ── 3) FİYAT · noktaya özel, geneli YENMELİ ────────────────────────────
+  -- Emrah'ın cevabı: aynı müşterinin farklı noktalarına farklı fiyat, EVET.
+  insert into customer_price (tenant_id, customer_id, delivery_point_id,
+                              stock_item_id, unit_price, uom_code, valid_from)
+  values (v_kiraci, v_musteri, v_nokta_a, v_kalem, 115, 'kg', current_date - 10);
+
+  v_fiyat := app.musteri_fiyati(v_nokta_a, v_kalem);
+  if v_fiyat <> 115 then
+    raise exception '0047 prova: noktaya özel fiyat geneli yenmedi (%).', v_fiyat;
+  end if;
+
+  -- B noktası noktaya özel satırdan ETKİLENMEMELİ: hâlâ genel fiyat.
+  v_fiyat := app.musteri_fiyati(v_nokta_b, v_kalem);
+  if v_fiyat <> 100 then
+    raise exception '0047 prova: bir noktanın fiyatı diğerine sızdı (%).', v_fiyat;
+  end if;
+
+  -- ── 4) FİYAT · en yeni tarih kazanmalı (zam) ───────────────────────────
+  insert into customer_price (tenant_id, customer_id, delivery_point_id,
+                              stock_item_id, unit_price, uom_code, valid_from)
+  values (v_kiraci, v_musteri, v_nokta_a, v_kalem, 130, 'kg', current_date);
+
+  v_fiyat := app.musteri_fiyati(v_nokta_a, v_kalem);
+  if v_fiyat <> 130 then
+    raise exception '0047 prova: zam geçerli olmadı (%).', v_fiyat;
+  end if;
+
+  -- GEÇMİŞ DURMALI: zam öncesi tarihte eski fiyat okunmalı. Eklemeli
+  -- defterin bütün sebebi bu — kesilmiş irsaliye yalan söylemesin.
+  v_fiyat := app.musteri_fiyati(v_nokta_a, v_kalem, current_date - 5);
+  if v_fiyat <> 115 then
+    raise exception '0047 prova: geçmiş tarihli fiyat kaybolmuş (%).', v_fiyat;
+  end if;
+
+  -- ── 5) FİYAT · kaldırma satırı NULL döndürmeli, sıfır DEĞİL ────────────
+  insert into customer_price (tenant_id, customer_id, delivery_point_id,
+                              stock_item_id, unit_price, uom_code, valid_from, removed)
+  values (v_kiraci, v_musteri, v_nokta_a, v_kalem, 0, 'kg', current_date + 1, true);
+
+  v_fiyat := app.musteri_fiyati(v_nokta_a, v_kalem, current_date + 1);
+  if v_fiyat is not null then
+    raise exception '0047 prova: kaldırılmış fiyat hâlâ okunuyor (%). '
+                    'Sıfır dönerse ürün bedava satılmış görünür.', v_fiyat;
+  end if;
+
+  -- ── 6) FİYAT DEFTERİ DEĞİŞMEZ ──────────────────────────────────────────
+  begin
+    update customer_price set note = 'olmaz' where stock_item_id = v_kalem;
+    raise exception '0047 prova: fiyat güncellenebildi — defter değişmez değil.';
+  exception when sqlstate 'MI403' then null;
+  end;
+
+  begin
+    delete from customer_price where stock_item_id = v_kalem;
+    raise exception '0047 prova: fiyat silinebildi — defter değişmez değil.';
+  exception when sqlstate 'MI403' then null;
+  end;
+
+  -- ── 7) NOKTA, BAŞKA KİRACININ MÜŞTERİSİNE BAĞLANAMAZ ───────────────────
+  -- Yabancı anahtar bunu söylemiyor: iki kolon iki ayrı satıra bakıyor.
+  begin
+    insert into delivery_point (tenant_id, customer_id, code, code_key, name)
+    values ((select id from tenant where code = 'MIYOP'), v_musteri,
+            'HAT', 'HAT', 'Yanlış kiracı');
+    raise exception '0047 prova: nokta başka kiracıya yazıldı.';
+  exception when sqlstate 'MI422' then null;
+  end;
+
+  perform set_config('app.tenant_id', (select id::text from tenant where code = 'MIYOP'), false);
+  raise notice '0047: müşteri kartı · pencere nokta→müşteri→yok · fiyat '
+               'nokta>müşteri, en yeni tarih, geçmiş duruyor, kaldırma NULL · '
+               'defter değişmez · GECTI';
+end $$;

@@ -124,14 +124,20 @@ export const rlsAcikTablolar = (sql = gocMetni()): Set<string> => {
  * kuruluyor.
  */
 export const denetimIzlenenTablolar = (sql = gocMetni()): string[] => {
-  const m = /izlenecek text\[\] := array\[([\s\S]*?)\]/.exec(sql)
-  if(!m) throw new Error(
-    '0027 içindeki izlenen tablo listesi bulunamadı. ' +
+  // ⚠️ 2026-09-27 DÜZELTME: eskiden `exec` ile YALNIZCA İLK blok okunuyordu.
+  // 0027 tek listeyken doğruydu; 0047 kendi listesini ekleyince ilk blok
+  // hâlâ bulunuyor, ikincisi görünmüyordu. Sonuç: yeni tablolar denetime
+  // giriyor ama testin gözünde girmiyor — etiketleri zorunlu olmuyor ve
+  // yazılan etiketler "fazla" sayılıyordu. Testin kendisi yanlış tarafa
+  // kırmızı veriyordu. Artık BÜTÜN göçlerdeki bütün bloklar okunuyor.
+  const bloklar = [...sql.matchAll(/izlenecek text\[\] := array\[([\s\S]*?)\]/g)]
+  if(bloklar.length === 0) throw new Error(
+    'Göçlerde izlenen tablo listesi bulunamadı. ' +
     'Liste taşındıysa bu tarayıcı da güncellenmeli — yoksa test sessizce zayıflar.',
   )
-  return (m[1].match(/'([a-z_]+)'/g) ?? [])
-    .map(s => s.replace(/'/g, ''))
-    .sort()
+  const tablolar = bloklar.flatMap(b => (b[1].match(/'([a-z_]+)'/g) ?? [])
+    .map(s => s.replace(/'/g, '')))
+  return [...new Set(tablolar)].sort()
 }
 
 /**

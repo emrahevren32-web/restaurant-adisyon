@@ -35,6 +35,9 @@ export const TABLO_ETIKETLERI: Record<string, string> = {
   haccp_plan: 'HACCP planı',
   stock_item: 'Stok kartı',
   stock_lot: 'Lot',
+  customer: 'Müşteri kartı',
+  delivery_point: 'Teslim noktası',
+  customer_price: 'Müşteri fiyatı',
 }
 
 export const tabloAdi = (tablo: string) => TABLO_ETIKETLERI[tablo] ?? tablo
