@@ -69,6 +69,11 @@ export const DISA_AKTARILAN_TABLOLAR = [
   'customer', 'delivery_point', 'customer_price',
   // Sevkiyat
   'shipment', 'shipment_line',
+  // Sipariş defteri — SEVKİYATTAN SONRA: order_discrepancy sevkiyata atıf
+  // yapıyor, geri yüklemede sevkiyat önce durmalı. Kendi içinde de sıra
+  // önemli: sipariş → fark (revizyon ona bağlanıyor) → revizyon → satır.
+  'sales_order', 'order_discrepancy', 'sales_order_revision',
+  'sales_order_line', 'sales_order_event',
   // Kalite
   'haccp_plan', 'haccp_ccp', 'haccp_measurement', 'haccp_corrective_action',
   // Sayım

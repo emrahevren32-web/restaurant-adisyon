@@ -645,3 +645,222 @@ begin
                'nokta>müşteri, en yeni tarih, geçmiş duruyor, kaldırma NULL · '
                'defter değişmez · GECTI';
 end $$;
+
+-- ── 0050 · SİPARİŞ DEFTERİ ───────────────────────────────────────────────
+-- Bu bloğun sınadığı şey ürünün SATTIĞI cümle: "sonradan kimse 'ben bunu
+-- istemiştim' diyemesin." Kurallar tetiklerde duruyor; tetiğin VAR olması
+-- değil ÇALIŞTIĞI kanıtlanmalı.
+do $$
+declare
+  v_kiraci uuid; v_sube uuid; v_kullanici uuid;
+  v_musteri uuid; v_nokta_a uuid; v_nokta_b uuid;
+  v_baska_musteri uuid; v_baska_nokta uuid;
+  v_kalem1 uuid; v_kalem2 uuid;
+  v_siparis uuid; v_rev1 uuid; v_rev2 uuid; v_rev3 uuid;
+  v_fark uuid; v_baska_siparis uuid; v_baska_fark uuid;
+  v_adet int; v_miktar numeric; v_rev_no int; v_olay int;
+begin
+  select id into v_kiraci from tenant where code = 'GUM001';
+  select id into v_sube   from branch where tenant_id = v_kiraci limit 1;
+  select id into v_kullanici from app_user where tenant_id = v_kiraci limit 1;
+  -- GUM001 onaydan doğuyor ama kendi personeli olmayabilir; fark kaydı
+  -- "kim fark etti" alanını ZORUNLU tutuyor (Emrah: "farkı ilk fark eden
+  -- bayrak kaldırmalı"). Rol kodunu var olan bir kullanıcıdan alıyoruz ki
+  -- rol kataloguna (0014) uygun olsun.
+  if v_kullanici is null then
+    insert into app_user (tenant_id, username, username_key, full_name, role_code)
+    select v_kiraci, 'siparisci', 'SIPARISCI', 'Sipariş Personeli', u.role_code
+      from app_user u limit 1
+    returning id into v_kullanici;
+  end if;
+  perform set_config('app.tenant_id', v_kiraci::text, false);
+
+  insert into stock_item (tenant_id, branch_id, code, code_key, name, base_uom)
+  values (v_kiraci, v_sube, 'SIP-01', 'sip-01', 'Mercimek çorbası', 'kg')
+  returning id into v_kalem1;
+  insert into stock_item (tenant_id, branch_id, code, code_key, name, base_uom)
+  values (v_kiraci, v_sube, 'SIP-02', 'sip-02', 'Pilav', 'kg')
+  returning id into v_kalem2;
+
+  insert into customer (tenant_id, code, code_key, name)
+  values (v_kiraci, 'SIPMUS', 'SIPMUS', 'Sipariş Müşterisi') returning id into v_musteri;
+  insert into delivery_point (tenant_id, customer_id, code, code_key, name)
+  values (v_kiraci, v_musteri, 'A', 'A', 'A Noktası') returning id into v_nokta_a;
+  insert into delivery_point (tenant_id, customer_id, code, code_key, name)
+  values (v_kiraci, v_musteri, 'B', 'B', 'B Noktası') returning id into v_nokta_b;
+
+  insert into customer (tenant_id, code, code_key, name)
+  values (v_kiraci, 'BASKA', 'BASKA', 'Başka Müşteri') returning id into v_baska_musteri;
+  insert into delivery_point (tenant_id, customer_id, code, code_key, name)
+  values (v_kiraci, v_baska_musteri, 'X', 'X', 'X Noktası') returning id into v_baska_nokta;
+
+  -- ── 1) TESLİM NOKTASI MÜŞTERİYE AİT OLMALI ─────────────────────────────
+  begin
+    insert into sales_order (tenant_id, branch_id, order_no, customer_id, delivery_point_id)
+    values (v_kiraci, v_sube, 'SIP-HATA', v_musteri, v_baska_nokta);
+    raise exception '0050 prova: başka müşterinin noktasına sipariş yazıldı.';
+  exception when sqlstate 'MI424' then null;
+  end;
+
+  -- ── 2) SİPARİŞ AÇ · REV 1 ──────────────────────────────────────────────
+  insert into sales_order (tenant_id, branch_id, order_no, customer_id,
+                           delivery_point_id, requested_ship_date,
+                           requested_delivery_date, created_by)
+  values (v_kiraci, v_sube, 'SIP-2026-0001', v_musteri, v_nokta_a,
+          current_date + 1, current_date + 2, v_kullanici)
+  returning id into v_siparis;
+
+  insert into sales_order_revision (tenant_id, order_id, revision_no, kind, source, reason, created_by)
+  values (v_kiraci, v_siparis, 1, 'MIKTAR', 'Telefon', 'İlk sipariş', v_kullanici)
+  returning id into v_rev1;
+
+  insert into sales_order_line (tenant_id, order_id, revision_id, line_no, stock_item_id, qty, uom_code)
+  values (v_kiraci, v_siparis, v_rev1, 1, v_kalem1, 200, 'kg'),
+         (v_kiraci, v_siparis, v_rev1, 2, v_kalem2, 50, 'koli');
+
+  select count(*) into v_adet from app.siparis_guncel_satirlari(v_siparis);
+  if v_adet <> 2 then raise exception '0050 prova: güncel satır 2 değil (%).', v_adet; end if;
+
+  -- ── 3) DEFTER DEĞİŞMEZ ─────────────────────────────────────────────────
+  begin
+    update sales_order_line set qty = 150 where order_id = v_siparis;
+    raise exception '0050 prova: sipariş satırı ÜSTÜNE YAZILDI.';
+  exception when sqlstate 'MI403' then null;
+  end;
+  begin
+    delete from sales_order_line where order_id = v_siparis;
+    raise exception '0050 prova: sipariş satırı SİLİNDİ.';
+  exception when sqlstate 'MI403' then null;
+  end;
+
+  -- ── 4) SEVK ÖNCESİ REVİZYON SERBEST · 200 → 150 ────────────────────────
+  insert into sales_order_revision (tenant_id, order_id, revision_no, kind, source, reason, created_by)
+  values (v_kiraci, v_siparis, 2, 'MIKTAR', 'Telefon', 'Müşteri 150 istedi', v_kullanici)
+  returning id into v_rev2;
+  insert into sales_order_line (tenant_id, order_id, revision_id, line_no, stock_item_id, qty, uom_code)
+  values (v_kiraci, v_siparis, v_rev2, 1, v_kalem1, 150, 'kg'),
+         (v_kiraci, v_siparis, v_rev2, 2, v_kalem2, 50, 'koli');
+
+  select qty into v_miktar from app.siparis_guncel_satirlari(v_siparis)
+   where stock_item_id = v_kalem1;
+  if v_miktar <> 150 then raise exception '0050 prova: güncel miktar 150 değil (%).', v_miktar; end if;
+
+  -- GEÇMİŞ DURMALI: rev 1'deki 200 hâlâ okunabilir olmalı. Defterin bütün
+  -- sebebi bu — "ben 200 istemiştim" tartışmasını bitiren şey.
+  select l.qty into v_miktar
+    from sales_order_line l join sales_order_revision r on r.id = l.revision_id
+   where r.order_id = v_siparis and r.revision_no = 1 and l.stock_item_id = v_kalem1;
+  if v_miktar <> 200 then raise exception '0050 prova: eski revizyon kaybolmuş (%).', v_miktar; end if;
+
+  -- ── 5) DURUM AKIŞI ─────────────────────────────────────────────────────
+  begin
+    update sales_order set status = 'Sevk Edildi' where id = v_siparis;
+    raise exception '0050 prova: Taslak → Sevk Edildi atlandı.';
+  exception when sqlstate 'MI422' then null;
+  end;
+
+  update sales_order set status = 'Onaylandı'    where id = v_siparis;
+  update sales_order set status = 'Hazırlanıyor' where id = v_siparis;
+  update sales_order set status = 'Hazır'        where id = v_siparis;
+  update sales_order set status = 'Sevk Edildi'  where id = v_siparis;
+
+  -- ── 6) SEVK SONRASI MİKTAR REVİZYONU · FARKSIZ REDDEDİLMELİ ────────────
+  -- Emrah: "Sevk edildikten sonra 200 değil de 150 istiyorum olmaz — en
+  -- başından istediği şeyi üretmişim."
+  begin
+    insert into sales_order_revision (tenant_id, order_id, revision_no, kind, source, reason)
+    values (v_kiraci, v_siparis, 3, 'MIKTAR', 'Telefon', 'Vazgeçtim, 100 olsun');
+    raise exception '0050 prova: sevk sonrası miktar SERBESTÇE değişti.';
+  exception when sqlstate 'MI425' then null;
+  end;
+
+  -- ── 7) SEVK SONRASI LOJİSTİK REVİZYONU · SERBEST ───────────────────────
+  -- Emrah: "a noktasına değil b noktasına olur."
+  insert into sales_order_revision (tenant_id, order_id, revision_no, kind, source, reason, created_by)
+  values (v_kiraci, v_siparis, 3, 'LOJISTIK', 'Telefon', 'A yerine B noktasına', v_kullanici)
+  returning id into v_rev3;
+  update sales_order set delivery_point_id = v_nokta_b where id = v_siparis;
+
+  -- Lojistik revizyonu satır TAŞIMAZ.
+  begin
+    insert into sales_order_line (tenant_id, order_id, revision_id, line_no, stock_item_id, qty, uom_code)
+    values (v_kiraci, v_siparis, v_rev3, 1, v_kalem1, 999, 'kg');
+    raise exception '0050 prova: lojistik revizyonuna satır yazıldı.';
+  exception when sqlstate 'MI422' then null;
+  end;
+
+  -- Güncel satırlar hâlâ REV 2'den gelmeli: lojistik revizyonu atlanıyor.
+  select revision_no into v_rev_no from app.siparis_guncel_satirlari(v_siparis) limit 1;
+  if v_rev_no <> 2 then
+    raise exception '0050 prova: lojistik revizyonu güncel satırları bozdu (rev %).', v_rev_no;
+  end if;
+
+  -- ── 8) FARK KAYDI · "farkı ilk fark eden bayrak kaldırır" ──────────────
+  insert into order_discrepancy (tenant_id, order_id, stock_item_id, kind, qty,
+                                 uom_code, noticed_step, noticed_by, description)
+  values (v_kiraci, v_siparis, v_kalem2, 'Eksik', 2, 'koli', 'Teslimde',
+          v_kullanici, 'Müşteri 2 koli eksik geldi dedi')
+  returning id into v_fark;
+
+  -- Karara bağlarken karar alanları BOŞ BIRAKILAMAZ: içi boş kapatılmış
+  -- bir inceleme, hiç açılmamış incelemeden kötüdür.
+  begin
+    update order_discrepancy set status = 'Karara Bağlandı' where id = v_fark;
+    raise exception '0050 prova: fark kararsız kapatıldı.';
+  exception when check_violation then null;
+  end;
+
+  update order_discrepancy
+     set status = 'Karara Bağlandı', resolution = 'Müşteri Hatası',
+         decision_note = 'Müşteri 48 koli sipariş etmiş, 50 sandı',
+         decided_by = v_kullanici, decided_at = now()
+   where id = v_fark;
+
+  -- ── 9) FARKA BAĞLI MİKTAR REVİZYONU · ARTIK SERBEST ────────────────────
+  insert into sales_order_revision (tenant_id, order_id, revision_no, kind,
+                                    source, reason, discrepancy_id, created_by)
+  values (v_kiraci, v_siparis, 4, 'MIKTAR', 'Telefon',
+          'Fark incelemesi sonucu düzeltildi', v_fark, v_kullanici)
+  returning id into v_rev2;
+  insert into sales_order_line (tenant_id, order_id, revision_id, line_no, stock_item_id, qty, uom_code)
+  values (v_kiraci, v_siparis, v_rev2, 1, v_kalem1, 150, 'kg'),
+         (v_kiraci, v_siparis, v_rev2, 2, v_kalem2, 48, 'koli');
+
+  select qty into v_miktar from app.siparis_guncel_satirlari(v_siparis)
+   where stock_item_id = v_kalem2;
+  if v_miktar <> 48 then raise exception '0050 prova: farka bağlı revizyon işlemedi (%).', v_miktar; end if;
+
+  -- ── 10) BAŞKA SİPARİŞİN FARKINA BAĞLANAMAZ ─────────────────────────────
+  insert into sales_order (tenant_id, branch_id, order_no, customer_id, delivery_point_id)
+  values (v_kiraci, v_sube, 'SIP-2026-0002', v_musteri, v_nokta_a)
+  returning id into v_baska_siparis;
+  insert into order_discrepancy (tenant_id, order_id, kind, noticed_step, noticed_by, description)
+  values (v_kiraci, v_baska_siparis, 'Eksik', 'Yolda', v_kullanici, 'Başka siparişin farkı')
+  returning id into v_baska_fark;
+
+  begin
+    insert into sales_order_revision (tenant_id, order_id, revision_no, kind,
+                                      source, reason, discrepancy_id)
+    values (v_kiraci, v_siparis, 5, 'MIKTAR', 'Telefon', 'Yanlış fark', v_baska_fark);
+    raise exception '0050 prova: revizyon BAŞKA siparişin farkına bağlandı.';
+  exception when sqlstate 'MI424' then null;
+  end;
+
+  -- ── 11) OLAY DEFTERİ DOLDU MU ──────────────────────────────────────────
+  -- Açıldı + 4 durum + 4 revizyon + fark + fark kararı = en az 11
+  select count(*) into v_olay from sales_order_event where order_id = v_siparis;
+  if v_olay < 11 then
+    raise exception '0050 prova: olay defteri eksik (% olay).', v_olay;
+  end if;
+
+  begin
+    update sales_order_event set detail = 'olmaz' where order_id = v_siparis;
+    raise exception '0050 prova: olay defteri değiştirildi.';
+  exception when sqlstate 'MI403' then null;
+  end;
+
+  perform set_config('app.tenant_id', (select id::text from tenant where code = 'MIYOP'), false);
+  raise notice '0050: sipariş defteri · satır değişmez · sevk öncesi revizyon serbest · '
+               'sevk sonrası miktar FARKA BAĞLI · lojistik serbest · geçmiş duruyor · '
+               'olay defteri % kayıt · GECTI', v_olay;
+end $$;
