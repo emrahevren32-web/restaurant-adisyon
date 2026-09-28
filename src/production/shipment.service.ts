@@ -189,6 +189,15 @@ export class SevkiyatServisi {
       // cevapsız bırakır. Belgenin var olma sebebi budur.
       throw new SevkiyatDogrulamaError('Müşteri adı zorunludur.')
     }
+    if(!girdi.musteriId?.trim()){
+      // Tip zaten zorunlu kılıyor ama boş METİN tipten kaçar. Bu kontrol
+      // olmadan `musteriId: ''` geçerdi ve kural yalnız kâğıt üstünde
+      // kalırdı.
+      throw new SevkiyatDogrulamaError(
+        'Müşteri kartından seçilmelidir. Elle yazılan isim, aynı müşteriyi '
+        + 'üç ayrı müşteri hâline getirir; geri çağırmada hiçbiri toplanamaz.',
+      )
+    }
     if(girdi.satirlar.length === 0){
       throw new SevkiyatDogrulamaError('Sevkiyat en az bir kalem içermelidir.')
     }

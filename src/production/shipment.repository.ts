@@ -46,6 +46,18 @@ export type Sevkiyat = {
   id: string
   sevkiyatNo: string
   durum: SevkiyatDurumu
+  /**
+   * Müşteri kartı (0047). 0047 ÖNCESİNDEN kalan sevkiyatlarda BOŞ: onlarda
+   * müşteri yalnız `musteriAd` düz metninde duruyor ve öyle kalacak —
+   * kesilmiş bir belgeyi sonradan bir karta bağlamak geçmişi uydurmaktır.
+   */
+  musteriId?: string
+  /** Teslim noktası (0047). İrsaliyenin gittiği yer. */
+  noktaId?: string
+  /**
+   * Belgenin üzerindeki müşteri adı. Karttan KOPYALANIR ve donar: kart
+   * sonradan yeniden adlandırılsa bile kesilmiş irsaliye değişmez.
+   */
   musteriAd: string
   musteriTelefon?: string
   adres?: string
@@ -59,6 +71,20 @@ export type Sevkiyat = {
 
 export type YeniSevkiyat = {
   sevkiyatNo: string
+  /**
+   * ⚠️ ZORUNLU ve bu bilinçli bir TİP kararı.
+   *
+   * Yol haritası maddesi: "Sevkiyatta müşteri adı elle yazılmıyor, karttan
+   * seçiliyor." Alanı isteğe bağlı bırakırsak kural yalnızca ekranda yaşar
+   * ve ikinci bir çağıran (Excel aktarımı, portal, bir betik) onu sessizce
+   * atlar. Zorunlu yapınca DERLEYİCİ zorluyor: karta atıf yapmayan bir
+   * sevkiyat girdisi yazılamıyor.
+   *
+   * `musteriAd` hâlâ duruyor çünkü belgenin metni odur; ekran onu karttan
+   * kopyalıyor, kullanıcı yazmıyor.
+   */
+  musteriId: string
+  noktaId?: string
   musteriAd: string
   musteriTelefon?: string
   adres?: string
@@ -109,6 +135,7 @@ type SatirKaydi = {
 type SevkiyatKaydi = {
   id: string; shipment_no: string; status: string
   customer_name: string; customer_phone: string | null; address: string | null
+  customer_id: string | null; delivery_point_id: string | null
   destination_branch_id: string | null
   shipped_on: string | null; shipped_at: string | null
   note: string | null; created_at: string
@@ -119,6 +146,8 @@ const sevkiyataCevir = (k: SevkiyatKaydi): Sevkiyat => ({
   id: k.id,
   sevkiyatNo: k.shipment_no,
   durum: k.status as SevkiyatDurumu,
+  musteriId: k.customer_id ?? undefined,
+  noktaId: k.delivery_point_id ?? undefined,
   musteriAd: k.customer_name,
   musteriTelefon: metin(k.customer_phone),
   adres: metin(k.address),
@@ -144,6 +173,7 @@ const sevkiyataCevir = (k: SevkiyatKaydi): Sevkiyat => ({
 
 const SECIM = `
   id, shipment_no, status, customer_name, customer_phone, address,
+  customer_id, delivery_point_id,
   destination_branch_id, shipped_on, shipped_at, note, created_at,
   shipment_line (
     id, stock_item_id, qty, uom, note, line_no,
@@ -189,6 +219,8 @@ export class PostgresSevkiyatDeposu implements SevkiyatDeposu {
         tenant_id: ctx.tenantId,
         branch_id: ctx.branchId,
         shipment_no: girdi.sevkiyatNo,
+        customer_id: girdi.musteriId,
+        delivery_point_id: girdi.noktaId ?? null,
         customer_name: girdi.musteriAd,
         customer_phone: girdi.musteriTelefon ?? null,
         address: girdi.adres ?? null,
@@ -211,6 +243,8 @@ export class PostgresSevkiyatDeposu implements SevkiyatDeposu {
       .from('shipment')
       .update({
         shipment_no: girdi.sevkiyatNo,
+        customer_id: girdi.musteriId,
+        delivery_point_id: girdi.noktaId ?? null,
         customer_name: girdi.musteriAd,
         customer_phone: girdi.musteriTelefon ?? null,
         address: girdi.adres ?? null,

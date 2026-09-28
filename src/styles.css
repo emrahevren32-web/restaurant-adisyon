@@ -29158,3 +29158,33 @@ html body .side-nav .side-brand .side-brand-subtitle {
   color:#7D8BAB;
   font-size:var(--font-size-11);
 }
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   YAN MENÜ JETONLARI · KOYU MENÜYE GERİ AYARLANDI (2026-09-28)
+   ═══════════════════════════════════════════════════════════════════════════
+   ⚠️ GERÇEK KUSUR: Emrah'ın ekran görüntüsünde menüdeki bir grup başlığı
+   ("Üretim") GÖRÜNMÜYORDU — ikon vardı, yazı yoktu.
+
+   Sebep: "SADE TEMA · AÇIK MOD" bloğu (yukarıda) yan menü beyaz olacak diye
+   yazılmıştı ve `--sidebar-text` gibi jetonları KOYU değerlere çekti
+   (#1F2937). Üçüncü turda menü koyuya döndü ama o jetonlar açık modda
+   hâlâ koyu duruyordu. `var(--sidebar-text)` kullanan her kural —
+   `.side-nav-item.active-branch:not(.active)` bunlardan biri — koyu zeminde
+   koyu yazı üretti. Yani metin kayıp değildi, görünmez olmuştu.
+
+   ── DERS ──────────────────────────────────────────────────────────────────
+   Bir yüzeyin rengini değiştirirken O YÜZEYE AİT bütün jetonlar birlikte
+   değişmeli. Arka planı çevirip yazı rengini geride bırakmak, en sessiz
+   arayüz hatasını üretir: eleman orada durur, okunmaz.
+
+   Jetonlar `.side-nav` üzerinde yeniden tanımlanıyor — gövdenin açık teması
+   etkilenmiyor, çünkü bu jetonları yalnızca menü kuralları okuyor.
+   ═══════════════════════════════════════════════════════════════════════════ */
+html[data-theme="light"][data-theme-engine="premium"] .side-nav,
+html[data-theme="dark"][data-theme-engine="premium"] .side-nav {
+  --sidebar-bg:#101826;
+  --sidebar-surface:#1A2333;
+  --sidebar-border:rgba(226, 232, 240, .08);
+  --sidebar-text:#F1F5F9;
+  --sidebar-text-muted:#7D8BAB;
+}

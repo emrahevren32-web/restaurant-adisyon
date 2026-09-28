@@ -81,6 +81,7 @@ class BellekSevkiyatDeposu implements SevkiyatDeposu {
   async ekle(c: TenantCtx, g: YeniSevkiyat): Promise<Sevkiyat> {
     const s: Sevkiyat = {
       id: `svk-${++this.sayac}`, sevkiyatNo: g.sevkiyatNo, durum: 'DRAFT',
+      musteriId: g.musteriId, noktaId: g.noktaId,
       musteriAd: g.musteriAd, musteriTelefon: g.musteriTelefon, adres: g.adres,
       hedefSubeId: g.hedefSubeId, sevkTarihi: g.sevkTarihi, not: g.not,
       olusturmaTarihi: new Date().toISOString(),
@@ -95,7 +96,8 @@ class BellekSevkiyatDeposu implements SevkiyatDeposu {
   async guncelle(c: TenantCtx, id: string, g: YeniSevkiyat): Promise<Sevkiyat> {
     const mevcut = this.kayitlar.find(x => x.id === id)!
     const guncel: Sevkiyat = {
-      ...mevcut, sevkiyatNo: g.sevkiyatNo, musteriAd: g.musteriAd,
+      ...mevcut, sevkiyatNo: g.sevkiyatNo,
+      musteriId: g.musteriId, noktaId: g.noktaId, musteriAd: g.musteriAd,
       satirlar: g.satirlar.map((x, i) => ({ ...x, id: `svks-${++this.sayac}`, siraNo: i + 1 })),
     }
     this.kayitlar = this.kayitlar.map(x => (x.id === id ? guncel : x))
@@ -141,6 +143,9 @@ const depoyuDoldur = async () => {
 
 const sevkiyatAc = (miktar = 30, yama: Partial<YeniSevkiyat> = {}) => servis.ekle(ctx, {
   sevkiyatNo: 'SVK-2026-0001',
+  // Artık karta atıf zorunlu (0047 / A4C1). Elle isim yazan bir sevkiyat
+  // girdisi derlenmiyor bile.
+  musteriId: 'mus-otel-marmara',
   musteriAd: 'Otel Marmara',
   musteriTelefon: '0212 000 00 00',
   satirlar: [{ stokKalemiId: CORBA, miktar, birim: 'kg' }],
@@ -235,9 +240,17 @@ describe('sevk kapısı', () => {
     await expect(sevkiyatAc(10, { musteriAd: '   ' })).rejects.toThrow(/Müşteri adı/)
   })
 
+  it('müşteri KARTI seçilmemişse sevkiyat açılamıyor', async () => {
+    // Yol haritası maddesi: "Sevkiyatta müşteri adı elle yazılmıyor, karttan
+    // seçiliyor." Tip alanı zorunlu kılıyor ama boş METİN tipten kaçar —
+    // bu sınama o deliği kapatıyor. İsim dolu, kart boş: geçmemeli.
+    await expect(sevkiyatAc(10, { musteriId: '  ' }))
+      .rejects.toThrow(/kartından seçilmelidir/)
+  })
+
   it('boş sevkiyat açılamıyor', async () => {
     await expect(servis.ekle(ctx, {
-      sevkiyatNo: 'SVK-1', musteriAd: 'X', satirlar: [],
+      sevkiyatNo: 'SVK-1', musteriId: 'mus-x', musteriAd: 'X', satirlar: [],
     })).rejects.toThrow(/en az bir kalem/)
   })
 
@@ -246,7 +259,7 @@ describe('sevk kapısı', () => {
     const sevkiyat = await sevkEt(await sevkiyatAc(10))
 
     await expect(servis.guncelle(ctx, sevkiyat, {
-      sevkiyatNo: 'SVK-2026-0001', musteriAd: 'Başka Müşteri',
+      sevkiyatNo: 'SVK-2026-0001', musteriId: 'mus-baska', musteriAd: 'Başka Müşteri',
       satirlar: [{ stokKalemiId: CORBA, miktar: 5, birim: 'kg' }],
     })).rejects.toThrow(/hazırlanmakta/)
   })

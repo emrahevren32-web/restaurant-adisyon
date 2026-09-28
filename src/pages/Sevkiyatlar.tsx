@@ -28,6 +28,9 @@ import {
 } from '../warehouse/warehouse.catalog'
 import { DepoServisi, cevrilebilirBirimler, type DepoKalemi } from '../warehouse/warehouse.service'
 import {
+  PostgresMusteriDeposu, type Musteri, type TeslimNoktasi,
+} from '../customers/customer.repository'
+import {
   PostgresSevkiyatDeposu,
   SEVKIYAT_DURUM_ETIKETLERI,
   SEVKIYAT_GECISLERI,
@@ -82,6 +85,10 @@ export default function Sevkiyatlar({ currentUser }: Props){
   const [sevkiyatlar, setSevkiyatlar] = React.useState<Sevkiyat[]>([])
   const [kalemler, setKalemler] = React.useState<KatalogKalemi[]>([])
   const [birimler, setBirimler] = React.useState<Birim[]>([])
+  // Müşteri kartları ve teslim noktaları (0047). Sevkiyat artık bunlardan
+  // seçiliyor; isim elle yazılmıyor.
+  const [musteriler, setMusteriler] = React.useState<Musteri[]>([])
+  const [noktalar, setNoktalar] = React.useState<TeslimNoktasi[]>([])
   const [bakiyeler, setBakiyeler] = React.useState<DepoKalemi[]>([])
   const [seciliId, setSeciliId] = React.useState<string | null>(null)
   const [hareketler, setHareketler] = React.useState<Movement[]>([])
@@ -133,17 +140,30 @@ export default function Sevkiyatlar({ currentUser }: Props){
         setBaglam(kurulan)
 
         const katalog = new PostgresStokKatalogu(getSupabase())
-        const [s, kl, bl, bk] = await Promise.all([
+        const musteriDeposu = new PostgresMusteriDeposu(getSupabase())
+        const [s, kl, bl, bk, ms] = await Promise.all([
           servis.hepsi(kurulan.ctx),
           katalog.kalemler(kurulan.ctx),
           katalog.birimler(),
           depoServisi.kalemler(kurulan.ctx),
+          musteriDeposu.hepsi(kurulan.ctx),
         ])
         if(iptal) return
         setSevkiyatlar(s)
         setKalemler(kl.filter(k => k.aktif))
         setBirimler(bl)
         setBakiyeler(bk)
+        // Yalnız AKTİF müşteriler seçilebilir. Pasife alınmış müşteri
+        // geçmişte görünür ama yeni sevkiyat açılamaz — pasife almanın
+        // anlamı tam olarak budur.
+        setMusteriler(ms.filter(m => m.aktif))
+        // Bütün noktalar TEK istekte: müşteri seçilince ekran süzüyor.
+        // İlk yazımda müşteri başına ayrı istek atıyordum — 200 müşterili bir
+        // kiracıda ekran 200 isteğe bölünürdü. RLS kiracı sınırını zaten
+        // koruyor, müşteri filtresine gerek yok.
+        const ns = await musteriDeposu.noktalar(kurulan.ctx)
+        if(iptal) return
+        setNoktalar(ns.filter(n => n.aktif))
       } catch (e) {
         if(!iptal) setHata(hataMetni(e))
       } finally {
@@ -367,6 +387,8 @@ export default function Sevkiyatlar({ currentUser }: Props){
               <SevkiyatFormu
                 kalemler={kalemler}
                 birimler={birimler}
+                musteriler={musteriler}
+                noktalar={noktalar}
                 onerilenNo={sonrakiSevkiyatNo(sevkiyatlar.map(s => s.sevkiyatNo))}
                 onIptal={() => setIslem(null)}
                 onKaydet={olustur}
@@ -383,6 +405,8 @@ export default function Sevkiyatlar({ currentUser }: Props){
                 mevcut={secili}
                 kalemler={kalemler}
                 birimler={birimler}
+                musteriler={musteriler}
+                noktalar={noktalar}
                 onerilenNo={secili.sevkiyatNo}
                 onIptal={() => setIslem(null)}
                 onKaydet={girdi => kaydet(secili, girdi)}
@@ -664,17 +688,20 @@ const sayiyaCevir = (d: string): number => {
 }
 
 function SevkiyatFormu({
-  mevcut, kalemler, birimler, onerilenNo, onIptal, onKaydet,
+  mevcut, kalemler, birimler, musteriler, noktalar, onerilenNo, onIptal, onKaydet,
 }: {
   mevcut?: Sevkiyat
   kalemler: KatalogKalemi[]
   birimler: Birim[]
+  musteriler: Musteri[]
+  noktalar: TeslimNoktasi[]
   onerilenNo: string
   onIptal: () => void
   onKaydet: (girdi: YeniSevkiyat) => Promise<void>
 }){
   const [sevkiyatNo, setSevkiyatNo] = React.useState(mevcut?.sevkiyatNo ?? onerilenNo)
-  const [musteri, setMusteri] = React.useState(mevcut?.musteriAd ?? '')
+  const [musteriId, setMusteriId] = React.useState(mevcut?.musteriId ?? '')
+  const [noktaId, setNoktaId] = React.useState(mevcut?.noktaId ?? '')
   const [telefon, setTelefon] = React.useState(mevcut?.musteriTelefon ?? '')
   const [adres, setAdres] = React.useState(mevcut?.adres ?? '')
   const [tarih, setTarih] = React.useState(
@@ -692,6 +719,31 @@ function SevkiyatFormu({
 
   const birimKodlari = React.useMemo(() => birimler.map(b => b.kod), [birimler])
 
+  const secilenMusteri = musteriler.find(m => m.id === musteriId)
+  const musteriNoktalari = noktalar.filter(n => n.musteriId === musteriId)
+
+  /**
+   * 0047 ÖNCESİNDEN kalan sevkiyatlar karta bağlı değil. Onları düzenlerken
+   * listede karşılığı yoksa isim bir yere yazılmalı, yoksa kullanıcı neyi
+   * düzenlediğini göremez. Uydurma bir kart atfı YAPMIYORUZ; sadece eski
+   * ismi gösteriyoruz ve kart seçilmesini istiyoruz.
+   */
+  const eskiKayit = Boolean(mevcut && !mevcut.musteriId)
+
+  /**
+   * Kart seçilince telefon ve adres NOKTADAN doldurulur — ama kullanıcı
+   * üzerine yazabilir. Sebep: o günkü teslimat başka bir kapıya, başka bir
+   * telefonla yapılabilir ve belge o günün gerçeğini yazar.
+   */
+  const noktaSec = (id: string) => {
+    setNoktaId(id)
+    const nokta = noktalar.find(n => n.id === id)
+    if(!nokta) return
+    if(nokta.telefon) setTelefon(nokta.telefon)
+    const tamAdres = [nokta.adres, nokta.ilce, nokta.il].filter(Boolean).join(' · ')
+    if(tamAdres) setAdres(tamAdres)
+  }
+
   const guncelle = (sira: number, yama: Partial<SatirTaslagi>) =>
     setSatirlar(o => o.map((s, i) => (i === sira ? { ...s, ...yama } : s)))
 
@@ -704,7 +756,13 @@ function SevkiyatFormu({
         try{
           await onKaydet({
             sevkiyatNo,
-            musteriAd: musteri,
+            musteriId,
+            noktaId: noktaId || undefined,
+            // Belgenin metni KARTTAN kopyalanıyor ve donuyor: kart sonradan
+            // yeniden adlandırılsa bile kesilmiş irsaliye değişmez.
+            // Eski (0047 öncesi) bir kaydı düzenliyorsak ve kart hâlâ
+            // seçilmemişse, belgedeki ismi bozmuyoruz.
+            musteriAd: secilenMusteri?.ad ?? mevcut?.musteriAd ?? '',
             musteriTelefon: telefon.trim() || undefined,
             adres: adres.trim() || undefined,
             sevkTarihi: tarih || undefined,
@@ -732,15 +790,60 @@ function SevkiyatFormu({
         </label>
       </div>
 
+      {eskiKayit && (
+        <p className="muted detail-hint">
+          Bu sevkiyat müşteri kartı gelmeden önce açılmış. Belgedeki isim
+          <strong> {mevcut?.musteriAd}</strong>. Kaydetmek için aşağıdan
+          karşılığı olan müşteriyi seçin.
+        </p>
+      )}
+
       <label>
         Müşteri *
-        <input
-          value={musteri} required placeholder="Kime gidiyor?"
-          onChange={e => setMusteri(e.target.value)}
-        />
+        <select
+          value={musteriId}
+          required
+          onChange={e => { setMusteriId(e.target.value); setNoktaId('') }}
+        >
+          <option value="">Seçin…</option>
+          {musteriler.map(m => (
+            <option key={m.id} value={m.id}>{m.kod} · {m.ad}</option>
+          ))}
+        </select>
         <small className="muted">
-          Geri çağırmada aranacak isim budur. Müşterisiz bir sevkiyat,
-          “kimi arayacağız” sorusunu cevapsız bırakır.
+          Elle yazılmıyor, karttan seçiliyor. Elle yazılan isim aynı müşteriyi
+          “Migros”, “MİGROS”, “migros tic” diye üç ayrı müşteri hâline getirir
+          ve geri çağırmada hiçbiri toplanamaz. Müşteri listede yoksa
+          Müşteriler ekranından kartını açın.
+        </small>
+      </label>
+
+      {musteriler.length === 0 && (
+        <p className="muted detail-hint">
+          Henüz müşteri kartı yok. Sevkiyat açabilmek için önce Müşteriler
+          ekranından bir kart oluşturun.
+        </p>
+      )}
+
+      <label>
+        Teslim noktası
+        <select
+          value={noktaId}
+          disabled={!musteriId}
+          onChange={e => noktaSec(e.target.value)}
+        >
+          <option value="">
+            {musteriId ? 'Seçin…' : 'Önce müşteri seçin'}
+          </option>
+          {musteriNoktalari.map(n => (
+            <option key={n.id} value={n.id}>{n.ad}</option>
+          ))}
+        </select>
+        <small className="muted">
+          İrsaliyenin gittiği yer. Seçilince telefon ve adres buradan
+          doldurulur — o günkü teslimat farklıysa üzerine yazabilirsiniz.
+          {musteriId && musteriNoktalari.length === 0
+            && ' Bu müşterinin teslim noktası yok; Müşteriler ekranından ekleyebilirsiniz.'}
         </small>
       </label>
 

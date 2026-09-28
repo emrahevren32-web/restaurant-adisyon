@@ -126,7 +126,15 @@ export interface MusteriDeposu {
   /** Pasife alma / geri açma. Silme YOK — geçmiş belgeler kopar. */
   aktiflikDegistir(ctx: TenantCtx, id: string, aktif: boolean): Promise<Musteri>
 
-  noktalar(ctx: TenantCtx, musteriId: string): Promise<TeslimNoktasi[]>
+  /**
+   * Teslim noktaları. `musteriId` verilmezse KİRACININ HEPSİ döner.
+   *
+   * Hepsini tek seferde okuyabilmek şart: sevkiyat ekranı bütün müşterilerin
+   * noktalarına ihtiyaç duyuyor ve müşteri başına ayrı istek atmak, 200
+   * müşterili bir kiracıda ekranı 200 isteğe bölerdi. RLS kiracı sınırını
+   * zaten koruyor.
+   */
+  noktalar(ctx: TenantCtx, musteriId?: string): Promise<TeslimNoktasi[]>
   noktaEkle(ctx: TenantCtx, girdi: TeslimNoktasiGirdisi): Promise<TeslimNoktasi>
   noktaGuncelle(ctx: TenantCtx, id: string, girdi: TeslimNoktasiGirdisi): Promise<TeslimNoktasi>
   noktaAktiflikDegistir(ctx: TenantCtx, id: string, aktif: boolean): Promise<TeslimNoktasi>
@@ -333,10 +341,11 @@ export class PostgresMusteriDeposu implements MusteriDeposu {
     return musteriyeCevir(data as MusteriSatiri)
   }
 
-  async noktalar(_ctx: TenantCtx, musteriId: string): Promise<TeslimNoktasi[]> {
-    const { data, error } = await this.client
-      .from('delivery_point').select(NOKTA_SUTUNLARI)
-      .eq('customer_id', musteriId).order('name')
+  async noktalar(_ctx: TenantCtx, musteriId?: string): Promise<TeslimNoktasi[]> {
+    const sorgu = this.client.from('delivery_point').select(NOKTA_SUTUNLARI)
+    const { data, error } = await (
+      musteriId ? sorgu.eq('customer_id', musteriId) : sorgu
+    ).order('name')
     if(error) throw new Error(`Teslim noktaları okunamadı: ${error.message}`)
     return ((data as NoktaSatiri[] | null) ?? []).map(noktayaCevir)
   }

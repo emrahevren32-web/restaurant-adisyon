@@ -88,7 +88,8 @@ export class MusteriServisi {
     return this.depo.aktiflikDegistir(ctx, id, aktif)
   }
 
-  noktalar(ctx: TenantCtx, musteriId: string): Promise<TeslimNoktasi[]> {
+  /** `musteriId` verilmezse kiracının bütün teslim noktaları. */
+  noktalar(ctx: TenantCtx, musteriId?: string): Promise<TeslimNoktasi[]> {
     return this.depo.noktalar(ctx, musteriId)
   }
 
