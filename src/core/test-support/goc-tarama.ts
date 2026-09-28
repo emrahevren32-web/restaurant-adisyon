@@ -169,3 +169,37 @@ export const basvuruGecisleriGocten = (
   }
   return gecisler
 }
+
+/**
+ * 0050'deki sipariş durum geçişleri.
+ *
+ * Kural iki yerde duruyor: veritabanı tetiği (0050) ve ekranın hangi düğmeyi
+ * göstereceğini bilmesi için `IZINLI_GECISLER` (sales-order.service.ts).
+ * İki yerde duran kural AYRIŞIR — bu okuyucu, testin ikisini
+ * karşılaştırmasını sağlıyor.
+ *
+ * ⚠️ 0032 okuyucusu `case OLD.status` (büyük harf) arıyor, bu `case
+ * old.status` (küçük harf). İkisi birbirini eşleştirmiyor; kalıbı
+ * değiştirirken bunu koru.
+ */
+export const siparisGecisleriGocten = (
+  sql = gocMetni(),
+): Record<string, string[]> => {
+  const blok = /case old\.status([\s\S]*?)end;/.exec(sql)
+  if(!blok) throw new Error(
+    '0050 içindeki sipariş geçiş tablosu bulunamadı. Tetikleyici değiştiyse ' +
+    'bu okuyucu da güncellenmeli — yoksa test sessizce zayıflar.',
+  )
+  const gecisler: Record<string, string[]> = {}
+  const re = /when '([^']+)'\s*then\s*array\[([^\]]*)\]/g
+  let m: RegExpExecArray | null
+  while((m = re.exec(blok[1])) !== null){
+    gecisler[m[1]] = (m[2].match(/'([^']+)'/g) ?? []).map(x => x.replace(/'/g, ''))
+  }
+  // `else array[]::text[]` — son duraklar. Göçte tek tek yazılmıyorlar,
+  // burada açıkça ekliyoruz ki test tam karşılaştırma yapabilsin.
+  for(const d of ['Teslim Edildi', 'İptal']){
+    if(!(d in gecisler)) gecisler[d] = []
+  }
+  return gecisler
+}
