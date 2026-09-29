@@ -13,6 +13,7 @@
 
 import type { SupabaseClient } from '@supabase/supabase-js'
 import type { TenantCtx } from '../core/context'
+import type { KalemSevkDurumu } from './sales-order-shipment'
 
 export type SiparisDurumu =
   | 'Taslak' | 'Onaylandı' | 'Hazırlanıyor' | 'Hazır'
@@ -158,6 +159,21 @@ export type FarkKarariGirdisi = {
   kararNotu?: string
 }
 
+/**
+ * `app.siparis_sevk_durumu()` satırı — ham hâliyle (0051).
+ * TS karşılığı `sales-order-shipment.ts` içindeki `KalemSevkDurumu`.
+ */
+type SevkDurumuSatiri = {
+  kalem_id: string
+  siparis_miktar: string | number | null
+  siparis_birim: string | null
+  sevk_miktar: string | number | null
+  sevk_birimleri: string[] | null
+  kalan: string | number | null
+  birim_uyusmuyor: boolean
+  siparis_disi: boolean
+}
+
 export interface SiparisDeposu {
   hepsi(ctx: TenantCtx): Promise<Siparis[]>
   ekle(ctx: TenantCtx, girdi: YeniSiparis): Promise<Siparis>
@@ -171,6 +187,8 @@ export interface SiparisDeposu {
   farkAc(ctx: TenantCtx, girdi: YeniFark): Promise<Fark>
   farkiKararaBagla(ctx: TenantCtx, farkId: string, girdi: FarkKarariGirdisi): Promise<Fark>
   olaylar(ctx: TenantCtx, siparisId: string): Promise<SiparisOlayi[]>
+  /** Kalem kalem: sipariş / sevk edilmiş / KALAN (0051). */
+  sevkDurumu(ctx: TenantCtx, siparisId: string): Promise<KalemSevkDurumu[]>
 }
 
 export class SiparisNoCakismasiError extends Error {
@@ -515,5 +533,37 @@ export class PostgresSiparisDeposu implements SiparisDeposu {
       ayrinti: bos(o.detail),
       zaman: o.created_at,
     }))
+  }
+
+  /**
+   * Kalem kalem sevk durumu — 0051'deki `public.siparis_sevk_durumu`.
+   *
+   * ⚠️ Hesap TABLODA, burada değil. Tarayıcıda toplasaydık iki çağrı arasında
+   * yazılan bir sevkiyat sessizce kaçardı ve kalan yanlış çıkardı.
+   *
+   * ⚠️ `kalan` null gelebilir: birimler uyuşmuyorsa veritabanı çıkarma
+   * YAPMIYOR. Burada 0'a çevirmek, bilmediğimiz bir şeyi "bitti" diye
+   * göstermek olurdu.
+   */
+  async sevkDurumu(_ctx: TenantCtx, siparisId: string): Promise<KalemSevkDurumu[]> {
+    const { data, error } = await this.client
+      .rpc('siparis_sevk_durumu', { p_siparis: siparisId })
+    if(error) throw new Error(`Sevk durumu okunamadı: ${error.message}`)
+    return ((data as unknown as SevkDurumuSatiri[] | null) ?? []).map(r => {
+      const d: KalemSevkDurumu = {
+        kalemId: r.kalem_id,
+        sevkMiktar: sayi(r.sevk_miktar) ?? 0,
+        sevkBirimleri: r.sevk_birimleri ?? [],
+        birimUyusmuyor: r.birim_uyusmuyor,
+        siparisDisi: r.siparis_disi,
+      }
+      const sip = sayi(r.siparis_miktar)
+      if(sip !== undefined) d.siparisMiktar = sip
+      const bir = bos(r.siparis_birim)
+      if(bir !== undefined) d.siparisBirim = bir
+      const kalan = sayi(r.kalan)
+      if(kalan !== undefined) d.kalan = kalan
+      return d
+    })
   }
 }

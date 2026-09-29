@@ -55,6 +55,12 @@ export type Sevkiyat = {
   /** Teslim noktası (0047). İrsaliyenin gittiği yer. */
   noktaId?: string
   /**
+   * Bu sevkiyatın parçası olduğu sipariş (0051). BOŞ olabilir ve bu
+   * bilinçli: numune, ikram, iç transfer siparişten doğmaz. Uydurma bir
+   * siparişe bağlamak defteri kirletir.
+   */
+  siparisId?: string
+  /**
    * Belgenin üzerindeki müşteri adı. Karttan KOPYALANIR ve donar: kart
    * sonradan yeniden adlandırılsa bile kesilmiş irsaliye değişmez.
    */
@@ -85,6 +91,12 @@ export type YeniSevkiyat = {
    */
   musteriId: string
   noktaId?: string
+  /**
+   * Sipariş bağı (0051). Siparişten türetilen sevkiyatta DOLU: kalan miktar
+   * bu bağdan okunur ve sipariş durumu sevk anında kendiliğinden ilerler.
+   * Siparişsiz sevkiyatta boş kalır.
+   */
+  siparisId?: string
   musteriAd: string
   musteriTelefon?: string
   adres?: string
@@ -136,6 +148,7 @@ type SevkiyatKaydi = {
   id: string; shipment_no: string; status: string
   customer_name: string; customer_phone: string | null; address: string | null
   customer_id: string | null; delivery_point_id: string | null
+  order_id: string | null
   destination_branch_id: string | null
   shipped_on: string | null; shipped_at: string | null
   note: string | null; created_at: string
@@ -148,6 +161,7 @@ const sevkiyataCevir = (k: SevkiyatKaydi): Sevkiyat => ({
   durum: k.status as SevkiyatDurumu,
   musteriId: k.customer_id ?? undefined,
   noktaId: k.delivery_point_id ?? undefined,
+  siparisId: k.order_id ?? undefined,
   musteriAd: k.customer_name,
   musteriTelefon: metin(k.customer_phone),
   adres: metin(k.address),
@@ -173,7 +187,7 @@ const sevkiyataCevir = (k: SevkiyatKaydi): Sevkiyat => ({
 
 const SECIM = `
   id, shipment_no, status, customer_name, customer_phone, address,
-  customer_id, delivery_point_id,
+  customer_id, delivery_point_id, order_id,
   destination_branch_id, shipped_on, shipped_at, note, created_at,
   shipment_line (
     id, stock_item_id, qty, uom, note, line_no,
@@ -221,6 +235,7 @@ export class PostgresSevkiyatDeposu implements SevkiyatDeposu {
         shipment_no: girdi.sevkiyatNo,
         customer_id: girdi.musteriId,
         delivery_point_id: girdi.noktaId ?? null,
+        order_id: girdi.siparisId ?? null,
         customer_name: girdi.musteriAd,
         customer_phone: girdi.musteriTelefon ?? null,
         address: girdi.adres ?? null,
@@ -245,6 +260,7 @@ export class PostgresSevkiyatDeposu implements SevkiyatDeposu {
         shipment_no: girdi.sevkiyatNo,
         customer_id: girdi.musteriId,
         delivery_point_id: girdi.noktaId ?? null,
+        order_id: girdi.siparisId ?? null,
         customer_name: girdi.musteriAd,
         customer_phone: girdi.musteriTelefon ?? null,
         address: girdi.adres ?? null,

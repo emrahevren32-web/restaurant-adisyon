@@ -34,6 +34,12 @@ import {
   IZINLI_GECISLER, SEVK_SONRASI, SiparisServisi,
   farkiYaz, revizyonFarki, siparisNoCakistiMi, siparisleriSuz, sonrakiSiparisNo,
 } from '../sales/sales-order.service'
+import {
+  TURETILEBILIR_DURUMLAR, sevkOzeti, sevkToplami, sevkiyatTuret,
+  type KalemSevkDurumu,
+} from '../sales/sales-order-shipment'
+import { PostgresSevkiyatDeposu } from '../production/shipment.repository'
+import { sonrakiSevkiyatNo } from '../production/shipment.service'
 
 type Props = { currentUser: User }
 
@@ -89,7 +95,8 @@ export default function Siparisler({ currentUser }: Props){
   const [satirlar, setSatirlar] = React.useState<SiparisSatiri[]>([])
   const [revizyonlar, setRevizyonlar] = React.useState<Revizyon[]>([])
   const [farklar, setFarklar] = React.useState<Fark[]>([])
-  const [sekme, setSekme] = React.useState<'satirlar' | 'gecmis' | 'farklar'>('satirlar')
+  const [sekme, setSekme] = React.useState<'satirlar' | 'sevk' | 'gecmis' | 'farklar'>('satirlar')
+  const [sevkDurumu, setSevkDurumu] = React.useState<KalemSevkDurumu[]>([])
   const [islem, setIslem] = React.useState<'yeni' | 'revizyon' | 'fark' | null>(null)
   const [yukleniyor, setYukleniyor] = React.useState(true)
   const [hata, setHata] = React.useState('')
@@ -105,14 +112,21 @@ export default function Siparisler({ currentUser }: Props){
     return new PostgresMusteriDeposu(getSupabase())
   }, [mod])
 
+  const sevkiyatDeposu = React.useMemo(() => {
+    if(mod !== 'postgres' || !isSupabaseConfigured()) return null
+    return new PostgresSevkiyatDeposu(getSupabase())
+  }, [mod])
+
   const ayrintiYukle = React.useCallback(async (s: Siparis, b: DepoBaglami) => {
     if(!servis) return
-    const [r, f] = await Promise.all([
+    const [r, f, sd] = await Promise.all([
       servis.revizyonlar(b.ctx, s.id),
       servis.farklar(b.ctx, s.id),
+      servis.sevkDurumu(b.ctx, s.id),
     ])
     setRevizyonlar(r)
     setFarklar(f)
+    setSevkDurumu(sd)
     // Güncel satırlar = en son SATIRLI revizyon. Kuralı burada yeniden
     // yazmıyoruz: servis okunan revizyonlardan seçiyor.
     const satirli = r.filter(x => x.satirlar.length > 0)
@@ -256,6 +270,32 @@ export default function Siparisler({ currentUser }: Props){
       setHata('')
       await yenile()
     } catch (e) { setHata(hataMetni(e)) }
+  }
+
+  /**
+   * Siparişin KALANINDAN bir sevkiyat TASLAĞI çıkarır.
+   *
+   * ⚠️ Taslak, sevk DEĞİL. Malın deftere çıkış yazılması ve stok yeterliliği
+   * Sevkiyatlar ekranında; oradaki kontrolü atlarsak olmayan malı sevk
+   * etmiş oluruz. Buradaki iş yalnızca "ne kadar kaldı" sorusunu elle
+   * yazdırmamak.
+   */
+  const sevkiyataCikar = async () => {
+    if(!secili || !sevkiyatDeposu || !baglam) return
+    try{
+      const mevcut = await sevkiyatDeposu.hepsi(baglam.ctx)
+      const girdi = sevkiyatTuret(
+        secili, sevkDurumu, sonrakiSevkiyatNo(mevcut.map(x => x.sevkiyatNo)),
+      )
+      const olusan = await sevkiyatDeposu.ekle(baglam.ctx, girdi)
+      setHata('')
+      setBilgi(
+        `${olusan.sevkiyatNo} sevkiyat taslağı oluşturuldu ve bu siparişe `
+        + 'bağlandı. Sevkiyatlar ekranından sevk edin — sipariş durumu o an '
+        + 'kendiliğinden ilerleyecek.',
+      )
+      await yenile(secili.id)
+    } catch (e) { setBilgi(''); setHata(hataMetni(e)) }
   }
 
   return (
@@ -453,6 +493,12 @@ export default function Siparisler({ currentUser }: Props){
                   Satırlar ({satirlar.length})
                 </button>
                 <button
+                  className={`btn ${sekme === 'sevk' ? 'primary' : ''}`}
+                  type="button" onClick={() => setSekme('sevk')}
+                >
+                  Sevk durumu
+                </button>
+                <button
                   className={`btn ${sekme === 'gecmis' ? 'primary' : ''}`}
                   type="button" onClick={() => setSekme('gecmis')}
                 >
@@ -493,6 +539,15 @@ export default function Siparisler({ currentUser }: Props){
                 </div>
               )}
 
+              {sekme === 'sevk' && (
+                <SevkPaneli
+                  siparis={secili}
+                  durumlar={sevkDurumu}
+                  yazabilir={yazabilir}
+                  onCikar={sevkiyataCikar}
+                />
+              )}
+
               {sekme === 'gecmis' && <GecmisPaneli revizyonlar={revizyonlar} />}
 
               {sekme === 'farklar' && (
@@ -506,6 +561,91 @@ export default function Siparisler({ currentUser }: Props){
           )}
         </aside>
       </div>
+    </div>
+  )
+}
+
+// ── Sevk durumu ────────────────────────────────────────────────────────────
+/**
+ * "Bu siparişin ne kadarı gitti?" — tek bakışta.
+ *
+ * Sayılar 0051'deki `app.siparis_sevk_durumu()`den geliyor; tarayıcıda
+ * toplasaydık iki çağrı arasında yazılan bir sevkiyat sessizce kaçardı.
+ */
+function SevkPaneli({
+  siparis, durumlar, yazabilir, onCikar,
+}: {
+  siparis: Siparis
+  durumlar: KalemSevkDurumu[]
+  yazabilir: boolean
+  onCikar: () => void
+}){
+  const toplam = sevkToplami(durumlar)
+  const turetilebilir = TURETILEBILIR_DURUMLAR.includes(siparis.durum)
+  const kalanVar = durumlar.some(d => !d.siparisDisi && !d.birimUyusmuyor && (d.kalan ?? 0) > 0)
+
+  return (
+    <div>
+      <p className="muted">
+        {toplam.kalemSayisi} kalem · {toplam.tamamlanan} tamamlandı
+        {toplam.bekleyen > 0 && <> · <strong>{toplam.bekleyen} bekliyor</strong></>}
+        {toplam.fazlaGiden > 0 && <> · <strong>{toplam.fazlaGiden} fazla gitti</strong></>}
+        {toplam.hesaplanamayan > 0 && <> · {toplam.hesaplanamayan} hesaplanamıyor</>}
+        {toplam.siparisDisiKalem > 0 && <> · {toplam.siparisDisiKalem} sipariş dışı</>}
+      </p>
+
+      {(toplam.fazlaGiden > 0 || toplam.siparisDisiKalem > 0) && (
+        <div className="form-error">
+          Sipariş dışına çıkılmış: fazla ya da siparişte olmayan kalem gitmiş.
+          Bu bir <strong>fark kaydı</strong> konusudur, revizyon değil.
+        </div>
+      )}
+
+      <div className="table-wrap">
+        <table className="data-table compact">
+          <thead>
+            <tr><th>Ürün</th><th className="num">Sipariş</th><th className="num">Giden</th><th className="num">Kalan</th><th>Durum</th></tr>
+          </thead>
+          <tbody>
+            {durumlar.length === 0 && (
+              <tr><td colSpan={5} className="muted">Kalem yok.</td></tr>
+            )}
+            {durumlar.map(d => (
+              <tr key={d.kalemId}>
+                <td>{d.kalemAdi ?? d.kalemId}</td>
+                <td className="num">
+                  {d.siparisMiktar === undefined
+                    ? '—'
+                    : `${sayiYaz(d.siparisMiktar)} ${d.siparisBirim ?? ''}`}
+                </td>
+                <td className="num">{sayiYaz(d.sevkMiktar)}</td>
+                <td className="num">
+                  {/* ⚠️ Birim uyuşmuyorsa sayı YAZILMIYOR. Uydurulmuş bir
+                      sayı, boş bir hücreden daha tehlikelidir. */}
+                  {d.kalan === undefined ? '—' : sayiYaz(d.kalan)}
+                </td>
+                <td className="muted">{sevkOzeti(d)}</td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+
+      {yazabilir && turetilebilir && kalanVar && (
+        <div className="form-actions">
+          <button className="btn primary" type="button" onClick={onCikar}>
+            Kalanı sevkiyata çıkar
+          </button>
+        </div>
+      )}
+      {yazabilir && turetilebilir && !kalanVar && durumlar.length > 0 && (
+        <p className="muted">Sevk edilmemiş kalem kalmadı.</p>
+      )}
+      {yazabilir && !turetilebilir && (
+        <p className="muted">
+          Sevkiyat çıkarmak için sipariş <strong>Hazır</strong> olmalı.
+        </p>
+      )}
     </div>
   )
 }

@@ -47,6 +47,10 @@ const STIL = `
   th{ background:#f2f2f2; font-weight:600 }
   td.num,th.num{ text-align:right; font-variant-numeric:tabular-nums }
   .uyari{ border:2px solid #111; padding:9px 11px; margin:0 0 14px; font-weight:600 }
+  /* Elle doldurulacak alan. Kâğıdı zincirin parçası yapan şey bu: dışardan
+     tutulan bir nakliyeci sisteme girmeden farkı buraya yazıyor. Yükseklik
+     tesadüf değil — 22px, kalemle rahat yazılan bir satır. */
+  .bosluk{ height:22px; border-bottom:1px dotted #999 }
   .imza{ display:flex; gap:40px; margin-top:34px }
   .imza div{ flex:1; border-top:1px solid #111; padding-top:5px; font-size:11px; color:#555 }
   .dipnot{ margin-top:18px; font-size:11px; color:#555; line-height:1.45 }

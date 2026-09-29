@@ -8,6 +8,19 @@
 // İkisi de saf metin üreten işlevlerdir: tarayıcı gerekmez, testten geçerler.
 // Yazdırma işini `core/print` yapar.
 //
+// ── KÂĞIT NİÇİN ZİNCİRİN PARÇASI (Emrah, 29.09.2026) ─────────────────────
+// "Nakliyeyi her zaman bizim personelimiz yapmıyor, bazen dışardan nakliyeci
+// tutuyoruz. Yabancı bir nakliyeciye 'al bu oturumdan takip et' diyemeyiz."
+//
+// Yani tespit zinciri sistemin dışına çıkıyor. Çözüm kâğıt: irsaliyede
+// TAŞIYAN alanı ve elle doldurulacak bir FARK bölümü var. Nakliyeci siteye
+// hiç girmeden, elindeki evrakla süreci taşıyor; kâğıt işletmeye dönünce
+// fark kaydı ondan açılıyor.
+//
+// ⚠️ Kâğıda yazılan fark, sisteme KENDİLİĞİNDEN girmez ve girmemeli. Birisi
+// okuyup kaydı açar ve o kişi kayda geçer — "farkı ilk fark eden bayrak
+// kaldırır" kuralı kâğıt üzerinden de böyle işliyor.
+//
 // ── İRSALİYEDE PARTİ NEDEN VAR ───────────────────────────────────────────
 // Sevkiyat BELGESİNDE (veritabanında) parti yazmaz — FEFO bir çıkışı böldüğü
 // için orada tek bir doğru cevap yoktur. Ama İRSALİYE çıktısı defterden
@@ -115,8 +128,28 @@ export const irsaliyeHtml = (
     İki parti de kayıtlıdır.
   </p>` : ''}
 
+  <h2>Taşıyan</h2>
+  <dl>
+    <dt>Nakliyeci / plaka</dt><dd class="bosluk">&nbsp;</dd>
+    <dt>Sürücü</dt><dd class="bosluk">&nbsp;</dd>
+  </dl>
+
+  <h2>Teslimde fark var mı?</h2>
+  <p class="kucuk">
+    Eksik, fazla ya da hasar varsa ALTTAKİ SATIRLARA YAZIN ve teslim alana
+    imzalatın. Bu kâğıt işletmeye döndüğünde fark kaydı buradan açılacak ve
+    incelemeye girecek. Boş bırakılan bir satır &quot;fark yok&quot; demektir.
+  </p>
+  <table>
+    <thead><tr><th>Kalem</th><th class="num">Eksik</th><th class="num">Fazla</th><th>Hasar</th><th>Açıklama</th></tr></thead>
+    <tbody>
+      ${'<tr><td class="bosluk">&nbsp;</td><td class="bosluk">&nbsp;</td><td class="bosluk">&nbsp;</td><td class="bosluk">&nbsp;</td><td class="bosluk">&nbsp;</td></tr>'.repeat(4)}
+    </tbody>
+  </table>
+
   <div class="imza">
     <div>Teslim eden — ad, soyad, imza</div>
+    <div>Taşıyan — ad, soyad, imza</div>
     <div>Teslim alan — ad, soyad, imza</div>
   </div>
 

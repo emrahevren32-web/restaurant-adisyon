@@ -167,3 +167,40 @@ describe('yazdirmaBelgesi', () => {
     expect(belge).toContain('@page')
   })
 })
+
+// ── Kâğıt, zincirin DIŞINDAKİ nakliyeci için ─────────────────────────────
+// Emrah 29.09: "Nakliyeyi her zaman bizim personelimiz yapmıyor... yabancı
+// bir nakliyeciye 'al bu oturumdan takip et' diyemeyiz." Kâğıt bu boşluğu
+// kapatıyor; o yüzden kâğıdın ne taşıdığı sınanıyor.
+describe('İrsaliye · dışardan nakliyeci', () => {
+  it('taşıyan alanı var', () => {
+    const html = irsaliyeHtml(sevkiyat(), [], sozluk)
+    expect(html).toContain('Taşıyan')
+    expect(html).toContain('Nakliyeci / plaka')
+    expect(html).toContain('Sürücü')
+  })
+
+  it('elle doldurulacak FARK bölümü var', () => {
+    const html = irsaliyeHtml(sevkiyat(), [], sozluk)
+    expect(html).toContain('Teslimde fark var mı?')
+    expect(html).toContain('Eksik')
+    expect(html).toContain('Fazla')
+    expect(html).toContain('Hasar')
+    // Dört boş satır: bir kâğıtta dört kalem farkı yazılabilsin.
+    expect((html.match(/class="bosluk"/g) ?? []).length).toBeGreaterThanOrEqual(4)
+  })
+
+  it('boş bırakılan satırın ne demek olduğunu YAZIYOR', () => {
+    // Kâğıtta belirsizlik bırakmak, dönen kâğıdı okuyan kişiyi tahmine
+    // zorlar. "Boş = fark yok" cümlesi bu yüzden kâğıdın üstünde.
+    const html = irsaliyeHtml(sevkiyat(), [], sozluk)
+    expect(html).toMatch(/fark yok/i)
+  })
+
+  it('üç imza var: teslim eden, taşıyan, teslim alan', () => {
+    const html = irsaliyeHtml(sevkiyat(), [], sozluk)
+    expect(html).toContain('Teslim eden')
+    expect(html).toContain('Taşıyan — ad, soyad, imza')
+    expect(html).toContain('Teslim alan')
+  })
+})

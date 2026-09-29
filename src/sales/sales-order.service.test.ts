@@ -20,6 +20,7 @@ import {
   sonrakiSiparisNo,
 } from './sales-order.service'
 import { SiparisNoCakismasiError } from './sales-order.repository'
+import type { KalemSevkDurumu } from './sales-order-shipment'
 import type {
   Fark, FarkKarariGirdisi, Revizyon, Siparis, SiparisDeposu, SiparisDurumu,
   SiparisOlayi, SiparisSatiri, YeniFark, YeniRevizyon, YeniSiparis,
@@ -69,6 +70,8 @@ class BellekDeposu implements SiparisDeposu {
     }
   }
   async olaylar(): Promise<SiparisOlayi[]> { return [] }
+  sevkDurumlari: KalemSevkDurumu[] = []
+  async sevkDurumu(): Promise<KalemSevkDurumu[]> { return this.sevkDurumlari }
 }
 
 const kur = () => {

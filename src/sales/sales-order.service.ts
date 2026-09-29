@@ -14,6 +14,7 @@ import type {
   Fark, FarkKarariGirdisi, Revizyon, Siparis, SiparisDeposu, SiparisDurumu,
   SiparisOlayi, SiparisSatiri, YeniFark, YeniRevizyon, YeniSiparis, YeniSatir,
 } from './sales-order.repository'
+import type { KalemSevkDurumu } from './sales-order-shipment'
 
 export class SiparisDogrulamaError extends Error {
   constructor(mesaj: string) {
@@ -64,6 +65,10 @@ export class SiparisServisi {
   }
   farklar(ctx: TenantCtx, id: string): Promise<Fark[]> { return this.depo.farklar(ctx, id) }
   olaylar(ctx: TenantCtx, id: string): Promise<SiparisOlayi[]> { return this.depo.olaylar(ctx, id) }
+  /** Kalem kalem: sipariş / sevk edilmiş / KALAN (0051). */
+  sevkDurumu(ctx: TenantCtx, id: string): Promise<KalemSevkDurumu[]> {
+    return this.depo.sevkDurumu(ctx, id)
+  }
 
   async ekle(ctx: TenantCtx, girdi: YeniSiparis): Promise<Siparis> {
     return this.depo.ekle(ctx, this.siparisDogrula(girdi))
