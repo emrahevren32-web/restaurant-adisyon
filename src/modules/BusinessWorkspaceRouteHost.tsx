@@ -29,6 +29,7 @@ import QRCodes from '../pages/QRCodes'
 import Warehouse from '../pages/Warehouse'
 import Suppliers from '../pages/Suppliers'
 import Musteriler from '../pages/Musteriler'
+import Siparisler from '../pages/Siparisler'
 import PurchaseFlow from '../pages/PurchaseFlow'
 import ProductionRecipes from '../pages/ProductionRecipes'
 import WorkOrders from '../pages/WorkOrders'
@@ -301,6 +302,7 @@ export default function BusinessWorkspaceRouteHost({
   if(route === 'depo') return <Warehouse currentUser={currentUser} />
   if(route === 'tedarikciler') return <Suppliers currentUser={currentUser} />
   if(route === 'musteriler') return <Musteriler currentUser={currentUser} />
+  if(route === 'siparisler') return <Siparisler currentUser={currentUser} />
   if(route === 'satinalma') return <PurchaseFlow currentUser={currentUser} />
   // Aşama 3 · Üretim — reçete, iş emrinin dayandığı zemindir.
   // ⚠️ Eski `recipes` rotası (localStorage üzerinde çalışan `pages/Recipes`)

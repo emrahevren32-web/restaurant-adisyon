@@ -268,3 +268,35 @@ export const farkiYaz = (f: SatirFarki): string => {
   if(f.tur === 'çıkarıldı') return `− ${s(f.onceki)} ${f.birim}`
   return `${s(f.onceki)} ${f.birim} → ${s(f.sonraki)} ${f.birim}`
 }
+
+/**
+ * Sipariş numarası üreticisi — sevkiyat, satın alma ve iş emriyle aynı kural.
+ *
+ * ── NİÇİN SİSTEM ÜRETİYOR (Emrah kararı 28.09) ───────────────────────────
+ * Avantajı: kullanıcı numara düşünmüyor, elle yazılan numaralar birbirine
+ * karışmıyor ("SIP-1" / "sip 1" / "SİP-01" aynı sipariş sanılmaz), sıra
+ * takibi kendiliğinden doğru.
+ *
+ * Dezavantajı ve nasıl kapattığımız: iki kişi aynı anda sipariş açarsa ikisi
+ * de aynı numarayı önerir. Veritabanı tekillik kısıtı ikincisini REDDEDER —
+ * doğru davranış, sessizce aynı numarayı iki siparişe vermekten iyi. Ekran
+ * bu reddi görünce numarayı yeniden hesaplayıp BİR KEZ daha deniyor
+ * (`siparisNoCakistiMi`). İkinci kez de çakışırsa kullanıcıya söylüyor:
+ * o noktada gerçekten eşzamanlı bir yoğunluk var ve tahmin etmek yerine
+ * sormak doğru.
+ */
+export const sonrakiSiparisNo = (
+  mevcutlar: readonly string[], yil = new Date().getFullYear(),
+): string => {
+  const onek = `SIP-${yil}-`
+  const enBuyuk = mevcutlar
+    .filter(no => no.startsWith(onek))
+    .map(no => Number(no.slice(onek.length)))
+    .filter(n => Number.isFinite(n))
+    .reduce((a, b) => Math.max(a, b), 0)
+  return `${onek}${String(enBuyuk + 1).padStart(4, '0')}`
+}
+
+/** Numara çakışması mı? Ekran bir kez daha denemek için buna bakıyor. */
+export const siparisNoCakistiMi = (hata: unknown): boolean =>
+  hata instanceof Error && hata.name === 'SiparisNoCakismasiError'

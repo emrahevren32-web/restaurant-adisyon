@@ -16,7 +16,10 @@ import {
   farkiYaz,
   revizyonFarki,
   siparisleriSuz,
+  siparisNoCakistiMi,
+  sonrakiSiparisNo,
 } from './sales-order.service'
+import { SiparisNoCakismasiError } from './sales-order.repository'
 import type {
   Fark, FarkKarariGirdisi, Revizyon, Siparis, SiparisDeposu, SiparisDurumu,
   SiparisOlayi, SiparisSatiri, YeniFark, YeniRevizyon, YeniSiparis,
@@ -271,6 +274,27 @@ describe('Süzme', () => {
   it('numara ve müşteri adına bakıyor', () => {
     expect(siparisleriSuz(liste, 'migros', 'hepsi').map(s => s.id)).toEqual(['1'])
     expect(siparisleriSuz(liste, 'SIP-2', 'hepsi').map(s => s.id)).toEqual(['2'])
+  })
+})
+
+describe('Sipariş numarası', () => {
+  it('boş listede birinciyi üretiyor', () => {
+    expect(sonrakiSiparisNo([], 2026)).toBe('SIP-2026-0001')
+  })
+
+  it('en büyüğün bir fazlasını üretiyor · sıradaki değil', () => {
+    // Araya boşluk girse bile (bir sipariş silinmedi ama numara atlandı)
+    // en büyüğe bakmak doğru: sayma, çakışma üretir.
+    expect(sonrakiSiparisNo(['SIP-2026-0001', 'SIP-2026-0007'], 2026)).toBe('SIP-2026-0008')
+  })
+
+  it('başka yılın ve başka belgenin numarasını saymıyor', () => {
+    expect(sonrakiSiparisNo(['SIP-2025-0099', 'SVK-2026-0004'], 2026)).toBe('SIP-2026-0001')
+  })
+
+  it('çakışma hatasını tanıyor', () => {
+    expect(siparisNoCakistiMi(new SiparisNoCakismasiError('SIP-2026-0001'))).toBe(true)
+    expect(siparisNoCakistiMi(new Error('başka bir hata'))).toBe(false)
   })
 })
 

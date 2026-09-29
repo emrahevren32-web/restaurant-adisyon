@@ -11,6 +11,9 @@ export type BusinessWorkspaceRoute =
   // Sipariş müşteriye değil TESLİM NOKTASINA yazılır; bu ekran o noktanın
   // doğduğu yer.
   | 'musteriler'
+  // A4C2 · Sipariş defteri (0050). Revizyonlar eklemeli; "şu andaki sipariş"
+  // en son satırlı revizyonun satırlarıdır.
+  | 'siparisler'
   | 'satinalma'
   | 'receteler'
   | 'uretim-emirleri'
@@ -201,6 +204,7 @@ export type BusinessWorkspaceNavKey =
   | 'depo'
   | 'tedarikciler'
   | 'musteriler'
+  | 'siparisler'
   | 'satinalma'
   | 'receteler'
   | 'uretim-emirleri'

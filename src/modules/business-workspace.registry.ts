@@ -1973,6 +1973,9 @@ export const BUSINESS_WORKSPACE_MODULE_REGISTRY: BusinessWorkspaceModule[] = def
       // modülde çünkü Lojistik modülü bu kiracıda kapalı — oraya konan öge
       // menüde hiç görünmüyor (module-route-health.test.ts'in yazılma sebebi).
       menuItem({ key: 'musteriler', label: 'Müşteriler', route: 'musteriler', icon: 'MU', adminOnly: true, displayOrder: 6.4 }),
+      // Sipariş, müşteri kartından SONRA ve sevkiyattan ÖNCE: zincirin sırası
+      // menüde de görünsün (sipariş → sevkiyat).
+      menuItem({ key: 'siparisler', label: 'Siparişler', route: 'siparisler', icon: 'SP', adminOnly: true, displayOrder: 6.45 }),
       // ⚠️ Sevkiyat ÜRETİM modülünün altında duruyor, Lojistik'in değil.
       // Lojistik modülü bu kiracıda açık değil; oraya konulan öge menüde hiç
       // görünmedi. Zincirin sırası da bunu destekliyor: reçete → iş emri →
