@@ -17,6 +17,7 @@ import type {
 } from './sales-order.repository'
 import type { KalemSevkDurumu } from './sales-order-shipment'
 import type { KarsilamaSatiri } from './sales-order-production'
+import type { TeslimFarkiSatiri } from './sales-order-delivery'
 
 export class SiparisDogrulamaError extends Error {
   constructor(mesaj: string) {
@@ -106,6 +107,10 @@ export class SiparisServisi {
   /** Kalem kalem: depodan ne kadar, üretimden ne kadar (0056). */
   karsilamaPlani(ctx: TenantCtx, id: string): Promise<KarsilamaSatiri[]> {
     return this.depo.karsilamaPlani(ctx, id)
+  }
+  /** Kalem kalem: ne istendi · ne hazırlandı · ne gitti (0058). */
+  teslimFarki(ctx: TenantCtx, id: string): Promise<TeslimFarkiSatiri[]> {
+    return this.depo.teslimFarki(ctx, id)
   }
 
   async ekle(ctx: TenantCtx, girdi: YeniSiparis): Promise<Siparis> {

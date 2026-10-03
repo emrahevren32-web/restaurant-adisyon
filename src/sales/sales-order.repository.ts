@@ -15,6 +15,7 @@ import type { SupabaseClient } from '@supabase/supabase-js'
 import type { TenantCtx } from '../core/context'
 import type { KalemSevkDurumu } from './sales-order-shipment'
 import type { KarsilamaSatiri } from './sales-order-production'
+import type { TeslimFarkiSatiri } from './sales-order-delivery'
 
 export type SiparisDurumu =
   | 'Taslak' | 'Onay Bekliyor' | 'Onaylandı' | 'Hazırlanıyor' | 'Hazır'
@@ -250,6 +251,8 @@ export interface SiparisDeposu {
   onayVer(ctx: TenantCtx, girdi: YeniOnay): Promise<void>
   /** Kalem kalem: depodan ne kadar, üretimden ne kadar (0056). */
   karsilamaPlani(ctx: TenantCtx, siparisId: string): Promise<KarsilamaSatiri[]>
+  /** Kalem kalem: ne istendi · ne hazırlandı · ne gitti (0058). */
+  teslimFarki(ctx: TenantCtx, siparisId: string): Promise<TeslimFarkiSatiri[]>
 }
 
 export class SiparisNoCakismasiError extends Error {
@@ -734,6 +737,51 @@ export class PostgresSiparisDeposu implements SiparisDeposu {
       const u = sayi(r.uretilecek);   if(u !== undefined) k.uretilecek = u
       if(r.recete_id) k.receteId = r.recete_id
       return k
+    })
+  }
+
+  /**
+   * Sipariş–teslim farkı — 0058'deki `public.siparis_teslim_farki`.
+   *
+   * ⚠️ "Hazırlandı" PLAN DEĞİL. 0056 ne üretilmesi gerektiğini söyler; bu
+   * sütun iş emirlerinden deftere GERÇEKTEN yazılmış mamul girişini
+   * gösterir, iptal edilenler düşülmüş hâlde.
+   *
+   * ⚠️ `kalan` ve `istendi` null gelebilir (birim uyuşmazlığı · sipariş dışı
+   * kalem). 0'a çevirmek, hesaplanmamış bir şeyi hesaplanmış göstermektir.
+   */
+  async teslimFarki(_ctx: TenantCtx, siparisId: string): Promise<TeslimFarkiSatiri[]> {
+    const { data, error } = await this.client
+      .rpc('siparis_teslim_farki', { p_siparis: siparisId })
+    if(error) throw new Error(`Teslim farkı okunamadı: ${error.message}`)
+    type S = {
+      kalem_id: string; kalem_adi: string | null
+      istendi: string | number | null; istendi_birim: string | null
+      hazirlandi: string | number | null; hazirlandi_birim: string | null
+      uretim_olculebilir: boolean
+      is_emri_sayisi: number; acik_is_emri: number
+      gitti: string | number | null; gitti_birimleri: string[] | null
+      kalan: string | number | null
+      birim_uyusmuyor: boolean; siparis_disi: boolean
+    }
+    return ((data as unknown as S[] | null) ?? []).map(r => {
+      const t: TeslimFarkiSatiri = {
+        kalemId: r.kalem_id,
+        hazirlandi: sayi(r.hazirlandi) ?? 0,
+        uretimOlculebilir: r.uretim_olculebilir,
+        isEmriSayisi: Number(r.is_emri_sayisi ?? 0),
+        acikIsEmri: Number(r.acik_is_emri ?? 0),
+        gitti: sayi(r.gitti) ?? 0,
+        gittiBirimleri: r.gitti_birimleri ?? [],
+        birimUyusmuyor: r.birim_uyusmuyor,
+        siparisDisi: r.siparis_disi,
+      }
+      const ad = bos(r.kalem_adi);          if(ad !== undefined) t.kalemAdi = ad
+      const ist = sayi(r.istendi);          if(ist !== undefined) t.istendi = ist
+      const ib = bos(r.istendi_birim);      if(ib !== undefined) t.istendiBirim = ib
+      const hb = bos(r.hazirlandi_birim);   if(hb !== undefined) t.hazirlandiBirim = hb
+      const kalan = sayi(r.kalan);          if(kalan !== undefined) t.kalan = kalan
+      return t
     })
   }
 }

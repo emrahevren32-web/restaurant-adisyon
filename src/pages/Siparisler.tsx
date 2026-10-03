@@ -46,6 +46,13 @@ import { sonrakiSevkiyatNo } from '../production/shipment.service'
 import {
   isEmirleriTuret, karsilamaOzeti, karsilamaToplami, type KarsilamaSatiri,
 } from '../sales/sales-order-production'
+import {
+  teslimCumlesi,
+  teslimOzeti,
+  teslimSatirlari,
+  uretimCumlesi,
+  type TeslimFarkiSatiri,
+} from '../sales/sales-order-delivery'
 import { PostgresIsEmriDeposu } from '../production/work-order.repository'
 import { PostgresReceteDeposu, type Recete } from '../production/recipe.repository'
 
@@ -106,7 +113,8 @@ export default function Siparisler({ currentUser }: Props){
   const [revizyonlar, setRevizyonlar] = React.useState<Revizyon[]>([])
   const [farklar, setFarklar] = React.useState<Fark[]>([])
   const [sekme, setSekme] = React.useState<
-    'satirlar' | 'onay' | 'karsilama' | 'sevk' | 'gecmis' | 'farklar'>('satirlar')
+    'satirlar' | 'onay' | 'karsilama' | 'sevk' | 'teslim' | 'gecmis' | 'farklar'>('satirlar')
+  const [teslim, setTeslim] = React.useState<TeslimFarkiSatiri[]>([])
   const [karsilama, setKarsilama] = React.useState<KarsilamaSatiri[]>([])
   const [adimlar, setAdimlar] = React.useState<OnayAdimi[]>([])
   const [onaylar, setOnaylar] = React.useState<Onay[]>([])
@@ -139,18 +147,20 @@ export default function Siparisler({ currentUser }: Props){
 
   const ayrintiYukle = React.useCallback(async (s: Siparis, b: DepoBaglami) => {
     if(!servis) return
-    const [r, f, sd, on, kp] = await Promise.all([
+    const [r, f, sd, on, kp, tf] = await Promise.all([
       servis.revizyonlar(b.ctx, s.id),
       servis.farklar(b.ctx, s.id),
       servis.sevkDurumu(b.ctx, s.id),
       servis.onaylar(b.ctx, s.id),
       servis.karsilamaPlani(b.ctx, s.id),
+      servis.teslimFarki(b.ctx, s.id),
     ])
     setRevizyonlar(r)
     setFarklar(f)
     setSevkDurumu(sd)
     setOnaylar(on)
     setKarsilama(kp)
+    setTeslim(tf)
     // Güncel satırlar = en son SATIRLI revizyon. Kuralı burada yeniden
     // yazmıyoruz: servis okunan revizyonlardan seçiyor.
     const satirli = r.filter(x => x.satirlar.length > 0)
@@ -617,6 +627,12 @@ export default function Siparisler({ currentUser }: Props){
                   Sevk durumu
                 </button>
                 <button
+                  className={`btn ${sekme === 'teslim' ? 'primary' : ''}`}
+                  type="button" onClick={() => setSekme('teslim')}
+                >
+                  Teslim farkı
+                </button>
+                <button
                   className={`btn ${sekme === 'gecmis' ? 'primary' : ''}`}
                   type="button" onClick={() => setSekme('gecmis')}
                 >
@@ -682,6 +698,10 @@ export default function Siparisler({ currentUser }: Props){
                   yazabilir={yazabilir}
                   onCikar={sevkiyataCikar}
                 />
+              )}
+
+              {sekme === 'teslim' && (
+                <TeslimPaneli satirlar={teslim} farklar={farklar} />
               )}
 
               {sekme === 'gecmis' && <GecmisPaneli revizyonlar={revizyonlar} />}
@@ -920,6 +940,111 @@ function KarsilamaPaneli({
  * Sayılar 0051'deki `app.siparis_sevk_durumu()`den geliyor; tarayıcıda
  * toplasaydık iki çağrı arasında yazılan bir sevkiyat sessizce kaçardı.
  */
+/**
+ * TESLİM FARKI — "ne istendi, ne hazırlandı, ne gitti" (0058).
+ *
+ * Bu ekranın bütün değeri ÜÇ SAYIYI YAN YANA koymasında. Üç ayrı sekmede
+ * duran üç sayı kimseye bir şey anlatmıyordu; yan yana durunca aradaki
+ * boşluk kendiliğinden görünüyor.
+ *
+ * ⚠️ "Hazırlandı" sütunu iş emri OLMAYAN kalemde "Depodan" yazar, 0 yazmaz.
+ * Sıfır yazmak, depodan karşılanan bir kalemi eksik üretim gibi gösterirdi.
+ *
+ * ⚠️ Hesaplanamayan hücrede TİRE var, sayı yok. Birim uyuşmazlığında
+ * veritabanı bilerek çıkarma yapmıyor; ekranın uydurma hakkı yok.
+ */
+function TeslimPaneli({
+  satirlar, farklar,
+}: {
+  satirlar: TeslimFarkiSatiri[]
+  farklar: Fark[]
+}){
+  const { satirlar: liste, kalemsizFarklar } = teslimSatirlari(satirlar, farklar)
+  const ozet = teslimOzeti(liste, kalemsizFarklar)
+  const cumle = teslimCumlesi(ozet)
+  const temiz = cumle === 'Sipariş tamamen teslim edildi.'
+
+  return (
+    <div>
+      <p className={temiz ? 'muted' : ''}>
+        {temiz ? cumle : <strong>{cumle}</strong>}
+      </p>
+
+      <div className="table-wrap">
+        <table className="data-table compact">
+          <thead>
+            <tr>
+              <th>Ürün</th>
+              <th className="num">İstendi</th>
+              <th>Hazırlandı</th>
+              <th className="num">Gitti</th>
+              <th className="num">Kalan</th>
+              <th>Açık fark</th>
+            </tr>
+          </thead>
+          <tbody>
+            {liste.length === 0 && (
+              <tr><td colSpan={6} className="muted">Kalem yok.</td></tr>
+            )}
+            {liste.map(t => (
+              <tr key={t.kalemId} className={t.siparisDisi ? 'is-passive' : ''}>
+                <td>
+                  {t.kalemAdi ?? t.kalemId}
+                  {t.siparisDisi && <> <span className="muted">· sipariş dışı</span></>}
+                </td>
+                <td className="num">
+                  {t.istendi === undefined
+                    ? '—'
+                    : `${sayiYaz(t.istendi)} ${t.istendiBirim ?? ''}`}
+                </td>
+                <td className="muted">{uretimCumlesi(t)}</td>
+                <td className="num">{sayiYaz(t.gitti)}</td>
+                <td className="num">
+                  {t.kalan === undefined ? '—' : sayiYaz(t.kalan)}
+                </td>
+                <td>
+                  {t.acikFarklar.length === 0
+                    ? <span className="muted">—</span>
+                    : t.acikFarklar.map(f => (
+                      <span key={f.id} className="onem-rozeti kritik">
+                        {f.tur}{f.miktar !== undefined ? ` ${sayiYaz(f.miktar)} ${f.birim ?? ''}` : ''}
+                      </span>
+                    ))}
+                </td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+
+      {kalemsizFarklar.length > 0 && (
+        <div className="form-error">
+          <strong>Kaleme bağlı olmayan {kalemsizFarklar.length} açık fark kaydı var.</strong>
+          {' '}Sevkiyatın tamamına dair açılmış bu kayıtlar yukarıdaki tabloda
+          görünmez; <strong>Farklar</strong> sekmesinde duruyorlar.
+        </div>
+      )}
+
+      {ozet.olculemeyen > 0 && (
+        <p className="muted">
+          {ozet.olculemeyen} kalemde sipariş birimi ile sevkiyat birimi farklı.
+          Bu satırlarda çıkarma <strong>yapılmadı</strong>: 100 kg siparişten
+          5 koli düşüp bir sayı yazmak, yanlış olduğu belli olmayan bir sayı
+          üretmek olurdu.
+        </p>
+      )}
+
+      {ozet.acikIsEmri > 0 && (
+        <p className="muted">
+          {ozet.acikIsEmri} iş emri hâlâ açık — "hazırlandı" sütunu yalnızca
+          deftere <strong>yazılmış</strong> mamul girişini sayıyor, planlananı
+          değil.
+        </p>
+      )}
+    </div>
+  )
+}
+
 function SevkPaneli({
   siparis, durumlar, yazabilir, onCikar,
 }: {
