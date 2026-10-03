@@ -266,8 +266,16 @@ export const siparisleriSuz = (
   const q = arama.trim().toLocaleLowerCase('tr-TR')
   return hepsi
     .filter(s => durum === 'hepsi' ? true : s.durum === durum)
-    .filter(s => !q || [s.siparisNo, s.musteriAdi ?? '', s.noktaAdi ?? '']
-      .some(a => a.toLocaleLowerCase('tr-TR').includes(q)))
+    // ⚠️ KODLAR da aranıyor. Emrah (03.10): *"bu numaralardan müşteri,
+    // teslim noktası, irsaliye vs arama kutucuğuna yazarak bulabilir
+    // miyim?"* — bulamıyordu: yalnız adlar taranıyordu. Sistem bir kod
+    // üretiyorsa ve o kod belgede yazıyorsa, o kodla ARANABİLMELİ; yoksa
+    // kod kullanıcıya hiçbir şey vermeyen bir süs olur.
+    .filter(s => !q || [
+      s.siparisNo,
+      s.musteriAdi ?? '', s.musteriKodu ?? '',
+      s.noktaAdi ?? '', s.noktaKodu ?? '',
+    ].some(a => a.toLocaleLowerCase('tr-TR').includes(q)))
 }
 
 /**

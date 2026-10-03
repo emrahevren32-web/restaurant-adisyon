@@ -15,6 +15,8 @@ import {
   fiyatiYaz,
   musterileriSuz,
   pencereyiYaz,
+  sonrakiMusteriKodu,
+  sonrakiNoktaKodu,
 } from './customer.service'
 import type {
   Fiyat,
@@ -403,5 +405,41 @@ describe('Portal erişimi', () => {
     // Kimin ne zaman yetkisi vardı, kalsın.
     const { servis } = servisKur()
     expect((await servis.portalErisimiDegistir(CTX, 'p1', false)).aktif).toBe(false)
+  })
+})
+
+
+describe('kod üreticileri', () => {
+  it('hiç müşteri yokken ilk kodu verir', () => {
+    expect(sonrakiMusteriKodu([])).toBe('MUS-0001')
+  })
+
+  it('en büyük sıradan devam eder, sayıyı atlamaz', () => {
+    expect(sonrakiMusteriKodu(['MUS-0001', 'MUS-0003', 'MUS-0002'])).toBe('MUS-0004')
+  })
+
+  it('ELLE YAZILMIŞ kodları sayıma katmaz', () => {
+    // "35060" işletmenin eski programından gelen kendi kodu. Sayıma
+    // katsaydık bir sonraki öneri 35061 olurdu ve iki ayrı kod düzeni
+    // birbirine girerdi.
+    expect(sonrakiMusteriKodu(['35060', '9999999'])).toBe('MUS-0001')
+  })
+
+  it('küçük harfle yazılmış öneki de tanır', () => {
+    expect(sonrakiMusteriKodu(['mus-0007'])).toBe('MUS-0008')
+  })
+
+  it('teslim noktası kodunu müşteri kodunun altında numaralar', () => {
+    expect(sonrakiNoktaKodu('35060', [])).toBe('35060-01')
+    expect(sonrakiNoktaKodu('35060', ['35060-01'])).toBe('35060-02')
+  })
+
+  it('nokta kodunu başka müşterinin kodundan türetmez', () => {
+    expect(sonrakiNoktaKodu('MUS-0002', [])).toBe('MUS-0002-01')
+  })
+
+  it('iki haneyi aşan nokta sayısında numara kırpılmaz', () => {
+    const mevcut = Array.from({ length: 99 }, (_, i) => `35060-${String(i + 1).padStart(2, '0')}`)
+    expect(sonrakiNoktaKodu('35060', mevcut)).toBe('35060-100')
   })
 })

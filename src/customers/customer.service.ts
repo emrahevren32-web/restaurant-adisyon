@@ -345,3 +345,51 @@ export const fiyatiYaz = (f: Fiyat): string => {
 /** Fiyatın kapsamı: nokta adı varsa o, yoksa "bütün noktalar". */
 export const fiyatKapsami = (f: Fiyat): string =>
   f.noktaId ? (f.noktaAdi ?? 'teslim noktası') : 'bütün noktalar'
+
+
+// ── KOD ÜRETİCİLERİ ────────────────────────────────────────────────────────
+// Emrah (03.10.2026): *"Müşteri eklerken kod istiyor. O kodu sistem kendi
+// üretse daha doğru olmaz mı? Ben müşteri sorduğunda ne diyeceğim?"*
+//
+// Haklı. Kodun TEK işi kartı tekil kılmak ve belgede kısa bir tutamak
+// olmak; müşteriyle konuşulan bir şey değil. Kullanıcıya "bir kod uydur"
+// dedirtmek, uydurulmuş kodlar üretir ve iki kart aynı koda yakın yazılınca
+// kimse ayıramaz. Sipariş numarasıyla aynı karar: **sistem üretir.**
+//
+// ⚠️ ALAN KİLİTLENMEDİ. Çok işletmenin eski programından gelen kendi
+// müşteri kodu vardır ("35060" gibi) ve taşımak isterler. Kilitleseydik o
+// işletme kendi defteriyle bağını koparırdı. Üretilen kod ÖNERİ olarak
+// doluyor, isteyen üzerine yazıyor.
+
+const sonrakiSira = (mevcutlar: readonly string[], onek: string): number =>
+  mevcutlar
+    .filter(k => k.toUpperCase().startsWith(onek.toUpperCase()))
+    .map(k => Number(k.slice(onek.length).replace(/\D/g, '')))
+    .filter(n => Number.isFinite(n) && n > 0)
+    .reduce((a, b) => Math.max(a, b), 0) + 1
+
+/**
+ * Sıradaki müşteri kodu: MUS-0001, MUS-0002, …
+ *
+ * ⚠️ Elle yazılmış kodlar (35060) sayıma KATILMAZ: önekle başlamıyorlar.
+ * Katsaydık bir sonraki önerilen kod 35061 olurdu ve iki ayrı kod düzeni
+ * birbirine girerdi.
+ */
+export const sonrakiMusteriKodu = (mevcutlar: readonly string[]): string =>
+  `MUS-${String(sonrakiSira(mevcutlar, 'MUS-')).padStart(4, '0')}`
+
+/**
+ * Sıradaki teslim noktası kodu: müşteri kodunun altında sıralı — 35060-01.
+ *
+ * Noktayı müşterisiyle birlikte okunabilir yapıyor: irsaliyede "35060-02"
+ * görüldüğünde hangi müşterinin ikinci noktası olduğu belli.
+ *
+ * ⚠️ Sayım YALNIZCA o müşterinin noktaları içinden yapılır; başka
+ * müşterinin noktaları karışırsa numaralar atlar.
+ */
+export const sonrakiNoktaKodu = (
+  musteriKodu: string, mevcutNoktaKodlari: readonly string[],
+): string => {
+  const onek = `${musteriKodu}-`
+  return `${onek}${String(sonrakiSira(mevcutNoktaKodlari, onek)).padStart(2, '0')}`
+}

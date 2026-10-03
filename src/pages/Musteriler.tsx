@@ -41,6 +41,8 @@ import {
   fiyatiYaz,
   musterileriSuz,
   pencereyiYaz,
+  sonrakiMusteriKodu,
+  sonrakiNoktaKodu,
 } from '../customers/customer.service'
 
 type Props = { currentUser: User }
@@ -326,7 +328,13 @@ export default function Musteriler({ currentUser }: Props){
               className="btn primary"
               type="button"
               onClick={() => {
-                setMusteriFormu({ ...BOS_MUSTERI })
+                // ⚠️ Kodu SİSTEM öneriyor. Kullanıcıya "bir kod uydur"
+                // dedirtmek uydurulmuş kodlar üretir; kodun tek işi kartı
+                // tekil kılmak ve belgede kısa bir tutamak olmak.
+                setMusteriFormu({
+                  ...BOS_MUSTERI,
+                  kod: sonrakiMusteriKodu(musteriler.map(m => m.kod)),
+                })
                 setDuzenlenenId(null)
                 setHata('')
               }}
@@ -537,7 +545,14 @@ export default function Musteriler({ currentUser }: Props){
                       className="btn"
                       type="button"
                       onClick={() => {
-                        setNoktaFormu({ musteriId: secili.id, kod: '', ad: '' })
+                        // Nokta kodu müşteri kodunun ALTINDA sıralanıyor
+                        // (35060-01, 35060-02): irsaliyede görülünce hangi
+                        // müşterinin kaçıncı noktası olduğu belli olsun.
+                        setNoktaFormu({
+                          musteriId: secili.id,
+                          kod: sonrakiNoktaKodu(secili.kod, noktalar.map(n => n.kod)),
+                          ad: '',
+                        })
                         setDuzenlenenNoktaId(null)
                         setHata('')
                       }}
@@ -906,6 +921,11 @@ function MusteriFormu({ girdi, duzenleme, onDegis, onIptal, onKaydet }: MusteriF
       >
         <label>Kod *
           <input value={girdi.kod} onChange={e => alan({ kod: e.target.value })} />
+          <small className="muted">
+            Sistem üretti. Kod müşteriyle konuşulan bir şey değil; kartı tekil
+            kılar ve belgede kısa bir tutamak olur. Kendi müşteri kodunuz
+            varsa üzerine yazabilirsiniz.
+          </small>
         </label>
         <label>Ad *
           <input value={girdi.ad} onChange={e => alan({ ad: e.target.value })} />
@@ -1043,6 +1063,10 @@ function NoktaFormu({ girdi, duzenleme, onDegis, onIptal, onKaydet }: NoktaFormu
       <h4>{duzenleme ? 'Teslim noktasını düzenle' : 'Yeni teslim noktası'}</h4>
       <label>Kod *
         <input value={girdi.kod} onChange={e => alan({ kod: e.target.value })} />
+        <small className="muted">
+          Müşteri kodunun altında sıralanıyor. İrsaliyede görülünce hangi
+          müşterinin kaçıncı noktası olduğu belli olur.
+        </small>
       </label>
       <label>Ad *
         <input

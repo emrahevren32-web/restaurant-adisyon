@@ -283,8 +283,14 @@ describe('Değişiklik geçmişi', () => {
 
 describe('Süzme', () => {
   const liste = [
-    siparis({ id: '1', siparisNo: 'SIP-1', musteriAdi: 'Migros', durum: 'Taslak' }),
-    siparis({ id: '2', siparisNo: 'SIP-2', musteriAdi: 'Şok', durum: 'Sevk Edildi' }),
+    siparis({
+      id: '1', siparisNo: 'SIP-1', musteriAdi: 'Migros', musteriKodu: 'MUS-0001',
+      noktaAdi: 'Ataşehir', noktaKodu: 'MUS-0001-01', durum: 'Taslak',
+    }),
+    siparis({
+      id: '2', siparisNo: 'SIP-2', musteriAdi: 'Şok', musteriKodu: '35060',
+      noktaAdi: 'Bornova', noktaKodu: '35060-02', durum: 'Sevk Edildi',
+    }),
   ]
 
   it('duruma göre süzüyor', () => {
@@ -295,6 +301,21 @@ describe('Süzme', () => {
   it('numara ve müşteri adına bakıyor', () => {
     expect(siparisleriSuz(liste, 'migros', 'hepsi').map(s => s.id)).toEqual(['1'])
     expect(siparisleriSuz(liste, 'SIP-2', 'hepsi').map(s => s.id)).toEqual(['2'])
+  })
+
+  it('MÜŞTERİ KODUYLA da buluyor', () => {
+    // Sistem bir kod üretiyorsa ve o kod belgede yazıyorsa, o kodla
+    // aranabilmeli; yoksa kod kullanıcıya hiçbir şey vermeyen bir süs olur.
+    expect(siparisleriSuz(liste, 'MUS-0001', 'hepsi').map(s => s.id)).toEqual(['1'])
+    expect(siparisleriSuz(liste, '35060', 'hepsi').map(s => s.id)).toEqual(['2'])
+  })
+
+  it('TESLİM NOKTASI KODUYLA da buluyor', () => {
+    expect(siparisleriSuz(liste, '35060-02', 'hepsi').map(s => s.id)).toEqual(['2'])
+  })
+
+  it('teslim noktası ADIYLA da buluyor', () => {
+    expect(siparisleriSuz(liste, 'bornova', 'hepsi').map(s => s.id)).toEqual(['2'])
   })
 })
 

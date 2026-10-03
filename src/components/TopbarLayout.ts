@@ -1,5 +1,6 @@
 import React from 'react'
 import { AppIcon } from '../design-system/IconSystem'
+import { TopbarSaat } from './TopbarSaat'
 import type { NavigationBreadcrumbItem } from './NavigationBreadcrumb'
 
 export type TopbarBreadcrumbItem = NavigationBreadcrumbItem
@@ -157,6 +158,10 @@ export const TopbarLayout = ({
         'aria-label': 'Workspace ve kullanıcı aksiyonları',
         'data-topbar-zone': 'right'
       },
+      // Saat şube seçicinin SOLUNDA: sağ uçtaki ikon ve profil kümesine
+      // katılmıyor, kendi küçük köşesinde duruyor.
+      React.createElement(TopbarSaat, null),
+      React.createElement('span', { className: 'topbar-divider', 'aria-hidden': true }),
       React.createElement('div', { className: 'topbar-scope-slot' }, workspaceControl),
       React.createElement('span', { className: 'topbar-divider', 'aria-hidden': true }),
       React.createElement(

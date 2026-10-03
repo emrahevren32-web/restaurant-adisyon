@@ -86,8 +86,12 @@ export type Siparis = {
   siparisNo: string
   musteriId: string
   musteriAdi?: string
+  /** Müşteri kartının kodu — listede arama kutusu bunu da tarıyor. */
+  musteriKodu?: string
   noktaId?: string
   noktaAdi?: string
+  /** Teslim noktasının kodu (35060-01) — irsaliyede yazan tutamak. */
+  noktaKodu?: string
   siparisTarihi: string
   sevkTarihi?: string
   teslimTarihi?: string
@@ -274,7 +278,7 @@ const TEKILLIK = '23505'
 // ⚠️ Sütun listeleri TEK PARÇA metin olmak zorunda (tuzak 40): `+` ile
 // birleştirilirse supabase-js tip çözücüsü okuyamıyor ve `data`
 // `GenericStringError[]` oluyor.
-const SIPARIS_SUTUNLARI = 'id, order_no, customer_id, delivery_point_id, order_date, requested_ship_date, requested_delivery_date, promised_delivery_date, status, current_revision, note, created_at, customer(name), delivery_point(name)'
+const SIPARIS_SUTUNLARI = 'id, order_no, customer_id, delivery_point_id, order_date, requested_ship_date, requested_delivery_date, promised_delivery_date, status, current_revision, note, created_at, customer(code, name), delivery_point(code, name)'
 const SATIR_SUTUNLARI = 'id, line_no, stock_item_id, qty, uom_code, unit_price, currency, vat_rate, note, revision_id, stock_item(name)'
 const REVIZYON_SUTUNLARI = 'id, revision_no, kind, source, reason, discrepancy_id, created_by, created_at'
 const FARK_SUTUNLARI = 'id, order_id, shipment_id, stock_item_id, kind, qty, uom_code, noticed_step, noticed_by, noticed_at, description, status, resolution, responsible_user_id, decision_note, decided_by, decided_at, stock_item(name), app_user!order_discrepancy_noticed_by_fkey(full_name)'
@@ -288,8 +292,8 @@ type SiparisSatir = {
   requested_ship_date: string | null; requested_delivery_date: string | null
   promised_delivery_date: string | null
   status: string; current_revision: number; note: string | null; created_at: string
-  customer: { name: string } | null
-  delivery_point: { name: string } | null
+  customer: { code: string; name: string } | null
+  delivery_point: { code: string; name: string } | null
 }
 
 const siparise = (s: SiparisSatir): Siparis => ({
@@ -297,8 +301,10 @@ const siparise = (s: SiparisSatir): Siparis => ({
   siparisNo: s.order_no,
   musteriId: s.customer_id,
   musteriAdi: s.customer?.name,
+  musteriKodu: s.customer?.code,
   noktaId: s.delivery_point_id ?? undefined,
   noktaAdi: s.delivery_point?.name,
+  noktaKodu: s.delivery_point?.code,
   siparisTarihi: s.order_date,
   sevkTarihi: bos(s.requested_ship_date),
   teslimTarihi: bos(s.requested_delivery_date),
