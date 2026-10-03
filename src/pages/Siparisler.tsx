@@ -19,7 +19,7 @@ import type { User } from '../types'
 import { getSupabase, isSupabaseConfigured } from '../core/supabase'
 import { resolveStockRepositoryMode } from '../core/stock/index'
 import { depoBaglamiKur, type DepoBaglami } from '../warehouse/warehouse.context'
-import { PostgresStokKatalogu, type KatalogKalemi } from '../warehouse/warehouse.catalog'
+import { PostgresStokKatalogu, type Birim, type KatalogKalemi } from '../warehouse/warehouse.catalog'
 import {
   PostgresMusteriDeposu, type Musteri, type TeslimNoktasi,
 } from '../customers/customer.repository'
@@ -53,6 +53,7 @@ import {
   uretimCumlesi,
   type TeslimFarkiSatiri,
 } from '../sales/sales-order-delivery'
+import { sayiOku, sayiYazarken } from '../core/sayi-girisi'
 import { PostgresIsEmriDeposu } from '../production/work-order.repository'
 import { PostgresReceteDeposu, type Recete } from '../production/recipe.repository'
 
@@ -85,16 +86,17 @@ type SatirTaslagi = { kalemId: string; miktar: string; birim: string; fiyat: str
 
 const bosSatir = (): SatirTaslagi => ({ kalemId: '', miktar: '', birim: '', fiyat: '' })
 
-const sayiya = (d: string): number => {
-  const n = Number(String(d).replace(',', '.'))
-  return Number.isFinite(n) ? n : 0
-}
+// ⚠️ Ekrandaki metin Türkçe biçimdedir ("12.450,75"). Okuma işi
+// `core/sayi-girisi.ts`e devredildi: noktayı ondalık sanan bir okuyucu
+// 12.450'yi on iki buçuk diye kaydeder ve belgeyi bin kat küçültür.
+const sayiya = (d: string): number => sayiOku(d) ?? 0
 
 const taslaktanSatir = (t: SatirTaslagi): YeniSatir => ({
   kalemId: t.kalemId,
   miktar: sayiya(t.miktar),
   birim: t.birim,
-  birimFiyat: t.fiyat.trim() === '' ? undefined : sayiya(t.fiyat),
+  // Boş fiyat 0 DEĞİL: sıfır "bedava" demektir, boşluk "yazılmadı".
+  birimFiyat: sayiOku(t.fiyat),
 })
 
 export default function Siparisler({ currentUser }: Props){
@@ -106,6 +108,7 @@ export default function Siparisler({ currentUser }: Props){
   const [musteriler, setMusteriler] = React.useState<Musteri[]>([])
   const [noktalar, setNoktalar] = React.useState<TeslimNoktasi[]>([])
   const [kalemler, setKalemler] = React.useState<KatalogKalemi[]>([])
+  const [birimler, setBirimler] = React.useState<Birim[]>([])
   const [arama, setArama] = React.useState('')
   const [durumSuzgeci, setDurumSuzgeci] = React.useState<SiparisDurumu | 'hepsi'>('hepsi')
   const [secili, setSecili] = React.useState<Siparis | null>(null)
@@ -177,12 +180,16 @@ export default function Siparisler({ currentUser }: Props){
         if(iptal) return
         setBaglam(kurulan)
         const katalog = new PostgresStokKatalogu(getSupabase())
-        const [sp, ms, ns, kl, ad] = await Promise.all([
+        const [sp, ms, ns, kl, ad, br] = await Promise.all([
           servis.hepsi(kurulan.ctx),
           musteriDeposu.hepsi(kurulan.ctx),
           musteriDeposu.noktalar(kurulan.ctx),
           katalog.kalemler(kurulan.ctx),
           servis.onayAdimlari(kurulan.ctx),
+          // ⚠️ Birim listesi KATALOGDAN geliyor, ekranda sabit yazılmıyor.
+          // Sabit yazsaydık 0059'da eklenen palet/çuval burada görünmezdi ve
+          // iki liste sessizce ayrışırdı.
+          katalog.birimler(),
         ])
         if(iptal) return
         setAdimlar(ad)
@@ -190,6 +197,7 @@ export default function Siparisler({ currentUser }: Props){
         setMusteriler(ms.filter(m => m.aktif))
         setNoktalar(ns.filter(n => n.aktif))
         setKalemler(kl.filter(k => k.aktif))
+        setBirimler(br)
       } catch (e) {
         if(!iptal) setHata(hataMetni(e))
       } finally {
@@ -490,7 +498,45 @@ export default function Siparisler({ currentUser }: Props){
         </section>
 
         <aside className="warehouse-side">
-          {islem === 'yeni' && (
+          {/*
+            ⚠️ ÖN KOŞUL EKRANDA SÖYLENİYOR. Müşteri kartı yoksa formdaki
+            "Müşteri *" listesi BOŞ açılıyordu ve tarayıcı yalnızca "lütfen
+            listeden bir öğe seçin" diyordu — seçilecek bir şey yokken.
+            Kullanıcı kendi hatası sanıp formu kurcalıyor. Boş bir zorunlu
+            liste, hata mesajı olmayan bir çıkmaz sokaktır.
+          */}
+          {islem === 'yeni' && (musteriler.length === 0 || kalemler.length === 0) && (
+            <section className="card">
+              <div className="section-header compact"><h3>Yeni Sipariş</h3></div>
+              <div className="form-error">
+                <strong>Sipariş açmak için önce şunlar gerekiyor:</strong>
+              </div>
+              <ul className="muted">
+                {musteriler.length === 0 && (
+                  <li>
+                    <strong>Müşteri kartı yok.</strong> Soldaki menüden
+                    <strong> Üretim → Müşteriler</strong> ekranını açıp bir
+                    müşteri kaydedin. Sipariş bir müşteriye verilir; adı elle
+                    yazılmaz, karttan seçilir.
+                  </li>
+                )}
+                {kalemler.length === 0 && (
+                  <li>
+                    <strong>Stok kartı yok.</strong>
+                    <strong> Depo → Stok Durumu</strong> ekranından ürün
+                    kartlarını açın. Sipariş satırı bir stok kartına bağlanır.
+                  </li>
+                )}
+              </ul>
+              <div className="form-actions">
+                <button className="btn" type="button" onClick={() => setIslem(null)}>
+                  Kapat
+                </button>
+              </div>
+            </section>
+          )}
+
+          {islem === 'yeni' && musteriler.length > 0 && kalemler.length > 0 && (
             <section className="card">
               <div className="section-header compact"><h3>Yeni Sipariş</h3></div>
               <SiparisFormu
@@ -498,6 +544,7 @@ export default function Siparisler({ currentUser }: Props){
                 musteriler={musteriler}
                 noktalar={noktalar}
                 kalemler={kalemler}
+                birimler={birimler}
                 fiyatOku={(noktaId, kalemId) =>
                   musteriDeposu!.gecerliFiyat(baglam.ctx, noktaId, kalemId)}
                 onIptal={() => setIslem(null)}
@@ -585,6 +632,7 @@ export default function Siparisler({ currentUser }: Props){
                   siparis={secili}
                   guncelSatirlar={satirlar}
                   kalemler={kalemler}
+                  birimler={birimler}
                   noktalar={noktalar.filter(n => n.musteriId === secili.musteriId)}
                   farklar={farklar}
                   onIptal={() => setIslem(null)}
@@ -1303,12 +1351,13 @@ function FarkListesi({
 
 // ── Sipariş formu ──────────────────────────────────────────────────────────
 function SiparisFormu({
-  onerilenNo, musteriler, noktalar, kalemler, fiyatOku, onIptal, onKaydet,
+  onerilenNo, musteriler, noktalar, kalemler, birimler, fiyatOku, onIptal, onKaydet,
 }: {
   onerilenNo: string
   musteriler: Musteri[]
   noktalar: TeslimNoktasi[]
   kalemler: KatalogKalemi[]
+  birimler: Birim[]
   fiyatOku: (noktaId: string, kalemId: string) => Promise<number | undefined>
   onIptal: () => void
   onKaydet: (girdi: YeniSiparis) => Promise<void>
@@ -1338,7 +1387,9 @@ function SiparisFormu({
     if(!noktaId || !kalemId) return
     try {
       const fiyat = await fiyatOku(noktaId, kalemId)
-      if(fiyat !== undefined) guncelle(i, { fiyat: String(fiyat) })
+      // Defterden okunan fiyat da ekranın biçimiyle yazılıyor; iki ayrı
+      // görünüm (12450 ile 12.450) aynı formda yan yana durmasın.
+      if(fiyat !== undefined) guncelle(i, { fiyat: sayiYazarken(String(fiyat), 2) })
     } catch { /* fiyat okunamazsa form çalışmaya devam eder */ }
   }
 
@@ -1386,10 +1437,28 @@ function SiparisFormu({
           <option value="">{musteriId ? 'Seçin…' : 'Önce müşteri seçin'}</option>
           {musteriNoktalari.map(n => <option key={n.id} value={n.id}>{n.ad}</option>)}
         </select>
-        <small className="muted">
-          İrsaliye buraya çıkar. Fiyat da buradan okunuyor: aynı müşterinin
-          farklı noktalarına farklı fiyat olabilir.
-        </small>
+        {/*
+          ⚠️ BOŞ LİSTE SEBEBİNİ SÖYLÜYOR. Müşterinin hiç noktası yoksa liste
+          boş açılıyor ve kullanıcı kendi hatası sanıyordu. Nokta ZORUNLU
+          değil (sipariş noktasız da açılır) ama fiyat defteri ve irsaliye
+          noktadan okunuyor; eksikliği sessiz geçmek pahalıya patlar.
+        */}
+        {musteriId && musteriNoktalari.length === 0
+          ? (
+            <small className="is-critical">
+              Bu müşterinin teslim noktası yok. <strong>Üretim → Müşteriler</strong>
+              {' '}ekranında kartı açıp <strong>+ Teslim noktası</strong> ekleyin —
+              tek adresli müşteride buna "Merkez" demek yeterli. Noktasız sipariş
+              açılabilir ama irsaliyeye adres yazılmaz ve noktaya özel fiyat
+              okunamaz.
+            </small>
+          )
+          : (
+            <small className="muted">
+              İrsaliye buraya çıkar. Fiyat da buradan okunuyor: aynı müşterinin
+              farklı noktalarına farklı fiyat olabilir.
+            </small>
+          )}
       </label>
 
       <div className="form-row">
@@ -1402,7 +1471,7 @@ function SiparisFormu({
       </div>
 
       <SatirDuzenleyici
-        satirlar={satirlar} kalemler={kalemler}
+        satirlar={satirlar} kalemler={kalemler} birimler={birimler}
         onKalemSec={(i, id) => { void kalemSec(i, id) }}
         onGuncelle={guncelle}
         onEkle={() => setSatirlar(o => [...o, bosSatir()])}
@@ -1425,11 +1494,12 @@ function SiparisFormu({
 
 // ── Revizyon formu ─────────────────────────────────────────────────────────
 function RevizyonFormu({
-  siparis, guncelSatirlar, kalemler, noktalar, farklar, onIptal, onKaydet,
+  siparis, guncelSatirlar, kalemler, birimler, noktalar, farklar, onIptal, onKaydet,
 }: {
   siparis: Siparis
   guncelSatirlar: SiparisSatiri[]
   kalemler: KatalogKalemi[]
+  birimler: Birim[]
   noktalar: TeslimNoktasi[]
   farklar: Fark[]
   onIptal: () => void
@@ -1445,9 +1515,13 @@ function RevizyonFormu({
   const [teslim, setTeslim] = React.useState(siparis.teslimTarihi ?? '')
   const [satirlar, setSatirlar] = React.useState<SatirTaslagi[]>(
     guncelSatirlar.length > 0
+      // Mevcut satırlar da ekranın biçimiyle doluyor; kullanıcı aynı formda
+      // iki ayrı yazım görmesin (12450 ile 12.450).
       ? guncelSatirlar.map(s => ({
-          kalemId: s.kalemId, miktar: String(s.miktar), birim: s.birim,
-          fiyat: s.birimFiyat === undefined ? '' : String(s.birimFiyat),
+          kalemId: s.kalemId,
+          miktar: sayiYazarken(String(s.miktar), 3),
+          birim: s.birim,
+          fiyat: s.birimFiyat === undefined ? '' : sayiYazarken(String(s.birimFiyat), 2),
         }))
       : [bosSatir()],
   )
@@ -1558,7 +1632,7 @@ function RevizyonFormu({
 
       {tur === 'MIKTAR' && (
         <SatirDuzenleyici
-          satirlar={satirlar} kalemler={kalemler}
+          satirlar={satirlar} kalemler={kalemler} birimler={birimler}
           onKalemSec={(i, id) => {
             const kalem = kalemler.find(k => k.id === id)
             guncelle(i, { kalemId: id, birim: kalem?.temelBirim ?? '' })
@@ -1675,11 +1749,29 @@ function FarkFormu({
 }
 
 // ── Satır düzenleyici ──────────────────────────────────────────────────────
+/**
+ * Sipariş satırları.
+ *
+ * ⚠️ BİRİM ARTIK SERBEST METİN DEĞİL. 03.10'da alana "dasdasd" yazılabildi ve
+ * sipariş kaydedildi; sonra Karşılama ve Teslim farkı o satırı "birimler
+ * uyuşmuyor" diye hesaplayamadı. Hesap doğru davrandı, GİRİŞ yanlıştı.
+ * Liste `uom` tablosundan geliyor (0002 + 0059).
+ *
+ * ⚠️ BİRİM KİLİTLENMEDİ, SINIRLANDI. Sipariş birimi, stok kartının defter
+ * biriminden FARKLI olabilir — müşteri kendi belgesinde "2 palet" yazar,
+ * deftersе kg tutulur (0050'nin kuralı). Kilitleseydik müşterinin belgesini
+ * yazamazdık. Ama fark varsa ekran bunu SÖYLÜYOR, çünkü o satırda sevk ve
+ * karşılama hesapları yapılamayacak.
+ *
+ * ⚠️ MİKTAR ve FİYAT Türkçe biçimde yazılıyor (12.450,75). Biçim yalnızca
+ * ekrandadır; deftere giden sayı `sayiOku` ile çözülür.
+ */
 function SatirDuzenleyici({
-  satirlar, kalemler, onKalemSec, onGuncelle, onEkle, onSil,
+  satirlar, kalemler, birimler, onKalemSec, onGuncelle, onEkle, onSil,
 }: {
   satirlar: SatirTaslagi[]
   kalemler: KatalogKalemi[]
+  birimler: Birim[]
   onKalemSec: (i: number, kalemId: string) => void
   onGuncelle: (i: number, yama: Partial<SatirTaslagi>) => void
   onEkle: () => void
@@ -1691,7 +1783,10 @@ function SatirDuzenleyici({
         <strong>Satırlar.</strong> Miktar, firmanın kendi belgesindeki birimle
         giriliyor: palet, koli, kg. Çeviri stok tarafının işi.
       </p>
-      {satirlar.map((s, i) => (
+      {satirlar.map((s, i) => {
+        const kalem = kalemler.find(k => k.id === s.kalemId)
+        const birimAyri = kalem !== undefined && s.birim !== '' && s.birim !== kalem.temelBirim
+        return (
         <div className="purchase-line" key={i}>
           <div className="form-row">
             <label>Ürün
@@ -1701,20 +1796,47 @@ function SatirDuzenleyici({
               </select>
             </label>
             <label className="narrow">Miktar
-              <input value={s.miktar} onChange={e => onGuncelle(i, { miktar: e.target.value })} />
+              <input
+                value={s.miktar} inputMode="decimal"
+                onChange={e => onGuncelle(i, { miktar: sayiYazarken(e.target.value, 3) })}
+              />
             </label>
             <label className="narrow">Birim
-              <input value={s.birim} onChange={e => onGuncelle(i, { birim: e.target.value })} />
+              <select
+                value={s.birim}
+                disabled={!s.kalemId}
+                onChange={e => onGuncelle(i, { birim: e.target.value })}
+              >
+                <option value="">{s.kalemId ? 'Seçin…' : 'Önce ürün seçin'}</option>
+                {birimler.map(b => (
+                  <option key={b.kod} value={b.kod}>
+                    {b.ad}{kalem && b.kod === kalem.temelBirim ? ' · stok birimi' : ''}
+                  </option>
+                ))}
+              </select>
             </label>
             <label className="narrow">Fiyat
-              <input value={s.fiyat} onChange={e => onGuncelle(i, { fiyat: e.target.value })} />
+              <input
+                value={s.fiyat} inputMode="decimal"
+                onChange={e => onGuncelle(i, { fiyat: sayiYazarken(e.target.value, 2) })}
+              />
             </label>
           </div>
+          {birimAyri && (
+            <small className="is-critical">
+              Bu satır <strong>{s.birim}</strong> ile yazıldı; stok kartının
+              defter birimi <strong>{kalem!.temelBirim}</strong>. Sipariş böyle
+              açılabilir, ama <strong>Karşılama</strong> ve{' '}
+              <strong>Teslim farkı</strong> bu satırda sayı üretmez: iki birim
+              arasında evrensel bir çevrim yoktur ve program tahmin etmez.
+            </small>
+          )}
           {satirlar.length > 1 && (
             <button className="btn" type="button" onClick={() => onSil(i)}>Satırı çıkar</button>
           )}
         </div>
-      ))}
+        )
+      })}
       <button className="btn" type="button" onClick={onEkle}>+ Satır</button>
     </>
   )

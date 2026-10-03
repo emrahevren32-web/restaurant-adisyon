@@ -28012,7 +28012,16 @@ html body .user-profile-branch-list span.small-text { margin-left:auto }
   font-weight:var(--font-weight-600);
 }
 p.is-critical,
-span.is-critical{ color:var(--danger, #c0392b); }
+span.is-critical,
+small.is-critical{ color:var(--danger, #c0392b); }
+/* Form alanının altındaki uyarı satırı: alanla arasında boşluk olsun,
+   satırları sıkışmasın. Uyarı okunmazsa yok sayılır. */
+.purchase-line > small,
+.stacked-form label > small{
+  display:block;
+  margin-top:var(--space-4);
+  line-height:var(--line-height-1-4);
+}
 .form-info{
   padding:10px 12px;
   margin:0 0 12px;
