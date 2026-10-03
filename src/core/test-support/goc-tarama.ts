@@ -185,9 +185,15 @@ export const basvuruGecisleriGocten = (
 export const siparisGecisleriGocten = (
   sql = gocMetni(),
 ): Record<string, string[]> => {
-  const blok = /case old\.status([\s\S]*?)end;/.exec(sql)
+  // ⚠️ SON blok okunur, ilk blok DEĞİL. `create or replace function`'ta son
+  // tanım kazanır: 0053 tabloyu yeniden yazdı ve veritabanında geçerli olan
+  // odur. İlk bloğu okusaydık test, canlıda OLMAYAN bir tabloyu doğrulardı —
+  // yeşil kalır ve hiçbir şeyi korumazdı. (Aynı ders `goc-tarama`da denetim
+  // listesi için bir kez daha yaşandı.)
+  const bloklar = [...sql.matchAll(/case old\.status([\s\S]*?)end;/g)]
+  const blok = bloklar[bloklar.length - 1]
   if(!blok) throw new Error(
-    '0050 içindeki sipariş geçiş tablosu bulunamadı. Tetikleyici değiştiyse ' +
+    'Göçlerde sipariş geçiş tablosu bulunamadı. Tetikleyici değiştiyse ' +
     'bu okuyucu da güncellenmeli — yoksa test sessizce zayıflar.',
   )
   const gecisler: Record<string, string[]> = {}

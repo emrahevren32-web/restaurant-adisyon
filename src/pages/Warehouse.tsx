@@ -813,7 +813,7 @@ export default function Warehouse({ currentUser }: Props){
 
 function YeniKalemFormu({ birimler, onKaydet, onIptal }: {
   birimler: Birim[]
-  onKaydet: (girdi: { kod: string; ad: string; temelBirim: string; lotTakipli: boolean; sktTakipli: boolean; minMiktar: number }) => void | Promise<void>
+  onKaydet: (girdi: { kod: string; ad: string; temelBirim: string; lotTakipli: boolean; sktTakipli: boolean; minMiktar: number; kdvOrani?: number }) => void | Promise<void>
   onIptal: () => void
 }){
   const [kod, setKod] = React.useState('')
@@ -822,11 +822,19 @@ function YeniKalemFormu({ birimler, onKaydet, onIptal }: {
   const [lotTakipli, setLotTakipli] = React.useState(false)
   const [sktTakipli, setSktTakipli] = React.useState(false)
   const [minMiktar, setMinMiktar] = React.useState('0')
+  // ⚠️ Varsayılan BOŞ. Gıdada tek oran yok (temel gıda %1, yeme-içme %10);
+  // hazır bir oran yazsaydık kimsenin sorgulamadığı yanlış bir sayı olurdu.
+  const [kdv, setKdv] = React.useState('')
 
   return (
     <form className="stacked-form" onSubmit={e => {
       e.preventDefault()
-      void onKaydet({ kod, ad, temelBirim, lotTakipli, sktTakipli, minMiktar: Number(minMiktar) || 0 })
+      const oran = kdv.trim() === '' ? undefined : Number(kdv)
+      void onKaydet({
+        kod, ad, temelBirim, lotTakipli, sktTakipli,
+        minMiktar: Number(minMiktar) || 0,
+        ...(oran !== undefined && Number.isFinite(oran) ? { kdvOrani: oran } : {}),
+      })
     }}>
       <div className="form-field"><label>Kod</label>
         <input value={kod} onChange={e => setKod(e.target.value)} required /></div>
@@ -840,6 +848,18 @@ function YeniKalemFormu({ birimler, onKaydet, onIptal }: {
       </div>
       <div className="form-field"><label>Kritik seviye</label>
         <input type="number" min="0" step="any" value={minMiktar} onChange={e => setMinMiktar(e.target.value)} /></div>
+      <div className="form-field"><label>KDV oranı (%)</label>
+        <input
+          type="number" min="0" max="100" step="any" value={kdv}
+          placeholder="boş = belirlenmedi"
+          onChange={e => setKdv(e.target.value)}
+        />
+        <small className="muted">
+          Temel gıda %1, yeme-içme hizmeti %10. Emin değilseniz boş bırakın —
+          yanlış bir oran, boş bir alandan tehlikelidir. Sipariş yazılırken
+          bu oran satıra kopyalanır ve orada donar.
+        </small>
+      </div>
       <label className="check-row form-check-field">
         <input type="checkbox" checked={lotTakipli} onChange={e => setLotTakipli(e.target.checked)} /> Lot takibi
       </label>

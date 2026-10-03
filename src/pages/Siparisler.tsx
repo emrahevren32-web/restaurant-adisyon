@@ -26,13 +26,16 @@ import {
 import {
   PostgresSiparisDeposu,
   type Fark, type FarkAdimi, type FarkKarari, type FarkTuru,
+  type Onay, type OnayAdimi, type OnayKarari,
   type Revizyon, type RevizyonKaynagi, type Siparis, type SiparisDurumu,
   type SiparisSatiri, type YeniFark, type YeniRevizyon, type YeniSatir,
   type YeniSiparis,
 } from '../sales/sales-order.repository'
 import {
   IZINLI_GECISLER, SEVK_SONRASI, SiparisServisi,
-  farkiYaz, revizyonFarki, siparisNoCakistiMi, siparisleriSuz, sonrakiSiparisNo,
+  farkiYaz, onayDurumu, onayOzeti, onayTamamMi, revizyonFarki,
+  siparisNoCakistiMi, siparisleriSuz, sonrakiSiparisNo, sozGecikmesi,
+  type AdimDurumu,
 } from '../sales/sales-order.service'
 import {
   TURETILEBILIR_DURUMLAR, sevkOzeti, sevkToplami, sevkiyatTuret,
@@ -40,6 +43,11 @@ import {
 } from '../sales/sales-order-shipment'
 import { PostgresSevkiyatDeposu } from '../production/shipment.repository'
 import { sonrakiSevkiyatNo } from '../production/shipment.service'
+import {
+  isEmirleriTuret, karsilamaOzeti, karsilamaToplami, type KarsilamaSatiri,
+} from '../sales/sales-order-production'
+import { PostgresIsEmriDeposu } from '../production/work-order.repository'
+import { PostgresReceteDeposu, type Recete } from '../production/recipe.repository'
 
 type Props = { currentUser: User }
 
@@ -56,10 +64,12 @@ const KAYNAKLAR: RevizyonKaynagi[] =
 const FARK_TURLERI: FarkTuru[] = ['Eksik', 'Fazla', 'Hasarlı', 'Yanlış ürün']
 const FARK_ADIMLARI: FarkAdimi[] =
   ['Üretim', 'Paketleme', 'Yükleme', 'Yolda', 'Teslimde', 'Müşteri bildirdi', 'Sayımda']
+const ONAY_KARARLARI: OnayKarari[] = ['Olumlu', 'Şartlı', 'Olumsuz']
 const KARARLAR: FarkKarari[] = ['Tamamlanacak', 'Sorumlu Bulundu', 'Müşteri Hatası', 'Diğer']
 
 const DURUM_ROZETI: Record<SiparisDurumu, string> = {
-  'Taslak': 'muted-pill', 'Onaylandı': 'r-bilgi', 'Hazırlanıyor': 'r-bilgi',
+  'Taslak': 'muted-pill', 'Onay Bekliyor': 'warning-pill',
+  'Onaylandı': 'r-bilgi', 'Hazırlanıyor': 'r-bilgi',
   'Hazır': 'success-pill', 'Kısmi Sevk': 'warning-pill', 'Sevk Edildi': 'success-pill',
   'Teslim Edildi': 'success-pill', 'İptal': 'muted-pill',
 }
@@ -95,7 +105,11 @@ export default function Siparisler({ currentUser }: Props){
   const [satirlar, setSatirlar] = React.useState<SiparisSatiri[]>([])
   const [revizyonlar, setRevizyonlar] = React.useState<Revizyon[]>([])
   const [farklar, setFarklar] = React.useState<Fark[]>([])
-  const [sekme, setSekme] = React.useState<'satirlar' | 'sevk' | 'gecmis' | 'farklar'>('satirlar')
+  const [sekme, setSekme] = React.useState<
+    'satirlar' | 'onay' | 'karsilama' | 'sevk' | 'gecmis' | 'farklar'>('satirlar')
+  const [karsilama, setKarsilama] = React.useState<KarsilamaSatiri[]>([])
+  const [adimlar, setAdimlar] = React.useState<OnayAdimi[]>([])
+  const [onaylar, setOnaylar] = React.useState<Onay[]>([])
   const [sevkDurumu, setSevkDurumu] = React.useState<KalemSevkDurumu[]>([])
   const [islem, setIslem] = React.useState<'yeni' | 'revizyon' | 'fark' | null>(null)
   const [yukleniyor, setYukleniyor] = React.useState(true)
@@ -117,16 +131,26 @@ export default function Siparisler({ currentUser }: Props){
     return new PostgresSevkiyatDeposu(getSupabase())
   }, [mod])
 
+  const uretimDepolari = React.useMemo(() => {
+    if(mod !== 'postgres' || !isSupabaseConfigured()) return null
+    const c = getSupabase()
+    return { isEmri: new PostgresIsEmriDeposu(c), recete: new PostgresReceteDeposu(c) }
+  }, [mod])
+
   const ayrintiYukle = React.useCallback(async (s: Siparis, b: DepoBaglami) => {
     if(!servis) return
-    const [r, f, sd] = await Promise.all([
+    const [r, f, sd, on, kp] = await Promise.all([
       servis.revizyonlar(b.ctx, s.id),
       servis.farklar(b.ctx, s.id),
       servis.sevkDurumu(b.ctx, s.id),
+      servis.onaylar(b.ctx, s.id),
+      servis.karsilamaPlani(b.ctx, s.id),
     ])
     setRevizyonlar(r)
     setFarklar(f)
     setSevkDurumu(sd)
+    setOnaylar(on)
+    setKarsilama(kp)
     // Güncel satırlar = en son SATIRLI revizyon. Kuralı burada yeniden
     // yazmıyoruz: servis okunan revizyonlardan seçiyor.
     const satirli = r.filter(x => x.satirlar.length > 0)
@@ -143,13 +167,15 @@ export default function Siparisler({ currentUser }: Props){
         if(iptal) return
         setBaglam(kurulan)
         const katalog = new PostgresStokKatalogu(getSupabase())
-        const [sp, ms, ns, kl] = await Promise.all([
+        const [sp, ms, ns, kl, ad] = await Promise.all([
           servis.hepsi(kurulan.ctx),
           musteriDeposu.hepsi(kurulan.ctx),
           musteriDeposu.noktalar(kurulan.ctx),
           katalog.kalemler(kurulan.ctx),
+          servis.onayAdimlari(kurulan.ctx),
         ])
         if(iptal) return
+        setAdimlar(ad)
         setSiparisler(sp)
         setMusteriler(ms.filter(m => m.aktif))
         setNoktalar(ns.filter(n => n.aktif))
@@ -273,6 +299,68 @@ export default function Siparisler({ currentUser }: Props){
   }
 
   /**
+   * Onay zincirine bir karar yazar.
+   *
+   * ⚠️ Kararı VEREN kişi formdan gelmiyor, oturumdan geliyor. Farkta olduğu
+   * gibi: bir isim alanı koysaydık herkes herkesin adına onay verebilirdi ve
+   * zincirin hiçbir anlamı kalmazdı.
+   */
+  const onayVer = async (adimKodu: string, karar: OnayKarari, not: string, sozTarihi: string) => {
+    if(!secili || !servis || !baglam) return
+    try{
+      await servis.onayVer(baglam.ctx, {
+        siparisId: secili.id,
+        // ⚠️ GÜNCEL revizyon. 200 koliyi onaylamak, 350 koliyi onaylamak
+        // değildir; karar hangi revizyonu onayladığını taşımak zorunda.
+        revizyonNo: secili.guncelRevizyon,
+        adimKodu, karar,
+        ...(not.trim() ? { not: not.trim() } : {}),
+        ...(sozTarihi ? { sozTarihi } : {}),
+      })
+      setHata(''); setBilgi('Karar kaydedildi.')
+      await yenile(secili.id)
+    } catch (e) { setBilgi(''); setHata(hataMetni(e)) }
+  }
+
+  /**
+   * Üretilmesi gereken kalemler için iş emri TASLAKLARI çıkarır.
+   *
+   * ⚠️ Taslak, üretim DEĞİL. Malzeme yeterliliği ve başlatma Üretim
+   * ekranında; oradaki kontrolü atlarsak olmayan malzemeyle üretim
+   * başlatmış oluruz.
+   */
+  const isEmriCikar = async () => {
+    if(!secili || !uretimDepolari || !baglam) return
+    try{
+      // Reçeteleri ÖNCE okuyoruz: biri okunamazsa hiç iş emri açmıyoruz.
+      // Yarısı açılmış bir plan, hiç açılmamıştan kötüdür.
+      const gerekli = [...new Set(
+        karsilama.filter(k => (k.uretilecek ?? 0) > 0 && k.uretilebilir && k.receteId)
+          .map(k => k.receteId as string),
+      )]
+      const okunan = await Promise.all(
+        gerekli.map(id => uretimDepolari.recete.tekil(baglam.ctx, id)),
+      )
+      const receteler = new Map<string, Recete>(okunan.map(r => [r.id, r]))
+
+      const mevcut = await uretimDepolari.isEmri.hepsi(baglam.ctx)
+      const turetilen = isEmirleriTuret(
+        secili, karsilama, receteler, mevcut.map(x => x.isEmriNo),
+      )
+      for(const t of turetilen){
+        await uretimDepolari.isEmri.ekle(baglam.ctx, t.girdi)
+      }
+      setHata('')
+      setBilgi(
+        `${turetilen.length} iş emri taslağı oluşturuldu ve bu siparişe bağlandı: `
+        + turetilen.map(t => `${t.girdi.isEmriNo} (${t.kalemAdi})`).join(', ')
+        + '. Üretim ekranından başlatın.',
+      )
+      await yenile(secili.id)
+    } catch (e) { setBilgi(''); setHata(hataMetni(e)) }
+  }
+
+  /**
    * Siparişin KALANINDAN bir sevkiyat TASLAĞI çıkarır.
    *
    * ⚠️ Taslak, sevk DEĞİL. Malın deftere çıkış yazılması ve stok yeterliliği
@@ -297,6 +385,13 @@ export default function Siparisler({ currentUser }: Props){
       await yenile(secili.id)
     } catch (e) { setBilgi(''); setHata(hataMetni(e)) }
   }
+
+  // Zincirin durumu iki yerde lazım: onay paneli ve "Onaylandı" düğmesi.
+  // İki kez hesaplamak, iki farklı cevap üretme riskidir.
+  const zincirDurumu = secili
+    ? onayDurumu(adimlar, onaylar, secili.guncelRevizyon)
+    : []
+  const zincirTamam = onayTamamMi(zincirDurumu)
 
   return (
     <div className="warehouse-page">
@@ -442,14 +537,25 @@ export default function Siparisler({ currentUser }: Props){
 
               {yazabilir && (
                 <div className="form-actions">
-                  {IZINLI_GECISLER[secili.durum].map(d => (
-                    <button
-                      key={d} className="btn" type="button"
-                      onClick={() => { void durumDegistir(d) }}
-                    >
-                      {d}
-                    </button>
-                  ))}
+                  {IZINLI_GECISLER[secili.durum].map(d => {
+                    // "Onaylandı" düğmesi, zincir tamamlanmadan ÇALIŞMAZ
+                    // (0053, MI429). Basılabilir bırakıp sunucuya patlatmak,
+                    // kullanıcıya neyi eksik yaptığını bulduran bir tasarım
+                    // olurdu; sebebi burada yazıyor.
+                    const kapali = d === 'Onaylandı' && !zincirTamam
+                    return (
+                      <button
+                        key={d} className="btn" type="button" disabled={kapali}
+                        title={kapali ? onayOzeti(zincirDurumu) : undefined}
+                        onClick={() => { void durumDegistir(d) }}
+                      >
+                        {d}
+                      </button>
+                    )
+                  })}
+                  {!zincirTamam && IZINLI_GECISLER[secili.durum].includes('Onaylandı') && (
+                    <span className="muted">{onayOzeti(zincirDurumu)}</span>
+                  )}
                 </div>
               )}
 
@@ -491,6 +597,18 @@ export default function Siparisler({ currentUser }: Props){
                   type="button" onClick={() => setSekme('satirlar')}
                 >
                   Satırlar ({satirlar.length})
+                </button>
+                <button
+                  className={`btn ${sekme === 'onay' ? 'primary' : ''}`}
+                  type="button" onClick={() => setSekme('onay')}
+                >
+                  Onay zinciri
+                </button>
+                <button
+                  className={`btn ${sekme === 'karsilama' ? 'primary' : ''}`}
+                  type="button" onClick={() => setSekme('karsilama')}
+                >
+                  Karşılama
                 </button>
                 <button
                   className={`btn ${sekme === 'sevk' ? 'primary' : ''}`}
@@ -539,6 +657,24 @@ export default function Siparisler({ currentUser }: Props){
                 </div>
               )}
 
+              {sekme === 'onay' && (
+                <OnayPaneli
+                  siparis={secili}
+                  durumlar={zincirDurumu}
+                  izinler={currentUser.permissions}
+                  onKarar={onayVer}
+                />
+              )}
+
+              {sekme === 'karsilama' && (
+                <KarsilamaPaneli
+                  siparis={secili}
+                  plan={karsilama}
+                  yazabilir={yazabilir}
+                  onIsEmri={isEmriCikar}
+                />
+              )}
+
               {sekme === 'sevk' && (
                 <SevkPaneli
                   siparis={secili}
@@ -561,6 +697,218 @@ export default function Siparisler({ currentUser }: Props){
           )}
         </aside>
       </div>
+    </div>
+  )
+}
+
+// ── Onay zinciri ───────────────────────────────────────────────────────────
+/**
+ * Emrah'ın cümlesi: "Satıştan sorumlu kimse onun önüne düşer; o da depodan
+ * (yeterli hammadde var mı), aşçıdan (yoğunluğun nedir) aldığı bilgilerle
+ * onayı verir, müşterinin istediği tarihe yetişir mi onu cevaplayabilir
+ * veya 'şu tarihe kadar hazır olur' der."
+ *
+ * Bu panel o cümlenin ekranıdır. GÖRÜŞ adımları bloklamaz ama görünür;
+ * ONAY adımı olmadan sipariş onaylanamaz.
+ */
+function OnayPaneli({
+  siparis, durumlar, izinler, onKarar,
+}: {
+  siparis: Siparis
+  durumlar: AdimDurumu[]
+  izinler?: string[]
+  onKarar: (adimKodu: string, karar: OnayKarari, not: string, sozTarihi: string) => void
+}){
+  const tamam = onayTamamMi(durumlar)
+  const gecikme = sozGecikmesi(siparis)
+  const [acik, setAcik] = React.useState<string | null>(null)
+  const [karar, setKarar] = React.useState<OnayKarari>('Olumlu')
+  const [not, setNot] = React.useState('')
+  const [soz, setSoz] = React.useState('')
+
+  const yetkili = (a: OnayAdimi) => !izinler || izinler.includes(a.izinKodu)
+
+  return (
+    <div>
+      <p className={tamam ? 'muted' : 'form-error'}>{onayOzeti(durumlar)}</p>
+
+      {/* Onaylar GÜNCEL revizyona bağlı. Revizyon geldiyse eski kararlar
+          burada görünmez ve zincir yeniden işler — bu, panelin en kolay
+          yanlış anlaşılan davranışı, o yüzden yazıyoruz. */}
+      <p className="muted">
+        Revizyon {siparis.guncelRevizyon} için kararlar. Sipariş revize
+        edilirse onaylar yeniden alınır.
+      </p>
+
+      {gecikme !== undefined && gecikme !== 0 && (
+        <div className={gecikme > 0 ? 'form-error' : 'form-info'}>
+          Müşteri {tarih(siparis.teslimTarihi)} istedi, söz verilen tarih{' '}
+          {tarih(siparis.sozVerilenTarih)} —{' '}
+          <strong>{gecikme > 0 ? `${gecikme} gün geç` : `${-gecikme} gün erken`}</strong>.
+        </div>
+      )}
+
+      <div className="table-wrap">
+        <table className="data-table compact">
+          <thead>
+            <tr><th>Adım</th><th>Tür</th><th>Son karar</th><th>Söz</th><th>Kim</th><th></th></tr>
+          </thead>
+          <tbody>
+            {durumlar.length === 0 && (
+              <tr><td colSpan={6} className="muted">Onay zinciri kurulmamış.</td></tr>
+            )}
+            {durumlar.map(d => (
+              <tr key={d.adim.kod}>
+                <td>{d.adim.ad}</td>
+                <td className="muted">{d.adim.bloklar ? 'onay' : 'görüş'}</td>
+                <td>
+                  {d.sonKarar
+                    ? <span className={d.sonKarar.karar === 'Olumsuz' ? 'onem-rozeti r-kritik' : ''}>
+                        {d.sonKarar.karar}
+                      </span>
+                    : <span className="muted">{d.bekliyor ? 'bekliyor' : '—'}</span>}
+                  {d.sonKarar?.not && <div className="muted">{d.sonKarar.not}</div>}
+                </td>
+                <td className="muted">{d.sonKarar?.sozTarihi ? tarih(d.sonKarar.sozTarihi) : '—'}</td>
+                <td className="muted">{d.sonKarar?.karariVerenAd ?? '—'}</td>
+                <td>
+                  {yetkili(d.adim) ? (
+                    <button
+                      className="btn ac" type="button"
+                      onClick={() => {
+                        setAcik(acik === d.adim.kod ? null : d.adim.kod)
+                        setKarar('Olumlu'); setNot(''); setSoz('')
+                      }}
+                    >
+                      {acik === d.adim.kod ? 'Kapat' : 'Karar ver'}
+                    </button>
+                  ) : (
+                    <span className="muted">yetki yok</span>
+                  )}
+                </td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+
+      {acik && (
+        <form
+          className="stacked-form"
+          onSubmit={e => { e.preventDefault(); onKarar(acik, karar, not, soz); setAcik(null) }}
+        >
+          <label>Karar
+            <select value={karar} onChange={e => setKarar(e.target.value as OnayKarari)}>
+              {ONAY_KARARLARI.map(k => <option key={k} value={k}>{k}</option>)}
+            </select>
+          </label>
+          {karar === 'Şartlı' && (
+            <label>Şu tarihe kadar hazır olur *
+              <input type="date" value={soz} onChange={e => setSoz(e.target.value)} />
+            </label>
+          )}
+          <label>
+            {karar === 'Olumsuz' ? 'Gerekçe *' : 'Not'}
+            <textarea
+              rows={2} value={not} onChange={e => setNot(e.target.value)}
+              placeholder={karar === 'Olumsuz'
+                ? 'Neden olmuyor — müşteriye söylenecek cümle'
+                : 'Hammadde durumu, yoğunluk, tarih…'}
+            />
+          </label>
+          <div className="form-actions">
+            <button className="btn primary" type="submit">Kaydet</button>
+            <button className="btn" type="button" onClick={() => setAcik(null)}>Vazgeç</button>
+          </div>
+        </form>
+      )}
+    </div>
+  )
+}
+
+// ── Karşılama ──────────────────────────────────────────────────────────────
+/**
+ * "Depoda olan depodan, olmayan üretimden karşılanıyor."
+ *
+ * ⚠️ Müsait miktar, ham bakiye DEĞİL: başka açık siparişlere söz verilmiş
+ * miktar düşülmüş hâli. Düşmeseydik aynı malı iki siparişe vaat eder ve
+ * ikisini de eksik gönderirdik.
+ */
+function KarsilamaPaneli({
+  siparis, plan, yazabilir, onIsEmri,
+}: {
+  siparis: Siparis
+  plan: KarsilamaSatiri[]
+  yazabilir: boolean
+  onIsEmri: () => void
+}){
+  const t = karsilamaToplami(plan)
+  // Üretim planı ancak sipariş ONAYLANDIYSA anlamlı: onaylanmamış miktar
+  // için üretime başlamak, zincirin engellemek için var olduğu şeydir.
+  const planlanabilir = ['Onaylandı', 'Hazırlanıyor', 'Hazır'].includes(siparis.durum)
+
+  return (
+    <div>
+      <p className="muted">
+        {t.kalemSayisi} kalem · {t.tamamenDepodan} tamamı depodan
+        {t.uretimGereken > 0 && <> · <strong>{t.uretimGereken} üretim gerekiyor</strong></>}
+        {t.uretilemeyen > 0 && <> · <strong>{t.uretilemeyen} satın alınmalı</strong></>}
+        {t.hesaplanamayan > 0 && <> · {t.hesaplanamayan} hesaplanamıyor</>}
+      </p>
+
+      {t.uretilemeyen > 0 && (
+        <div className="form-error">
+          Reçetesi olmayan kalem var: üretilemez, <strong>satın alınmalı</strong>.
+          İş emri çıkarmak bu kalemleri karşılamaz.
+        </div>
+      )}
+
+      <div className="table-wrap">
+        <table className="data-table compact">
+          <thead>
+            <tr>
+              <th>Ürün</th><th className="num">Sipariş</th><th className="num">Depoda</th>
+              <th className="num">Müsait</th><th className="num">Depodan</th>
+              <th className="num">Üretim</th><th>Durum</th>
+            </tr>
+          </thead>
+          <tbody>
+            {plan.length === 0 && (
+              <tr><td colSpan={7} className="muted">Kalem yok.</td></tr>
+            )}
+            {plan.map(k => (
+              <tr key={k.kalemId}>
+                <td>{k.kalemAdi}</td>
+                <td className="num">{sayiYaz(k.siparisMiktar)} {k.birim}</td>
+                <td className="num muted">{sayiYaz(k.depoBakiye)}</td>
+                {/* Müsait ≠ depoda: rezerve düşülmüş hâli. */}
+                <td className="num">{k.musait === undefined ? '—' : sayiYaz(k.musait)}</td>
+                <td className="num">{k.depodan === undefined ? '—' : sayiYaz(k.depodan)}</td>
+                <td className="num">
+                  {k.uretilecek === undefined ? '—' : sayiYaz(k.uretilecek)}
+                </td>
+                <td className="muted">{karsilamaOzeti(k)}</td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+
+      {yazabilir && planlanabilir && t.uretimGereken > 0 && (
+        <div className="form-actions">
+          <button className="btn primary" type="button" onClick={onIsEmri}>
+            Üretilecekler için iş emri çıkar
+          </button>
+          <span className="muted">
+            Taslak olarak açılır; malzeme yeterliliği Üretim ekranında.
+          </span>
+        </div>
+      )}
+      {yazabilir && !planlanabilir && (
+        <p className="muted">
+          Üretim planı için sipariş <strong>onaylanmış</strong> olmalı.
+        </p>
+      )}
     </div>
   )
 }

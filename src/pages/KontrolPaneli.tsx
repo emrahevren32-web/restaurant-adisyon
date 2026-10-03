@@ -32,6 +32,12 @@ import { InMemoryStockItemLookup } from '../core/stock/stock-item-lookup'
 import { depoBaglamiKur, type DepoBaglami } from '../warehouse/warehouse.context'
 import { PostgresStokKatalogu, type KatalogKalemi } from '../warehouse/warehouse.catalog'
 import {
+  siparisBildirimleri, type SiparisBildirimi,
+} from '../notifications/siparis-bildirimleri'
+import {
+  PostgresSiparisDeposu, type Fark, type Siparis,
+} from '../sales/sales-order.repository'
+import {
   DepoServisi, type DepoKalemi, type DepoUyarilari,
 } from '../warehouse/warehouse.service'
 import {
@@ -75,6 +81,8 @@ type PanelVerisi = {
   katalog: KatalogKalemi[]
   /** Yedek günlüğü. Tablo henüz kurulmadıysa boş kalır, panel yine çalışır. */
   yedekler: YedekKaydi[]
+  /** Onay bekleyen sipariş ve açık fark satırları (A4C). */
+  siparisIsleri: SiparisBildirimi[]
 }
 
 export default function KontrolPaneli({
@@ -125,10 +133,28 @@ export default function KontrolPaneli({
         try { yedekler = await new PostgresYedekGunlugu(client).son(kurulan.ctx, 5) }
         catch { yedekler = [] }
 
+        // Sipariş defteri de AYNI SEBEPLE hata yutarak okunuyor: 0050 göçü
+        // çalıştırılmamış bir kurulumda tablo yoktur ve bu, kontrol
+        // panelinin tamamının açılmamasına sebep olmamalı.
+        let siparisIsleri: SiparisBildirimi[] = []
+        try {
+          const siparisDeposu = new PostgresSiparisDeposu(client)
+          const siparisler: Siparis[] = await siparisDeposu.hepsi(kurulan.ctx)
+          // Fark kayıtları sipariş başına okunuyor; yalnız AÇIK olabilecek
+          // siparişlerinkini istiyoruz — kapanmış siparişin farkı zaten
+          // karara bağlanmıştır ve hepsini çekmek listeyi gereksiz büyütürdü.
+          const ilgili = siparisler.filter(x => x.durum !== 'İptal')
+          const farkListeleri = await Promise.all(
+            ilgili.map(x => siparisDeposu.farklar(kurulan.ctx, x.id)),
+          )
+          const farklar: Fark[] = farkListeleri.flat()
+          siparisIsleri = siparisBildirimleri(siparisler, farklar, bugunAnahtari())
+        } catch { siparisIsleri = [] }
+
         if(iptal) return
         setVeri({
           kalemler, uyarilar, isEmirleri, sevkiyatlar, olcumler, faaliyetler,
-          katalog, yedekler,
+          katalog, yedekler, siparisIsleri,
         })
       } catch (e) {
         if(!iptal) setHata(hataMetni(e))
@@ -197,6 +223,7 @@ export default function KontrolPaneli({
 
   const {
     kalemler, uyarilar, isEmirleri, sevkiyatlar, olcumler, faaliyetler, katalog, yedekler,
+    siparisIsleri,
   } = veri
   const bugun = bugunAnahtari()
 
@@ -235,6 +262,17 @@ export default function KontrolPaneli({
       ayrinti: f.aciklama,
       rota: 'haccp-kayitlari' as BusinessWorkspaceRoute,
       navKey: 'haccp-kayitlari' as BusinessWorkspaceNavKey,
+    })),
+    // Sipariş işleri gıda güvenliğinden sonra ama stoktan ÖNCE: portal
+    // açıldıktan sonra kimsenin bakmadığı bir kutuda biriken sipariş,
+    // alınmamış siparişten kötüdür — müşteri verdiğini sanıyor.
+    ...siparisIsleri.map(b => ({
+      id: b.id,
+      aciliyet: b.aciliyet,
+      baslik: b.baslik,
+      ayrinti: b.ayrinti,
+      rota: 'siparisler' as BusinessWorkspaceRoute,
+      navKey: 'siparisler' as BusinessWorkspaceNavKey,
     })),
     ...uyarilar.suresiGecmis.map(u => ({
       id: `skt-gecmis-${u.lotId}`,

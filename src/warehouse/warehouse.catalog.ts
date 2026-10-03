@@ -30,6 +30,14 @@ export type KatalogKalemi = {
   lotTakipli: boolean
   sktTakipli: boolean
   minMiktar: number
+  /**
+   * KDV oranı (%). BOŞ = BELİRLENMEDİ ve bu bilinçli.
+   *
+   * Gıdada tek oran yok: temel gıda %1, yeme-içme hizmeti %10, bazıları %20.
+   * Varsayılan bir oran yazsaydık kimsenin sorgulamadığı YANLIŞ bir sayı
+   * üretirdik. Boşluk, sorulması gereken bir sorudur.
+   */
+  kdvOrani?: number
   aktif: boolean
 }
 
@@ -52,6 +60,7 @@ export type YeniKalem = {
   lotTakipli: boolean
   sktTakipli: boolean
   minMiktar?: number
+  kdvOrani?: number
 }
 
 export type YeniLot = {
@@ -97,6 +106,7 @@ type StockItemSatiri = {
   tracks_lot: boolean
   tracks_expiry: boolean
   min_qty: number | string
+  vat_rate: number | string | null
   is_active: boolean
 }
 
@@ -120,6 +130,8 @@ const kalemeCevir = (satir: StockItemSatiri): KatalogKalemi => ({
   // Postgres `numeric` alanlarını supabase-js metin olarak döndürebilir;
   // sayıya çevirmeyi unutmak "120" + 1 = "1201" gibi sessiz hatalara yol açar.
   minMiktar: Number(satir.min_qty),
+  kdvOrani: satir.vat_rate === null || satir.vat_rate === undefined
+    ? undefined : Number(satir.vat_rate),
   aktif: satir.is_active,
 })
 
@@ -146,7 +158,7 @@ export class PostgresStokKatalogu implements StokKatalogu {
   async kalemler(_ctx: TenantCtx): Promise<KatalogKalemi[]> {
     const { data, error } = await this.client
       .from('stock_item')
-      .select('id, code, name, category, base_uom, tracks_lot, tracks_expiry, min_qty, is_active')
+      .select('id, code, name, category, base_uom, tracks_lot, tracks_expiry, min_qty, vat_rate, is_active')
       .order('name', { ascending: true })
 
     if(error) throw new Error(`Stok kalemleri okunamadı: ${error.message}`)
@@ -167,8 +179,9 @@ export class PostgresStokKatalogu implements StokKatalogu {
         tracks_lot: girdi.lotTakipli,
         tracks_expiry: girdi.sktTakipli,
         min_qty: girdi.minMiktar ?? 0,
+        vat_rate: girdi.kdvOrani ?? null,
       })
-      .select('id, code, name, category, base_uom, tracks_lot, tracks_expiry, min_qty, is_active')
+      .select('id, code, name, category, base_uom, tracks_lot, tracks_expiry, min_qty, vat_rate, is_active')
       .single()
 
     if(error){

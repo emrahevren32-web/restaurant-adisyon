@@ -25,6 +25,7 @@ import type {
   SiparisPenceresi,
   TeslimNoktasi,
   TeslimNoktasiGirdisi,
+  PortalKullanicisi, PortalKullanicisiGirdisi,
 } from './customer.repository'
 
 const CTX: TenantCtx = { tenantId: 'k1', branchId: 's1', userId: 'u1' }
@@ -70,6 +71,21 @@ class BellekDeposu implements MusteriDeposu {
   async fiyatEkle(_c: TenantCtx, g: FiyatGirdisi): Promise<void> { this.sonFiyat = g }
   async gecerliFiyat(): Promise<number | undefined> { return undefined }
   async pencere(): Promise<SiparisPenceresi> { return { kaynak: 'yok' } }
+  sonPortal?: PortalKullanicisiGirdisi
+  sonNoktalar?: readonly string[]
+  async portalKullanicilari(): Promise<PortalKullanicisi[]> { return [] }
+  async portalErisimiVer(_c: TenantCtx, g: PortalKullanicisiGirdisi): Promise<PortalKullanicisi> {
+    this.sonPortal = g
+    return { id: 'p1', musteriId: g.musteriId, eposta: g.eposta,
+             aktif: true, noktaIdler: [...(g.noktaIdler ?? [])] }
+  }
+  async portalErisimiDegistir(_c: TenantCtx, id: string, aktif: boolean): Promise<PortalKullanicisi> {
+    return { id, musteriId: 'm1', eposta: 'a@b.c', aktif, noktaIdler: [] }
+  }
+  async portalNoktalariAyarla(_c: TenantCtx, id: string, n: readonly string[]): Promise<PortalKullanicisi> {
+    this.sonNoktalar = n
+    return { id, musteriId: 'm1', eposta: 'a@b.c', aktif: true, noktaIdler: [...n] }
+  }
 }
 
 const servisKur = () => {
@@ -264,5 +280,128 @@ describe('Fiyat cümlesi', () => {
   it('kapsamı söylüyor', () => {
     expect(fiyatKapsami(f())).toBe('bütün noktalar')
     expect(fiyatKapsami(f({ noktaId: 'n1', noktaAdi: 'Ataşehir' }))).toBe('Ataşehir')
+  })
+})
+
+// ── Vergi alanları (0052) ──────────────────────────────────────────────────
+// Bu alanlar FATURA için var ama fatura henüz kesilmiyor. Sınanan şey,
+// yanlış verinin bugünden girmemesi: bir yıl sonra düzeltmek pahalı.
+describe('Vergi alanları', () => {
+  const TEMEL: MusteriGirdisi = { kod: 'MIG', ad: 'Migros' }
+
+  it('VKN (10) ve TCKN (11) kabul ediliyor', async () => {
+    const { servis, depo } = servisKur()
+    await servis.ekle(CTX, { ...TEMEL, vergiNo: '1234567890' })
+    expect(depo.sonMusteri?.vergiNo).toBe('1234567890')
+    await servis.ekle(CTX, { ...TEMEL, vergiNo: '12345678901' })
+    expect(depo.sonMusteri?.vergiNo).toBe('12345678901')
+  })
+
+  it('yanlış uzunluktaki vergi numarası reddediliyor', async () => {
+    const { servis } = servisKur()
+    await expect(servis.ekle(CTX, { ...TEMEL, vergiNo: '12345' }))
+      .rejects.toThrow(/10 hane/)
+    await expect(servis.ekle(CTX, { ...TEMEL, vergiNo: '123456789012' }))
+      .rejects.toThrow(MusteriDogrulamaError)
+  })
+
+  it('harf içeren vergi numarası reddediliyor', async () => {
+    const { servis } = servisKur()
+    await expect(servis.ekle(CTX, { ...TEMEL, vergiNo: '12345A7890' }))
+      .rejects.toThrow(MusteriDogrulamaError)
+  })
+
+  it('boş vergi numarası serbest — kart vergi bilgisi olmadan da açılabilir', async () => {
+    const { servis, depo } = servisKur()
+    await servis.ekle(CTX, { ...TEMEL, vergiNo: '   ' })
+    expect(depo.sonMusteri?.vergiNo).toBeUndefined()
+  })
+
+  it('bozuk KEP adresi reddediliyor', async () => {
+    const { servis } = servisKur()
+    await expect(servis.ekle(CTX, { ...TEMEL, kepAdresi: 'migros.kep.tr' }))
+      .rejects.toThrow(/KEP adresi/)
+  })
+
+  it('e-Fatura bayrağı KONTROL TARİHİ olmadan kabul edilmiyor', async () => {
+    // Tarihsiz bayrak, ne zaman doğru olduğu bilinmeyen bir bilgidir:
+    // mükellefiyet sonradan başlar, bir yıl önceki "hayır" bugün yanlıştır.
+    const { servis } = servisKur()
+    await expect(servis.ekle(CTX, { ...TEMEL, efaturaMukellefi: true }))
+      .rejects.toThrow(/kontrol tarihi/)
+    await expect(servis.ekle(CTX, { ...TEMEL, efaturaMukellefi: false }))
+      .rejects.toThrow(/kontrol tarihi/)
+  })
+
+  it('bayrak ve tarih birlikte verilince geçiyor', async () => {
+    const { servis, depo } = servisKur()
+    await servis.ekle(CTX, {
+      ...TEMEL, efaturaMukellefi: true, efaturaKontrolTarihi: '2026-09-29',
+    })
+    expect(depo.sonMusteri?.efaturaMukellefi).toBe(true)
+    expect(depo.sonMusteri?.efaturaKontrolTarihi).toBe('2026-09-29')
+  })
+
+  it('resmî ünvan ayrı bir alan — günlük ad faturaya yazılmaz', async () => {
+    const { servis, depo } = servisKur()
+    await servis.ekle(CTX, {
+      ...TEMEL, ad: 'Migros', resmiUnvan: 'Migros Ticaret A.Ş.',
+    })
+    expect(depo.sonMusteri?.ad).toBe('Migros')
+    expect(depo.sonMusteri?.resmiUnvan).toBe('Migros Ticaret A.Ş.')
+  })
+})
+
+// ── Portal erişimi (0054) ──────────────────────────────────────────────────
+// Emrah'ın kararı: giriş e-posta ile tek kullanımlık bağlantı. PAROLA YOK —
+// bu testlerde de parola diye bir kavram geçmiyor, geçmemeli.
+describe('Portal erişimi', () => {
+  const G: PortalKullanicisiGirdisi = { musteriId: 'm1', eposta: 'satinalma@migros.test' }
+
+  it('e-posta KÜÇÜK HARFE indiriliyor', async () => {
+    // Giriş e-postayla oluyor: "Ali@" ile "ali@" iki ayrı kullanıcı olsaydı
+    // biri asla giremezdi.
+    const { servis, depo } = servisKur()
+    await servis.portalErisimiVer(CTX, { ...G, eposta: '  SatinAlma@Migros.TEST ' })
+    expect(depo.sonPortal?.eposta).toBe('satinalma@migros.test')
+  })
+
+  it('e-postasız erişim verilemiyor', async () => {
+    const { servis } = servisKur()
+    await expect(servis.portalErisimiVer(CTX, { ...G, eposta: '  ' }))
+      .rejects.toThrow(/E-posta zorunlu/)
+  })
+
+  it('bozuk e-posta reddediliyor', async () => {
+    const { servis } = servisKur()
+    await expect(servis.portalErisimiVer(CTX, { ...G, eposta: 'migros.test' }))
+      .rejects.toThrow(MusteriDogrulamaError)
+  })
+
+  it('müşteri kartına bağlı olmayan erişim reddediliyor', async () => {
+    const { servis } = servisKur()
+    await expect(servis.portalErisimiVer(CTX, { ...G, musteriId: '' }))
+      .rejects.toThrow(/müşteri kartına bağlı/)
+  })
+
+  it('nokta listesi BOŞSA merkez — bütün noktalar', async () => {
+    // ⚠️ Boşluğun anlamı "hiçbiri" değil "hepsi". Emrah: "duruma göre şubede
+    // sipariş verebilir, merkezde."
+    const { servis, depo } = servisKur()
+    const k = await servis.portalErisimiVer(CTX, G)
+    expect(k.noktaIdler).toEqual([])
+    expect(depo.sonPortal?.noktaIdler).toEqual([])
+  })
+
+  it('YİNELENEN nokta kimliği teke indiriliyor', async () => {
+    const { servis, depo } = servisKur()
+    await servis.portalErisimiVer(CTX, { ...G, noktaIdler: ['n1', 'n1', ' n2 ', ''] })
+    expect(depo.sonPortal?.noktaIdler).toEqual(['n1', 'n2'])
+  })
+
+  it('erişim KAPATILABİLİYOR — silinmiyor', async () => {
+    // Kimin ne zaman yetkisi vardı, kalsın.
+    const { servis } = servisKur()
+    expect((await servis.portalErisimiDegistir(CTX, 'p1', false)).aktif).toBe(false)
   })
 })

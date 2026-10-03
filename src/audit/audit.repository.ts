@@ -38,6 +38,10 @@ export const TABLO_ETIKETLERI: Record<string, string> = {
   customer: 'Müşteri kartı',
   delivery_point: 'Teslim noktası',
   customer_price: 'Müşteri fiyatı',
+  order_approval_step: 'Onay adımı',
+  portal_user: 'Portal kullanıcısı',
+  stock_item_allergen: 'Alerjen beyanı',
+  stock_item_nutrition: 'Besin değeri',
 }
 
 export const tabloAdi = (tablo: string) => TABLO_ETIKETLERI[tablo] ?? tablo

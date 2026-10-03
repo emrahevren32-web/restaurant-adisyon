@@ -1965,6 +1965,9 @@ export const BUSINESS_WORKSPACE_MODULE_REGISTRY: BusinessWorkspaceModule[] = def
       // Postgres'e bağlı YENİ reçete ekranı. Üretimin ilk halkası budur:
       // iş emri reçetenin üzerine kurulur, o yüzden menüde de önce geliyor.
       menuItem({ key: 'receteler', label: 'Reçeteler', route: 'receteler', icon: 'RC', adminOnly: true, displayOrder: 5 }),
+      // Etiket, REÇETENİN hemen altında: alerjen ve besin değeri oradan
+      // türetiliyor ve kullanıcı ikisini arka arkaya açıyor.
+      menuItem({ key: 'etiketler', label: 'Etiket ve Alerjen', route: 'etiketler', icon: 'ET', adminOnly: true, displayOrder: 5.5 }),
       // Postgres'e bağlı YENİ iş emri ekranı. Reçetenin hemen ardında:
       // zincirin sırası menüde de görünsün.
       menuItem({ key: 'uretim-emirleri', label: 'İş Emirleri', route: 'uretim-emirleri', icon: 'IE', adminOnly: true, displayOrder: 6 }),

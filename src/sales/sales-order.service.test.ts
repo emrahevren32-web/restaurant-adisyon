@@ -14,6 +14,11 @@ import {
   SiparisDogrulamaError,
   SiparisServisi,
   farkiYaz,
+  onayDurumu,
+  onayOzeti,
+  onayTamamMi,
+  sozGecikmesi,
+  sozVerilenTarih,
   revizyonFarki,
   siparisleriSuz,
   siparisNoCakistiMi,
@@ -21,8 +26,10 @@ import {
 } from './sales-order.service'
 import { SiparisNoCakismasiError } from './sales-order.repository'
 import type { KalemSevkDurumu } from './sales-order-shipment'
+import type { KarsilamaSatiri } from './sales-order-production'
 import type {
-  Fark, FarkKarariGirdisi, Revizyon, Siparis, SiparisDeposu, SiparisDurumu,
+  Fark, FarkKarariGirdisi, Onay, OnayAdimi, Revizyon, Siparis, SiparisDeposu, SiparisDurumu,
+  YeniOnay,
   SiparisOlayi, SiparisSatiri, YeniFark, YeniRevizyon, YeniSiparis,
 } from './sales-order.repository'
 
@@ -72,6 +79,14 @@ class BellekDeposu implements SiparisDeposu {
   async olaylar(): Promise<SiparisOlayi[]> { return [] }
   sevkDurumlari: KalemSevkDurumu[] = []
   async sevkDurumu(): Promise<KalemSevkDurumu[]> { return this.sevkDurumlari }
+  adimlar: OnayAdimi[] = []
+  onayKayitlari: Onay[] = []
+  sonOnay?: YeniOnay
+  async onayAdimlari(): Promise<OnayAdimi[]> { return this.adimlar }
+  async onaylar(): Promise<Onay[]> { return this.onayKayitlari }
+  async onayVer(_c: TenantCtx, g: YeniOnay): Promise<void> { this.sonOnay = g }
+  plan: KarsilamaSatiri[] = []
+  async karsilamaPlani(): Promise<KarsilamaSatiri[]> { return this.plan }
 }
 
 const kur = () => {
@@ -314,5 +329,135 @@ describe('Durum tablosu göçle AYNI', () => {
       expect(gocten[durum].slice().sort(), `${durum} geçişleri ayrışmış`)
         .toEqual(kodda[durum].slice().sort())
     }
+  })
+})
+
+// ── Onay zinciri (0053) ────────────────────────────────────────────────────
+// Emrah: "Kesinlikle sipariş onay zincirine tabi olmalı... satıştan sorumlu
+// kimse onun önüne düşer, o da depodan ve aşçıdan aldığı bilgilerle onayı
+// verir, müşterinin istediği tarihe yetişir mi onu cevaplayabilir."
+describe('Onay zinciri', () => {
+  const adim = (ek: Partial<OnayAdimi> = {}): OnayAdimi => ({
+    id: 'a1', kod: 'SATIS', ad: 'Satış sorumlusu', sira: 3,
+    bloklar: true, izinKodu: 'operations.write', aktif: true, ...ek,
+  })
+  const ZINCIR: OnayAdimi[] = [
+    adim({ id: 'a-d', kod: 'DEPO', ad: 'Depo', sira: 1, bloklar: false }),
+    adim({ id: 'a-u', kod: 'URETIM', ad: 'Üretim', sira: 2, bloklar: false }),
+    adim(),
+  ]
+  const onay = (ek: Partial<Onay> = {}): Onay => ({
+    id: 'o1', siparisId: 'sp1', revizyonNo: 1, adimKodu: 'SATIS',
+    karar: 'Olumlu', zaman: '2026-09-30T08:00:00Z', ...ek,
+  })
+
+  it('adımları sırasıyla veriyor, pasif olanı atlıyor', () => {
+    const d = onayDurumu([...ZINCIR, adim({ id: 'a-x', kod: 'ESKI', aktif: false })], [], 1)
+    expect(d.map(x => x.adim.kod)).toEqual(['DEPO', 'URETIM', 'SATIS'])
+  })
+
+  it('GÖRÜŞ adımı bloklamıyor, ONAY adımı blokluyor', () => {
+    const d = onayDurumu(ZINCIR, [], 1)
+    expect(d.filter(x => x.bekliyor).map(x => x.adim.kod)).toEqual(['SATIS'])
+    expect(onayTamamMi(d)).toBe(false)
+  })
+
+  it('bloklayan adım olumlu olunca zincir tamam', () => {
+    expect(onayTamamMi(onayDurumu(ZINCIR, [onay()], 1))).toBe(true)
+  })
+
+  it('ŞARTLI onay geçiriyor — "evet ama şu tarihte" bir hayır değildir', () => {
+    const d = onayDurumu(ZINCIR, [onay({ karar: 'Şartlı', sozTarihi: '2026-10-05' })], 1)
+    expect(onayTamamMi(d)).toBe(true)
+  })
+
+  it('OLUMSUZ karar zinciri açmıyor', () => {
+    const d = onayDurumu(ZINCIR, [onay({ karar: 'Olumsuz', not: 'Kapasite yok' })], 1)
+    expect(onayTamamMi(d)).toBe(false)
+  })
+
+  it('SON karar geçerli — eklemeli defterde fikir değişebilir', () => {
+    const d = onayDurumu(ZINCIR, [
+      onay({ id: 'o1', karar: 'Olumsuz', not: 'Kapasite yok', zaman: '2026-09-30T08:00:00Z' }),
+      onay({ id: 'o2', karar: 'Olumlu', zaman: '2026-09-30T11:00:00Z' }),
+    ], 1)
+    expect(onayTamamMi(d)).toBe(true)
+    expect(d.find(x => x.adim.kod === 'SATIS')?.sonKarar?.id).toBe('o2')
+  })
+
+  it('⚠️ BAŞKA REVİZYONUN onayı sayılmıyor', () => {
+    // 200 koliyi onaylamak, 350 koliyi onaylamak değildir. Bu tek kural
+    // olmadan, onaydan sonra miktarı değiştiren biri onaylı bir sipariş
+    // elde ederdi.
+    const d = onayDurumu(ZINCIR, [onay({ revizyonNo: 1 })], 2)
+    expect(onayTamamMi(d)).toBe(false)
+    expect(d.find(x => x.adim.kod === 'SATIS')?.sonKarar).toBeUndefined()
+  })
+
+  it('özet cümlesi bekleyeni söylüyor', () => {
+    expect(onayOzeti(onayDurumu(ZINCIR, [], 1))).toBe('Bekleyen onay: Satış sorumlusu')
+    expect(onayOzeti(onayDurumu(ZINCIR, [onay()], 1))).toMatch(/Zincir tamam/)
+    expect(onayOzeti([])).toMatch(/kurulmamış/)
+  })
+
+  it('zincir tamam ama olumsuz GÖRÜŞ varsa bunu söylüyor', () => {
+    // Görüş bloklamaz ama görmezden de gelinmez.
+    const d = onayDurumu(ZINCIR, [
+      onay({ adimKodu: 'DEPO', karar: 'Olumsuz', not: 'Un bitti' }),
+      onay(),
+    ], 1)
+    expect(onayTamamMi(d)).toBe(true)
+    expect(onayOzeti(d)).toMatch(/olumsuz görüş var: Depo/)
+  })
+
+  it('söz verilen tarih EN GEÇ tarihtir', () => {
+    // En erkeni almak, tutamayacağımız bir tarihi müşteriye söylemek olurdu.
+    const t = sozVerilenTarih([
+      onay({ adimKodu: 'DEPO', karar: 'Şartlı', sozTarihi: '2026-10-03' }),
+      onay({ karar: 'Şartlı', sozTarihi: '2026-10-05' }),
+    ], 1)
+    expect(t).toBe('2026-10-05')
+  })
+
+  it('söz gecikmesini gün olarak veriyor', () => {
+    expect(sozGecikmesi(siparis({ teslimTarihi: '2026-10-02', sozVerilenTarih: '2026-10-05' }))).toBe(3)
+    expect(sozGecikmesi(siparis({ teslimTarihi: '2026-10-02', sozVerilenTarih: '2026-10-02' }))).toBe(0)
+    expect(sozGecikmesi(siparis({ teslimTarihi: '2026-10-02' }))).toBeUndefined()
+  })
+})
+
+describe('Onay doğrulaması', () => {
+  it('olumsuz karar gerekçesiz olamaz', async () => {
+    const { servis } = kur()
+    await expect(servis.onayVer(CTX, {
+      siparisId: 'sp1', revizyonNo: 1, adimKodu: 'SATIS', karar: 'Olumsuz',
+    })).rejects.toThrow(/gerekçesiz/)
+  })
+
+  it('şartlı onay tarihsiz olamaz', async () => {
+    const { servis } = kur()
+    await expect(servis.onayVer(CTX, {
+      siparisId: 'sp1', revizyonNo: 1, adimKodu: 'SATIS', karar: 'Şartlı',
+    })).rejects.toThrow(/söz verilen tarih/)
+  })
+
+  it('geçerli karar depoya iniyor', async () => {
+    const { servis, depo } = kur()
+    await servis.onayVer(CTX, {
+      siparisId: 'sp1', revizyonNo: 2, adimKodu: 'SATIS',
+      karar: 'Şartlı', sozTarihi: '2026-10-05', not: 'Yetişmez',
+    })
+    expect(depo.sonOnay?.revizyonNo).toBe(2)
+    expect(depo.sonOnay?.sozTarihi).toBe('2026-10-05')
+  })
+})
+
+describe('Durum akışı · onay zinciri', () => {
+  it('Taslaktan doğrudan Onaylandı YOK', () => {
+    expect(IZINLI_GECISLER['Taslak']).toEqual(['Onay Bekliyor', 'İptal'])
+  })
+
+  it('onay beklerken geri çekilebiliyor', () => {
+    expect(IZINLI_GECISLER['Onay Bekliyor']).toContain('Taslak')
   })
 })

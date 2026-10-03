@@ -1,6 +1,7 @@
 import React from 'react'
 import BusinessApplicationSystem from './pages/BusinessApplicationSystem'
 import BusinessApplicationPublicForm from './pages/BusinessApplicationPublicForm'
+import Portal from './pages/Portal'
 import CompanySetupWizard from './pages/CompanySetupWizard'
 import FirstLoginWizard from './pages/FirstLoginWizard'
 import PackageLicenseManagement from './pages/PackageLicenseManagement'
@@ -412,6 +413,9 @@ export default function App(){
   const [davet, setDavet] = React.useState<DavetBilgisi>(ILK_DAVET)
   const qrRouteMatch = window.location.pathname.match(/^\/qr\/([^/?#]+)/)
   const businessApplicationRouteMatch = window.location.pathname.match(/^\/(?:basvuru|apply)\/?$/)
+  // Müşteri sipariş portalı (A4C3). Kiracı bu bağlantıyı KENDİ SİTESİNE
+  // gömüyor; bağlantı bir sır taşımıyor, kimliği e-posta belirliyor.
+  const portalRouteMatch = window.location.pathname.match(/^\/(?:portal|siparis)\/?$/)
   const initialAuthState = React.useMemo(() => getInitialAuthenticationState({
     requestedPath: window.location.pathname
   }), [])
@@ -822,6 +826,14 @@ export default function App(){
 
   if(businessApplicationRouteMatch){
     return <BusinessApplicationPublicForm />
+  }
+
+  // ⚠️ GİRİŞ EKRANINDAN VE DAVET KONTROLÜNDEN ÖNCE. Portal müşterisinin
+  // uygulamada bir kullanıcı kaydı yok; giriş ekranına düşerse hiçbir şey
+  // yapamaz ve neden yapamadığını da anlamaz. Uygulama kabuğu da
+  // gösterilmiyor: müşteri bizim iç ekranlarımızı görmez.
+  if(portalRouteMatch){
+    return <Portal />
   }
 
   // ⚠️ GİRİŞ EKRANINDAN ÖNCE. Davetli kullanıcının henüz şifresi yok;

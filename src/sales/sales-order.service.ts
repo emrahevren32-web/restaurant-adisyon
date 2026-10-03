@@ -11,10 +11,12 @@
 
 import type { TenantCtx } from '../core/context'
 import type {
-  Fark, FarkKarariGirdisi, Revizyon, Siparis, SiparisDeposu, SiparisDurumu,
-  SiparisOlayi, SiparisSatiri, YeniFark, YeniRevizyon, YeniSiparis, YeniSatir,
+  Fark, FarkKarariGirdisi, Onay, OnayAdimi, Revizyon, Siparis, SiparisDeposu,
+  SiparisDurumu, SiparisOlayi, SiparisSatiri, YeniFark, YeniOnay, YeniRevizyon,
+  YeniSiparis, YeniSatir,
 } from './sales-order.repository'
 import type { KalemSevkDurumu } from './sales-order-shipment'
+import type { KarsilamaSatiri } from './sales-order-production'
 
 export class SiparisDogrulamaError extends Error {
   constructor(mesaj: string) {
@@ -35,10 +37,19 @@ const kirp = (d?: string) => (d ?? '').trim()
  * bilmesi gerekiyor.
  */
 export const IZINLI_GECISLER: Record<SiparisDurumu, SiparisDurumu[]> = {
-  'Taslak':        ['Onaylandı', 'İptal'],
-  'Onaylandı':     ['Hazırlanıyor', 'İptal'],
-  'Hazırlanıyor':  ['Hazır', 'İptal'],
-  'Hazır':         ['Kısmi Sevk', 'Sevk Edildi', 'İptal'],
+  // ⚠️ Taslak → Onaylandı KAPALI (0053). Emrah: "Kesinlikle sipariş onay
+  // zincirine tabi olmalı." Bir istisna bırakırsak zincir, acelesi olan
+  // herkesin atladığı bir süs olur.
+  'Taslak':        ['Onay Bekliyor', 'İptal'],
+  // Geri çekme serbest: onay sırasında müşteri fikrini değiştirebilir ve
+  // siparişi düzeltmek, iptal edip yenisini açmaktan dürüsttür.
+  'Onay Bekliyor': ['Onaylandı', 'Taslak', 'İptal'],
+  // ⚠️ ONAYA GERİ DÖNÜŞ (0055). Onaylanmış bir siparişe MİKTAR revizyonu
+  // yazılırsa onaylar düşer ve sipariş buraya geri döner — yoksa üretim,
+  // kimsenin onaylamadığı bir miktarı hazırlamaya devam ederdi.
+  'Onaylandı':     ['Hazırlanıyor', 'Onay Bekliyor', 'İptal'],
+  'Hazırlanıyor':  ['Hazır', 'Onay Bekliyor', 'İptal'],
+  'Hazır':         ['Kısmi Sevk', 'Sevk Edildi', 'Onay Bekliyor', 'İptal'],
   'Kısmi Sevk':    ['Sevk Edildi', 'Teslim Edildi'],
   'Sevk Edildi':   ['Kısmi Sevk', 'Teslim Edildi'],
   // Son duraklar. İptalden dönüş YENİ SİPARİŞLE olur, durumu geri
@@ -64,10 +75,37 @@ export class SiparisServisi {
     return this.depo.revizyonlar(ctx, id)
   }
   farklar(ctx: TenantCtx, id: string): Promise<Fark[]> { return this.depo.farklar(ctx, id) }
+  onayAdimlari(ctx: TenantCtx): Promise<OnayAdimi[]> { return this.depo.onayAdimlari(ctx) }
+  onaylar(ctx: TenantCtx, id: string): Promise<Onay[]> { return this.depo.onaylar(ctx, id) }
+
+  async onayVer(ctx: TenantCtx, girdi: YeniOnay): Promise<void> {
+    return this.depo.onayVer(ctx, this.onayDogrula(girdi))
+  }
+
+  onayDogrula(girdi: YeniOnay): YeniOnay {
+    if(girdi.karar === 'Olumsuz' && kirp(girdi.not) === ''){
+      throw new SiparisDogrulamaError(
+        'Olumsuz karar gerekçesiz olamaz. Gerekçesiz bir ret, satışçının '
+        + 'müşteriye söyleyecek sözü olmaması demektir.',
+      )
+    }
+    if(girdi.karar === 'Şartlı' && kirp(girdi.sozTarihi) === ''){
+      throw new SiparisDogrulamaError(
+        'Şartlı onayda söz verilen tarih zorunlu. Şartı olmayan bir şartlı '
+        + 'onay, "belki" demektir ve müşteriye söylenemez.',
+      )
+    }
+    return { ...girdi, not: kirp(girdi.not) || undefined,
+             sozTarihi: kirp(girdi.sozTarihi) || undefined }
+  }
   olaylar(ctx: TenantCtx, id: string): Promise<SiparisOlayi[]> { return this.depo.olaylar(ctx, id) }
   /** Kalem kalem: sipariş / sevk edilmiş / KALAN (0051). */
   sevkDurumu(ctx: TenantCtx, id: string): Promise<KalemSevkDurumu[]> {
     return this.depo.sevkDurumu(ctx, id)
+  }
+  /** Kalem kalem: depodan ne kadar, üretimden ne kadar (0056). */
+  karsilamaPlani(ctx: TenantCtx, id: string): Promise<KarsilamaSatiri[]> {
+    return this.depo.karsilamaPlani(ctx, id)
   }
 
   async ekle(ctx: TenantCtx, girdi: YeniSiparis): Promise<Siparis> {
@@ -305,3 +343,82 @@ export const sonrakiSiparisNo = (
 /** Numara çakışması mı? Ekran bir kez daha denemek için buna bakıyor. */
 export const siparisNoCakistiMi = (hata: unknown): boolean =>
   hata instanceof Error && hata.name === 'SiparisNoCakismasiError'
+
+// ── Onay zinciri · saf mantık (0053) ───────────────────────────────────────
+// Ekran da, portal da (A4C3) bu hesabı kullanacak. İki yerde yazılırsa
+// ayrışır ve biri "onaylandı" derken diğeri "bekliyor" der.
+
+export type AdimDurumu = {
+  adim: OnayAdimi
+  /** Bu revizyon için SON karar. Eklemeli defterde son satır geçerlidir. */
+  sonKarar?: Onay
+  /** Bloklayan adım mı ve henüz olumlu bir karar yok mu. */
+  bekliyor: boolean
+}
+
+/**
+ * Zincirin şu andaki hâli.
+ *
+ * ⚠️ `revizyonNo` ZORUNLU ve hesabın kalbi burada: 200 koliyi onaylamak,
+ * 350 koliyi onaylamak değildir. Sipariş revize edilince eski kararlar
+ * kendiliğinden düşer.
+ */
+export const onayDurumu = (
+  adimlar: readonly OnayAdimi[],
+  onaylar: readonly Onay[],
+  revizyonNo: number,
+): AdimDurumu[] =>
+  [...adimlar]
+    .filter(a => a.aktif)
+    .sort((a, b) => a.sira - b.sira)
+    .map(adim => {
+      const buAdim = onaylar
+        .filter(o => o.adimKodu === adim.kod && o.revizyonNo === revizyonNo)
+        .sort((a, b) => a.zaman.localeCompare(b.zaman))
+      const sonKarar = buAdim[buAdim.length - 1]
+      const olumlu = sonKarar?.karar === 'Olumlu' || sonKarar?.karar === 'Şartlı'
+      const d: AdimDurumu = { adim, bekliyor: adim.bloklar && !olumlu }
+      if(sonKarar) d.sonKarar = sonKarar
+      return d
+    })
+
+/** Zincir tamam mı — 0053'teki `app.siparis_onayi_tam()` ile AYNI kural. */
+export const onayTamamMi = (durumlar: readonly AdimDurumu[]): boolean =>
+  durumlar.every(d => !d.bekliyor)
+
+/** Ekranın üst şeridindeki tek cümle. */
+export const onayOzeti = (durumlar: readonly AdimDurumu[]): string => {
+  if(durumlar.length === 0) return 'Onay zinciri kurulmamış.'
+  const bekleyen = durumlar.filter(d => d.bekliyor).map(d => d.adim.ad)
+  if(bekleyen.length > 0) return `Bekleyen onay: ${bekleyen.join(', ')}`
+  const olumsuz = durumlar.filter(d => d.sonKarar?.karar === 'Olumsuz')
+  if(olumsuz.length > 0){
+    return `Zincir tamam, ama olumsuz görüş var: ${olumsuz.map(d => d.adim.ad).join(', ')}`
+  }
+  return 'Zincir tamam — sipariş onaylanabilir.'
+}
+
+/**
+ * Müşteriye söz verilen tarih: bu revizyonun kararlarındaki EN GEÇ tarih.
+ *
+ * En erkeni almak, tutamayacağımız bir tarihi müşteriye söylemek olurdu.
+ * 0053'teki tetik de aynı hesabı yapıyor.
+ */
+export const sozVerilenTarih = (
+  onaylar: readonly Onay[], revizyonNo: number,
+): string | undefined => {
+  const tarihler = onaylar
+    .filter(o => o.revizyonNo === revizyonNo && o.sozTarihi)
+    .map(o => o.sozTarihi as string)
+    .sort()
+  return tarihler[tarihler.length - 1]
+}
+
+/** "Müşteri 02.10 istedi, biz 05.10 dedik" — gecikme var mı. */
+export const sozGecikmesi = (siparis: Siparis): number | undefined => {
+  if(!siparis.teslimTarihi || !siparis.sozVerilenTarih) return undefined
+  const gun = 86400000
+  const fark = (new Date(`${siparis.sozVerilenTarih}T00:00:00`).getTime()
+    - new Date(`${siparis.teslimTarihi}T00:00:00`).getTime()) / gun
+  return Math.round(fark)
+}

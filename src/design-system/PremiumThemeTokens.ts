@@ -459,9 +459,9 @@ export const PREMIUM_THEME_TOKENS: Record<ThemeMode, PremiumThemeTokens> = {
       glass: 'saturate(160%) blur(14px)'
     },
     radius: {
-      surface: '8px',
-      control: '6px',
-      modal: '8px',
+      surface: '0',
+      control: '0',
+      modal: '0',
       pill: '999px'
     },
     typography: {
@@ -666,9 +666,9 @@ export const PREMIUM_THEME_TOKENS: Record<ThemeMode, PremiumThemeTokens> = {
       glass: 'saturate(150%) blur(16px)'
     },
     radius: {
-      surface: '8px',
-      control: '6px',
-      modal: '8px',
+      surface: '0',
+      control: '0',
+      modal: '0',
       pill: '999px'
     },
     typography: {

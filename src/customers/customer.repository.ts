@@ -25,6 +25,15 @@ export type Musteri = {
   ad: string
   vergiNo?: string
   vergiDairesi?: string
+  /** Faturada yazan resmî ünvan. `ad` günlük kısa addır; ikisi farklı olabilir. */
+  resmiUnvan?: string
+  il?: string
+  ilce?: string
+  /** Kayıtlı Elektronik Posta — firmanın resmî tebligat adresi. */
+  kepAdresi?: string
+  /** e-Fatura mükellefi mi. BOŞ = bilinmiyor; `efaturaKontrolTarihi` boşsa bayrağa güvenilmez. */
+  efaturaMukellefi?: boolean
+  efaturaKontrolTarihi?: string
   yetkili?: string
   telefon?: string
   eposta?: string
@@ -43,6 +52,12 @@ export type MusteriGirdisi = {
   ad: string
   vergiNo?: string
   vergiDairesi?: string
+  resmiUnvan?: string
+  il?: string
+  ilce?: string
+  kepAdresi?: string
+  efaturaMukellefi?: boolean
+  efaturaKontrolTarihi?: string
   yetkili?: string
   telefon?: string
   eposta?: string
@@ -118,6 +133,38 @@ export type SiparisPenceresi = {
   kaynak: 'nokta' | 'musteri' | 'yok'
 }
 
+/**
+ * Müşteri portalına giriş yetkisi olan kişi (0054).
+ *
+ * ⚠️ PAROLA YOK. Giriş e-posta ile tek kullanımlık bağlantıyla oluyor;
+ * burada yalnız "bu e-posta hangi müşteri kartına ait" yazıyor. Bu projenin
+ * kuralı: parola hiçbir zaman ne istenir ne saklanır.
+ */
+export type PortalKullanicisi = {
+  id: string
+  musteriId: string
+  eposta: string
+  adSoyad?: string
+  aktif: boolean
+  /**
+   * Yazabileceği teslim noktaları. BOŞ DİZİ = MERKEZ, yani müşterinin
+   * BÜTÜN noktaları. Emrah: "Duruma göre şubede sipariş verebilir, merkezde."
+   *
+   * ⚠️ Boşluğun anlamı "hiçbiri" değil "hepsi" — kolayca ters anlaşılan bir
+   * karar, o yüzden hem burada hem 0054'te yazılı.
+   */
+  noktaIdler: string[]
+  sonGiris?: string
+}
+
+export type PortalKullanicisiGirdisi = {
+  musteriId: string
+  eposta: string
+  adSoyad?: string
+  /** Boş bırakılırsa MERKEZ: bütün noktalar. */
+  noktaIdler?: string[]
+}
+
 export interface MusteriDeposu {
   /** Pasifler de dahil hepsi; süzmeyi ekran yapar. */
   hepsi(ctx: TenantCtx): Promise<Musteri[]>
@@ -145,6 +192,14 @@ export interface MusteriDeposu {
   /** Bir noktanın bir kalem için o tarihteki geçerli fiyatı. Yoksa boş. */
   gecerliFiyat(ctx: TenantCtx, noktaId: string, kalemId: string, tarih?: string): Promise<number | undefined>
   pencere(ctx: TenantCtx, noktaId: string): Promise<SiparisPenceresi>
+
+  /** Portal erişimi (0054). */
+  portalKullanicilari(ctx: TenantCtx, musteriId: string): Promise<PortalKullanicisi[]>
+  portalErisimiVer(ctx: TenantCtx, girdi: PortalKullanicisiGirdisi): Promise<PortalKullanicisi>
+  /** Erişimi kapatma / açma. Silme YOK: kimin ne zaman yetkisi vardı, kalsın. */
+  portalErisimiDegistir(ctx: TenantCtx, id: string, aktif: boolean): Promise<PortalKullanicisi>
+  /** Yazabileceği noktaları yeniden ayarlar. Boş dizi = merkez (hepsi). */
+  portalNoktalariAyarla(ctx: TenantCtx, id: string, noktaIdler: readonly string[]): Promise<PortalKullanicisi>
 }
 
 export class MusteriKoduCakismasiError extends Error {
@@ -186,6 +241,12 @@ type MusteriSatiri = {
   name: string
   tax_number: string | null
   tax_office: string | null
+  legal_name: string | null
+  city: string | null
+  district: string | null
+  kep_address: string | null
+  efatura_user: boolean | null
+  efatura_checked_on: string | null
   contact_name: string | null
   phone: string | null
   email: string | null
@@ -200,7 +261,7 @@ type MusteriSatiri = {
 // ⚠️ TEK PARÇA METİN OLMAK ZORUNDA. `+` ile birleştirilirse supabase-js'in
 // tip çözücüsü listeyi okuyamıyor, `data`yı `GenericStringError[]` sayıyor ve
 // aşağıdaki dönüşüm TS2352 ile reddediliyor. Satır uzun ama bölünemez.
-const MUSTERI_SUTUNLARI = 'id, code, name, tax_number, tax_office, contact_name, phone, email, address, payment_term_days, order_cutoff_time, delivery_lead_days, notes, is_active'
+const MUSTERI_SUTUNLARI = 'id, code, name, tax_number, tax_office, legal_name, city, district, kep_address, efatura_user, efatura_checked_on, contact_name, phone, email, address, payment_term_days, order_cutoff_time, delivery_lead_days, notes, is_active'
 
 const musteriyeCevir = (s: MusteriSatiri): Musteri => ({
   id: s.id,
@@ -208,6 +269,12 @@ const musteriyeCevir = (s: MusteriSatiri): Musteri => ({
   ad: s.name,
   vergiNo: bosaCevir(s.tax_number),
   vergiDairesi: bosaCevir(s.tax_office),
+  resmiUnvan: bosaCevir(s.legal_name),
+  il: bosaCevir(s.city),
+  ilce: bosaCevir(s.district),
+  kepAdresi: bosaCevir(s.kep_address),
+  efaturaMukellefi: s.efatura_user ?? undefined,
+  efaturaKontrolTarihi: bosaCevir(s.efatura_checked_on),
   yetkili: bosaCevir(s.contact_name),
   telefon: bosaCevir(s.phone),
   eposta: bosaCevir(s.email),
@@ -434,6 +501,106 @@ export class PostgresMusteriDeposu implements MusteriDeposu {
       kaynak: (satir.kaynak === 'nokta' || satir.kaynak === 'musteri') ? satir.kaynak : 'yok',
     }
   }
+
+  // ── Portal erişimi (0054) ───────────────────────────────────────────────
+  async portalKullanicilari(_ctx: TenantCtx, musteriId: string): Promise<PortalKullanicisi[]> {
+    const { data, error } = await this.client
+      .from('portal_user').select(PORTAL_SUTUNLARI)
+      .eq('customer_id', musteriId).order('email')
+    if(error) throw new Error(`Portal kullanıcıları okunamadı: ${error.message}`)
+    return ((data as unknown as PortalSatiri[] | null) ?? []).map(portalaCevir)
+  }
+
+  async portalErisimiVer(
+    ctx: TenantCtx, girdi: PortalKullanicisiGirdisi,
+  ): Promise<PortalKullanicisi> {
+    const { data, error } = await this.client
+      .from('portal_user')
+      .insert({
+        tenant_id: ctx.tenantId,
+        customer_id: girdi.musteriId,
+        // ⚠️ Küçük harf. Veritabanı da bunu şart koşuyor (0054) ve giriş
+        // e-postayla oluyor: "Ali@" ile "ali@" iki ayrı kullanıcı olsaydı
+        // biri asla giremezdi.
+        email: girdi.eposta.trim().toLowerCase(),
+        full_name: bosaCevir(girdi.adSoyad) ?? null,
+      })
+      .select(PORTAL_SUTUNLARI).single()
+    if(error){
+      if(error.code === TEKILLIK_IHLALI){
+        throw new Error(
+          `"${girdi.eposta.trim().toLowerCase()}" için zaten bir portal erişimi var. `
+          + 'Bir e-posta aynı anda tek müşteri kartına bağlanabilir.',
+        )
+      }
+      throw new Error(`Portal erişimi verilemedi: ${error.message}`)
+    }
+    const olusan = portalaCevir(data as unknown as PortalSatiri)
+    const noktalar = girdi.noktaIdler ?? []
+    if(noktalar.length === 0) return olusan
+    return this.portalNoktalariAyarla(ctx, olusan.id, noktalar)
+  }
+
+  async portalErisimiDegistir(
+    _ctx: TenantCtx, id: string, aktif: boolean,
+  ): Promise<PortalKullanicisi> {
+    const { data, error } = await this.client
+      .from('portal_user').update({ is_active: aktif }).eq('id', id)
+      .select(PORTAL_SUTUNLARI).single()
+    if(error) throw new Error(`Portal erişimi değiştirilemedi: ${error.message}`)
+    return portalaCevir(data as unknown as PortalSatiri)
+  }
+
+  async portalNoktalariAyarla(
+    ctx: TenantCtx, id: string, noktaIdler: readonly string[],
+  ): Promise<PortalKullanicisi> {
+    // Kısıt satırları TAMAMEN yenileniyor. Tek tek eklemek/çıkarmak, ekranla
+    // veritabanının ayrışmasına açık kapı bırakırdı.
+    const { error: silme } = await this.client
+      .from('portal_user_point').delete().eq('portal_user_id', id)
+    if(silme) throw new Error(`Nokta kısıtları temizlenemedi: ${silme.message}`)
+
+    if(noktaIdler.length > 0){
+      const { error } = await this.client.from('portal_user_point').insert(
+        noktaIdler.map(n => ({
+          portal_user_id: id, delivery_point_id: n, tenant_id: ctx.tenantId,
+        })),
+      )
+      if(error) throw new Error(`Nokta kısıtları yazılamadı: ${error.message}`)
+    }
+
+    const { data, error } = await this.client
+      .from('portal_user').select(PORTAL_SUTUNLARI).eq('id', id).single()
+    if(error) throw new Error(`Portal kullanıcısı okunamadı: ${error.message}`)
+    return portalaCevir(data as unknown as PortalSatiri)
+  }
+}
+
+// ⚠️ TEK PARÇA METİN (tuzak 40).
+const PORTAL_SUTUNLARI = 'id, customer_id, email, full_name, is_active, last_login_at, portal_user_point(delivery_point_id)'
+
+type PortalSatiri = {
+  id: string
+  customer_id: string
+  email: string
+  full_name: string | null
+  is_active: boolean
+  last_login_at: string | null
+  portal_user_point: Array<{ delivery_point_id: string }> | null
+}
+
+const portalaCevir = (s: PortalSatiri): PortalKullanicisi => {
+  const k: PortalKullanicisi = {
+    id: s.id,
+    musteriId: s.customer_id,
+    eposta: s.email,
+    aktif: s.is_active,
+    // Boş dizi = MERKEZ (bütün noktalar). Bkz. tipteki uyarı.
+    noktaIdler: (s.portal_user_point ?? []).map(x => x.delivery_point_id),
+  }
+  const ad = bosaCevir(s.full_name);      if(ad !== undefined) k.adSoyad = ad
+  const g  = bosaCevir(s.last_login_at);  if(g  !== undefined) k.sonGiris = g
+  return k
 }
 
 const bosSayi = (deger?: number) =>
@@ -448,6 +615,12 @@ const musteriAlanlari = (girdi: MusteriGirdisi) => ({
   name: girdi.ad.trim(),
   tax_number: bosaCevir(girdi.vergiNo) ?? null,
   tax_office: bosaCevir(girdi.vergiDairesi) ?? null,
+  legal_name: bosaCevir(girdi.resmiUnvan) ?? null,
+  city: bosaCevir(girdi.il) ?? null,
+  district: bosaCevir(girdi.ilce) ?? null,
+  kep_address: bosaCevir(girdi.kepAdresi) ?? null,
+  efatura_user: girdi.efaturaMukellefi ?? null,
+  efatura_checked_on: bosaCevir(girdi.efaturaKontrolTarihi) ?? null,
   contact_name: bosaCevir(girdi.yetkili) ?? null,
   phone: bosaCevir(girdi.telefon) ?? null,
   email: bosaCevir(girdi.eposta) ?? null,

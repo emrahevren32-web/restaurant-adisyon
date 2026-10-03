@@ -23,12 +23,14 @@ import { getSupabase, isSupabaseConfigured } from '../core/supabase'
 import { resolveStockRepositoryMode } from '../core/stock/index'
 import { depoBaglamiKur, type DepoBaglami } from '../warehouse/warehouse.context'
 import { PostgresStokKatalogu, type KatalogKalemi } from '../warehouse/warehouse.catalog'
+import { gommeKodu, portalBaglantisi } from '../portal/portal-giris'
 import {
   PostgresMusteriDeposu,
   type Fiyat,
   type FiyatGirdisi,
   type Musteri,
   type MusteriGirdisi,
+  type PortalKullanicisi,
   type SiparisPenceresi,
   type TeslimNoktasi,
   type TeslimNoktasiGirdisi,
@@ -47,11 +49,15 @@ const hataMetni = (hata: unknown) =>
   hata instanceof Error ? hata.message : 'Beklenmeyen bir hata oluştu.'
 
 const bugun = () => new Date().toLocaleDateString('sv-SE')
+const tarih = (d?: string) =>
+  (d ? new Date(`${d}T00:00:00`).toLocaleDateString('tr-TR') : '—')
 
 const BOS_MUSTERI: MusteriGirdisi = { kod: '', ad: '' }
 
 const musteriGirdisi = (m: Musteri): MusteriGirdisi => ({
   kod: m.kod, ad: m.ad, vergiNo: m.vergiNo, vergiDairesi: m.vergiDairesi,
+  resmiUnvan: m.resmiUnvan, il: m.il, ilce: m.ilce, kepAdresi: m.kepAdresi,
+  efaturaMukellefi: m.efaturaMukellefi, efaturaKontrolTarihi: m.efaturaKontrolTarihi,
   yetkili: m.yetkili, telefon: m.telefon, eposta: m.eposta, adres: m.adres,
   vadeGunu: m.vadeGunu, kesimSaati: m.kesimSaati,
   teslimGunFarki: m.teslimGunFarki, not: m.not,
@@ -83,7 +89,8 @@ export default function Musteriler({ currentUser }: Props){
   const [arama, setArama] = React.useState('')
   const [pasifleriGoster, setPasifleriGoster] = React.useState(false)
   const [secili, setSecili] = React.useState<Musteri | null>(null)
-  const [sekme, setSekme] = React.useState<'noktalar' | 'fiyatlar'>('noktalar')
+  const [sekme, setSekme] = React.useState<'noktalar' | 'fiyatlar' | 'portal'>('noktalar')
+  const [portalcilar, setPortalcilar] = React.useState<PortalKullanicisi[]>([])
   const [noktalar, setNoktalar] = React.useState<TeslimNoktasi[]>([])
   const [fiyatlar, setFiyatlar] = React.useState<Fiyat[]>([])
   const [pencereler, setPencereler] = React.useState<Record<string, SiparisPenceresi>>({})
@@ -135,12 +142,14 @@ export default function Musteriler({ currentUser }: Props){
    */
   const ayrintiyiYukle = React.useCallback(async (musteri: Musteri, ctx: DepoBaglami) => {
     if(!servis) return
-    const [n, f] = await Promise.all([
+    const [n, f, p] = await Promise.all([
       servis.noktalar(ctx.ctx, musteri.id),
       servis.fiyatlar(ctx.ctx, musteri.id),
+      servis.portalKullanicilari(ctx.ctx, musteri.id),
     ])
     setNoktalar(n)
     setFiyatlar(f)
+    setPortalcilar(p)
     const cozulen: Record<string, SiparisPenceresi> = {}
     for(const nokta of n){
       cozulen[nokta.id] = await servis.pencere(ctx.ctx, nokta.id)
@@ -156,6 +165,34 @@ export default function Musteriler({ currentUser }: Props){
     setHata('')
     if(!baglam) return
     try{ await ayrintiyiYukle(musteri, baglam) }
+    catch (e) { setHata(hataMetni(e)) }
+  }
+
+  // ── Portal erişimi (0054) ─────────────────────────────────────────────
+  // ⚠️ Hiçbir yerde PAROLA yok. Giriş, bu e-postaya gönderilen tek
+  // kullanımlık bağlantıyla oluyor.
+  const portalErisimiVer = async (eposta: string, adSoyad: string, noktaIdler: string[]) => {
+    if(!servis || !baglam || !secili) return
+    try{
+      await servis.portalErisimiVer(baglam.ctx, {
+        musteriId: secili.id, eposta,
+        ...(adSoyad.trim() ? { adSoyad: adSoyad.trim() } : {}),
+        noktaIdler,
+      })
+      setHata('')
+      await yenile()
+    } catch (e) { setHata(hataMetni(e)) }
+  }
+
+  const portalErisimiDegistir = async (id: string, aktif: boolean) => {
+    if(!servis || !baglam) return
+    try{ await servis.portalErisimiDegistir(baglam.ctx, id, aktif); setHata(''); await yenile() }
+    catch (e) { setHata(hataMetni(e)) }
+  }
+
+  const portalNoktalariAyarla = async (id: string, noktaIdler: string[]) => {
+    if(!servis || !baglam) return
+    try{ await servis.portalNoktalariAyarla(baglam.ctx, id, noktaIdler); setHata(''); await yenile() }
     catch (e) { setHata(hataMetni(e)) }
   }
 
@@ -428,6 +465,19 @@ export default function Musteriler({ currentUser }: Props){
                   <span>Vergi no</span><strong>{secili.vergiNo ?? '—'}</strong>
                 </div>
                 <div className="karar-ozet-satir">
+                  <span>e-Fatura mükellefi</span>
+                  <strong>
+                    {/* ⚠️ Kontrol tarihi yoksa bayrağa GÜVENMİYORUZ ve bunu
+                        yazıyoruz. Sessizce "hayır" göstermek, eski bir
+                        bilgiyi bugünkü gerçek gibi sunmak olurdu. */}
+                    {secili.efaturaMukellefi === undefined
+                      ? 'bilinmiyor'
+                      : secili.efaturaKontrolTarihi
+                        ? `${secili.efaturaMukellefi ? 'evet' : 'hayır'} · ${tarih(secili.efaturaKontrolTarihi)}`
+                        : `${secili.efaturaMukellefi ? 'evet' : 'hayır'} (tarihsiz — güvenilmez)`}
+                  </strong>
+                </div>
+                <div className="karar-ozet-satir">
                   <span>Ödeme vadesi</span>
                   <strong>
                     {secili.vadeGunu === undefined
@@ -460,7 +510,25 @@ export default function Musteriler({ currentUser }: Props){
                 >
                   Fiyatlar ({fiyatlar.length})
                 </button>
+                <button
+                  className={`btn ${sekme === 'portal' ? 'primary' : ''}`}
+                  type="button"
+                  onClick={() => setSekme('portal')}
+                >
+                  Portal erişimi ({portalcilar.filter(p => p.aktif).length})
+                </button>
               </div>
+
+              {sekme === 'portal' && (
+                <PortalPaneli
+                  kullanicilar={portalcilar}
+                  noktalar={aktifNoktalar}
+                  yazabilir={yazabilir}
+                  onVer={portalErisimiVer}
+                  onDegistir={portalErisimiDegistir}
+                  onNoktalar={portalNoktalariAyarla}
+                />
+              )}
 
               {sekme === 'noktalar' && (
                 <>
@@ -623,6 +691,207 @@ type MusteriFormuProps = {
   onKaydet: () => void
 }
 
+// ── Portal erişimi (0054) ──────────────────────────────────────────────────
+/**
+ * "MİYOP bana bir form linki verecek, ben o linki kendi siteme ekleyeceğim."
+ *
+ * Bu panel o bağlantıyı KİMİN kullanabileceğini belirliyor.
+ *
+ * ⚠️ PAROLA YOK ve sorulmuyor. Giriş, buraya yazılan e-postaya gönderilen
+ * tek kullanımlık bağlantıyla oluyor: unutulacak, sızacak, sıfırlanacak bir
+ * parola yok. E-posta karttan silinince erişim o an kapanır.
+ */
+function PortalPaneli({
+  kullanicilar, noktalar, yazabilir, onVer, onDegistir, onNoktalar,
+}: {
+  kullanicilar: PortalKullanicisi[]
+  noktalar: TeslimNoktasi[]
+  yazabilir: boolean
+  onVer: (eposta: string, adSoyad: string, noktaIdler: string[]) => void
+  onDegistir: (id: string, aktif: boolean) => void
+  onNoktalar: (id: string, noktaIdler: string[]) => void
+}){
+  const [form, setForm] = React.useState(false)
+  const [eposta, setEposta] = React.useState('')
+  const [adSoyad, setAdSoyad] = React.useState('')
+  const [secilenler, setSecilenler] = React.useState<string[]>([])
+  const [acik, setAcik] = React.useState<string | null>(null)
+
+  const noktaAdi = (id: string) => noktalar.find(n => n.id === id)?.ad ?? id
+
+  const kapsam = (k: PortalKullanicisi) =>
+    // ⚠️ BOŞ DİZİ = MERKEZ (bütün noktalar), "hiçbiri" DEĞİL. Bu, ekranda
+    // açıkça yazılmazsa ters anlaşılan tek şey.
+    k.noktaIdler.length === 0
+      ? 'Merkez — bütün noktalar'
+      : k.noktaIdler.map(noktaAdi).join(', ')
+
+  return (
+    <>
+      <p className="muted detail-hint">
+        Form bağlantısı: <code>{portalBaglantisi(window.location.origin)}</code>
+        {' — '}bu bağlantıyı kendi sitenize koyabilirsiniz.
+        {' '}
+        <button
+          className="btn ac" type="button"
+          onClick={() => {
+            // ⚠️ Pano yazımı bazı tarayıcılarda izin ister ve reddedilebilir.
+            // Sessizce başarısız olmasın: bağlantı zaten ekranda yazılı.
+            void navigator.clipboard?.writeText(gommeKodu(window.location.origin))
+          }}
+        >
+          Gömme kodunu kopyala
+        </button>
+      </p>
+
+      <p className="muted detail-hint">
+        Portal kullanıcısı bu müşterinin siparişlerini girer ve izler.
+        <strong> Fiyat görmez.</strong> Giriş parolayla değil, bu e-postaya
+        gönderilen tek kullanımlık bağlantıyla yapılır. Gelen sipariş
+        doğrudan <strong>Onay Bekliyor</strong> olarak düşer ve onay
+        zincirinden geçer.
+      </p>
+
+      {yazabilir && !form && (
+        <button className="btn" type="button" onClick={() => {
+          setForm(true); setEposta(''); setAdSoyad(''); setSecilenler([])
+        }}>
+          + Portal erişimi ver
+        </button>
+      )}
+
+      {form && (
+        <form
+          className="stacked-form"
+          onSubmit={e => {
+            e.preventDefault()
+            onVer(eposta, adSoyad, secilenler)
+            setForm(false)
+          }}
+        >
+          <label>E-posta *
+            <input
+              type="email" value={eposta} required
+              placeholder="satinalma@musteri.com"
+              onChange={e => setEposta(e.target.value)}
+            />
+          </label>
+          <label>Ad soyad
+            <input value={adSoyad} onChange={e => setAdSoyad(e.target.value)} />
+          </label>
+          <fieldset>
+            <legend>Hangi noktalara sipariş verebilir</legend>
+            <p className="muted">
+              Hiçbirini seçmezseniz <strong>merkez</strong> olur: müşterinin
+              bütün noktalarına sipariş verebilir.
+            </p>
+            {noktalar.map(n => (
+              <label key={n.id} className="check-row">
+                <input
+                  type="checkbox" checked={secilenler.includes(n.id)}
+                  onChange={e => setSecilenler(
+                    e.target.checked
+                      ? [...secilenler, n.id]
+                      : secilenler.filter(x => x !== n.id),
+                  )}
+                /> {n.ad}
+              </label>
+            ))}
+          </fieldset>
+          <div className="form-actions">
+            <button className="btn primary" type="submit">Erişim ver</button>
+            <button className="btn" type="button" onClick={() => setForm(false)}>Vazgeç</button>
+          </div>
+        </form>
+      )}
+
+      {kullanicilar.length === 0 && (
+        <p className="muted detail-hint">
+          Bu müşterinin portal erişimi yok — siparişleri telefonla alınıyor.
+        </p>
+      )}
+
+      {kullanicilar.length > 0 && (
+        <div className="table-wrap">
+          <table className="data-table compact">
+            <thead>
+              <tr><th>E-posta</th><th>Ad</th><th>Kapsam</th><th>Durum</th><th></th></tr>
+            </thead>
+            <tbody>
+              {kullanicilar.map(k => (
+                <React.Fragment key={k.id}>
+                  <tr>
+                    <td>{k.eposta}</td>
+                    <td className="muted">{k.adSoyad ?? '—'}</td>
+                    <td className="muted">{kapsam(k)}</td>
+                    <td>
+                      <span className={k.aktif ? 'success-pill' : 'muted-pill'}>
+                        {k.aktif ? 'açık' : 'kapalı'}
+                      </span>
+                    </td>
+                    <td>
+                      {yazabilir && (
+                        <>
+                          <button
+                            className="btn ac" type="button"
+                            onClick={() => {
+                              setAcik(acik === k.id ? null : k.id)
+                              setSecilenler([...k.noktaIdler])
+                            }}
+                          >
+                            Noktalar
+                          </button>
+                          {' '}
+                          <button
+                            className="btn ac" type="button"
+                            onClick={() => onDegistir(k.id, !k.aktif)}
+                          >
+                            {k.aktif ? 'Kapat' : 'Aç'}
+                          </button>
+                        </>
+                      )}
+                    </td>
+                  </tr>
+                  {acik === k.id && (
+                    <tr>
+                      <td colSpan={5}>
+                        {noktalar.map(n => (
+                          <label key={n.id} className="check-row">
+                            <input
+                              type="checkbox" checked={secilenler.includes(n.id)}
+                              onChange={e => setSecilenler(
+                                e.target.checked
+                                  ? [...secilenler, n.id]
+                                  : secilenler.filter(x => x !== n.id),
+                              )}
+                            /> {n.ad}
+                          </label>
+                        ))}
+                        <div className="form-actions">
+                          <button
+                            className="btn primary" type="button"
+                            onClick={() => { onNoktalar(k.id, secilenler); setAcik(null) }}
+                          >
+                            Kaydet
+                          </button>
+                          <span className="muted">
+                            Hiçbiri seçili değilse merkez olur.
+                          </span>
+                        </div>
+                      </td>
+                    </tr>
+                  )}
+                </React.Fragment>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      )}
+    </>
+  )
+}
+
+
 function MusteriFormu({ girdi, duzenleme, onDegis, onIptal, onKaydet }: MusteriFormuProps){
   const alan = (ek: Partial<MusteriGirdisi>) => onDegis({ ...girdi, ...ek })
 
@@ -647,6 +916,56 @@ function MusteriFormu({ girdi, duzenleme, onDegis, onIptal, onKaydet }: MusteriF
         <label>Vergi dairesi
           <input value={girdi.vergiDairesi ?? ''} onChange={e => alan({ vergiDairesi: e.target.value })} />
         </label>
+        {/* ── Fatura bilgileri (0052) ───────────────────────────────────
+            Fatura HENÜZ kesilmiyor. Bu alanlar bugün doldurulsun diye var:
+            bir yıl canlı veriden sonra geriye dönük doldurmak pahalıdır. */}
+        <label>Resmî ünvan
+          <input
+            value={girdi.resmiUnvan ?? ''}
+            placeholder="Faturada yazan tam ünvan"
+            onChange={e => alan({ resmiUnvan: e.target.value })}
+          />
+        </label>
+        <div className="form-row">
+          <label>İl
+            <input value={girdi.il ?? ''} onChange={e => alan({ il: e.target.value })} />
+          </label>
+          <label>İlçe
+            <input value={girdi.ilce ?? ''} onChange={e => alan({ ilce: e.target.value })} />
+          </label>
+        </div>
+        <label>KEP adresi
+          <input
+            value={girdi.kepAdresi ?? ''}
+            placeholder="firma@hs01.kep.tr"
+            onChange={e => alan({ kepAdresi: e.target.value })}
+          />
+        </label>
+        <label>e-Fatura mükellefi
+          <select
+            value={girdi.efaturaMukellefi === undefined ? '' : girdi.efaturaMukellefi ? 'e' : 'h'}
+            onChange={e => alan({
+              efaturaMukellefi: e.target.value === '' ? undefined : e.target.value === 'e',
+            })}
+          >
+            <option value="">bilinmiyor</option>
+            <option value="e">evet</option>
+            <option value="h">hayır</option>
+          </select>
+        </label>
+        {girdi.efaturaMukellefi !== undefined && (
+          <label>Kontrol tarihi *
+            <input
+              type="date"
+              value={girdi.efaturaKontrolTarihi ?? ''}
+              onChange={e => alan({ efaturaKontrolTarihi: e.target.value })}
+            />
+            <small className="muted">
+              Mükellefiyet sonradan başlar; tarihsiz bir &quot;hayır&quot;
+              bir yıl sonra yanlıştır.
+            </small>
+          </label>
+        )}
         <label>Yetkili
           <input value={girdi.yetkili ?? ''} onChange={e => alan({ yetkili: e.target.value })} />
         </label>

@@ -18,6 +18,7 @@ import type {
   SiparisPenceresi,
   TeslimNoktasi,
   TeslimNoktasiGirdisi,
+  PortalKullanicisi, PortalKullanicisiGirdisi,
 } from './customer.repository'
 
 export class MusteriDogrulamaError extends Error {
@@ -54,6 +55,59 @@ const saatDogrula = (deger: string | undefined, ad: string) => {
     throw new MusteriDogrulamaError(`${ad} SS:DD biçiminde olmalı (örnek 06:00).`)
   }
   return s
+}
+
+/**
+ * VKN 10, TCKN 11 hane ve yalnız rakam.
+ *
+ * Neden burada duruyor: yanlış uzunluktaki bir numara ancak FATURA
+ * KESİLİRKEN patlar. O an ne müşteri kartını açan kişi oradadır, ne de
+ * hatanın nereden geldiği bellidir. Girişte durdurmak ucuz.
+ */
+export const VERGI_NO_DESENI = /^[0-9]{10,11}$/
+
+const vergiNoDogrula = (d?: string): string | undefined => {
+  const v = kirp(d)
+  if(v === '') return undefined
+  if(!VERGI_NO_DESENI.test(v)){
+    throw new MusteriDogrulamaError(
+      'Vergi numarası 10 hane (VKN) ya da 11 hane (TCKN) olmalı ve yalnız '
+      + 'rakam içermeli.',
+    )
+  }
+  return v
+}
+
+/**
+ * KEP, firmanın resmî tebligat adresidir — e-posta biçimindedir ama
+ * sıradan bir e-posta DEĞİLDİR. Biçimi aynı olduğu için aynı deseni
+ * kullanıyoruz; ayrımı kullanıcıya etiket anlatıyor.
+ */
+const kepDogrula = (d?: string): string | undefined => {
+  const v = kirp(d)
+  if(v === '') return undefined
+  if(!EPOSTA_DESENI.test(v)){
+    throw new MusteriDogrulamaError(
+      'KEP adresi geçersiz görünüyor (örnek: firma@hs01.kep.tr).',
+    )
+  }
+  return v
+}
+
+/**
+ * ⚠️ "e-Fatura mükellefi" bayrağı, KONTROL TARİHİ olmadan bir şey ifade
+ * etmez: mükellefiyet sonradan başlar, bir yıl önceki "hayır" bugün
+ * yanlıştır. Bu yüzden bayrak varsa tarih de zorunlu.
+ */
+const efaturaDogrula = (girdi: MusteriGirdisi): string | undefined => {
+  const t = kirp(girdi.efaturaKontrolTarihi)
+  if(girdi.efaturaMukellefi !== undefined && t === ''){
+    throw new MusteriDogrulamaError(
+      'e-Fatura mükellefiyeti işaretlendiyse kontrol tarihi de girilmeli. '
+      + 'Tarihsiz bir bayrak, ne zaman doğru olduğu bilinmeyen bir bilgidir.',
+    )
+  }
+  return t === '' ? undefined : t
 }
 
 export class MusteriServisi {
@@ -121,6 +175,56 @@ export class MusteriServisi {
     return this.depo.pencere(ctx, noktaId)
   }
 
+  // ── Portal erişimi (0054) ───────────────────────────────────────────────
+  portalKullanicilari(ctx: TenantCtx, musteriId: string): Promise<PortalKullanicisi[]> {
+    return this.depo.portalKullanicilari(ctx, musteriId)
+  }
+
+  async portalErisimiVer(
+    ctx: TenantCtx, girdi: PortalKullanicisiGirdisi,
+  ): Promise<PortalKullanicisi> {
+    return this.depo.portalErisimiVer(ctx, this.portalDogrula(girdi))
+  }
+
+  async portalErisimiDegistir(
+    ctx: TenantCtx, id: string, aktif: boolean,
+  ): Promise<PortalKullanicisi> {
+    return this.depo.portalErisimiDegistir(ctx, id, aktif)
+  }
+
+  async portalNoktalariAyarla(
+    ctx: TenantCtx, id: string, noktaIdler: readonly string[],
+  ): Promise<PortalKullanicisi> {
+    return this.depo.portalNoktalariAyarla(ctx, id, noktaIdler)
+  }
+
+  /**
+   * ⚠️ Bu doğrulamada PAROLA YOK ve olmayacak. Giriş e-posta ile tek
+   * kullanımlık bağlantıyla oluyor: unutulacak, sızacak, sıfırlanacak bir
+   * parola yok. Bu projenin kuralı da aynı — parola hiç istenmez.
+   */
+  portalDogrula(girdi: PortalKullanicisiGirdisi): PortalKullanicisiGirdisi {
+    const eposta = kirp(girdi.eposta).toLowerCase()
+    if(kirp(girdi.musteriId) === ''){
+      throw new MusteriDogrulamaError('Portal erişimi bir müşteri kartına bağlı olmalı.')
+    }
+    if(eposta === ''){
+      throw new MusteriDogrulamaError(
+        'E-posta zorunlu: giriş bu adrese gönderilen bağlantıyla yapılıyor.',
+      )
+    }
+    if(!EPOSTA_DESENI.test(eposta)){
+      throw new MusteriDogrulamaError('E-posta adresi geçersiz görünüyor.')
+    }
+    return {
+      ...girdi,
+      eposta,
+      adSoyad: kirp(girdi.adSoyad) || undefined,
+      // Yinelenen nokta kimliği, aynı kısıtı iki kez yazmaya çalışmak olurdu.
+      noktaIdler: [...new Set((girdi.noktaIdler ?? []).map(n => kirp(n)).filter(Boolean))],
+    }
+  }
+
   dogrula(girdi: MusteriGirdisi): MusteriGirdisi {
     const kod = kirp(girdi.kod)
     const ad = kirp(girdi.ad)
@@ -137,6 +241,9 @@ export class MusteriServisi {
       kod,
       ad,
       eposta: eposta === '' ? undefined : eposta,
+      vergiNo: vergiNoDogrula(girdi.vergiNo),
+      kepAdresi: kepDogrula(girdi.kepAdresi),
+      efaturaKontrolTarihi: efaturaDogrula(girdi),
       vadeGunu: gunDogrula(girdi.vadeGunu, 'Ödeme vadesi'),
       kesimSaati: saatDogrula(girdi.kesimSaati, 'Sipariş kesim saati'),
       teslimGunFarki: gunDogrula(girdi.teslimGunFarki, 'Teslim gün farkı'),

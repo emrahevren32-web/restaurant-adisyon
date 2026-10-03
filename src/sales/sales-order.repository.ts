@@ -14,10 +14,53 @@
 import type { SupabaseClient } from '@supabase/supabase-js'
 import type { TenantCtx } from '../core/context'
 import type { KalemSevkDurumu } from './sales-order-shipment'
+import type { KarsilamaSatiri } from './sales-order-production'
 
 export type SiparisDurumu =
-  | 'Taslak' | 'Onaylandı' | 'Hazırlanıyor' | 'Hazır'
+  | 'Taslak' | 'Onay Bekliyor' | 'Onaylandı' | 'Hazırlanıyor' | 'Hazır'
   | 'Kısmi Sevk' | 'Sevk Edildi' | 'Teslim Edildi' | 'İptal'
+
+/** Onay zincirinin bir adımının kararı (0053). */
+export type OnayKarari = 'Olumlu' | 'Olumsuz' | 'Şartlı'
+
+/**
+ * Zincirin bir adımı. `bloklar = true` ise ONAY, false ise GÖRÜŞ.
+ *
+ * Emrah'ın iki senaryosu (uzun zincir / tek karar verici) AYNI yapıyla
+ * kuruluyor: uzun zincir isteyen adımların hepsini `bloklar` yapar.
+ */
+export type OnayAdimi = {
+  id: string
+  kod: string
+  ad: string
+  sira: number
+  bloklar: boolean
+  izinKodu: string
+  aktif: boolean
+}
+
+export type Onay = {
+  id: string
+  siparisId: string
+  revizyonNo: number
+  adimKodu: string
+  karar: OnayKarari
+  not?: string
+  /** "Şu tarihe kadar hazır olur." Şartlı kararda ZORUNLU. */
+  sozTarihi?: string
+  karariVerenId?: string
+  karariVerenAd?: string
+  zaman: string
+}
+
+export type YeniOnay = {
+  siparisId: string
+  revizyonNo: number
+  adimKodu: string
+  karar: OnayKarari
+  not?: string
+  sozTarihi?: string
+}
 
 /** MIKTAR satırları değiştirir; LOJISTIK yalnız teslim bilgisini. */
 export type RevizyonTuru = 'MIKTAR' | 'LOJISTIK'
@@ -48,6 +91,12 @@ export type Siparis = {
   sevkTarihi?: string
   teslimTarihi?: string
   durum: SiparisDurumu
+  /**
+   * Onay zincirinin SÖZ VERDİĞİ teslim tarihi (0053). `teslimTarihi`
+   * müşterinin İSTEDİĞİ tarihtir; bu, mutfağın taahhüdü. İkisi ayrı
+   * duruyor ki sözün tutulup tutulmadığı ölçülebilsin.
+   */
+  sozVerilenTarih?: string
   guncelRevizyon: number
   not?: string
   olusturmaZamani: string
@@ -62,6 +111,12 @@ export type SiparisSatiri = {
   birim: string
   birimFiyat?: number
   paraBirimi?: string
+  /**
+   * Siparişin yazıldığı andaki KDV oranı (%) — DONMUŞ (0052). Kalemin oranı
+   * sonradan değişse bile bu satır değişmez; fiyat defterindeki kuralın
+   * aynısı. BOŞ = kalem kartında oran girilmemiş.
+   */
+  kdvOrani?: number
   revizyonNo: number
 }
 
@@ -189,6 +244,12 @@ export interface SiparisDeposu {
   olaylar(ctx: TenantCtx, siparisId: string): Promise<SiparisOlayi[]>
   /** Kalem kalem: sipariş / sevk edilmiş / KALAN (0051). */
   sevkDurumu(ctx: TenantCtx, siparisId: string): Promise<KalemSevkDurumu[]>
+  /** Kiracının onay zinciri (0053). */
+  onayAdimlari(ctx: TenantCtx): Promise<OnayAdimi[]>
+  onaylar(ctx: TenantCtx, siparisId: string): Promise<Onay[]>
+  onayVer(ctx: TenantCtx, girdi: YeniOnay): Promise<void>
+  /** Kalem kalem: depodan ne kadar, üretimden ne kadar (0056). */
+  karsilamaPlani(ctx: TenantCtx, siparisId: string): Promise<KarsilamaSatiri[]>
 }
 
 export class SiparisNoCakismasiError extends Error {
@@ -210,16 +271,19 @@ const TEKILLIK = '23505'
 // ⚠️ Sütun listeleri TEK PARÇA metin olmak zorunda (tuzak 40): `+` ile
 // birleştirilirse supabase-js tip çözücüsü okuyamıyor ve `data`
 // `GenericStringError[]` oluyor.
-const SIPARIS_SUTUNLARI = 'id, order_no, customer_id, delivery_point_id, order_date, requested_ship_date, requested_delivery_date, status, current_revision, note, created_at, customer(name), delivery_point(name)'
-const SATIR_SUTUNLARI = 'id, line_no, stock_item_id, qty, uom_code, unit_price, currency, note, revision_id, stock_item(name)'
+const SIPARIS_SUTUNLARI = 'id, order_no, customer_id, delivery_point_id, order_date, requested_ship_date, requested_delivery_date, promised_delivery_date, status, current_revision, note, created_at, customer(name), delivery_point(name)'
+const SATIR_SUTUNLARI = 'id, line_no, stock_item_id, qty, uom_code, unit_price, currency, vat_rate, note, revision_id, stock_item(name)'
 const REVIZYON_SUTUNLARI = 'id, revision_no, kind, source, reason, discrepancy_id, created_by, created_at'
 const FARK_SUTUNLARI = 'id, order_id, shipment_id, stock_item_id, kind, qty, uom_code, noticed_step, noticed_by, noticed_at, description, status, resolution, responsible_user_id, decision_note, decided_by, decided_at, stock_item(name), app_user!order_discrepancy_noticed_by_fkey(full_name)'
+const ADIM_SUTUNLARI = 'id, code, name, sort_order, required, permission_code, is_active'
+const ONAY_SUTUNLARI = 'id, order_id, revision_no, step_code, decision, note, promised_on, decided_by, decided_at, app_user(full_name)'
 const OLAY_SUTUNLARI = 'id, kind, from_status, to_status, detail, created_at'
 
 type SiparisSatir = {
   id: string; order_no: string; customer_id: string
   delivery_point_id: string | null; order_date: string
   requested_ship_date: string | null; requested_delivery_date: string | null
+  promised_delivery_date: string | null
   status: string; current_revision: number; note: string | null; created_at: string
   customer: { name: string } | null
   delivery_point: { name: string } | null
@@ -235,6 +299,7 @@ const siparise = (s: SiparisSatir): Siparis => ({
   siparisTarihi: s.order_date,
   sevkTarihi: bos(s.requested_ship_date),
   teslimTarihi: bos(s.requested_delivery_date),
+  sozVerilenTarih: bos(s.promised_delivery_date),
   durum: s.status as SiparisDurumu,
   guncelRevizyon: s.current_revision,
   not: bos(s.note),
@@ -245,6 +310,7 @@ type SatirSatiri = {
   id: string; line_no: number; stock_item_id: string
   qty: string | number; uom_code: string
   unit_price: string | number | null; currency: string | null
+  vat_rate: string | number | null
   note: string | null; revision_id: string
   stock_item: { name: string } | null
 }
@@ -258,6 +324,7 @@ const satira = (s: SatirSatiri, revizyonNo: number): SiparisSatiri => ({
   birim: s.uom_code,
   birimFiyat: sayi(s.unit_price),
   paraBirimi: bos(s.currency),
+  kdvOrani: sayi(s.vat_rate),
   revizyonNo,
 })
 
@@ -564,6 +631,109 @@ export class PostgresSiparisDeposu implements SiparisDeposu {
       const kalan = sayi(r.kalan)
       if(kalan !== undefined) d.kalan = kalan
       return d
+    })
+  }
+
+  // ── Onay zinciri (0053) ─────────────────────────────────────────────────
+  async onayAdimlari(_ctx: TenantCtx): Promise<OnayAdimi[]> {
+    const { data, error } = await this.client
+      .from('order_approval_step').select(ADIM_SUTUNLARI).order('sort_order')
+    if(error) throw new Error(`Onay adımları okunamadı: ${error.message}`)
+    type AdimSatiri = {
+      id: string; code: string; name: string; sort_order: number
+      required: boolean; permission_code: string; is_active: boolean
+    }
+    return ((data as unknown as AdimSatiri[] | null) ?? []).map(a => ({
+      id: a.id, kod: a.code, ad: a.name, sira: a.sort_order,
+      bloklar: a.required, izinKodu: a.permission_code, aktif: a.is_active,
+    }))
+  }
+
+  async onaylar(_ctx: TenantCtx, siparisId: string): Promise<Onay[]> {
+    const { data, error } = await this.client
+      .from('order_approval').select(ONAY_SUTUNLARI)
+      .eq('order_id', siparisId).order('decided_at')
+    if(error) throw new Error(`Onaylar okunamadı: ${error.message}`)
+    type OnaySatiri = {
+      id: string; order_id: string; revision_no: number; step_code: string
+      decision: string; note: string | null; promised_on: string | null
+      decided_by: string | null; decided_at: string
+      app_user: { full_name: string } | null
+    }
+    return ((data as unknown as OnaySatiri[] | null) ?? []).map(o => {
+      const k: Onay = {
+        id: o.id, siparisId: o.order_id, revizyonNo: o.revision_no,
+        adimKodu: o.step_code, karar: o.decision as OnayKarari,
+        zaman: o.decided_at,
+      }
+      const n = bos(o.note);                 if(n !== undefined) k.not = n
+      const t = bos(o.promised_on);          if(t !== undefined) k.sozTarihi = t
+      if(o.decided_by) k.karariVerenId = o.decided_by
+      const ad = bos(o.app_user?.full_name); if(ad !== undefined) k.karariVerenAd = ad
+      return k
+    })
+  }
+
+  /**
+   * ⚠️ `decided_by` KULLANICIDAN GELMİYOR, oturumdan geliyor.
+   *
+   * Emrah'ın kuralı farkta neyse onayda da o: kararı veren, kararı VEREN
+   * kişidir. Formda bir isim alanı olsaydı, herkes herkesin adına onay
+   * verebilirdi ve zincirin hiçbir anlamı kalmazdı.
+   */
+  async onayVer(ctx: TenantCtx, girdi: YeniOnay): Promise<void> {
+    const { error } = await this.client.from('order_approval').insert({
+      tenant_id: ctx.tenantId,
+      order_id: girdi.siparisId,
+      revision_no: girdi.revizyonNo,
+      step_code: girdi.adimKodu,
+      decision: girdi.karar,
+      note: bos(girdi.not) ?? null,
+      promised_on: bos(girdi.sozTarihi) ?? null,
+      decided_by: ctx.userId,
+    })
+    if(error) throw new Error(`Onay yazılamadı: ${error.message}`)
+  }
+
+  /**
+   * Karşılama planı — 0056'daki `public.siparis_karsilama_plani`.
+   *
+   * ⚠️ Hesap TABLODA. Depo bakiyesi ile başka siparişlerin rezervi iki ayrı
+   * sorgudan gelseydi, aradaki saniyede yazılan bir sipariş sessizce kaçar
+   * ve aynı mal iki kez vaat edilirdi.
+   */
+  async karsilamaPlani(_ctx: TenantCtx, siparisId: string): Promise<KarsilamaSatiri[]> {
+    const { data, error } = await this.client
+      .rpc('siparis_karsilama_plani', { p_siparis: siparisId })
+    if(error) throw new Error(`Karşılama planı okunamadı: ${error.message}`)
+    type S = {
+      kalem_id: string; kalem_adi: string
+      siparis_miktar: string | number; birim: string; temel_birim: string
+      birim_uyusmuyor: boolean
+      depo_bakiye: string | number; rezerve: string | number
+      musait: string | number | null; depodan: string | number | null
+      uretilecek: string | number | null
+      recete_id: string | null; uretilebilir: boolean
+    }
+    return ((data as unknown as S[] | null) ?? []).map(r => {
+      const k: KarsilamaSatiri = {
+        kalemId: r.kalem_id,
+        kalemAdi: r.kalem_adi,
+        siparisMiktar: Number(r.siparis_miktar),
+        birim: r.birim,
+        temelBirim: r.temel_birim,
+        birimUyusmuyor: r.birim_uyusmuyor,
+        depoBakiye: Number(r.depo_bakiye),
+        rezerve: Number(r.rezerve),
+        uretilebilir: r.uretilebilir,
+      }
+      // ⚠️ null → undefined, 0 DEĞİL. Birim uyuşmazlığında veritabanı
+      // bilerek hesap yapmıyor; 0 yazmak "ihtiyaç yok" demek olurdu.
+      const m = sayi(r.musait);       if(m !== undefined) k.musait = m
+      const d = sayi(r.depodan);      if(d !== undefined) k.depodan = d
+      const u = sayi(r.uretilecek);   if(u !== undefined) k.uretilecek = u
+      if(r.recete_id) k.receteId = r.recete_id
+      return k
     })
   }
 }

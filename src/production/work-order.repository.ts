@@ -49,6 +49,8 @@ export type IsEmri = {
   id: string
   isEmriNo: string
   durum: IsEmriDurumu
+  /** Karşıladığı sipariş (0056). */
+  siparisId?: string
   receteId?: string
   receteAd?: string
   ciktiKalemiId: string
@@ -66,6 +68,11 @@ export type IsEmri = {
 
 export type YeniIsEmri = {
   isEmriNo: string
+  /**
+   * Bu iş emrinin karşıladığı sipariş (0056). BOŞ olabilir: stoğa üretim,
+   * numune ve deneme üretimleri siparişten doğmaz.
+   */
+  siparisId?: string
   receteId?: string
   ciktiKalemiId: string
   planlananMiktar: number
@@ -116,7 +123,7 @@ type SatirKaydi = {
 
 type IsEmriKaydi = {
   id: string; order_no: string; status: string
-  recipe_id: string | null; output_item_id: string
+  recipe_id: string | null; order_id: string | null; output_item_id: string
   planned_qty: number | string; output_uom: string; yield_pct: number | string
   planned_on: string | null; started_at: string | null; completed_at: string | null
   note: string | null; created_at: string
@@ -129,6 +136,7 @@ const isEmrineCevir = (k: IsEmriKaydi): IsEmri => ({
   id: k.id,
   isEmriNo: k.order_no,
   durum: k.status as IsEmriDurumu,
+  siparisId: k.order_id ?? undefined,
   receteId: k.recipe_id ?? undefined,
   receteAd: k.recipe?.name,
   ciktiKalemiId: k.output_item_id,
@@ -157,7 +165,7 @@ const isEmrineCevir = (k: IsEmriKaydi): IsEmri => ({
 })
 
 const SECIM = `
-  id, order_no, status, recipe_id, output_item_id, planned_qty, output_uom,
+  id, order_no, status, recipe_id, order_id, output_item_id, planned_qty, output_uom,
   yield_pct, planned_on, started_at, completed_at, note, created_at,
   recipe ( name ),
   stock_item ( name ),
@@ -197,6 +205,7 @@ export class PostgresIsEmriDeposu implements IsEmriDeposu {
         branch_id: ctx.branchId,
         order_no: girdi.isEmriNo,
         recipe_id: girdi.receteId ?? null,
+        order_id: girdi.siparisId ?? null,
         output_item_id: girdi.ciktiKalemiId,
         planned_qty: girdi.planlananMiktar,
         output_uom: girdi.ciktiBirimi,
@@ -220,6 +229,7 @@ export class PostgresIsEmriDeposu implements IsEmriDeposu {
       .update({
         order_no: girdi.isEmriNo,
         recipe_id: girdi.receteId ?? null,
+        order_id: girdi.siparisId ?? null,
         output_item_id: girdi.ciktiKalemiId,
         planned_qty: girdi.planlananMiktar,
         output_uom: girdi.ciktiBirimi,

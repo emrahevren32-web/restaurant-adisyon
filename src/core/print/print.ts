@@ -51,6 +51,30 @@ const STIL = `
      tutulan bir nakliyeci sisteme girmeden farkı buraya yazıyor. Yükseklik
      tesadüf değil — 22px, kalemle rahat yazılan bir satır. */
   .bosluk{ height:22px; border-bottom:1px dotted #999 }
+
+  /* ── Ürün etiketi (A4B) ───────────────────────────────────────────────
+     ⚠️ Etiket SİYAH BEYAZ yazıcıda basılır. Vurgu rengi değil, BÜYÜK HARF
+     ve kalın yazıdır; renge güvenen bir uyarı termal yazıcıda kaybolur. */
+  .taslak{ border:3px solid #000; padding:10px; margin-bottom:12px }
+  .taslak ul{ margin:6px 0 0; padding-left:18px; font-size:11px }
+  .etiket{ border:1px solid #000; padding:14px; max-width:420px }
+  .etiket h1{ font-size:17px; margin:0 0 4px }
+  .etiket h2{ font-size:12px; margin:12px 0 4px; text-transform:uppercase;
+              letter-spacing:.04em }
+  .etiket .net{ margin:0 0 8px; font-size:14px }
+  .etiket .icindekiler{ margin:0; font-size:11px; line-height:1.5 }
+  .etiket .alerjen{ margin:8px 0 0; font-size:12px; border:1px solid #000;
+                    padding:6px }
+  .etiket .alerjen.iz{ border-style:dashed }
+  .etiket .alerjen.yok{ border:none; padding:0; font-style:italic }
+  table.besin{ width:100%; border-collapse:collapse; font-size:11px }
+  table.besin td{ border-bottom:1px solid #ccc; padding:3px 0 }
+  table.besin td.girintili{ padding-left:14px; color:#333 }
+  .etiket .kunye{ margin:12px 0 0; font-size:11px }
+  .etiket .kunye dt{ float:left; clear:left; width:92px; color:#444 }
+  .etiket .kunye dd{ margin:0 0 2px 92px }
+  .etiket .uretici{ margin:12px 0 0; font-size:10px; border-top:1px solid #000;
+                    padding-top:6px }
   .imza{ display:flex; gap:40px; margin-top:34px }
   .imza div{ flex:1; border-top:1px solid #111; padding-top:5px; font-size:11px; color:#555 }
   .dipnot{ margin-top:18px; font-size:11px; color:#555; line-height:1.45 }

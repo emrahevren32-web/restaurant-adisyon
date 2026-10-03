@@ -55,6 +55,10 @@ export const DISA_AKTARILAN_TABLOLAR = [
   'tenant', 'company', 'branch', 'app_user', 'user_role', 'user_branch_access',
   // Stok çekirdeği
   'stock_item', 'stock_lot', 'stock_movement',
+  // Alerjen ve besin değeri (0057) — stok kartından SONRA: ikisi de ona
+  // atıf yapıyor ve geri yüklemede kart önce durmalı. ⚠️ Bunlar yedeğin en
+  // kritik satırları: alerjen beyanı kaybolursa etiket yanlış basılır.
+  'stock_item_allergen', 'stock_item_nutrition',
   // Satın alma
   'supplier',
   'purchase_request', 'purchase_request_line',
@@ -67,6 +71,9 @@ export const DISA_AKTARILAN_TABLOLAR = [
   // kartına atıf yapıyor, geri yüklemede kart önce durmalı. customer_price
   // stok kalemine de bakıyor, o zaten yukarıda.
   'customer', 'delivery_point', 'customer_price',
+  // Portal erişimi (0054) — noktalardan SONRA: kısıt satırı bir noktaya
+  // atıf yapıyor ve geri yüklemede nokta önce durmalı.
+  'portal_user', 'portal_user_point',
   // Sevkiyat
   'shipment', 'shipment_line',
   // Sipariş defteri — SEVKİYATTAN SONRA: order_discrepancy sevkiyata atıf
@@ -74,6 +81,9 @@ export const DISA_AKTARILAN_TABLOLAR = [
   // önemli: sipariş → fark (revizyon ona bağlanıyor) → revizyon → satır.
   'sales_order', 'order_discrepancy', 'sales_order_revision',
   'sales_order_line', 'sales_order_event',
+  // Onay zinciri (0053) — adımlar ÖNCE: onay kaydı bir adım koduna atıf
+  // yapıyor ve geri yüklemede adım tanımı önce durmalı.
+  'order_approval_step', 'order_approval',
   // Kalite
   'haccp_plan', 'haccp_ccp', 'haccp_measurement', 'haccp_corrective_action',
   // Sayım
