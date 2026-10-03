@@ -5160,6 +5160,9 @@ export const authenticateUser = async (email: string, password: string): Promise
     phone: appUserRow.phone || undefined,
     profilePhotoUrl: appUserRow.profile_photo_url || undefined,
     username: appUserRow.username,
+    // Giriş e-postası app_user'da DEĞİL, Supabase Auth oturumunda duruyor.
+    // Taşınmazsa kişi kendi giriş adresini hiçbir ekranda göremiyor.
+    email: authData.user.email || undefined,
     // Eski `Role` tipi yalnızca iki değer taşıyor. Firma kapsamında tam yetkili
     // roller ('isletme_sahibi', 'isletme_muduru') buraya 'Personel' olarak
     // düşerse, `adminOnly` işaretli menü ögelerinin TAMAMI onlara kapanır —

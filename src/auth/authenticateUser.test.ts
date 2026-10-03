@@ -121,6 +121,62 @@ describe('authenticateUser — Supabase Auth ile gerçek oturum açma', () => {
     expect(JSON.stringify(user)).not.toContain('password')
   })
 
+  it('giriş e-postası Supabase oturumundan User nesnesine taşınır', async () => {
+    // Giriş e-postası `app_user` tablosunda YOK; yalnızca Supabase Auth
+    // oturumunda var. Taşınmazsa kişi kendi giriş adresini programın
+    // hiçbir ekranında göremez — "Profilim" ekranındaki alan da bu yüzden
+    // yıllarca kullanıcı adını gösteriyordu.
+    signInWithPassword.mockResolvedValue({
+      data: { user: { id: 'auth-uid-eposta', email: 'kullanici@ornek.com' } },
+      error: null
+    })
+    maybeSingle.mockResolvedValue({
+      data: {
+        id: 'app-user-eposta',
+        tenant_id: 'tenant-miyop',
+        company_id: 'company-miyop',
+        username: 'kullanici',
+        full_name: 'Test Kullanıcı',
+        phone: null,
+        profile_photo_url: null,
+        role_code: 'admin',
+        is_active: true
+      },
+      error: null
+    })
+
+    const user = await authenticateUser('kullanici@ornek.com', 'sifre123')
+
+    expect(user!.email).toBe('kullanici@ornek.com')
+    // Kullanıcı adı ile e-posta AYRI alanlar; biri diğerinin yerine geçmiyor.
+    expect(user!.username).toBe('kullanici')
+  })
+
+  it('oturumda e-posta yoksa alan boş kalır, kullanıcı adıyla doldurulmaz', async () => {
+    signInWithPassword.mockResolvedValue({
+      data: { user: { id: 'auth-uid-epostasiz' } },
+      error: null
+    })
+    maybeSingle.mockResolvedValue({
+      data: {
+        id: 'app-user-epostasiz',
+        tenant_id: 'tenant-miyop',
+        company_id: 'company-miyop',
+        username: 'epostasiz',
+        full_name: 'E-postasız Kullanıcı',
+        phone: null,
+        profile_photo_url: null,
+        role_code: 'personel',
+        is_active: true
+      },
+      error: null
+    })
+
+    const user = await authenticateUser('epostasiz@ornek.com', 'sifre123')
+
+    expect(user!.email).toBeUndefined()
+  })
+
   it('role_code admin dışındaki her rolü Personel olarak eşler', async () => {
     signInWithPassword.mockResolvedValue({
       data: { user: { id: 'auth-uid-personel' } },

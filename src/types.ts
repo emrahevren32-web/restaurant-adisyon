@@ -688,6 +688,20 @@ export type User = {
   phone?: string
   profilePhotoUrl?: string
   username: string
+  /**
+   * GİRİŞ E-POSTASI — kişinin giriş ekranına yazdığı adres.
+   *
+   * `username` ile aynı şey DEĞİL: giriş `supabase.auth.signInWithPassword`
+   * ile e-posta üzerinden yapılıyor, `username` ise `app_user` tablosunda
+   * duran ayrı bir ad. Ekranda yıllarca tek bir "Kullanıcı Adı / E-posta"
+   * alanı vardı ve içinde `username` yazıyordu; yani kişi kendi giriş
+   * adresini programın hiçbir yerinde göremiyordu.
+   *
+   * Kaynağı Supabase oturumudur, bu yüzden isteğe bağlı: localStorage'da
+   * duran ESKİ bir oturumda boş gelir ve yeniden giriş yapılınca dolar.
+   * Düzenlenebilir değildir — e-posta değişimi Supabase Auth'un işidir.
+   */
+  email?: string
   // Gerçek kimlik doğrulama Supabase Auth'tadır (bkz. storage.ts authenticateUser).
   // Bu alan yalnızca henüz backend'e taşınmamış, dondurulmuş demo/başvuru
   // akışlarında (CompanySetupWizard, BusinessRegistrationSystem) kalan eski

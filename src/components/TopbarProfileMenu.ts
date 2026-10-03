@@ -104,6 +104,16 @@ export const TopbarProfileMenu = ({
                 },
                 currentUser.username
               )
+              : null,
+            currentUser.email
+              ? React.createElement(
+                'span',
+                {
+                  className: 'topbar-profile-panel-username',
+                  title: 'Giriş e-postanız'
+                },
+                currentUser.email
+              )
               : null
           )
         ),

@@ -27688,6 +27688,15 @@ html body .topbar-profile-panel .topbar-profile-panel-username {
   font-size:var(--font-size-11);
   font-variant-numeric:tabular-nums;
 }
+
+/* Alan altı açıklama satırı: salt okunur bir alanın NEDEN kilitli olduğunu
+   söylemek için. Açıklamasız kilitli alan, bozuk alan gibi görünüyor. */
+.form-field > small {
+  display:block;
+  margin-top:var(--space-4);
+  font-size:var(--font-size-11);
+  line-height:var(--line-height-1-4);
+}
 html body .topbar-profile-panel .topbar-profile-panel-identity strong {
   color:var(--text);
   font-size:var(--font-size-13);

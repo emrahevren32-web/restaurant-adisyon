@@ -154,9 +154,28 @@ export default function UserProfile({ currentUser, onProfileChange }: Props){
                 onChange={event => updateField('fullName', event.target.value)} />
             </div>
             <div className="form-field">
-              <label>Kullanıcı Adı / E-posta</label>
+              <label>Kullanıcı Adı</label>
               <input value={values.username} required
                 onChange={event => updateField('username', event.target.value)} />
+            </div>
+            {/*
+              E-posta burada SALT OKUNUR. Alan adı eskiden "Kullanıcı Adı /
+              E-posta" idi ve içinde kullanıcı adı yazıyordu; kişi giriş
+              ekranına yazdığı adresi programın hiçbir yerinde göremiyordu.
+              Değiştirilebilir yapılmadı: e-posta Supabase Auth'ta duruyor,
+              buradan yazılsa yalnızca ekranda değişir, girişte değişmez —
+              yani çalışmayan bir alan olurdu.
+            */}
+            <div className="form-field">
+              <label>E-posta (giriş adresi)</label>
+              <input value={currentUser.email || ''} readOnly
+                placeholder="—"
+                aria-describedby="eposta-aciklama" />
+              <small id="eposta-aciklama" className="muted">
+                {currentUser.email
+                  ? 'Giriş ekranına yazdığınız adres. Buradan değiştirilemez.'
+                  : 'Bu oturum e-posta bilgisinden önce açılmış. Çıkıp yeniden girince görünür.'}
+              </small>
             </div>
             <div className="form-field">
               <label>Telefon</label>
