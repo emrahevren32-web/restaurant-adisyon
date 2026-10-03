@@ -27,6 +27,7 @@ import {
 import { SiparisNoCakismasiError } from './sales-order.repository'
 import type { KalemSevkDurumu } from './sales-order-shipment'
 import type { KarsilamaSatiri } from './sales-order-production'
+import type { TeslimFarkiSatiri } from './sales-order-delivery'
 import type {
   Fark, FarkKarariGirdisi, Onay, OnayAdimi, Revizyon, Siparis, SiparisDeposu, SiparisDurumu,
   YeniOnay,
@@ -87,6 +88,8 @@ class BellekDeposu implements SiparisDeposu {
   async onayVer(_c: TenantCtx, g: YeniOnay): Promise<void> { this.sonOnay = g }
   plan: KarsilamaSatiri[] = []
   async karsilamaPlani(): Promise<KarsilamaSatiri[]> { return this.plan }
+  teslimSatirlari: TeslimFarkiSatiri[] = []
+  async teslimFarki(): Promise<TeslimFarkiSatiri[]> { return this.teslimSatirlari }
 }
 
 const kur = () => {
