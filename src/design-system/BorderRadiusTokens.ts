@@ -23,26 +23,30 @@ export const BORDER_RADIUS_TOKEN_NAMES: BorderRadiusTokenName[] = [
 
 export type BorderRadiusTokenMap = Record<BorderRadiusTokenName, string>
 
-/* KESKİN KÖŞE KARARI (Emrah · 2026-10-03)
+/* TEK TİP KÖŞE KARARI (Emrah · 2026-10-03)
    ---------------------------------------------------------------------------
-   Dörtgen yüzeylerin köşeleri yuvarlanmıyor: kart, panel, buton, girdi,
-   tablo, modal — hepsi 0. Bu yüzden xs…xxl jetonlarının tamamı '0'.
-   Jetonlar SİLİNMEDİ; adları yüzlerce yerde kullanılıyor ve bir gün
-   yuvarlaklık geri istenirse tek dosyadan geri gelsin diye duruyorlar.
+   Ekrandaki YATAY DİKDÖRTGEN her kutu tek bir yarıcapta: 4px.
+   Kart, panel, buton, girdi, arama kutusu, sekme, rozet, açılır menü, tablo,
+   modal, bildirim — hepsi aynı. Ne keskin köşe (0) ne hap (999px); ikisi de
+   aynı ekranda yan yana durunca dağınık görünüyordu.
 
-   İki istisna bilerek korundu:
-     full   → hap biçimli rozetler (dörtgen değil, uçları yarım daire)
-     circle → gerçek daireler (avatar, durum noktası)
-   Bunlar "yuvarlatılmış kare" değil, baştan yuvarlak biçimler. */
+   Jeton adları (xs…xxl, full) SİLİNMEDİ; yüzlerce yerde kullanılıyorlar ve
+   hepsi aynı değere bakıyor. Ölçüyü değiştirmek isteyen TEK yeri burası:
+   aşağıdaki KUTU_YARICAPI.
+
+   Tek istisna `circle`: avatar ve durum noktası gibi GERÇEK daireler.
+   Onlar dikdörtgen değil, bu yüzden tek tip kuralının dışında. */
+const KUTU_YARICAPI = '4px'
+
 export const BORDER_RADIUS_TOKENS: BorderRadiusTokenMap = {
   none: '0',
-  xs: '0',
-  sm: '0',
-  md: '0',
-  lg: '0',
-  xl: '0',
-  xxl: '0',
-  full: '999px',
+  xs: KUTU_YARICAPI,
+  sm: KUTU_YARICAPI,
+  md: KUTU_YARICAPI,
+  lg: KUTU_YARICAPI,
+  xl: KUTU_YARICAPI,
+  xxl: KUTU_YARICAPI,
+  full: KUTU_YARICAPI,
   circle: '50%'
 }
 

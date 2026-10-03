@@ -68,10 +68,10 @@ const ENTERPRISE_DESIGN_LANGUAGE_TOKENS = {
     floating: '0 24px 64px color-mix(in srgb, var(--theme-text-primary) 16%, transparent)'
   },
   radius: {
-    panel: '0',
-    control: '0',
-    item: '0',
-    pill: '999px'
+    panel: '4px',
+    control: '4px',
+    item: '4px',
+    pill: '4px'
   },
   motion: {
     micro: '100ms',

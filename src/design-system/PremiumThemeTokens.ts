@@ -459,10 +459,10 @@ export const PREMIUM_THEME_TOKENS: Record<ThemeMode, PremiumThemeTokens> = {
       glass: 'saturate(160%) blur(14px)'
     },
     radius: {
-      surface: '0',
-      control: '0',
-      modal: '0',
-      pill: '999px'
+      surface: '4px',
+      control: '4px',
+      modal: '4px',
+      pill: '4px'
     },
     typography: {
       body: "Inter, system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif",
@@ -666,10 +666,10 @@ export const PREMIUM_THEME_TOKENS: Record<ThemeMode, PremiumThemeTokens> = {
       glass: 'saturate(150%) blur(16px)'
     },
     radius: {
-      surface: '0',
-      control: '0',
-      modal: '0',
-      pill: '999px'
+      surface: '4px',
+      control: '4px',
+      modal: '4px',
+      pill: '4px'
     },
     typography: {
       body: "Inter, system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif",

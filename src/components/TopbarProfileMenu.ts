@@ -90,7 +90,21 @@ export const TopbarProfileMenu = ({
             'div',
             { className: 'topbar-profile-panel-identity' },
             React.createElement('strong', null, userName),
-            React.createElement('span', null, currentUser.role)
+            React.createElement('span', null, currentUser.role),
+            // Giriş adı burada yazıyor. Ad soyad dolu olduğunda üstteki satır
+            // ad soyadı gösteriyor ve kullanıcı kendi kullanıcı adını ekranın
+            // hiçbir yerinde göremiyordu; "ben hangi hesapla girmişim" sorusu
+            // cevapsız kalıyordu. İkisi aynıysa tekrar yazılmıyor.
+            currentUser.username && currentUser.username !== userName
+              ? React.createElement(
+                'span',
+                {
+                  className: 'topbar-profile-panel-username',
+                  title: 'Kullanıcı adınız'
+                },
+                currentUser.username
+              )
+              : null
           )
         ),
         onOpenMyProfile
