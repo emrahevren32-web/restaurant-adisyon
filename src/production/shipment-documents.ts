@@ -69,6 +69,13 @@ export const irsaliyeHtml = (
 ): string => {
   const cikislar = hareketler.filter(h => h.reason === 'SHIPMENT_OUT')
 
+  // ⚠️ Araç adı plakanın YANINA yazılıyor, yerine değil. Sürücü kapıda
+  // "Frigo 1" diye değil plakayla aranır.
+  const tasiyan = {
+    plaka: [sevkiyat.aracPlaka, sevkiyat.aracAd].filter(Boolean).join(' · '),
+    sofor: [sevkiyat.soforAd, sevkiyat.soforTelefon].filter(Boolean).join(' · '),
+  }
+
   // Defterde çıkış varsa BELGE SATIRLARI DEĞİL, defter satırları basılır:
   // partiyi ancak defter bilir. Henüz sevk edilmemişse belge satırları
   // basılır ve kâğıdın üstünde "sevk edilmedi" yazar.
@@ -129,9 +136,20 @@ export const irsaliyeHtml = (
   </p>` : ''}
 
   <h2>Taşıyan</h2>
+  ${/*
+    0064 · Araç ve şoför artık KARTTAN geliyor. Önce iki boş satırdı ve elle
+    doldurulurdu; elle yazılan plaka hiçbir yerde aranamıyordu — "bu partiyi
+    hangi araç taşıdı" sorusunun cevabı kâğıtta kalıyordu.
+
+    ⚠️ Seçilmemişse satır GİZLENMİYOR, boş bırakılıyor. Kâğıdı imzalayan
+    kişi orayı elle doldurabilsin; satırı hiç basmamak o soruyu ortadan
+    kaldırırdı.
+  */ ''}
   <dl>
-    <dt>Nakliyeci / plaka</dt><dd class="bosluk">&nbsp;</dd>
-    <dt>Sürücü</dt><dd class="bosluk">&nbsp;</dd>
+    <dt>Araç / plaka</dt>
+    <dd${tasiyan.plaka ? '' : ' class="bosluk"'}>${tasiyan.plaka ? kacir(tasiyan.plaka) : '&nbsp;'}</dd>
+    <dt>Sürücü</dt>
+    <dd${tasiyan.sofor ? '' : ' class="bosluk"'}>${tasiyan.sofor ? kacir(tasiyan.sofor) : '&nbsp;'}</dd>
   </dl>
 
   <h2>Teslimde fark var mı?</h2>

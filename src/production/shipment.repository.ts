@@ -68,6 +68,20 @@ export type Sevkiyat = {
   musteriTelefon?: string
   adres?: string
   hedefSubeId?: string
+  /**
+   * Bu sevkiyatı taşıyan araç ve şoför (0064). İSTEĞE BAĞLI: kendi aracı
+   * olmayan, kargoyla gönderen işletme de sevkiyat açabilmeli.
+   *
+   * ⚠️ SEVK EDİLDİKTEN SONRA DEĞİŞMEZ (MI434). Müşterinin elindeki kâğıtta
+   * yazan plaka ile defterdeki plaka ayrışamaz.
+   */
+  aracId?: string
+  soforId?: string
+  /** Belgeye basılacak hâlleri — karttan okunur, kopyalanıp DONDURULMAZ. */
+  aracPlaka?: string
+  aracAd?: string
+  soforAd?: string
+  soforTelefon?: string
   sevkTarihi?: string
   sevkZamani?: string
   not?: string
@@ -101,6 +115,9 @@ export type YeniSevkiyat = {
   musteriTelefon?: string
   adres?: string
   hedefSubeId?: string
+  /** Araç ve şoför (0064). Her ikisi de isteğe bağlı. */
+  aracId?: string
+  soforId?: string
   sevkTarihi?: string
   not?: string
   satirlar: Array<Omit<SevkiyatSatiri, 'id' | 'siraNo' | 'stokKalemiAd' | 'stokKalemiKod' | 'temelBirim'>>
@@ -150,6 +167,9 @@ type SevkiyatKaydi = {
   customer_id: string | null; delivery_point_id: string | null
   order_id: string | null
   destination_branch_id: string | null
+  vehicle_id: string | null; driver_id: string | null
+  vehicle?: { plate: string; name: string | null } | null
+  driver?: { full_name: string; phone: string | null } | null
   shipped_on: string | null; shipped_at: string | null
   note: string | null; created_at: string
   shipment_line: SatirKaydi[] | null
@@ -166,6 +186,16 @@ const sevkiyataCevir = (k: SevkiyatKaydi): Sevkiyat => ({
   musteriTelefon: metin(k.customer_phone),
   adres: metin(k.address),
   hedefSubeId: k.destination_branch_id ?? undefined,
+  aracId: k.vehicle_id ?? undefined,
+  soforId: k.driver_id ?? undefined,
+  // ⚠️ Plaka BELGEYE kopyalanıp dondurulmuyor, karttan okunuyor. Kart
+  // düzeltilirse eski irsaliye de düzelsin isteniyor — çünkü plaka
+  // müşteriye ait bir bilgi değil, BİZİM aracımızın kimliği. (Müşteri adı
+  // tersine donuyor: o müşteriye ait.)
+  aracPlaka: k.vehicle?.plate,
+  aracAd: metin(k.vehicle?.name ?? null),
+  soforAd: k.driver?.full_name,
+  soforTelefon: metin(k.driver?.phone ?? null),
   sevkTarihi: k.shipped_on ?? undefined,
   sevkZamani: k.shipped_at ?? undefined,
   not: metin(k.note),
@@ -188,7 +218,10 @@ const sevkiyataCevir = (k: SevkiyatKaydi): Sevkiyat => ({
 const SECIM = `
   id, shipment_no, status, customer_name, customer_phone, address,
   customer_id, delivery_point_id, order_id,
-  destination_branch_id, shipped_on, shipped_at, note, created_at,
+  destination_branch_id, vehicle_id, driver_id,
+  shipped_on, shipped_at, note, created_at,
+  vehicle ( plate, name ),
+  driver ( full_name, phone ),
   shipment_line (
     id, stock_item_id, qty, uom, note, line_no,
     stock_item ( name, code, base_uom )
@@ -236,6 +269,8 @@ export class PostgresSevkiyatDeposu implements SevkiyatDeposu {
         customer_id: girdi.musteriId,
         delivery_point_id: girdi.noktaId ?? null,
         order_id: girdi.siparisId ?? null,
+        vehicle_id: girdi.aracId ?? null,
+        driver_id: girdi.soforId ?? null,
         customer_name: girdi.musteriAd,
         customer_phone: girdi.musteriTelefon ?? null,
         address: girdi.adres ?? null,
@@ -261,6 +296,8 @@ export class PostgresSevkiyatDeposu implements SevkiyatDeposu {
         customer_id: girdi.musteriId,
         delivery_point_id: girdi.noktaId ?? null,
         order_id: girdi.siparisId ?? null,
+        vehicle_id: girdi.aracId ?? null,
+        driver_id: girdi.soforId ?? null,
         customer_name: girdi.musteriAd,
         customer_phone: girdi.musteriTelefon ?? null,
         address: girdi.adres ?? null,

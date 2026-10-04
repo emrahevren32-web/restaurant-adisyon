@@ -29,6 +29,8 @@ export const TABLO_ETIKETLERI: Record<string, string> = {
   stock_count_line: 'Sayım satırı',
   shipment: 'Sevkiyat',
   shipment_line: 'Sevkiyat satırı',
+  vehicle: 'Araç kartı',
+  driver: 'Şoför kartı',
   haccp_measurement: 'HACCP ölçümü',
   haccp_corrective_action: 'Düzeltici işlem',
   haccp_ccp: 'Kritik kontrol noktası',

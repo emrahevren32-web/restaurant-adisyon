@@ -45,6 +45,12 @@ import {
   soyagaciCikar, soyagaciniDuzlestir, type SoyagaciSatiri,
 } from '../production/genealogy'
 import { sevkiyatinLotIdleri } from '../production/recall'
+import {
+  PostgresAracDeposu, type AracDeposu,
+} from '../logistics/vehicle.repository'
+import {
+  aracEtiketi, ehliyetUyarisi, sogutmaUyarisi, type Arac, type Sofor,
+} from '../logistics/vehicle.service'
 import { irsaliyeHtml } from '../production/shipment-documents'
 import { belgeYazdir } from '../core/print/print'
 
@@ -89,6 +95,10 @@ export default function Sevkiyatlar({ currentUser }: Props){
   // seçiliyor; isim elle yazılmıyor.
   const [musteriler, setMusteriler] = React.useState<Musteri[]>([])
   const [noktalar, setNoktalar] = React.useState<TeslimNoktasi[]>([])
+  // Araç ve şoför kartları (0064). Pasifler de yükleniyor: geçmiş bir
+  // sevkiyat pasif bir araca bağlı olabilir ve düzenlerken kopmamalı.
+  const [araclar, setAraclar] = React.useState<Arac[]>([])
+  const [soforler, setSoforler] = React.useState<Sofor[]>([])
   const [bakiyeler, setBakiyeler] = React.useState<DepoKalemi[]>([])
   const [seciliId, setSeciliId] = React.useState<string | null>(null)
   const [hareketler, setHareketler] = React.useState<Movement[]>([])
@@ -111,6 +121,11 @@ export default function Sevkiyatlar({ currentUser }: Props){
         new PostgresStokKatalogu(client),
       ),
     )
+  }, [mod])
+
+  const aracDeposu = React.useMemo<AracDeposu | null>(() => {
+    if(mod !== 'postgres' || !isSupabaseConfigured()) return null
+    return new PostgresAracDeposu(getSupabase())
   }, [mod])
 
   const depoServisi = React.useMemo(() => {
@@ -164,6 +179,14 @@ export default function Sevkiyatlar({ currentUser }: Props){
         const ns = await musteriDeposu.noktalar(kurulan.ctx)
         if(iptal) return
         setNoktalar(ns.filter(n => n.aktif))
+
+        if(aracDeposu){
+          const [av, sv] = await Promise.all([
+            aracDeposu.araclar(kurulan.ctx), aracDeposu.soforler(kurulan.ctx),
+          ])
+          if(iptal) return
+          setAraclar(av); setSoforler(sv)
+        }
       } catch (e) {
         if(!iptal) setHata(hataMetni(e))
       } finally {
@@ -172,7 +195,7 @@ export default function Sevkiyatlar({ currentUser }: Props){
     })()
 
     return () => { iptal = true }
-  }, [servis, depoServisi])
+  }, [servis, depoServisi, aracDeposu])
 
   const secili = sevkiyatlar.find(s => s.id === seciliId) ?? null
 
@@ -389,6 +412,8 @@ export default function Sevkiyatlar({ currentUser }: Props){
                 birimler={birimler}
                 musteriler={musteriler}
                 noktalar={noktalar}
+                araclar={araclar}
+                soforler={soforler}
                 onerilenNo={sonrakiSevkiyatNo(sevkiyatlar.map(s => s.sevkiyatNo))}
                 onIptal={() => setIslem(null)}
                 onKaydet={olustur}
@@ -407,6 +432,8 @@ export default function Sevkiyatlar({ currentUser }: Props){
                 birimler={birimler}
                 musteriler={musteriler}
                 noktalar={noktalar}
+                araclar={araclar}
+                soforler={soforler}
                 onerilenNo={secili.sevkiyatNo}
                 onIptal={() => setIslem(null)}
                 onKaydet={girdi => kaydet(secili, girdi)}
@@ -439,7 +466,286 @@ export default function Sevkiyatlar({ currentUser }: Props){
           )}
         </aside>
       </div>
+
+      {/* ── ARAÇLAR VE ŞOFÖRLER (0064) ───────────────────────────────────
+          Ayrı bir menü maddesi YAPILMADI. Bu kartlar yalnız sevkiyat
+          açarken lazım oluyor ve menüye bir madde daha eklemek, üç ayrı
+          görünürlük kapısından geçmek demek (tuzak 50). İşin yapıldığı
+          yerde dursun. */}
+      {aracDeposu && baglam && (
+        <FiloBolumu
+          araclar={araclar}
+          soforler={soforler}
+          yazabilir={yazabilir}
+          onYenile={async () => {
+            const [av, sv] = await Promise.all([
+              aracDeposu.araclar(baglam.ctx), aracDeposu.soforler(baglam.ctx),
+            ])
+            setAraclar(av); setSoforler(sv)
+          }}
+          depo={aracDeposu}
+          ctx={baglam.ctx}
+          onHata={setHata}
+          onBilgi={setBilgi}
+        />
+      )}
     </div>
+  )
+}
+
+// ═══════════════════════════════════════════════════════════════════════════
+// Araçlar ve şoförler
+//
+// Yol haritası: "Araç ve şoför kartları — plaka, şoför, kapasite ve soğutma
+// bilgisi kayıtlı."
+//
+// ⚠️ KART SİLİNMİYOR, PASİFE ALINIYOR. Silmek, o araçla kesilmiş
+// irsaliyelerin geçmişini kopuk bırakırdı; veritabanı da silmeye izin
+// vermiyor (0064'te `revoke delete`).
+// ═══════════════════════════════════════════════════════════════════════════
+
+function FiloBolumu({
+  araclar, soforler, yazabilir, depo, ctx, onYenile, onHata, onBilgi,
+}: {
+  araclar: Arac[]
+  soforler: Sofor[]
+  yazabilir: boolean
+  depo: AracDeposu
+  ctx: DepoBaglami['ctx']
+  onYenile: () => Promise<void>
+  onHata: (m: string) => void
+  onBilgi: (m: string) => void
+}){
+  const [acik, setAcik] = React.useState(false)
+  const [calisiyor, setCalisiyor] = React.useState(false)
+
+  const [plaka, setPlaka] = React.useState('')
+  const [aracAd, setAracAd] = React.useState('')
+  const [kapasite, setKapasite] = React.useState('')
+  const [sogutmali, setSogutmali] = React.useState(false)
+  const [minS, setMinS] = React.useState('')
+  const [maxS, setMaxS] = React.useState('')
+
+  const [soforAd, setSoforAd] = React.useState('')
+  const [soforTel, setSoforTel] = React.useState('')
+  const [ehliyet, setEhliyet] = React.useState('')
+  const [ehliyetTarih, setEhliyetTarih] = React.useState('')
+
+  const sayiya = (d: string): number | undefined => {
+    const m = d.trim().replace(',', '.')
+    if(m === '') return undefined
+    const n = Number(m)
+    return Number.isNaN(n) ? undefined : n
+  }
+
+  const aracEkle = async () => {
+    setCalisiyor(true); onHata(''); onBilgi('')
+    try{
+      await depo.aracEkle(ctx, {
+        plaka,
+        ad: aracAd.trim() || undefined,
+        kapasiteKg: sayiya(kapasite),
+        sogutmali,
+        // ⚠️ Soğutmasızda aralık GÖNDERİLMİYOR: 0064 bunu reddediyor ve
+        // doğrulama da reddediyor. Kullanıcı soğutmayı kapatınca alanlar
+        // gizleniyor ama değerleri durabilir.
+        minSicaklik: sogutmali ? sayiya(minS) : undefined,
+        maxSicaklik: sogutmali ? sayiya(maxS) : undefined,
+      })
+      await onYenile()
+      setPlaka(''); setAracAd(''); setKapasite(''); setSogutmali(false)
+      setMinS(''); setMaxS('')
+      onBilgi('Araç kartı eklendi.')
+    } catch (e){ onHata(hataMetni(e)) }
+    finally { setCalisiyor(false) }
+  }
+
+  const soforEkle = async () => {
+    setCalisiyor(true); onHata(''); onBilgi('')
+    try{
+      await depo.soforEkle(ctx, {
+        adSoyad: soforAd,
+        telefon: soforTel.trim() || undefined,
+        ehliyetSinifi: ehliyet.trim() || undefined,
+        ehliyetGecerlilik: ehliyetTarih || undefined,
+      })
+      await onYenile()
+      setSoforAd(''); setSoforTel(''); setEhliyet(''); setEhliyetTarih('')
+      onBilgi('Şoför kartı eklendi.')
+    } catch (e){ onHata(hataMetni(e)) }
+    finally { setCalisiyor(false) }
+  }
+
+  const durumCevir = async (tur: 'arac' | 'sofor', id: string, aktif: boolean) => {
+    setCalisiyor(true); onHata(''); onBilgi('')
+    try{
+      if(tur === 'arac') await depo.aracDurum(ctx, id, aktif)
+      else await depo.soforDurum(ctx, id, aktif)
+      await onYenile()
+    } catch (e){ onHata(hataMetni(e)) }
+    finally { setCalisiyor(false) }
+  }
+
+  return (
+    <section className="card">
+      <button type="button" className="yetki-dal-basi" onClick={() => setAcik(!acik)}>
+        <span className="yetki-dal-isaret" aria-hidden="true">{acik ? '−' : '+'}</span>
+        <strong>Araçlar ve Şoförler</strong>
+        <span className="muted">
+          {araclar.filter(a => a.aktif).length} araç · {soforler.filter(d => d.aktif).length} şoför
+        </span>
+      </button>
+
+      {acik && (
+        <div className="yetki-detay">
+          {/* ── ARAÇLAR ──────────────────────────────────────────────── */}
+          <div>
+            <h4>Araçlar</h4>
+            {araclar.length === 0 && <p className="muted">Araç kartı yok.</p>}
+            {araclar.length > 0 && (
+              <ul className="uye-listesi">
+                {araclar.map(a => (
+                  <li key={a.id}>
+                    <strong>{aracEtiketi(a)}</strong>
+                    {a.kapasiteKg !== undefined && (
+                      <span className="muted"> · {a.kapasiteKg.toLocaleString('tr-TR')} kg</span>
+                    )}
+                    {yazabilir && (
+                      <button
+                        type="button" className="baglanti-dugmesi"
+                        disabled={calisiyor}
+                        onClick={() => void durumCevir('arac', a.id, !a.aktif)}
+                      >
+                        {a.aktif ? 'pasife al' : 'aktifleştir'}
+                      </button>
+                    )}
+                  </li>
+                ))}
+              </ul>
+            )}
+
+            {yazabilir && (
+              <>
+                <h4>Araç ekle</h4>
+                <div className="form-row">
+                  <label>Plaka *
+                    <input value={plaka} onChange={e => setPlaka(e.target.value)}
+                      placeholder="34 ABC 123" />
+                  </label>
+                  <label>Ad
+                    <input value={aracAd} onChange={e => setAracAd(e.target.value)}
+                      placeholder="Frigo 1" />
+                  </label>
+                </div>
+                <div className="form-row">
+                  <label>Kapasite (kg)
+                    <input inputMode="decimal" value={kapasite}
+                      onChange={e => setKapasite(e.target.value)} />
+                  </label>
+                  <label className="check-row">
+                    <input type="checkbox" checked={sogutmali}
+                      onChange={e => setSogutmali(e.target.checked)} />
+                    <span>Soğutmalı</span>
+                  </label>
+                </div>
+                {sogutmali && (
+                  <div className="form-row">
+                    <label>En düşük °C
+                      <input inputMode="decimal" value={minS}
+                        onChange={e => setMinS(e.target.value)} placeholder="-20" />
+                    </label>
+                    <label>En yüksek °C
+                      <input inputMode="decimal" value={maxS}
+                        onChange={e => setMaxS(e.target.value)} placeholder="4" />
+                    </label>
+                  </div>
+                )}
+                <p className="muted">
+                  Soğutma bilgisi <strong>CCP-8</strong>'in ön koşulu: soğutmasız
+                  araca soğuk zincir ürünü yüklenmesi, ölçüm yapılmadan bile
+                  bilinebilen bir hatadır.
+                </p>
+                <div className="form-actions">
+                  <button className="btn primary" type="button"
+                    disabled={calisiyor || plaka.trim() === ''}
+                    onClick={() => void aracEkle()}>
+                    {calisiyor ? 'Ekleniyor…' : 'Araç ekle'}
+                  </button>
+                </div>
+              </>
+            )}
+          </div>
+
+          {/* ── ŞOFÖRLER ─────────────────────────────────────────────── */}
+          <div>
+            <h4>Şoförler</h4>
+            {soforler.length === 0 && <p className="muted">Şoför kartı yok.</p>}
+            {soforler.length > 0 && (
+              <ul className="uye-listesi">
+                {soforler.map(d => {
+                  const uyari = ehliyetUyarisi(d)
+                  return (
+                    <li key={d.id}>
+                      <strong>{d.adSoyad}</strong>
+                      {d.telefon && <span className="muted"> · {d.telefon}</span>}
+                      {d.ehliyetSinifi && <span className="muted"> · {d.ehliyetSinifi} sınıfı</span>}
+                      {!d.aktif && <span className="muted"> · PASİF</span>}
+                      {yazabilir && (
+                        <button
+                          type="button" className="baglanti-dugmesi"
+                          disabled={calisiyor}
+                          onClick={() => void durumCevir('sofor', d.id, !d.aktif)}
+                        >
+                          {d.aktif ? 'pasife al' : 'aktifleştir'}
+                        </button>
+                      )}
+                      {/* Ehliyet uyarısı KARTTA da görünüyor: sevkiyat
+                          açılırken değil, önceden bilinmeli. */}
+                      {uyari && <div className="is-critical">{uyari}</div>}
+                    </li>
+                  )
+                })}
+              </ul>
+            )}
+
+            {yazabilir && (
+              <>
+                <h4>Şoför ekle</h4>
+                <div className="form-row">
+                  <label>Ad soyad *
+                    <input value={soforAd} onChange={e => setSoforAd(e.target.value)} />
+                  </label>
+                  <label>Telefon
+                    <input value={soforTel} onChange={e => setSoforTel(e.target.value)} />
+                  </label>
+                </div>
+                <div className="form-row">
+                  <label>Ehliyet sınıfı
+                    <input value={ehliyet} onChange={e => setEhliyet(e.target.value)}
+                      placeholder="E" />
+                  </label>
+                  <label>Geçerlilik
+                    <input type="date" value={ehliyetTarih}
+                      onChange={e => setEhliyetTarih(e.target.value)} />
+                  </label>
+                </div>
+                <p className="muted">
+                  Ehliyet tarihi girilirse dolmasına 30 gün kala uyarı çıkar.
+                  Denetimde sorulan ilk şeylerden biridir.
+                </p>
+                <div className="form-actions">
+                  <button className="btn primary" type="button"
+                    disabled={calisiyor || soforAd.trim() === ''}
+                    onClick={() => void soforEkle()}>
+                    {calisiyor ? 'Ekleniyor…' : 'Şoför ekle'}
+                  </button>
+                </div>
+              </>
+            )}
+          </div>
+        </div>
+      )}
+    </section>
   )
 }
 
@@ -688,13 +994,16 @@ const sayiyaCevir = (d: string): number => {
 }
 
 function SevkiyatFormu({
-  mevcut, kalemler, birimler, musteriler, noktalar, onerilenNo, onIptal, onKaydet,
+  mevcut, kalemler, birimler, musteriler, noktalar, araclar, soforler,
+  onerilenNo, onIptal, onKaydet,
 }: {
   mevcut?: Sevkiyat
   kalemler: KatalogKalemi[]
   birimler: Birim[]
   musteriler: Musteri[]
   noktalar: TeslimNoktasi[]
+  araclar: Arac[]
+  soforler: Sofor[]
   onerilenNo: string
   onIptal: () => void
   onKaydet: (girdi: YeniSevkiyat) => Promise<void>
@@ -708,6 +1017,8 @@ function SevkiyatFormu({
     mevcut?.sevkTarihi ?? new Date().toISOString().slice(0, 10),
   )
   const [not, setNot] = React.useState(mevcut?.not ?? '')
+  const [aracId, setAracId] = React.useState(mevcut?.aracId ?? '')
+  const [soforId, setSoforId] = React.useState(mevcut?.soforId ?? '')
   const [satirlar, setSatirlar] = React.useState<SatirTaslagi[]>(
     mevcut
       ? mevcut.satirlar.map(s => ({
@@ -766,6 +1077,12 @@ function SevkiyatFormu({
             musteriTelefon: telefon.trim() || undefined,
             adres: adres.trim() || undefined,
             sevkTarihi: tarih || undefined,
+            // ⚠️ Araç ve şoför KOPYALANMIYOR, kimlikle bağlanıyor. Müşteri
+            // adı tersine kopyalanıp donuyor çünkü o müşteriye ait bir
+            // bilgi; plaka BİZİM aracımızın kimliği ve kart düzeltilirse
+            // eski irsaliye de düzelsin isteniyor.
+            aracId: aracId || undefined,
+            soforId: soforId || undefined,
             not: not.trim() || undefined,
             satirlar: satirlar
               .filter(s => s.stokKalemiId !== '' && sayiyaCevir(s.miktar) > 0)
@@ -858,6 +1175,64 @@ function SevkiyatFormu({
         Adres
         <input value={adres} onChange={e => setAdres(e.target.value)} />
       </label>
+
+      {/* ── TAŞIYAN (0064) ────────────────────────────────────────────────
+          Yol haritası: "Sevkiyata sefer bağlanıyor — hangi mal, hangi
+          plakayla, kimin götürdüğü defterde."
+
+          Önce irsaliyede iki boş satırdı ve elle dolduruluyordu; elle yazılan
+          plaka hiçbir yerde aranamıyordu. "Bu partiyi hangi araç taşıdı"
+          sorusunun cevabı kâğıtta kalıyordu — CCP-8 ölçümü de öyle. */}
+      <div className="form-row">
+        <label>
+          Araç
+          <select value={aracId} onChange={e => setAracId(e.target.value)}>
+            <option value="">Seçilmedi</option>
+            {araclar
+              // Pasif araç listede YOK — ama bu sevkiyata zaten bağlıysa
+              // kalıyor, yoksa düzenlerken sessizce kopardı.
+              .filter(a => a.aktif || a.id === aracId)
+              .map(a => (
+                <option key={a.id} value={a.id}>{aracEtiketi(a)}</option>
+              ))}
+          </select>
+        </label>
+        <label>
+          Şoför
+          <select value={soforId} onChange={e => setSoforId(e.target.value)}>
+            <option value="">Seçilmedi</option>
+            {soforler
+              .filter(d => d.aktif || d.id === soforId)
+              .map(d => (
+                <option key={d.id} value={d.id}>
+                  {d.adSoyad}{d.telefon ? ` · ${d.telefon}` : ''}
+                </option>
+              ))}
+          </select>
+        </label>
+      </div>
+
+      {araclar.length === 0 && (
+        <small className="muted">
+          Araç kartı yok. <strong>Sevkiyatlar ekranının altındaki Araçlar ve
+          Şoförler</strong> bölümünden ekleyebilirsiniz. Araçsız sevkiyat da
+          açılır — kargoyla gönderiyorsanız boş bırakın.
+        </small>
+      )}
+
+      {/* ⚠️ Uyarılar ENGELLEMİYOR. Kuru gıda soğutmasız araçla gider ve bu
+          doğrudur; hangi ürünün soğuk zincire girdiğini sistem henüz
+          bilmiyor. Engelleseydik doğru sevkiyatları da durdururduk. */}
+      {sogutmaUyarisi(araclar.find(a => a.id === aracId)) && (
+        <div className="form-info">
+          {sogutmaUyarisi(araclar.find(a => a.id === aracId))}
+        </div>
+      )}
+      {(() => {
+        const d = soforler.find(x => x.id === soforId)
+        const uyari = d ? ehliyetUyarisi(d) : undefined
+        return uyari ? <div className="form-error">{d?.adSoyad} — {uyari}</div> : null
+      })()}
 
       {satirlar.length === 0 && (
         <p className="muted">

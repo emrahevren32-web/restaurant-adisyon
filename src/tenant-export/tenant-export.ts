@@ -74,6 +74,9 @@ export const DISA_AKTARILAN_TABLOLAR = [
   // Portal erişimi (0054) — noktalardan SONRA: kısıt satırı bir noktaya
   // atıf yapıyor ve geri yüklemede nokta önce durmalı.
   'portal_user', 'portal_user_point',
+  // Araç ve şoför (0064) — SEVKİYATTAN ÖNCE: sevkiyat bunlara atıf yapıyor
+  // ve geri yüklemede kart önce durmalı.
+  'vehicle', 'driver',
   // Sevkiyat
   'shipment', 'shipment_line',
   // Sipariş defteri — SEVKİYATTAN SONRA: order_discrepancy sevkiyata atıf
