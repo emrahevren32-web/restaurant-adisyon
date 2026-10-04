@@ -17,9 +17,13 @@
 import React from 'react'
 import type { User } from '../types'
 import { getSupabase, isSupabaseConfigured } from '../core/supabase'
-import { resolveStockRepositoryMode } from '../core/stock/index'
+import { createStockRepository, resolveStockRepositoryMode } from '../core/stock/index'
+import { InMemoryStockItemLookup } from '../core/stock/stock-item-lookup'
 import { depoBaglamiKur, type DepoBaglami } from '../warehouse/warehouse.context'
-import { PostgresStokKatalogu, type Birim, type KatalogKalemi } from '../warehouse/warehouse.catalog'
+import {
+  PostgresStokKatalogu, type Birim, type KatalogKalemi, type KatalogLotu,
+} from '../warehouse/warehouse.catalog'
+import { DepoServisi } from '../warehouse/warehouse.service'
 import {
   PostgresMusteriDeposu, type Musteri, type TeslimNoktasi,
 } from '../customers/customer.repository'
@@ -41,8 +45,14 @@ import {
   TURETILEBILIR_DURUMLAR, sevkOzeti, sevkToplami, sevkiyatTuret,
   type KalemSevkDurumu,
 } from '../sales/sales-order-shipment'
-import { PostgresSevkiyatDeposu } from '../production/shipment.repository'
-import { sonrakiSevkiyatNo } from '../production/shipment.service'
+import { PostgresSevkiyatDeposu, type Sevkiyat } from '../production/shipment.repository'
+import { SevkiyatServisi, sonrakiSevkiyatNo } from '../production/shipment.service'
+import { irsaliyeHtml } from '../production/shipment-documents'
+import { belgeYazdir } from '../core/print/print'
+import {
+  irsaliyeBelgeBasligi, irsaliyeOzeti, irsaliyeUyarisi, siparisIrsaliyeleri,
+  type SiparisIrsaliyesi,
+} from '../sales/sales-order-waybill'
 import {
   isEmirleriTuret, karsilamaOzeti, karsilamaToplami, type KarsilamaSatiri,
 } from '../sales/sales-order-production'
@@ -118,6 +128,11 @@ export default function Siparisler({ currentUser }: Props){
   const [sekme, setSekme] = React.useState<
     'satirlar' | 'onay' | 'karsilama' | 'sevk' | 'teslim' | 'gecmis' | 'farklar'>('satirlar')
   const [teslim, setTeslim] = React.useState<TeslimFarkiSatiri[]>([])
+  // Bu siparişin sevkiyat BELGELERİ (0051'deki `shipment.order_id` bağı).
+  // İrsaliye bu listeden basılıyor.
+  const [sevkiyatlar, setSevkiyatlar] = React.useState<Sevkiyat[]>([])
+  // Hangi sevkiyatın irsaliyesi hazırlanıyor — düğme iki kez basılmasın.
+  const [irsaliyeBasiliyor, setIrsaliyeBasiliyor] = React.useState('')
   const [karsilama, setKarsilama] = React.useState<KarsilamaSatiri[]>([])
   const [adimlar, setAdimlar] = React.useState<OnayAdimi[]>([])
   const [onaylar, setOnaylar] = React.useState<Onay[]>([])
@@ -142,6 +157,24 @@ export default function Siparisler({ currentUser }: Props){
     return new PostgresSevkiyatDeposu(getSupabase())
   }, [mod])
 
+  /**
+   * İrsaliyeyi basabilmek için sevkiyatın DEFTERDEKİ hareketleri gerekiyor:
+   * hangi partiden ne kadar gittiği yalnızca orada yazılı (belgede yazmaz,
+   * çünkü FEFO bir çıkışı bölebilir). `SevkiyatServisi.hareketleri` o işi
+   * yapıyor; ekran kendi başına defter okumuyor.
+   */
+  const sevkiyatServisi = React.useMemo(() => {
+    if(mod !== 'postgres' || !isSupabaseConfigured()) return null
+    const client = getSupabase()
+    return new SevkiyatServisi(
+      new PostgresSevkiyatDeposu(client),
+      new DepoServisi(
+        createStockRepository(new InMemoryStockItemLookup([])),
+        new PostgresStokKatalogu(client),
+      ),
+    )
+  }, [mod])
+
   const uretimDepolari = React.useMemo(() => {
     if(mod !== 'postgres' || !isSupabaseConfigured()) return null
     const c = getSupabase()
@@ -150,14 +183,18 @@ export default function Siparisler({ currentUser }: Props){
 
   const ayrintiYukle = React.useCallback(async (s: Siparis, b: DepoBaglami) => {
     if(!servis) return
-    const [r, f, sd, on, kp, tf] = await Promise.all([
+    const [r, f, sd, on, kp, tf, sv] = await Promise.all([
       servis.revizyonlar(b.ctx, s.id),
       servis.farklar(b.ctx, s.id),
       servis.sevkDurumu(b.ctx, s.id),
       servis.onaylar(b.ctx, s.id),
       servis.karsilamaPlani(b.ctx, s.id),
       servis.teslimFarki(b.ctx, s.id),
+      // ⚠️ Süzme BURADA değil `siparisIrsaliyeleri`de: kuralı ekranın içine
+      // gömseydik test edemezdik. Depo hepsini veriyor, saf işlev süzüyor.
+      sevkiyatDeposu ? sevkiyatDeposu.hepsi(b.ctx) : Promise.resolve([]),
     ])
+    setSevkiyatlar(sv)
     setRevizyonlar(r)
     setFarklar(f)
     setSevkDurumu(sd)
@@ -168,7 +205,7 @@ export default function Siparisler({ currentUser }: Props){
     // yazmıyoruz: servis okunan revizyonlardan seçiyor.
     const satirli = r.filter(x => x.satirlar.length > 0)
     setSatirlar(satirli.length === 0 ? [] : satirli[satirli.length - 1].satirlar)
-  }, [servis])
+  }, [servis, sevkiyatDeposu])
 
   React.useEffect(() => {
     let iptal = false
@@ -376,6 +413,50 @@ export default function Siparisler({ currentUser }: Props){
       )
       await yenile(secili.id)
     } catch (e) { setBilgi(''); setHata(hataMetni(e)) }
+  }
+
+  /**
+   * Bu siparişin bir sevkiyatının İRSALİYESİNİ basar.
+   *
+   * ⚠️ Belgeyi bu ekran ÜRETMİYOR: `irsaliyeHtml` üretiyor, Sevkiyatlar
+   * ekranındaki ile AYNI işlev. İkinci bir kopya yazsaydık biri düzeltilip
+   * öteki unutulurdu; aynı siparişin iki farklı kâğıdı çıkardı.
+   *
+   * ⚠️ Partiler DEFTERDEN geliyor, belgeden değil. Sevkiyat belgesinde parti
+   * yazmaz — FEFO bir çıkışı iki partiye bölebildiği için orada tek bir doğru
+   * cevap yoktur. Hangi partiden ne kadar gittiği yalnız hareketlerde yazılı.
+   */
+  const irsaliyeYazdir = async (irsaliye: SiparisIrsaliyesi) => {
+    if(!sevkiyatServisi || !baglam || !secili) return
+    const belge = sevkiyatlar.find(x => x.id === irsaliye.sevkiyatId)
+    if(!belge) return
+
+    setIrsaliyeBasiliyor(irsaliye.sevkiyatId)
+    setHata(''); setBilgi('')
+    try{
+      const hareketler = await sevkiyatServisi.hareketleri(baglam.ctx, belge)
+
+      // Hareket yalnız lot KİMLİĞİNİ taşıyor; kâğıda basılacak parti KODU
+      // katalogdan okunuyor. Kod yerine kimlik basmak, müşteriye hiçbir şey
+      // ifade etmeyen bir uuid vermek olurdu.
+      const katalog = new PostgresStokKatalogu(getSupabase())
+      const kalemIdleri = [...new Set<string>(belge.satirlar.map(x => x.stokKalemiId))]
+      const listeler = await Promise.all(
+        kalemIdleri.map(id => katalog.lotlar(baglam.ctx, id)),
+      )
+      const lotlar: KatalogLotu[] = listeler.flat()
+
+      belgeYazdir(
+        irsaliyeBelgeBasligi(secili.siparisNo, belge.sevkiyatNo),
+        irsaliyeHtml(belge, hareketler, {
+          kalemAdi: id => kalemler.find(k => k.id === id)?.ad ?? id,
+          temelBirim: id => kalemler.find(k => k.id === id)?.temelBirim ?? '',
+          lotKodu: lotId => (lotId ? (lotlar.find(l => l.id === lotId)?.kod ?? '—') : '—'),
+          firmaAdi: baglam.subeler.find(sb => sb.id === baglam.ctx.branchId)?.ad,
+        }),
+      )
+    } catch (e) { setHata(hataMetni(e)) }
+    finally { setIrsaliyeBasiliyor('') }
   }
 
   /**
@@ -742,6 +823,9 @@ export default function Siparisler({ currentUser }: Props){
               {sekme === 'sevk' && (
                 <SevkPaneli
                   siparis={secili}
+                  irsaliyeler={siparisIrsaliyeleri(secili.id, sevkiyatlar)}
+                  basilan={irsaliyeBasiliyor}
+                  onIrsaliye={irsaliyeYazdir}
                   durumlar={sevkDurumu}
                   yazabilir={yazabilir}
                   onCikar={sevkiyataCikar}
@@ -1094,12 +1178,16 @@ function TeslimPaneli({
 }
 
 function SevkPaneli({
-  siparis, durumlar, yazabilir, onCikar,
+  siparis, durumlar, yazabilir, onCikar, irsaliyeler, basilan, onIrsaliye,
 }: {
   siparis: Siparis
   durumlar: KalemSevkDurumu[]
   yazabilir: boolean
   onCikar: () => void
+  irsaliyeler: SiparisIrsaliyesi[]
+  /** Hazırlanmakta olan irsaliyenin sevkiyat kimliği; yoksa boş. */
+  basilan: string
+  onIrsaliye: (irsaliye: SiparisIrsaliyesi) => void
 }){
   const toplam = sevkToplami(durumlar)
   const turetilebilir = TURETILEBILIR_DURUMLAR.includes(siparis.durum)
@@ -1151,6 +1239,57 @@ function SevkPaneli({
           </tbody>
         </table>
       </div>
+
+      {/* ── İRSALİYELER ────────────────────────────────────────────────────
+          Yol haritası: "İrsaliye yazdırmayı siparişe bağlama."
+
+          Bağ veritabanında zaten vardı (`shipment.order_id`, 0051); eksik
+          olan ekrandı. Önce bir siparişi açan kişi, irsaliyeye ulaşmak için
+          Sevkiyatlar listesinde doğru belgeyi aramak zorundaydı — üç
+          sevkiyatı olan bir siparişte hangisinin hangisi olduğu belli
+          değildi. */}
+      <h4>İrsaliyeler</h4>
+      <p className="muted">{irsaliyeOzeti(irsaliyeler)}</p>
+
+      {irsaliyeler.length > 0 && (
+        <div className="table-wrap">
+          <table className="data-table compact">
+            <thead>
+              <tr><th>Sevkiyat</th><th>Tarih</th><th>Durum</th><th className="num">Kalem</th><th></th></tr>
+            </thead>
+            <tbody>
+              {irsaliyeler.map(i => {
+                const uyari = irsaliyeUyarisi(i)
+                return (
+                  <tr key={i.sevkiyatId}>
+                    <td><strong>{i.sevkiyatNo}</strong></td>
+                    <td className="muted">{i.tarih ? tarih(i.tarih.slice(0, 10)) : '—'}</td>
+                    <td>
+                      {i.resmiMi
+                        ? i.durumEtiketi
+                        : <span className="onem-rozeti uyari">{i.durumEtiketi}</span>}
+                      {/* ⚠️ Uyarı BASMADAN ÖNCE burada; aynısı kâğıdın başına
+                          da basılıyor. Tekrar değil: biri basan kişiyi,
+                          diğeri kâğıdı eline alanı uyarıyor. */}
+                      {uyari && <div className="muted">{uyari}</div>}
+                    </td>
+                    <td className="num">{i.kalemSayisi}</td>
+                    <td className="row-actions">
+                      <button
+                        className="btn" type="button"
+                        disabled={basilan !== ''}
+                        onClick={() => onIrsaliye(i)}
+                      >
+                        {basilan === i.sevkiyatId ? 'Hazırlanıyor…' : 'İrsaliye yazdır'}
+                      </button>
+                    </td>
+                  </tr>
+                )
+              })}
+            </tbody>
+          </table>
+        </div>
+      )}
 
       {yazabilir && turetilebilir && kalanVar && (
         <div className="form-actions">
