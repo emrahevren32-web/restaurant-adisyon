@@ -33,6 +33,8 @@ export type PortalUrunu = {
 /** Portalın gördüğü sipariş — fiyat ALANI YOK ve olmayacak. */
 export type PortalSiparisi = {
   siparisNo: string
+  /** 0063 — ekran düzenlemede bu noktanın ürün listesini okuyor. */
+  noktaId?: string
   noktaAdi?: string
   tarih: string
   sevkTarihi?: string
@@ -42,6 +44,12 @@ export type PortalSiparisi = {
 }
 
 export type PortalSatiri = {
+  /**
+   * 0063 — düzenleme formunu doldurmak için gerekiyor. ADA göre eşleştirmek
+   * yanlış olurdu: iki ürün aynı ada sahip olabilir ve ad değişince eşleşme
+   * sessizce kayardı.
+   */
+  kalemId: string
   kalemAdi: string
   miktar: number
   birim: string
@@ -75,6 +83,16 @@ export interface PortalDeposu {
     noktaId: string, satirlar: readonly PortalSiparisSatiri[],
     teslimTarihi?: string, not?: string,
   ): Promise<string>
+  /**
+   * Var olan siparişe YENİ REVİZYON yazar (0063) ve yeni revizyon numarasını
+   * döndürür.
+   *
+   * ⚠️ Satırlar siparişin YENİ HÂLİNİN TAMAMIDIR, fark değil. Gönderilmeyen
+   * kalem o revizyonda yok sayılır — tıpkı sipariş verirken olduğu gibi.
+   */
+  siparisGuncelle(
+    siparisNo: string, satirlar: readonly PortalSiparisSatiri[], gerekce?: string,
+  ): Promise<number>
 }
 
 export class PostgresPortalDeposu implements PortalDeposu {
@@ -113,10 +131,12 @@ export class PostgresPortalDeposu implements PortalDeposu {
   async siparislerim(): Promise<PortalSiparisi[]> {
     const { data, error } = await this.client.rpc('portal_siparislerim')
     if(error) throw new PortalHatasi(`Siparişler okunamadı: ${error.message}`)
-    type S = { siparis_no: string; nokta_adi: string | null; tarih: string
-               sevk_tarihi: string | null; soz_tarihi: string | null; durum: string }
+    type S = { siparis_no: string; nokta_id: string | null; nokta_adi: string | null
+               tarih: string; sevk_tarihi: string | null; soz_tarihi: string | null
+               durum: string }
     return ((data as unknown as S[] | null) ?? []).map(o => {
       const k: PortalSiparisi = { siparisNo: o.siparis_no, tarih: o.tarih, durum: o.durum }
+      const i = bos(o.nokta_id);    if(i !== undefined) k.noktaId = i
       const n = bos(o.nokta_adi);   if(n !== undefined) k.noktaAdi = n
       const s = bos(o.sevk_tarihi); if(s !== undefined) k.sevkTarihi = s
       const z = bos(o.soz_tarihi);  if(z !== undefined) k.sozTarihi = z
@@ -128,9 +148,11 @@ export class PostgresPortalDeposu implements PortalDeposu {
     const { data, error } = await this.client
       .rpc('portal_siparis_satirlarim', { p_siparis_no: siparisNo })
     if(error) throw new PortalHatasi(`Sipariş satırları okunamadı: ${error.message}`)
-    type S = { kalem_adi: string; miktar: number | string; birim: string }
-    return ((data as unknown as S[] | null) ?? [])
-      .map(s => ({ kalemAdi: s.kalem_adi, miktar: Number(s.miktar), birim: s.birim }))
+    type S = { kalem_id: string; kalem_adi: string; miktar: number | string; birim: string }
+    return ((data as unknown as S[] | null) ?? []).map(s => ({
+      kalemId: s.kalem_id, kalemAdi: s.kalem_adi,
+      miktar: Number(s.miktar), birim: s.birim,
+    }))
   }
 
   async siparisVer(
@@ -147,5 +169,21 @@ export class PostgresPortalDeposu implements PortalDeposu {
     })
     if(error) throw new PortalHatasi(error.message)
     return data as unknown as string
+  }
+
+  async siparisGuncelle(
+    siparisNo: string, satirlar: readonly PortalSiparisSatiri[], gerekce?: string,
+  ): Promise<number> {
+    const { data, error } = await this.client.rpc('portal_siparis_guncelle', {
+      p_siparis_no: siparisNo,
+      p_satirlar: satirlar.map(s => ({
+        kalem_id: s.kalemId, miktar: s.miktar, birim: s.birim,
+      })),
+      p_gerekce: gerekce ?? null,
+    })
+    // ⚠️ Mesaj OLDUĞU GİBİ yukarı taşınıyor. MI433 ("malınız yola çıkmış")
+    // müşteri için yazıldı; "bir hata oluştu" demek o cümleyi çöpe atardı.
+    if(error) throw new PortalHatasi(error.message)
+    return Number(data)
   }
 }

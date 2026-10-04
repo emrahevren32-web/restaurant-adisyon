@@ -41,6 +41,23 @@ export class PortalServisi {
     return this.depo.siparisVer(noktaId, temiz, kirp(teslimTarihi) || undefined,
       kirp(not) || undefined)
   }
+
+  /**
+   * Var olan siparişe yeni revizyon yazar — 0063.
+   *
+   * ⚠️ `async` (tuzak 41). ⚠️ Teslim NOKTASI burada değişmiyor: nokta ya da
+   * tarih değişikliği LOJİSTİK revizyonudur ve üretimi yeniden onaylatmayı
+   * gerektirmez. Portaldan yapılan bu iş MİKTAR revizyonudur.
+   */
+  async siparisGuncelle(
+    siparisNo: string, satirlar: readonly PortalSiparisSatiri[], gerekce?: string,
+  ): Promise<number> {
+    if(kirp(siparisNo) === ''){
+      throw new PortalDogrulamaError('Hangi siparişin güncelleneceği belli değil.')
+    }
+    const temiz = siparisSatirlariniDogrula(satirlar)
+    return this.depo.siparisGuncelle(siparisNo, temiz, kirp(gerekce) || undefined)
+  }
 }
 
 export const satirlariDogrula = (
@@ -49,6 +66,19 @@ export const satirlariDogrula = (
   if(kirp(noktaId) === ''){
     throw new PortalDogrulamaError('Teslim noktası seçilmeli.')
   }
+  return siparisSatirlariniDogrula(satirlar)
+}
+
+/**
+ * Satır listesinin kendi kontrolü — nokta seçiminden BAĞIMSIZ.
+ *
+ * Güncellemede nokta sorulmuyor: siparişin noktası değişmiyor (o bir
+ * LOJİSTİK revizyonudur). Kontrolü ayırmasaydık, güncelleme için uydurma
+ * bir nokta kimliği geçirmek gerekirdi.
+ */
+export const siparisSatirlariniDogrula = (
+  satirlar: readonly PortalSiparisSatiri[],
+): PortalSiparisSatiri[] => {
   if(satirlar.length === 0){
     throw new PortalDogrulamaError('Sipariş en az bir ürün içermeli.')
   }
@@ -74,6 +104,34 @@ export const satirlariDogrula = (
     gorulen.add(s.kalemId)
   })
   return satirlar.map(s => ({ ...s, birim: kirp(s.birim) }))
+}
+
+/**
+ * Portaldan hangi durumdaki sipariş değiştirilebilir — 0063'ün kuralının
+ * ekran tarafı.
+ *
+ * ⚠️ SON SÖZ SUNUCUDA (MI433). Buradaki liste, reddedileceği belli bir
+ * düğmeyi müşteriye bastırmamak için var.
+ *
+ * ⚠️ "Hazır" da listede ve bu bilinçli: mal paketlenmiş olsa bile müşteri
+ * değişiklik isteyebilir. Engellersek müşteri telefonu açar ve değişiklik
+ * SİSTEM DIŞINDA olur — defterin işi gerçeği yazmaktır.
+ */
+export const PORTALDAN_DEGISTIRILEBILIR: readonly string[] =
+  ['Taslak', 'Onay Bekliyor', 'Onaylandı', 'Hazırlanıyor', 'Hazır']
+
+export const guncellenebilirMi = (durum: string): boolean =>
+  PORTALDAN_DEGISTIRILEBILIR.includes(durum)
+
+/** Değiştirilemiyorsa SEBEBİ; değiştirilebiliyorsa `undefined`. */
+export const guncellemeEngeli = (durum: string): string | undefined => {
+  if(guncellenebilirMi(durum)) return undefined
+  if(durum === 'İptal'){
+    return 'Bu sipariş iptal edilmiş. Yeni bir sipariş girebilirsiniz.'
+  }
+  // Kısmi Sevk · Sevk Edildi · Teslim Edildi
+  return 'Bu siparişin malı yola çıktı; portaldan değiştirilemez. '
+    + 'Eksik, fazla ya da hasarlı bir durum varsa işletmeye bildirin.'
 }
 
 /**

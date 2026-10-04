@@ -8,7 +8,9 @@ import type {
   PortalSiparisSatiri, PortalUrunu,
 } from './portal.repository'
 import {
-  PortalDogrulamaError, PortalServisi, portalDurumu, satirlariDogrula, tarihCumlesi,
+  PORTALDAN_DEGISTIRILEBILIR,
+  PortalDogrulamaError, PortalServisi, guncellemeEngeli, guncellenebilirMi,
+  portalDurumu, satirlariDogrula, tarihCumlesi,
 } from './portal.service'
 
 class BellekDeposu implements PortalDeposu {
@@ -18,11 +20,18 @@ class BellekDeposu implements PortalDeposu {
   async enErkenSevk(): Promise<string | undefined> { return '2026-10-02' }
   async siparislerim(): Promise<PortalSiparisi[]> { return [] }
   async satirlarim(): Promise<PortalSatiri[]> { return [] }
+  sonGuncelleme?: { no: string; satirlar: readonly PortalSiparisSatiri[]; gerekce?: string }
   async siparisVer(
     nokta: string, satirlar: readonly PortalSiparisSatiri[], teslim?: string, not?: string,
   ): Promise<string> {
     this.sonSiparis = { nokta, satirlar, teslim, not }
     return 'SIP-2026-0001'
+  }
+  async siparisGuncelle(
+    no: string, satirlar: readonly PortalSiparisSatiri[], gerekce?: string,
+  ): Promise<number> {
+    this.sonGuncelleme = { no, satirlar, gerekce }
+    return 2
   }
 }
 
@@ -120,9 +129,86 @@ describe('Fiyat sızıntısı', () => {
   it('portal tiplerinde FİYAT ALANI YOK', () => {
     // Emrah'ın kararı: "Form fiyat gösterecek mi? Hayır." Olmayan bir alan
     // sızdırılamaz; bu test o kararın yazılı hâli.
-    const satir: PortalSatiri = { kalemAdi: 'Çorba', miktar: 10, birim: 'koli' }
+    const satir: PortalSatiri = { kalemId: 'k1', kalemAdi: 'Çorba', miktar: 10, birim: 'koli' }
     expect(Object.keys(satir).some(k => /fiyat|price|tutar/i.test(k))).toBe(false)
     const urun: PortalUrunu = { kalemId: 'k1', ad: 'Çorba', birim: 'koli' }
     expect(Object.keys(urun).some(k => /fiyat|price|tutar/i.test(k))).toBe(false)
+  })
+})
+
+// ═══════════════════════════════════════════════════════════════════════════
+// SİPARİŞ GÜNCELLEME (0063)
+//
+// Korunan şeyler: (1) nokta sorulmuyor — nokta değişikliği LOJİSTİK
+// revizyonudur; (2) sevk başlamış siparişte düğme hiç görünmesin ve SEBEBİ
+// yazsın; (3) "Hazır" sipariş değiştirilebilsin — engellersek müşteri
+// telefonu açar ve değişiklik sistem DIŞINDA olur.
+// ═══════════════════════════════════════════════════════════════════════════
+
+describe('PortalServisi.siparisGuncelle', () => {
+  it('satırları temizleyip depoya geçiriyor', async () => {
+    const { depo, servis } = kur()
+    const rev = await servis.siparisGuncelle('SIP-2026-0001', [S({ birim: ' koli ' })], ' az oldu ')
+    expect(rev).toBe(2)
+    expect(depo.sonGuncelleme?.no).toBe('SIP-2026-0001')
+    expect(depo.sonGuncelleme?.satirlar[0].birim).toBe('koli')
+    expect(depo.sonGuncelleme?.gerekce).toBe('az oldu')
+  })
+
+  it('NOKTA SORMUYOR — nokta değişikliği başka bir revizyon türüdür', async () => {
+    const { servis } = kur()
+    await expect(servis.siparisGuncelle('SIP-1', [S()])).resolves.toBeTruthy()
+  })
+
+  it('sipariş numarası boşsa reddediyor', async () => {
+    const { servis } = kur()
+    await expect(servis.siparisGuncelle('  ', [S()])).rejects.toThrow(PortalDogrulamaError)
+  })
+
+  it('boş satır listesi iptal SAYILMIYOR', async () => {
+    // Yanlışlıkla silinen bir satır siparişi yok etmesin.
+    const { servis } = kur()
+    await expect(servis.siparisGuncelle('SIP-1', [])).rejects.toThrow(/en az bir ürün/)
+  })
+
+  it('aynı ürün iki satırda olamıyor', async () => {
+    const { servis } = kur()
+    await expect(servis.siparisGuncelle('SIP-1', [S(), S()])).rejects.toThrow(/zaten var/)
+  })
+
+  it('gerekçe boşsa gönderilmiyor — sunucu kendi cümlesini yazsın', async () => {
+    const { depo, servis } = kur()
+    await servis.siparisGuncelle('SIP-1', [S()], '   ')
+    expect(depo.sonGuncelleme?.gerekce).toBeUndefined()
+  })
+})
+
+describe('guncellenebilirMi / guncellemeEngeli', () => {
+  it('sevk öncesi her durumda değiştirilebiliyor', () => {
+    for(const d of ['Taslak', 'Onay Bekliyor', 'Onaylandı', 'Hazırlanıyor', 'Hazır']){
+      expect(guncellenebilirMi(d), d).toBe(true)
+      expect(guncellemeEngeli(d), d).toBeUndefined()
+    }
+  })
+
+  it('HAZIR sipariş de değiştirilebiliyor', () => {
+    // Engellersek değişiklik sistem DIŞINDA olur; defterin işi gerçeği yazmak.
+    expect(guncellenebilirMi('Hazır')).toBe(true)
+  })
+
+  it('mal yola çıktıysa SEBEBİNİ söyleyerek reddediyor', () => {
+    for(const d of ['Kısmi Sevk', 'Sevk Edildi', 'Teslim Edildi']){
+      expect(guncellenebilirMi(d), d).toBe(false)
+      expect(guncellemeEngeli(d), d).toContain('yola çıktı')
+    }
+  })
+
+  it('iptal edilmiş siparişte ayrı bir cümle kuruyor', () => {
+    expect(guncellemeEngeli('İptal')).toContain('iptal')
+  })
+
+  it('liste ile yardımcı AYRIŞMIYOR', () => {
+    // Biri değişip diğeri unutulursa ekran reddedilecek bir düğme gösterir.
+    expect(PORTALDAN_DEGISTIRILEBILIR.every(guncellenebilirMi)).toBe(true)
   })
 })

@@ -22,7 +22,9 @@ import {
   PostgresPortalDeposu, type PortalNoktasi, type PortalSatiri,
   type PortalSiparisi, type PortalUrunu,
 } from '../portal/portal.repository'
-import { PortalServisi, portalDurumu, tarihCumlesi } from '../portal/portal.service'
+import {
+  PortalServisi, guncellemeEngeli, guncellenebilirMi, portalDurumu, tarihCumlesi,
+} from '../portal/portal.service'
 import { portalGirisiniCozumle } from '../portal/portal-giris'
 
 const hataMetni = (h: unknown) =>
@@ -81,6 +83,15 @@ export default function Portal(){
   const [siparisler, setSiparisler] = React.useState<PortalSiparisi[]>([])
   const [acikSiparis, setAcikSiparis] = React.useState<string | null>(null)
   const [acikSatirlar, setAcikSatirlar] = React.useState<PortalSatiri[]>([])
+
+  // ── Sipariş değiştirme (0063) ─────────────────────────────────────────
+  // ⚠️ Yeni sipariş formunun durumundan AYRI tutuluyor. Paylaşsaydık,
+  // müşteri bir siparişi düzenlerken yeni sipariş formu da değişirdi.
+  const [duzenlenen, setDuzenlenen] = React.useState<string | null>(null)
+  const [duzenSatirlar, setDuzenSatirlar] = React.useState<SatirTaslagi[]>([])
+  const [duzenUrunler, setDuzenUrunler] = React.useState<PortalUrunu[]>([])
+  const [duzenGerekce, setDuzenGerekce] = React.useState('')
+  const [duzenKaydediliyor, setDuzenKaydediliyor] = React.useState(false)
 
   const servis = React.useMemo(() => {
     if(!isSupabaseConfigured()) return null
@@ -196,6 +207,60 @@ export default function Portal(){
       setSiparisler(await servis.siparislerim())
     } catch (err){ setBilgi(''); setHata(hataMetni(err)) }
     finally { setGonderiliyor(false) }
+  }
+
+  /**
+   * Bir siparişin düzenlemesini açar.
+   *
+   * ⚠️ Ürün listesi O SİPARİŞİN NOKTASINA göre okunuyor, yeni sipariş
+   * formunda seçili noktaya göre değil. Müşterinin iki noktası varsa
+   * ikisinin sözleşmeli ürünleri farklı olabilir.
+   */
+  const duzenlemeyiAc = async (s: PortalSiparisi) => {
+    if(!servis) return
+    try{
+      setHata(''); setBilgi('')
+      const [satir, urun] = await Promise.all([
+        servis.satirlarim(s.siparisNo),
+        s.noktaId ? servis.urunlerim(s.noktaId) : Promise.resolve([]),
+      ])
+      setDuzenUrunler(urun)
+      // Miktar metin olarak tutuluyor: kullanıcı yazarken silip yeniden
+      // yazabilsin. Sayıya çevirme gönderirken yapılıyor.
+      setDuzenSatirlar(satir.map(l => ({ kalemId: l.kalemId, miktar: String(l.miktar) })))
+      setDuzenGerekce('')
+      setDuzenlenen(s.siparisNo)
+    } catch (e){ setHata(hataMetni(e)) }
+  }
+
+  const duzenlemeyiGonder = async (siparisNo: string) => {
+    if(!servis) return
+    setDuzenKaydediliyor(true)
+    try{
+      const rev = await servis.siparisGuncelle(
+        siparisNo,
+        duzenSatirlar
+          .filter(x => x.kalemId && x.miktar.trim() !== '')
+          .map(x => ({
+            kalemId: x.kalemId,
+            miktar: Number(x.miktar.replace(',', '.')),
+            birim: duzenUrunler.find(u => u.kalemId === x.kalemId)?.birim ?? '',
+          })),
+        duzenGerekce,
+      )
+      setHata('')
+      // ⚠️ "Değişikliğiniz işlendi" DEMİYORUZ. Değişiklik mutfağın onayına
+      // düşüyor; onaylanmış gibi göstermek, müşterinin eski tarihe güvenip
+      // beklemesine yol açardı.
+      setBilgi(
+        `${siparisNo} için ${rev}. değişiklik kaydedildi. Siparişiniz yeniden `
+        + 'inceleniyor; onaylandığında teslim tarihi kesinleşecek.',
+      )
+      setDuzenlenen(null)
+      setAcikSiparis(null)
+      setSiparisler(await servis.siparislerim())
+    } catch (e){ setBilgi(''); setHata(hataMetni(e)) }
+    finally { setDuzenKaydediliyor(false) }
   }
 
   const satirlariAc = async (no: string) => {
@@ -406,13 +471,120 @@ export default function Portal(){
                     {acikSiparis === s.siparisNo && (
                       <tr>
                         <td colSpan={5}>
-                          <ul>
-                            {acikSatirlar.map((l, i) => (
-                              <li key={i}>
-                                {l.kalemAdi} — {l.miktar.toLocaleString('tr-TR')} {l.birim}
-                              </li>
-                            ))}
-                          </ul>
+                          {duzenlenen !== s.siparisNo && (
+                            <>
+                              <ul>
+                                {acikSatirlar.map((l, i) => (
+                                  <li key={i}>
+                                    {l.kalemAdi} — {l.miktar.toLocaleString('tr-TR')} {l.birim}
+                                  </li>
+                                ))}
+                              </ul>
+                              {/* ⚠️ Düğme yalnız DEĞİŞTİRİLEBİLİR durumda.
+                                  Son söz sunucuda (MI433); buradaki kontrol
+                                  reddedilecek bir düğmeyi bastırmamak için. */}
+                              {guncellenebilirMi(s.durum) ? (
+                                <button
+                                  className="btn" type="button"
+                                  onClick={() => { void duzenlemeyiAc(s) }}
+                                >
+                                  Siparişi değiştir
+                                </button>
+                              ) : (
+                                <p className="muted">{guncellemeEngeli(s.durum)}</p>
+                              )}
+                            </>
+                          )}
+
+                          {duzenlenen === s.siparisNo && (
+                            <form
+                              className="stacked-form"
+                              onSubmit={e => {
+                                e.preventDefault()
+                                void duzenlemeyiGonder(s.siparisNo)
+                              }}
+                            >
+                              {/* ⚠️ "Düzeltiyorsunuz" demiyoruz: eski hâli
+                                  yerinde kalıyor, bu YENİ BİR REVİZYON.
+                                  Tedarikçi ikisini de görüyor. */}
+                              <p className="muted">
+                                Yeni hâlini yazın. <strong>Eski hâli silinmiyor</strong> —
+                                tedarikçiniz neyin değiştiğini görecek. Değişiklik
+                                onaya düşer ve teslim tarihi yeniden kesinleşir.
+                              </p>
+
+                              <fieldset>
+                                <legend>Ürünler</legend>
+                                {duzenSatirlar.map((d, i) => (
+                                  <div className="form-row" key={i}>
+                                    <label>Ürün
+                                      <select
+                                        value={d.kalemId}
+                                        onChange={e => setDuzenSatirlar(duzenSatirlar.map((x, j) =>
+                                          j === i ? { ...x, kalemId: e.target.value } : x))}
+                                      >
+                                        <option value="">Seçin…</option>
+                                        {duzenUrunler
+                                          .filter(u => u.kalemId === d.kalemId
+                                            || !duzenSatirlar.some(x => x.kalemId === u.kalemId))
+                                          .map(u => (
+                                            <option key={u.kalemId} value={u.kalemId}>
+                                              {u.ad} ({u.birim})
+                                            </option>
+                                          ))}
+                                      </select>
+                                    </label>
+                                    <label>Miktar
+                                      <input
+                                        inputMode="decimal" value={d.miktar}
+                                        onChange={e => setDuzenSatirlar(duzenSatirlar.map((x, j) =>
+                                          j === i ? { ...x, miktar: e.target.value } : x))}
+                                      />
+                                    </label>
+                                    {duzenSatirlar.length > 1 && (
+                                      <button
+                                        className="btn ac" type="button"
+                                        onClick={() => setDuzenSatirlar(
+                                          duzenSatirlar.filter((_, j) => j !== i))}
+                                      >
+                                        Sil
+                                      </button>
+                                    )}
+                                  </div>
+                                ))}
+                                <button
+                                  className="btn" type="button"
+                                  disabled={duzenSatirlar.length >= duzenUrunler.length}
+                                  onClick={() => setDuzenSatirlar([...duzenSatirlar, bosSatir()])}
+                                >
+                                  + Satır
+                                </button>
+                              </fieldset>
+
+                              <label>Neden değişti (isteğe bağlı)
+                                <input
+                                  value={duzenGerekce}
+                                  onChange={e => setDuzenGerekce(e.target.value)}
+                                  placeholder="Okul tatili, az gerekiyor"
+                                />
+                              </label>
+
+                              <div className="form-row">
+                                <button
+                                  className="btn primary" type="submit"
+                                  disabled={duzenKaydediliyor}
+                                >
+                                  {duzenKaydediliyor ? 'Gönderiliyor…' : 'Değişikliği gönder'}
+                                </button>
+                                <button
+                                  className="btn" type="button"
+                                  onClick={() => setDuzenlenen(null)}
+                                >
+                                  Vazgeç
+                                </button>
+                              </div>
+                            </form>
+                          )}
                         </td>
                       </tr>
                     )}
