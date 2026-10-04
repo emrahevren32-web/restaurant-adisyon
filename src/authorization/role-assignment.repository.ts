@@ -177,6 +177,67 @@ export const saveUserRoles = async (userId: string, roleCodes: string[]): Promis
 }
 
 /**
+ * Bir kullanıcının BİRİNCİL rolünü (ana görevini) değiştirir — 0060.
+ *
+ * ⚠️ `saveUserRoles` ile AYNI ŞEY DEĞİL. O `user_role` tablosundaki EK
+ * rolleri değiştirir; bu `app_user.role_code`u değiştirir. Etkin yetki
+ * ikisinin BİRLEŞİMİDİR (0036), bu yüzden ana görevi değiştirmek eski rolün
+ * yetkilerini kendiliğinden geri almaz: eski rol ek rol olarak duruyorsa
+ * devam eder. Ekran bunu söylüyor.
+ *
+ * Sunucu reddedebilir ve etmeli: kimse kendi ana görevini değiştiremez,
+ * işletmenin son sahibi görevden alınamaz, işletme sahibi platform rolü
+ * veremez. Mesaj olduğu gibi yukarı taşınıyor.
+ */
+export const setPrimaryRole = async (userId: string, roleCode: string): Promise<void> => {
+  if (!isSupabaseConfigured()) throw new SupabaseNotConfiguredError()
+
+  const { error } = await getSupabase().rpc('set_primary_role', {
+    p_user_id: userId,
+    p_role_code: roleCode,
+  })
+
+  if (error) throw new Error(error.message || 'Ana görev değiştirilemedi.')
+}
+
+/** Toplu üyelik değişiminin sonucu — kim oldu, kim olmadı, neden. */
+export type UyelikSonucu = {
+  basarili: number
+  hatalar: { userId: string; ad: string; mesaj: string }[]
+}
+
+/**
+ * Bir role topluca üye ekler ya da çıkarır.
+ *
+ * ⚠️ TEK İŞLEM DEĞİL. `assign_user_roles` kullanıcı başına çalışıyor, yani
+ * beş kişi eklemek beş ayrı çağrı demek. Üçüncüsü hata verirse ilk ikisi
+ * YAZILMIŞ kalır. Bu yüzden sonuç "oldu/olmadı" değil, kim olduğu ve kimin
+ * neden olmadığı: ekran yarısı yazılmış bir değişikliği gizleyemez.
+ *
+ * Çağrılar SIRAYLA yapılıyor, paralel değil — aynı anda giden onlarca RPC
+ * hem sunucuyu hem hata mesajlarının sırasını karıştırıyor.
+ */
+export const applyRoleMembership = async (
+  degisiklikler: { userId: string; ad: string; roleCodes: string[] }[],
+): Promise<UyelikSonucu> => {
+  if (!isSupabaseConfigured()) throw new SupabaseNotConfiguredError()
+
+  const hatalar: UyelikSonucu['hatalar'] = []
+  let basarili = 0
+
+  for (const d of degisiklikler) {
+    try {
+      await saveUserRoles(d.userId, d.roleCodes)
+      basarili += 1
+    } catch (e) {
+      hatalar.push({ userId: d.userId, ad: d.ad, mesaj: (e as Error).message })
+    }
+  }
+
+  return { basarili, hatalar }
+}
+
+/**
  * Bu kullanıcı rol atayabilir mi?
  *
  * Yalnızca ARAYÜZ içindir — butonu gizlemek/göstermek için. Gerçek karar

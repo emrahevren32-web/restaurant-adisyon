@@ -12,6 +12,10 @@ export const PERMISSION_CATALOG: PermissionModel[] = [
   { name: 'personnel.manage', description: 'Personel sureclerini yonetme izni.', module: 'personnel' },
   { name: 'operations.read', description: 'Business Workspace operasyon ekranlarini goruntuleme izni.', module: 'business-workspace' },
   { name: 'operations.write', description: 'Business Workspace operasyon verilerini yonetme izni.', module: 'business-workspace' },
+  // 0061 — onay zincirinde KARAR VERMEK ayrı bir hak. Daha önce
+  // `operations.write` ikisini birden taşıyordu: sipariş açma yetkisi veren
+  // kişi, farkında olmadan onay yetkisini de veriyordu.
+  { name: 'operations.approve', description: 'Siparis onay zincirinde karar verme izni.', module: 'business-workspace' },
   { name: 'company.read', description: 'Firma bilgilerini goruntuleme izni.', module: 'company' },
   { name: 'company.manage', description: 'Firma yonetim islemlerini yapma izni.', module: 'company' },
   { name: 'platform.read', description: 'EVREN360 platform bilgilerini goruntuleme izni.', module: 'platform' },

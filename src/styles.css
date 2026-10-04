@@ -27723,34 +27723,6 @@ html body .topbar-profile-panel .topbar-profile-panel-username {
    ⚠️ "YAPAR" etiketi "görür"den DAHA GÜÇLÜ duruyor: büyük harf, dolu zemin.
    Yöneticinin bu ekranda aradığı tek şey "bu kişi neyi DEĞİŞTİREBİLİR" —
    ikisini aynı ağırlıkta göstermek o satırı kaybettiriyordu. */
-.roller-layout{
-  display:grid;
-  grid-template-columns:320px minmax(0, 1fr);
-  gap:var(--space-16);
-  align-items:start;
-}
-.roller-layout > *{ min-width:0 }
-
-.rol-listesi{ list-style:none; margin:0; padding:0; display:grid; gap:var(--space-4) }
-.rol-satiri{
-  display:flex; flex-wrap:wrap; align-items:center; gap:var(--space-8);
-  width:100%; text-align:left; cursor:pointer;
-  padding:var(--space-8) var(--space-12);
-  border:1px solid var(--line); border-radius:var(--radius-lg);
-  background:var(--surface); color:var(--text);
-  font:inherit;
-}
-.rol-satiri:hover{ border-color:var(--line-strong) }
-.rol-satiri > strong{ flex:1 1 auto; min-width:0 }
-.rol-satiri > .muted{ flex:1 1 100%; font-size:var(--font-size-12) }
-/* Seçili rol: sol kenarda şerit. Seçimin görünmemesi, kullanıcının yanlış
-   rolün içeriğini okuyup ona göre yetki vermesine yol açar. */
-.rol-satiri.secili{
-  border-color:var(--accent);
-  box-shadow:inset 3px 0 0 var(--accent);
-  background:var(--accent-soft);
-}
-
 .yetki-agac{ display:grid; gap:var(--space-4); margin:var(--space-8) 0 }
 .yetki-dal{ border:1px solid var(--line); border-radius:var(--radius-lg); background:var(--surface) }
 .yetki-dal-basi{
@@ -27791,8 +27763,6 @@ html[data-theme="dark"][data-theme-engine="premium"] .yetenek-turu.yapar{
   border-color:rgba(220, 38, 38, .34); background:rgba(220, 38, 38, .16); color:#FCA5A5;
 }
 
-.rol-tasiyanlar{ list-style:none; margin:0; padding:0; display:grid; gap:var(--space-4) }
-.rol-tasiyanlar > li{ font-size:var(--font-size-13) }
 /* Bağlantı gibi görünen düğme: tablo satırındaki "aç" düğmesi kadar ağır
    durmaması gerekiyor, ama yine de gerçek bir <button>. */
 .baglanti-dugmesi{
@@ -27800,11 +27770,78 @@ html[data-theme="dark"][data-theme-engine="premium"] .yetenek-turu.yapar{
   color:var(--accent); font:inherit; font-weight:var(--font-weight-900);
   text-decoration:underline; text-underline-offset:2px;
 }
+/* ── ROL ÖNCE: kart ızgarası, üyelik ve iki sütunlu kart ───────────────────
+   Emrah (04.10.2026): "Kişi listesi ekranda baya geniş yer kaplıyorken roller
+   çok dar bir alana sıkışmış, üstelik rolleri verebilmek için aşağı
+   scrolllamak gerekiyor."
 
-@media (max-width:1024px){
-  .roller-layout{ display:block }
-  .roller-layout > * + *{ margin-top:var(--space-16) }
-  .rol-listesi{ grid-template-columns:repeat(auto-fit, minmax(240px, 1fr)) }
+   Çözüm yan yana koymayı bırakmak oldu: liste ve kart AYNI ANDA durmuyor.
+   Seçim listeyi değiştiriyor, kart tam genişlikte açılıyor ve içinde iki
+   sütun var — solda üyelik/roller (iş yapılan taraf), sağda ne yapabildiği
+   (okunan taraf). İş yapılan sütun artık 360 piksellik bir şeritte değil. */
+.rol-kart-grid{
+  display:grid;
+  grid-template-columns:repeat(auto-fill, minmax(280px, 1fr));
+  gap:var(--space-8);
+  margin:var(--space-8) 0;
+}
+.rol-kart{
+  display:flex; flex-direction:column; gap:var(--space-4);
+  text-align:left; cursor:pointer; width:100%;
+  padding:var(--space-12);
+  border:1px solid var(--line); border-radius:var(--radius-lg);
+  background:var(--surface); color:var(--text); font:inherit;
+}
+.rol-kart:hover{ border-color:var(--accent); background:var(--accent-soft) }
+.rol-kart-bas{ display:flex; align-items:center; gap:var(--space-8); justify-content:space-between }
+.rol-kart-aciklama{
+  font-size:var(--font-size-12); line-height:1.4;
+  /* Üç satırdan sonra kesiliyor: kartların yüksekliği eşit kalsın, ızgara
+     kırık görünmesin. Tam metin rolü açınca okunuyor. */
+  display:-webkit-box; -webkit-line-clamp:3; -webkit-box-orient:vertical; overflow:hidden;
+}
+.rol-kart-sayac{ font-size:var(--font-size-12); margin-top:auto; padding-top:var(--space-4) }
+
+/* Kartın tepesindeki geri düğmesi. */
+.kart-ustu{ margin-bottom:var(--space-12) }
+
+/* Kartın gövdesi: solda iş, sağda okuma. */
+.yetki-detay{
+  display:grid;
+  grid-template-columns:minmax(0, 1fr) minmax(0, 1fr);
+  gap:var(--space-24);
+  align-items:start;
+}
+.yetki-detay > *{ min-width:0 }
+
+.uye-listesi{ list-style:none; margin:0 0 var(--space-8); padding:0; display:grid; gap:var(--space-4) }
+.uye-listesi > li{
+  font-size:var(--font-size-13);
+  padding:var(--space-6) var(--space-8);
+  border:1px solid var(--line-soft); border-radius:var(--radius-sm);
+  background:var(--surface-muted);
+}
+.uye-secim{
+  display:grid; gap:var(--space-4);
+  max-height:260px; overflow:auto;
+  padding:var(--space-8);
+  border:1px solid var(--line); border-radius:var(--radius-lg);
+  background:var(--surface-muted);
+}
+.ana-gorev-satiri{
+  display:flex; flex-wrap:wrap; gap:var(--space-8); align-items:center;
+  margin:var(--space-8) 0;
+}
+.ana-gorev-satiri select{ flex:1 1 200px; min-width:0 }
+
+.baglanti-dugmesi.tehlike{ color:#C0261F; margin-left:var(--space-8) }
+.baglanti-dugmesi:disabled{ opacity:.5; cursor:default; text-decoration:none }
+html[data-theme="dark"][data-theme-engine="premium"] .baglanti-dugmesi.tehlike{ color:#FCA5A5 }
+
+@media (max-width:1100px){
+  /* Dar ekranda iki sütun 480 pikselin altına inince ikisi de okunmaz
+     oluyordu; alt alta daha iyi. */
+  .yetki-detay{ grid-template-columns:minmax(0, 1fr) }
 }
 
 /* ── ÜST PANEL SAATİ ───────────────────────────────────────────────────────

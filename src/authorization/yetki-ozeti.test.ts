@@ -15,9 +15,14 @@ import {
   kritikYetkiler,
   onayCumlesi,
   onayYetkileri,
+  anaGorevDegisinceKalanRol,
   rolAgaci,
+  rolCikarilmis,
   rolCumlesi,
+  rolEklenmis,
+  roleEklenebilirler,
   rolKatkisi,
+  rolUyeleri,
   yetkininKaynagi,
   yetkiTuru,
   type OnayAdimi,
@@ -33,7 +38,7 @@ const ROL_IZINLERI: Record<string, string[]> = {
 const ADIMLAR: OnayAdimi[] = [
   { kod: 'DEPO', ad: 'Depo — hammadde yeterli mi', bloklar: false, izinKodu: 'stock.read' },
   { kod: 'URETIM', ad: 'Üretim — yoğunluk ve tarih', bloklar: false, izinKodu: 'production.read' },
-  { kod: 'SATIS', ad: 'Satış sorumlusu — onay', bloklar: true, izinKodu: 'operations.write' },
+  { kod: 'SATIS', ad: 'Satış sorumlusu — onay', bloklar: true, izinKodu: 'operations.approve' },
 ]
 
 describe('etkinIzinler', () => {
@@ -112,7 +117,7 @@ describe('onayCumlesi', () => {
   })
 
   it('onay ile görüşü ayırıyor', () => {
-    const cumle = onayCumlesi(onayYetkileri(['stock.read', 'operations.write'], ADIMLAR))
+    const cumle = onayCumlesi(onayYetkileri(['stock.read', 'operations.approve'], ADIMLAR))
     expect(cumle).toContain('3 adımın 2 tanesinde')
     expect(cumle).toContain('1 onay')
     expect(cumle).toContain('1 görüş')
@@ -261,5 +266,97 @@ describe('rolKatkisi', () => {
     const katki = rolKatkisi(ROL_IZINLERI.depo_sorumlusu, ROL_IZINLERI.izleyici)
     expect(katki.yeni).toEqual([])
     expect(katki.zatenVar).toBe(2)
+  })
+})
+
+// ═══════════════════════════════════════════════════════════════════════════
+// ROL ÖNCE — üyelik testleri
+//
+// Korunan şeyler: (1) pasif kullanıcı listeden DÜŞMESİN, işaretlensin;
+// (2) birincil üyelik ek üyelikten ayrı dursun — "çıkar" düğmesi onda
+// çalışmıyor; (3) ekleme TAM LİSTE göndersin, fark değil.
+// ═══════════════════════════════════════════════════════════════════════════
+
+const KISILER = [
+  { id: 'u1', fullName: 'Hasan Yıldız', username: 'hasan', primaryRoleCode: 'depo_sorumlusu', isActive: true },
+  { id: 'u2', fullName: 'Ayşe Kaya', username: 'ayse', primaryRoleCode: 'muhasebe', isActive: true },
+  { id: 'u3', fullName: '', username: 'veli', primaryRoleCode: 'izleyici', isActive: false },
+]
+const EK_ATAMALAR: Record<string, string[]> = {
+  u2: ['depo_sorumlusu'],
+  u3: ['depo_sorumlusu'],
+}
+
+describe('rolUyeleri', () => {
+  it('birincil ve ek üyeleri birlikte veriyor, birincili ÖNE alıyor', () => {
+    const uyeler = rolUyeleri('depo_sorumlusu', KISILER, EK_ATAMALAR)
+    expect(uyeler.map(u => u.id)).toEqual(['u1', 'u2', 'u3'])
+    expect(uyeler[0].birincil).toBe(true)
+    expect(uyeler[1].birincil).toBe(false)
+  })
+
+  it('PASİF kullanıcıyı gizlemiyor, işaretliyor', () => {
+    // Gizleseydik yetkisi duran ama girişi kapalı hesap hiç görünmezdi.
+    const veli = rolUyeleri('depo_sorumlusu', KISILER, EK_ATAMALAR).find(u => u.id === 'u3')
+    expect(veli?.aktif).toBe(false)
+  })
+
+  it('adı yoksa kullanıcı adını yazıyor', () => {
+    expect(rolUyeleri('izleyici', KISILER, {})[0].ad).toBe('veli')
+  })
+
+  it('kimsede olmayan rolde boş dönüyor', () => {
+    expect(rolUyeleri('kalite_sorumlusu', KISILER, EK_ATAMALAR)).toEqual([])
+  })
+})
+
+describe('roleEklenebilirler', () => {
+  it('zaten üye olanları listelemiyor', () => {
+    expect(roleEklenebilirler('depo_sorumlusu', KISILER, EK_ATAMALAR)).toEqual([])
+  })
+
+  it('üye olmayan herkesi veriyor', () => {
+    expect(roleEklenebilirler('kalite_sorumlusu', KISILER, EK_ATAMALAR).map(k => k.id))
+      .toEqual(['u2', 'u1', 'u3'])
+  })
+})
+
+describe('rolEklenmis / rolCikarilmis', () => {
+  it('TAM listeyi döndürüyor — fark değil', () => {
+    // `assign_user_roles` tam değişim yapar; fark gönderilseydi
+    // gönderilmeyen roller silinirdi.
+    expect(rolEklenmis(['muhasebe'], 'depo_sorumlusu')).toEqual(['muhasebe', 'depo_sorumlusu'])
+  })
+
+  it('zaten varsa ikinci kez eklemiyor', () => {
+    expect(rolEklenmis(['muhasebe'], 'muhasebe')).toEqual(['muhasebe'])
+  })
+
+  it('çıkarıyor', () => {
+    expect(rolCikarilmis(['muhasebe', 'depo_sorumlusu'], 'muhasebe')).toEqual(['depo_sorumlusu'])
+  })
+
+  it('olmayanı çıkarmaya çalışmak listeyi bozmuyor', () => {
+    expect(rolCikarilmis(['muhasebe'], 'yok')).toEqual(['muhasebe'])
+  })
+})
+
+describe('anaGorevDegisinceKalanRol', () => {
+  it('eski rol EK rol olarak duruyorsa söylüyor', () => {
+    // "Hasan'ı sevkiyata aldım ama hâlâ depodan mal çıkarıyor" şikâyetinin
+    // kaynağı tam olarak bu: 0060 ek rollere bilerek dokunmuyor.
+    expect(anaGorevDegisinceKalanRol('depo_sorumlusu', ['depo_sorumlusu', 'muhasebe']))
+      .toBe('depo_sorumlusu')
+  })
+
+  it('durmuyorsa null', () => {
+    expect(anaGorevDegisinceKalanRol('depo_sorumlusu', ['muhasebe'])).toBe(null)
+  })
+})
+
+describe('kritik yetki · 0061 sonrası', () => {
+  it('sipariş AÇMAK kritik değil, ONAYLAMAK kritik', () => {
+    expect(kritikYetkiler(['operations.write'])).toEqual([])
+    expect(kritikYetkiler(['operations.approve']).join(' ')).toContain('KARAR VERİR')
   })
 })

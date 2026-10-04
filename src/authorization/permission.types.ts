@@ -10,6 +10,9 @@ export type PermissionName =
   | 'personnel.manage'
   | 'operations.read'
   | 'operations.write'
+  // 0061 — sipariş AÇMAK ile ONAYLAMAK ayrıldı. Tek izinde durdukları sürece
+  // "açsın ama onaylamasın" diye bir rol kurulamıyordu.
+  | 'operations.approve'
   | 'company.read'
   | 'company.manage'
   | 'platform.read'

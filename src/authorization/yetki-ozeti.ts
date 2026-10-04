@@ -51,7 +51,11 @@ export const IZIN_ETIKETLERI: Record<string, IzinEtiketi> = {
   'logistics.read':    { alan: 'Sevkiyat',  cumle: 'Sevkiyat ve irsaliyeleri görür' },
   'logistics.write':   { alan: 'Sevkiyat',  cumle: 'Sevkiyat yürütür ve İRSALİYE KESER' },
   'operations.read':   { alan: 'Sipariş',   cumle: 'Sipariş defterini görür' },
-  'operations.write':  { alan: 'Sipariş',   cumle: 'Sipariş açar, revize eder ve SİPARİŞ ONAYLAR' },
+  'operations.write':  { alan: 'Sipariş',   cumle: 'Sipariş açar ve revize eder' },
+  /* 0061 — onaylamak, açmaktan AYRI bir hak. Önce tek cümleydi
+     ("açar, revize eder ve ONAYLAR") ve bölünemiyordu: sipariş açma
+     yetkisi veren kişi farkında olmadan onay yetkisini de veriyordu. */
+  'operations.approve':{ alan: 'Sipariş',   cumle: 'Onay zincirinde KARAR VERİR (sipariş onaylar)' },
   'products.read':     { alan: 'Ürün',      cumle: 'Ürün kartlarını görür' },
   'products.write':    { alan: 'Ürün',      cumle: 'Ürün kartı oluşturur ve değiştirir' },
   'finance.read':      { alan: 'Para',      cumle: 'Maliyet ve cari bilgilerini görür' },
@@ -177,7 +181,9 @@ export const onayCumlesi = (yetkiler: readonly OnayYetkisi[]): string => {
  * Bunlar "yanlış kişide olursa en pahalıya patlayan" yetkiler.
  */
 export const KRITIK_IZINLER = [
-  'stock.write', 'operations.write', 'logistics.write', 'users.manage',
+  // ⚠️ Sipariş AÇMAK kritik değil, ONAYLAMAK kritik (0061). Siparişi
+  // zaten açması beklenen kişiyi her gün uyarmak, uyarıyı değersizleştirir.
+  'stock.write', 'operations.approve', 'logistics.write', 'users.manage',
 ] as const
 
 export const kritikYetkiler = (izinler: readonly string[]): string[] => {
@@ -407,3 +413,108 @@ export const rolKatkisi = (
     yeniKritik: yeni.filter(y => y.kritik).length,
   }
 }
+
+// ═══════════════════════════════════════════════════════════════════════════
+// ROL ÖNCE — "bu rolde kimler var"
+//
+// Emrah (04.10.2026): *"rollere mi kişileri tanımlayalım yoksa kişilere mi rol
+// atayalım? … 35-40 kişinin çalıştığı fabrikayı düşün … her rolün
+// kullanıcılarını tanımladığımız yetki grupları olsa daha mı iyi olur?"*
+//
+// Karar: ANA EKRAN ROL ÖNCE. Gerekçe iş yükü: 40 kişilik bir fabrikada ilk
+// kurulumu kişi kişi dolaşmak 40 ekran demek; rolü açıp altı kişiyi tiklemek
+// bir ekran. Denetim sorusu da ("kimde mal çıkarma var") rol tarafından
+// cevaplanıyor.
+//
+// ⚠️ AMA KİŞİ TARAFI KAPANMIYOR. Bir kişinin etkin yetkisi bütün rollerinin
+// BİRLEŞİMİ (0036). Yalnız rol tarafından bakan biri, birini Depo'ya eklerken
+// onun ayrıca Muhasebe ve Sevkiyat'ta da olduğunu göremez. "Bu kişi TOPLAMDA
+// ne yapabiliyor" sorusunun tek cevabı kişi kartıdır — bu yüzden rol
+// kartındaki her isim kişi kartına açılıyor.
+//
+// ⚠️ İKİ TÜR ÜYELİK VAR ve ayrı davranıyorlar:
+//   BİRİNCİL (`app_user.role_code`) → `set_primary_role` (0060) ile değişir
+//   EK       (`user_role`)          → `assign_user_roles` (0015) ile değişir
+// Ekran ikisini AYRI gösteriyor; aynı liste gibi gösterseydik "çıkar"
+// düğmesinin neden bazı satırlarda çalışmadığı anlaşılmazdı.
+// ═══════════════════════════════════════════════════════════════════════════
+
+export type RolUyesi = {
+  id: string
+  ad: string
+  /** true = bu rol kişinin ANA GÖREVİ; `user_role`dan çıkarılamaz. */
+  birincil: boolean
+  aktif: boolean
+}
+
+export type UyelikKaynagi = {
+  id: string
+  fullName: string
+  username: string
+  primaryRoleCode: string
+  isActive: boolean
+}
+
+/**
+ * Bir rolü taşıyan kişiler.
+ *
+ * ⚠️ Pasif kullanıcı LİSTEDEN DÜŞMÜYOR, "pasif" diye işaretleniyor. Gizleseydik
+ * yönetici, yetkisi duran ama girişi kapalı bir hesabı hiç görmezdi; hesap
+ * yeniden açıldığında eski yetkileriyle geri gelirdi.
+ */
+export const rolUyeleri = (
+  rolKodu: string,
+  kullanicilar: readonly UyelikKaynagi[],
+  ekAtamalar: Readonly<Record<string, readonly string[]>>,
+): RolUyesi[] => (
+  kullanicilar
+    .filter(k => k.primaryRoleCode === rolKodu || (ekAtamalar[k.id] ?? []).includes(rolKodu))
+    .map(k => ({
+      id: k.id,
+      ad: k.fullName || k.username,
+      birincil: k.primaryRoleCode === rolKodu,
+      aktif: k.isActive,
+    }))
+    .sort((a, b) => (Number(b.birincil) - Number(a.birincil)) || a.ad.localeCompare(b.ad, 'tr'))
+)
+
+/** Role henüz eklenmemiş kişiler — "kişi ekle" listesi. */
+export const roleEklenebilirler = (
+  rolKodu: string,
+  kullanicilar: readonly UyelikKaynagi[],
+  ekAtamalar: Readonly<Record<string, readonly string[]>>,
+): UyelikKaynagi[] => {
+  const uyeler = new Set(rolUyeleri(rolKodu, kullanicilar, ekAtamalar).map(u => u.id))
+  return kullanicilar
+    .filter(k => !uyeler.has(k.id))
+    .slice()
+    .sort((a, b) => (a.fullName || a.username).localeCompare(b.fullName || b.username, 'tr'))
+}
+
+/**
+ * Kişinin EK rol listesine bir rol ekler / listeden çıkarır.
+ *
+ * ⚠️ `assign_user_roles` TAM DEĞİŞİM yapar: gönderilen liste yeni gerçektir.
+ * Bu yüzden "ekle" bile kişinin TÜM listesini yeniden göndermek zorunda.
+ * Farkı gönderseydik, gönderilmeyen roller silinirdi.
+ */
+export const rolEklenmis = (mevcut: readonly string[], rolKodu: string): string[] =>
+  mevcut.includes(rolKodu) ? [...mevcut] : [...mevcut, rolKodu]
+
+export const rolCikarilmis = (mevcut: readonly string[], rolKodu: string): string[] =>
+  mevcut.filter(r => r !== rolKodu)
+
+/**
+ * Ana görevi değişen kişide ESKİ rol ek rol olarak duruyor mu?
+ *
+ * `set_primary_role` (0060) ek rollere bilerek dokunmuyor. Sessizce silseydi
+ * yönetici, bilerek verdiği bir ek rolü kaybederdi. Ama hiç söylemezsek de
+ * "Hasan'ı sevkiyata aldım, hâlâ depodan mal çıkarıyor" şikâyeti doğar.
+ * Ekran bu yüzden durumu SÖYLÜYOR — bu yardımcı o cümlenin koşulu.
+ */
+export const anaGorevDegisinceKalanRol = (
+  eskiRolKodu: string,
+  ekRoller: readonly string[],
+): string | null => (
+  eskiRolKodu && ekRoller.includes(eskiRolKodu) ? eskiRolKodu : null
+)

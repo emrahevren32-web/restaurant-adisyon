@@ -31,12 +31,15 @@ const VERITABANI_KATALOGU = [
   'purchase.read', 'purchase.write', 'production.read', 'production.write',
   'recipe.read', 'recipe.write', 'quality.read', 'quality.write',
   'logistics.read', 'logistics.write', 'branch.read', 'branch.manage',
-  'roles.manage', 'settings.manage', 'audit.read'
+  'roles.manage', 'settings.manage', 'audit.read',
+  // 0061 — sipariş AÇMAK ile ONAYLAMAK ayrıldı. Tek izinde durdukları
+  // sürece "açsın ama onaylamasın" diye bir rol kurulamıyordu.
+  'operations.approve'
 ]
 
 describe('İzin kataloğu · kod ile veritabanı aynı', () => {
-  it('kod kataloğu 32 izin içeriyor', () => {
-    expect(PERMISSION_CATALOG).toHaveLength(32)
+  it('kod kataloğu 33 izin içeriyor', () => {
+    expect(PERMISSION_CATALOG).toHaveLength(33)
   })
 
   it('kod kataloğu ile 0014+0015 kataloğu birebir aynı kümedir', () => {
