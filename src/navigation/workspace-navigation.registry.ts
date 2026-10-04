@@ -50,6 +50,11 @@ export type CreateWorkspaceNavigationTreeOptions = {
  * 'settings' 2026-09-13'te eklendi: müşterinin yapılandırma yapabileceği
  * tek yerdi ve menüde hiç görünmüyordu. Veri yedeği oraya konuluyor.
  */
+// ⚠️ MENÜ GÖRÜNÜRLÜĞÜNÜN İKİ KAPISINDAN BİRİ. Diğeri
+// `core-module-visibility.ts`. Bir modül İKİSİNDEN de geçmezse menüde hiç
+// üretilmez — ve ikisi de sessizdir: ekran yazılmış, rota çalışıyor, menüde
+// yok. Ayarlar (2026-09-13) ve Kullanıcılar (2026-10-03) tam olarak böyle
+// kayboldu. Yeni bir çekirdek ekran açarken İKİSİNE de bak.
 const CORE_WORKSPACE_MODULE_CODES = [
   'workspace-welcome',
   'dashboard',
@@ -57,6 +62,7 @@ const CORE_WORKSPACE_MODULE_CODES = [
   'marketplace',
   'integration-center',
   'tools',
+  'users',
   'settings'
 ]
 

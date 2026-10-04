@@ -27689,6 +27689,124 @@ html body .topbar-profile-panel .topbar-profile-panel-username {
   font-variant-numeric:tabular-nums;
 }
 
+/* ── KULLANICILAR VE YETKİLER ─────────────────────────────────────────────
+   Yetki listesi OKUNACAK bir metindir, bir tablo değil: satırlar kısa,
+   başlıklar belirgin. Yöneticinin "bu kişi mal çıkarabiliyor mu" sorusunu
+   göz gezdirerek cevaplayabilmesi gerekiyor. */
+.yetki-alan{ margin:var(--space-10) 0 }
+.yetki-alan > strong{
+  display:block;
+  font-size:var(--font-size-12);
+  letter-spacing:.04em;
+  text-transform:uppercase;
+  color:var(--muted-strong);
+  margin-bottom:var(--space-4);
+}
+.yetki-alan ul{ margin:0; padding-left:var(--space-20) }
+.yetki-alan li{ font-size:var(--font-size-13); line-height:1.5 }
+.users-page .role-checkbox-grid{
+  display:grid;
+  grid-template-columns:repeat(auto-fit, minmax(240px, 1fr));
+  gap:var(--space-8);
+  margin:var(--space-8) 0;
+}
+.users-page h4{ margin:var(--space-16) 0 var(--space-4) }
+
+/* ── TÜMDENGELİM YETKİ AĞACI ───────────────────────────────────────────────
+   Emrah (03.10.2026): "Yetki verme ekranlarını tümdengelim şeklinde yapalım,
+   depocu seçilince depoda yapabilecekleri açılsın, ordan başka bişey seçince
+   yapabilecekleri açılsın vs vs öyle sona kadar gitsin."
+
+   Üç kademe: ROL → ALAN → tek tek yetki. Düz liste otuz iki satıra çıkıyordu
+   ve okunmuyordu; burada her kademe kapanabiliyor.
+
+   ⚠️ "YAPAR" etiketi "görür"den DAHA GÜÇLÜ duruyor: büyük harf, dolu zemin.
+   Yöneticinin bu ekranda aradığı tek şey "bu kişi neyi DEĞİŞTİREBİLİR" —
+   ikisini aynı ağırlıkta göstermek o satırı kaybettiriyordu. */
+.roller-layout{
+  display:grid;
+  grid-template-columns:320px minmax(0, 1fr);
+  gap:var(--space-16);
+  align-items:start;
+}
+.roller-layout > *{ min-width:0 }
+
+.rol-listesi{ list-style:none; margin:0; padding:0; display:grid; gap:var(--space-4) }
+.rol-satiri{
+  display:flex; flex-wrap:wrap; align-items:center; gap:var(--space-8);
+  width:100%; text-align:left; cursor:pointer;
+  padding:var(--space-8) var(--space-12);
+  border:1px solid var(--line); border-radius:var(--radius-lg);
+  background:var(--surface); color:var(--text);
+  font:inherit;
+}
+.rol-satiri:hover{ border-color:var(--line-strong) }
+.rol-satiri > strong{ flex:1 1 auto; min-width:0 }
+.rol-satiri > .muted{ flex:1 1 100%; font-size:var(--font-size-12) }
+/* Seçili rol: sol kenarda şerit. Seçimin görünmemesi, kullanıcının yanlış
+   rolün içeriğini okuyup ona göre yetki vermesine yol açar. */
+.rol-satiri.secili{
+  border-color:var(--accent);
+  box-shadow:inset 3px 0 0 var(--accent);
+  background:var(--accent-soft);
+}
+
+.yetki-agac{ display:grid; gap:var(--space-4); margin:var(--space-8) 0 }
+.yetki-dal{ border:1px solid var(--line); border-radius:var(--radius-lg); background:var(--surface) }
+.yetki-dal-basi{
+  display:flex; flex-wrap:wrap; align-items:center; gap:var(--space-8);
+  width:100%; text-align:left; cursor:pointer;
+  padding:var(--space-8) var(--space-12);
+  border:0; background:transparent; color:var(--text); font:inherit;
+}
+.yetki-dal-isaret{
+  flex:0 0 auto; width:18px; height:18px;
+  display:inline-flex; align-items:center; justify-content:center;
+  border:1px solid var(--line); border-radius:var(--radius-sm);
+  color:var(--muted); font-size:var(--font-size-12); line-height:1;
+}
+.yetki-dal-basi > strong{ flex:0 0 auto }
+.yetki-dal-basi > .muted{ flex:1 1 auto; font-size:var(--font-size-12) }
+.yetki-dal.acik > .yetki-dal-basi{ border-bottom:1px solid var(--line-soft) }
+
+.yetenek-listesi{ list-style:none; margin:0; padding:var(--space-8) var(--space-12); display:grid; gap:var(--space-8) }
+.yetenek-listesi > li{
+  display:grid; grid-template-columns:auto minmax(0, 1fr); gap:var(--space-8);
+  align-items:baseline; font-size:var(--font-size-13); line-height:1.45;
+}
+.yetenek-listesi > li > small{ grid-column:2; color:var(--muted); font-size:var(--font-size-12) }
+.yetenek-turu{
+  flex:0 0 auto; align-self:start;
+  padding:1px var(--space-6); border-radius:var(--radius-sm);
+  border:1px solid var(--line); background:var(--surface-muted);
+  color:var(--muted); font-size:var(--font-size-11);
+  letter-spacing:.04em; white-space:nowrap;
+}
+/* Yazma yetkisi: dolu zemin. Bu satır gözden kaçmamalı. */
+.yetenek-turu.yapar{
+  border-color:#F3C9C4; background:#FCECEA; color:#C0261F; font-weight:var(--font-weight-900);
+}
+.yetenek-listesi > li.kritik > .yetenek-cumle{ font-weight:var(--font-weight-900) }
+html[data-theme="dark"][data-theme-engine="premium"] .yetenek-turu.yapar{
+  border-color:rgba(220, 38, 38, .34); background:rgba(220, 38, 38, .16); color:#FCA5A5;
+}
+
+.rol-tasiyanlar{ list-style:none; margin:0; padding:0; display:grid; gap:var(--space-4) }
+.rol-tasiyanlar > li{ font-size:var(--font-size-13) }
+/* Bağlantı gibi görünen düğme: tablo satırındaki "aç" düğmesi kadar ağır
+   durmaması gerekiyor, ama yine de gerçek bir <button>. */
+.baglanti-dugmesi{
+  border:0; background:transparent; padding:0; cursor:pointer;
+  color:var(--accent); font:inherit; font-weight:var(--font-weight-900);
+  text-decoration:underline; text-underline-offset:2px;
+}
+
+@media (max-width:1024px){
+  .roller-layout{ display:block }
+  .roller-layout > * + *{ margin-top:var(--space-16) }
+  .rol-listesi{ grid-template-columns:repeat(auto-fit, minmax(240px, 1fr)) }
+}
+
 /* ── ÜST PANEL SAATİ ───────────────────────────────────────────────────────
    Küçük, dijital, köşede. Göze batmaması İSTENDİ (Emrah · 03.10): rakamlar
    soluk, yalnız saat biraz daha koyu. Tabular rakam kullanılıyor — yoksa

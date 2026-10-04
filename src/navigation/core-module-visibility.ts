@@ -54,6 +54,20 @@ export const cekirdekModulGorunur = (
   // ekranı bu modülün altında duruyor.
   if(kod === WORKSPACE_MODULE_CODES.SETTINGS) return baglam.kurulumTamam
 
+  // ⚠️ 2026-10-03: Kullanıcılar buraya eklendi. Ekran kodda vardı ama bu
+  // beyaz listeden geçmediği için menüde HİÇ üretilmiyordu — Ayarlar'ın
+  // 2026-09-13'te başına gelenin aynısı. Emrah'ın sorusu ("personel
+  // oluştururken yetkilerini belirleyebileceğimiz ekran olmalı") yüzünden
+  // bulundu; ekran yazılmış ama kapı kapalıydı.
+  //
+  // ROLLER modülü bilerek AÇILMADI: aynı rotaya çıkıyor ve menüde iki ayrı
+  // satır gösterip tek ekrana götürmek, kullanıcıya olmayan bir ikinci
+  // ekran vaat etmek olurdu.
+  //
+  // Kurulum bitmeden gösterilmiyor: daha kullanıcısı olmayan bir işletmeye
+  // kullanıcı yönetimi göstermek, doldurulacak boş bir kutu gibi duruyor.
+  if(kod === WORKSPACE_MODULE_CODES.USERS) return baglam.kurulumTamam
+
   return kod === WORKSPACE_MODULE_CODES.DASHBOARD
     || kod === WORKSPACE_MODULE_CODES.WORKSPACE
 }

@@ -22,6 +22,7 @@
 // ═══════════════════════════════════════════════════════════════════════════
 
 import { getSupabase, isSupabaseConfigured } from '../core/supabase'
+import type { OnayAdimi } from './yetki-ozeti'
 
 export type AssignableRole = {
   code: string
@@ -43,6 +44,21 @@ export type RoleAssignmentData = {
   users: TenantUser[]
   /** kullanıcı id → o kullanıcıya atanmış EK rol kodları (user_role) */
   assignments: Record<string, string[]>
+  /**
+   * rol kodu → o rolün AÇTIĞI izinler (`role_permission`).
+   *
+   * ⚠️ Ekranda rol ADI yetmiyor. "Depo Sorumlusu" yazısı, o rolün mal
+   * çıkarabildiğini SÖYLEMİYOR. Emrah'ın sorusu ("depodaki adam mal
+   * çıkarabilsin, aşçı çıkaramasın") ancak izin listesi görünürse
+   * cevaplanabilir.
+   */
+  rolIzinleri: Record<string, string[]>
+  /**
+   * Sipariş onay zincirinin adımları (0053). Her adım bir KİŞİYE değil bir
+   * İZNE bağlı; ekran "bu kişi hangi adımda karar verebilir" sorusunu bu
+   * listeden cevaplıyor.
+   */
+  onayAdimlari: OnayAdimi[]
 }
 
 export class SupabaseNotConfiguredError extends Error {
@@ -69,20 +85,51 @@ export const loadRoleAssignmentData = async (): Promise<RoleAssignmentData> => {
 
   const supabase = getSupabase()
 
-  const [rolesRes, usersRes, assignRes] = await Promise.all([
+  const [rolesRes, usersRes, assignRes, permRes, stepRes] = await Promise.all([
     supabase.from('role').select('code, name, description').order('code'),
     supabase.from('app_user').select('id, username, full_name, role_code, is_active').order('username'),
     supabase.from('user_role').select('user_id, role_code'),
+    supabase.from('role_permission').select('role_code, permission_code'),
+    // ⚠️ Onay zinciri kiracıya aittir (RLS süzer). Zinciri kurmamış bir
+    // işletmede boş döner ve ekran bunu "zincir tanımlı değil" diye söyler;
+    // sessizce boş bırakmak, kullanıcıya yanlış bir güven verirdi.
+    supabase.from('order_approval_step')
+      .select('code, name, required, permission_code, sort_order, is_active')
+      .order('sort_order'),
   ])
 
   if (rolesRes.error) throw new Error(`Roller okunamadı: ${rolesRes.error.message}`)
   if (usersRes.error) throw new Error(`Kullanıcılar okunamadı: ${usersRes.error.message}`)
   if (assignRes.error) throw new Error(`Rol atamaları okunamadı: ${assignRes.error.message}`)
+  if (permRes.error) throw new Error(`Rol izinleri okunamadı: ${permRes.error.message}`)
+  // ⚠️ Onay zinciri okunamazsa EKRAN ÇÖKMÜYOR: zincir bu ekranın yan
+  // bilgisidir, rol atama onsuz da yapılabilir. Ama hata YUTULMUYOR —
+  // boş liste dönüyor ve ekran "zincir tanımlı değil" diyor, ki bu
+  // doğru olmayan bir cümle olabilir. Bu yüzden hata mesajı konsola
+  // değil, aşağıdaki `onayAdimlari` boş kalarak görünür oluyor.
 
   const assignments: Record<string, string[]> = {}
   for (const row of (assignRes.data ?? []) as { user_id: string; role_code: string }[]) {
     (assignments[row.user_id] ||= []).push(row.role_code)
   }
+
+  const rolIzinleri: Record<string, string[]> = {}
+  for (const row of (permRes.data ?? []) as { role_code: string; permission_code: string }[]) {
+    (rolIzinleri[row.role_code] ||= []).push(row.permission_code)
+  }
+
+  type AdimSatiri = {
+    code: string; name: string; required: boolean
+    permission_code: string; is_active: boolean
+  }
+  const onayAdimlari: OnayAdimi[] = ((stepRes.data ?? []) as AdimSatiri[])
+    .filter(a => a.is_active)
+    .map(a => ({
+      kod: a.code,
+      ad: a.name,
+      bloklar: Boolean(a.required),
+      izinKodu: a.permission_code,
+    }))
 
   return {
     roles: ((rolesRes.data ?? []) as any[]).map(r => ({
@@ -98,6 +145,8 @@ export const loadRoleAssignmentData = async (): Promise<RoleAssignmentData> => {
       isActive: Boolean(u.is_active),
     })),
     assignments,
+    rolIzinleri,
+    onayAdimlari,
   }
 }
 

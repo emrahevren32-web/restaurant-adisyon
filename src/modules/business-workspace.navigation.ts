@@ -119,7 +119,20 @@ const BUSINESS_MODULE_IDS = new Set([
  * girer. Nereye koyacağımızı bilemediğimiz bir ekran buraya atılmaz;
  * doğru yeri bulunana kadar menüye hiç konmaz.
  */
-const YONETIM_MODULE_IDS = new Set(['system-settings'])
+// ⚠️ 2026-10-03 · `system-users` BURAYA EKLENDİ.
+// Kullanıcılar ve Yetkiler ekranı menüde GENEL altında çıkıyordu. Sebebi
+// basit ve sessiz: bu küme MODÜL KİMLİĞİNE bakıyor, `system-users` burada
+// yazılı değildi, dolayısıyla "yönetime ait değil" sayılıp GENEL'de kaldı.
+// Yetki dağıtmak her sabah açılan bir ekran değil, sistemin davranışını
+// belirleyen bir iş — Şirket Ayarları, Veri ve Yedekleme, Değişiklik Kaydı
+// ile aynı başlık altında olmalı.
+//
+// Bir çekirdek ekranın menüdeki YERİ üç yerde birden belirleniyor:
+//   1. `workspace-navigation.registry.ts` → CORE_WORKSPACE_MODULE_CODES (var mı)
+//   2. `core-module-visibility.ts`        → görünür mü
+//   3. burası                             → hangi başlık altında
+// İlk ikisi geçilip burası atlanınca ekran menüde ÇIKAR ama yanlış yerde.
+const YONETIM_MODULE_IDS = new Set(['system-settings', 'system-users'])
 
 const REPORT_MODULE_IDS = new Set([
   'business-kpi-reporting',

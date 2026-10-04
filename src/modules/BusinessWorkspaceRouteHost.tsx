@@ -95,7 +95,7 @@ import WorkforcePlanning from '../pages/WorkforcePlanning'
 import BottleneckAnalysis from '../pages/BottleneckAnalysis'
 import ContinuousImprovement from '../pages/ContinuousImprovement'
 import SupplierManagement from '../pages/SupplierManagement'
-import Users from '../pages/Users'
+import KullanicilarVeYetkiler from '../pages/KullanicilarVeYetkiler'
 import Settings from '../pages/Settings'
 import BranchManagement from '../pages/BranchManagement'
 import CompanyProfile from '../pages/CompanyProfile'
@@ -445,7 +445,7 @@ export default function BusinessWorkspaceRouteHost({
   if(route === 'branch-reporting') return <BranchReporting />
   if(route === 'branch-stock-transfers') return <BranchStockTransfers currentUser={currentUser} />
   if(route === 'head-office-management') return <HeadOfficeManagement />
-  if(route === 'users') return <Users currentUser={currentUser} />
+  if(route === 'users') return <KullanicilarVeYetkiler currentUser={currentUser} />
   if(route === 'current-accounts') return <CurrentAccounts currentUser={currentUser} />
   if(route === 'credit-transactions') return <CreditTransactions currentUser={currentUser} />
   if(route === 'collection-transactions') return <CollectionTransactions currentUser={currentUser} />

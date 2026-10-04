@@ -79,7 +79,7 @@ describe('assignableRolesFor · hangi kutular gösterilir', () => {
 })
 
 describe('loadRoleAssignmentData', () => {
-  it('üç tabloyu okur ve atamaları kullanıcıya göre gruplar', async () => {
+  it('beş tabloyu okur, atamaları ve rol izinlerini gruplar', async () => {
     const okunanTablolar: string[] = []
     mockGetSupabase.mockReturnValue({
       from: (tablo: string) => {
@@ -90,6 +90,16 @@ describe('loadRoleAssignmentData', () => {
           user_role: { data: [
             { user_id: 'u1', role_code: 'depo_sorumlusu' },
             { user_id: 'u1', role_code: 'satinalma_sorumlusu' },
+          ], error: null },
+          role_permission: { data: [
+            { role_code: 'depo_sorumlusu', permission_code: 'stock.read' },
+            { role_code: 'depo_sorumlusu', permission_code: 'stock.write' },
+          ], error: null },
+          order_approval_step: { data: [
+            { code: 'SATIS', name: 'Satış sorumlusu — onay', required: true,
+              permission_code: 'operations.write', sort_order: 3, is_active: true },
+            { code: 'ESKI', name: 'Kapatılmış adım', required: false,
+              permission_code: 'stock.read', sort_order: 9, is_active: false },
           ], error: null },
         }[tablo]
         const b: any = {
@@ -103,10 +113,38 @@ describe('loadRoleAssignmentData', () => {
 
     const data = await loadRoleAssignmentData()
 
-    expect(okunanTablolar.sort()).toEqual(['app_user', 'role', 'user_role'])
+    expect(okunanTablolar.sort())
+      .toEqual(['app_user', 'order_approval_step', 'role', 'role_permission', 'user_role'])
     expect(data.users[0]).toMatchObject({ id: 'u1', username: 'ali', fullName: 'Ali Veli', isActive: true })
     // Bir kullanıcı birden çok rol taşıyabilir — çerçevenin özü bu.
     expect(data.assignments['u1']).toEqual(['depo_sorumlusu', 'satinalma_sorumlusu'])
+    // Rol ADI yetmiyor: o rolün neyi açtığı da okunmalı.
+    expect(data.rolIzinleri['depo_sorumlusu']).toEqual(['stock.read', 'stock.write'])
+  })
+
+  it('KAPATILMIŞ onay adımını listeye almıyor', async () => {
+    // Pasif bir adımı göstermek, artık işlemeyen bir kuralı işliyor gibi
+    // göstermek olurdu.
+    mockGetSupabase.mockReturnValue({
+      from: (tablo: string) => {
+        const sonuc = tablo === 'order_approval_step'
+          ? { data: [
+              { code: 'A', name: 'Açık', required: true, permission_code: 'operations.write', sort_order: 1, is_active: true },
+              { code: 'K', name: 'Kapalı', required: true, permission_code: 'stock.read', sort_order: 2, is_active: false },
+            ], error: null }
+          : { data: [], error: null }
+        const b: any = {
+          select: () => b,
+          order: () => Promise.resolve(sonuc),
+          then: (r: any, j: any) => Promise.resolve(sonuc).then(r, j),
+        }
+        return b
+      },
+    })
+
+    const data = await loadRoleAssignmentData()
+    expect(data.onayAdimlari.map(a => a.kod)).toEqual(['A'])
+    expect(data.onayAdimlari[0]!.bloklar).toBe(true)
   })
 
   it('bir tablo okunamazsa hata mesajı yukarı taşınır', async () => {
