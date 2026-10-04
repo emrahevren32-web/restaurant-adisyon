@@ -77,6 +77,20 @@ const tarih = (d?: string) => (d ? new Date(`${d}T00:00:00`).toLocaleDateString(
 const zaman = (d: string) => new Date(d).toLocaleString('tr-TR')
 const sayiYaz = (n: number) => n.toLocaleString('tr-TR')
 
+/**
+ * Kalem adı yoksa ham kimlik basmak yerine NE OLDUĞUNU söylüyoruz.
+ *
+ * 04.10.2026: Sevk durumu sekmesi "8a8a4988-fa77-46f9-a9ea-28b4cbc22d5c"
+ * basıyordu — ekranı okuyan için hiçbir şey ifade etmeyen 36 karakter.
+ * Sebebi `siparis_sevk_durumu`nun ad döndürmemesiydi; 0062 ile düzeldi.
+ *
+ * Ad yine de gelmeyebilir: kalem kartı SİLİNMİŞSE. O zaman "bulunamadı"
+ * demek, uuid basmaktan dürüst — ve kimliğin baş harfleri destek için
+ * yeterli.
+ */
+const kalemYaz = (ad: string | undefined, id: string) =>
+  ad ?? `Kalem kaydı bulunamadı (${id.slice(0, 8)}…)`
+
 const KAYNAKLAR: RevizyonKaynagi[] =
   ['Telefon', 'Portal', 'E-posta', 'WhatsApp', 'Yüz Yüze', 'Sistem']
 const FARK_TURLERI: FarkTuru[] = ['Eksik', 'Fazla', 'Hasarlı', 'Yanlış ürün']
@@ -1121,7 +1135,7 @@ function TeslimPaneli({
             {liste.map(t => (
               <tr key={t.kalemId} className={t.siparisDisi ? 'is-passive' : ''}>
                 <td>
-                  {t.kalemAdi ?? t.kalemId}
+                  {kalemYaz(t.kalemAdi, t.kalemId)}
                   {t.siparisDisi && <> <span className="muted">· sipariş dışı</span></>}
                 </td>
                 <td className="num">
@@ -1221,7 +1235,7 @@ function SevkPaneli({
             )}
             {durumlar.map(d => (
               <tr key={d.kalemId}>
-                <td>{d.kalemAdi ?? d.kalemId}</td>
+                <td>{kalemYaz(d.kalemAdi, d.kalemId)}</td>
                 <td className="num">
                   {d.siparisMiktar === undefined
                     ? '—'

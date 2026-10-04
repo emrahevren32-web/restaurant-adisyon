@@ -225,6 +225,8 @@ export type FarkKarariGirdisi = {
  */
 type SevkDurumuSatiri = {
   kalem_id: string
+  /** 0062'de eklendi. Kalem kartı silinmişse NULL gelir (left join). */
+  kalem_adi: string | null
   siparis_miktar: string | number | null
   siparis_birim: string | null
   sevk_miktar: string | number | null
@@ -633,6 +635,10 @@ export class PostgresSiparisDeposu implements SiparisDeposu {
         birimUyusmuyor: r.birim_uyusmuyor,
         siparisDisi: r.siparis_disi,
       }
+      // 0062 — ad YOKSA alan hiç yazılmıyor; ekran kendi cümlesini kuruyor.
+      // Boş metin yazsaydık, ekran "adı var ama boş" sanıp hiçbir şey basmazdı.
+      const ad = bos(r.kalem_adi)
+      if(ad !== undefined) d.kalemAdi = ad
       const sip = sayi(r.siparis_miktar)
       if(sip !== undefined) d.siparisMiktar = sip
       const bir = bos(r.siparis_birim)
