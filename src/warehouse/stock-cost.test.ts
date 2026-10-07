@@ -28,6 +28,8 @@ const hareket = (
     birim?: string
     fiyat?: number
     neden?: MovementReason
+    /** Ters kayıtta, iptal edilen hareketin kimliği (0003 `reverses_movement_id`). */
+    tersCevirdigi?: string
   },
 ): Movement => {
   sayac += 1
@@ -43,6 +45,7 @@ const hareket = (
     reason: girdi.neden ?? (girdi.temel > 0 ? 'PURCHASE_RECEIPT' : 'PRODUCTION_CONSUME'),
     sourceType: 'goods_receipt' as SourceType,
     unitCost: girdi.fiyat,
+    reversesMovementId: girdi.tersCevirdigi,
     idempotencyKey: `k${sayac}`,
     occurredAt: new Date(2026, 0, girdi.gun),
     recordedAt: new Date(2026, 0, girdi.gun),
@@ -226,9 +229,52 @@ describe('sınır durumlar', () => {
     expect(m.deger).toBe(3500)
   })
 
-  it('ters kayıt (REVERSAL) hesaba girmez', () => {
-    // Ters kayıt zaten kendi karşıt hareketiyle birlikte okunur; ikinci kez
-    // saymak değeri iki katına çıkarırdı.
+  // ⚠️ BU TEST BİR ZAMANLAR YANLIŞ KURALI KORUYORDU: iptal edilen girişten
+  // sonra `miktar`ın 100 kalmasını bekliyordu. İptal edilmiş bir alış, hiç
+  // olmamış bir alıştır — ikisi birden atılmalı. Yeşil test, doğru kural
+  // demek değildir.
+  it('İPTAL EDİLEN GİRİŞ, ters kaydıyla BİRLİKTE atılır', () => {
+    const giris = hareket({ gun: 1, temel: 100, fiyat: 40 })
+    const m = maliyetiHesapla([
+      giris,
+      hareket({ gun: 2, temel: -100, fiyat: 40, neden: 'REVERSAL', tersCevirdigi: giris.id }),
+    ])
+
+    expect(m.miktar).toBe(0)
+    expect(m.deger).toBe(0)
+  })
+
+  // İptal edilen pahalı giriş ortalamayı YUKARIDA BIRAKMAMALI: o rakamla
+  // müşteriye fiyat veriliyor.
+  it('iptal edilen PAHALI giriş ortalamayı bozmaz', () => {
+    const pahali = hareket({ gun: 1, temel: 100, fiyat: 400 })
+    const m = maliyetiHesapla([
+      pahali,
+      hareket({ gun: 2, temel: -100, fiyat: 400, neden: 'REVERSAL', tersCevirdigi: pahali.id }),
+      hareket({ gun: 3, temel: 100, fiyat: 40 }),
+    ])
+
+    expect(m.miktar).toBe(100)
+    expect(m.birimMaliyet).toBe(40)
+  })
+
+  // İptal edilmemiş hareketler yerinde kalır: süzgeç fazla temizlik yapmıyor.
+  it('yalnız İPTAL EDİLEN çift atılır, ötekiler durur', () => {
+    const iptalEdilen = hareket({ gun: 1, temel: 50, fiyat: 100 })
+    const m = maliyetiHesapla([
+      iptalEdilen,
+      hareket({ gun: 2, temel: -50, fiyat: 100, neden: 'REVERSAL', tersCevirdigi: iptalEdilen.id }),
+      hareket({ gun: 3, temel: 80, fiyat: 25 }),
+    ])
+
+    expect(m.miktar).toBe(80)
+    expect(m.deger).toBe(2000)
+  })
+
+  // ⚠️ Bağı olmayan ters kayıtta yalnız ters kaydın KENDİSİ atılır. Hangi
+  // satırı iptal ettiğini bilmeden rastgele bir satır atmak, yanlış satırı
+  // silmektir.
+  it('bağı olmayan ters kayıtta asıl hareket KALIR', () => {
     const m = maliyetiHesapla([
       hareket({ gun: 1, temel: 100, fiyat: 40 }),
       hareket({ gun: 2, temel: -100, fiyat: 40, neden: 'REVERSAL' }),

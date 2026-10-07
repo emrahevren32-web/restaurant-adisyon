@@ -324,41 +324,125 @@ export class PostgresStockRepository implements StockRepository {
     return toMovement(data as StockMovementRow)
   }
 
+  /**
+   * Bakiye — TOPLAMA VERİTABANINDA YAPILIR.
+   *
+   * ⚠️ Burada bir zamanlar bütün hareketler tarayıcıya çekilip orada
+   * toplanıyordu. PostgREST'in varsayılan satır sınırı (1000) aşılınca sorgu
+   * SESSİZCE kesiliyor, hata vermiyordu: bakiye olduğundan AZ çıkıyor ve
+   * kimse fark etmiyordu. Un gibi bir kalemde günde 3-5 hareket olağan;
+   * sınıra yaklaşık 250 günde varılır. Demo verisiyle asla görünmez, pilotun
+   * ilk yılında ortaya çıkar — üstelik az gösterdiği için gereksiz satın
+   * alma tetikler.
+   *
+   * `stock_balance` görünümü (0003) bu işi zaten yapıyordu ve
+   * kullanılmıyordu. Görünüm `security_invoker` ile çalışır: RLS çağıranın
+   * yetkisiyle uygulanır, bir kapı açılmıyor.
+   */
   async quantityOf(ctx: TenantCtx, stockItemId: string, at?: Date): Promise<number> {
-    let query = this.supabase
-      .from('stock_movement')
-      .select('quantity_base')
-      .eq('branch_id', ctx.branchId)
-      .eq('stock_item_id', stockItemId)
+    // ── Bugünkü bakiye: tek satır, tek toplam ───────────────────────────
+    if (!at) {
+      const { data, error } = await this.supabase
+        .from('stock_balance')
+        .select('qty')
+        .eq('branch_id', ctx.branchId)
+        .eq('stock_item_id', stockItemId)
+        .maybeSingle()
 
-    if (at) {
-      query = query.lte('occurred_at', at.toISOString())
+      if (error) {
+        throw new Error(`Bakiye okunamadı: ${error.message}`)
+      }
+      // Hiç hareketi olmayan kalem görünümde SATIR OLARAK YOKTUR; bu 0'dır.
+      return data ? Number((data as { qty: number | string }).qty) : 0
     }
 
-    const { data, error } = await query
-    if (error) {
-      throw new Error(`Bakiye okunamadı: ${error.message}`)
-    }
-    return (data ?? []).reduce((sum: number, row: { quantity_base: number | string }) => sum + Number(row.quantity_base), 0)
+    // ── Geçmiş bir ana ait bakiye ───────────────────────────────────────
+    // Görünüm tarihe göre süzülemez (gruplama zaten yapılmış), bu yüzden
+    // hareketler okunuyor — ama SAYFALANARAK. Sessiz kesilme yok.
+    const satirlar = await this.sayfalayarakOku<{ quantity_base: number | string }>(
+      'stock_movement',
+      'quantity_base',
+      q => q
+        .eq('branch_id', ctx.branchId)
+        .eq('stock_item_id', stockItemId)
+        .lte('occurred_at', at.toISOString())
+        .order('id', { ascending: true }),
+      'Bakiye okunamadı',
+    )
+    return satirlar.reduce((toplam, satir) => toplam + Number(satir.quantity_base), 0)
   }
 
+  /**
+   * Defterin kendisi. Satırlar lazım olduğu için toplanamaz — SAYFALANIR.
+   *
+   * ⚠️ Maliyet hesabı bu listeyi okuyor. Eksik bir liste, eksik bir maliyet
+   * demektir ve o rakam müşteriye fiyat verirken kullanılıyor.
+   */
   async ledgerOf(ctx: TenantCtx, stockItemId: string, range?: DateRange): Promise<Movement[]> {
-    let query = this.supabase
-      .from('stock_movement')
-      .select('*')
-      .eq('branch_id', ctx.branchId)
-      .eq('stock_item_id', stockItemId)
-      .order('occurred_at', { ascending: true })
+    const satirlar = await this.sayfalayarakOku<StockMovementRow>(
+      'stock_movement',
+      '*',
+      q => {
+        let s = q
+          .eq('branch_id', ctx.branchId)
+          .eq('stock_item_id', stockItemId)
+        if (range) {
+          s = s
+            .gte('occurred_at', range.from.toISOString())
+            .lte('occurred_at', range.to.toISOString())
+        }
+        // ⚠️ `occurred_at` TEK BAŞINA sıralama anahtarı olamaz: aynı anda
+        // yazılmış iki hareket sayfalar arasında yer değiştirebilir, biri
+        // iki kez gelir öteki hiç gelmez. `id` ikinci anahtar olarak
+        // sıralamayı KESİN yapıyor.
+        return s
+          .order('occurred_at', { ascending: true })
+          .order('id', { ascending: true })
+      },
+      'Defter okunamadı',
+    )
+    return satirlar.map(row => toMovement(row))
+  }
 
-    if (range) {
-      query = query.gte('occurred_at', range.from.toISOString()).lte('occurred_at', range.to.toISOString())
+  /**
+   * Satır sınırını aşan okumalar için sayfalama.
+   *
+   * ⚠️ Sunucunun satır sınırını BİLMİYORUZ (ortama göre değişir). Bu yüzden
+   * sayfa boyutunu biz dayatıyoruz ve "dolu sayfa geldiyse devam et"
+   * kuralıyla yürüyoruz. Son sayfa eksik gelir ve döngü orada biter.
+   *
+   * ⚠️ Üst sınır var: sonsuz döngüye girmektense HATA VERMEK doğrudur.
+   * Sessizce eksik veri döndürmek, bu düzeltmenin kapattığı hatanın ta
+   * kendisidir.
+   */
+  private async sayfalayarakOku<T>(
+    tablo: string,
+    secim: string,
+    kur: (q: any) => any,
+    hataBasligi: string,
+  ): Promise<T[]> {
+    const SAYFA = 1000
+    const EN_FAZLA_SAYFA = 500   // 500 bin satır; aşılırsa bir şey yanlıştır
+    const hepsi: T[] = []
+
+    for (let sayfa = 0; sayfa < EN_FAZLA_SAYFA; sayfa += 1) {
+      const bas = sayfa * SAYFA
+      const { data, error } = await kur(this.supabase.from(tablo).select(secim))
+        .range(bas, bas + SAYFA - 1)
+
+      if (error) {
+        throw new Error(`${hataBasligi}: ${error.message}`)
+      }
+
+      const gelen = (data ?? []) as T[]
+      hepsi.push(...gelen)
+      if (gelen.length < SAYFA) return hepsi
     }
 
-    const { data, error } = await query
-    if (error) {
-      throw new Error(`Defter okunamadı: ${error.message}`)
-    }
-    return (data ?? []).map((row: StockMovementRow) => toMovement(row))
+    throw new Error(
+      `${hataBasligi}: satır sayısı beklenenin çok üstünde `
+      + `(${EN_FAZLA_SAYFA * SAYFA}+). Eksik veri döndürmemek için durduruldu.`,
+    )
   }
 
   async lotBalances(ctx: TenantCtx, stockItemId: string): Promise<LotBalance[]> {

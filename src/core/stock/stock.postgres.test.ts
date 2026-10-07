@@ -52,6 +52,7 @@ function makeBuilder(result: { data: unknown; error: unknown }) {
     gte: vi.fn(() => builder),
     lte: vi.fn(() => builder),
     order: vi.fn(() => builder),
+    range: vi.fn(() => builder),
     insert: vi.fn(() => builder),
     maybeSingle: vi.fn(async () => result),
     single: vi.fn(async () => result),
@@ -126,14 +127,14 @@ describe('PostgresStockRepository — postMovement', () => {
   it('başarılı yazımda item bakılır, mevcut bakiye okunur, quantity_base doğru dönüştürülür, satır Movement\'a çevrilir', async () => {
     const { supabase, fromCalls, builders } = createSupabaseMock([
       itemRow(),
-      { data: [], error: null }, // quantityOf (I12 kontrolü için) — mevcut bakiye 0
+      { data: null, error: null }, // quantityOf → stock_balance’ta satır yok = bakiye 0
       movementRow(),
     ])
     const repo = new PostgresStockRepository(supabase)
 
     const result = await repo.postMovement(ctx, newMovement, 'key-1')
 
-    expect(fromCalls).toEqual(['stock_item', 'stock_movement', 'stock_movement'])
+    expect(fromCalls).toEqual(['stock_item', 'stock_balance', 'stock_movement'])
     expect(result.id).toBe('mv-1')
     expect(result.quantityBase).toBe(5)
     expect(result.tenantId).toBe(ctx.tenantId)
@@ -154,7 +155,7 @@ describe('PostgresStockRepository — postMovement', () => {
   it('farklı birimden girildiğinde quantity_base convertUom ile hesaplanır (I7)', async () => {
     const { supabase, builders } = createSupabaseMock([
       itemRow({ base_uom: 'kg' }),
-      { data: [], error: null }, // quantityOf — mevcut bakiye 0
+      { data: null, error: null }, // quantityOf → stock_balance’ta satır yok = bakiye 0
       movementRow({ quantity_base: 2000, quantity_entered: 2, uom_entered: 'kg' }),
     ])
     const repo = new PostgresStockRepository(supabase)
@@ -206,7 +207,7 @@ describe('PostgresStockRepository — postMovement', () => {
   it('DB 23505 (unique_violation) → DuplicateIdempotencyKeyError (I2)', async () => {
     const { supabase } = createSupabaseMock([
       itemRow(),
-      { data: [], error: null }, // quantityOf
+      { data: null, error: null }, // quantityOf → stock_balance’ta satır yok = bakiye 0
       { data: null, error: { code: '23505', message: 'duplicate key value violates unique constraint "stock_movement_idempotency_unique"' } },
     ])
     const repo = new PostgresStockRepository(supabase)
@@ -219,7 +220,7 @@ describe('PostgresStockRepository — postMovement', () => {
     // çekti — bkz. aşağıdaki "yanlış adlandırma" testi.
     const { supabase } = createSupabaseMock([
       itemRow({ tracks_lot: false }),
-      { data: [], error: null }, // quantityOf
+      { data: null, error: null }, // quantityOf → stock_balance’ta satır yok = bakiye 0
       { data: null, error: { code: 'MI008', message: 'Bu stok kalemi lot takipli; lot_id olmadan hareket yazılamaz.' } },
     ])
     const repo = new PostgresStockRepository(supabase)
@@ -230,7 +231,7 @@ describe('PostgresStockRepository — postMovement', () => {
   it('DB 23502 + "lot" mesajı → LotRequiredError (0011 öncesi kurulumlar için geriye dönük yol)', async () => {
     const { supabase } = createSupabaseMock([
       itemRow({ tracks_lot: false }),
-      { data: [], error: null }, // quantityOf
+      { data: null, error: null }, // quantityOf → stock_balance’ta satır yok = bakiye 0
       { data: null, error: { code: '23502', message: 'null value in column "lot_id" violates not-null constraint' } },
     ])
     const repo = new PostgresStockRepository(supabase)
@@ -244,7 +245,7 @@ describe('PostgresStockRepository — postMovement', () => {
     // kullanıcıya "lot zorunlu" diye YANLIŞ gösteriliyordu (Codex, 2026-08-26).
     const { supabase } = createSupabaseMock([
       itemRow(),
-      { data: [], error: null }, // quantityOf
+      { data: null, error: null }, // quantityOf → stock_balance’ta satır yok = bakiye 0
       { data: null, error: { code: '23502', message: 'null value in column "source_type" violates not-null constraint' } },
     ])
     const repo = new PostgresStockRepository(supabase)
@@ -258,7 +259,7 @@ describe('PostgresStockRepository — postMovement', () => {
   it('DB 23514 + quantity_base kısıtı → ZeroQuantityMovementError (I6)', async () => {
     const { supabase } = createSupabaseMock([
       itemRow(),
-      { data: [], error: null }, // quantityOf
+      { data: null, error: null }, // quantityOf → stock_balance’ta satır yok = bakiye 0
       { data: null, error: { code: '23514', message: 'new row violates check constraint "stock_movement_quantity_base_check"' } },
     ])
     const repo = new PostgresStockRepository(supabase)
@@ -271,7 +272,7 @@ describe('PostgresStockRepository — postMovement', () => {
     // sıfır olamaz" diye adlandırıyordu (Codex, 2026-08-26).
     const { supabase } = createSupabaseMock([
       itemRow(),
-      { data: [], error: null }, // quantityOf
+      { data: null, error: null }, // quantityOf → stock_balance’ta satır yok = bakiye 0
       { data: null, error: { code: '23514', message: 'new row violates check constraint "stock_movement_reason_check"' } },
     ])
     const repo = new PostgresStockRepository(supabase)
@@ -288,7 +289,7 @@ describe('PostgresStockRepository — postMovement', () => {
     // ve sözleşme açısından fark olmamalı: aynı hata tipi fırlatılmalı.
     const { supabase } = createSupabaseMock([
       itemRow(),
-      { data: [{ quantity_base: 100 }], error: null }, // quantityOf → sonuç pozitif görünüyor
+      { data: { qty: 100 }, error: null }, // quantityOf → sonuç pozitif görünüyor
       { data: null, error: { code: 'MI012', message: 'Negatif bakiye engellendi (I12)' } },
     ])
     const repo = new PostgresStockRepository(supabase)
@@ -299,7 +300,7 @@ describe('PostgresStockRepository — postMovement', () => {
   it('bilinmeyen bir DB hata kodu genel Error olarak (mesajıyla) fırlatılır', async () => {
     const { supabase } = createSupabaseMock([
       itemRow(),
-      { data: [], error: null }, // quantityOf
+      { data: null, error: null }, // quantityOf → stock_balance’ta satır yok = bakiye 0
       { data: null, error: { code: '55000', message: 'garip bir hata' } },
     ])
     const repo = new PostgresStockRepository(supabase)
@@ -316,7 +317,7 @@ describe('PostgresStockRepository — postMovement · I12 negatif bakiye politik
   it('block: resultingQty < 0 ise NegativeBalanceBlockedError, INSERT\'e hiç gidilmez', async () => {
     const { supabase, fromCalls } = createSupabaseMock([
       itemRow(),
-      { data: [{ quantity_base: 10 }], error: null }, // mevcut bakiye 10
+      { data: { qty: 10 }, error: null }, // mevcut bakiye 10
       { data: { negative_stock_policy: 'block' }, error: null }, // tenant politikası
     ])
     const repo = new PostgresStockRepository(supabase)
@@ -324,14 +325,14 @@ describe('PostgresStockRepository — postMovement · I12 negatif bakiye politik
     await expect(repo.postMovement(ctx, negativeMovement, 'key-i12-block')).rejects.toThrow(
       NegativeBalanceBlockedError,
     )
-    // stock_item, stock_movement (quantityOf), tenant — insert YOK.
-    expect(fromCalls).toEqual(['stock_item', 'stock_movement', 'tenant'])
+    // stock_item, stock_balance (quantityOf), tenant — insert YOK.
+    expect(fromCalls).toEqual(['stock_item', 'stock_balance', 'tenant'])
   })
 
   it('warn: hareket kabul edilir, dönen Movement.warning doludur', async () => {
     const { supabase } = createSupabaseMock([
       itemRow(),
-      { data: [{ quantity_base: 10 }], error: null },
+      { data: { qty: 10 }, error: null },
       { data: { negative_stock_policy: 'warn' }, error: null },
       movementRow({ quantity_base: -15, quantity_entered: -15 }),
     ])
@@ -346,7 +347,7 @@ describe('PostgresStockRepository — postMovement · I12 negatif bakiye politik
   it('allow: hareket sessizce kabul edilir, warning yok', async () => {
     const { supabase } = createSupabaseMock([
       itemRow(),
-      { data: [{ quantity_base: 10 }], error: null },
+      { data: { qty: 10 }, error: null },
       { data: { negative_stock_policy: 'allow' }, error: null },
       movementRow({ quantity_base: -15, quantity_entered: -15 }),
     ])
@@ -360,7 +361,7 @@ describe('PostgresStockRepository — postMovement · I12 negatif bakiye politik
   it('tenant satırı bulunamazsa (ör. 0010 henüz çalıştırılmadı) en güvenli tarafa düşer: block', async () => {
     const { supabase } = createSupabaseMock([
       itemRow(),
-      { data: [{ quantity_base: 10 }], error: null },
+      { data: { qty: 10 }, error: null },
       { data: null, error: null }, // tenant satırı yok / negative_stock_policy null
     ])
     const repo = new PostgresStockRepository(supabase)
@@ -373,14 +374,14 @@ describe('PostgresStockRepository — postMovement · I12 negatif bakiye politik
   it('resultingQty >= 0 ise politika hiç sorgulanmaz (gereksiz sorgu yok)', async () => {
     const { supabase, fromCalls } = createSupabaseMock([
       itemRow(),
-      { data: [{ quantity_base: 10 }], error: null }, // mevcut bakiye 10, hareket +5 → 15
+      { data: { qty: 10 }, error: null }, // mevcut bakiye 10, hareket +5 → 15
       movementRow(),
     ])
     const repo = new PostgresStockRepository(supabase)
 
     await repo.postMovement(ctx, newMovement, 'key-i12-pozitif')
 
-    expect(fromCalls).toEqual(['stock_item', 'stock_movement', 'stock_movement'])
+    expect(fromCalls).toEqual(['stock_item', 'stock_balance', 'stock_movement'])
   })
 })
 
@@ -435,33 +436,75 @@ describe('PostgresStockRepository — reverseMovement', () => {
 })
 
 describe('PostgresStockRepository — quantityOf / ledgerOf / lotBalances / lotGenealogy', () => {
-  it('quantityOf, quantity_base sütununu toplar (I1)', async () => {
-    const { supabase, builders } = createSupabaseMock([
-      { data: [{ quantity_base: 5 }, { quantity_base: -2 }, { quantity_base: '3' }], error: null },
+  // ⚠️ TOPLAMA ARTIK VERİTABANINDA. Tarayıcıda toplanırken PostgREST'in
+  // satır sınırı aşılınca sorgu sessizce kesiliyor ve bakiye AZ çıkıyordu.
+  it('quantityOf, stock_balance GÖRÜNÜMÜNDEN tek toplam okur', async () => {
+    const { supabase, fromCalls, builders } = createSupabaseMock([
+      { data: { qty: '6' }, error: null },
     ])
     const repo = new PostgresStockRepository(supabase)
 
     const total = await repo.quantityOf(ctx, 'item-1')
 
     expect(total).toBe(6)
+    expect(fromCalls).toEqual(['stock_balance'])
     expect(builders[0].eq).toHaveBeenCalledWith('branch_id', ctx.branchId)
   })
 
-  it('quantityOf, `at` verildiğinde .lte ile occurred_at süzer', async () => {
-    const { supabase, builders } = createSupabaseMock([{ data: [], error: null }])
-    const repo = new PostgresStockRepository(supabase)
-    const at = new Date('2026-01-01T00:00:00.000Z')
-
-    await repo.quantityOf(ctx, 'item-1', at)
-
-    expect(builders[0].lte).toHaveBeenCalledWith('occurred_at', at.toISOString())
-  })
-
-  it('quantityOf boş sonuçta 0 döndürür', async () => {
+  // Hiç hareketi olmayan kalem görünümde SATIR OLARAK YOKTUR; bu 0'dır,
+  // "bilinmiyor" değil.
+  it('quantityOf, görünümde satır yoksa 0 döndürür', async () => {
     const { supabase } = createSupabaseMock([{ data: null, error: null }])
     const repo = new PostgresStockRepository(supabase)
 
     expect(await repo.quantityOf(ctx, 'item-1')).toBe(0)
+  })
+
+  it('quantityOf, `at` verildiğinde DEFTERDEN okur ve .lte ile süzer', async () => {
+    const { supabase, fromCalls, builders } = createSupabaseMock([
+      { data: [{ quantity_base: 5 }, { quantity_base: -2 }, { quantity_base: '3' }], error: null },
+    ])
+    const repo = new PostgresStockRepository(supabase)
+    const at = new Date('2026-01-01T00:00:00.000Z')
+
+    const total = await repo.quantityOf(ctx, 'item-1', at)
+
+    // Görünüm tarihe göre süzülemez (gruplama yapılmış), bu yüzden defter.
+    expect(fromCalls).toEqual(['stock_movement'])
+    expect(total).toBe(6)
+    expect(builders[0].lte).toHaveBeenCalledWith('occurred_at', at.toISOString())
+    expect(builders[0].range).toHaveBeenCalledWith(0, 999)
+  })
+
+  // ── SESSİZ KESİLME BİR DAHA OLMASIN ──────────────────────────────────────
+  // Bu iki test, düzeltilen hatanın regresyon kanıtıdır. Dolu bir sayfa
+  // gelirse okuma DEVAM ETMELİ; eksik sayfada DURMALI.
+  it('ledgerOf, dolu sayfa gelince SONRAKİ sayfayı da okur', async () => {
+    const doluSayfa = Array.from({ length: 1000 }, (_, i) => movementRow({ id: `mv-${i}` }).data)
+    const { supabase, fromCalls, builders } = createSupabaseMock([
+      { data: doluSayfa, error: null },
+      { data: [movementRow({ id: 'mv-son' }).data], error: null },
+    ])
+    const repo = new PostgresStockRepository(supabase)
+
+    const defter = await repo.ledgerOf(ctx, 'item-1')
+
+    expect(defter).toHaveLength(1001)
+    expect(defter[1000].id).toBe('mv-son')
+    expect(fromCalls).toEqual(['stock_movement', 'stock_movement'])
+    expect(builders[0].range).toHaveBeenCalledWith(0, 999)
+    expect(builders[1].range).toHaveBeenCalledWith(1000, 1999)
+  })
+
+  it('ledgerOf, eksik sayfada DURUR — gereksiz sorgu atmaz', async () => {
+    const { supabase, fromCalls } = createSupabaseMock([
+      { data: [movementRow().data], error: null },
+    ])
+    const repo = new PostgresStockRepository(supabase)
+
+    await repo.ledgerOf(ctx, 'item-1')
+
+    expect(fromCalls).toEqual(['stock_movement'])
   })
 
   it('ledgerOf, satırları Movement[] olarak döndürür ve tarih sırasına göre sorgular', async () => {
@@ -476,6 +519,9 @@ describe('PostgresStockRepository — quantityOf / ledgerOf / lotBalances / lotG
     expect(ledger[0].id).toBe('mv-1')
     expect(ledger[1].id).toBe('mv-2')
     expect(builders[0].order).toHaveBeenCalledWith('occurred_at', { ascending: true })
+    // ⚠️ `id` ikinci anahtar: aynı anda yazılmış iki hareket sayfalar
+    // arasında yer değiştirirse biri iki kez gelir, öteki hiç gelmez.
+    expect(builders[0].order).toHaveBeenCalledWith('id', { ascending: true })
   })
 
   it('ledgerOf, range verildiğinde .gte/.lte uygular', async () => {

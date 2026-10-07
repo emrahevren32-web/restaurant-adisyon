@@ -104,10 +104,36 @@ const yuvarla = (deger: number) => Math.round(deger * 1e6) / 1e6
 const paraYuvarla = (deger: number) => Math.round(deger * 100) / 100
 
 /**
- * Ters kayıt hesaba girmez: kendi karşıt hareketiyle birlikte okunuyor,
- * ikinci kez saymak değeri iki katına çıkarırdı.
+ * ⚠️ İPTAL EDİLEN HAREKET, TERS KAYDIYLA BİRLİKTE ATILIR — İKİSİ BİRDEN.
+ *
+ * Burada bir zamanlar yalnız `REVERSAL` satırı atılıyordu ve gerekçesi
+ * şöyle yazılmıştı: *"kendi karşıt hareketiyle birlikte okunuyor, ikinci kez
+ * saymak değeri iki katına çıkarırdı."* Akıl yürütme yanlıştı: süzgeç ters
+ * kaydı atıyor ama TERS ÇEVİRDİĞİ ASIL HAREKETİ bırakıyordu.
+ *
+ *   100 kg giriş @ 10 TL   → hesap: 100 kg, ortalama 10 TL
+ *   İptal (REVERSAL −100)  → atılıyor
+ *   Gerçek stok: 0 kg      → hesap hâlâ: 100 kg @ 10 TL
+ *
+ * İptal edilmiş bir alış, hiç olmamış bir alıştır. Maliyette de öyle
+ * olmalı — yoksa iptal edilen pahalı bir giriş ortalamayı sonsuza kadar
+ * yukarıda tutar ve o rakamla müşteriye fiyat verilir.
+ *
+ * ⚠️ Bir test bu yanlış kuralı KORUYORDU. Yeşil test, doğru kural demek
+ * değildir: test de yanlış kuralı ezberleyebilir.
+ *
+ * Bağ 0003'te duruyor: `reverses_movement_id`, ve bir hareket yalnızca BİR
+ * kez ters çevrilebiliyor (tekil dizin). Yani eşleşme kesindir.
  */
-const HESABA_GIRMEZ: ReadonlySet<string> = new Set(['REVERSAL'])
+const iptalEdilenler = (hareketler: readonly Movement[]): ReadonlySet<string> => {
+  const kume = new Set<string>()
+  for(const h of hareketler){
+    if(h.reason !== 'REVERSAL') continue
+    kume.add(h.id)                                  // ters kaydın kendisi
+    if(h.reversesMovementId) kume.add(h.reversesMovementId)  // iptal ettiği
+  }
+  return kume
+}
 
 /**
  * Bir GİRİŞ hareketinin temel birim başına fiyatı.
@@ -121,11 +147,22 @@ const girisBirimFiyati = (h: Movement): number | undefined => {
   return (Math.abs(h.quantityEntered) * h.unitCost) / h.quantityBase
 }
 
-/** Bir kalemin hareketleri, tarih sırasına dizilmiş ve ters kayıtlar ayıklanmış. */
-const sirala = (hareketler: readonly Movement[]): Movement[] =>
-  [...hareketler]
-    .filter(h => !HESABA_GIRMEZ.has(h.reason))
+/**
+ * Bir kalemin hareketleri, tarih sırasına dizilmiş; İPTAL EDİLMİŞ ÇİFTLER
+ * (ters kayıt + ters çevirdiği hareket) çıkarılmış.
+ *
+ * ⚠️ `reversesMovementId` BOŞ gelen bir ters kayıtta yalnız ters kaydın
+ * kendisi atılır, asıl hareket kalır. Bu bilinçli: hangi hareketi iptal
+ * ettiğini bilmediğimiz bir kayda bakıp rastgele bir satır atmak,
+ * yanlış satırı silmek demektir. Defter 0003'ten beri bu bağı zorunlu
+ * tutuyor; eski veride boş olabilir.
+ */
+const sirala = (hareketler: readonly Movement[]): Movement[] => {
+  const atilacak = iptalEdilenler(hareketler)
+  return [...hareketler]
+    .filter(h => !atilacak.has(h.id))
     .sort((a, b) => a.occurredAt.getTime() - b.occurredAt.getTime())
+}
 
 /** Son SATIN ALMA girişinin bilgileri. Üretim çıktısı bir alış değildir. */
 const sonAlis = (sirali: readonly Movement[]) => {
