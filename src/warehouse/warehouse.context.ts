@@ -57,10 +57,35 @@ export const depoBaglamiKur = async (
     )
   }
 
+  // ── İŞLEMİ YAPAN KİŞİ OTURUMDAN ÇÖZÜLÜR ──────────────────────────────────
+  // ⚠️ Burada bir zamanlar `.limit(1).maybeSingle()` vardı, filtresiz.
+  // `app_user` politikası (0001) KİRACI yalıtımı yapıyor, kişi yalıtımı
+  // DEĞİL: aynı işletmedeki herkes birbirini görür — görmesi de gerekir,
+  // yetki ekranı o listeyi basıyor. Dolayısıyla filtresiz `limit(1)`
+  // oturumu açan kişiyi değil, SIRADA İLK GELEN kişiyi seçiyordu.
+  //
+  // Sonucu şuydu: her stok hareketinin, her belgenin ve her denetim
+  // kaydının "kim yaptı" alanı yanlış kişiyi gösterebiliyordu. MİYOP'un
+  // sattığı şey tam olarak bu alan. Yanlış bir ad, hiç ad olmamasından
+  // kötüdür: biri suçlanır ve kayıt onu doğruluyor görünür.
+  //
+  // ⚠️ KİMLİK ÇÖZÜLEMEZSE İŞLEM YAPILMAZ. Bir yedeğe düşmek — ilk kullanıcı,
+  // "bilinmeyen", boş kimlik — defteri kirletmenin kibar yoludur.
+  const { data: oturum, error: oturumHatasi } = await client.auth.getUser()
+  const authKimligi = oturum?.user?.id
+
+  if(oturumHatasi || !authKimligi){
+    throw new Error(
+      `Oturum kullanıcısı okunamadı: ${oturumHatasi?.message ?? 'oturum yok'}. `
+      + 'İşlemi kimin yaptığı kesin bilinmeden depo işlemi yapılamaz; '
+      + 'çıkış yapıp yeniden girin.',
+    )
+  }
+
   const { data: kullanici, error: kullaniciHatasi } = await client
     .from('app_user')
-    .select('id')
-    .limit(1)
+    .select('id, is_active')
+    .eq('auth_user_id', authKimligi)
     .maybeSingle()
 
   if(kullaniciHatasi || !kullanici){
@@ -68,6 +93,15 @@ export const depoBaglamiKur = async (
       `Kullanıcı kaydı okunamadı: ${kullaniciHatasi?.message ?? 'kayıt yok'}. `
       + '`app_user` tablosunda bu oturuma karşılık gelen bir satır olmalı '
       + '(auth_user_id üzerinden eşleşir — bkz. 0008).',
+    )
+  }
+
+  // Pasife alınmış kullanıcının oturumu hâlâ açık olabilir: jeton kendi
+  // ömrünü doldurana kadar yaşar. Defter yazımını burada durduruyoruz.
+  if(kullanici.is_active === false){
+    throw new Error(
+      'Bu kullanıcı pasife alınmış. Depo işlemi yapılamaz; '
+      + 'çıkış yapıp yetkiliyle görüşün.',
     )
   }
 

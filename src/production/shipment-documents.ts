@@ -144,9 +144,16 @@ export const irsaliyeHtml = (
     ⚠️ Seçilmemişse satır GİZLENMİYOR, boş bırakılıyor. Kâğıdı imzalayan
     kişi orayı elle doldurabilsin; satırı hiç basmamak o soruyu ortadan
     kaldırırdı.
+
+    ⚠️ BAŞLIK DA DEĞİŞİYOR, yalnız içerik değil. Malı BİZİM aracımız
+    taşıyorsa satırın adı "Araç"tır ve plaka kartımızdan gelir. Dışardan bir
+    nakliyeci taşıyorsa o araç bizim değildir; satırın adı "Nakliyeci"dir ve
+    boş bırakılır. İki hâle aynı başlığı yazmak, elle doldurulmuş bir satırı
+    sistemde kayıtlı bir araç gibi gösterirdi — kâğıdı okuyan kişi plakayı
+    bizde arar ve bulamazdı.
   */ ''}
   <dl>
-    <dt>Araç / plaka</dt>
+    <dt>${tasiyan.plaka ? 'Araç / plaka' : 'Nakliyeci / plaka'}</dt>
     <dd${tasiyan.plaka ? '' : ' class="bosluk"'}>${tasiyan.plaka ? kacir(tasiyan.plaka) : '&nbsp;'}</dd>
     <dt>Sürücü</dt>
     <dd${tasiyan.sofor ? '' : ' class="bosluk"'}>${tasiyan.sofor ? kacir(tasiyan.sofor) : '&nbsp;'}</dd>

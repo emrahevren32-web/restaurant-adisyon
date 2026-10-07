@@ -173,11 +173,31 @@ describe('yazdirmaBelgesi', () => {
 // bir nakliyeciye 'al bu oturumdan takip et' diyemeyiz." Kâğıt bu boşluğu
 // kapatıyor; o yüzden kâğıdın ne taşıdığı sınanıyor.
 describe('İrsaliye · dışardan nakliyeci', () => {
-  it('taşıyan alanı var', () => {
+  it('taşıyan alanı var — araç seçilmemişse NAKLİYECİ ve boş', () => {
     const html = irsaliyeHtml(sevkiyat(), [], sozluk)
     expect(html).toContain('Taşıyan')
     expect(html).toContain('Nakliyeci / plaka')
     expect(html).toContain('Sürücü')
+  })
+
+  // 0064'ten sonra: mal BİZİM aracımızla gidiyorsa kâğıt bunu söylemeli.
+  // ⚠️ Başlık da değişiyor, yalnız içerik değil. "Nakliyeci" yazıp altına
+  // kendi plakamızı basmak, dışardan bir araçla gittiği izlenimi verirdi.
+  it('araç seçilmişse ARAÇ yazıyor ve plaka karttan geliyor', () => {
+    const html = irsaliyeHtml(
+      sevkiyat({
+        aracPlaka: '34 ABC 123', aracAd: 'Frigo 1',
+        soforAd: 'Ahmet Yılmaz', soforTelefon: '0532 000 00 00',
+      }),
+      [], sozluk,
+    )
+    expect(html).toContain('Araç / plaka')
+    expect(html).not.toContain('Nakliyeci / plaka')
+    expect(html).toContain('34 ABC 123')
+    // ⚠️ Araç ADI plakanın YANINA yazılıyor, yerine değil: sürücü kapıda
+    // "Frigo 1" diye değil plakayla aranır.
+    expect(html).toContain('34 ABC 123 · Frigo 1')
+    expect(html).toContain('Ahmet Yılmaz · 0532 000 00 00')
   })
 
   it('elle doldurulacak FARK bölümü var', () => {
