@@ -29450,3 +29450,83 @@ html[data-theme="dark"][data-theme-engine="premium"] .side-nav {
   background:var(--accent-soft, #E6F2EF);
   box-shadow:inset 3px 0 0 var(--accent, #0F766E);
 }
+
+/* ── ANALİZ EKRANI (07.10.2026) ───────────────────────────────────────────
+   ⚠️ Bulgular rakamlardan ÖNCE ve DAHA BÜYÜK duruyor. Bir yönetici ekranı
+   açtığında "ne oldu" değil "ne yapmam lazım" sorusunu sorar; sayı tablosu
+   o soruya cevap vermez.
+   ⚠️ Renk TEK BAŞINA anlam taşımıyor: her bulguda yazılı bir rozet de var
+   (Acil / Dikkat / Bilgi). Renk körü bir kullanıcı da sırayı görebilmeli. */
+.bulgu-listesi{ display:grid; gap:12px; margin-bottom:28px; }
+
+.bulgu{
+  border:1px solid var(--line, #E2E8F0);
+  border-left-width:4px;
+  border-radius:var(--kutu-yaricapi, 4px);
+  padding:14px 16px;
+  background:var(--surface, #FFF);
+}
+.bulgu p{ margin:6px 0 0; }
+
+.bulgu-ust{ display:flex; align-items:center; gap:10px; flex-wrap:wrap; }
+
+.bulgu-rozet{
+  font-size:11px; font-weight:700; letter-spacing:.04em; text-transform:uppercase;
+  padding:3px 8px; border-radius:var(--kutu-yaricapi, 4px);
+  background:var(--line, #E2E8F0); color:var(--text-muted, #475569);
+  white-space:nowrap;
+}
+
+/* ⚠️ "Yapılacak" cümlesi görsel olarak AYRI: bulgunun gövdesi ne olduğunu,
+   bu satır ne yapılacağını söyler. İkisi karışırsa okuyan kişi eylemi
+   kaçırır. */
+.bulgu-yapilacak{
+  font-size:13px; color:var(--text-muted, #475569);
+  border-top:1px dashed var(--line, #E2E8F0);
+  padding-top:8px; margin-top:10px !important;
+}
+
+.bulgu-kritik{ border-left-color:var(--danger, #DC2626); }
+.bulgu-kritik .bulgu-rozet{ background:var(--danger, #DC2626); color:#FFF; }
+.bulgu-uyari{ border-left-color:var(--warning, #D97706); }
+.bulgu-uyari .bulgu-rozet{ background:var(--warning, #D97706); color:#FFF; }
+.bulgu-bilgi{ border-left-color:var(--accent, #0F766E); }
+.bulgu-iyi{ border-left-color:var(--success, #16A34A); }
+.bulgu-iyi .bulgu-rozet{ background:var(--success, #16A34A); color:#FFF; }
+
+.gosterge-grid{
+  display:grid; gap:12px; margin-bottom:28px;
+  grid-template-columns:repeat(auto-fill, minmax(190px, 1fr));
+}
+
+.gosterge-kutu{
+  border:1px solid var(--line, #E2E8F0);
+  border-radius:var(--kutu-yaricapi, 4px);
+  padding:14px 16px;
+  background:var(--surface, #FFF);
+}
+
+.gosterge-baslik{
+  font-size:12px; font-weight:600; letter-spacing:.02em;
+  color:var(--text-muted, #475569); margin-bottom:6px;
+}
+
+/* ⚠️ `tabular-nums`: rakamlar alt alta HİZALI dursun. Kayan rakamlar bir
+   tabloyu okunmaz yapar ve karşılaştırmayı zorlaştırır. */
+.gosterge-deger{
+  font-size:22px; font-weight:700; line-height:1.2;
+  font-variant-numeric:tabular-nums;
+}
+
+/* Fiyatı bulunamayan hareket varsa rakamın yanında bir yıldız: sayının
+   EKSİK olduğunu söylüyor. */
+.gosterge-eksik{ color:var(--warning, #D97706); margin-left:2px; }
+
+.gosterge-alt{
+  font-size:12px; color:var(--text-muted, #475569); margin-top:6px;
+}
+
+@media (max-width:640px){
+  .gosterge-grid{ grid-template-columns:repeat(auto-fill, minmax(150px, 1fr)); }
+  .gosterge-deger{ font-size:18px; }
+}

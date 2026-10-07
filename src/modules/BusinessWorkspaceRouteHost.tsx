@@ -31,6 +31,7 @@ import Suppliers from '../pages/Suppliers'
 import Musteriler from '../pages/Musteriler'
 import Siparisler from '../pages/Siparisler'
 import Etiketler from '../pages/Etiketler'
+import Analiz from '../pages/Analiz'
 import PurchaseFlow from '../pages/PurchaseFlow'
 import ProductionRecipes from '../pages/ProductionRecipes'
 import WorkOrders from '../pages/WorkOrders'
@@ -382,7 +383,15 @@ export default function BusinessWorkspaceRouteHost({
   if(route === 'goods-receipts') return <GoodsReceipts currentUser={currentUser} />
   if(route === 'supplier-performances') return <SupplierPerformances />
   if(route === 'procurement-analytics') return <ProcurementAnalytics />
-  if(route === 'kpi-dashboard') return <ReportingRouteFrame route={route}><KPIDashboard currentUser={currentUser} /></ReportingRouteFrame>
+  // ⚠️ 07.10.2026 · `kpi-dashboard` ARTIK GERÇEK DEFTERDEN OKUYOR.
+  // Eski `KPIDashboard` 27 ayrı `.mock` modülünden, yani tarayıcı
+  // hafızasından besleniyordu; menüde duran bir ekranın altındaki rakam
+  // uydurmaysa "menüde gördüğünüz her şey çalışıyor" cümlesi söylenemez.
+  //
+  // ⚠️ ESKİ EKRAN SİLİNMEDİ, yalnız bu yoldan açılmıyor (ADR-002: donmuş
+  // modül silinmez). Raporlama altındaki ÖTEKİ yedi madde hâlâ eski
+  // kaynaktan besleniyor ve demo kapsamı kararı ayrıdır.
+  if(route === 'kpi-dashboard') return <ReportingRouteFrame route={route}><Analiz currentUser={currentUser} /></ReportingRouteFrame>
   if(route === 'daily-production-analytics') return <ReportingRouteFrame route={route}><DailyProductionAnalytics currentUser={currentUser} /></ReportingRouteFrame>
   if(route === 'weekly-production-analytics') return <ReportingRouteFrame route={route}><WeeklyProductionAnalytics currentUser={currentUser} /></ReportingRouteFrame>
   if(route === 'shipment-analytics') return <ReportingRouteFrame route={route}><ShipmentAnalytics currentUser={currentUser} /></ReportingRouteFrame>

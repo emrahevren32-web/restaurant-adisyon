@@ -1298,7 +1298,7 @@ export const BUSINESS_WORKSPACE_MODULE_REGISTRY: BusinessWorkspaceModule[] = def
       })
     ],
     menuItems: [
-      menuItem({ key: 'kpi-dashboard', label: 'KPI Dashboard', route: 'kpi-dashboard', icon: 'KP', adminOnly: true, displayOrder: 10 }),
+      menuItem({ key: 'kpi-dashboard', label: 'Analiz', route: 'kpi-dashboard', icon: 'AN', adminOnly: true, displayOrder: 10 }),
       menuItem({ key: 'daily-production-analytics', label: 'Günlük Üretim Analizi', route: 'daily-production-analytics', icon: 'GA', adminOnly: true, displayOrder: 20 }),
       menuItem({ key: 'weekly-production-analytics', label: 'Haftalık Üretim Analizi', route: 'weekly-production-analytics', icon: 'HA', adminOnly: true, displayOrder: 30 }),
       menuItem({ key: 'shipment-analytics', label: 'Sevkiyat Analizi', route: 'shipment-analytics', icon: 'SA', adminOnly: true, displayOrder: 40 }),
@@ -1965,9 +1965,6 @@ export const BUSINESS_WORKSPACE_MODULE_REGISTRY: BusinessWorkspaceModule[] = def
       // Postgres'e bağlı YENİ reçete ekranı. Üretimin ilk halkası budur:
       // iş emri reçetenin üzerine kurulur, o yüzden menüde de önce geliyor.
       menuItem({ key: 'receteler', label: 'Reçeteler', route: 'receteler', icon: 'RC', adminOnly: true, displayOrder: 5 }),
-      // Etiket, REÇETENİN hemen altında: alerjen ve besin değeri oradan
-      // türetiliyor ve kullanıcı ikisini arka arkaya açıyor.
-      menuItem({ key: 'etiketler', label: 'Etiket ve Alerjen', route: 'etiketler', icon: 'ET', adminOnly: true, displayOrder: 5.5 }),
       // Postgres'e bağlı YENİ iş emri ekranı. Reçetenin hemen ardında:
       // zincirin sırası menüde de görünsün.
       menuItem({ key: 'uretim-emirleri', label: 'İş Emirleri', route: 'uretim-emirleri', icon: 'IE', adminOnly: true, displayOrder: 6 }),
