@@ -1692,8 +1692,19 @@ export const BUSINESS_WORKSPACE_MODULE_REGISTRY: BusinessWorkspaceModule[] = def
       // Adlandırma (ADR-009 §3): ekran adı ne olduğunu söylemeli.
       // "HACCP" tek başına bir metodolojinin adıydı, bir ekranın değil.
       // "İzlenebilirlik" neyin izlenebilirliği belli değildi.
-      menuItem({ key: 'haccp-kayitlari', label: 'HACCP Kontrolleri', route: 'haccp-kayitlari', icon: 'HC', requiredPermission: 'quality.read', adminOnly: true, displayOrder: 1 }),
-      menuItem({ key: 'izlenebilirlik', label: 'Ürün İzlenebilirliği', route: 'izlenebilirlik', icon: 'IZ', requiredPermission: 'quality.read', adminOnly: true, displayOrder: 2 }),
+      // ⚠️ 2026-10-08 · HACCP VE İZLENEBİLİRLİK BURADAN ÜRETİM'E TAŞINDI.
+      //
+      // `isAlwaysActive: true` yazılmasına rağmen Kalite grubu gerçek bir
+      // kiracının menüsünde ÇIKMADI (ABC Endüstriyel Mutfak, 08.10 ekran
+      // görüntüsü — çıkış/giriş sonrası da yok). Sebebini uzaktan kesin
+      // bulamadım; bulunana kadar iki YASAL ekranı görünmeyen bir grubun
+      // altında bekletmek kabul edilemez: HACCP kaydı tutulamayan bir gıda
+      // işletmesi denetimde savunmasızdır.
+      //
+      // Sevkiyat ve Müşteriler'e Lojistik modülünde aynısı olmuştu ve
+      // çözüm de aynıydı. Kalite grubu bir gün görünür olursa bu iki madde
+      // Üretim'den buraya geri alınır — AMA İKİ YERDE BİRDEN DURMAZ.
+
       menuItem({ key: 'label-management', foundationScope: 'frozen', label: 'Etiket Yönetimi', route: 'label-management', icon: 'ET', adminOnly: true, displayOrder: 4 }),
       menuItem({ key: 'lot-system', foundationScope: 'frozen', label: 'Lot Sistemi', route: 'lot-system', icon: 'LS', adminOnly: true, displayOrder: 5 }),
       menuItem({ key: 'sample-tracking', foundationScope: 'frozen', label: 'Numune Takibi', route: 'sample-tracking', icon: 'NT', adminOnly: true, displayOrder: 6 }),
@@ -1981,6 +1992,13 @@ export const BUSINESS_WORKSPACE_MODULE_REGISTRY: BusinessWorkspaceModule[] = def
       // görünmüyor (Sevkiyat ve Müşteriler'in Üretim'e taşınma sebebiyle
       // aynı). Etiket zincirin parçası: reçete → iş emri → ETİKET.
       menuItem({ key: 'etiketler', label: 'Etiket ve Alerjen', route: 'etiketler', icon: 'EA', requiredPermission: 'quality.read', adminOnly: true, displayOrder: 6.2 }),
+
+      // ⚠️ 2026-10-08 · KALİTE'DEN BURAYA TAŞINDI (yukarıdaki nota bakınız).
+      // Zincirin sırası menüde de görünüyor: reçete → iş emri → etiket →
+      // HACCP → izlenebilirlik. Ölçüm üretim ve sevkiyat anında girilir,
+      // izlenebilirlik de o kayıtların üstünde yürür.
+      menuItem({ key: 'haccp-kayitlari', label: 'HACCP Kontrolleri', route: 'haccp-kayitlari', icon: 'HC', requiredPermission: 'quality.read', adminOnly: true, displayOrder: 6.25 }),
+      menuItem({ key: 'izlenebilirlik', label: 'Ürün İzlenebilirliği', route: 'izlenebilirlik', icon: 'IZ', requiredPermission: 'quality.read', adminOnly: true, displayOrder: 6.3 }),
       // Müşteri kartı sevkiyatın hemen ÖNÜNDE: sevkiyat bir müşteriye
       // çıkar, o yüzden zincirin sırası menüde de görünsün. Sevkiyatla aynı
       // modülde çünkü Lojistik modülü bu kiracıda kapalı — oraya konan öge
