@@ -51,7 +51,10 @@ import {
 import {
   aracEtiketi, ehliyetUyarisi, sogutmaUyarisi, type Arac, type Sofor,
 } from '../logistics/vehicle.service'
-import { irsaliyeHtml } from '../production/shipment-documents'
+import { irsaliyeHtml, type YuklemeOlcumu } from '../production/shipment-documents'
+import {
+  PostgresHaccpDeposu, type Olcum as HaccpOlcumu,
+} from '../quality/haccp.repository'
 import { belgeYazdir } from '../core/print/print'
 
 type Props = { currentUser: User }
@@ -102,6 +105,11 @@ export default function Sevkiyatlar({ currentUser }: Props){
   const [bakiyeler, setBakiyeler] = React.useState<DepoKalemi[]>([])
   const [seciliId, setSeciliId] = React.useState<string | null>(null)
   const [hareketler, setHareketler] = React.useState<Movement[]>([])
+  // ── YÜKLEME ÖLÇÜMLERİ (A4B-3/4) ────────────────────────────────────────
+  // Bu sevkiyata bağlanmış HACCP ölçümleri. Kalite ekranından "Sevkiyat"
+  // kaynağıyla girilirler; buraya okunup hem ekranda gösteriliyor hem de
+  // irsaliyeye basılıyor.
+  const [olcumler, setOlcumler] = React.useState<HaccpOlcumu[]>([])
   const [lotlar, setLotlar] = React.useState<KatalogLotu[]>([])
   /** Geri izleme: sevk edilen partilerin içine inen zincir, düz liste hâlinde. */
   const [icerik, setIcerik] = React.useState<SoyagaciSatiri[]>([])
@@ -208,7 +216,7 @@ export default function Sevkiyatlar({ currentUser }: Props){
   React.useEffect(() => {
     let iptal = false
     if(!secili || !servis || !baglam){
-      setHareketler([]); setLotlar([]); setIcerik([]); return
+      setHareketler([]); setLotlar([]); setIcerik([]); setOlcumler([]); return
     }
 
     ;(async () => {
@@ -216,6 +224,15 @@ export default function Sevkiyatlar({ currentUser }: Props){
         const h = await servis.hareketleri(baglam.ctx, secili)
         if(iptal) return
         setHareketler(h)
+
+        // ⚠️ Ölçüm okunamazsa sevkiyat ekranı ÇALIŞMAYA DEVAM ETMELİ:
+        // sıcaklık bir ek bilgidir, sevkiyatın kendisi değil. Hata
+        // yutulmuyor ama ekranı da kilitlemiyor.
+        try{
+          const o = await new PostgresHaccpDeposu(getSupabase())
+            .kaynaginOlcumleri(baglam.ctx, 'shipment', secili.id)
+          if(!iptal) setOlcumler(o)
+        } catch { if(!iptal) setOlcumler([]) }
 
         const katalog = new PostgresStokKatalogu(getSupabase())
         const kalemIdleri = [...new Set(secili.satirlar.map(s => s.stokKalemiId))]
@@ -446,6 +463,7 @@ export default function Sevkiyatlar({ currentUser }: Props){
               sevkiyat={secili}
               yeterlilik={servis!.yeterlilik(secili, bakiyeHaritasi, kalemler)}
               hareketler={hareketler}
+              olcumler={olcumler}
               lotlar={lotlar}
               kalemler={kalemler}
               icerik={icerik}
@@ -754,12 +772,13 @@ function FiloBolumu({
 // ═══════════════════════════════════════════════════════════════════════════
 
 function SevkiyatDetayi({
-  sevkiyat, yeterlilik, hareketler, lotlar, kalemler, icerik, firmaAdi,
+  sevkiyat, yeterlilik, hareketler, olcumler, lotlar, kalemler, icerik, firmaAdi,
   yazabilir, calisiyor, onDuzenle, onDurum,
 }: {
   sevkiyat: Sevkiyat
   yeterlilik: YeterlilikSatiri[]
   hareketler: Movement[]
+  olcumler: HaccpOlcumu[]
   lotlar: KatalogLotu[]
   kalemler: KatalogKalemi[]
   icerik: SoyagaciSatiri[]
@@ -780,6 +799,27 @@ function SevkiyatDetayi({
 
   /** Deftere yazılmış çıkışlar; ters kayıtlar ayrı gösterilir. */
   const cikislar = hareketler.filter(h => h.reason === 'SHIPMENT_OUT')
+
+  // ── YÜKLEME ÖLÇÜMLERİ (A4B-3/4) ────────────────────────────────────────
+  // ⚠️ İPTAL EDİLMİŞ ÖLÇÜM KÂĞIDA BASILMIYOR ama ekranda duruyor: kâğıt
+  // yalnız geçerli kaydı taşımalı, ekran ise ne olduğunu göstermeli.
+  //
+  // ⚠️ LİMİT METNİ KAYITTAN alınıyor, bugünkü CCP'den değil — o ölçüm kendi
+  // günkü limitine göre değerlendirilmişti.
+  const yuklemeOlcumleri: YuklemeOlcumu[] = olcumler
+    .filter(o => !o.iptalZamani)
+    .map(o => ({
+      ad: [o.ccpKod, o.ccpAd].filter(Boolean).join(' · ') || 'Ölçüm',
+      deger: o.deger,
+      birim: o.birim,
+      sonuc: o.sonuc,
+      limitOzeti: o.limitOzeti,
+      zaman: new Date(o.olcumZamani).toLocaleString('tr-TR', {
+        day: '2-digit', month: '2-digit', year: 'numeric',
+        hour: '2-digit', minute: '2-digit',
+      }),
+    }))
+  const sapanOlcum = yuklemeOlcumleri.some(o => o.sonuc !== 'PASS')
 
   /** Zincirin ucu: dışarıdan gelen partiler. Geri çağırmada aranacak liste. */
   const tedarikciSatirlari = icerik.filter(iz => iz.lot.kaynakTipi === 'RECEIPT')
@@ -861,7 +901,7 @@ function SevkiyatDetayi({
               `İrsaliye · ${sevkiyat.sevkiyatNo}`,
               irsaliyeHtml(sevkiyat, hareketler, {
                 kalemAdi, temelBirim, lotKodu, firmaAdi,
-              }),
+              }, yuklemeOlcumleri),
             )}
           >
             İrsaliye Yazdır / PDF
@@ -889,6 +929,51 @@ function SevkiyatDetayi({
       </section>
 
       {/* ── GERÇEK: DEFTER ─────────────────────────────────────────────── */}
+      {/* ── YÜKLEME SICAKLIĞI ───────────────────────────────────────────
+          ⚠️ SAPMA SEVKİYATI DURDURMUYOR, UYARIYOR. Durdurmak ayrı bir karar
+          (karantina/serbest bırakma) ve o zinciri henüz kurmadık; burada
+          "durdurdu" gibi davranan bir ekran, aslında durdurmadığı için
+          yalan söylemiş olurdu. */}
+      {yuklemeOlcumleri.length > 0 && (
+        <section className="card">
+          <h4>Yükleme sıcaklığı</h4>
+          {sapanOlcum && (
+            <div className="form-error">
+              <strong>Bu sevkiyatta sınır dışında bir ölçüm var.</strong>{' '}
+              Düzeltici faaliyeti Kalite ekranında açık; kapatılmadan
+              teslim belgesi tartışmalı kalır.
+            </div>
+          )}
+          <div className="table-wrap">
+            <table className="data-table compact">
+              <thead>
+                <tr><th>Ölçüm</th><th className="num">Değer</th>
+                    <th>Sınır</th><th>Sonuç</th><th>Zaman</th></tr>
+              </thead>
+              <tbody>
+                {yuklemeOlcumleri.map((o, i) => (
+                  <tr key={i}>
+                    <td>{o.ad}</td>
+                    <td className="num">{o.deger} {o.birim}</td>
+                    <td className="muted">{o.limitOzeti}</td>
+                    <td>
+                      {o.sonuc === 'PASS'
+                        ? 'Uygun'
+                        : <strong className="is-critical">UYGUN DEĞİL</strong>}
+                    </td>
+                    <td className="muted">{o.zaman}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+          <p className="muted">
+            Bu ölçümler irsaliyeye basılır. Yeni ölçüm Kalite ekranından,
+            kaynak olarak <strong>Sevkiyat</strong> seçilerek girilir.
+          </p>
+        </section>
+      )}
+
       {hareketler.length > 0 && (
         <section className="card">
           <div className="section-header compact">

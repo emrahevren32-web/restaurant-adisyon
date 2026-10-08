@@ -32,6 +32,9 @@ import { PostgresMalKabulDeposu } from '../purchasing/goods-receipt.repository'
 import type { Kabul } from '../purchasing/goods-receipt.repository'
 import { PostgresIsEmriDeposu, type IsEmri } from '../production/work-order.repository'
 import {
+  PostgresSevkiyatDeposu, SEVKIYAT_DURUM_ETIKETLERI, type Sevkiyat,
+} from '../production/shipment.repository'
+import {
   ASAMA_ETIKETLERI, FAALIYET_ETIKETLERI, PostgresHaccpDeposu, TEHLIKE_ETIKETLERI,
   type Ccp, type DuzelticiFaaliyet, type Olcum, type OlcumKaynagi, type UretimAsamasi,
 } from '../quality/haccp.repository'
@@ -82,6 +85,11 @@ export default function Haccp({ currentUser }: Props){
   const [kalemler, setKalemler] = React.useState<KatalogKalemi[]>([])
   const [kabuller, setKabuller] = React.useState<Kabul[]>([])
   const [isEmirleri, setIsEmirleri] = React.useState<IsEmri[]>([])
+  // ⚠️ A4B-3: ölçüm türü "Sevkiyat" seçilebiliyordu ama BAĞLANACAK BELGE
+  // seçilemiyordu; `kaynakId` boş kalıyor ve ölçüm hiçbir sevkiyata
+  // bağlanmıyordu. Bağlanmayan bir yükleme sıcaklığı irsaliyeye basılamaz
+  // ve "o parti hangi araçla, kaç derecede gitti" sorusu cevapsız kalır.
+  const [sevkiyatlar, setSevkiyatlar] = React.useState<Sevkiyat[]>([])
   const [seciliCcpId, setSeciliCcpId] = React.useState<string | null>(null)
   const [yukleniyor, setYukleniyor] = React.useState(true)
   const [calisiyor, setCalisiyor] = React.useState(false)
@@ -115,13 +123,14 @@ export default function Haccp({ currentUser }: Props){
 
         const client = getSupabase()
         const katalog = new PostgresStokKatalogu(client)
-        const [c, o, f, kl, mk, ie] = await Promise.all([
+        const [c, o, f, kl, mk, ie, sv] = await Promise.all([
           servis.ccpler(kurulan.ctx),
           servis.olcumler(kurulan.ctx, 200),
           servis.faaliyetler(kurulan.ctx),
           katalog.kalemler(kurulan.ctx),
           new PostgresMalKabulDeposu(client).hepsi(kurulan.ctx),
           new PostgresIsEmriDeposu(client).hepsi(kurulan.ctx),
+          new PostgresSevkiyatDeposu(client).hepsi(kurulan.ctx),
         ])
         if(iptal) return
         setCcpler(c)
@@ -130,6 +139,7 @@ export default function Haccp({ currentUser }: Props){
         setKalemler(kl.filter(k => k.aktif))
         setKabuller(mk)
         setIsEmirleri(ie)
+        setSevkiyatlar(sv)
       } catch (e) {
         if(!iptal) setHata(hataMetni(e))
       } finally {
@@ -458,6 +468,7 @@ export default function Haccp({ currentUser }: Props){
                       kalemler={kalemler}
                       kabuller={kabuller}
                       isEmirleri={isEmirleri}
+                      sevkiyatlar={sevkiyatlar}
                       ctx={baglam.ctx}
                       calisiyor={calisiyor}
                       onKaydet={olcumKaydet}
@@ -559,12 +570,13 @@ export default function Haccp({ currentUser }: Props){
 // ═══════════════════════════════════════════════════════════════════════════
 
 function OlcumFormu({
-  ccp, kalemler, kabuller, isEmirleri, ctx, calisiyor, onKaydet,
+  ccp, kalemler, kabuller, isEmirleri, sevkiyatlar, ctx, calisiyor, onKaydet,
 }: {
   ccp: Ccp
   kalemler: KatalogKalemi[]
   kabuller: Kabul[]
   isEmirleri: IsEmri[]
+  sevkiyatlar: Sevkiyat[]
   ctx: DepoBaglami['ctx']
   calisiyor: boolean
   onKaydet: (
@@ -698,6 +710,33 @@ function OlcumFormu({
               </option>
             ))}
           </select>
+        </label>
+      )}
+
+      {/* ── SEVKİYAT BAĞI (A4B-3) ────────────────────────────────────────
+          Yükleme sıcaklığı bir sevkiyata bağlanmadıkça irsaliyeye
+          basılamaz ve "o parti hangi araçla, kaç derecede gitti" sorusu
+          cevapsız kalır. Ölçüm türü seçilebiliyordu ama belge seçilemiyordu;
+          eksik olan buydu. */}
+      {kaynakTipi === 'shipment' && (
+        <label>
+          Sevkiyat
+          <select value={kaynakId} onChange={e => setKaynakId(e.target.value)}>
+            <option value="">Sevkiyat seçilmedi</option>
+            {sevkiyatlar.map(sv => (
+              <option key={sv.id} value={sv.id}>
+                {sv.sevkiyatNo} · {sv.musteriAd}
+                {sv.aracPlaka ? ` · ${sv.aracPlaka}` : ''}
+                {` · ${SEVKIYAT_DURUM_ETIKETLERI[sv.durum]}`}
+              </option>
+            ))}
+          </select>
+          <small className="muted">
+            {sevkiyatlar.length === 0
+              ? 'Henüz sevkiyat yok.'
+              : 'Sevkiyata bağlanan ölçüm İRSALİYEYE BASILIR; '
+                + 'ölçümü yükleme anında, araç kapanmadan girin.'}
+          </small>
         </label>
       )}
 

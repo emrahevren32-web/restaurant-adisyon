@@ -7,7 +7,7 @@ import type { Movement } from '../core/stock/stock.repository'
 import { geriCagirmaRaporu } from './recall'
 import type { IleriIzlemeSonucu, SoyagaciLotu } from './genealogy'
 import type { Sevkiyat } from './shipment.repository'
-import { geriCagirmaHtml, irsaliyeHtml, type BelgeSozlugu } from './shipment-documents'
+import { geriCagirmaHtml, irsaliyeHtml, type BelgeSozlugu, type YuklemeOlcumu } from './shipment-documents'
 import { yazdirmaBelgesi, kacir } from '../core/print/print'
 
 const sozluk: BelgeSozlugu = {
@@ -198,6 +198,47 @@ describe('İrsaliye · dışardan nakliyeci', () => {
     // "Frigo 1" diye değil plakayla aranır.
     expect(html).toContain('34 ABC 123 · Frigo 1')
     expect(html).toContain('Ahmet Yılmaz · 0532 000 00 00')
+  })
+
+  // ── YÜKLEME SICAKLIĞI (A4B-3/4) ──────────────────────────────────────
+  // Yol haritası ölçütü: "Kâğıtta plaka, şoför ve yükleme sıcaklığı yazıyor".
+  it('ölçüm yoksa sıcaklık bölümü HİÇ BASILMAZ', () => {
+    const html = irsaliyeHtml(sevkiyat(), [], sozluk)
+    // Soğuk zincir gerektirmeyen kuru gıda sevkiyatı kâğıtsız kalmasın.
+    expect(html).not.toContain('Yükleme sıcaklığı')
+  })
+
+  it('ölçüm varsa değer, SINIR ve sonuç kâğıtta', () => {
+    const olcum: YuklemeOlcumu = {
+      ad: 'CCP-8 · Sevk sıcaklığı', deger: 2.5, birim: '°C',
+      sonuc: 'PASS', limitOzeti: 'en çok 4 °C', zaman: '03.02.2026 08:15',
+    }
+    const html = irsaliyeHtml(sevkiyat(), [], sozluk, [olcum])
+    expect(html).toContain('Yükleme sıcaklığı')
+    expect(html).toContain('CCP-8')
+    expect(html).toContain('2,5 °C')
+    expect(html).toContain('en çok 4 °C')
+    expect(html).toContain('Uygun')
+  })
+
+  // ⚠️ UYGUNSUZ ÖLÇÜM KÂĞITTAN GİZLENMEZ. Gizlemek müşteriye eksik beyan
+  // vermektir; üstelik kayıt zaten defterde ve faaliyeti açılmış.
+  it('uygunsuz ölçüm kâğıtta AÇIKÇA yazıyor', () => {
+    const html = irsaliyeHtml(sevkiyat(), [], sozluk, [{
+      ad: 'CCP-8', deger: 9, birim: '°C', sonuc: 'FAIL', limitOzeti: 'en çok 4 °C',
+    }])
+    expect(html).toContain('UYGUN DEĞİL')
+    expect(html).toContain('sınır dışında bir ölçüm var')
+  })
+
+  // Limit metni KAYITTAN geliyor; CCP sonradan değişse bile dünkü kâğıt
+  // dünkü limite göre kalır.
+  it('limit metnini kayıttan basar, bugünkü CCP’den değil', () => {
+    const html = irsaliyeHtml(sevkiyat(), [], sozluk, [{
+      ad: 'CCP-8', deger: 1, birim: '°C', sonuc: 'PASS',
+      limitOzeti: 'en çok 6 °C (eski limit)',
+    }])
+    expect(html).toContain('en çok 6 °C (eski limit)')
   })
 
   it('elle doldurulacak FARK bölümü var', () => {

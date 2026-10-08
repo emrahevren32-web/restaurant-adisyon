@@ -62,10 +62,32 @@ export type BelgeSozlugu = {
 // İrsaliye
 // ═══════════════════════════════════════════════════════════════════════════
 
+/**
+ * İrsaliyeye basılacak yükleme ölçümü (A4B-3/4, 0024 HACCP).
+ *
+ * ⚠️ Yalnız GEREKENİ taşıyor: değer, birim, sonuç ve o günkü limit metni.
+ * Belgeye ölçümün kimliğini basmak kimseye bir şey anlatmaz; kâğıdı okuyan
+ * kişi "kaç dereceydi ve uygun muydu" sorusunun cevabını arar.
+ */
+export type YuklemeOlcumu = {
+  ad: string
+  deger: number
+  birim: string
+  /** 'PASS' | 'FAIL' — yazıldığı anda hesaplanıp DONDURULMUŞ hâli. */
+  sonuc: string
+  /** O kaydın kendi günkü limiti; bugünkü CCP'den okunmuyor. */
+  limitOzeti: string
+  zaman?: string
+}
+
 export const irsaliyeHtml = (
   sevkiyat: Sevkiyat,
   hareketler: readonly Movement[],
   sozluk: BelgeSozlugu,
+  // ⚠️ İSTEĞE BAĞLI ve bilerek: ölçümü olmayan sevkiyatın irsaliyesi
+  // basılmaya devam etmeli. Zorunlu yapsaydık soğuk zincir gerektirmeyen
+  // kuru gıda sevkiyatı kâğıtsız kalırdı.
+  olcumler: readonly YuklemeOlcumu[] = [],
 ): string => {
   const cikislar = hareketler.filter(h => h.reason === 'SHIPMENT_OUT')
 
@@ -158,6 +180,34 @@ export const irsaliyeHtml = (
     <dt>Sürücü</dt>
     <dd${tasiyan.sofor ? '' : ' class="bosluk"'}>${tasiyan.sofor ? kacir(tasiyan.sofor) : '&nbsp;'}</dd>
   </dl>
+
+  ${olcumler.length > 0 ? `
+  <h2>Yükleme sıcaklığı</h2>
+  ${/*
+    ⚠️ LİMİT METNİ KAYITTAN GELİYOR, bugünkü CCP'den değil. Limit sonradan
+    değişirse dünkü kâğıt dünkü limite göre kalır — denetimde doğru olan bu.
+
+    ⚠️ UYGUNSUZ ÖLÇÜM KÂĞITTAN GİZLENMİYOR. Gizlemek, müşteriye eksik beyan
+    vermektir; üstelik ölçüm zaten defterde duruyor ve düzeltici faaliyeti
+    açılmış. Kâğıtta görünmesi, teslim alan kişinin de bilmesini sağlar.
+  */ ''}
+  <table>
+    <thead><tr><th>Ölçüm</th><th class="num">Değer</th><th>Sınır</th><th>Sonuç</th></tr></thead>
+    <tbody>
+      ${olcumler.map(o => `
+      <tr>
+        <td>${kacir(o.ad)}${o.zaman ? `<div class="kucuk">${kacir(o.zaman)}</div>` : ''}</td>
+        <td class="num">${bicimle(o.deger)} ${kacir(o.birim)}</td>
+        <td class="kucuk">${kacir(o.limitOzeti)}</td>
+        <td>${o.sonuc === 'PASS' ? 'Uygun' : '<strong>UYGUN DEĞİL</strong>'}</td>
+      </tr>`).join('')}
+    </tbody>
+  </table>
+  ${olcumler.some(o => o.sonuc !== 'PASS') ? `<p class="kucuk">
+    <strong>Bu sevkiyatta sınır dışında bir ölçüm var.</strong> Kayıt
+    sistemde duruyor ve düzeltici faaliyeti açılmıştır.
+  </p>` : ''}
+  ` : ''}
 
   <h2>Teslimde fark var mı?</h2>
   <p class="kucuk">
