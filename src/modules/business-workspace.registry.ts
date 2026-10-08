@@ -1968,6 +1968,19 @@ export const BUSINESS_WORKSPACE_MODULE_REGISTRY: BusinessWorkspaceModule[] = def
       // Postgres'e bağlı YENİ iş emri ekranı. Reçetenin hemen ardında:
       // zincirin sırası menüde de görünsün.
       menuItem({ key: 'uretim-emirleri', label: 'İş Emirleri', route: 'uretim-emirleri', icon: 'IE', adminOnly: true, displayOrder: 6 }),
+
+      // ⚠️ 2026-10-08 · ETİKET EKRANI MENÜDE HİÇ YOKTU.
+      //
+      // Ekran (`src/pages/Etiketler.tsx`) vardı, rotası (`etiketler`) vardı,
+      // çalışıyordu — ama hiçbir modülde menü kaydı yazılmamıştı. Menüdeki
+      // tek "Etiket" ögeleri `label-management` ve `labeling-processes`'ti
+      // ve ikisi de DONMUŞ, yani hiç üretilmiyor. Sonuç: alerjen beyanı ve
+      // besin değeri giren, etiket basan ekran kullanıcı için YOKTU.
+      //
+      // Kalite modülünün altına koymadım: bu kiracıda Kalite grubu menüde
+      // görünmüyor (Sevkiyat ve Müşteriler'in Üretim'e taşınma sebebiyle
+      // aynı). Etiket zincirin parçası: reçete → iş emri → ETİKET.
+      menuItem({ key: 'etiketler', label: 'Etiket ve Alerjen', route: 'etiketler', icon: 'EA', requiredPermission: 'quality.read', adminOnly: true, displayOrder: 6.2 }),
       // Müşteri kartı sevkiyatın hemen ÖNÜNDE: sevkiyat bir müşteriye
       // çıkar, o yüzden zincirin sırası menüde de görünsün. Sevkiyatla aynı
       // modülde çünkü Lojistik modülü bu kiracıda kapalı — oraya konan öge
