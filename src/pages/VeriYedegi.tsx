@@ -41,6 +41,9 @@ import {
 import {
   yedegiDogrula, type DogrulamaSonucu,
 } from '../tenant-export/backup-verify'
+import {
+  defteriKur, excelDosyaAdi,
+} from '../tenant-export/tablo-defteri'
 
 type Props = { currentUser: User }
 
@@ -146,6 +149,56 @@ function VeriYedegi({
 
   const dstm = yedekDurumu(gunluk)
 
+  /**
+   * EXCEL OLARAK İNDİR — "sistemi bırakırsam verim bende kalır mı?"
+   *
+   * Emrah (08.10.2026): müşteriye verilen güvence, AÇILABİLEN bir dosya
+   * olmalı. JSON yedeği eksiksiz ama bir gıda mühendisi ya da mali müşavir
+   * 40 tablolu bir JSON'u açamaz. Göremediği bir garanti, garanti değildir.
+   *
+   * ⚠️ AYNI VERİ, İKİ BİÇİM. İkisi de `kiraciyiDisaAktar`dan çıkıyor; ayrı
+   * bir yol yazsaydık biri düzeltilip öteki unutulurdu ve iki dosya aynı
+   * işletmenin iki farklı gerçeğini gösterirdi.
+   *
+   * ⚠️ EXCEL DOSYASI YEDEK GÜNLÜĞÜNE YAZILMIYOR. Günlük "yedeğim var mı"
+   * sorusunun tek kaynağı ve onun cevabı JSON dosyasıdır: geri yüklenebilen
+   * biçim odur. Excel'i yedek saymak, geri yüklenemeyen bir şeye güvenmek
+   * olurdu.
+   */
+  const excelIndir = async () => {
+    setCalisiyor(true); setHata(''); setKunye(null); setDurum('Hazırlanıyor…')
+    try{
+      const sonuc = await kiraciyiDisaAktar(getSupabase(), ctx, (tablo, sira, toplam) => {
+        setDurum(`${sira}/${toplam} · ${tablo}`)
+      })
+      setKunye(sonuc.kunye)
+
+      setDurum('Excel dosyası yazılıyor…')
+      // ⚠️ `xlsx` İSTEK ÜZERİNE yükleniyor. Bu ekran her açıldığında değil,
+      // düğmeye basılınca: kütüphane büyük ve kullanıcıların çoğu bu
+      // düğmeye hiç basmayacak.
+      const XLSX = await import('xlsx')
+      const kitap = XLSX.utils.book_new()
+
+      for(const sayfa of defteriKur(sonuc)){
+        const satirlar = sayfa.basliklar.length > 0
+          ? [sayfa.basliklar, ...sayfa.satirlar]
+          : sayfa.satirlar
+        XLSX.utils.book_append_sheet(
+          kitap, XLSX.utils.aoa_to_sheet(satirlar), sayfa.ad,
+        )
+      }
+
+      // Dosya doğrudan kullanıcının diskine iniyor; hiçbir sunucuya uğramıyor.
+      XLSX.writeFile(kitap, excelDosyaAdi(ctx.tenantId))
+      setBoyut('')
+      setDurum('İndirildi.')
+    } catch(e){
+      setHata(e instanceof Error ? e.message : 'Excel dosyası üretilemedi.')
+      setDurum('')
+    } finally { setCalisiyor(false) }
+  }
+
   const indir = async () => {
     setCalisiyor(true); setHata(''); setKunye(null); setDurum('Hazırlanıyor…')
     try{
@@ -208,13 +261,25 @@ function VeriYedegi({
           <p className="muted" style={{ margin: '4px 0 0' }}>
             İşletmenizin bütün iş verisi tek dosyada. Dosya doğrudan
             bilgisayarınıza iner; hiçbir aracı sunucuya uğramaz.
+            {' '}<strong>Excel dosyası MİYOP olmadan açılır</strong> —
+            verileriniz için bize bağımlı değilsiniz. JSON dosyası ise
+            geri yüklenebilen biçimdir; yedek olarak onu saklayın.
           </p>
         </div>
         {yetkili && (
-          <button className="btn primary" type="button" disabled={calisiyor}
-            onClick={() => void indir()}>
-            {calisiyor ? (durum || 'Hazırlanıyor…') : 'Yedeği İndir'}
-          </button>
+          <div className="form-actions" style={{ margin: 0 }}>
+            <button className="btn primary" type="button" disabled={calisiyor}
+              onClick={() => void indir()}>
+              {calisiyor ? (durum || 'Hazırlanıyor…') : 'Yedeği İndir (JSON)'}
+            </button>
+            {/* ⚠️ İKİNCİ DÜĞME BİR ÖZELLİK DEĞİL, BİR SÖZDÜR: "verinizi her
+                an alırsınız ve bize bağımlı değilsiniz." Excel dosyası
+                MİYOP olmadan açılır. */}
+            <button className="btn" type="button" disabled={calisiyor}
+              onClick={() => void excelIndir()}>
+              Verilerimi Excel olarak indir
+            </button>
+          </div>
         )}
       </div>
 
