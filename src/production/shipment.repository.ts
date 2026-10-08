@@ -77,7 +77,14 @@ export type Sevkiyat = {
    */
   aracId?: string
   soforId?: string
-  /** Belgeye basılacak hâlleri — karttan okunur, kopyalanıp DONDURULMAZ. */
+  /**
+   * Belgeye basılacak hâlleri.
+   *
+   * ⚠️ 0066'DAN SONRA: sevk edilmiş sevkiyatta bunlar DONMUŞ değerdir —
+   * sevk anında karttan kopyalanmıştır ve kart sonradan değişse bile
+   * değişmez. Taslakta henüz donmamıştır ve karttan canlı okunur: ortada
+   * kesilmiş bir kâğıt yoktur, belge mal çıkınca doğar.
+   */
   aracPlaka?: string
   aracAd?: string
   soforAd?: string
@@ -170,6 +177,11 @@ type SevkiyatKaydi = {
   vehicle_id: string | null; driver_id: string | null
   vehicle?: { plate: string; name: string | null } | null
   driver?: { full_name: string; phone: string | null } | null
+  // Sevk anında karttan kopyalanmış hâlleri (0066). Taslakta BOŞ.
+  vehicle_plate_frozen: string | null
+  vehicle_name_frozen: string | null
+  driver_name_frozen: string | null
+  driver_phone_frozen: string | null
   shipped_on: string | null; shipped_at: string | null
   note: string | null; created_at: string
   shipment_line: SatirKaydi[] | null
@@ -188,14 +200,21 @@ const sevkiyataCevir = (k: SevkiyatKaydi): Sevkiyat => ({
   hedefSubeId: k.destination_branch_id ?? undefined,
   aracId: k.vehicle_id ?? undefined,
   soforId: k.driver_id ?? undefined,
-  // ⚠️ Plaka BELGEYE kopyalanıp dondurulmuyor, karttan okunuyor. Kart
-  // düzeltilirse eski irsaliye de düzelsin isteniyor — çünkü plaka
-  // müşteriye ait bir bilgi değil, BİZİM aracımızın kimliği. (Müşteri adı
-  // tersine donuyor: o müşteriye ait.)
-  aracPlaka: k.vehicle?.plate,
-  aracAd: metin(k.vehicle?.name ?? null),
-  soforAd: k.driver?.full_name,
-  soforTelefon: metin(k.driver?.phone ?? null),
+  // ⚠️ DONMUŞ DEĞER ÖNCE, KART SONRA (0066).
+  //
+  // 0064'te plakayı bilerek dondurmamıştım ve YANLIŞTI. Gerekçem "plaka
+  // bizim aracımızın kimliği, kart düzeltilirse eski irsaliye de düzelsin"
+  // idi. Ama KESİLMİŞ BİR İRSALİYE BİR BELGEDİR, BİR EKRAN DEĞİL: plaka
+  // ertesi gün düzeltilirse dün müşteriye imzalatılan kâğıt bugün başka
+  // bir plaka basardı. Müşterideki kopya ile bizdeki tutmazsa, o tartışmada
+  // haklı çıkan kâğıdı elinde tutan taraftır.
+  //
+  // Taslakta donmuş değer HENÜZ YOK; karttan canlı okunuyor ve bu doğru —
+  // belge mal çıkınca doğar.
+  aracPlaka: metin(k.vehicle_plate_frozen ?? null) ?? k.vehicle?.plate,
+  aracAd: metin(k.vehicle_name_frozen ?? null) ?? metin(k.vehicle?.name ?? null),
+  soforAd: metin(k.driver_name_frozen ?? null) ?? k.driver?.full_name,
+  soforTelefon: metin(k.driver_phone_frozen ?? null) ?? metin(k.driver?.phone ?? null),
   sevkTarihi: k.shipped_on ?? undefined,
   sevkZamani: k.shipped_at ?? undefined,
   not: metin(k.note),
@@ -219,6 +238,7 @@ const SECIM = `
   id, shipment_no, status, customer_name, customer_phone, address,
   customer_id, delivery_point_id, order_id,
   destination_branch_id, vehicle_id, driver_id,
+  vehicle_plate_frozen, vehicle_name_frozen, driver_name_frozen, driver_phone_frozen,
   shipped_on, shipped_at, note, created_at,
   vehicle ( plate, name ),
   driver ( full_name, phone ),
