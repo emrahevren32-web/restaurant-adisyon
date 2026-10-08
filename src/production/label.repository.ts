@@ -57,6 +57,26 @@ export type EksikKalem = { kalemId: string; kalemAdi: string; sebep?: string }
 /** Etikette yazacak üretici bilgisi. */
 export type FirmaBilgisi = { ad: string; adres?: string }
 
+/**
+ * Bir mamulün ÜRETİLMİŞ partisi (0067).
+ *
+ * ⚠️ Etiketteki parti artık buradan seçiliyor, elle yazılmıyor. Zincirin
+ * son metresi klavyeye bağlıyken biri 20261007 yerine 20261006 yazdığı gün
+ * geri çağırma yanlış paleti toplar ya da doğru paleti kaçırır — ve
+ * hangisinin olduğu anlaşılmaz, çünkü kâğıtla sistem arasındaki tek bağ
+ * o numaraydı.
+ */
+export type UretilenParti = {
+  id: string
+  kod: string
+  /** Malın DEFTERE GİRDİĞİ gün; parti kaydının açıldığı gün değil. */
+  uretimTarihi?: string
+  sonKullanma?: string
+  /** Eldeki miktar. 0 olabilir — tükenmiş parti listeden DÜŞMEZ. */
+  bakiye: number
+  isEmriNo?: string
+}
+
 export interface EtiketDeposu {
   /**
    * ⚠️ Üretici adı ELLE YAZILMIYOR, kayıttan geliyor. Etikette yanlış üretici
@@ -78,6 +98,9 @@ export interface EtiketDeposu {
   mamulAlerjenEksikleri(ctx: TenantCtx, kalemId: string): Promise<EksikKalem[]>
   mamulBesinDegeri(ctx: TenantCtx, kalemId: string): Promise<BesinDegeri | undefined>
   mamulBesinEksikleri(ctx: TenantCtx, kalemId: string): Promise<EksikKalem[]>
+
+  // ── Üretilen partiler (0067) ───────────────────────────────────────────
+  uretilenPartiler(ctx: TenantCtx, kalemId: string): Promise<UretilenParti[]>
 }
 
 const bos = (d: unknown): string | undefined => {
@@ -250,6 +273,34 @@ export class PostgresEtiketDeposu implements EtiketDeposu {
       const s = bos(e.sebep); if(s !== undefined) k.sebep = s
       return k
     })
+  }
+
+  // ── Üretilen partiler (0067) ───────────────────────────────────────────
+  /**
+   * Bir mamulün üretilmiş partileri — en yenisi en üstte.
+   *
+   * ⚠️ HESAP BURADA DEĞİL, 0067'DE. Üretim tarihi, bakiye ve iş emri
+   * numarası veritabanından geliyor; tarayıcıda hesaplasaydık bakiye
+   * PostgREST'in satır sınırında sessizce kesilirdi.
+   */
+  async uretilenPartiler(_ctx: TenantCtx, kalemId: string): Promise<UretilenParti[]> {
+    const { data, error } = await this.client
+      .rpc('uretilen_partiler', { p_kalem: kalemId })
+    if(error) throw new Error(`Üretilen partiler okunamadı: ${error.message}`)
+
+    type S = {
+      parti_id: string; parti_kodu: string
+      uretim_tarihi: string | null; son_kullanma: string | null
+      bakiye: string | number | null; is_emri_no: string | null
+    }
+    return ((data as unknown as S[] | null) ?? []).map(r => ({
+      id: r.parti_id,
+      kod: r.parti_kodu,
+      uretimTarihi: r.uretim_tarihi ?? undefined,
+      sonKullanma: r.son_kullanma ?? undefined,
+      bakiye: sayi(r.bakiye) ?? 0,
+      isEmriNo: r.is_emri_no ?? undefined,
+    }))
   }
 }
 

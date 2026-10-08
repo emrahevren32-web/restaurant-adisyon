@@ -20,6 +20,7 @@ import {
   PostgresEtiketDeposu,
   type Alerjen, type AlerjenTuru, type BesinDegeri, type EksikKalem,
   type EtiketKalemi, type KalemAlerjeni, type TuretilmisAlerjen,
+  type UretilenParti,
 } from '../production/label.repository'
 import { EtiketServisi, alerjenDurumu, etiketVerisiKur } from '../production/label.service'
 import { etiketHtml, etiketKesilebilir } from '../production/label-documents'
@@ -31,6 +32,12 @@ const hataMetni = (h: unknown) =>
   h instanceof Error ? h.message : 'Beklenmeyen bir hata oluştu.'
 
 const bugun = () => new Date().toLocaleDateString('sv-SE')
+
+/** GG.AA.YYYY — kullanıcı tarihi böyle okur. */
+const tarihYaz = (g: string): string => {
+  const [y, a, d] = g.slice(0, 10).split('-')
+  return d && a && y ? `${d}.${a}.${y}` : g
+}
 
 type BesinTaslagi = Record<string, string>
 
@@ -75,7 +82,12 @@ export default function Etiketler({ currentUser }: Props){
   const [turetilenBesin, setTuretilenBesin] = React.useState<BesinDegeri>()
   const [besinEksik, setBesinEksik] = React.useState<EksikKalem[]>([])
 
+  // ── PARTİ ARTIK SEÇİLİYOR, YAZILMIYOR (0067) ───────────────────────────
+  // ⚠️ `lot` hâlâ bir metin ama artık KULLANICI YAZMIYOR: seçilen partinin
+  // kodu buraya kopyalanıyor. Etiket belgesi kod bekliyor, kimlik değil.
   const [lot, setLot] = React.useState('')
+  const [partiler, setPartiler] = React.useState<UretilenParti[]>([])
+  const [partiId, setPartiId] = React.useState('')
   const [uretim, setUretim] = React.useState(bugun())
   const [skt, setSkt] = React.useState('')
   const [saklama, setSaklama] = React.useState('')
@@ -114,14 +126,23 @@ export default function Etiketler({ currentUser }: Props){
 
   const ayrintiYukle = async (k: EtiketKalemi, b: DepoBaglami) => {
     if(!servis) return
-    const [b1, b2, t, ae, tb, be] = await Promise.all([
+    const [b1, b2, t, ae, tb, be, pl] = await Promise.all([
       servis.kalemAlerjenleri(b.ctx, k.id),
       servis.besinDegeri(b.ctx, k.id),
       servis.mamulAlerjenleri(b.ctx, k.id),
       servis.mamulAlerjenEksikleri(b.ctx, k.id),
       servis.mamulBesinDegeri(b.ctx, k.id),
       servis.mamulBesinEksikleri(b.ctx, k.id),
+      servis.uretilenPartiler(b.ctx, k.id),
     ])
+
+    // ── PARTİ SEÇİMİ SIFIRLANIYOR ───────────────────────────────────────
+    // ⚠️ Başka bir ürüne geçildiğinde önceki ürünün partisi EKRANDA
+    // KALMAMALI. Kalsaydı kullanıcı farkına varmadan A ürününün etiketine
+    // B ürününün partisini basardı — ve bu, izlenebilirliği hiç
+    // olmamasından kötü yapardı: kâğıt yanlış bir zinciri işaret ederdi.
+    setPartiler(pl)
+    setPartiId(''); setLot(''); setUretim(''); setSkt('')
     setBeyan(b1)
     setTuretilen(t); setAlerjenEksik(ae); setTuretilenBesin(tb); setBesinEksik(be)
     const taslak: BesinTaslagi = {}
@@ -412,14 +433,73 @@ export default function Etiketler({ currentUser }: Props){
 
               <section className="card">
                 <h4>Etiket</h4>
-                <div className="form-row">
-                  <label>Parti<input value={lot} onChange={e => setLot(e.target.value)} /></label>
-                  <label>Üretim<input type="date" value={uretim} onChange={e => setUretim(e.target.value)} /></label>
-                </div>
-                <div className="form-row">
-                  <label>Son kullanma<input type="date" value={skt} onChange={e => setSkt(e.target.value)} /></label>
-                  <label>Saklama<input value={saklama} placeholder="0–4 °C" onChange={e => setSaklama(e.target.value)} /></label>
-                </div>
+                {/* ── PARTİ SEÇİMİ (0067) ────────────────────────────────
+                    ⚠️ Burada bir zamanlar SERBEST METİN kutusu vardı ve
+                    izlenebilirlik zincirinin son metresi klavyeye bağlıydı.
+                    Biri 20261007 yerine 20261006 yazdığı gün geri çağırma
+                    yanlış paleti toplar ya da doğru paleti kaçırırdı — ve
+                    hangisinin olduğu anlaşılmazdı, çünkü kâğıtla sistem
+                    arasındaki tek bağ o numaraydı.
+
+                    Parti, üretim tarihi ve son kullanma artık ÜÇÜ BİRDEN
+                    kayıttan geliyor. Elle düzeltilemiyorlar: düzeltilebilse
+                    seçim bir süslemeden ibaret olurdu. */}
+                {partiler.length === 0 && (
+                  <div className="form-error">
+                    Bu ürünün sistemde <strong>üretilmiş partisi yok.</strong>{' '}
+                    Önce Üretim ekranından iş emrini tamamlayın. Partisiz
+                    etiket <strong>TASLAK</strong> basılır ve ambalaja
+                    yapıştırılamaz.
+                  </div>
+                )}
+
+                {partiler.length > 0 && (
+                  <div className="form-row">
+                    <label>Parti *
+                      <select
+                        value={partiId}
+                        onChange={e => {
+                          const p = partiler.find(x => x.id === e.target.value)
+                          setPartiId(e.target.value)
+                          // Üçü birden partiden geliyor. Kullanıcı birini
+                          // değiştirip ötekini bırakamasın diye hepsi
+                          // AYNI ANDA yazılıyor.
+                          setLot(p?.kod ?? '')
+                          setUretim(p?.uretimTarihi ?? '')
+                          setSkt(p?.sonKullanma ?? '')
+                        }}
+                      >
+                        <option value="">— parti seçin —</option>
+                        {partiler.map(p => (
+                          <option key={p.id} value={p.id}>
+                            {p.kod}
+                            {p.isEmriNo ? ` · ${p.isEmriNo}` : ''}
+                            {p.uretimTarihi ? ` · ${tarihYaz(p.uretimTarihi)}` : ''}
+                            {/* Tükenmiş parti listede KALIYOR: etiket bazen
+                                yeniden basılır (yırtılan ambalaj). Ama
+                                tükenmiş olduğu YAZIYOR. */}
+                            {p.bakiye <= 0 ? ' · (tükendi)' : ''}
+                          </option>
+                        ))}
+                      </select>
+                    </label>
+                    <label>Saklama
+                      <input value={saklama} placeholder="0–4 °C"
+                        onChange={e => setSaklama(e.target.value)} />
+                    </label>
+                  </div>
+                )}
+
+                {/* Seçilen partinin kayıttaki hâli — SALT OKUNUR. */}
+                {partiId && (
+                  <p className="muted" style={{ marginTop: 0 }}>
+                    Üretim: <strong>{uretim ? tarihYaz(uretim) : 'kayıtta yok'}</strong>
+                    {' · '}
+                    Son kullanma: <strong>{skt ? tarihYaz(skt) : 'kayıtta yok'}</strong>
+                    {' — '}bu iki tarih partinin kaydından geliyor, elle
+                    değiştirilemez.
+                  </p>
+                )}
                 {etiketVerisi && !etiketKesilebilir(etiketVerisi) && (
                   <div className="form-error">
                     Etiket <strong>TASLAK</strong> basılır — ambalaja yapıştırılamaz.

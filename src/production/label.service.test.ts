@@ -5,6 +5,7 @@ import { describe, it, expect } from 'vitest'
 import type { TenantCtx } from '../core/context'
 import type {
   Alerjen, BesinDegeri, EksikKalem, EtiketDeposu, EtiketKalemi, KalemAlerjeni,
+  UretilenParti,
   FirmaBilgisi, TuretilmisAlerjen,
 } from './label.repository'
 import {
@@ -37,6 +38,10 @@ class BellekDeposu implements EtiketDeposu {
   async mamulAlerjenEksikleri(): Promise<EksikKalem[]> { return [] }
   async mamulBesinDegeri(): Promise<BesinDegeri | undefined> { return undefined }
   async mamulBesinEksikleri(): Promise<EksikKalem[]> { return [] }
+  // ⚠️ PORT'a 0067'de metot eklendi; uygulayan HER sınıf değişmek
+  // zorunda (tuzak 48). Bunu `vitest` değil, yalnız `tsc` yakalar.
+  async uretilenPartiler(): Promise<UretilenParti[]> { return this.partiler }
+  partiler: UretilenParti[] = []
 }
 
 const kur = () => {

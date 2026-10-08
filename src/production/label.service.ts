@@ -33,6 +33,8 @@ export class EtiketServisi {
   mamulAlerjenEksikleri(ctx: TenantCtx, id: string) { return this.depo.mamulAlerjenEksikleri(ctx, id) }
   mamulBesinDegeri(ctx: TenantCtx, id: string) { return this.depo.mamulBesinDegeri(ctx, id) }
   mamulBesinEksikleri(ctx: TenantCtx, id: string) { return this.depo.mamulBesinEksikleri(ctx, id) }
+  /** Etiketteki parti buradan seçilir — elle yazılmaz (0067). */
+  uretilenPartiler(ctx: TenantCtx, id: string) { return this.depo.uretilenPartiler(ctx, id) }
   incelendiIsaretle(ctx: TenantCtx, id: string) { return this.depo.incelendiIsaretle(ctx, id) }
 
   // ⚠️ Doğrulama yapan metot `async` (tuzak 41).
