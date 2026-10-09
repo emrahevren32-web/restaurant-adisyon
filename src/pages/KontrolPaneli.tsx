@@ -32,12 +32,6 @@ import { InMemoryStockItemLookup } from '../core/stock/stock-item-lookup'
 import { depoBaglamiKur, type DepoBaglami } from '../warehouse/warehouse.context'
 import { PostgresStokKatalogu, type KatalogKalemi } from '../warehouse/warehouse.catalog'
 import {
-  siparisBildirimleri, type SiparisBildirimi,
-} from '../notifications/siparis-bildirimleri'
-import {
-  PostgresSiparisDeposu, type Fark, type Siparis,
-} from '../sales/sales-order.repository'
-import {
   DepoServisi, type DepoKalemi, type DepoUyarilari,
 } from '../warehouse/warehouse.service'
 import {
@@ -47,6 +41,9 @@ import { IsEmriServisi } from '../production/work-order.service'
 import { PostgresSevkiyatDeposu, type Sevkiyat } from '../production/shipment.repository'
 import { SevkiyatServisi } from '../production/shipment.service'
 import { PostgresHaccpDeposu, type DuzelticiFaaliyet, type Olcum } from '../quality/haccp.repository'
+import {
+  PostgresSiparisDeposu, type DikkatSiparisi,
+} from '../sales/sales-order.repository'
 import { HaccpServisi, haccpOzeti } from '../quality/haccp.service'
 
 type Props = {
@@ -59,6 +56,19 @@ type Props = {
 const sayiBicimi = new Intl.NumberFormat('tr-TR', { maximumFractionDigits: 3 })
 const bicimle = (d: number) => sayiBicimi.format(d)
 const hataMetni = (h: unknown) => (h instanceof Error ? h.message : 'Beklenmeyen bir hata oluştu.')
+
+/**
+ * Bekleme süresi — İNSAN GİBİ. "0,3 saat" kimseye bir şey anlatmaz.
+ *
+ * ⚠️ Bir saatin altı "yeni" diye yazılıyor: dakika göstermek paneli
+ * saniye saniye değişen bir sayaca çevirirdi ve kimse okumazdı.
+ */
+const beklemeYaz = (saat: number): string => {
+  if(saat < 1) return 'yeni'
+  if(saat < 24) return `${Math.floor(saat)} saattir`
+  const gun = Math.floor(saat / 24)
+  return `${gun} gündür`
+}
 const bugunAnahtari = () => new Date().toLocaleDateString('sv-SE')
 
 /** Panelin bir satırı: ne olduğu, ne kadar acil, nereye götürdüğü. */
@@ -81,8 +91,8 @@ type PanelVerisi = {
   katalog: KatalogKalemi[]
   /** Yedek günlüğü. Tablo henüz kurulmadıysa boş kalır, panel yine çalışır. */
   yedekler: YedekKaydi[]
-  /** Onay bekleyen sipariş ve açık fark satırları (A4C). */
-  siparisIsleri: SiparisBildirimi[]
+  /** Onay bekleyen siparişler, son revizyonunun kaynağıyla (A4C-14). */
+  dikkatSiparisleri: DikkatSiparisi[]
 }
 
 export default function KontrolPaneli({
@@ -114,7 +124,8 @@ export default function KontrolPaneli({
         )
         const haccpServisi = new HaccpServisi(new PostgresHaccpDeposu(client))
 
-        const [kalemler, uyarilar, isEmirleri, sevkiyatlar, olcumler, faaliyetler, katalog] =
+        const [kalemler, uyarilar, isEmirleri, sevkiyatlar, olcumler, faaliyetler, katalog,
+               dikkatSip] =
           await Promise.all([
             depoServisi.kalemler(kurulan.ctx),
             depoServisi.uyarilar(kurulan.ctx),
@@ -123,6 +134,12 @@ export default function KontrolPaneli({
             haccpServisi.olcumler(kurulan.ctx, 200),
             haccpServisi.faaliyetler(kurulan.ctx),
             katalogServisi.kalemler(kurulan.ctx),
+            // A4C-14 · "Sipariş güncellendiğinde firma ANINDA görüyor".
+            // ⚠️ Okunamazsa panel ÇALIŞMAYA DEVAM ETMELİ: 0069 henüz
+            // uygulanmamış olabilir ve bir ek bilgi yüzünden bütün panelin
+            // kapanması kabul edilemez.
+            new PostgresSiparisDeposu(client).dikkatSiparisleri(kurulan.ctx)
+              .catch(() => [] as DikkatSiparisi[]),
           ])
 
         // Yedek günlüğü ayrı ve HATA YUTARAK okunuyor: 0029 göçü henüz
@@ -133,28 +150,10 @@ export default function KontrolPaneli({
         try { yedekler = await new PostgresYedekGunlugu(client).son(kurulan.ctx, 5) }
         catch { yedekler = [] }
 
-        // Sipariş defteri de AYNI SEBEPLE hata yutarak okunuyor: 0050 göçü
-        // çalıştırılmamış bir kurulumda tablo yoktur ve bu, kontrol
-        // panelinin tamamının açılmamasına sebep olmamalı.
-        let siparisIsleri: SiparisBildirimi[] = []
-        try {
-          const siparisDeposu = new PostgresSiparisDeposu(client)
-          const siparisler: Siparis[] = await siparisDeposu.hepsi(kurulan.ctx)
-          // Fark kayıtları sipariş başına okunuyor; yalnız AÇIK olabilecek
-          // siparişlerinkini istiyoruz — kapanmış siparişin farkı zaten
-          // karara bağlanmıştır ve hepsini çekmek listeyi gereksiz büyütürdü.
-          const ilgili = siparisler.filter(x => x.durum !== 'İptal')
-          const farkListeleri = await Promise.all(
-            ilgili.map(x => siparisDeposu.farklar(kurulan.ctx, x.id)),
-          )
-          const farklar: Fark[] = farkListeleri.flat()
-          siparisIsleri = siparisBildirimleri(siparisler, farklar, bugunAnahtari())
-        } catch { siparisIsleri = [] }
-
         if(iptal) return
         setVeri({
           kalemler, uyarilar, isEmirleri, sevkiyatlar, olcumler, faaliyetler,
-          katalog, yedekler, siparisIsleri,
+          katalog, yedekler, dikkatSiparisleri: dikkatSip,
         })
       } catch (e) {
         if(!iptal) setHata(hataMetni(e))
@@ -223,7 +222,6 @@ export default function KontrolPaneli({
 
   const {
     kalemler, uyarilar, isEmirleri, sevkiyatlar, olcumler, faaliyetler, katalog, yedekler,
-    siparisIsleri,
   } = veri
   const bugun = bugunAnahtari()
 
@@ -263,17 +261,40 @@ export default function KontrolPaneli({
       rota: 'haccp-kayitlari' as BusinessWorkspaceRoute,
       navKey: 'haccp-kayitlari' as BusinessWorkspaceNavKey,
     })),
-    // Sipariş işleri gıda güvenliğinden sonra ama stoktan ÖNCE: portal
-    // açıldıktan sonra kimsenin bakmadığı bir kutuda biriken sipariş,
-    // alınmamış siparişten kötüdür — müşteri verdiğini sanıyor.
-    ...siparisIsleri.map(b => ({
-      id: b.id,
-      aciliyet: b.aciliyet,
-      baslik: b.baslik,
-      ayrinti: b.ayrinti,
-      rota: 'siparisler' as BusinessWorkspaceRoute,
-      navKey: 'siparisler' as BusinessWorkspaceNavKey,
-    })),
+    // ── PORTALDAN GELEN SİPARİŞ (A4C-14) ─────────────────────────────
+    // ⚠️ GIDA GÜVENLİĞİNDEN SONRA, ÖTEKİ HER ŞEYDEN ÖNCE. Müşteri sabah
+    // miktarı yarıya indirdiyse ve kimse bakmadıysa mutfak eski miktarı
+    // üretir — ve bunu teslimde öğrenir.
+    //
+    // ⚠️ Yalnız PORTAL kaynaklı olan kritik. Telefonla alınan siparişi
+    // zaten biri almış ve biliyor; portaldan gelen sessizce düşüyor.
+    ...veri.dikkatSiparisleri
+      .filter(d => d.kaynak === 'Portal')
+      .map(d => ({
+        id: `portal-siparis-${d.id}`,
+        aciliyet: 'kritik' as const,
+        baslik: d.revizyonNo > 1
+          ? 'Müşteri siparişini DEĞİŞTİRDİ'
+          : 'Portaldan yeni sipariş',
+        ayrinti: `${d.siparisNo} · ${d.musteriAdi ?? 'müşteri kartı yok'}`
+          + ` · ${d.satirSayisi} kalem · rev ${d.revizyonNo}`
+          + ` · ${beklemeYaz(d.beklemeSaati)} onay bekliyor`,
+        rota: 'siparisler' as BusinessWorkspaceRoute,
+        navKey: 'siparisler' as BusinessWorkspaceNavKey,
+      })),
+    // Telefonla/elden alınanlar da panelde ama UYARI düzeyinde: onları
+    // alan kişi zaten biliyor.
+    ...veri.dikkatSiparisleri
+      .filter(d => d.kaynak !== 'Portal')
+      .map(d => ({
+        id: `siparis-onay-${d.id}`,
+        aciliyet: 'uyari' as const,
+        baslik: 'Onay bekleyen sipariş',
+        ayrinti: `${d.siparisNo} · ${d.musteriAdi ?? 'müşteri kartı yok'}`
+          + ` · ${d.kaynak} · ${beklemeYaz(d.beklemeSaati)} bekliyor`,
+        rota: 'siparisler' as BusinessWorkspaceRoute,
+        navKey: 'siparisler' as BusinessWorkspaceNavKey,
+      })),
     ...uyarilar.suresiGecmis.map(u => ({
       id: `skt-gecmis-${u.lotId}`,
       aciliyet: 'kritik' as const,

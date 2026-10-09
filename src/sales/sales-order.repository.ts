@@ -125,6 +125,26 @@ export type SiparisSatiri = {
   revizyonNo: number
 }
 
+/**
+ * Kontrol panelinin "dikkat" satırı (0069, A4C-14).
+ *
+ * ⚠️ `kaynak` SON revizyonun kaynağı. Kullanıcının bilmesi gereken,
+ * siparişe EN SON kimin dokunduğudur: telefonla açılıp portaldan
+ * güncellenen bir sipariş "Portal" görünür.
+ */
+export type DikkatSiparisi = {
+  id: string
+  siparisNo: string
+  musteriAdi?: string
+  durum: string
+  kaynak: RevizyonKaynagi
+  revizyonNo: number
+  revizyonZamani: string
+  /** Son revizyondan bu yana geçen saat — sipariş açılışından DEĞİL. */
+  beklemeSaati: number
+  satirSayisi: number
+}
+
 export type Revizyon = {
   id: string
   revizyonNo: number
@@ -795,5 +815,37 @@ export class PostgresSiparisDeposu implements SiparisDeposu {
       const kalan = sayi(r.kalan);          if(kalan !== undefined) t.kalan = kalan
       return t
     })
+  }
+
+  // ── Kontrol paneli · dikkat siparişleri (0069) ─────────────────────────
+  /**
+   * Onay bekleyen siparişler, son revizyonunun KAYNAĞI ve bekleme
+   * süresiyle. Panel portaldan geleni bununla ayırt ediyor.
+   *
+   * ⚠️ HESAP BURADA DEĞİL, 0069'DA. "Son revizyon" en büyük NUMARA
+   * demektir, en son yazılan satır değil; bunu SQL belirliyor.
+   */
+  async dikkatSiparisleri(ctx: TenantCtx): Promise<DikkatSiparisi[]> {
+    const { data, error } = await this.client
+      .rpc('dikkat_siparisleri', { p_sube: ctx.branchId })
+    if(error) throw new Error(`Dikkat siparişleri okunamadı: ${error.message}`)
+
+    type S = {
+      siparis_id: string; siparis_no: string; musteri_adi: string | null
+      durum: string; kaynak: string; revizyon_no: number
+      revizyon_zamani: string; bekleme_saati: string | number | null
+      satir_sayisi: number
+    }
+    return ((data as unknown as S[] | null) ?? []).map(r => ({
+      id: r.siparis_id,
+      siparisNo: r.siparis_no,
+      musteriAdi: r.musteri_adi ?? undefined,
+      durum: r.durum,
+      kaynak: r.kaynak as RevizyonKaynagi,
+      revizyonNo: r.revizyon_no,
+      revizyonZamani: r.revizyon_zamani,
+      beklemeSaati: Number(r.bekleme_saati ?? 0),
+      satirSayisi: r.satir_sayisi,
+    }))
   }
 }

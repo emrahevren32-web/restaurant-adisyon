@@ -2490,7 +2490,15 @@ body.mobile-navigation-open { overflow:hidden; overscroll-behavior:contain }
    Bu kutuların dikey kaydırmaya ihtiyacı yok (max-height verilmiyor,
    içerik kadar uzuyorlar). Dikeyi kapatınca tekerlek her zaman sayfaya
    ulaşıyor; yatay kaydırma olduğu gibi duruyor. */
-.table-wrap { width:100%; max-width:100%; min-width:0; overflow-x:auto; overflow-y:hidden; overscroll-behavior-x:contain; -webkit-overflow-scrolling:touch; border:1px solid var(--line); border-radius:var(--radius-card); background:var(--surface); box-shadow:var(--shadow-xs) }
+.table-wrap { width:100%; max-width:100%; min-width:0; overflow-x:auto; overflow-y:hidden; overflow-y:clip; overscroll-behavior-x:contain; -webkit-overflow-scrolling:touch; border:1px solid var(--line); border-radius:var(--radius-card); background:var(--surface); box-shadow:var(--shadow-xs) }
+/* ⚠️ `overflow-y:clip`, `hidden` DEĞİL — ve sırası önemli.
+   `overflow-y:hidden` elemanı DİKEY BİR KAYDIRMA KABI yapıyor. Kabın
+   kaydıracak yeri olmasa bile Chrome tekerleği "işlendi" sayıp sayfaya
+   AKTARMIYOR: fare tablonun üstündeyken sayfa duruyordu (08.10, Emrah).
+   `clip` kaydırma kabı değildir; tekerlek sayfaya geçer. Yatay kaydırma
+   (geniş tablolar) `overflow-x:auto` ile aynen duruyor.
+   `hidden` önce yazılı: `clip` tanımayan eski tarayıcı eski davranışa
+   düşer, tablo taşmaz. */
 .table-wrap::-webkit-scrollbar { height:9px; width:9px }
 .table-wrap::-webkit-scrollbar-track { background:var(--surface-muted); border-radius:var(--radius-full)}
 .table-wrap::-webkit-scrollbar-thumb { background:var(--line-strong); border:2px solid var(--surface-muted); border-radius:var(--radius-full)}
@@ -9191,9 +9199,12 @@ body.mobile-navigation-open { overflow:hidden; overscroll-behavior:contain }
   min-width:0;
   /* Aynı gerekçe (bkz. .table-wrap): dikey eksen kapalı, tekerlek sayfaya
      ulaşsın. `max-height` verilen yerler (ör. .daily-production-table-wrap
-     .table-scroll) kendi kuralında dikeyi geri açıyor. */
+     .table-scroll) kendi kuralında dikeyi geri açıyor.
+     ⚠️ `hidden` TEK BAŞINA YETMİYOR — kabı dikey kaydırma kabı yapıp
+     tekerleği yutuyor. `clip` kaydırma kabı değildir (bkz. .table-wrap). */
   overflow-x:auto;
   overflow-y:hidden;
+  overflow-y:clip;
   overscroll-behavior-x:contain;
   -webkit-overflow-scrolling:touch;
 }
