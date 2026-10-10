@@ -86,9 +86,18 @@ export interface EtiketDeposu {
   alerjenKatalogu(): Promise<Alerjen[]>
   kalemler(ctx: TenantCtx): Promise<EtiketKalemi[]>
   kalemAlerjenleri(ctx: TenantCtx, kalemId: string): Promise<KalemAlerjeni[]>
-  /** Satırların TAMAMI yeniden yazılır; tek tek eklemek ekranla veriyi ayrıştırır. */
-  alerjenleriYaz(ctx: TenantCtx, kalemId: string, satirlar: readonly KalemAlerjeni[]): Promise<void>
-  incelendiIsaretle(ctx: TenantCtx, kalemId: string): Promise<void>
+  /**
+   * Alerjen beyanını TEK İŞLEMDE yeniden yazar: eski satırlar silinir,
+   * yenileri eklenir ve "incelendi" damgası atılır. Dönen değer damga zamanı.
+   *
+   * ⚠️ 0072'den ÖNCE bu iş İKİ metottu (`alerjenleriYaz` + `incelendiIsaretle`)
+   * ve ekran ikisini arka arkaya çağırıyordu. Arada kopan bir bağlantı
+   * SIFIR alerjen satırı + ESKİ "incelendi" damgası bırakıyordu; o kalemin
+   * etiketi de "Bilinen alerjen içermez" yazıyordu. İkiye bölme.
+   */
+  beyaniKaydet(
+    ctx: TenantCtx, kalemId: string, satirlar: readonly KalemAlerjeni[],
+  ): Promise<string>
   ambalajYaz(ctx: TenantCtx, kalemId: string, miktar?: number, birim?: string): Promise<void>
   besinDegeri(ctx: TenantCtx, kalemId: string): Promise<BesinDegeri | undefined>
   besinYaz(ctx: TenantCtx, kalemId: string, girdi: BesinDegeri): Promise<void>
@@ -171,33 +180,26 @@ export class PostgresEtiketDeposu implements EtiketDeposu {
     })
   }
 
-  async alerjenleriYaz(
-    ctx: TenantCtx, kalemId: string, satirlar: readonly KalemAlerjeni[],
-  ): Promise<void> {
-    const { error: silme } = await this.client
-      .from('stock_item_allergen').delete().eq('stock_item_id', kalemId)
-    if(silme) throw new Error(`Alerjen beyanı temizlenemedi: ${silme.message}`)
-    if(satirlar.length === 0) return
-    const { error } = await this.client.from('stock_item_allergen').insert(
-      satirlar.map(s => ({
-        tenant_id: ctx.tenantId, stock_item_id: kalemId,
-        allergen_code: s.kod, kind: s.tur, note: s.not ?? null,
-      })),
-    )
-    if(error) throw new Error(`Alerjen beyanı yazılamadı: ${error.message}`)
-  }
-
   /**
-   * ⚠️ "İncelendi" damgası alerjen satırlarından AYRI yazılır. Boş liste ile
-   * incelenmemiş kalem ancak böyle ayrılır; ikisi aynı işleme bağlansaydı
-   * "alerjeni yok" diyen bir kalem hiç damgalanamazdı.
+   * ⚠️ TARAYICIDAN İŞLEM AÇILAMADIĞI İÇİN İŞLEM SUNUCUYA TAŞINDI (0072).
+   * Tek RPC çağrısı; içeride sil + ekle + damgala tek işlemde oluyor.
+   * Yarıda kalırsa veritabanı hiç dokunulmamış gibi kalıyor.
+   *
+   * ⚠️ `tenant_id` ARTIK BURADAN GÖNDERİLMİYOR. Kiracıyı sunucu oturumdan
+   * okuyor; tarayıcının söylediği kiracıya güvenmek kiracı duvarını
+   * tarayıcıya emanet etmek olurdu.
    */
-  async incelendiIsaretle(ctx: TenantCtx, kalemId: string): Promise<void> {
-    const { error } = await this.client.from('stock_item')
-      .update({ allergen_reviewed_at: new Date().toISOString(),
-                allergen_reviewed_by: ctx.userId })
-      .eq('id', kalemId)
-    if(error) throw new Error(`İnceleme damgası yazılamadı: ${error.message}`)
+  async beyaniKaydet(
+    _ctx: TenantCtx, kalemId: string, satirlar: readonly KalemAlerjeni[],
+  ): Promise<string> {
+    const { data, error } = await this.client.rpc('alerjen_beyani_yaz', {
+      p_kalem: kalemId,
+      p_satirlar: satirlar.map(s => ({
+        kod: s.kod, tur: s.tur, not: s.not ?? null,
+      })),
+    })
+    if(error) throw new Error(`Alerjen beyanı kaydedilemedi: ${error.message}`)
+    return typeof data === 'string' ? data : new Date().toISOString()
   }
 
   async ambalajYaz(

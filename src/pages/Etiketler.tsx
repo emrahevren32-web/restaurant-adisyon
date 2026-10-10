@@ -181,10 +181,12 @@ export default function Etiketler({ currentUser }: Props){
   const beyanKaydet = async () => {
     if(!servis || !baglam || !secili) return
     try{
-      await servis.alerjenleriYaz(baglam.ctx, secili.id, beyan)
-      // ⚠️ Kaydetmek, İNCELENDİ demektir. Damga ayrı yazılıyor ki boş liste
-      // ile hiç bakılmamış kalem ayrılabilsin.
-      await servis.incelendiIsaretle(baglam.ctx, secili.id)
+      // ⚠️ TEK ÇAĞRI (0072). Eskiden burada İKİ çağrı vardı: önce satırlar,
+      // sonra damga. Arada kopan bağlantı "alerjen satırı yok ama incelendi
+      // damgası duruyor" hali bırakıyordu ve o kalemin etiketine "Bilinen
+      // alerjen içermez" basılıyordu. Artık sunucuda tek işlem.
+      // Kaydetmek İNCELENDİ demektir; boş liste de bir beyandır.
+      await servis.beyaniKaydet(baglam.ctx, secili.id, beyan)
       setHata(''); setBilgi('Alerjen beyanı kaydedildi ve "incelendi" olarak damgalandı.')
       await yenile()
     } catch (e) { setBilgi(''); setHata(hataMetni(e)) }

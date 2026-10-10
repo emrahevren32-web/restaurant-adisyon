@@ -35,13 +35,20 @@ export class EtiketServisi {
   mamulBesinEksikleri(ctx: TenantCtx, id: string) { return this.depo.mamulBesinEksikleri(ctx, id) }
   /** Etiketteki parti buradan seçilir — elle yazılmaz (0067). */
   uretilenPartiler(ctx: TenantCtx, id: string) { return this.depo.uretilenPartiler(ctx, id) }
-  incelendiIsaretle(ctx: TenantCtx, id: string) { return this.depo.incelendiIsaretle(ctx, id) }
-
-  // ⚠️ Doğrulama yapan metot `async` (tuzak 41).
-  async alerjenleriYaz(
+  /**
+   * Beyanı kaydetmek, o kalemin alerjenine BAKILDIĞI anlamına gelir; damga
+   * bu işlemin parçası. Boş liste de bir beyandır: "baktım, alerjen yok".
+   *
+   * ⚠️ 0072'den önce bu iş iki ayrı çağrıydı ve arada kopan bağlantı
+   * "alerjen satırı yok ama incelendi damgası var" hali bırakabiliyordu —
+   * o kalemin etiketine "Bilinen alerjen içermez" basılıyordu.
+   *
+   * ⚠️ Doğrulama yapan metot `async` (tuzak 41).
+   */
+  async beyaniKaydet(
     ctx: TenantCtx, kalemId: string, satirlar: readonly KalemAlerjeni[],
-  ): Promise<void> {
-    return this.depo.alerjenleriYaz(ctx, kalemId, alerjenleriDogrula(satirlar))
+  ): Promise<string> {
+    return this.depo.beyaniKaydet(ctx, kalemId, alerjenleriDogrula(satirlar))
   }
 
   async ambalajYaz(

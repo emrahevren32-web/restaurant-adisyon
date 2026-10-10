@@ -25,10 +25,22 @@ class BellekDeposu implements EtiketDeposu {
   async alerjenKatalogu(): Promise<Alerjen[]> { return [] }
   async kalemler(): Promise<EtiketKalemi[]> { return [] }
   async kalemAlerjenleri(): Promise<KalemAlerjeni[]> { return [] }
-  async alerjenleriYaz(_c: TenantCtx, _i: string, s: readonly KalemAlerjeni[]): Promise<void> {
+  // ⚠️ 0072: İKİ metot TEK metoda indi (tuzak 48 — PORT değişti, uygulayan
+  // her sınıf değişmek zorunda). Taklit depo artık satırları ve damgayı
+  // BİRLİKTE yazıyor; gerçek hayatta ikisini ayıran şey kalmadı.
+  // `patlat` dolu ise çağrı düşer ve HİÇBİR ŞEY yazılmaz — atomikliği
+  // sınayabilmek için.
+  patlat?: string
+  damga?: string
+  async beyaniKaydet(
+    _c: TenantCtx, i: string, s: readonly KalemAlerjeni[],
+  ): Promise<string> {
+    if(this.patlat) throw new Error(this.patlat)
     this.sonAlerjenler = s
+    this.damgalanan = i
+    this.damga = '2026-10-10T09:00:00.000Z'
+    return this.damga
   }
-  async incelendiIsaretle(_c: TenantCtx, i: string): Promise<void> { this.damgalanan = i }
   async ambalajYaz(_c: TenantCtx, _i: string, miktar?: number, birim?: string): Promise<void> {
     this.sonAmbalaj = { miktar, birim }
   }
@@ -64,6 +76,70 @@ describe('alerjenleriDogrula', () => {
   it('boş liste geçerli — ama "alerjen yok" demek DEĞİL', () => {
     // Boş liste ile incelenmemiş kalem, ayrı bir damgayla ayrılıyor.
     expect(alerjenleriDogrula([])).toEqual([])
+  })
+})
+
+// ═══════════════════════════════════════════════════════════════════════════
+// BEYAN TEK PARÇADA KAYDEDİLİYOR (0072)
+// ---------------------------------------------------------------------------
+// Codex'in bulduğu hata: beyan İKİ çağrıyla yazılıyordu (önce satırlar, sonra
+// "incelendi" damgası). Birincisi tutup ikincisi düşerse — ya da birincinin
+// silme adımı tutup ekleme adımı düşerse — geriye SIFIR alerjen satırı ve
+// ESKİ bir damga kalıyordu. O kalemin etiketi şunu yazıyordu:
+//
+//     "Bilinen alerjen içermez."
+//
+// Glüten ve süt içeren bir üründe. Bu testler o iki çağrının bir daha
+// ayrılmamasını koruyor.
+// ═══════════════════════════════════════════════════════════════════════════
+describe('beyaniKaydet', () => {
+  it('satırları ve "incelendi" damgasını BİRLİKTE yazıyor', async () => {
+    const { depo, servis } = kur()
+    const damga = await servis.beyaniKaydet(CTX, 'k1', [
+      { kod: 'GLUTEN', tur: 'İÇERİR' }, { kod: 'SUT', tur: 'İZ' },
+    ])
+    expect(depo.sonAlerjenler).toHaveLength(2)
+    expect(depo.damgalanan).toBe('k1')
+    expect(damga).toBe('2026-10-10T09:00:00.000Z')
+  })
+
+  it('boş liste de bir beyandır — damga yine atılıyor', async () => {
+    // "Baktım, bu üründe alerjen yok" demenin tek yolu bu. Damga atılmazsa
+    // kalem sonsuza kadar "incelenmemiş" görünür ve etiket taslak kalır.
+    const { depo, servis } = kur()
+    await servis.beyaniKaydet(CTX, 'k1', [])
+    expect(depo.sonAlerjenler).toEqual([])
+    expect(depo.damgalanan).toBe('k1')
+  })
+
+  it('doğrulama düşerse HİÇBİR ŞEY yazılmıyor — damga da atılmıyor', async () => {
+    const { depo, servis } = kur()
+    await expect(servis.beyaniKaydet(CTX, 'k1', [
+      { kod: 'SUT', tur: 'İÇERİR' }, { kod: 'SUT', tur: 'İZ' },
+    ])).rejects.toThrow(/iki kez/)
+    expect(depo.sonAlerjenler).toBeUndefined()
+    expect(depo.damgalanan).toBeUndefined()
+  })
+
+  it('kayıt düşerse damga ESKİ HÂLİNDE kalıyor', async () => {
+    // Tehlikeli olan hal şuydu: satırlar gitti, damga kaldı. Tek çağrıda
+    // ikisi birden ya olur ya olmaz.
+    const { depo, servis } = kur()
+    depo.patlat = 'Alerjen beyanı kaydedilemedi: bağlantı koptu'
+    await expect(servis.beyaniKaydet(CTX, 'k1', [{ kod: 'GLUTEN', tur: 'İÇERİR' }]))
+      .rejects.toThrow(/bağlantı koptu/)
+    expect(depo.sonAlerjenler).toBeUndefined()
+    expect(depo.damgalanan).toBeUndefined()
+  })
+
+  it('servis ayrı bir "damgala" yolu BIRAKMIYOR', () => {
+    // ⚠️ Bu test bir API sözleşmesini koruyor: damgayı beyandan ayrı atan
+    // bir metot geri eklenirse hata yeniden doğar.
+    const { servis } = kur()
+    expect((servis as unknown as Record<string, unknown>).incelendiIsaretle)
+      .toBeUndefined()
+    expect((servis as unknown as Record<string, unknown>).alerjenleriYaz)
+      .toBeUndefined()
   })
 })
 

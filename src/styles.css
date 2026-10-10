@@ -29562,3 +29562,47 @@ button.metric-card:focus-visible { outline:2px solid var(--accent); outline-offs
   button.metric-card { transition:none }
   button.metric-card:active { transform:none }
 }
+
+/* ═════════════════════════════════════════════════════════════════════════
+   TEKERLEK SAYFAYA ULAŞSIN · overscroll-behavior-y
+   ---------------------------------------------------------------------
+   Emrah, 10.10: "Dikkat gerektiren konular tablosundayken scroll hiç
+   çalışmıyor."
+
+   ⚠️ SEBEBİ TAHMİN ETMEDİM, TARAYICISINDA ÖLÇTÜM. Dikkat tablosunun kabı:
+     overflow: auto/auto · overscroll-behavior: contain/contain
+     dikey pay 0 · yatay pay 0
+   Yani kutunun kaydıracak HİÇBİR yeri yok. Ama `overflow:auto` onu yine de
+   bir KAYDIRMA KABI yapıyor ve Chrome, `overscroll-behavior:contain` olan
+   bir kaydırma kabında tekerleği sayfaya AKTARMIYOR — kutu kayamasa bile.
+   Sonuç: fare tablonun üstündeyken sayfa taş gibi duruyor.
+
+   Düzeltme canlı sayfada doğrulandı: obY `auto` yapılınca aynı tekerlek
+   sayfayı 300 → 600 kaydırdı.
+
+   ⚠️ YATAY EKSEN `contain` KALIYOR. Geniş bir tabloyu yana kaydırırken
+   sonuna gelince tarayıcının "geri git" hareketini tetiklememesi için
+   bu gerekli — kullanıcı sayfadan düşmesin.
+
+   ⚠️ BU, TEKERLEK ZİNCİRİNİN YERİNE GEÇMEZ. İkisi AYRI iki durumu çözüyor:
+     · bu kural → kutunun kaydıracak yeri yok ama `contain` yüzünden
+       tekerlek yutuluyor (çoğu tablo, Dikkat tablosu dahil)
+     · tekerlek-zinciri.ts → kutu GERÇEKTEN yana kayabiliyor; o zaman
+       tarayıcı dikey tekerleği ona kilitliyor ve `overscroll-behavior`
+       hiçbir şeyi değiştirmiyor (Chromium'da ölçüldü)
+   Birini silersen öteki durum geri gelir.
+
+   ⚠️ `max-height` verilip GERÇEKTEN dikey kayan kaplar (ör.
+   `.daily-production-table-wrap .table-scroll`) kendi kuralında
+   `overscroll-behavior:contain` yazıyor ve o kural daha güçlü —
+   onların davranışı değişmiyor, değişmemeli de.
+   ═══════════════════════════════════════════════════════════════════════ */
+.table-wrap,
+.table-scroll,
+.data-table-wrap,
+.premium-table-wrap,
+.premium-data-table-wrap,
+.responsive-table,
+html[data-theme-engine] :is(.table-wrap, .table-scroll, .data-table-wrap, .premium-table-wrap, .premium-data-table-wrap, .responsive-table) {
+  overscroll-behavior-y:auto;
+}
