@@ -389,46 +389,49 @@ export default function KontrolPaneli({
 
       {/* ── SAYILAR ─────────────────────────────────────────────────────── */}
       <div className="metric-grid">
-        <div className={`metric-card${uyarilar.kritikKalemler.length > 0 ? ' danger' : ''}`}>
-          <span>Depodaki kalem</span>
-          <strong>{kalemler.length}</strong>
-          <p className={uyarilar.kritikKalemler.length > 0 ? 'is-critical' : 'muted'}>
-            {uyarilar.kritikKalemler.length > 0
-              ? `${uyarilar.kritikKalemler.length} kalem kritik seviyede`
-              : 'kritik seviyede kalem yok'}
-          </p>
-        </div>
-        <div className={`metric-card${baslatilamayanlar.length > 0 ? ' warning' : ''}`}>
-          <span>Açık iş emri</span>
-          <strong>{acikIsEmirleri.length}</strong>
-          <p className={baslatilamayanlar.length > 0 ? 'is-critical' : 'muted'}>
-            {baslatilamayanlar.length > 0
-              ? `${baslatilamayanlar.length} tanesi stok yetersizliğinden başlatılamıyor`
-              : `${isEmirleri.length} iş emrinin tamamı`}
-          </p>
-        </div>
-        <div className={`metric-card${bekleyenSevkiyatlar.length > 0 ? ' warning' : ''}`}>
-          <span>Sevk bekleyen</span>
-          <strong>{bekleyenSevkiyatlar.length}</strong>
-          <p className="muted">
-            {bugunSevkEdilen.length > 0
-              ? `bugün ${bugunSevkEdilen.length} sevkiyat çıktı`
-              : 'bugün sevkiyat çıkmadı'}
-          </p>
-        </div>
-        <div className={`metric-card${ozet.bugunUygunsuz > 0 ? ' danger' : ozet.bugunOlcum > 0 ? ' success' : ''}`}>
-          <span>HACCP · bugün</span>
-          <strong className={ozet.bugunUygunsuz > 0 ? 'is-critical' : undefined}>
-            {ozet.bugunOlcum}
-          </strong>
-          <p className={ozet.bugunUygunsuz > 0 ? 'is-critical' : 'muted'}>
-            {ozet.bugunOlcum === 0
-              ? 'bugün ölçüm girilmedi'
-              : ozet.bugunUygunsuz > 0
-                ? `${ozet.bugunUygunsuz} ölçüm kritik limiti aştı`
-                : `%${ozet.uygunlukYuzdesi} uygunluk`}
-          </p>
-        </div>
+        <SayiKarti
+          baslik="Depodaki kalem" sayi={kalemler.length}
+          vurgu={uyarilar.kritikKalemler.length > 0 ? 'danger' : undefined}
+          altKritik={uyarilar.kritikKalemler.length > 0}
+          alt={uyarilar.kritikKalemler.length > 0
+            ? `${uyarilar.kritikKalemler.length} kalem kritik seviyede`
+            : 'kritik seviyede kalem yok'}
+          rota="depo" navKey="depo" onGit={git} erisim={!!onOpenWorkspaceRoute}
+        />
+        <SayiKarti
+          baslik="Açık iş emri" sayi={acikIsEmirleri.length}
+          vurgu={baslatilamayanlar.length > 0 ? 'warning' : undefined}
+          altKritik={baslatilamayanlar.length > 0}
+          alt={baslatilamayanlar.length > 0
+            ? `${baslatilamayanlar.length} tanesi stok yetersizliğinden başlatılamıyor`
+            : `${isEmirleri.length} iş emrinin tamamı`}
+          rota="uretim-emirleri" navKey="uretim-emirleri" onGit={git}
+          erisim={!!onOpenWorkspaceRoute}
+        />
+        <SayiKarti
+          baslik="Sevk bekleyen" sayi={bekleyenSevkiyatlar.length}
+          vurgu={bekleyenSevkiyatlar.length > 0 ? 'warning' : undefined}
+          alt={bugunSevkEdilen.length > 0
+            ? `bugün ${bugunSevkEdilen.length} sevkiyat çıktı`
+            : 'bugün sevkiyat çıkmadı'}
+          rota="sevkiyatlar" navKey="sevkiyatlar" onGit={git}
+          erisim={!!onOpenWorkspaceRoute}
+        />
+        <SayiKarti
+          baslik="HACCP · bugün" sayi={ozet.bugunOlcum}
+          vurgu={ozet.bugunUygunsuz > 0
+            ? 'danger'
+            : ozet.bugunOlcum > 0 ? 'success' : undefined}
+          sayiKritik={ozet.bugunUygunsuz > 0}
+          altKritik={ozet.bugunUygunsuz > 0}
+          alt={ozet.bugunOlcum === 0
+            ? 'bugün ölçüm girilmedi'
+            : ozet.bugunUygunsuz > 0
+              ? `${ozet.bugunUygunsuz} ölçüm kritik limiti aştı`
+              : `%${ozet.uygunlukYuzdesi} uygunluk`}
+          rota="haccp-kayitlari" navKey="haccp-kayitlari" onGit={git}
+          erisim={!!onOpenWorkspaceRoute}
+        />
       </div>
 
       {/* ── DİKKAT GEREKTİREN KONULAR ───────────────────────────────────── */}
@@ -594,6 +597,56 @@ export default function KontrolPaneli({
         </aside>
       </div>
     </div>
+  )
+}
+
+// ═══════════════════════════════════════════════════════════════════════════
+// PANEL KUTUCUĞU · tıklanınca ilgili bölüme götürür
+// ---------------------------------------------------------------------------
+// Emrah, 10.10: *"O kutucuklara tıklayınca ilgili bölüme gitse nasıl olur?
+// sadece soruyorum."* — İyi fikir: panel zaten "nereye bakmalıyım" ekranı;
+// cevabı görüp oraya gitmek için menüyü yeniden taramak gereksiz.
+//
+// ⚠️ `div` DEĞİL `button`. Tıklanabilir div klavyeyle kullanılamaz ve ekran
+// okuyucu onu düğme olarak okumaz.
+// ⚠️ Rota verilmemişse veya erişim yoksa DÜĞME OLMUYOR, düz div kalıyor.
+// Tıklanıp "yetkiniz yok" duvarına çarpılan bir kutucuk, çalışmayan bir
+// kutucuktan daha kötüdür.
+// ═══════════════════════════════════════════════════════════════════════════
+function SayiKarti({
+  baslik, sayi, alt, vurgu, sayiKritik, altKritik, rota, navKey, onGit, erisim,
+}: {
+  baslik: string
+  sayi: number
+  alt: string
+  vurgu?: 'danger' | 'warning' | 'success'
+  sayiKritik?: boolean
+  altKritik?: boolean
+  rota: BusinessWorkspaceRoute
+  navKey: BusinessWorkspaceNavKey
+  onGit: (r?: BusinessWorkspaceRoute, n?: BusinessWorkspaceNavKey) => void
+  erisim: boolean
+}){
+  const sinif = `metric-card${vurgu ? ` ${vurgu}` : ''}`
+  const icerik = (
+    <>
+      <span>{baslik}</span>
+      <strong className={sayiKritik ? 'is-critical' : undefined}>{sayi}</strong>
+      <p className={altKritik ? 'is-critical' : 'muted'}>{alt}</p>
+    </>
+  )
+
+  if(!erisim) return <div className={sinif}>{icerik}</div>
+
+  return (
+    <button
+      className={sinif} type="button"
+      onClick={() => onGit(rota, navKey)}
+      title={`${baslik} · ayrıntısına git`}
+    >
+      {icerik}
+      <span className="metric-card-git" aria-hidden="true">Aç ›</span>
+    </button>
   )
 }
 

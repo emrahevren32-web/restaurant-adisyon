@@ -25,6 +25,7 @@ import { davetiCozumle, type DavetBilgisi } from './auth/davet'
 import AppShell, { ShellNavGroup, ShellNavItem } from './components/AppShell'
 import OnboardingExperience from './components/OnboardingExperience'
 import RouteErrorBoundary from './components/RouteErrorBoundary'
+import { tekerlegiZincirle } from './components/tekerlek-zinciri'
 import {
   clearDecisionIndexedRecords,
   isDecisionStorageError
@@ -497,6 +498,9 @@ export default function App(){
   React.useEffect(() => {
     document.title = workspaceChrome.name
   }, [workspaceChrome.name])
+  // Geniş tablonun üstünde fare tekerleği sayfayı kaydırsın (Emrah, 10.10).
+  // Gerekçe ve ölçüm sonuçları: src/components/tekerlek-zinciri.ts
+  React.useEffect(() => tekerlegiZincirle(), [])
   React.useEffect(() => {
     evaluateCurrentRouteSecurity(route)
   }, [route])

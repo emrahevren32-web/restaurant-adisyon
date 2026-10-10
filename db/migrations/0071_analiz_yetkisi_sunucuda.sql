@@ -35,10 +35,47 @@
 -- ⚠️ Hesap ile KAPI ayrı fonksiyonlarda. Aynı gövdeye `if yetkim_var`
 -- eklemek daha kısa olurdu ama hesabı değiştiren her göç kapıyı da yeniden
 -- yazmak zorunda kalırdı — ve bir gün biri kapıyı yazmayı unuturdu.
-alter function app.isletme_gostergeleri(uuid, date, date)
-  rename to isletme_gostergeleri_ham;
-alter function app.fire_dokumu(uuid, date, date)
-  rename to fire_dokumu_ham;
+--
+-- ⚠️ BU GÖÇ İKİ KEZ ÇALIŞTIRILABİLİR. 10.10'da Emrah göçü yeniden yapıştırdı
+-- ve `alter function ... rename` ikinci turda patladı:
+--   ERROR 42723: function isletme_gostergeleri_ham(uuid, date, date)
+--                already exists in schema "app"
+-- Yeniden çalıştırılamayan bir göç, bir gün yarıda kalmış bir kurulumu
+-- kurtarmak isteyen kişiyi duvara çarpar. Ad değişikliği artık koşullu.
+do $$
+begin
+  -- isletme_gostergeleri → _ham
+  if to_regprocedure('app.isletme_gostergeleri_ham(uuid, date, date)') is not null then
+    raise notice '0071: isletme_gostergeleri_ham zaten var — ad değişikliği atlandı.';
+  elsif to_regprocedure('app.isletme_gostergeleri(uuid, date, date)') is null then
+    raise exception '0071: app.isletme_gostergeleri(uuid, date, date) yok. '
+      'Bu göç 0065''ten SONRA çalışmalı.'
+      using errcode = 'MI500';
+  else
+    execute 'alter function app.isletme_gostergeleri(uuid, date, date) '
+         || 'rename to isletme_gostergeleri_ham';
+    raise notice '0071: isletme_gostergeleri → _ham olarak ayrıldı.';
+  end if;
+
+  -- fire_dokumu → _ham
+  if to_regprocedure('app.fire_dokumu_ham(uuid, date, date)') is not null then
+    raise notice '0071: fire_dokumu_ham zaten var — ad değişikliği atlandı.';
+  elsif to_regprocedure('app.fire_dokumu(uuid, date, date)') is null then
+    raise exception '0071: app.fire_dokumu(uuid, date, date) yok. '
+      'Bu göç 0065''ten SONRA çalışmalı.'
+      using errcode = 'MI500';
+  else
+    execute 'alter function app.fire_dokumu(uuid, date, date) '
+         || 'rename to fire_dokumu_ham';
+    raise notice '0071: fire_dokumu → _ham olarak ayrıldı.';
+  end if;
+end;
+$$;
+
+-- ⚠️ `_ham` fonksiyonlarının yetkisi BİLEREK dokunulmadan bırakılıyor.
+-- Kapı `security invoker`; yani _ham'ı çağırırken çağıranın yetkisi geçerli.
+-- _ham'dan execute yetkisini alsaydım kapının kendisi de çalışmaz olurdu.
+-- `app` şeması PostgREST ile yayınlanmadığı için _ham dışarıdan çağrılamaz.
 
 create or replace function app.isletme_gostergeleri(
   p_sube uuid, p_bas date, p_bit date

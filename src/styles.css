@@ -2481,24 +2481,24 @@ body.mobile-navigation-open { overflow:hidden; overscroll-behavior:contain }
 .card:has(.table-wrap) > .section-header { gap:var(--space-12); margin-bottom:var(--space-12) }
 .card:has(.table-wrap) > .section-header .muted { max-width:720px }
 .card:has(.table-wrap) > .section-header > :last-child { flex:0 1 auto }
-/* ⚠️ overflow-y HIDDEN, auto DEĞİL.
-   `overflow:auto` iki ekseni birden kaydırma kutusu yapar. Tablo dikey
-   sığsa bile kenarlık ve `scrollbar-gutter` yüzünden içerik 1 piksel
-   taşar; Chrome o 1 pikseli "kaydırılabilir" sayar ve fare tekerleğini
-   YUTAR. Kullanıcı tekerleği çevirir, hiçbir şey olmaz — "çalışmıyor"
-   hissi tam olarak budur.
-   Bu kutuların dikey kaydırmaya ihtiyacı yok (max-height verilmiyor,
-   içerik kadar uzuyorlar). Dikeyi kapatınca tekerlek her zaman sayfaya
-   ulaşıyor; yatay kaydırma olduğu gibi duruyor. */
-.table-wrap { width:100%; max-width:100%; min-width:0; overflow-x:auto; overflow-y:hidden; overflow-y:clip; overscroll-behavior-x:contain; -webkit-overflow-scrolling:touch; border:1px solid var(--line); border-radius:var(--radius-card); background:var(--surface); box-shadow:var(--shadow-xs) }
-/* ⚠️ `overflow-y:clip`, `hidden` DEĞİL — ve sırası önemli.
-   `overflow-y:hidden` elemanı DİKEY BİR KAYDIRMA KABI yapıyor. Kabın
-   kaydıracak yeri olmasa bile Chrome tekerleği "işlendi" sayıp sayfaya
-   AKTARMIYOR: fare tablonun üstündeyken sayfa duruyordu (08.10, Emrah).
-   `clip` kaydırma kabı değildir; tekerlek sayfaya geçer. Yatay kaydırma
-   (geniş tablolar) `overflow-x:auto` ile aynen duruyor.
-   `hidden` önce yazılı: `clip` tanımayan eski tarayıcı eski davranışa
-   düşer, tablo taşmaz. */
+/* ⚠️ overflow-y HIDDEN, auto DEĞİL: bu kutuların dikey kaydırmaya ihtiyacı
+   yok (max-height verilmiyor, içerik kadar uzuyorlar) ve `auto` yazılırsa
+   kenarlık yüzünden oluşan 1 piksel için gereksiz bir dikey çubuk çıkıyor.
+
+   ⚠️ TEKERLEK SORUNU BURADAN ÇÖZÜLMÜYOR — 08.10'da buradan çözdüğümü sanıp
+   `overflow-y:clip` yazmıştım, YANLIŞTI. 10.10'da Chromium'da ölçtüm:
+
+     yatay taşma VAR + overflow-y:clip                → tekerlek YUTULUYOR
+     yatay taşma VAR + overscroll-behavior-y:auto     → tekerlek YUTULUYOR
+     yatay taşma YOK + aynı CSS                       → sayfa kayıyor
+
+   Tarayıcı, YATAY kaydırılabilen bir kutunun üstündeki DİKEY tekerleği o
+   kutuya kilitliyor. Kutu dikey kayamadığı için hiçbir şey olmuyor ve
+   `overscroll-behavior` bunu değiştirmiyor. Geniş tabloların yatay
+   kaydırması bize gerekli olduğundan CSS'in yapabileceği bir şey yok.
+   Gerçek çözüm: src/components/tekerlek-zinciri.ts (tekerleği JavaScript
+   ile sayfaya aktarıyor). Buraya tekrar `clip` yazma, çözmüyor. */
+.table-wrap { width:100%; max-width:100%; min-width:0; overflow-x:auto; overflow-y:hidden; overscroll-behavior-x:contain; -webkit-overflow-scrolling:touch; border:1px solid var(--line); border-radius:var(--radius-card); background:var(--surface); box-shadow:var(--shadow-xs) }
 .table-wrap::-webkit-scrollbar { height:9px; width:9px }
 .table-wrap::-webkit-scrollbar-track { background:var(--surface-muted); border-radius:var(--radius-full)}
 .table-wrap::-webkit-scrollbar-thumb { background:var(--line-strong); border:2px solid var(--surface-muted); border-radius:var(--radius-full)}
@@ -9197,14 +9197,13 @@ body.mobile-navigation-open { overflow:hidden; overscroll-behavior:contain }
   width:100%;
   max-width:100%;
   min-width:0;
-  /* Aynı gerekçe (bkz. .table-wrap): dikey eksen kapalı, tekerlek sayfaya
-     ulaşsın. `max-height` verilen yerler (ör. .daily-production-table-wrap
+  /* Aynı gerekçe (bkz. .table-wrap): dikey eksene ihtiyaç yok.
+     `max-height` verilen yerler (ör. .daily-production-table-wrap
      .table-scroll) kendi kuralında dikeyi geri açıyor.
-     ⚠️ `hidden` TEK BAŞINA YETMİYOR — kabı dikey kaydırma kabı yapıp
-     tekerleği yutuyor. `clip` kaydırma kabı değildir (bkz. .table-wrap). */
+     ⚠️ Tekerlek sorunu buradan çözülmüyor; bkz. .table-wrap yorumu ve
+     src/components/tekerlek-zinciri.ts. */
   overflow-x:auto;
   overflow-y:hidden;
-  overflow-y:clip;
   overscroll-behavior-x:contain;
   -webkit-overflow-scrolling:touch;
 }
@@ -29540,4 +29539,26 @@ html[data-theme="dark"][data-theme-engine="premium"] .side-nav {
 @media (max-width:640px){
   .gosterge-grid{ grid-template-columns:repeat(auto-fill, minmax(150px, 1fr)); }
   .gosterge-deger{ font-size:18px; }
+}
+
+/* ═════════════════════════════════════════════════════════════════════════
+   TIKLANABİLİR PANEL KUTUCUĞU
+   Emrah, 10.10: "O kutucuklara tıklayınca ilgili bölüme gitse nasıl olur?"
+   ⚠️ `div` değil `button` kullanılıyor: klavyeyle Tab'layan kullanıcı da
+   aynı yere gidebiliyor. Tıklanabilir div erişilebilir değildir.
+   ⚠️ Yetkisi olmayan kullanıcıda kutucuk DÜĞME OLMUYOR, düz div kalıyor —
+   tıklanıp "yetkiniz yok" duvarına çarpılmıyor.
+   ═══════════════════════════════════════════════════════════════════════ */
+button.metric-card { width:100%; text-align:left; font:inherit; color:inherit; cursor:pointer; appearance:none }
+button.metric-card { transition:border-color var(--motion-fast) var(--motion-ease-standard), box-shadow var(--motion-fast) var(--motion-ease-standard), transform var(--motion-fast) var(--motion-ease-standard) }
+button.metric-card:hover { border-color:var(--accent); box-shadow:var(--shadow-card-hover, var(--shadow-card)) }
+button.metric-card:active { transform:translateY(1px) }
+button.metric-card:focus-visible { outline:2px solid var(--accent); outline-offset:var(--space-2) }
+/* "Aç ›" ipucu her zaman yazılı duruyor; sadece imleçle belirmiyor ki
+   dokunmatik ekranda da tıklanabildiği anlaşılsın. */
+.metric-card > .metric-card-git { display:block; margin-top:var(--space-4); color:var(--accent); font-size:var(--font-size-12); font-weight:var(--font-weight-800) }
+.metric-card > p + .metric-card-git { margin-top:var(--space-4) }
+@media (prefers-reduced-motion: reduce) {
+  button.metric-card { transition:none }
+  button.metric-card:active { transform:none }
 }
