@@ -68,15 +68,35 @@ comment on function app.kalem_alis_fiyati(uuid, timestamptz) is
 -- ── 2 · PUBLIC execute kapatılıyor ────────────────────────────────────────
 -- ⚠️ `revoke from public` ÖNCE, `grant to authenticated` SONRA. Ters sırada
 -- yazılsaydı public'ten alma işlemi authenticated'ın yetkisini de düşürürdü.
-revoke execute on function public.isletme_gostergeleri(uuid, date, date) from public;
-revoke execute on function public.fire_dokumu(uuid, date, date)          from public;
-revoke execute on function public.uretilen_partiler(uuid)                from public;
-revoke execute on function public.dikkat_siparisleri(uuid)               from public;
-
-grant execute on function public.isletme_gostergeleri(uuid, date, date) to authenticated;
-grant execute on function public.fire_dokumu(uuid, date, date)          to authenticated;
-grant execute on function public.uretilen_partiler(uuid)                to authenticated;
-grant execute on function public.dikkat_siparisleri(uuid)               to authenticated;
+--
+-- ⚠️ EKSİK FONKSİYON BU GÖÇÜ DÜŞÜRMÜYOR (10.10'da düşürdü).
+--
+-- İlk yazımda `revoke ... on function public.dikkat_siparisleri(...)`
+-- doğrudan yazılıydı. 0069 henüz uygulanmamış bir veritabanında bu satır
+-- hata verdi ve Supabase betiği TEK İŞLEM olarak çalıştırdığı için 0070'in
+-- TAMAMI geri alındı: asıl düzeltme olan fiyat hesabı da uygulanmadı.
+--
+-- Ders: bir göç, KENDİ İŞİYLE İLGİSİZ bir eksiklik yüzünden düşmemeli.
+-- Var olanı kapatıyoruz; olmayan zaten bir kapı değil.
+do $$
+declare
+  v_ad text;
+begin
+  foreach v_ad in array array[
+    'public.isletme_gostergeleri(uuid, date, date)',
+    'public.fire_dokumu(uuid, date, date)',
+    'public.uretilen_partiler(uuid)',
+    'public.dikkat_siparisleri(uuid)'
+  ] loop
+    if to_regprocedure(v_ad) is null then
+      raise notice '0070: % henüz yok, atlandı (göçü düşürmüyor).', v_ad;
+      continue;
+    end if;
+    execute format('revoke execute on function %s from public', v_ad);
+    execute format('grant  execute on function %s to authenticated', v_ad);
+  end loop;
+end;
+$$;
 
 -- ── DOĞRULAMA ──────────────────────────────────────────────────────────────
 do $$
@@ -92,6 +112,14 @@ begin
      and has_function_privilege('anon', p.oid, 'execute');
   if v_acik is not null then
     raise exception '0070: anon hâlâ çağırabiliyor: %', v_acik;
+  end if;
+
+  -- ⚠️ Henüz var olmayan fonksiyon "kapatılmamış" sayılmıyor: `has_function_
+  -- privilege` zaten yalnız var olanları sayıyor. Eksik olanı burada
+  -- bildiriyoruz ki sessizce atlanmış olmasın.
+  if to_regprocedure('public.dikkat_siparisleri(uuid)') is null then
+    raise notice '0070 UYARI · `dikkat_siparisleri` yok — 0069 uygulanmamış. '
+      'Önce 0069''u çalıştırın, sonra bu göçü TEKRAR çalıştırın.';
   end if;
 
   -- `authenticated` hepsini ÇAĞIRABİLMELİ — kapıyı fazla kapatmış olmayalım.
