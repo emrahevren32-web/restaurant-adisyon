@@ -223,6 +223,19 @@ export default function KontrolPaneli({
   const {
     kalemler, uyarilar, isEmirleri, sevkiyatlar, olcumler, faaliyetler, katalog, yedekler,
   } = veri
+
+  // ⚠️ BİR EK VERİ YÜZÜNDEN PANEL ÇÖKMEZ (09.10, canlı hata `1v8ytws`).
+  //
+  // `veri.dikkatSiparisleri.filter(...)` doğrudan yazılmıştı; alan
+  // `undefined` gelince bütün kontrol paneli React hata sınırına düştü:
+  // "Bu ekran açılamadı". Sebebi önemsiz (sayfa açıkken kod yenilendi,
+  // eski state'te alan yoktu) ama SONUCU önemli — kullanıcı paneli komple
+  // kaybetti.
+  //
+  // `yedekler` için bu korumayı en baştan koymuştum, buna koymamışım.
+  // Panel onlarca kaynaktan besleniyor ve hiçbiri panelin tamamını
+  // götürebilecek kadar önemli değil.
+  const dikkatSiparisleri = veri.dikkatSiparisleri ?? []
   const bugun = bugunAnahtari()
 
   const acikIsEmirleri = isEmirleri.filter(i => i.durum === 'DRAFT' || i.durum === 'STARTED')
@@ -268,7 +281,7 @@ export default function KontrolPaneli({
     //
     // ⚠️ Yalnız PORTAL kaynaklı olan kritik. Telefonla alınan siparişi
     // zaten biri almış ve biliyor; portaldan gelen sessizce düşüyor.
-    ...veri.dikkatSiparisleri
+    ...dikkatSiparisleri
       .filter(d => d.kaynak === 'Portal')
       .map(d => ({
         id: `portal-siparis-${d.id}`,
@@ -284,7 +297,7 @@ export default function KontrolPaneli({
       })),
     // Telefonla/elden alınanlar da panelde ama UYARI düzeyinde: onları
     // alan kişi zaten biliyor.
-    ...veri.dikkatSiparisleri
+    ...dikkatSiparisleri
       .filter(d => d.kaynak !== 'Portal')
       .map(d => ({
         id: `siparis-onay-${d.id}`,

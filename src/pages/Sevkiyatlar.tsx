@@ -110,6 +110,8 @@ export default function Sevkiyatlar({ currentUser }: Props){
   // kaynağıyla girilirler; buraya okunup hem ekranda gösteriliyor hem de
   // irsaliyeye basılıyor.
   const [olcumler, setOlcumler] = React.useState<HaccpOlcumu[]>([])
+  /** Eldeki ölçümler HANGİ sevkiyata ait. Geç gelen cevabı ayıklamak için. */
+  const [olcumSevkiyatId, setOlcumSevkiyatId] = React.useState('')
   const [lotlar, setLotlar] = React.useState<KatalogLotu[]>([])
   /** Geri izleme: sevk edilen partilerin içine inen zincir, düz liste hâlinde. */
   const [icerik, setIcerik] = React.useState<SoyagaciSatiri[]>([])
@@ -216,10 +218,23 @@ export default function Sevkiyatlar({ currentUser }: Props){
   React.useEffect(() => {
     let iptal = false
     if(!secili || !servis || !baglam){
-      setHareketler([]); setLotlar([]); setIcerik([]); setOlcumler([]); return
+      setHareketler([]); setLotlar([]); setIcerik([])
+      setOlcumler([]); setOlcumSevkiyatId(''); return
     }
 
     ;(async () => {
+      // ⚠️ ÖNCEKİ SEVKİYATIN ÖLÇÜMLERİ HEMEN SİLİNİYOR (09.10).
+      //
+      // A sevkiyatından B'ye geçerken `olcumler` A'nınkini tutuyordu ve B
+      // yüklenene kadar ekranda — daha kötüsü İRSALİYEDE — A'nın sıcaklığı
+      // görünüyordu. Yazdır düğmesi de açıktı: A'nın "uygun" ölçümü B'nin
+      // kâğıdına basılabilirdi.
+      //
+      // Bir belgeye BAŞKA BİR SEVKİYATIN ölçümünü basmak, hiç basmamaktan
+      // kat kat kötüdür: kâğıt, olmayan bir soğuk zinciri belgeler.
+      setOlcumler([])
+      setOlcumSevkiyatId('')
+
       try{
         const h = await servis.hareketleri(baglam.ctx, secili)
         if(iptal) return
@@ -231,8 +246,12 @@ export default function Sevkiyatlar({ currentUser }: Props){
         try{
           const o = await new PostgresHaccpDeposu(getSupabase())
             .kaynaginOlcumleri(baglam.ctx, 'shipment', secili.id)
-          if(!iptal) setOlcumler(o)
-        } catch { if(!iptal) setOlcumler([]) }
+          // ⚠️ GEÇ GELEN CEVAP YANLIŞ SEVKİYATA YAZILMASIN. Kullanıcı A'yı
+          // açıp hemen B'ye geçtiyse A'nın cevabı sonra dönebilir; hangi
+          // sevkiyat için istendiğini birlikte yazıyoruz ve ekran bunu
+          // seçili sevkiyatla karşılaştırıyor.
+          if(!iptal){ setOlcumler(o); setOlcumSevkiyatId(secili.id) }
+        } catch { if(!iptal){ setOlcumler([]); setOlcumSevkiyatId('') } }
 
         const katalog = new PostgresStokKatalogu(getSupabase())
         const kalemIdleri = [...new Set(secili.satirlar.map(s => s.stokKalemiId))]
@@ -463,7 +482,7 @@ export default function Sevkiyatlar({ currentUser }: Props){
               sevkiyat={secili}
               yeterlilik={servis!.yeterlilik(secili, bakiyeHaritasi, kalemler)}
               hareketler={hareketler}
-              olcumler={olcumler}
+              olcumler={olcumSevkiyatId === secili.id ? olcumler : []}
               lotlar={lotlar}
               kalemler={kalemler}
               icerik={icerik}

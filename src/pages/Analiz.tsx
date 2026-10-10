@@ -63,6 +63,14 @@ const tarihYaz = (g: string) => {
 
 export default function Analiz({ currentUser }: Props){
   const mod = resolveStockRepositoryMode()
+  // ⚠️ İKİ KAPI VAR, BU BİRİNCİSİ (09.10'da ikincisi eklendi).
+  //
+  // Bu kontrol kullanıcıya NEDEN göremediğini söylüyor. Asıl kapı artık
+  // VERİTABANINDA (0071): fonksiyonlar `finance.read` yoksa MI403 ile
+  // reddediyor. Önce yalnız burası vardı ve bu, kendi kuralımı çiğnemekti
+  // — menüde gizlemek yetmediği gibi ekranda gizlemek de yetmez; doğrudan
+  // RPC çağıran herkes maliyetleri okuyabilirdi.
+  //
   // ⚠️ `finance.read` — PARA İZNİ. Bu ekranda fire TUTARI, alım tutarı ve
   // stok değeri var; bunlar maliyet bilgisidir. Depo, üretim, kalite ve
   // sevkiyat rollerinde bu izin YOK ve olmamalı (07.10 kararı: parayı
