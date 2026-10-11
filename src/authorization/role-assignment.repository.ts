@@ -267,3 +267,103 @@ export const assignableRolesFor = (
   }
   return roles.filter(r => !PLATFORM_ROLE_CODES.includes(r.code))
 }
+
+// ═══════════════════════════════════════════════════════════════════════════
+// PERSONEL HESABI AÇMA (0076)
+// ---------------------------------------------------------------------------
+// Emrah'ın kararı (11.10): personel KULLANICI ADI + ŞİFRE ile girer, e-posta
+// YOK. Şifreyi yönetici belirler, kullanıcı İLK GİRİŞTE değiştirmek zorunda.
+//
+// ⚠️ ŞİFRE BU DOSYADA BİR YERE YAZILMAZ. Ne state'e, ne günlüğe, ne de dönen
+// nesneye. Buradan geçip Edge Function'a gider, orada Supabase Auth'a
+// verilir ve unutulur.
+//
+// ⚠️ NEDEN EDGE FUNCTION. Auth'ta kullanıcı yaratmak `service_role` anahtarı
+// ister; o anahtar tarayıcıya inseydi sayfanın kaynağını görebilen herkes
+// BÜTÜN müşterilerin verisine sahip olurdu. Tarayıcı yalnız isteği yollar.
+// ═══════════════════════════════════════════════════════════════════════════
+
+export type YeniPersonel = {
+  kullaniciAdi: string
+  adSoyad: string
+  rol: string
+  /** ⚠️ Yalnız istek gövdesinde yaşar; hiçbir yere kaydedilmez. */
+  sifre: string
+  subeler?: readonly string[]
+}
+
+export type AcilanPersonel = {
+  kullaniciId: string
+  kullaniciAdi: string
+  /** Perde arkasındaki dahili giriş adresi; kullanıcı bunu hiç yazmaz. */
+  girisAdresi: string
+}
+
+/**
+ * Yeni personel hesabı açar.
+ *
+ * ⚠️ DOĞRULAMA İKİ YERDE: burada (kullanıcıyı erken uyarmak için), Edge
+ * Function'da ve veritabanında (0076). Üçü de gerekli — ekran atlanabilir,
+ * Edge Function atlanabilir, veritabanı atlanamaz.
+ */
+export const personelHesabiAc = async (girdi: YeniPersonel): Promise<AcilanPersonel> => {
+  if (!isSupabaseConfigured()) throw new SupabaseNotConfiguredError()
+  const supabase = getSupabase()
+
+  const { data, error } = await supabase.functions.invoke('personel-hesabi-ac', {
+    body: {
+      kullaniciAdi: girdi.kullaniciAdi.trim(),
+      adSoyad: girdi.adSoyad.trim(),
+      rol: girdi.rol,
+      sifre: girdi.sifre,
+      subeler: girdi.subeler && girdi.subeler.length > 0 ? [...girdi.subeler] : null,
+    },
+  })
+
+  // ⚠️ Edge Function hata gövdesini 4xx/5xx ile döndürüyor ve supabase-js
+  // bunu `error` olarak veriyor AMA gövdeyi yutuyor: kullanıcı yalnız
+  // "non-2xx status code" görür. Gövdeyi okuyup GERÇEK sebebi gösteriyoruz;
+  // "bir hata oluştu" diyen bir ekran kullanıcıyı bize telefon ettirir.
+  if (error) {
+    const gövde = await okunabilirHata(error)
+    throw new Error(gövde || `Kullanıcı açılamadı: ${error.message}`)
+  }
+
+  const c = data as { tamam?: boolean; hata?: string
+                      kullaniciId?: string; kullaniciAdi?: string; girisAdresi?: string } | null
+  if (!c || c.tamam !== true) {
+    throw new Error(c?.hata || 'Kullanıcı açılamadı: sunucudan beklenen cevap gelmedi.')
+  }
+  if (!c.kullaniciId) {
+    throw new Error('Kullanıcı açıldı ama kimliği dönmedi; listeyi yenileyin.')
+  }
+
+  return {
+    kullaniciId: c.kullaniciId,
+    kullaniciAdi: c.kullaniciAdi ?? girdi.kullaniciAdi,
+    girisAdresi: c.girisAdresi ?? '',
+  }
+}
+
+/** Edge Function'ın JSON gövdesindeki `hata` alanını çıkarmayı dener. */
+const okunabilirHata = async (error: unknown): Promise<string> => {
+  const yanit = (error as { context?: { json?: () => Promise<unknown> } })?.context
+  if (!yanit || typeof yanit.json !== 'function') return ''
+  try {
+    const govde = await yanit.json()
+    const m = (govde as { hata?: unknown })?.hata
+    return typeof m === 'string' ? m : ''
+  } catch { return '' }
+}
+
+/**
+ * Yönetici bir personelin şifresini sıfırladıktan SONRA çağrılır: kişi
+ * bir sonraki girişinde yeni şifresini kendisi belirlemek zorunda kalır.
+ */
+export const personelSifresiSifirlandi = async (kullaniciId: string): Promise<void> => {
+  if (!isSupabaseConfigured()) throw new SupabaseNotConfiguredError()
+  const { error } = await getSupabase().rpc('personel_sifresi_sifirlandi', {
+    p_kullanici: kullaniciId,
+  })
+  if (error) throw new Error(`Şifre sıfırlama işareti yazılamadı: ${error.message}`)
+}

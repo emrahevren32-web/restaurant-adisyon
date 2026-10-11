@@ -53,11 +53,13 @@ import {
   assignableRolesFor,
   canAssignRoles,
   loadRoleAssignmentData,
+  personelHesabiAc,
   saveUserRoles,
   setPrimaryRole,
   SupabaseNotConfiguredError,
   type RoleAssignmentData,
 } from '../authorization/role-assignment.repository'
+import { SIFRE_EN_AZ } from '../auth/davet'
 import {
   alanAgaci,
   anaGorevDegisinceKalanRol,
@@ -169,6 +171,16 @@ export default function KullanicilarVeYetkiler({ currentUser }: Props){
   const [yeniAnaGorev, setYeniAnaGorev] = React.useState('')
   const [calisiyor, setCalisiyor] = React.useState(false)
 
+  // ── YENİ PERSONEL FORMU (0076) ───────────────────────────────────────
+  // ⚠️ `yeniSifre` state'te DURUYOR ama hiçbir yere YAZILMIYOR: ne
+  // localStorage'a, ne günlüğe, ne de bir isteğe fazladan. Kaydet'ten
+  // sonra ilk iş onu temizlemek (bkz. `formuTemizle`).
+  const [formAcik, setFormAcik] = React.useState(false)
+  const [yeniKullaniciAdi, setYeniKullaniciAdi] = React.useState('')
+  const [yeniAdSoyad, setYeniAdSoyad] = React.useState('')
+  const [yeniRol, setYeniRol] = React.useState('')
+  const [yeniSifre, setYeniSifre] = React.useState('')
+
   const yetkili = canAssignRoles(currentUser.permissions)
 
   const yukle = React.useCallback(async () => {
@@ -243,6 +255,47 @@ export default function KullanicilarVeYetkiler({ currentUser }: Props){
       // ⚠️ Yeni yetkiler BİR SONRAKİ GİRİŞTE işler: izinler oturum açılırken
       // okunuyor. Söylemeseydik yönetici "kaydettim ama olmadı" derdi.
       setBilgi('Roller kaydedildi. Kullanıcı yeni yetkileriyle BİR SONRAKİ GİRİŞİNDE çalışmaya başlar.')
+    } catch (e) { setHata((e as Error).message) }
+    finally { setCalisiyor(false) }
+  }
+
+  // ── YENİ PERSONEL HESABI (0076) ─────────────────────────────────────────
+  const formuTemizle = () => {
+    setYeniKullaniciAdi(''); setYeniAdSoyad(''); setYeniRol('')
+    // ⚠️ ŞİFRE İLK TEMİZLENEN. Formda unutulan bir şifre, omuz üstünden
+    // okunabilen bir şifredir.
+    setYeniSifre('')
+  }
+
+  const personelAc = async () => {
+    setHata(''); setBilgi('')
+
+    const kAdi = yeniKullaniciAdi.trim()
+    const ad = yeniAdSoyad.trim()
+    if(kAdi.length < 3){ setHata('Kullanıcı adı en az 3 karakter olmalı.'); return }
+    if(ad.length < 2){
+      setHata('Ad soyad yazılmalı; defterde "kim yaptı" diye bu görünecek.'); return
+    }
+    if(!yeniRol){ setHata('Bir görev (rol) seçilmeli.'); return }
+    if(yeniSifre.length < SIFRE_EN_AZ){
+      setHata(`Geçici şifre en az ${SIFRE_EN_AZ} karakter olmalı.`); return
+    }
+
+    setCalisiyor(true)
+    try {
+      const sonuc = await personelHesabiAc({
+        kullaniciAdi: kAdi, adSoyad: ad, rol: yeniRol, sifre: yeniSifre,
+      })
+      // ⚠️ ÖNCE TEMİZLE, SONRA YENİLE. Yenileme hata verse bile şifre
+      // formda kalmasın.
+      formuTemizle()
+      setFormAcik(false)
+      await yukle()
+      setBilgi(
+        `"${sonuc.kullaniciAdi}" hesabı açıldı. Kullanıcı bu adla ve verdiğiniz `
+        + 'geçici şifreyle giriş yapacak; ilk girişte şifresini kendisi '
+        + 'belirleyecek. Şifreyi kendisine siz iletin — sistem e-posta göndermiyor.',
+      )
     } catch (e) { setHata((e as Error).message) }
     finally { setCalisiyor(false) }
   }
@@ -594,17 +647,104 @@ export default function KullanicilarVeYetkiler({ currentUser }: Props){
             </table>
           </div>
 
-          {/*
-            ⚠️ Eksik olanı SÖYLÜYORUZ. Yarısı çalışan bir "Yeni Kullanıcı"
-            düğmesi, olmayan bir yolu varmış gibi gösterir.
-          */}
-          <div className="form-info">
-            <strong>Yeni kullanıcı bu ekrandan açılmıyor.</strong> Gerçek bir
-            kullanıcı açmak, giriş hesabı (Supabase Auth) + işletme kaydı
-            demek. Bugün bu iş Supabase panelinden yapılıyor; hesap açıldıktan
-            sonra kişi bu listede görünür ve rolleri buradan verilir. Davetle
-            açma akışı yol haritasında duruyor.
-          </div>
+          {/* ── YENİ PERSONEL HESABI (0076) ─────────────────────────────
+              ⚠️ Bu bölüm, bir ay boyunca burada duran şu cümlenin yerine
+              geldi: "Yeni kullanıcı bu ekrandan açılmıyor... bu iş Supabase
+              panelinden yapılıyor." O cümle müşteriye BİZİM İÇ ARACIMIZIN
+              adını söylüyordu ve işletme kendi personelini açamıyordu. */}
+          {!formAcik && (
+            <div className="form-actions">
+              <button className="btn primary" type="button"
+                onClick={() => { setFormAcik(true); setHata(''); setBilgi('') }}>
+                + Personel hesabı aç
+              </button>
+            </div>
+          )}
+
+          {formAcik && (
+            <div className="card">
+              <div className="section-header compact">
+                <h3>Personel hesabı aç</h3>
+                <p className="muted">
+                  Personel <strong>kullanıcı adı ve şifreyle</strong> girer;
+                  e-posta gerekmez. Şifreyi siz belirlersiniz, kullanıcı
+                  ilk girişinde kendisi değiştirir.
+                </p>
+              </div>
+
+              <div className="stacked-form">
+                <div className="form-field">
+                  <label htmlFor="yeni-kadi">Kullanıcı adı</label>
+                  <input id="yeni-kadi" type="text" value={yeniKullaniciAdi}
+                    autoComplete="off" maxLength={40}
+                    placeholder="depocu"
+                    onChange={e => setYeniKullaniciAdi(e.target.value)} />
+                  <small className="muted">
+                    Kişi her sabah bunu yazacak. Türkçe karakter ve boşluk
+                    otomatik temizlenir: "Depo Cu" → "depocu".
+                  </small>
+                </div>
+
+                <div className="form-field">
+                  <label htmlFor="yeni-ad">Ad soyad</label>
+                  <input id="yeni-ad" type="text" value={yeniAdSoyad}
+                    autoComplete="off" maxLength={120}
+                    placeholder="Ahmet Yılmaz"
+                    onChange={e => setYeniAdSoyad(e.target.value)} />
+                  <small className="muted">
+                    Defterde "kim yaptı" diye bu yazacak — kısaltma kullanmayın.
+                  </small>
+                </div>
+
+                <div className="form-field">
+                  <label htmlFor="yeni-rol">Görevi</label>
+                  {/* ⚠️ `roller` zaten `assignableRolesFor` ile süzülmüş:
+                      platform rolleri (admin, super_admin) listede YOK.
+                      Sunucu da reddediyor (0076, MI403) — iki kapı. */}
+                  <select id="yeni-rol" value={yeniRol}
+                    onChange={e => setYeniRol(e.target.value)}>
+                    <option value="">— görev seçin —</option>
+                    {roller.map(r => (
+                      <option key={r.code} value={r.code}>{r.name || r.code}</option>
+                    ))}
+                  </select>
+                  {yeniRol && (
+                    <small className="muted">
+                      {roller.find(r => r.code === yeniRol)?.description
+                        || 'Bu rolün açıklaması yazılmamış.'}
+                    </small>
+                  )}
+                </div>
+
+                <div className="form-field">
+                  <label htmlFor="yeni-sifre">Geçici şifre</label>
+                  {/* ⚠️ `type="password"` ve `autoComplete="new-password"`:
+                      tarayıcı bunu kaydetmeye çalışmasın, omuz üstünden de
+                      okunmasın. */}
+                  <input id="yeni-sifre" type="password" value={yeniSifre}
+                    autoComplete="new-password" maxLength={72}
+                    onChange={e => setYeniSifre(e.target.value)} />
+                  <small className="muted">
+                    En az {SIFRE_EN_AZ} karakter. Bu şifre <strong>hiçbir yere
+                    kaydedilmiyor</strong> — ekranı kapattığınızda kaybolur,
+                    o yüzden kişiye şimdi iletin. İlk girişte zaten
+                    değiştirecek.
+                  </small>
+                </div>
+
+                <div className="form-actions">
+                  <button className="btn primary" type="button"
+                    disabled={calisiyor} onClick={personelAc}>
+                    {calisiyor ? 'Açılıyor…' : 'Hesabı aç'}
+                  </button>
+                  <button className="btn" type="button" disabled={calisiyor}
+                    onClick={() => { formuTemizle(); setFormAcik(false) }}>
+                    Vazgeç
+                  </button>
+                </div>
+              </div>
+            </div>
+          )}
         </section>
       )}
 
