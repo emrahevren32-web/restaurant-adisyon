@@ -189,7 +189,22 @@ const normalizeModuleRegistryItem = (module: BusinessWorkspaceModuleInput): Busi
     isBusinessModule,
     isIntegrationModule,
     isRequired: isCoreSystem,
-    isAlwaysActive: isCoreSystem,
+    // ⚠️ 2026-10-11 · BURASI MODÜLÜN KENDİ `isAlwaysActive` DEĞERİNİ EZİYORDU.
+    //
+    // `...module` yayılmasından SONRA geldiği için, bir modül
+    // `isAlwaysActive: true` yazsa bile normalleştirici onu sessizce
+    // `isCoreSystem` (yani iş modülleri için false) yapıyordu. Giriş tipi
+    // alanı kabul ediyordu, normalleştirici çöpe atıyordu — en sinsi tür.
+    //
+    // Gerçek bedeli: Kalite modülü 09.13'ten beri `isAlwaysActive: true`
+    // yazıyordu ve 08.10'da "neden menüde çıkmıyor, uzaktan bulamadım"
+    // diye not düşmüştüm. Sebep buydu. HACCP ve izlenebilirlik ekranları
+    // bir ay boyunca Üretim'in altında misafir kaldı.
+    //
+    // ⚠️ `module.isAlwaysActive ?? isCoreSystem` YAZMA: çekirdek modül her
+    // koşulda her zaman açık olmalı, bir modül `false` yazarak onu
+    // kapatabilmemeli.
+    isAlwaysActive: isCoreSystem || module.isAlwaysActive === true,
     isMarketplaceEligible: !isCoreSystem,
     isEnabled: isCoreSystem ? true : module.isEnabled,
     isVisible: isCoreSystem ? true : module.isVisible,
@@ -276,7 +291,22 @@ export const BUSINESS_WORKSPACE_MODULE_REGISTRY: BusinessWorkspaceModule[] = def
       })
     ],
     menuItems: [
-      menuItem({ key: 'dashboard', label: 'Kontrol Paneli', route: 'summary', icon: 'DB', adminOnly: true, displayOrder: 10 })
+      menuItem({ key: 'dashboard', label: 'Kontrol Paneli', route: 'summary', icon: 'DB', adminOnly: true, displayOrder: 10 }),
+      // ⚠️ 2026-10-11 · ANALİZ BURAYA TAŞINDI (Raporlama modülünden).
+      //
+      // Ekran GERÇEK Postgres verisiyle çalışıyor (0065 + 0071): fire tutarı,
+      // alım, stok değeri, "ne yapmalı" bulguları. Ama Raporlama modülü bu
+      // kiracıda etkin değildi ve o modüle konan öge menüde hiç üretilmiyor
+      // — bitmiş bir ekran müşteriye GÖRÜNMÜYORDU.
+      //
+      // Raporlama modülünün diğer 7 ekranı hâlâ örnek veriden besleniyor;
+      // o yüzden modülü açmak yerine TEK gerçek ekranı buraya aldım.
+      // Kontrol Paneli'nin yanı doğru yer: ikisi de her sabah açılan ekran.
+      //
+      // ⚠️ `finance.read` ZORUNLU — ekran maliyet gösteriyor. Aynı kapı
+      // veritabanında da duruyor (0071, MI403); menüden gizlemek tek
+      // başına yetmez.
+      menuItem({ key: 'kpi-dashboard', label: 'Analiz', route: 'kpi-dashboard', icon: 'AN', requiredPermission: 'finance.read', adminOnly: true, displayOrder: 11 })
     ]
   },
   {
@@ -325,9 +355,21 @@ export const BUSINESS_WORKSPACE_MODULE_REGISTRY: BusinessWorkspaceModule[] = def
     tags: ['system', 'marketplace', 'module-catalog'],
     pricing: includedPricing,
     marketplace: coreSystemMarketplace,
-    menuItems: [
-      menuItem({ key: 'marketplace', label: 'Modül Mağazası', route: 'marketplace', icon: 'MP', adminOnly: true, displayOrder: 18 })
-    ]
+    // ⚠️ 2026-10-11 · MENÜ KAYDI KALDIRILDI (Emrah'ın kararı).
+    //
+    // Denetim: `claude/modul-magazasi-denetimi.md`. Özet gerekçe —
+    // Emrah'ın değişmez kuralı: "Çalışmayan hiçbir fonksiyon müşteri
+    // ekranında görünmesin."
+    //   · 14 kartın hepsinde BASILABİLİR "Kur" düğmesi vardı
+    //   · ilerleme çubuğu SAHTE (`await wait(280 + i*55)`)
+    //   · kurulum yalnız tarayıcı localStorage'ına yazıyor, Postgres'e DEĞİL
+    //   · 6 modülde kurulumdan sonra menüde hiçbir şey değişmiyor
+    //   · kurulunca gelen ekranların çoğu `*.mock` dosyalarından besleniyor
+    //
+    // ⚠️ MODÜL SİLİNMEDİ, yalnız menü kaydı boşaltıldı. Rota duruyor
+    // (`NON_NAV_CORE_ROUTES`), yani geri almak tek satır. Mağazanın yerine
+    // demo sonrası düğmesiz bir "Yol Haritası" ekranı düşünülüyor.
+    menuItems: []
   },
   {
     id: 'system-integration-center',
@@ -1298,7 +1340,10 @@ export const BUSINESS_WORKSPACE_MODULE_REGISTRY: BusinessWorkspaceModule[] = def
       })
     ],
     menuItems: [
-      menuItem({ key: 'kpi-dashboard', label: 'Analiz', route: 'kpi-dashboard', icon: 'AN', adminOnly: true, displayOrder: 10 }),
+      // ⚠️ 2026-10-11 · ANALİZ BURADAN ALINDI, `system-dashboard`a konuldu.
+      // Bu modül kiracıda etkin olmadığı için buradaki öge hiç üretilmiyordu.
+      // İKİ YERDE BİRDEN DURMAZ: Raporlama modülü bir gün açılırsa öge
+      // oradan silinip buraya geri alınır, kopyalanmaz.
       menuItem({ key: 'daily-production-analytics', label: 'Günlük Üretim Analizi', route: 'daily-production-analytics', icon: 'GA', adminOnly: true, displayOrder: 20 }),
       menuItem({ key: 'weekly-production-analytics', label: 'Haftalık Üretim Analizi', route: 'weekly-production-analytics', icon: 'HA', adminOnly: true, displayOrder: 30 }),
       menuItem({ key: 'shipment-analytics', label: 'Sevkiyat Analizi', route: 'shipment-analytics', icon: 'SA', adminOnly: true, displayOrder: 40 }),
@@ -1705,6 +1750,25 @@ export const BUSINESS_WORKSPACE_MODULE_REGISTRY: BusinessWorkspaceModule[] = def
       // çözüm de aynıydı. Kalite grubu bir gün görünür olursa bu iki madde
       // Üretim'den buraya geri alınır — AMA İKİ YERDE BİRDEN DURMAZ.
 
+      // ⚠️ 2026-10-11 · KALİTE GRUBUNUN GÖRÜNMEME SEBEBİ BULUNDU.
+      //
+      // 08.10'da "sebebini uzaktan bulamadım" yazmıştım. Sebep tek satır:
+      // `workspace-navigation.registry.ts` → `visible: children.length > 0`.
+      // Modül `isAlwaysActive: true` olduğu hâlde 13 ögesinin TAMAMI
+      // `foundationScope: 'frozen'`, yani görünür çocuğu yoktu ve grup hiç
+      // üretilmiyordu. Modül kapalı değildi — grubun içi boştu.
+      //
+      // Çözüm: CANLI iki ekran buraya geri alındı (08.10'daki notun kendi
+      // şartı: "Kalite grubu bir gün görünür olursa bu iki madde Üretim'den
+      // buraya geri alınır — AMA İKİ YERDE BİRDEN DURMAZ"). Üretim
+      // modülündeki kopyaları aynı commit'te silindi.
+      //
+      // ⚠️ Donmuş 13 öge DURUYOR ama hiçbiri menüye çıkmıyor; hepsi örnek
+      // veriyle çalışan eski ekranlar. Gruba yalnız bu iki gerçek ekran
+      // giriyor.
+      menuItem({ key: 'haccp-kayitlari', label: 'HACCP Kontrolleri', route: 'haccp-kayitlari', icon: 'HC', requiredPermission: 'quality.read', adminOnly: true, displayOrder: 1 }),
+      menuItem({ key: 'izlenebilirlik', label: 'Ürün İzlenebilirliği', route: 'izlenebilirlik', icon: 'IZ', requiredPermission: 'quality.read', adminOnly: true, displayOrder: 2 }),
+
       menuItem({ key: 'label-management', foundationScope: 'frozen', label: 'Etiket Yönetimi', route: 'label-management', icon: 'ET', adminOnly: true, displayOrder: 4 }),
       menuItem({ key: 'lot-system', foundationScope: 'frozen', label: 'Lot Sistemi', route: 'lot-system', icon: 'LS', adminOnly: true, displayOrder: 5 }),
       menuItem({ key: 'sample-tracking', foundationScope: 'frozen', label: 'Numune Takibi', route: 'sample-tracking', icon: 'NT', adminOnly: true, displayOrder: 6 }),
@@ -1993,12 +2057,10 @@ export const BUSINESS_WORKSPACE_MODULE_REGISTRY: BusinessWorkspaceModule[] = def
       // aynı). Etiket zincirin parçası: reçete → iş emri → ETİKET.
       menuItem({ key: 'etiketler', label: 'Etiket ve Alerjen', route: 'etiketler', icon: 'EA', requiredPermission: 'quality.read', adminOnly: true, displayOrder: 6.2 }),
 
-      // ⚠️ 2026-10-08 · KALİTE'DEN BURAYA TAŞINDI (yukarıdaki nota bakınız).
-      // Zincirin sırası menüde de görünüyor: reçete → iş emri → etiket →
-      // HACCP → izlenebilirlik. Ölçüm üretim ve sevkiyat anında girilir,
-      // izlenebilirlik de o kayıtların üstünde yürür.
-      menuItem({ key: 'haccp-kayitlari', label: 'HACCP Kontrolleri', route: 'haccp-kayitlari', icon: 'HC', requiredPermission: 'quality.read', adminOnly: true, displayOrder: 6.25 }),
-      menuItem({ key: 'izlenebilirlik', label: 'Ürün İzlenebilirliği', route: 'izlenebilirlik', icon: 'IZ', requiredPermission: 'quality.read', adminOnly: true, displayOrder: 6.3 }),
+      // ⚠️ 2026-10-11 · HACCP VE İZLENEBİLİRLİK KALİTE'YE GERİ DÖNDÜ.
+      // 08.10'da buraya geçici olarak konmuşlardı çünkü Kalite grubu
+      // görünmüyordu. Sebep bulundu ve giderildi (bkz. `business-quality`).
+      // İKİ YERDE BİRDEN DURMUYORLAR.
       // Müşteri kartı sevkiyatın hemen ÖNÜNDE: sevkiyat bir müşteriye
       // çıkar, o yüzden zincirin sırası menüde de görünsün. Sevkiyatla aynı
       // modülde çünkü Lojistik modülü bu kiracıda kapalı — oraya konan öge

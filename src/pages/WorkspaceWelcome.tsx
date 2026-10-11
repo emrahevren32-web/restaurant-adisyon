@@ -50,14 +50,20 @@ export default function WorkspaceWelcome({
   const hasBusinessModules = managedBusinessModules.length > 0
 
   const gettingStartedActions: GettingStartedAction[] = [
+    // ⚠️ 2026-10-11 · "Ilk Modul Kur" adimi KALDIRILDI; yerine gercek bir
+    // ilk adim kondu. Modul Magazasi menuden cikarildi (bkz.
+    // claude/modul-magazasi-denetimi.md) ve yeni bir kiraciyi calismayan
+    // bir ekrana yollamak karsilama ekraninin isi degil. Stok karti
+    // olusturmak kurulumun GERCEK ilk adimi: recete de, is emri de,
+    // sevkiyat da onun ustune kuruluyor.
     {
-      key: 'first-module',
-      title: 'Ilk Modul Kur',
-      description: 'Isletmenize uygun modulleri kesfedin ve workspace deneyimini genisletin.',
-      icon: 'marketplace',
-      actionLabel: 'Modul Magazasina Git',
-      route: 'marketplace',
-      navKey: 'marketplace',
+      key: 'first-stock-item',
+      title: 'Ilk Stok Kartini Olustur',
+      description: 'Hammadde ve mamul kartlari sistemin temeli; recete, is emri ve sevkiyat bunlarin ustune kuruluyor.',
+      icon: 'stock',
+      actionLabel: 'Depoya Git',
+      route: 'depo',
+      navKey: 'depo',
       done: hasBusinessModules
     },
     {
@@ -137,11 +143,11 @@ export default function WorkspaceWelcome({
           size="hero"
           actions={[
             {
-              key: 'create-first-module',
-              label: 'Ilk modulu kur',
-              icon: 'marketplace',
+              key: 'create-first-stock-item',
+              label: 'Ilk stok kartini olustur',
+              icon: 'stock',
               tone: 'primary',
-              onClick: () => onOpenWorkspaceRoute('marketplace', 'marketplace')
+              onClick: () => onOpenWorkspaceRoute('depo', 'depo')
             },
             {
               key: 'open-help',

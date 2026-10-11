@@ -187,3 +187,37 @@ describe('Aşama 2–4 ekranları menüde CANLI', () => {
     expect(riskliler, 'canlı ekran DONDURULMUŞ bir modülün altında').toEqual([])
   })
 })
+
+describe('`isAlwaysActive` normalleştiricide EZİLMİYOR (2026-10-11)', () => {
+  // ⚠️ Bu test bir ay süren sessiz bir hatayı kapatıyor.
+  //
+  // `defineModuleRegistry` içindeki normalleştirici `...module` yayılmasından
+  // SONRA `isAlwaysActive: isCoreSystem` yazıyordu. Yani bir iş modülü
+  // `isAlwaysActive: true` dese bile değer çöpe gidiyordu. Giriş tipi alanı
+  // kabul ediyor, normalleştirici yok sayıyordu.
+  //
+  // Sonuç: Kalite modülü 09.13'ten beri "her zaman açık" yazdığı hâlde
+  // kiracıda hiç görünmedi; HACCP ve izlenebilirlik Üretim'in altına
+  // misafir kondu. Hata görünmez, çünkü kimse "neden yok" sorusunu
+  // normalleştiriciye sormaz.
+  it('bir iş modülü isAlwaysActive: true diyebiliyor', () => {
+    const kalite = BUSINESS_WORKSPACE_MODULE_REGISTRY.find(m => m.id === 'business-quality')
+    expect(kalite, 'Kalite modülü kayıttan kalkmış').toBeDefined()
+    expect(kalite!.isAlwaysActive, 'Kalite her zaman açık olmalı — HACCP yasal zorunluluk').toBe(true)
+  })
+
+  it('çekirdek modüller her koşulda her zaman açık', () => {
+    // Bir çekirdek modül `isAlwaysActive: false` yazarak kendini kapatamaz.
+    BUSINESS_WORKSPACE_MODULE_REGISTRY
+      .filter(m => m.isCoreModule)
+      .forEach(m => expect(m.isAlwaysActive, `${m.id} çekirdek ama her zaman açık değil`).toBe(true))
+  })
+
+  it('Kalite grubu CANLI iki ekranla üretiliyor', () => {
+    // Grup, görünür çocuğu olmadan üretilmiyor (visible: children.length > 0).
+    // Donmuş 13 ögenin yanında iki gerçek ekran DURMALI.
+    const kalite = BUSINESS_WORKSPACE_MODULE_REGISTRY.find(m => m.id === 'business-quality')!
+    const canli = kalite.menuItems.filter(i => i.foundationScope !== 'frozen').map(i => i.key)
+    expect(canli.sort()).toEqual(['haccp-kayitlari', 'izlenebilirlik'])
+  })
+})

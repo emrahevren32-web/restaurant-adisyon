@@ -75,14 +75,12 @@ const onboardingSteps: OnboardingStep[] = [
     routeTarget: 'dashboard',
     icon: 'module'
   },
-  {
-    key: ONBOARDING_EXPERIENCE_STEP_KEYS.MODULE_STORE,
-    title: 'Modul Magazasi',
-    description: 'Isletmenize uygun ek modulleri buradan kesfedebilir ve kurabilirsiniz.',
-    target: 'module-store',
-    routeTarget: 'module-store',
-    icon: 'marketplace'
-  },
+  // ⚠️ 2026-10-11 · "Modul Magazasi" adimi KALDIRILDI.
+  // Magaza menuden cikarildi (claude/modul-magazasi-denetimi.md). Olmayan
+  // bir menu ogesini isaret eden bir tanitim turu, yeni kiracinin ilk
+  // dakikasinda kirilir — ve ilk kiraci pilot musteri olacak.
+  // ONBOARDING_EXPERIENCE_STEP_KEYS.MODULE_STORE anahtari duruyor; magaza
+  // geri gelirse adim da geri gelir.
   {
     key: ONBOARDING_EXPERIENCE_STEP_KEYS.PROFILE,
     title: 'Profil Alani',

@@ -177,7 +177,10 @@ export default function KontrolPaneli({
         </p>
       </div>
       <div>
-        <button className="btn" type="button" onClick={onOpenMarketplace}>Modül Mağazası</button>
+        {/* ⚠️ 2026-10-11 · "Modül Mağazası" düğmesi KALDIRILDI.
+            Mağaza menüden de kaldırıldı; düğmeyi bırakmak onu demoda geri
+            getirirdi, çünkü rota hâlâ açılabiliyor. Gerekçe:
+            claude/modul-magazasi-denetimi.md */}
         {onOpenWorkspaceSettings && (
           <button className="btn" type="button" onClick={onOpenWorkspaceSettings}>
             Çalışma Alanı

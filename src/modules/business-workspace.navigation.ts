@@ -202,13 +202,17 @@ export const createBusinessWorkspaceNavGroups = (
         ? options.businessModuleEmptyState?.title || 'Henuz modul yuklenmedi.'
         : undefined,
       emptyDescription: showBusinessModuleEmptyState
-        ? options.businessModuleEmptyState?.description || 'Is modulleri eklendiginde menude burada gorunecek. Ilk modulunuzu Modul Magazasi uzerinden kesfedebilirsiniz.'
+        ? options.businessModuleEmptyState?.description || 'Is modulleri eklendiginde menude burada gorunecek.'
         : undefined,
+      // ⚠️ 2026-10-11 · Bos durum dugmesi artik MAGAZAYA DEGIL DEPOYA
+      // goturuyor. Magaza menuden kaldirildi
+      // (claude/modul-magazasi-denetimi.md); menude olmayan bir ekrana
+      // goturen bir dugme birakmak onu arka kapidan geri getirirdi.
       emptyAction: showBusinessModuleEmptyState && options.showBusinessModuleEmptyAction ? {
-        key: 'marketplace',
-        label: options.businessModuleEmptyState?.actionLabel || 'Modul Magazasina Git',
-        route: 'marketplace',
-        icon: 'MP',
+        key: 'depo',
+        label: options.businessModuleEmptyState?.actionLabel || 'Depoya Git',
+        route: 'depo',
+        icon: 'DP',
         adminOnly: true
       } : undefined,
       items: operationItems
