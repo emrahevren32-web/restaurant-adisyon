@@ -135,6 +135,14 @@ describe('kritikYetkiler', () => {
   it('kritik yetkisi olmayan kullanıcıda boş dönüyor', () => {
     expect(kritikYetkiler(['dashboard.read', 'stock.read'])).toEqual([])
   })
+
+  it('ETİKET BEYANI kritik sayılıyor (0073)', () => {
+    // ⚠️ Yanlış alerjen beyanı bu listedeki en pahalı hata. Yetki veren
+    // kişi bunu "sıradan bir kalite izni" sanmamalı.
+    expect(kritikYetkiler(['quality.declaration']).join(' ')).toContain('ETİKET BEYANINI')
+    // Ölçüm girme yetkisi kritik DEĞİL — o her gün yapılan iş.
+    expect(kritikYetkiler(['quality.write'])).toEqual([])
+  })
 })
 
 // ═══════════════════════════════════════════════════════════════════════════

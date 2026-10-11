@@ -34,6 +34,7 @@ export type PermissionName =
   | 'recipe.write'
   | 'quality.read'
   | 'quality.write'
+  | 'quality.declaration'
   | 'logistics.read'
   | 'logistics.write'
   | 'branch.read'

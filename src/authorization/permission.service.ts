@@ -38,6 +38,10 @@ export const PERMISSION_CATALOG: PermissionModel[] = [
   { name: 'recipe.write', description: 'Recete olusturma ve guncelleme.', module: 'recipe' },
   { name: 'quality.read', description: 'Kalite kayitlarini, lot ve izlenebilirligi goruntuleme.', module: 'quality' },
   { name: 'quality.write', description: 'Kalite kaydi girme, geri cagirma baslatma.', module: 'quality' },
+  // 0073 — etiket beyani (alerjen + besin degeri) AYRI izin. Olcum girmek
+  // ile yasal beyan yazmak ayni is degil; birincisi uretimde, ikincisi
+  // gida muhendisinde olmali.
+  { name: 'quality.declaration', description: 'Etiket beyani yazma: alerjen ve besin degeri. Yasal beyandir.', module: 'quality' },
   { name: 'logistics.read', description: 'Sevkiyat ve irsaliyeleri goruntuleme.', module: 'logistics' },
   { name: 'logistics.write', description: 'Sevkiyat yurutme ve irsaliye kesme.', module: 'logistics' },
   { name: 'branch.read', description: 'Sube listesini ve bilgilerini goruntuleme.', module: 'branch' },

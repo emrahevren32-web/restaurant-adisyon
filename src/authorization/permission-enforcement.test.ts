@@ -34,12 +34,17 @@ const VERITABANI_KATALOGU = [
   'roles.manage', 'settings.manage', 'audit.read',
   // 0061 — sipariş AÇMAK ile ONAYLAMAK ayrıldı. Tek izinde durdukları
   // sürece "açsın ama onaylamasın" diye bir rol kurulamıyordu.
-  'operations.approve'
+  'operations.approve',
+  // 0073 — ETİKET BEYANI ayrı izin. Ölçüm girmek (quality.write) ile
+  // alerjen/besin beyanı yazmak aynı iş değil: birincisi üretim ve
+  // sevkiyat sorumlusunda, ikincisi gıda mühendisi ve kalite
+  // sorumlusunda. Göç: 0073.
+  'quality.declaration'
 ]
 
 describe('İzin kataloğu · kod ile veritabanı aynı', () => {
-  it('kod kataloğu 33 izin içeriyor', () => {
-    expect(PERMISSION_CATALOG).toHaveLength(33)
+  it('kod kataloğu 34 izin içeriyor', () => {
+    expect(PERMISSION_CATALOG).toHaveLength(34)
   })
 
   it('kod kataloğu ile 0014+0015 kataloğu birebir aynı kümedir', () => {

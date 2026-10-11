@@ -48,6 +48,9 @@ export const IZIN_ETIKETLERI: Record<string, IzinEtiketi> = {
   'recipe.write':      { alan: 'Üretim',    cumle: 'Reçete oluşturur ve değiştirir' },
   'quality.read':      { alan: 'Kalite',    cumle: 'Kalite kayıtlarını, lot ve izlenebilirliği görür' },
   'quality.write':     { alan: 'Kalite',    cumle: 'Kalite kaydı girer, geri çağırma başlatır' },
+  /* 0073 — Emrah: "o rol/yetki kime verildiyse o personel yapabilsin".
+     Ölçüm girmek ile ETİKETE BASILAN YASAL BEYANI yazmak ayrı iki iş. */
+  'quality.declaration':{ alan: 'Kalite', cumle: 'ETİKET BEYANINI yazar (alerjen ve besin değeri)' },
   'logistics.read':    { alan: 'Sevkiyat',  cumle: 'Sevkiyat ve irsaliyeleri görür' },
   'logistics.write':   { alan: 'Sevkiyat',  cumle: 'Sevkiyat yürütür ve İRSALİYE KESER' },
   'operations.read':   { alan: 'Sipariş',   cumle: 'Sipariş defterini görür' },
@@ -183,7 +186,11 @@ export const onayCumlesi = (yetkiler: readonly OnayYetkisi[]): string => {
 export const KRITIK_IZINLER = [
   // ⚠️ Sipariş AÇMAK kritik değil, ONAYLAMAK kritik (0061). Siparişi
   // zaten açması beklenen kişiyi her gün uyarmak, uyarıyı değersizleştirir.
+  // ⚠️ 0073 — etiket beyanı buraya EKLENDİ. Yanlış alerjen beyanı bu
+  // listedeki en pahalı hata: mal çıkışı para kaybettirir, yanlış
+  // alerjen beyanı insanı hastaneye düşürür.
   'stock.write', 'operations.approve', 'logistics.write', 'users.manage',
+  'quality.declaration',
 ] as const
 
 export const kritikYetkiler = (izinler: readonly string[]): string[] => {
