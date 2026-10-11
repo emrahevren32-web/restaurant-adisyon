@@ -102,9 +102,20 @@ export const yuzdeYaz = (oran: number): string =>
  * ⚠️ ALIM SIFIRSA ORAN YOKTUR — sıfır değil, `undefined`. Sıfıra bölüp
  * sonsuz ya da 0 yazmak, "hiç fire yok" ya da "her şey fire" gibi iki
  * yanlış cümleden birini kurdururdu.
+ *
+ * ⚠️ ORAN %100'Ü AŞABİLİR VE BU BİR HATA DEĞİLDİR. Fire o dönemde ALINAN
+ * maldan gelmek zorunda değil; önceki dönemlerden kalan stoktan da gelir.
+ * Alımın düşük olduğu bir ayda oran %500 çıkabilir. Rakam doğrudur ama
+ * TEK BAŞINA GÖSTERİLİRSE "bozuk" görünür — bu yüzden `oranAsiriMi` ile
+ * işaretlenip cümlede SEBEBİ yazılıyor. (Emrah, 11.10: "%100'ü aşan bir
+ * oran alıcıya bozuk görünür.")
  */
 export const fireOrani = (fire: number, alim: number): number | undefined =>
   alim > 0 ? fire / alim : undefined
+
+/** Oran %100'ü aşmış mı — ekranda açıklama gerektirir. */
+export const oranAsiriMi = (oran: number | undefined): boolean =>
+  oran !== undefined && oran > 1
 
 // ═══════════════════════════════════════════════════════════════════════════
 // BULGULAR — sayıdan karara
@@ -185,9 +196,18 @@ export const bulgular = (bugun: Ozet, onceki?: Ozet): Bulgu[] => {
       onem: oran !== undefined && oncekiOran !== undefined && oran > oncekiOran
         ? 'uyari' : 'bilgi',
       baslik: 'Dönem firesi',
+      // ⚠️ "alımın %X'i" YAZILMIYOR. İki sebep:
+      //   1. Türkçe yüzde eki okunuşa göre değişiyor (%12'si ama %576'sı);
+      //      sayıdan ek üretmek çalışmaz, "'i" her zaman yanlış görünür.
+      //   2. Oran %100'ü aşabiliyor ve "alımın %576'sı" cümlesi okuyana
+      //      hata gibi geliyor. Oranı AYRI bir cümlede, sebebiyle veriyoruz.
       cumle: `${paraYaz(bugun.fireTutari)}`
-        + (oran !== undefined ? ` — alımın ${yuzdeYaz(oran)}'i.` : '.')
-        + ` ${sayiYaz(bugun.fireKalemSayisi)} kalemde.`
+        + ` · ${sayiYaz(bugun.fireKalemSayisi)} kalemde.`
+        + (oran !== undefined ? ` Alıma oranı ${yuzdeYaz(oran)}.` : '')
+        + (oranAsiriMi(oran)
+          ? ` Oran %100'ü aşıyor çünkü bu dönemde alım ${paraYaz(bugun.alimTutari)}`
+            + ' ile sınırlı kalmış; fire önceki dönemlerden kalan stoktan geliyor.'
+          : '')
         + kiyas,
       yapilacak: 'Dökümde en üstteki kaleme bak: firenin büyük kısmı '
         + 'genellikle birkaç üründen gelir.',
@@ -257,7 +277,7 @@ export const bulgular = (bugun: Ozet, onceki?: Ozet): Bulgu[] => {
       onem: oran >= 0.1 ? 'uyari' : 'bilgi',
       baslik: 'Teslimde fark çıkan sipariş',
       cumle: `${sayiYaz(bugun.farkliTeslimSiparis)} siparişte teslim farkı kaydı`
-        + ` açıldı — dönemdeki siparişlerin ${yuzdeYaz(oran)}'i.`,
+        + ` açıldı · dönemdeki siparişlere oranı ${yuzdeYaz(oran)}.`,
       yapilacak: 'Fark kayıtlarının gerekçesine bak: aynı müşteride ya da '
         + 'aynı üründe tekrarlıyorsa sebep tek bir yerdedir.',
     })
@@ -359,4 +379,201 @@ export const fireninYogunlastigi = (
     }
   }
   return { kalemSayisi: tutarli.length, toplam, kapsanan: biriken }
+}
+
+// ═══════════════════════════════════════════════════════════════════════════
+// SATIŞ VE KÂRLILIK (0074)
+// ---------------------------------------------------------------------------
+// Emrah'ın bilirkişisinin demo şartı: "en çok/az satılan, en karlı/az karlı,
+// stok devir hızı."
+//
+// ⚠️ HESAP BURADA DEĞİL, VERİTABANINDA (0074). Burası yalnız SIRALIYOR ve
+// CÜMLEYE ÇEVİRİYOR. Toplamayı tarayıcıya taşımak, PostgREST'in satır
+// sınırında sessizce kesilen bir kâr rakamı üretirdi.
+//
+// ⚠️ BU BRÜT KÂRDIR. İşçilik, nakliye, enerji ve genel gider İÇİNDE YOK.
+// "Kârınız bu" demek yalan olur; "malın kendisinden kalan bu" doğrudur.
+// ═══════════════════════════════════════════════════════════════════════════
+
+export type SatisSatiri = {
+  kalemId: string
+  kalemAdi: string
+  birim: string
+  /** Temel birimde satılan miktar. */
+  miktar: number
+  /** Yalnız fiyatı BİLİNEN miktarın tutarı. */
+  ciro: number
+  /** Bilinmiyorsa `undefined` — sıfır DEĞİL. */
+  maliyet?: number
+  kar?: number
+  marj?: number
+  /** Fiyatı bulunamadığı için ciroya girmeyen miktar. */
+  fiyatsizMiktar: number
+  maliyetsiz: boolean
+}
+
+export type DevirSatiri = {
+  kalemId: string
+  kalemAdi: string
+  birim: string
+  cikis: number
+  baslangicStok: number
+  bitisStok: number
+  ortalamaStok: number
+  /** Ortalama stok sıfırsa hesaplanmaz. */
+  devir?: number
+  /** Kaç günde bir devrediyor. */
+  gun?: number
+}
+
+export type SatisOzeti = {
+  /** Dönemin toplam cirosu (maliyeti bilinmeyen kalemler dahil). */
+  ciro: number
+  /**
+   * ⚠️ KÂR YALNIZ MALİYETİ BİLİNEN KALEMLER ÜZERİNDEN. Maliyeti
+   * bilinmeyeni sıfır sayıp toplama katmak, kârı olduğundan yüksek
+   * gösterirdi — bu raporun yapabileceği en pahalı yalan.
+   */
+  olculebilirCiro: number
+  maliyet: number
+  kar: number
+  marj?: number
+  kalemSayisi: number
+  /** Fiyatı bulunamayan satış olan kalem sayısı. */
+  fiyatsizKalem: number
+  /** Maliyeti hiç hesaplanamayan kalem sayısı. */
+  maliyetsizKalem: number
+  /** Zarar eden (kârı eksi) kalem sayısı. */
+  zararliKalem: number
+}
+
+export const satisOzeti = (satirlar: readonly SatisSatiri[]): SatisOzeti => {
+  const olculebilir = satirlar.filter(s => s.maliyet !== undefined)
+  const olculebilirCiro = olculebilir.reduce((t, s) => t + s.ciro, 0)
+  const maliyet = olculebilir.reduce((t, s) => t + (s.maliyet ?? 0), 0)
+  const kar = olculebilirCiro - maliyet
+  return {
+    ciro: satirlar.reduce((t, s) => t + s.ciro, 0),
+    olculebilirCiro,
+    maliyet,
+    kar,
+    marj: olculebilirCiro > 0 ? kar / olculebilirCiro : undefined,
+    kalemSayisi: satirlar.length,
+    fiyatsizKalem: satirlar.filter(s => s.fiyatsizMiktar > 0).length,
+    maliyetsizKalem: satirlar.filter(s => s.maliyetsiz).length,
+    zararliKalem: satirlar.filter(s => s.kar !== undefined && s.kar < 0).length,
+  }
+}
+
+/** Ciroya göre en çok satanlar. */
+export const enCokSatan = (satirlar: readonly SatisSatiri[], adet = 5): SatisSatiri[] =>
+  [...satirlar].sort((a, b) => b.ciro - a.ciro).slice(0, adet)
+
+/**
+ * Ciroya göre en az satanlar.
+ *
+ * ⚠️ HİÇ SATILMAYAN KALEM BU LİSTEDE YOK. Rapor yalnız dönemde HAREKET
+ * GÖRMÜŞ kalemleri getiriyor; "hiç satmadık" bilgisi ayrı bir sorudur ve
+ * stok kartı listesinden gelir. Burada "en az satan" demek, "satılanların
+ * en azı" demektir — ekranda da böyle yazılmalı.
+ */
+export const enAzSatan = (satirlar: readonly SatisSatiri[], adet = 5): SatisSatiri[] =>
+  [...satirlar].filter(s => s.ciro > 0).sort((a, b) => a.ciro - b.ciro).slice(0, adet)
+
+/** Marja göre en karlılar. Marjı bilinmeyen kalem listeye GİRMEZ. */
+export const enKarli = (satirlar: readonly SatisSatiri[], adet = 5): SatisSatiri[] =>
+  [...satirlar].filter(s => s.marj !== undefined)
+    .sort((a, b) => (b.marj ?? 0) - (a.marj ?? 0)).slice(0, adet)
+
+/** Marja göre en az karlılar — zarar edenler en başta. */
+export const enAzKarli = (satirlar: readonly SatisSatiri[], adet = 5): SatisSatiri[] =>
+  [...satirlar].filter(s => s.marj !== undefined)
+    .sort((a, b) => (a.marj ?? 0) - (b.marj ?? 0)).slice(0, adet)
+
+/** Zarar eden kalemler — ayrı liste, çünkü ayrı bir karar gerektiriyor. */
+export const zararEdenler = (satirlar: readonly SatisSatiri[]): SatisSatiri[] =>
+  [...satirlar].filter(s => s.kar !== undefined && s.kar < 0)
+    .sort((a, b) => (a.kar ?? 0) - (b.kar ?? 0))
+
+/** En yavaş devreden stok: parayı rafta bekleten kalemler. */
+export const yavasDevredenler = (satirlar: readonly DevirSatiri[], adet = 5): DevirSatiri[] =>
+  [...satirlar].filter(s => s.gun !== undefined)
+    .sort((a, b) => (b.gun ?? 0) - (a.gun ?? 0)).slice(0, adet)
+
+/** En hızlı devredenler: doğru çalışan taraf. */
+export const hizliDevredenler = (satirlar: readonly DevirSatiri[], adet = 5): DevirSatiri[] =>
+  [...satirlar].filter(s => s.gun !== undefined)
+    .sort((a, b) => (a.gun ?? 0) - (b.gun ?? 0)).slice(0, adet)
+
+/**
+ * Satış tarafının bulguları — "ne yapmalı" listesine eklenecek cümleler.
+ *
+ * ⚠️ HER BULGU BİR EYLEM SÖYLÜYOR. Rakamı tekrar eden ama ne yapılacağını
+ * söylemeyen bir satır, kullanıcıya hiçbir şey vermez.
+ */
+export const satisBulgulari = (
+  ozet: SatisOzeti,
+  satirlar: readonly SatisSatiri[],
+  devir: readonly DevirSatiri[] = [],
+): Bulgu[] => {
+  const liste: Bulgu[] = []
+
+  const zararli = zararEdenler(satirlar)
+  if(zararli.length > 0){
+    const enKotu = zararli[0]
+    liste.push({
+      anahtar: 'zararina_satis',
+      onem: 'kritik',
+      baslik: 'Zararına satılan ürün',
+      cumle: `${sayiYaz(zararli.length)} üründe maliyet, satış fiyatının üstünde.`
+        + ` En büyüğü: ${enKotu.kalemAdi} — ${paraYaz(Math.abs(enKotu.kar ?? 0))} zarar.`,
+      yapilacak: 'Önce fiyatı mı yoksa reçeteyi mi kontrol edeceğine karar ver: '
+        + 'maliyet arttıysa fiyat güncellenmeli, reçete değiştiyse maliyet yeniden '
+        + 'hesaplanmalı. Bu ürünü satmaya devam etmek her sevkiyatta para kaybettirir.',
+    })
+  }
+
+  if(ozet.maliyetsizKalem > 0){
+    liste.push({
+      anahtar: 'maliyetsiz_kalem',
+      onem: 'uyari',
+      baslik: 'Maliyeti hesaplanamayan ürün',
+      cumle: `${sayiYaz(ozet.maliyetsizKalem)} ürünün birim maliyeti bulunamadı;`
+        + ' kâr hesabına GİRMEDİLER.',
+      yapilacak: 'Sebebi ikisinden biridir: ya o malın alış kaydı hiç yok, '
+        + 'ya da reçetesindeki bir malzemenin alışı yok. Alış kaydını gir, '
+        + 'maliyet kendiliğinden oluşur.',
+    })
+  }
+
+  if(ozet.fiyatsizKalem > 0){
+    liste.push({
+      anahtar: 'fiyatsiz_satis',
+      onem: 'uyari',
+      baslik: 'Fiyatsız sevkiyat',
+      cumle: `${sayiYaz(ozet.fiyatsizKalem)} üründe sevk edilen malın fiyatı`
+        + ' bulunamadı; o miktar ciroya girmedi.',
+      yapilacak: 'Genellikle siparişe bağlanmamış sevkiyattan gelir. '
+        + 'Sevkiyatı siparişe bağla ya da sipariş satırına fiyat yaz — '
+        + 'yoksa ciron olduğundan düşük görünür.',
+    })
+  }
+
+  // ⚠️ 90 gün eşiği bir KARAR, ölçüm değil: gıdada üç ay rafta bekleyen mal
+  // çoğu zaman bozulmadan önce satılamayacak demektir. Eşik değişirse bu
+  // yorum da değişmeli.
+  const yavas = yavasDevredenler(devir, 3).filter(d => (d.gun ?? 0) >= 90)
+  if(yavas.length > 0){
+    liste.push({
+      anahtar: 'yavas_devir',
+      onem: 'uyari',
+      baslik: 'Rafta bekleyen stok',
+      cumle: `${sayiYaz(yavas.length)} üründe stok 90 günden yavaş devrediyor.`
+        + ` En yavaşı: ${yavas[0].kalemAdi} — ${sayiYaz(yavas[0].gun ?? 0)} gün.`,
+      yapilacak: 'Bu kalemler için yeni sipariş vermeden önce eldekini tüket. '
+        + 'Rafta bekleyen mal hem para hem de son kullanma tarihi riskidir.',
+    })
+  }
+
+  return liste
 }

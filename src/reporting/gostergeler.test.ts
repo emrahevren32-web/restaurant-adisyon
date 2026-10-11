@@ -6,6 +6,10 @@ import {
   bulgular, fireNedeniYaz, fireOrani, fireninYogunlastigi, nedeneGoreFire,
   ozetiOku, paraYaz, yuzdeYaz,
   type FireSatiri, type GostergeSatiri, type Ozet,
+  oranAsiriMi,
+  enAzKarli, enAzSatan, enCokSatan, enKarli, satisBulgulari, satisOzeti,
+  yavasDevredenler, zararEdenler,
+  type DevirSatiri, type SatisSatiri,
 } from './gostergeler'
 
 const ozet = (yama: Partial<Ozet> = {}): Ozet => ({
@@ -251,5 +255,211 @@ describe('biçimleme', () => {
 
   it('yüzdeyi tek haneyle yazar', () => {
     expect(yuzdeYaz(0.0523)).toBe('%5,2')
+  })
+})
+
+// ═══════════════════════════════════════════════════════════════════════════
+// YÜZDE %100'Ü AŞABİLİR (11.10)
+// ---------------------------------------------------------------------------
+// Emrah demo öncesi ekranda "alımın %576,6'i" gördü. İki ayrı sorun:
+//   1. Türkçe yüzde eki okunuşa göre değişiyor; sayıdan ek üretilemez.
+//      Çözüm: ek kullanmayan cümle kuruldu ("Alıma oranı %576,6.").
+//   2. %100'ü aşan oran alıcıya "bozuk" görünüyor. Rakam DOĞRU — fire o
+//      dönem alınan maldan gelmek zorunda değil. Çözüm: sebebi cümlede yaz.
+// ═══════════════════════════════════════════════════════════════════════════
+describe('oranAsiriMi', () => {
+  it('%100 üstünü işaretliyor', () => {
+    expect(oranAsiriMi(5.766)).toBe(true)
+  })
+
+  it('tam %100 aşırı DEĞİL', () => {
+    expect(oranAsiriMi(1)).toBe(false)
+  })
+
+  it('normal oranı işaretlemiyor', () => {
+    expect(oranAsiriMi(0.12)).toBe(false)
+  })
+
+  it('oran yoksa işaretlemiyor', () => {
+    expect(oranAsiriMi(undefined)).toBe(false)
+  })
+})
+
+describe('fire cümlesi · yüzde eki ve %100 üstü', () => {
+  it("yanlış Türkçe ek kullanmıyor (\"alımın %X'i\" yazmıyor)", () => {
+    // ⚠️ "%100'ü aşıyor" DOĞRU Türkçe (belirtme hâli) ve serbest; yasak olan
+    // sayıdan üretilmiş TAMLAYAN eki: "alımın %576,6'i".
+    const b = bulgular(ozet({ fireTutari: 11762.2, alimTutari: 2040, fireKalemSayisi: 2 }))
+    const fire = b.find(x => x.anahtar === 'fire')!
+    expect(fire.cumle).not.toContain('alımın')
+    expect(fire.cumle).not.toMatch(/%[\d.,]+'i[\s.]/)
+  })
+
+  it('%100 üstü oranın SEBEBİNİ söylüyor', () => {
+    const b = bulgular(ozet({ fireTutari: 11762.2, alimTutari: 2040, fireKalemSayisi: 2 }))
+    const fire = b.find(x => x.anahtar === 'fire')!
+    expect(fire.cumle).toContain('Alıma oranı')
+    expect(fire.cumle).toContain('kalan stoktan')
+  })
+
+  it('normal oranda fazladan açıklama YAPMIYOR', () => {
+    const b = bulgular(ozet({ fireTutari: 120, alimTutari: 10000, fireKalemSayisi: 1 }))
+    const fire = b.find(x => x.anahtar === 'fire')!
+    expect(fire.cumle).toContain('Alıma oranı')
+    expect(fire.cumle).not.toContain('kalan stoktan')
+  })
+
+  it('alım yoksa oran cümlesi hiç kurulmuyor', () => {
+    const b = bulgular(ozet({ fireTutari: 500, alimTutari: 0, fireKalemSayisi: 1 }))
+    const fire = b.find(x => x.anahtar === 'fire')!
+    expect(fire.cumle).not.toContain('oran')
+  })
+})
+
+// ═══════════════════════════════════════════════════════════════════════════
+// SATIŞ VE KÂRLILIK (0074)
+// ---------------------------------------------------------------------------
+// Korunan şey tek cümleyle: MALİYETİ BİLİNMEYEN KALEM KÂRA KARIŞMAZ.
+// Bilinmeyeni sıfır saymak kârı olduğundan yüksek gösterir ve bu raporun
+// yapabileceği en pahalı yalandır.
+// ═══════════════════════════════════════════════════════════════════════════
+
+const satis = (y: Partial<SatisSatiri> = {}): SatisSatiri => ({
+  kalemId: 'k1', kalemAdi: 'Mercimek Çorbası', birim: 'kg',
+  miktar: 5, ciro: 75, maliyet: 20, kar: 55, marj: 55 / 75,
+  fiyatsizMiktar: 0, maliyetsiz: false, ...y,
+})
+
+const devirSatiri = (y: Partial<DevirSatiri> = {}): DevirSatiri => ({
+  kalemId: 'k1', kalemAdi: 'Un', birim: 'kg',
+  cikis: 14, baslangicStok: 100, bitisStok: 86, ortalamaStok: 93,
+  devir: 0.15, gun: 200, ...y,
+})
+
+describe('satisOzeti', () => {
+  it('ciro, maliyet, kâr ve marjı topluyor', () => {
+    const o = satisOzeti([
+      satis({ ciro: 100, maliyet: 60, kar: 40, marj: 0.4 }),
+      satis({ kalemId: 'k2', ciro: 100, maliyet: 40, kar: 60, marj: 0.6 }),
+    ])
+    expect(o.ciro).toBe(200)
+    expect(o.maliyet).toBe(100)
+    expect(o.kar).toBe(100)
+    expect(o.marj).toBe(0.5)
+  })
+
+  it('MALİYETİ BİLİNMEYEN KALEM kâr hesabına GİRMİYOR', () => {
+    // ⚠️ Bu testin düşmesi, kârın olduğundan yüksek gösterildiği demektir.
+    const o = satisOzeti([
+      satis({ ciro: 100, maliyet: 60, kar: 40, marj: 0.4 }),
+      satis({ kalemId: 'k2', ciro: 900, maliyet: undefined, kar: undefined,
+              marj: undefined, maliyetsiz: true }),
+    ])
+    expect(o.ciro).toBe(1000)            // toplam ciro TAMAMI
+    expect(o.olculebilirCiro).toBe(100)  // ama kâr yalnız ölçülebilen üstünden
+    expect(o.kar).toBe(40)
+    expect(o.marj).toBe(0.4)
+    expect(o.maliyetsizKalem).toBe(1)
+  })
+
+  it('zarar eden kalemi sayıyor', () => {
+    const o = satisOzeti([
+      satis({ ciro: 50, maliyet: 80, kar: -30, marj: -0.6 }),
+      satis({ kalemId: 'k2' }),
+    ])
+    expect(o.zararliKalem).toBe(1)
+  })
+
+  it('fiyatsız satışı olan kalemi sayıyor', () => {
+    const o = satisOzeti([satis({ fiyatsizMiktar: 6 }), satis({ kalemId: 'k2' })])
+    expect(o.fiyatsizKalem).toBe(1)
+  })
+
+  it('boş listede marj YOK (sıfır değil)', () => {
+    expect(satisOzeti([]).marj).toBeUndefined()
+  })
+})
+
+describe('sıralamalar', () => {
+  const liste = [
+    satis({ kalemId: 'a', kalemAdi: 'A', ciro: 300, kar: 30, marj: 0.10 }),
+    satis({ kalemId: 'b', kalemAdi: 'B', ciro: 100, kar: 60, marj: 0.60 }),
+    satis({ kalemId: 'c', kalemAdi: 'C', ciro: 200, kar: -20, marj: -0.10 }),
+    satis({ kalemId: 'd', kalemAdi: 'D', ciro: 50, maliyet: undefined,
+            kar: undefined, marj: undefined, maliyetsiz: true }),
+  ]
+
+  it('en çok satan ciroya göre', () => {
+    expect(enCokSatan(liste, 2).map(s => s.kalemAdi)).toEqual(['A', 'C'])
+  })
+
+  it('en az satan ciroya göre', () => {
+    expect(enAzSatan(liste, 2).map(s => s.kalemAdi)).toEqual(['D', 'B'])
+  })
+
+  it('en karlı marja göre; MARJI BİLİNMEYEN listeye girmiyor', () => {
+    const k = enKarli(liste, 4)
+    expect(k.map(s => s.kalemAdi)).toEqual(['B', 'A', 'C'])
+    expect(k.some(s => s.kalemAdi === 'D')).toBe(false)
+  })
+
+  it('en az karlıda zarar eden başta', () => {
+    expect(enAzKarli(liste, 1).map(s => s.kalemAdi)).toEqual(['C'])
+  })
+
+  it('zarar edenler ayrı listede', () => {
+    expect(zararEdenler(liste).map(s => s.kalemAdi)).toEqual(['C'])
+  })
+
+  it('en yavaş devreden en uzun gün', () => {
+    const d = [
+      devirSatiri({ kalemId: 'x', kalemAdi: 'X', gun: 10 }),
+      devirSatiri({ kalemId: 'y', kalemAdi: 'Y', gun: 300 }),
+      devirSatiri({ kalemId: 'z', kalemAdi: 'Z', gun: undefined }),
+    ]
+    expect(yavasDevredenler(d, 2).map(s => s.kalemAdi)).toEqual(['Y', 'X'])
+  })
+})
+
+describe('satisBulgulari', () => {
+  it('zararına satışı KRİTİK sayıyor ve ne yapılacağını söylüyor', () => {
+    const liste = [satis({ kalemAdi: 'Pilav', ciro: 50, maliyet: 80, kar: -30, marj: -0.6 })]
+    const b = satisBulgulari(satisOzeti(liste), liste)
+    const z = b.find(x => x.anahtar === 'zararina_satis')!
+    expect(z.onem).toBe('kritik')
+    expect(z.cumle).toContain('Pilav')
+    expect(z.yapilacak).toContain('fiyat')
+  })
+
+  it('maliyeti bilinmeyeni SÖYLÜYOR — sessizce yutmuyor', () => {
+    const liste = [satis({ maliyet: undefined, kar: undefined, marj: undefined, maliyetsiz: true })]
+    const b = satisBulgulari(satisOzeti(liste), liste)
+    expect(b.some(x => x.anahtar === 'maliyetsiz_kalem')).toBe(true)
+  })
+
+  it('fiyatsız sevkiyatı söylüyor', () => {
+    const liste = [satis({ fiyatsizMiktar: 6 })]
+    const b = satisBulgulari(satisOzeti(liste), liste)
+    expect(b.some(x => x.anahtar === 'fiyatsiz_satis')).toBe(true)
+  })
+
+  it('90 günden yavaş devreden stoğu uyarıyor', () => {
+    const liste = [satis()]
+    const d = [devirSatiri({ kalemAdi: 'Un', gun: 200 })]
+    const b = satisBulgulari(satisOzeti(liste), liste, d)
+    const y = b.find(x => x.anahtar === 'yavas_devir')!
+    expect(y.cumle).toContain('Un')
+  })
+
+  it('hızlı devreden stok için uyarı YOK', () => {
+    const liste = [satis()]
+    const d = [devirSatiri({ gun: 12 })]
+    const b = satisBulgulari(satisOzeti(liste), liste, d)
+    expect(b.some(x => x.anahtar === 'yavas_devir')).toBe(false)
+  })
+
+  it('her şey yolundaysa hiç bulgu üretmiyor', () => {
+    const liste = [satis()]
+    expect(satisBulgulari(satisOzeti(liste), liste, [])).toEqual([])
   })
 })

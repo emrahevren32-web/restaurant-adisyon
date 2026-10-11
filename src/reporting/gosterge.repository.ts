@@ -13,7 +13,7 @@
 
 import type { SupabaseClient } from '@supabase/supabase-js'
 import type { TenantCtx } from '../core/context'
-import type { FireSatiri, GostergeSatiri } from './gostergeler'
+import type { DevirSatiri, FireSatiri, GostergeSatiri, SatisSatiri } from './gostergeler'
 
 export type Donem = { bas: string; bit: string }
 
@@ -24,6 +24,10 @@ export type Donem = { bas: string; bit: string }
 export type GostergeDeposu = {
   gostergeler(ctx: TenantCtx, donem: Donem): Promise<GostergeSatiri[]>
   fireDokumu(ctx: TenantCtx, donem: Donem): Promise<FireSatiri[]>
+  /** Kalem bazında satış, brüt kâr ve marj (0074). */
+  satisKarliligi(ctx: TenantCtx, donem: Donem): Promise<SatisSatiri[]>
+  /** Kalem bazında stok devir hızı (0074). */
+  stokDevri(ctx: TenantCtx, donem: Donem): Promise<DevirSatiri[]>
 }
 
 const sayi = (v: string | number | null | undefined): number => {
@@ -79,6 +83,64 @@ export class PostgresGostergeDeposu implements GostergeDeposu {
       fiyatsiz: Boolean(r.fiyatsiz),
     }))
   }
+  /**
+   * ⚠️ TUTARLAR `numeric`; PostgREST METİN döndürür. `sayiVeyaBos` ile
+   * okunuyor çünkü "maliyeti bilinmiyor" ile "maliyeti sıfır" AYRI şeyler
+   * ve bu raporda ikisini karıştırmak kârı olduğundan yüksek gösterir.
+   */
+  async satisKarliligi(ctx: TenantCtx, donem: Donem): Promise<SatisSatiri[]> {
+    const { data, error } = await this.client.rpc('satis_karliligi', {
+      p_sube: ctx.branchId, p_bas: donem.bas, p_bit: donem.bit,
+    })
+    if(error) throw new Error(`Satış ve kârlılık okunamadı: ${error.message}`)
+
+    type S = {
+      kalem_id: string; kalem_adi: string | null; birim: string | null
+      miktar: string | number | null; ciro: string | number | null
+      maliyet: string | number | null; kar: string | number | null
+      marj: string | number | null; fiyatsiz_miktar: string | number | null
+      maliyetsiz: boolean
+    }
+    return ((data as unknown as S[] | null) ?? []).map(r => ({
+      kalemId: r.kalem_id,
+      kalemAdi: r.kalem_adi ?? '(kart silinmiş)',
+      birim: r.birim ?? '',
+      miktar: sayi(r.miktar),
+      ciro: sayi(r.ciro),
+      maliyet: sayiVeyaBos(r.maliyet),
+      kar: sayiVeyaBos(r.kar),
+      marj: sayiVeyaBos(r.marj),
+      fiyatsizMiktar: sayi(r.fiyatsiz_miktar),
+      maliyetsiz: r.maliyetsiz === true,
+    }))
+  }
+
+  async stokDevri(ctx: TenantCtx, donem: Donem): Promise<DevirSatiri[]> {
+    const { data, error } = await this.client.rpc('stok_devri', {
+      p_sube: ctx.branchId, p_bas: donem.bas, p_bit: donem.bit,
+    })
+    if(error) throw new Error(`Stok devir hızı okunamadı: ${error.message}`)
+
+    type S = {
+      kalem_id: string; kalem_adi: string | null; birim: string | null
+      cikis: string | number | null
+      baslangic_stok: string | number | null; bitis_stok: string | number | null
+      ortalama_stok: string | number | null
+      devir: string | number | null; gun: string | number | null
+    }
+    return ((data as unknown as S[] | null) ?? []).map(r => ({
+      kalemId: r.kalem_id,
+      kalemAdi: r.kalem_adi ?? '(kart silinmiş)',
+      birim: r.birim ?? '',
+      cikis: sayi(r.cikis),
+      baslangicStok: sayi(r.baslangic_stok),
+      bitisStok: sayi(r.bitis_stok),
+      ortalamaStok: sayi(r.ortalama_stok),
+      devir: sayiVeyaBos(r.devir),
+      gun: sayiVeyaBos(r.gun),
+    }))
+  }
+
 }
 
 // ═══════════════════════════════════════════════════════════════════════════

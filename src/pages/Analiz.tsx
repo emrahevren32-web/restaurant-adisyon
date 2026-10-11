@@ -26,7 +26,10 @@ import {
 } from '../reporting/gosterge.repository'
 import {
   bulgular, fireNedeniYaz, fireOrani, fireninYogunlastigi, nedeneGoreFire,
-  ozetiOku, paraYaz, sayiYaz, yuzdeYaz,
+  oranAsiriMi, ozetiOku, paraYaz, sayiYaz, yuzdeYaz,
+  enAzKarli, enAzSatan, enCokSatan, enKarli, satisBulgulari, satisOzeti,
+  yavasDevredenler,
+  type DevirSatiri, type SatisSatiri,
   type Bulgu, type FireSatiri, type Onem, type Ozet,
 } from '../reporting/gostergeler'
 
@@ -86,6 +89,9 @@ export default function Analiz({ currentUser }: Props){
   const [ozet, setOzet] = React.useState<Ozet | null>(null)
   const [gecmis, setGecmis] = React.useState<Ozet | null>(null)
   const [fire, setFire] = React.useState<FireSatiri[]>([])
+  const [satislar, setSatislar] = React.useState<SatisSatiri[]>([])
+  const [devir, setDevir] = React.useState<DevirSatiri[]>([])
+  const [satisHatasi, setSatisHatasi] = React.useState('')
   const [donem, setDonem] = React.useState<Donem | null>(null)
   const [yukleniyor, setYukleniyor] = React.useState(true)
   const [hata, setHata] = React.useState('')
@@ -110,10 +116,23 @@ export default function Analiz({ currentUser }: Props){
 
         // ⚠️ İKİ DÖNEM BİRDEN okunuyor: karşılaştırma cümlesi ancak geçmişin
         // gerçek sayısı elde olunca kurulabiliyor. Tahmin edilmiyor.
-        const [simdi, once, dokum] = await Promise.all([
+        // ⚠️ SATIŞ BÖLÜMÜ AYRI YAKALANIYOR, ÖTEKİLERİ DÜŞÜRMESİN.
+        // 0074 göçü veritabanına uygulanmadan önce bu iki RPC yok; aynı
+        // `Promise.all` içinde kalsalardı EKRANIN TAMAMI hata verirdi ve
+        // çalışan fire/SKT bölümü de kaybolurdu. Hata yutulmuyor, ayrı bir
+        // satırda SÖYLENİYOR — sessizce boş tablo göstermek yalan olurdu.
+        let satisNotu = ''
+        const yumusak = async <T,>(f: () => Promise<T[]>): Promise<T[]> => {
+          try { return await f() }
+          catch (e){ satisNotu = hataMetni(e); return [] }
+        }
+
+        const [simdi, once, dokum, satis, devirler] = await Promise.all([
           depo.gostergeler(kurulan.ctx, d),
           depo.gostergeler(kurulan.ctx, o),
           depo.fireDokumu(kurulan.ctx, d),
+          yumusak(() => depo.satisKarliligi(kurulan.ctx, d)),
+          yumusak(() => depo.stokDevri(kurulan.ctx, d)),
         ])
         if(iptal) return
 
@@ -121,6 +140,9 @@ export default function Analiz({ currentUser }: Props){
         setOzet(ozetiOku(simdi))
         setGecmis(ozetiOku(once))
         setFire(dokum)
+        setSatislar(satis)
+        setDevir(devirler)
+        setSatisHatasi(satisNotu)
         setHata('')
       } catch (e){ if(!iptal) setHata(hataMetni(e)) }
       finally { if(!iptal) setYukleniyor(false) }
@@ -153,7 +175,12 @@ export default function Analiz({ currentUser }: Props){
     )
   }
 
-  const liste: Bulgu[] = ozet ? bulgular(ozet, gecmis ?? undefined) : []
+  const sOzet = satisOzeti(satislar)
+  // ⚠️ Satış bulguları ESKİ bulguların ARDINA ekleniyor, araya karışmıyor:
+  // sıra önem sırasıdır ve gıda güvenliği (SKT, fire) paradan önce gelir.
+  const liste: Bulgu[] = ozet
+    ? [...bulgular(ozet, gecmis ?? undefined), ...satisBulgulari(sOzet, satislar, devir)]
+    : []
   const oran = ozet ? fireOrani(ozet.fireTutari, ozet.alimTutari) : undefined
   const yogun = fireninYogunlastigi(fire)
   const nedenler = nedeneGoreFire(fire)
@@ -213,8 +240,13 @@ export default function Analiz({ currentUser }: Props){
             <Kutu
               baslik="Dönem firesi"
               deger={paraYaz(ozet.fireTutari)}
+              // ⚠️ Oran %100'ü aşınca SEBEBİ aynı satırda yazıyor. Açıklamasız
+              // bir "%576,6" ekranı bozuk gösterir; oysa rakam doğru — fire
+              // o dönem alınan maldan değil, eski stoktan geliyor.
               alt={oran !== undefined
-                ? `Alımın ${yuzdeYaz(oran)}'i · ${sayiYaz(ozet.fireKalemSayisi)} kalem`
+                ? `Alıma oranı ${yuzdeYaz(oran)}`
+                  + (oranAsiriMi(oran) ? ' (alım düşük kaldı, fire eski stoktan)' : '')
+                  + ` · ${sayiYaz(ozet.fireKalemSayisi)} kalem`
                 : `${sayiYaz(ozet.fireKalemSayisi)} kalem`}
               eksik={ozet.fireFiyatsizHareket > 0}
             />
@@ -259,6 +291,129 @@ export default function Analiz({ currentUser }: Props){
           {/* ── FİRE NEREDEN GELİYOR ─────────────────────────────────────
               "Fire 47.000 TL" kimseye bir şey yaptırmaz. "31.000'i SKT'den
               ve 19.000'i tek bir üründen" bir karar aldırır. */}
+          {/* ── SATIŞ VE KÂRLILIK (0074) ────────────────────────────────
+              Emrah'ın bilirkişisinin demo şartı. Fireden ÖNCE duruyor:
+              "ne kazandım" sorusu "ne kaybettim" sorusundan önce gelir. */}
+          <h3>Satış ve kârlılık</h3>
+          {satisHatasi && (
+            <div className="form-error">
+              Satış ve kârlılık bölümü okunamadı: {satisHatasi}
+              {' '}— bu bölüm <strong>0074</strong> göçünü gerektiriyor;
+              veritabanına uygulanmadıysa sebebi budur. Ekranın geri kalanı
+              çalışmaya devam ediyor.
+            </div>
+          )}
+          {satislar.length === 0
+            ? satisHatasi ? null : (
+              <p className="muted detail-hint">
+                <strong>Bu dönemde sevkiyat kaydı yok.</strong> Satış rakamları
+                siparişten değil SEVKİYATTAN okunuyor: sipariş bir niyet,
+                sevkiyat bir olaydır. Mal çıkışı yazıldığında burası dolar.
+              </p>
+            )
+            : (
+              <>
+                <div className="gosterge-grid">
+                  <Kutu baslik="Ciro" deger={paraYaz(sOzet.ciro)}
+                    alt={`${sayiYaz(sOzet.kalemSayisi)} üründe sevkiyat`} />
+                  <Kutu baslik="Malın maliyeti" deger={paraYaz(sOzet.maliyet)}
+                    alt={sOzet.maliyetsizKalem > 0
+                      ? `${sayiYaz(sOzet.maliyetsizKalem)} ürünün maliyeti bilinmiyor`
+                      : 'bütün ürünlerin maliyeti biliniyor'}
+                    eksik={sOzet.maliyetsizKalem > 0} />
+                  <Kutu baslik="Brüt kâr" deger={paraYaz(sOzet.kar)}
+                    alt="işçilik, nakliye ve genel gider HARİÇ" />
+                  <Kutu baslik="Brüt marj"
+                    deger={sOzet.marj !== undefined ? yuzdeYaz(sOzet.marj) : '—'}
+                    alt={sOzet.zararliKalem > 0
+                      ? `${sayiYaz(sOzet.zararliKalem)} ürün zararına satılıyor`
+                      : 'zararına satılan ürün yok'}
+                    eksik={sOzet.zararliKalem > 0} />
+                </div>
+
+                {/* ⚠️ Bu uyarı ekrandan KALDIRILMAZ. "Brüt kâr" ile "kâr"ı
+                    karıştıran bir yönetici, zarar ederken kâr ettiğini sanır. */}
+                <p className="muted detail-hint">
+                  <strong>Bu BRÜT kârdır.</strong> Malın kendisinden kalanı
+                  gösterir; işçilik, nakliye, enerji, kira ve genel gider
+                  içinde YOKTUR. Maliyet <strong>son alış fiyatı</strong> ile,
+                  üretilen ürünlerde <strong>reçeteden</strong> hesaplanıyor.
+                  {sOzet.maliyetsizKalem > 0 && (
+                    <> Maliyeti bulunamayan {sayiYaz(sOzet.maliyetsizKalem)} ürün
+                    kâr hesabına <strong>girmedi</strong>.</>
+                  )}
+                </p>
+
+                <div className="warehouse-layout">
+                  <section className="card warehouse-main">
+                    <div className="section-header compact">
+                      <h3>En çok satan</h3><span className="muted">ciroya göre</span>
+                    </div>
+                    <SatisTablosu satirlar={enCokSatan(satislar)} />
+                  </section>
+                  <section className="card warehouse-side">
+                    <div className="section-header compact">
+                      <h3>En az satan</h3>
+                      {/* ⚠️ HİÇ satılmayan ürün bu listede YOK; bu liste
+                          satılanların en azıdır. */}
+                      <span className="muted">satılanların en azı</span>
+                    </div>
+                    <SatisTablosu satirlar={enAzSatan(satislar)} />
+                  </section>
+                </div>
+
+                <div className="warehouse-layout">
+                  <section className="card warehouse-main">
+                    <div className="section-header compact">
+                      <h3>En karlı</h3><span className="muted">marja göre</span>
+                    </div>
+                    <SatisTablosu satirlar={enKarli(satislar)} />
+                  </section>
+                  <section className="card warehouse-side">
+                    <div className="section-header compact">
+                      <h3>En az karlı</h3>
+                      <span className="muted">zarar edenler başta</span>
+                    </div>
+                    <SatisTablosu satirlar={enAzKarli(satislar)} />
+                  </section>
+                </div>
+              </>
+            )}
+
+          {devir.length > 0 && (
+            <>
+              <h3>Rafta en uzun bekleyen stok</h3>
+              <p className="muted detail-hint">
+                Devir hızı = dönemdeki çıkış ÷ ortalama stok. Çıkışa hem
+                sevkiyat hem üretim tüketimi dahil — hammadde satılmaz,
+                üretime girer.
+              </p>
+              <div className="table-wrap">
+                <table className="data-table compact">
+                  <thead>
+                    <tr>
+                      <th>Ürün</th><th className="num">Dönem çıkışı</th>
+                      <th className="num">Ortalama stok</th>
+                      <th className="num">Kaç günde bir devrediyor</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {yavasDevredenler(devir, 10).map(d => (
+                      <tr key={d.kalemId}>
+                        <td><strong>{d.kalemAdi}</strong></td>
+                        <td className="num">{sayiYaz(d.cikis)} {d.birim}</td>
+                        <td className="num">{sayiYaz(d.ortalamaStok)} {d.birim}</td>
+                        <td className={`num ${(d.gun ?? 0) >= 90 ? 'is-critical' : ''}`}>
+                          {d.gun !== undefined ? `${sayiYaz(d.gun)} gün` : '—'}
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            </>
+          )}
+
           <h3>Fire nereden geliyor</h3>
 
           {fire.length === 0 && (
@@ -269,8 +424,8 @@ export default function Analiz({ currentUser }: Props){
             <>
               {yogun && yogun.kalemSayisi > 0 && (
                 <p>
-                  Firenin <strong>{yuzdeYaz(yogun.kapsanan / yogun.toplam)}</strong>'i
-                  {' '}<strong>{sayiYaz(yogun.kalemSayisi)} kalemden</strong> geliyor.
+                  Firenin <strong>{yuzdeYaz(yogun.kapsanan / yogun.toplam)}</strong>
+                  {' '}kadarı <strong>{sayiYaz(yogun.kalemSayisi)} kalemden</strong> geliyor.
                   {' '}Önce bunlara bak.
                 </p>
               )}
@@ -336,6 +491,25 @@ export default function Analiz({ currentUser }: Props){
           <h3>Bu sayılar nereden geliyor</h3>
           <ul className="muted">
             <li>
+              <strong>Satış ve ciro</strong> sipariş satırından değil
+              <strong>sevkiyattan</strong> okunuyor; sipariş bir niyet,
+              sevkiyat bir olaydır. Fiyat, siparişin güncel revizyonundaki
+              birim fiyattır ve ürünün temel birimine çevrilir (koli fiyatı
+              kilo fiyatına indirilir). Fiyatı bulunamayan miktar ciroya
+              girmez ve bu <strong>ayrıca yazılır</strong>.
+            </li>
+            <li>
+              <strong>Maliyet</strong> satın alınan ürünlerde son alış
+              fiyatı, üretilen ürünlerde <strong>reçeteden</strong>
+              (verim ve fire payı dahil, yarı mamuller özyinelemeli).
+              Bir bileşenin maliyeti bilinmiyorsa toplam da bilinmiyor
+              sayılır — sıfır değil.
+            </li>
+            <li>
+              <strong>İptal edilmiş sevkiyat</strong> ciroya girmez; ters
+              kayıt ve ters çevirdiği hareket birlikte ayıklanır.
+            </li>
+            <li>
               <strong>Fire</strong> — stok defterindeki zayi, tarihi geçtiği
               için imha, üretim firesi ve sayımda eksik çıkan hareketler.
               Her biri <strong>o günkü alış fiyatıyla</strong> değerlenir;
@@ -364,6 +538,51 @@ export default function Analiz({ currentUser }: Props){
           </ul>
         </>
       )}
+    </div>
+  )
+}
+
+/**
+ * Satış satırı tablosu.
+ *
+ * ⚠️ Marjı bilinmeyen satır "%0" DEĞİL "—" gösteriyor. Sıfır bir ölçümdür,
+ * tire ise "ölçemedik" demektir; ikisini aynı göstermek yalan olur.
+ */
+function SatisTablosu({ satirlar }: { satirlar: readonly SatisSatiri[] }){
+  if(satirlar.length === 0) return <p className="muted">Gösterilecek satır yok.</p>
+  return (
+    <div className="table-wrap">
+      <table className="data-table compact">
+        <thead>
+          <tr>
+            <th>Ürün</th><th className="num">Miktar</th>
+            <th className="num">Ciro</th><th className="num">Brüt kâr</th>
+            <th className="num">Marj</th>
+          </tr>
+        </thead>
+        <tbody>
+          {satirlar.map(s => (
+            <tr key={s.kalemId}>
+              <td>
+                <strong>{s.kalemAdi}</strong>
+                {s.fiyatsizMiktar > 0 && (
+                  <div className="muted">
+                    {sayiYaz(s.fiyatsizMiktar)} {s.birim} fiyatsız — ciroya girmedi
+                  </div>
+                )}
+              </td>
+              <td className="num">{sayiYaz(s.miktar)} {s.birim}</td>
+              <td className="num">{paraYaz(s.ciro)}</td>
+              <td className={`num ${(s.kar ?? 0) < 0 ? 'is-critical' : ''}`}>
+                {s.kar !== undefined ? paraYaz(s.kar) : '—'}
+              </td>
+              <td className={`num ${(s.marj ?? 0) < 0 ? 'is-critical' : ''}`}>
+                {s.marj !== undefined ? yuzdeYaz(s.marj) : '—'}
+              </td>
+            </tr>
+          ))}
+        </tbody>
+      </table>
     </div>
   )
 }
