@@ -528,7 +528,19 @@ export const BUSINESS_WORKSPACE_MODULE_REGISTRY: BusinessWorkspaceModule[] = def
     // sektör şablonunun ihtiyaç duyduğu yüzey. Kapsam kararı ADR-002'nindir ve
     // ürün sahibi tarafından güncellenmiştir — mekanizma değişmedi, liste değişti.
     // Sebep: Bildirim zili başlıkta zaten var; merkezi de erişilebilir olmalı.
-    foundationScope: 'core',
+    //
+    // ⚠️ 2026-10-14 · DONDURULDU. `pages/NotificationCenter.tsx` içeriğini
+    // `notification-engine.service` + `loadKpiSourceData()` üzerinden
+    // kuruyor; ikincisi 28 `.mock` modülünden besleniyor. Yani merkez
+    // uydurma uyarılar gösteriyordu — kullanım kılavuzunda "bildirim yok"
+    // yazarken ekranda dolu bir bildirim listesi olması, müşteriye
+    // söylenen bir yalandır.
+    //
+    // Başlıktaki ZİL ETKİLENMEZ: o `notifications/evren360-notification
+    // .service` üzerinden başvuru ve lisans bildirimlerini okuyor, gerçek
+    // kaynaktan, ve bu rotaya gitmiyor. Gerçek bir operasyon bildirimi
+    // altyapısı yazıldığında bu modül `'core'`a döner.
+    foundationScope: 'frozen',
     code: WORKSPACE_MODULE_CODES.NOTIFICATIONS,
     name: 'Bildirimler',
     description: 'Çalışma alanı bildirimleri için merkezi sistem modülü.',
@@ -661,7 +673,14 @@ export const BUSINESS_WORKSPACE_MODULE_REGISTRY: BusinessWorkspaceModule[] = def
       //
       // Yapılandırma alanı doğru yer: yedek bir işlem değil, işletmenin
       // veri politikasının parçası. Kullanıcı burada arar.
-      menuItem({ key: 'veri-yedegi', label: 'Veri ve Yedekleme', route: 'veri-yedegi', icon: 'VY', requiredPermission: 'audit.read', adminOnly: true, displayOrder: 110 }),
+      // ⚠️ `audit.read` → `company.manage` (14.10.2026).
+      // Bu ekran işletmenin BÜTÜN verisini dışarı çıkarabiliyor. `audit.read`
+      // ile açılıyordu; o izin muhasebeci, kalite sorumlusu ve görüntüleyicide
+      // de var. Yani dışarıdan gelen bir danışman (Görüntüleyici rolü, ki
+      // açıklaması "hiçbir şeyi değiştiremez" diyor) tüm veritabanını
+      // indirebiliyordu. Veri ihracı bir OKUMA değil, bir işletme yönetimi
+      // işidir; kapısı da öyle olmalı.
+      menuItem({ key: 'veri-yedegi', label: 'Veri ve Yedekleme', route: 'veri-yedegi', icon: 'VY', requiredPermission: 'company.manage', displayOrder: 110 }),
       // Sistemin bütün belgelerindeki değişiklikler. Stok'un altındayken
       // adı da yeri de yanlıştı (bkz. business-stock'taki not).
       menuItem({ key: 'islem-gecmisi', label: 'Değişiklik Kaydı', route: 'islem-gecmisi', icon: 'DK', requiredPermission: 'audit.read', adminOnly: true, displayOrder: 120 })
@@ -1344,13 +1363,37 @@ export const BUSINESS_WORKSPACE_MODULE_REGISTRY: BusinessWorkspaceModule[] = def
       // Bu modül kiracıda etkin olmadığı için buradaki öge hiç üretilmiyordu.
       // İKİ YERDE BİRDEN DURMAZ: Raporlama modülü bir gün açılırsa öge
       // oradan silinip buraya geri alınır, kopyalanmaz.
-      menuItem({ key: 'daily-production-analytics', label: 'Günlük Üretim Analizi', route: 'daily-production-analytics', icon: 'GA', adminOnly: true, displayOrder: 20 }),
-      menuItem({ key: 'weekly-production-analytics', label: 'Haftalık Üretim Analizi', route: 'weekly-production-analytics', icon: 'HA', adminOnly: true, displayOrder: 30 }),
-      menuItem({ key: 'shipment-analytics', label: 'Sevkiyat Analizi', route: 'shipment-analytics', icon: 'SA', adminOnly: true, displayOrder: 40 }),
-      menuItem({ key: 'waste-analytics', label: 'Fire Analizi', route: 'waste-analytics', icon: 'FA', adminOnly: true, displayOrder: 50 }),
-      menuItem({ key: 'cost-analytics', label: 'Maliyet Analizi', route: 'cost-analytics', icon: 'MA', adminOnly: true, displayOrder: 60 }),
-      menuItem({ key: 'warehouse-performance-analytics', label: 'Depo Performansı', route: 'warehouse-performance-analytics', icon: 'DP', adminOnly: true, displayOrder: 70 }),
-      menuItem({ key: 'personnel-performance-analytics', label: 'Personel Performansı', route: 'personnel-performance-analytics', icon: 'PP', adminOnly: true, displayOrder: 80 })
+      // ═══════════════════════════════════════════════════════════════════
+      // ⚠️ YEDİSİ DE DONDURULDU — 14.10.2026 · MOCK VERİ
+      //
+      // Emrah'ın kuralı: *"Mock veri asla ama asla olmayacak. Gerekirse biz
+      // tek tek girer doldurur sonra o verilerle müşteriye gideriz."*
+      //
+      // Codex denetimi (`docs/yeni-kiraci-eksikleri-2026-10-14.md`) bu yedi
+      // ekranın veriyi NEREDEN aldığını gösterdi: `kpi-source.service.ts`
+      // üzerinden tarayıcıdaki mock üreticilerine. Ve o üreticiler veriyi
+      // OKUMUYOR, DOĞURUYOR:
+      //
+      //   `ra_recipes` anahtarı BOŞ DİZİ verilse bile → 58 reçete
+      //   mock iş emri 10 · üretim hattı 5 · HACCP kaydı 3 · lot 20
+      //
+      // Yani tertemiz bir kiracıda bile bu ekranlar dolu grafikler gösterir.
+      // Menüde değillerdi ama ROTALARI AÇIKTI: adres çubuğuna yazan görür.
+      // Demo sırasında müşteri ya da gıda mühendisi bu ekranlardan birine
+      // düşse, gördüğü her rakam uydurma olurdu.
+      //
+      // `foundationScope: 'frozen'` rotayı kapatır (`isFrozenWorkspaceRoute`
+      // → `BusinessWorkspaceRouteHost` ilk satırda `null` döner). Ekranların
+      // KODU yerinde duruyor; gerçek deftere bağlandıkları gün dondurma
+      // kaldırılır. Silmiyoruz çünkü sorun ekranlar değil, kaynakları.
+      // ═══════════════════════════════════════════════════════════════════
+      menuItem({ key: 'daily-production-analytics', label: 'Günlük Üretim Analizi', route: 'daily-production-analytics', icon: 'GA', foundationScope: 'frozen', displayOrder: 20 }),
+      menuItem({ key: 'weekly-production-analytics', label: 'Haftalık Üretim Analizi', route: 'weekly-production-analytics', icon: 'HA', foundationScope: 'frozen', displayOrder: 30 }),
+      menuItem({ key: 'shipment-analytics', label: 'Sevkiyat Analizi', route: 'shipment-analytics', icon: 'SA', foundationScope: 'frozen', displayOrder: 40 }),
+      menuItem({ key: 'waste-analytics', label: 'Fire Analizi', route: 'waste-analytics', icon: 'FA', foundationScope: 'frozen', displayOrder: 50 }),
+      menuItem({ key: 'cost-analytics', label: 'Maliyet Analizi', route: 'cost-analytics', icon: 'MA', foundationScope: 'frozen', displayOrder: 60 }),
+      menuItem({ key: 'warehouse-performance-analytics', label: 'Depo Performansı', route: 'warehouse-performance-analytics', icon: 'DP', foundationScope: 'frozen', displayOrder: 70 }),
+      menuItem({ key: 'personnel-performance-analytics', label: 'Personel Performansı', route: 'personnel-performance-analytics', icon: 'PP', foundationScope: 'frozen', displayOrder: 80 })
     ]
   },
   {
@@ -1359,7 +1402,23 @@ export const BUSINESS_WORKSPACE_MODULE_REGISTRY: BusinessWorkspaceModule[] = def
     // sektör şablonunun ihtiyaç duyduğu yüzey. Kapsam kararı ADR-002'nindir ve
     // ürün sahibi tarafından güncellenmiştir — mekanizma değişmedi, liste değişti.
     // Sebep: Sektöre özel karar destek yüzeyi.
-    foundationScope: 'core',
+    // ⚠️ 2026-10-14 · DONDURULDU. On rotası AÇIKTI (menüde görünmüyordu,
+    // çünkü lisanslı iş modülü; ama `foundationScope: 'core'` olduğu için
+    // adres çubuğundan açılıyordu): decision-support, critical-alerts,
+    // forecasting, recommendation-engine, ai-analysis, cost-optimization,
+    // purchase-recommendations, production-planning-recommendations,
+    // waste-predictions, shipment-optimization.
+    //
+    // Onunun da tek veri kaynağı `kpi-reporting/kpi-source.service.ts` ve
+    // o dosya YİRMİ SEKİZ ayrı `.mock` modülünden besleniyor. Yani bu
+    // ekranlar işletmenin defterini okumuyor, kendi verisini ÜRETİYOR —
+    // Raporlama'nın yedi ekranında yakalanan şeyin aynısı (`ra_recipes='[]'`
+    // iken 58 reçete gösteriyorlardı).
+    //
+    // Menüde "Yapay Zeka Analizi" satırı da vardı; satış dili kararı
+    // gereği "yapay zeka" ifadesi kullanılmıyor (teknik başlık: kural
+    // motoru). Ekran gerçek deftere bağlanınca adı da buna göre konur.
+    foundationScope: 'frozen',
     code: DECISION_SUPPORT_WORKSPACE_MODULE_CODE,
     name: 'Karar Destek',
     description: 'Industrial Kitchen karar destek merkezi, kritik alarm, tahminleme, otomatik oneri, AI analiz, maliyet optimizasyonu, satin alma, uretim planlama, fire ve sevkiyat optimizasyonu onerileri icin ana calisma alani.',
@@ -2039,7 +2098,10 @@ export const BUSINESS_WORKSPACE_MODULE_REGISTRY: BusinessWorkspaceModule[] = def
       menuItem({ key: 'continuous-improvement', foundationScope: 'frozen', label: 'Iyilestirme Firsatlari', route: 'continuous-improvement', icon: 'CI', adminOnly: true, displayOrder: 9.7 }),
       // Postgres'e bağlı YENİ reçete ekranı. Üretimin ilk halkası budur:
       // iş emri reçetenin üzerine kurulur, o yüzden menüde de önce geliyor.
-      menuItem({ key: 'receteler', label: 'Reçeteler', route: 'receteler', icon: 'RC', adminOnly: true, displayOrder: 5 }),
+      menuItem({ key: 'receteler', label: 'Reçeteler', route: 'receteler', icon: 'RC',
+        // Codex denetimi 12.10: modülden `production.read` devralıyordu.
+        // Reçeteyi açan şey üretim izni değil, reçete iznidir.
+        requiredPermission: 'recipe.read', displayOrder: 5 }),
       // Postgres'e bağlı YENİ iş emri ekranı. Reçetenin hemen ardında:
       // zincirin sırası menüde de görünsün.
       menuItem({ key: 'uretim-emirleri', label: 'İş Emirleri', route: 'uretim-emirleri', icon: 'IE', adminOnly: true, displayOrder: 6 }),
@@ -2065,15 +2127,23 @@ export const BUSINESS_WORKSPACE_MODULE_REGISTRY: BusinessWorkspaceModule[] = def
       // çıkar, o yüzden zincirin sırası menüde de görünsün. Sevkiyatla aynı
       // modülde çünkü Lojistik modülü bu kiracıda kapalı — oraya konan öge
       // menüde hiç görünmüyor (module-route-health.test.ts'in yazılma sebebi).
-      menuItem({ key: 'musteriler', label: 'Müşteriler', route: 'musteriler', icon: 'MU', adminOnly: true, displayOrder: 6.4 }),
+      menuItem({ key: 'musteriler', label: 'Müşteriler', route: 'musteriler', icon: 'MU',
+        // Codex denetimi 12.10: `production.read` devralıyordu — depo
+        // sorumlusu müşteri defterini görüyordu. Emrah da sormuştu.
+        requiredPermission: 'operations.read', displayOrder: 6.4 }),
       // Sipariş, müşteri kartından SONRA ve sevkiyattan ÖNCE: zincirin sırası
       // menüde de görünsün (sipariş → sevkiyat).
-      menuItem({ key: 'siparisler', label: 'Siparişler', route: 'siparisler', icon: 'SP', adminOnly: true, displayOrder: 6.45 }),
+      menuItem({ key: 'siparisler', label: 'Siparişler', route: 'siparisler', icon: 'SP',
+        // Codex denetimi 12.10: `production.read` devralıyordu.
+        requiredPermission: 'operations.read', displayOrder: 6.45 }),
       // ⚠️ Sevkiyat ÜRETİM modülünün altında duruyor, Lojistik'in değil.
       // Lojistik modülü bu kiracıda açık değil; oraya konulan öge menüde hiç
       // görünmedi. Zincirin sırası da bunu destekliyor: reçete → iş emri →
       // sevkiyat → izlenebilirlik hepsi aynı hikâyenin parçası.
-      menuItem({ key: 'sevkiyatlar', label: 'Sevkiyatlar', route: 'sevkiyatlar', icon: 'SK', adminOnly: true, displayOrder: 6.5 }),
+      menuItem({ key: 'sevkiyatlar', label: 'Sevkiyatlar', route: 'sevkiyatlar', icon: 'SK',
+        // Codex denetimi 12.10: `production.read` devralıyordu; sevkiyatın
+        // kendi izni var.
+        requiredPermission: 'logistics.read', displayOrder: 6.5 }),
       // ⚠️ İZLENEBİLİRLİK VE HACCP BURADA DEĞİL — Kalite departmanında.
       //
       // Buraya konulmuşlardı çünkü Kalite modülü bu kiracıda kapalıydı ve
@@ -2108,7 +2178,13 @@ export const BUSINESS_WORKSPACE_MODULE_REGISTRY: BusinessWorkspaceModule[] = def
   },
   {
     id: 'business-logistics',
-    foundationScope: 'core',
+    // ⚠️ 2026-10-14 · MODÜL DONDURULDU. On iki menü ögesinin tamamı artık
+    // `frozen`; geriye yalnız dondurulmuş bir ekranı (`delivery-notes`) gösteren
+    // bir açılış rotası kalıyordu ve `module-route-health` testi bunu yakaladı.
+    // Modülün kendisini dondurmak doğru cevap: eski lojistik yüzeyinin tamamı
+    // mock + localStorage üzerine kuruluydu. Gerçek sevkiyat/irsaliye akışı
+    // `sevkiyatlar` rotasında (Depo modülü) ve defterden okuyor.
+    foundationScope: 'frozen',
     code: SECTOR_TEMPLATE_MODULE_CODES.COURIER,
     name: 'Lojistik',
     description: 'Merkez depo, üretim, şube ve depo arası sevkiyat emirlerini lot bazında planlayan iş modülü.',
@@ -2278,12 +2354,26 @@ export const BUSINESS_WORKSPACE_MODULE_REGISTRY: BusinessWorkspaceModule[] = def
       menuItem({ key: 'shipment-vehicles', foundationScope: 'frozen', label: 'Araç Planlama', route: 'shipment-vehicles', icon: 'AP', adminOnly: true, displayOrder: 8 }),
       menuItem({ key: 'shipment-plans', foundationScope: 'frozen', label: 'Sevkiyat Planı', route: 'shipment-plans', icon: 'SP', adminOnly: true, displayOrder: 9 }),
       menuItem({ key: 'shipments', foundationScope: 'frozen', label: 'Sevkiyatlar', route: 'shipments', icon: 'SV', adminOnly: true, displayOrder: 10 }),
-      menuItem({ key: 'delivery-notes', label: 'Irsaliyeler', route: 'delivery-notes', icon: 'DN', adminOnly: true, displayOrder: 12 }),
+      // ⚠️ 2026-10-14 · ÜÇÜ DE DONDURULDU (mock + localStorage).
+      // Bu üç ekran veriyi deftere değil TARAYICIYA yazıyordu:
+      //   `delivery-note.service.ts`     → 8 kayıt üretip `ra_delivery_notes`e
+      //   `shipment-execution.mock.ts`   → 15 kayıt üretip `ra_shipment_executions`e
+      //   `shipment-waybill.mock.ts`     → 10 kayıt üretip `ra_shipment_waybills`e
+      // Hiçbiri boş başlamıyordu: localStorage boşsa tohum üretip YAZIYORLARDI.
+      // Üstelik `ShipmentExecutions` 11, `ShipmentWaybills` 15 ayrı `.mock`
+      // modülü okuyor ve `shipment-execution.service.ts` üzerinden GERÇEK stok
+      // hareketi açabiliyordu — yani uydurma veri gerçek deftere dokunuyordu.
+      // Kiracı duvarı da yok: aynı tarayıcıda iki işletme birbirinin kaydını
+      // görürdü (ADR-004 bu ekranlar için hiç çalışmıyordu).
+      // Gerçek sevkiyat ve irsaliye ekranı `sevkiyatlar` rotasıdır
+      // (`src/pages/Sevkiyatlar.tsx`): defterden okur, İrsaliye Yazdır/PDF
+      // verir, `logistics.write` kapısı vardır.
+      menuItem({ key: 'delivery-notes', foundationScope: 'frozen', label: 'Irsaliyeler', route: 'delivery-notes', icon: 'DN', adminOnly: true, displayOrder: 12 }),
       menuItem({ key: 'shipment-forms', foundationScope: 'frozen', label: 'Sevkiyat Formlari', route: 'shipment-forms', icon: 'SF', adminOnly: true, displayOrder: 14 }),
-      menuItem({ key: 'shipment-executions', label: 'Sevkiyat Operasyonu', route: 'shipment-executions', icon: 'SO', adminOnly: true, displayOrder: 20 }),
+      menuItem({ key: 'shipment-executions', foundationScope: 'frozen', label: 'Sevkiyat Operasyonu', route: 'shipment-executions', icon: 'SO', adminOnly: true, displayOrder: 20 }),
       menuItem({ key: 'transfer-receipts', foundationScope: 'frozen', label: 'Depoya Kabul', route: 'transfer-receipts', icon: 'DK', adminOnly: true, displayOrder: 30 }),
       menuItem({ key: 'shipment-returns', foundationScope: 'frozen', label: 'İade Süreci', route: 'shipment-returns', icon: 'IS', adminOnly: true, displayOrder: 40 }),
-      menuItem({ key: 'shipment-waybills', label: 'İrsaliye Süreci', route: 'shipment-waybills', icon: 'IR', adminOnly: true, displayOrder: 50 })
+      menuItem({ key: 'shipment-waybills', foundationScope: 'frozen', label: 'İrsaliye Süreci', route: 'shipment-waybills', icon: 'IR', adminOnly: true, displayOrder: 50 })
     ]
   },
   {
@@ -2477,7 +2567,25 @@ export const BUSINESS_WORKSPACE_MODULE_REGISTRY: BusinessWorkspaceModule[] = def
     // sektör şablonunun ihtiyaç duyduğu yüzey. Kapsam kararı ADR-002'nindir ve
     // ürün sahibi tarafından güncellenmiştir — mekanizma değişmedi, liste değişti.
     // Sebep: Endüstriyel Mutfak şablonunun OPSİYONEL modülü.
-    foundationScope: 'core',
+    //
+    // ⚠️ 2026-10-14 · YENİDEN DONDURULDU. Modül menüde görünmüyordu (lisanslı
+    // modül, çekirdek değil) ama `foundationScope: 'core'` olduğu için sekiz
+    // rotası AÇIKTI: `employee-cards`, `shift-management`, `attendance-tracking`,
+    // `employee-performance`, `employee-bonus`, `employee-audit`,
+    // `employee-reports`, `staff`. Adres çubuğuna yazan `personnel.read` sahibi
+    // — ki buna SALT OKUMA olması gereken `izleyici` de dahil — tam yetkili bir
+    // personel CRUD ekranı açıyordu.
+    //
+    // Asıl sorun görünürlük değil DAYANIKSIZLIK: bu sekiz ekran `storage.ts`
+    // üzerinden localStorage'a yazıyor. Yani kiracı duvarı yok (aynı tarayıcıda
+    // iki işletme birbirinin personelini görür), cihaz değişince veri yok,
+    // defterde iz yok. Kullanıcı kırk personel girer, tablette hiçbiri olmaz.
+    // "Ortaya koyduğumuz şey çalışsın, ...mış gibi yapmasın" kuralının ihlali.
+    //
+    // Personel modülü yol haritasında PİLOT SONRASI. Supabase tablosuna ve
+    // kiracı duvarına bağlandığı gün `'core'`a döner; o güne kadar rotası da
+    // kapalı kalır.
+    foundationScope: 'frozen',
     code: WORKSPACE_MODULE_CODES.PERSONNEL,
     name: 'Personel',
     description: 'Personel kartları, vardiya, puantaj, performans ve denetim süreçlerini yönetir.',
@@ -2607,7 +2715,10 @@ export const BUSINESS_WORKSPACE_MODULE_REGISTRY: BusinessWorkspaceModule[] = def
     ],
     menuItems: [
       menuItem({ key: 'branch-directory', label: 'Şube Yönetimi', route: 'branches', icon: 'SB', adminOnly: true, displayOrder: 5 }),
-      menuItem({ key: 'branch-permissions', label: 'Şube Yetkilendirme', route: 'branch-permissions', icon: 'SY', adminOnly: true, displayOrder: 10 }),
+      menuItem({ key: 'branch-permissions', label: 'Şube Yetkilendirme', route: 'branch-permissions', icon: 'SY',
+        // Codex denetimi 12.10: `branch.read` ile açılıyordu. Şube YETKİSİ
+        // dağıtmak okuma işi değil, yönetim işidir.
+        requiredPermission: 'branch.manage', displayOrder: 10 }),
       menuItem({ key: 'branch-reporting', foundationScope: 'frozen', label: 'Şubeler Arası Raporlama', route: 'branch-reporting', icon: 'SR', adminOnly: true, displayOrder: 20 }),
       menuItem({ key: 'branch-stock-transfers', foundationScope: 'frozen', label: 'Şubeler Arası Stok Transferi', route: 'branch-stock-transfers', icon: 'ST', adminOnly: true, displayOrder: 30 }),
       menuItem({ key: 'head-office-management', foundationScope: 'frozen', label: 'Merkez Ofis Yönetimi', route: 'head-office-management', icon: 'MO', adminOnly: true, displayOrder: 40 })

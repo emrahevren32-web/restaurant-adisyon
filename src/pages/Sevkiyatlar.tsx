@@ -17,6 +17,7 @@
 // ═══════════════════════════════════════════════════════════════════════════
 
 import React from 'react'
+import { yazabilirMi } from '../authorization/yazma-yetkisi'
 import type { User } from '../types'
 import { getSupabase, isSupabaseConfigured } from '../core/supabase'
 import { createStockRepository, resolveStockRepositoryMode } from '../core/stock/index'
@@ -88,7 +89,11 @@ const enGecTarih = (() => {
 
 export default function Sevkiyatlar({ currentUser }: Props){
   const mod = resolveStockRepositoryMode()
-  const yazabilir = !currentUser.permissions || currentUser.permissions.includes('stock.write')
+  // ⚠️ `stock.write` DEĞİL `logistics.write` (14.10, Codex denetimi).
+  // Sevkiyat bir lojistik eylemidir. Stok yazma izni olan herkes
+  // (örn. operasyon personeli) sevkiyat çıkarabiliyordu; oysa onun
+  // açıklaması sevkiyattan hiç söz etmiyor.
+  const yazabilir = yazabilirMi(currentUser, 'logistics.write')
 
   const [baglam, setBaglam] = React.useState<DepoBaglami | null>(null)
   const [sevkiyatlar, setSevkiyatlar] = React.useState<Sevkiyat[]>([])

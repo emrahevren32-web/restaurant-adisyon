@@ -14,6 +14,7 @@
 // ═══════════════════════════════════════════════════════════════════════════
 
 import React from 'react'
+import { yazabilirMi } from '../authorization/yazma-yetkisi'
 import type { User } from '../types'
 import { getSupabase, isSupabaseConfigured } from '../core/supabase'
 import { createStockRepository, resolveStockRepositoryMode } from '../core/stock/index'
@@ -49,7 +50,13 @@ const durumSinifi = (durum: ReceteDurumu) =>
 
 export default function ProductionRecipes({ currentUser }: Props){
   const mod = resolveStockRepositoryMode()
-  const yazabilir = !currentUser.permissions || currentUser.permissions.includes('production.write')
+  // ⚠️ `production.write` DEĞİL `recipe.write` (14.10, Codex denetimi).
+  // Menü ögesi 12.10'da `recipe.read`e çevrilmişti ama yazma kapısı
+  // üretim iznine bağlı kalmıştı: reçeteyi değiştiremeyecek bir rol
+  // (kalite, gıda mühendisi) üretim yazma izni taşıyorsa düğmeyi
+  // açabiliyordu. Rol açıklaması tam tersini söylüyor:
+  // "Reçeteyi DEĞİŞTİREMEZ."
+  const yazabilir = yazabilirMi(currentUser, 'recipe.write')
 
   const [baglam, setBaglam] = React.useState<DepoBaglami | null>(null)
   const [receteler, setReceteler] = React.useState<Recete[]>([])

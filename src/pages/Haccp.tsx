@@ -21,6 +21,7 @@
 // ═══════════════════════════════════════════════════════════════════════════
 
 import React from 'react'
+import { yazabilirMi } from '../authorization/yazma-yetkisi'
 import type { User } from '../types'
 import { getSupabase, isSupabaseConfigured } from '../core/supabase'
 import { resolveStockRepositoryMode } from '../core/stock/index'
@@ -74,9 +75,11 @@ const KAYNAK_ETIKETLERI: Record<OlcumKaynagi, string> = {
 
 export default function Haccp({ currentUser }: Props){
   const mod = resolveStockRepositoryMode()
-  const yazabilir = !currentUser.permissions
-    || currentUser.permissions.includes('quality.write')
-    || currentUser.permissions.includes('stock.write')
+  // ⚠️ `stock.write` KALDIRILDI (14.10, Codex denetimi).
+  // Stok yazma izni, kalite eylemini açıyordu: DEPO SORUMLUSU HACCP
+  // ölçümü girip düzeltici faaliyet kapatabiliyordu. Kalite kaydı
+  // kalitenin imzasıdır; başka bir yetkiyle açılamaz.
+  const yazabilir = yazabilirMi(currentUser, 'quality.write')
 
   const [baglam, setBaglam] = React.useState<DepoBaglami | null>(null)
   const [ccpler, setCcpler] = React.useState<Ccp[]>([])

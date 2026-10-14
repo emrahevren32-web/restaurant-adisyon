@@ -12,6 +12,7 @@
 // ═══════════════════════════════════════════════════════════════════════════
 
 import React from 'react'
+import { yazabilirMi } from '../authorization/yazma-yetkisi'
 import type { User } from '../types'
 import { getSupabase, isSupabaseConfigured } from '../core/supabase'
 import { resolveStockRepositoryMode } from '../core/stock/index'
@@ -61,9 +62,11 @@ const sayiya = (d: string): number | undefined => {
 
 export default function Etiketler({ currentUser }: Props){
   const mod = resolveStockRepositoryMode()
-  const yazabilir = !currentUser.permissions
-    || currentUser.permissions.includes('quality.write')
-    || currentUser.permissions.includes('products.write')
+  // ⚠️ `quality.declaration` (14.10, Codex denetimi).
+  // Bu izin 0073'te TAM BU İŞ İÇİN açılmıştı — alerjen ve besin beyanı
+  // yazmak — ve ekran onu hiç sormuyordu. `products.write` taşıyan bir
+  // rol beyan yazabiliyordu; beyan, imzalayanın sorumluluğundadır.
+  const yazabilir = yazabilirMi(currentUser, 'quality.declaration')
 
   const [baglam, setBaglam] = React.useState<DepoBaglami | null>(null)
   const [katalog, setKatalog] = React.useState<Alerjen[]>([])
