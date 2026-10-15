@@ -100,3 +100,58 @@ describe('yazma kapıları veritabanında', () => {
     expect(SQL).toContain("'0081: su rollerde quality.record.manage OLMAMALI")
   })
 })
+
+describe('0082 · faaliyet kapısının dört deliği', () => {
+  // ── NEDEN BU BLOK ──────────────────────────────────────────────────────
+  // 0081 kapıyı taktı, Codex denetimi (15.10) yanından dolaşan dört yol
+  // buldu. Dördü de "kapıyı kolon kolon düşünmenin" bedeliydi: hangi
+  // kolonun değiştiğine bakıyordum, oysa doğru soru SATIRIN DURUMU idi.
+
+  const govde = () => {
+    const m = /create or replace function app\.haccp_faaliyet_izni\(\)[\s\S]*?\$\$;/g
+    const hepsi = [...SQL.matchAll(m)]
+    // Son tanım geçerlidir: 0082, 0081'in üstüne yazıyor.
+    return hepsi[hepsi.length - 1]?.[0] ?? ''
+  }
+
+  it('DELİK 1 · iptal de kapanıştır — `CANCELLED` dar izin istiyor', () => {
+    expect(govde()).toMatch(/in \('COMPLETED', 'CANCELLED'\)/)
+  })
+
+  it('DELİK 2+3 · kapanmış bir satıra DOKUNMAK dar izin istiyor', () => {
+    // Kolon saymak yerine durumu temel almak: yarın eklenen kolon
+    // kendiliğinden kapsanıyor.
+    expect(govde()).toMatch(/or \(old\.status in \('COMPLETED', 'CANCELLED'\)\)/)
+  })
+
+  it('DELİK 2 · imza HER AN korunuyor, yalnız kapanışta değil', () => {
+    // 0081 yalnız `v_kapanis` anında yazıyordu; sonrası serbestti ve
+    // `completed_by = null` geçiyordu.
+    expect(govde()).toMatch(/elsif tg_op = 'UPDATE' then\s*\n\s*new\.completed_by := old\.completed_by/)
+  })
+
+  it('DELİK 4 · ölçüm bağı İZİNLE BİLE değiştirilemiyor', () => {
+    expect(govde()).toMatch(/measurement_id is distinct from old\.measurement_id/)
+    expect(govde()).toMatch(/MI425/)
+  })
+
+  it('oturumsuz serbestlik artık `anon`u DIŞLIYOR', () => {
+    // 0081'in yorumu "PostgREST'ten gelen her çağrının oturumu vardır"
+    // diyordu. Yanlıştı. Artık rol de sınanıyor.
+    expect(SQL).toMatch(/create or replace function app\.bakim_baglami\(\)/)
+    expect(SQL).toMatch(/current_user not in \('anon', 'authenticated'\)/)
+    expect(govde()).toMatch(/app\.bakim_baglami\(\)/)
+  })
+
+  it('⚠️ ACL KONTROLÜ ARTIK ÇALIŞIYOR — `acldefault` olmadan kördü', () => {
+    // 0081: `aclexplode(p.proacl)`. `proacl` NULL olduğunda — ki VARSAYILAN
+    // budur, yani yakalanması gereken hâl — hiç satır dönmüyor ve kontrol
+    // "temiz" diyordu. Kontrolün kendisi aradığı şeyi göremiyordu.
+    expect(SQL).toMatch(/acldefault\('f', p\.proowner\)/)
+  })
+
+  it('dört tetik fonksiyonunda da PUBLIC EXECUTE kapatıldı', () => {
+    expect(SQL).toMatch(/revoke all on function %s from public/)
+    expect(SQL).toContain("'app.izin_gerek()', 'app.haccp_olcum_izni()'")
+  })
+})
