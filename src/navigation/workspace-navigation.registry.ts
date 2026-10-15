@@ -122,7 +122,38 @@ const createMenuNode = (
       && permissionAllows
       && item.visible !== false && !item.hidden && (Boolean(item.route) || hasChildren),
     expandedByDefault: item.expandedByDefault ?? false,
-    adminOnly: item.adminOnly,
+    /**
+     * ⚠️ `adminOnly` BİLEREK TAŞINMIYOR — ve bu, bulunmuş bir hatanın
+     * düzeltmesidir.
+     *
+     * ── NE OLDU (12.10.2026) ─────────────────────────────────────────────
+     * Emrah işletmesinin ilk personelini (depo sorumlusu) açtı, kişi giriş
+     * yaptı ve MENÜSÜ TAMAMEN BOŞ geldi. Ölçtük: menüdeki 152 ögenin 146'sı
+     * `adminOnly: true` taşıyordu ve `AppShell`, `adminOnly` ögeyi
+     * `currentUser.role !== 'Admin'` olan herkesten gizliyordu.
+     *
+     * `role` alanı yalnız iki değer taşır: 'Admin' | 'Personel' (eski
+     * adisyon uygulamasından kalma). İşletme sahibi ve müdür 'Admin'e
+     * düşüyor, DİĞER 9 ROLÜN TAMAMI 'Personel'e. Yani depo sorumlusu,
+     * kalite sorumlusu, gıda mühendisi — hepsi boş menü görüyordu.
+     * 13 rol ve 34 izinlik yetki çerçevesi (0014/0015/0036) menüde hiç
+     * işlemiyordu; onu eski bir boolean eziyordu.
+     *
+     * Ölçüm: izinden gelen menü HER ROL İÇİN doğru çıkıyor —
+     * depo sorumlusu 14 ekran, satın alma 7, muhasebe 3, izleyici 10;
+     * yöneticilerin menüsü ise HİÇ DEĞİŞMİYOR (izinleri zaten tam).
+     *
+     * ── NEDEN SİLMEK GÜVENLİ ─────────────────────────────────────────────
+     * Kapı yukarıdaki `requiredPermission`dır ve BOŞ KALMAZ: öge kendi
+     * iznini söylemezse modülünkini devralır (`module.permissions[0]`).
+     * Modüllerin izin listeleri de doğru sıralı — yönetim modülleri
+     * `users.manage`, `roles.manage`, `settings.manage`, `company.manage`
+     * ile başlıyor. Yani "Kullanıcılar", "Şirket Ayarları" gibi ekranlar
+     * izinle korunuyor, bayrakla değil.
+     *
+     * ⚠️ `platformAdminOnly` AYRI BİR ŞEYDİR ve DURUYOR: o, müşterinin
+     * hiçbir izinle açamayacağı platform yüzeyidir.
+     */
     platformAdminOnly: item.platformAdminOnly,
     badge: item.badge,
     locked: item.locked,

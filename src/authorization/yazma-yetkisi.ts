@@ -45,8 +45,18 @@ import type { User } from '../types'
  * Yani yetkisi olan kişi buraya hiçbir zaman `undefined` ile gelmiyor.
  *
  * ⚠️ Bu bir GÜVENLİK SINIRI DEĞİL, bir ARAYÜZ kapısıdır: amacı kullanıcıya
- * çalışmayacak düğme göstermemek. Gerçek sınır veritabanında (RLS + sütun
- * seviyesi GRANT). Tarayıcıdaki listeyi değiştiren biri yine yazamaz.
+ * çalışmayacak düğme göstermemek.
+ *
+ * ⚠️ 14.10 DÜZELTME — BU YORUM YANLIŞTI. Burada "gerçek sınır
+ * veritabanındadır" yazıyordu ve Codex denetimi bunun DOĞRU OLMADIĞINI
+ * gösterdi: `recipe`, `haccp_*` ve `shipment` tablolarında RLS yalnız
+ * KİRACI eşitliğine bakıyordu, izne değil. Yani konsoldan repository'yi
+ * çağıran biri yazabiliyordu. Bir yorumun doğru olduğunu varsaymak,
+ * kapının takılı olduğunu varsaymaktır.
+ *
+ * 0081 bunu düzeltti: her tablonun kendi `izin_*` tetiği var ve izni
+ * olmayan çağrı MI403 ile reddediliyor. Artık burası gerçekten yalnız
+ * arayüz nezaketi — sınır veritabanında.
  */
 export const yazabilirMi = (
   user: User | null | undefined,
@@ -65,3 +75,17 @@ export const yazabilirMi = (
  */
 export const YAZMA_YETKISI_YOK =
   'Bu ekranda değişiklik yapma yetkiniz yok; kayıtları görüntüleyebilirsiniz.'
+
+/**
+ * HACCP kaydını DÜZELTME yetkisi (0081).
+ *
+ * `quality.write` ölçüm girer; `quality.record.manage` ölçümü iptal eder ve
+ * düzeltici faaliyeti kapatır. İkincisi kalite sorumlusu, gıda mühendisi,
+ * işletme müdürü ve işletme sahibindedir.
+ */
+export const KALITE_KAYIT_DUZELTME = 'quality.record.manage'
+
+export const KAPATMA_YETKISI_YOK =
+  'Düzeltici faaliyeti kapatmak kalite kararıdır. Ölçümü siz girebilirsiniz '
+  + 'ama "çözüldü" beyanını kalite sorumlusu, gıda mühendisi ya da yönetim '
+  + 'yazar. Yapılan işi not alıp onlara bildirin.'

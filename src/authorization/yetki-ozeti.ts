@@ -51,6 +51,10 @@ export const IZIN_ETIKETLERI: Record<string, IzinEtiketi> = {
   /* 0073 — Emrah: "o rol/yetki kime verildiyse o personel yapabilsin".
      Ölçüm girmek ile ETİKETE BASILAN YASAL BEYANI yazmak ayrı iki iş. */
   'quality.declaration':{ alan: 'Kalite', cumle: 'ETİKET BEYANINI yazar (alerjen ve besin değeri)' },
+  /* 0081 — ölçüm girmek ile kaydı DÜZELTMEK ayrı iki iş. Fırının
+     başındaki kişi ölçer; sapmayı kayıttan düşürmek ve "çözüldü"
+     demek kalite kararıdır. */
+  'quality.record.manage':{ alan: 'Kalite', cumle: 'Ölçümü İPTAL EDER, düzeltici faaliyeti KAPATIR' },
   'logistics.read':    { alan: 'Sevkiyat',  cumle: 'Sevkiyat ve irsaliyeleri görür' },
   'logistics.write':   { alan: 'Sevkiyat',  cumle: 'Sevkiyat yürütür ve İRSALİYE KESER' },
   'operations.read':   { alan: 'Sipariş',   cumle: 'Sipariş defterini görür' },
@@ -191,6 +195,10 @@ export const KRITIK_IZINLER = [
   // alerjen beyanı insanı hastaneye düşürür.
   'stock.write', 'operations.approve', 'logistics.write', 'users.manage',
   'quality.declaration',
+  // ⚠️ 0081 — düzeltici faaliyeti kapatmak "sorun çözüldü" beyanıdır.
+  // Denetimde sorulan ilk şey budur ve yanlış kişideyse HACCP kaydının
+  // tamamı tartışmalı hâle gelir.
+  'quality.record.manage',
 ] as const
 
 export const kritikYetkiler = (izinler: readonly string[]): string[] => {

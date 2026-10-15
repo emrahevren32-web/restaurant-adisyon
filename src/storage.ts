@@ -1,5 +1,6 @@
 import { normalizeIdentifier } from './core/identifier'
 import { getSupabase, isSupabaseConfigured } from './core/supabase'
+import { girisAdresiniCoz } from './auth/giris-adresi'
 import {
   ActionLog,
   ActionLogType,
@@ -4241,9 +4242,45 @@ export const saveSettings = (settings: SystemSettings) => {
   localStorage.setItem(KEY_SETTINGS, JSON.stringify(normalizeSettings(settings)))
 }
 
+/**
+ * Firma kapsamında tam yetkili rol kodları.
+ *
+ * ⚠️ `COMPANY_WIDE_ROLE_CODES` ile AYNI listedir ama o, bu dosyada DAHA
+ * AŞAĞIDA tanımlı. Normalleştirici modül yüklenirken de çağrılabildiği için
+ * burada kendi kopyası duruyor; aşağıdaki liste değişirse bu da değişmeli.
+ * (İkisini tek yere indirmek ayrı bir iş — bkz. tuzak 66.)
+ */
+const FIRMA_GENELI_ROLLER = ['super_admin', 'admin', 'isletme_sahibi', 'isletme_muduru']
+
+/**
+ * ⚠️ BU NORMALLEŞTİRİCİ ÜÇ ALANI SESSİZCE DÜŞÜRÜYORDU (12.10.2026).
+ *
+ * Eski gövdesi yalnız eski alanları kopyalıyordu; `permissions`, `roleCode`,
+ * `email` ve `mustChangePassword` dönen nesnede HİÇ YOKTU. Bir `User` buradan
+ * geçtiği anda:
+ *
+ *   1. `permissions` → `undefined`. `route-permission.ts` `undefined`i
+ *      "henüz yüklenmedi" sayıp SÜZME YAPMIYOR; yani izin listesi kaybolan
+ *      kullanıcı her ekranı açabilir hâle geliyordu. Menü süzgeci de
+ *      (`App.tsx`) aynı şekilde devre dışı kalıyordu. Yetki çerçevesinin
+ *      tamamı tek bir alan kaybıyla kalkıyordu.
+ *   2. `roleCode` → `undefined`. İzinler bir sonraki yüklemede kişinin kendi
+ *      rolünden değil kaba `Admin|Personel` tahmininden okunuyordu — tam
+ *      olarak 2026-08-29'da düzeltilen hatanın geri gelmesi.
+ *   3. `mustChangePassword` → `undefined`. Geçici şifre kapısı (0076)
+ *      sessizce ATLANIYORDU: yöneticinin bildiği şifreyle giren kişi
+ *      doğrudan içeri düşüyordu.
+ *
+ * Codex denetimi de aynı yere işaret etti (bulgu 1):
+ * docs/menu-ekran-izin-denetimi-2026-10-12.md
+ *
+ * ⚠️ Kural: bir normalleştirici tanımadığı alanı atabilir — ama attığı şey
+ * bir YETKİ alanıysa, attığı şey sessizce açılan bir kapıdır.
+ */
 const normalizeUser = (item: Partial<User>): User => {
   const companyId = String(item.companyId || '').trim()
   const role = String(item.role || '').trim()
+  const roleCode = String(item.roleCode || '').trim()
 
   return {
     id: String(item.id || `user_${Date.now()}`),
@@ -4253,8 +4290,18 @@ const normalizeUser = (item: Partial<User>): User => {
     phone: String(item.phone || '').trim(),
     profilePhotoUrl: String(item.profilePhotoUrl || '').trim(),
     username: String(item.username || '').trim(),
+    email: item.email || undefined,
     password: String(item.password || ''),
-    role: role === 'Personel' || role === 'Garson' ? 'Personel' : 'Admin',
+    // ⚠️ Kaba ayrım artık ÖNCE gerçek rol kodundan türüyor. Rol kodu varsa
+    // tahmin yok; yoksa eski metin mantığı korunuyor (geriye dönük veri).
+    role: roleCode
+      ? (FIRMA_GENELI_ROLLER.includes(roleCode) ? 'Admin' : 'Personel')
+      : (role === 'Personel' || role === 'Garson' ? 'Personel' : 'Admin'),
+    roleCode: roleCode || undefined,
+    // ⚠️ `undefined` KORUNUYOR, `[]`e ÇEVRİLMİYOR: ikisi ayrı şey.
+    // `undefined` = "henüz yüklenmedi", `[]` = "hiçbir izni yok".
+    permissions: item.permissions ? [...item.permissions] : undefined,
+    mustChangePassword: item.mustChangePassword === true,
     active: item.active !== false
   }
 }
@@ -5132,16 +5179,32 @@ export const getCurrentUser = (): User | null => {
  */
 const COMPANY_WIDE_ROLE_CODES = ['super_admin', 'admin', 'isletme_sahibi', 'isletme_muduru']
 
-export const authenticateUser = async (email: string, password: string): Promise<User | null> => {
+/**
+ * Girişi açan tek kapı.
+ *
+ * ⚠️ İLK PARAMETRE ARTIK "E-POSTA" DEĞİL, "KULLANICI ADI YA DA E-POSTA".
+ * Personelin e-postası yok (bkz. src/auth/giris-adresi.ts); yazdığı
+ * kullanıcı adı burada, girişten ÖNCE, gerçek giriş adresine çevriliyor.
+ * Çeviri burada duruyor ki her giriş yolu — giriş ekranı, yedek geri
+ * yükleme, testler — aynı kapıdan geçsin; ekranların birinde unutulsaydı
+ * o yoldan girenler sessizce kapıda kalırdı.
+ */
+export const authenticateUser = async (
+  email: string,
+  password: string,
+  isletmeKodu?: string
+): Promise<User | null> => {
   if(!isSupabaseConfigured()) return null
 
   const supabase = getSupabase()
-  const { data: authData, error: authError } = await supabase.auth.signInWithPassword({ email, password })
+  const girisAdresi = await girisAdresiniCoz(email, isletmeKodu)
+  const { data: authData, error: authError } =
+    await supabase.auth.signInWithPassword({ email: girisAdresi, password })
   if(authError || !authData?.user) return null
 
   const { data: appUserRow, error: appUserError } = await supabase
     .from('app_user')
-    .select('id, tenant_id, company_id, username, full_name, phone, profile_photo_url, role_code, is_active')
+    .select('id, tenant_id, company_id, username, full_name, phone, profile_photo_url, role_code, is_active, must_change_password')
     .eq('auth_user_id', authData.user.id)
     .maybeSingle()
 
@@ -5171,7 +5234,12 @@ export const authenticateUser = async (email: string, password: string): Promise
     role: COMPANY_WIDE_ROLE_CODES.includes(appUserRow.role_code) ? 'Admin' : 'Personel',
     // Gerçek rol kodu KORUNUYOR — yetkiler bundan yükleniyor (bkz. types.ts).
     roleCode: appUserRow.role_code || undefined,
-    active: appUserRow.is_active
+    active: appUserRow.is_active,
+    // ⚠️ GEÇİCİ ŞİFRE BAYRAĞI (0076). Yönetici personel hesabını açarken
+    // geçici bir şifre verdi; o şifre BİZİM veritabanımıza hiç yazılmadı ama
+    // yöneticinin bildiği bir şifredir. Bayrak kalkmadan kişi uygulamaya
+    // giremez — App.tsx önce şifre belirleme ekranını açar.
+    mustChangePassword: appUserRow.must_change_password === true
   }
 
   setCurrentUser(user)

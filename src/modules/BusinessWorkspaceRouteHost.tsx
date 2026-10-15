@@ -240,6 +240,22 @@ export default function BusinessWorkspaceRouteHost({
 
   const isAdmin = currentUser.role === 'Admin'
 
+  /**
+   * İZİN KONTROLÜNDEN MUAF OLUP YİNE DE YÖNETİCİ İSTEYEN ROTALAR.
+   *
+   * `isWorkspaceRouteAllowed` (yukarıda) menü ögelerinden türeyen rotaları
+   * koruyor. Ama `NON_NAV_CORE_ROUTES` listesindekiler hiçbir menü ögesinden
+   * gelmiyor, dolayısıyla izinleri de yok ve o kontrolden muaf geçiyorlar.
+   * Bu üçü işletmenin YÖNETİM yüzeyi; kapıları burada.
+   *
+   * `my-profile` ve `workspace-welcome` BİLEREK DIŞARIDA: kişinin kendi
+   * profili ve karşılama ekranı herkese açık olmalı.
+   */
+  const YONETICI_ISTEYEN_MUAF_ROTALAR = new Set<string>([
+    'marketplace', 'integration-center', 'company-profile',
+  ])
+  if(YONETICI_ISTEYEN_MUAF_ROTALAR.has(route) && !isAdmin) return null
+
   if(route === 'workspace-welcome'){
     return (
       <WorkspaceWelcome
@@ -287,7 +303,34 @@ export default function BusinessWorkspaceRouteHost({
     )
   }
 
-  if(!isAdmin) return null
+  /**
+   * ⚠️ BURADA `if(!isAdmin) return null` VARDI — VE UYGULAMANIN YARISINI
+   * SESSİZCE BOŞ BIRAKIYORDU.
+   *
+   * ── NE OLDU (12.10.2026) ─────────────────────────────────────────────────
+   * Menü kapısı düzeltildikten sonra depo sorumlusu Alaattin'in menüsü doldu.
+   * Ama Emrah şunu bildirdi: *"sol menüde hangi sayfaya tıklarsam tıklayayım
+   * hiçbir veri yok, hiçbir erişim yok."* Ona ek rol verdi, yine boş.
+   *
+   * Sebep bu satırdı. Aşağıdaki ~120 rotanın TAMAMI bu kapının arkasındaydı
+   * ve `role` alanı yalnız 'Admin' | 'Personel' taşıyor. Yani izinleri tam
+   * olan bir kalite sorumlusu da, gıda mühendisi de, menüde gördüğü ekranı
+   * açtığında BOŞ bir sayfa görüyordu. Menüyü açmak yetmemiş; ekranların
+   * kapısı ayrıca kapalıydı. (Codex denetimi de aynı bulguyu buldu:
+   * "eski Admin kontrolü, izinli Personel için 49 ekranın 48'ini boş
+   * bırakıyor" — docs/menu-ekran-izin-denetimi-2026-10-12.md)
+   *
+   * ── NEDEN KALDIRMAK GÜVENLİ ──────────────────────────────────────────────
+   * Kapı yukarıda, `isWorkspaceRouteAllowed(route, currentUser.permissions)`.
+   * O kontrol izni MENÜDEKİ İFADENİN AYNISINDAN hesaplıyor
+   * (`item.requiredPermission ?? module.permissions[0]`), yani menüde
+   * göremediği bir ekranı rota olarak da açamıyor. Muaf rotaların kapısı da
+   * yukarıya, adıyla yazıldı.
+   *
+   * ⚠️ Bir ekranı menüde göstermek ile açmak AYNI KURALDAN geçmek zorunda.
+   * İki ayrı kapı iki ayrı ölçüt kullanırsa biri açık biri kapalı kalır ve
+   * ortaya "menüde var, tıklayınca boş" çıkar — tam olarak bu oldu.
+   */
 
   if(route === 'marketplace'){
     return (

@@ -31,6 +31,12 @@ export type AuthenticationState = {
 export type AuthenticationServiceOptions = {
   requestedPath?: string
   requestedTarget?: LoginRouteTarget | string
+  /**
+   * İşletme kodu — yalnız aynı kullanıcı adı birden çok işletmede varsa
+   * gerekir (bkz. src/auth/giris-adresi.ts). Giriş ekranı bu alanı ancak
+   * başarısız bir denemeden sonra gösterir.
+   */
+  isletmeKodu?: string
 }
 
 export type AuthenticationLoginResult = {
@@ -70,11 +76,16 @@ const roleCodeOf = (user: User): string => {
 }
 
 export const authenticateCredentials = async (
+  /**
+   * ⚠️ KULLANICI ADI YA DA E-POSTA. Adı `email` olarak kaldı ki bu
+   * fonksiyonu çağıran eski kod bozulmasın; anlamı genişledi. Çeviriyi
+   * `authenticateUser` yapıyor (storage.ts).
+   */
   email: string,
   password: string,
   options: AuthenticationServiceOptions = {}
 ): Promise<AuthenticationLoginResult> => {
-  const user = await authenticateUser(email, password)
+  const user = await authenticateUser(email, password, options.isletmeKodu)
 
   if(!user){
     return { success: false, user: null, state: createAuthenticationState(null, options) }

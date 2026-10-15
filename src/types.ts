@@ -723,6 +723,23 @@ export type User = {
    */
   roleCode?: string
   active: boolean
+  /**
+   * `app_user.must_change_password` (0076) — "bu kişinin şifresini bir başkası
+   * belirledi".
+   *
+   * Yönetici personel hesabını açarken geçici bir şifre verir. O şifre bizim
+   * veritabanımıza hiç yazılmaz, hiçbir günlüğe düşmez — ama YÖNETİCİ onu
+   * bilir. Bayrak kalkana kadar kişi uygulamaya giremez: App.tsx önce şifre
+   * belirleme ekranını açar, şifre kendi eliyle değişince bayrak düşer
+   * (`sifremi_belirledim`).
+   *
+   * ⚠️ Bu bir GÖRÜNÜRLÜK bilgisi değil, bir KAPIDIR — ama kapı tarayıcıda
+   * duruyor. Tarayıcıdaki bayrak elle değiştirilebilir; o yüzden tek güvence
+   * değildir. Gerçek güvence şudur: yönetici şifreyi bildiği sürece o hesap
+   * zaten yöneticinin elindedir, bayrak yalnızca kişinin bunu düzeltmesini
+   * ZORUNLU kılar.
+   */
+  mustChangePassword?: boolean
   // Aşama 1 eki (2026-08-27) — kullanıcının VERİTABANINDAN okunmuş izinleri
   // (`role_permission` → `app_user.role_code`). Girişte doldurulur.
   //

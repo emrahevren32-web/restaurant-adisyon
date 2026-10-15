@@ -53,6 +53,7 @@ import {
   assignableRolesFor,
   canAssignRoles,
   loadRoleAssignmentData,
+  kullaniciAdiniDegistir,
   personelHesabiAc,
   saveUserRoles,
   setPrimaryRole,
@@ -60,6 +61,7 @@ import {
   type RoleAssignmentData,
 } from '../authorization/role-assignment.repository'
 import { SIFRE_EN_AZ } from '../auth/davet'
+import { gorevAdiMi, kullaniciAdiOner } from '../auth/kullanici-adi'
 import {
   alanAgaci,
   anaGorevDegisinceKalanRol,
@@ -163,7 +165,12 @@ export default function KullanicilarVeYetkiler({ currentUser }: Props){
   const [durum, setDurum] = React.useState<'yukleniyor' | 'hazir' | 'hata'>('yukleniyor')
   const [hata, setHata] = React.useState('')
   const [bilgi, setBilgi] = React.useState('')
-  const [sekme, setSekme] = React.useState<Sekme>('roller')
+  const [sekme, setSekme] = React.useState<Sekme>(
+    // ⚠️ Emrah 12.10: ekran açılınca önce KİŞİLER gelsin. Yönetici buraya
+    // "rol katalogunu okumaya" değil, "şu kişiye ne vereyim" diye
+    // geliyor. Roller ikinci sekmede duruyor.
+    'kisiler',
+  )
   const [seciliRol, setSeciliRol] = React.useState<string | null>(null)
   const [seciliKisi, setSeciliKisi] = React.useState<string | null>(null)
   const [tikli, setTikli] = React.useState<string[]>([])
@@ -180,6 +187,22 @@ export default function KullanicilarVeYetkiler({ currentUser }: Props){
   const [yeniAdSoyad, setYeniAdSoyad] = React.useState('')
   const [yeniRol, setYeniRol] = React.useState('')
   const [yeniSifre, setYeniSifre] = React.useState('')
+  /**
+   * Kullanıcı adı ad soyaddan TÜRETİLİYOR; yönetici elle dokununca öneri
+   * susuyor. ⚠️ Dokunma anını izlemezsek, yöneticinin yazdığı adı bir
+   * sonraki harfte kendi önerimizle ezeriz.
+   */
+  const [kadiElleYazildi, setKadiElleYazildi] = React.useState(false)
+  /**
+   * Hesap açıldıktan sonra yöneticiye verilecek kart. ⚠️ ŞİFRE BURADA YOK
+   * ve olmayacak: şifreyi yönetici zaten biliyor, ekranda tutmak onu
+   * omuz üstünden okunabilir kılardı.
+   */
+  const [acilanKart, setAcilanKart] = React.useState<
+    { girisAdi: string; adSoyad: string; gorev: string } | null>(null)
+  // Kişi kartındaki "kullanıcı adını değiştir" kutusu.
+  const [adDegistirAcik, setAdDegistirAcik] = React.useState(false)
+  const [yeniAd, setYeniAd] = React.useState('')
 
   const yetkili = canAssignRoles(currentUser.permissions)
 
@@ -217,6 +240,9 @@ export default function KullanicilarVeYetkiler({ currentUser }: Props){
 
   const rolIzinleri = data?.rolIzinleri ?? {}
   const kullanicilar = data?.users ?? []
+  // 0078 uygulanmamışsa boş; sütun o zaman hiç çıkmıyor (tuzak 64).
+  const girisAdlari = data?.girisAdlari ?? {}
+  const girisAdiVar = Object.keys(girisAdlari).length > 0
   const atamalar = data?.assignments ?? {}
   const roller = assignableRolesFor(
     data?.roles ?? [],
@@ -230,6 +256,8 @@ export default function KullanicilarVeYetkiler({ currentUser }: Props){
   const kisiAc = (id: string) => {
     setSekme('kisiler')
     setSeciliKisi(id)
+    setAdDegistirAcik(false)
+    setYeniAd('')
     setTikli([...(atamalar[id] ?? [])])
     setYeniAnaGorev(kullanicilar.find(u => u.id === id)?.primaryRoleCode ?? '')
     setHata(''); setBilgi('')
@@ -259,9 +287,46 @@ export default function KullanicilarVeYetkiler({ currentUser }: Props){
     finally { setCalisiyor(false) }
   }
 
+  /**
+   * Aynı adda ikinci kişi: ÇAKIŞMAYAN bir ad üretir.
+   *
+   * Emrah sordu: "bir firmada farklı departmanlarda iki tane Mehmet Keskin
+   * varsa? mehmetkeskin1 gibi mi?" Sayı eklemek en kolayı ama en kötüsü:
+   * `mehmet.keskin` ile `mehmet.keskin2` arasında hangisinin kim olduğunu
+   * KİMSE bilemez — iki Mehmet'in kendisi de bilemez, defterdeki imzaya
+   * bakan da bilemez.
+   *
+   * Bu yüzden önce GÖREV ekleniyor: `mehmet.keskin.uretim`. Görev, iki
+   * kişiyi birbirinden gerçekten ayıran şeydir. Aynı görevde de iki Mehmet
+   * Keskin varsa (olabilir) ancak o zaman sayıya düşülüyor.
+   *
+   * ⚠️ Bu yalnız ÖNERİ. Son söz yöneticinin; sunucu da ayrıca çakışmayı
+   * reddediyor (MI409), yani iki kapı var.
+   */
+  const bostaAdUret = (temelAd: string, rolKodu: string): string => {
+    if(!temelAd) return ''
+    const kullanilan = new Set(kullanicilar.map(u => kullaniciAdiOner(u.username)))
+    if(!kullanilan.has(temelAd)) return temelAd
+
+    const gorev = kullaniciAdiOner(rolKodu.replace(/_sorumlusu$/, ''))
+    if(gorev && !kullanilan.has(`${temelAd}.${gorev}`)) return `${temelAd}.${gorev}`
+
+    for(let n = 2; n < 50; n++){
+      if(!kullanilan.has(`${temelAd}${n}`)) return `${temelAd}${n}`
+    }
+    return temelAd
+  }
+
+  /** Yazılan ad işletmede zaten var mı? (sunucuya gitmeden, yüklü listeden) */
+  const adCakisiyorMu = (ad: string): boolean => {
+    const t = kullaniciAdiOner(ad)
+    return Boolean(t) && kullanicilar.some(u => kullaniciAdiOner(u.username) === t)
+  }
+
   // ── YENİ PERSONEL HESABI (0076) ─────────────────────────────────────────
   const formuTemizle = () => {
     setYeniKullaniciAdi(''); setYeniAdSoyad(''); setYeniRol('')
+    setKadiElleYazildi(false)
     // ⚠️ ŞİFRE İLK TEMİZLENEN. Formda unutulan bir şifre, omuz üstünden
     // okunabilen bir şifredir.
     setYeniSifre('')
@@ -288,13 +353,40 @@ export default function KullanicilarVeYetkiler({ currentUser }: Props){
       })
       // ⚠️ ÖNCE TEMİZLE, SONRA YENİLE. Yenileme hata verse bile şifre
       // formda kalmasın.
+      const kartAdSoyad = ad
+      const kartGorev = roller.find(r => r.code === yeniRol)?.name || yeniRol
       formuTemizle()
       setFormAcik(false)
       await yukle()
+      setAcilanKart({
+        // ⚠️ Sunucunun döndürdüğü ad. 0078 uygulanmamışsa boş gelir ve
+        // aşağıdaki kart yalın kullanıcı adını gösterir — yanlış bir
+        // giriş adı uydurmaktansa eksik söylemek doğrudur.
+        girisAdi: sonuc.girisAdi || sonuc.kullaniciAdi,
+        adSoyad: kartAdSoyad,
+        gorev: kartGorev,
+      })
+    } catch (e) { setHata((e as Error).message) }
+    finally { setCalisiyor(false) }
+  }
+
+  // ── Kişi kartı: KULLANICI ADINI değiştir (0078) ──────────────────────────
+  // ⚠️ "depocu" diye açılmış hesapları kişi adına çevirmek için. Auth'a
+  // dokunulmuyor; kişi ertesi sabah yeni adıyla, AYNI şifresiyle giriyor.
+  const kullaniciAdiKaydet = async () => {
+    if(!seciliKisi) return
+    const istenen = kullaniciAdiOner(yeniAd)
+    if(istenen.length < 3){
+      setHata('Kullanıcı adı en az 3 karakter olmalı.'); return
+    }
+    setCalisiyor(true); setHata(''); setBilgi('')
+    try {
+      const yeniGirisAdi = await kullaniciAdiniDegistir(seciliKisi, istenen)
+      await yukle()
+      setAdDegistirAcik(false); setYeniAd('')
       setBilgi(
-        `"${sonuc.kullaniciAdi}" hesabı açıldı. Kullanıcı bu adla ve verdiğiniz `
-        + 'geçici şifreyle giriş yapacak; ilk girişte şifresini kendisi '
-        + 'belirleyecek. Şifreyi kendisine siz iletin — sistem e-posta göndermiyor.',
+        `Yeni giriş adı: ${yeniGirisAdi} — kişiye bunu iletin. Şifresi `
+        + 'değişmedi, eski şifresiyle yeni adını kullanarak girecek.',
       )
     } catch (e) { setHata((e as Error).message) }
     finally { setCalisiyor(false) }
@@ -605,7 +697,9 @@ export default function KullanicilarVeYetkiler({ currentUser }: Props){
             <table className="data-table">
               <thead>
                 <tr>
-                  <th>Kullanıcı</th><th>Ana görevi</th><th>Ek roller</th>
+                  <th>Kullanıcı</th>
+                  {girisAdiVar && <th>Giriş adı</th>}
+                  <th>Ana görevi</th><th>Ek roller</th>
                   <th>Kritik yetki</th><th>Aktif</th><th></th>
                 </tr>
               </thead>
@@ -620,6 +714,11 @@ export default function KullanicilarVeYetkiler({ currentUser }: Props){
                         <strong>{u.fullName || u.username}</strong>
                         <br /><span className="muted">{u.username}</span>
                       </td>
+                      {/* ⚠️ Yöneticinin en çok soracağı şey bu: "bu kişi
+                          ne yazarak giriyor?" Sunucudan okunuyor. */}
+                      {girisAdiVar && (
+                        <td className="muted">{girisAdlari[u.id] || '—'}</td>
+                      )}
                       <td>{rolAdi(u.primaryRoleCode)}</td>
                       <td className="muted">
                         {ek.length ? ek.map(k => rolAdi(k)).join(', ') : '—'}
@@ -641,7 +740,7 @@ export default function KullanicilarVeYetkiler({ currentUser }: Props){
                   )
                 })}
                 {kullanicilar.length === 0 && (
-                  <tr><td colSpan={6} className="muted">Veritabanında kullanıcı bulunamadı.</td></tr>
+                  <tr><td colSpan={girisAdiVar ? 7 : 6} className="muted">Veritabanında kullanıcı bulunamadı.</td></tr>
                 )}
               </tbody>
             </table>
@@ -652,10 +751,46 @@ export default function KullanicilarVeYetkiler({ currentUser }: Props){
               geldi: "Yeni kullanıcı bu ekrandan açılmıyor... bu iş Supabase
               panelinden yapılıyor." O cümle müşteriye BİZİM İÇ ARACIMIZIN
               adını söylüyordu ve işletme kendi personelini açamıyordu. */}
+          {/* ── HESAP AÇILDI KARTI ───────────────────────────────────
+              ⚠️ Eskiden burada tek satırlık bir bilgi yazısı vardı ve
+              yöneticiye kişinin GİRİŞ ADINI söylemiyordu. Yönetici
+              "kullanıcı adı: depocu" görüyor, personel giriş ekranında
+              "depocu" yazıyor ve giremiyordu — firma kodu eksikti.
+              Kart artık kişiye söylenecek şeyi aynen yazıyor. */}
+          {acilanKart && (
+            <div className="card karar-ozet">
+              <div className="section-header compact">
+                <h3>Hesap açıldı — bu bilgileri kişiye iletin</h3>
+              </div>
+              <div className="karar-ozet-satir">
+                <span>Kişi</span><strong>{acilanKart.adSoyad}</strong>
+              </div>
+              <div className="karar-ozet-satir">
+                <span>Görevi</span><strong>{acilanKart.gorev}</strong>
+              </div>
+              <div className="karar-ozet-satir">
+                <span>Giriş adı</span><strong>{acilanKart.girisAdi}</strong>
+              </div>
+              <p className="muted">
+                Kişi giriş ekranına <strong>giriş adını</strong> ve sizin
+                belirlediğiniz geçici şifreyi yazacak; ilk girişte şifresini
+                kendisi değiştirecek. <strong>Şifreyi ona siz iletin</strong> —
+                sistem e-posta göndermiyor ve şifreyi hiçbir yerde saklamıyor.
+              </p>
+              <div className="form-actions">
+                <button className="btn" type="button" onClick={() => setAcilanKart(null)}>
+                  Kapat
+                </button>
+              </div>
+            </div>
+          )}
+
           {!formAcik && (
             <div className="form-actions">
               <button className="btn primary" type="button"
-                onClick={() => { setFormAcik(true); setHata(''); setBilgi('') }}>
+                onClick={() => {
+                  setFormAcik(true); setHata(''); setBilgi(''); setAcilanKart(null)
+                }}>
                 + Personel hesabı aç
               </button>
             </div>
@@ -673,27 +808,64 @@ export default function KullanicilarVeYetkiler({ currentUser }: Props){
               </div>
 
               <div className="stacked-form">
-                <div className="form-field">
-                  <label htmlFor="yeni-kadi">Kullanıcı adı</label>
-                  <input id="yeni-kadi" type="text" value={yeniKullaniciAdi}
-                    autoComplete="off" maxLength={40}
-                    placeholder="depocu"
-                    onChange={e => setYeniKullaniciAdi(e.target.value)} />
-                  <small className="muted">
-                    Kişi her sabah bunu yazacak. Türkçe karakter ve boşluk
-                    otomatik temizlenir: "Depo Cu" → "depocu".
-                  </small>
-                </div>
-
+                {/* ⚠️ AD SOYAD ÖNCE GELİYOR, kullanıcı adı ondan türüyor.
+                    Sıra bilerek değişti: önce kullanıcı adı sorulunca
+                    yönetici "depocu" yazıyordu. */}
                 <div className="form-field">
                   <label htmlFor="yeni-ad">Ad soyad</label>
                   <input id="yeni-ad" type="text" value={yeniAdSoyad}
                     autoComplete="off" maxLength={120}
-                    placeholder="Ahmet Yılmaz"
-                    onChange={e => setYeniAdSoyad(e.target.value)} />
+                    placeholder="Alaattin Kocatepe"
+                    onChange={e => {
+                      const ad = e.target.value
+                      setYeniAdSoyad(ad)
+                      // Yönetici kullanıcı adına elle dokunmadıysa öneri
+                      // yazarken güncellenir; dokunduysa SUSAR.
+                      if(!kadiElleYazildi){
+                        setYeniKullaniciAdi(bostaAdUret(kullaniciAdiOner(ad), yeniRol))
+                      }
+                    }} />
                   <small className="muted">
                     Defterde "kim yaptı" diye bu yazacak — kısaltma kullanmayın.
                   </small>
+                </div>
+
+                <div className="form-field">
+                  <label htmlFor="yeni-kadi">Kullanıcı adı</label>
+                  <input id="yeni-kadi" type="text" value={yeniKullaniciAdi}
+                    autoComplete="off" maxLength={40}
+                    placeholder="alaattin.kocatepe"
+                    onChange={e => {
+                      setKadiElleYazildi(true)
+                      setYeniKullaniciAdi(e.target.value)
+                    }} />
+                  <small className="muted">
+                    Ad soyaddan türetildi; değiştirebilirsiniz. Kişi her
+                    sabah bunu <strong>firma kodunuzla birlikte</strong>
+                    {' '}yazacak.
+                  </small>
+                  {/* ⚠️ YASAK DEĞİL, UYARI. Karar yöneticinin — ama
+                      sonucunu bilerek versin. */}
+                  {gorevAdiMi(yeniKullaniciAdi) && (
+                    <small className="form-error">
+                      Bu bir görev adı. Görev adıyla açılan hesap kişi
+                      değişince DEVREDİLİR ve defterdeki imza kimin
+                      olduğunu söylemez — izlenebilirlik ve HACCP kaydı
+                      bunun üstüne kuruludur. Kişinin adını kullanmanızı
+                      öneririz.
+                    </small>
+                  )}
+                  {/* ⚠️ Çakışma KAYDET'e basınca değil, YAZARKEN söyleniyor.
+                      Sunucu da reddediyor (MI409) ama o ret, yönetici geçici
+                      şifreyi yazdıktan sonra gelir ve formu baştan
+                      doldurtur. */}
+                  {adCakisiyorMu(yeniKullaniciAdi) && (
+                    <small className="form-error">
+                      Bu kullanıcı adı işletmenizde zaten var. Ayırt edici
+                      bir ek kullanın — görev adı iyi iş görür:{' '}
+                      <strong>{bostaAdUret(kullaniciAdiOner(yeniKullaniciAdi), yeniRol)}</strong>
+                    </small>
+                  )}
                 </div>
 
                 <div className="form-field">
@@ -760,11 +932,66 @@ export default function KullanicilarVeYetkiler({ currentUser }: Props){
           <div className="section-header compact">
             <h3>{acikKisi.fullName || acikKisi.username}</h3>
             <p className="muted">
-              Giriş adı: {acikKisi.username}
+              {/* ⚠️ BURASI "Giriş adı: depocu" YAZIYORDU VE EKSİKTİ.
+                  Kişi o adla giremez; firma kodu da gerekiyor (0078).
+                  Yöneticiye yanlış bir ad söylemek, personeli kapıda
+                  bırakmaktır. Ad sunucudan okunuyor. */}
+              Giriş adı: <strong>{girisAdlari[acikKisi.id] || acikKisi.username}</strong>
               {!acikKisi.isActive && <> · <span className="is-critical">hesap pasif</span></>}
               {degisti && <> · <span className="is-critical">kaydedilmemiş rol değişikliği var</span></>}
             </p>
           </div>
+
+          {/* ── KULLANICI ADINI DEĞİŞTİR (0078) ───────────────────────────
+              ⚠️ Asıl derdi: "depocu", "sefi" gibi GÖREV adıyla açılmış
+              hesapları kişi adına çevirebilmek. Görev adıyla açılan hesap
+              kişi değişince devredilir ve defterdeki imza kimin olduğunu
+              söylemez — izlenebilirlik ve HACCP tam oraya dayanıyor. */}
+          {!adDegistirAcik && !kendisi && (
+            <div className="form-actions">
+              <button className="btn" type="button"
+                onClick={() => {
+                  setAdDegistirAcik(true)
+                  setYeniAd(acikKisi.fullName || '')
+                  setHata(''); setBilgi('')
+                }}>
+                Kullanıcı adını değiştir
+              </button>
+            </div>
+          )}
+
+          {adDegistirAcik && (
+            <div className="stacked-form">
+              <div className="form-field">
+                <label htmlFor="ad-degistir">Yeni kullanıcı adı</label>
+                <input id="ad-degistir" type="text" value={yeniAd}
+                  autoComplete="off" maxLength={120}
+                  placeholder="Alaattin Kocatepe"
+                  onChange={e => setYeniAd(e.target.value)} />
+                <small className="muted">
+                  Kaydedilecek ad: <strong>{kullaniciAdiOner(yeniAd) || '—'}</strong>
+                  {' '}· Şifresi değişmez, kişi eski şifresiyle yeni adını
+                  kullanarak girer.
+                </small>
+                {gorevAdiMi(kullaniciAdiOner(yeniAd)) && (
+                  <small className="form-error">
+                    Bu bir görev adı. Kişi değiştiğinde hesap devredilir ve
+                    defterdeki imza kimin olduğunu söylemez.
+                  </small>
+                )}
+              </div>
+              <div className="form-actions">
+                <button className="btn primary" type="button"
+                  disabled={calisiyor} onClick={kullaniciAdiKaydet}>
+                  {calisiyor ? 'Kaydediliyor…' : 'Kaydet'}
+                </button>
+                <button className="btn" type="button" disabled={calisiyor}
+                  onClick={() => { setAdDegistirAcik(false); setYeniAd('') }}>
+                  Vazgeç
+                </button>
+              </div>
+            </div>
+          )}
 
           {onizlemeKritik.length > 0 && (
             <div className="form-error">

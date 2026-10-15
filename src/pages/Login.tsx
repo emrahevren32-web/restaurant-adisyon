@@ -3,6 +3,7 @@ import { authenticateCredentials, AuthenticationState } from '../auth/authentica
 import { loadCompanies, loadLicensePackages } from '../storage'
 import { loadSystemAnnouncements } from '../notifications/notification.service'
 import { getSupabase, isSupabaseConfigured } from '../core/supabase'
+import { kesinEpostaMi } from '../auth/giris-adresi'
 
 type Props = { onLogin: (state: AuthenticationState) => void }
 
@@ -10,12 +11,6 @@ type PortalUpdate = {
   type: string
   title: string
   description: string
-}
-
-type ReferenceCustomer = {
-  initials: string
-  companyName: string
-  workspaceProfile: string
 }
 
 type WhyItem = {
@@ -46,11 +41,12 @@ const portalUpdates: PortalUpdate[] = [
   }
 ]
 
-const referenceCustomers: ReferenceCustomer[] = [
-  { initials: 'AW', companyName: 'Aster Workspace', workspaceProfile: 'Çok şubeli işletme' },
-  { initials: 'NG', companyName: 'Nova Grup', workspaceProfile: 'Finans ve operasyon odaklı çalışma alanı' },
-  { initials: 'OM', companyName: 'Orion Merkez', workspaceProfile: 'Modül tabanlı yönetim yapısı' }
-]
+// ⚠️ "REFERANS MÜŞTERİLER" BÖLÜMÜ KALDIRILDI — UYDURMAYDI.
+// Burada 'Aster Workspace', 'Nova Grup', 'Orion Merkez' diye üç şirket
+// yazıyordu ve "İlk işletmeler" başlığı altında referans müşteri olarak
+// gösteriliyordu. Böyle müşteriler YOK. Bu, giriş ekranındaki mock veriden
+// de kötüsüydü: müşteriye söylenen bir yalandı. Gerçek referanslarımız
+// olduğunda, adlarını kullanma izniyle birlikte geri gelir.
 
 const whyItems: WhyItem[] = [
   {
@@ -66,8 +62,14 @@ const whyItems: WhyItem[] = [
     description: 'Şube, kullanıcı ve raporlama altyapısı büyüyen işletmeler için hazırdır.'
   },
   {
-    title: 'Yapay Zeka Destekli',
-    description: 'Analitik, uyarı merkezi ve karar destek katmanları için genişletilebilir mimari sunar.'
+    // ⚠️ "Yapay Zeka Destekli" yazıyordu. Satış kararı (11.10): yapay zeka
+    // DENMEYECEK. Teknik başlık "kural motoru"; müşteriye verilen söz,
+    // sistemin ne yapması gerektiğini söylemesi VE neden söylediğini
+    // göstermesidir. Bu söz tutulabilir; "yapay zeka" tutulamaz.
+    title: 'Kural Motoru',
+    description: 'Sistem size ne yapmanız gerektiğini söyler; üstelik neden '
+      + 'söylediğini de gösterir. Her uyarının arkasında okunabilir bir kural '
+      + 've ona dayanak olan kayıtlar vardır.'
   },
   {
     title: 'Güvenli Altyapı',
@@ -98,8 +100,31 @@ const buildAnnouncementContext = () => ({
 })
 
 export default function Login({ onLogin }: Props){
-  const [email, setEmail] = React.useState('')
+  /**
+   * ⚠️ BU ALAN ARTIK "E-POSTA" DEĞİL, "KULLANICI ADI YA DA E-POSTA".
+   *
+   * İşletme sahibi gerçek e-postasıyla girer; personelin e-postası YOK,
+   * kullanıcı adıyla girer (karar: docs/yetki-ekrani.md). Tek alan, iki
+   * girdi: hangisi olduğuna `giris-adresi.ts` karar veriyor.
+   *
+   * ⚠️ `type="email"` KALDIRILDI. Kalsaydı tarayıcı "depocu" yazan kişiye
+   * "lütfen geçerli bir e-posta girin" der ve kişi hiç giremezdi — hesabı
+   * açılmış olsa bile. Alan artık `type="text"`.
+   */
+  const [kimlik, setKimlik] = React.useState('')
   const [password, setPassword] = React.useState('')
+  /**
+   * ⚠️ AYRI BİR "İŞLETME KODU" KUTUSU YOK — VE BU BİLİNÇLİ.
+   *
+   * İlk tasarımda, giriş başarısız olunca beliren ikinci bir kutu vardı.
+   * Emrah'ın itirazı yerindeydi: en acemi kullanıcıya, en kötü anda, hiç
+   * duymadığı bir kavram öğretiyordu. Artık firma kodu giriş adının
+   * PARÇASI (`alaattin.kocatepe@ABCGIDA`) — tek alan, tek şey ezberlemek.
+   *
+   * Kutu kalktı ama taşıma yolu duruyor (`authenticateCredentials`'ın
+   * `isletmeKodu` seçeneği): A5'te her müşteriye alt alan adı verilince
+   * kod ADRESTEN okunup oradan geçirilecek, kullanıcıya hiç sorulmayacak.
+   */
   const [error, setError] = React.useState('')
   const [notice, setNotice] = React.useState('')
   const [submitting, setSubmitting] = React.useState(false)
@@ -117,11 +142,23 @@ export default function Login({ onLogin }: Props){
     setError('')
     setSubmitting(true)
     try {
-      const result = await authenticateCredentials(email, password, {
+      const result = await authenticateCredentials(kimlik, password, {
         requestedPath: window.location.pathname
       })
-      if(result.success) onLogin(result.state)
-      else setError('Geçersiz e-posta veya şifre ya da kullanıcı pasif.')
+      if(result.success){ onLogin(result.state); return }
+
+      // ⚠️ TEK CÜMLE, ÜÇ FARKLI SEBEP: ad yok, şifre yanlış, hesap kapalı.
+      // Ayırmıyoruz — ayırmak, "bu kullanıcı adı var" bilgisini kapıdaki
+      // herkese söylemek olurdu.
+      //
+      // Tek istisna, bilgi değil HATIRLATMA: firma kodunu yazmamış birine
+      // giriş adının biçimini söylüyoruz. Bu cümle hesabın var olup
+      // olmadığına dair hiçbir şey söylemiyor — adını yanlış yazana da,
+      // hiç hesabı olmayana da aynı şekilde çıkıyor.
+      setError(kimlik.includes('@')
+        ? 'Giriş adı veya şifre hatalı ya da hesap kapalı.'
+        : 'Giriş adı veya şifre hatalı ya da hesap kapalı. Personelseniz '
+          + 'adınızı firma kodunuzla birlikte yazın: ornek.ad@FIRMAKODU')
     } catch {
       setError('Giriş yapılamadı. İnternet bağlantınızı kontrol edip tekrar deneyin.')
     } finally {
@@ -156,9 +193,24 @@ export default function Login({ onLogin }: Props){
     setError('')
     setNotice('')
 
-    const adres = email.trim().toLowerCase()
+    const adres = kimlik.trim().toLowerCase()
     if(!adres){
       setError('Şifre bağlantısı için e-posta adresinizi yazın.')
+      return
+    }
+    // ⚠️ KULLANICI ADIYLA ŞİFRE SIFIRLAMA YOK — ÇÜNKÜ GİDECEK ADRES YOK.
+    // Personelin e-postası olmadığı için bağlantı yollanamaz. Burada
+    // "gönderildi" demek, hiç gelmeyecek bir e-postayı beklettirmek olurdu.
+    // Doğru yol yöneticisinden geçiyor: şifreyi o sıfırlar, kişi ilk
+    // girişinde kendisi belirler.
+    // ⚠️ `includes('@')` YETMEZ: `ad.soyad@ABCGIDA` de @ taşıyor ama bir
+    // e-posta değil, oraya posta gitmez. Ayırmayı tek yerde yapan
+    // `kesinEpostaMi` kullanılıyor (bkz. auth/giris-adresi.ts).
+    if(!kesinEpostaMi(adres)){
+      setError('Şifre sıfırlama bağlantısı yalnızca e-posta adresine '
+        + 'gönderilebilir. Giriş adınız ad.soyad@FIRMAKODU biçimindeyse '
+        + 'şifrenizi yöneticiniz sıfırlar; ilk girişinizde kendi şifrenizi '
+        + 'belirlersiniz.')
       return
     }
     if(!isSupabaseConfigured()){
@@ -243,17 +295,21 @@ export default function Login({ onLogin }: Props){
               </div>
               <form onSubmit={submit}>
                 <label>
-                  <span>E-posta</span>
+                  <span>Giriş adı</span>
                   <input
-                    autoComplete="email"
-                    type="email"
-                    placeholder="ornek@firma.com"
-                    value={email}
+                    autoComplete="username"
+                    type="text"
+                    placeholder="alaattin.kocatepe@ABCGIDA"
+                    value={kimlik}
                     onChange={event => {
-                      setEmail(event.target.value)
+                      setKimlik(event.target.value)
                       setError('')
                     }}
                   />
+                  <small className="unified-login-hint">
+                    Personel: <strong>ad.soyad@FIRMAKODU</strong> ·
+                    İşletme sahibi: <strong>e-posta adresiniz</strong>
+                  </small>
                 </label>
                 <label>
                   <span>Şifre</span>
@@ -346,24 +402,6 @@ export default function Login({ onLogin }: Props){
                 </div>
               </article>
             )}
-          </div>
-        </section>
-
-        <section className="unified-login-section">
-          <div className="unified-login-section-heading">
-            <span className="unified-login-section-label">Referans Müşteriler</span>
-            <h2>İlk işletmeler</h2>
-          </div>
-          <div className="unified-login-reference-grid">
-            {referenceCustomers.map(customer => (
-              <article className="unified-login-reference" key={customer.companyName}>
-                <span>{customer.initials}</span>
-                <div>
-                  <h3>{customer.companyName}</h3>
-                  <p>{customer.workspaceProfile}</p>
-                </div>
-              </article>
-            ))}
           </div>
         </section>
 

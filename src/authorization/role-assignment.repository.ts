@@ -59,6 +59,18 @@ export type RoleAssignmentData = {
    * listeden cevaplıyor.
    */
   onayAdimlari: OnayAdimi[]
+  /**
+   * kullanıcı id → GİRİŞ ADI (`ad.soyad@FIRMAKODU`, 0078).
+   *
+   * ⚠️ BU AD EKRANDA ÜRETİLMİYOR, SUNUCUDAN OKUNUYOR. `username + '@' +
+   * firmaKodu` diye burada kurmak kolaydı; o gün kurallardan biri
+   * değişince ekran ile giriş kapısı farklı şey söylerdi ve personel
+   * kendisine verilen adla giremezdi (tuzak 66).
+   *
+   * 0078 uygulanmamışsa BOŞ gelir ve ekran giriş adı sütununu göstermez —
+   * göç uygulanmadan önce de ayakta kalmalı (tuzak 64).
+   */
+  girisAdlari: Record<string, string>
 }
 
 export class SupabaseNotConfiguredError extends Error {
@@ -85,7 +97,7 @@ export const loadRoleAssignmentData = async (): Promise<RoleAssignmentData> => {
 
   const supabase = getSupabase()
 
-  const [rolesRes, usersRes, assignRes, permRes, stepRes] = await Promise.all([
+  const [rolesRes, usersRes, assignRes, permRes, stepRes, girisRes] = await Promise.all([
     supabase.from('role').select('code, name, description').order('code'),
     supabase.from('app_user').select('id, username, full_name, role_code, is_active').order('username'),
     supabase.from('user_role').select('user_id, role_code'),
@@ -96,6 +108,12 @@ export const loadRoleAssignmentData = async (): Promise<RoleAssignmentData> => {
     supabase.from('order_approval_step')
       .select('code, name, required, permission_code, sort_order, is_active')
       .order('sort_order'),
+    // ⚠️ 0078 uygulanmamış kurulumda bu RPC YOK. Hata ekranı çökertmemeli:
+    // giriş adı bu ekranın yan bilgisi, rol atamanın şartı değil.
+    supabase.rpc('giris_adlari').then(
+      r => r,
+      (e: unknown) => ({ data: null, error: e as { message: string } }),
+    ),
   ])
 
   if (rolesRes.error) throw new Error(`Roller okunamadı: ${rolesRes.error.message}`)
@@ -107,6 +125,17 @@ export const loadRoleAssignmentData = async (): Promise<RoleAssignmentData> => {
   // boş liste dönüyor ve ekran "zincir tanımlı değil" diyor, ki bu
   // doğru olmayan bir cümle olabilir. Bu yüzden hata mesajı konsola
   // değil, aşağıdaki `onayAdimlari` boş kalarak görünür oluyor.
+
+  const girisAdlari: Record<string, string> = {}
+  if (girisRes.error) {
+    // Sessizce yutmuyoruz ama ekranı da durdurmuyoruz; sütun hiç çıkmaz.
+    console.warn('[MİYOP] Giriş adları okunamadı:', girisRes.error.message)
+  } else {
+    for (const row of (girisRes.data ?? []) as
+         { kullanici_id: string; giris_adi: string }[]) {
+      girisAdlari[row.kullanici_id] = row.giris_adi
+    }
+  }
 
   const assignments: Record<string, string[]> = {}
   for (const row of (assignRes.data ?? []) as { user_id: string; role_code: string }[]) {
@@ -147,6 +176,7 @@ export const loadRoleAssignmentData = async (): Promise<RoleAssignmentData> => {
     assignments,
     rolIzinleri,
     onayAdimlari,
+    girisAdlari,
   }
 }
 
@@ -297,6 +327,11 @@ export type AcilanPersonel = {
   kullaniciAdi: string
   /** Perde arkasındaki dahili giriş adresi; kullanıcı bunu hiç yazmaz. */
   girisAdresi: string
+  /**
+   * Kişinin YAZACAĞI giriş adı: `ad.soyad@FIRMAKODU` (0078).
+   * Yöneticiye söylenecek olan budur. 0078 uygulanmamışsa boş gelir.
+   */
+  girisAdi: string
 }
 
 /**
@@ -306,6 +341,31 @@ export type AcilanPersonel = {
  * Function'da ve veritabanında (0076). Üçü de gerekli — ekran atlanabilir,
  * Edge Function atlanabilir, veritabanı atlanamaz.
  */
+/**
+ * Kullanıcı adını değiştirir ve YENİ GİRİŞ ADINI döndürür (0078).
+ *
+ * ⚠️ AUTH'A DOKUNULMUYOR. Kişinin Supabase'teki giriş adresi aynı kalıyor;
+ * giriş o adresi kullanıcı adından TÜRETMİYOR, `auth.users`tan okuyor
+ * (0077). Bu yüzden "depocu" diye açılmış bir hesabı kişi adına çevirmek
+ * hiçbir şeyi bozmuyor: kişi ertesi sabah yeni adıyla, aynı şifresiyle
+ * giriyor.
+ */
+export const kullaniciAdiniDegistir = async (
+  kullaniciId: string,
+  yeniAd: string,
+): Promise<string> => {
+  if (!isSupabaseConfigured()) throw new SupabaseNotConfiguredError()
+  const { data, error } = await getSupabase().rpc('personel_kullanici_adi_degistir', {
+    p_kullanici: kullaniciId,
+    p_yeni_ad: yeniAd,
+  })
+  if (error) throw new Error(`Kullanıcı adı değiştirilemedi: ${error.message}`)
+  if (typeof data !== 'string' || data.length === 0) {
+    throw new Error('Kullanıcı adı değişti ama yeni giriş adı dönmedi; listeyi yenileyin.')
+  }
+  return data
+}
+
 export const personelHesabiAc = async (girdi: YeniPersonel): Promise<AcilanPersonel> => {
   if (!isSupabaseConfigured()) throw new SupabaseNotConfiguredError()
   const supabase = getSupabase()
@@ -338,10 +398,24 @@ export const personelHesabiAc = async (girdi: YeniPersonel): Promise<AcilanPerso
     throw new Error('Kullanıcı açıldı ama kimliği dönmedi; listeyi yenileyin.')
   }
 
+  // ⚠️ YÖNETİCİYE SÖYLENECEK AD BURADAN OKUNUYOR, KURULMUYOR.
+  // `kullaniciAdi + '@' + firmaKodu` diye ekranda birleştirmek kolaydı ama
+  // o gün firma kodu kuralı değişince yöneticiye YANLIŞ bir giriş adı
+  // söylemiş olurduk ve personel kapıda kalırdı (tuzak 66).
+  // 0078 uygulanmamışsa boş döner; ekran o zaman kısa adı göstermez.
+  let girisAdi = ''
+  try {
+    const { data: ad } = await supabase.rpc('giris_adi', { p_kullanici: c.kullaniciId })
+    if (typeof ad === 'string') girisAdi = ad
+  } catch (e) {
+    console.warn('[MİYOP] Giriş adı okunamadı:', e)
+  }
+
   return {
     kullaniciId: c.kullaniciId,
     kullaniciAdi: c.kullaniciAdi ?? girdi.kullaniciAdi,
     girisAdresi: c.girisAdresi ?? '',
+    girisAdi,
   }
 }
 

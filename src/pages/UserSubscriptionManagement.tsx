@@ -275,7 +275,24 @@ export default function UserSubscriptionManagement({ currentUser }: Props){
   const syncSystemUser = (companyUser: CompanyUser, password?: string) => {
     const systemUsers = loadUsers()
     const existingUser = systemUsers.find(user => user.id === companyUser.id)
+    /**
+     * ⚠️ VAR OLAN KAYDIN ÜSTÜNE YAZILIR, YERİNE GEÇMEZ (13.10.2026).
+     *
+     * Eski hâli alanları tek tek kuruyordu ve `permissions`, `roleCode`,
+     * `email`, `mustChangePassword` alanlarını DÜŞÜRÜYORDU. Bu ekran bir
+     * kullanıcıyı güncellediğinde o kişinin izin listesi siliniyor ve
+     * `route-permission.ts` eksik listeyi "henüz yüklenmedi" sayıp SÜZMEYİ
+     * BIRAKIYORDU — yani buradan geçen kullanıcı her ekranı açabilir hâle
+     * geliyordu. `normalizeUser`da aynı hata 12.10'da düzeltildi; Codex
+     * denetimi bu ikinci yeri buldu.
+     *
+     * ⚠️ `...existingUser` İLE BAŞLAMAK kuralın kendisidir: bu ekranın
+     * yetkisi olan alanlar (ad, firma, rol, durum) yazılır, GERİSİNE
+     * DOKUNULMAZ. Böylece ileride `User`a eklenen bir yetki alanı bu
+     * ekranda yeniden kaybolmaz.
+     */
     const nextUser: User = {
+      ...(existingUser ?? {}),
       id: companyUser.id,
       companyId: companyUser.companyId,
       fullName: companyUser.fullName,

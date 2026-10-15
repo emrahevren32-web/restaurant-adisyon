@@ -39,8 +39,11 @@
 // ═══════════════════════════════════════════════════════════════════════════
 
 import { getSupabase, isSupabaseConfigured } from '../core/supabase'
-import { loadBranches, loadCompanies, saveBranches, saveCompanies } from '../storage'
-import type { Branch, Company, User } from '../types'
+import {
+  loadBranchPermissions, loadBranches, loadCompanies,
+  saveBranchPermissions, saveBranches, saveCompanies,
+} from '../storage'
+import type { Branch, BranchPermission, Company, User } from '../types'
 
 type CompanySatiri = {
   id: string
@@ -112,6 +115,54 @@ const subeyeCevir = (satir: BranchSatiri, varOlan?: Branch): Branch => ({
 })
 
 /**
+ * Kişinin ŞUBE ERİŞİMİNİ aynalar (`user_branch_access` → localStorage).
+ *
+ * ── BULUNAN HATA (12.10.2026) ────────────────────────────────────────────
+ * İlk personel hesabı açıldıktan sonra kişi giriş yaptı ve başlıkta
+ * "Yetkili şube yok" yazdı. Veritabanında erişim satırı VARDI
+ * (`user_branch_access`, 0076 onu yazıyor). Sorun şuydu: şube süzgeci
+ * (`filterBranchesByPermission`) yönetici olmayan kullanıcı için
+ * localStorage'daki `ra_branch_permissions` listesine bakıyor ve o liste
+ * YALNIZCA ekrandan elle doldurulduğunda doluyordu. Yani hesabı sistem
+ * açınca kişinin hiçbir şubesi görünmüyordu.
+ *
+ * ⚠️ BU BİR GÜVENLİK KAPISI DEĞİL, BİR GÖRÜNÜRLÜK AYNASIDIR. Gerçek sınır
+ * veritabanında (RLS + `user_branch_access`). Burada yazdığımız kayıtlar
+ * yalnız başlıktaki şube seçicinin ve eski ekranların ne göstereceğini
+ * belirler. Bu yüzden veritabanında OLMAYAN bir erişim buraya yazılmaz:
+ * liste her girişte sunucudakiyle değiştirilir, genişletilmez.
+ */
+const subeErisiminiAynala = async (user: User): Promise<void> => {
+  const { data, error } = await getSupabase()
+    .from('user_branch_access')
+    .select('user_id, branch_id')
+    .eq('user_id', user.id)
+
+  if(error || !data) return
+
+  const simdi = new Date().toISOString()
+  const yeniler: BranchPermission[] = (data as { user_id: string; branch_id: string }[])
+    .map(satir => ({
+      id: `uba_${satir.user_id}_${satir.branch_id}`,
+      tenantId: user.tenantId,
+      userId: satir.user_id,
+      branchId: satir.branch_id,
+      canView: true,
+      // ⚠️ Görme dışındaki haklar BURADAN gelmez. Kimin ne YAZABİLECEĞİNE
+      // rol izinleri karar veriyor (0014/0015) ve asıl kapı RLS'tir;
+      // burada true yazsaydık, ekranda açık görünen bir düğmenin sunucuda
+      // reddedilmesine yol açardık.
+      canCreate: false, canEdit: false, canDelete: false,
+      createdAt: simdi, updatedAt: simdi,
+    }))
+
+  // Bu kullanıcıya ait ESKİ satırlar atılıyor: erişim geri alındıysa
+  // localStorage'da kalıp hayalet yetki göstermesin.
+  const digerleri = loadBranchPermissions().filter(izin => izin.userId !== user.id)
+  saveBranchPermissions([...digerleri, ...yeniler])
+}
+
+/**
  * Kullanıcının firmasını veritabanından okuyup localStorage modeline aynalar.
  *
  * Dönen değer, çözülen `primarySectorId`'dir (bulunamazsa `''`). Çağıran taraf
@@ -172,6 +223,7 @@ export const syncWorkspaceCompanyFromDatabase = async (user: User): Promise<stri
     )
 
     await subeleriAynala(satir.id)
+    await subeErisiminiAynala(user)
 
     return sektor
   } catch {

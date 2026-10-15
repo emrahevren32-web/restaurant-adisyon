@@ -17,6 +17,7 @@
 // ═══════════════════════════════════════════════════════════════════════════
 
 import React from 'react'
+import { yazabilirMi } from '../authorization/yazma-yetkisi'
 import type { User } from '../types'
 import { getSupabase, isSupabaseConfigured } from '../core/supabase'
 import { resolveStockRepositoryMode } from '../core/stock/index'
@@ -46,7 +47,13 @@ const BOS_GIRDI: TedarikciGirdisi = {
 
 export default function Suppliers({ currentUser }: Props){
   const mod = resolveStockRepositoryMode()
-  const yazabilir = !currentUser.permissions || currentUser.permissions.includes('purchase.write')
+  // ⚠️ 14.10 · FAIL-OPEN KALDIRILDI. Önceki hâl şuydu:
+  //     !currentUser.permissions || currentUser.permissions.includes(...)
+  // Yani izin listesi YÜKLENMEMİŞSE kullanıcı yazabiliyordu. 12.10'da
+  // `normalizeUser`ın listeyi düşürdüğü hata tam buraya bağlanıyordu
+  // (tuzak 71): liste kaybolunca kapı açılıyordu. Kapının bilmediği
+  // durumda AÇIK kalması, kapı olmaması demektir.
+  const yazabilir = yazabilirMi(currentUser, 'purchase.write')
 
   const [baglam, setBaglam] = React.useState<DepoBaglami | null>(null)
   const [kayitlar, setKayitlar] = React.useState<Tedarikci[]>([])

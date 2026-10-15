@@ -20,6 +20,7 @@
 // ═══════════════════════════════════════════════════════════════════════════
 
 import React from 'react'
+import { yazabilirMi } from '../authorization/yazma-yetkisi'
 import type { User } from '../types'
 import { getSupabase, isSupabaseConfigured } from '../core/supabase'
 import { createStockRepository, resolveStockRepositoryMode } from '../core/stock/index'
@@ -56,6 +57,10 @@ type EkranMaliyeti = UretimMaliyeti & {
   /** Birim maliyetin biriminin adı. */
   birim: string
 }
+
+import {
+  maliyetGorebilir, MALIYET_GIZLI, MALIYET_GIZLI_ACIKLAMA,
+} from '../authorization/maliyet-gorunurlugu'
 
 type Props = { currentUser: User }
 type Islem = 'yeni' | 'tamamla' | null
@@ -98,8 +103,16 @@ const enGecTarih = (() => {
 })()
 
 export default function WorkOrders({ currentUser }: Props){
+  // Parasal bilgi kapısı — kural src/authorization/maliyet-gorunurlugu.ts
+  const paraGorur = maliyetGorebilir(currentUser)
   const mod = resolveStockRepositoryMode()
-  const yazabilir = !currentUser.permissions || currentUser.permissions.includes('production.write')
+  // ⚠️ 14.10 · FAIL-OPEN KALDIRILDI. Önceki hâl şuydu:
+  //     !currentUser.permissions || currentUser.permissions.includes(...)
+  // Yani izin listesi YÜKLENMEMİŞSE kullanıcı yazabiliyordu. 12.10'da
+  // `normalizeUser`ın listeyi düşürdüğü hata tam buraya bağlanıyordu
+  // (tuzak 71): liste kaybolunca kapı açılıyordu. Kapının bilmediği
+  // durumda AÇIK kalması, kapı olmaması demektir.
+  const yazabilir = yazabilirMi(currentUser, 'production.write')
 
   const [baglam, setBaglam] = React.useState<DepoBaglami | null>(null)
   const [isEmirleri, setIsEmirleri] = React.useState<IsEmri[]>([])
@@ -651,8 +664,22 @@ function IsEmriDetayi({
         </section>
       )}
 
-      {/* ── MALİYET ────────────────────────────────────────────────────── */}
-      {maliyet && (
+      {/* ── MALİYET ──────────────────────────────────────────────────────
+          ⚠️ `finance.read` İSTER (13.10.2026). Rol açıklamasında üretim
+          sorumlusu için "Fiyat GÖRMEZ" yazıyor; bu bölüm o sözü tutuyor.
+          Sebebi yazılıyor — kart sessizce kaybolursa kişi "maliyet
+          hesaplanmamış" sanar ve olmayan bir eksiği arar. */}
+      {maliyet && !paraGorur && (
+        <section className="card">
+          <div className="section-header compact">
+            <h3>Üretim maliyeti</h3>
+            <span className="muted">{MALIYET_GIZLI}</span>
+          </div>
+          <p className="muted">{MALIYET_GIZLI_ACIKLAMA}</p>
+        </section>
+      )}
+
+      {maliyet && paraGorur && (
         <section className="card">
           <div className="section-header compact"><h3>Üretim maliyeti</h3></div>
           <dl className="detail-grid">

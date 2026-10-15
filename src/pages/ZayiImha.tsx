@@ -19,6 +19,7 @@
 // ═══════════════════════════════════════════════════════════════════════════
 
 import React from 'react'
+import { yazabilirMi } from '../authorization/yazma-yetkisi'
 import type { User } from '../types'
 import { getSupabase, isSupabaseConfigured } from '../core/supabase'
 import { createStockRepository, resolveStockRepositoryMode } from '../core/stock/index'
@@ -33,6 +34,10 @@ import {
 import {
   gerekceYeterliMi, gunOnce, kalemBazindaZayi, zayiOzeti,
 } from '../warehouse/write-off.service'
+
+import {
+  maliyetGorebilir, MALIYET_GIZLI_ACIKLAMA,
+} from '../authorization/maliyet-gorunurlugu'
 
 type Props = { currentUser: User }
 
@@ -50,8 +55,16 @@ const nedenSinifi = (neden: ZayiNedeni) =>
   neden === 'EXPIRY_WRITE_OFF' ? 'danger-pill' : neden === 'LOSS' ? 'warning-pill' : 'info-pill'
 
 export default function ZayiImha({ currentUser }: Props){
+  // Parasal bilgi kapısı — kural src/authorization/maliyet-gorunurlugu.ts
+  const paraGorur = maliyetGorebilir(currentUser)
   const mod = resolveStockRepositoryMode()
-  const yazabilir = !currentUser.permissions || currentUser.permissions.includes('stock.write')
+  // ⚠️ 14.10 · FAIL-OPEN KALDIRILDI. Önceki hâl şuydu:
+  //     !currentUser.permissions || currentUser.permissions.includes(...)
+  // Yani izin listesi YÜKLENMEMİŞSE kullanıcı yazabiliyordu. 12.10'da
+  // `normalizeUser`ın listeyi düşürdüğü hata tam buraya bağlanıyordu
+  // (tuzak 71): liste kaybolunca kapı açılıyordu. Kapının bilmediği
+  // durumda AÇIK kalması, kapı olmaması demektir.
+  const yazabilir = yazabilirMi(currentUser, 'stock.write')
 
   const [baglam, setBaglam] = React.useState<DepoBaglami | null>(null)
   const [gecmisLotlar, setGecmisLotlar] = React.useState<RafOmruUyarisi[]>([])
@@ -300,7 +313,11 @@ export default function ZayiImha({ currentUser }: Props){
             <thead>
               <tr>
                 <th>Sebep</th><th>Ne demek</th>
-                <th className="num">Kayıt</th><th className="num">Miktar</th><th className="num">Tutar</th>
+                <th className="num">Kayıt</th><th className="num">Miktar</th>
+                {/* ⚠️ Tutar sütunu `finance.read` ister (13.10.2026).
+                    Sütun BAŞLIĞIYLA BİRLİKTE kalkıyor; boş bir "Tutar"
+                    sütunu bırakmak, veri yokmuş gibi görünürdü. */}
+                {paraGorur && <th className="num">Tutar</th>}
               </tr>
             </thead>
             <tbody>
@@ -317,27 +334,33 @@ export default function ZayiImha({ currentUser }: Props){
                     {o.birimBazinda.length === 0 ? '—'
                       : o.birimBazinda.map(b => `${bicimle(b.miktar)} ${b.birim}`).join(' · ')}
                   </td>
-                  <td className="num">
-                    {o.tutar > 0 ? para(o.tutar) : '—'}
-                    {o.maliyetsiz > 0 && (
-                      <div className="muted" style={{ fontSize: '0.8em' }}>
-                        {o.maliyetsiz} kayıtta maliyet yok
-                      </div>
-                    )}
-                  </td>
+                  {paraGorur && (
+                    <td className="num">
+                      {o.tutar > 0 ? para(o.tutar) : '—'}
+                      {o.maliyetsiz > 0 && (
+                        <div className="muted" style={{ fontSize: '0.8em' }}>
+                          {o.maliyetsiz} kayıtta maliyet yok
+                        </div>
+                      )}
+                    </td>
+                  )}
                 </tr>
               ))}
             </tbody>
           </table>
         </div>
 
-        <p className="muted detail-hint">
-          Seçilen aralıkta toplam <strong>{para(toplamTutar)}</strong>
-          {maliyetsizToplam > 0 && (
-            <> — {maliyetsizToplam} kaydın birim maliyeti bilinmediği için bu rakam
-            gerçek kaybın <strong>altındadır</strong>.</>
-          )}
-        </p>
+        {paraGorur ? (
+          <p className="muted detail-hint">
+            Seçilen aralıkta toplam <strong>{para(toplamTutar)}</strong>
+            {maliyetsizToplam > 0 && (
+              <> — {maliyetsizToplam} kaydın birim maliyeti bilinmediği için bu rakam
+              gerçek kaybın <strong>altındadır</strong>.</>
+            )}
+          </p>
+        ) : (
+          <p className="muted detail-hint">{MALIYET_GIZLI_ACIKLAMA}</p>
+        )}
       </section>
 
       {/* ── 3 · KALEM BAZINDA ────────────────────────────────────────────── */}
@@ -349,7 +372,8 @@ export default function ZayiImha({ currentUser }: Props){
               <thead>
                 <tr>
                   <th>Kalem</th><th>Kod</th>
-                  <th className="num">Kayıt</th><th className="num">Miktar</th><th className="num">Tutar</th>
+                  <th className="num">Kayıt</th><th className="num">Miktar</th>
+                  {paraGorur && <th className="num">Tutar</th>}
                 </tr>
               </thead>
               <tbody>
@@ -359,7 +383,9 @@ export default function ZayiImha({ currentUser }: Props){
                     <td className="muted">{k.kalemKodu}</td>
                     <td className="num">{k.adet}</td>
                     <td className="num">{bicimle(k.miktar)} {k.birim}</td>
-                    <td className="num">{k.tutar > 0 ? para(k.tutar) : '—'}</td>
+                    {paraGorur && (
+                      <td className="num">{k.tutar > 0 ? para(k.tutar) : '—'}</td>
+                    )}
                   </tr>
                 ))}
               </tbody>

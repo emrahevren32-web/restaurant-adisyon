@@ -35,6 +35,11 @@ export type PermissionName =
   | 'quality.read'
   | 'quality.write'
   | 'quality.declaration'
+  // 0081 — `quality.write` İKİYE AYRILDI. Ölçüm GİRMEK takdir işi değil
+  // (sayı limite göre sistemce değerlendirilir, 0024); ölçümü İPTAL ETMEK
+  // ve düzeltici faaliyeti KAPATMAK takdir işidir. Sapmayı üretenin onu
+  // kapatması, denetimdeki en temel ayrılığı (yapan ≠ onaylayan) bozar.
+  | 'quality.record.manage'
   | 'logistics.read'
   | 'logistics.write'
   | 'branch.read'

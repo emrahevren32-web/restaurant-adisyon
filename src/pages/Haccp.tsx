@@ -21,7 +21,7 @@
 // ═══════════════════════════════════════════════════════════════════════════
 
 import React from 'react'
-import { yazabilirMi } from '../authorization/yazma-yetkisi'
+import { KAPATMA_YETKISI_YOK, yazabilirMi } from '../authorization/yazma-yetkisi'
 import type { User } from '../types'
 import { getSupabase, isSupabaseConfigured } from '../core/supabase'
 import { resolveStockRepositoryMode } from '../core/stock/index'
@@ -80,6 +80,16 @@ export default function Haccp({ currentUser }: Props){
   // ölçümü girip düzeltici faaliyet kapatabiliyordu. Kalite kaydı
   // kalitenin imzasıdır; başka bir yetkiyle açılamaz.
   const yazabilir = yazabilirMi(currentUser, 'quality.write')
+  // ⚠️ 0081 · ÖLÇÜM GİRMEK ile KAYDI DÜZELTMEK AYRI.
+  // Ekran görüntüsünde görülen hata: sevkiyat sorumlusu, "Depo
+  // sorumlusu"na atanmış bir mal kabul uygunsuzluğunu kapatabiliyordu.
+  // Sebebi tek izindi — `quality.write` hem ölçüm girmeyi hem kapatmayı
+  // açıyordu ve üretim/sevkiyat sorumlusunda o izin VAR (0068, doğru
+  // karar: ölçümü ölçen girsin).
+  //
+  // Ayrım: girmek takdir işi değil (sayıyı limit değerlendirir), iptal
+  // ve kapatma takdir işidir. Sapmayı üreten onu kapatamaz.
+  const kaydiDuzeltebilir = yazabilirMi(currentUser, 'quality.record.manage')
 
   const [baglam, setBaglam] = React.useState<DepoBaglami | null>(null)
   const [ccpler, setCcpler] = React.useState<Ccp[]>([])
@@ -337,11 +347,15 @@ export default function Haccp({ currentUser }: Props){
                       </span>
                     </td>
                     <td className="actions-cell">
-                      {yazabilir && (
+                      {kaydiDuzeltebilir ? (
                         <button className="btn" type="button" disabled={calisiyor}
                           onClick={() => { void faaliyetKapat(f) }}>
                           Kapat
                         </button>
+                      ) : (
+                        <span className="muted" title={KAPATMA_YETKISI_YOK}>
+                          kalite kapatır
+                        </span>
                       )}
                     </td>
                   </tr>
@@ -539,7 +553,7 @@ export default function Haccp({ currentUser }: Props){
                       {o.lotId && <div className="muted">partiye bağlı</div>}
                     </td>
                     <td className="actions-cell">
-                      {yazabilir && !o.iptalZamani && (
+                      {kaydiDuzeltebilir && !o.iptalZamani && (
                         <button className="btn" type="button" disabled={calisiyor}
                           onClick={() => { void olcumIptal(o) }}>
                           İptal

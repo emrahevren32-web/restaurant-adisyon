@@ -16,6 +16,7 @@
 // ═══════════════════════════════════════════════════════════════════════════
 
 import React from 'react'
+import { yazabilirMi } from '../authorization/yazma-yetkisi'
 import type { User } from '../types'
 import { getSupabase, isSupabaseConfigured } from '../core/supabase'
 import { resolveStockRepositoryMode } from '../core/stock/index'
@@ -54,6 +55,10 @@ import {
   type Talep,
   type TalepDurumu,
 } from '../purchasing/purchase.types'
+
+import {
+  maliyetGorebilir, MALIYET_GIZLI_ACIKLAMA,
+} from '../authorization/maliyet-gorunurlugu'
 
 type Props = { currentUser: User }
 type Sekme = 'talepler' | 'siparisler' | 'kabuller' | 'iadeler'
@@ -107,8 +112,21 @@ type SatirTaslagi = {
 const BOS_SATIR: SatirTaslagi = { stokKalemiId: '', miktar: '', birim: '', birimFiyat: '' }
 
 export default function PurchaseFlow({ currentUser }: Props){
+  /**
+   * ⚠️ ALIŞ FİYATI `finance.read` İSTER (13.10.2026).
+   * Rol açıklamaları: Satın Alma Sorumlusu "alış fiyatını görür",
+   * Depo Sorumlusu "Fiyat ve maliyet GÖRMEZ". İkisinin de `purchase.read`
+   * izni var, yani ayıran şey okuma izni değil finans iznidir.
+   */
+  const paraGorur = maliyetGorebilir(currentUser)
   const mod = resolveStockRepositoryMode()
-  const yazabilir = !currentUser.permissions || currentUser.permissions.includes('purchase.write')
+  // ⚠️ 14.10 · FAIL-OPEN KALDIRILDI. Önceki hâl şuydu:
+  //     !currentUser.permissions || currentUser.permissions.includes(...)
+  // Yani izin listesi YÜKLENMEMİŞSE kullanıcı yazabiliyordu. 12.10'da
+  // `normalizeUser`ın listeyi düşürdüğü hata tam buraya bağlanıyordu
+  // (tuzak 71): liste kaybolunca kapı açılıyordu. Kapının bilmediği
+  // durumda AÇIK kalması, kapı olmaması demektir.
+  const yazabilir = yazabilirMi(currentUser, 'purchase.write')
 
   const [sekme, setSekme] = React.useState<Sekme>('talepler')
   const [baglam, setBaglam] = React.useState<DepoBaglami | null>(null)
@@ -512,6 +530,7 @@ export default function PurchaseFlow({ currentUser }: Props){
               siparis={seciliSiparis}
               durumlar={siparisDurumu(seciliSiparis, kabuller)}
               yazabilir={yazabilir}
+              paraGorur={paraGorur}
               onDurum={durum => { void siparisDurum(seciliSiparis, durum) }}
               onMalKabul={() => { setYeniForm('mal-kabul'); setHata(''); setBilgi('') }}
             />
@@ -757,11 +776,13 @@ function TalepDetayi({
 }
 
 function SiparisDetayi({
-  siparis, durumlar, yazabilir, onDurum, onMalKabul,
+  siparis, durumlar, yazabilir, paraGorur, onDurum, onMalKabul,
 }: {
   siparis: Siparis
   durumlar: SiparisSatirDurumu[]
   yazabilir: boolean
+  /** Alış fiyatı ve tutar görünsün mü? `finance.read` istiyor. */
+  paraGorur: boolean
   onDurum: (durum: SiparisDurumu) => void
   onMalKabul: () => void
 }){
@@ -791,7 +812,10 @@ function SiparisDetayi({
             <tr>
               <th>Kalem</th><th className="num">Sipariş</th>
               {teslimBasladi && <><th className="num">Gelen</th><th className="num">Kalan</th></>}
-              <th>Birim</th><th className="num">Birim Fiyat</th><th className="num">Tutar</th>
+              <th>Birim</th>
+              {/* Sütunlar BAŞLIKLARIYLA kalkıyor; boş bir fiyat sütunu
+                  "fiyat girilmemiş" gibi okunurdu. */}
+              {paraGorur && <><th className="num">Birim Fiyat</th><th className="num">Tutar</th></>}
             </tr>
           </thead>
           <tbody>
@@ -810,24 +834,32 @@ function SiparisDetayi({
                     </>
                   )}
                   <td className="muted">{satir.birim}</td>
-                  <td className={`num ${satir.birimFiyat <= 0 ? 'is-critical' : ''}`}>
-                    {satir.birimFiyat > 0 ? paraBicimi.format(satir.birimFiyat) : '—'}
-                  </td>
-                  <td className="num">{paraBicimi.format(satir.miktar * satir.birimFiyat)}</td>
+                  {paraGorur && (<>
+                    <td className={`num ${satir.birimFiyat <= 0 ? 'is-critical' : ''}`}>
+                      {satir.birimFiyat > 0 ? paraBicimi.format(satir.birimFiyat) : '—'}
+                    </td>
+                    <td className="num">{paraBicimi.format(satir.miktar * satir.birimFiyat)}</td>
+                  </>)}
                 </tr>
               )
             })}
           </tbody>
-          <tfoot>
-            <tr>
-              <td colSpan={teslimBasladi ? 6 : 4}>Toplam</td>
-              <td className="num"><strong>{paraBicimi.format(toplam)}</strong></td>
-            </tr>
-          </tfoot>
+          {paraGorur && (
+            <tfoot>
+              <tr>
+                <td colSpan={teslimBasladi ? 6 : 4}>Toplam</td>
+                <td className="num"><strong>{paraBicimi.format(toplam)}</strong></td>
+              </tr>
+            </tfoot>
+          )}
         </table>
       </div>
 
-      {fiyatsizVar && siparis.durum === 'DRAFT' && (
+      {!paraGorur && (
+        <p className="muted detail-hint">{MALIYET_GIZLI_ACIKLAMA}</p>
+      )}
+
+      {paraGorur && fiyatsizVar && siparis.durum === 'DRAFT' && (
         <p className="muted detail-hint">
           Fiyatı girilmemiş kalem var. Sipariş gönderilemez: fiyatsız alım, malın
           maliyetini sıfır gösterir.

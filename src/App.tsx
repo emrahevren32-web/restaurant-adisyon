@@ -50,8 +50,10 @@ import {
   LICENSE_MODULE_CATALOG,
   addLicenseAccessFailureLog,
   getCompanyIdForUser,
+  setCurrentUser,
   LICENSE_ACCESS_DENIED_MESSAGE
 } from './storage'
+import { loadPermissionsForUser } from './authorization/permission.repository'
 import { getFirstLoginOnboardingState } from './onboarding/onboarding.service'
 import { Branch, LicenseModuleKey, User } from './types'
 import BusinessWorkspaceRouteHost from './modules/BusinessWorkspaceRouteHost'
@@ -433,6 +435,25 @@ export default function App(){
   const [branches, setBranches] = React.useState<Branch[]>(() => getVisibleBranchesForUser(initialUser))
   const [activeBranchId, setActiveBranchState] = React.useState(() => getActiveBranchId())
   const [licenseAccessError, setLicenseAccessError] = React.useState('')
+  /**
+   * ⚠️ İZİN LİSTESİ EKSİKSE EKRAN AÇILMAZ (13.10.2026).
+   *
+   * Codex denetimi: *"eksik izin listesi 50 rotayı hâlâ geçiriyor."* Sebep,
+   * `route-permission.ts` içindeki bilinçli taviz: `permissions === undefined`
+   * "henüz yüklenmedi" sayılıyor ve SÜZME YAPILMIYOR. O taviz, tavizin kendisi
+   * yüzünden değil, `undefined`in KALICI olabilmesi yüzünden tehlikeliydi —
+   * eski bir oturum ya da (12.10'da düzeltilen) `normalizeUser` alan kaybı
+   * yetki çerçevesini süresiz devre dışı bırakabiliyordu.
+   *
+   * Çözüm tavizi kaldırmak DEĞİL (kaldırmak, izin sorgusu düşen gerçek
+   * kullanıcıları kapıda bırakırdı): `undefined`i KALICI OLMAKTAN çıkarmak.
+   * Aşağıdaki etki, izin listesi eksik bir oturum bulduğunda onu
+   * veritabanından yeniden okuyor; okuyamazsa oturumu kapatıyor. Okunana
+   * kadar uygulama kabuğu HİÇ render edilmiyor.
+   */
+  const [izinleriTamamla, setIzinleriTamamla] = React.useState(
+    Boolean(initialUser && initialUser.permissions === undefined),
+  )
   const [storageRecoveryMessage, setStorageRecoveryMessage] = React.useState('')
   const [selectedCustomerId, setSelectedCustomerId] = React.useState('')
   const [selectedPendingApplicationId, setSelectedPendingApplicationId] = React.useState('')
@@ -728,6 +749,49 @@ export default function App(){
     setOpenGroupKey('system-modules')
     setLicenseAccessError('')
   }
+  /**
+   * Eksik izin listesini veritabanından tamamlar.
+   *
+   * ⚠️ `null` dönerse OTURUM KAPANIR. `null` "izni yok" değil
+   * "OKUNAMADI" demektir; yetkisini bilmediğimiz bir kullanıcıyı içeride
+   * tutmak, ona rastgele bir yetki kümesi vermek olur. `authenticateCredentials`
+   * girişte aynı kararı veriyor (fail-closed); burada da aynısı.
+   */
+  React.useEffect(() => {
+    if(!izinleriTamamla) return
+    if(!currentUser){ setIzinleriTamamla(false); return }
+    if(currentUser.permissions !== undefined){ setIzinleriTamamla(false); return }
+
+    let iptal = false
+    void (async () => {
+      // Rol kodu `normalizeUser` düzeltmesinden sonra korunuyor; yine de
+      // eski bir kayıtta boş olabilir — o zaman kaba karşılığa düşüyoruz.
+      const rolKodu = currentUser.roleCode
+        || (currentUser.role === 'Admin' ? 'admin' : 'personel')
+      let izinler: string[] | null = null
+      try {
+        izinler = await loadPermissionsForUser(currentUser.id, rolKodu)
+      } catch {
+        izinler = null
+      }
+      if(iptal) return
+      if(izinler === null){
+        logout()
+        setLicenseAccessError(
+          'Yetkileriniz okunamadı, oturum güvenlik gereği kapatıldı. '
+          + 'Lütfen yeniden giriş yapın.',
+        )
+        setIzinleriTamamla(false)
+        return
+      }
+      const tamam: User = { ...currentUser, permissions: izinler }
+      setCurrentUser(tamam)
+      setUserState(tamam)
+      setIzinleriTamamla(false)
+    })()
+    return () => { iptal = true }
+  }, [izinleriTamamla, currentUser])
+
   const navGroupsForCurrentUser = React.useMemo<NavGroup[]>(() => {
     // Platform admini AYNI ZAMANDA bir firmanın yöneticisi olabilir — kurucu
     // durumu tam olarak budur. Eskiden ikisi birbirini dışlıyordu: platform
@@ -883,6 +947,53 @@ export default function App(){
     return (
       <div className="app-shell unified-auth-shell">
         <Login onLogin={onLogin} />
+      </div>
+    )
+  }
+
+  /**
+   * ⚠️ İzin listesi tamamlanana kadar UYGULAMA KABUĞU RENDER EDİLMEZ.
+   * Yarım yetkili bir ekran göstermek, yetkisi olmayan birine kapı açmaktır.
+   */
+  if(izinleriTamamla){
+    return (
+      <div className="app-shell unified-auth-shell">
+        <div className="auth-screen">
+          <section className="card auth-card">
+            <h2>Yetkileriniz yükleniyor…</h2>
+            <p className="muted">
+              Oturumunuzdaki yetki bilgisi eksik olduğu için yeniden okunuyor.
+              Bu bir kez olur.
+            </p>
+          </section>
+        </div>
+      </div>
+    )
+  }
+
+  /**
+   * ⚠️ GEÇİCİ ŞİFRE KAPISI (0076/0077) — UYGULAMA KABUĞUNDAN ÖNCE.
+   *
+   * Yönetici personel hesabını geçici bir şifreyle açtı. O şifre bizim
+   * veritabanımıza hiç yazılmadı, hiçbir günlüğe düşmedi — ama YÖNETİCİ onu
+   * biliyor. Yani hesap şu an kişinin değil, yöneticisinin elinde.
+   *
+   * Kapı buraya konuyor, menüye ya da ekranların içine DEĞİL: aradaki fark,
+   * kişinin uygulamayı hiç görmemesi ile "biraz görmesi" arasındaki farktır.
+   * İçeri alıp ekran ekran engellemeye çalışsaydık, unutulan tek bir ekran
+   * kapıyı açık bırakırdı.
+   *
+   * Şifre belirlenince oturum kapanıyor ve kişi yeni şifresiyle bir kez
+   * giriş yapıyor — çalıştığını kendi gözüyle görsün.
+   */
+  if(currentUser.mustChangePassword){
+    return (
+      <div className="app-shell unified-auth-shell">
+        <SifreBelirle
+          tur="zorunlu"
+          onTamamlandi={logout}
+          onVazgec={logout}
+        />
       </div>
     )
   }

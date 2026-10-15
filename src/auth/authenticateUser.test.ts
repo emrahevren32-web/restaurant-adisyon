@@ -17,12 +17,16 @@ const maybeSingle = vi.fn()
 const eq = vi.fn(() => ({ maybeSingle }))
 const select = vi.fn(() => ({ eq }))
 const from = vi.fn(() => ({ select }))
+// 0077: giriş artık kullanıcı adıyla da yapılabiliyor; `authenticateUser`
+// girdiyi önce `giris_adresi_bul` ile gerçek giriş adresine çeviriyor.
+const rpc = vi.fn(async (_ad: string, _p: unknown) => ({ data: null, error: null }))
 
 vi.mock('../core/supabase', () => ({
   isSupabaseConfigured: () => true,
   getSupabase: () => ({
     auth: { signInWithPassword, signOut },
-    from
+    from,
+    rpc
   })
 }))
 
@@ -200,5 +204,132 @@ describe('authenticateUser — Supabase Auth ile gerçek oturum açma', () => {
     const user = await authenticateUser('ayse@ornek.com', 'sifre123')
 
     expect(user!.role).toBe('Personel')
+  })
+})
+
+describe('kullanıcı adıyla giriş (0077) ve geçici şifre bayrağı (0076)', () => {
+  beforeEach(() => {
+    vi.clearAllMocks()
+    rpc.mockResolvedValue({ data: null, error: null })
+  })
+
+  const personelSatiri = (bayrak: boolean) => ({
+    data: {
+      id: 'app-user-depocu',
+      tenant_id: 'tenant-abc',
+      company_id: null,
+      username: 'depocu',
+      full_name: 'Alaattin Kocatepe',
+      phone: null,
+      profile_photo_url: null,
+      role_code: 'depo_sorumlusu',
+      is_active: true,
+      must_change_password: bayrak
+    },
+    error: null
+  })
+
+  it('⚠️ kullanıcı adı, girişten ÖNCE gerçek giriş adresine çevrilir', async () => {
+    rpc.mockResolvedValue({ data: 'depocu@abcgida.miyop.local', error: null })
+    signInWithPassword.mockResolvedValue({
+      data: { user: { id: 'auth-depocu', email: 'depocu@abcgida.miyop.local' } },
+      error: null
+    })
+    maybeSingle.mockResolvedValue(personelSatiri(false))
+
+    const user = await authenticateUser('depocu', 'gecici-sifre1')
+
+    expect(rpc).toHaveBeenCalledWith('giris_adresi_bul', {
+      p_kullanici: 'depocu',
+      p_isletme: null
+    })
+    // Supabase'e kullanıcı adı DEĞİL, çözülen adres gidiyor.
+    expect(signInWithPassword).toHaveBeenCalledWith({
+      email: 'depocu@abcgida.miyop.local',
+      password: 'gecici-sifre1'
+    })
+    expect(user!.username).toBe('depocu')
+  })
+
+  it('işletme kodu verilirse sunucuya o kodla sorulur', async () => {
+    rpc.mockResolvedValue({ data: 'depocu@abcgida.miyop.local', error: null })
+    signInWithPassword.mockResolvedValue({
+      data: { user: { id: 'auth-depocu' } }, error: null
+    })
+    maybeSingle.mockResolvedValue(personelSatiri(false))
+
+    await authenticateUser('depocu', 'gecici-sifre1', 'ABCGIDA')
+
+    expect(rpc).toHaveBeenCalledWith('giris_adresi_bul', {
+      p_kullanici: 'depocu',
+      p_isletme: 'ABCGIDA'
+    })
+  })
+
+  it('⚠️ e-posta yazan kişi için sunucuya HİÇ gidilmez (fazladan istek yok)', async () => {
+    signInWithPassword.mockResolvedValue({
+      data: { user: { id: 'auth-patron', email: 'abc.bey@ornek.com' } },
+      error: null
+    })
+    maybeSingle.mockResolvedValue(personelSatiri(false))
+
+    await authenticateUser('ABC.Bey@Ornek.COM', 'sifre123')
+
+    expect(rpc).not.toHaveBeenCalled()
+    // Adres küçük harfe indirilir; Supabase'in beklediği biçim budur.
+    expect(signInWithPassword).toHaveBeenCalledWith({
+      email: 'abc.bey@ornek.com',
+      password: 'sifre123'
+    })
+  })
+
+  it('⚠️ çeviri başarısız olsa bile giriş denenir (RPC arızası bütün girişi kilitlemez)', async () => {
+    rpc.mockResolvedValue({ data: null, error: { message: 'network' } })
+    signInWithPassword.mockResolvedValue({ data: { user: null }, error: { message: 'Invalid' } })
+
+    const user = await authenticateUser('depocu', 'sifre123')
+
+    expect(signInWithPassword).toHaveBeenCalledWith({ email: 'depocu', password: 'sifre123' })
+    expect(user).toBeNull()
+  })
+
+  it('⚠️ geçici şifre bayrağı User nesnesine taşınır (taşınmazsa kapı hiç kapanmaz)', async () => {
+    rpc.mockResolvedValue({ data: 'depocu@abcgida.miyop.local', error: null })
+    signInWithPassword.mockResolvedValue({ data: { user: { id: 'auth-depocu' } }, error: null })
+    maybeSingle.mockResolvedValue(personelSatiri(true))
+
+    const user = await authenticateUser('depocu', 'gecici-sifre1')
+
+    expect(user!.mustChangePassword).toBe(true)
+  })
+
+  it('bayrak yoksa (eski kayıt / null) false olur — kimse boşuna kapıda kalmaz', async () => {
+    rpc.mockResolvedValue({ data: 'patron@ornek.com', error: null })
+    signInWithPassword.mockResolvedValue({ data: { user: { id: 'auth-eski' } }, error: null })
+    maybeSingle.mockResolvedValue({
+      data: {
+        id: 'app-user-eski', tenant_id: 'tenant-abc', company_id: null,
+        username: 'eski', full_name: 'Eski Kayıt', phone: null,
+        profile_photo_url: null, role_code: 'admin', is_active: true
+        // must_change_password alanı YOK — eski satırları taklit ediyor.
+      },
+      error: null
+    })
+
+    const user = await authenticateUser('eski', 'sifre123')
+
+    expect(user!.mustChangePassword).toBe(false)
+  })
+
+  it('⚠️ seçilen sütunlar arasında must_change_password VAR', async () => {
+    rpc.mockResolvedValue({ data: 'depocu@abcgida.miyop.local', error: null })
+    signInWithPassword.mockResolvedValue({ data: { user: { id: 'auth-depocu' } }, error: null })
+    maybeSingle.mockResolvedValue(personelSatiri(true))
+
+    await authenticateUser('depocu', 'gecici-sifre1')
+
+    // Sütun listede olmasa Supabase alanı hiç döndürmez ve bayrak sessizce
+    // false kalırdı — kapı açık, hata görünmez.
+    expect(select).toHaveBeenCalledWith(expect.stringContaining('must_change_password'))
   })
 })

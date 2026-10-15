@@ -39,12 +39,19 @@ const VERITABANI_KATALOGU = [
   // alerjen/besin beyanı yazmak aynı iş değil: birincisi üretim ve
   // sevkiyat sorumlusunda, ikincisi gıda mühendisi ve kalite
   // sorumlusunda. Göç: 0073.
-  'quality.declaration'
+  'quality.declaration',
+  // 0081 — `quality.write` İKİYE AYRILDI. Ölçüm GİRMEK (quality.write)
+  // takdir işi değil: sayı limite göre sistemce değerlendiriliyor, ve
+  // 0068 bu yüzden izni üretim ve sevkiyat sorumlusuna da verdi.
+  // Ölçümü İPTAL ETMEK ve düzeltici faaliyeti KAPATMAK ise takdir işi:
+  // sapmayı üretenin onu kapatması, yapan ≠ onaylayan ayrılığını bozar.
+  // Göç: 0081.
+  'quality.record.manage'
 ]
 
 describe('İzin kataloğu · kod ile veritabanı aynı', () => {
-  it('kod kataloğu 34 izin içeriyor', () => {
-    expect(PERMISSION_CATALOG).toHaveLength(34)
+  it('kod kataloğu 35 izin içeriyor', () => {
+    expect(PERMISSION_CATALOG).toHaveLength(35)
   })
 
   it('kod kataloğu ile 0014+0015 kataloğu birebir aynı kümedir', () => {

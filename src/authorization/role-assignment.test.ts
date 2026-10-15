@@ -82,6 +82,10 @@ describe('loadRoleAssignmentData', () => {
   it('beş tabloyu okur, atamaları ve rol izinlerini gruplar', async () => {
     const okunanTablolar: string[] = []
     mockGetSupabase.mockReturnValue({
+      // 0078: `loadRoleAssignmentData` artık giriş adlarını da okuyor
+      // (`giris_adlari` RPC). Göç uygulanmamış kurulumda bu RPC YOKTUR ve
+      // ekran yine ayakta kalmalı — sahte istemci o durumu taklit ediyor.
+      rpc: async () => ({ data: null, error: { message: 'function does not exist' } }),
       from: (tablo: string) => {
         okunanTablolar.push(tablo)
         const sonuc = {
@@ -126,6 +130,10 @@ describe('loadRoleAssignmentData', () => {
     // Pasif bir adımı göstermek, artık işlemeyen bir kuralı işliyor gibi
     // göstermek olurdu.
     mockGetSupabase.mockReturnValue({
+      // 0078: `loadRoleAssignmentData` artık giriş adlarını da okuyor
+      // (`giris_adlari` RPC). Göç uygulanmamış kurulumda bu RPC YOKTUR ve
+      // ekran yine ayakta kalmalı — sahte istemci o durumu taklit ediyor.
+      rpc: async () => ({ data: null, error: { message: 'function does not exist' } }),
       from: (tablo: string) => {
         const sonuc = tablo === 'order_approval_step'
           ? { data: [
@@ -149,6 +157,10 @@ describe('loadRoleAssignmentData', () => {
 
   it('bir tablo okunamazsa hata mesajı yukarı taşınır', async () => {
     mockGetSupabase.mockReturnValue({
+      // 0078: `loadRoleAssignmentData` artık giriş adlarını da okuyor
+      // (`giris_adlari` RPC). Göç uygulanmamış kurulumda bu RPC YOKTUR ve
+      // ekran yine ayakta kalmalı — sahte istemci o durumu taklit ediyor.
+      rpc: async () => ({ data: null, error: { message: 'function does not exist' } }),
       from: (tablo: string) => {
         const sonuc = tablo === 'app_user'
           ? { data: null, error: { message: 'izin yok' } }

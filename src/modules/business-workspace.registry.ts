@@ -2853,16 +2853,31 @@ export const getBusinessWorkspaceMenuItems = (moduleType: WorkspaceModuleType) =
  * - `workspace-welcome` : ilk giriş / kurulum tamamlanmamış kullanıcının indiği ekran.
  *   Menüde olmamalı ama erişilemezse giriş akışı kırılır.
  * - `my-profile`, `company-profile` : profil menüsünden açılır.
- * - `marketplace`, `integration-center` : Kontrol Paneli üzerindeki butonlardan açılır.
- *   Modülleri donduruldu (menüde yoklar) ama butonlar hâlâ duruyor; Kontrol Paneli
- *   Dilim 4'te yeniden yazılırken bu butonlar da kalkacak. Ölü buton bırakmamak için
- *   şimdilik rotaları açık.
+ * - `integration-center` : Karşılama ekranındaki bağlantıdan açılır ve yalnız
+ *   bağlı entegrasyonu olana görünür.
+ *
+ * ⚠️ 2026-10-14 · `marketplace` BU LİSTEDEN ÇIKARILDI.
+ *
+ * Buraya "Kontrol Paneli'ndeki buton ölü kalmasın" diye konmuştu. 11.10'da
+ * o buton SİLİNDİ, menü kaydı boşaltıldı, tanıtım turundaki adım kaldırıldı
+ * — yani rotayı açık tutan gerekçe dört gün önce ortadan kalktı, satır
+ * kaldı. `onOpenMarketplace` hâlâ bir prop olarak dolaşıyor ama onu çağıran
+ * hiçbir düğme yok.
+ *
+ * Bedeli küçük değildi: `mock-rota-sizintisi.arch.test.ts` ilk koşusunda
+ * `marketplace` rotasının zincirinde **36 ayrı uydurma veri kaynağı**
+ * saydı (24 `.mock` modülü + 12 "veri yoksa tohum üretip localStorage'a
+ * yazan" servis). Mağaza ekranı bütün modüllerin kartını kuruyor, her kart
+ * kendi veri kaynağını çağırıyor; yani tek bir açık rota, dondurulmuş
+ * ekranların tamamını arka kapıdan geri getiriyordu.
+ *
+ * Mağaza bir gün gerçek lisans tablosuna bağlanırsa rota kendi menü
+ * ögesiyle birlikte geri gelir — beyaz listeye elle eklenerek DEĞİL.
  */
 export const NON_NAV_CORE_ROUTES: BusinessWorkspaceRoute[] = [
   'workspace-welcome',
   'my-profile',
   'company-profile',
-  'marketplace',
   'integration-center'
 ]
 

@@ -1,5 +1,7 @@
 import { describe, expect, it } from 'vitest'
-import { yazabilirMi, YAZMA_YETKISI_YOK } from './yazma-yetkisi'
+import {
+  KALITE_KAYIT_DUZELTME, KAPATMA_YETKISI_YOK, yazabilirMi, YAZMA_YETKISI_YOK,
+} from './yazma-yetkisi'
 import type { User } from '../types'
 
 /**
@@ -19,7 +21,8 @@ const R: Record<string, string[]> = {
     'logistics.write','operations.approve','operations.read','operations.write',
     'personnel.manage','personnel.read','production.read','production.write',
     'products.read','products.write','purchase.read','purchase.write',
-    'quality.declaration','quality.read','quality.write','recipe.read',
+    'quality.declaration','quality.read','quality.record.manage','quality.write',
+    'recipe.read',
     'recipe.write','roles.manage','settings.manage','stock.read','stock.write',
     'users.manage','users.read'],
   depo_sorumlusu: ['branch.read','dashboard.read','logistics.read','logistics.write',
@@ -29,15 +32,15 @@ const R: Record<string, string[]> = {
     'products.read','quality.read','quality.write','recipe.read','recipe.write',
     'stock.read','stock.write'],
   kalite_sorumlusu: ['audit.read','branch.read','dashboard.read','logistics.read',
-    'production.read','quality.declaration','quality.read','quality.write',
-    'recipe.read','stock.read'],
+    'production.read','quality.declaration','quality.read','quality.record.manage',
+    'quality.write','recipe.read','stock.read'],
   sevkiyat_sorumlusu: ['branch.read','dashboard.read','logistics.read','logistics.write',
     'products.read','quality.read','quality.write','stock.read','stock.write'],
   personel: ['dashboard.read','production.read','production.write','products.read',
     'recipe.read','stock.read','stock.write'],
   gida_muhendisi: ['audit.read','branch.read','dashboard.read','logistics.read',
     'production.read','products.read','quality.declaration','quality.read',
-    'quality.write','recipe.read','stock.read'],
+    'quality.record.manage','quality.write','recipe.read','stock.read'],
   izleyici: ['audit.read','branch.read','company.read','dashboard.read','finance.read',
     'logistics.read','operations.read','personnel.read','production.read',
     'products.read','purchase.read','quality.read','recipe.read','stock.read',
@@ -134,12 +137,63 @@ describe('⚠️ ETİKET/BEYAN yazma — `quality.declaration` (Codex 14.10)', (
 describe('⚠️ GÖRÜNTÜLEYİCİ hiçbir şey yazamaz', () => {
   // Açıklaması: "Her şeyi görür, hiçbir şeyi değiştiremez."
   const yazmaIzinleri = ['stock.write', 'production.write', 'quality.write',
-    'quality.declaration', 'recipe.write', 'logistics.write', 'finance.write',
+    'quality.declaration', 'quality.record.manage',
+    'recipe.write', 'logistics.write', 'finance.write',
     'purchase.write', 'products.write', 'operations.write', 'users.manage',
     'settings.manage', 'company.manage']
   yazmaIzinleri.forEach(izin => {
     it(`izleyici ${izin} taşımıyor`, () => {
       expect(yazabilirMi(kisi(R.izleyici), izin)).toBe(false)
     })
+  })
+})
+
+describe('⚠️ KALİTE KAYDINI DÜZELTME — `quality.record.manage` (0081)', () => {
+  // ── Bu bloğun sebebi bir EKRAN GÖRÜNTÜSÜ ──────────────────────────────
+  // 14.10.2026, Ümit Burak Boz (sevkiyat sorumlusu) HACCP ekranında
+  // CCP-1'in — bir MAL KABUL uygunsuzluğunun, sorumlusu "Depo sorumlusu"
+  // yazan satırın — yanında "Kapat" düğmesi görüyordu.
+  //
+  // Sebep tek izindi: `quality.write` hem ölçüm girmeyi hem kapatmayı
+  // açıyordu ve 0068 o izni (DOĞRU bir kararla) üretim ve sevkiyata
+  // vermişti — ölçümü ölçen girsin diye.
+  //
+  // 0081 ayırdı: girmek takdir işi değil, kapatmak takdir işidir.
+
+  it('kalite sorumlusu ve gıda mühendisi kapatabilir', () => {
+    expect(yazabilirMi(kisi(R.kalite_sorumlusu), 'quality.record.manage')).toBe(true)
+    expect(yazabilirMi(kisi(R.gida_muhendisi), 'quality.record.manage')).toBe(true)
+    expect(yazabilirMi(kisi(R.isletme_sahibi), 'quality.record.manage')).toBe(true)
+  })
+
+  it('⚠️ SEVKİYAT SORUMLUSU KAPATAMAZ — ekran görüntüsündeki tam hata', () => {
+    expect(R.sevkiyat_sorumlusu).toContain('quality.write')
+    expect(yazabilirMi(kisi(R.sevkiyat_sorumlusu), 'quality.record.manage')).toBe(false)
+  })
+
+  it('⚠️ ÜRETİM SORUMLUSU DA KAPATAMAZ', () => {
+    expect(R.uretim_sorumlusu).toContain('quality.write')
+    expect(yazabilirMi(kisi(R.uretim_sorumlusu), 'quality.record.manage')).toBe(false)
+  })
+
+  it('⚠️ 0068 BOZULMADI: üretim ve sevkiyat ÖLÇÜM GİRMEYE devam ediyor', () => {
+    // Ayrımın bütün inceliği bu. Ölçümü zorlaştırsaydık kayıt kâğıda
+    // yazılır, akşam toplu girilirdi — ve HACCP'in anlamı biterdi.
+    expect(yazabilirMi(kisi(R.uretim_sorumlusu), 'quality.write')).toBe(true)
+    expect(yazabilirMi(kisi(R.sevkiyat_sorumlusu), 'quality.write')).toBe(true)
+  })
+
+  it('depo sorumlusu ne girer ne kapatır', () => {
+    expect(yazabilirMi(kisi(R.depo_sorumlusu), 'quality.write')).toBe(false)
+    expect(yazabilirMi(kisi(R.depo_sorumlusu), 'quality.record.manage')).toBe(false)
+  })
+
+  it('kapatamayan kişiye SEBEBİ söyleniyor', () => {
+    expect(KAPATMA_YETKISI_YOK).toContain('kalite')
+    expect(KAPATMA_YETKISI_YOK).toContain('Ölçümü siz girebilirsiniz')
+  })
+
+  it('izin sabiti kodla aynı', () => {
+    expect(KALITE_KAYIT_DUZELTME).toBe('quality.record.manage')
   })
 })

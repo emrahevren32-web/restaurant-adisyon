@@ -17,6 +17,7 @@
 // ═══════════════════════════════════════════════════════════════════════════
 
 import React from 'react'
+import { yazabilirMi } from '../authorization/yazma-yetkisi'
 import type { User } from '../types'
 import { getSupabase, isSupabaseConfigured } from '../core/supabase'
 import { createStockRepository, resolveStockRepositoryMode } from '../core/stock/index'
@@ -48,6 +49,10 @@ import {
   maliyetiHesapla,
   type StokMaliyeti,
 } from '../warehouse/stock-cost'
+
+import {
+  maliyetGorebilir, MALIYET_GIZLI, MALIYET_GIZLI_ACIKLAMA,
+} from '../authorization/maliyet-gorunurlugu'
 
 type Props = { currentUser: User }
 type Islem = 'kabul' | 'cikis' | 'sayim' | 'yeni-kalem' | 'ice-aktar' | null
@@ -267,8 +272,16 @@ const UyariSeridi = ({
 }
 
 export default function Warehouse({ currentUser }: Props){
+  // Parasal bilgi kapısı — kural src/authorization/maliyet-gorunurlugu.ts
+  const paraGorur = maliyetGorebilir(currentUser)
   const mod = resolveStockRepositoryMode()
-  const yazabilir = !currentUser.permissions || currentUser.permissions.includes('stock.write')
+  // ⚠️ 14.10 · FAIL-OPEN KALDIRILDI. Önceki hâl şuydu:
+  //     !currentUser.permissions || currentUser.permissions.includes(...)
+  // Yani izin listesi YÜKLENMEMİŞSE kullanıcı yazabiliyordu. 12.10'da
+  // `normalizeUser`ın listeyi düşürdüğü hata tam buraya bağlanıyordu
+  // (tuzak 71): liste kaybolunca kapı açılıyordu. Kapının bilmediği
+  // durumda AÇIK kalması, kapı olmaması demektir.
+  const yazabilir = yazabilirMi(currentUser, 'stock.write')
 
   const [baglam, setBaglam] = React.useState<DepoBaglami | null>(null)
   const [birimler, setBirimler] = React.useState<Birim[]>([])
@@ -691,6 +704,22 @@ export default function Warehouse({ currentUser }: Props){
                 </section>
               )}
 
+              {/* ⚠️ MALİYET KARTI YETKİ İSTİYOR (13.10.2026).
+                  Rol açıklamasında depo sorumlusu için "Fiyat ve maliyet
+                  GÖRMEZ" yazıyor; bu kart o sözü tutuyor. Kart tamamen
+                  gizlenmiyor — gizlenirse kişi "maliyet girilmemiş" sanır;
+                  sebebi yazılıyor. */}
+              {!paraGorur && (
+                <section className="card">
+                  <div className="section-header compact">
+                    <h3>Maliyet</h3>
+                    <span className="muted">{MALIYET_GIZLI}</span>
+                  </div>
+                  <p className="muted">{MALIYET_GIZLI_ACIKLAMA}</p>
+                </section>
+              )}
+
+              {paraGorur && (
               <section className="card">
                 <div className="section-header compact">
                   <h3>Maliyet</h3>
@@ -751,6 +780,7 @@ export default function Warehouse({ currentUser }: Props){
                   saklanmaz; yukarıdaki hareketlerden hesaplanır.
                 </p>
               </section>
+              )}
 
               {secili.lotTakipli && (
                 <section className="card">
