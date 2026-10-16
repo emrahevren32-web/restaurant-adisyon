@@ -29625,3 +29625,24 @@ html[data-theme-engine] :is(.table-wrap, .table-scroll, .data-table-wrap, .premi
   color:#0f172a;
   font-weight:var(--font-weight-600);
 }
+
+/* ── Vardiya kilidi (15.10.2026) ─────────────────────────────────────────
+   ⚠️ z-index 9000: uygulamadaki en yüksek katman 999 (yan menü ipucu).
+   Kilit HER ŞEYİN üstünde olmalı, yoksa altından çalışılabilir. */
+.vardiya-kilidi { position:fixed; inset:0; z-index:9000; display:grid; place-items:center;
+  padding:var(--space-24); background:rgba(8, 13, 24, 0.82);
+  backdrop-filter:saturate(120%) blur(10px) }
+.vardiya-kilidi-kart { width:min(100%, 420px); display:grid; gap:var(--space-12);
+  border:1px solid var(--line); border-radius:var(--radius-card);
+  background:var(--surface); color:var(--text);
+  padding:var(--space-24); box-shadow:var(--shadow-dropdown); text-align:center }
+.vardiya-kilidi-rozet { font-size:32px; line-height:1 }
+.vardiya-kilidi-kart h2 { margin:0; font-size:var(--font-size-18) }
+.vardiya-kilidi-form { display:grid; gap:var(--space-8); text-align:left;
+  margin-top:var(--space-8) }
+.vardiya-kilidi-form label { font-size:var(--font-size-13);
+  font-weight:var(--font-weight-900) }
+.vardiya-kilidi-alt { display:grid; gap:var(--space-8);
+  border-top:1px solid var(--line); padding-top:var(--space-12);
+  margin-top:var(--space-8) }
+.vardiya-kilidi-alt .muted { font-size:var(--font-size-12); text-align:left }

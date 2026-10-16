@@ -21,6 +21,11 @@ import SectorManagementCenter from './pages/SectorManagementCenter'
 import QRMenu from './pages/QRMenu'
 import Login from './pages/Login'
 import SifreBelirle from './pages/SifreBelirle'
+import VardiyaKilidi from './components/VardiyaKilidi'
+import {
+  HAREKET_OLAYLARI, kilitlenmeliMi, sonHareketiOku, sonHareketiSil,
+  sonHareketiYaz, yazmaZamaniMi,
+} from './auth/oturum-kilidi'
 import { davetiCozumle, type DavetBilgisi } from './auth/davet'
 import AppShell, { ShellNavGroup, ShellNavItem } from './components/AppShell'
 import OnboardingExperience from './components/OnboardingExperience'
@@ -635,7 +640,72 @@ export default function App(){
     setOpenGroupKey(defaultNavigation.openGroupKey)
     setLicenseAccessError('')
   }
+  // ── VARDİYA KİLİDİ (15.10.2026) ────────────────────────────────────────
+  // Gerekçe ve kural: `src/auth/oturum-kilidi.ts` başında.
+  //
+  // ⚠️ KARAR ZAMANLAYICIDAN DEĞİL SAATTEN ÇIKIYOR. Tablet uyuduğunda
+  // `setInterval` de uyur; üç saat sonra uyandığında hiçbir olay
+  // ateşlenmez. Aşağıdaki aralık yalnızca "ara sıra bak" görevi görüyor;
+  // kilit kararını her seferinde `şimdi - sonHareket` veriyor.
+  const [kilitli, setKilitli] = React.useState(false)
+  const sonYazilanRef = React.useRef<number | null>(null)
+
+  React.useEffect(() => {
+    if(!currentUser || isPlatformAdmin){
+      setKilitli(false)
+      return undefined
+    }
+
+    // Girişten hemen sonra damga YOKTUR; fail-closed kural onu "kilitle"
+    // diye okur. O yüzden oturum başlarken damgayı biz atıyoruz.
+    if(sonHareketiOku() === null){
+      sonHareketiYaz(Date.now())
+      sonYazilanRef.current = Date.now()
+    }
+
+    const hareket = () => {
+      const simdi = Date.now()
+      // Perde açıkken hareket damgayı tazelemez; yoksa kilit ekranına
+      // dokunmak kilidi kendiliğinden açardı.
+      if(kilitli) return
+      if(yazmaZamaniMi(sonYazilanRef.current, simdi)){
+        sonHareketiYaz(simdi)
+        sonYazilanRef.current = simdi
+      }
+    }
+
+    const bak = () => {
+      if(kilitli) return
+      if(kilitlenmeliMi(sonHareketiOku(), Date.now())) setKilitli(true)
+    }
+
+    HAREKET_OLAYLARI.forEach(olay =>
+      window.addEventListener(olay, hareket, { passive: true }))
+    // Sekmeye geri dönüldüğünde HEMEN bak: uyuyan cihaz senaryosu.
+    document.addEventListener('visibilitychange', bak)
+    const zamanlayici = window.setInterval(bak, 30_000)
+    bak()
+
+    return () => {
+      HAREKET_OLAYLARI.forEach(olay => window.removeEventListener(olay, hareket))
+      document.removeEventListener('visibilitychange', bak)
+      window.clearInterval(zamanlayici)
+    }
+  }, [currentUser, isPlatformAdmin, kilitli])
+
+  const kilidiCoz = () => {
+    const simdi = Date.now()
+    sonHareketiYaz(simdi)
+    sonYazilanRef.current = simdi
+    setKilitli(false)
+  }
+
   const logout = () => {
+    // Kilit damgası oturumla birlikte gidiyor; yoksa bir sonraki giriş
+    // eski damgayı okuyup kendini anında kilitli bulurdu (damga yoksa
+    // KİLİT kuralı gereği, tuzak: fail-closed'ın yan etkisi).
+    sonHareketiSil()
+    setKilitli(false)
     const nextAuthState = updateAuthenticationState(logoutAuthentication({
       requestedPath: window.location.pathname
     }))
@@ -999,6 +1069,7 @@ export default function App(){
   }
 
   return (
+    <>
     <AppShell
       restaurantName={workspaceChrome.name}
       logoUrl={workspaceChrome.logoUrl}
@@ -1118,5 +1189,17 @@ export default function App(){
         />
       )}
     </AppShell>
+    {/* ⚠️ Perde AppShell'in KARDEŞİ, çocuğu değil: ekranın tamamını
+        örtmesi gerekiyor (üst çubuk ve yan menü dâhil). Arkadaki ağaç
+        sökülmediği için yarım kalan iş yerinde duruyor. */}
+    {kilitli && (
+      <VardiyaKilidi
+        adSoyad={currentUser.fullName}
+        girisAdresi={currentUser.email ?? ''}
+        onCozuldu={kilidiCoz}
+        onCikis={logout}
+      />
+    )}
+    </>
   )
 }
