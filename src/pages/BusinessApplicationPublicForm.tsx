@@ -59,6 +59,13 @@ type Sonuc = { referans: string; gercekKayit: boolean }
  */
 type OlcuAlanlari = { subeSayisi: string; personelSayisi: string }
 
+/**
+ * Ticari unvan (0084). `BusinessApplicationFormInput` içinde DEĞİL —
+ * şube/personel alanlarıyla aynı gerekçe: o tip eski localStorage yolunun
+ * tipi; bu alan yeni veritabanı yolunun alanı.
+ */
+type UnvanAlani = { ticariUnvan: string }
+
 /** '' → null (yazmadı), '3' → 3, 'abc' → NaN (hatalı). */
 const sayiyaCevir = (metin: string): number | null => {
   const temiz = metin.trim()
@@ -72,6 +79,7 @@ export default function BusinessApplicationPublicForm(){
   const [hatalar, setHatalar] = React.useState<string[]>([])
   const [gonderiliyor, setGonderiliyor] = React.useState(false)
   const [olcu, setOlcu] = React.useState<OlcuAlanlari>({ subeSayisi: '', personelSayisi: '' })
+  const [unvan, setUnvan] = React.useState<UnvanAlani>({ ticariUnvan: '' })
   const sectors = React.useMemo(() => loadSectors(), [])
 
   const gercekVeritabani = resolveStockRepositoryMode() === 'postgres' && isSupabaseConfigured()
@@ -86,6 +94,7 @@ export default function BusinessApplicationPublicForm(){
     // (`sector_industrial_kitchen`) değil. Veritabanı kodu bekliyor.
     sektorKodu: sectors.find(s => s.id === values.primarySectorId)?.code,
     firmaAdi: values.companyName,
+    ticariUnvan: unvan.ticariUnvan,
     yetkiliAdi: values.ownerName,
     telefon: values.phone,
     eposta: values.email,
@@ -121,6 +130,7 @@ export default function BusinessApplicationPublicForm(){
       }
       setValues(createEmptyForm())
       setOlcu({ subeSayisi: '', personelSayisi: '' })
+      setUnvan({ ticariUnvan: '' })
     } catch(e){
       setHatalar([e instanceof Error ? e.message : 'Başvuru gönderilemedi.'])
     } finally {
@@ -133,6 +143,7 @@ export default function BusinessApplicationPublicForm(){
   const createNewApplication = () => {
     setValues(createEmptyForm())
     setOlcu({ subeSayisi: '', personelSayisi: '' })
+    setUnvan({ ticariUnvan: '' })
     setSonuc(null)
     setHatalar([])
   }
@@ -195,6 +206,21 @@ export default function BusinessApplicationPublicForm(){
           <div className="form-field">
             <label>Firma Adı</label>
             <input value={values.companyName} onChange={event => updateField('companyName', event.target.value)} />
+          </div>
+          <div className="form-field">
+            <label>Ticari Unvan</label>
+            <input
+              value={unvan.ticariUnvan}
+              placeholder="Faturada yazan tam ad"
+              onChange={event => setUnvan({ ticariUnvan: event.target.value })}
+            />
+            {/* ⚠️ "İsteğe bağlı" DEĞİL. Boş geçilebilseydi alan yine boş
+                kalırdı; bu alanın eklenme sebebi tam olarak boş kalmasıydı.
+                Aynıysa aynısını yazmak bir saniyelik iş. */}
+            <p className="muted small-text">
+              Resmî unvanınız — örneğin “Örnek Gıda Sanayi ve Ticaret A.Ş.”.
+              Firma adıyla aynıysa aynısını yazın.
+            </p>
           </div>
           <div className="form-field">
             <label>Yetkili Ad Soyad</label>

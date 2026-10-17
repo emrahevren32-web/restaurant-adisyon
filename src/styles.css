@@ -29646,3 +29646,77 @@ html[data-theme-engine] :is(.table-wrap, .table-scroll, .data-table-wrap, .premi
   border-top:1px solid var(--line); padding-top:var(--space-12);
   margin-top:var(--space-8) }
 .vardiya-kilidi-alt .muted { font-size:var(--font-size-12); text-align:left }
+
+/* ── EVREN360 müşteri kartı (16.10.2026) ─────────────────────────────────
+   Not: `.detail-grid` ZATEN VAR ve dt/dd bekliyor. Bu ekranlar div
+   kullandığı için kendi adlarıyla duruyorlar; aynı adı ikinci kez
+   tanımlamak iki ekranı birden bozardı. */
+.musteri-suzgec { display:flex; flex-wrap:wrap; gap:var(--space-8);
+  align-items:center; margin:0 0 var(--space-12) }
+.musteri-suzgec input[type="search"] { flex:1 1 220px; max-width:320px }
+
+.musteri-grid { display:grid; gap:var(--space-12) var(--space-20);
+  grid-template-columns:repeat(auto-fit, minmax(220px, 1fr));
+  margin:0 0 var(--space-12) }
+.musteri-alan { display:grid; gap:2px; align-content:start; min-width:0 }
+.musteri-alan > div { font-size:var(--font-size-13); overflow-wrap:anywhere }
+
+.musteri-rozet-dizisi { display:flex; flex-wrap:wrap; gap:var(--space-6);
+  margin-top:var(--space-6) }
+
+/* Saatlik yoğunluk şeridi — TEK seri, TEK renk.
+   Gösterge (legend) yok: tek seri olduğu için başlık zaten adını söylüyor.
+   Her saat yazılmıyor; dar ekranda etiketler üst üste biner. */
+.musteri-saat-grafigi { margin:var(--space-12) 0 0 }
+.musteri-saat-grafigi figcaption { margin:0 0 var(--space-8) }
+.musteri-saat-sira { display:grid; grid-template-columns:repeat(24, 1fr);
+  gap:2px; align-items:end }
+.musteri-saat-sutun { display:grid; gap:4px; justify-items:center; min-width:0 }
+.musteri-saat-yol { width:100%; height:68px; display:flex; align-items:flex-end;
+  background:var(--surface-subtle); border-radius:var(--radius-input, 6px) }
+.musteri-saat-dolgu { width:100%; min-height:2px; background:var(--accent);
+  border-radius:4px 4px 0 0 }
+/* Hiç hareket olmayan saat: boş kutu kalır, sıfır yüksekliğinde çubuk değil.
+   İnce bir çizgi "az işlem" gibi okunurdu. */
+.musteri-saat-dolgu[data-bos="true"] { min-height:0; background:transparent }
+.musteri-saat-etiket { font-variant-numeric:tabular-nums; line-height:1 }
+
+@media (max-width: 640px){
+  .musteri-saat-yol { height:52px }
+  .musteri-grid { grid-template-columns:1fr }
+}
+
+/* Müşteri kartından lisans uzatma */
+.musteri-uzatma { display:flex; flex-wrap:wrap; gap:var(--space-12);
+  align-items:end; margin-top:var(--space-12);
+  padding-top:var(--space-12); border-top:1px solid var(--line) }
+.musteri-uzatma label { display:grid; gap:2px; min-width:150px }
+.musteri-uzatma label.musteri-uzatma-kutu { display:flex; align-items:center;
+  gap:var(--space-8); min-width:0; min-height:var(--touch-target) }
+.musteri-uzatma-kutu input { width:auto; min-width:0; min-height:0; height:auto }
+.musteri-uzatma-dugmeler { display:flex; gap:var(--space-8) }
+
+/* Lisans uyarı şeridi — Kontrol Paneli'nin en üstü */
+.lisans-serit { display:flex; flex-wrap:wrap; gap:var(--space-12);
+  align-items:center; justify-content:space-between;
+  padding:var(--space-12) var(--space-16); margin:0 0 var(--space-16);
+  border-radius:var(--radius-card); border:1px solid var(--line) }
+.lisans-serit-metin { display:grid; gap:2px; min-width:0 }
+.lisans-serit.uyari {
+  background:color-mix(in srgb, var(--warning) 12%, var(--surface));
+  border-color:color-mix(in srgb, var(--warning) 40%, transparent) }
+.lisans-serit.kritik {
+  background:color-mix(in srgb, var(--danger) 12%, var(--surface));
+  border-color:color-mix(in srgb, var(--danger) 45%, transparent) }
+
+/* Giriş adı ipucu — iki ayrı giriş kapısı yerine tek açılır açıklama */
+.unified-login-hint-toggle { background:none; border:0; padding:0;
+  min-height:0; height:auto; width:auto; color:var(--accent);
+  font:inherit; text-decoration:underline; cursor:pointer }
+.unified-login-hint-panel { margin:var(--space-8) 0 0; display:grid;
+  gap:var(--space-8); padding:var(--space-12);
+  border:1px solid var(--line); border-radius:var(--radius-input, 6px);
+  background:var(--surface-subtle); font-size:var(--font-size-13) }
+.unified-login-hint-panel p { margin:0; line-height:1.5 }
+.unified-login-hint-panel code { font-family:ui-monospace, monospace;
+  background:var(--surface); padding:1px 5px; border-radius:4px }

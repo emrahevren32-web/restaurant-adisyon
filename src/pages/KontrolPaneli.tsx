@@ -21,6 +21,7 @@
 // ═══════════════════════════════════════════════════════════════════════════
 
 import React from 'react'
+import LisansUyariSeridi from '../components/LisansUyariSeridi'
 import type { User } from '../types'
 import type { BusinessWorkspaceNavKey, BusinessWorkspaceRoute } from '../navigation/app-navigation.types'
 import { getSupabase, isSupabaseConfigured } from '../core/supabase'
@@ -387,6 +388,13 @@ export default function KontrolPaneli({
   return (
     <div className="warehouse-page">
       {baslik}
+
+      {/* ⚠️ Lisans uyarısı EN ÜSTTE ve sayılardan ÖNCE: lisansı bitmek üzere
+          olan bir işletmenin ilk okuması gereken şey depo sayısı değil. */}
+      <LisansUyariSeridi
+        currentUser={currentUser}
+        onAyarlaraGit={onOpenWorkspaceSettings}
+      />
 
       {hata && <div className="form-error">{hata}</div>}
 

@@ -23,6 +23,9 @@ import { basvuruGecisleriGocten } from '../core/test-support/goc-tarama'
 
 const gecerliForm = (yama: Partial<YeniBasvuru> = {}): YeniBasvuru => ({
   firmaAdi: 'Deneme Endüstriyel Mutfak A.Ş.',
+  // 0084: ticari unvan ZORUNLU. Fikstürde firma adından FARKLI yazılıyor ki
+  // "ikisi ayrı alan mı, yoksa biri diğerine kopyalanıyor mu" sınanabilsin.
+  ticariUnvan: 'Deneme Endüstriyel Mutfak Sanayi ve Ticaret Anonim Şirketi',
   yetkiliAdi: 'Deneme Yetkili',
   telefon: '05321234567',
   eposta: 'deneme@ornek.com',

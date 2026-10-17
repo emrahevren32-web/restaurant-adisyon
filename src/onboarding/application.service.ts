@@ -59,6 +59,9 @@ type Kural = {
 
 const KURALLAR: Kural[] = [
   { alan: 'firmaAdi', ad: 'Firma adı', enAz: 2, enCok: 200 },
+  // 0084 · Faturada yazan ad. Firma adıyla aynı olabilir ama BOŞ olamaz;
+  // boş geçilebilseydi alan yine boş kalırdı ve sormanın anlamı olmazdı.
+  { alan: 'ticariUnvan', ad: 'Ticari unvan', enAz: 2, enCok: 200 },
   { alan: 'yetkiliAdi', ad: 'Yetkili adı', enAz: 2, enCok: 120 },
   { alan: 'telefon', ad: 'Telefon', enAz: 7, enCok: 30 },
   // ⚠️ Vergi alanları buradan ÇIKARILDI (0038). Zorunlu değiller; dolu

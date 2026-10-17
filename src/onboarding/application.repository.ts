@@ -33,6 +33,15 @@ export const SON_DURUMLAR: readonly BasvuruDurumu[] =
 export type YeniBasvuru = {
   sektorKodu?: string
   firmaAdi: string
+  /**
+   * Faturada yazan resmî ticari unvan (0084). ZORUNLU.
+   *
+   * ⚠️ Firma adıyla AYNI olabilir ve bu meşrudur — küçük işletmelerin
+   * çoğunda öyledir. Ama "aynı olabilir" ile "sormayalım" ayrı şeyler:
+   * sormazsak 0035 `company.legal_name` alanına firma adını KOPYALIYOR ve
+   * dolu görünen ama yanlış olan bir alan oluşuyor.
+   */
+  ticariUnvan: string
   yetkiliAdi: string
   telefon: string
   eposta: string
@@ -58,6 +67,8 @@ export type Basvuru = {
   durum: BasvuruDurumu
   sektorKodu: string
   firmaAdi: string
+  /** 0084 öncesi başvurularda YOK — o başvurulara bu soru sorulmadı. */
+  ticariUnvan?: string
   yetkiliAdi: string
   telefon: string
   eposta: string
@@ -168,6 +179,7 @@ type Satir = {
   status: string
   sector_code: string
   company_name: string
+  legal_name: string | null
   owner_name: string
   phone: string
   email: string
@@ -187,7 +199,7 @@ type Satir = {
 }
 
 const KOLONLAR =
-  'id, reference, created_at, updated_at, status, sector_code, company_name, owner_name, ' +
+  'id, reference, created_at, updated_at, status, sector_code, company_name, legal_name, owner_name, ' +
   'phone, email, tax_number, tax_office, city, district, address, ' +
   'branch_count, staff_count, invited_at, owner_user_id, note, ' +
   'decision_note, decided_at, tenant_id'
@@ -203,6 +215,7 @@ const basvuruyaCevir = (s: Satir): Basvuru => ({
   durum: durumaCevir(s.status),
   sektorKodu: s.sector_code,
   firmaAdi: s.company_name,
+  ticariUnvan: s.legal_name ?? undefined,
   yetkiliAdi: s.owner_name,
   telefon: s.phone,
   eposta: s.email,
@@ -295,6 +308,7 @@ export class PostgresBasvuruDefteri implements BasvuruDefteri {
     // OLARAK BİLE kabul etmiyor — yazılamayacak alanı göndermek mümkün değil.
     const { data, error } = await this.client.rpc('basvuru_gonder', {
       p_company_name: basvuru.firmaAdi.trim(),
+      p_legal_name: basvuru.ticariUnvan.trim(),
       p_owner_name: basvuru.yetkiliAdi.trim(),
       p_phone: basvuru.telefon.trim(),
       p_email: basvuru.eposta.trim().toLowerCase(),
@@ -486,6 +500,7 @@ export class BellekBasvuruDefteri implements BasvuruDefteri {
       durum: 'PENDING',
       sektorKodu: basvuru.sektorKodu ?? 'industrial-kitchen',
       firmaAdi: basvuru.firmaAdi.trim(),
+      ticariUnvan: basvuru.ticariUnvan.trim(),
       yetkiliAdi: basvuru.yetkiliAdi.trim(),
       telefon: basvuru.telefon.trim(),
       eposta: basvuru.eposta.trim().toLowerCase(),

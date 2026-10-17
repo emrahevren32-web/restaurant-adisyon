@@ -86,7 +86,13 @@ import type { WorkspaceModuleLifecycleResult } from './workspace/workspace-modul
 import { WORKSPACE_PROVISIONING_EVENT } from './workspace-provisioning/workspace-provisioning.service'
 import type { Evren360Notification } from './notifications/evren360-notification.service'
 import { hasConnectedWorkspaceIntegrationsForUser } from './integrations/workspace-integration.service'
-import { createPlatformNavGroups, getPlatformRoutes } from './platform/platform.registry'
+import {
+  createPlatformNavGroups,
+  getIlkHazirPlatformRotasi,
+  getPlatformRegistry,
+  getPlatformRoutes,
+  platformRotasiHazir
+} from './platform/platform.registry'
 import { syncWorkspaceCompanyFromDatabase } from './companies/company-bridge'
 import { getDefaultModules } from './sector/sector-template.service'
 import { getBusinessMenuEmptyState, getWorkspaceTemplateViewForUser } from './workspace-template/workspace-template.service'
@@ -345,12 +351,23 @@ const evren360RouteViews: Partial<Record<Route, SaasManagementView>> = {
   'evren360-settings': 'settings'
 }
 
+/** Bir platform rotasının hangi menü grubuna ait olduğunu söyler. */
+const platformGrupAnahtari = (route: string) => (
+  getPlatformRegistry().find(item => item.route === route)?.groupKey
+    ?? 'evren360-musteriler'
+)
+
 const getDefaultNavigation = (user: User | null, loginRedirect: LoginRedirectResult) => {
   if(loginRedirect.target === LOGIN_ROUTE_TARGETS.EVREN360){
+    // ⚠️ Eskiden 'evren360-dashboard' açılıyordu. O ekran localStorage
+    // okuyor (bkz. platform.registry.ts başlığı) ve platform sahibine boş
+    // sayaçlar gösteriyordu. Panel artık GERÇEKTEN çalışan ilk ekranla
+    // açılıyor.
+    const ilkRota = getIlkHazirPlatformRotasi()
     return {
-      route: 'evren360-dashboard' as Route,
-      activeNavKey: 'evren360-dashboard' as NavKey,
-      openGroupKey: 'evren360-admin' as NavGroupKey
+      route: ilkRota as Route,
+      activeNavKey: ilkRota as NavKey,
+      openGroupKey: platformGrupAnahtari(ilkRota) as NavGroupKey
     }
   }
 
@@ -400,6 +417,39 @@ const PlatformAccessDenied = () => (
     <p>EVREN360 Yönetici Paneli yalnızca Super Admin kullanıcısı tarafından görüntülenebilir.</p>
   </section>
 )
+
+/**
+ * Platform panelindeki bir ekran henüz gerçek veriye bağlı değilse, eski
+ * ekranı GÖSTERMEK yerine bu panel çıkar.
+ *
+ * Neden: o ekranların 17'si `storage.ts` (tarayıcının localStorage'ı) ya da
+ * bir `.mock` dosyası okuyor. Sunucuda localStorage boş olduğu için ekran
+ * "0 müşteri" diyordu — platform sahibinin müşterisi varken. Boş sayaç
+ * göstermek, "henüz bağlamadık" demekten daha kötü: yanlış bilgi veriyor.
+ *
+ * Bu, menü kilidinin (locked) ve rota kapısının ÜÇÜNCÜ ayağı.
+ * Tek kaynak: `platform.registry.ts` · `PLATFORM_HAZIR_ROTALAR`.
+ */
+const PlatformEkranHazirDegil = ({ route }: { route: Route }) => {
+  const kayit = getPlatformRegistry().find(item => item.route === route)
+
+  return (
+    <section className="card license-denied-page">
+      <span className="status-pill warning-pill">Hazırlanıyor</span>
+      <h2>{kayit?.name || 'Bu ekran'} henüz gerçek veriye bağlı değil</h2>
+      <p>
+        Bu ekran şu an uygulamanın kendi tarayıcı hafızasını okuyor, veritabanını
+        okumuyor. Bu yüzden kapalı: boş ya da yanlış sayı göstermesin.
+      </p>
+      {kayit?.bekleyenIs && (
+        <p><strong>Yapılacak:</strong> {kayit.bekleyenIs}</p>
+      )}
+      <p className="muted">
+        Çalışan ekranlar: Onay Bekleyen İşletmeler ve Lisans Yönetimi.
+      </p>
+    </section>
+  )
+}
 
 const getRouteSecurityTarget = (route: Route, authState: AuthenticationState) => {
   if(platformRouteSet.has(route)) return LOGIN_ROUTE_TARGETS.EVREN360
@@ -726,17 +776,20 @@ export default function App(){
     setActiveBranchState(nextBranchId)
     setBranches(getVisibleBranchesForUser(currentUser))
   }
-  const openCustomerDetail = (companyId: string) => {
-    setSelectedCustomerId(companyId)
+  // ⚠️ Gelen kimlik artık KİRACI (tenant) kimliği, firma kimliği değil.
+  // EVREN360 müşterisi bir kiracıdır; bir kiracının birden çok firması
+  // olabilir. 0083 fonksiyonları kiracı kimliğiyle çalışıyor.
+  const openCustomerDetail = (kiraciId: string) => {
+    setSelectedCustomerId(kiraciId)
     setLicenseAccessError('')
     setRoute('evren360-customer-detail')
     setActiveNavKey('evren360-customer-detail')
-    setOpenGroupKey('evren360-admin')
+    setOpenGroupKey(platformGrupAnahtari('evren360-customer-detail') as NavGroupKey)
   }
   const returnToCustomerList = () => {
     setRoute('evren360-customer-list')
     setActiveNavKey('evren360-customer-list')
-    setOpenGroupKey('evren360-admin')
+    setOpenGroupKey(platformGrupAnahtari('evren360-customer-list') as NavGroupKey)
   }
   const openEvren360NotificationTarget = (notification: Evren360Notification) => {
     if(notification.type !== 'business_application' || !notification.targetId) return
@@ -745,7 +798,7 @@ export default function App(){
     setLicenseAccessError('')
     setRoute('evren360-pending-applications')
     setActiveNavKey('evren360-pending-applications')
-    setOpenGroupKey('evren360-admin')
+    setOpenGroupKey(platformGrupAnahtari('evren360-pending-applications') as NavGroupKey)
   }
   const openMarketplaceFromWelcome = () => {
     if(!isWorkspaceSetupCompletedForUser(currentUser)){
@@ -863,15 +916,22 @@ export default function App(){
   }, [izinleriTamamla, currentUser])
 
   const navGroupsForCurrentUser = React.useMemo<NavGroup[]>(() => {
-    // Platform admini AYNI ZAMANDA bir firmanın yöneticisi olabilir — kurucu
-    // durumu tam olarak budur. Eskiden ikisi birbirini dışlıyordu: platform
-    // admini olan kullanıcı kendi işletme menüsünü hiç göremiyordu.
-    // Artık firması olan bir platform admini İKİ yüzeyi birden görür;
-    // firması olmayan (saf platform yöneticisi) yalnızca paneli görür.
+    // ── 2026-10-16 · PLATFORM SAHİBİ KİRACI MENÜLERİNİ GÖRMEZ ────────────
+    // Eski kural: "platform admini bir firmaya bağlıysa İKİ yüzeyi birden
+    // görür" (kurucu durumu). Ölçüt yanlıştı — soru "firmaya bağlı mı"
+    // değil, "şu an hangi şapkayı takıyor".
+    //
+    // Pratikte olan şuydu: Emrah platform sahibi olarak girdiğinde
+    // GENEL / OPERASYON / YÖNETİM menüleri de açılıyor, hepsi 0
+    // gösteriyordu — çünkü o menüler bir İŞLETMENİN verisini gösterir,
+    // platformun değil. Kendi sorusu: "benim bu konuda bir veri'm yok ki."
+    //
+    // Artık platform sahibi yalnız EVREN360 panelini görür. Bir müşterinin
+    // ekranlarını görmesi gerekiyorsa o kiracının kendi kullanıcısıyla
+    // girer; kiracı verisine platform hesabından bakmak ayrı bir iştir
+    // (çapraz kiracı okuma kapısı) ve ayrıca yapılacaktır.
     const scopedGroups = isPlatformAdmin
-      ? (getCompanyIdForUser(currentUser)
-        ? [...createWorkspaceNavGroupsForUser(currentUser), ...platformNavGroups]
-        : platformNavGroups)
+      ? platformNavGroups
       : createWorkspaceNavGroupsForUser(currentUser)
 
     return scopedGroups.map(group => ({
@@ -912,6 +972,16 @@ export default function App(){
       description: `${activeNavLabel} ekranı için lisans erişim kontrolü başarısız.`
     })
   }, [activeNavLabel, activeNavKey, activeRouteLicenseDenied, activeRouteModule, currentUser, route])
+
+  // ── Rota kapısı (üç kapıdan üçüncüsü) ────────────────────────────────
+  // Menüde kilitli görünen bir ekran, doğrudan rota verilerek de
+  // açılamamalı. Ölçüt menüyle AYNI kaynaktan geliyor.
+  // ⚠️ `evren360View` da sorulmak zorunda: `evren360-packages` rotası
+  // kayıt defterinde yok ama `SaasManagementCenter`'ı açabiliyor.
+  const platformEkraniHazirDegil = (
+    (platformRouteSet.has(route) || Boolean(evren360View))
+    && !platformRotasiHazir(route)
+  )
 
   const openNavItem = (item: NavItem) => {
     if(!item.route) return
@@ -1123,52 +1193,55 @@ export default function App(){
           onModuleLifecycleChanged={handleWorkspaceModuleLifecycleChanged}
         />
       )}
-      {route === 'business-registration-system' && currentUser.role === 'Admin' && (
+      {route === 'business-registration-system' && currentUser.role === 'Admin' && !platformEkraniHazirDegil && (
         isPlatformAdmin ? <BusinessApplicationSystem currentUser={currentUser} /> : <PlatformAccessDenied />
       )}
-      {route === 'company-setup-wizard' && currentUser.role === 'Admin' && (
+      {route === 'company-setup-wizard' && currentUser.role === 'Admin' && !platformEkraniHazirDegil && (
         isPlatformAdmin ? <CompanySetupWizard currentUser={currentUser} onBranchesChange={refreshBranches} /> : <PlatformAccessDenied />
       )}
-      {route === 'package-license-management' && currentUser.role === 'Admin' && (
+      {route === 'package-license-management' && currentUser.role === 'Admin' && !platformEkraniHazirDegil && (
         isPlatformAdmin ? <PackageLicenseManagement currentUser={currentUser} /> : <PlatformAccessDenied />
       )}
-      {route === 'user-subscription-management' && currentUser.role === 'Admin' && (
+      {route === 'user-subscription-management' && currentUser.role === 'Admin' && !platformEkraniHazirDegil && (
         isPlatformAdmin ? <UserSubscriptionManagement currentUser={currentUser} /> : <PlatformAccessDenied />
       )}
-      {route === 'module-activation-system' && currentUser.role === 'Admin' && (
+      {route === 'module-activation-system' && currentUser.role === 'Admin' && !platformEkraniHazirDegil && (
         isPlatformAdmin ? <ModuleActivationSystem currentUser={currentUser} /> : <PlatformAccessDenied />
       )}
-      {route === 'tenant-management' && currentUser.role === 'Admin' && (
+      {route === 'tenant-management' && currentUser.role === 'Admin' && !platformEkraniHazirDegil && (
         isPlatformAdmin ? <TenantManagement currentUser={currentUser} /> : <PlatformAccessDenied />
       )}
-      {route === 'evren360-customer-list' && currentUser.role === 'Admin' && (
+      {route === 'evren360-customer-list' && currentUser.role === 'Admin' && !platformEkraniHazirDegil && (
         isPlatformAdmin ? <CustomerList onOpenCustomerDetail={openCustomerDetail} /> : <PlatformAccessDenied />
       )}
-      {route === 'evren360-customer-detail' && currentUser.role === 'Admin' && (
+      {route === 'evren360-customer-detail' && currentUser.role === 'Admin' && !platformEkraniHazirDegil && (
         isPlatformAdmin ? <CustomerDetail customerId={selectedCustomerId} onBack={returnToCustomerList} /> : <PlatformAccessDenied />
       )}
-      {route === 'evren360-pending-applications' && currentUser.role === 'Admin' && (
+      {route === 'evren360-pending-applications' && currentUser.role === 'Admin' && !platformEkraniHazirDegil && (
         isPlatformAdmin ? <PendingApplications currentUser={currentUser} initialApplicationId={selectedPendingApplicationId} /> : <PlatformAccessDenied />
       )}
-      {route === 'evren360-license-management' && currentUser.role === 'Admin' && (
+      {route === 'evren360-license-management' && currentUser.role === 'Admin' && !platformEkraniHazirDegil && (
         isPlatformAdmin ? <LisansYonetimi /> : <PlatformAccessDenied />
       )}
-      {route === 'evren360-system-announcements' && currentUser.role === 'Admin' && (
+      {route === 'evren360-system-announcements' && currentUser.role === 'Admin' && !platformEkraniHazirDegil && (
         isPlatformAdmin ? <SystemAnnouncements currentUserName={currentUser.fullName || currentUser.username} /> : <PlatformAccessDenied />
       )}
-      {route === 'evren360-customer-statistics' && currentUser.role === 'Admin' && (
+      {route === 'evren360-customer-statistics' && currentUser.role === 'Admin' && !platformEkraniHazirDegil && (
         isPlatformAdmin ? <CustomerStatistics /> : <PlatformAccessDenied />
       )}
-      {route === 'evren360-company-management' && currentUser.role === 'Admin' && (
+      {route === 'evren360-company-management' && currentUser.role === 'Admin' && !platformEkraniHazirDegil && (
         isPlatformAdmin ? <CompanyManagement /> : <PlatformAccessDenied />
       )}
-      {route === 'evren360-billing-management' && currentUser.role === 'Admin' && (
+      {route === 'evren360-billing-management' && currentUser.role === 'Admin' && !platformEkraniHazirDegil && (
         isPlatformAdmin ? <BillingManagement /> : <PlatformAccessDenied />
       )}
-      {route === 'evren360-sector-management' && currentUser.role === 'Admin' && (
+      {route === 'evren360-sector-management' && currentUser.role === 'Admin' && !platformEkraniHazirDegil && (
         isPlatformAdmin ? <SectorManagementCenter currentUser={currentUser} /> : <PlatformAccessDenied />
       )}
-      {evren360View && (
+      {platformEkraniHazirDegil && currentUser.role === 'Admin' && (
+        isPlatformAdmin ? <PlatformEkranHazirDegil route={route} /> : <PlatformAccessDenied />
+      )}
+      {evren360View && !platformEkraniHazirDegil && (
         isPlatformAdmin
           ? <SaasManagementCenter currentUser={currentUser} view={evren360View} />
           : <PlatformAccessDenied />

@@ -1,301 +1,221 @@
+// ═══════════════════════════════════════════════════════════════════════════
+// MİYOP · EVREN360 · Müşteri Listesi
+//
+// ── 2026-10-16'DA NE DEĞİŞTİ ─────────────────────────────────────────────
+// Bu ekran `storage.ts` okuyordu — yani tarayıcının kendi hafızasını.
+// Sunucuda o hafıza boş olduğu için Emrah'a "0 müşteri" diyordu; oysa
+// beş müşterisi vardı. Artık veritabanını okuyor (0083 ·
+// `platform_musteri_listesi`).
+//
+// ⚠️ Satır sayısı ekranda HESAPLANMIYOR. Kullanıcı sayısı, son giriş ve son
+// hareket veritabanından geliyor. Ekranda hesaplanan sayı ikinci bir
+// gerçeklik yaratır.
+// ═══════════════════════════════════════════════════════════════════════════
+
 import React from 'react'
+import { getSupabase, isSupabaseConfigured } from '../core/supabase'
 import {
-  loadBranches,
-  loadCompanies,
-  loadCompanyLicenses,
-  loadCompanySetups,
-  loadCompanyUsers,
-  loadLicensePackages
-} from '../storage'
-import { Branch, Company, CompanyLicense, CompanySetup, CompanyUser, LicensePackage } from '../types'
-
-type CustomerStatus = 'Aktif' | 'Pasif' | 'Deneme' | 'Askıda'
-type SortKey = 'companyName' | 'createdAt' | 'package'
-type SortDirection = 'asc' | 'desc'
-
-type CustomerRow = {
-  company: Company
-  packageName: string
-  status: CustomerStatus
-  branchCount: number
-  userCount: number
-}
+  musteriListesiniOku,
+  type MusteriSatiri
+} from '../platform/platform-musteri.repository'
+import { sektorAdi } from '../platform/platform-musteri.bicim'
+import {
+  bosDegilse, gunFarkiMetni, kisaTarih, zamanAraligi
+} from '../platform/platform-musteri.bicim'
 
 type Props = {
-  onOpenCustomerDetail: (companyId: string) => void
+  onOpenCustomerDetail: (kiraciId: string) => void
 }
 
-const customerStatuses: CustomerStatus[] = ['Aktif', 'Pasif', 'Deneme', 'Askıda']
+type Suzgec = 'hepsi' | 'aktif' | 'deneme' | 'bitiyor' | 'sessiz'
 
-const normalizeLookup = (value: string) => value
-  .toLocaleLowerCase('tr-TR')
-  .normalize('NFD')
-  .replace(/[\u0300-\u036f]/g, '')
-  .replace(/Ä±/g, 'i')
-  .replace(/ı/g, 'i')
-  .replace(/[^a-z0-9]+/g, '')
-
-const formatNumber = (value: number) => value.toLocaleString('tr-TR')
-
-const formatDate = (value: string) => {
-  if(!value) return '-'
-  const date = value.length === 10 ? new Date(`${value}T12:00:00`) : new Date(value)
-  if(Number.isNaN(date.getTime())) return '-'
-  return date.toLocaleDateString('tr-TR')
+const lisansRozeti = (satir: MusteriSatiri) => {
+  if(!satir.lisansDurumu) return { sinif: 'muted-pill', metin: 'Lisans yok' }
+  if(satir.kalanGun !== null && satir.kalanGun < 0) return { sinif: 'danger-pill', metin: 'Süresi doldu' }
+  if(satir.lisansDurumu === 'Deneme') return { sinif: 'warning-pill', metin: 'Deneme' }
+  if(satir.lisansDurumu === 'Aktif') return { sinif: 'success', metin: 'Aktif' }
+  return { sinif: 'info-pill', metin: satir.lisansDurumu }
 }
 
-const getStatusClassName = (status: CustomerStatus) => {
-  if(status === 'Aktif') return 'success'
-  if(status === 'Pasif') return 'muted-pill'
-  if(status === 'Deneme') return 'info-pill'
-  return 'warning-pill'
-}
-
-const getLatestLicenseForCompany = (licenses: CompanyLicense[], companyId: string) => {
-  return licenses
-    .filter(license => license.companyId === companyId && !normalizeLookup(license.status).includes('iptal'))
-    .sort((first, second) => {
-      const firstDate = first.updatedAt || first.createdAt || first.startDate
-      const secondDate = second.updatedAt || second.createdAt || second.startDate
-      return secondDate.localeCompare(firstDate)
-    })[0]
-}
-
-const getPackageName = (
-  license: CompanyLicense | undefined,
-  packages: LicensePackage[]
-) => {
-  if(!license) return '-'
-  return packages.find(packageItem => packageItem.id === license.packageId)?.name || '-'
-}
-
-const getCustomerStatus = (company: Company, license?: CompanyLicense): CustomerStatus => {
-  const companyStatus = normalizeLookup(company.status)
-  const licenseStatus = normalizeLookup(license?.status || '')
-
-  if(companyStatus.startsWith('ask')) return 'Askıda'
-  if(companyStatus.includes('pasif') || companyStatus.includes('silindi')) return 'Pasif'
-  if(license?.isTrial || licenseStatus.includes('deneme')) return 'Deneme'
-  return 'Aktif'
-}
-
-const getBranchCountForCompany = (
-  companyId: string,
-  branches: Branch[],
-  setups: CompanySetup[]
-) => {
-  const branchIds = new Set<string>()
-  branches
-    .filter(branch => branch.companyId === companyId)
-    .forEach(branch => branchIds.add(branch.id))
-  setups
-    .filter(setup => setup.companyId === companyId && setup.branchId)
-    .forEach(setup => branchIds.add(setup.branchId))
-  return branchIds.size
-}
-
-const getUserCountForCompany = (companyId: string, users: CompanyUser[]) => {
-  return users.filter(user => (
-    user.companyId === companyId
-    && !normalizeLookup(user.status).includes('silindi')
-  )).length
+/** "Sessiz" = 14 gündür hiç hareket yok. Hiç hareketi olmayan da sessizdir. */
+const sessizMi = (satir: MusteriSatiri) => {
+  if(!satir.sonHareket) return true
+  const fark = Date.now() - new Date(satir.sonHareket).getTime()
+  return Number.isNaN(fark) ? true : fark > 14 * 24 * 60 * 60 * 1000
 }
 
 export default function CustomerList({ onOpenCustomerDetail }: Props){
-  const [search, setSearch] = React.useState('')
-  const [packageFilter, setPackageFilter] = React.useState('all')
-  const [statusFilter, setStatusFilter] = React.useState('all')
-  const [sortKey, setSortKey] = React.useState<SortKey>('companyName')
-  const [sortDirection, setSortDirection] = React.useState<SortDirection>('asc')
+  const [satirlar, setSatirlar] = React.useState<MusteriSatiri[]>([])
+  const [yukleniyor, setYukleniyor] = React.useState(true)
+  const [hata, setHata] = React.useState('')
+  const [arama, setArama] = React.useState('')
+  const [suzgec, setSuzgec] = React.useState<Suzgec>('hepsi')
 
-  const data = React.useMemo(() => ({
-    companies: loadCompanies(),
-    packages: loadLicensePackages(),
-    licenses: loadCompanyLicenses(),
-    users: loadCompanyUsers(),
-    branches: loadBranches(),
-    setups: loadCompanySetups()
-  }), [])
+  React.useEffect(() => {
+    let iptal = false
+    void (async () => {
+      if(!isSupabaseConfigured()){
+        setHata('Veritabanı bağlantısı yapılandırılmamış.')
+        setYukleniyor(false)
+        return
+      }
+      try {
+        const veri = await musteriListesiniOku(getSupabase())
+        if(iptal) return
+        setSatirlar(veri)
+        setHata('')
+      } catch(e){
+        if(!iptal) setHata(e instanceof Error ? e.message : 'Müşteri listesi okunamadı.')
+      } finally {
+        if(!iptal) setYukleniyor(false)
+      }
+    })()
+    return () => { iptal = true }
+  }, [])
 
-  const rows = React.useMemo<CustomerRow[]>(() => {
-    return data.companies
-      .filter(company => !normalizeLookup(company.status).includes('silindi'))
-      .map(company => {
-        const license = getLatestLicenseForCompany(data.licenses, company.id)
-        return {
-          company,
-          packageName: getPackageName(license, data.packages),
-          status: getCustomerStatus(company, license),
-          branchCount: getBranchCountForCompany(company.id, data.branches, data.setups),
-          userCount: getUserCountForCompany(company.id, data.users)
-        }
-      })
-  }, [data])
+  const aranan = arama.trim().toLocaleLowerCase('tr-TR')
 
-  const packageOptions = React.useMemo(() => {
-    return Array.from(new Set(rows.map(row => row.packageName).filter(packageName => packageName !== '-')))
-      .sort((first, second) => first.localeCompare(second, 'tr'))
-  }, [rows])
+  const gorunen = satirlar.filter(satir => {
+    if(aranan){
+      const havuz = [
+        satir.firmaAdi, satir.kiraciAdi, satir.kiraciKodu, satir.il, satir.ilce
+      ].join(' ').toLocaleLowerCase('tr-TR')
+      if(!havuz.includes(aranan)) return false
+    }
+    if(suzgec === 'aktif')   return satir.lisansDurumu === 'Aktif'
+    if(suzgec === 'deneme')  return satir.lisansDurumu === 'Deneme'
+    if(suzgec === 'bitiyor') return satir.kalanGun !== null && satir.kalanGun <= 15
+    if(suzgec === 'sessiz')  return sessizMi(satir)
+    return true
+  })
 
-  const summary = React.useMemo(() => ({
-    total: rows.length,
-    active: rows.filter(row => row.status === 'Aktif').length,
-    trial: rows.filter(row => row.status === 'Deneme').length,
-    suspended: rows.filter(row => row.status === 'Askıda').length
-  }), [rows])
+  const sayac = {
+    hepsi: satirlar.length,
+    aktif: satirlar.filter(s => s.lisansDurumu === 'Aktif').length,
+    deneme: satirlar.filter(s => s.lisansDurumu === 'Deneme').length,
+    bitiyor: satirlar.filter(s => s.kalanGun !== null && s.kalanGun <= 15).length,
+    sessiz: satirlar.filter(sessizMi).length
+  }
 
-  const visibleRows = React.useMemo(() => {
-    const searchValue = normalizeLookup(search)
-    return rows
-      .filter(row => {
-        const company = row.company
-        const matchesSearch = !searchValue || [
-          company.companyName,
-          company.ownerName,
-          company.email
-        ].some(value => normalizeLookup(value).includes(searchValue))
-        const matchesPackage = packageFilter === 'all' || row.packageName === packageFilter
-        const matchesStatus = statusFilter === 'all' || row.status === statusFilter
-        return matchesSearch && matchesPackage && matchesStatus
-      })
-      .sort((first, second) => {
-        const direction = sortDirection === 'asc' ? 1 : -1
-        if(sortKey === 'createdAt'){
-          return first.company.createdAt.localeCompare(second.company.createdAt) * direction
-        }
-        const firstValue = sortKey === 'package' ? first.packageName : first.company.companyName
-        const secondValue = sortKey === 'package' ? second.packageName : second.company.companyName
-        return firstValue.localeCompare(secondValue, 'tr') * direction
-      })
-  }, [packageFilter, rows, search, sortDirection, sortKey, statusFilter])
+  const suzgecler: Array<{ anahtar: Suzgec; etiket: string }> = [
+    { anahtar: 'hepsi',   etiket: 'Hepsi' },
+    { anahtar: 'aktif',   etiket: 'Aktif' },
+    { anahtar: 'deneme',  etiket: 'Deneme' },
+    { anahtar: 'bitiyor', etiket: '15 günden az kaldı' },
+    { anahtar: 'sessiz',  etiket: '14 gündür sessiz' }
+  ]
 
   return (
-    <div className="customer-list-page">
-      <div className="evren360-hero">
+    <div className="warehouse-page">
+      <div className="page-title">
         <div>
-          <span>EVREN360</span>
           <h2>Müşteri Listesi</h2>
-          <p>Platform müşterilerini paket, durum, şube ve kullanıcı özetleriyle merkezi olarak görüntüleyin.</p>
-        </div>
-        <div className="evren360-hero-meta">
-          <strong>{formatNumber(visibleRows.length)} kayıt</strong>
-          <span>Liste görünümü</span>
-        </div>
-      </div>
-
-      <div className="evren360-kpi-grid">
-        <div className="evren360-kpi">
-          <span>Toplam Müşteri</span>
-          <strong>{formatNumber(summary.total)}</strong>
-          <p>Silinmiş firmalar hariç.</p>
-        </div>
-        <div className="evren360-kpi success">
-          <span>Aktif Müşteri</span>
-          <strong>{formatNumber(summary.active)}</strong>
-          <p>Kullanıma açık hesaplar.</p>
-        </div>
-        <div className="evren360-kpi warning">
-          <span>Deneme Hesabı</span>
-          <strong>{formatNumber(summary.trial)}</strong>
-          <p>Deneme lisansı bulunan hesaplar.</p>
-        </div>
-        <div className="evren360-kpi danger">
-          <span>Askıda Hesap</span>
-          <strong>{formatNumber(summary.suspended)}</strong>
-          <p>Geçici olarak durdurulan hesaplar.</p>
+          <p className="muted">
+            MİYOP'u kullanan bütün işletmeler. Sayılar veritabanından geliyor;
+            MİYOP'un kendi kaydı listede yoktur.
+          </p>
         </div>
       </div>
 
-      <section className="evren360-panel customer-list-panel">
-        <div className="evren360-panel-header">
-          <div>
-            <h3>Müşteriler</h3>
-            <p>Firma, yetkili, paket ve kullanım kapsamı.</p>
-          </div>
-          <div className="customer-list-controls">
-            <label>
-              <span>Arama</span>
-              <input
-                value={search}
-                onChange={event => setSearch(event.target.value)}
-                placeholder="Firma, yetkili veya e-posta"
-              />
-            </label>
-            <label>
-              <span>Paket</span>
-              <select value={packageFilter} onChange={event => setPackageFilter(event.target.value)}>
-                <option value="all">Tüm paketler</option>
-                {packageOptions.map(packageName => <option key={packageName} value={packageName}>{packageName}</option>)}
-              </select>
-            </label>
-            <label>
-              <span>Durum</span>
-              <select value={statusFilter} onChange={event => setStatusFilter(event.target.value)}>
-                <option value="all">Tüm durumlar</option>
-                {customerStatuses.map(status => <option key={status} value={status}>{status}</option>)}
-              </select>
-            </label>
-            <label>
-              <span>Sıralama</span>
-              <select value={sortKey} onChange={event => setSortKey(event.target.value as SortKey)}>
-                <option value="companyName">Firma Adı</option>
-                <option value="createdAt">Kayıt Tarihi</option>
-                <option value="package">Paket</option>
-              </select>
-            </label>
-            <label>
-              <span>Yön</span>
-              <select value={sortDirection} onChange={event => setSortDirection(event.target.value as SortDirection)}>
-                <option value="asc">Artan</option>
-                <option value="desc">Azalan</option>
-              </select>
-            </label>
-          </div>
+      {hata && <div className="form-error">{hata}</div>}
+
+      <section className="card">
+        <div className="section-header compact">
+          <h3>Müşteriler</h3>
+          {!yukleniyor && (
+            <span className="status-pill info-pill">{sayac.hepsi} işletme</span>
+          )}
         </div>
 
-        <div className="table-scroll">
-          <table className="data-table customer-list-table">
-            <thead>
-              <tr>
-                <th>Firma Adı</th>
-                <th>Yetkili</th>
-                <th>E-posta</th>
-                <th>Telefon</th>
-                <th>Paket</th>
-                <th>Durum</th>
-                <th>Şube Sayısı</th>
-                <th>Kullanıcı Sayısı</th>
-                <th>Kayıt Tarihi</th>
-                <th>İşlemler</th>
-              </tr>
-            </thead>
-            <tbody>
-              {visibleRows.map(row => (
-                <tr key={row.company.id}>
-                  <td><strong>{row.company.companyName}</strong><span className="muted small-text">{row.company.city} / {row.company.district}</span></td>
-                  <td>{row.company.ownerName}</td>
-                  <td>{row.company.email}</td>
-                  <td>{row.company.phone}</td>
-                  <td>{row.packageName}</td>
-                  <td><span className={`status-pill ${getStatusClassName(row.status)}`}>{row.status}</span></td>
-                  <td>{formatNumber(row.branchCount)}</td>
-                  <td>{formatNumber(row.userCount)}</td>
-                  <td>{formatDate(row.company.createdAt)}</td>
-                  <td className="actions-cell">
-                    <button className="btn" type="button" onClick={() => onOpenCustomerDetail(row.company.id)}>Detay</button>
-                    <button className="btn" type="button">Düzenle</button>
-                    <button className="btn" type="button">Lisans</button>
-                  </td>
-                </tr>
-              ))}
-              {visibleRows.length === 0 && (
+        <div className="musteri-suzgec">
+          <input
+            type="search"
+            placeholder="İşletme adı, kod, il…"
+            value={arama}
+            onChange={olay => setArama(olay.target.value)}
+          />
+          {suzgecler.map(s => (
+            <button
+              key={s.anahtar}
+              type="button"
+              className={`btn ${suzgec === s.anahtar ? 'primary' : ''}`}
+              onClick={() => setSuzgec(s.anahtar)}
+            >
+              {s.etiket} ({sayac[s.anahtar]})
+            </button>
+          ))}
+        </div>
+
+        {yukleniyor ? <p className="muted">Yükleniyor…</p>
+         : satirlar.length === 0 ? (
+            <p className="muted">
+              Henüz müşteri yok. Yeni işletmeler Onay Bekleyen İşletmeler
+              ekranından onaylandığında burada görünür.
+            </p>
+         ) : gorunen.length === 0 ? <p className="muted">Bu süzgece uyan işletme yok.</p>
+         : (
+          <div className="table-wrap">
+            <table>
+              <thead>
                 <tr>
-                  <td className="empty-cell" colSpan={10}>Kayıt bulunamadı.</td>
+                  <th>İşletme</th>
+                  <th>Yer</th>
+                  <th>Sektör</th>
+                  <th>Paket</th>
+                  <th>Lisans</th>
+                  <th>Kalan</th>
+                  <th>Kullanıcı</th>
+                  <th>Son giriş</th>
+                  <th>Son hareket</th>
+                  <th></th>
                 </tr>
-              )}
-            </tbody>
-          </table>
-        </div>
+              </thead>
+              <tbody>
+                {gorunen.map(satir => {
+                  const rozet = lisansRozeti(satir)
+                  return (
+                    <tr key={satir.kiraciId}>
+                      <td>
+                        <strong>{bosDegilse(satir.firmaAdi || satir.kiraciAdi)}</strong>
+                        <div className="muted small-text">{satir.kiraciKodu}</div>
+                      </td>
+                      <td>
+                        {satir.il || satir.ilce
+                          ? `${satir.il}${satir.ilce ? ` / ${satir.ilce}` : ''}`
+                          : <span className="muted">—</span>}
+                      </td>
+                      <td>{sektorAdi(satir.sektor)}</td>
+                      <td>{bosDegilse(satir.paketAdi)}</td>
+                      <td><span className={`status-pill ${rozet.sinif}`}>{rozet.metin}</span></td>
+                      <td>{gunFarkiMetni(satir.kalanGun)}</td>
+                      <td>{satir.kullaniciSayisi}</td>
+                      <td>{zamanAraligi(satir.sonGiris)}</td>
+                      <td className={sessizMi(satir) ? 'muted' : undefined}>
+                        {zamanAraligi(satir.sonHareket)}
+                      </td>
+                      <td>
+                        <button
+                          className="btn"
+                          type="button"
+                          onClick={() => onOpenCustomerDetail(satir.kiraciId)}
+                        >
+                          Detay
+                        </button>
+                      </td>
+                    </tr>
+                  )
+                })}
+              </tbody>
+            </table>
+          </div>
+        )}
+
+        {!yukleniyor && satirlar.length > 0 && (
+          <p className="muted small-text">
+            Kayıt tarihine göre yeniden eskiye sıralı. İlk kayıt:{' '}
+            {kisaTarih(satirlar[satirlar.length - 1]?.kayitTarihi ?? '')}.
+          </p>
+        )}
       </section>
     </div>
   )

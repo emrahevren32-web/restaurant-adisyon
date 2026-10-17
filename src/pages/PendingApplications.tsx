@@ -727,6 +727,13 @@ export default function PendingApplications({ currentUser, initialApplicationId 
           )}
 
           <div className="pending-applications-detail-grid">
+            {/* 0084 · Faturada yazan ad. Eski başvurularda sorulmadı: "—"
+                gösteriliyor, firma adı KOPYALANMIYOR — kopyalamak, dolu
+                görünen ama yanlış olan bir alan yaratırdı. */}
+            <div>
+              <span>Ticari unvan</span>
+              <strong>{secilen.ticariUnvan || '—'}</strong>
+            </div>
             <div><span>Yetkili</span><strong>{secilen.yetkiliAdi}</strong></div>
             <div><span>E-posta</span><strong>{secilen.eposta}</strong></div>
             <div><span>Telefon</span><strong>{secilen.telefon}</strong></div>

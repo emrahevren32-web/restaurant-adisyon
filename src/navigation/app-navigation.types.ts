@@ -361,5 +361,13 @@ export type BusinessWorkspaceNavGroupKey =
   | 'report-modules'
   | 'yonetim-modules'
   | 'integration-modules'
-export type PlatformNavGroupKey = 'evren360-admin'
+/**
+ * EVREN360 panel menü grupları (2026-10-16).
+ * Eskiden tek grup vardı: 'evren360-admin' — 19 öge düz bir listeydi.
+ * Artık üç grup: müşteriler, lisans/ödeme, sistem.
+ */
+export type PlatformNavGroupKey =
+  | 'evren360-musteriler'
+  | 'evren360-lisans'
+  | 'evren360-sistem'
 export type AppNavGroupKey = BusinessWorkspaceNavGroupKey | PlatformNavGroupKey

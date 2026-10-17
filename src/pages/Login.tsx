@@ -112,6 +112,9 @@ export default function Login({ onLogin }: Props){
    * açılmış olsa bile. Alan artık `type="text"`.
    */
   const [kimlik, setKimlik] = React.useState('')
+  /** Giriş adı ipucu paneli açık mı. Varsayılan KAPALI: bilen kişiyi
+      yormasın, bilmeyen bir tıklamayla öğrensin. */
+  const [ipucuAcik, setIpucuAcik] = React.useState(false)
   const [password, setPassword] = React.useState('')
   /**
    * ⚠️ AYRI BİR "İŞLETME KODU" KUTUSU YOK — VE BU BİLİNÇLİ.
@@ -296,20 +299,56 @@ export default function Login({ onLogin }: Props){
               <form onSubmit={submit}>
                 <label>
                   <span>Giriş adı</span>
+                  {/* ⚠️ Burada ÖNCEDEN gerçek bir müşterinin giriş adı
+                      yazıyordu (`alaattin.kocatepe@ABCGIDA`). Bir kişinin
+                      hesabını örnek diye herkese göstermek doğru değil;
+                      üstelik "benim adım bu mu olacak" diye düşündürüyor.
+                      Artık BİÇİM gösteriliyor, kişi değil — Google ve
+                      Microsoft'un giriş ekranları da böyle yapıyor. */}
                   <input
                     autoComplete="username"
                     type="text"
-                    placeholder="alaattin.kocatepe@ABCGIDA"
+                    placeholder="ad.soyad@FIRMAKODU  ·  ya da e-posta adresiniz"
                     value={kimlik}
                     onChange={event => {
                       setKimlik(event.target.value)
                       setError('')
                     }}
                   />
+                  {/* Depocu `ad.soyad@FIRMAKODU` yazması gerektiğini bilmiyor.
+                      İpucu tek satırda küçük yazıyordu; artık açılıp örnek
+                      gösteriyor. Sayfayı ikiye bölmeden — iki ayrı giriş
+                      kapısı, kullanıcıya daha yazmadan yanlış yapabileceği
+                      bir seçim dayatırdı. */}
                   <small className="unified-login-hint">
-                    Personel: <strong>ad.soyad@FIRMAKODU</strong> ·
-                    İşletme sahibi: <strong>e-posta adresiniz</strong>
+                    <button
+                      type="button"
+                      className="unified-login-hint-toggle"
+                      aria-expanded={ipucuAcik}
+                      onClick={() => setIpucuAcik(acik => !acik)}
+                    >
+                      Giriş adımı bilmiyorum
+                    </button>
                   </small>
+                  {ipucuAcik && (
+                    <div className="unified-login-hint-panel">
+                      <p>
+                        <strong>Personel iseniz</strong> işletmenizin size
+                        verdiği giriş adını yazın: adınız, nokta, soyadınız,
+                        “@” ve işletme kodunuz.
+                        <br />
+                        Örnek: <code>ahmet.demir@ORNEKGIDA</code>
+                      </p>
+                      <p>
+                        <strong>İşletme sahibi iseniz</strong> başvuruda
+                        verdiğiniz e-posta adresinizi yazın.
+                      </p>
+                      <p className="muted">
+                        İşletme kodunuzu bilmiyorsanız işletmenizdeki
+                        yöneticiye sorun; her işletmenin kendi kodu vardır.
+                      </p>
+                    </div>
+                  )}
                 </label>
                 <label>
                   <span>Şifre</span>
