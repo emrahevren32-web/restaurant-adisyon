@@ -219,6 +219,23 @@ olmayan `stock_item_nutrition` da çıktı (0072 alerjen beyanını kapatırken
 besin değeri tablosunu atlamış, ve o tablo gıda etiketine basılıyor).
 Artık göç bu sayıyı ölçüyor ve 0 değilse duruyor.
 
+**91 · Depoda olmayan kanıt kanıt değildir.** Göç provalarını aylarca
+koşturdum ve sonuçlarına dayanarak "kapı çalışıyor" dedim — ama dosyalar
+yalnız benim çalışma ortamımdaydı. Depoda 36 dosyanın 6'sı vardı.
+Sonuç: kimse doğrulayamıyordu, sürümler arasında karşılaştırılamıyordu,
+Codex denetleyemiyordu, ve ben kendi sayımı yanlış hatırlıyordum. Codex
+"bu dosyaların yolu nedir" diye sorunca ortaya çıktı. **Bir şeyin
+çalıştığını söylüyorsan, onu kanıtlayan dosya depoda olmalı.**
+
+**92 · Ölçen betiğin de kapısı olmalı.** Provaları sayan betiğin ilk hâli
+iki ayrı yanlış yeşil veriyordu: (a) PostgreSQL kapalıyken psql
+"connection refused" basar, o metinde `ERROR` geçmez — betik 36 dosyanın
+hepsini YEŞİL saydı; (b) eski provalar başarısızlığı
+`raise notice '❌ ...'` ile bildirir, bu bir NOTICE'tır, ERROR değildir —
+grep görmedi. Bu yüzden "11 kırık" dedim, doğrusu **14**'tü. Doğrusu:
+çıkış koduna bak, olumsuz işaretlerin HEPSİNİ ara, **ve en az bir olumlu
+işaret görmüş ol.** Sessiz çıktı "geçti" demek değildir.
+
 ---
 
 ## 5 · TEST İŞBÖLÜMÜ VE TESLİM KONTROL LİSTESİ
@@ -240,3 +257,5 @@ Son söz onun çıktısındadır.
 8. Yeni kapı/kural koyduysan **olumsuz deneme** yap: kuralı bilerek
    bozup provanın KIRMIZI olduğunu gör. Yeşil prova, çalışan prova
    demek değil (tuzak 89).
+9. Kanıt dosyasını **depoya koy** (tuzak 91). Çalışma ortamında kalan
+   prova, kanıt değil hatıradır.

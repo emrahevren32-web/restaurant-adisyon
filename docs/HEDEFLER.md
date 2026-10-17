@@ -217,14 +217,25 @@ büyütür, değeri büyütmez.
 - ⬜ **6.8** **MIYOP-030** · README güncel mimariyi anlatmıyor
 - ⬜ **6.9** Oturum kilidi 45 → 30 dakika
 - ⬜ **6.10** Etiket yazdırma · 58 mm ve 100×150 mm seçeneği
-- ⬜ **6.12** **Bayat provalar** · `db/prova` altındaki 50 dosyanın 11'i
-  artık geçmiyor (0051, 0056, 0057, 0065, 0070, 0071b, 0071c, 0073, 0076,
-  0077, 0083). Hiçbiri 0088'den kaynaklanmıyor — 0088 öncesi/sonrası taban
-  çizgisi aynı. Nedenleri: sonraki göçlerin değiştirdiği kurulum verisi,
-  bilinçli olarak kaldırılan fonksiyonlar (0084), ve artmış izin sayısı.
-  ⚠️ Risk: provalar yayın kapısında değil, elle çalıştırılıyor. "Prova
-  var" demek "prova geçiyor" demek değil. Önce bu 11'i onarmak, sonra
-  prova koşusunu yayın kapısına eklemek gerekiyor (6.7 ile birlikte).
+- ⬜ **6.12** **Provalar depoya girdi, 14'ü kırık**
+  - ✅ **6.12.1** ⚠️ **Provalar depoda değildi.** 0083–0088 dışındaki 30
+    dosya yalnız Claude'un çalışma ortamındaydı: kanıt vardı ama kimse
+    göremiyordu, sürümler arasında karşılaştırılamıyordu, Codex
+    denetleyemiyordu. Codex sorunca ortaya çıktı. Hepsi `db/prova/`
+    altına kondu + `kur.sh`, `hepsini-kosturt.sh`, `README.md`.
+    → tuzak 91.
+  - ✅ **6.12.2** ⚠️ **"11 / 50" demiştim; doğrusu 14 / 36.** Hem payda
+    hem pay yanlıştı. Pay yanlıştı çünkü ilk sayaç betiğim yalnız
+    `✗`/`ERROR` arıyordu; eski provalar başarısızlığı
+    `raise notice '❌ ...'` ile bildirir — NOTICE'tır, ERROR değildir.
+    Betik ayrıca PostgreSQL kapalıyken 36 dosyanın hepsini YEŞİL
+    saymıştı. → tuzak 92.
+  - ⬜ **6.12.3** 14 kırık dosyayı tek tek ayır: **bayat** mı, **gerçek
+    gerileme** mi? (Codex'ten de bu isteniyor.)
+  - ⬜ **6.12.4** Bayatları güncelle, gerçek gerilemeleri onar
+  - ⬜ **6.12.5** `hepsini-kosturt.sh`i **yayın kapısına** ekle (6.7 ile
+    birlikte). Bu bitene kadar doğru cümle şudur: *"provaları elle
+    koşturdum, 22'si geçiyor"* — *"provalar geçiyor"* değil.
 - ⬜ **6.11** `g7_rls_kapat.sql` · RLS'i kapatan dosya `db/migrations` içinde
   duruyor; yanlışlıkla çalıştırılabilir
 
@@ -288,5 +299,5 @@ yanlışlıkla çalıştırılma riski var (6.11).
 | Veritabanı yazma kapısı | **45 tetikleyici** (18 → +27 tablo) |
 | Codex bulgusu | 37 · 8 P0 (**4'ü kapandı**: 001 tam, 002, 031/032, 035) |
 | Kapısız yazma yüzeyi | **0 tablo** (ölçüldü, sayılmadı) |
-| Geçmeyen prova dosyası | 11 / 50 (hiçbiri 0088'den değil · 6.12) |
+| Prova dosyası | 36 · **22 yeşil / 14 kırmızı** (hiçbiri 0088'den değil · 6.12) |
 | Mock dosya | 36 · hiçbiri açık kiracı rotasından erişilemiyor |

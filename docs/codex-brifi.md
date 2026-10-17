@@ -183,17 +183,39 @@ açıp sonra UPDATE ile damgalamak? `public.alerjen_beyani_yaz` dışında
 damgaya dokunan bir fonksiyon var mı? Toplu içe aktarma bu kapıyı
 dolaşıyor mu?
 
-### 4.6 · BAYAT PROVALAR — yeni, benim bulgum
+### 4.6 · BAYAT PROVALAR — ⚠️ ÖNCEKİ BRİFTE YANLIŞ YAZMIŞIM
 
-`db/prova` altındaki 50 dosyanın **11'i artık geçmiyor**: 0051, 0056,
-0057, 0065, 0070, 0071b, 0071c, 0073, 0076, 0077, 0083. Hiçbiri 0088'den
-kaynaklanmıyor (0088 öncesi/sonrası taban çizgisini ayrı ayrı ölçtüm,
-aynı). Nedenleri: sonraki göçlerin değiştirdiği kurulum verisi, bilinçli
-kaldırılan fonksiyonlar (0084), artmış izin sayısı.
+**Düzeltme.** Önceki brifte "db/prova altındaki 50 dosyanın 11'i geçmiyor"
+yazmıştım. İki şey yanlıştı:
 
-**Soru:** bu 11 dosyadan hangileri gerçekten bayat, hangileri **gerçek bir
-gerilemeyi** gösteriyor? Bu ayrımı yapmanı istiyorum, çünkü bayat sanıp
-geçtiğim bir dosya gerçek bir kırığı saklıyor olabilir.
+1. **Dosyalar depoda değildi.** 0083–0088 dışındakiler yalnız benim
+   çalışma ortamımda duruyordu. Senin "bu dosyaların yolu nedir" sorun
+   haklıydı. Artık hepsi depoda: `db/prova/` (36 dosya) + çalıştırma
+   betikleri + `db/prova/README.md`.
+2. **Sayı da yanlıştı.** Doğru ölçüm: **36 dosya · 22 YEŞİL · 14 KIRMIZI.**
+   Önceki "11" rakamı zayıf bir tarayıcıdan geliyordu: eski provalar
+   başarısızlığı `raise notice '❌ ...'` ile bildiriyor — bu bir NOTICE'tır,
+   ERROR değildir, ve tarayıcım görmüyordu. (Aynı aileden bir hata:
+   tuzak 89.)
+
+**Şimdi koşturabilirsin:**
+
+```bash
+bash db/prova/kur.sh              # PostgreSQL 16 gerekir, root olarak
+bash db/prova/hepsini-kosturt.sh
+```
+
+Kırık 14 dosya: `prova-0051, 0052, 0055, 0056, 0057, 0058, 0065, 0070,
+0071b, 0071c, 0073, 0076, 0077, 0083`. Hiçbiri 0088'den kaynaklanmıyor
+(0088 öncesi/sonrası taban çizgisi ayrı ayrı ölçüldü, aynı).
+Tahmin edilen nedenler `db/prova/README.md` içinde tablo hâlinde — ama
+orada da yazdığım gibi **o tablo tahmindir, teşhis değildir.**
+
+**Senden istediğim:** bu 14 dosyadan hangileri gerçekten bayat, hangileri
+**gerçek bir gerilemeyi** gösteriyor? Bu ayrımı yapmanı istiyorum, çünkü
+bayat sanıp geçtiğim bir dosya gerçek bir kırığı saklıyor olabilir.
+PostgreSQL'in yoksa dosyaları okuyarak da ayırabilirsin: her provanın
+iddiası ile bugünkü göç metni çelişiyor mu?
 
 ### 4.7 · Hâlâ açık, tekrar raporlamana gerek yok
 
