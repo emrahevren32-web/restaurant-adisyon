@@ -39,39 +39,49 @@ kirletmez, arka arkaya koşturulabilir.
 `hepsini-kosturt.sh` ikisini de anlar. Bir dosya **hiçbir olumlu işaret
 basmıyorsa KIRMIZI sayılır** — sessiz prova kanıt değildir.
 
-## Bugünkü durum (17.10.2026, göç 0088)
+## Bugünkü durum (18.10.2026, göç 0089)
 
-**36 dosya · 22 YEŞİL · 14 KIRMIZI**
+**37 dosya · 26 YEŞİL · 11 KIRMIZI**
 
-Kırık olanların hiçbiri 0088'den kaynaklanmıyor: 0088 öncesi ve sonrası
-taban çizgisi ayrı ayrı ölçüldü, aynı. Nedenleri üç başlıkta toplanıyor:
+Codex 14 kırmızıyı kaynaktan ayırdı (17.10.2026) ve **hiçbirinden ürün
+gerilemesi çıkmadı**: 10'u bayat kurulum/beklenti, 3'ü çalıştırıcının
+yanlış kırmızısı (MIYOP-041, düzeltildi), 1'i tamamlanmamış negatif prova.
 
-| Dosya | Belirti | Tahmin edilen neden |
-|---|---|---|
-| `prova-0051` | sipariş durumu Taslak → Onaylandı reddediliyor | sonraki göç onay zincirini zorunlu kıldı |
-| `prova-0052` | hiç doğrulama basmıyor | sessiz; üslup eski, özet satırı yok |
-| `prova-0055` | hiç doğrulama basmıyor | sessiz |
-| `prova-0056` | `app_user.tenant_id` null | kurulum verisi sonraki göçte değişti |
-| `prova-0057` | `stock_item.tenant_id` null | aynı |
-| `prova-0058` | hiç doğrulama basmıyor | sessiz |
-| `prova-0065` | `finance.read` izni gerekiyor | 0071 maliyet raporunu izne bağladı |
-| `prova-0070` | `finance.read` izni gerekiyor | aynı |
-| `prova-0071b` | ham hesaplar gövdeyi koruyor iddiası düştü | 0071 sonrası yapı değişti |
-| `prova-0071c` | `app.isletme_gostergeleri` yok | göç sırası varsayımı bozuldu |
-| `prova-0073` | "izin kataloğu 34 izin" | katalog **35**'e çıktı (0085 sonrası) |
-| `prova-0076` | kullanıcı adı normalleşmesi | 0078 giriş adı kuralını değiştirdi |
-| `prova-0077` | giriş adresi çözümü | aynı |
-| `prova-0083` | `app.platform_populer_urunler` yok | 0084 o fonksiyonu **bilerek** kaldırdı |
+Kalan 11 kırmızı: `prova-0051, 0056, 0057, 0065, 0070, 0071b, 0071c,
+0073, 0076, 0077, 0083`.
 
-⚠️ **Bu tablo tahmindir, teşhis değildir.** Her satırın gerçekten bayat mı
-yoksa gerçek bir gerilemeyi mi gösterdiği tek tek bakılarak
-belirlenecek — HEDEFLER.md madde **6.12**.
+| Dosya | Codex'in teşhisi |
+|---|---|
+| `0051` | Siparişi doğrudan Taslak → Onaylandı yapıyor; güncel zincir önce onay istiyor |
+| `0056` | Oluşturmadığı `ABC` kiracısını varsayıyor |
+| `0057` | Aynı `ABC` varsayımı + doğrudan alerjen damgası artık bilinçli yasak |
+| `0065` | Rapor çağırıyor ama kullanıcı/JWT kurmuyor; `finance.read` kapısı reddediyor |
+| `0070` | Aynı finans kapısı |
+| `0071b` | Ham fonksiyon sayısını ikiyle sınırlıyor; 0074 iki meşru ham rapor daha ekledi |
+| `0071c` | Fonksiyonları kendisi kaldırıp hata bekliyor; **prova tasarım hatası** |
+| `0073` | İzin sayısını 34 bekliyor; 35. izin `quality.record.manage`, **0081**'de eklendi |
+| `0076` | `Depo Cu → depocu` bekliyor; 0078'in bilinçli kuralı `depo.cu` |
+| `0077` | Aynı normalleşme; ⚠️ ayrıca gerçek bir güvenlik açığını sınamıyor (MIYOP-043) |
+| `0083` | 0084'ün bilinçli kaldırdığı `platform_populer_urunler`i çağırıyor |
+
+## ⚠️ KÖR PROVALAR · rol takmayanlar
+
+0089'dan sonra bir prova `set local role authenticated` yapmadıkça
+kapıların **DIŞINDA** koşar: bütün yazımlar sessizce geçer ve prova yeşil
+görünür. 13 dosya hâlâ böyle; liste
+`src/authorization/yazma-kapilari-tamam.arch.test.ts` içinde
+**dondurulmuştur** ve yalnız kısalabilir.
+
+`prova-0081` ve `prova-0082` bu yüzden körleşmişti; 0089 uygulanınca
+kırmızıya döndüler ve onarıldılar. Portal provaları (`0054`, `0063`)
+aynı sebeple MIYOP-039'u yakalayamamıştı (Codex · MIYOP-042).
 
 ## Sırada ne var (6.12)
 
-1. 14 dosyayı tek tek ayır: **bayat** mı, **gerçek gerileme** mi
-2. Bayat olanları güncelle, gerçek gerilemeleri onar
-3. `hepsini-kosturt.sh`i **yayın kapısına** ekle (şu an elle koşuyor)
+1. ✅ 14 dosya ayrıldı (Codex): hepsi bayat / ölçüm hatası, gerileme yok
+2. ⬜ 11 bayat dosyayı güncelle
+3. ⬜ 13 kör provaya gerçek rol taktır (önce portal: `0054`, `0063`)
+4. ⬜ `hepsini-kosturt.sh`i **yayın kapısına** ekle (şu an elle koşuyor)
 
-Üçüncüsü bitene kadar şu doğru değildir: *"provalar geçiyor."*
-Doğrusu: *"provaları elle koşturdum ve şu an 22'si geçiyor."*
+Dördüncüsü bitene kadar şu doğru değildir: *"provalar geçiyor."*
+Doğrusu: *"provaları elle koşturdum ve şu an 26'sı geçiyor."*

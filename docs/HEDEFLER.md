@@ -1,6 +1,15 @@
 # MİYOP · Hedefler
 
-**Son güncelleme:** 17.10.2026 · göç 0088 yazıldı ve prova edildi (0087 uygulandı)
+**Son güncelleme:** 18.10.2026 · göç **0089** yazıldı (0088 uygulandı)
+
+⚠️ **Bu dosya TEK iş listesidir.** `docs/BITMIS-URUN-EKSIKLERI.md` neyin
+neden eksik olduğunu ANLATIR; buradaki maddeler onu KARŞILAR. O dosyadaki
+her başlığın burada karşılığı vardır — A→1 ve 2, B→3, C.1 ve C.2→**8**,
+C.3→4, C.4→5, D→6. Biri eklenirse diğerine de eklenir.
+
+**Emrah'ın kararı (17.10.2026):** hedef **1 · Satılabilir**. Fatura,
+e-fatura, cari hesap ve operasyon genişlemeleri **ilk müşteriden sonra**
+(bölüm 8). *"Satılabildiğini görürsek yaparız."*
 **Kural:** Bir hedefi yaparken altından yeni bir iş çıkarsa, ana hedefin
 altına alt madde olarak eklenir. Tamamlanan madde silinmez, ✅ işaretlenir —
 neyin neden yapıldığı kaybolmasın.
@@ -14,9 +23,11 @@ neyin neden yapıldığı kaybolmasın.
 - ✅ **0.1** Canlıya dağıtım yapıldı (Yayın 2 · 17.10.2026)
 - ✅ **0.2** Codex 0084/0085 denetimi · iki kırık akış buldu (MIYOP-031, -032)
 - ✅ **0.3** Göç **0087** uygulandı (MIYOP-002)
-- 🔄 **0.4** Göç **0088** uygulanacak · MIYOP-001'in kalan **27** tablosu +
-  MIYOP-035. Yerel PostgreSQL'de prova **42/42**.
-- ⬜ **0.5** Codex'e 0086/0087/0088 denetimi · brif: `docs/codex-brifi.md`
+- ✅ **0.4** Göç **0088** uygulandı · 27 tablo + MIYOP-035. Prova 42/42.
+- ✅ **0.5** Codex 0086/0087/0088 denetimi yaptı · **iki kırık akış buldu**
+- 🔄 **0.6** Göç **0089** uygulanacak · MIYOP-038 + MIYOP-039 onarımı.
+  Yerel prova **17/17**, 0089 çıkarılınca kırmızıya döndüğü doğrulandı.
+- ⬜ **0.7** Dağıtım · 0089 uygulandıktan sonra tek seferde
 
 ---
 
@@ -89,6 +100,34 @@ güvenlik sınırı değil. Gerçek sınır veritabanında olmalı.
 - ✅ **1.3.8** "MIYOP-001 tamamen kapandı" demem **yanlıştı**; Codex haklıydı.
   0085 yarısını kapatmıştı, 0088 kalanını kapattı. Ders: kapı sayısı değil
   **kapısız yüzey** ölçülür.
+- ✅ **1.3.9** **0088 İKİ AKIŞI KIRDI — 0089 onardı.** Codex buldu, ben
+  yerel PostgreSQL'de ürettim. 0085'in aynı hatası, daha büyük yüzeyde.
+  - **MIYOP-039 · MÜŞTERİ PORTALI ÇALIŞMIYORDU.** `portal_siparis_ver`
+    dört kapılı tabloya yazıyor. Portal müşterisinin `app_user` kaydı
+    YOKTUR — rolü, izni yoktur. **Portaldan sipariş verilemiyordu.**
+  - **MIYOP-038 · SEVKİYAT SEVK EDİLEMİYORDU.** Sevkiyat SHIPPED olunca
+    sistem siparişin durumunu ilerletir. Sevkiyatçıda `logistics.write`
+    var, `operations.write` yok. Zincirin ikinci halkası kapıda duruyordu.
+  - ✅ **1.3.9.1** Kök neden: kapı "bu satırı yazan kişinin izni var mı"
+    diye soruyor. Ama bazı yazımları KİŞİ değil **SİSTEM** yapar —
+    kişinin zaten izinli olduğu başka bir işlemin sonucu olarak.
+  - ✅ **1.3.9.2** Çözüm: `current_user in ('anon','authenticated')` ise
+    yazım istemciden DOĞRUDAN geliyor, kapı sorulur. Değilse bizim
+    `security definer` rutinimizin içindeyiz; yetkiyi o rutin kontrol
+    eder. On kapı aynı soruya bağlandı.
+  - ✅ **1.3.9.3** ⚠️ **Bedeli sayıldı ve donduruldu.** `authenticated`a
+    açık, kapılı tabloya yazan **11** `security definer` fonksiyon artık
+    kapının dışında. Göç bu kümeyi adlarıyla donduruyor; 12.'si çıkarsa
+    göç ve mimari test KIRMIZI olur.
+  - ✅ **1.3.9.4** Olumsuz deneme yapıldı: 0089 çıkarılınca prova
+    kırmızıya dönüyor (MI403). Yeşil prova, çalışan prova demek değil.
+- ✅ **1.3.10** **Provaların kör noktası ortaya çıktı.** 0089'dan sonra
+  bir prova `set local role authenticated` yapmadıkça kapının DIŞINDA
+  koşuyor: bütün yazımlar sessizce geçiyor. `prova-0081` ve `prova-0082`
+  tam olarak böyle körleşmiş; 0089 uygulanınca kırmızıya döndüler ve
+  onarıldılar. Codex aynı kusuru portal provalarında bağımsız olarak
+  buldu (**MIYOP-042**). Kalan 13 kör prova donduruldu (6.12.6).
+  → tuzak 93.
 - ✅ **1.4** **MIYOP-002** · Sipariş onayı başkası adına verilemiyor
   (göç **0087**, prova 16/16)
   - ✅ **1.4.1** `decided_by` ve `decided_at`i SUNUCU yazıyor; istemcinin
@@ -103,8 +142,22 @@ güvenlik sınırı değil. Gerçek sınır veritabanında olmalı.
   tenant koşulu olmadan okuyor.
 - ⬜ **1.6** **MIYOP-017** · Çıkış Supabase oturumunu kapatmıyor
 - ⬜ **1.7** **MIYOP-018** · Zorunlu parola değişimi tek RPC ile atlanabiliyor
-- ⏸️ **1.8** PUBLIC EXECUTE temizliği · 7 fonksiyon
+- ⬜ **1.8** **MIYOP-043 · P1 · Giriş adresi çözümü kullanıcıyı ele veriyor**
+  (Codex, 18.10.2026) `0078`in anonim RPC'si bulunamayan kullanıcıya
+  `@bulunamadi.miyop.local`, **bulunana gerçek Auth e-postasını** dönüyor
+  ve RPC `anon` rolüne açık. Parola bilmeden kullanıcı/firma eşleşmesi ve
+  işletme sahibinin gerçek e-postası öğrenilebiliyor.
+  ⚠️ Bu 0088/0089 gerilemesi DEĞİL, baştan beri var.
+  - ⬜ **1.8.1** Giriş adresi sunucuda çözülüp kimlik doğrulama orada
+    tamamlanmalı; gerçek adres anonim istemciye dönmemeli
+  - ⬜ **1.8.2** Yanlış parola yanıtları kullanıcı varlığını ayırt
+    ettirmemeli
+  - ⬜ **1.8.3** `prova-0077` bulunan hesabı bulunmayanla karşılaştırmıyor;
+    prova bu ayrımı sınamalı
+- ⏸️ **1.9** PUBLIC EXECUTE temizliği · 7 fonksiyon
   ⚠️ `app.yetkim_var`dan ASLA alınmayacak — bütün kapılar ona bağlı.
+  ⚠️ `app.kapi_disi_baglam`dan da alınmayacak (0089): alınırsa kapılar
+  MI403 yerine 42501 verir ve yazımlar YANLIŞ SEBEPLE reddedilir.
 
 ---
 
@@ -230,12 +283,36 @@ büyütür, değeri büyütmez.
     `raise notice '❌ ...'` ile bildirir — NOTICE'tır, ERROR değildir.
     Betik ayrıca PostgreSQL kapalıyken 36 dosyanın hepsini YEŞİL
     saymıştı. → tuzak 92.
-  - ⬜ **6.12.3** 14 kırık dosyayı tek tek ayır: **bayat** mı, **gerçek
-    gerileme** mi? (Codex'ten de bu isteniyor.)
-  - ⬜ **6.12.4** Bayatları güncelle, gerçek gerilemeleri onar
+  - ✅ **6.12.3** Codex 14 kırmızıyı kaynaktan ayırdı: **10'u bayat
+    kurulum/beklenti, 3'ü çalıştırıcının yanlış kırmızısı, 1'i
+    tamamlanmamış negatif prova.** Hiçbirinden ürün gerilemesi çıkmadı.
+  - ✅ **6.12.6** **MIYOP-041** · çalıştırıcı `✅`/"TAMAM"/"GEÇTİ" basan
+    provaları "sessiz" sayıp haksız yere kırmızı veriyordu. Düzeltildi.
+    Güncel ölçüm: **37 dosya · 26 yeşil · 11 kırmızı**, 11'inin hepsi
+    Codex'in bayat dediği dosyalar. ⚠️ Ölçüm aracının yanlış kırmızısı,
+    yanlış yeşili kadar zarar verir: insan ona bakmayı bırakır.
+  - ✅ **6.12.7** **MIYOP-042** · 13 prova oturum kuruyor ama istemci
+    rolünü takmıyor → 0089'dan sonra kapının dışında koşuyorlar.
+    Liste `yazma-kapilari-tamam.arch.test.ts` içinde DONDURULDU; yalnız
+    kısalabilir. Portal provaları (0054, 0063) bu yüzden MIYOP-039'u
+    yakalayamamıştı.
+  - ⬜ **6.12.8** 13 kör provaya gerçek rol taktır (önce portal: 0054, 0063)
+  - ⬜ **6.12.4** 11 bayat dosyayı güncelle (Codex'in satır satır gerekçesi
+    `docs/kararlar/codex-denetimi-ekim-2026.md` içinde)
   - ⬜ **6.12.5** `hepsini-kosturt.sh`i **yayın kapısına** ekle (6.7 ile
     birlikte). Bu bitene kadar doğru cümle şudur: *"provaları elle
     koşturdum, 22'si geçiyor"* — *"provalar geçiyor"* değil.
+- ⬜ **6.13** **Hacim ölçümü** · stok bakiyesi defterden TÜRETİLİYOR.
+  On binlerce satırda ekranlar yavaşlar. Çözüm biliniyor (özet tablo +
+  indeks) ama **önce ölçülecek.** (BİTMİŞ-ÜRÜN · D1)
+- ⬜ **6.14** **Eşzamanlılık ölçümü** · iki kullanıcı aynı lota/siparişe
+  aynı anda. Idempotency anahtarı var, çok kullanıcılı sınama yok. (D2)
+- ⬜ **6.15** **Tablet ve telefon** · ekranlar masaüstü odaklı; depoda
+  insanlar masa başında değil. Mal kabul ve sayım elde yapılır. (D3)
+- ⬜ **6.16** **Gerçek yazıcı** · etiket (58 mm, 100×150 mm) ve irsaliye
+  hiç termal/lazer yazıcıda denenmedi. Donanım gerekiyor. (D4 · 6.10)
+- ⬜ **6.17** **Canlıda göç prosedürü yazılı değil** · yedek → göç →
+  doğrula → geri dönüş planı. Müşteri çalışırken göç çalıştırma. (D5)
 - ⬜ **6.11** `g7_rls_kapat.sql` · RLS'i kapatan dosya `db/migrations` içinde
   duruyor; yanlışlıkla çalıştırılabilir
 
@@ -260,6 +337,40 @@ büyütür, değeri büyütmez.
 
 ---
 
+## 8 · İLK MÜŞTERİDEN SONRA · park edildi, unutulmadı
+
+**Emrah'ın kararı (17.10.2026):** *"Evet, ilk müşteriden sonra.
+Satılabildiğini görürsek yaparız."*
+
+⚠️ Bu başlık **ertelendi, iptal edilmedi.** `BITMIS-URUN-EKSIKLERI.md`
+C.1 ve C.2'nin tamamı buradadır. Bir müşteri anlaşması olduğu gün bu
+bölüm 1. sıraya çıkar.
+
+### 8.1 · Para tarafı (C.1) — en büyük boşluk
+
+- ⏸️ **8.1.1** **Fatura kesme paneli** (hiç yok)
+- ⏸️ **8.1.2** **Özel entegratör bağlantısı** · e-Fatura / e-Arşiv /
+  e-İrsaliye. ⚠️ Devlet portalı değil, entegratör API'si — işin boyutunu
+  "proje"den "entegrasyon"a indirir (`claude/muhasebe-ve-e-donusum.md`)
+- ⏸️ **8.1.3** **Cari hesap** · müşteri borç/alacak, tahsilat, vade
+- ⏸️ **8.1.4** **Muhasebe programına aktarım dosyası**
+- ⏸️ **8.1.5** Mali mühür + KEP kurulumu (teknik iş değil, bağımlılık)
+- ✅ **8.1.6** **Veri alanları ŞİMDİDEN açıldı** — bilinçli "ucuz sigorta":
+  VKN/TCKN, vergi dairesi, resmî unvan, KEP, kalem bazında KDV. Entegrasyon
+  ertelenebilir, **veri alanları ertelenemez**: bir yıl canlı veriden
+  sonra "müşterilerin vergi numarası yok" demek o yılı elle düzeltmektir.
+
+### 8.2 · Operasyon genişlemesi (C.2)
+
+- ⏸️ **8.2.1** **Personel / vardiya / puantaj**
+- ⏸️ **8.2.2** **Depo raf adresi** · lokasyon yönetimi
+- ⏸️ **8.2.3** **Barkod / el terminali okuma** (mal kabul ve sayım elde)
+- ⏸️ **8.2.4** **Makine bakım takibi**
+- ⏸️ **8.2.5** Üretim planlamayı gerçek deftere bağla (servisler var,
+  veri bağı zayıf)
+
+---
+
 ## Güncel dokümanlar · nereye bakılır
 
 Proje notları Claude Projesi içinde kalıyor (taşımak maliyetli). Aşağıdaki
@@ -269,6 +380,8 @@ arşiv sayılır.
 | Doküman | Ne için |
 |---|---|
 | `docs/HEDEFLER.md` | **Tek doğru iş listesi.** Sıra buradan okunur. |
+| `docs/BITMIS-URUN-EKSIKLERI.md` | Bitmiş ürün için ne eksik, NEDEN eksik |
+| `db/prova/README.md` | Provalar nasıl koşturulur, hangisi kırık |
 | `docs/codex-brifi.md` | Codex'e yapıştırılan denetim brifi |
 | `docs/kararlar/kararlar-ve-tuzaklar.md` | Tuzaklar 1–89, bilinçli kararlar |
 | `docs/kararlar/codex-denetimi-ekim-2026.md` | Codex bulgu defteri (MIYOP-xxx) |
@@ -294,10 +407,11 @@ yanlışlıkla çalıştırılma riski var (6.11).
 | | |
 |---|---|
 | Test | 78 dosya · 1432 test · 0 hata |
-| Göç | 0000–0088 · 89 dosya |
+| Göç | 0000–**0089** · 90 dosya |
 | Açık çekirdek rota | 25 (37'den indi) |
 | Veritabanı yazma kapısı | **45 tetikleyici** (18 → +27 tablo) |
-| Codex bulgusu | 37 · 8 P0 (**4'ü kapandı**: 001 tam, 002, 031/032, 035) |
+| Codex bulgusu | **43** · (**7'si kapandı**: 001, 002, 031, 032, 035, 038, 039) |
 | Kapısız yazma yüzeyi | **0 tablo** (ölçüldü, sayılmadı) |
-| Prova dosyası | 36 · **22 yeşil / 14 kırmızı** (hiçbiri 0088'den değil · 6.12) |
+| Kapı dışı `security definer` | **11 fonksiyon** · adlarıyla donduruldu |
+| Prova dosyası | **37 · 26 yeşil / 11 kırmızı** (11'i de bayat · 6.12) |
 | Mock dosya | 36 · hiçbiri açık kiracı rotasından erişilemiyor |

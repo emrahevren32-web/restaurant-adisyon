@@ -78,6 +78,16 @@ begin
 end $$;
 
 
+-- ⚠️ 0089'DAN SONRA ZORUNLU: kapılar "bu yazım istemciden mi geldi" diye
+-- soruyor. `postgres` rolüyle koşan prova, JWT koysa bile kapının DIŞINDA
+-- kalır ve bütün yazımlar sessizce geçer. Gerçek rol takılmadan yapılan
+-- yetki provası kanıt değildir.
+grant execute on function prova_bak(text, boolean), prova_oturum(uuid, uuid),
+  prova_oturumsuz(), prova_faaliyet_ac(numeric) to authenticated;
+grant usage on schema public to authenticated;
+set local role authenticated;
+
+
 -- ═══ DELİK 1 · `OPEN → CANCELLED` ════════════════════════════════════════
 do $$
 declare v_f uuid; v_kod text := '';
@@ -250,6 +260,10 @@ begin
   perform prova_bak('ilerletirken imza boş kalıyor',
     (select completed_by is null from public.haccp_corrective_action where id = v_f));
 end; $$;
+
+
+-- Buradan sonrası BAĞLAM sorusunu sınıyor: istemci rolü bırakılıyor.
+reset role;
 
 
 -- ═══ BAKIM BAĞLAMI · `anon` SERBEST DEĞİL ════════════════════════════════

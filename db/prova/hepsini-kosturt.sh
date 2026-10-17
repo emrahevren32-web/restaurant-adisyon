@@ -18,6 +18,12 @@
 # İKİ PROVA ÜSLUBU VAR (ikisi de geçerli):
 #   yeni · `prova_bak()` → her doğrulama `✓` ya da `✗`
 #   eski · sonda özet    → "──── 00XX provası: N geçti, M kaldı"
+#   eski · satır satır   → `✅` / `❌`, ya da büyük harfli "GEÇTİ"/"TAMAM"
+#
+# ⚠️ MIYOP-041 (Codex): ilk sürüm yalnız `✓|geçti` arıyordu; `✅`, "TAMAM"
+# ve büyük harfli "GEÇTİ" basan 0052/0055/0058 "sessiz" sayılıp haksız
+# yere KIRMIZI oluyordu. Bir ölçüm aracının yanlış kırmızısı, yanlış
+# yeşili kadar zarar verir: insan ona bakmayı bırakır.
 # ═══════════════════════════════════════════════════════════════════════════
 set -u
 PROVA="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
@@ -36,7 +42,7 @@ for f in $(ls "$PROVA"/prova-*.sql | sort); do
   # Eski üslubun özet satırı: "N geçti, M kaldı"
   kalan=$(echo "$cikti" | grep -oE '[0-9]+ kaldı' | grep -oE '[0-9]+' | paste -sd+ | bc 2>/dev/null)
   kalan=${kalan:-0}
-  olumlu=$(echo "$cikti" | grep -cE '✓|geçti')
+  olumlu=$(echo "$cikti" | grep -icE '✓|✅|geçti|GEÇTİ|TAMAM')
 
   if [ $kod -ne 0 ] || echo "$cikti" | grep -qE '✗|❌|ERROR|FATAL' || [ "$kalan" -gt 0 ]; then
     KIRMIZI=$((KIRMIZI+1)); KIRIKLAR="$KIRIKLAR $ad"

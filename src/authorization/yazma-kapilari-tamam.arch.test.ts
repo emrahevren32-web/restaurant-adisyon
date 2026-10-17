@@ -318,3 +318,133 @@ describe('provalar yanlış yeşil vermiyor', () => {
     expect(suclular, `yanlış yeşil riski: ${suclular.join(', ')}`).toEqual([])
   })
 })
+
+// ═══════════════════════════════════════════════════════════════════════════
+// 0089 · KENDİ KIRDIĞIM İKİ AKIŞ · MIYOP-038 ve MIYOP-039
+//
+// 0088 kapıları taktı ve iki meşru akışı kırdı:
+//   MIYOP-039 · müşteri portalından sipariş verilemiyordu
+//   MIYOP-038 · sevkiyat sevk edilemiyordu (sipariş durumu ilerleyemiyor)
+//
+// Kök neden: kapı "bu satırı yazan kişinin izni var mı" diye soruyor; ama
+// bazı yazımları KİŞİ değil SİSTEM yapar — kişinin zaten izinli olduğu
+// başka bir işlemin sonucu olarak.
+//
+// 0089'un cevabı: `current_user in ('anon','authenticated')` ise yazım
+// istemciden DOĞRUDAN geliyor, kapı sorulur. Değilse bizim `security
+// definer` rutinimizin içindeyiz; yetkiyi o rutin kontrol eder.
+//
+// ⚠️ Bunun bedeli var ve göç o bedeli SAYIYOR: `authenticated`a açık,
+// kapılı tabloya yazan her `security definer` fonksiyon artık kapının
+// dışındadır. Göç o kümeyi adlarıyla donduruyor.
+// ═══════════════════════════════════════════════════════════════════════════
+
+/** 0089'un kapı dışına aldığı fonksiyonlar. Liste yalnız GEREKÇEYLE büyür. */
+const KAPI_DISI = [
+  'app.basvuruyu_onayla', 'app.lisans_olayi_yaz', 'app.lisansi_uzat',
+  'app.personel_hesabi_ac', 'app.personel_sifresi_sifirlandi',
+  'app.sifremi_belirledim', 'public.alerjen_beyani_yaz',
+  'public.portal_siparis_guncelle', 'public.portal_siparis_ver',
+  'public.set_negative_stock_policy', 'public.set_primary_role'
+]
+
+/** 0089'un tek soruya bağladığı on kapı. */
+const ON_KAPI = [
+  'app.izin_gerek()', 'app.izin_gerek_coklu()', 'app.stok_hareketi_izni()',
+  'app.stok_karti_izni()', 'app.lot_izni()', 'app.kullanici_satiri_izni()',
+  'app.onay_karari_izni()', 'app.ambalaj_beyani_izni()',
+  'app.haccp_olcum_izni()', 'app.haccp_faaliyet_izni()'
+]
+
+describe('0089 · sistem yazımı kapıdan geçiyor', () => {
+  it('yeni soru tanımlı ve `authenticated` sorabiliyor', () => {
+    expect(GOC).toContain('create or replace function app.kapi_disi_baglam()')
+    expect(GOC).toContain("select current_user not in ('anon', 'authenticated')")
+
+    // ⚠️ Kapılar `security definer` DEĞİL: çağıran rol bu soruyu
+    // soramazsa kapı MI403 yerine 42501 verir ve yanlış sebeple reddeder.
+    expect(GOC).toMatch(
+      /grant execute on function app\.kapi_disi_baglam\(\) to authenticated, service_role;/
+    )
+    expect(/revoke all on function app\.kapi_disi_baglam\(\)\s+from public;/.test(GOC)).toBe(true)
+    expect(/revoke all on function app\.kapi_disi_baglam\(\)\s+from anon;/.test(GOC)).toBe(true)
+  })
+
+  it('on kapının hepsi listede ve göç hepsini değiştirdiğini doğruluyor', () => {
+    const govde = GOC.slice(GOC.indexOf('0089 · KENDİ KIRDIĞIM İKİ AKIŞ'))
+    for(const kapi of ON_KAPI){
+      expect(govde, `${kapi} 0089 listesinde yok`).toContain(kapi)
+    }
+    expect(GOC).toContain('10 kapi bekleniyordu')
+    expect(GOC).toContain('hala eski soruya bagli')
+  })
+
+  it('metin değiştirme ince kuralları KORUDUĞUNU doğruluyor', () => {
+    // On fonksiyon `pg_get_functiondef` + `replace` ile değiştirildi.
+    // Bu ucuz ama kördür: göç, değişimden sonra kuralların hâlâ yerinde
+    // olduğunu ayrıca sınamak zorunda.
+    expect(GOC).toContain('stok karti kapisinin jsonb farki kayboldu')
+    expect(GOC).toContain('MIYOP-035 kontrolu kayboldu')
+    expect(GOC).toContain('argüman kontrolu kayboldu')
+  })
+
+  it('muafiyet yüzeyi adlarıyla donduruldu', () => {
+    const liste = GOC.slice(GOC.indexOf('v_beklenen constant text[]'))
+    const kes = liste.slice(0, liste.indexOf('];') + 2)
+    for(const fn of KAPI_DISI){
+      expect(kes, `${fn} muafiyet listesinde yok`).toContain(`'${fn}'`)
+    }
+    // Listeye sessizce yeni ad eklenemesin: göç fazlalığı PATLATIYOR.
+    expect(GOC).toContain('kapi disinda YENI fonksiyon(lar) var')
+  })
+
+  it('`bakim_baglami` silinmedi — 0082 kararı duruyor', () => {
+    expect(GOC).toContain('create or replace function app.bakim_baglami()')
+    expect(GOC).toContain('`app.bakim_baglami()` SİLİNMİYOR')
+  })
+})
+
+// ═══════════════════════════════════════════════════════════════════════════
+// PROVALARIN KÖR NOKTASI · MIYOP-042
+//
+// 0089'dan sonra bir prova, JWT koysa bile `set local role authenticated`
+// yapmadıkça kapının DIŞINDA koşar: bütün yazımlar sessizce geçer ve prova
+// yeşil görünür. prova-0081 ve prova-0082 tam olarak böyle körleşti ve
+// 0089 uygulanınca kırmızıya döndüler — iyi ki döndüler.
+//
+// Aşağıdaki liste DONDURULMUŞTUR: yalnız KISALABİLİR. Bir dosya rolü
+// takınca listeden çıkar; listeye ekleme yapmak yeni bir kör prova
+// yazmak demektir.
+// ═══════════════════════════════════════════════════════════════════════════
+const ROL_TAKMAYAN_PROVALAR = [
+  'prova-0054.sql', // ⚠️ portal · Codex MIYOP-042 bunu adıyla işaret etti
+  'prova-0060.sql',
+  'prova-0063.sql', // ⚠️ portal · aynı bulgu
+  'prova-0071.sql',
+  'prova-0071b.sql',
+  'prova-0072.sql',
+  'prova-0073.sql',
+  'prova-0074.sql',
+  'prova-0076.sql',
+  'prova-0077.sql',
+  'prova-0078.sql',
+  'prova-0083.sql',
+  'prova-0084.sql'
+]
+
+describe('provalar kapının içinde koşuyor mu', () => {
+  it('oturum kuran her prova istemci rolünü de takıyor (liste yalnız kısalır)', () => {
+    const korler: string[] = []
+    for(const dosya of provaDosyalari()){
+      const metin = readFileSync(dosya, 'utf8')
+      const oturumKuruyor = metin.includes('prova_oturum') || metin.includes('request.jwt')
+      const rolTakiyor = metin.includes('set local role authenticated')
+      if(oturumKuruyor && !rolTakiyor) korler.push(basename(dosya))
+    }
+    const yeni = korler.filter(d => !ROL_TAKMAYAN_PROVALAR.includes(d))
+    expect(yeni, `YENİ kör prova: ${yeni.join(', ')}`).toEqual([])
+    expect(korler.length,
+      `liste kısaldı (${korler.length}); ROL_TAKMAYAN_PROVALAR güncellenmeli`)
+      .toBeLessThanOrEqual(ROL_TAKMAYAN_PROVALAR.length)
+  })
+})

@@ -76,6 +76,17 @@ begin
 end; $$;
 
 
+-- ⚠️ 0089'DAN SONRA ZORUNLU: kapılar artık "bu yazım istemciden mi geldi"
+-- diye soruyor (`current_user in ('anon','authenticated')`). `postgres`
+-- rolüyle koşan bir prova, JWT koysa bile kapının DIŞINDA kalır ve
+-- bütün yazımlar sessizce geçer — yani prova körleşir. Gerçek rolü
+-- takmadan yapılan yetki provası kanıt değildir.
+grant execute on function prova_bak(text, boolean), prova_oturum(uuid, uuid),
+  prova_oturumsuz() to authenticated;
+grant usage on schema public to authenticated;
+set local role authenticated;
+
+
 -- ═══ A · REÇETE KAPISI ═══════════════════════════════════════════════════
 do $$
 declare v_h text := ''; v_kod text := '';
@@ -353,6 +364,10 @@ begin
   perform prova_bak('kalite sorumlusu ambalaj beyanını yazabiliyor',
     (select net_qty = 500 from public.stock_item where id = current_setting('prova.kalem')::uuid));
 end; $$;
+
+
+-- Buradan sonrası GÖÇ bağlamını sınıyor: istemci rolü bırakılıyor.
+reset role;
 
 
 -- ═══ H · OTURUMSUZ BAĞLAM SERBEST (göç güvenliği) ════════════════════════

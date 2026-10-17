@@ -236,6 +236,25 @@ grep görmedi. Bu yüzden "11 kırık" dedim, doğrusu **14**'tü. Doğrusu:
 çıkış koduna bak, olumsuz işaretlerin HEPSİNİ ara, **ve en az bir olumlu
 işaret görmüş ol.** Sessiz çıktı "geçti" demek değildir.
 
+**93 · Kapı, kişiyi sorar; ama bazı yazımları SİSTEM yapar.** 0088'de 27
+tabloya "bu satırı yazanın izni var mı" kapısı koydum ve iki akışı kırdım:
+müşteri portalından sipariş verilemedi (portal müşterisinin `app_user`
+kaydı YOKTUR), sevkiyat sevk edilemedi (sevkiyatçıda `operations.write`
+yok ama sevk, siparişin durumunu ilerletir). Ders: bir yazım, kişinin
+zaten izinli olduğu BAŞKA bir işlemin sonucu olabilir. 0089'un ayrımı:
+`current_user in ('anon','authenticated')` ise istemci doğrudan yazıyor,
+kapı sorulur; değilse bizim `security definer` rutinimizin içindeyiz ve
+yetkiyi o rutin kontrol eder. **Bedeli ölçülür ve adlarıyla dondurulur.**
+
+**94 · Rolü takmayan yetki provası kanıt değildir.** `set local role
+authenticated` yapmadan, yalnız JWT ayarlayarak koşan bir prova
+`postgres` rolündedir. 0089'dan sonra bu provalar kapının DIŞINDA kalır:
+bütün yazımlar sessizce geçer, prova yeşil görünür. `prova-0081` ve
+`prova-0082` tam olarak böyle körleşmişti; 0089 uygulanınca kırmızıya
+döndüler — **iyi ki döndüler.** Codex aynı kusuru portal provalarında
+bağımsız olarak buldu (MIYOP-042): e-postadan ibaret bir claim kuran
+prova, gerçek müşteri JWT'siyle oluşan gerilemeyi göremez.
+
 ---
 
 ## 5 · TEST İŞBÖLÜMÜ VE TESLİM KONTROL LİSTESİ
@@ -259,3 +278,6 @@ Son söz onun çıktısındadır.
    demek değil (tuzak 89).
 9. Kanıt dosyasını **depoya koy** (tuzak 91). Çalışma ortamında kalan
    prova, kanıt değil hatıradır.
+10. Yetki provasında **gerçek rolü tak** (`set local role authenticated`)
+    ve reddin **DOĞRU SEBEPLE** olduğunu sına: 42501 ile MI403 aynı şey
+    değildir. Yanlış sebeple reddedilen bir yazım, kapı çalışıyor sanılır.
