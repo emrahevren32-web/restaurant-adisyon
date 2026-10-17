@@ -89,7 +89,8 @@ declare
   v_ad     text;
   v_tanim  text;
   v_yeni   text;
-  v_sayac  int := 0;
+  v_degisen int := 0;
+  v_zaten   int := 0;
 begin
   foreach v_ad in array v_kapilar loop
     if to_regprocedure(v_ad) is null then
@@ -98,21 +99,32 @@ begin
 
     v_tanim := pg_get_functiondef(to_regprocedure(v_ad));
 
-    if position('app.bakim_baglami()' in v_tanim) = 0 then
-      raise exception
-        '0089: % icinde `app.bakim_baglami()` bulunamadi. Kapi elle '
-        'degistirilmis; once okunup elle duzeltilmeli.', v_ad;
-    end if;
+    -- ⚠️ TEKRAR ÇALIŞTIRILABİLİR OLMALI. Göç iki kez koşturulur (teslim
+    -- kontrol listesi, madde 3). İlk sürüm bunu gözden kaçırdı: ikinci
+    -- koşuda `bakim_baglami` artık yoktu ve göç kendi başarısını hata
+    -- sanıp patladı. Üç hâl ayrı ayrı ele alınıyor.
+    if position('app.kapi_disi_baglam()' in v_tanim) > 0
+       and position('app.bakim_baglami()' in v_tanim) = 0 then
+      -- Zaten bu göç tarafından çevrilmiş. Dokunma, say.
+      v_zaten := v_zaten + 1;
 
-    v_yeni := replace(v_tanim, 'app.bakim_baglami()', 'app.kapi_disi_baglam()');
-    execute v_yeni;
-    v_sayac := v_sayac + 1;
+    elsif position('app.bakim_baglami()' in v_tanim) > 0 then
+      v_yeni := replace(v_tanim, 'app.bakim_baglami()', 'app.kapi_disi_baglam()');
+      execute v_yeni;
+      v_degisen := v_degisen + 1;
+
+    else
+      raise exception
+        '0089: % icinde ne `app.bakim_baglami()` ne `app.kapi_disi_baglam()` '
+        'var. Kapi elle degistirilmis; once okunup elle duzeltilmeli.', v_ad;
+    end if;
   end loop;
 
-  if v_sayac <> 10 then
-    raise exception '0089: 10 kapi bekleniyordu, % degisti.', v_sayac;
+  if v_degisen + v_zaten <> 10 then
+    raise exception '0089: 10 kapi bekleniyordu, % islendi.', v_degisen + v_zaten;
   end if;
-  raise notice '0089: % kapi `kapi_disi_baglam` sorusuna baglandi.', v_sayac;
+  raise notice '0089: % kapi cevrildi, % kapi zaten cevrilmisti.',
+    v_degisen, v_zaten;
 end $$;
 
 -- ⚠️ `app.bakim_baglami()` SİLİNMİYOR. 0082'nin kararı ve gerekçesi

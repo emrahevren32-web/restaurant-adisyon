@@ -27,7 +27,12 @@ neyin neden yapıldığı kaybolmasın.
 - ✅ **0.5** Codex 0086/0087/0088 denetimi yaptı · **iki kırık akış buldu**
 - 🔄 **0.6** Göç **0089** uygulanacak · MIYOP-038 + MIYOP-039 onarımı.
   Yerel prova **17/17**, 0089 çıkarılınca kırmızıya döndüğü doğrulandı.
+  - ✅ **0.6.1** ⚠️ İlk sürüm **tekrar çalıştırılamıyordu**: ikinci koşuda
+    kendi başarısını hata sanıp patlıyordu. Onarıldı, üç kez üst üste
+    koşturuldu. Aynı kusur 0084'te de vardı, o da onarıldı. → 6.18
 - ⬜ **0.7** Dağıtım · 0089 uygulandıktan sonra tek seferde
+- ⬜ **0.8** Codex'e 0089 denetimi · **muafiyet listesindeki 11 fonksiyon**
+  gerçekten kendi yetki kontrolünü yapıyor mu? Güvenlik artık onlara bağlı.
 
 ---
 
@@ -302,6 +307,16 @@ büyütür, değeri büyütmez.
   - ⬜ **6.12.5** `hepsini-kosturt.sh`i **yayın kapısına** ekle (6.7 ile
     birlikte). Bu bitene kadar doğru cümle şudur: *"provaları elle
     koşturdum, 22'si geçiyor"* — *"provalar geçiyor"* değil.
+- ⬜ **6.18** **Göçlerin tekrar çalıştırılabilirliği ÖLÇÜLMEMİŞTİ**
+  Teslim kontrol listesi 2026 boyunca *"göçü İKİ KEZ çalıştır"* diyordu
+  ama bunu hiç ölçmemiştim. Ölçtüm: **90 göçün 9'u ikinci koşuda
+  patlıyor** — 0004, 0033, 0034, 0038, 0042, 0043, 0051, 0054, 0082.
+  (0084 ve 0089 da patlıyordu; ikisi onarıldı.) → tuzak 95.
+  ⚠️ Temiz kurulumda sorun YOK (her göç bir kez koşar). Risk, canlıda
+  yarıda kalan bir göçü tekrar denemek gerektiğinde ortaya çıkar.
+  - ⬜ **6.18.1** 9 göçü tekrar çalıştırılabilir yap
+  - ⬜ **6.18.2** `kur.sh`e "her göçü iki kez koştur" seçeneği ekle ki
+    iddia ölçülmeden kalmasın
 - ⬜ **6.13** **Hacim ölçümü** · stok bakiyesi defterden TÜRETİLİYOR.
   On binlerce satırda ekranlar yavaşlar. Çözüm biliniyor (özet tablo +
   indeks) ama **önce ölçülecek.** (BİTMİŞ-ÜRÜN · D1)

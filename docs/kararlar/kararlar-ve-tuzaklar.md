@@ -255,6 +255,16 @@ döndüler — **iyi ki döndüler.** Codex aynı kusuru portal provalarında
 bağımsız olarak buldu (MIYOP-042): e-postadan ibaret bir claim kuran
 prova, gerçek müşteri JWT'siyle oluşan gerilemeyi göremez.
 
+**95 · Göç kendi başarısını hata sanabilir.** `pg_get_functiondef` +
+`replace` ile yama atan bir göç, ikinci koşusunda aradığı eski metni
+bulamaz ve "elle değiştirilmiş" diye patlar. 0084 ve 0089 bu yüzden tekrar
+çalıştırılamıyordu; 0089 canlıda tam bu hatayla durdu. Doğrusu üç hâli de
+ele almak: **zaten yapılmış** (atla), **yapılmamış** (yap), **tanınmayan**
+(patla). Daha büyük ders: teslim kontrol listesi 2026 boyunca *"göçü iki
+kez çalıştır"* diyordu ama bunu hiç ÖLÇMEMİŞTİM. Ölçünce 90 göçün 9'unun
+daha aynı kusurda olduğu çıktı. **Yazılı bir kural, uygulanmadığı sürece
+yalnızca bir niyettir.**
+
 ---
 
 ## 5 · TEST İŞBÖLÜMÜ VE TESLİM KONTROL LİSTESİ
@@ -268,7 +278,8 @@ Son söz onun çıktısındadır.
 **Teslimden önce:**
 1. Sözdizimi denetimi
 2. Tip denetimi
-3. Göç provası — ve göçü **İKİ KEZ** çalıştır
+3. Göç provası — ve göçü **İKİ KEZ** çalıştır.
+   ⚠️ Bunu gerçekten yap, yazdığın için yapılmış sayma (tuzak 95).
 4. Arayüz değiştiyse tarayıcıda ÖLÇ
 5. Yeni rapor varsa GERÇEK veriyle çalıştır
 6. Dosyaları yazdıktan sonra BEKLE ve GERİ OKU

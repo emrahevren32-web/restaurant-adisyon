@@ -231,6 +231,14 @@ begin
     raise exception '0084: app.basvuruyu_onayla bulunamadı.';
   end if;
 
+  -- ⚠️ TEKRAR ÇALIŞTIRILABİLİR OLMALI (teslim kontrol listesi, madde 3).
+  -- İlk sürüm bunu gözden kaçırdı: ikinci koşuda aranan satır artık
+  -- değişmiş olduğu için göç KENDİ BAŞARISINI hata sanıp patlıyordu.
+  if position('coalesce(nullif(btrim(coalesce(v_b.legal_name,' in v_kaynak) > 0 then
+    raise notice '0084: onay fonksiyonu zaten yamalanmis, atlaniyor.';
+    return;
+  end if;
+
   if position('v_kiraci, v_kod, v_b.company_name, v_b.company_name,' in v_kaynak) = 0 then
     raise exception
       '0084: onay fonksiyonunda beklenen satır yok — 0035 değişmiş olabilir. '
