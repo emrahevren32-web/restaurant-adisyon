@@ -791,14 +791,40 @@ export default function App(){
     setActiveNavKey('evren360-customer-list')
     setOpenGroupKey(platformGrupAnahtari('evren360-customer-list') as NavGroupKey)
   }
+  /**
+   * Zildeki satıra tıklayınca nereye gidilecek.
+   *
+   * ⚠️ Eskiden YALNIZ `business_application` ele alınıyordu; `license_expiry`
+   * satırları sessizce hiçbir şey yapmıyordu. Emrah "tıklıyorum, bir şey
+   * olmuyor" dedi ve haklıydı: zilde görünen satırların çoğu lisans
+   * satırıydı. Tıklanabilir görünüp hiçbir şey yapmayan bir satır,
+   * "mış gibi yapan" bir şeydir.
+   *
+   * Lisans satırının `targetId`si kiracı kimliğidir — Müşteri Detayı
+   * ekranının tam olarak beklediği şey.
+   */
   const openEvren360NotificationTarget = (notification: Evren360Notification) => {
-    if(notification.type !== 'business_application' || !notification.targetId) return
-
-    setSelectedPendingApplicationId(notification.targetId)
+    if(!notification.targetId) return
     setLicenseAccessError('')
-    setRoute('evren360-pending-applications')
-    setActiveNavKey('evren360-pending-applications')
-    setOpenGroupKey(platformGrupAnahtari('evren360-pending-applications') as NavGroupKey)
+
+    if(notification.type === 'business_application'){
+      setSelectedPendingApplicationId(notification.targetId)
+      setRoute('evren360-pending-applications')
+      setActiveNavKey('evren360-pending-applications')
+      setOpenGroupKey(platformGrupAnahtari('evren360-pending-applications') as NavGroupKey)
+      return
+    }
+
+    if(notification.type === 'license_expiry'){
+      // `targetId` = kiracı kimliği. Müşteri Detayı ekranı veritabanından
+      // okuyor (göç 0083) ve lisans uzatma düğmesi orada.
+      openCustomerDetail(notification.targetId)
+      return
+    }
+
+    // ⚠️ `support_request` için gidilecek ekran HENÜZ YOK (Destek Talepleri
+    // kilitli, HEDEFLER 4.x). Buraya bir rota uydurmuyoruz; olmayan yere
+    // götürmek, hiç götürmemekten kötüdür.
   }
   const openMarketplaceFromWelcome = () => {
     if(!isWorkspaceSetupCompletedForUser(currentUser)){

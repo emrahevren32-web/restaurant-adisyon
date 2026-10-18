@@ -265,6 +265,16 @@ kez çalıştır"* diyordu ama bunu hiç ÖLÇMEMİŞTİM. Ölçünce 90 göçü
 daha aynı kusurda olduğu çıktı. **Yazılı bir kural, uygulanmadığı sürece
 yalnızca bir niyettir.**
 
+**96 · Bir kapıyı açarken, açman GEREKEN kadarını aç.** 0089'da iki kırık
+akışı onarmak için on kapıyı birden gevşettim. Oysa iki akışın yazdığı
+tabloların hepsi TEK kapıya (`izin_gerek_coklu`) bağlıydı. Fazladan
+gevşettiğim dokuz kapının ikisi veri bütünlüğü kuralıydı: sahte alerjen
+damgası koruması (`MI436`) ve sunucunun attığı onay imzası. Yani iki
+ilgisiz akışı onarmak için, gıda etiketine basılan bir iddianın korumasını
+zayıflattım. Codex yakaladı. 0090 dokuzunu geri daralttı ve muaf yüzey
+11 rutinden 6'ya indi. **Bir onarımın yan etkisi, onarımdan büyük olmamalı
+— ve "ne kadarını açtım" ölçülebilir olmalı.**
+
 ---
 
 ## 5 · TEST İŞBÖLÜMÜ VE TESLİM KONTROL LİSTESİ
@@ -289,6 +299,9 @@ Son söz onun çıktısındadır.
    demek değil (tuzak 89).
 9. Kanıt dosyasını **depoya koy** (tuzak 91). Çalışma ortamında kalan
    prova, kanıt değil hatıradır.
-10. Yetki provasında **gerçek rolü tak** (`set local role authenticated`)
+10. Bir kapı gevşetiyorsan **ne kadarını gevşettiğini SAY** ve o sayıyı
+    göçün içinde dondur (tuzak 96). "Gerekliydi" demek yetmez; gereğinden
+    fazlasını açmadığını göstermek gerekir.
+11. Yetki provasında **gerçek rolü tak** (`set local role authenticated`)
     ve reddin **DOĞRU SEBEPLE** olduğunu sına: 42501 ile MI403 aynı şey
     değildir. Yanlış sebeple reddedilen bir yazım, kapı çalışıyor sanılır.

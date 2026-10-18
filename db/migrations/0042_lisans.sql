@@ -206,17 +206,31 @@ create trigger company_lisans_ac
   for each row execute function app.firma_dogunca_lisans_ac();
 
 -- ── 7 · Var olan kiracılar ───────────────────────────────────────────────
+-- ⚠️ MIYOP-046 (Codex, 18.10.2026) · ÖNCEKİ KOŞUL TEHLİKELİYDİ.
+-- Eskiden koşul `status in ('Deneme','Aktif')` yokluğuna bakıyordu. Bu göç
+-- bir kez daha çalıştırılırsa — ki teslim kuralımız göçü iki kez
+-- çalıştırmaktır — **askıya alınmış, iptal edilmiş ya da süresi dolmuş**
+-- bir kiracıya yepyeni bir "Deneme" lisansı açardı. Yani platform
+-- sahibinin kapatma kararını sessizce geri alırdı. Bir lisans kaydının
+-- VARLIĞI, o kiracı hakkında bir karar verilmiş olduğu anlamına gelir;
+-- kararı "yok" sayıp baştan kurmak bizim işimiz değil.
+--
+-- Doğru koşul: **hiç lisans satırı olmayan** kiracı. Bu, ilk kurulumda
+-- aynı sonucu verir, tekrar koşuda hiçbir şeye dokunmaz.
 do $$
-declare r record;
+declare r record; v_acilan int := 0;
 begin
   for r in select t.id, c.primary_sector_id
              from tenant t
              left join company c on c.tenant_id = t.id
             where not exists (select 1 from tenant_license l
-                               where l.tenant_id = t.id and l.status in ('Deneme','Aktif'))
+                               where l.tenant_id = t.id)
   loop
     perform app.kiraci_lisansi_ac(r.id, r.primary_sector_id);
+    v_acilan := v_acilan + 1;
   end loop;
+  raise notice '0042: % kiraciya ilk lisans acildi (lisans gecmisi olanlara dokunulmadi).',
+    v_acilan;
 end $$;
 
 -- ── 8 · Erişim ───────────────────────────────────────────────────────────

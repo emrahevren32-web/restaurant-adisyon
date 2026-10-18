@@ -1,6 +1,6 @@
 # MİYOP · Hedefler
 
-**Son güncelleme:** 18.10.2026 · göç **0089** yazıldı (0088 uygulandı)
+**Son güncelleme:** 18.10.2026 · göç **0090** yazıldı (0089 uygulandı)
 
 ⚠️ **Bu dosya TEK iş listesidir.** `docs/BITMIS-URUN-EKSIKLERI.md` neyin
 neden eksik olduğunu ANLATIR; buradaki maddeler onu KARŞILAR. O dosyadaki
@@ -31,8 +31,12 @@ neyin neden yapıldığı kaybolmasın.
     kendi başarısını hata sanıp patlıyordu. Onarıldı, üç kez üst üste
     koşturuldu. Aynı kusur 0084'te de vardı, o da onarıldı. → 6.18
 - ⬜ **0.7** Dağıtım · 0089 uygulandıktan sonra tek seferde
-- ⬜ **0.8** Codex'e 0089 denetimi · **muafiyet listesindeki 11 fonksiyon**
-  gerçekten kendi yetki kontrolünü yapıyor mu? Güvenlik artık onlara bağlı.
+- ✅ **0.8** Codex 0089 denetimi yaptı · **haklı çıktı: kapıyı gereğinden
+  fazla gevşetmiştim.** 11 fonksiyonun üçü kendi yetki kontrolünü yapmıyor.
+- 🔄 **0.9** Göç **0090** uygulanacak · 0089 daraltılıyor + MIYOP-044.
+  Yerel prova **20/20**; 0090 çıkarılınca kırmızıya döndüğü doğrulandı.
+- ⬜ **0.10** Dağıtım · 0090 uygulandıktan ve MIYOP-043 bittikten sonra
+  tek seferde (arayüzde zil yönlendirmesi de bu dağıtımla gider)
 
 ---
 
@@ -126,6 +130,39 @@ güvenlik sınırı değil. Gerçek sınır veritabanında olmalı.
     göç ve mimari test KIRMIZI olur.
   - ✅ **1.3.9.4** Olumsuz deneme yapıldı: 0089 çıkarılınca prova
     kırmızıya dönüyor (MI403). Yeşil prova, çalışan prova demek değil.
+- ✅ **1.3.11** **0089 GEREĞİNDEN FAZLA AÇMIŞTI — 0090 daralttı.**
+  Codex: *"038 ve 039'u onarmak için gereken muaf yazımların tamamı
+  `izin_gerek_coklu()` üzerinden geçiyor. Diğer dokuz kapıyı topluca
+  gevşetmek bu iki onarımın zorunlu parçası değildi."* Ölçtüm, haklı.
+  - ⚠️ İki somut zarar vermişim: **MIYOP-035'in sahte alerjen damgası
+    koruması** (`MI436`) ve **0087'nin onay imzası** her `security
+    definer` rutinin içinde atlanabilir hâle gelmişti. Gıda etiketine
+    basılan bir iddianın korumasını, iki ilgisiz akışı onarmak için
+    gevşetmek kabul edilemez.
+  - ✅ **1.3.11.1** Dokuz kapı 0089 öncesine döndü; yalnız
+    `izin_gerek_coklu` gevşek kaldı. O hâl biliniyordu ve çalışıyordu.
+  - ✅ **1.3.11.2** Gevşek kapının ardındaki yüzey **11 rutinden 6'ya**
+    indi ve adlarıyla donduruldu.
+  - ✅ **1.3.11.3** Prova 20/20; portal **güncelleme** RPC'si de artık
+    sınanıyor (0089 provası yalnız sipariş vermeyi kapsıyordu), ve portal
+    oturumu artık `tenant_id` claim'ini **koymuyor** — gerçekte de yok.
+  - → tuzak 96.
+- ✅ **1.3.12** **MIYOP-044 · P1 · üç iç yardımcıya SQL'den ulaşılabiliyordu**
+  `app.basvuruyu_onayla`, `app.lisansi_uzat`, `app.lisans_olayi_yaz` kendi
+  yetki kontrolünü yapmıyor — yetkiyi dış `public` kabuğa bırakıyor. Ama
+  0035 yalnız `anon, authenticated`tan hak aldı; PostgreSQL'de varsayılan
+  **PUBLIC EXECUTE**tir ve o kalkmamıştı (tuzak 67, bir kez daha).
+  0090 tam imzalarla kapattı; prova: üçü de `42501` veriyor, dış kabuklar
+  çalışmaya devam ediyor.
+  ⚠️ 0089'un yorumu bu üçü için "kendi yetkisini doğrular" diyordu.
+  **Yanlış belge, olmayan belgeden kötüdür** — yorumlar da düzeltildi.
+- ✅ **1.3.13** **MIYOP-046 · P0 · 0042 tekrar koşunca lisans kararını
+  bozabiliyordu.** Toplu lisans açılışı `status in ('Deneme','Aktif')`
+  yokluğuna bakıyordu; bu göç ikinci kez çalıştırılsa **askıya alınmış,
+  iptal edilmiş ya da süresi dolmuş** bir kiracıya yeni "Deneme" açardı —
+  yani platform sahibinin kapatma kararını sessizce geri alırdı. Koşul
+  **hiç lisans satırı olmayan** kiracıya daraltıldı; ölçüldü: tekrar
+  koşuda 0 satır açılıyor.
 - ✅ **1.3.10** **Provaların kör noktası ortaya çıktı.** 0089'dan sonra
   bir prova `set local role authenticated` yapmadıkça kapının DIŞINDA
   koşuyor: bütün yazımlar sessizce geçiyor. `prova-0081` ve `prova-0082`
@@ -225,6 +262,17 @@ Emrah'ın onayladığı sıra:
     YOK (Emrah: "önce bir ilk müşteriyi bulalım").
   - ⬜ **4.8.4** Ödeme planı ve borç tablosu (5.2, 5.3 sorularının deposu)
   - ⬜ **4.8.5** Şirkete özel yönetici notu (5.4)
+- ✅ **4.8.6** **Zildeki lisans satırı artık bir yere götürüyor.**
+  Emrah: *"önceden bildirim gelince tıklardım, ilgili sayfaya
+  yönlendirirdi; şimdi öyle olmuyor."* Sebep: yönlendirme yalnız
+  `business_application` türünü ele alıyordu; zildeki satırların çoğu
+  `license_expiry` ve onlar sessizce hiçbir şey yapmıyordu. Tıklanabilir
+  görünüp hiçbir şey yapmayan satır **"mış gibi yapan" bir şeydir.**
+  Lisans satırının `targetId`si kiracı kimliği → Müşteri Detayı ekranı.
+  `src/notifications/zil-yonlendirme.arch.test.ts` bunu donduruyor.
+  - ⬜ **4.8.7** `support_request` satırının gideceği ekran (Destek
+    Talepleri) hâlâ kilitli. Uydurma rota KOYMADIM; ekran açılınca
+    yönlendirme de eklenecek.
 - ⬜ **4.9** Kontrol Paneli gerçek sayaçlarla
 - ⬜ **4.10** **MIYOP-028** · Pasif lisansın gerçek durumu görünmüyor
   `lisansiOku` yalnız Deneme/Aktif getiriyor; Süresi Doldu/Askıda/İptal
@@ -302,6 +350,11 @@ büyütür, değeri büyütmez.
     kısalabilir. Portal provaları (0054, 0063) bu yüzden MIYOP-039'u
     yakalayamamıştı.
   - ⬜ **6.12.8** 13 kör provaya gerçek rol taktır (önce portal: 0054, 0063)
+  - ✅ **6.12.9** **MIYOP-048** · `kur.sh` hatayı göstermek için göçü
+    İKİNCİ KEZ çalıştırıyordu; ikinci koşu birincinin kalıcı
+    değişikliklerinin üstüne biniyor ve gösterilen hata ilk hatadan
+    farklı olabiliyordu. **Arıza raporunun kendisi arızayı değiştiriyordu.**
+    Artık ilk çağrının çıktısı saklanıp gösteriliyor.
   - ⬜ **6.12.4** 11 bayat dosyayı güncelle (Codex'in satır satır gerekçesi
     `docs/kararlar/codex-denetimi-ekim-2026.md` içinde)
   - ⬜ **6.12.5** `hepsini-kosturt.sh`i **yayın kapısına** ekle (6.7 ile
@@ -314,7 +367,15 @@ büyütür, değeri büyütmez.
   (0084 ve 0089 da patlıyordu; ikisi onarıldı.) → tuzak 95.
   ⚠️ Temiz kurulumda sorun YOK (her göç bir kez koşar). Risk, canlıda
   yarıda kalan bir göçü tekrar denemek gerektiğinde ortaya çıkar.
-  - ⬜ **6.18.1** 9 göçü tekrar çalıştırılabilir yap
+  - ✅ **6.18.1a** **0042'nin tehlikeli kısmı kapandı** (MIYOP-046, yukarıda
+    1.3.13). Kalan hatası zararsız: "function is not unique".
+  - ⬜ **6.18.1** **MIYOP-047 · P1** · 0033/0034/0038 hata vermeden ÖNCE
+    kaldırılmış imzaları geri oluşturuyor (imzasız `COMMENT` patlıyor, ama
+    `create or replace` çoktan işlemiş olabiliyor). Eski başvuru yolu
+    ticari unvan kuralını zorlamaz. Çözüm: `COMMENT`lerde tam imza.
+  - ⬜ **6.18.1b** Kalan 6 göç (0043, 0051, 0054, 0082, 0004 ve 0033/34/38
+    sonrası) tekrar çalıştırılabilir yapılacak · Codex'in risk sırası:
+    0043 > 0033 > 0038 > 0034 > 0082 > 0054 > 0051 > 0004
   - ⬜ **6.18.2** `kur.sh`e "her göçü iki kez koştur" seçeneği ekle ki
     iddia ölçülmeden kalmasın
 - ⬜ **6.13** **Hacim ölçümü** · stok bakiyesi defterden TÜRETİLİYOR.
@@ -422,11 +483,11 @@ yanlışlıkla çalıştırılma riski var (6.11).
 | | |
 |---|---|
 | Test | 78 dosya · 1432 test · 0 hata |
-| Göç | 0000–**0089** · 90 dosya |
+| Göç | 0000–**0090** · 91 dosya |
 | Açık çekirdek rota | 25 (37'den indi) |
 | Veritabanı yazma kapısı | **45 tetikleyici** (18 → +27 tablo) |
-| Codex bulgusu | **43** · (**7'si kapandı**: 001, 002, 031, 032, 035, 038, 039) |
+| Codex bulgusu | **48** · (**10'u kapandı**: 001, 002, 031, 032, 035, 038, 039, 041, 044, 046, 048) |
 | Kapısız yazma yüzeyi | **0 tablo** (ölçüldü, sayılmadı) |
-| Kapı dışı `security definer` | **11 fonksiyon** · adlarıyla donduruldu |
-| Prova dosyası | **37 · 26 yeşil / 11 kırmızı** (11'i de bayat · 6.12) |
+| Kapı dışı `security definer` | **6 rutin** (0089'da 11 idi) · donduruldu |
+| Prova dosyası | **38 · 27 yeşil / 11 kırmızı** (11'i de bayat · 6.12) |
 | Mock dosya | 36 · hiçbiri açık kiracı rotasından erişilemiyor |
