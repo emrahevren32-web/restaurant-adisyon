@@ -77,6 +77,44 @@ describe('MIYOP-043 · giriş sunucuda', () => {
     expect(DEPO).toContain("sunucu.durum === 'reddedildi'")
   })
 
+  it('MIYOP-051 · kota ve arıza, YANLIŞ PAROLA sayılmıyor', () => {
+    // Auth 429/5xx verdiğinde parolası DOĞRU olan kişi de "şifre hatalı"
+    // görüyordu; kişi şifresini boş yere değiştirmeye kalkar, arıza da
+    // gizlenir. Üç durum ayrı: 401 / 429 / 503.
+    expect(FONKSIYON).toContain('kod === 429')
+    expect(FONKSIYON).toContain('kod >= 500')
+    expect(FONKSIYON).toContain('429)')
+    expect(FONKSIYON).toContain('503)')
+    expect(ISTEMCI).toContain("durum: 'gecici'")
+    // ⚠️ Geçici hata YEDEK YOLA DÜŞMEMELİ: bir kota arızasını eski
+    // sızdıran yola yönlendirmek olurdu.
+    expect(DEPO).toContain("sunucu.durum === 'gecici'")
+  })
+
+  it('MIYOP-052 · yarım oturum bırakılmıyor', () => {
+    // `setSession` başarılıysa Auth oturumu KURULMUŞTUR. `getUser`
+    // düşerse `null` dönüp çıkmak, "giriş başarısız" diyen bir ekranın
+    // arkasında açık oturum bırakırdı.
+    const bas = DEPO.indexOf("sunucu.durum === 'oldu'")
+    const parca = DEPO.slice(bas, bas + 900)
+    expect(parca).toContain('auth.signOut()')
+  })
+
+  it('MIYOP-053 · gövde şekli okunmadan ÖNCE doğrulanıyor', () => {
+    // JSON `null` ya da `{"giris":{"toString":null}}` yakalanmamış hata
+    // atıyordu; kontrollü cevap sözleşmesi (CORS başlıkları dâhil)
+    // bozuluyordu.
+    expect(FONKSIYON).toContain("ham === null || typeof ham !== 'object'")
+    expect(FONKSIYON).toContain('Array.isArray(ham)')
+    expect(FONKSIYON).toContain("typeof v === 'string'")
+    // Tür hatasında SQL/Auth çağrılmadan 400 dönmeli.
+    const bas = FONKSIYON.indexOf('const girisHam')
+    const son = FONKSIYON.indexOf("rpc('giris_adresi_bul'")
+    expect(bas).toBeGreaterThan(0)
+    expect(son).toBeGreaterThan(bas)
+    expect(FONKSIYON.slice(bas, son)).toContain('400)')
+  })
+
   // ⚠️ AÇIK BORÇ · bu blok BİLEREK "hâlâ duruyor" diyor.
   it('GEÇİŞ DÖNEMİ: yedek yol hâlâ duruyor ve bu YAZILI', () => {
     expect(DEPO).toContain('GEÇİCİ YEDEK YOL')

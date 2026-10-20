@@ -5205,13 +5205,23 @@ export const authenticateUser = async (
   // `src/auth/sunucu-girisi.ts` dosya başı.
   const sunucu = await sunucudaGirisYap(email, password, isletmeKodu)
   if(sunucu.durum === 'reddedildi') return null
+  // ⚠️ MIYOP-051 · kota/arıza PAROLA HATASI DEĞİLDİR ve yedek yola da
+  // düşülmez: bir arızayı eski SIZDIRAN yola yönlendirmek olurdu.
+  if(sunucu.durum === 'gecici') return null
 
   let authUser: { id: string; email?: string | null } | null = null
 
   if(sunucu.durum === 'oldu'){
     // Oturum `setSession` ile kuruldu; kullanıcıyı oturumdan okuyoruz.
     const { data, error } = await supabase.auth.getUser()
-    if(error || !data?.user) return null
+    if(error || !data?.user){
+      // ⚠️ MIYOP-052 (Codex) · BU DALDA OTURUM KAPATILMIYORDU.
+      // `setSession` başarılı olduğu için Auth oturumu KURULMUŞ durumda.
+      // Buradan `null` dönüp çıkmak, "giriş başarısız" diyen bir ekranın
+      // arkasında açık bir oturum bırakırdı — yarım oturum.
+      await supabase.auth.signOut()
+      return null
+    }
     authUser = data.user
   } else {
     // ⚠️ GEÇİCİ YEDEK YOL · göç 0091 ile SİLİNECEK.

@@ -214,12 +214,50 @@ güvenlik sınırı değil. Gerçek sınır veritabanında olmalı.
     401 gelince **yedek yola düşülmüyor**. → tuzak 98.
   - ⬜ **1.8.3** **Emrah fonksiyonu DAĞITIR ve girişin çalıştığını
     doğrular.** (`supabase functions deploy giris-yap`)
-  - ⬜ **1.8.4** Göç **0091**: `giris_adresi_bul`un `anon` hakkı alınır
-    **VE** `storage.ts`teki geçici yedek yol SİLİNİR.
+  - ⬜ **1.8.4** Göç **0091**: `giris_adresi_bul`un `anon` **VE
+    `authenticated`** hakkı alınır, **VE** `storage.ts`teki geçici yedek
+    yol SİLİNİR.
+    ⚠️ **KAPSAM DÜZELTMESİ (Codex, 20.10):** 0078 bu fonksiyonu
+    `anon, authenticated, service_role`e birlikte veriyor. Yalnız
+    `anon`dan almak **oturum açmış birinin başka işletmenin kullanıcı
+    adını sorgulayıp gerçek Auth adresini almasını ENGELLEMEZ** — ve
+    fonksiyonun içinde kiracı kapısı yok. Ben 0091'i yalnız `anon` için
+    planlamıştım; o hâliyle **yarım bir onarım** olurdu.
+    ⚠️ Fonksiyon KALDIRILMAZ: Edge Function onu `service_role` ile
+    kullanıyor. `public.personel_giris_adresi` ayrı tutulur —
+    `authenticated` hakkını topluca almak personel açmayı kırar.
     ⚠️ Bu madde bitene kadar MIYOP-043 **KAPANMIŞ SAYILMAZ**; sızıntı
     hâlâ açıktır, yalnız olağan giriş akışı artık sızdırmıyor.
   - ⬜ **1.8.5** `prova-0077` bulunan hesabı bulunmayanla karşılaştırmıyor;
     0091'in provası bu ayrımı sınayacak
+  - ✅ **1.8.7** **MIYOP-051** · Auth kota (429) ve geçici arıza (5xx)
+    "giriş adı veya şifre hatalı" diye dönüyordu. Parolası DOĞRU olan kişi
+    şifresini boş yere değiştirmeye kalkardı, arıza da gizlenirdi. Üç
+    durum ayrıldı (401/429/503); geçici hata **yedek yola düşmüyor** —
+    bir kota arızasını eski sızdıran yola yönlendirmek olurdu.
+  - ✅ **1.8.8** **MIYOP-052** · `setSession` başarılıyken `getUser`
+    düşerse `null` dönülüp çıkılıyordu: "giriş başarısız" diyen ekranın
+    arkasında **açık bir Auth oturumu** kalıyordu. Artık `signOut()`.
+  - ✅ **1.8.9** **MIYOP-053** · Gövde `null` ya da alan türü yanlışsa
+    (`{"giris":{"toString":null}}`) yakalanmamış hata atıyor ve kontrollü
+    cevap sözleşmesi (CORS başlıkları dâhil) bozuluyordu. Alanlar
+    okunmadan önce tür doğrulanıyor; hatalı şekil SQL/Auth'a hiç gitmeden
+    400 dönüyor.
+  - ⬜ **1.8.10** **MIYOP-049 · P1 · zamanlama** · Bulunmayan hesapta
+    `0078` ikinci sorguyu atlıyor ve Supabase Auth bulunamayan hesabı
+    parola doğrulamasından ÖNCE reddediyor. Yani sahte adresle Auth'a
+    gitmek maliyeti eşitlemiyor; aynı biçimdeki iki kullanıcı adının
+    yanlış parola denemesi farklı süre dağılımı verebilir.
+    ⚠️ Codex uzaktan sömürülebilirliği **doğrulamadı**; ben de ölçmedim.
+    Kabul kriteri: yalıtılmış ortamda tekrarlı süre ölçümü hesap
+    varlığını ayırt ettirmemeli.
+  - ⬜ **1.8.11** **MIYOP-050 · P1 · istek sınırı yok** · Ayrıcalıklı
+    adres RPC'si Auth denemesinden ÖNCE çalışıyor; Auth kotası dolsa bile
+    her yeni çağrı o SQL işini yaptırıyor. Ayrıca son kullanıcı IP'si
+    Auth'a aktarılmıyor, sunucu çıkışını paylaşanların kotası
+    ortaklaşabilir. Çözüm: RPC'den önce atomik istek sınırı.
+    ⚠️ "Auth limiti tamamen atlanıyor" DEĞİL — son parola denemesi yine
+    Auth'a gidiyor.
   - ⬜ **1.8.6** `public.basvuru_gonder` bekleyen başvuru varlığını `MI409`
     ile ayırt ettiriyor (Codex). Gerçek e-postayı sızdırmıyor, tekrar
     başvuruyu önlemek bilinçli karar — ama dış yanıt tekleştirilebilir.
@@ -265,6 +303,20 @@ Emrah'ın onayladığı sıra:
 - ⬜ **3.3** Şube Yetkileri (`branch-permissions`)
 - ⬜ **3.4** İşletme Ayarları (`settings`)
 - ⬜ **3.5** Şubeler (`branches`)
+- ⬜ **3.9** **"Bu modülleri yapmıyor muyuz?" — ölçülmüş cevap** (Emrah
+  sordu, 20.10). Veritabanı tablolarına bakarak:
+  - ✅ **ŞOKLAMA YAPIYORUZ.** `BLAST_CHILLING` gerçek bir HACCP aşaması
+    (0024) ve **CCP-6 · "Hızlı soğutma · 2 saatte 10 °C"** her yeni
+    kiracıya otomatik kuruluyor (0079). Ölçümler `haccp_measurement`
+    tablosuna gidiyor. `blast-chiller/` mock modülü **aynı konunun ikinci,
+    sahte kopyasıydı** — asıl iş HACCP ekranında.
+  - ❌ **ŞAHİT NUMUNE ve KALİTE NUMUNESİ YAPMIYORUZ.** `%sample%` /
+    `%numune%` deseninde **hiç tablo yok**. Bu ekranlar yalnız uydurma
+    veriyle vardı; "mock veri asla olmayacak" kuralı gelince donduruldu.
+    Yani bırakmadık — **hiç başlamamıştık.**
+  - ⬜ **3.9.1** Şahit numune gerçek bir gıda güvenliği gereği (numune
+    saklama süresi, imha). Yapılacaklar listesine madde olarak girmeli —
+    sahte ekran olarak değil.
 - ⬜ **3.8** **MOCK DOSYALARI SİLİNECEK · 36 dosya** (Emrah, 20.10:
   *"tüm mock verileri yok etmiş olduğuna emin ol"* ve *"asla ve asla
   yapamadığımız bir modülü, fonksiyonu MİYOP'ta tutmayalım"*)
@@ -278,6 +330,11 @@ Emrah'ın onayladığı sıra:
   - ⬜ **3.8.3** Çalışan bir ekranın kullandığı mock varsa → o ekran ya
     gerçek veriye bağlanır ya kaldırılır; mock'la yaşamaz
   - ⬜ **3.8.4** Silme sonrası `npm test` + `npm run build` yeşil olmalı
+  - ⬜ **3.8.6** Emrah'ın kararı (20.10): *"sil ama ne işe yaradığını bil
+    ve sonradan yapılacağını unutma."* → Silmeden ÖNCE
+    `docs/kararlar/kaldirilan-moduller.md` yazılır: her modülün ne işe
+    yaradığı, neden kaldırıldığı, gerçekten yapılacaksa hangi hedefe
+    bağlandığı. **Kod gider, karar kalır.**
   - ⬜ **3.8.5** Codex'e taratılacak: *"depoda mock/uydurma veri üreten
     başka ne var — adı `.mock` olmayanlar dâhil?"* ⚠️ Benim taramam ad
     desenine bakıyor; `storage.ts` örneği gösterdi ki asıl tehlike adı
@@ -394,6 +451,12 @@ büyütür, değeri büyütmez.
     kısalabilir. Portal provaları (0054, 0063) bu yüzden MIYOP-039'u
     yakalayamamıştı.
   - ⬜ **6.12.8** 13 kör provaya gerçek rol taktır (önce portal: 0054, 0063)
+  - ✅ **6.12.10** **MIYOP-054** · ⚠️ **MIYOP-048'i onarırken yenisini
+    yaptım.** Betiğin başında `set -e` var; `CIKTI=$(...)` ataması
+    başarısız olunca betik oracıkta sonlanıyor ve **"hatayı göster" diye
+    yazdığım satırlara hiç gelinmiyordu.** Çağrı `if`in koşuluna alındı
+    (`set -e` koşulda değerlendirilen komutu sonlandırmaz). Bilerek bozuk
+    bir göçle denendi: hata artık görünüyor ve betik duruyor.
   - ✅ **6.12.9** **MIYOP-048** · `kur.sh` hatayı göstermek için göçü
     İKİNCİ KEZ çalıştırıyordu; ikinci koşu birincinin kalıcı
     değişikliklerinin üstüne biniyor ve gösterilen hata ilk hatadan

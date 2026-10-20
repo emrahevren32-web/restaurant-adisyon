@@ -305,6 +305,26 @@ yorumda. **`.ps1` dosyaları sadece ASCII yazılır**; Türkçe açıklama
 `docs/` altına gider. (Alternatif BOM eklemektir, ama ASCII kurşun
 geçirmezdir.)
 
+**100 · `set -e` altında `DEGISKEN=$(komut)` betiği oracıkta öldürür.**
+MIYOP-048'i onarırken çıktıyı saklayıp göstermek istedim:
+`CIKTI=$(psql ...)` sonra `if [ $? -ne 0 ]`. Ama dosyanın başında `set -e`
+var ve **başarısız bir atama errexit'i tetikler** — yani "hatayı göster"
+diye yazdığım satırlara hiç gelinmiyordu. Hata mesajı da yoktu, betik
+sessizce çıkıyordu. Doğrusu çağrıyı `if`in KOŞULUNA almak:
+`if CIKTI=$(...); then ... else ... fi` — `set -e` bir koşulda
+değerlendirilen komutu sonlandırmaz. ⚠️ Ders daha genel: **bir onarımı
+yazdıktan sonra onu BİLEREK BOZ ve gerçekten çalıştığını gör.** Bu kez
+bozuk bir göç uydurup denedim; Codex'in bulması gerekmemeliydi.
+
+**101 · "anon'dan al" yetmez; hakkın KİME verildiğine bak.** MIYOP-043'ü
+kapatmak için `giris_adresi_bul`un `anon` hakkını almayı planlamıştım.
+0078 o fonksiyonu `anon, authenticated, service_role`e **birlikte**
+veriyor ve fonksiyonun içinde kiracı kapısı yok. Yalnız `anon`dan almak,
+oturum açmış herhangi birinin **başka işletmenin** kullanıcı adını
+sorgulayıp gerçek Auth adresini almasını engellemezdi — yani onarım
+yarım kalırdı ve ben "kapandı" diyecektim. Bir ACL'yi değiştirmeden önce
+`proacl`i OKU; hangi rollerin yazılı olduğunu varsayma.
+
 ---
 
 ## 5 · TEST İŞBÖLÜMÜ VE TESLİM KONTROL LİSTESİ

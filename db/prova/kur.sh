@@ -36,14 +36,21 @@ su postgres -c "psql -q -v ON_ERROR_STOP=1 -d miyop -f $PROVA/00_supabase_taklit
 # ÜSTÜNE biniyordu ve gösterilen hata ilk hatadan farklı olabiliyordu.
 # Yani arıza raporunun kendisi arızayı değiştiriyordu. Artık ilk çağrının
 # çıktısı saklanıyor ve o gösteriliyor; dosya bir kez çalışır.
+# ⚠️ MIYOP-054 (Codex) · YUKARIDAKİ DÜZELTMENİN KENDİ KUSURU.
+# İlk onarım `CIKTI=$(...)` ataması yapıp ardından `$?`ye bakıyordu. Ama
+# dosyanın başında `set -e` var: BAŞARISIZ BİR ATAMA betiği oracıkta
+# sonlandırıyor ve hata gösterimine HİÇ GELİNMİYOR. Yani "hatayı göster"
+# diye yazdığım satırlar, hata olduğunda çalışmıyordu.
+# Doğrusu: çağrıyı `if`in KOŞULUNA almak — `set -e` bir koşulda
+# değerlendirilen komutu sonlandırmaz.
 SAYI=0
 for f in $(ls "$GOC"/00[0-9][0-9]_*.sql | sort); do
-  CIKTI=$(su postgres -c "psql -v ON_ERROR_STOP=1 -d miyop -f $f" 2>&1)
-  if [ $? -ne 0 ]; then
+  if CIKTI=$(su postgres -c "psql -v ON_ERROR_STOP=1 -d miyop -f $f" 2>&1); then
+    SAYI=$((SAYI+1))
+  else
     echo "❌ $(basename "$f")"
     echo "$CIKTI" | grep -E 'ERROR|FATAL' | head -3
     exit 1
   fi
-  SAYI=$((SAYI+1))
 done
 echo "✅ $SAYI göç uygulandı"

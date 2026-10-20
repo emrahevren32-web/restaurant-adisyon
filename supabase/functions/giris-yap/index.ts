@@ -87,16 +87,36 @@ Deno.serve(async (istek: Request) => {
     return cevap({ hata: 'Sunucu ayarları eksik.' }, 500)
   }
 
-  let govde: { giris?: unknown; sifre?: unknown; isletme?: unknown }
+  // ⚠️ MIYOP-053 (Codex) · İLK SÜRÜM YALNIZ JSON AYRIŞTIRMA HATASINI
+  // yakalıyordu. Gövde `null` ise `govde.giris` erişimi, `{"giris":
+  // {"toString":null}}` ise `String(...)` dönüşümü YAKALANMAMIŞ hata
+  // atıyor ve kontrollü cevap sözleşmesi (CORS başlıkları dâhil) bozuluyor.
+  // Alanlar okunmadan ÖNCE tür doğrulanıyor.
+  let ham: unknown
   try {
-    govde = await istek.json()
+    ham = await istek.json()
   } catch {
     return cevap({ hata: 'Geçersiz istek.' }, 400)
   }
+  if(ham === null || typeof ham !== 'object' || Array.isArray(ham)){
+    return cevap({ hata: 'Geçersiz istek.' }, 400)
+  }
+  const govde = ham as Record<string, unknown>
 
-  const giris   = String(govde.giris   ?? '').trim()
-  const isletme = String(govde.isletme ?? '').trim()
-  const sifre   = String(govde.sifre   ?? '')
+  const metin = (v: unknown): string | null => {
+    if(v === undefined || v === null) return ''
+    return typeof v === 'string' ? v : null
+  }
+  const girisHam   = metin(govde.giris)
+  const isletmeHam = metin(govde.isletme)
+  const sifreHam   = metin(govde.sifre)
+  if(girisHam === null || isletmeHam === null || sifreHam === null){
+    return cevap({ hata: 'Geçersiz istek.' }, 400)
+  }
+
+  const giris   = girisHam.trim()
+  const isletme = isletmeHam.trim()
+  const sifre   = sifreHam
 
   // ⚠️ Boş girdi için de GENEL hata: "giriş adı boş" demek, bir sonraki
   // adımın ne olduğunu söylemektir.
@@ -133,9 +153,30 @@ Deno.serve(async (istek: Request) => {
     await istemci.auth.signInWithPassword({ email: adres, password: sifre })
 
   if(girisHatasi || !oturum?.session){
-    // ⚠️ Supabase'in kendi hata metni DIŞARI VERİLMEZ. "Email not
-    // confirmed" ile "Invalid login credentials" farklı mesajlardır ve o
-    // fark tam olarak sızdırmak istemediğimiz şeydir.
+    // ⚠️ MIYOP-051 (Codex) · İLK SÜRÜM HER AUTH HATASINI 401 YAPIYORDU.
+    // Auth kota (429) ya da geçici arıza (5xx) verdiğinde, PAROLASI DOĞRU
+    // olan kişi de "giriş adı veya şifre hatalı" görüyordu. Kişi şifresini
+    // boş yere değiştirmeye kalkar; arıza da gizlenmiş olur.
+    //
+    // ⚠️ Ayrım HESAP HAKKINDA HİÇBİR ŞEY SÖYLEMEDEN yapılıyor: kota ve
+    // arıza cevapları da hangi hesabın var olduğunu açıklamıyor, çünkü
+    // onlar PAROLA DOĞRULAMASININ SONUCU değil, ONA ULAŞAMAMANIN sonucu.
+    const kod = (girisHatasi as { status?: number } | null)?.status ?? 0
+
+    if(kod === 429){
+      return cevap({ hata: 'Çok fazla deneme yapıldı. Biraz bekleyip '
+                           + 'tekrar deneyin.' }, 429)
+    }
+    if(kod >= 500 || (kod === 0 && girisHatasi)){
+      // Supabase'in kendi metni yine DIŞARI VERİLMİYOR, yalnız günlüğe.
+      console.error('[giris-yap] auth arizasi:', girisHatasi?.message)
+      return cevap({ hata: 'Giriş şu an yapılamıyor, birazdan tekrar '
+                           + 'deneyin.' }, 503)
+    }
+    // Geriye kalan: gerçekten yanlış kimlik bilgisi (400/401/403).
+    // Supabase'in kendi hata metni DIŞARI VERİLMEZ: "Email not confirmed"
+    // ile "Invalid login credentials" farklı mesajlardır ve o fark tam
+    // olarak sızdırmak istemediğimiz şeydir.
     return cevap({ hata: GENEL_HATA }, 401)
   }
 

@@ -467,6 +467,32 @@ describe('MIYOP-043 · giriş sunucuda yapılıyor', () => {
     expect(rpc).toHaveBeenCalledWith('giris_adresi_bul', expect.anything())
   })
 
+  it('MIYOP-051 · kota/arıza yanlış parola sayılmaz ve YEDEK YOLA DÜŞÜLMEZ', async () => {
+    invoke.mockResolvedValue({
+      data: null,
+      error: { message: 'Too Many Requests', context: { status: 429 } }
+    })
+
+    const user = await authenticateUser('depocu@ABCGIDA', 'dogru-parola')
+
+    expect(user).toBeNull()
+    // ⚠️ Bir kota arızasını eski SIZDIRAN yola yönlendirmek olurdu.
+    expect(signInWithPassword).not.toHaveBeenCalled()
+    expect(rpc).not.toHaveBeenCalledWith('giris_adresi_bul', expect.anything())
+  })
+
+  it('MIYOP-052 · kullanıcı okunamazsa OTURUM KAPATILIR', async () => {
+    sunucuOturumVerir()
+    getUser.mockResolvedValue({ data: { user: null }, error: { message: 'network' } })
+
+    const user = await authenticateUser('depocu@ABCGIDA', 'sifre123')
+
+    expect(user).toBeNull()
+    // `setSession` başarılıydı: Auth oturumu kurulmuştu. Temizlenmeli.
+    expect(signOut).toHaveBeenCalled()
+    expect(from).not.toHaveBeenCalled()
+  })
+
   it('oturum kurulamazsa giriş reddedilir, yarım oturum bırakılmaz', async () => {
     sunucuOturumVerir()
     setSession.mockResolvedValue({ data: {}, error: { message: 'bozuk jeton' } })

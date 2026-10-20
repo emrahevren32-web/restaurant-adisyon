@@ -40,6 +40,7 @@ export type SunucuOturumu = {
 export type SunucuGirisSonucu =
   | { durum: 'oldu'; oturum: SunucuOturumu }
   | { durum: 'reddedildi' }        // olmayan kullanıcı VEYA yanlış parola
+  | { durum: 'gecici'; mesaj: string }  // kota/arıza — parola YANLIŞ DEĞİL
   | { durum: 'ulasilamadi' }       // fonksiyon yok / ağ arızası → yedek yol
 
 const gecerliOturum = (govde: unknown): govde is SunucuOturumu => {
@@ -79,11 +80,22 @@ export const sunucudaGirisYap = async (
       },
     })
     if(error){
-      // ⚠️ 401 = reddedildi (fonksiyon ÇALIŞTI ve "hayır" dedi).
-      // Başka her şey = ulaşılamadı. `FunctionsHttpError` durumu
-      // `context.status` içinde taşıyor.
+      // ⚠️ MIYOP-051 (Codex) · ÜÇ AYRI ŞEY, ÜÇ AYRI SONUÇ.
+      // 401 = fonksiyon ÇALIŞTI ve "yanlış kimlik" dedi.
+      // 429/503 = fonksiyon ÇALIŞTI ama parolayı doğrulayamadı. Bunu
+      //   "ulaşılamadı" sayıp yedek yola düşmek, bir kota arızasını eski
+      //   SIZDIRAN yola yönlendirmek olurdu.
+      // Başka her şey (404 dâhil) = fonksiyon yok / ulaşılamıyor.
       const durum = (error as { context?: { status?: number } })?.context?.status
       if(durum === 401) return { durum: 'reddedildi' }
+      if(durum === 429 || durum === 503){
+        return {
+          durum: 'gecici',
+          mesaj: durum === 429
+            ? 'Çok fazla deneme yapıldı. Biraz bekleyip tekrar deneyin.'
+            : 'Giriş şu an yapılamıyor, birazdan tekrar deneyin.',
+        }
+      }
       console.warn('[MİYOP] giris-yap çağrılamadı:', error.message)
       return { durum: 'ulasilamadi' }
     }
