@@ -340,7 +340,7 @@ Emrah'ın onayladığı sıra:
 
 - ⬜ **3.1** Firma Profili (`company-profile`)
   - ⬜ **3.1.1** Kim değiştirebilsin? Vergi numarası fatura kesmeyi
-    etkiliyor. (Emrah'a sorulacak)
+    etkiliyor. → `ismete-sorulacaklar.md` **B1**
 - ⬜ **3.2** Profilim (`my-profile`) — şu an "Kullanıcı kaydı bulunamadı"
   hatası veriyor, hiç çalışmıyor
 - ⬜ **3.3** Şube Yetkileri (`branch-permissions`)
@@ -365,9 +365,8 @@ Emrah'ın onayladığı sıra:
     (-18/+4) ve **aynı alandan** gelir; ayrı tutulursa bir gün ayrışır.
     **(3)** Numunenin amacı bir tartışmayı çözmek → **lota ve sevkiyata**
     bağlı olmalı, ürün adına değil.
-    ⚠️ Beş açık soru var (nerede saklanıyor, kim alıyor, hangi izin, her
-    sevkiyattan mı her partiden mi, imhayı kim onaylıyor). **Cevaplar
-    gelmeden göç yazılmayacak** — yazılırsa yine "mış gibi" olur.
+    ⚠️ Beş açık soru var → `docs/kararlar/ismete-sorulacaklar.md` **A1–A5**.
+    **Cevaplar gelmeden göç yazılmayacak** — yazılırsa yine "mış gibi" olur.
 - ⬜ **3.8** **MOCK DOSYALARI SİLİNECEK · 36 dosya** (Emrah, 20.10:
   *"tüm mock verileri yok etmiş olduğuna emin ol"* ve *"asla ve asla
   yapamadığımız bir modülü, fonksiyonu MİYOP'ta tutmayalım"*)
@@ -559,6 +558,14 @@ büyütür, değeri büyütmez.
   Ayrıntı: `claude/codex-ile-calisma-duzeni.md`
 - ✅ **7.2** Codex brifi hazır · `docs/codex-brifi.md`
   Karar dosyalarını okutuyor ki bilinçli kararları "hata" sanmasın.
+- ✅ **7.7** **İsmet'e sorulacaklar tek listede** (Emrah, 20.10:
+  *"ben sana İsmet'leyim dediğimde sen hepsini tek tek getir benim
+  önüme."*) → `docs/kararlar/ismete-sorulacaklar.md`.
+  ⚠️ Kural: bir ekran/göç yazarken *"bunu bilmiyorum, uydurursam mış gibi
+  olur"* dediğim her şey oraya yazılır. Cevap gelince madde silinmez,
+  cevabıyla işaretlenir — kararın nereden geldiği kaybolmasın.
+  Şu an **16 açık soru** var: 5 şahit numune, 3 yarım ekran, 2 sevkiyat,
+  3 etiket/baskı, 3 ölçüm.
 - ✅ **7.6** **Sürüm defteri güncel tutuluyor** (Emrah'ın isteği, 20.10).
   `docs/MIYOP-Surum-Defteri.xlsx` · her yayına çıkış bir satır.
   - Yeni durum: **"Veritabanında"** = göç canlı Supabase'e uygulandı ama
@@ -634,6 +641,8 @@ arşiv sayılır.
 |---|---|
 | `docs/HEDEFLER.md` | **Tek doğru iş listesi.** Sıra buradan okunur. |
 | `docs/BITMIS-URUN-EKSIKLERI.md` | Bitmiş ürün için ne eksik, NEDEN eksik |
+| `docs/kararlar/ismete-sorulacaklar.md` | **İsmet'e sorulacak her şey, tek liste** |
+| `docs/kararlar/sahit-numune.md` | Şahit numune tasarım kararı |
 | `db/prova/README.md` | Provalar nasıl koşturulur, hangisi kırık |
 | `docs/codex-brifi.md` | Codex'e yapıştırılan denetim brifi |
 | `docs/kararlar/kararlar-ve-tuzaklar.md` | Tuzaklar 1–89, bilinçli kararlar |

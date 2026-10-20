@@ -1,17 +1,16 @@
-MIYOP-056 kapandi + sahit numune tasarim karari yazildi
+Ismet'e sorulacaklar tek listede + Codex brifi B basligina cevrildi
 
-- MIYOP-056 (Codex): parola dogrulanmis, oturum kurulmus, sonra IZIN
-  SORGUSU dusmus. setCurrentUser(null) yalniz uygulamanin kendi kaydini
-  siliyordu; Auth oturumu acik kaliyordu ve sebep parola degilken genel
-  kimlik hatasi gosteriliyordu. scope: 'local' cikis + gecici mesaj
-- Ayni aileden UCUNCUSU (052 getUser, 055 kapsam, 056 izin okuma).
-  Tuzak 104: basarisiz giris dallari tek tek degil HEPSI sayilir
-- docs/kararlar/sahit-numune.md: Emrah'in anlattigi uc kural yazildi.
-  Saklama suresi SABIT DEGIL (kapalida SKT, aciksa acik kalma suresi);
-  saklama kosulu musteriye bildirilenin birebir aynisi ve AYNI alandan
-  gelir; numune lota ve sevkiyata bagli olmali, urun adina degil.
-  Bes acik soru var, cevaplanmadan goc YAZILMAYACAK
-- HEDEFLER A5 ve 3.9.1 guncellendi
+- docs/kararlar/ismete-sorulacaklar.md: Emrah "ismetleyim dedigimde hepsini
+  tek tek getir" dedi. 16 acik soru: 5 sahit numune, 3 yarim ekran,
+  2 sevkiyat, 3 etiket/baski, 3 olcum. Cevap gelince madde silinmez,
+  cevabiyla isaretlenir
+- Codex brifi artik GUVENLIK DEGIL YARIM EKRANLARA bakiyor: alti ekranin
+  her biri icin bes soru (nereden okuyor, Kaydet'e basinca ne oluyor,
+  veritabaninda karsiligi var mi, yenilenince kayboluyor mu, kiraci
+  sinirini koruyor mu). my-profile'in kok nedeni ayrica isteniyor
+- Brifin asil istegi: ADI MOCK OLMAYAN uydurma veri taramasi. Benim
+  taramam ad desenine bakiyor; storage.ts ogretti ki asil tehlike o degil
+- Codex bu turda giris yuzeyine BAKMAYACAK; oraya yeni kod gelmedi
 
 Co-Authored-By: Claude Opus 5 <noreply@anthropic.com>
 Claude-Session: https://claude.ai/code/session_019BwYM3mAXZUhp4YGj7tp2y
