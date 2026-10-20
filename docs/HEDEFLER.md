@@ -22,6 +22,26 @@ neyin neden yapıldığı kaybolmasın.
 
 ---
 
+## 0.A · DEMO ÖNCESİ · EN FAZLA 2 HAFTA (Emrah, 20.10)
+
+İsmet hasta; iyileşene kadar şunlar **bitmiş olacak.** Emrah'ın sözleri:
+*"yarım ekranlar bariz itibar düşürücü.. katiyyen olmasın."*
+
+| # | İş | Neden demo öncesi |
+|---|---|---|
+| **A1** | **B başlığı · altı yarım ekran** (3.1–3.5) | Kaydet'e basınca veri tarayıcıda kalıyor. Demoda ilk fark edilecek şey bu. **Sıra: Profilim → Firma Profili → Şubeler → Şube Yetkileri → İşletme Ayarları** |
+| **A2** | **MIYOP-008** · şube seçimi sorgulara geçmiyor | B şubesi seçiliyken kayıt A'ya yazılıyor. Demoda şube değiştirilirse görünür. |
+| **A3** | **MIYOP-010** · etiket ekranında ürünler karışıyor | Etiket, demonun en gösterişli parçası; yanlış ürünün alerjeni basılırsa itibar biter. |
+| **A4** | **Mock dosyaları temizliği** (3.8) | Önce `kaldirilan-moduller.md`, sonra silme. |
+| **A5** | **Şahit numune** (3.9.1) | Gerçek gıda güvenliği gereği; sahte ekran olarak değil, tabloyla. |
+| **A6** | MIYOP-043 son adımı (0091) + dağıtım | Güvenlik borcu kapanmış olsun. |
+
+⚠️ **Bu listede OLMAYANLAR demo öncesi YAPILMAYACAK:** MIYOP-049/050
+(zamanlama, istek sınırı), MIYOP-003/004/005/006, prestij başlığı,
+EVREN360'ın kilitli menüleri. Hepsi hedefte duruyor, sırası sonra.
+
+---
+
 ## 0 · ŞİMDİ · Yarım kalan iş
 
 - ✅ **0.1** Canlıya dağıtım yapıldı (Yayın 2 · 17.10.2026)
@@ -230,6 +250,21 @@ güvenlik sınırı değil. Gerçek sınır veritabanında olmalı.
     hâlâ açıktır, yalnız olağan giriş akışı artık sızdırmıyor.
   - ⬜ **1.8.5** `prova-0077` bulunan hesabı bulunmayanla karşılaştırmıyor;
     0091'in provası bu ayrımı sınayacak
+  - ✅ **1.8.7a** ⚠️ **MIYOP-051'İN İLK ONARIMI YARIM KALMIŞTI.** Edge
+    Function kotayı ayırıyordu, istemci `gecici` diye işaretliyordu — ama
+    `storage.ts` `null` döndüğü için mesaj **ekrana hiç ulaşmıyordu** ve
+    parolası DOĞRU olan kişi yine "şifre hatalı" görüyordu. Codex yakaladı.
+    Mesaj artık `authenticateUser → authenticateCredentials → Login`
+    zincirinden geçip ekranda görünüyor.
+  - ✅ **1.8.12** **MIYOP-055** · ⚠️ **MIYOP-052'yi onarırken yenisini
+    yaptım.** `supabase.auth.signOut()` varsayılan kapsamı `global`:
+    kullanıcı başka cihazda çalışırken buradaki geçici bir okuma hatası
+    ONUN refresh token'ını da iptal ediyordu. `scope: 'local'` kondu.
+    - ⚠️ Aynı kusurun ikinci yüzü de vardı (benim değil, eski kod):
+      `app_user` okuma hatasında da kapsamsız çıkış yapılıyordu. Ayrıldı:
+      **okuma hatası → `local`** (arıza, başka cihazı düşürmek için sebep
+      değil), **hesap yok/pasif → `global`** (karar; o hesap nerede açıksa
+      kapanmalı). → tuzak 102.
   - ✅ **1.8.7** **MIYOP-051** · Auth kota (429) ve geçici arıza (5xx)
     "giriş adı veya şifre hatalı" diye dönüyordu. Parolası DOĞRU olan kişi
     şifresini boş yere değiştirmeye kalkardı, arıza da gizlenirdi. Üç

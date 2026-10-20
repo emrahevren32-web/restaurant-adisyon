@@ -150,6 +150,17 @@ export default function Login({ onLogin }: Props){
       })
       if(result.success){ onLogin(result.state); return }
 
+      // ⚠️ MIYOP-051 · KOTA VE ARIZA, YANLIŞ PAROLA DEĞİLDİR.
+      // Bu mesaj hesap hakkında hiçbir şey söylemez — "çok fazla deneme"
+      // ya da "şu an giriş yapılamıyor" demek, bir hesabın var olup
+      // olmadığını açıklamaz. Ama parolası DOĞRU olan kişiye "şifreniz
+      // hatalı" demek, onu şifresini boş yere değiştirmeye iter ve
+      // arızayı da gizler.
+      if(result.gecikmeMesaji){
+        setError(result.gecikmeMesaji)
+        return
+      }
+
       // ⚠️ TEK CÜMLE, ÜÇ FARKLI SEBEP: ad yok, şifre yanlış, hesap kapalı.
       // Ayırmıyoruz — ayırmak, "bu kullanıcı adı var" bilgisini kapıdaki
       // herkese söylemek olurdu.

@@ -25,6 +25,8 @@ const oku = (...p: string[]) => readFileSync(join(process.cwd(), ...p), 'utf8')
 const FONKSIYON = oku('supabase', 'functions', 'giris-yap', 'index.ts')
 const ISTEMCI   = oku('src', 'auth', 'sunucu-girisi.ts')
 const DEPO      = oku('src', 'storage.ts')
+const SERVIS    = oku('src', 'auth', 'authentication.service.ts')
+const GIRIS     = oku('src', 'pages', 'Login.tsx')
 
 describe('MIYOP-043 · giriş sunucuda', () => {
   it('sağlama: üç dosya da okundu', () => {
@@ -91,13 +93,36 @@ describe('MIYOP-043 · giriş sunucuda', () => {
     expect(DEPO).toContain("sunucu.durum === 'gecici'")
   })
 
+  it('MIYOP-051 · geçici hata EKRANA KADAR taşınıyor', () => {
+    // ⚠️ İlk onarım yarım kalmıştı: Edge ve istemci kotayı ayırıyordu ama
+    // `storage.ts` `null` döndüğü için mesaj ekrana hiç ulaşmıyordu ve
+    // parolası DOĞRU olan kişi yine "şifre hatalı" görüyordu.
+    expect(DEPO).toContain('ariza.deger = { mesaj: sunucu.mesaj }')
+    expect(SERVIS).toContain('gecikmeMesaji')
+    expect(GIRIS).toContain('result.gecikmeMesaji')
+    // Ekran o mesajı GÖSTERMELİ, yutmamalı.
+    const bas = GIRIS.indexOf('result.gecikmeMesaji')
+    expect(GIRIS.slice(bas, bas + 200)).toContain('setError(result.gecikmeMesaji)')
+  })
+
+  it('MIYOP-055 · çıkış YALNIZ bu oturumu kapatıyor', () => {
+    // Varsayılan kapsam `global`: kullanıcı başka cihazda çalışırken
+    // buradaki geçici bir okuma hatası ONUN oturumunu da düşürürdü.
+    expect(DEPO).toContain("signOut({ scope: 'local' })")
+    // ⚠️ KAPSAMSIZ `signOut()` KALMAMALI: varsayılanı `global`dir ve
+    // bir arıza anında başka cihazı düşürür.
+    expect(DEPO).not.toMatch(/auth\.signOut\(\s*\)/)
+    // Hesap PASİF ise `global` bilinçli bir karardır; o ayrım yazılı mı?
+    expect(DEPO).toContain("appUserError ? { scope: 'local' } : { scope: 'global' }")
+  })
+
   it('MIYOP-052 · yarım oturum bırakılmıyor', () => {
     // `setSession` başarılıysa Auth oturumu KURULMUŞTUR. `getUser`
     // düşerse `null` dönüp çıkmak, "giriş başarısız" diyen bir ekranın
     // arkasında açık oturum bırakırdı.
     const bas = DEPO.indexOf("sunucu.durum === 'oldu'")
-    const parca = DEPO.slice(bas, bas + 900)
-    expect(parca).toContain('auth.signOut()')
+    const parca = DEPO.slice(bas, bas + 1200)
+    expect(parca).toContain('auth.signOut(')
   })
 
   it('MIYOP-053 · gövde şekli okunmadan ÖNCE doğrulanıyor', () => {

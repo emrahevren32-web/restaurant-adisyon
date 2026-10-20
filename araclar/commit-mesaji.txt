@@ -1,23 +1,21 @@
-Codex MIYOP-051/052/053/054 kapandi, 0091 kapsami duzeltildi
+MIYOP-051 ekrana kadar tasindi + MIYOP-055 (cikis kapsami)
 
-- MIYOP-054 (benim kusurum): MIYOP-048'i onarirken yenisini yaptim.
-  `set -e` altinda `CIKTI=$(...)` atamasi basarisiz olunca betik oracikta
-  sonlaniyor ve "hatayi goster" satirlarina HIC gelinmiyordu. Cagri if
-  kosuluna alindi; bilerek bozuk bir gocle denendi, hata artik gorunuyor
-- MIYOP-051: Auth kota (429) ve gecici ariza (5xx) "sifre hatali" diye
-  donuyordu; parolasi DOGRU olan kisi sifresini bosuna degistirmeye
-  kalkardi. Uc durum ayrildi; gecici hata YEDEK YOLA DUSMUYOR
-- MIYOP-052: setSession basariliyken getUser duserse acik Auth oturumu
-  kaliyordu. Artik signOut()
-- MIYOP-053: govde null ya da alan turu yanlissa yakalanmamis hata
-  atiyordu; tur dogrulamasi eklendi, hatali sekil SQL/Auth'a hic gitmiyor
-- 0091 KAPSAM DUZELTMESI: giris_adresi_bul `authenticated` rolune de
-  acik. Yalniz anon'dan almak YARIM onarim olurdu (tuzak 101)
-- MIYOP-049/050 (P1, zamanlama ve istek siniri) HEDEFLER 1.8.10-11'e
-  islendi; uzaktan somurulebilirlik DOGRULANMADI diye yazildi
-- Soklama/numune sorusunun olculmus cevabi HEDEFLER 3.9'da: soklama
-  GERCEK (CCP-6, haccp_measurement), sahit/kalite numunesi hic yoktu
-- Tuzak 100 ve 101
+- MIYOP-051 ILK ONARIM YARIM KALMISTI (Codex): Edge kotayi ayiriyordu,
+  istemci 'gecici' diye isaretliyordu, test de yedek yola dusmedigini
+  kanitliyordu - ama storage.ts null donduyu icin mesaj EKRANA HIC
+  ULASMIYORDU ve parolasi DOGRU olan kisi yine "sifre hatali" goruyordu.
+  Mesaj artik authenticateUser -> authenticateCredentials -> Login
+  zincirinden gecip gorunuyor (tuzak 103)
+- MIYOP-055: MIYOP-052'yi onarirken yenisini yaptim. signOut() varsayilan
+  kapsami 'global'; kullanici baska cihazda calisirken gecici bir okuma
+  hatasi ONUN oturumunu da dusuruyordu. scope: 'local' kondu
+- Ayni kusurun ikinci yuzu (eski kod): app_user okuma hatasinda da
+  kapsamsiz cikis vardi. Ayrildi - okuma hatasi local, hesap pasif global
+  (tuzak 102)
+- HEDEFLER 0.A: demo oncesi 2 haftalik kapsam yazildi (Emrah 20.10).
+  Alti yarim ekran, MIYOP-008, MIYOP-010, mock temizligi, sahit numune,
+  0091 + dagitim. Listede OLMAYANLAR demo oncesi yapilmayacak
+- Tuzak 102 ve 103; teslim listesine iki madde
 
 Co-Authored-By: Claude Opus 5 <noreply@anthropic.com>
 Claude-Session: https://claude.ai/code/session_019BwYM3mAXZUhp4YGj7tp2y

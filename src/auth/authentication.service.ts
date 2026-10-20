@@ -43,6 +43,13 @@ export type AuthenticationLoginResult = {
   success: boolean
   user: User | null
   state: AuthenticationState
+  /**
+   * ⚠️ MIYOP-051 · Giriş PAROLA HATASI OLMAYAN bir sebeple düştüyse
+   * (kota, geçici arıza) ekranda gösterilecek güvenli mesaj. Hesap
+   * hakkında hiçbir şey söylemez. Boşsa sebep "yanlış giriş"tir ve
+   * ekran kendi tek cümlesini gösterir.
+   */
+  gecikmeMesaji?: string
 }
 
 export const getInitialAuthenticationState = (
@@ -85,10 +92,18 @@ export const authenticateCredentials = async (
   password: string,
   options: AuthenticationServiceOptions = {}
 ): Promise<AuthenticationLoginResult> => {
-  const user = await authenticateUser(email, password, options.isletmeKodu)
+  // ⚠️ MIYOP-051 · geçici arıza mesajı buradan geçmezse ekran, parolası
+  // DOĞRU olan kişiye de "şifre hatalı" der.
+  const ariza: { deger?: { mesaj: string } } = {}
+  const user = await authenticateUser(email, password, options.isletmeKodu, ariza)
 
   if(!user){
-    return { success: false, user: null, state: createAuthenticationState(null, options) }
+    return {
+      success: false,
+      user: null,
+      state: createAuthenticationState(null, options),
+      gecikmeMesaji: ariza.deger?.mesaj,
+    }
   }
 
   // Aşama 1 · İzinler VERİTABANINDAN okunur (0014/0015). Daha önce

@@ -325,6 +325,26 @@ sorgulayıp gerçek Auth adresini almasını engellemezdi — yani onarım
 yarım kalırdı ve ben "kapandı" diyecektim. Bir ACL'yi değiştirmeden önce
 `proacl`i OKU; hangi rollerin yazılı olduğunu varsayma.
 
+**102 · Varsayılanı okumadan API çağırma — `signOut()` bütün cihazları
+kapatır.** MIYOP-052'yi (yarım oturum) onarmak için `auth.signOut()`
+ekledim. Supabase'de o çağrının varsayılan kapsamı **`global`**: kullanıcı
+başka bir cihazda çalışırken buradaki GEÇİCİ bir okuma hatası onun refresh
+token'ını da iptal ediyor ve o cihaz sessizce düşüyor. Yani bir yarım
+oturumu onarırken başka birinin oturumunu kırıyordum. Doğrusu
+`{ scope: 'local' }`. ⚠️ Daha genel ders: bir onarım için yeni bir API
+çağrısı eklediğinde **varsayılan davranışını oku** — "işe yarıyor"
+görünmesi, doğru kapsamda çalıştığı anlamına gelmez. Ve kapsam bir
+KARARDIR: hesap pasifse `global` doğru (nerede açıksa kapansın), okuma
+hatasıysa `local` doğru (arıza, cezalandırma değil).
+
+**103 · Bir onarımın EKRANA ULAŞTIĞINI doğrula.** MIYOP-051'i "kapattım"
+dedim: Edge Function kotayı 429 ile ayırıyordu, istemci `gecici` diye
+işaretliyordu, test de yedek yola düşmediğini kanıtlıyordu. Hepsi doğruydu
+ve **kullanıcı yine "şifre hatalı" görüyordu** — çünkü `storage.ts` `null`
+dönüyor ve mesaj orada ölüyordu. Zincirin üç halkası doğru, dördüncüsü
+yoktu. Bir hata sınıflandırmasının değeri, kullanıcının gördüğü cümlede
+ölçülür; katmanda değil.
+
 ---
 
 ## 5 · TEST İŞBÖLÜMÜ VE TESLİM KONTROL LİSTESİ
@@ -352,9 +372,13 @@ Son söz onun çıktısındadır.
 10. Bir kapı gevşetiyorsan **ne kadarını gevşettiğini SAY** ve o sayıyı
     göçün içinde dondur (tuzak 96). "Gerekliydi" demek yetmez; gereğinden
     fazlasını açmadığını göstermek gerekir.
-11. Yeni bir dış çağrı eklediysen **mock'a da ekle** ve testin hangi dalı
+11. Bir hata sınıflandırması yaptıysan **ekranda gördüğünü doğrula**
+    (tuzak 103). Katmanda doğru, ekranda yanlış olabilir.
+12. Yeni bir API çağrısı eklediysen **varsayılan davranışını oku**
+    (tuzak 102). Kapsam bir karardır, varsayılan değil.
+13. Yeni bir dış çağrı eklediysen **mock'a da ekle** ve testin hangi dalı
     koştuğunu iddiayla sabitle (tuzak 98). `stderr`de yığın izi varken
     "testler yeşil" demek yetmez.
-12. Yetki provasında **gerçek rolü tak** (`set local role authenticated`)
+14. Yetki provasında **gerçek rolü tak** (`set local role authenticated`)
     ve reddin **DOĞRU SEBEPLE** olduğunu sına: 42501 ile MI403 aynı şey
     değildir. Yanlış sebeple reddedilen bir yazım, kapı çalışıyor sanılır.

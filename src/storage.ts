@@ -5190,10 +5190,25 @@ const COMPANY_WIDE_ROLE_CODES = ['super_admin', 'admin', 'isletme_sahibi', 'isle
  * yükleme, testler — aynı kapıdan geçsin; ekranların birinde unutulsaydı
  * o yoldan girenler sessizce kapıda kalırdı.
  */
+/**
+ * Girişin PAROLA HATASI OLMAYAN sebeple düşmesi.
+ *
+ * ⚠️ MIYOP-051 (Codex) · Edge Function kota (429) ve arıza (5xx) için ayrı
+ * cevap veriyordu, istemci de onu `gecici` diye ayırıyordu — ama buradan
+ * `null` dönüldüğü için mesaj EKRANA HİÇ ULAŞMIYORDU ve parolası doğru
+ * olan kişi yine "şifre hatalı" görüyordu. Yarım onarım.
+ *
+ * ⚠️ Bu mesaj hesap hakkında HİÇBİR ŞEY söylemez: kota ve arıza, parola
+ * doğrulamasının sonucu değil, ona ULAŞAMAMANIN sonucudur.
+ */
+export type GirisArizasi = { mesaj: string }
+
 export const authenticateUser = async (
   email: string,
   password: string,
-  isletmeKodu?: string
+  isletmeKodu?: string,
+  /** Doldurulursa çağıran, geçici arızayı parola hatasından ayırabilir. */
+  ariza?: { deger?: GirisArizasi }
 ): Promise<User | null> => {
   if(!isSupabaseConfigured()) return null
 
@@ -5207,7 +5222,11 @@ export const authenticateUser = async (
   if(sunucu.durum === 'reddedildi') return null
   // ⚠️ MIYOP-051 · kota/arıza PAROLA HATASI DEĞİLDİR ve yedek yola da
   // düşülmez: bir arızayı eski SIZDIRAN yola yönlendirmek olurdu.
-  if(sunucu.durum === 'gecici') return null
+  // Mesaj çağırana taşınıyor; yoksa ekran yine "şifre hatalı" der.
+  if(sunucu.durum === 'gecici'){
+    if(ariza) ariza.deger = { mesaj: sunucu.mesaj }
+    return null
+  }
 
   let authUser: { id: string; email?: string | null } | null = null
 
@@ -5219,7 +5238,13 @@ export const authenticateUser = async (
       // `setSession` başarılı olduğu için Auth oturumu KURULMUŞ durumda.
       // Buradan `null` dönüp çıkmak, "giriş başarısız" diyen bir ekranın
       // arkasında açık bir oturum bırakırdı — yarım oturum.
-      await supabase.auth.signOut()
+      //
+      // ⚠️ MIYOP-055 (Codex) · `scope: 'local'` ŞART. Varsayılan kapsam
+      // `global`dir: kullanıcı başka bir cihazda çalışırken buradaki
+      // geçici bir okuma hatası ONUN refresh token'ını da iptal eder ve
+      // o cihaz sessizce düşer. Temizlediğimiz, yalnız az önce
+      // kurduğumuz oturum olmalı.
+      await supabase.auth.signOut({ scope: 'local' })
       return null
     }
     authUser = data.user
@@ -5245,7 +5270,14 @@ export const authenticateUser = async (
   if(appUserError || !appUserRow || !appUserRow.is_active){
     // Supabase'te hesap var ama app_user'da eşleşme yok ya da pasif —
     // güvenlik açısından oturumu hemen kapat, yarım bir oturum bırakma.
-    await supabase.auth.signOut()
+    //
+    // ⚠️ MIYOP-055'in ikinci yüzü · KAPSAM İKİ HÂLDE AYRI:
+    //   · OKUMA HATASI (`appUserError`) bir ARIZADIR. Kullanıcının başka
+    //     cihazdaki oturumunu düşürmek için sebep değil → `local`.
+    //   · HESAP YOK ya da PASİF ise bu bir KARARDIR: o hesap artık
+    //     çalışmamalı, nerede açık olursa olsun → `global` (bilinçli).
+    await supabase.auth.signOut(
+      appUserError ? { scope: 'local' } : { scope: 'global' })
     return null
   }
 

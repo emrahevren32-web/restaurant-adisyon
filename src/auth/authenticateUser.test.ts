@@ -473,12 +473,17 @@ describe('MIYOP-043 · giriş sunucuda yapılıyor', () => {
       error: { message: 'Too Many Requests', context: { status: 429 } }
     })
 
-    const user = await authenticateUser('depocu@ABCGIDA', 'dogru-parola')
+    const ariza: { deger?: { mesaj: string } } = {}
+    const user = await authenticateUser('depocu@ABCGIDA', 'dogru-parola',
+      undefined, ariza)
 
     expect(user).toBeNull()
     // ⚠️ Bir kota arızasını eski SIZDIRAN yola yönlendirmek olurdu.
     expect(signInWithPassword).not.toHaveBeenCalled()
     expect(rpc).not.toHaveBeenCalledWith('giris_adresi_bul', expect.anything())
+    // ⚠️ Ve mesaj ÇAĞIRANA ULAŞMALI; yoksa ekran "şifre hatalı" der.
+    expect(ariza.deger?.mesaj).toBeTruthy()
+    expect(ariza.deger?.mesaj).not.toMatch(/şifre|parola/i)
   })
 
   it('MIYOP-052 · kullanıcı okunamazsa OTURUM KAPATILIR', async () => {
@@ -489,7 +494,9 @@ describe('MIYOP-043 · giriş sunucuda yapılıyor', () => {
 
     expect(user).toBeNull()
     // `setSession` başarılıydı: Auth oturumu kurulmuştu. Temizlenmeli.
-    expect(signOut).toHaveBeenCalled()
+    // ⚠️ MIYOP-055 · YALNIZ bu oturum. Varsayılan `global` kapsam,
+    // kullanıcının başka cihazdaki oturumunu da düşürürdü.
+    expect(signOut).toHaveBeenCalledWith({ scope: 'local' })
     expect(from).not.toHaveBeenCalled()
   })
 
