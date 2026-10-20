@@ -1,8 +1,8 @@
 # Codex denetim brifi · MİYOP
 
 > Bu dosya Codex'e yapıştırılmak üzere yazıldı. Her denetim turunda
-> güncellenir. Son güncelleme: 18.10.2026, göç **0089** yazıldıktan sonra.
-> Dal: `production-foundation`
+> güncellenir. Son güncelleme: 20.10.2026, **MIYOP-043'ün 1. adımından**
+> sonra. Dal: `production-foundation`
 
 ---
 
@@ -18,7 +18,7 @@ Dışarıdan gelen biri bu gerekçeyi görmeden "hata" diyebilir. Bir şeyi
 hata saymadan önce gerekçesini ara. Okuma sırası:
 
 1. `docs/kararlar/kararlar-ve-tuzaklar.md` — **en önemlisi.** Değişmez
-   kurallar, veri tasarımı kararları ve numaralı tuzak listesi (38–**95**).
+   kurallar, veri tasarımı kararları ve numaralı tuzak listesi (38–**97**).
    Her tuzak gerçekten düşülmüş bir hatadır.
 2. `docs/kararlar/codex-denetimi-ekim-2026.md` — senin önceki denetiminin
    özeti, hangi bulgular kapandı, hangileri açık
@@ -66,108 +66,90 @@ Bunlar bilinçli kararlar. "Hata" diye raporlama:
 
 ## 4 · BU TURDA BAKILACAK
 
-**Önceki turun sonucu: haklıydın, iki akışı da ben kırmıştım.**
-MIYOP-038 ve MIYOP-039'u yerel PostgreSQL'de ürettim, **0089** ile
-onardım, ve 0089'u çıkarıp provanın kırmızıya döndüğünü doğruladım.
-MIYOP-041 ve MIYOP-042 de kabul edildi ve işlendi. MIYOP-043 sıraya
-alındı ve **sıradaki işim o.**
+**Önceki turun sonucu: haklıydın, kapıyı gereğinden fazla açmıştım.**
+0090 dokuz kapıyı 0089 öncesine döndürdü; muaf yüzey 11 rutinden 6'ya
+indi. MIYOP-044, 046 ve 048 de kapandı — her biri senin tarif ettiğin
+şekilde. MIYOP-045'i de doğru kapsamla yeniden kurdum: 0089'un taraması
+hem çok genişti (`%degismez%` tabloları iş izni kapısı değil) hem çok
+dardı (`trigger` dönenleri ve `service_role`u eliyordu).
 
-Bu turda tek bir soru diğerlerinden önemli: **0089 güvenlik sınırını
-gevşetti ve ben bunu kendi kendime onayladım. İkinci bir göz istiyorum.**
+Bu turda tek bir dosya diğerlerinden önemli: **yeni yazdığım giriş
+fonksiyonu.** Henüz CANLIYA DAĞITILMADI — yani kaynak hâlâ değişebilir ve
+senin bulduğun her şey ucuza düzelir. Dağıtımdan sonra pahalanır.
 
-### 4.1 · 0089'UN BEDELİ · bu turun ana sorusu
+### 4.1 · `giris-yap` Edge Function · bu turun ana işi
 
-`db/migrations/0089_sistem_yazimi_kapidan_gecsin.sql`
+`supabase/functions/giris-yap/index.ts` (yeni) ·
+`src/auth/sunucu-girisi.ts` (yeni) · `src/storage.ts` (`authenticateUser`)
 
-**Ne yaptım:** on yazma kapısı artık `app.bakim_baglami()` yerine
-`app.kapi_disi_baglam()` soruyor:
+**Ne yaptım:** MIYOP-043 için adres çözümünü ve parola doğrulamasını
+tarayıcıdan alıp sunucuya taşıdım. Tarayıcı artık giriş adını, işletme
+kodunu ve parolayı fonksiyona gönderiyor; adres orada `service_role` ile
+çözülüyor, parola orada doğrulanıyor, dışarı yalnız oturum ya da **tek
+genel hata** çıkıyor.
 
-```sql
-select current_user not in ('anon', 'authenticated');
-```
+**Senden istediğim — saldırgan gözüyle, satır satır:**
 
-Yani: yazım PostgREST'ten **doğrudan** geliyorsa kapı sorulur; bizim bir
-`security definer` rutinimizin **içinden** geliyorsa kapı sorulmaz ve
-yetki o rutinin kendi kontrolüne kalır.
+1. **Cevaplar gerçekten tekleşmiş mi?** Olmayan kullanıcı ile yanlış
+   parola; HTTP durumu, gövde, başlıklar ve **cevap süresi** aynı mı?
+   Özellikle: girdi gerçek e-posta biçimindeyse RPC'ye hiç gitmiyorum,
+   değilse gidiyorum. Bu **zamanlama farkı** bir enumerasyon kanalı mı?
+2. **Boş parola / boş giriş** dalı adres çözümünden ÖNCE dönüyor. Bu da
+   ayırt edilebilir bir fark mı?
+3. **CORS `*`** ve `verify_jwt` · fonksiyon `anon` anahtarıyla
+   çağrılıyor. Kötüye kullanım yüzeyi ne? Oran sınırı yok — kaba kuvvet
+   denemesi için bu fonksiyon, Supabase'in kendi giriş uç noktasından
+   daha mı kolay hedef?
+4. **Parola sızıntısı** · `sifre` değişkeni hiçbir günlüğe, cevaba ya da
+   hata nesnesine giriyor mu? `console.error` çağrılarının gövdesini tek
+   tek bak.
+5. **`setSession` ile kurulan oturum** · tarayıcıya `access_token` ve
+   `refresh_token` dönüyorum. Supabase'in kendi `signInWithPassword`
+   akışına göre eksik ya da fazla bir şey var mı?
+6. **Yedek yol** · `src/storage.ts` içinde `GEÇİCİ YEDEK YOL` diye
+   işaretli dal duruyor (fonksiyon dağıtılmadan eskisini kaldırmak
+   herkesi kapıda bırakırdı). `reddedildi` ile `ulasilamadi` ayrımı
+   doğru kurulmuş mu? **Gerçek bir reddi "ulaşılamadı" sanıp eski
+   sızdıran yola düşürdüğüm bir durum var mı?** Varsa 043 hiç kapanmaz.
 
-**Bedeli:** `authenticated`a açık, kapılı bir tabloya yazan **11**
-`security definer` fonksiyon artık kapının dışında. Göç bu listeyi
-adlarıyla donduruyor (12.'si çıkarsa göç patlar):
+### 4.2 · 0091 ne kıracak · önceden bul
 
-`app.basvuruyu_onayla` · `app.lisans_olayi_yaz` · `app.lisansi_uzat` ·
-`app.personel_hesabi_ac` · `app.personel_sifresi_sifirlandi` ·
-`app.sifremi_belirledim` · `public.alerjen_beyani_yaz` ·
-`public.portal_siparis_guncelle` · `public.portal_siparis_ver` ·
-`public.set_negative_stock_policy` · `public.set_primary_role`
+Sıradaki göç `giris_adresi_bul`un `anon` hakkını alacak VE yedek yolu
+silecek. **Senden, uygulamadan ÖNCE bunu kırabilecek her şeyi bulmanı
+istiyorum.** Özellikle:
 
-**Senden istediğim — fonksiyon fonksiyon:**
+- `giris_adresi_bul`u çağıran başka bir yer var mı? (ekran, servis, test,
+  Edge Function, prova)
+- `anon` hakkı alınınca hangi test/prova kırılır? Önceki turda dört
+  doğrulama saymıştın (`giris-adresi.test.ts`, `authenticateUser.test.ts`,
+  `prova-0077`, `prova-0078`) — liste tam mı?
+- Vardiya kilidi ve oturum yenileme bu değişiklikten etkilenir mi?
+- `public.personel_giris_adresi` ayrı bir RPC; onun ACL'si ne durumda?
 
-1. **Her biri gerçekten kendi yetki kontrolünü yapıyor mu?** Hangi satırda?
-   Kontrol, çağıranın kim olduğuna mı yoksa gönderdiği parametreye mi
-   bakıyor? (İkincisi ise parametre değiştirilerek aşılabilir.)
-2. **Kiracı sınırı korunuyor mu?** `tenant_id` parametreden mi geliyor,
-   oturumdan mı? Parametreden geliyorsa başka kiracının kimliği
-   gönderilebilir mi?
-3. **Kapı dışına çıkmakla NE kazanıldı, ne kaybedildi?** Bu 11'den
-   hangisi kapının içinde kalabilirdi ve ben gereksiz yere mi dışarı
-   aldım? (Hepsini tek kuralla dışarı aldım; daha dar bir kural mümkün
-   müydü?)
-4. **`current_user` güvenilir bir ayrım mı?** PostgREST'ten gelen bir
-   isteğin `current_user`ı `authenticated` olmadığı bir yol var mı?
-   Edge Function'lar kullanıcının JWT'sini taşıyıp `service_role` ile
-   bağlanıyorsa, o yazımlar da kapı dışında kalır — bu kabul edilebilir mi?
+### 4.3 · Giriş testleri artık gerçek yolu sınıyor mu
 
-### 4.2 · Üçüncü bir kırık akış var mı
+`src/auth/authenticateUser.test.ts`
 
-0085 iki akış kırdı (sen buldun), 0088 iki akış daha kırdı (sen buldun).
-**Üçüncü turda da bulabileceğini düşünüyorum.**
+⚠️ Kendi bulduğum bir kusur: mock supabase'de `functions` yoktu, `invoke`
+çağrısı `TypeError` atıyor, yakalanıp "ulaşılamadı" sayılıyor ve **14
+testin hepsi yedek yola düşüyordu.** Yani testler dağıtımdan sonra
+çalışacak yolu hiç sınamıyordu — yeşildi ama yanlış sebeple.
 
-0089'dan SONRA, kapılı 27 tabloya yazan her yolu tekrar gözden geçir:
-ekran, servis, RPC, Edge Function, tetik zinciri. Özellikle:
+Mock'ları ekledim ve beş test yazdım. **Sor:** bu beş test gerçekten
+sızıntının kapandığını mı kanıtlıyor, yoksa yalnız çağrıların yapıldığını
+mı? Eksik olan kabul kriteri ne?
 
-- Yeni kiracı açılışı: 0035, 0039, 0061, 0079, `app.onay_zincirini_kur`
-- İçe aktarma: `catalog-import`, `supplier-import`, `excel-import`
-- Tetik zincirleri: bir tabloya yazım başka bir kapılı tabloyu tetikliyor
-  mu, ve o ikinci kapı aynı izin kümesini kabul ediyor mu?
+### 4.4 · Hâlâ açık, tekrar raporlamana gerek yok
 
-### 4.3 · MIYOP-043 · ben başlamadan önce kapsamını netleştir
+**MIYOP-003** · **MIYOP-004** · **MIYOP-005** · **MIYOP-006** ·
+**MIYOP-017** · **MIYOP-018** · **MIYOP-040** · **MIYOP-045** (kapsam
+düzeltildi, kapanmadı) · **MIYOP-047** (0033/0034/0038 imza dirilmesi) ·
+bayat prova listesi (11 dosya) · 13 kör prova.
 
-Sıradaki işim bu. Başlamadan önce şunu bilmek istiyorum:
-
-- Giriş adresi çözümünün **başka hangi çağıranları** var? (ekran, test,
-  Edge Function) Sunucu tarafına taşırsam ne kırılır?
-- `anon`a açık **başka hangi RPC'ler** kullanıcı varlığını ya da gerçek
-  e-postayı ele veriyor? (Aynı sınıf başka açık var mı?)
-- Önerdiğin çözüm giriş akışını nasıl değiştirir — kullanıcı adı +
-  firma kodu ile giriş çalışmaya devam etmeli.
-
-### 4.4 · Göçlerin tekrar çalıştırılabilirliği · yeni, benim bulgum
-
-Teslim kontrol listem 2026 boyunca *"göçü İKİ KEZ çalıştır"* diyordu ama
-bunu hiç ölçmemiştim. 0089 canlıda tam bu yüzden durdu: ikinci koşuda
-kendi başarısını hata sandı. Ölçtüm: **90 göçün 9'u daha ikinci koşuda
-patlıyor** — 0004, 0033, 0034, 0038, 0042, 0043, 0051, 0054, 0082.
-(0084 ve 0089 onarıldı.)
-
-**Soru:** bu 9'dan hangisi gerçek bir risk? Yani canlıda yarıda kalmış
-bir göçü tekrar denemek zorunda kalsaydık hangisi **veriyi bozardı**,
-hangisi yalnızca hata verip dururdu? Öncelik sırası ver.
-
-### 4.5 · Kapanan bulguların doğrulaması
-
-Kapandığını iddia ettiklerim — kanıtla çürütmeni isterim:
-**MIYOP-038** · **MIYOP-039** · **MIYOP-041** · **MIYOP-035** ·
-**MIYOP-001** (27 tablo + kapısız yüzey = 0).
-
-Davranış provaları: `db/prova/prova-0088.sql` (42 doğrulama),
-`db/prova/prova-0089.sql` (17 doğrulama). Koşturmak için:
-`bash db/prova/kur.sh` sonra `bash db/prova/hepsini-kosturt.sh`.
-
-### 4.6 · Hâlâ açık, tekrar raporlamana gerek yok
-
-Kapsamları değiştiyse söyle: **MIYOP-003** · **MIYOP-004** ·
-**MIYOP-005** · **MIYOP-006** · **MIYOP-017** · **MIYOP-018** ·
-**MIYOP-040** · ve bayat prova listesi (11 dosya, sen teşhis ettin).
+Sıradaki büyük işim **B başlığı**: `docs/BITMIS-URUN-EKSIKLERI.md`
+içindeki "yarım işler" — altı ekranın tarayıcıya yazması (3.1–3.5), şube
+seçiminin sorgulara geçmemesi (MIYOP-008), etiket ekranında veri
+karışması (MIYOP-010). Bunlarla ilgili yeni bir ayrıntın varsa öne al.
 
 ## 5 · ÇIKTI BİÇİMİ
 
@@ -175,16 +157,14 @@ Kapsamları değiştiyse söyle: **MIYOP-003** · **MIYOP-004** ·
 ## Özet
 <üç cümle: durum ne, en kritik ne, bir önceki denetime göre ne değişti>
 
-## 4.1 · 0089'un bedeli (EN ÖNEMLİ BÖLÜM)
-<11 fonksiyonun her biri için: yetki kontrolü VAR/YOK + satır,
- kiracı sınırı KORUNUYOR/KORUNMUYOR, kapı dışına çıkması GEREKLİ miydi>
+## 4.1 · giris-yap denetimi (EN ÖNEMLİ BÖLÜM)
+<altı sorunun her biri için: bulgu VAR/YOK + satır + somut senaryo>
 
-## 4.2 · Üçüncü kırık akış
-<her akış için: tablo, yazan yol, rol, gereken izin, sahip mi,
- sonuç: ÇALIŞIR / KIRIK / DOĞRULANMADI>
+## 4.2 · 0091 neyi kırar
+<her çağıran/test/prova için: kırılır mı, nasıl, önce ne yapılmalı>
 
-## 4.4 · Tekrar çalıştırılamayan 9 göç
-<her biri: VERİYİ BOZAR / yalnizca HATA VERİR + öncelik>
+## 4.3 · Giriş testleri yeterli mi
+<eksik kabul kriterleri>
 
 ## Yeni bulgular
 <MIYOP-031'den devam numaralandır>

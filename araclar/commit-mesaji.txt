@@ -1,0 +1,16 @@
+Surum defteri guncellendi + kaydet.ps1 ASCII'ye cevrildi (tuzak 99)
+
+- kaydet.ps1 HIC CALISMIYORDU: Turkce harfler ve kutu cizgileri vardi,
+  Windows PowerShell 5.1 BOM'suz UTF-8'i ANSI sanip cozuyor ve dosya
+  "Missing closing '}'" ile parse edilemiyordu. Sadece ASCII'ye cevrildi
+- Surum defteri (xlsx): v0.2.1 (0087-0088), v0.2.2 (0089-0090),
+  v0.2.3 (MIYOP-043 1. adim) satirlari eklendi
+- Yeni durum "Veritabaninda": goc canli Supabase'e uygulandi ama uygulama
+  yeniden DAGITILMADI. Defterin basinda kirmizi uyari: yayindaki uygulama
+  v0.2.0 yapisinda, veritabani 0090 gocunde
+- Bekleyenler listesi 13 maddeye guncellendi
+- HEDEFLER 3.8: 36 mock dosyasinin silinmesi plani (Emrah 20.10).
+  "Erisilemez" ile "yok" ayni sey degildir
+
+Co-Authored-By: Claude Opus 5 <noreply@anthropic.com>
+Claude-Session: https://claude.ai/code/session_019BwYM3mAXZUhp4YGj7tp2y

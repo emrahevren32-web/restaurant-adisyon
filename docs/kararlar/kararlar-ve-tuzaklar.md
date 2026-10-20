@@ -285,6 +285,26 @@ açık HÂLÂ AÇIKTIR; "kapandı" demek ancak son adımdan sonra dürüsttür. 
 yüzden yedek yol kodun içinde `GEÇİCİ YEDEK YOL · göç 0091 ile SİLİNECEK`
 diye işaretli ve mimari test onun varlığını SAYIYOR: borç görünür kalsın.
 
+**98 · Mock'ta olmayan şey, testin görmediği şeydir.** `authenticateUser`a
+yeni bir çağrı ekledim (`functions.invoke`). Mock supabase'de `functions`
+yoktu: çağrı `TypeError` attı, kodun kendi `try/catch`i onu yakalayıp
+"ulaşılamadı" saydı ve **14 testin hepsi yedek yola düştü.** Testler yeşil
+kaldı ama artık yanlış şeyi sınıyorlardı — dağıtımdan sonra çalışacak yolu
+hiç görmüyorlardı. ⚠️ Bu, tuzak 89'un kardeşidir: orada iddianın hatası
+yutuluyordu, burada **kodun kendi dayanıklılığı** testi kör ediyor.
+Kural: bir çağrı eklediğinde mock'a da ekle; ve testin **hangi dalı**
+koştuğunu iddiayla sabitle (`expect(signInWithPassword).not.toHaveBeenCalled()`
+gibi). Yoksa kod sağlam, test kör olur.
+
+**99 · Windows PowerShell betiğine Türkçe harf yazma.** `araclar/kaydet.ps1`
+ilk sürümünde Türkçe açıklamalar ve `═` kutu çizgileri vardı. Windows
+PowerShell 5.1, BOM'suz UTF-8 dosyayı ANSI sanıp çözüyor; çok baytlı
+karakterler bozuluyor ve dosya `Missing closing '}'` ile hiç parse
+edilemiyor. Hata mesajı 26. satırı gösteriyor ama sorun 1. satırdaki
+yorumda. **`.ps1` dosyaları sadece ASCII yazılır**; Türkçe açıklama
+`docs/` altına gider. (Alternatif BOM eklemektir, ama ASCII kurşun
+geçirmezdir.)
+
 ---
 
 ## 5 · TEST İŞBÖLÜMÜ VE TESLİM KONTROL LİSTESİ
@@ -312,6 +332,9 @@ Son söz onun çıktısındadır.
 10. Bir kapı gevşetiyorsan **ne kadarını gevşettiğini SAY** ve o sayıyı
     göçün içinde dondur (tuzak 96). "Gerekliydi" demek yetmez; gereğinden
     fazlasını açmadığını göstermek gerekir.
-11. Yetki provasında **gerçek rolü tak** (`set local role authenticated`)
+11. Yeni bir dış çağrı eklediysen **mock'a da ekle** ve testin hangi dalı
+    koştuğunu iddiayla sabitle (tuzak 98). `stderr`de yığın izi varken
+    "testler yeşil" demek yetmez.
+12. Yetki provasında **gerçek rolü tak** (`set local role authenticated`)
     ve reddin **DOĞRU SEBEPLE** olduğunu sına: 42501 ile MI403 aynı şey
     değildir. Yanlış sebeple reddedilen bir yazım, kapı çalışıyor sanılır.

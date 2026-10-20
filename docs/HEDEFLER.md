@@ -2,6 +2,10 @@
 
 **Son güncelleme:** 20.10.2026 · MIYOP-043 1. adımı yazıldı (0090 uygulandı)
 
+⚠️ **YAYINDAKİ UYGULAMA v0.2.0 YAPISINDA, VERİTABANI 0090 GÖÇÜNDE.**
+Arayüz değişiklikleri (zil yönlendirmesi, giriş ekranı) henüz canlıda
+değil. Sürüm defteri: `docs/MIYOP-Surum-Defteri.xlsx`.
+
 ⚠️ **Bu dosya TEK iş listesidir.** `docs/BITMIS-URUN-EKSIKLERI.md` neyin
 neden eksik olduğunu ANLATIR; buradaki maddeler onu KARŞILAR. O dosyadaki
 her başlığın burada karşılığı vardır — A→1 ve 2, B→3, C.1 ve C.2→**8**,
@@ -201,6 +205,13 @@ güvenlik sınırı değil. Gerçek sınır veritabanında olmalı.
     (`src/auth/sunucu-girisi.ts`). `reddedildi` ile `ulasilamadi` ayrı
     tutuluyor — birleştirmek ya herkesi kapıda bırakır ya da gerçek reddi
     ağ arızası sanıp eski sızdıran yola düşürürdü.
+  - ✅ **1.8.2a** ⚠️ **Testler yeşildi ama YANLIŞ SEBEPLE.** Mock
+    supabase'de `functions` yoktu; `invoke` çağrısı `TypeError` atıyor,
+    yakalanıp "ulaşılamadı" sayılıyor ve 14 testin hepsi YEDEK yola
+    düşüyordu — yani dağıtımdan sonra çalışacak yol hiç sınanmıyordu.
+    Mock'lar eklendi, beş yeni test yazıldı: sunucu yolu çalışınca
+    **tarayıcı adresi hiç sormuyor** (sızıntının kapandığının kanıtı) ve
+    401 gelince **yedek yola düşülmüyor**. → tuzak 98.
   - ⬜ **1.8.3** **Emrah fonksiyonu DAĞITIR ve girişin çalıştığını
     doğrular.** (`supabase functions deploy giris-yap`)
   - ⬜ **1.8.4** Göç **0091**: `giris_adresi_bul`un `anon` hakkı alınır
@@ -254,6 +265,23 @@ Emrah'ın onayladığı sıra:
 - ⬜ **3.3** Şube Yetkileri (`branch-permissions`)
 - ⬜ **3.4** İşletme Ayarları (`settings`)
 - ⬜ **3.5** Şubeler (`branches`)
+- ⬜ **3.8** **MOCK DOSYALARI SİLİNECEK · 36 dosya** (Emrah, 20.10:
+  *"tüm mock verileri yok etmiş olduğuna emin ol"* ve *"asla ve asla
+  yapamadığımız bir modülü, fonksiyonu MİYOP'ta tutmayalım"*)
+  Bugünkü durum dürüstçe: `mock-rota-sizintisi.arch.test.ts` **açık kiracı
+  rotalarından hiçbirinin** mock'a ulaşmadığını kanıtlıyor — ama dosyalar
+  **duruyor** ve `foundationScope: 'frozen'` ile kapatılmış modüller de
+  duruyor. "Erişilemez" ile "yok" aynı şey değildir.
+  - ⬜ **3.8.1** 36 mock dosyasını tek tek tara: kim import ediyor?
+  - ⬜ **3.8.2** Yalnız donmuş modüllerin kullandıkları → dosyalarıyla
+    birlikte SİL (modül kaydı, rota, sayfa, tip, mock)
+  - ⬜ **3.8.3** Çalışan bir ekranın kullandığı mock varsa → o ekran ya
+    gerçek veriye bağlanır ya kaldırılır; mock'la yaşamaz
+  - ⬜ **3.8.4** Silme sonrası `npm test` + `npm run build` yeşil olmalı
+  - ⬜ **3.8.5** Codex'e taratılacak: *"depoda mock/uydurma veri üreten
+    başka ne var — adı `.mock` olmayanlar dâhil?"* ⚠️ Benim taramam ad
+    desenine bakıyor; `storage.ts` örneği gösterdi ki asıl tehlike adı
+    mock olmayanlardır (tuzak 86).
 - ⬜ **3.6** **MIYOP-008** · Başlıkta seçilen şube gerçek sorgulara
   aktarılmıyor. B şubesi seçiliyken kayıt A'ya yazılabiliyor.
 - ⬜ **3.7** **MIYOP-010** · Etiket ekranında ürünler arası veri karışması
@@ -417,6 +445,25 @@ büyütür, değeri büyütmez.
   Ayrıntı: `claude/codex-ile-calisma-duzeni.md`
 - ✅ **7.2** Codex brifi hazır · `docs/codex-brifi.md`
   Karar dosyalarını okutuyor ki bilinçli kararları "hata" sanmasın.
+- ✅ **7.6** **Sürüm defteri güncel tutuluyor** (Emrah'ın isteği, 20.10).
+  `docs/MIYOP-Surum-Defteri.xlsx` · her yayına çıkış bir satır.
+  - Yeni durum: **"Veritabanında"** = göç canlı Supabase'e uygulandı ama
+    uygulama yeniden dağıtılmadı. Bu fark defterin başında kırmızı uyarı
+    olarak duruyor; **defterin varlık sebebi tam olarak bunu yakalamak.**
+  - v0.2.1 (0087-0088), v0.2.2 (0089-0090), v0.2.3 (MIYOP-043 1. adım)
+    satırları eklendi; bekleyenler listesi 13 maddeye güncellendi.
+  - ⚠️ Kural: **her dağıtımdan sonra Claude defteri günceller.** Bir
+    yayına çıkış deftere yazılmadıysa, olmamış sayılır.
+- ✅ **7.5** **Her turun komutu tek satır oldu.** Çok satırlı PowerShell
+  blokları yapıştırılırken yarıda kalıyor, Emrah fazladan Enter'a basmak
+  zorunda kalıyordu. Artık: `.\araclar\kaydet.ps1` — testi koşturur,
+  kırmızıysa commit yapmaz, mesajı `araclar/commit-mesaji.txt`ten okur,
+  panoya kopyalanacak dosyayı `araclar/pano.txt`ten alır.
+  - ✅ **7.5.1** ⚠️ İlk sürüm **hiç çalışmadı**: Türkçe harfler ve kutu
+    çizgileri içeriyordu, Windows PowerShell 5.1 BOM'suz UTF-8'i ANSI
+    sanıp çözüyor ve dosya `Missing closing '}'` ile parse edilemiyordu.
+    Betik **sadece ASCII**e çevrildi; Türkçe açıklamalar `docs/` altında.
+    → tuzak 99.
 - ✅ **7.4** **MIYOP-037** · Provanın kendisi denetlendi.
   `prova-0086.sql` içinde bir blok `exception when others` kullanıyordu ve
   **iddianın kendi hatasını da yutuyordu**: başarısızlık yeşile dönüyordu.

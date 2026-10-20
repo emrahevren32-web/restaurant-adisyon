@@ -21,12 +21,30 @@ const from = vi.fn(() => ({ select }))
 // girdiyi önce `giris_adresi_bul` ile gerçek giriş adresine çeviriyor.
 const rpc = vi.fn(async (_ad: string, _p: unknown) => ({ data: null, error: null }))
 
+// ── MIYOP-043 · giriş sunucuya taşındı ──────────────────────────────────
+// `authenticateUser` artık önce `giris-yap` Edge Function'ını çağırıyor.
+// ⚠️ Bu mock'lar EKLENMEDEN testler geçiyordu ama YANLIŞ SEBEPLE: mock
+// supabase'de `functions` yoktu, `invoke` çağrısı TypeError atıyordu,
+// yakalanıp "ulaşılamadı" sayılıyor ve hep YEDEK yola düşülüyordu. Yani
+// 14 test, dağıtımdan sonra çalışacak yolu hiç sınamıyordu.
+//
+// Varsayılan: fonksiyon DAĞITILMAMIŞ (404) → yedek yol. Bugünkü canlı
+// durum budur, o yüzden eski testler aynen geçerli kalıyor. Sunucu yolunu
+// sınayan testler `invoke`u kendi içinde ayarlıyor.
+const invoke = vi.fn(async (_ad: string, _ayar?: unknown) => ({
+  data: null,
+  error: { message: 'Function not found', context: { status: 404 } }
+}))
+const setSession = vi.fn(async () => ({ data: {}, error: null }))
+const getUser = vi.fn(async () => ({ data: { user: null }, error: null }))
+
 vi.mock('../core/supabase', () => ({
   isSupabaseConfigured: () => true,
   getSupabase: () => ({
-    auth: { signInWithPassword, signOut },
+    auth: { signInWithPassword, signOut, setSession, getUser },
     from,
-    rpc
+    rpc,
+    functions: { invoke }
   })
 }))
 
@@ -331,5 +349,133 @@ describe('kullanıcı adıyla giriş (0077) ve geçici şifre bayrağı (0076)',
     // Sütun listede olmasa Supabase alanı hiç döndürmez ve bayrak sessizce
     // false kalırdı — kapı açık, hata görünmez.
     expect(select).toHaveBeenCalledWith(expect.stringContaining('must_change_password'))
+  })
+})
+
+
+// ═══════════════════════════════════════════════════════════════════════════
+// MIYOP-043 · SUNUCU YOLU
+//
+// Codex denetimi (18.10.2026): `giris_adresi_bul` `anon`a açıktı ve bulunan
+// kullanıcı için gerçek Auth e-postasını dönüyordu. Çözüm: adres çözümü ve
+// parola doğrulaması `giris-yap` Edge Function'ında.
+//
+// ⚠️ Buradaki testlerin asıl işi, sunucu yolu çalışırken TARAYICININ ADRESİ
+// HİÇ SORMADIĞINI kanıtlamak. `giris_adresi_bul` çağrılıyorsa sızıntı
+// kapanmamış demektir.
+// ═══════════════════════════════════════════════════════════════════════════
+describe('MIYOP-043 · giriş sunucuda yapılıyor', () => {
+  beforeEach(() => {
+    vi.clearAllMocks()
+    setSession.mockResolvedValue({ data: {}, error: null })
+  })
+
+  const sunucuOturumVerir = () => {
+    invoke.mockResolvedValue({
+      data: {
+        access_token: 'erisim-jetonu',
+        refresh_token: 'tazeleme-jetonu',
+      },
+      error: null
+    })
+  }
+
+  it('sunucu oturum verince giriş olur ve TARAYICI ADRESİ HİÇ SORMAZ', async () => {
+    sunucuOturumVerir()
+    getUser.mockResolvedValue({
+      data: { user: { id: 'auth-uid-1', email: 'depocu@abcgida.miyop.local' } },
+      error: null
+    })
+    maybeSingle.mockResolvedValue({
+      data: {
+        id: 'u1', tenant_id: 't1', company_id: 'c1', username: 'depocu',
+        full_name: 'Depo Cu', phone: null, profile_photo_url: null,
+        role_code: 'depo_sorumlusu', is_active: true, must_change_password: false
+      },
+      error: null
+    })
+
+    const user = await authenticateUser('depocu@ABCGIDA', 'sifre123')
+
+    expect(user).not.toBeNull()
+    expect(invoke).toHaveBeenCalledWith('giris-yap', expect.anything())
+    // ⚠️ SIZINTININ KAPANDIĞININ KANITI: adres sorulmadı.
+    expect(rpc).not.toHaveBeenCalledWith('giris_adresi_bul', expect.anything())
+    // Ve eski yola hiç düşülmedi.
+    expect(signInWithPassword).not.toHaveBeenCalled()
+    expect(setSession).toHaveBeenCalledWith({
+      access_token: 'erisim-jetonu',
+      refresh_token: 'tazeleme-jetonu'
+    })
+  })
+
+  it('parola çağrı gövdesinde gider ama dönen User nesnesinde düz metin yok', async () => {
+    sunucuOturumVerir()
+    getUser.mockResolvedValue({
+      data: { user: { id: 'auth-uid-2', email: 'x@y.miyop.local' } }, error: null
+    })
+    maybeSingle.mockResolvedValue({
+      data: {
+        id: 'u2', tenant_id: 't1', company_id: 'c1', username: 'depocu',
+        full_name: 'Depo Cu', phone: null, profile_photo_url: null,
+        role_code: 'depo_sorumlusu', is_active: true, must_change_password: false
+      },
+      error: null
+    })
+
+    const user = await authenticateUser('depocu@ABCGIDA', 'gizli-parola')
+
+    expect(JSON.stringify(user)).not.toContain('gizli-parola')
+  })
+
+  it('sunucu 401 derse giriş reddedilir ve YEDEK YOLA DÜŞÜLMEZ', async () => {
+    // ⚠️ Burası kritik: gerçek reddi "ulaşılamadı" sayıp eski sızdıran
+    // yola düşseydik, 043 hiç kapanmazdı.
+    invoke.mockResolvedValue({
+      data: null,
+      error: { message: 'Unauthorized', context: { status: 401 } }
+    })
+
+    const user = await authenticateUser('yok@ABCGIDA', 'yanlis')
+
+    expect(user).toBeNull()
+    expect(signInWithPassword).not.toHaveBeenCalled()
+    expect(rpc).not.toHaveBeenCalledWith('giris_adresi_bul', expect.anything())
+    expect(from).not.toHaveBeenCalled()
+  })
+
+  it('fonksiyon dağıtılmamışsa YEDEK yol devreye girer (bugünkü canlı durum)', async () => {
+    // invoke varsayılanı 404 · yedek yol
+    signInWithPassword.mockResolvedValue({
+      data: { user: { id: 'auth-uid-3', email: 'z@y.miyop.local' } }, error: null
+    })
+    maybeSingle.mockResolvedValue({
+      data: {
+        id: 'u3', tenant_id: 't1', company_id: 'c1', username: 'depocu',
+        full_name: 'Depo Cu', phone: null, profile_photo_url: null,
+        role_code: 'depo_sorumlusu', is_active: true, must_change_password: false
+      },
+      error: null
+    })
+
+    const user = await authenticateUser('depocu@ABCGIDA', 'sifre123')
+
+    expect(user).not.toBeNull()
+    expect(signInWithPassword).toHaveBeenCalled()
+    // ⚠️ Yedek yol HÂLÂ adresi soruyor — açık tam olarak burada duruyor.
+    // Göç 0091 bu dalı sildiğinde bu test de kalkacak.
+    expect(rpc).toHaveBeenCalledWith('giris_adresi_bul', expect.anything())
+  })
+
+  it('oturum kurulamazsa giriş reddedilir, yarım oturum bırakılmaz', async () => {
+    sunucuOturumVerir()
+    setSession.mockResolvedValue({ data: {}, error: { message: 'bozuk jeton' } })
+    signInWithPassword.mockResolvedValue({
+      data: { user: null }, error: { message: 'Invalid login credentials' }
+    })
+
+    const user = await authenticateUser('depocu@ABCGIDA', 'sifre123')
+
+    expect(user).toBeNull()
   })
 })
