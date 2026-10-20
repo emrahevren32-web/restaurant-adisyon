@@ -1,6 +1,7 @@
 import { normalizeIdentifier } from './core/identifier'
 import { getSupabase, isSupabaseConfigured } from './core/supabase'
 import { girisAdresiniCoz } from './auth/giris-adresi'
+import { sunucudaGirisYap } from './auth/sunucu-girisi'
 import {
   ActionLog,
   ActionLogType,
@@ -5197,15 +5198,38 @@ export const authenticateUser = async (
   if(!isSupabaseConfigured()) return null
 
   const supabase = getSupabase()
-  const girisAdresi = await girisAdresiniCoz(email, isletmeKodu)
-  const { data: authData, error: authError } =
-    await supabase.auth.signInWithPassword({ email: girisAdresi, password })
-  if(authError || !authData?.user) return null
+
+  // ── MIYOP-043 · GİRİŞ SUNUCUDA ──────────────────────────────────────────
+  // Adres çözümü ve parola doğrulaması `giris-yap` Edge Function'ında
+  // yapılıyor; tarayıcı adresi hiç görmüyor. Ayrıntı ve geçiş planı:
+  // `src/auth/sunucu-girisi.ts` dosya başı.
+  const sunucu = await sunucudaGirisYap(email, password, isletmeKodu)
+  if(sunucu.durum === 'reddedildi') return null
+
+  let authUser: { id: string; email?: string | null } | null = null
+
+  if(sunucu.durum === 'oldu'){
+    // Oturum `setSession` ile kuruldu; kullanıcıyı oturumdan okuyoruz.
+    const { data, error } = await supabase.auth.getUser()
+    if(error || !data?.user) return null
+    authUser = data.user
+  } else {
+    // ⚠️ GEÇİCİ YEDEK YOL · göç 0091 ile SİLİNECEK.
+    // `giris-yap` dağıtılmadan eski yolu kaldırmak HERKESİ kapıda
+    // bırakırdı. Bu dal durdukça MIYOP-043 kapanmış SAYILMAZ.
+    const girisAdresi = await girisAdresiniCoz(email, isletmeKodu)
+    const { data, error } =
+      await supabase.auth.signInWithPassword({ email: girisAdresi, password })
+    if(error || !data?.user) return null
+    authUser = data.user
+  }
+
+  if(!authUser) return null
 
   const { data: appUserRow, error: appUserError } = await supabase
     .from('app_user')
     .select('id, tenant_id, company_id, username, full_name, phone, profile_photo_url, role_code, is_active, must_change_password')
-    .eq('auth_user_id', authData.user.id)
+    .eq('auth_user_id', authUser.id)
     .maybeSingle()
 
   if(appUserError || !appUserRow || !appUserRow.is_active){
@@ -5225,7 +5249,7 @@ export const authenticateUser = async (
     username: appUserRow.username,
     // Giriş e-postası app_user'da DEĞİL, Supabase Auth oturumunda duruyor.
     // Taşınmazsa kişi kendi giriş adresini hiçbir ekranda göremiyor.
-    email: authData.user.email || undefined,
+    email: authUser.email || undefined,
     // Eski `Role` tipi yalnızca iki değer taşıyor. Firma kapsamında tam yetkili
     // roller ('isletme_sahibi', 'isletme_muduru') buraya 'Personel' olarak
     // düşerse, `adminOnly` işaretli menü ögelerinin TAMAMI onlara kapanır —

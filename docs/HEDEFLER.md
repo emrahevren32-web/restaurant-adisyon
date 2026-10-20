@@ -1,6 +1,6 @@
 # MİYOP · Hedefler
 
-**Son güncelleme:** 18.10.2026 · göç **0090** yazıldı (0089 uygulandı)
+**Son güncelleme:** 20.10.2026 · MIYOP-043 1. adımı yazıldı (0090 uygulandı)
 
 ⚠️ **Bu dosya TEK iş listesidir.** `docs/BITMIS-URUN-EKSIKLERI.md` neyin
 neden eksik olduğunu ANLATIR; buradaki maddeler onu KARŞILAR. O dosyadaki
@@ -33,8 +33,9 @@ neyin neden yapıldığı kaybolmasın.
 - ⬜ **0.7** Dağıtım · 0089 uygulandıktan sonra tek seferde
 - ✅ **0.8** Codex 0089 denetimi yaptı · **haklı çıktı: kapıyı gereğinden
   fazla gevşetmiştim.** 11 fonksiyonun üçü kendi yetki kontrolünü yapmıyor.
-- 🔄 **0.9** Göç **0090** uygulanacak · 0089 daraltılıyor + MIYOP-044.
-  Yerel prova **20/20**; 0090 çıkarılınca kırmızıya döndüğü doğrulandı.
+- ✅ **0.9** Göç **0090** uygulandı · prova 20/20.
+- 🔄 **0.11** **MIYOP-043 · 1. adım** · `giris-yap` Edge Function yazıldı.
+  ⚠️ **Dağıtılmadan 2. adım yapılamaz** — sıra aşağıda 1.8'de.
 - ⬜ **0.10** Dağıtım · 0090 uygulandıktan ve MIYOP-043 bittikten sonra
   tek seferde (arayüzde zil yönlendirmesi de bu dağıtımla gider)
 
@@ -184,18 +185,33 @@ güvenlik sınırı değil. Gerçek sınır veritabanında olmalı.
   tenant koşulu olmadan okuyor.
 - ⬜ **1.6** **MIYOP-017** · Çıkış Supabase oturumunu kapatmıyor
 - ⬜ **1.7** **MIYOP-018** · Zorunlu parola değişimi tek RPC ile atlanabiliyor
-- ⬜ **1.8** **MIYOP-043 · P1 · Giriş adresi çözümü kullanıcıyı ele veriyor**
+- 🔄 **1.8** **MIYOP-043 · P1 · Giriş adresi çözümü kullanıcıyı ele veriyor**
   (Codex, 18.10.2026) `0078`in anonim RPC'si bulunamayan kullanıcıya
   `@bulunamadi.miyop.local`, **bulunana gerçek Auth e-postasını** dönüyor
   ve RPC `anon` rolüne açık. Parola bilmeden kullanıcı/firma eşleşmesi ve
   işletme sahibinin gerçek e-postası öğrenilebiliyor.
   ⚠️ Bu 0088/0089 gerilemesi DEĞİL, baştan beri var.
-  - ⬜ **1.8.1** Giriş adresi sunucuda çözülüp kimlik doğrulama orada
-    tamamlanmalı; gerçek adres anonim istemciye dönmemeli
-  - ⬜ **1.8.2** Yanlış parola yanıtları kullanıcı varlığını ayırt
-    ettirmemeli
-  - ⬜ **1.8.3** `prova-0077` bulunan hesabı bulunmayanla karşılaştırmıyor;
-    prova bu ayrımı sınamalı
+  ⚠️ **ÜÇ ADIMLI VE SIRASI ÖNEMLİ.** `giris-yap` dağıtılmadan
+  `giris_adresi_bul`un `anon` hakkını almak **herkesi kapıda bırakır.**
+  - ✅ **1.8.1** `supabase/functions/giris-yap/index.ts` yazıldı: adres
+    `service_role` ile çözülüyor, parola orada doğrulanıyor, dışarı
+    yalnız oturum ya da **tek genel hata** çıkıyor. Adres cevaba
+    KONMUYOR. Supabase'in kendi hata metni dışarı verilmiyor.
+  - ✅ **1.8.2** Tarayıcı artık önce sunucudan deniyor
+    (`src/auth/sunucu-girisi.ts`). `reddedildi` ile `ulasilamadi` ayrı
+    tutuluyor — birleştirmek ya herkesi kapıda bırakır ya da gerçek reddi
+    ağ arızası sanıp eski sızdıran yola düşürürdü.
+  - ⬜ **1.8.3** **Emrah fonksiyonu DAĞITIR ve girişin çalıştığını
+    doğrular.** (`supabase functions deploy giris-yap`)
+  - ⬜ **1.8.4** Göç **0091**: `giris_adresi_bul`un `anon` hakkı alınır
+    **VE** `storage.ts`teki geçici yedek yol SİLİNİR.
+    ⚠️ Bu madde bitene kadar MIYOP-043 **KAPANMIŞ SAYILMAZ**; sızıntı
+    hâlâ açıktır, yalnız olağan giriş akışı artık sızdırmıyor.
+  - ⬜ **1.8.5** `prova-0077` bulunan hesabı bulunmayanla karşılaştırmıyor;
+    0091'in provası bu ayrımı sınayacak
+  - ⬜ **1.8.6** `public.basvuru_gonder` bekleyen başvuru varlığını `MI409`
+    ile ayırt ettiriyor (Codex). Gerçek e-postayı sızdırmıyor, tekrar
+    başvuruyu önlemek bilinçli karar — ama dış yanıt tekleştirilebilir.
 - ⏸️ **1.9** PUBLIC EXECUTE temizliği · 7 fonksiyon
   ⚠️ `app.yetkim_var`dan ASLA alınmayacak — bütün kapılar ona bağlı.
   ⚠️ `app.kapi_disi_baglam`dan da alınmayacak (0089): alınırsa kapılar
@@ -483,7 +499,7 @@ yanlışlıkla çalıştırılma riski var (6.11).
 | | |
 |---|---|
 | Test | 78 dosya · 1432 test · 0 hata |
-| Göç | 0000–**0090** · 91 dosya |
+| Göç | 0000–**0090** · 91 dosya · (0091 sırada) |
 | Açık çekirdek rota | 25 (37'den indi) |
 | Veritabanı yazma kapısı | **45 tetikleyici** (18 → +27 tablo) |
 | Codex bulgusu | **48** · (**10'u kapandı**: 001, 002, 031, 032, 035, 038, 039, 041, 044, 046, 048) |

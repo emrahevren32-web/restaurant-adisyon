@@ -275,6 +275,16 @@ zayıflattım. Codex yakaladı. 0090 dokuzunu geri daralttı ve muaf yüzey
 11 rutinden 6'ya indi. **Bir onarımın yan etkisi, onarımdan büyük olmamalı
 — ve "ne kadarını açtım" ölçülebilir olmalı.**
 
+**97 · Kimlik doğrulama yolunu TEK ADIMDA değiştirme.** MIYOP-043'ün
+çözümü girişi sunucuya taşımak; ama `giris-yap` Edge Function'ı canlıya
+dağıtılmadan `giris_adresi_bul`un `anon` hakkını almak **herkesi kapıda
+bırakırdı** — açığı kapatmak uğruna ürünü kapatmak. Doğru sıra: önce yeni
+yolu birincil yap ve eskisine yedek bırak, sonra dağıt ve ÇALIŞTIĞINI
+DOĞRULA, en sonunda eski yolu ve yedeği birlikte kaldır. ⚠️ Ara adımda
+açık HÂLÂ AÇIKTIR; "kapandı" demek ancak son adımdan sonra dürüsttür. Bu
+yüzden yedek yol kodun içinde `GEÇİCİ YEDEK YOL · göç 0091 ile SİLİNECEK`
+diye işaretli ve mimari test onun varlığını SAYIYOR: borç görünür kalsın.
+
 ---
 
 ## 5 · TEST İŞBÖLÜMÜ VE TESLİM KONTROL LİSTESİ

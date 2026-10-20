@@ -1,0 +1,13 @@
+1- Başvuru yaptım, bildirim olarak düşmedi ama hem localde hem de miyop.emrahevren.com' da Onay Bekleyen İşletmeler sayfasında görebildim. 
+
+2- İncelemeye aldım, notumu girdim ve onayladım ama mail gelmedi. Demo burada bitti.
+
+
+Aldığım hayatı sonradan fark ettim;
+"Auth hesabı hazır ama işletmeye bağlanamadı: Bu e-posta başka bir hesaba bağlı. Önce o hesaba bakın.. Supabase panelinde Authentication → Users altında emrah-evren@hotmail.com kaydı duruyor; tekrar denemeden önce oraya bakın."
+diyormuş. Tekrar deniyorum.
+
+Bizim bu durumlara önlem almamız lazım. Eğer bir mail ile daha önceden kayıt yapılmış ise aynı mail ile yeni başvuru yapılmasını engellemeliyiz.
+
+
+--------------------------------------------
