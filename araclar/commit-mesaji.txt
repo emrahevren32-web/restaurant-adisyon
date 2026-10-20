@@ -1,21 +1,17 @@
-MIYOP-051 ekrana kadar tasindi + MIYOP-055 (cikis kapsami)
+MIYOP-056 kapandi + sahit numune tasarim karari yazildi
 
-- MIYOP-051 ILK ONARIM YARIM KALMISTI (Codex): Edge kotayi ayiriyordu,
-  istemci 'gecici' diye isaretliyordu, test de yedek yola dusmedigini
-  kanitliyordu - ama storage.ts null donduyu icin mesaj EKRANA HIC
-  ULASMIYORDU ve parolasi DOGRU olan kisi yine "sifre hatali" goruyordu.
-  Mesaj artik authenticateUser -> authenticateCredentials -> Login
-  zincirinden gecip gorunuyor (tuzak 103)
-- MIYOP-055: MIYOP-052'yi onarirken yenisini yaptim. signOut() varsayilan
-  kapsami 'global'; kullanici baska cihazda calisirken gecici bir okuma
-  hatasi ONUN oturumunu da dusuruyordu. scope: 'local' kondu
-- Ayni kusurun ikinci yuzu (eski kod): app_user okuma hatasinda da
-  kapsamsiz cikis vardi. Ayrildi - okuma hatasi local, hesap pasif global
-  (tuzak 102)
-- HEDEFLER 0.A: demo oncesi 2 haftalik kapsam yazildi (Emrah 20.10).
-  Alti yarim ekran, MIYOP-008, MIYOP-010, mock temizligi, sahit numune,
-  0091 + dagitim. Listede OLMAYANLAR demo oncesi yapilmayacak
-- Tuzak 102 ve 103; teslim listesine iki madde
+- MIYOP-056 (Codex): parola dogrulanmis, oturum kurulmus, sonra IZIN
+  SORGUSU dusmus. setCurrentUser(null) yalniz uygulamanin kendi kaydini
+  siliyordu; Auth oturumu acik kaliyordu ve sebep parola degilken genel
+  kimlik hatasi gosteriliyordu. scope: 'local' cikis + gecici mesaj
+- Ayni aileden UCUNCUSU (052 getUser, 055 kapsam, 056 izin okuma).
+  Tuzak 104: basarisiz giris dallari tek tek degil HEPSI sayilir
+- docs/kararlar/sahit-numune.md: Emrah'in anlattigi uc kural yazildi.
+  Saklama suresi SABIT DEGIL (kapalida SKT, aciksa acik kalma suresi);
+  saklama kosulu musteriye bildirilenin birebir aynisi ve AYNI alandan
+  gelir; numune lota ve sevkiyata bagli olmali, urun adina degil.
+  Bes acik soru var, cevaplanmadan goc YAZILMAYACAK
+- HEDEFLER A5 ve 3.9.1 guncellendi
 
 Co-Authored-By: Claude Opus 5 <noreply@anthropic.com>
 Claude-Session: https://claude.ai/code/session_019BwYM3mAXZUhp4YGj7tp2y

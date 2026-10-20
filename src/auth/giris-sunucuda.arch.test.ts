@@ -116,6 +116,19 @@ describe('MIYOP-043 · giriş sunucuda', () => {
     expect(DEPO).toContain("appUserError ? { scope: 'local' } : { scope: 'global' }")
   })
 
+  it('MIYOP-056 · izinler okunamazsa da yarım oturum kalmıyor', () => {
+    // ⚠️ ÜÇÜNCÜ KEZ AYNI AİLE. Parola doğrulanmış, oturum kurulmuş, sonra
+    // izin sorgusu düşmüş: ekran "giriş başarısız" derken Auth oturumu
+    // açık kalıyordu. Üstelik sebep parola değildi.
+    const bas = SERVIS.indexOf('permissions === null')
+    const parca = SERVIS.slice(bas, bas + 1400)
+    expect(bas, 'izin dalı bulunamadı').toBeGreaterThan(0)
+    expect(parca).toContain("signOut({ scope: 'local' })")
+    expect(parca).toContain('gecikmeMesaji')
+    // Parola hatası DEMEMELİ.
+    expect(parca).not.toMatch(/şifre hatalı|parola hatalı/i)
+  })
+
   it('MIYOP-052 · yarım oturum bırakılmıyor', () => {
     // `setSession` başarılıysa Auth oturumu KURULMUŞTUR. `getUser`
     // düşerse `null` dönüp çıkmak, "giriş başarısız" diyen bir ekranın

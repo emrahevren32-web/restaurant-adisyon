@@ -345,6 +345,16 @@ dönüyor ve mesaj orada ölüyordu. Zincirin üç halkası doğru, dördüncüs
 yoktu. Bir hata sınıflandırmasının değeri, kullanıcının gördüğü cümlede
 ölçülür; katmanda değil.
 
+**104 · "Başarısız giriş" dalları tek tek temizlenmez; HEPSİ sayılır.**
+MIYOP-052'de `getUser` hatasında oturum açık kalıyordu — onardım.
+MIYOP-055'te onarımın kapsamı yanlıştı — onardım. MIYOP-056'da aynı kusur
+**izin okuma dalında** çıktı. Üç tur, aynı aile. Hata şuydu: her seferinde
+Codex'in gösterdiği TEK dalı onardım, "başarılı kimlik doğrulamasından
+sonra `null` dönen kaç dal var" diye SORMADIM. Doğrusu: bir temizlik
+eksikliği bulduğunda, aynı fonksiyon zincirindeki bütün erken çıkışları
+listele ve her birinde oturumun ne hâlde kaldığını yaz. ⚠️ Bu, tuzak 90'ın
+("kapı sayma, kapısız yüzey ölç") kimlik doğrulama hâlidir.
+
 ---
 
 ## 5 · TEST İŞBÖLÜMÜ VE TESLİM KONTROL LİSTESİ

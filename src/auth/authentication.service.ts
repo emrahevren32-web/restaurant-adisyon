@@ -5,6 +5,7 @@ import {
   setCurrentUser
 } from '../storage'
 import { loadPermissionsForUser } from '../authorization/permission.repository'
+import { getSupabase, isSupabaseConfigured } from '../core/supabase'
 import { syncWorkspaceCompanyFromDatabase } from '../companies/company-bridge'
 import { User } from '../types'
 import { SessionModel } from '../session/session.types'
@@ -118,7 +119,33 @@ export const authenticateCredentials = async (
   // bir yetki kümesi atamak demektir. Fail-closed.
   if(permissions === null){
     setCurrentUser(null)
-    return { success: false, user: null, state: createAuthenticationState(null, options) }
+
+    // ⚠️ MIYOP-056 (Codex) · BURADA AUTH OTURUMU AÇIK KALIYORDU.
+    // Bu noktaya gelindiğinde parola DOĞRULANMIŞ ve Supabase oturumu
+    // KURULMUŞ durumda. `setCurrentUser(null)` yalnız uygulamanın kendi
+    // kaydını siliyor; Auth oturumuna dokunmuyordu. Yani "giriş
+    // başarısız" diyen ekranın arkasında geçerli bir oturum kalıyordu.
+    //
+    // ⚠️ MIYOP-055'in dersi burada da geçerli: kapsam `local`. İzinlerin
+    // OKUNAMAMASI bir ARIZADIR — kullanıcının başka cihazdaki oturumunu
+    // düşürmek için sebep değil.
+    if(isSupabaseConfigured()){
+      try {
+        await getSupabase().auth.signOut({ scope: 'local' })
+      } catch(e){
+        console.warn('[MİYOP] Yarım oturum temizlenemedi:', e)
+      }
+    }
+
+    // ⚠️ Ve ekran genel kimlik bilgisi hatasını GÖSTERMEMELİ: parola
+    // doğruydu, izinler okunamadı. Tuzak 103 — bir sınıflandırmanın
+    // değeri, kullanıcının gördüğü cümlede ölçülür.
+    return {
+      success: false,
+      user: null,
+      state: createAuthenticationState(null, options),
+      gecikmeMesaji: 'Giriş şu an tamamlanamıyor, birazdan tekrar deneyin.',
+    }
   }
 
   const authorizedUser: User = { ...user, permissions }

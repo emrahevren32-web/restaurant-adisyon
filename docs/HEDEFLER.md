@@ -33,7 +33,7 @@ neyin neden yapıldığı kaybolmasın.
 | **A2** | **MIYOP-008** · şube seçimi sorgulara geçmiyor | B şubesi seçiliyken kayıt A'ya yazılıyor. Demoda şube değiştirilirse görünür. |
 | **A3** | **MIYOP-010** · etiket ekranında ürünler karışıyor | Etiket, demonun en gösterişli parçası; yanlış ürünün alerjeni basılırsa itibar biter. |
 | **A4** | **Mock dosyaları temizliği** (3.8) | Önce `kaldirilan-moduller.md`, sonra silme. |
-| **A5** | **Şahit numune** (3.9.1) | Gerçek gıda güvenliği gereği; sahte ekran olarak değil, tabloyla. |
+| **A5** | **Şahit numune** (3.9.1) | Gerçek gıda güvenliği gereği; sahte ekran olarak değil, tabloyla. ⚠️ Tasarım kararı yazıldı: `docs/kararlar/sahit-numune.md`. **Beş açık soru cevaplanmadan göç YAZILMAYACAK.** |
 | **A6** | MIYOP-043 son adımı (0091) + dağıtım | Güvenlik borcu kapanmış olsun. |
 
 ⚠️ **Bu listede OLMAYANLAR demo öncesi YAPILMAYACAK:** MIYOP-049/050
@@ -256,6 +256,14 @@ güvenlik sınırı değil. Gerçek sınır veritabanında olmalı.
     parolası DOĞRU olan kişi yine "şifre hatalı" görüyordu. Codex yakaladı.
     Mesaj artık `authenticateUser → authenticateCredentials → Login`
     zincirinden geçip ekranda görünüyor.
+  - ✅ **1.8.13** **MIYOP-056** · ⚠️ **AYNI AİLEDEN ÜÇÜNCÜSÜ.** Parola
+    doğrulanmış, oturum kurulmuş, sonra **izin sorgusu düşmüş**:
+    `setCurrentUser(null)` yalnız uygulamanın kendi kaydını siliyor, Auth
+    oturumuna dokunmuyordu. "Giriş başarısız" diyen ekranın arkasında
+    geçerli oturum kalıyordu — ve sebep parola değilken genel kimlik
+    hatası gösteriliyordu. `scope: 'local'` çıkış + geçici arıza mesajı.
+    (052 → `getUser`, 055 → kapsam, 056 → izin okuma. Üçü de "başarısız
+    giriş" dalında temizlik eksikliği.)
   - ✅ **1.8.12** **MIYOP-055** · ⚠️ **MIYOP-052'yi onarırken yenisini
     yaptım.** `supabase.auth.signOut()` varsayılan kapsamı `global`:
     kullanıcı başka cihazda çalışırken buradaki geçici bir okuma hatası
@@ -349,9 +357,17 @@ Emrah'ın onayladığı sıra:
     `%numune%` deseninde **hiç tablo yok**. Bu ekranlar yalnız uydurma
     veriyle vardı; "mock veri asla olmayacak" kuralı gelince donduruldu.
     Yani bırakmadık — **hiç başlamamıştık.**
-  - ⬜ **3.9.1** Şahit numune gerçek bir gıda güvenliği gereği (numune
-    saklama süresi, imha). Yapılacaklar listesine madde olarak girmeli —
-    sahte ekran olarak değil.
+  - 🔄 **3.9.1** **Şahit numune** · Emrah anlattı (20.10), tasarım kararı
+    `docs/kararlar/sahit-numune.md`'ye yazıldı. Çıkan üç kural:
+    **(1)** Saklama süresi sabit DEĞİL — kapalı üründe **SKT**, açılmışta
+    **açık kalma süresi**. "72 saat" gibi tek sayı yazılmaz.
+    **(2)** Saklama koşulu **müşteriye bildirilenin birebir aynısı**
+    (-18/+4) ve **aynı alandan** gelir; ayrı tutulursa bir gün ayrışır.
+    **(3)** Numunenin amacı bir tartışmayı çözmek → **lota ve sevkiyata**
+    bağlı olmalı, ürün adına değil.
+    ⚠️ Beş açık soru var (nerede saklanıyor, kim alıyor, hangi izin, her
+    sevkiyattan mı her partiden mi, imhayı kim onaylıyor). **Cevaplar
+    gelmeden göç yazılmayacak** — yazılırsa yine "mış gibi" olur.
 - ⬜ **3.8** **MOCK DOSYALARI SİLİNECEK · 36 dosya** (Emrah, 20.10:
   *"tüm mock verileri yok etmiş olduğuna emin ol"* ve *"asla ve asla
   yapamadığımız bir modülü, fonksiyonu MİYOP'ta tutmayalım"*)
