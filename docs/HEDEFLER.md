@@ -341,8 +341,23 @@ Emrah'ın onayladığı sıra:
 - ⬜ **3.1** Firma Profili (`company-profile`)
   - ⬜ **3.1.1** Kim değiştirebilsin? Vergi numarası fatura kesmeyi
     etkiliyor. → `ismete-sorulacaklar.md` **B1**
-- ⬜ **3.2** Profilim (`my-profile`) — şu an "Kullanıcı kaydı bulunamadı"
+- 🔄 **3.2** Profilim (`my-profile`) — şu an "Kullanıcı kaydı bulunamadı"
   hatası veriyor, hiç çalışmıyor
+  - ✅ **3.2.1** **KÖK NEDEN BULUNDU.** Ekran `loadUsers()` ile
+    **localStorage'ı** okuyor; giriş yapan kullanıcı ise Supabase'deki
+    `app_user` satırından geliyor ve localStorage listesine **hiç
+    yazılmıyor.** `users.findIndex(u => u.id === currentUser.id)` bu yüzden
+    hep `-1` dönüyor → "Kullanıcı kaydı bulunamadı". Yani ekran, kullanıcının
+    giriş yaptığı dünyadan BAŞKA bir dünyayı okuyor (tuzak 82).
+  - ✅ **3.2.2** **Yazma sözleşmesi ölçüldü.** `app_user` üzerinde
+    `authenticated` rolünün **tablo seviyesinde UPDATE hakkı YOK**; yalnız
+    `full_name, phone, profile_photo_url, updated_at` kolonlarında var
+    (0012). Yani ekranın yazacağı iki alan serbest, `role_code`,
+    `is_active` ve `username` **veritabanı tarafından** kapalı. Ekranda
+    "kapalı" göstermek yeterli değildi; asıl kapı burada ve duruyor.
+  - ⬜ **3.2.3** Ekranı gerçek veriye bağla: `app_user` oku, ad+telefon yaz,
+    şifre değiştirme ekle (Emrah onayı 20.10). Kullanıcı adı ve rol salt
+    okunur, fotoğraf yok.
 - ⬜ **3.3** Şube Yetkileri (`branch-permissions`)
 - ⬜ **3.4** İşletme Ayarları (`settings`)
 - ⬜ **3.5** Şubeler (`branches`)
@@ -669,7 +684,7 @@ yanlışlıkla çalıştırılma riski var (6.11).
 | | |
 |---|---|
 | Test | 78 dosya · 1432 test · 0 hata |
-| Göç | 0000–**0090** · 91 dosya · (0091 sırada) |
+| Göç | 0000–**0091** · 92 dosya · (giriş ACL'si 0092 olacak) |
 | Açık çekirdek rota | 25 (37'den indi) |
 | Veritabanı yazma kapısı | **45 tetikleyici** (18 → +27 tablo) |
 | Codex bulgusu | **48** · (**10'u kapandı**: 001, 002, 031, 032, 035, 038, 039, 041, 044, 046, 048) |

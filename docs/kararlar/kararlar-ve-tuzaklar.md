@@ -355,6 +355,15 @@ eksikliği bulduğunda, aynı fonksiyon zincirindeki bütün erken çıkışlar�
 listele ve her birinde oturumun ne hâlde kaldığını yaz. ⚠️ Bu, tuzak 90'ın
 ("kapı sayma, kapısız yüzey ölç") kimlik doğrulama hâlidir.
 
+**105 · Commit mesajı, OLMUŞ olanı anlatır; olması planlananı değil.**
+Codex brifini B başlığına çevirdim, dosyayı göndermeye çalıştım, dosya bir
+programda **açık olduğu için reddedildi** — ama commit mesajı *"Codex brifi
+artık yarım ekranlara bakıyor"* diyordu ve o commit atıldı. Yani kayıt,
+depoda olmayan bir şeyi anlatıyordu. Codex fark etti (MIYOP-057) ve haklı:
+brif eski kapsamıyla duruyordu, Emrah da onu yapıştırdı. ⚠️ Kural: bir
+dosya yazımı REDDEDİLDİYSE commit mesajı düzeltilir ya da commit o turda
+atılmaz. Bir reddi "sonra hallederim" diye geçmek, geçmişi yanlış yazmaktır.
+
 ---
 
 ## 5 · TEST İŞBÖLÜMÜ VE TESLİM KONTROL LİSTESİ
@@ -382,13 +391,15 @@ Son söz onun çıktısındadır.
 10. Bir kapı gevşetiyorsan **ne kadarını gevşettiğini SAY** ve o sayıyı
     göçün içinde dondur (tuzak 96). "Gerekliydi" demek yetmez; gereğinden
     fazlasını açmadığını göstermek gerekir.
-11. Bir hata sınıflandırması yaptıysan **ekranda gördüğünü doğrula**
+11. Bir dosya yazımı reddedildiyse (kilitli, salt okunur) **commit
+    mesajını düzelt ya da commit'i o turda atma** (tuzak 105).
+12. Bir hata sınıflandırması yaptıysan **ekranda gördüğünü doğrula**
     (tuzak 103). Katmanda doğru, ekranda yanlış olabilir.
-12. Yeni bir API çağrısı eklediysen **varsayılan davranışını oku**
+13. Yeni bir API çağrısı eklediysen **varsayılan davranışını oku**
     (tuzak 102). Kapsam bir karardır, varsayılan değil.
-13. Yeni bir dış çağrı eklediysen **mock'a da ekle** ve testin hangi dalı
+14. Yeni bir dış çağrı eklediysen **mock'a da ekle** ve testin hangi dalı
     koştuğunu iddiayla sabitle (tuzak 98). `stderr`de yığın izi varken
     "testler yeşil" demek yetmez.
-14. Yetki provasında **gerçek rolü tak** (`set local role authenticated`)
+15. Yetki provasında **gerçek rolü tak** (`set local role authenticated`)
     ve reddin **DOĞRU SEBEPLE** olduğunu sına: 42501 ile MI403 aynı şey
     değildir. Yanlış sebeple reddedilen bir yazım, kapı çalışıyor sanılır.

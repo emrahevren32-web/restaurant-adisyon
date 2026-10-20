@@ -1,8 +1,8 @@
 # Codex denetim brifi · MİYOP
 
 > Bu dosya Codex'e yapıştırılmak üzere yazıldı. Her denetim turunda
-> güncellenir. Son güncelleme: 20.10.2026, **MIYOP-043'ün 1. adımından**
-> sonra. Dal: `production-foundation`
+> güncellenir. Son güncelleme: 20.10.2026, **B başlığı turu**.
+> Dal: `production-foundation`
 
 ---
 
@@ -18,7 +18,7 @@ Dışarıdan gelen biri bu gerekçeyi görmeden "hata" diyebilir. Bir şeyi
 hata saymadan önce gerekçesini ara. Okuma sırası:
 
 1. `docs/kararlar/kararlar-ve-tuzaklar.md` — **en önemlisi.** Değişmez
-   kurallar, veri tasarımı kararları ve numaralı tuzak listesi (38–**97**).
+   kurallar, veri tasarımı kararları ve numaralı tuzak listesi (38–**104**).
    Her tuzak gerçekten düşülmüş bir hatadır.
 2. `docs/kararlar/codex-denetimi-ekim-2026.md` — senin önceki denetiminin
    özeti, hangi bulgular kapandı, hangileri açık
@@ -64,92 +64,96 @@ Bunlar bilinçli kararlar. "Hata" diye raporlama:
 - Emin olmadığın şeyi "doğrulanmadı" diye işaretle. Uydurma kanıt üretme.
 - Türkçe yaz.
 
-## 4 · BU TURDA BAKILACAK
+## 4 · BU TURDA BAKILACAK · **GÜVENLİK DEĞİL, YARIM EKRANLAR**
 
-**Önceki turun sonucu: haklıydın, kapıyı gereğinden fazla açmıştım.**
-0090 dokuz kapıyı 0089 öncesine döndürdü; muaf yüzey 11 rutinden 6'ya
-indi. MIYOP-044, 046 ve 048 de kapandı — her biri senin tarif ettiğin
-şekilde. MIYOP-045'i de doğru kapsamla yeniden kurdum: 0089'un taraması
-hem çok genişti (`%degismez%` tabloları iş izni kapısı değil) hem çok
-dardı (`trigger` dönenleri ve `service_role`u eliyordu).
+Üç turdur giriş yüzeyindeydik ve her turda haklı çıktın: MIYOP-044, 046,
+048, 051, 052, 053, 054, 055, 056 kapandı; 049/050 bilerek açık ve
+gerekçesi yazılı. Bu turda **yön değişiyor.**
 
-Bu turda tek bir dosya diğerlerinden önemli: **yeni yazdığım giriş
-fonksiyonu.** Henüz CANLIYA DAĞITILMADI — yani kaynak hâlâ değişebilir ve
-senin bulduğun her şey ucuza düzelir. Dağıtımdan sonra pahalanır.
+Emrah'ın iki cümlesi bu turun çerçevesi:
 
-### 4.1 · `giris-yap` Edge Function · bu turun ana işi
+> *"Yarım ekranlar bariz itibar düşürücü.. katiyyen olmasın."*
+> *"Yarım kalan iş kalmayacak, hepsi; sitedeki mock veri kalmayacak,
+> mış gibi olmayacağız!"*
 
-`supabase/functions/giris-yap/index.ts` (yeni) ·
-`src/auth/sunucu-girisi.ts` (yeni) · `src/storage.ts` (`authenticateUser`)
+İki hafta içinde demo var. Benim sıram: **Profilim → Firma Profili →
+Şubeler → Şube Yetkileri → İşletme Ayarları**, sonra mock temizliği.
+Senden istediğim, ben yazmadan önce bu altı ekranın **gerçekte ne
+yaptığını** ölçmen.
 
-**Ne yaptım:** MIYOP-043 için adres çözümünü ve parola doğrulamasını
-tarayıcıdan alıp sunucuya taşıdım. Tarayıcı artık giriş adını, işletme
-kodunu ve parolayı fonksiyona gönderiyor; adres orada `service_role` ile
-çözülüyor, parola orada doğrulanıyor, dışarı yalnız oturum ya da **tek
-genel hata** çıkıyor.
+### 4.1 · ALTI EKRAN · her biri için ayrı ayrı
 
-**Senden istediğim — saldırgan gözüyle, satır satır:**
+Rotalar: `my-profile`, `company-profile`, `branches`,
+`branch-permissions`, `settings` (ve varsa altıncısı — listeyi sen
+doğrula; `src/modules/kiraci-ekrani-veri-kaynagi.arch.test.ts` dondurulmuş
+listeyi taşıyor).
 
-1. **Cevaplar gerçekten tekleşmiş mi?** Olmayan kullanıcı ile yanlış
-   parola; HTTP durumu, gövde, başlıklar ve **cevap süresi** aynı mı?
-   Özellikle: girdi gerçek e-posta biçimindeyse RPC'ye hiç gitmiyorum,
-   değilse gidiyorum. Bu **zamanlama farkı** bir enumerasyon kanalı mı?
-2. **Boş parola / boş giriş** dalı adres çözümünden ÖNCE dönüyor. Bu da
-   ayırt edilebilir bir fark mı?
-3. **CORS `*`** ve `verify_jwt` · fonksiyon `anon` anahtarıyla
-   çağrılıyor. Kötüye kullanım yüzeyi ne? Oran sınırı yok — kaba kuvvet
-   denemesi için bu fonksiyon, Supabase'in kendi giriş uç noktasından
-   daha mı kolay hedef?
-4. **Parola sızıntısı** · `sifre` değişkeni hiçbir günlüğe, cevaba ya da
-   hata nesnesine giriyor mu? `console.error` çağrılarının gövdesini tek
-   tek bak.
-5. **`setSession` ile kurulan oturum** · tarayıcıya `access_token` ve
-   `refresh_token` dönüyorum. Supabase'in kendi `signInWithPassword`
-   akışına göre eksik ya da fazla bir şey var mı?
-6. **Yedek yol** · `src/storage.ts` içinde `GEÇİCİ YEDEK YOL` diye
-   işaretli dal duruyor (fonksiyon dağıtılmadan eskisini kaldırmak
-   herkesi kapıda bırakırdı). `reddedildi` ile `ulasilamadi` ayrımı
-   doğru kurulmuş mu? **Gerçek bir reddi "ulaşılamadı" sanıp eski
-   sızdıran yola düşürdüğüm bir durum var mı?** Varsa 043 hiç kapanmaz.
+**Her ekran için şu beş soruyu ayrı ayrı cevapla:**
 
-### 4.2 · 0091 ne kıracak · önceden bul
+1. **Hangi veriyi nereden OKUYOR?** `storage.ts` mi, Supabase mi, karışık
+   mı? Karışıksa hangi alan nereden?
+2. **Kaydet'e basınca ne oluyor?** Hangi fonksiyon çağrılıyor, veri nereye
+   yazılıyor, kullanıcıya ne deniyor? **"Kaydedildi" diyip tarayıcıda
+   bırakan tam olarak hangi satır?**
+3. **Veritabanında karşılığı VAR MI?** Tablo ve kolonlar mevcut mu, yoksa
+   bu ekran için yeni göç mü gerekecek? (Bu, işin boyutunu belirliyor.)
+4. **Sayfa yenilenince veri kayboluyor mu, kalıyor mu?** Kalıyorsa nerede
+   kalıyor — ve o yer başka bir tarayıcıda/cihazda yok, değil mi?
+5. **Bu ekran kiracı sınırını koruyor mu?** `storage.ts` üzerinden giden
+   bir yazım RLS'i hiç görmüyor; bir kiracının verisi başka kiracıda
+   görünebilir mi?
 
-Sıradaki göç `giris_adresi_bul`un `anon` hakkını alacak VE yedek yolu
-silecek. **Senden, uygulamadan ÖNCE bunu kırabilecek her şeyi bulmanı
-istiyorum.** Özellikle:
+⚠️ **`my-profile` özel:** bugün *"Kullanıcı kaydı bulunamadı"* diyor ve
+HİÇ çalışmıyor. Neden? `app_user` sorgusu mu düşüyor, kullanıcı kimliği mi
+yanlış eşleşiyor, yoksa ekran localStorage'da olmayan bir kaydı mı arıyor?
+**Bu ekrana ilk ben gireceğim; kök nedeni bilmek istiyorum.**
 
-- `giris_adresi_bul`u çağıran başka bir yer var mı? (ekran, servis, test,
-  Edge Function, prova)
-- `anon` hakkı alınınca hangi test/prova kırılır? Önceki turda dört
-  doğrulama saymıştın (`giris-adresi.test.ts`, `authenticateUser.test.ts`,
-  `prova-0077`, `prova-0078`) — liste tam mı?
-- Vardiya kilidi ve oturum yenileme bu değişiklikten etkilenir mi?
-- `public.personel_giris_adresi` ayrı bir RPC; onun ACL'si ne durumda?
+### 4.2 · MOCK VE "MIŞ GİBİ" TARAMASI · asıl istediğim bu
 
-### 4.3 · Giriş testleri artık gerçek yolu sınıyor mu
+36 dosyanın adı `.mock.ts` ve bir mimari test açık kiracı rotalarından
+erişilemediklerini kanıtlıyor. **Ama benim taramam AD DESENİNE bakıyor** ve
+`storage.ts` bize şunu öğretti: asıl tehlike **adı mock olmayanlar**
+(tuzak 86).
 
-`src/auth/authenticateUser.test.ts`
+**Soru:** depoda uydurma/sahte veri üreten ya da gerçekmiş gibi gösteren
+**başka ne var?** Özellikle ara:
 
-⚠️ Kendi bulduğum bir kusur: mock supabase'de `functions` yoktu, `invoke`
-çağrısı `TypeError` atıyor, yakalanıp "ulaşılamadı" sayılıyor ve **14
-testin hepsi yedek yola düşüyordu.** Yani testler dağıtımdan sonra
-çalışacak yolu hiç sınamıyordu — yeşildi ama yanlış sebeple.
+- Sabit (hardcoded) diziler ve nesneler: örnek müşteri, örnek ürün, örnek
+  sipariş, örnek kullanıcı — ekranda gerçek veri yerine geçenler.
+- `Math.random()`, `faker`, `örnek`, `demo`, `test`, `sample`, `dummy`,
+  `placeholder` gibi adlar taşıyan veri üreticileri.
+- **Hesaplanmış gibi görünen ama sabit olan sayılar** — bir göstergenin
+  yanında duran `%12` gibi.
+- Boş sonuç geldiğinde **uydurma bir şey gösteren** ekranlar: "veri yok"
+  demek yerine örnek satır basan yerler.
+- `foundationScope: 'frozen'` ile kapatılmış modüllerin rotalarının
+  GERÇEKTEN kesildiği yer — bir tanesi bile render ediliyorsa söyle.
 
-Mock'ları ekledim ve beş test yazdım. **Sor:** bu beş test gerçekten
-sızıntının kapandığını mı kanıtlıyor, yoksa yalnız çağrıların yapıldığını
-mı? Eksik olan kabul kriteri ne?
+Her bulgu için: **dosya + satır**, ne gösteriyor, kullanıcı bunu nerede
+görebilir, ve **silinebilir mi yoksa gerçek veriye mi bağlanmalı**.
+
+### 4.3 · MIYOP-008 ve MIYOP-010 · demo öncesi listede
+
+Bu ikisini önceki turda kabul kriterleriyle genişletmiştin; şimdi
+yazacağım. **Eklemen gereken bir şey kaldı mı?**
+
+- **MIYOP-008** · başlıkta seçilen şube gerçek sorgulara aktarılmıyor.
+  Senin notun: `warehouse.context.ts:131` geçersiz tercihte merkezi
+  seçiyor. **Soru:** şube seçimi kaç ayrı yerden okunuyor ve hepsi aynı
+  kaynağa mı bakıyor? Yazım yolunda `branch_id` nereden geliyor?
+- **MIYOP-010** · etiket ekranında ürünler arası veri karışması.
+  Senin notun: `Etiketler.tsx:163` ürünü hemen değiştiriyor, yedi ayrıntı
+  isteğinden biri düşerse öncekinin verisi kalıyor. **Soru:** aynı desen
+  başka ekranlarda da var mı? (Seçim değişince eski verinin kalması.)
 
 ### 4.4 · Hâlâ açık, tekrar raporlamana gerek yok
 
-**MIYOP-003** · **MIYOP-004** · **MIYOP-005** · **MIYOP-006** ·
-**MIYOP-017** · **MIYOP-018** · **MIYOP-040** · **MIYOP-045** (kapsam
-düzeltildi, kapanmadı) · **MIYOP-047** (0033/0034/0038 imza dirilmesi) ·
-bayat prova listesi (11 dosya) · 13 kör prova.
+**MIYOP-003** · **004** · **005** · **006** · **017** · **018** ·
+**040** · **043** (0091 bekliyor) · **045** · **047** · **049** · **050** ·
+bayat prova listesi (11) · kör prova listesi (13).
 
-Sıradaki büyük işim **B başlığı**: `docs/BITMIS-URUN-EKSIKLERI.md`
-içindeki "yarım işler" — altı ekranın tarayıcıya yazması (3.1–3.5), şube
-seçiminin sorgulara geçmemesi (MIYOP-008), etiket ekranında veri
-karışması (MIYOP-010). Bunlarla ilgili yeni bir ayrıntın varsa öne al.
+⚠️ Bu turda **giriş yüzeyine bakma** — oraya yeni kod gelmedi ve
+dağıtımdan sonra ayrıca denetleteceğim.
 
 ## 5 · ÇIKTI BİÇİMİ
 
@@ -157,14 +161,16 @@ karışması (MIYOP-010). Bunlarla ilgili yeni bir ayrıntın varsa öne al.
 ## Özet
 <üç cümle: durum ne, en kritik ne, bir önceki denetime göre ne değişti>
 
-## 4.1 · giris-yap denetimi (EN ÖNEMLİ BÖLÜM)
-<altı sorunun her biri için: bulgu VAR/YOK + satır + somut senaryo>
+## 4.1 · Altı ekran
+<her ekran için beş sorunun cevabı; tablo hâlinde. "Kaydedildi" diyip
+ tarayıcıda bırakan SATIR numarasıyla>
 
-## 4.2 · 0091 neyi kırar
-<her çağıran/test/prova için: kırılır mı, nasıl, önce ne yapılmalı>
+## 4.2 · Mock ve "mış gibi" taraması (EN ÖNEMLİ BÖLÜM)
+<her bulgu: dosya + satır, ne gösteriyor, kullanıcı nerede görür,
+ SİLİNEBİLİR mi yoksa GERÇEK VERİYE BAĞLANMALI mı>
 
-## 4.3 · Giriş testleri yeterli mi
-<eksik kabul kriterleri>
+## 4.3 · MIYOP-008 / MIYOP-010
+<eklenecek kabul kriterleri>
 
 ## Yeni bulgular
 <MIYOP-031'den devam numaralandır>
