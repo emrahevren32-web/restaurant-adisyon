@@ -30,9 +30,8 @@ ve saklama koşulunu anlattı; aşağıdakiler kalan beş soru.
 
 ## B · YARIM EKRANLAR (demo öncesi · HEDEFLER A1)
 
-- ⬜ **B1 · Firma Profili'ni kim değiştirebilsin?** Özellikle **vergi
-  numarası**: fatura kesmeyi etkiliyor. Yalnız işletme sahibi mi, müdür de
-  mi? (HEDEFLER 3.1.1)
+- ✅ **B1 · CEVAPLANDI** (Emrah, 21.10 · aşağıda "Cevaplananlar"). İsmet'e
+  yine sorulabilir ama iş bekletilmiyor.
 - ⬜ **B2 · Şube Yetkileri ekranında** bir kullanıcının birden çok şubeye
   erişimi normal mi, istisna mı? Mutfakta kaç kişi iki şubede birden
   çalışıyor?
@@ -67,6 +66,21 @@ ve saklama koşulunu anlattı; aşağıdakiler kalan beş soru.
 ---
 
 ## Cevaplananlar
+
+- ✅ **B1 · Firma Profili'ni kim değiştirebilir** (Emrah, 21.10) —
+  **yalnız işletme sahibi.** Müdür değiştiremez.
+  ⚠️ Bu karar aslında **zaten veritabanında yazılıydı:** göç `0015`
+  `isletme_muduru` rolüne `company.manage` iznini **vermiyor** ve gerekçesi
+  göçün içinde duruyor: *"müdür işi yürütür, işletmenin kimliğini ve kimin
+  neye erişeceğini değiştirmez. O yetki sahiptedir."* Göç `0085` de
+  `company` tablosuna `app.izin_gerek('company.manage')` kapısını koymuş.
+  Yani Emrah'ın sezgisi ile haftalar önce yazılmış kural aynı yere çıktı;
+  benim işim bunu ekranda **bozmamak.**
+  Vergi numarası için ayrı bir izin **açılmadı:** firma kimliği bir bütün
+  olarak `company.manage` ile korunuyor. Müdürün telefon/adres gibi
+  alanları düzeltmesi istenirse o **yeni bir izin** olur, yeni göç ister;
+  bugün gerek yok. → İsmet'e: *"müdürün firma bilgisinde düzeltmesi gereken
+  bir alan oluyor mu?"*
 
 - ✅ **Numunenin saklama süresi ve koşulu** (Emrah, 20.10) — kapalı üründe
   SKT'ye kadar, açılmışta açık kalma süresi kadar; saklama koşulu

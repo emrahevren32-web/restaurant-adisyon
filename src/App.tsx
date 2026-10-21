@@ -18,7 +18,6 @@ import CustomerStatistics from './pages/CustomerStatistics'
 import CompanyManagement from './pages/CompanyManagement'
 import BillingManagement from './pages/BillingManagement'
 import SectorManagementCenter from './pages/SectorManagementCenter'
-import QRMenu from './pages/QRMenu'
 import Login from './pages/Login'
 import SifreBelirle from './pages/SifreBelirle'
 import VardiyaKilidi from './components/VardiyaKilidi'
@@ -469,7 +468,19 @@ const ILK_DAVET: DavetBilgisi =
 
 export default function App(){
   const [davet, setDavet] = React.useState<DavetBilgisi>(ILK_DAVET)
-  const qrRouteMatch = window.location.pathname.match(/^\/qr\/([^/?#]+)/)
+  // ── 2026-10-21 · PUBLIC QR YOLU KAPATILDI (MIYOP-067) ──────────────────
+  // Burada `/qr/<id>` yolunu yakalayan bir eşleşme vardı ve eşleşince
+  // `QRMenu` ekranını DOĞRUDAN döndürüyordu — yani `business-qr-menu`
+  // modülü `foundationScope: 'frozen'` olmasına rağmen o sayfa açılıyordu.
+  // Donmuş rota kapısı `BusinessWorkspaceRouteHost`ta duruyor ama bu dönüş
+  // o kapının DIŞINDAYDI (Codex, MIYOP-067).
+  // Dahası ekran "Görevli çağrınız iletildi" / "Talebiniz görevli onayına
+  // gönderildi" diyordu; yazım yalnız `localStorage`a gidiyordu, sunucuya
+  // hiçbir şey iletilmiyordu. Emrah'ın kuralı: *"ortaya koyduğumuz bir şey
+  // varsa o şey çalışsın... mış gibi yapmasın."*
+  // ⚠️ Yol GERİ AÇILACAKSA önce gerçek servis yazılır (masa/talep/çağrı
+  // tabloları + RLS), sonra bu yol açılır. Modülün ne işe yaradığı
+  // `docs/kararlar/kaldirilan-moduller.md`ye yazılacak (HEDEFLER 3.8.6).
   const businessApplicationRouteMatch = window.location.pathname.match(/^\/(?:basvuru|apply)\/?$/)
   // Müşteri sipariş portalı (A4C3). Kiracı bu bağlantıyı KENDİ SİTESİNE
   // gömüyor; bağlantı bir sır taşımıyor, kimliği e-posta belirliyor.
@@ -941,6 +952,34 @@ export default function App(){
     return () => { iptal = true }
   }, [izinleriTamamla, currentUser])
 
+  /**
+   * Profilim ekranı kaydettiğinde uygulama kabuğundaki kullanıcı kopyasını
+   * günceller (MIYOP-066).
+   *
+   * ⚠️ NEDEN GEREKLİ: veritabanına yazmak yetmiyordu. Yan menü, kilit
+   * ekranı ve baş harfler `currentUser`dan ve `ra_auth` önbelleğinden
+   * okuyor; onlar güncellenmediği için ekran yeni adı, menü ESKİ adı
+   * gösteriyordu. Tuzak 103'ün bir örneği daha: katmanda doğru, ekranda
+   * yanlış.
+   *
+   * ⚠️ `taze` YALNIZ ad ve telefon taşır. Rol, izin, kiracı ve kimlik
+   * alanları `currentUser`dan geliyor — buraya rol yazılırsa yetki
+   * yükseltmesinin arka kapısı olur. Veritabanı tarafı zaten reddeder
+   * (göç 0012) ama arayüz de denemeyecek.
+   */
+  const handleProfileChange = React.useCallback((taze: User) => {
+    setUserState(onceki => {
+      if(!onceki) return onceki
+      const sonraki: User = {
+        ...onceki,
+        fullName: taze.fullName,
+        phone: taze.phone,
+      }
+      setCurrentUser(sonraki)
+      return sonraki
+    })
+  }, [])
+
   const navGroupsForCurrentUser = React.useMemo<NavGroup[]>(() => {
     // ── 2026-10-16 · PLATFORM SAHİBİ KİRACI MENÜLERİNİ GÖRMEZ ────────────
     // Eski kural: "platform admini bir firmaya bağlıysa İKİ yüzeyi birden
@@ -1052,10 +1091,6 @@ export default function App(){
 
   const toggleNavGroup = (groupKey: NavGroupKey) => {
     setOpenGroupKey(current => current === groupKey ? null : groupKey)
-  }
-
-  if(qrRouteMatch){
-    return <QRMenu tableId={qrRouteMatch[1]} />
   }
 
   if(businessApplicationRouteMatch){
@@ -1217,6 +1252,7 @@ export default function App(){
           onOpenWorkspaceSettings={openWorkspaceSettingsFromWelcome}
           onOpenWorkspaceRoute={openWorkspaceRouteFromWelcome}
           onModuleLifecycleChanged={handleWorkspaceModuleLifecycleChanged}
+          onProfileChange={handleProfileChange}
         />
       )}
       {route === 'business-registration-system' && currentUser.role === 'Admin' && !platformEkraniHazirDegil && (

@@ -364,6 +364,59 @@ brif eski kapsamıyla duruyordu, Emrah da onu yapıştırdı. ⚠️ Kural: bir
 dosya yazımı REDDEDİLDİYSE commit mesajı düzeltilir ya da commit o turda
 atılmaz. Bir reddi "sonra hallederim" diye geçmek, geçmişi yanlış yazmaktır.
 
+**106 · Bir katmanda düzelttiğin yalanı, başka katman geri söylüyor.**
+Göç `0084` tam olarak şunu onardı: başvuru onayı `company.legal_name`
+alanına `company_name`i KOPYALIYORDU, yani uydurma bir ticari unvan
+yazıyordu. Veritabanı tarafı düzeldi. Ama `storage.ts`teki
+`normalizeCompany` hâlâ aynı şeyi yapıyor:
+`legalName: item.legalName || companyName` ve
+`authorizedPerson: item.authorizedPerson || ownerName || companyName`.
+Firma Profili ekranı veriyi oradan okuduğu için kullanıcı boş olması
+gereken yasal unvanı **dolu** görüyor; alanı boşaltsa normalizasyon
+yeniden dolduruyor. ⚠️ Kural: bir kusuru onardığında **aynı kusurun diğer
+katmanda yaşayıp yaşamadığını ölç.** "Veritabanında onarıldı" cümlesi,
+"ekranda onarıldı" demek değildir. Bu, tuzak 103'ün ("ekranda gördüğünü
+doğrula") ters yönü: oradaki tehlike onarımın ekrana ulaşmaması, buradaki
+tehlike ekranın kendi başına yalan üretmeye devam etmesi.
+
+**107 · Sahte veri aramak için "mock" kelimesini aramak yetmez.**
+`mock-rota-sizintisi.arch.test.ts` yalnız iki imzayı suç sayıyor:
+`*.mock.ts(x)` dosyaları ve `SEED…COUNT` + `localStorage.setItem` deseni.
+Codex'in 21.10 taraması gösterdi ki depoda **adı mock olmayan 27 tane
+`createDemo*` üreticisi** var ve bunların çoğu "depo boşsa demo üret"
+dalından geçiyor. Bunlardan dördü (4 demo şube) açık `branch-permissions`
+ekranına, biri (bakım + lisans duyurusu) **müşterinin gördüğü portala**
+ulaşıyor. ⚠️ Kural: kapsamı iddiadan dar olan bir test, iddiayı
+güçlendirmez — **zayıflatır.** "Bakmadık" dürüsttür; "baktık, temiz"
+yanlıştır. Bir testin kapsamını, savunduğu cümleyle birlikte yaz: bu test
+"depoda mock dosyası yok" diyebilir, "uydurma veri yok" **diyemez.**
+
+**108 · Bir ekranı onarmak, o ekranı besleyen ortak kaynağı onarmaz.**
+Profilim'i gerçek veriye bağladım ve çıcır 6'dan 5'e indi — doğru iş. Ama
+kalan dört ekranın hepsi **aynı iki fonksiyondan** besleniyor:
+`loadBranches()` ve `loadCompanies()`. İkisi de depo boşken demo satır
+üretiyor, üstelik `company-bridge` gerçek şubeleri aynalarken bu demo
+satırları **koruyarak** geri kaydediyor — yani sahte veri kalıcı hâle
+geliyor. Ekranları tek tek onarmak, kaynak sahte üretmeye devam ettiği
+sürece sırayı kısaltmıyor. ⚠️ Kural: ekran borcu listesinde iki ekran aynı
+kaynağı okuyorsa, **önce kaynağı** onar. Bu, tuzak 90'ın ("kapı sayma,
+kapısız yüzey ölç") ekran hâlidir.
+
+**109 · "Kapı var" demek, kapıya giden BÜTÜN yolları saydığın anlamına
+gelmez.** 21.10'da *"donmuş modüller rota kesmesiyle kapalı"* dedim ve
+üç kapı gösterdim: registry süzmesi, `App`in render ettiği rota kümesi,
+`RouteHost`un ikinci reddi. Üçü de doğru. Ama `App.tsx` içinde `/qr/<id>`
+yolunu yakalayıp donmuş modülün sayfasını **doğrudan** döndüren bir dal
+vardı ve o dal üç kapının **hiçbirinden** geçmiyordu (MIYOP-067). Codex de
+ilk turda aynı kör noktada durmuş, ikinci turda kendi değerlendirmesini
+düzeltti. ⚠️ Kural: bir kapının yeterliliğini savunurken **o kapıya
+girmeyen yolları ara** — public yollar, derin bağlantılar, hash yolları,
+doğrudan render eden erken dönüşler. Kapıyı değil, **yüzeyi** say (tuzak
+90) ve sonra o sayıyı bir testle dondur ki yeni yol sessizce eklenmesin.
+⚠️ Bu tuzağın küçük kardeşi aynı gün bende de çıktı: Profilim'in kabuk
+geri çağrısını **yazdım** ama prop'un geçirilip geçirilmediğini ölçmedim
+(MIYOP-066). Yazılmış bir çağrı, bağlanmış bir çağrı değildir.
+
 ---
 
 ## 5 · TEST İŞBÖLÜMÜ VE TESLİM KONTROL LİSTESİ
@@ -403,3 +456,16 @@ Son söz onun çıktısındadır.
 15. Yetki provasında **gerçek rolü tak** (`set local role authenticated`)
     ve reddin **DOĞRU SEBEPLE** olduğunu sına: 42501 ile MI403 aynı şey
     değildir. Yanlış sebeple reddedilen bir yazım, kapı çalışıyor sanılır.
+16. Bir kusuru onardıysan **aynı kusurun diğer katmanda yaşayıp
+    yaşamadığını ölç** (tuzak 106). Veritabanında onarılmış bir yalan,
+    tarayıcı katmanında yaşamaya devam edebilir.
+17. Bir test yazdıysan **kapsamını cümleyle birlikte yaz** (tuzak 107).
+    Test neyi kanıtlamıyorsa onu da söyle; yoksa test, bakılmamış bir yeri
+    "temiz" ilan eder.
+18. Ekran borcu kapatıyorsan **ekranların ortak kaynağına bak** (tuzak
+    108). İki ekran aynı fonksiyondan besleniyorsa önce o fonksiyon onarılır.
+19. Bir kapının yeterli olduğunu söylüyorsan **o kapıya girmeyen yolları
+    ara** (tuzak 109): public yollar, hash yolları, doğrudan render eden
+    erken dönüşler. Sonra yüzeyi bir testle dondur.
+20. Bir geri çağrı (callback) yazdıysan **bağlandığını ölç.** Yazılmış
+    çağrı, bağlanmış çağrı değildir (MIYOP-066).

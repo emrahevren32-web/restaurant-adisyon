@@ -1,52 +1,127 @@
-Profilim gercek veriye baglandi (HEDEFLER 3.2 bitti) - cicir 6 -> 5
+MIYOP-066 + MIYOP-067 kapandi, B1 karari, Codex 21.10 dogrulandi
 
-Emrah'in sirasi: Profilim -> Firma Profili -> Subeler -> Sube Yetkileri ->
-Isletme Ayarlari. Birincisi bitti, 5 yarim ekran kaldi.
+Codex iki turda 10 yeni bulgu verdi (058-067). Hepsini iddiaya
+guvenmeden dosya-satir okuyarak dogruladim. Ikisini BU TURDA kapattim,
+kalanlar HEDEFLER'e yazildi.
 
-- src/users/profil.repository.ts (YENI)
-  . profilimiOku(): oturumdaki auth.uid() ile app_user satirini okuyor.
-    Firma adi ve sube adlari AYRI okunuyor - biri duserse profil yine
-    goruntulenir. Okunamayan alan tire isaretiyle kalir, UYDURULMAZ.
-  . profilimiYaz(): YALNIZ full_name, phone, updated_at yaziyor. Bos
-    telefon '' degil null (bilinmiyor ile bos birakildi ayni sey degil).
-  . sifremiDegistir(): sifre yalniz Supabase Auth'a gidiyor, ardindan
-    sifremi_belirledim ile gecici sifre bayragi dusuyor. Sifre bizim
-    veritabanimiza, gunluge ve denetim kaydina HIC girmiyor.
-  . Hata metinleri: saglayicinin ham metni kullaniciya gosterilmiyor;
-    42501/MI403 -> "Bu alani degistirme yetkiniz yok."
+KAPATILDI 1 - MIYOP-067 - P1 - donmus modul public yoldan aciliyordu
+- App.tsx /qr/<id> yolunu yakalayip QRMenu ekranini DOGRUDAN
+  donduruyordu. business-qr-menu modulu foundationScope: 'frozen'
+  (registry:820) olmasina ragmen sayfa aciliyordu, cunku donmus rota
+  kapisi BusinessWorkspaceRouteHost'ta ve bu donus o kapinin DISINDAYDI.
+- Ustelik ekran "Gorevli cagriniz iletildi" ve "Talebiniz gorevli
+  onayina gonderildi" diyordu; yazim yalniz localStorage'a gidiyordu.
+  Cifte ihlal: mis gibi + yapamadigimiz modulu tutmak.
+- Yol kaldirildi, QRMenu ice aktarmasi silindi, gerekce dosyanin icine
+  yazildi. src/pages/QRMenu.tsx diskte DURUYOR; silme isi 3.8'de,
+  kaldirilan-moduller.md yazildiktan sonra.
+- !! Ben daha once "donmus moduller rota kesmesiyle kapali" demistim;
+  EKSIKTI, public yollari saymamistim. Codex de ilk turda ayni kor
+  noktada durup ikinci turda kendi degerlendirmesini duzeltti.
 
-- src/pages/UserProfile.tsx (BASTAN YAZILDI)
-  . ../storage ve branch-directory.service ice aktarmasi SIFIR (olculdu).
-  . Kok neden buydu (tuzak 82): ekran loadUsers() ile localStorage'i
-    okuyordu, giris yapan kullanici ise Supabase'den geliyor ve o listeye
-    hic yazilmiyordu -> findIndex hep -1 -> "Kullanici kaydi bulunamadi".
-  . Kaydettikten sonra ekran veritabanindan YENIDEN OKUYOR. "Kaydedildi"
-    deyip ekranda eski degeri birakmak tam da bu ekranin eski kusuruydu.
-  . Sahte addActionLog denetim kaydi kaldirildi; gercek denetim goc
-    0091'in app_user tetiginde.
-  . Kullanici adi, giris adresi ve rol salt okunur; fotograf yok
-    (Emrah onayi 20.10).
+KAPATILDI 2 - MIYOP-066 - P2 - dun "bitti" dedigim is yarim kalmisti
+- UserProfile kaydettikten sonra onProfileChange cagiriyor ama
+  BusinessWorkspaceRouteHost bu prop'u GECIRMIYORDU. Veritabani ve
+  Profilim ekrani yeni adi gosteriyor, yan menu ile kilit ekrani ESKI
+  adi gosteriyordu. Kusur bendeydi: yazdigim geri cagrinin baglanip
+  baglanmadigini olcmedim.
+- App.handleProfileChange kabugu ve ra_auth onbellegini guncelliyor;
+  YALNIZ ad + telefon tasiniyor, rol/izin/kiraci currentUser'dan
+  geliyor (yetki yukseltmesinin arka kapisi olmasin).
+- Ekran artik formdaki degeri DEGIL veritabanindan geri okunani tasiyor.
 
-- src/users/profil.repository.test.ts (YENI, 13 test)
-  . Merkezi test update()e giden nesnenin anahtarlarini TAM OLARAK
-    ['full_name','phone','updated_at'] olarak donduruyor ve yedi yasak
-    kolonun (role_code, username, username_key, is_active, tenant_id,
-    company_id, auth_user_id) yoklugunu ayrica dogruluyor. Ileride biri bu
-    nesneye alan eklerse test kirilir.
+YENI TEST - src/modules/public-yol-ve-kabuk.arch.test.ts
+- Public yol YUZEYINI olcuyor, tek ornegi kovalamiyor: App.tsx'teki her
+  pathname.match eslesmesi BILINEN_PUBLIC_YOLLAR listesinde olmak
+  zorunda. Bugun iki tane: basvuru formu + musteri portali. Yeni public
+  yol eklemek serbest, SESSIZCE eklemek degil.
+- 066 zincirinin uc halkasini da donduruyor (ekran cagiriyor, RouteHost
+  gecirivor, App veriyor) ve kabuk guncellemesine rol/izin yazilmasini
+  yasakliyor.
+- Uc olumsuz deneme yapildi: QR dalini geri koy -> kirmizi; prop'u geri
+  al -> kirmizi; handleProfileChange'e role ekle -> kirmizi.
+- Sozdizimi denetimi: dort dosya da temiz (bun build --no-bundle).
 
-- src/modules/kiraci-ekrani-veri-kaynagi.arch.test.ts
-  . my-profile BILINEN_BORC listesinden cikarildi, ust sinir 6 -> 5.
-  . Bu test listedeki her ekranin GERCEKTEN tarayiciya bagli oldugunu da
-    dogruluyor; yani satiri silmek zorunluydu, secenek degildi. Ekran
-    duzeldigi icin test onu artik "listeden cikarin" diye kirardi.
+B1 - FIRMA PROFILINI KIM DEGISTIREBILIR
+- Emrah'in karari: YALNIZ ISLETME SAHIBI. Mudur degistiremez.
+- Bu karar zaten veritabaninda yaziliydi: goc 0015 isletme_muduru
+  rolune company.manage iznini VERMIYOR ve gerekcesi gocun icinde:
+  "mudur isi yurutur, isletmenin kimligini ve kimin neye erisecegini
+  degistirmez. O yetki sahiptedir." Goc 0085 de company tablosuna
+  izin_gerek('company.manage') kapisini koymus.
+- Vergi numarasi icin AYRI izin acilmadi; firma kimligi bir butun
+  olarak company.manage ile korunuyor. Mudurun telefon/adres duzeltmesi
+  istenirse o yeni bir izin olur, yeni goc ister. Bugun gerek yok.
 
-- docs/HEDEFLER.md: 3.2 ve 3.2.3 kapandi, 3.2.4/3.2.5 eklendi; 0.A
-  tablosunda A1 "1/5 bitti" olarak isaretlendi.
+OLCUM 1 - FIRMA PROFILI YAZMA SOZLESMESI (HEDEFLER 3.1.2)
+- 0006 authenticated rolune company uzerinde TABLO seviyesinde
+  select/insert/update verdi. 0012 bunu yalniz tenant ve app_user icin
+  kolon yetkisine indirdi; company ve branch DOKUNULMADI.
+- Asil kapi tetikte: 0085 izin_company -> company.manage. RLS satiri
+  kiraciya bagliyor. 0091 ile denetime dusuyor.
+- Sonuc: ekran company tablosuna DOGRUDAN yazabilir, RPC gerekmiyor.
+- Acik soru 1.10.3 olarak yazildi: company.manage izni olan bir sahip
+  company.status alanini kendi satirinda 'Aktif' yapabilir mi? Pasife
+  alma bu alana yaziyorsa musteri kendi askisini kaldirabilir.
+  IDDIA ETMIYORUM, olculecek.
+- Formdaki alanlarin TAMAMI company tablosunda mevcut (0001). Yeni alan
+  gocu GEREKMIYOR; eksik olan okuma/yazma katmani.
 
-NOT: Veritabani tarafi degismedi. app_user'da authenticated rolunun tablo
-seviyesinde UPDATE hakki yok (0012); role_code / is_active / username
-ekrani atlayip REST'e gonderilse bile 42501 ile reddedilir. Ekrandaki
-"salt okunur" rozetleri bir kolaylik, koruma veritabaninda.
+OLCUM 2 - SAHTE VERI URETICI YUZEYI (HEDEFLER 3.10)
+- Depoda 27 tane createDemo* uretici var, HICBIRI .mock adinda degil.
+- Dogruladigim P0'lar:
+  . 058 - readBranchesFromStorage (storage.ts:478) depo bossa DORT demo
+    sube uretiyor (Merkez/Istanbul/Ankara/Izmir, uydurma telefon-adres,
+    uydurma mudur adlari). company-bridge.ts:89 gercek subeleri
+    aynalarken bu demo satirlari KORUYARAK geri kaydediyor - yani sahte
+    veri kalici hale geliyor. Acik branch-permissions ekrani bunlari ham
+    loadBranches() ile aliyor, suzgece ve sayaca katiyor.
+  . 059 - notification.service.ts:235 kayit yokken "Planli bakim
+    bildirimi - Pazar gecesi bakim penceresi" ve "Lisans yenileme
+    hatirlatmasi" duyurularini uyduruyor; Login.tsx:436 bunlari
+    MUSTERININ GORDUGU portalda basiyor. Tarihler her acilista yeniden
+    uretiliyor. Vermedigimiz bir bakim taahhudu.
+  . 060 - normalizeCompany (storage.ts:2841-2857)
+    legalName = item.legalName || companyName,
+    authorizedPerson = item.authorizedPerson || ownerName || companyName.
+    Bos olmasi gereken ticari unvan ve yetkili kisi firma adiyla
+    doluyor; kullanici alani bosaltsa normalizasyon geri dolduruyor.
+    !! Bu, goc 0084'un veritabani tarafinda ONARDIGI yalanin aynisi.
+  . 061 - loadBranches() ve loadBranchPermissions() (storage.ts:4322,
+    4330) HICBIR kiraci suzgeci uygulamiyor - loadCompanies()in aksine.
+    A hesabinin aynalanmis subeleri B'nin listesine dusebiliyor.
+    Veritabaninda yetki yukseltmesi YOK; bu yerel veri ifsasi.
+- P1'ler: 062 (normalizeCompany shortName/website/postalCode/
+  authorizedTitle, normalizeBranch branchType/postalCode/isHeadOffice
+  dondurmuyor -> kayitta sessizce siliniyor), 063 (saveCompanyProfile
+  suzulmus listeyi saveCompanies'e veriyor; ortak koleksiyon bununla
+  degistiriliyor), 064 (010'un ayni kusuru Depo, Siparisler,
+  Musteriler, Is Emirleri, Sevkiyatlar'da da var), 065 (Karsilama
+  "ilk stok karti tamamlandi" rozetini modul varligindan olcuyor).
+- MIYOP-008 kapsami olculdu: depoBaglamiKur'u 17 sayfa tercih edilen
+  subeyi VERMEDEN cagiriyor; warehouse.context.ts:131 ilk subeye
+  dusuyor. App.tsx:1189 ekrani yeniden kuruyor ama yeniden kurulan
+  ekran yine tercihsiz baglam yapiyor - o yuzden yetmiyor.
+
+DORT YENI TUZAK
+- 106 - Bir katmanda duzelttigin yalani baska katman geri soyluyor.
+- 107 - Sahte veri aramak icin "mock" kelimesini aramak yetmez.
+  Kapsami iddiadan dar olan test, iddiayi GUCLENDIRMEZ - zayiflatir.
+- 108 - Bir ekrani onarmak, o ekrani besleyen ortak kaynagi onarmaz.
+- 109 - "Kapi var" demek, kapiya giden BUTUN yollari saydigin anlamina
+  gelmez. Public yollar, hash yollari, dogrudan render eden erken
+  donusler. Kapiyi degil YUZEYI say ve testle dondur.
+
+MIYOP-008 EK OLCUM (Codex, ikinci tur): baglami duzeltmek YETMEZ.
+Bazi liste sorgulari baglami alip kullanmiyor - "async hepsi(_ctx)"
+imzasi branch_id suzgeci olmadan sorgu atiyor: work-order:186,
+shipment:259, stock-count:191, sales-order:399 ve satin alma listeleri.
+Yani sube secimi baglama gecirilse bile bu listeler tum subeleri
+dondurmeye devam eder.
+
+SIRA DEGISTI: Firma Profili ekranindan once 3.10.1 (loadBranches /
+loadCompanies demo uretimini kaldir) yapilacak. Aksi halde her yeni
+ekran ayni sahte satirlari devraliyor.
 
 Co-Authored-By: Claude Opus 5 <noreply@anthropic.com>
 Claude-Session: https://claude.ai/code/session_019BwYM3mAXZUhp4YGj7tp2y

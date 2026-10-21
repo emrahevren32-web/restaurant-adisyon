@@ -31,8 +31,8 @@ neyin neden yapıldığı kaybolmasın.
 |---|---|---|
 | **A1** | **B başlığı · yarım ekranlar** (3.1–3.5) · **1/5 bitti** | Kaydet'e basınca veri tarayıcıda kalıyor. Demoda ilk fark edilecek şey bu. **Sıra: ~~Profilim~~ ✅ (20.10) → Firma Profili → Şubeler → Şube Yetkileri → İşletme Ayarları** |
 | **A2** | **MIYOP-008** · şube seçimi sorgulara geçmiyor | B şubesi seçiliyken kayıt A'ya yazılıyor. Demoda şube değiştirilirse görünür. |
-| **A3** | **MIYOP-010** · etiket ekranında ürünler karışıyor | Etiket, demonun en gösterişli parçası; yanlış ürünün alerjeni basılırsa itibar biter. |
-| **A4** | **Mock dosyaları temizliği** (3.8) | Önce `kaldirilan-moduller.md`, sonra silme. |
+| **A3** | **MIYOP-010** · etiket ekranında ürünler karışıyor · **MIYOP-064 ile birlikte 6 ekran** | Etiket, demonun en gösterişli parçası; yanlış ürünün alerjeni basılırsa itibar biter. ⚠️ Codex 21.10'da aynı kusuru Depo, Siparişler, Müşteriler, İş Emirleri ve Sevkiyatlar'da da buldu — tek ekrana yama atmak aileyi kapatmıyor (3.7). |
+| **A4** | **Sahte veri üreticileri** (3.8, 3.10) · **4 tanesi P0** | Önce `kaldirilan-moduller.md`, sonra silme. ⚠️ İş büyüdü: mesele dosya adı `*.mock.ts` olanlar değil, **27 `createDemo*` üreticisi.** Dördü açık ekrana, biri **müşterinin gördüğü portala** ulaşıyor (MIYOP-058/059/060/061). |
 | **A5** | **Şahit numune** (3.9.1) | Gerçek gıda güvenliği gereği; sahte ekran olarak değil, tabloyla. ⚠️ Tasarım kararı yazıldı: `docs/kararlar/sahit-numune.md`. **Beş açık soru cevaplanmadan göç YAZILMAYACAK.** |
 | **A6** | MIYOP-043 son adımı (0091) + dağıtım | Güvenlik borcu kapanmış olsun. |
 
@@ -308,6 +308,27 @@ güvenlik sınırı değil. Gerçek sınır veritabanında olmalı.
   ⚠️ `app.yetkim_var`dan ASLA alınmayacak — bütün kapılar ona bağlı.
   ⚠️ `app.kapi_disi_baglam`dan da alınmayacak (0089): alınırsa kapılar
   MI403 yerine 42501 verir ve yazımlar YANLIŞ SEBEPLE reddedilir.
+- ⬜ **1.10** **DENETİM VE KOLON YETKİSİ · kalan ölçüm**
+  - ⬜ **1.10.2** **Denetlenmeyen 26 kiracı tablosu ayrıştırılacak.**
+    `0091` yetki tablolarını kapattı; notice 26 tablo daha listeledi.
+    Bunların bir kısmı **ekle-sadece** defter ve kendi yazar kolonunu
+    taşıyor (denetim tetiği gereksiz olabilir), bir kısmı gerçek boşluk.
+    Sayarak değil **tek tek okuyarak** ayrılacak; gerekçesi yazılacak.
+  - ⬜ **1.10.3** **`company` ve `branch`ta kolon yetkisi var mı?**
+    Ölçüm (21.10): `0006` `authenticated` rolüne `tenant, company, branch,
+    app_user, …` üzerinde **tablo seviyesinde** `select, insert, update`
+    verdi. `0012` bunu **yalnız `tenant` ve `app_user`** için kaldırıp
+    kolon yetkisine indirdi; **`company` ve `branch` dokunulmadı.**
+    Bugün kapı tetikte (`company.manage` / `branch.manage`, `0085`) ve
+    RLS satırı kiracıya bağlıyor — yani **sunucu tarafı kapı VAR.**
+    Soru şu: `company.manage` izni olan bir işletme sahibi `company.status`
+    alanını kendi satırında `'Aktif'` yapabilir mi? Eğer platform bir
+    müşteriyi **bu alanla** pasife alıyorsa, müşteri kendi askısını
+    kaldırabilir. ⚠️ **İDDİA ETMİYORUM, ÖLÇÜLECEK:** "pasife al" düğmesi
+    hangi alana yazıyor (`company.status` mı, `tenant.status` mı, lisans
+    mı)? `tenant.status` `0012` ile korunuyor; `company.status` korunmuyor.
+    Emrah'ın kuralı: *"ödemeyen müşteri tek düğmeyle pasife alınabilmeli"* —
+    o düğmenin geri alınamaz olması gerekir.
 
 ---
 
@@ -337,11 +358,71 @@ Kullanıcı Kaydet'e basıyor, ekran kaydedildi diyor, veri tarayıcıda kalıyo
 `src/modules/kiraci-ekrani-veri-kaynagi.arch.test.ts` bunları dondurdu —
 liste yalnız KISALABİLİR (çıcır sayısı 6 → 5).
 
+⚠️ **21.10'da öğrenilen (tuzak 108):** kalan dört ekranın hepsi **aynı iki
+fonksiyondan** besleniyor — `loadBranches()` ve `loadCompanies()`. İkisi de
+depo boşken **demo satır üretiyor**. Yani ekranları tek tek onarmak sırayı
+kısaltıyor ama kaynağı temizlemiyor. **Firma Profili'nden önce kaynak
+onarılacak** (3.10.1), yoksa her yeni ekran aynı sahte satırları
+devralıyor.
+
 Emrah'ın onayladığı sıra:
 
-- ⬜ **3.1** Firma Profili (`company-profile`)
-  - ⬜ **3.1.1** Kim değiştirebilsin? Vergi numarası fatura kesmeyi
-    etkiliyor. → `ismete-sorulacaklar.md` **B1**
+- 🔄 **3.1** Firma Profili (`company-profile`) — **sıradaki ekran**
+  - ✅ **3.1.1** **KİM DEĞİŞTİREBİLİR · KARAR VERİLDİ** (Emrah, 21.10):
+    **yalnız işletme sahibi.** Müdür değiştiremez.
+    ⚠️ Bu karar **zaten veritabanında yazılıydı:** göç `0015`
+    `isletme_muduru` rolüne `company.manage` iznini vermiyor
+    (`code not in ('users.manage','roles.manage','settings.manage','company.manage')`)
+    ve gerekçesi göçün içinde: *"müdür işi yürütür, işletmenin kimliğini ve
+    kimin neye erişeceğini değiştirmez. O yetki sahiptedir."*
+    Vergi numarası için **ayrı izin açılmadı**; firma kimliği bir bütün
+    olarak `company.manage` ile korunuyor.
+  - ✅ **3.1.2** **YAZMA SÖZLEŞMESİ ÖLÇÜLDÜ** (21.10). Profilim'de olduğu
+    gibi önce kapıyı ölçtüm:
+    · `authenticated` rolü `company` tablosunda **tablo seviyesinde**
+      `select, insert, update` hakkına sahip (`0006`). Profilim'deki gibi
+      kolon kısıtı **YOK** — orada `0012` tablo hakkını kaldırıp dört kolon
+      vermişti, `company` için aynı şey yapılmadı.
+    · Asıl kapı tetikte: `0085` → `izin_company` tetiği
+      `app.izin_gerek('company.manage')`. Yani izinsiz UPDATE **sunucuda**
+      reddediliyor; ekranı atlayıp REST'e gitmek işe yaramıyor.
+    · RLS `company_tenant_isolation` satırı kiracıya bağlıyor (`0001`),
+      yani başka firmanın satırı görünmüyor/yazılmıyor.
+    · `0091` ile `company` **denetime** düşüyor: kim neyi değiştirdi yazılı.
+    **Sonuç: ekran `company` tablosuna doğrudan yazabilir, RPC gerekmiyor.**
+    ⚠️ Ama `0012` desenini burada da kurmak gerekip gerekmediği ayrı bir
+    soru → 1.10.3.
+  - ⬜ **3.1.3** **Ekranı gerçek veriye bağla.** Formdaki alanların
+    **tamamı** `company` tablosunda mevcut (`0001`: `short_name`,
+    `legal_name`, `tax_office`, `tax_number`, `phone`, `email`, `website`,
+    `address`, `city`, `district`, `postal_code`, `logo_url`,
+    `authorized_person`, `authorized_title`, `authorized_phone`,
+    `authorized_email`, `primary_sector_id`). **Yeni alan göçü GEREKMİYOR** —
+    eksik olan okuma/yazma katmanı.
+  - ⬜ **3.1.4** **MIYOP-060 · boş alan uydurularak doldurulmuyor.**
+    Bugün `normalizeCompany` (storage.ts:2841–2857) şunu yapıyor:
+    `legalName: item.legalName || companyName`,
+    `authorizedPerson: item.authorizedPerson || ownerName || companyName`,
+    `authorizedPhone: item.authorizedPhone || phone`. Yani ticari unvan boş
+    olsa ekran **firma adını** unvan gibi gösteriyor; kullanıcı alanı
+    boşaltsa normalizasyon geri dolduruyor.
+    ⚠️ **Bu tam olarak göç `0084`ün veritabanı tarafında ONARDIĞI yalan.**
+    Düzeltilmiş bir kusurun ikinci katmanda yaşaması → **tuzak 106.**
+    Kabul: DB'de boş olan yetkili/unvan ekranda boş görünecek; boşaltılan
+    alan tekrar firma adı olmayacak.
+  - ⬜ **3.1.5** **MIYOP-062 · kayıtta alan düşmesi.** `normalizeCompany`
+    dönüş nesnesinde `shortName`, `website`, `postalCode`,
+    `authorizedTitle` **yok** — tipte var (`types.ts:827–832`), kayıtta yok.
+    Kaydet `JSON.stringify(items.map(normalizeCompany))` yazdığı için bu
+    dört alan **sessizce siliniyor.** Kabul: her alana farklı değer gir →
+    kaydet → ekranı kapat/aç → yenile → hepsi yerinde olacak.
+  - ⬜ **3.1.6** **MIYOP-063 · bir firmayı kaydetmek diğerini düşürüyor.**
+    `saveCompanyProfile` (branch-directory.service.ts:126) **süzülmüş**
+    `loadCompanies()` sonucunu `saveCompanies()`e veriyor; `saveCompanies`
+    (storage.ts:4412) ortak koleksiyonu bununla **değiştiriyor** ve yalnız
+    `deletedAt` dolu olanları koruyor. Yani B firmasını kaydetmek A'nın
+    yerel kaydını siliyor. ⚠️ Veritabanında silme OLMUYOR — bu tarayıcı
+    katmanının kusuru; ekran DB'ye bağlanınca kendiliğinden kapanıyor.
 - ✅ **3.2** Profilim (`my-profile`) — **BİTTİ (20.10).** Artık veritabanını
   okuyup yazıyor; tarayıcı hafızasıyla ilgisi kalmadı
   - ✅ **3.2.1** **KÖK NEDEN BULUNDU.** Ekran `loadUsers()` ile
@@ -379,13 +460,71 @@ Emrah'ın onayladığı sıra:
     kolonun (`role_code`, `username`, `username_key`, `is_active`,
     `tenant_id`, `company_id`, `auth_user_id`) **yokluğunu** ayrıca
     doğruluyor. Yani ileride biri bu nesneye bir alan eklerse test kırılır.
+  - ✅ **3.2.6** **MIYOP-066 · "bitti" dediğim iş yarım kalmıştı.**
+    Codex buldu (21.10): ekran kaydettikten sonra `onProfileChange` çağırıyor
+    ama `BusinessWorkspaceRouteHost` bu prop'u **geçirmiyordu.** Sonuç:
+    veritabanı ve Profilim ekranı yeni adı gösteriyor, **yan menü ve kilit
+    ekranı eski adı** gösteriyordu. Zincirin üç halkası doğru, dördüncüsü
+    yok — **tuzak 103'ün dördüncü örneği** ve bu kez kusur bendeydi:
+    yazdığım geri çağrının bağlanıp bağlanmadığını ölçmemiştim.
+    Onarıldı: `App.handleProfileChange` kabuğu ve `ra_auth` önbelleğini
+    güncelliyor (yalnız ad + telefon; rol/izin/kiracı `currentUser`dan
+    geliyor), RouteHost prop'u geçiriyor, ekran **formdaki değeri değil
+    veritabanından geri okunanı** taşıyor.
+    Donduran test: `src/modules/public-yol-ve-kabuk.arch.test.ts` —
+    prop geri alınırsa, App geri çağrıyı vermezse ya da kabuk güncellemesine
+    rol/izin yazılırsa kırmızı olur (üç olumsuz deneme yapıldı).
   - ✅ **3.2.5** Çıcır testi güncellendi: `my-profile` `BILINEN_BORC`
     listesinden çıkarıldı, üst sınır 6 → 5 indirildi. ⚠️ Bu test, listedeki
     her ekranın GERÇEKTEN tarayıcıya bağlı olduğunu da doğruluyor; yani
     satırı silmek zorunluydu, seçenek değildi.
-- ⬜ **3.3** Şube Yetkileri (`branch-permissions`)
+- ⬜ **3.3** Şube Yetkileri (`branch-permissions`) — ⚠️ **en kirli ekran**
+  - ⬜ **3.3.1** **MIYOP-058 · P0 · dört demo şube ekranda.**
+    `BranchPermissions.tsx:65` ham `loadBranches()` çağırıyor;
+    `readBranchesFromStorage` (storage.ts:478) depo boşken
+    `createDemoBranches()` döndürüyor: **Merkez/İstanbul/Ankara/İzmir**,
+    uydurma telefon-adres, "Emrah Evren / Ayşe / Mehmet / Selin" müdür
+    adları. Üstelik `company-bridge.ts:89` gerçek şubeleri aynalarken bu
+    listeyi okuyup **demo satırları koruyarak** geri kaydediyor — sahte
+    veri KALICI hâle geliyor. Şube süzgeci ve şube sayacı bunları sayıyor.
+  - ⬜ **3.3.2** **MIYOP-061 · P0 · başka kiracının verisi görünebiliyor.**
+    `loadBranches()` ve `loadBranchPermissions()` (storage.ts:4322, 4330)
+    **hiçbir kiracı süzgeci uygulamıyor** — `loadCompanies()`in aksine.
+    A hesabıyla girip çıkıp B hesabıyla girildiğinde A'nın aynalanmış
+    şubeleri/erişimleri B'nin listesine düşebiliyor. ⚠️ Veritabanında yetki
+    yükseltmesi YOK (RLS + `izin_user_branch_access` duruyor); bu bir
+    **yerel veri ifşası.** Emrah'ın kuralı: *"müşterinin görmemesi gereken
+    hiçbir şey müşteri ekranında olmasın."*
+  - ⬜ **3.3.3** **Form, veritabanıyla bire bir eşleşmiyor.**
+    `user_branch_access` sadece **üyelik** tutuyor (kim hangi şubeye
+    erişiyor). Formdaki `canCreate/canEdit/canDelete` kolonları orada
+    **YOK** — gerçek yazma yetkisi rol/izinden geliyor. Yani ekran
+    taşınmadan **önce** neyi yönettiğine karar verilmeli: üyelik mi,
+    yoksa şube bazlı izin mi? İkincisi yeni göç ister. → İsmet **B2**
 - ⬜ **3.4** İşletme Ayarları (`settings`)
+  - ⬜ **3.4.1** **MIYOP-060b · sorulmamış soruya cevap.**
+    `DEFAULT_SETTINGS` (storage.ts:306) `vatRate: 10` yazıyor ve form bunu
+    **işletmenin KDV oranı** gibi gösteriyor. Kimse %10 demedi.
+    Belirlenmemiş değer boş görünmeli ya da alan kaldırılmalı.
+  - ⬜ **3.4.2** **Karşılığı olmayan alan.** Ad/logo için
+    `company.company_name` / `logo_url` var; **kiracı genelinde para birimi
+    ve KDV** için göçlerde karşılık YOK. (Sipariş/stok satırındaki
+    `vat_rate` işletme ayarı değil, satırın vergisi.) Bu iki ayar
+    korunacaksa **yeni şema** ister; korunmayacaksa alan kaldırılır.
+    ⚠️ Karar verilmeden ekran taşınmayacak.
+  - ⬜ **3.4.3** KDV ve para birimi ayrıca **ortak** `ra_settings` içine
+    yazılıyor; bir kiracının değeri diğerinin varsayılanına taşınabiliyor.
+    3.4.2 kararıyla birlikte kapanır.
 - ⬜ **3.5** Şubeler (`branches`)
+  - ⬜ **3.5.1** **MIYOP-062b · kayıtta alan düşmesi.** `normalizeBranch`
+    (storage.ts:2496) dönüşünde `branchType`, `postalCode`, `isHeadOffice`
+    **yok** — tipte var (`types.ts:1029–1043`). Kaydet bunları siliyor.
+  - ⬜ **3.5.2** Merkez şube iki yerde: `company.default_branch_id`
+    **yetkili kaynak**, `branch.is_head_office` **ayna** (ADR-002). Ekran
+    taşınırken ikisi **tek işlemde** güncellenmeli, yoksa ayrışır.
+  - ⬜ **3.5.3** Şube yazma kapısı `branch.manage` (`0085`) — müdürde VAR,
+    firma yönetiminden farklı. Bu bilinçli: müdür şube açar, firma
+    kimliğine dokunmaz.
 - ⬜ **3.9** **"Bu modülleri yapmıyor muyuz?" — ölçülmüş cevap** (Emrah
   sordu, 20.10). Veritabanı tablolarına bakarak:
   - ✅ **ŞOKLAMA YAPIYORUZ.** `BLAST_CHILLING` gerçek bir HACCP aşaması
@@ -425,13 +564,125 @@ Emrah'ın onayladığı sıra:
     `docs/kararlar/kaldirilan-moduller.md` yazılır: her modülün ne işe
     yaradığı, neden kaldırıldığı, gerçekten yapılacaksa hangi hedefe
     bağlandığı. **Kod gider, karar kalır.**
-  - ⬜ **3.8.5** Codex'e taratılacak: *"depoda mock/uydurma veri üreten
-    başka ne var — adı `.mock` olmayanlar dâhil?"* ⚠️ Benim taramam ad
-    desenine bakıyor; `storage.ts` örneği gösterdi ki asıl tehlike adı
-    mock olmayanlardır (tuzak 86).
+  - ✅ **3.8.5** **Codex taradı (21.10) ve korktuğum çıktı.** Soru şuydu:
+    *"depoda mock/uydurma veri üreten başka ne var — adı `.mock`
+    olmayanlar dâhil?"* Cevap: **27 tane `createDemo*` üreticisi**, hiçbiri
+    `.mock` adında değil. Dökümü ve ölçümü 3.10'da.
+  - ⬜ **3.8.7** **Mevcut testin kapsamı iddiadan DAR.**
+    `mock-rota-sizintisi.arch.test.ts:114` yalnız iki imzayı suç sayıyor:
+    `*.mock.ts(x)` dosyası ve `SEED…COUNT` + `localStorage.setItem` deseni.
+    `createDemo*` üreticileri bu imzaya uymuyor, portal da kiracı rota
+    taramasının dışında. Yani test *"depoda mock dosyası yok"* diyebilir,
+    *"uydurma veri yok"* **diyemez** — ama biz ikincisini anlamıştık.
+    ⚠️ Tuzak 107. Yapılacak: testin kapsamını `createDemo*` üreticilerini
+    ve portalı içine alacak şekilde genişlet; genişletmeden önce
+    **olumsuz deneme** yap (bir üreticiyi açık bir ekrana bağla, test
+    kırmızı olsun).
+- ⬜ **3.10** **SAHTE VERİ ÜRETİCİ YÜZEYİ · ÖLÇÜLDÜ (21.10)**
+  Codex'in bulgusunu **doğruladım** (dosya-satır okuyarak, iddiaya
+  güvenmeden) ve sonra yüzeyin tamamını saydım:
+  **27 `createDemo*` üreticisi** var. Çoğu "depo boşsa demo üret" dalından
+  geçiyor. Hangi ekrana ulaştığı ÖNEMLİ olan:
+  - ⬜ **3.10.1** **ÖNCE KAYNAK · `loadBranches()` ve `loadCompanies()`**
+    Dört açık ekran bu ikisinden besleniyor. `readBranchesFromStorage`
+    (storage.ts:478) demo şube üretiyor; `loadCompanies` (storage.ts:4393)
+    demo firma üretiyor. ⚠️ **Firma Profili'nden ÖNCE bu iki fonksiyon
+    temizlenecek** (tuzak 108): boş veri **boş kalacak.**
+    Ayrıca `company-bridge.ts:89` demo satırları koruyarak geri kaydettiği
+    için geçmişte yazılmış `branch_merkez/istanbul/ankara/izmir`
+    kayıtlarını **kimliğiyle** temizleyen bir adım gerekiyor.
+    Kabul: temiz tarayıcı + tek gerçek şube → listede yalnız o şube;
+    boş DB → sıfır şube; açılıştan sonra demo kimlikleri **üretilmeyecek.**
+  - ⬜ **3.10.2** **MIYOP-059 · P0 · PORTALDA UYDURMA DUYURU.**
+    `notification.service.ts:235` kayıt yokken `createDemoAnnouncements()`
+    döndürüyor: *"Planlı bakım bildirimi · Pazar gecesi kısa süreli bakım
+    penceresi"* (başlangıç = bugün+2) ve *"Lisans yenileme hatırlatması"*.
+    `Login.tsx:136` bunu alıyor, **436** Duyurular bölümünde başlık/içerik/
+    tarihle basıyor. Tarihler her açılışta yeniden üretiliyor.
+    ⚠️ Bu, **müşterinin gördüğü ilk ekranda**, bizim vermediğimiz bir
+    bakım taahhüdü. Emrah'ın kuralı burada en keskin hâliyle geçerli.
+    Üretici silinecek; duyuru yoksa bugünkü "duyuru yok" hâli kalacak.
+  - ⬜ **3.10.3** **Kalan 24 üretici · sınıflandırılacak.** Personel, cari,
+    finans, başvuru, lisans ve platform üreticileri donmuş modüllerde
+    duruyor gibi görünüyor — **"gibi görünüyor" yetmez.** Her üretici için
+    tek satır yazılacak: hangi okuyucudan geçiyor, o okuyucu hangi
+    rotadan çağrılıyor, o rota AÇIK mı. Açık olan her biri 3.10.1'in
+    kuralına girer. ⚠️ Donmuş modülün üreticisi bile raporlardan
+    okunabiliyor olabilir; sayarak değil **izleyerek** karar verilecek.
+- ⬜ **3.11** **Karşılama ekranı (`workspace-welcome`) · MIYOP-065**
+  "Kaydet"i yok, o yüzden *"kaydedildi deyip tarayıcıya yazan"* ekran
+  değil — ama başka bir *mış gibi* var: `WorkspaceWelcome.tsx:67`
+  **"İlk stok kartı tamamlandı"** rozetini `hasBusinessModules` ile
+  ölçüyor. Bir modül kaydının varlığı, stok kartı olduğunu kanıtlamaz.
+  Ayrıca rehberdeki bazı düğmeler **donmuş** rotalara (`recipes`,
+  `products`) ve artık olmayan "widget ekle" adımına gidiyor.
+  Yapılacak: tamamlanma **gerçek stok sorgusundan** ölçülecek ya da rozet
+  kaldırılacak; her görünür düğme yetkili kullanıcıyı **çalışan** ekrana
+  götürecek.
+- ✅ **3.12** **MIYOP-067 · DONMUŞ MODÜL PUBLIC YOLDAN AÇILIYORDU · kapatıldı**
+  Codex buldu (21.10) ve doğruladım: `App.tsx` `/qr/<id>` yolunu yakalayıp
+  `QRMenu` ekranını **doğrudan** döndürüyordu. `business-qr-menu` modülü
+  `foundationScope: 'frozen'` (registry:820) olmasına rağmen sayfa
+  açılıyordu — çünkü donmuş rota kapısı `BusinessWorkspaceRouteHost`ta ve
+  bu dönüş **o kapının dışındaydı.** Üstelik ekran
+  *"Görevli çağrınız iletildi"* ve *"Talebiniz görevli onayına gönderildi"*
+  diyordu; yazım yalnız `localStorage`a gidiyordu, sunucuya hiçbir şey
+  iletilmiyordu. Emrah'ın kuralı burada çifte ihlâl: hem *mış gibi*, hem de
+  *"yapamadığımız bir modülü MİYOP'ta tutmayalım."*
+  ⚠️ Ben daha önce *"donmuş modüller rota kesmesiyle kapalı"* demiştim —
+  **eksikti:** public yolları saymamıştım. Codex kendi değerlendirmesini de
+  düzeltti; ikimiz de aynı kör noktada durmuşuz (tuzak 109).
+  Yapıldı: yol kaldırıldı, `QRMenu` içe aktarması silindi, gerekçe dosyanın
+  içine yazıldı. Donduran test **yüzeyi ölçüyor**, tek örneği değil:
+  `App.tsx`teki her `pathname.match` eşleşmesi `BILINEN_PUBLIC_YOLLAR`
+  listesinde olmak zorunda (bugün ikisi: başvuru formu ve müşteri portalı).
+  Yeni bir public yol eklemek serbest, **sessizce** eklemek değil.
+  ⚠️ `src/pages/QRMenu.tsx` **diskte duruyor** — silme işi 3.8'de,
+  `kaldirilan-moduller.md` yazıldıktan sonra.
 - ⬜ **3.6** **MIYOP-008** · Başlıkta seçilen şube gerçek sorgulara
   aktarılmıyor. B şubesi seçiliyken kayıt A'ya yazılabiliyor.
+  - ⬜ **3.6.1** **Kapsam ölçüldü (Codex, 21.10): iki bağımsız şube
+    kaynağı var.** Başlık `ra_active_branch` (tarayıcı) okuyor;
+    iş ekranları `branch` tablosunu okuyor ve tercih verilmezse
+    (`warehouse.context.ts:131`) **ilk şubeye** düşüyor.
+    `depoBaglamiKur` fonksiyonunu **17 sayfa** tercih edilen şubeyi
+    VERMEDEN çağırıyor (Depo, Etiketler, Satın Alma, Siparişler, Üretim,
+    Sevkiyat, Sayım, HACCP ve raporlar). Yazımlar `branch_id: ctx.branchId`
+    kullanıyor — yani yanlış bağlam **yanlış şubeye kayıt** demek.
+    `App.tsx:1189` şube değişince ekranı yeniden kuruyor ama yeniden
+    kurulan ekran yine tercihsiz bağlam yapıyor; o yüzden yetmiyor.
+  - ⬜ **3.6.3** **⚠️ BAĞLAMI DÜZELTMEK YETMEZ** (Codex, 21.10 ikinci tur):
+    bazı liste sorguları bağlamı **alıp kullanmıyor** —
+    `async hepsi(_ctx: TenantCtx)` imzası `branch_id` süzgeci olmadan
+    sorgu atıyor. Yerleri: `production/work-order.repository.ts:186`,
+    `production/shipment.repository.ts:259`,
+    `warehouse/stock-count.repository.ts:191`,
+    `sales/sales-order.repository.ts:399` ve satın alma talep/sipariş
+    listeleri. Yani şube seçimi bağlama geçirilse bile bu listeler **tüm
+    şubeleri** döndürmeye devam eder. Düzeltme iki parçalı: (a) seçimi
+    bağlama geçir, (b) **belge listelerinde şube kapsamını açıkça uygula**
+    — ya da ekranda "tüm şubeler" olduğunu **yaz.**
+  - ⬜ **3.6.2** Kabul kriterleri (Codex'in önerisi, kabul edildi):
+    **17 ekranın tamamında** başlık seçimi = okuma bağlamı = yazılan
+    `branch_id`; geçersiz/pasif/erişilemeyen seçimde **sessizce** başka
+    şubeye yazılmayacak; B'ye geçildiğinde A'nın bekleyen isteği B
+    ekranına sonuç/mesaj bırakmayacak; **ters stok hareketi** gibi tarihî
+    belgeye bağlı işlemler kendi özgün şubesini koruyacak
+    (`original.branchId` körlemesine aktif şubeye çevrilmeyecek);
+    sevkiyatın **hedef şubesi** gibi belge alanları işlemin kaynak
+    şubesiyle karıştırılmayacak.
 - ⬜ **3.7** **MIYOP-010** · Etiket ekranında ürünler arası veri karışması
+  - ⬜ **3.7.1** **MIYOP-064 · aynı kusur beş ekran daha** (Codex, 21.10):
+    Depo, Siparişler, Müşteriler, İş Emirleri, Sevkiyatlar. Desen aynı:
+    seçim **hemen** değişiyor, ayrıntılar isteklerin tamamı dönünce
+    yazılıyor, istek düşerse **eski kaydın ayrıntısı ekranda kalıyor** ve
+    yeni kaydın kimliğiyle kaydedilebiliyor/yazdırılabiliyor.
+    ⚠️ Yalnız Etiketler'e yama atmak bu aileyi kapatmaz (tuzak 104'ün
+    kardeşi). Çözüm ortak: ayrıntıyı **seçili kayıt kimliği + istek
+    sürümü** ile tut, seçimde eskisini temizle, ayrıntı hazır olmadan
+    yazma/yazdırma düğmelerini kapat.
+  - ⬜ **3.7.2** `Traceability.tsx:153–193` eski ayrıntıyı temizliyor ama
+    **geç gelen cevap** koruması yok. Hızlı A→B seçimi sınanacak.
 
 ---
 
@@ -704,16 +955,23 @@ yanlışlıkla çalıştırılma riski var (6.11).
 
 ---
 
-## Sayılar (17.10.2026)
+## Sayılar (21.10.2026)
 
 | | |
 |---|---|
 | Test | 78 dosya · 1432 test · 0 hata |
 | Göç | 0000–**0091** · 92 dosya · (giriş ACL'si 0092 olacak) |
 | Açık çekirdek rota | 25 (37'den indi) |
+| Tarayıcıya bağlı açık ekran | **5** (6'dan indi · Profilim çıktı) |
+| Sahte veri üreticisi | **27 `createDemo*`** · 4'ü açık ekranda, 1'i portalda |
 | Veritabanı yazma kapısı | **45 tetikleyici** (18 → +27 tablo) |
-| Codex bulgusu | **48** · (**10'u kapandı**: 001, 002, 031, 032, 035, 038, 039, 041, 044, 046, 048) |
+| Codex bulgusu | **59** · (**13'ü kapandı**: 001, 002, 031, 032, 035, 038, 039, 041, 044, 046, 048, 057, **066**, **067**) · 21.10'da **10 yeni**: 058–067 |
 | Kapısız yazma yüzeyi | **0 tablo** (ölçüldü, sayılmadı) |
 | Kapı dışı `security definer` | **6 rutin** (0089'da 11 idi) · donduruldu |
 | Prova dosyası | **38 · 27 yeşil / 11 kırmızı** (11'i de bayat · 6.12) |
 | Mock dosya | 36 · hiçbiri açık kiracı rotasından erişilemiyor |
+| Tuzak | **109** (21.10: 106, 107, 108, 109 eklendi) |
+| Public yol | **2** · başvuru formu + müşteri portalı (ölçülüp donduruldu) |
+
+⚠️ "Mock dosya" satırı **yanıltıcıydı:** doğru olan ama yetmeyen bir ölçüm.
+Asıl tehlike adı mock olmayan üreticilerdi; üstteki satır onu gösteriyor.

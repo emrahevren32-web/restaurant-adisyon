@@ -139,6 +139,12 @@ type Props = {
   onOpenWorkspaceSettings: () => void
   onOpenWorkspaceRoute: (route: BusinessWorkspaceRoute, navKey: BusinessWorkspaceNavKey) => void
   onModuleLifecycleChanged: (result: WorkspaceModuleLifecycleResult) => void
+  /**
+   * Profilim kaydettiğinde kabuktaki kullanıcı kopyasını güncellemek için.
+   * ⚠️ MIYOP-066: bu prop YOKTU; ekran veritabanına yazıyor, yan menü eski
+   * adı göstermeye devam ediyordu.
+   */
+  onProfileChange?: (user: User) => void
 }
 
 const DecisionSupport = React.lazy(() => import('../pages/DecisionSupport'))
@@ -225,7 +231,8 @@ export default function BusinessWorkspaceRouteHost({
   onOpenIntegrationCenter,
   onOpenWorkspaceSettings,
   onOpenWorkspaceRoute,
-  onModuleLifecycleChanged
+  onModuleLifecycleChanged,
+  onProfileChange
 }: Props){
   // ADR-002: Production Foundation kapsamı dışındaki bir rota, elle çağrılsa bile
   // render edilmez. App.tsx zaten yönlendirmiyor; bu ikinci savunma hattı.
@@ -504,7 +511,9 @@ export default function BusinessWorkspaceRouteHost({
   if(route === 'current-account-movements') return <CurrentAccountMovements />
   if(route === 'settings') return <Settings currentUser={currentUser} onSettingsChange={onSettingsChange} />
   if(route === 'company-profile') return <CompanyProfile currentUser={currentUser} />
-  if(route === 'my-profile') return <UserProfile currentUser={currentUser} />
+  if(route === 'my-profile') return (
+    <UserProfile currentUser={currentUser} onProfileChange={onProfileChange} />
+  )
 
   return null
 }

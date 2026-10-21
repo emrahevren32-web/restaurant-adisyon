@@ -93,12 +93,13 @@ export default function UserProfile({ currentUser, onProfileChange }: Props){
         + 'edip tekrar deneyin.')
       setProfil(null)
       setYukleniyor(false)
-      return
+      return null
     }
     setProfil(gelen)
     setAdSoyad(gelen.adSoyad)
     setTelefon(gelen.telefon ?? '')
     setYukleniyor(false)
+    return gelen
   }, [])
 
   React.useEffect(() => { void yukle() }, [yukle])
@@ -127,9 +128,23 @@ export default function UserProfile({ currentUser, onProfileChange }: Props){
     // ⚠️ Kaydedileni EKRANDAN değil, veritabanından geri okuyoruz:
     // "kaydedildi" yazıp ekranda eski değeri bırakmak, tam da bu ekranın
     // eski kusuruydu.
-    await yukle()
-    onProfileChange?.({ ...currentUser, fullName: adSoyad.trim(),
-      phone: telefon.trim() || undefined })
+    const taze = await yukle()
+
+    // ⚠️ MIYOP-066: kabuktaki kullanıcı kopyası da güncellenmeli. Bu çağrı
+    // yazılmıştı ama `BusinessWorkspaceRouteHost` prop'u GEÇİRMİYORDU —
+    // yani yan menü ve kilit ekranı eski adı göstermeye devam ediyordu
+    // (Codex buldu). Artık geçiriliyor; donduran test:
+    // `src/modules/profil-kabuga-tasiniyor.arch.test.ts`
+    //
+    // ⚠️ Formdaki değeri DEĞİL, veritabanından geri okunanı taşıyoruz.
+    // Yazma başarılı dönse de kaydedilen son hâl veritabanındaki hâldir.
+    if(taze){
+      onProfileChange?.({
+        ...currentUser,
+        fullName: taze.adSoyad,
+        phone: taze.telefon ?? undefined,
+      })
+    }
   }
 
   const sifreDegistir = async (olay: React.FormEvent) => {
