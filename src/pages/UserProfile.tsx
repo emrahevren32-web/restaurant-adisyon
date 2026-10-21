@@ -1,7 +1,10 @@
 import React from 'react'
-import { addActionLog, loadUsers, saveUsers } from '../storage'
-import { getCompanyForUser, loadCompanyBranches, resolveHeadOfficeId } from '../companies/branch-directory.service'
-import { isSameIdentifier } from '../core/identifier'
+import {
+  profilimiOku,
+  profilimiYaz,
+  sifremiDegistir,
+  type Profilim
+} from '../users/profil.repository'
 import type { User } from '../types'
 
 type Props = {
@@ -10,110 +13,171 @@ type Props = {
 }
 
 /**
- * Profilim — the signed-in person's own account.
+ * Profilim — giriş yapan kişinin kendi hesabı.
  *
- * Deliberately not merged with the company profile: role, company binding and
- * branch access are authorisation facts, granted elsewhere, so they are shown
- * read-only here. A user editing their own role would be a privilege
- * escalation; that stays with Kullanıcılar / Şube Yetkilendirme.
+ * ── BU EKRAN NEDEN YENİDEN YAZILDI ───────────────────────────────────────
+ * Eski hâli "Kullanıcı kaydı bulunamadı" diyordu ve HİÇ çalışmıyordu.
+ * Sebep: `loadUsers()` ile **localStorage**'ı okuyordu; giriş yapan
+ * kullanıcı ise Supabase'deki `app_user` satırından geliyor ve o listeye
+ * hiç yazılmıyor. `findIndex` hep `-1` dönüyordu. Ekran, kullanıcının
+ * giriş yaptığı dünyadan başka bir dünyayı okuyordu (tuzak 82).
+ *
+ * Eski hâli ayrıca `addActionLog` ile tarayıcıya "denetim" kaydı yazıyordu
+ * — yani "kim yaptı" bilgisi de sahteydi. Gerçek denetim artık
+ * veritabanında (göç 0091).
+ *
+ * ── NE DEĞİŞTİRİLEBİLİR ──────────────────────────────────────────────────
+ * Ad soyad, telefon, şifre. Kullanıcı adı ve rol SALT OKUNUR.
+ * ⚠️ Bu sınır ekranın nezaketi değil: `app_user` üzerinde `authenticated`
+ * rolünün tablo seviyesinde UPDATE hakkı yoktur, yalnız dört kolonda
+ * vardır (göç 0012). Ekranı atlayıp REST'e `role_code` göndermek `42501`
+ * alır. Prova: `db/prova/prova-0091.sql`.
  */
 
-type ProfileFormValues = {
-  fullName: string
-  username: string
-  phone: string
-  profilePhotoUrl: string
+/** Rol kodunu okunur ada çevirir. Tanımadığını OLDUĞU GİBİ gösterir. */
+const ROL_ADLARI: Record<string, string> = {
+  super_admin: 'Platform Yöneticisi',
+  admin: 'Yönetici',
+  isletme_sahibi: 'İşletme Sahibi',
+  isletme_muduru: 'İşletme Müdürü',
+  depo_sorumlusu: 'Depo Sorumlusu',
+  satinalma_sorumlusu: 'Satın Alma Sorumlusu',
+  uretim_sorumlusu: 'Üretim Sorumlusu',
+  sevkiyat_sorumlusu: 'Sevkiyat Sorumlusu',
+  kalite_sorumlusu: 'Kalite Sorumlusu',
+  gida_muhendisi: 'Gıda Mühendisi',
+  muhasebe: 'Muhasebe',
+  personel: 'Personel',
+  izleyici: 'İzleyici',
 }
 
-const toFormValues = (user: User): ProfileFormValues => ({
-  fullName: user.fullName || '',
-  username: user.username || '',
-  phone: user.phone || '',
-  profilePhotoUrl: user.profilePhotoUrl || ''
-})
+const BOS = '—'
 
-const getInitials = (name: string) => (
-  name
+const rolAdi = (kod: string | null) => (kod ? ROL_ADLARI[kod] || kod : BOS)
+
+const basHarfleri = (ad: string) => (
+  ad
     .split(/\s+/)
     .filter(Boolean)
     .slice(0, 2)
-    .map(part => part.charAt(0).toLocaleUpperCase('tr-TR'))
+    .map(parca => parca.charAt(0).toLocaleUpperCase('tr-TR'))
     .join('') || 'U'
 )
 
 export default function UserProfile({ currentUser, onProfileChange }: Props){
-  const [values, setValues] = React.useState<ProfileFormValues>(() => toFormValues(currentUser))
-  const [error, setError] = React.useState('')
-  const [notice, setNotice] = React.useState('')
+  const [profil, setProfil] = React.useState<Profilim | null>(null)
+  const [yukleniyor, setYukleniyor] = React.useState(true)
+  const [okumaHatasi, setOkumaHatasi] = React.useState('')
 
-  React.useEffect(() => {
-    setValues(toFormValues(currentUser))
-    setError('')
-    setNotice('')
-  }, [currentUser])
+  const [adSoyad, setAdSoyad] = React.useState('')
+  const [telefon, setTelefon] = React.useState('')
+  const [hata, setHata] = React.useState('')
+  const [bilgi, setBilgi] = React.useState('')
+  const [kaydediyor, setKaydediyor] = React.useState(false)
 
-  const company = React.useMemo(() => getCompanyForUser(currentUser), [currentUser])
-  const branches = React.useMemo(() => loadCompanyBranches(currentUser), [currentUser])
-  const headOfficeId = React.useMemo(() => resolveHeadOfficeId(branches, company), [branches, company])
-  const accessibleBranches = branches.filter(branch => branch.isActive)
+  const [yeniSifre, setYeniSifre] = React.useState('')
+  const [sifreTekrar, setSifreTekrar] = React.useState('')
+  const [sifreHatasi, setSifreHatasi] = React.useState('')
+  const [sifreBilgisi, setSifreBilgisi] = React.useState('')
+  const [sifreDegisiyor, setSifreDegisiyor] = React.useState(false)
 
-  const updateField = <K extends keyof ProfileFormValues>(key: K, value: ProfileFormValues[K]) => {
-    setValues(previous => ({ ...previous, [key]: value }))
-    setNotice('')
+  const yukle = React.useCallback(async () => {
+    setYukleniyor(true)
+    setOkumaHatasi('')
+    const gelen = await profilimiOku()
+    if(!gelen){
+      // ⚠️ "Kullanıcı kaydı bulunamadı" DEMİYORUZ. O cümle eski ekranın
+      // hatasıydı ve kişiye kendi hesabı yokmuş gibi hissettiriyordu.
+      // Burada olan şey okumanın başarısız olması.
+      setOkumaHatasi('Profil bilgileriniz okunamadı. Bağlantınızı kontrol '
+        + 'edip tekrar deneyin.')
+      setProfil(null)
+      setYukleniyor(false)
+      return
+    }
+    setProfil(gelen)
+    setAdSoyad(gelen.adSoyad)
+    setTelefon(gelen.telefon ?? '')
+    setYukleniyor(false)
+  }, [])
+
+  React.useEffect(() => { void yukle() }, [yukle])
+
+  const kaydet = async (olay: React.FormEvent) => {
+    olay.preventDefault()
+    if(!profil) return
+    setHata('')
+    setBilgi('')
+
+    if(!adSoyad.trim()){
+      setHata('Ad soyad zorunludur.')
+      return
+    }
+
+    setKaydediyor(true)
+    const sonuc = await profilimiYaz(profil.id, { adSoyad, telefon })
+    setKaydediyor(false)
+
+    if(sonuc.durum === 'hata'){
+      setHata(sonuc.mesaj)
+      return
+    }
+
+    setBilgi('Profil bilgileriniz kaydedildi.')
+    // ⚠️ Kaydedileni EKRANDAN değil, veritabanından geri okuyoruz:
+    // "kaydedildi" yazıp ekranda eski değeri bırakmak, tam da bu ekranın
+    // eski kusuruydu.
+    await yukle()
+    onProfileChange?.({ ...currentUser, fullName: adSoyad.trim(),
+      phone: telefon.trim() || undefined })
   }
 
-  const submit = (event: React.FormEvent) => {
-    event.preventDefault()
+  const sifreDegistir = async (olay: React.FormEvent) => {
+    olay.preventDefault()
+    setSifreHatasi('')
+    setSifreBilgisi('')
 
-    const fullName = values.fullName.trim()
-    const username = values.username.trim()
-
-    if(!fullName){
-      setError('Ad soyad zorunludur.')
-      return
-    }
-    if(!username){
-      setError('Kullanıcı adı zorunludur.')
+    if(yeniSifre !== sifreTekrar){
+      setSifreHatasi('İki şifre aynı değil.')
       return
     }
 
-    const users = loadUsers()
-    // Kullanıcı adı bir tanımlayıcıdır; Türkçe yerel ayarıyla küçültülemez.
-    // Bkz. core/identifier.ts — 'IBRAHIM' ile 'ibrahim' aksi halde eşleşmez ve
-    // aynı adla ikinci bir hesap açılabilirdi.
-    const taken = users.some(user => (
-      user.id !== currentUser.id && isSameIdentifier(user.username, username)
-    ))
-    if(taken){
-      setError('Bu kullanıcı adı başka bir hesapta kullanılıyor.')
+    setSifreDegisiyor(true)
+    const sonuc = await sifremiDegistir(yeniSifre)
+    setSifreDegisiyor(false)
+
+    if(sonuc.durum === 'hata'){
+      setSifreHatasi(sonuc.mesaj)
       return
     }
 
-    const index = users.findIndex(user => user.id === currentUser.id)
-    if(index < 0){
-      setError('Kullanıcı kaydı bulunamadı.')
-      return
-    }
+    // ⚠️ Şifre hiçbir yerde tutulmuyor; alanlar hemen boşaltılıyor.
+    setYeniSifre('')
+    setSifreTekrar('')
+    setSifreBilgisi('Şifreniz değiştirildi.')
+  }
 
-    // role, companyId and tenantId are intentionally not written from here
-    const updated: User = {
-      ...users[index],
-      fullName,
-      username,
-      phone: values.phone.trim(),
-      profilePhotoUrl: values.profilePhotoUrl.trim()
-    }
-    users[index] = updated
-    saveUsers(users)
+  if(yukleniyor){
+    return (
+      <div className="user-profile-page">
+        <section className="card"><p className="muted">Profil yükleniyor…</p></section>
+      </div>
+    )
+  }
 
-    setError('')
-    setNotice('Profil bilgileriniz kaydedildi.')
-    onProfileChange?.(updated)
-    addActionLog({
-      operationType: 'Profil güncellendi',
-      user: updated,
-      description: `${updated.fullName} kendi profil bilgilerini güncelledi.`
-    })
+  if(!profil){
+    return (
+      <div className="user-profile-page">
+        <section className="card">
+          <div className="form-error">{okumaHatasi}</div>
+          <div className="form-actions">
+            <button className="btn" type="button" onClick={() => void yukle()}>
+              Tekrar dene
+            </button>
+          </div>
+        </section>
+      </div>
+    )
   }
 
   return (
@@ -121,75 +185,75 @@ export default function UserProfile({ currentUser, onProfileChange }: Props){
       <section className="card">
         <div className="user-profile-identity">
           <span className="user-profile-avatar" aria-hidden="true">
-            {values.profilePhotoUrl
-              ? <img src={values.profilePhotoUrl} alt="" />
-              : getInitials(values.fullName || currentUser.username)}
+            {basHarfleri(profil.adSoyad || profil.kullaniciAdi)}
           </span>
           <div>
-            <h3>{currentUser.fullName || currentUser.username}</h3>
+            <h3>{profil.adSoyad || profil.kullaniciAdi}</h3>
             <p className="muted">
-              {currentUser.role === 'Admin' ? 'Yönetici' : 'Personel'}
-              {company?.companyName ? ` · ${company.companyName}` : ''}
+              {rolAdi(profil.rolKodu)}
+              {profil.firmaAdi ? ` · ${profil.firmaAdi}` : ''}
             </p>
           </div>
         </div>
       </section>
 
-      {error && <div className="form-error">{error}</div>}
-      {notice && !error && <div className="form-success">{notice}</div>}
+      {hata && <div className="form-error">{hata}</div>}
+      {bilgi && !hata && <div className="form-success">{bilgi}</div>}
 
       <div className="product-layout">
         <section className="product-main card">
           <div className="section-header compact">
             <div>
               <h3>Hesap Bilgileri</h3>
-              <p className="muted">Bu bilgiler yalnızca sizin hesabınıza aittir.</p>
+              <p className="muted">Ad soyad ve telefonunuzu buradan değiştirebilirsiniz.</p>
             </div>
           </div>
 
-          <form className="form-grid" onSubmit={submit}>
+          <form className="form-grid" onSubmit={kaydet}>
             <div className="form-field">
-              <label>Ad Soyad</label>
-              <input value={values.fullName} required
-                onChange={event => updateField('fullName', event.target.value)} />
+              <label htmlFor="profil-ad">Ad Soyad</label>
+              <input id="profil-ad" value={adSoyad} required
+                onChange={olay => { setAdSoyad(olay.target.value); setBilgi('') }} />
             </div>
+
             <div className="form-field">
-              <label>Kullanıcı Adı</label>
-              <input value={values.username} required
-                onChange={event => updateField('username', event.target.value)} />
+              <label htmlFor="profil-kullanici">Kullanıcı Adı</label>
+              <input id="profil-kullanici" value={profil.kullaniciAdi} readOnly
+                aria-describedby="profil-kullanici-aciklama" />
+              <small id="profil-kullanici-aciklama" className="muted">
+                Giriş adınızın parçası. Değiştirilmesi yöneticinin işi —
+                değişirse giriş adresiniz de değişir.
+              </small>
             </div>
-            {/*
-              E-posta burada SALT OKUNUR. Alan adı eskiden "Kullanıcı Adı /
-              E-posta" idi ve içinde kullanıcı adı yazıyordu; kişi giriş
-              ekranına yazdığı adresi programın hiçbir yerinde göremiyordu.
-              Değiştirilebilir yapılmadı: e-posta Supabase Auth'ta duruyor,
-              buradan yazılsa yalnızca ekranda değişir, girişte değişmez —
-              yani çalışmayan bir alan olurdu.
-            */}
+
             <div className="form-field">
-              <label>E-posta (giriş adresi)</label>
-              <input value={currentUser.email || ''} readOnly
-                placeholder="—"
-                aria-describedby="eposta-aciklama" />
-              <small id="eposta-aciklama" className="muted">
-                {currentUser.email
+              <label htmlFor="profil-eposta">E-posta (giriş adresi)</label>
+              <input id="profil-eposta" value={profil.girisAdresi ?? ''} readOnly
+                placeholder={BOS} aria-describedby="profil-eposta-aciklama" />
+              <small id="profil-eposta-aciklama" className="muted">
+                {profil.girisAdresi
                   ? 'Giriş ekranına yazdığınız adres. Buradan değiştirilemez.'
                   : 'Bu oturum e-posta bilgisinden önce açılmış. Çıkıp yeniden girince görünür.'}
               </small>
             </div>
+
             <div className="form-field">
-              <label>Telefon</label>
-              <input value={values.phone}
-                onChange={event => updateField('phone', event.target.value)} />
+              <label htmlFor="profil-telefon">Telefon</label>
+              <input id="profil-telefon" value={telefon}
+                onChange={olay => { setTelefon(olay.target.value); setBilgi('') }} />
             </div>
-            <div className="form-field">
-              <label>Profil Fotoğrafı (URL)</label>
-              <input value={values.profilePhotoUrl} placeholder="https://"
-                onChange={event => updateField('profilePhotoUrl', event.target.value)} />
-            </div>
+
             <div className="form-actions form-field-wide">
-              <button className="btn primary" type="submit">Kaydet</button>
-              <button className="btn" type="button" onClick={() => { setValues(toFormValues(currentUser)); setError(''); setNotice('') }}>
+              <button className="btn primary" type="submit" disabled={kaydediyor}>
+                {kaydediyor ? 'Kaydediliyor…' : 'Kaydet'}
+              </button>
+              <button className="btn" type="button" disabled={kaydediyor}
+                onClick={() => {
+                  setAdSoyad(profil.adSoyad)
+                  setTelefon(profil.telefon ?? '')
+                  setHata('')
+                  setBilgi('')
+                }}>
                 Geri Al
               </button>
             </div>
@@ -199,43 +263,59 @@ export default function UserProfile({ currentUser, onProfileChange }: Props){
         <aside className="product-side">
           <section className="card">
             <div className="section-header compact">
+              <h3>Şifre Değiştir</h3>
+            </div>
+            {sifreHatasi && <div className="form-error">{sifreHatasi}</div>}
+            {sifreBilgisi && !sifreHatasi
+              && <div className="form-success">{sifreBilgisi}</div>}
+
+            <form className="form-grid" onSubmit={sifreDegistir}>
+              <div className="form-field form-field-wide">
+                <label htmlFor="profil-sifre">Yeni şifre</label>
+                <input id="profil-sifre" type="password" value={yeniSifre}
+                  autoComplete="new-password" minLength={8} required
+                  onChange={olay => { setYeniSifre(olay.target.value); setSifreBilgisi('') }} />
+                <small className="muted">En az 8 karakter.</small>
+              </div>
+              <div className="form-field form-field-wide">
+                <label htmlFor="profil-sifre-tekrar">Yeni şifre (tekrar)</label>
+                <input id="profil-sifre-tekrar" type="password" value={sifreTekrar}
+                  autoComplete="new-password" minLength={8} required
+                  onChange={olay => { setSifreTekrar(olay.target.value); setSifreBilgisi('') }} />
+              </div>
+              <div className="form-actions form-field-wide">
+                <button className="btn" type="submit" disabled={sifreDegisiyor}>
+                  {sifreDegisiyor ? 'Değiştiriliyor…' : 'Şifreyi Değiştir'}
+                </button>
+              </div>
+            </form>
+          </section>
+
+          <section className="card">
+            <div className="section-header compact">
               <h3>Yetki ve Erişim</h3>
             </div>
             <p className="muted small-text">
-              Bu alanlar yetkilendirme tarafından belirlenir ve buradan değiştirilemez.
+              Bu alanlar yetkilendirme tarafından belirlenir ve buradan
+              değiştirilemez.
             </p>
 
             <div className="user-profile-facts">
               <div>
                 <span>Rol</span>
-                <strong>{currentUser.role === 'Admin' ? 'Yönetici' : 'Personel'}</strong>
+                <strong>{rolAdi(profil.rolKodu)}</strong>
               </div>
               <div>
                 <span>Bağlı Firma</span>
-                <strong>{company?.companyName || '-'}</strong>
+                <strong>{profil.firmaAdi ?? BOS}</strong>
               </div>
               <div>
-                <span>Hesap Durumu</span>
-                <strong>{currentUser.active ? 'Aktif' : 'Pasif'}</strong>
+                <span>Şube Erişimi</span>
+                <strong>
+                  {profil.subeler.length > 0 ? profil.subeler.join(', ') : BOS}
+                </strong>
               </div>
             </div>
-
-            <div className="section-header compact">
-              <h3>Erişebildiğiniz Şubeler</h3>
-            </div>
-            {accessibleBranches.length === 0 ? (
-              <p className="muted small-text">Tanımlı aktif şube bulunmuyor.</p>
-            ) : (
-              <ul className="user-profile-branch-list">
-                {accessibleBranches.map(branch => (
-                  <li key={branch.id}>
-                    <strong>{branch.name}</strong>
-                    {branch.id === headOfficeId && <span className="status-pill success">Merkez</span>}
-                    <span className="muted small-text">{[branch.city, branch.district].filter(Boolean).join(' / ')}</span>
-                  </li>
-                ))}
-              </ul>
-            )}
           </section>
         </aside>
       </div>

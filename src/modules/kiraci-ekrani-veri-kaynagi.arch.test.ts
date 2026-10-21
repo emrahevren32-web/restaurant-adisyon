@@ -10,8 +10,12 @@
 //
 // 16.10.2026'da ölçüldüğünde AÇIK yirmi beş kiracı rotasının altısı böyleydi:
 // Firma Profili, Profilim, İşletme Ayarları, Şubeler, Şube Yetkileri ve
-// Karşılama ekranı. İkisi (Firma Profili, Profilim) kullanıcının GİRDİĞİ
-// veriyi tarayıcıya yazıyor.
+// Karşılama ekranı.
+//
+// 20.10.2026 · Profilim veritabanına bağlandı (`src/users/profil.repository.ts`)
+// ve listeden ÇIKARILDI. Kalan beş: Firma Profili, İşletme Ayarları, Şubeler,
+// Şube Yetkileri, Karşılama. Bunlardan Firma Profili hâlâ kullanıcının GİRDİĞİ
+// veriyi tarayıcıya yazıyor — sıradaki iş o.
 //
 // ── BU TEST BİR CIRCIR (ratchet) ─────────────────────────────────────────
 // Listeyi SIFIRLAMIYOR, DONDURUYOR. Kural:
@@ -58,7 +62,6 @@ const DEPO_SERVISLERI = [
  */
 const BILINEN_BORC: Record<string, string> = {
   'company-profile':    'pages/CompanyProfile.tsx',
-  'my-profile':         'pages/UserProfile.tsx',
   'settings':           'pages/Settings.tsx',
   'branches':           'pages/BranchManagement.tsx',
   'branch-permissions': 'pages/BranchPermissions.tsx',
@@ -157,7 +160,7 @@ describe('açık kiracı rotaları · tarayıcı deposu çıcırı', () => {
   })
 
   it('borç yalnız AZALABİLİR', () => {
-    // Bugünkü sayı 6. Bu sayı büyürse biri listeye ekleme yapmış demektir.
-    expect(Object.keys(BILINEN_BORC).length).toBeLessThanOrEqual(6)
+    // Bugünkü sayı 5. Bu sayı büyürse biri listeye ekleme yapmış demektir.
+    expect(Object.keys(BILINEN_BORC).length).toBeLessThanOrEqual(5)
   })
 })

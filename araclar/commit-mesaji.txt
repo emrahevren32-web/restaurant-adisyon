@@ -1,27 +1,52 @@
-0091: yetki tablolari denetime girdi + MIYOP-057 duzeltildi
+Profilim gercek veriye baglandi (HEDEFLER 3.2 bitti) - cicir 6 -> 5
 
-- MIYOP-057 (Codex, haklı): onceki commit "Codex brifi artik yarim
-  ekranlara bakiyor" diyordu ama brif dosyasinin yazimi REDDEDILMISTI
-  (dosya baska bir programda acikti). Yani kayit, depoda olmayan bir seyi
-  anlatiyordu. Brif simdi gercekten yazildi. Tuzak 105: bir yazim
-  reddedildiyse commit mesaji duzeltilir ya da commit atilmaz
-- Goc 0091 (prova 15/15): Profilim icin app_user'a bakarken DENETIM
-  TETIGI OLMADIGINI gordum; kalanlara bakinca YETKI TABLOLARININ
-  HICBIRININ denetlenmedigi cikti - app_user (role_code, is_active
-  burada!), user_role, user_branch_access, company, branch.
-  Yani "bu kisiyi kim admin yapti", "bu subeyi kim acti", "bu hesabi kim
-  pasife aldi" sorularinin cevabi YOKTU. Besi de denetime alindi
-- Prova kaniti: depo sorumlusu kendi adini/telefonunu yazabiliyor ama
-  KENDINI ADMIN YAPAMIYOR, hesabini pasife alamiyor, kullanici adini
-  degistiremiyor, baskasinin satirina dokunamiyor; degisiklik denetime
-  dusuyor ve aktor yazili
-- Profilim kok nedeni bulundu (HEDEFLER 3.2.1): ekran loadUsers() ile
-  localStorage'i okuyor, giris yapan kullanici ise Supabase'den geliyor ve
-  o listeye hic yazilmiyor -> findIndex hep -1 (tuzak 82)
-- Yazma sozlesmesi olculdu (3.2.2): app_user'da tablo UPDATE hakki YOK,
-  yalniz full_name/phone/profile_photo_url kolonlari acik. role_code,
-  is_active, username VERITABANI tarafindan kapali
-- Giris ACL gocu 0092 olacak; numara yazilma sirasina gore verilir
+Emrah'in sirasi: Profilim -> Firma Profili -> Subeler -> Sube Yetkileri ->
+Isletme Ayarlari. Birincisi bitti, 5 yarim ekran kaldi.
+
+- src/users/profil.repository.ts (YENI)
+  . profilimiOku(): oturumdaki auth.uid() ile app_user satirini okuyor.
+    Firma adi ve sube adlari AYRI okunuyor - biri duserse profil yine
+    goruntulenir. Okunamayan alan tire isaretiyle kalir, UYDURULMAZ.
+  . profilimiYaz(): YALNIZ full_name, phone, updated_at yaziyor. Bos
+    telefon '' degil null (bilinmiyor ile bos birakildi ayni sey degil).
+  . sifremiDegistir(): sifre yalniz Supabase Auth'a gidiyor, ardindan
+    sifremi_belirledim ile gecici sifre bayragi dusuyor. Sifre bizim
+    veritabanimiza, gunluge ve denetim kaydina HIC girmiyor.
+  . Hata metinleri: saglayicinin ham metni kullaniciya gosterilmiyor;
+    42501/MI403 -> "Bu alani degistirme yetkiniz yok."
+
+- src/pages/UserProfile.tsx (BASTAN YAZILDI)
+  . ../storage ve branch-directory.service ice aktarmasi SIFIR (olculdu).
+  . Kok neden buydu (tuzak 82): ekran loadUsers() ile localStorage'i
+    okuyordu, giris yapan kullanici ise Supabase'den geliyor ve o listeye
+    hic yazilmiyordu -> findIndex hep -1 -> "Kullanici kaydi bulunamadi".
+  . Kaydettikten sonra ekran veritabanindan YENIDEN OKUYOR. "Kaydedildi"
+    deyip ekranda eski degeri birakmak tam da bu ekranin eski kusuruydu.
+  . Sahte addActionLog denetim kaydi kaldirildi; gercek denetim goc
+    0091'in app_user tetiginde.
+  . Kullanici adi, giris adresi ve rol salt okunur; fotograf yok
+    (Emrah onayi 20.10).
+
+- src/users/profil.repository.test.ts (YENI, 13 test)
+  . Merkezi test update()e giden nesnenin anahtarlarini TAM OLARAK
+    ['full_name','phone','updated_at'] olarak donduruyor ve yedi yasak
+    kolonun (role_code, username, username_key, is_active, tenant_id,
+    company_id, auth_user_id) yoklugunu ayrica dogruluyor. Ileride biri bu
+    nesneye alan eklerse test kirilir.
+
+- src/modules/kiraci-ekrani-veri-kaynagi.arch.test.ts
+  . my-profile BILINEN_BORC listesinden cikarildi, ust sinir 6 -> 5.
+  . Bu test listedeki her ekranin GERCEKTEN tarayiciya bagli oldugunu da
+    dogruluyor; yani satiri silmek zorunluydu, secenek degildi. Ekran
+    duzeldigi icin test onu artik "listeden cikarin" diye kirardi.
+
+- docs/HEDEFLER.md: 3.2 ve 3.2.3 kapandi, 3.2.4/3.2.5 eklendi; 0.A
+  tablosunda A1 "1/5 bitti" olarak isaretlendi.
+
+NOT: Veritabani tarafi degismedi. app_user'da authenticated rolunun tablo
+seviyesinde UPDATE hakki yok (0012); role_code / is_active / username
+ekrani atlayip REST'e gonderilse bile 42501 ile reddedilir. Ekrandaki
+"salt okunur" rozetleri bir kolaylik, koruma veritabaninda.
 
 Co-Authored-By: Claude Opus 5 <noreply@anthropic.com>
 Claude-Session: https://claude.ai/code/session_019BwYM3mAXZUhp4YGj7tp2y

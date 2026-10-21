@@ -29,7 +29,7 @@ neyin neden yapıldığı kaybolmasın.
 
 | # | İş | Neden demo öncesi |
 |---|---|---|
-| **A1** | **B başlığı · altı yarım ekran** (3.1–3.5) | Kaydet'e basınca veri tarayıcıda kalıyor. Demoda ilk fark edilecek şey bu. **Sıra: Profilim → Firma Profili → Şubeler → Şube Yetkileri → İşletme Ayarları** |
+| **A1** | **B başlığı · yarım ekranlar** (3.1–3.5) · **1/5 bitti** | Kaydet'e basınca veri tarayıcıda kalıyor. Demoda ilk fark edilecek şey bu. **Sıra: ~~Profilim~~ ✅ (20.10) → Firma Profili → Şubeler → Şube Yetkileri → İşletme Ayarları** |
 | **A2** | **MIYOP-008** · şube seçimi sorgulara geçmiyor | B şubesi seçiliyken kayıt A'ya yazılıyor. Demoda şube değiştirilirse görünür. |
 | **A3** | **MIYOP-010** · etiket ekranında ürünler karışıyor | Etiket, demonun en gösterişli parçası; yanlış ürünün alerjeni basılırsa itibar biter. |
 | **A4** | **Mock dosyaları temizliği** (3.8) | Önce `kaldirilan-moduller.md`, sonra silme. |
@@ -331,18 +331,19 @@ güvenlik sınırı değil. Gerçek sınır veritabanında olmalı.
 
 ## 3 · EKRAN BORCU · "Kaydettim ama gitmemiş"
 
-Açık 25 kiracı rotasının 6'sı `storage.ts` (tarayıcı hafızası) okuyor/yazıyor.
+Açık 25 kiracı rotasının 6'sı `storage.ts` (tarayıcı hafızası) okuyor/yazıyor
+idi; **20.10'da Profilim çıktı, 5 kaldı.**
 Kullanıcı Kaydet'e basıyor, ekran kaydedildi diyor, veri tarayıcıda kalıyor.
 `src/modules/kiraci-ekrani-veri-kaynagi.arch.test.ts` bunları dondurdu —
-liste yalnız KISALABİLİR.
+liste yalnız KISALABİLİR (çıcır sayısı 6 → 5).
 
 Emrah'ın onayladığı sıra:
 
 - ⬜ **3.1** Firma Profili (`company-profile`)
   - ⬜ **3.1.1** Kim değiştirebilsin? Vergi numarası fatura kesmeyi
     etkiliyor. → `ismete-sorulacaklar.md` **B1**
-- 🔄 **3.2** Profilim (`my-profile`) — şu an "Kullanıcı kaydı bulunamadı"
-  hatası veriyor, hiç çalışmıyor
+- ✅ **3.2** Profilim (`my-profile`) — **BİTTİ (20.10).** Artık veritabanını
+  okuyup yazıyor; tarayıcı hafızasıyla ilgisi kalmadı
   - ✅ **3.2.1** **KÖK NEDEN BULUNDU.** Ekran `loadUsers()` ile
     **localStorage'ı** okuyor; giriş yapan kullanıcı ise Supabase'deki
     `app_user` satırından geliyor ve localStorage listesine **hiç
@@ -355,9 +356,33 @@ Emrah'ın onayladığı sıra:
     (0012). Yani ekranın yazacağı iki alan serbest, `role_code`,
     `is_active` ve `username` **veritabanı tarafından** kapalı. Ekranda
     "kapalı" göstermek yeterli değildi; asıl kapı burada ve duruyor.
-  - ⬜ **3.2.3** Ekranı gerçek veriye bağla: `app_user` oku, ad+telefon yaz,
-    şifre değiştirme ekle (Emrah onayı 20.10). Kullanıcı adı ve rol salt
-    okunur, fotoğraf yok.
+  - ✅ **3.2.3** **Ekran gerçek veriye bağlandı.**
+    `src/users/profil.repository.ts` yazıldı: `profilimiOku()` oturumdaki
+    `auth.uid()` ile `app_user` satırını okuyor, firma adını ve şube
+    adlarını **ayrı** okuyor (biri düşerse profil yine görünüyor),
+    okunamayan alan `—` kalıyor — uydurulmuyor.
+    `profilimiYaz()` **yalnız** `full_name`, `phone`, `updated_at` yazıyor;
+    boş telefon `''` değil `null`. `sifremiDegistir()` şifreyi yalnız
+    Supabase Auth'a iletiyor, ardından `sifremi_belirledim` ile geçici şifre
+    bayrağını düşürüyor; şifre hiçbir günlüğe ve bizim veritabanımıza
+    girmiyor.
+    `src/pages/UserProfile.tsx` baştan yazıldı: `../storage` ve
+    `branch-directory.service` içe aktarması **sıfır**; kaydettikten sonra
+    ekran veritabanından **yeniden okuyor** ("kaydedildi" deyip eski değeri
+    ekranda bırakmak bu ekranın eski kusuruydu); sahte `addActionLog`
+    denetim kaydı kaldırıldı — gerçek denetim göç 0091'in tetiğinde.
+    Kullanıcı adı, giriş adresi ve rol salt okunur; fotoğraf yok.
+  - ✅ **3.2.4** **Yazılan kolon kümesi donduruldu.**
+    `src/users/profil.repository.test.ts` (13 test) içindeki merkezî test
+    `update()`e giden nesnenin anahtarlarını tam olarak
+    `['full_name','phone','updated_at']` olarak ölçüyor ve yedi yasak
+    kolonun (`role_code`, `username`, `username_key`, `is_active`,
+    `tenant_id`, `company_id`, `auth_user_id`) **yokluğunu** ayrıca
+    doğruluyor. Yani ileride biri bu nesneye bir alan eklerse test kırılır.
+  - ✅ **3.2.5** Çıcır testi güncellendi: `my-profile` `BILINEN_BORC`
+    listesinden çıkarıldı, üst sınır 6 → 5 indirildi. ⚠️ Bu test, listedeki
+    her ekranın GERÇEKTEN tarayıcıya bağlı olduğunu da doğruluyor; yani
+    satırı silmek zorunluydu, seçenek değildi.
 - ⬜ **3.3** Şube Yetkileri (`branch-permissions`)
 - ⬜ **3.4** İşletme Ayarları (`settings`)
 - ⬜ **3.5** Şubeler (`branches`)
