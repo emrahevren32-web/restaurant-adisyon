@@ -347,6 +347,22 @@ güvenlik sınırı değil. Gerçek sınır veritabanında olmalı.
 - ⬜ **2.6** **MIYOP-014** · HACCP kararı istemciden geliyor
 - ⬜ **2.7** **MIYOP-015** · Sevk iptalinde sipariş durumu geri hesaplanmıyor
 - ⬜ **2.8** **MIYOP-016** · Üretim maliyeti sonraki alışlardan etkileniyor
+- ⬜ **2.9** **SKT KAPISI YOK · süresi geçmiş parti çıkarılabiliyor**
+  (21.10'da parti karekodunu değerlendirirken çıktı.)
+  `stock_lot.expires_on` kolonu **var** (0003) ve indeksi bile var — ama
+  çıkışta onu zorunlu kılan **hiçbir kapı yok**. Yani bugün süresi geçmiş
+  bir parti üretime girebilir ya da sevk edilebilir.
+  ⚠️ **Bunu karekoddan AYRI tutuyorum:** değeri karekoda bağlı değil,
+  bugün de yazılabilir. Endüstriyel mutfakta bu bir gıda güvenliği kapısı,
+  kolaylık değil.
+  - ⬜ **2.9.1** Sunucu tarafı: çıkış sebeplerinde (`PRODUCTION_CONSUME`,
+    `SHIPMENT_OUT`) `expires_on < current_date` olan parti **reddedilsin.**
+    İmha yolu (`EXPIRY_WRITE_OFF`) **muaf** — süresi geçmiş malın çıkış
+    yolu zaten orası.
+  - ⬜ **2.9.2** FIFO uyarısı: daha eski açık parti varken yenisi
+    seçilirse **uyar** (engelleme değil — meşru istisnalar var).
+  - ⬜ **2.9.3** Prova: süresi geçmiş partiyle üretim denemesi kırmızı,
+    imha denemesi yeşil. Olumsuz deneme zorunlu.
 
 ---
 
@@ -915,7 +931,39 @@ bölüm 1. sıraya çıkar.
 
 - ⏸️ **8.2.1** **Personel / vardiya / puantaj**
 - ⏸️ **8.2.2** **Depo raf adresi** · lokasyon yönetimi
-- ⏸️ **8.2.3** **Barkod / el terminali okuma** (mal kabul ve sayım elde)
+- ⏸️ **8.2.3** **PARTİ KAREKODU (QR)** · Emrah'ın fikri, 21.10
+  *"mal kabulde ürünün üstüne QR yapıştırılsın, çıkarken aynı QR
+  okutulsun... sistemde kaçağı önler diye düşünüyorum."*
+  Tasarım kararı yazıldı: **`docs/kararlar/parti-karekodu.md`**
+  - ⚠️ **Bu, dondurulmuş `business-qr-menu` modülü DEĞİL.** O masa servisi
+    içindi ve 21.10'da public yolu kapatıldı (MIYOP-067). Bu iş depodaki
+    fiziksel malın kimliği; sıfırdan ve kendi adıyla yazılır.
+  - ⚠️ **"Kaçağı önler" cümlesini düzelttim:** karekod hırsızlığı
+    önlemez — malı izinsiz alan okutmaz. Yaptığı şey kayıtsız çıkışı
+    **sayımda görünür ve kişiye bağlı bir farka** dönüştürmek, ve
+    **yanlış kaydı** önlemek. Kaçağı asıl önleyen üçlü (her çıkışın
+    belgesi + düzenli sayım + denetim kaydı) bizde zaten var; karekod
+    onları hızlandırır ve doğrular.
+  - ⏸️ **8.2.3.1** **A seviyesi · parti karekodu — seçilen yol.**
+    `stock_lot` (`id`, `lot_code`, `expires_on`) ve
+    `stock_movement.lot_id` **hazır** (0003); kabul partiyi zaten
+    oluşturuyor (0019); etiket ekranı duruyor. **Yeni tablo gerekmiyor.**
+    İş: kabulde etikete karekod + çıkış ekranlarında okutma + sunucuda
+    parti kapısı.
+  - ⏸️ **8.2.3.2** **B seviyesi · taşıma birimi karekodu.** Her
+    çuval/kasa/palet kendi kimliğini taşır; **gerçek kaçak kontrolü bu**
+    ama `handling_unit` tablosu, kısmi tüketim kuralı, sayımın bu
+    birimlere taşınması ve **depoda 20 kat etiket/okutma iş yükü**
+    demek. Ancak İsmet'in gerçek hacmi gerektiriyorsa yazılır.
+    A'nın verisi B'ye temiz göç eder.
+  - ⏸️ **8.2.3.3** C seviyesi (kalem karekodu) **elendi**: parti ve SKT
+    taşımadığı için ne izlenebilirlik ne FIFO sağlar.
+  - ⏸️ **8.2.3.4** Cihaz/etiket/alışkanlık soruları →
+    `ismete-sorulacaklar.md` **F1–F5**. ⚠️ Yeni ve atlanması kolay olan:
+    **-18 °C'de ve ıslak yüzeyde duran etiket malzemesi.** Normal termal
+    etiket donmuş çuvalda düşer.
+  - ⏸️ **8.2.3.5** El terminali okuma (mal kabul ve sayım elde) — aynı
+    ailenin donanım tarafı.
 - ⏸️ **8.2.4** **Makine bakım takibi**
 - ⏸️ **8.2.5** Üretim planlamayı gerçek deftere bağla (servisler var,
   veri bağı zayıf)

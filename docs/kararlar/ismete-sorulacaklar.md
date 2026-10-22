@@ -63,6 +63,26 @@ ve saklama koşulunu anlattı; aşağıdakiler kalan beş soru.
 - ⬜ **E3 · Depoda tablet/telefon kullanılıyor mu, kullanılacak mı?**
   Mal kabul ve sayım elde yapılıyorsa ekranlar ona göre düzenlenecek.
 
+## F · PARTİ KAREKODU (ilk müşteriden sonra · HEDEFLER 8.2.3)
+
+Emrah'ın fikri (21.10): mal kabulde ürüne karekod yapıştırılsın, çıkışta
+aynı karekod okutulsun. Tasarım kararı `parti-karekodu.md`'de.
+⚠️ Bu beş soru cevaplanmadan **ekran yazılmayacak** — yazılırsa yine
+"mış gibi" olur.
+
+- ⬜ **F1 · Depoda karekod okutacak cihaz var mı?** Telefon, tablet ya da
+  el terminali. Yoksa alınacak mı, kim taşıyacak? (E3 ile aynı kök)
+- ⬜ **F2 · Etiket donmuş ve ıslak yüzeyde durur mu?** -18 °C'deki çuvala
+  yapıştırılan normal termal etiket düşer. Bugün donmuş ürüne bir şey
+  yapıştırılıyor mu, nasıl duruyor?
+- ⬜ **F3 · Mal kabulde etiketi basan kişi ile depodan malı çıkaran kişi
+  aynı mı?** Yetki ayrımını buna göre kuracağım.
+- ⬜ **F4 · Bir çuvalın yarısı kullanıldığında ne yazılıyor bugün?**
+  Kısmi tüketim kuralı buna bağlı.
+- ⬜ **F5 · Etiket yırtılır/okunmazsa iş durmamalı.** Elle devam yolu
+  olacak — ama gerekçe istesin ve denetime düşsün mü, yoksa sessiz mi
+  geçsin? (Sessiz geçerse kural ilk gün esner.)
+
 ---
 
 ## Cevaplananlar
