@@ -1,66 +1,57 @@
-SKT kapisinin dort yan etkisi onarildi: 20 kirmizi test, yanlis hata
-mesaji, demo kalintisi ve cicir testinin kor noktasi
+MIYOP-074: planlama ekranlari da suresi gecmisi sayiyordu + yedek defteri
 
-Goc 0092 Supabase'de uygulandi (basarili). Testler kirmiziya dondu ve
-sebep KAPI DEGILDI; asagidaki dort is o kirmizidan cikti.
+Goc 0093 Supabase'de uygulandi. Tek kirmizi test yedek defteriydi ve
+DOGRU yakaladi; yaninda Codex iki is daha buldu, ikisi de benim yan
+etkimdi.
 
-1 - 20 KIRMIZI TEST: SABIT TARIHLER ESKIMIS (tuzak 114)
-warehouse, work-order ve shipment testleri lotlara '2026-06-01',
-'2026-10-01' gibi SABIT SKT'ler veriyordu. Yazildiklari gun ikisi de
-gelecekteydi; bugun (25.10.2026) gecmise dusmusler. Testlerin olctugu sey
-FEFO SIRASIYDI, SKT'nin gecip gecmedigi degil - yani fixture, olctugu
-seyle ilgisi olmayan bir sebeple eskimis.
-!! Once sunu sordum: "kapiyi mi gevseteyim?" HAYIR. Eski test "suresi
-gecmis lotu tuket" diyordu; o davranis artik YANLIS. Dolayisiyla degismesi
-gereken sey testti. Fixture tarihleri GERCEK bugune gore verildi.
-!! Ayni dosyada gunSonra() diye goreli bir yardimci ZATEN vardi ama o da
-BUGUN = 15 Haziran 2026 sabitine bagliydi - yani bomba iki katliydi.
+1 - YEDEK DEFTERI (test hakli cikti)
+tenant-export.arch.test.ts her kiraci tablosunun ya yedekte ya GEREKCELI
+disarida olmasini zorunlu kiliyor. Iki yeni tabloyu yazmadigim icin
+kirmizi verdi. witness_sample ve witness_sample_event yedege eklendi -
+numune PARTIDEN sonra, olay defteri NUMUNEDEN sonra (geri yuklemede
+ebeveyn once gelmeli). Tablo aciklamalari da yazildi.
+!! Bu testin varlik sebebi tam olarak bu: "eksiksiz" damgasi, damgayi
+basan listenin kendisini denetlemez.
 
-2 - YANLIS HATA MESAJI ONARILDI (tuzak 115)
-SKT suzgeci elediginde kullanici "Yetersiz stok: 45 istendi, defterde 30
-var" mesajini aliyordu. Mesaj teknik olarak dogru ama GERCEKTE YANLIS:
-depoda 45 kilo VAR, 15 kilosunun suresi gecmis. Kullanici deposuna bakip
-mali goruyor, sistem "yok" diyor.
-Ayri bir hata yazildi (SuresiGecmisStokError): "Yetersiz kullanilabilir
-stok: 45 istendi, kullanilabilir 30. Depoda ayrica 15 birim SURESI GECMIS
-parti var; bunlar uretime giremez ve sevk edilemez. Imha kaydi acilmali."
-!! Dogru olmayan bir hata mesaji da bir tur "mis gibi"dir.
+2 - MIYOP-074 - PLANLAMA EKRANLARI YALAN SOYLUYORDU (Codex)
+SKT kapisini yazmadan once "fiziksel bakiye" ile "kullanilabilir bakiye"
+ayni seydi. Kapidan sonra ayristilar - ama planlama ekranlari hala
+FIZIKSEL toplami okuyordu.
+Somut senaryo: dun biten 10 kg + gecerli 10 kg, ihtiyac 15 kg.
+  . Is Emirleri ve Sevkiyatlar ekraninda eksik miktar tire isareti gorunuyor
+  . Baslat ve Sevk Et dugmeleri ACIK kaliyor
+  . Uretim provasi "Stok yeterli" diyor
+  . Tiklayinca goc 0092'nin kapisi reddediyor
+!! Yani ekran once "yapabilirsin" deyip sonra "yapamazsin" diyordu. Bu,
+kapinin kendisinden daha kotu: kapi dogru calisiyor, EKRAN yalan
+soyluyor. Tuzak 115'in planlama hali.
 
-3 - MIYOP-058 IKINCI YARI: ESKI DEMO KALINTILARI (Codex hakli)
-Ureticileri silmek yalniz YENI uretimi durdurdu. Emrah'in ve demo
-kurulumlarin tarayicisinda o satirlar ZATEN yaziliydi. Koprudeki "bu
-firmaya ait olmayan subeleri koru" kurali onlari KORUYORDU, cunku demo
-subelerin firma kimligi uydurma bir demo firmaydi - "baska firma"
-sayiliyorlardi.
-Artik kimligi BILINEN demo kayitlari (branch_merkez, branch_istanbul,
-branch_ankara, branch_izmir + uc demo firma) her giriste siliniyor.
-!! Liste KAPALI ve sabit. Desene gore silmek ("_demo ile bitenler")
-tehlikeli olurdu - gercek bir firma kendi kaydina o adi verebilir.
-!! Kopru, veritabani bu firma icin BOS cevap verdiginde erken donup
-temizligi atliyordu; o da duzeltildi (Codex).
+Yapilan: DepoKalemi artik uc sayi tasiyor - miktar (fiziksel),
+suresiGecmis, kullanilabilir. Uc planlama ekrani da KULLANILABILIR
+olani okuyor.
+!! KRITIK STOK ESIGI DE kullanilabilire baglandi: kritik uyarisinin
+amaci siparis verdirmek, suresi gecmis mal o ihtiyaci karsilamiyor.
+100 kilo suresi gecmis mal, 5 kiloluk esigi KAPATMAMALI.
+!! Suresi gecmis miktar yalniz lot+SKT takipli kalemlerde sorgulaniyor;
+digerlerinde sorulacak bir tarih yok (uyarilar() de boyle calisiyor).
 
-4 - MIYOP-073: CICIR TESTI "export const"u KACIRIYORDU (Codex hakli)
-Desen yalniz ^const createDemo... ariyordu. Silinen EN BUYUK uretici ise
-"export const createDemoData" bicimindeydi - yani "geri gelmemis"
-kontrolu, geri gelen en tehlikeli fonksiyonu yakalayamazdi.
-Desen duzeltildi ve yasak ad kontrolu SAYIMDAN BAGIMSIZ hale getirildi:
-iki olcum birbirine dayanirsa, birinin kor noktasi otekinin de kor
-noktasi olur.
-Olumsuz deneme: "export const createDemoData" geri konunca test kirmizi.
+Iki yeni test: kullanilabilir bakiye suresi gecmisi ayiriyor mu,
+suresi gecmis mal kritik uyarisini kapatiyor mu.
 
-5 - UC YENI TEST (warehouse.service.test.ts)
-  . suresi gecmis parti FEFO sirasinda ATLANIYOR
-  . IMHA suresi gecmis partiyi kullanabiliyor (cikis yolu kapanmadi)
-  . suresi gecmis yuzunden yetmiyorsa SEBEBINI soyluyor
+3 - MIYOP-058 UCUNCU YARI - ARSIVLENMIS DEMO FIRMA (Codex)
+Temizlik saveCompanies uzerinden gidiyordu; o fonksiyon ARSIVLENMIS
+kayitlari (deletedAt dolu olanlari) bilerek koruyor - gercek bir firma
+silinse de gecmisi kaybolmasin diye. Dogru bir kural ama burada TERS
+ETKI yapiyordu: arsivlenmis bir demo firma her temizlikte GERI
+GELIYORDU.
+Yapilan: kimligeGoreFirmaSil() - yalniz kimligi verilen kayitlari silen,
+arsiv korumasini BILEREK asan ayri bir fonksiyon. Desene gore silmiyor;
+cagiran hangi kayitlari sildigini tek tek bilmek zorunda.
+!! Ders: bir temizlik, kendi kullandigi yazma fonksiyonunun kurallarina
+tabidir. "Sildim" demeden once YAZANIN ne yaptigini oku.
 
-6 - IKI YENI TUZAK
-  . 114 - Gercek saati okuyan kodu sabit tarihle sinamak saatli bomba
-    kurmaktir; bomba patlayinca kurali degil testi sorgula.
-  . 115 - Bir kapi koydugunda o kapinin urettigi HATA MESAJINI da olc.
-
-Sozdizimi denetimi: alti dosya temiz (bun build --no-bundle).
-!! Testleri burada kosturamiyorum; kirmizi kalirsa ciktiyi ver, ayni
-turda onaririm.
+Sozdizimi denetimi: sekiz dosya temiz (bun build --no-bundle).
+!! Testleri burada kosturamiyorum; kirmizi kalirsa ciktiyi ver.
 
 Co-Authored-By: Claude Opus 5 <noreply@anthropic.com>
 Claude-Session: https://claude.ai/code/session_019BwYM3mAXZUhp4YGj7tp2y

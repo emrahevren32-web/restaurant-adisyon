@@ -235,6 +235,52 @@ describe('Depo · çıkış (FEFO)', () => {
     expect(await miktar(TAVUK)).toBe(5)
   })
 
+  it('KULLANILABİLİR bakiye süresi geçmişi AYIRIYOR (MIYOP-074)', async () => {
+    // ⚠️ Planlama ekranları (İş Emirleri, Sevkiyatlar, Üretim provası) bu
+    // sayıyı okuyor. Fiziksel toplamı okusalardı "stok yeterli" deyip
+    // düğmeyi açık bırakırlar, tıklayınca göç 0092'nin kapısı reddederdi —
+    // yani ekran önce "yapabilirsin" deyip sonra "yapamazsın" derdi.
+    await servis.malKabul(ctx, {
+      stokKalemiId: TAVUK, miktar: 10, birim: 'kg',
+      yeniLot: { kod: 'LOT-GECMIS-B', sonKullanma: bugundenGunSonra(-1) },
+    }, 'kabul-b1')
+    await servis.malKabul(ctx, {
+      stokKalemiId: TAVUK, miktar: 10, birim: 'kg',
+      yeniLot: { kod: 'LOT-GECERLI-B', sonKullanma: bugundenGunSonra(5) },
+    }, 'kabul-b2')
+
+    const kalem = (await servis.kalemler(ctx)).find(k => k.id === TAVUK)!
+    expect(kalem.miktar, 'fiziksel bakiye 20 olmalı').toBe(20)
+    expect(kalem.suresiGecmis, 'süresi geçmiş 10 olmalı').toBe(10)
+    expect(kalem.kullanilabilir, 'kullanılabilir 10 olmalı').toBe(10)
+  })
+
+  it('süresi geçmiş mal KRİTİK uyarısını kapatmıyor (MIYOP-074)', async () => {
+    // ⚠️ Kritik uyarısının amacı sipariş verdirmek. Süresi geçmiş mal o
+    // ihtiyacı karşılamıyor; "stok var" saydırmak uyarıyı susturup
+    // işletmeyi malsız bırakırdı.
+    // ⚠️ TAVUK fixture'ının `minMiktar`ı 0 — kritik eşiği hiç devreye
+    // girmez. Bu sınama için eşiği olan bir kalem gerekiyor, o yüzden
+    // kartın eşiği burada veriliyor.
+    const tavuk = katalog.kalemListesi.find(k => k.id === TAVUK)!
+    katalog.kalemListesi = katalog.kalemListesi.map(
+      k => (k.id === TAVUK ? { ...tavuk, minMiktar: 5 } : k),
+    )
+
+    await servis.malKabul(ctx, {
+      stokKalemiId: TAVUK, miktar: 100, birim: 'kg',
+      yeniLot: { kod: 'LOT-GECMIS-C', sonKullanma: bugundenGunSonra(-1) },
+    }, 'kabul-c1')
+
+    const kalem = (await servis.kalemler(ctx)).find(k => k.id === TAVUK)!
+    expect(kalem.miktar, 'fiziksel 100').toBe(100)
+    expect(kalem.kullanilabilir, 'kullanılabilir 0').toBe(0)
+    expect(
+      kalem.kritik,
+      '100 kilo süresi geçmiş mal, 5 kiloluk kritik eşiğini kapatmamalı',
+    ).toBe(true)
+  })
+
   it('SÜRESİ GEÇMİŞ parti FEFO sırasında ATLANIYOR (göç 0092)', async () => {
     // ⚠️ Süresi geçmiş parti FEFO'da EN BAŞTA olur (tarihi en eski o).
     // Kapı olmasaydı otomatik olarak o seçilir ve sunucu reddederdi.

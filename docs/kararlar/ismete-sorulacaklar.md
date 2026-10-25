@@ -87,6 +87,15 @@ aynı karekod okutulsun. Tasarım kararı `parti-karekodu.md`'de.
 
 ## Cevaplananlar
 
+- ✅ **A1–A5 · ŞAHİT NUMUNE** (İsmet 25.10 + Emrah 25.10) —
+  **her ÜRETİM PARTİSİNDEN** numune alınıyor (sevkiyattan değil); **üretim**
+  alıyor, **gıda teknikeri ve depocu kontrolünde**; saklama koşulu
+  müşteriye bildirilenin birebir aynısı; imha kaydı zorunlu; müşteri
+  itirazında numune **müşteri önünde** açılıyor ve açılış kayda giriyor.
+  → Göç **0093** yazıldı. `sahit-numune.md`
+  🔄 **Kalan tek soru:** imhayı kim ONAYLAYACAK (müdür / gıda mühendisi /
+  kaliteci)? Ekranı engellemiyor — bugün kaydı YAPAN yazılıyor.
+
 - ✅ **B1 · Firma Profili'ni kim değiştirebilir** (Emrah, 21.10) —
   **yalnız işletme sahibi.** Müdür değiştiremez.
   ⚠️ Bu karar aslında **zaten veritabanında yazılıydı:** göç `0015`

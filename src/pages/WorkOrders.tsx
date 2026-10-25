@@ -242,8 +242,14 @@ export default function WorkOrders({ currentUser }: Props){
     return () => { iptal = true }
   }, [secili, servis, baglam, depoServisi])
 
+  // ⚠️ 25.10.2026 · MIYOP-074 · `b.miktar` DEĞİL `b.kullanilabilir`.
+  // Fiziksel bakiye süresi geçmiş partileri de sayıyordu: "dün biten
+  // 10 kg + geçerli 10 kg, ihtiyaç 15 kg" senaryosunda eksik miktar "—"
+  // görünüyor ve **Başlat** açık kalıyordu; tıklayınca göç 0092'nin
+  // kapısı reddediyordu. Yani ekran önce "yapabilirsin" deyip sonra
+  // "yapamazsın" diyordu.
   const bakiyeHaritasi = React.useMemo(
-    () => new Map(bakiyeler.map(b => [b.id, b.miktar])),
+    () => new Map(bakiyeler.map(b => [b.id, b.kullanilabilir])),
     [bakiyeler],
   )
 

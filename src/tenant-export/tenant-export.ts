@@ -91,6 +91,9 @@ export const DISA_AKTARILAN_TABLOLAR = [
   'haccp_plan', 'haccp_ccp', 'haccp_measurement', 'haccp_corrective_action',
   // Sayım
   'stock_count', 'stock_count_line',
+  // Şahit numune (0093) — partiden SONRA: numune `stock_lot`a bağlı.
+  // ⚠️ Olay defteri numuneden sonra gelmeli; geri yüklemede ebeveyn önce.
+  'witness_sample', 'witness_sample_event',
   // Denetim
   'audit_log',
 ] as const

@@ -33,8 +33,31 @@ import { GerekceGerekliError, gerekceYeterliMi } from './write-off.service'
 
 /** Ekranda gösterilen kalem: kart bilgisi + defterden türetilmiş miktar. */
 export type DepoKalemi = KatalogKalemi & {
+  /** Defterdeki FİZİKSEL bakiye. Süresi geçmiş partiler DAHİL. */
   miktar: number
-  /** `minMiktar` tanımlıysa ve bakiye onun altındaysa. */
+  /**
+   * ⚠️ 25.10.2026 · MIYOP-074 (Codex) · KULLANILABİLİR BAKİYE.
+   *
+   * Göç 0092'den sonra süresi geçmiş parti üretime giremiyor ve sevk
+   * edilemiyor. Ama planlama ekranları **fiziksel** toplamı okuyordu:
+   * "dün biten 10 kg + geçerli 10 kg, ihtiyaç 15 kg" senaryosunda
+   * *"Stok yeterli"* yazıyor, **Başlat** ve **Sevk Et** düğmeleri açık
+   * kalıyor — tıklayınca kapı reddediyor.
+   *
+   * Yani kullanıcıya önce "yapabilirsin" deyip sonra "yapamazsın" diyorduk.
+   * Bu, kapının kendisinden daha kötü: kapı doğru çalışıyor ama ekran
+   * yalan söylüyor (tuzak 115'in planlama hâli).
+   *
+   * `kullanilabilir = miktar - suresiGecmis`. SKT takibi olmayan kalemde
+   * ikisi aynıdır.
+   */
+  kullanilabilir: number
+  /** Bakiyesi olan ama süresi geçmiş partilerin toplamı. */
+  suresiGecmis: number
+  /**
+   * `minMiktar` tanımlıysa ve **kullanılabilir** bakiye onun altındaysa.
+   * ⚠️ Fiziksel bakiye değil: süresi geçmiş mal kritik stoğu kapatmaz.
+   */
   kritik: boolean
 }
 
@@ -381,12 +404,38 @@ export class DepoServisi {
     const miktarlar: number[] = await Promise.all(
       kartlar.map(kart => this.defter.quantityOf(ctx, kart.id)),
     )
+
+    // ⚠️ MIYOP-074 · süresi geçmiş miktar YALNIZ lot+SKT takipli kalemlerde
+    // sorulabilir; diğerlerinde sorulacak bir tarih yok. Hepsini sorgulamak
+    // sonucu değiştirmez, yalnız her kalem için gereksiz bir tur atardı —
+    // `uyarilar()` da aynı sebeple böyle çalışıyor.
+    const sktliKalemler = kartlar.filter(kart => kart.sktTakipli && kart.lotTakipli)
+    const lotDemetleri = await Promise.all(
+      sktliKalemler.map(kart => this.lotBakiyeleri(ctx, kart.id)),
+    )
+    const gecmisHaritasi = new Map<string, number>()
+    sktliKalemler.forEach((kart, i) => {
+      const gecmis = lotDemetleri[i]
+        .filter(lot => lot.miktar > 0 && sktGecmisMi(lot.sonKullanma))
+        .reduce((acc, lot) => acc + lot.miktar, 0)
+      if(gecmis > 0) gecmisHaritasi.set(kart.id, yuvarla(gecmis))
+    })
+
     return kartlar.map((kart, i) => {
       const miktar = yuvarla(miktarlar[i])
+      const suresiGecmis = gecmisHaritasi.get(kart.id) ?? 0
+      // ⚠️ Negatife düşmesin: fiziksel bakiye negatif politikayla eksiye
+      // inmiş olabilir; "kullanılabilir -3" anlamsız bir sayıdır.
+      const kullanilabilir = yuvarla(Math.max(0, miktar - suresiGecmis))
       return {
         ...kart,
         miktar,
-        kritik: kart.minMiktar > 0 && miktar <= kart.minMiktar,
+        suresiGecmis,
+        kullanilabilir,
+        // ⚠️ KRİTİK EŞİĞİ KULLANILABİLİR BAKİYEYE BAKIYOR. Süresi geçmiş
+        // mal "stok var" saydırmamalı: kritik uyarısının amacı sipariş
+        // verdirmek ve o mal sipariş ihtiyacını karşılamıyor.
+        kritik: kart.minMiktar > 0 && kullanilabilir <= kart.minMiktar,
       }
     })
   }

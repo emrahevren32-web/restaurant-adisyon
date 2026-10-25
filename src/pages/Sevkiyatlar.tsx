@@ -286,8 +286,11 @@ export default function Sevkiyatlar({ currentUser }: Props){
     return () => { iptal = true }
   }, [secili, servis, baglam])
 
+  // ⚠️ 25.10.2026 · MIYOP-074 · `b.miktar` DEĞİL `b.kullanilabilir`.
+  // Süresi geçmiş parti sevk edilemiyor (göç 0092); fiziksel bakiyeyi
+  // göstermek **Sevk Et** düğmesini boşuna açık bırakıyordu.
   const bakiyeHaritasi = React.useMemo(
-    () => new Map(bakiyeler.map(b => [b.id, b.miktar])),
+    () => new Map(bakiyeler.map(b => [b.id, b.kullanilabilir])),
     [bakiyeler],
   )
 

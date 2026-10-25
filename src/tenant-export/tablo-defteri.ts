@@ -195,6 +195,8 @@ export const TABLO_ACIKLAMALARI: Record<string, string> = {
   haccp_corrective_action: 'Düzeltici faaliyetler',
   stock_count: 'Sayımlar',
   stock_count_line: 'Sayım satırları',
+  witness_sample: 'Şahit numuneler — hangi partiden, hangi koşulda, ne zamana kadar',
+  witness_sample_event: 'Numune olayları — alındı / açıldı / imha, gerekçesiyle',
   audit_log: 'DEĞİŞİKLİK KAYDI — kim, ne zaman, neyi değiştirdi',
 }
 

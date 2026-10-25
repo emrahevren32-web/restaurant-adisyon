@@ -40,6 +40,7 @@
 
 import { getSupabase, isSupabaseConfigured } from '../core/supabase'
 import {
+  kimligeGoreFirmaSil,
   loadBranchPermissions, loadBranches, loadCompanies,
   saveBranchPermissions, saveBranches, saveCompanies,
 } from '../storage'
@@ -106,11 +107,11 @@ export const eskiDemoKalintilariniTemizle = (): void => {
     ))
     if(kalanSubeler.length !== subeler.length) saveBranches(kalanSubeler)
 
-    const firmalar = loadCompanies({ allTenants: true, includeDeleted: true })
-    const kalanFirmalar = firmalar.filter(
-      firma => !ESKI_DEMO_FIRMA_KIMLIKLERI.includes(firma.id),
-    )
-    if(kalanFirmalar.length !== firmalar.length) saveCompanies(kalanFirmalar)
+    // ⚠️ `saveCompanies` KULLANILMIYOR (MIYOP-058 · üçüncü yarı, Codex).
+    // O fonksiyon arşivlenmiş kayıtları bilerek koruyor; doğru bir kural
+    // ama burada ters etki yapıyordu: arşivlenmiş bir demo firma her
+    // temizlikte GERİ GELİYORDU. Hedefli silme o korumayı bilerek aşıyor.
+    kimligeGoreFirmaSil(ESKI_DEMO_FIRMA_KIMLIKLERI)
   }catch(hata){
     // ⚠️ Temizlik başarısız olursa giriş AKIŞI DURMAZ. Kalıntı bir sonraki
     // girişte yine denenir; kullanıcıyı kapıda bırakmak bundan kötüdür.

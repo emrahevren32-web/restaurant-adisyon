@@ -33,7 +33,7 @@ neyin neden yapıldığı kaybolmasın.
 | **A2** | **MIYOP-008** · şube bağlamı kesin değil · **küçüldü** | Tek merkez kararıyla "yanlış şubeye yazma" riski pratikte kalktı. ⚠️ Kapanmadı: kod hâlâ "tercih yoksa ilk şube" diyor — tek şubede doğru sonucu **tesadüfen** veriyor. Başlıktaki şube seçici kaldırılacak, liste sorgularına şube kapsamı yazılacak. |
 | **A3** | **MIYOP-010** · etiket ekranında ürünler karışıyor · **MIYOP-064 ile birlikte 6 ekran** | Etiket, demonun en gösterişli parçası; yanlış ürünün alerjeni basılırsa itibar biter. ⚠️ Codex 21.10'da aynı kusuru Depo, Siparişler, Müşteriler, İş Emirleri ve Sevkiyatlar'da da buldu — tek ekrana yama atmak aileyi kapatmıyor (3.7). |
 | **A4** | **Sahte veri üreticileri** (3.8, 3.10) · **4 tanesi P0** | Önce `kaldirilan-moduller.md`, sonra silme. ⚠️ İş büyüdü: mesele dosya adı `*.mock.ts` olanlar değil, **27 `createDemo*` üreticisi.** Dördü açık ekrana, biri **müşterinin gördüğü portala** ulaşıyor (MIYOP-058/059/060/061). |
-| **A5** | **Şahit numune** (3.9.1) | Gerçek gıda güvenliği gereği; sahte ekran olarak değil, tabloyla. ⚠️ Tasarım kararı yazıldı: `docs/kararlar/sahit-numune.md`. **Beş açık soru cevaplanmadan göç YAZILMAYACAK.** |
+| **A5** | **Şahit numune** (3.9.1) · **veritabanı BİTTİ, ekran kaldı** | İsmet cevapladı (25.10): *"üretim her ürettiği parti üründen şahit numune alıyor."* Göç **0093** yazıldı, prova **21/21**. Kalan: ekran + etiketin saklama koşulunu ürün kartından okuması (3.9.3). |
 | **A6** | MIYOP-043 son adımı (0091) + dağıtım | Güvenlik borcu kapanmış olsun. |
 
 ⚠️ **Bu listede OLMAYANLAR demo öncesi YAPILMAYACAK:** MIYOP-049/050
@@ -63,12 +63,12 @@ EVREN360'ın kilitli menüleri. Hepsi hedefte duruyor, sırası sonra.
 - ⬜ **0.10** Dağıtım · 0090 uygulandıktan ve MIYOP-043 bittikten sonra
   tek seferde (arayüzde zil yönlendirmesi de bu dağıtımla gider)
 - ✅ **0.12** **Göç 0092 · SKT kapısı · CANLIDA** (25.10)
-  Yerel prova **12/12**, göç üç kez üst üste koşturuldu, olumsuz deneme
-  yapıldı (kapı kaldırılınca prova ilk sınamada kırmızı döndü).
-  ⚠️ Supabase'de çalıştırılacak. Sonra sürüm defterine işlenecek.
+- ✅ **0.13** **Göç 0093 · şahit numune · CANLIDA** (25.10)
+  Yerel prova **21/21**, göç dört kez üst üste koşturuldu, iki olumsuz
+  deneme yapıldı.
   ⚠️ **Numara notu:** giriş ACL göçü için 0092 ayrılmıştı; numara yazılma
-  sırasına göre verildiği için SKT kapısı 0092 oldu, giriş ACL'si **0093**
-  olacak.
+  sırasına göre verildiği için SKT kapısı **0092**, şahit numune **0093**
+  oldu. Giriş ACL'si **0094** olacak.
 
 ---
 
@@ -406,6 +406,22 @@ güvenlik sınırı değil. Gerçek sınır veritabanında olmalı.
     yenisi seçilirse **uyar** — engelleme değil, meşru istisnalar var.
     ⚠️ SKT kapısından farklı bir iş: kapı *"geçmiş olanı engelle"*, uyarı
     *"sırayı atlıyorsun"* diyor.
+  - ✅ **2.9.8** **MIYOP-074 · PLANLAMA EKRANLARI DA DOĞRU SAYIYOR**
+    (Codex, 25.10 — ve bu benim kapımın yan etkisiydi).
+    SKT kapısı yazmadan önce "fiziksel bakiye" ile "kullanılabilir bakiye"
+    aynı şeydi. Kapıdan sonra ayrıştılar, ama planlama ekranları hâlâ
+    **fiziksel** toplamı okuyordu. Somut senaryo: dün biten 10 kg + geçerli
+    10 kg, ihtiyaç 15 kg → **İş Emirleri** ve **Sevkiyatlar** ekranında
+    eksik miktar `—` görünüyor, **Başlat** ve **Sevk Et** açık kalıyor;
+    **Üretim provası** *"Stok yeterli"* diyor. Tıklayınca kapı reddediyor.
+    ⚠️ Yani ekran önce *"yapabilirsin"* deyip sonra *"yapamazsın"* diyordu.
+    Bu, kapının kendisinden daha kötü: kapı doğru, **ekran yalan söylüyor.**
+    Yapılan: `DepoKalemi` artık üç sayı taşıyor — `miktar` (fiziksel),
+    `suresiGecmis`, `kullanilabilir`. Üç planlama ekranı da
+    **kullanılabilir** olanı okuyor.
+    ⚠️ **Kritik stok eşiği de kullanılabilire bağlandı:** kritik uyarısının
+    amacı sipariş verdirmek, süresi geçmiş mal o ihtiyacı karşılamıyor.
+    100 kilo süresi geçmiş mal, 5 kiloluk eşiği kapatmamalı.
   - ✅ **2.9.7** **"Yetersiz stok" yalanı önlendi.** SKT süzgeci eklenince
     şu ortaya çıktı: süresi geçmiş partiler elendiği için kalan miktar
     yetmiyor ve kullanıcı *"Yetersiz stok: 45 istendi, defterde 30 var"*
@@ -652,6 +668,40 @@ Emrah'ın onayladığı sıra:
     `%numune%` deseninde **hiç tablo yok**. Bu ekranlar yalnız uydurma
     veriyle vardı; "mock veri asla olmayacak" kuralı gelince donduruldu.
     Yani bırakmadık — **hiç başlamamıştık.**
+  - ✅ **3.9.2** **GÖÇ 0093 YAZILDI (25.10) · prova 21/21**
+    İsmet'in cevabı beklediğim **asıl** soruyu kapattı: numune **sevkiyata
+    değil, ÜRETİM PARTİSİNE** bağlı. Aynı partiden beş müşteriye gidiyorsa
+    **bir** numune var.
+    Veritabanında zorlanan kurallar: numune partiye bağlı; saklama sonu
+    partinin SKT'sinden **türetiliyor** (ekranın yazdığı yok sayılıyor);
+    SKT'siz partiden numune alınamıyor; saklama koşulu **ürün kartından
+    kopyalanıyor**; koşulu tanımsız üründen numune alınamıyor; imza
+    sunucuda; numune **silinemiyor ve değiştirilemiyor** (durum olay
+    defterinden türetiliyor); açılış ve imha **gerekçe istiyor**; olay
+    kaydı değişmez (iki savunma hattı); aynı partide tek açık numune ama
+    imhadan sonra yeniden alınabiliyor; her şey denetime düşüyor.
+    Kapı: `quality.record.manage` **veya** `production.write` (Emrah:
+    *"her ikisine de bağla, ortak bir iş"*). ⚠️ Depocu "kontrolünde" —
+    bu fiziksel sorumluluk, sistem izni değil; prova depo sorumlusunun
+    numune ALAMADIĞINI ayrıca sınıyor.
+    İki olumsuz deneme: türetme tetiği düşürülünce prova 4. sınamada,
+    yetki kapısı düşürülünce 3. sınamada kırmızı döndü.
+  - ⬜ **3.9.3** ⚠️ **ETİKET EKRANI SAKLAMA KOŞULUNU ÜRÜN KARTINDAN
+    OKUMALI.** Bu göçün ortaya çıkardığı eksik: saklama koşulu hiçbir yerde
+    **saklanmıyordu** — etiket ekranında her baskıda **elle yazılan**
+    serbest bir metin alanıydı (yer tutucu `0–4 °C`). Yani aynı ürün iki
+    baskıda iki farklı koşul taşıyabiliyordu. Koşul artık ürün kartında
+    (`stock_item.storage_condition`); **etiket de oradan okumalı**, yoksa
+    iki ayrı doğru olur ve *"numune müşteriye söylenenin aynısında durur"*
+    kuralı yine çöker.
+  - ✅ **3.9.5** **Yedek defterine eklendi.** `tenant-export.arch.test.ts`
+    her kiracı tablosunun ya yedekte ya **gerekçeli** dışarıda olmasını
+    zorunlu kılıyor; iki yeni tablo yazılmayınca test kırmızı verdi ve
+    **doğru yakaladı.** `witness_sample` ve `witness_sample_event` yedeğe
+    eklendi — numune partiden SONRA, olay defteri numuneden SONRA (geri
+    yüklemede ebeveyn önce gelmeli).
+  - ⬜ **3.9.4** **Şahit numune EKRANI** · numune alma, listeleme (süresi
+    yaklaşanlar), açılış kaydı, imha kaydı. Veritabanı hazır.
   - 🔄 **3.9.1** **Şahit numune** · Emrah anlattı (20.10), tasarım kararı
     `docs/kararlar/sahit-numune.md`'ye yazıldı. Çıkan üç kural:
     **(1)** Saklama süresi sabit DEĞİL — kapalı üründe **SKT**, açılmışta
@@ -723,6 +773,18 @@ Emrah'ın onayladığı sıra:
     **Donduran test:** `src/modules/sahte-veri-ureticisi.arch.test.ts` ·
     üretici sayısını 23'te donduruyor, silinen dördünün geri gelmesini ve
     okuyucuların demo dalına düşmesini yasaklıyor. Olumsuz deneme yapıldı.
+  - ✅ **3.10.9** **MIYOP-058 · ÜÇÜNCÜ YARI · arşivlenmiş demo firma**
+    (Codex, 25.10). Temizlik `saveCompanies` üzerinden gidiyordu; o
+    fonksiyon **arşivlenmiş** kayıtları (`deletedAt` dolu olanları)
+    bilerek koruyor — gerçek bir firma silinse de geçmişi kaybolmasın
+    diye. Doğru bir kural ama burada **ters etki** yapıyordu: arşivlenmiş
+    bir demo firma her temizlikte **geri geliyordu.**
+    Yapılan: `kimligeGoreFirmaSil()` — yalnız kimliği verilen kayıtları
+    silen, arşiv korumasını **bilerek** aşan ayrı bir fonksiyon.
+    ⚠️ Desene göre silmiyor; çağıran hangi kayıtları sildiğini tek tek
+    bilmek zorunda.
+    ⚠️ Ders: *bir temizlik, kendi kullandığı yazma fonksiyonunun
+    kurallarına tâbidir.* "Sildim" demeden önce yazanın ne yaptığını oku.
   - ✅ **3.10.7** **ESKİ DEMO KALINTILARI TEMİZLENİYOR (MIYOP-058 · ikinci
     yarı).** ⚠️ **İlk onarımım yetmedi, Codex haklıydı:** üreticileri
     silmek yalnız YENİ üretimi durdurdu; Emrah'ın ve demo kurulumların
@@ -1219,7 +1281,7 @@ yanlışlıkla çalıştırılma riski var (6.11).
 | | |
 |---|---|
 | Test | 78 dosya · 1432 test · 0 hata |
-| Göç | 0000–**0091** · 92 dosya · (giriş ACL'si 0092 olacak) |
+| Göç | 0000–**0093** · 94 dosya · hepsi canlıda · (giriş ACL'si **0094** olacak) |
 | Açık çekirdek rota | 25 (37'den indi) |
 | Tarayıcıya bağlı açık ekran | **3** (6 → 5 Profilim bitti → 3 şube ekranları kapsam dışı) |
 | Sahte veri üreticisi | **23 `createDemo*`** (27 → 23 · duyuru, şube, firma ve `createDemoData` silindi) · çıcır testiyle donduruldu |

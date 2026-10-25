@@ -4323,6 +4323,30 @@ export const loadCompanies = (options: { allTenants?: boolean; includeDeleted?: 
   return currentUser ? filterTenantScope(visibleCompanies, currentUser) : visibleCompanies
 }
 
+/**
+ * Kimliği verilen firmaları depodan **tamamen** siler.
+ *
+ * ⚠️ NEDEN AYRI BİR FONKSİYON (MIYOP-058 · üçüncü yarı, Codex buldu):
+ * `saveCompanies` arşivlenmiş kayıtları (`deletedAt` dolu olanları)
+ * BİLEREK koruyor — gerçek bir firma silinse bile geçmişi kaybolmasın
+ * diye. Doğru bir kural, ama demo kalıntısını temizlerken tam ters etki
+ * yapıyordu: arşivlenmiş bir demo firma, `saveCompanies` üzerinden her
+ * seferinde GERİ GELİYORDU.
+ *
+ * ⚠️ Bu fonksiyon o korumayı **bilerek** aşıyor ve yalnız kimliği
+ * verilenleri siliyor. Desene göre silmiyor; çağıran, hangi kayıtları
+ * sildiğini tek tek bilmek zorunda.
+ */
+export const kimligeGoreFirmaSil = (kimlikler: readonly string[]): number => {
+  if(kimlikler.length === 0) return 0
+  const silinecek = new Set(kimlikler)
+  const hepsi = readJson<Partial<Company>[]>(KEY_COMPANIES, [])
+  const kalan = hepsi.filter(firma => !silinecek.has(String(firma.id ?? '')))
+  if(kalan.length === hepsi.length) return 0
+  localStorage.setItem(KEY_COMPANIES, JSON.stringify(kalan.map(normalizeCompany)))
+  return hepsi.length - kalan.length
+}
+
 export const saveCompanies = (items: Company[]) => {
   const normalizedItems = items.map(normalizeCompany)
   const nextIds = new Set(normalizedItems.map(company => company.id))

@@ -125,8 +125,12 @@ export default function ProductionRecipes({ currentUser }: Props){
   const secili = receteler.find(r => r.id === seciliId) ?? null
 
   /** Bakiyeler TEMEL birimde — yeterlilik hesabı çevirmeyi kendisi yapar. */
+  // ⚠️ 25.10.2026 · MIYOP-074 · `b.miktar` DEĞİL `b.kullanilabilir`.
+  // "Üretim provası" fiziksel bakiyeye bakarak *"Stok yeterli"* diyordu;
+  // oysa süresi geçmiş parti üretime giremiyor (göç 0092). Prova, denemeden
+  // önce doğruyu söylemek içindir — yanlış söylerse hiç olmamasından kötüdür.
   const bakiyeHaritasi = React.useMemo(
-    () => new Map(bakiyeler.map(b => [b.id, b.miktar])),
+    () => new Map(bakiyeler.map(b => [b.id, b.kullanilabilir])),
     [bakiyeler],
   )
 
