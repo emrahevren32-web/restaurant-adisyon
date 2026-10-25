@@ -662,7 +662,36 @@ Emrah'ın onayladığı sıra:
   güvenmeden) ve sonra yüzeyin tamamını saydım:
   **27 `createDemo*` üreticisi** var. Çoğu "depo boşsa demo üret" dalından
   geçiyor. Hangi ekrana ulaştığı ÖNEMLİ olan:
-  - ⬜ **3.10.1** **ÖNCE KAYNAK · `loadBranches()` ve `loadCompanies()`**
+  - ✅ **3.10.1** **KAYNAK TEMİZLENDİ (25.10) · dört üretici silindi**
+    · `createDemoBranches` — dört uydurma şube (Merkez/İstanbul/Ankara/
+      İzmir, uydurma telefon-adres-müdür adı). **SİLİNDİ.**
+    · `createDemoCompanies` — üç uydurma firma (ABC Cafe · Ahmet Kaya,
+      Örnek İşletme · Mehmet Demir, Kahve Durağı · Ayşe Yılmaz) uydurma
+      vergi numarası ve adresle. **SİLİNDİ.**
+    · `createDemoData` — **117 satır.** Depodaki en büyük sahte veri
+      kaynağı: "Adana Kebap", "Tavuk Şiş", "Kola", "Çay", "Baklava", altı
+      masa ve **24 üreticinin tamamını** `localStorage`a yazıyordu.
+      ⚠️ Ölçüm: `src` içinde bu fonksiyonu **çağıran tek bir yer yoktu** —
+      ölü koddu ama `export` olduğu için her an çağrılabilirdi. **SİLİNDİ.**
+    · `createDemoAnnouncements` — 25.10'da zaten silinmişti (3.10.2).
+    **Okuyucular:** `readBranchesFromStorage` ve `loadCompanies` artık boş
+    veriyi **boş bırakıyor.**
+    **Köprü de onarıldı:** `company-bridge` eskiden yerel listenin tamamını
+    koruyup üstüne veritabanı satırlarını yazıyordu — yani veritabanında
+    karşılığı olmayan demo şubeleri **her girişte geri kaydediyordu.**
+    Artık bu firmanın şubeleri için **yetkili kaynak veritabanı**: eski demo
+    kalıntıları ilk girişte kendiliğinden temizleniyor, ayrı temizlik
+    betiği gerekmiyor. ⚠️ Başka firmaların yerel satırlarına dokunulmuyor —
+    dokunmak MIYOP-063'ü burada tekrarlamak olurdu.
+    **Donduran test:** `src/modules/sahte-veri-ureticisi.arch.test.ts` ·
+    üretici sayısını 23'te donduruyor, silinen dördünün geri gelmesini ve
+    okuyucuların demo dalına düşmesini yasaklıyor. Olumsuz deneme yapıldı.
+  - ⬜ **3.10.4** **Kalan 23 üretici** · personel, cari, finans, başvuru,
+    lisans ve platform üreticileri. ⚠️ `createDemoData` silindiği için
+    hiçbiri artık toplu tohumlamaya girmiyor; her biri yalnız kendi
+    okuyucusundan erişilebilir. Hangisinin AÇIK bir ekrana ulaştığı
+    3.10.3'te **izlenerek** ayrılacak.
+  - 🗑️ **3.10.1-eski** (aşağıdaki not tarihsel kayıt olarak kalıyor)
     ⚠️ **25.10 notu (tuzak 111):** şube ekranları kapandı ama
     **üretici DURUYOR.** `company-bridge` demo şubeleri hâlâ
     kalıcılaştırıyor ve `loadCompanies()` hâlâ demo firma üretiyor —
@@ -677,6 +706,25 @@ Emrah'ın onayladığı sıra:
     kayıtlarını **kimliğiyle** temizleyen bir adım gerekiyor.
     Kabul: temiz tarayıcı + tek gerçek şube → listede yalnız o şube;
     boş DB → sıfır şube; açılıştan sonra demo kimlikleri **üretilmeyecek.**
+  - ✅ **3.10.5** **MIYOP-071 · KAPANDI · kendi kırdığım tip hatası.**
+    `loadSystemAnnouncements`in imzasını değiştirdim (bağlam parametresi
+    gereksiz kaldı) ve kalan bir çağrıyı kaçırdım:
+    `mobile-integration/mobile-integration.service.ts:604`. Codex yakaladı.
+    ⚠️ **Sebebi öğretici:** çağrı yerlerini aradığımda **depoda değil, benim
+    yerel kopyamda** aradım — ve o kopya eksikti (241 dosya; gerçek `src`
+    çok daha büyük, `mobile-integration` klasörü kopyada hiç yoktu).
+    Yani "başka çağrı yok" sonucuna **eksik bir evrende** vardım (tuzak 112).
+  - ✅ **3.10.6** **MIYOP-072 · KAPANDI · bir mutlak cümleyi başka bir
+    mutlak cümleyle değiştirmişim.** Vitrindeki uydurma vaatleri silerken
+    yerine şunları yazmıştım: *"aynı hesapla her cihazdan aynı kayda
+    ulaşırsınız"* ve *"her değişiklik denetim kaydına düşer"*. İkisi de
+    **operasyon kayıtları için doğru**, ama Firma Profili ve İşletme
+    Ayarları ekranları bugün hâlâ tarayıcıya yazıyor — onların verisi
+    cihazda kalıyor ve hiçbir denetim kaydına girmiyor. Cümleler
+    daraltıldı: hangi kayıtların sunucuda durduğu ve hangi değişikliklerin
+    iz bıraktığı **sayılarak** yazıldı. Ayrıca portal tanıtım cümlesinden
+    *"duyuru"* kelimesi çıkarıldı — bölüm kaldırıldı, yetenek sayılamaz.
+    ⚠️ Tuzak 113: *bir yalanı düzeltirken yerine koyduğun cümleyi de ölç.*
   - ✅ **3.10.2** **MIYOP-059 · KAPANDI (25.10).**
     `notification.service.ts:235` kayıt yokken `createDemoAnnouncements()`
     döndürüyor: *"Planlı bakım bildirimi · Pazar gecesi kısa süreli bakım
@@ -1091,16 +1139,16 @@ yanlışlıkla çalıştırılma riski var (6.11).
 | Göç | 0000–**0091** · 92 dosya · (giriş ACL'si 0092 olacak) |
 | Açık çekirdek rota | 25 (37'den indi) |
 | Tarayıcıya bağlı açık ekran | **3** (6 → 5 Profilim bitti → 3 şube ekranları kapsam dışı) |
-| Sahte veri üreticisi | **26 `createDemo*`** (27'den indi · `createDemoAnnouncements` silindi) |
+| Sahte veri üreticisi | **23 `createDemo*`** (27 → 23 · duyuru, şube, firma ve `createDemoData` silindi) · çıcır testiyle donduruldu |
 | Veritabanı yazma kapısı | **45 tetikleyici** (18 → +27 tablo) |
-| Codex bulgusu | **62** · (**17'si kapandı**: 001, 002, 031, 032, 035, 038, 039, 041, 044, 046, 048, 057, 066, 067, 068, **059**, **061**) · 21–25.10'da **13 yeni**: 058–070 |
+| Codex bulgusu | **64** · (**21'i kapandı**: 001, 002, 031, 032, 035, 038, 039, 041, 044, 046, 048, 057, 059, 061, 066, 067, 068, 070, **058**, **069**, **071**) · 21–25.10'da **15 yeni**: 058–072 |
 | Kapısız yazma yüzeyi | **0 tablo** (ölçüldü, sayılmadı) |
 | Kapı dışı `security definer` | **6 rutin** (0089'da 11 idi) · donduruldu |
 | Prova dosyası | **38 · 27 yeşil / 11 kırmızı** (11'i de bayat · 6.12) |
 | Mock dosya | 36 · hiçbiri açık kiracı rotasından erişilemiyor |
-| Tuzak | **111** (21–25.10: 106–111 eklendi) |
 | Public yol | **2** · başvuru formu + müşteri portalı (ölçülüp donduruldu) |
 | Giriş vitrini | dondurulmuş **20 modül adının** hiçbiri geçmiyor (ölçüldü, donduruldu) |
+| Tuzak | **113** (25.10: 112, 113 eklendi) |
 
 ⚠️ "Mock dosya" satırı **yanıltıcıydı:** doğru olan ama yetmeyen bir ölçüm.
 Asıl tehlike adı mock olmayan üreticilerdi; üstteki satır onu gösteriyor.

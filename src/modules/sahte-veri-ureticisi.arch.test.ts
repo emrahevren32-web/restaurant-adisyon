@@ -1,0 +1,103 @@
+// ═══════════════════════════════════════════════════════════════════════════
+// MİYOP · Mimari test — SAHTE VERİ ÜRETİCİSİ ÇIÇIRI
+//
+// ── NEDEN VAR ────────────────────────────────────────────────────────────
+// Emrah'ın değişmez kuralı: *"yeni kurulmuş bir işletme varsayalım,
+// ekranlarında asla mock veri olmayacak."*
+//
+// `mock-rota-sizintisi.arch.test.ts` yalnız iki imzayı suç sayıyor:
+// `*.mock.ts(x)` dosyaları ve `SEED…COUNT` + `localStorage.setItem` deseni.
+// 21.10'da Codex taraması gösterdi ki asıl tehlike adı mock OLMAYAN
+// üreticilerdi: `storage.ts` içinde **27 tane `createDemo*`** ve hepsi
+// "depo boşsa demo üret" dalından geçiyor (tuzak 107).
+//
+// ── BU TEST BİR ÇIÇIR ────────────────────────────────────────────────────
+// Üretici sayısını DONDURUYOR. Kural: sayı yalnız AŞAĞI gidebilir.
+// Yeni bir `createDemo*` yazılırsa test kırılır; bir tanesi silinirse
+// sınır da indirilir. Böylece temizlik geri alınamaz.
+// ═══════════════════════════════════════════════════════════════════════════
+
+import { describe, expect, it } from 'vitest'
+import { readFileSync } from 'node:fs'
+import { join } from 'node:path'
+import { projeKokunuBul } from '../core/test-support/goc-tarama'
+
+const SRC = join(projeKokunuBul(), 'src')
+const DEPO = readFileSync(join(SRC, 'storage.ts'), 'utf8') as string
+
+/**
+ * ⚠️ Yorumları çıkarır. Silinen üreticilerin GEREKÇESİ yorum olarak
+ * dosyada duruyor ve o yorumlar `createDemoBranches` gibi adları
+ * İÇERİYOR — içermeli, yoksa bir sonraki kişi aynı şeyi geri yazar.
+ * Ama yorumlu metinde arama yapmak testi kendi notumuza takılarak
+ * kırıyordu; bu desen daha önce de başımıza geldi.
+ */
+const yorumsuz = (metin: string) => metin
+  .replace(/\/\*[\s\S]*?\*\//g, ' ')
+  .replace(/^\s*\/\/.*$/gm, ' ')
+
+/**
+ * ⚠️ 25.10.2026'da 27'den 23'e indi:
+ * · `createDemoAnnouncements` — portaldaki uydurma bakım/lisans duyurusu
+ * · `createDemoBranches` — dört uydurma şube (Merkez/İstanbul/Ankara/İzmir)
+ * · `createDemoCompanies` — üç uydurma firma (ABC Cafe, Örnek İşletme…)
+ * · `createDemoData` — 117 satırlık tohumlama; Adana Kebap, Kola, altı masa
+ *   ve 24 üreticinin tamamını localStorage'a yazıyordu
+ * (`createDemoAnnouncements` bu dosyada değildi, `notification.service`
+ *  içindeydi; sayım yalnız `storage.ts`i kapsıyor.)
+ */
+const UST_SINIR = 23
+
+describe('sahte veri üreticisi çıcırı', () => {
+  const ureticiler = [...DEPO.matchAll(/^const (createDemo[A-Za-z]+)\s*=/gm)]
+    .map(m => m[1] as string)
+
+  it('sağlama: ölçüm gerçekten bir şey buldu', () => {
+    // ⚠️ "Hiç üretici bulamadım" deyip yeşil geçmek en kötü sonuç (tuzak 58).
+    expect(ureticiler.length).toBeGreaterThan(0)
+  })
+
+  it('üretici sayısı yalnız AZALABİLİR', () => {
+    expect(
+      ureticiler.length,
+      `storage.ts içinde ${ureticiler.length} sahte veri üreticisi var, `
+      + `sınır ${UST_SINIR}. Yeni üretici eklenmiş olabilir:\n`
+      + ureticiler.join('\n')
+    ).toBeLessThanOrEqual(UST_SINIR)
+  })
+
+  it('silinen dördü geri gelmemiş', () => {
+    for(const silinen of ['createDemoBranches', 'createDemoCompanies', 'createDemoData']){
+      expect(
+        ureticiler,
+        `${silinen} geri gelmiş. Gerekçesi docs/kararlar/kaldirilan-moduller.md'de.`
+      ).not.toContain(silinen)
+    }
+  })
+
+  it('şube ve firma okuyucuları demo üretimine DÜŞMÜYOR', () => {
+    // ⚠️ Üreticiyi silmek yetmez, okuyucunun boş veriyi boş bırakması lazım.
+    const subeOkuyucu = /const readBranchesFromStorage = \(\) => \{[\s\S]*?\n\}/.exec(DEPO)?.[0] ?? ''
+    expect(subeOkuyucu, 'readBranchesFromStorage bulunamadı').not.toBe('')
+    expect(yorumsuz(subeOkuyucu), 'şube okuyucu demo üretiyor').not.toMatch(/createDemo/)
+
+    const firmaOkuyucu = /export const loadCompanies = [\s\S]*?\n\}/.exec(DEPO)?.[0] ?? ''
+    expect(firmaOkuyucu, 'loadCompanies bulunamadı').not.toBe('')
+    expect(yorumsuz(firmaOkuyucu), 'firma okuyucu demo üretiyor').not.toMatch(/createDemo/)
+  })
+
+  it('şube köprüsü veritabanında olmayan yerel şubeyi KORUMUYOR', () => {
+    // ⚠️ MIYOP-058'in ikinci yarısı: üretici silinse de köprü eski demo
+    // satırlarını her girişte geri kaydediyordu.
+    const kopru = readFileSync(join(SRC, 'companies/company-bridge.ts'), 'utf8') as string
+    expect(
+      kopru,
+      'company-bridge bu firmanın şubelerini veritabanından KESİN almıyor — '
+      + 'eski demo şubeler yerel depoda yaşamaya devam eder'
+    ).toMatch(/digerFirmalar/)
+    expect(
+      kopru,
+      'köprü başka firmaların yerel satırlarını koruyor mu? (MIYOP-063 ailesi)'
+    ).toMatch(/sube\.companyId !== firmaId/)
+  })
+})

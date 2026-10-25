@@ -1,98 +1,80 @@
-Tek merkez karari + 059/061 kapandi + giris vitrini dogru soyluyor
+Mock kaynagi temizlendi: 4 uretici + 117 satirlik createDemoData silindi
 
-Emrah (25.10): "Sube olayi zaten su an olmasin. Su anki seviye
-musterinin genel merkezi gibi davransin iste." ve "istedigin gibi yap,
-bu konularda tek tek sormana gerek yok."
+Emrah (25.10): "yeni kurulmus bir isletme varsayalim, ekranlarinda asla
+mock veri olmayacak."
 
-1 - TEK MERKEZ KARARI
-- system-branches menu ogesi ve business-multi-branch modulu
-  DONDURULDU. Subeler ve Sube Yetkilendirme ekranlari kapandi.
-- !! Veritabanindan KALDIRILMADI: branch tablosu, branch_id kolonlari,
-  user_branch_access, branch.manage izni ve RLS duruyor. Sube ileride
-  geri gelecek; geri acmak frozen satirlarini silmek.
-- Karar belgesi: docs/kararlar/tek-merkez-karari.md
-- !! Bu bir DUZELTME DEGIL, kapsam degisikligi (tuzak 111). Iki ekranin
-  kodu hala depoda ve hala tarayiciya yaziyor. Cicir testinin icine bu
-  not yazildi ki ileride "duzeltilmis" sanilmasin.
-- Yarim ekran sayisi 5 -> 3 (Firma Profili, Isletme Ayarlari, Karsilama).
+1 - SAHTE VERI KAYNAGI SILINDI (MIYOP-058 + ailesi)
+- createDemoBranches SILINDI - dort uydurma sube: Merkez/Istanbul/
+  Ankara/Izmir, uydurma telefon-adres, uydurma mudur adlari.
+- createDemoCompanies SILINDI - uc uydurma firma: ABC Cafe/Ahmet Kaya,
+  Ornek Isletme/Mehmet Demir, Kahve Duragi/Ayse Yilmaz; uydurma vergi
+  numarasi, vergi dairesi ve adresle.
+- createDemoData SILINDI - 117 SATIR. Depodaki en buyuk sahte veri
+  kaynagiydi: "Adana Kebap", "Tavuk Sis", "Mercimek Corbasi", "Kola",
+  "Cay", "Baklava", alti masa ve 24 ureticinin TAMAMINI localStorage'a
+  yaziyordu. Olcum: src icinde bu fonksiyonu cagiran TEK BIR YER YOKTU -
+  olu koddu, ama export oldugu icin her an cagrilabilirdi ve cagrildigi
+  an yeni bir isletmenin ekranlarini kebapla doldururdu.
+- Okuyucular artik bos veriyi BOS birakiyor: readBranchesFromStorage ve
+  loadCompanies demo dalina dusmuyor.
+- Uretici sayisi 27 -> 23.
 
-2 - MIYOP-059 KAPANDI - portaldaki uydurma duyuru
-- createDemoAnnouncements SILINDI. Kayit yoksa artik BOS donuyor.
-- Vitrindeki Duyurular bolumu TAMAMEN kaldirildi. Bos birakmadim cunku
-  duyuru yazma ekrani platform panelinde "Duyuru tablosu veritabaninda
-  yok" gerekcesiyle kapali ve duyurular yalniz tarayiciya yaziliyor -
-  yani Emrah bir duyuru yazsa hicbir musteriye ULASMAZDI. Kalici bos bir
-  bolum de "burada bir sey olacak" demektir.
-- YAN KAZANC (kucuk degil): duyuru baglami giris ekranindan
-  loadCompanies() ve loadLicensePackages() cagiriyordu - yani musterinin
-  gordugu ILK EKRAN, depo bosken demo firma ve demo lisans paketi
-  URETEN iki fonksiyonu tetikliyordu. Giris ekrani artik ../storage'a
-  HIC dokunmuyor.
+2 - KOPRU ONARILDI - uretici silmek yetmiyordu
+company-bridge eskiden yerel listenin TAMAMINI koruyup ustune veritabani
+satirlarini yaziyordu. Yani veritabaninda karsiligi olmayan yerel
+subeleri - demo subeleri - HER GIRISTE geri kaydediyordu. Uretici
+silinse de Emrah'in ve demo kurulumlarin tarayicisinda o satirlar ZATEN
+yaziliydi.
+Artik bu firmanin subeleri icin yetkili kaynak VERITABANI: veritabaninda
+olmayan yerel sube korunmuyor, eski demo kalintilari ilk giriste
+kendiliginden temizleniyor. Ayri temizlik betigi gerekmedi.
+!! Baska firmalarin yerel satirlarina DOKUNULMUYOR - dokunmak
+MIYOP-063'u ("bir firmayi kaydetmek digerini dusuruyor") burada
+tekrarlamak olurdu.
 
-3 - GIRIS VITRININDEKI UYDURMA VAATLER SILINDI
-- "Security Gateway hazirligi" -> OYLE BIR SEY YOK.
-- "Unified Identity Foundation" -> urun degil, bizim ic adlandirmamiz.
-- "finans operasyonlari tek merkezde toplandi" -> Finans modulu DONMUS.
-- "Modular Yapi: Islem Yonetimi, Dijital Katalog, stok, cari, finans ve
-  personel modulleri ihtiyaca gore aktif edilir" -> alti addan DORDU
-  dondurulmus modul.
-- "Coklu Sube ... buyuyen isletmeler icin hazirdir" -> tek merkez karari.
-- Yerine GERCEKTEN calisan dort sey yazildi: HACCP kurulu geliyor,
-  parti izlenebilirligi, alerjen beyani, sunucu tarafi yetki.
+3 - YENI TEST: src/modules/sahte-veri-ureticisi.arch.test.ts
+Uretici sayisini 23'te DONDURUYOR; sayi yalniz asagi gidebilir.
+Ayrica: silinen ucu geri gelmesin, okuyucular demo dalina dusmesin,
+kopru veritabaninda olmayan yerel subeyi korumasin, kopru baska
+firmalarin satirlarini korumaya devam etsin.
+Yorumlari CIKARARAK ariyor - silinen ureticilerin gerekcesi yorum olarak
+dosyada duruyor ve o yorumlar adlari iceriyor; icermeli.
+Olumsuz deneme: ureticiyi geri koyunca sayi 24, test kirmizi.
 
-4 - YENI TEST: src/pages/giris-vitrini-dogru-soyler.arch.test.ts
-- Tek tek cumle kovalamiyor. Dondurulmus modul adlarini KAYITTAN okuyor
-  ve hicbirinin vitrinde gecmemesini olcuyor (20 ad korunuyor).
-  Yeni bir modul dondurulunca adi vitrinde kalmissa test yakalar.
-- Mesru uc istisna gerekceleriyle yazili: Depo (acik modulun de adi),
-  Isletme Calisma Alani (uygulamanin kendisi), Personel (giris talimati).
-- Ayrica: loadSystemAnnouncements geri gelmesin, id="announcements"
-  geri gelmesin, Login.tsx ../storage okumasin, "Security Gateway" /
-  "Unified Identity" gecmesin.
-- Olumsuz deneme yapildi: vitrine "Finans" yazilinca test kirmizi.
+4 - MIYOP-071 KAPANDI - KENDI KIRDIGIM TIP HATASI
+loadSystemAnnouncements'in imzasini degistirdim ve kalan bir cagriyi
+kacirdim: mobile-integration.service.ts:604. Codex yakaladi.
+!! Sebebi ogretici: cagri yerlerini DEPODA DEGIL, kendi yerel kopyamda
+aradim ve o kopya eksikti - 241 dosya, gercek src cok daha buyuk ve
+mobile-integration klasoru kopyada HIC YOKTU. Yani "baska cagri yok"
+sonucuna EKSIK BIR EVRENDE vardim ve tam bir evrenmis gibi sundum.
+-> tuzak 112
 
-5 - MIYOP-061 KAPANDI (yuzey)
-- Baska kiracinin onbellek verisini gosteren tek acik ekran Sube
-  Yetkileri'ydi; kapandi. !! Kaynaktaki suzgecsiz loadBranches() /
-  loadBranchPermissions() DURUYOR ama artik hicbir acik ekrana
-  ulasmiyor. Yuzey kapanisi, kaynak kapanisi degil (tuzak 111).
+5 - MIYOP-072 KAPANDI - bir mutlak cumleyi baska bir mutlakla
+degistirmisim
+Vitrindeki uydurma vaatleri silerken yerine sunlari yazmistim: "ayni
+hesapla her cihazdan ayni kayda ulasirsiniz" ve "her degisiklik denetim
+kaydina duser". Ikisi de operasyon kayitlari icin dogru; ama Firma
+Profili ve Isletme Ayarlari ekranlari hala tarayiciya yaziyor - onlarin
+verisi cihazda kaliyor ve hicbir denetim kaydina girmiyor.
+Cumleler daraltildi: hangi kayitlarin sunucuda durdugu ve hangi
+degisikliklerin iz biraktigi SAYILARAK yazildi. Portal tanitimindan
+"duyuru" kelimesi de cikarildi - bolum kaldirildi, yetenek sayilamaz.
+-> tuzak 113
 
-6 - KENDI BELGELERIMDEKI IKI YANLIS DUZELTILDI
-- MIYOP-070 (Codex, hakli): yetenekler belgesinde MIYOP-043'u "tam oldu"
-  yazmistim - oysa biten sey goc 0091 ve o BASKA BIR IS; 043'un son adimi
-  (goc 0092 + Edge Function dagitimi) HALA ACIK. Ayrica Modul
-  Magazasi'ni "acik" saymistim - rota acik kumede DEGIL. Beni yaniltan
-  sey kayittaki eski bir YORUMDU ("rota duruyor, geri almak tek satir");
-  yorum yanlisti, o da duzeltildi.
-- MIYOP-069 (Codex, hakli): parti karekodu belgesinde iki iddia
-  gereginden gucluydu. "Her cikisin belgesi bizde var" -> source_id bos
-  kalabiliyor ve elle cikis formu onu hic gondermiyor. "Sayim farkinin
-  kime ait oldugu belli olur" -> denetim kaydi farki KAYDEDEN kisiyi
-  gosterir, mali fiziksel olarak kimin aldigini GOSTERMEZ. Ikisini
-  karistirmak, farki durustce kaydeden calisani kaybin sorumlusu
-  saymaya kadar gider.
-- Buradan yeni is cikti: HEDEFLER 2.10 (cikisin dayanagi her yolda
-  zorunlu degil).
+6 - MIYOP-069 TAM KAPANDI
+parti-karekodu.md'nin ANA cumlesi hala "kime ait oldugu belli bir fark"
+diyordu; duzeltme notu asagida dogruyu yaziyordu ama ikisi celisiyordu.
+Ana cumle duzeltildi: karekod kayitsiz cikisi "sayimda gorunur bir
+farka" donusturur - hangi partide ne kadar eksik oldugu ve farki KIMIN
+KAYDETTIGI belli olur. Mali fiziksel olarak kimin aldigini hicbir kayit
+kendiliginden soylemez.
 
-7 - KALDIRILAN MODULLER DEFTERI ACILDI
-docs/kararlar/kaldirilan-moduller.md - Emrah'in kurali: "sil ama ne ise
-yaradigini bil ve sonradan yapilacagini unutma." Bes kayit: QR Menu,
-Sistem Duyurulari, Modul Magazasi, Coklu Sube, giris vitrinindeki
-uydurma vaatler. Her birinde: ne ise yariyordu, neden kaldirildi, geri
-gelmesi icin ne gerekiyor, sahici durum (dosya silindi mi, duruyor mu).
-
-8 - IKI YENI TUZAK
-- 110 - Kod yorumu bir olcum degildir; benim yazdigim ozet de degil.
-  "Goc uygulandi" ile "is kapandi" ayni sey degil.
-- 111 - Bir ekrani kapatmak, onu besleyen ureticiyi silmez. Bir kusur
-  "kapandi" derken YUZEY mi KAYNAK mi kapandigini yaz.
-
-9 - SKT OLCUMU GENISLEDI (HEDEFLER 2.9.4, Codex)
-warehouse.service.ts:229 FEFO siralamasi gecmis tarihli partileri
-elemeden siraliyor; 572'de yalniz pozitif bakiye suzuluyor. Yani
-bakiyeli suresi gecmis parti, gecerli partiden ONCE secilebiliyor.
-Sunucu kapisi konduktan sonra istemcinin otomatik secimi de gecmis
-partiyi atlamali.
+7 - IKI YENI TUZAK
+- 112 - Arama yaptigin evren, depo olmak zorunda. "Aradim, bulamadim"
+  cumlesi, nerede aradigini soylemeden kanit degildir.
+- 113 - Bir yalani duzeltirken yerine koydugun cumleyi de olc.
+  "Her / tum / hepsi" ancak olcum varsa yazilir.
 
 Sozdizimi denetimi: alti dosya temiz (bun build --no-bundle).
 

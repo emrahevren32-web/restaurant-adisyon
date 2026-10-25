@@ -444,6 +444,36 @@ Aynı ayrım kapsam için de geçerli: çıcır listesinden çıkan iki şube ek
 **düzeltilmedi**, kapsam dışına çıktı — testin içine bu not yazıldı ki
 ileride "düzeltilmiş" sanılmasın.
 
+**112 · Arama yaptığın evren, depo olmak zorunda.**
+`loadSystemAnnouncements`in imzasını değiştirdim, çağrı yerlerini aradım,
+"üç yer" buldum, üçünü düzelttim ve teslim ettim. Dördüncü çağrı
+`mobile-integration/mobile-integration.service.ts` içindeydi ve **tip
+denetimini kıracaktı** (MIYOP-071, Codex yakaladı). Sebep basit ve
+utandırıcı: aramayı **depoda değil, kendi yerel kopyamda** yaptım. O kopya
+yalnız benim o güne kadar çektiğim dosyaları taşıyordu — 241 dosya, gerçek
+`src` çok daha büyük ve `mobile-integration` klasörü kopyada **hiç yoktu.**
+Yani "başka çağrı yok" sonucuna **eksik bir evrende** vardım ve sonucu tam
+bir evrenmiş gibi sundum. ⚠️ Kural: paylaşılan bir imzayı değiştirirken
+çağrı yüzeyini **deponun kendisinde** ara. Bu ortamdan yapamıyorsam iki yol
+var ve ikisi de benim işim: (a) aramayı yapan bir **test** yaz — test
+Emrah'ın makinesinde çalışır, orada bütün depo vardır; (b) işi Codex'e ver,
+o depoyu okuyor. "Aradım, bulamadım" cümlesi, nerede aradığını söylemeden
+bir kanıt değildir (tuzak 91'in arama hâli).
+
+**113 · Bir yalanı düzeltirken yerine koyduğun cümleyi de ölç.**
+Giriş vitrinindeki uydurma vaatleri sildim — doğru iş. Yerine yazdığım iki
+cümle ise yine **mutlak** çıktı: *"aynı hesapla her cihazdan aynı kayda
+ulaşırsınız"* ve *"her değişiklik denetim kaydına düşer"* (MIYOP-072).
+İkisi de operasyon kayıtları için doğru; ama Firma Profili ve İşletme
+Ayarları ekranları hâlâ tarayıcıya yazıyor, yani o veriler cihazda kalıyor
+ve hiçbir denetim kaydına girmiyor. Üstelik yazdığım testler bunu
+yakalayamazdı: test **kelime** arıyordu (dondurulmuş modül adları), **anlam**
+ölçmüyordu. ⚠️ Kural: bir vaadi yazarken "hangi ekranlar bunu gerçekten
+yapıyor" diye SAY ve cümleyi o sayıya göre kur. "Her", "tüm", "hepsi" gibi
+mutlak kelimeler, ancak kapısız yüzeyi ölçtüysen yazılır (tuzak 90).
+⚠️ Ve bir testin neyi kanıtlamadığını da yaz (tuzak 107): kelime taraması
+anlam doğruluğu kanıtlamaz.
+
 ---
 
 ## 5 · TEST İŞBÖLÜMÜ VE TESLİM KONTROL LİSTESİ
@@ -502,3 +532,8 @@ Son söz onun çıktısındadır.
 22. Bir kusur "kapandı" diyorsan **yüzey mi kaynak mı** kapandığını yaz
     (tuzak 111). Ekranı kapatmak üreticiyi silmez; kapsam dışına çıkarmak
     düzeltmek değildir.
+23. Paylaşılan bir imzayı değiştirdiysen çağrı yüzeyini **deponun
+    kendisinde** ara (tuzak 112). Yerel kopya eksik olabilir; eksikse
+    aramayı yapan bir **test** yaz ya da işi Codex'e ver.
+24. Bir vaat cümlesi yazdıysan **kaç ekranın onu gerçekten yaptığını say**
+    (tuzak 113). "Her / tüm / hepsi" ancak ölçüm varsa yazılır.

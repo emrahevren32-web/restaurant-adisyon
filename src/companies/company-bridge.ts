@@ -87,17 +87,33 @@ const subeleriAynala = async (firmaId: string): Promise<void> => {
   if(satirlar.length === 0) return
 
   const mevcutlar = loadBranches()
-  const aynalanan = new Map(satirlar.map(satir => [satir.id, satir]))
 
-  const guncellenmis = mevcutlar.map(sube => {
-    const satir = aynalanan.get(sube.id)
-    if(!satir) return sube
-    aynalanan.delete(sube.id)
-    return { ...sube, ...subeyeCevir(satir, sube) }
-  })
+  // ⚠️ 25.10.2026 · BU FONKSİYON SAHTE ŞUBELERİ KORUYORDU (MIYOP-058).
+  //
+  // Eski hâli `mevcutlar.map(...)` ile yerel listenin TAMAMINI koruyup
+  // üstüne veritabanı satırlarını yazıyordu. Sonuç: veritabanında
+  // karşılığı olmayan yerel şubeler — yani `createDemoBranches()`ın
+  // ürettiği dört uydurma şube — her girişte yeniden KAYDEDİLİYORDU.
+  // Üretici silindi (storage.ts) ama o kadarı yetmez: demo satırlar
+  // Emrah'ın ve demo kurulumların tarayıcısında ZATEN YAZILI.
+  //
+  // ⚠️ YENİ KURAL: bu firmanın şubeleri için **yetkili kaynak
+  // veritabanıdır.** Veritabanında olmayan yerel şube KORUNMAZ — eski
+  // demo kalıntıları böylece ilk girişte kendiliğinden temizlenir, ayrı
+  // bir temizlik betiği gerekmez.
+  // ⚠️ BAŞKA firmaların yerel satırlarına DOKUNULMAZ: onları silmek,
+  // MIYOP-063'ün ("bir firmayı kaydetmek diğerini düşürüyor") aynısını
+  // burada tekrarlamak olurdu.
+  const digerFirmalar = mevcutlar.filter(sube => sube.companyId !== firmaId)
+  const buFirmaninYerelleri = new Map(
+    mevcutlar.filter(sube => sube.companyId === firmaId).map(sube => [sube.id, sube])
+  )
 
-  const yeniler = [...aynalanan.values()].map(satir => subeyeCevir(satir))
-  saveBranches([...guncellenmis, ...yeniler])
+  const buFirmanin = satirlar.map(satir => (
+    subeyeCevir(satir, buFirmaninYerelleri.get(satir.id))
+  ))
+
+  saveBranches([...digerFirmalar, ...buFirmanin])
 }
 
 const subeyeCevir = (satir: BranchSatiri, varOlan?: Branch): Branch => ({

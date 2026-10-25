@@ -601,7 +601,11 @@ const createModuleRecords = (moduleKey: MobileModuleKey) => {
   if(moduleKey === 'samples') return sourceData.qualitySamples
   if(moduleKey === 'waste') return WasteService.list(sourceData)
   if(moduleKey === 'purchase') return sourceData.purchaseRequests
-  return loadSystemAnnouncements({ companies: [], packages: [] })
+  // ⚠️ 25.10.2026 · `loadSystemAnnouncements` artık bağlam ALMIYOR: demo
+  // duyuru üreticisi silindiği için hedef kitle listesine ihtiyacı kalmadı
+  // (MIYOP-059). Bu çağrı eski imzayla kalmıştı ve tip denetimini kıracaktı
+  // (MIYOP-071) — Codex yakaladı.
+  return loadSystemAnnouncements()
 }
 
 const createModuleSnapshot = (

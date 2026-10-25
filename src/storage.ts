@@ -474,9 +474,14 @@ const withBranchIdFallback = <T extends object>(item: Partial<T>, fallbackBranch
 }
 
 const readBranchesFromStorage = () => {
-  const stored = localStorage.getItem(KEY_BRANCHES)
-  if(stored === null) return createDemoBranches()
-
+  // ⚠️ 25.10.2026 · DEMO ŞUBE ÜRETİMİ KALDIRILDI (MIYOP-058).
+  // Burada `if(stored === null) return createDemoBranches()` vardı ve dört
+  // uydurma şube üretiyordu: Merkez/İstanbul/Ankara/İzmir, uydurma
+  // telefon-adres, uydurma müdür adları. Üstelik `company-bridge` gerçek
+  // şubeleri aynalarken bu satırları KORUYARAK geri kaydettiği için sahte
+  // veri kalıcı hâle geliyordu.
+  // Emrah'ın kuralı: *"yeni kurulmuş bir işletme varsayalım,
+  // ekranlarında asla mock veri olmayacak."* Boş veri BOŞ kalır.
   return readJson<Partial<Branch>[]>(KEY_BRANCHES, []).map(normalizeBranch)
 }
 
@@ -991,64 +996,12 @@ const normalizeCurrentAccount = (item: Partial<CurrentAccount>): CurrentAccount 
   }
 }
 
-const createDemoBranches = (now = new Date().toISOString()): Branch[] => [
-  normalizeBranch({
-    id: 'branch_merkez',
-    companyId: 'company_abc_cafe_demo',
-    code: 'SUBE-001',
-    name: 'Merkez Şube',
-    phone: '0212 000 00 01',
-    email: 'merkez@workspace.local',
-    city: 'İstanbul',
-    address: 'Merkez Mahallesi No: 1',
-    managerName: 'Emrah Evren',
-    isActive: true,
-    createdAt: now,
-    updatedAt: now
-  }),
-  normalizeBranch({
-    id: 'branch_istanbul',
-    companyId: 'company_abc_cafe_demo',
-    code: 'SUBE-002',
-    name: 'İstanbul Şubesi',
-    phone: '0212 000 00 02',
-    email: 'istanbul@workspace.local',
-    city: 'İstanbul',
-    address: 'Kadıköy Cad. No: 12',
-    managerName: 'Ayşe Yılmaz',
-    isActive: true,
-    createdAt: now,
-    updatedAt: now
-  }),
-  normalizeBranch({
-    id: 'branch_ankara',
-    companyId: 'company_ornek_isletme_demo',
-    code: 'SUBE-003',
-    name: 'Ankara Şubesi',
-    phone: '0312 000 00 03',
-    email: 'ankara@workspace.local',
-    city: 'Ankara',
-    address: 'Çankaya Sok. No: 8',
-    managerName: 'Mehmet Demir',
-    isActive: true,
-    createdAt: now,
-    updatedAt: now
-  }),
-  normalizeBranch({
-    id: 'branch_izmir',
-    companyId: 'company_kahve_duragi_demo',
-    code: 'SUBE-004',
-    name: 'İzmir Şubesi',
-    phone: '0232 000 00 04',
-    email: 'izmir@workspace.local',
-    city: 'İzmir',
-    address: 'Alsancak Bulvarı No: 4',
-    managerName: 'Selin Arslan',
-    isActive: false,
-    createdAt: now,
-    updatedAt: now
-  })
-]
+// ⚠️ 25.10.2026 · `createDemoBranches` SİLİNDİ (MIYOP-058).
+// Dört uydurma şube üretiyordu (Merkez/İstanbul/Ankara/İzmir) ve açık
+// Şube Yetkileri ekranına ulaşıyordu. O ekran tek merkez kararıyla
+// kapandı, ama üreticiyi de silmek gerekiyordu: ekran kapatmak üretici
+// silmek değildir (tuzak 111).
+// → docs/kararlar/kaldirilan-moduller.md
 
 const roundMoneyValue = (value: number) => Math.round(value * 100) / 100
 
@@ -2907,56 +2860,10 @@ const normalizeCompanySetup = (item: Partial<CompanySetup>): CompanySetup => {
   }
 }
 
-const createDemoCompanies = (now = new Date().toISOString()): Company[] => [
-  normalizeCompany({
-    id: 'company_abc_cafe_demo',
-    primarySectorId: createSectorId(SECTOR_CODES.CAFE),
-    companyName: 'ABC Cafe',
-    ownerName: 'Ahmet Kaya',
-    phone: '0532 000 00 01',
-    email: 'yonetim@abccafe.com',
-    city: 'İstanbul',
-    district: 'Kadıköy',
-    taxNumber: '1234567890',
-    taxOffice: 'Kadıköy',
-    address: 'Caferağa Mahallesi No: 12',
-    status: 'Aktif',
-    createdAt: now,
-    updatedAt: now
-  }),
-  normalizeCompany({
-    id: 'company_ornek_isletme_demo',
-    primarySectorId: DEFAULT_SECTOR_ID,
-    companyName: 'Örnek İşletme',
-    ownerName: 'Mehmet Demir',
-    phone: '0532 000 00 02',
-    email: 'yonetim@ornekisletme.com',
-    city: 'Ankara',
-    district: 'Çankaya',
-    taxNumber: '2345678901',
-    taxOffice: 'Çankaya',
-    address: 'Kavaklıdere Cad. No: 8',
-    status: 'Aktif',
-    createdAt: now,
-    updatedAt: now
-  }),
-  normalizeCompany({
-    id: 'company_kahve_duragi_demo',
-    primarySectorId: createSectorId(SECTOR_CODES.CAFE),
-    companyName: 'Kahve Durağı',
-    ownerName: 'Ayşe Yılmaz',
-    phone: '0532 000 00 03',
-    email: 'yonetim@kahveduragi.com',
-    city: 'İzmir',
-    district: 'Konak',
-    taxNumber: '3456789012',
-    taxOffice: 'Konak',
-    address: 'Alsancak Mahallesi No: 4',
-    status: 'Aktif',
-    createdAt: now,
-    updatedAt: now
-  })
-]
+// ⚠️ 25.10.2026 · `createDemoCompanies` SİLİNDİ (MIYOP-058 ailesi).
+// Üç uydurma firma üretiyordu — "ABC Cafe", "Örnek İşletme",
+// "Kahve Durağı" — uydurma vergi numarası, vergi dairesi ve adresle.
+// Firma Profili ekranı ve EVREN360 müşteri listesi bunları okuyordu.
 
 const createDemoCompanySetups = (now = new Date().toISOString()): CompanySetup[] => [
   normalizeCompanySetup({
@@ -4388,9 +4295,16 @@ export const saveBusinessRegistrations = (items: BusinessRegistration[]) => {
 }
 
 export const loadCompanies = (options: { allTenants?: boolean; includeDeleted?: boolean } = {}): Company[] => {
+  // ⚠️ 25.10.2026 · DEMO FİRMA ÜRETİMİ KALDIRILDI (MIYOP-058 ailesi).
+  // Depo boşken üç uydurma firma üretiyordu: "ABC Cafe · Ahmet Kaya",
+  // "Örnek İşletme · Mehmet Demir", "Kahve Durağı · Ayşe Yılmaz" —
+  // uydurma vergi numaraları ve adreslerle. Bunlar Firma Profili ekranına
+  // ve EVREN360 müşteri listesine ulaşıyordu.
+  // ⚠️ Yeni bir işletme için doğru cevap BOŞ LİSTE. Gerçek firma kaydı
+  // `company-bridge` ile veritabanından aynalanıyor.
   const storedCompanies = localStorage.getItem(KEY_COMPANIES)
   const companies = storedCompanies === null
-    ? createDemoCompanies()
+    ? []
     : readJson<Partial<Company>[]>(KEY_COMPANIES, []).map(normalizeCompany)
 
   if(storedCompanies !== null){
@@ -8146,120 +8060,20 @@ export const restoreSystemBackup = (backup: unknown) => {
   return entries.length
 }
 
-export const createDemoData = () => {
-  const now = new Date().toISOString()
-  const categories: ProductCategory[] = [
-    { id: 'cat_food', name: 'Yemekler', active: true, createdAt: now },
-    { id: 'cat_drinks', name: 'İçecekler', active: true, createdAt: now },
-    { id: 'cat_desserts', name: 'Tatlılar', active: true, createdAt: now }
-  ]
-
-  const products: Product[] = [
-    { id: 'prd_adana', branchId: DEFAULT_BRANCH_ID, name: 'Adana Kebap', price: 450, categoryId: 'cat_food', description: 'Közlenmiş domates ve biber ile servis edilir.', calories: 620, protein: 38, carbohydrate: 18, fat: 43, fiber: 4, sugar: 6, salt: 2.1, servingSize: '1 porsiyon', allergens: [], active: true, createdAt: now, updatedAt: now },
-    { id: 'prd_chicken', branchId: DEFAULT_BRANCH_ID, name: 'Tavuk Şiş', price: 360, categoryId: 'cat_food', description: 'Pilav ve salata ile servis edilir.', calories: 540, protein: 42, carbohydrate: 34, fat: 22, fiber: 3, sugar: 4, salt: 1.7, servingSize: '1 porsiyon', allergens: [], active: true, createdAt: now, updatedAt: now },
-    { id: 'prd_soup', branchId: DEFAULT_BRANCH_ID, name: 'Mercimek Çorbası', price: 120, categoryId: 'cat_food', description: 'Günlük sıcak çorba.', calories: 180, protein: 9, carbohydrate: 24, fat: 5, fiber: 7, sugar: 3, salt: 1.2, servingSize: '1 kase', allergens: ['Gluten'], active: true, createdAt: now, updatedAt: now },
-    { id: 'prd_cola', branchId: DEFAULT_BRANCH_ID, name: 'Kola', price: 80, categoryId: 'cat_drinks', description: '330 ml kutu içecek.', calories: 139, protein: 0, carbohydrate: 35, fat: 0, fiber: 0, sugar: 35, salt: 0.03, servingSize: '330 ml', allergens: [], active: true, createdAt: now, updatedAt: now },
-    { id: 'prd_tea', branchId: DEFAULT_BRANCH_ID, name: 'Çay', price: 35, categoryId: 'cat_drinks', description: 'Taze demlenmiş bardak çay.', calories: 2, protein: 0, carbohydrate: 0, fat: 0, fiber: 0, sugar: 0, salt: 0, servingSize: '1 bardak', allergens: [], active: true, createdAt: now, updatedAt: now },
-    { id: 'prd_baklava', branchId: DEFAULT_BRANCH_ID, name: 'Baklava', price: 180, categoryId: 'cat_desserts', description: 'Antep fıstıklı porsiyon baklava.', calories: 420, protein: 7, carbohydrate: 48, fat: 23, fiber: 3, sugar: 32, salt: 0.35, servingSize: '2 dilim', allergens: ['Gluten', 'Süt', 'Yumurta', 'Fındık'], active: true, createdAt: now, updatedAt: now }
-  ]
-
-  const branches = createDemoBranches(now)
-  const employees = createDemoEmployees(now)
-  const shifts = createDemoShifts(now)
-  const attendances = createDemoAttendances(now)
-  const employeePerformances = createDemoEmployeePerformances(now)
-  const employeeBonuses = createDemoEmployeeBonuses(now)
-  const employeeAudits = createDemoEmployeeAudits(now)
-  const currentAccounts = createDemoCurrentAccounts(now)
-  const creditTransactions = createDemoCreditTransactions(now)
-  const collectionTransactions = createDemoCollectionTransactions(now)
-  const supplierDebts = createDemoSupplierDebts(now)
-  const supplierPayments = createDemoSupplierPayments(now)
-  const incomeExpenses = createDemoIncomeExpenses(now)
-  const cashTransfers = createDemoCashTransfers(now)
-  const businessRegistrations = createDemoBusinessRegistrations(now)
-  const businessApplications = createDemoBusinessApplications(now)
-  const applicationNotes = createDemoApplicationNotes(now)
-  const companies = createDemoCompanies(now)
-  const companySetups = createDemoCompanySetups(now)
-  const licensePackages = createDemoLicensePackages(now)
-  const licenseModules = createDemoLicenseModules(licensePackages, now)
-  const companyLicenses = createDemoCompanyLicenses(now)
-  const companyUsers = createDemoCompanyUsers(now)
-  const userSubscriptions = createDemoUserSubscriptions(companyLicenses, now)
-
-  const tables: TableState[] = Array.from({ length: 6 }).map((_, index) => ({
-    id: String(index + 1),
-    branchId: DEFAULT_BRANCH_ID,
-    name: `Masa ${index + 1}`,
-    open: false,
-    orders: []
-  }))
-
-  saveCategories(categories)
-  saveProducts(products)
-  saveBranches(branches)
-  saveEmployees(employees)
-  saveShifts(shifts)
-  saveAttendances(attendances)
-  saveEmployeePerformances(employeePerformances)
-  saveEmployeeBonuses(employeeBonuses)
-  saveEmployeeAudits(employeeAudits)
-  saveCurrentAccounts(currentAccounts)
-  saveCreditTransactions(creditTransactions)
-  saveCollectionTransactions(collectionTransactions)
-  saveSupplierDebts(supplierDebts)
-  saveSupplierPayments(supplierPayments)
-  saveCashTransactions([])
-  saveIncomeExpenses(incomeExpenses)
-  saveCashClosings([])
-  saveCashTransfers(cashTransfers)
-  saveBusinessRegistrations(businessRegistrations)
-  saveBusinessApplications(businessApplications)
-  saveApplicationNotes(applicationNotes)
-  saveCompanies(companies)
-  saveCompanySetups(companySetups)
-  saveLicensePackages(licensePackages)
-  saveLicenseModules(licenseModules)
-  saveCompanyLicenses(companyLicenses)
-  saveCompanyUsers(companyUsers)
-  saveUserSubscriptions(userSubscriptions)
-  loadTenants({ includeDeleted: true })
-  saveTables(tables)
-  saveKitchenOrders([])
-  saveQRRequests([])
-  saveWaiterCalls([])
-  ensureDefaultAdmin()
-
-  return {
-    categories: loadCategories(),
-    products: loadProducts(),
-    tables,
-    branches: loadBranches(),
-    employees: loadEmployees(),
-    shifts: loadShifts(),
-    attendances: loadAttendances(),
-    employeePerformances: loadEmployeePerformances(),
-    employeeBonuses: loadEmployeeBonuses(),
-    employeeAudits: loadEmployeeAudits(),
-    currentAccounts: loadCurrentAccounts(),
-    creditTransactions: loadCreditTransactions(),
-    collectionTransactions: loadCollectionTransactions(),
-    supplierDebts: loadSupplierDebts(),
-    supplierPayments: loadSupplierPayments(),
-    cashTransactions: loadCashTransactions(),
-    incomeExpenses: loadIncomeExpenses(),
-    cashClosings: loadCashClosings(),
-    cashTransfers: loadCashTransfers(),
-    businessRegistrations: loadBusinessRegistrations(),
-    businessApplications: loadBusinessApplications(),
-    applicationNotes: loadApplicationNotes(),
-    companies: loadCompanies(),
-    companySetups: loadCompanySetups(),
-    licensePackages: loadLicensePackages(),
-    licenseModules: loadLicenseModules(),
-    companyLicenses: loadCompanyLicenses(),
-    companyUsers: loadCompanyUsers(),
-    userSubscriptions: loadUserSubscriptions()
-  }
-}
+// ⚠️ 25.10.2026 · `createDemoData` SİLİNDİ · 117 satır.
+//
+// Depodaki EN BÜYÜK sahte veri kaynağıydı: "Adana Kebap", "Tavuk Şiş",
+// "Mercimek Çorbası", "Kola", "Çay", "Baklava" ürünleri; altı masa;
+// ve 24 `createDemo*` üreticisinin tamamını çağırıp sonuçlarını
+// `localStorage`a YAZIYORDU — demo şube, demo firma, demo personel,
+// demo cari, demo finans, demo başvuru, demo lisans, demo kullanıcı.
+//
+// ⚠️ ÖLÇÜM: `src` içinde bu fonksiyonu çağıran **tek bir yer yoktu.**
+// Yani ölü koddu — ama `export` olduğu için her an çağrılabilirdi ve
+// çağrıldığı an yeni kurulmuş bir işletmenin ekranlarını kebapla
+// doldururdu. Emrah'ın kuralı: *"yeni kurulmuş bir işletme varsayalım,
+// ekranlarında asla mock veri olmayacak."*
+//
+// ⚠️ Silmekle bitmedi: geriye kalan 24 üretici hâlâ kendi okuyucuları
+// üzerinden erişilebilir durumda. Hangisinin AÇIK bir ekrana ulaştığı
+// HEDEFLER 3.10.3'te tek tek izlenecek — sayarak değil, izleyerek.

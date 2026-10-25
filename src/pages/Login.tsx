@@ -53,8 +53,15 @@ const portalUpdates: PortalUpdate[] = [
   {
     type: 'Yetki',
     title: 'Yetki ekranda değil, sunucuda',
+    // ⚠️ "Her değişiklik denetim kaydına düşer" yazıyordu — MUTLAK bir
+    // cümleydi ve yanlıştı (MIYOP-072, Codex). Stok, sipariş, üretim,
+    // kalite ve yetki değişiklikleri denetime düşüyor; ama bugün hâlâ
+    // tarayıcıya yazan ekranlar var (Firma Profili, İşletme Ayarları) ve
+    // onların değişikliği hiçbir denetim kaydına girmiyor. Cümle o
+    // ekranlar bitince genişletilecek, şimdiden genişletilmeyecek.
     description: 'Yetkisiz bir kayıt denemesi, ekranı atlayıp doğrudan '
-      + 'gönderilse bile reddedilir. Her değişiklik denetim kaydına düşer.'
+      + 'gönderilse bile reddedilir. Stok, sipariş, üretim, kalite ve '
+      + 'yetki değişiklikleri iz bırakır: kim, ne zaman, neyi değiştirdi.'
   }
 ]
 
@@ -68,8 +75,14 @@ const portalUpdates: PortalUpdate[] = [
 const whyItems: WhyItem[] = [
   {
     title: 'Bulut Tabanlı',
-    description: 'Verileriniz sunucuda durur; aynı hesapla her cihazdan '
-      + 'aynı kayda ulaşırsınız. Kurulum ya da yerel sunucu gerekmez.'
+    // ⚠️ "aynı hesapla her cihazdan aynı kayda ulaşırsınız" yazıyordu —
+    // yine MUTLAK ve yine yanlış (MIYOP-072). Operasyon kayıtları için
+    // doğru; ama Firma Profili ve İşletme Ayarları ekranları bugün hâlâ
+    // tarayıcıya yazıyor, yani onların verisi cihazda kalıyor. Söz,
+    // gerçekten sunucuda duran şeylerle sınırlandı.
+    description: 'Stok, sipariş, üretim, sevkiyat ve kalite kayıtlarınız '
+      + 'sunucuda durur; aynı hesapla her cihazdan aynı kayda ulaşırsınız. '
+      + 'Kurulum ya da yerel sunucu gerekmez.'
   },
   // ⚠️ "Modüler Yapı" kartı KALDIRILDI. *"İşlem Yönetimi, Dijital Katalog,
   // stok, cari, finans ve personel modülleri ihtiyaca göre aktif edilir"*
@@ -310,7 +323,9 @@ export default function Login({ onLogin }: Props){
               <h1>MIYOP</h1>
               <p className="unified-login-slogan">İşletme operasyonlarından SaaS platform yönetimine uzanan tek merkez.</p>
               <p className="unified-login-description">
-                EVREN360, işletme çalışma alanı ve gelecek modüler uygulamalar için ortak giriş, duyuru, başvuru ve platform vitrinini tek portalda birleştirir.
+                {/* ⚠️ "duyuru" kelimesi ÇIKARILDI (MIYOP-072): duyuru
+                    bölümü kaldırıldı, hâlâ yetenek olarak sayılamaz. */}
+                EVREN360, işletme çalışma alanı ve gelecek modüler uygulamalar için ortak giriş, başvuru ve platform vitrinini tek portalda birleştirir.
               </p>
               <div className="unified-login-hero-actions">
                 <button className="btn primary" type="button" onClick={scrollToLogin}>Hemen Giriş Yap</button>

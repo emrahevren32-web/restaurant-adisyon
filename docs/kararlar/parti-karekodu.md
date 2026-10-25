@@ -52,9 +52,17 @@ bu iş sıfırdan ve kendi adıyla yazılır.
 ### ÇÖZMEZ
 
 ⚠️ **Karekod hırsızlığı önlemez.** Malı izinsiz alan kişi okutmaz.
-Karekodun yaptığı şey, *kayıtsız çıkışı* **sayımda görünür ve kime ait
-olduğu belli bir farka** dönüştürmektir. Fiziksel engel değildir; kapıyı
-kilitlemez.
+Karekodun yaptığı şey, *kayıtsız çıkışı* **sayımda görünür bir farka**
+dönüştürmektir: hangi partide ne kadar eksik olduğu ve **farkı kimin
+kaydettiği** belli olur. Fiziksel engel değildir; kapıyı kilitlemez.
+
+⚠️ **"Kime ait olduğu belli" DEMİYORUZ** (MIYOP-069, Codex iki turda da
+haklı çıktı). İlk yazımda tam bu cümle vardı ve kayıtların
+taşıyabileceğinden güçlüydü. Hiçbir kayıt, malı **fiziksel olarak kimin
+aldığını** kendiliğinden söylemez — denetim kaydı yalnız işlemi ya da
+sayımı **yapan** kişiyi tutar. Bu ayrımı korumak sadece doğruluk meselesi
+değil: karıştırılırsa, farkı dürüstçe kaydeden çalışan kaybın sorumlusu
+sanılır.
 
 Kaçağı asıl önleyen üç şey, karekoddan bağımsız:
 - her çıkışın bir **belgesi** olması (talep / sipariş / iş emri)
