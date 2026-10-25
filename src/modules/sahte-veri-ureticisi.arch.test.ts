@@ -49,7 +49,14 @@ const yorumsuz = (metin: string) => metin
 const UST_SINIR = 23
 
 describe('sahte veri üreticisi çıcırı', () => {
-  const ureticiler = [...DEPO.matchAll(/^const (createDemo[A-Za-z]+)\s*=/gm)]
+  // ⚠️ MIYOP-073 (Codex, 25.10) · `export const` KAÇIYORDU.
+  // İlk sürüm yalnız `^const createDemo…` arıyordu. Silinen en büyük
+  // üretici ise `export const createDemoData = () => {` biçimindeydi —
+  // yani "silinenler geri gelmemiş" kontrolü, geri gelen EN TEHLİKELİ
+  // fonksiyonu yakalayamazdı. Desen artık `export` önekini de kapsıyor.
+  // ⚠️ Yorumlar çıkarılıyor: silinen üreticilerin gerekçesi yorum olarak
+  // dosyada duruyor ve o yorumlar adları içeriyor.
+  const ureticiler = [...yorumsuz(DEPO).matchAll(/^\s*(?:export\s+)?const (createDemo[A-Za-z]+)\s*=/gm)]
     .map(m => m[1] as string)
 
   it('sağlama: ölçüm gerçekten bir şey buldu', () => {
@@ -66,12 +73,16 @@ describe('sahte veri üreticisi çıcırı', () => {
     ).toBeLessThanOrEqual(UST_SINIR)
   })
 
-  it('silinen dördü geri gelmemiş', () => {
+  it('silinen üçü geri gelmemiş · sayımdan BAĞIMSIZ ölçüm', () => {
+    // ⚠️ Bu kontrol artık `ureticiler` listesine BAĞLI DEĞİL (MIYOP-073).
+    // Eskiden öyleydi; sayım bir biçimi kaçırırsa yasak ad kontrolü de
+    // sessizce kaçırıyordu. İki ölçüm birbirine dayanırsa, birinin kör
+    // noktası ötekinin de kör noktası olur.
     for(const silinen of ['createDemoBranches', 'createDemoCompanies', 'createDemoData']){
       expect(
-        ureticiler,
+        new RegExp(`(?:export\\s+)?const ${silinen}\\s*=`).test(yorumsuz(DEPO)),
         `${silinen} geri gelmiş. Gerekçesi docs/kararlar/kaldirilan-moduller.md'de.`
-      ).not.toContain(silinen)
+      ).toBe(false)
     }
   })
 

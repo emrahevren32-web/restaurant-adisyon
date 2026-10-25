@@ -62,6 +62,13 @@ EVREN360'ın kilitli menüleri. Hepsi hedefte duruyor, sırası sonra.
   ⚠️ **Dağıtılmadan 2. adım yapılamaz** — sıra aşağıda 1.8'de.
 - ⬜ **0.10** Dağıtım · 0090 uygulandıktan ve MIYOP-043 bittikten sonra
   tek seferde (arayüzde zil yönlendirmesi de bu dağıtımla gider)
+- ✅ **0.12** **Göç 0092 · SKT kapısı · CANLIDA** (25.10)
+  Yerel prova **12/12**, göç üç kez üst üste koşturuldu, olumsuz deneme
+  yapıldı (kapı kaldırılınca prova ilk sınamada kırmızı döndü).
+  ⚠️ Supabase'de çalıştırılacak. Sonra sürüm defterine işlenecek.
+  ⚠️ **Numara notu:** giriş ACL göçü için 0092 ayrılmıştı; numara yazılma
+  sırasına göre verildiği için SKT kapısı 0092 oldu, giriş ACL'si **0093**
+  olacak.
 
 ---
 
@@ -359,30 +366,60 @@ güvenlik sınırı değil. Gerçek sınır veritabanında olmalı.
     (gerekçe + varsa belge). ⚠️ Zorunlu kılmadan önce meşru elle çıkış
     yollarının kapanmadığından emin olunacak — kapanırsa kullanıcı sahte
     belge uydurur, kayıt daha da kötüleşir.
-- ⬜ **2.9** **SKT KAPISI YOK · süresi geçmiş parti çıkarılabiliyor**
-  (21.10'da parti karekodunu değerlendirirken çıktı.)
-  `stock_lot.expires_on` kolonu **var** (0003) ve indeksi bile var — ama
-  çıkışta onu zorunlu kılan **hiçbir kapı yok**. Yani bugün süresi geçmiş
-  bir parti üretime girebilir ya da sevk edilebilir.
-  ⚠️ **Bunu karekoddan AYRI tutuyorum:** değeri karekoda bağlı değil,
-  bugün de yazılabilir. Endüstriyel mutfakta bu bir gıda güvenliği kapısı,
-  kolaylık değil.
-  - ⬜ **2.9.1** Sunucu tarafı: çıkış sebeplerinde (`PRODUCTION_CONSUME`,
-    `SHIPMENT_OUT`) `expires_on < current_date` olan parti **reddedilsin.**
-    İmha yolu (`EXPIRY_WRITE_OFF`) **muaf** — süresi geçmiş malın çıkış
-    yolu zaten orası.
-  - ⬜ **2.9.2** FIFO uyarısı: daha eski açık parti varken yenisi
-    seçilirse **uyar** (engelleme değil — meşru istisnalar var).
-  - ⬜ **2.9.4** ⚠️ **İstemci tarafı da ölçüldü (Codex, 25.10):**
-    `warehouse.service.ts:229` FEFO sıralaması geçmiş tarihli partileri
-    **elemeden** sıralıyor; 572'de yalnız pozitif bakiye süzülüyor.
-    Yani bakiyesi olan süresi geçmiş bir parti, geçerli partiden **önce**
-    seçilebiliyor. Elle seçimde de aidiyet ve bakiye kontrolü var, **tarih
-    reddi yok.** Sunucu kapısı konduktan sonra istemcinin otomatik seçimi
-    de geçmiş partiyi **atlamalı** — yoksa kullanıcı reddedilen bir işlemi
-    tekrar tekrar dener ve sebebini anlamaz.
-  - ⬜ **2.9.3** Prova: süresi geçmiş partiyle üretim denemesi kırmızı,
-    imha denemesi yeşil. Olumsuz deneme zorunlu.
+- ✅ **2.9** **SKT KAPISI KURULDU · göç 0092 (25.10)**
+  Süresi geçmiş parti artık **üretime giremiyor** ve **sevk edilemiyor.**
+  Prova **12/12**; göç üç kez üst üste koşturuldu (idempotent); olumsuz
+  deneme yapıldı — kapı kaldırılınca prova ilk sınamada kırmızı döndü.
+  - ✅ **2.9.A** **Reddedilen iki sebep:** `PRODUCTION_CONSUME`,
+    `SHIPMENT_OUT`. Ret kodu **MI437**; prova bunun 42501/23502 gibi başka
+    bir sebeple olmadığını **ayrıca** sınıyor — yanlış sebeple ret, kapı
+    çalışıyor sanılır.
+  - ✅ **2.9.B** **Reddedilmeyenler ve gerekçeleri** göçün başlığında tek
+    tek yazılı: **imha** (`EXPIRY_WRITE_OFF`) — süresi geçmiş malın çıkış
+    yolu zaten burası, kapatmak malı sistemde sonsuza kadar tutmak olurdu;
+    **fire**; **tedarikçi iadesi** — süresi geçmiş malı geri vermek istenen
+    davranış; **sayım farkı** — sayım gerçeği yazar, kural koymaz;
+    **transfer**; **ters kayıt** — geçmişi düzeltmeyi engellemek yanlış
+    kaydı kalıcı yapardı.
+  - ✅ **2.9.C** **SKT'si BUGÜN olan parti REDDEDİLMİYOR.**
+    `expires_on < current_date` yazıldı, `<=` yazılmadı: son kullanma
+    tarihi ürünün son kullanılabileceği gündür; `<=` bir günlük malı çöpe
+    atardı. Prova bunu dün/bugün/yarın/tarihsiz dört partiyle ölçüyor.
+  - ✅ **2.9.D** **SKT'si olmayan parti reddedilmiyor** — kuru bakliyat
+    gibi tarih taşımayan kalemler var. "Bilinmiyor" ile "geçmiş" aynı şey
+    değil.
+  - ✅ **2.9.4** **İstemci tarafı da onarıldı** (Codex'in bulduğu).
+    `warehouse.service.ts` FEFO sıralaması süresi geçmiş partileri
+    **elemeden** sıralıyordu — tarihi en eski olan o olduğu için FEFO'da
+    **en başa** geliyor ve otomatik seçiliyordu. Artık FEFO dağıtımı ve
+    **elle lot seçimi** ikisi de süresi geçmiş partiyi reddediyor.
+    ⚠️ Bu bir kolaylık değil: kapı sunucuda, burası onun ekrandaki yüzü.
+    Olmasa kullanıcı reddedilen bir işlemi tekrar tekrar dener ve sebebini
+    anlamaz.
+  - ✅ **2.9.5** **İki yerdeki liste donduruldu.**
+    `src/warehouse/skt-kapisi.arch.test.ts` göçteki sebep listesini
+    **SQL'den okuyup** servisteki listeyle karşılaştırıyor; biri değişip
+    diğeri kalırsa test kırılıyor. Ayrıca imha yolunun kapatılmadığını,
+    ters kayıt muafiyetinin durduğunu, `<=` yazılmadığını ve servisin
+    dün/bugün/yarın/tarihsiz kararını aynı verdiğini de ölçüyor.
+  - ⬜ **2.9.2** **FEFO uyarısı** (hâlâ açık): daha eski açık parti varken
+    yenisi seçilirse **uyar** — engelleme değil, meşru istisnalar var.
+    ⚠️ SKT kapısından farklı bir iş: kapı *"geçmiş olanı engelle"*, uyarı
+    *"sırayı atlıyorsun"* diyor.
+  - ✅ **2.9.7** **"Yetersiz stok" yalanı önlendi.** SKT süzgeci eklenince
+    şu ortaya çıktı: süresi geçmiş partiler elendiği için kalan miktar
+    yetmiyor ve kullanıcı *"Yetersiz stok: 45 istendi, defterde 30 var"*
+    mesajını alıyor. **Bu mesaj YANLIŞ** — depoda 45 kilo VAR, 15 kilosunun
+    süresi geçmiş. Kullanıcı deposuna bakıp malı görüyor, sistem "yok"
+    diyor. Doğru olmayan bir hata mesajı da bir tür *mış gibi*.
+    Ayrı bir hata yazıldı (`SuresiGecmisStokError`): *"Yetersiz
+    kullanılabilir stok: 45 istendi, kullanılabilir 30. Depoda ayrıca 15
+    birim SÜRESİ GEÇMİŞ parti var; bunlar üretime giremez ve sevk edilemez.
+    İmha kaydı açılmalı."* → tuzak 115
+  - ⬜ **2.9.6** **Ekranda gerekçe gösterimi.** Ret `MI437` ile geliyor;
+    arayüz bunu *"Bu partinin son kullanma tarihi geçmiş"* diye gösterip
+    **imha kaydı aç** düğmesine yönlendirmeli. Bugün kullanıcı ham hata
+    metnini görmüyor ama yönlendirme de yok.
 
 ---
 
@@ -686,6 +723,27 @@ Emrah'ın onayladığı sıra:
     **Donduran test:** `src/modules/sahte-veri-ureticisi.arch.test.ts` ·
     üretici sayısını 23'te donduruyor, silinen dördünün geri gelmesini ve
     okuyucuların demo dalına düşmesini yasaklıyor. Olumsuz deneme yapıldı.
+  - ✅ **3.10.7** **ESKİ DEMO KALINTILARI TEMİZLENİYOR (MIYOP-058 · ikinci
+    yarı).** ⚠️ **İlk onarımım yetmedi, Codex haklıydı:** üreticileri
+    silmek yalnız YENİ üretimi durdurdu; Emrah'ın ve demo kurulumların
+    tarayıcısında o satırlar **zaten yazılıydı.** Köprüye koyduğum "bu
+    firmaya ait olmayan şubeleri koru" kuralı onları **koruyordu**, çünkü
+    demo şubelerin firma kimliği uydurma bir demo firmaydı — yani "başka
+    firma" sayılıyorlardı.
+    Yapılan: **kimliği bilinen** demo kayıtları (`branch_merkez`,
+    `branch_istanbul`, `branch_ankara`, `branch_izmir` ve üç demo firma)
+    her girişte siliniyor. ⚠️ Liste **kapalı ve sabit**; desene göre silmek
+    (`_demo` ile bitenler) tehlikeli olurdu — gerçek bir firma kendi
+    kaydına o adı verebilir.
+    Ayrıca köprü, veritabanı bu firma için **boş cevap** verdiğinde erken
+    dönüp temizliği atlıyordu; o da düzeltildi (Codex).
+  - ✅ **3.10.8** **MIYOP-073 · çıcır testi `export const`u kaçırıyordu**
+    (Codex). Desen yalnız `^const createDemo…` arıyordu; silinen en büyük
+    üretici ise `export const createDemoData` biçimindeydi — yani "geri
+    gelmemiş" kontrolü, geri gelen **en tehlikeli** fonksiyonu
+    yakalayamazdı. Desen düzeltildi ve yasak ad kontrolü **sayımdan
+    bağımsız** hâle getirildi: iki ölçüm birbirine dayanırsa, birinin kör
+    noktası ötekinin de kör noktası olur.
   - ⬜ **3.10.4** **Kalan 23 üretici** · personel, cari, finans, başvuru,
     lisans ve platform üreticileri. ⚠️ `createDemoData` silindiği için
     hiçbiri artık toplu tohumlamaya girmiyor; her biri yalnız kendi
@@ -1056,6 +1114,31 @@ bölüm 1. sıraya çıkar.
   sonra "müşterilerin vergi numarası yok" demek o yılı elle düzeltmektir.
 
 ### 8.2 · Operasyon genişlemesi (C.2)
+
+- ⏸️ **8.2.0** **"NEREYE NE KADAR ÜRÜN GİTTİ?" · teslim noktası raporu**
+  Emrah'ın isteği (25.10): *"şube yerine demodan sonra şöyle bir istek
+  gelebilir; nereye ne kadar ürün göndermişiz? Belki de adamların bir yemek
+  fabrikası var, beş lokantası var. Hangi lokantaya ne kadar ürün gitmiş?
+  Hangi ürünler gitmiş, ne zaman?"*
+  - ⚠️ **BU ŞUBE DEĞİL, MÜŞTERİ/TESLİM NOKTASI.** Ayrımı yazılı tutuyorum
+    çünkü karıştırılırsa tek merkez kararı boşa gider: beş lokanta **bizim
+    şubemiz değil**, müşterinin teslim noktaları. Veri modeli de zaten
+    böyle duruyor.
+  - ✅ **Veri HAZIR, rapor yok.** Ölçüm (25.10): `customer` müşteri
+    kartını (0047), `delivery_point` teslim noktalarını, `shipment` +
+    `shipment_line` hangi ürünün hangi sevkiyatla gittiğini — ve `shipment`
+    **hem `customer_id` hem `delivery_point_id`** taşıyor (0049) —,
+    `sales_order` siparişi, `stock_movement.lot_id` hangi partinin
+    gittiğini tutuyor. Yani *"hangi lokantaya, ne zaman, hangi ürün, ne
+    kadar, hangi parti"* sorusunun cevabı **bugün veritabanında var.**
+    Eksik olan okuma ve ekran; **yeni tablo gerekmiyor.**
+  - ⏸️ **8.2.0.1** Teslim noktası bazlı sevkiyat özeti: nokta × ürün ×
+    dönem. Toplam miktar, sevkiyat sayısı, son teslim tarihi.
+  - ⏸️ **8.2.0.2** Ürün bazlı dağılım: bu ürün hangi noktalara gitti.
+  - ⏸️ **8.2.0.3** İzlenebilirlik köprüsü: bir parti hangi noktalara gitti
+    (geri çağırma senaryosu — ekran var, rapora bağlanacak).
+  - ⚠️ Demo öncesi DEĞİL. Emrah *"demodan sonra gelebilir"* dedi; hazır
+    olduğunu bilmek yeterli.
 
 - ⏸️ **8.2.1** **Personel / vardiya / puantaj**
 - ⏸️ **8.2.2** **Depo raf adresi** · lokasyon yönetimi

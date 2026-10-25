@@ -226,6 +226,83 @@ export class LotGerekliError extends Error {
  * Eşitlikte lot kodu kullanılıyor ki sıra her koşumda aynı olsun — rastgele
  * sıra, aynı girdiyle farklı hareketler üretirdi.
  */
+/**
+ * SKT kapısının kapalı olduğu çıkış sebepleri — göç 0092 ile AYNI liste.
+ *
+ * ⚠️ İKİ YERDE AYNI LİSTE OLMASI BİLİNÇLİ ama tehlikeli: biri değişip
+ * diğeri kalırsa sunucu reddettiği hâlde ekran seçmeye devam eder (ya da
+ * tersi). Liste `db/migrations/0092_skt_kapisi.sql` ile birlikte
+ * değiştirilir; `src/warehouse/skt-kapisi.arch.test.ts` ikisinin aynı
+ * kaldığını ÖLÇÜYOR.
+ *
+ * ⚠️ İmha (`EXPIRY_WRITE_OFF`), fire, tedarikçi iadesi, sayım ve ters
+ * kayıt BU LİSTEDE DEĞİL — gerekçeleri göçün başlığında tek tek yazılı.
+ * Süresi geçmiş malın çıkış yolu imha kaydıdır; orayı kapatmak malı
+ * sistemde sonsuza kadar tutmak olurdu.
+ */
+export const SKT_KAPALI_NEDENLER = ['PRODUCTION_CONSUME', 'SHIPMENT_OUT'] as const
+
+export const sktKapisiKapali = (neden: string) => (
+  (SKT_KAPALI_NEDENLER as readonly string[]).includes(neden)
+)
+
+/**
+ * SKT geçmiş mi?
+ *
+ * ⚠️ SKT GÜNÜ DAHİL kullanılabilir — `<` kullanıyoruz, `<=` değil.
+ * Son kullanma tarihi, ürünün son kullanılabileceği gündür; `<=` yazmak
+ * bir günlük malı çöpe atardı. Göç 0092 ile aynı karar.
+ */
+export const sktGecmisMi = (sonKullanma?: string): boolean => {
+  if(!sonKullanma) return false
+  const bugun = new Date()
+  const bugunMetin = [
+    bugun.getFullYear(),
+    String(bugun.getMonth() + 1).padStart(2, '0'),
+    String(bugun.getDate()).padStart(2, '0'),
+  ].join('-')
+  return sonKullanma.slice(0, 10) < bugunMetin
+}
+
+/** Süresi geçmiş partiyle üretim/sevk denemesi. */
+export class SktGecmisError extends Error {
+  constructor(public readonly lotKodu: string, public readonly sonKullanma: string){
+    super(`"${lotKodu}" partisinin son kullanma tarihi geçmiş (${sonKullanma}). `
+      + 'Bu parti üretime giremez ve sevk edilemez. Süresi geçmiş mal için '
+      + 'imha kaydı açılmalı.')
+    this.name = 'SktGecmisError'
+  }
+}
+
+/**
+ * Depoda mal var ama **kullanılabilir** değil: süresi geçmiş.
+ *
+ * ── NEDEN AYRI BİR HATA ──────────────────────────────────────────────────
+ * SKT süzgeci eklenince şu ortaya çıktı: süresi geçmiş partiler elendiği
+ * için kalan miktar yetmiyor ve kullanıcı *"Yetersiz stok: 45 istendi,
+ * defterde 30 var"* mesajını alıyor. **Bu mesaj yanlış** — depoda 45 kilo
+ * VAR, 15 kilosunun süresi geçmiş. Kullanıcı deposuna bakıp malı görüyor,
+ * sistem "yok" diyor; aradaki farkı kimse açıklamıyor.
+ *
+ * Emrah'ın kuralı: *"ortaya koyduğumuz bir şey çalışsın, mış gibi
+ * yapmasın."* Doğru olmayan bir hata mesajı da bir tür "mış gibi"dir.
+ * Bu hata, eksikliğin SEBEBİNİ söylüyor ve ne yapılacağını gösteriyor.
+ */
+export class SuresiGecmisStokError extends Error {
+  constructor(
+    public readonly stokKalemiId: string,
+    public readonly istenen: number,
+    public readonly kullanilabilir: number,
+    public readonly suresiGecmis: number,
+  ){
+    super(`Yetersiz kullanılabilir stok: ${istenen} istendi, `
+      + `kullanılabilir ${kullanilabilir}. Depoda ayrıca ${suresiGecmis} `
+      + 'birim SÜRESİ GEÇMİŞ parti var; bunlar üretime giremez ve sevk '
+      + 'edilemez. Süresi geçmiş mal için imha kaydı açılmalı.')
+    this.name = 'SuresiGecmisStokError'
+  }
+}
+
 export const fefoSirala = <T extends { sonKullanma?: string; kod: string }>(lotlar: T[]): T[] =>
   [...lotlar].sort((a, b) => {
     if(a.sonKullanma && b.sonKullanma) return a.sonKullanma.localeCompare(b.sonKullanma) || a.kod.localeCompare(b.kod)
@@ -562,6 +639,10 @@ export class DepoServisi {
     if(girdi.lotId){
       const secilen = (await this.lotBakiyeleri(ctx, kalem.id)).find(lot => lot.id === girdi.lotId)
       if(!secilen) throw new Error('Seçilen lot bu kaleme ait değil.')
+      // ⚠️ SKT kapısı: elle seçilen lotta da geçerli (göç 0092).
+      if(sktKapisiKapali(girdi.neden) && sktGecmisMi(secilen.sonKullanma)){
+        throw new SktGecmisError(secilen.kod, secilen.sonKullanma as string)
+      }
       if(secilen.miktar < istenenTemel){
         throw new YetersizStokError(kalem.id, istenenTemel, secilen.miktar)
       }
@@ -569,9 +650,31 @@ export class DepoServisi {
     }
 
     // FEFO dağıtımı
-    const lotlar = (await this.lotBakiyeleri(ctx, kalem.id)).filter(lot => lot.miktar > 0)
+    // ⚠️ 25.10.2026 · SÜRESİ GEÇMİŞ LOTLAR AYIKLANIYOR (HEDEFLER 2.9.4).
+    // Eskiden yalnız `lot.miktar > 0` süzülüyordu; yani bakiyesi olan
+    // süresi geçmiş bir parti FEFO sırasında EN BAŞA geliyordu (tarihi en
+    // eski olan o) ve otomatik olarak seçiliyordu. Göç 0092 sunucuda
+    // reddediyor — ama istemci yine onu seçerse kullanıcı reddedilen bir
+    // işlemi tekrar tekrar dener ve sebebini anlamaz.
+    // ⚠️ Bu bir KOLAYLIK değil: kapı sunucuda, burası onun ekrandaki yüzü.
+    const bakiyeliLotlar = (await this.lotBakiyeleri(ctx, kalem.id))
+      .filter(lot => lot.miktar > 0)
+    const lotlar = bakiyeliLotlar
+      .filter(lot => !(sktKapisiKapali(girdi.neden) && sktGecmisMi(lot.sonKullanma)))
     const toplam = yuvarla(lotlar.reduce((acc, lot) => acc + lot.miktar, 0))
+
     if(toplam < istenenTemel){
+      // ⚠️ Eksikliğin SEBEBİNİ ayırıyoruz. Süresi geçmiş parti elendiği için
+      // yetmiyorsa, "yetersiz stok" demek kullanıcıyı yanıltır: deposuna
+      // bakınca malı GÖRÜYOR. Doğru cümle "kullanılabilir değil".
+      const suresiGecmis = yuvarla(
+        bakiyeliLotlar
+          .filter(lot => !lotlar.includes(lot))
+          .reduce((acc, lot) => acc + lot.miktar, 0),
+      )
+      if(suresiGecmis > 0){
+        throw new SuresiGecmisStokError(kalem.id, istenenTemel, toplam, suresiGecmis)
+      }
       // Lot takipli bir kalemde "olmayan lottan çıkış" diye bir şey yoktur.
       // Politika `allow` olsa bile hangi lottan düşüleceği belirsiz kalırdı;
       // bu yüzden burada bilinçli olarak REDDEDİYORUZ.

@@ -133,11 +133,11 @@ beforeEach(() => {
 const depoyuDoldur = async () => {
   await depoServisi.malKabul(ctx, {
     stokKalemiId: CORBA, miktar: 40, birim: 'kg', birimMaliyet: 20,
-    yeniLot: { kod: 'MML-YAKIN', sonKullanma: '2026-10-01' },
+    yeniLot: { kod: 'MML-YAKIN', sonKullanma: bugundenGunSonra(20) },
   }, 'g1')
   await depoServisi.malKabul(ctx, {
     stokKalemiId: CORBA, miktar: 40, birim: 'kg', birimMaliyet: 25,
-    yeniLot: { kod: 'MML-UZAK', sonKullanma: '2027-01-01' },
+    yeniLot: { kod: 'MML-UZAK', sonKullanma: bugundenGunSonra(120) },
   }, 'g2')
 }
 
@@ -162,6 +162,21 @@ const bakiye = async () =>
   (await depoServisi.kalemler(ctx)).find(k => k.id === CORBA)?.miktar
 
 // ═══════════════════════════════════════════════════════════════════════════
+/**
+ * ⚠️ 25.10.2026 · Lot tarihleri SABİTTİ ve eskidi.
+ * `'2026-10-01'` yazıldığı gün gelecekteydi, bugün GEÇMİŞ. Göç 0092 ile
+ * süresi geçmiş parti üretime giremediği/sevk edilemediği için bu testler
+ * kırmızıya döndü — haklı olarak. Testin ölçtüğü şey FEFO sırası, SKT'nin
+ * geçip geçmediği değil; o yüzden tarihler gerçek bugüne göre veriliyor.
+ * Gerçek saati okuyan kodu sabit tarihle sınamak, saatli bomba kurmaktır.
+ */
+const bugundenGunSonra = (gun: number) => {
+  const t = new Date()
+  t.setDate(t.getDate() + gun)
+  const iki = (n: number) => String(n).padStart(2, '0')
+  return `${t.getFullYear()}-${iki(t.getMonth() + 1)}-${iki(t.getDate())}`
+}
+
 describe('KRİTER: sevk edilen lot kaydediliyor', () => {
   it('çıkış FEFO ile en yakın SKT’li partiden yazılıyor', async () => {
     await depoyuDoldur()

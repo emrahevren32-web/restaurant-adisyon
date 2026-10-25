@@ -160,11 +160,11 @@ const bakiyeHaritasi = async () =>
 const mercimekDoldur = async () => {
   await depoServisi.malKabul(ctx, {
     stokKalemiId: MERCIMEK, miktar: 10, birim: 'kg', birimMaliyet: 40,
-    yeniLot: { kod: 'LOT-YAKIN', sonKullanma: '2026-10-01' },
+    yeniLot: { kod: 'LOT-YAKIN', sonKullanma: bugundenGunSonra(20) },
   }, 'giris-1')
   await depoServisi.malKabul(ctx, {
     stokKalemiId: MERCIMEK, miktar: 10, birim: 'kg', birimMaliyet: 60,
-    yeniLot: { kod: 'LOT-UZAK', sonKullanma: '2027-06-01' },
+    yeniLot: { kod: 'LOT-UZAK', sonKullanma: bugundenGunSonra(220) },
   }, 'giris-2')
 }
 
@@ -193,6 +193,21 @@ const lotTakipli = (id: string) => KALEMLER.find(k => k.id === id)?.lotTakipli ?
 const sktTakipli = (id: string) => KALEMLER.find(k => k.id === id)?.sktTakipli ?? false
 
 // ═══════════════════════════════════════════════════════════════════════════
+/**
+ * ⚠️ 25.10.2026 · Lot tarihleri SABİTTİ ve eskidi.
+ * `'2026-10-01'` yazıldığı gün gelecekteydi, bugün GEÇMİŞ. Göç 0092 ile
+ * süresi geçmiş parti üretime giremediği/sevk edilemediği için bu testler
+ * kırmızıya döndü — haklı olarak. Testin ölçtüğü şey FEFO sırası, SKT'nin
+ * geçip geçmediği değil; o yüzden tarihler gerçek bugüne göre veriliyor.
+ * Gerçek saati okuyan kodu sabit tarihle sınamak, saatli bomba kurmaktır.
+ */
+const bugundenGunSonra = (gun: number) => {
+  const t = new Date()
+  t.setDate(t.getDate() + gun)
+  const iki = (n: number) => String(n).padStart(2, '0')
+  return `${t.getFullYear()}-${iki(t.getMonth() + 1)}-${iki(t.getDate())}`
+}
+
 describe('KRİTER: yetersiz stokla iş emri başlatılamıyor', () => {
   it('boş depoyla başlatma reddediliyor ve eksik miktar söyleniyor', async () => {
     const isEmri = await isEmriAc()
@@ -243,7 +258,7 @@ describe('KRİTER: yetersiz stokla iş emri başlatılamıyor', () => {
 // ═══════════════════════════════════════════════════════════════════════════
 describe('KRİTER: hammadde tüketimi deftere yazılıyor, FEFO ile', () => {
   it('çıkış en yakın SKT’li lottan başlıyor', async () => {
-    await mercimekDoldur()   // LOT-YAKIN 10 kg (2026-10), LOT-UZAK 10 kg (2027-06)
+    await mercimekDoldur()   // LOT-YAKIN 10 kg (yakin SKT), LOT-UZAK 10 kg (uzak SKT)
     await soganDoldur()
     await baslat(await isEmriAc())   // 12 kg mercimek
 

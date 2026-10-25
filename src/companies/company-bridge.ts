@@ -69,6 +69,56 @@ type BranchSatiri = {
 const metin = (deger: unknown): string => (typeof deger === 'string' ? deger.trim() : '')
 
 /**
+ * ⚠️ ESKİ DEMO KAYITLARININ KİMLİKLERİ (MIYOP-058 · ikinci yarı).
+ *
+ * Üreticileri sildik (`createDemoBranches`, `createDemoCompanies`) ama bu
+ * yalnız YENİ üretimi durdurdu. Emrah'ın ve demo kurulumların
+ * tarayıcısında bu satırlar **zaten yazılı** ve köprü onları koruyordu.
+ *
+ * ⚠️ İlk onarımım yetmedi, Codex haklıydı: köprü "bu firmaya ait olmayan
+ * şubeleri koru" diyordu — demo şubelerin `companyId`si uydurma bir demo
+ * firmaydı, yani "başka firma" sayılıp korunuyorlardı. Kalıntıyı temizlemek
+ * için **kimliği bilinen kayıtları hedeflemek** gerekiyor.
+ *
+ * ⚠️ Liste KAPALI ve sabit: yalnız bizim ürettiğimiz, kimliği bilinen
+ * kayıtlar siliniyor. Desene göre silmek ("`_demo` ile bitenler") tehlikeli
+ * olurdu — gerçek bir firma kendi kaydına o adı verebilir.
+ */
+const ESKI_DEMO_SUBE_KIMLIKLERI = [
+  'branch_merkez', 'branch_istanbul', 'branch_ankara', 'branch_izmir',
+]
+const ESKI_DEMO_FIRMA_KIMLIKLERI = [
+  'company_abc_cafe_demo', 'company_ornek_isletme_demo', 'company_kahve_duragi_demo',
+]
+
+/**
+ * Tarayıcıda kalmış demo kayıtlarını siler. Bir kez çalışması yeterli ama
+ * tekrar çalışması da zararsız (idempotent) — bayrak tutmuyoruz, çünkü
+ * bayrak tutan bir temizlik, bayrağı olan ama temizlenmemiş bir tarayıcıda
+ * sessizce atlanır.
+ */
+export const eskiDemoKalintilariniTemizle = (): void => {
+  try{
+    const subeler = loadBranches()
+    const kalanSubeler = subeler.filter(sube => (
+      !ESKI_DEMO_SUBE_KIMLIKLERI.includes(sube.id)
+      && !ESKI_DEMO_FIRMA_KIMLIKLERI.includes(sube.companyId ?? '')
+    ))
+    if(kalanSubeler.length !== subeler.length) saveBranches(kalanSubeler)
+
+    const firmalar = loadCompanies({ allTenants: true, includeDeleted: true })
+    const kalanFirmalar = firmalar.filter(
+      firma => !ESKI_DEMO_FIRMA_KIMLIKLERI.includes(firma.id),
+    )
+    if(kalanFirmalar.length !== firmalar.length) saveCompanies(kalanFirmalar)
+  }catch(hata){
+    // ⚠️ Temizlik başarısız olursa giriş AKIŞI DURMAZ. Kalıntı bir sonraki
+    // girişte yine denenir; kullanıcıyı kapıda bırakmak bundan kötüdür.
+    console.warn('[MİYOP] Demo kalıntısı temizlenemedi:', hata)
+  }
+}
+
+/**
  * Şubeleri de aynalar.
  *
  * Başlıktaki "Yetkili şube yok" uyarısının sebebi buydu: şube listesi
@@ -84,8 +134,12 @@ const subeleriAynala = async (firmaId: string): Promise<void> => {
   if(error || !data) return
 
   const satirlar = (data as BranchSatiri[]).filter(satir => satir.company_id === firmaId)
-  if(satirlar.length === 0) return
 
+  // ⚠️ `satirlar.length === 0` ile ERKEN DÖNMÜYORUZ (Codex, 25.10).
+  // Eskiden dönüyordu; yani veritabanı bu firma için boş cevap verdiğinde
+  // yerel liste olduğu gibi kalıyordu ve temizlik ATLANIYORDU. Sorgu
+  // BAŞARILI olduğuna göre (hata yukarıda yakalanıyor) boş cevap da bir
+  // cevaptır: bu firmanın şubesi yok demektir.
   const mevcutlar = loadBranches()
 
   // ⚠️ 25.10.2026 · BU FONKSİYON SAHTE ŞUBELERİ KORUYORDU (MIYOP-058).
@@ -191,6 +245,10 @@ const subeErisiminiAynala = async (user: User): Promise<void> => {
  * bağlamak, çevrimdışı bir ağ hatasını oturum açamama hâline çevirirdi.
  */
 export const syncWorkspaceCompanyFromDatabase = async (user: User): Promise<string> => {
+  // ⚠️ Her girişte, Supabase yapılandırılmamış olsa bile. Kalıntı
+  // tarayıcıda duruyor; sunucuya bağlı olup olmamakla ilgisi yok.
+  eskiDemoKalintilariniTemizle()
+
   if(!isSupabaseConfigured()) return ''
 
   try{

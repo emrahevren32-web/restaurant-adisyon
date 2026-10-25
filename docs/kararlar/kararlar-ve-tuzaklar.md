@@ -474,6 +474,36 @@ mutlak kelimeler, ancak kapısız yüzeyi ölçtüysen yazılır (tuzak 90).
 ⚠️ Ve bir testin neyi kanıtlamadığını da yaz (tuzak 107): kelime taraması
 anlam doğruluğu kanıtlamaz.
 
+**114 · Gerçek saati okuyan kodu sabit tarihle sınamak, saatli bomba
+kurmaktır — ve bomba patlayınca kuralı değil testi sorgula.**
+Göç 0092'den sonra Emrah'ın makinesinde **20 test kırmızı** oldu. Sebep
+kapı değildi: `warehouse`, `work-order` ve `shipment` testleri lotlara
+`'2026-06-01'`, `'2026-10-01'` gibi **sabit** SKT'ler veriyordu. Yazıldıkları
+gün ikisi de gelecekteydi; 25.10.2026'da geçmişe düşmüşlerdi. Testlerin
+ölçtüğü şey **FEFO sırasıydı**, SKT'nin geçip geçmediği değil — yani
+fixture, ölçtüğü şeyle ilgisi olmayan bir sebeple eskimişti. Üstelik aynı
+dosyada `gunSonra()` diye göreli bir yardımcı **zaten vardı**, ama o da
+`BUGUN = 15 Haziran 2026` sabitine bağlıydı.
+⚠️ İki kural: **(1)** Bir fixture, test edilen kod gerçek saati okuyorsa
+**gerçek bugüne göre** verilir. **(2)** Yeni bir kapı eski testleri
+kırdığında ilk soru *"kapıyı gevşeteyim mi"* değil, **"bu test hangi
+kuralı yazıyordu ve o kural hâlâ doğru mu"**dur. Burada eski test
+*"süresi geçmiş lotu tüket"* diyordu; o davranış artık YANLIŞ, dolayısıyla
+testin değişmesi doğruydu. Bu ayrımı yapmadan fixture düzeltmek, kendi
+değişikliğini geçirmek için testi susturmaya benzer — farkı, kararı
+yazılı bırakmak yaratır.
+
+**115 · Bir kapı koyduğunda, o kapının ürettiği HATA MESAJINI da ölç.**
+SKT süzgeci eklenince süresi geçmiş partiler elendi ve kalan miktar
+yetmeyince kullanıcı *"Yetersiz stok: 45 istendi, defterde 30 var"*
+mesajını almaya başladı. Mesaj teknik olarak doğru ama **gerçekte
+yanlış**: depoda 45 kilo var, 15 kilosunun süresi geçmiş. Kullanıcı
+deposuna bakıp malı görüyor, sistem "yok" diyor ve aradaki farkı kimse
+açıklamıyor. ⚠️ Kural: bir süzgeç koyduğunda, süzgecin **elediği şey
+yüzünden** oluşan hata yollarını da gez ve mesajı düzelt. Doğru olmayan
+bir hata mesajı da bir tür *"mış gibi"*dir; kullanıcı sisteme değil
+kendine güvenmeyi bırakır.
+
 ---
 
 ## 5 · TEST İŞBÖLÜMÜ VE TESLİM KONTROL LİSTESİ
@@ -537,3 +567,9 @@ Son söz onun çıktısındadır.
     aramayı yapan bir **test** yaz ya da işi Codex'e ver.
 24. Bir vaat cümlesi yazdıysan **kaç ekranın onu gerçekten yaptığını say**
     (tuzak 113). "Her / tüm / hepsi" ancak ölçüm varsa yazılır.
+25. Fixture'a tarih yazıyorsan **gerçek bugüne göre** yaz (tuzak 114).
+    Sabit tarih bir gün sessizce geçmişe düşer.
+26. Yeni bir kapı eski testleri kırdıysa önce **"bu test hangi kuralı
+    yazıyordu"** diye sor (tuzak 114). Kuralı gevşetmek son çaredir.
+27. Bir süzgeç koyduysan **süzgecin elediği şey yüzünden oluşan hata
+    mesajlarını** da gez (tuzak 115). Doğru olmayan hata mesajı da yalandır.

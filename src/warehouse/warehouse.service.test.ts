@@ -170,17 +170,43 @@ describe('Depo · mal kabul', () => {
   })
 })
 
+/**
+ * ⚠️ 25.10.2026 · TARİH SABİTLERİ KALDIRILDI — TESTLER ESKİMİŞTİ.
+ *
+ * Bu bloktaki lotlar `'2026-06-01'` ve `'2027-01-01'` diye SABİT tarih
+ * taşıyordu. Yazıldıkları gün ikisi de gelecekteydi. Bugün (25.10.2026)
+ * birincisi GEÇMİŞ. Göç 0092 ile süresi geçmiş parti üretime giremediği
+ * için bu testler kırmızıya döndü — ve haklı olarak döndü: artık doğru
+ * davranış "LOT-YAKIN'ı tüket" DEĞİL, "LOT-YAKIN'a dokunma".
+ *
+ * ⚠️ Asıl ders: **gerçek saati okuyan bir kodu sabit tarihle sınamak,
+ * bir gün patlayacak bir saatli bomba kurmaktır.** Testin ölçtüğü şey
+ * FEFO SIRASI; SKT'nin geçip geçmediği değil. O yüzden tarihler artık
+ * gerçek bugüne göre veriliyor ve ikisi de GELECEKTE — sıra korunuyor,
+ * bomba kalkıyor.
+ *
+ * ⚠️ Dosyadaki `BUGUN` sabiti (15 Haziran 2026) bu iş için kullanılamaz:
+ * o, referans tarihi parametre alan `sktKalanGun` içindir. SKT kapısı
+ * gerçek `new Date()` okuyor.
+ */
+const bugundenGunSonra = (gun: number) => {
+  const t = new Date()
+  t.setDate(t.getDate() + gun)
+  const iki = (n: number) => String(n).padStart(2, '0')
+  return `${t.getFullYear()}-${iki(t.getMonth() + 1)}-${iki(t.getDate())}`
+}
+
 describe('Depo · çıkış (FEFO)', () => {
   const ikiLotKur = async () => {
     // Bilerek TERS sırada açılıyor: FEFO'nun ekleme sırasını değil SKT'yi
     // dikkate aldığını görmek istiyoruz.
     await servis.malKabul(ctx, {
       stokKalemiId: TAVUK, miktar: 30, birim: 'kg',
-      yeniLot: { kod: 'LOT-UZAK', sonKullanma: '2027-01-01' },
+      yeniLot: { kod: 'LOT-UZAK', sonKullanma: bugundenGunSonra(200) },
     }, 'kabul-uzak')
     await servis.malKabul(ctx, {
       stokKalemiId: TAVUK, miktar: 20, birim: 'kg',
-      yeniLot: { kod: 'LOT-YAKIN', sonKullanma: '2026-06-01' },
+      yeniLot: { kod: 'LOT-YAKIN', sonKullanma: bugundenGunSonra(10) },
     }, 'kabul-yakin')
   }
 
@@ -207,6 +233,66 @@ describe('Depo · çıkış (FEFO)', () => {
     expect(hareketler[0].quantityBase).toBe(-20) // LOT-YAKIN tamamen
     expect(hareketler[1].quantityBase).toBe(-25) // kalanı LOT-UZAK'tan
     expect(await miktar(TAVUK)).toBe(5)
+  })
+
+  it('SÜRESİ GEÇMİŞ parti FEFO sırasında ATLANIYOR (göç 0092)', async () => {
+    // ⚠️ Süresi geçmiş parti FEFO'da EN BAŞTA olur (tarihi en eski o).
+    // Kapı olmasaydı otomatik olarak o seçilir ve sunucu reddederdi.
+    await servis.malKabul(ctx, {
+      stokKalemiId: TAVUK, miktar: 10, birim: 'kg',
+      yeniLot: { kod: 'LOT-GECMIS', sonKullanma: bugundenGunSonra(-1) },
+    }, 'kabul-gecmis')
+    await servis.malKabul(ctx, {
+      stokKalemiId: TAVUK, miktar: 10, birim: 'kg',
+      yeniLot: { kod: 'LOT-GECERLI', sonKullanma: bugundenGunSonra(5) },
+    }, 'kabul-gecerli')
+
+    const hareketler = await servis.cikis(ctx, {
+      stokKalemiId: TAVUK, miktar: 10, birim: 'kg', neden: 'PRODUCTION_CONSUME',
+    }, 'cikis-skt')
+
+    const lotlar = await servis.lotBakiyeleri(ctx, TAVUK)
+    expect(hareketler).toHaveLength(1)
+    expect(lotlar.find(l => l.kod === 'LOT-GECMIS')!.miktar).toBe(10)
+    expect(lotlar.find(l => l.kod === 'LOT-GECERLI')!.miktar).toBe(0)
+  })
+
+  it('İMHA süresi geçmiş partiyi kullanabiliyor', async () => {
+    // ⚠️ Süresi geçmiş malın çıkış yolu BURASI. Kapatılsaydı mal sistemde
+    // sonsuza kadar kalırdı.
+    await servis.malKabul(ctx, {
+      stokKalemiId: TAVUK, miktar: 10, birim: 'kg',
+      yeniLot: { kod: 'LOT-GECMIS', sonKullanma: bugundenGunSonra(-1) },
+    }, 'kabul-gecmis-2')
+
+    const hareketler = await servis.cikis(ctx, {
+      stokKalemiId: TAVUK, miktar: 10, birim: 'kg',
+      neden: 'EXPIRY_WRITE_OFF', not: 'SKT gecti, imha edildi',
+    }, 'cikis-imha')
+
+    expect(hareketler).toHaveLength(1)
+    expect((await servis.lotBakiyeleri(ctx, TAVUK))
+      .find(l => l.kod === 'LOT-GECMIS')!.miktar).toBe(0)
+  })
+
+  it('süresi geçmiş yüzünden yetmiyorsa SEBEBİNİ söylüyor', async () => {
+    // ⚠️ "Yetersiz stok: 15 istendi, defterde 10 var" demek YANLIŞ olurdu:
+    // depoda 20 kilo VAR, 10 kilosunun süresi geçmiş. Kullanıcı deposuna
+    // bakıp malı görüyor; sistem "yok" derse aradaki farkı kimse açıklamaz.
+    await servis.malKabul(ctx, {
+      stokKalemiId: TAVUK, miktar: 10, birim: 'kg',
+      yeniLot: { kod: 'LOT-GECMIS', sonKullanma: bugundenGunSonra(-1) },
+    }, 'kabul-gecmis-3')
+    await servis.malKabul(ctx, {
+      stokKalemiId: TAVUK, miktar: 10, birim: 'kg',
+      yeniLot: { kod: 'LOT-GECERLI', sonKullanma: bugundenGunSonra(5) },
+    }, 'kabul-gecerli-3')
+
+    await expect(
+      servis.cikis(ctx, {
+        stokKalemiId: TAVUK, miktar: 15, birim: 'kg', neden: 'PRODUCTION_CONSUME',
+      }, 'cikis-sebep'),
+    ).rejects.toThrow(/SÜRESİ GEÇMİŞ/)
   })
 
   it('yetersiz stokta HİÇ hareket yazmıyor', async () => {
