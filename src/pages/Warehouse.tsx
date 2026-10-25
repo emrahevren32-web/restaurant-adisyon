@@ -483,12 +483,24 @@ export default function Warehouse({ currentUser }: Props){
               <thead>
                 <tr>
                   <th>Kod</th><th>Ad</th><th>Birim</th>
-                  <th className="num">Miktar</th><th className="num">Min.</th><th>Takip</th>
+                  {/*
+                    ⚠️ 25.10.2026 · İKİ AYRI SAYI (MIYOP-074).
+                    Göç 0092'den sonra süresi geçmiş parti üretime giremiyor
+                    ve sevk edilemiyor. Yani depoda duran mal ile
+                    KULLANILABİLİR mal artık aynı şey değil.
+                    Tek sayı göstermek, kullanıcıya "20 kilo var" deyip
+                    üretime başlatmayınca sebebini söylememek olurdu.
+                    "Kullanılabilir" sütunu yalnız fark varken doluyor —
+                    her satıra aynı sayıyı iki kez yazmak gürültü olurdu.
+                  */}
+                  <th className="num">Miktar</th>
+                  <th className="num">Kullanılabilir</th>
+                  <th className="num">Min.</th><th>Takip</th>
                 </tr>
               </thead>
               <tbody>
                 {kalemler.length === 0 && (
-                  <tr><td colSpan={6} className="muted">Henüz stok kalemi yok.</td></tr>
+                  <tr><td colSpan={7} className="muted">Henüz stok kalemi yok.</td></tr>
                 )}
                 {kalemler.map(kalem => (
                   <tr
@@ -519,6 +531,30 @@ export default function Warehouse({ currentUser }: Props){
                       >
                         {bicimle(kalem.miktar)}
                       </button>
+                    </td>
+                    {/*
+                      ⚠️ Fark yoksa "—" yazıyoruz, aynı sayıyı tekrarlamıyoruz.
+                      Fark varsa SEBEBİ de yazılıyor: kullanıcı neden az
+                      olduğunu başka bir ekrana gitmeden görmeli.
+                      ⚠️ Yeni CSS sınıfı eklenmedi; var olanlar kullanıldı.
+                      1,4 MB'lık stil dosyasına dokunmak bu turda
+                      ölçemeyeceğim bir risk olurdu.
+                    */}
+                    <td className="num">
+                      {kalem.suresiGecmis > 0 ? (
+                        <span
+                          title={`${bicimle(kalem.suresiGecmis)} ${kalem.temelBirim} `
+                            + 'süresi geçmiş: üretime giremez, sevk edilemez. '
+                            + 'Bu mal için imha kaydı açılmalı.'}
+                        >
+                          <strong>{bicimle(kalem.kullanilabilir)}</strong>
+                          <small className="muted">
+                            {' '}· {bicimle(kalem.suresiGecmis)} SKT geçmiş
+                          </small>
+                        </span>
+                      ) : (
+                        <span className="muted">—</span>
+                      )}
                     </td>
                     <td className="num muted">{kalem.minMiktar > 0 ? bicimle(kalem.minMiktar) : '—'}</td>
                     <td className="muted">

@@ -1,57 +1,29 @@
-MIYOP-074: planlama ekranlari da suresi gecmisi sayiyordu + yedek defteri
+SKT kapisi EKRANDA gorunur oldu: Depo'da kullanilabilir/suresi gecmis
 
-Goc 0093 Supabase'de uygulandi. Tek kirmizi test yedek defteriydi ve
-DOGRU yakaladi; yaninda Codex iki is daha buldu, ikisi de benim yan
-etkimdi.
+Emrah canliya bakip hakli bir sey sordu: "SKT kapisi bitti - nerede?
+sayfa olarak mi var? goremedim."
 
-1 - YEDEK DEFTERI (test hakli cikti)
-tenant-export.arch.test.ts her kiraci tablosunun ya yedekte ya GEREKCELI
-disarida olmasini zorunlu kiliyor. Iki yeni tabloyu yazmadigim icin
-kirmizi verdi. witness_sample ve witness_sample_event yedege eklendi -
-numune PARTIDEN sonra, olay defteri NUMUNEDEN sonra (geri yuklemede
-ebeveyn once gelmeli). Tablo aciklamalari da yazildi.
-!! Bu testin varlik sebebi tam olarak bu: "eksiksiz" damgasi, damgayi
-basan listenin kendisini denetlemez.
+CEVAP: SKT kapisi bir SAYFA DEGIL, var olan ekranlarin icindeki bir
+kural. Ama bu bir mazeret degil: gorunmeyen bir kural, kullanici icin
+bitmemis bir kuraldir. Iki sayiyi hesapliyordum (kullanilabilir ve
+suresi gecmis) ama HICBIR EKRAN GOSTERMIYORDU.
 
-2 - MIYOP-074 - PLANLAMA EKRANLARI YALAN SOYLUYORDU (Codex)
-SKT kapisini yazmadan once "fiziksel bakiye" ile "kullanilabilir bakiye"
-ayni seydi. Kapidan sonra ayristilar - ama planlama ekranlari hala
-FIZIKSEL toplami okuyordu.
-Somut senaryo: dun biten 10 kg + gecerli 10 kg, ihtiyac 15 kg.
-  . Is Emirleri ve Sevkiyatlar ekraninda eksik miktar tire isareti gorunuyor
-  . Baslat ve Sevk Et dugmeleri ACIK kaliyor
-  . Uretim provasi "Stok yeterli" diyor
-  . Tiklayinca goc 0092'nin kapisi reddediyor
-!! Yani ekran once "yapabilirsin" deyip sonra "yapamazsin" diyordu. Bu,
-kapinin kendisinden daha kotu: kapi dogru calisiyor, EKRAN yalan
-soyluyor. Tuzak 115'in planlama hali.
+DEPO EKRANINA "KULLANILABILIR" SUTUNU EKLENDI
+- Goc 0092'den sonra "depoda duran mal" ile "kullanilabilir mal" ayni
+  sey degil. Tek sayi gostermek, kullaniciya "20 kilo var" deyip
+  uretime baslatmayinca sebebini soylememek olurdu.
+- Sutun YALNIZ FARK VARKEN doluyor: her satira ayni sayiyi iki kez
+  yazmak gurultu olurdu. Fark yoksa tire.
+- Fark varken SEBEBI de yaziyor: "10 - 10 SKT gecmis" ve uzerine
+  gelince "suresi gecmis: uretime giremez, sevk edilemez. Bu mal icin
+  imha kaydi acilmali."
+- !! Yeni CSS sinifi EKLENMEDI, var olanlar kullanildi. 1,4 MB'lik stil
+  dosyasina dokunmak bu turda olcemeyecegim bir riskti.
 
-Yapilan: DepoKalemi artik uc sayi tasiyor - miktar (fiziksel),
-suresiGecmis, kullanilabilir. Uc planlama ekrani da KULLANILABILIR
-olani okuyor.
-!! KRITIK STOK ESIGI DE kullanilabilire baglandi: kritik uyarisinin
-amaci siparis verdirmek, suresi gecmis mal o ihtiyaci karsilamiyor.
-100 kilo suresi gecmis mal, 5 kiloluk esigi KAPATMAMALI.
-!! Suresi gecmis miktar yalniz lot+SKT takipli kalemlerde sorgulaniyor;
-digerlerinde sorulacak bir tarih yok (uyarilar() de boyle calisiyor).
-
-Iki yeni test: kullanilabilir bakiye suresi gecmisi ayiriyor mu,
-suresi gecmis mal kritik uyarisini kapatiyor mu.
-
-3 - MIYOP-058 UCUNCU YARI - ARSIVLENMIS DEMO FIRMA (Codex)
-Temizlik saveCompanies uzerinden gidiyordu; o fonksiyon ARSIVLENMIS
-kayitlari (deletedAt dolu olanlari) bilerek koruyor - gercek bir firma
-silinse de gecmisi kaybolmasin diye. Dogru bir kural ama burada TERS
-ETKI yapiyordu: arsivlenmis bir demo firma her temizlikte GERI
-GELIYORDU.
-Yapilan: kimligeGoreFirmaSil() - yalniz kimligi verilen kayitlari silen,
-arsiv korumasini BILEREK asan ayri bir fonksiyon. Desene gore silmiyor;
-cagiran hangi kayitlari sildigini tek tek bilmek zorunda.
-!! Ders: bir temizlik, kendi kullandigi yazma fonksiyonunun kurallarina
-tabidir. "Sildim" demeden once YAZANIN ne yaptigini oku.
-
-Sozdizimi denetimi: sekiz dosya temiz (bun build --no-bundle).
-!! Testleri burada kosturamiyorum; kirmizi kalirsa ciktiyi ver.
+!! Bu commit'ten sonra DAGITIM yapilacak. Canlidaki site eski surumu
+calistiriyor: giris vitrini duzeltmeleri, SKT istemci tarafi, demo veri
+temizligi, Profilim - hicbiri canlida yok. Bu yuzden Emrah hakliydi,
+"goremedim" dedigi seylerin cogu gercekten orada degildi.
 
 Co-Authored-By: Claude Opus 5 <noreply@anthropic.com>
 Claude-Session: https://claude.ai/code/session_019BwYM3mAXZUhp4YGj7tp2y
