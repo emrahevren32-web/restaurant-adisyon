@@ -1,60 +1,48 @@
-Parti karekodu karari yazildi (Emrah'in fikri) + SKT kapisi bulgusu
+MIYOP-066 tam kapandi + MIYOP-068 kapandi (gec gelen cevap kapisi)
 
-Kod degismedi; karar ve olcum turu.
+Codex hakliydi: 066'yi "kapandi" diye yazmistim, KAPANMAMISTI. Iki dal
+eksikti. Ikisi de kapatildi, ucuncu bir riski de kendim buldum.
 
-EMRAH'IN FIKRI (21.10): mal kabulde urune QR yapistirilsin, cikista ayni
-QR okutulsun - "dogru urunu girip dogru urunun cikmasi", "almamasi
-gereken malzemeyi kimse depodan alamaz", "sistemde kacagi onler".
+1 - MIYOP-066'nin KALAN YARISI
+- Kabuga bildirim yalniz `kaydet` icindeydi. Yazma BASARILI olup geri
+  okuma DUSERSE, kullanici "Tekrar dene"ye basip profilini goruyor ama
+  yan menu eski adi gostermeye devam ediyordu.
+- Dogrusu: bildirimi kaydetme akisina degil HER BASARILI OKUMAYA
+  baglamak. Artik `yukle` icinde `kabugaBildir(gelen)` var; `kaydet`
+  ayrica bildirmiyor (iki yer iki kural olurdu).
+- Yani okuma neyi donduruyorsa kabuk onu gosterir, kac deneme surdugu
+  fark etmez.
 
-CEVABIM: fikir dogru, bir cumlesi yanlis.
-- Karekod HIRSIZLIK ONLEMEZ. Mali izinsiz alan okutmaz. Yaptigi sey
-  kayitsiz cikisi SAYIMDA GORUNUR ve kisiye bagli bir farka donusturmek,
-  ve YANLIS KAYDI onlemek.
-- Kacagi asil onleyen uclu bizde ZATEN VAR: her cikisin belgesi
-  (stock_movement.reason + source_type), duzenli sayim (0025,
-  COUNT_SURPLUS/SHORTAGE), denetim kaydi (0027, 0091). Karekod bunlarin
-  yerini almaz, hizlandirir ve dogrular.
-- Gercek kazanclari: yanlis kalem/parti secimini onleme, SKT ve FIFO
-  ZORLAMASI, alerjen dogrulamasi, geri cagirma/sahit numune kesinligi,
-  kayit hizi.
+2 - MIYOP-068 - P2 - gec gelen cevap baska hesabin ustune yaziyordu
+- handleProfileChange `taze.id` ile oturumdaki kullanicinin kimligini
+  KARSILASTIRMIYORDU. Codex'in gosterdigi sira: A kaydeder -> A'nin geri
+  okumasi gecikir -> A cikar, ayni sekmede B girer -> A'nin cevabi gelir
+  -> B'nin uzerine A'nin adi yazilir ve ra_auth'a kaydedilir.
+- B'nin veritabani kaydi, rolu ve izinleri degismiyordu; ama kabuk ve
+  yerel kopya YANLIS ADI tasiyordu.
+- Iki bagimsiz kapi kondu: App tarafinda taze.id !== onceki.id, ekran
+  tarafinda gelen.id !== currentUser.id.
 
-UC SEVIYE OLCULDU
-- A - parti karekodu (stock_lot). YENI TABLO GEREKMIYOR: stock_lot
-  (id, lot_code, expires_on) ve stock_movement.lot_id hazir (0003), mal
-  kabul partiyi zaten olusturuyor (0019), etiket ekrani duruyor.
-  SECILEN YOL.
-- B - tasima birimi karekodu (her cuval/kasa/palet ayri kimlik). GERCEK
-  kacak kontrolu bu, ama handling_unit tablosu + kismi tuketim kurali +
-  sayimin bu birimlere tasinmasi + depoda 20 kat etiket/okutma is yuku
-  demek. Ancak Ismet'in gercek hacmi gerektiriyorsa. A'nin verisi B'ye
-  temiz goc eder.
-- C - kalem karekodu: ELENDI. Parti ve SKT tasimadigi icin ne
-  izlenebilirlik ne FIFO saglar.
+3 - KENDI ONARIMIMIN YARATTIGI RISKI BULDUM: SONSUZ OKUMA
+- 1. maddeyle birlikte `yukle` artik `currentUser`a bagli. Eger
+  handleProfileChange her cagrida YENI nesne uretirse currentUser'in
+  kimligi degisir -> yukle yeniden kurulur -> effect tekrar okur ->
+  tekrar haber verir -> sonsuz okuma.
+- Kapi: ad ve telefon aynisa `onceki` NESNESININ KENDISI donuyor.
+  Zincir ilk turda duruyor; ad gercekten degismisse en fazla iki tur.
+- !! Bu, "bir onarim yeni bir kusur dogurur" ailesinin (tuzak 102/104)
+  bir ornegi daha. Bu kez teslimden once yakalandi.
 
-!! BU, DONDURULMUS business-qr-menu MODULU DEGIL. O masa servisi icindi
-ve 21.10'da public yolu kapatildi (MIYOP-067). Bu is depodaki fiziksel
-malin kimligi; sifirdan ve kendi adiyla yazilir. Isim karismasin diye
-belgede adi "parti karekodu".
+TEST - src/modules/public-yol-ve-kabuk.arch.test.ts genisletildi
+- bildirim `yukle` icinde mi, `kaydet` ayrica bildiriyor mu
+- iki kimlik kapisi duruyor mu
+- esitlikte ayni nesne donuyor mu
+- Dort olumsuz deneme yapildi, dordu de kirmizi verdi:
+  kimlik kapisini kaldir / yukle bildirimini kaldir /
+  kaydete ikinci bildirim ekle / esitlik kapisini kaldir.
+- Sozdizimi denetimi: uc dosya temiz (bun build --no-bundle).
 
-KAPSAM: demo oncesine ALINMADI. Gerekce Emrah'in kendi kurali - demo
-oncesi en fazla 2 hafta ve "yarim ekranlar bariz itibar dusurucu".
-Karekod cihaz + etiket malzemesi + depo aliskanligi isteyen bir is;
-iki haftaya sikistirilirsa tam olarak yarim kalir. HEDEFLER 8.2.3.
-
-YAN BULGU - SKT KAPISI YOK (HEDEFLER 2.9)
-Karekodu degerlendirirken cikti: stock_lot.expires_on kolonu VAR ve
-indeksi bile var, ama cikista onu zorunlu kilan HICBIR KAPI YOK. Yani
-bugun suresi gecmis bir parti uretime girebilir ya da sevk edilebilir.
-Bunu karekoddan AYRI tuttum: degeri karekoda bagli degil, bugun de
-yazilabilir. Endustriyel mutfakta bu bir gida guvenligi kapisi.
-Plan: PRODUCTION_CONSUME ve SHIPMENT_OUT reddetsin, EXPIRY_WRITE_OFF
-muaf olsun (suresi gecmis malin cikis yolu zaten orasi); FIFO uyarisi
-engelleme degil uyari olsun; olumsuz deneme zorunlu.
-
-YENI DOSYA: docs/kararlar/parti-karekodu.md
-ISMET'E SORULACAKLAR: F basligi eklendi (F1-F5). Atlanmasi en kolay
-olan: -18 C'de ve islak yuzeyde duran etiket malzemesi - normal termal
-etiket donmus cuvalda duser.
-
-Co-Authored-By: Claude Opus 5 <noreply@anthropic.com>
-Claude-Session: https://claude.ai/code/session_019BwYM3mAXZUhp4YGj7tp2y
+!! KAPSAM NOTU: yeni test metin olcuyor (hangi kapinin kaynakta durdugu),
+davranis olcmuyor. Codex bunu dogru yazdi. Gercek senaryo sinamasi
+(A bekletilir, B girer, A'nin cevabi gelir) tarayici testi ister;
+HEDEFLER 3.2.7 olarak acildi, demo sonrasina.

@@ -81,6 +81,27 @@ export default function UserProfile({ currentUser, onProfileChange }: Props){
   const [sifreBilgisi, setSifreBilgisi] = React.useState('')
   const [sifreDegisiyor, setSifreDegisiyor] = React.useState(false)
 
+  /**
+   * ⚠️ MIYOP-066'nın KALAN YARISI (Codex, 22.10). İlk onarımda kabuğa
+   * bildirimi yalnız `kaydet` yapıyordu. Yazma başarılı olup geri okuma
+   * düşerse, kullanıcı "Tekrar dene"ye basıp profilini görüyor ama YAN
+   * MENÜ eski adı göstermeye devam ediyordu. Doğrusu: bildirimi kaydetme
+   * akışına değil, **her başarılı okumaya** bağlamak. Okuma neyi
+   * döndürüyorsa kabuk onu gösterir — kaç deneme sürdüğü fark etmez.
+   *
+   * ⚠️ MIYOP-068 · okunan satır oturumdaki kişiye AİT DEĞİLSE kabuğa
+   * hiçbir şey bildirilmez. (App tarafında ikinci bir kapı daha var;
+   * iki bağımsız savunma hattı.)
+   */
+  const kabugaBildir = React.useCallback((gelen: Profilim) => {
+    if(gelen.id !== currentUser.id) return
+    onProfileChange?.({
+      ...currentUser,
+      fullName: gelen.adSoyad,
+      phone: gelen.telefon ?? undefined,
+    })
+  }, [currentUser, onProfileChange])
+
   const yukle = React.useCallback(async () => {
     setYukleniyor(true)
     setOkumaHatasi('')
@@ -99,8 +120,9 @@ export default function UserProfile({ currentUser, onProfileChange }: Props){
     setAdSoyad(gelen.adSoyad)
     setTelefon(gelen.telefon ?? '')
     setYukleniyor(false)
+    kabugaBildir(gelen)
     return gelen
-  }, [])
+  }, [kabugaBildir])
 
   React.useEffect(() => { void yukle() }, [yukle])
 
@@ -128,23 +150,12 @@ export default function UserProfile({ currentUser, onProfileChange }: Props){
     // ⚠️ Kaydedileni EKRANDAN değil, veritabanından geri okuyoruz:
     // "kaydedildi" yazıp ekranda eski değeri bırakmak, tam da bu ekranın
     // eski kusuruydu.
-    const taze = await yukle()
-
-    // ⚠️ MIYOP-066: kabuktaki kullanıcı kopyası da güncellenmeli. Bu çağrı
-    // yazılmıştı ama `BusinessWorkspaceRouteHost` prop'u GEÇİRMİYORDU —
-    // yani yan menü ve kilit ekranı eski adı göstermeye devam ediyordu
-    // (Codex buldu). Artık geçiriliyor; donduran test:
-    // `src/modules/profil-kabuga-tasiniyor.arch.test.ts`
-    //
-    // ⚠️ Formdaki değeri DEĞİL, veritabanından geri okunanı taşıyoruz.
-    // Yazma başarılı dönse de kaydedilen son hâl veritabanındaki hâldir.
-    if(taze){
-      onProfileChange?.({
-        ...currentUser,
-        fullName: taze.adSoyad,
-        phone: taze.telefon ?? undefined,
-      })
-    }
+    // ⚠️ Kabuğa bildirimi `yukle` yapıyor — burada TEKRAR çağırmıyoruz.
+    // Sebebi MIYOP-066'nın kalan yarısı: bildirimi kaydetme akışına
+    // bağlamak, "yazma başarılı + geri okuma düştü + tekrar dene" dalını
+    // dışarıda bırakıyordu. Tek yer, tek kural: okuma başarılıysa kabuk
+    // bilir. Donduran test: `src/modules/public-yol-ve-kabuk.arch.test.ts`
+    await yukle()
   }
 
   const sifreDegistir = async (olay: React.FormEvent) => {

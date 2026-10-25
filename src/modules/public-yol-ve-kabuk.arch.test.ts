@@ -91,6 +91,52 @@ describe('profil değişikliği kabuğa taşınıyor (MIYOP-066)', () => {
     expect(APP).toMatch(/onProfileChange=\{handleProfileChange\}/)
   })
 
+  it('kabuğa bildirim KAYDETME akışına değil, OKUMAYA bağlı (066 kalan yarısı)', () => {
+    // ⚠️ İlk onarımda bildirim yalnız `kaydet` içindeydi. Yazma başarılı
+    // olup geri okuma düşerse "Tekrar dene" profili yeniliyor ama kabuğu
+    // yenilemiyordu (Codex, 22.10). Artık `yukle` bildiriyor.
+    expect(
+      PROFIL,
+      'kabuğa bildirim `yukle` içinden yapılmalı; yoksa "tekrar dene" dalı '
+      + 'kabuğu eski adla bırakır'
+    ).toMatch(/kabugaBildir\(gelen\)/)
+    const kaydetBloku = /const kaydet = async[\s\S]*?\n  \}/.exec(PROFIL)?.[0] ?? ''
+    expect(kaydetBloku, 'kaydet bloğu bulunamadı').not.toBe('')
+    expect(
+      kaydetBloku.includes('onProfileChange'),
+      'kaydet bloğu kabuğa AYRICA bildiriyor — iki yer iki kural olur, '
+      + 'bildirim tek yerde (yukle) kalmalı'
+    ).toBe(false)
+  })
+
+  it('geç gelen cevap BAŞKA hesabın üstüne yazamıyor (MIYOP-068)', () => {
+    // A kaydeder → cevabı gecikir → A çıkar, B girer → A'nın cevabı gelir.
+    // Kimlik kapısı yoksa B'nin kabuğuna A'nın adı yazılır.
+    const blok = /const handleProfileChange[\s\S]*?\n  \}, \[\]\)/.exec(APP)?.[0] ?? ''
+    expect(blok, 'handleProfileChange bulunamadı').not.toBe('')
+    expect(
+      blok,
+      'handleProfileChange kimlik karşılaştırması yapmıyor — geç gelen '
+      + 'cevap başka hesabın yerel kopyasını bozabilir (MIYOP-068)'
+    ).toMatch(/taze\.id\s*!==\s*onceki\.id/)
+    expect(
+      PROFIL,
+      'UserProfile kabuğa bildirmeden önce kimliği doğrulamıyor'
+    ).toMatch(/gelen\.id\s*!==\s*currentUser\.id/)
+  })
+
+  it('değişen yoksa aynı nesne dönüyor (sonsuz okuma kapısı)', () => {
+    // ⚠️ Profilim her başarılı okumada kabuğa haber veriyor ve `yukle`
+    // `currentUser`a bağlı. Burada her çağrıda yeni nesne üretilirse
+    // okuma → haber → yeni kimlik → okuma zinciri hiç durmaz.
+    const blok = /const handleProfileChange[\s\S]*?\n  \}, \[\]\)/.exec(APP)?.[0] ?? ''
+    expect(
+      blok,
+      'handleProfileChange eşitlikte `onceki` döndürmüyor — Profilim '
+      + 'ekranı sonsuz okumaya girebilir'
+    ).toMatch(/onceki\.fullName === taze\.fullName[\s\S]{0,80}return onceki/)
+  })
+
   it('kabuk güncellemesi YALNIZ ad ve telefon taşıyor', () => {
     // ⚠️ Buraya rol/izin/kiracı yazılırsa yetki yükseltmesinin arka kapısı
     // olur. Veritabanı reddeder (0012) ama arayüz de denemeyecek.

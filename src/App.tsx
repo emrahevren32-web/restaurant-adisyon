@@ -966,10 +966,33 @@ export default function App(){
    * alanları `currentUser`dan geliyor — buraya rol yazılırsa yetki
    * yükseltmesinin arka kapısı olur. Veritabanı tarafı zaten reddeder
    * (göç 0012) ama arayüz de denemeyecek.
+   *
+   * ⚠️ MIYOP-068 · KİMLİK KAPISI. İlk sürümde `taze.id` ile oturumdaki
+   * kullanıcının kimliği KARŞILAŞTIRILMIYORDU. Codex'in gösterdiği sıra
+   * şöyleydi: A profilini kaydeder → A'nın geri okuması gecikir →
+   * A çıkar, aynı sekmede B giriş yapar → A'nın cevabı gelir → eski geri
+   * çağrı B'nin üstüne A'nın adını yazar ve `ra_auth`a kaydeder.
+   * B'nin veritabanı kaydı, rolü ve izinleri değişmez; ama kabuk ve yerel
+   * kopya YANLIŞ ADI taşır. Geç gelen cevap, ait olduğu kullanıcıya
+   * uygulanır — başkasına değil.
    */
   const handleProfileChange = React.useCallback((taze: User) => {
     setUserState(onceki => {
       if(!onceki) return onceki
+      // ⚠️ Geç gelen cevap başka hesabın üstüne yazmasın (MIYOP-068).
+      if(taze.id !== onceki.id) return onceki
+
+      // ⚠️ DEĞİŞEN YOKSA AYNI NESNEYİ DÖNDÜR. Bu bir "mikro iyileştirme"
+      // değil, SONSUZ DÖNGÜ KAPISI: Profilim ekranı artık her başarılı
+      // okumada kabuğa haber veriyor; `yukle` de `currentUser`a bağlı.
+      // Burada her seferinde YENİ bir nesne üretilirse `currentUser`ın
+      // kimliği değişir → `yukle` yeniden kurulur → effect tekrar okur →
+      // tekrar haber verir → sonsuz okuma. Eşitlikte `onceki` dönünce
+      // zincir ilk turda duruyor (ad gerçekten değiştiyse en fazla iki tur).
+      if(onceki.fullName === taze.fullName && onceki.phone === taze.phone){
+        return onceki
+      }
+
       const sonraki: User = {
         ...onceki,
         fullName: taze.fullName,

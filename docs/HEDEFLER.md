@@ -432,6 +432,11 @@ Emrah'ın onayladığı sıra:
     Kaydet `JSON.stringify(items.map(normalizeCompany))` yazdığı için bu
     dört alan **sessizce siliniyor.** Kabul: her alana farklı değer gir →
     kaydet → ekranı kapat/aç → yenile → hepsi yerinde olacak.
+  - ⬜ **3.1.7** ⚠️ **063 YALNIZ Firma Profili ile sınırlı değil** (Codex,
+    22.10): `assignHeadOffice` içindeki **"Merkez Yap"** yolu da süzülmüş
+    firma listesini ortak koleksiyona yazıyor. İki yolun da diğer firmanın
+    yerel verisini koruması gerekiyor — biri onarılıp öteki bırakılırsa
+    kusur ayakta kalır (tuzak 104'ün aynısı).
   - ⬜ **3.1.6** **MIYOP-063 · bir firmayı kaydetmek diğerini düşürüyor.**
     `saveCompanyProfile` (branch-directory.service.ts:126) **süzülmüş**
     `loadCompanies()` sonucunu `saveCompanies()`e veriyor; `saveCompanies`
@@ -490,6 +495,31 @@ Emrah'ın onayladığı sıra:
     Donduran test: `src/modules/public-yol-ve-kabuk.arch.test.ts` —
     prop geri alınırsa, App geri çağrıyı vermezse ya da kabuk güncellemesine
     rol/izin yazılırsa kırmızı olur (üç olumsuz deneme yapıldı).
+  - ✅ **3.2.7** **MIYOP-066'nın KALAN YARISI + MIYOP-068** (Codex, 22.10).
+    *"066 kapandı"* demem **yine erken olmuştu** — iki dal eksikti:
+    **(a)** Kabuğa bildirim yalnız `kaydet` içindeydi. Yazma **başarılı**
+    olup geri okuma **düşerse**, kullanıcı "Tekrar dene"ye basıp profilini
+    görüyor ama yan menü eski adı göstermeye devam ediyordu. Doğrusu:
+    bildirimi kaydetme akışına değil **her başarılı okumaya** bağlamak.
+    Artık `yukle` bildiriyor, `kaydet` ayrıca bildirmiyor.
+    **(b)** **MIYOP-068** · `handleProfileChange` kimlik
+    karşılaştırması yapmıyordu. Sıra: A kaydeder → geri okuması gecikir →
+    A çıkar, aynı sekmede B girer → A'nın cevabı gelir → **B'nin kabuğuna
+    A'nın adı yazılır** ve `ra_auth`a kaydedilir. (B'nin veritabanı kaydı,
+    rolü ve izinleri değişmiyordu.) İki bağımsız kapı kondu.
+    **(c)** ⚠️ **Kendi onarımımın yarattığı riski buldum:** (a) ile
+    `yukle` artık `currentUser`a bağlı; geri çağrı her seferinde yeni
+    nesne üretirse okuma → haber → yeni kimlik → okuma **sonsuz döngüsü**
+    olurdu. Kapı: ad ve telefon aynıysa `onceki` nesnesinin kendisi
+    dönüyor. Teslimden önce yakalandı.
+    Dört olumsuz deneme yapıldı, dördü de kırmızı verdi.
+  - ⬜ **3.2.8** ⚠️ **TESTİN KAPSAMI DÜRÜSTÇE:** `public-yol-ve-kabuk`
+    testi **metin** ölçüyor — hangi kapının kaynakta durduğunu. **Davranış
+    ölçmüyor.** Gerçek senaryo sınaması (A'nın okuması bekletilir, B giriş
+    yapar, A'nın cevabı gelir; B'nin adı değişmemeli) tarayıcı testi
+    ister. Codex bunu doğru söyledi. **Demo sonrasına** — ama kapsamın
+    yazılı olması şart, yoksa test iddiadan fazlasını kanıtlıyor sanılır
+    (tuzak 107).
   - ✅ **3.2.5** Çıcır testi güncellendi: `my-profile` `BILINEN_BORC`
     listesinden çıkarıldı, üst sınır 6 → 5 indirildi. ⚠️ Bu test, listedeki
     her ekranın GERÇEKTEN tarayıcıya bağlı olduğunu da doğruluyor; yani
@@ -1013,7 +1043,7 @@ yanlışlıkla çalıştırılma riski var (6.11).
 | Tarayıcıya bağlı açık ekran | **5** (6'dan indi · Profilim çıktı) |
 | Sahte veri üreticisi | **27 `createDemo*`** · 4'ü açık ekranda, 1'i portalda |
 | Veritabanı yazma kapısı | **45 tetikleyici** (18 → +27 tablo) |
-| Codex bulgusu | **59** · (**13'ü kapandı**: 001, 002, 031, 032, 035, 038, 039, 041, 044, 046, 048, 057, **066**, **067**) · 21.10'da **10 yeni**: 058–067 |
+| Codex bulgusu | **60** · (**14'ü kapandı**: 001, 002, 031, 032, 035, 038, 039, 041, 044, 046, 048, 057, 066, 067, **068**) · 21–22.10'da **11 yeni**: 058–068 |
 | Kapısız yazma yüzeyi | **0 tablo** (ölçüldü, sayılmadı) |
 | Kapı dışı `security definer` | **6 rutin** (0089'da 11 idi) · donduruldu |
 | Prova dosyası | **38 · 27 yeşil / 11 kırmızı** (11'i de bayat · 6.12) |
