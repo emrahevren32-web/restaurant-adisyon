@@ -150,90 +150,25 @@ const normalizeAnnouncement = (item: LegacyAnnouncement): SystemAnnouncement => 
   }
 }
 
-const createDemoAnnouncements = (context: DemoAnnouncementContext): SystemAnnouncement[] => {
-  const firstCompany = context.companies[0]
-  const firstPackage = context.packages[0]
+// ⚠️ 25.10.2026 · `createDemoAnnouncements` SİLİNDİ (MIYOP-059).
+// Üç uydurma duyuru üretiyordu — biri "Planlı bakım bildirimi · Pazar
+// gecesi", biri "Lisans yenileme hatırlatması" — ve bunlar müşterinin
+// gördüğü giriş vitrininde gerçek duyuru gibi görünüyordu. Tarihler her
+// açılışta yeniden üretildiği için her gün "iki gün sonra bakım" diyordu.
+// Emrah'ın kuralı: *"mock veri asla ama asla olmayacak."*
+//
+// Kayıt yoksa artık BOŞ dönüyor. Vitrindeki Duyurular bölümü de
+// kaldırıldı (bkz. `src/pages/Login.tsx`), çünkü duyuru yazma ekranı
+// donmuş ve yazılan duyuru yalnız tarayıcıda kalıyor — yani özellik
+// bugün ÇALIŞMIYOR. Geri gelmesi için sunucu tarafı gerekiyor.
 
-  return [
-    normalizeAnnouncement({
-      id: 'system_announcement_platform_welcome_demo',
-      title: 'EVREN360 bilgilendirme yayını',
-      content: 'Platform yönetim merkezi müşteri, başvuru ve lisans operasyonları için merkezi olarak kullanılabilir.',
-      type: 'Bilgilendirme',
-      targetType: 'Tüm Kullanıcılar',
-      targetLabel: 'Tüm Kullanıcılar',
-      startAt: addDays(-1),
-      endAt: addDays(9),
-      status: 'Yayında',
-      createdBy: 'EVREN360 Admin',
-      createdAt: addDays(-2),
-      updatedAt: addDays(-1)
-    }),
-    normalizeAnnouncement({
-      id: 'system_announcement_maintenance_demo',
-      title: 'Planlı bakım bildirimi',
-      content: 'Pazar gecesi kısa süreli bakım penceresi uygulanacaktır.',
-      type: 'Bakım',
-      targetType: 'Aktif Müşteriler',
-      targetLabel: 'Aktif Müşteriler',
-      startAt: addDays(2),
-      endAt: addDays(3),
-      status: 'Planlandı',
-      createdBy: 'Operasyon',
-      createdAt: addDays(-1),
-      updatedAt: addDays(-1)
-    }),
-    normalizeAnnouncement({
-      id: 'system_announcement_license_demo',
-      title: 'Lisans yenileme hatırlatması',
-      content: 'Deneme hesapları için lisans yenileme ve paket geçiş hatırlatması hazırlanmıştır.',
-      type: 'Lisans',
-      targetType: firstPackage ? 'Belirli Paket' : 'Deneme Hesapları',
-      targetId: firstPackage?.id || '',
-      targetLabel: firstPackage?.label || 'Deneme Hesapları',
-      startAt: addDays(4),
-      endAt: addDays(14),
-      status: 'Planlandı',
-      createdBy: 'Operasyon',
-      createdAt: addDays(-1),
-      updatedAt: addDays(-1)
-    }),
-    normalizeAnnouncement({
-      id: 'system_announcement_security_demo',
-      title: 'Güvenlik önerileri güncellendi',
-      content: 'Platform kullanıcıları için güçlü parola ve kullanıcı yetkilendirme önerileri güncellendi.',
-      type: 'Güvenlik',
-      targetType: firstCompany ? 'Belirli Firma' : 'Tüm Firmalar',
-      targetId: firstCompany?.id || '',
-      targetLabel: firstCompany?.label || 'Tüm Firmalar',
-      startAt: addDays(-10),
-      endAt: addDays(-3),
-      status: 'Süresi Doldu',
-      createdBy: 'Güvenlik',
-      createdAt: addDays(-12),
-      updatedAt: addDays(-3)
-    }),
-    normalizeAnnouncement({
-      id: 'system_announcement_campaign_draft_demo',
-      title: 'Premium geçiş kampanyası',
-      content: 'Kampanya metni yayın öncesi taslak olarak hazırlanıyor.',
-      type: 'Kampanya',
-      targetType: 'Deneme Hesapları',
-      targetLabel: 'Deneme Hesapları',
-      startAt: addDays(7),
-      endAt: addDays(21),
-      status: 'Taslak',
-      createdBy: 'Pazarlama',
-      createdAt: addDays(-1),
-      updatedAt: addDays(-1)
-    })
-  ]
-}
-
-export const loadSystemAnnouncements = (context: DemoAnnouncementContext): SystemAnnouncement[] => {
+export const loadSystemAnnouncements = (): SystemAnnouncement[] => {
+  // ⚠️ Kayıt yoksa BOŞ. Eskiden burada demo üretici çağrılıyordu (MIYOP-059).
   const storedAnnouncements = readAnnouncements()
-  const source = storedAnnouncements === null ? createDemoAnnouncements(context) : storedAnnouncements.map(normalizeAnnouncement)
-  return source.sort((first, second) => second.startAt.localeCompare(first.startAt))
+  if(storedAnnouncements === null) return []
+  return storedAnnouncements
+    .map(normalizeAnnouncement)
+    .sort((first, second) => second.startAt.localeCompare(first.startAt))
 }
 
 export const saveSystemAnnouncements = (announcements: SystemAnnouncement[]) => {

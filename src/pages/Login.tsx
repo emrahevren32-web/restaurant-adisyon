@@ -1,7 +1,5 @@
 import React from 'react'
 import { authenticateCredentials, AuthenticationState } from '../auth/authentication.service'
-import { loadCompanies, loadLicensePackages } from '../storage'
-import { loadSystemAnnouncements } from '../notifications/notification.service'
 import { getSupabase, isSupabaseConfigured } from '../core/supabase'
 import { kesinEpostaMi } from '../auth/giris-adresi'
 
@@ -18,26 +16,45 @@ type WhyItem = {
   description: string
 }
 
+// ⚠️ 25.10.2026 · BU BÖLÜM BAŞTAN YAZILDI — ESKİSİ UYDURMAYDI.
+//
+// Burada dört "haber" kartı vardı: *"EVREN360 SaaS Yönetim Merkezi"*,
+// *"Unified Identity Foundation"*, *"Operasyon ekranları sadeleşti"*,
+// *"Security Gateway hazırlığı"*. Bunlardan **"Security Gateway" diye bir
+// şey yok**; "Unified Identity Foundation" bir ürün değil, bizim iç
+// adlandırmamız; "finans operasyonları tek merkezde toplandı" diyordu ama
+// Finans modülü DONMUŞ. Yani müşterinin gördüğü ilk ekranda, kendi
+// kendimize yazdığımız ve kimsenin yayınlamadığı bir sürüm notu duruyordu.
+// Referans müşteri bölümü (aşağıdaki nota bakın) aynı sebeple kaldırılmıştı;
+// bu kartlar da aynı aileydi.
+//
+// ⚠️ YENİ KURAL: bu listedeki her cümlenin arkasında ÇALIŞAN bir şey olmak
+// zorunda. Dondurulmuş bir modülün adı buraya yazılamaz —
+// `src/pages/giris-vitrini-dogru-soyler.arch.test.ts` bunu ölçüyor.
 const portalUpdates: PortalUpdate[] = [
   {
-    type: 'Yeni Modül',
-    title: 'EVREN360 SaaS Yönetim Merkezi',
-    description: 'Müşteri, tenant, lisans, abonelik ve finans operasyonları tek platform yönetim merkezinde toplandı.'
+    type: 'Gıda Güvenliği',
+    title: 'HACCP kontrolleri hazır kurulu geliyor',
+    description: 'Kritik kontrol noktaları, ölçüm ve düzeltici faaliyet '
+      + 'kaydı her yeni işletmede kurulu başlar; hızlı soğutma dahil.'
   },
   {
-    type: 'Yeni Özellik',
-    title: 'Unified Identity Foundation',
-    description: 'SUPER_ADMIN, COMPANY_ADMIN ve COMPANY_USER ayrımı merkezi giriş mimarisiyle hazırlandı.'
+    type: 'İzlenebilirlik',
+    title: 'Parti bazlı izlenebilirlik',
+    description: 'Hammadde partisinden son ürüne, son üründen sevkiyata: '
+      + 'hangi partinin nereye gittiği kayıtla takip edilir.'
   },
   {
-    type: 'Performans Güncellemesi',
-    title: 'Operasyon ekranları sadeleşti',
-    description: 'İşletme yönetimi, stok, finans ve raporlama akışları daha hızlı taranabilir hale getirildi.'
+    type: 'Etiket',
+    title: 'Alerjen ve besin değeri beyanı',
+    description: 'Etiket beyanı tek işlemde yazılır; beyanı olmayan ürüne '
+      + 'alerjen damgası basılması veritabanı tarafından engellenir.'
   },
   {
-    type: 'Güvenlik Güncellemesi',
-    title: 'Security Gateway hazırlığı',
-    description: 'Tüm uygulamalar için ortak güvenlik karar modeli ve erişim değerlendirme katmanı oluşturuldu.'
+    type: 'Yetki',
+    title: 'Yetki ekranda değil, sunucuda',
+    description: 'Yetkisiz bir kayıt denemesi, ekranı atlayıp doğrudan '
+      + 'gönderilse bile reddedilir. Her değişiklik denetim kaydına düşer.'
   }
 ]
 
@@ -51,15 +68,24 @@ const portalUpdates: PortalUpdate[] = [
 const whyItems: WhyItem[] = [
   {
     title: 'Bulut Tabanlı',
-    description: 'Şube, kullanıcı ve operasyon verileri merkezi platform deneyimiyle yönetilir.'
+    description: 'Verileriniz sunucuda durur; aynı hesapla her cihazdan '
+      + 'aynı kayda ulaşırsınız. Kurulum ya da yerel sunucu gerekmez.'
   },
+  // ⚠️ "Modüler Yapı" kartı KALDIRILDI. *"İşlem Yönetimi, Dijital Katalog,
+  // stok, cari, finans ve personel modülleri ihtiyaca göre aktif edilir"*
+  // diyordu — altı addan DÖRDÜ dondurulmuş modül (İşlem Yönetimi, Dijital
+  // Katalog, Cari, Finans, Personel). Yani müşteriye olmayan modülleri
+  // sayıyorduk. Gerçek modül listesi menüde zaten görünüyor; vitrinde
+  // olmayanı saymaya gerek yok.
+  //
+  // ⚠️ "Çoklu Şube" kartı KALDIRILDI. Emrah'ın kararı (25.10): şube
+  // şimdilik olmayacak, sistem işletmenin genel merkezi gibi davranacak.
+  // Veritabanı şubeyi taşımaya devam ediyor (ileride geri gelecek) ama
+  // MÜŞTERİYE SÖZ VERİLMİYOR. → docs/kararlar/tek-merkez-karari.md
   {
-    title: 'Modüler Yapı',
-    description: 'İşlem Yönetimi, Dijital Katalog, stok, cari, finans ve personel modülleri ihtiyaca göre aktif edilir.'
-  },
-  {
-    title: 'Çoklu Şube',
-    description: 'Şube, kullanıcı ve raporlama altyapısı büyüyen işletmeler için hazırdır.'
+    title: 'Stok Defteri',
+    description: 'Her giriş ve çıkış silinemez bir kayıttır; parti, son '
+      + 'kullanma tarihi ve tedarikçi kaydın içinde durur.'
   },
   {
     // ⚠️ "Yapay Zeka Destekli" yazıyordu. Satış kararı (11.10): yapay zeka
@@ -72,32 +98,29 @@ const whyItems: WhyItem[] = [
       + 've ona dayanak olan kayıtlar vardır.'
   },
   {
+    // ⚠️ "Identity, Security Gateway" yazıyordu. "Security Gateway" diye bir
+    // şey YOK. Ama anlatacak gerçek bir şey VAR ve eskisinden güçlü:
+    // yetki kapıları veritabanında duruyor.
     title: 'Güvenli Altyapı',
-    description: 'Identity, Security Gateway, tenant ve yetkilendirme katmanları merkezi tasarlanır.'
+    description: 'Her işletmenin verisi sunucu düzeyinde kendisine kilitli; '
+      + 'başka bir işletmenin kaydı hiç gelmez. Yetki kontrolü ekranda '
+      + 'değil veritabanında, ve her değişiklik iz bırakır.'
   },
   {
-    title: 'Ölçeklenebilir Mimari',
-    description: 'İşletme çalışma alanı bugün modül tabanlı çalışır; yeni uygulama modülleri eklenebilir.'
+    title: 'Rol Ayrımı',
+    description: 'Depo, satın alma, üretim, kalite, sevkiyat ve muhasebe '
+      + 'için ayrı roller; kim neyi görür ve değiştirir, baştan tanımlı.'
   }
 ]
 
-const formatDate = (value: string) => {
-  if(!value) return '-'
-  const date = new Date(value)
-  if(Number.isNaN(date.getTime())) return '-'
-  return date.toLocaleDateString('tr-TR')
-}
-
-const buildAnnouncementContext = () => ({
-  companies: loadCompanies().map(company => ({
-    id: company.id,
-    label: company.companyName
-  })),
-  packages: loadLicensePackages().map(packageItem => ({
-    id: packageItem.id,
-    label: packageItem.name
-  }))
-})
+// ⚠️ 25.10.2026 · `formatDate` ve `buildAnnouncementContext` SİLİNDİ.
+// Duyurular bölümüyle birlikte gereksiz kaldılar. Yan kazanç şu ve küçük
+// değil: `buildAnnouncementContext` giriş ekranından `loadCompanies()` ve
+// `loadLicensePackages()` çağırıyordu — yani **müşterinin gördüğü ilk
+// ekran, depo boşken demo firma ve demo lisans paketi ÜRETEN** iki
+// fonksiyonu tetikliyordu (HEDEFLER 3.10). Artık giriş ekranı
+// `../storage`a hiç dokunmuyor; tek veri kaynağı Supabase oturumu.
+// Donduran test: `src/pages/giris-vitrini-dogru-soyler.arch.test.ts`
 
 export default function Login({ onLogin }: Props){
   /**
@@ -132,12 +155,6 @@ export default function Login({ onLogin }: Props){
   const [notice, setNotice] = React.useState('')
   const [submitting, setSubmitting] = React.useState(false)
   const loginPanelRef = React.useRef<HTMLElement | null>(null)
-
-  const announcements = React.useMemo(() => {
-    return loadSystemAnnouncements(buildAnnouncementContext())
-      .filter(announcement => announcement.status === 'Yayında' || announcement.status === 'Planlandı')
-      .slice(0, 3)
-  }, [])
 
   const submit = async (event: React.FormEvent) => {
     event.preventDefault()
@@ -279,7 +296,6 @@ export default function Login({ onLogin }: Props){
         </a>
         <nav className="unified-login-nav" aria-label="Portal">
           <a href="#updates">Güncellemeler</a>
-          <a href="#announcements">Duyurular</a>
           <a href="#why-miyop">Neden MIYOP?</a>
         </nav>
         <button className="btn unified-login-header-action" type="button" onClick={openApplication}>İşletme Başvurusu</button>
@@ -427,33 +443,24 @@ export default function Login({ onLogin }: Props){
           </div>
         </section>
 
-        <section className="unified-login-section" id="announcements">
-          <div className="unified-login-section-heading">
-            <span className="unified-login-section-label">Sistem Duyuruları</span>
-            <h2>Platformdan haberler</h2>
-          </div>
-          <div className="unified-login-announcement-list">
-            {announcements.map(announcement => (
-              <article className="unified-login-announcement" key={announcement.id}>
-                <div>
-                  <span>{announcement.type}</span>
-                  <h3>{announcement.title}</h3>
-                  <p>{announcement.content}</p>
-                </div>
-                <time>{formatDate(announcement.startAt)}</time>
-              </article>
-            ))}
-            {announcements.length === 0 && (
-              <article className="unified-login-announcement">
-                <div>
-                  <span>Bilgilendirme</span>
-                  <h3>Aktif duyuru bulunmuyor</h3>
-                  <p>Platform duyuru alanı Notification Foundation ile uyumlu şekilde hazırdır.</p>
-                </div>
-              </article>
-            )}
-          </div>
-        </section>
+        {/*
+          ⚠️ 25.10.2026 · "SİSTEM DUYURULARI" BÖLÜMÜ KALDIRILDI (MIYOP-059).
+          Burada iki duyuru görünüyordu: *"Planlı bakım bildirimi — Pazar
+          gecesi kısa süreli bakım penceresi uygulanacaktır"* ve *"Lisans
+          yenileme hatırlatması"*. İKİSİ DE UYDURMAYDI: kayıt yokken
+          `createDemoAnnouncements()` üretiyordu ve tarihler her açılışta
+          yeniden hesaplanıyordu. Yani müşterinin gördüğü ilk ekranda,
+          bizim vermediğimiz bir bakım taahhüdü duruyordu.
+
+          Bölümü tamamen kaldırmamın sebebi: duyuru yazma ekranı
+          (`system-notifications`) DONMUŞ ve duyurular yalnız tarayıcı
+          hafızasına yazılıyor — yani Emrah bir duyuru yazsa bile hiçbir
+          müşteriye ULAŞMAZDI. Üretici silinse bölüm kalıcı olarak boş
+          kalırdı; boş bir bölüm de "burada bir şey olacak" demektir.
+
+          ⚠️ Geri gelmesi için gereken: duyuruların sunucuda durduğu bir
+          tablo + yayınlama akışı. → docs/kararlar/kaldirilan-moduller.md
+        */}
 
         <section className="unified-login-section" id="why-miyop">
           <div className="unified-login-section-heading">

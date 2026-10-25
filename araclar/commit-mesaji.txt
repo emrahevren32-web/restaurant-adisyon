@@ -1,48 +1,100 @@
-MIYOP-066 tam kapandi + MIYOP-068 kapandi (gec gelen cevap kapisi)
+Tek merkez karari + 059/061 kapandi + giris vitrini dogru soyluyor
 
-Codex hakliydi: 066'yi "kapandi" diye yazmistim, KAPANMAMISTI. Iki dal
-eksikti. Ikisi de kapatildi, ucuncu bir riski de kendim buldum.
+Emrah (25.10): "Sube olayi zaten su an olmasin. Su anki seviye
+musterinin genel merkezi gibi davransin iste." ve "istedigin gibi yap,
+bu konularda tek tek sormana gerek yok."
 
-1 - MIYOP-066'nin KALAN YARISI
-- Kabuga bildirim yalniz `kaydet` icindeydi. Yazma BASARILI olup geri
-  okuma DUSERSE, kullanici "Tekrar dene"ye basip profilini goruyor ama
-  yan menu eski adi gostermeye devam ediyordu.
-- Dogrusu: bildirimi kaydetme akisina degil HER BASARILI OKUMAYA
-  baglamak. Artik `yukle` icinde `kabugaBildir(gelen)` var; `kaydet`
-  ayrica bildirmiyor (iki yer iki kural olurdu).
-- Yani okuma neyi donduruyorsa kabuk onu gosterir, kac deneme surdugu
-  fark etmez.
+1 - TEK MERKEZ KARARI
+- system-branches menu ogesi ve business-multi-branch modulu
+  DONDURULDU. Subeler ve Sube Yetkilendirme ekranlari kapandi.
+- !! Veritabanindan KALDIRILMADI: branch tablosu, branch_id kolonlari,
+  user_branch_access, branch.manage izni ve RLS duruyor. Sube ileride
+  geri gelecek; geri acmak frozen satirlarini silmek.
+- Karar belgesi: docs/kararlar/tek-merkez-karari.md
+- !! Bu bir DUZELTME DEGIL, kapsam degisikligi (tuzak 111). Iki ekranin
+  kodu hala depoda ve hala tarayiciya yaziyor. Cicir testinin icine bu
+  not yazildi ki ileride "duzeltilmis" sanilmasin.
+- Yarim ekran sayisi 5 -> 3 (Firma Profili, Isletme Ayarlari, Karsilama).
 
-2 - MIYOP-068 - P2 - gec gelen cevap baska hesabin ustune yaziyordu
-- handleProfileChange `taze.id` ile oturumdaki kullanicinin kimligini
-  KARSILASTIRMIYORDU. Codex'in gosterdigi sira: A kaydeder -> A'nin geri
-  okumasi gecikir -> A cikar, ayni sekmede B girer -> A'nin cevabi gelir
-  -> B'nin uzerine A'nin adi yazilir ve ra_auth'a kaydedilir.
-- B'nin veritabani kaydi, rolu ve izinleri degismiyordu; ama kabuk ve
-  yerel kopya YANLIS ADI tasiyordu.
-- Iki bagimsiz kapi kondu: App tarafinda taze.id !== onceki.id, ekran
-  tarafinda gelen.id !== currentUser.id.
+2 - MIYOP-059 KAPANDI - portaldaki uydurma duyuru
+- createDemoAnnouncements SILINDI. Kayit yoksa artik BOS donuyor.
+- Vitrindeki Duyurular bolumu TAMAMEN kaldirildi. Bos birakmadim cunku
+  duyuru yazma ekrani platform panelinde "Duyuru tablosu veritabaninda
+  yok" gerekcesiyle kapali ve duyurular yalniz tarayiciya yaziliyor -
+  yani Emrah bir duyuru yazsa hicbir musteriye ULASMAZDI. Kalici bos bir
+  bolum de "burada bir sey olacak" demektir.
+- YAN KAZANC (kucuk degil): duyuru baglami giris ekranindan
+  loadCompanies() ve loadLicensePackages() cagiriyordu - yani musterinin
+  gordugu ILK EKRAN, depo bosken demo firma ve demo lisans paketi
+  URETEN iki fonksiyonu tetikliyordu. Giris ekrani artik ../storage'a
+  HIC dokunmuyor.
 
-3 - KENDI ONARIMIMIN YARATTIGI RISKI BULDUM: SONSUZ OKUMA
-- 1. maddeyle birlikte `yukle` artik `currentUser`a bagli. Eger
-  handleProfileChange her cagrida YENI nesne uretirse currentUser'in
-  kimligi degisir -> yukle yeniden kurulur -> effect tekrar okur ->
-  tekrar haber verir -> sonsuz okuma.
-- Kapi: ad ve telefon aynisa `onceki` NESNESININ KENDISI donuyor.
-  Zincir ilk turda duruyor; ad gercekten degismisse en fazla iki tur.
-- !! Bu, "bir onarim yeni bir kusur dogurur" ailesinin (tuzak 102/104)
-  bir ornegi daha. Bu kez teslimden once yakalandi.
+3 - GIRIS VITRININDEKI UYDURMA VAATLER SILINDI
+- "Security Gateway hazirligi" -> OYLE BIR SEY YOK.
+- "Unified Identity Foundation" -> urun degil, bizim ic adlandirmamiz.
+- "finans operasyonlari tek merkezde toplandi" -> Finans modulu DONMUS.
+- "Modular Yapi: Islem Yonetimi, Dijital Katalog, stok, cari, finans ve
+  personel modulleri ihtiyaca gore aktif edilir" -> alti addan DORDU
+  dondurulmus modul.
+- "Coklu Sube ... buyuyen isletmeler icin hazirdir" -> tek merkez karari.
+- Yerine GERCEKTEN calisan dort sey yazildi: HACCP kurulu geliyor,
+  parti izlenebilirligi, alerjen beyani, sunucu tarafi yetki.
 
-TEST - src/modules/public-yol-ve-kabuk.arch.test.ts genisletildi
-- bildirim `yukle` icinde mi, `kaydet` ayrica bildiriyor mu
-- iki kimlik kapisi duruyor mu
-- esitlikte ayni nesne donuyor mu
-- Dort olumsuz deneme yapildi, dordu de kirmizi verdi:
-  kimlik kapisini kaldir / yukle bildirimini kaldir /
-  kaydete ikinci bildirim ekle / esitlik kapisini kaldir.
-- Sozdizimi denetimi: uc dosya temiz (bun build --no-bundle).
+4 - YENI TEST: src/pages/giris-vitrini-dogru-soyler.arch.test.ts
+- Tek tek cumle kovalamiyor. Dondurulmus modul adlarini KAYITTAN okuyor
+  ve hicbirinin vitrinde gecmemesini olcuyor (20 ad korunuyor).
+  Yeni bir modul dondurulunca adi vitrinde kalmissa test yakalar.
+- Mesru uc istisna gerekceleriyle yazili: Depo (acik modulun de adi),
+  Isletme Calisma Alani (uygulamanin kendisi), Personel (giris talimati).
+- Ayrica: loadSystemAnnouncements geri gelmesin, id="announcements"
+  geri gelmesin, Login.tsx ../storage okumasin, "Security Gateway" /
+  "Unified Identity" gecmesin.
+- Olumsuz deneme yapildi: vitrine "Finans" yazilinca test kirmizi.
 
-!! KAPSAM NOTU: yeni test metin olcuyor (hangi kapinin kaynakta durdugu),
-davranis olcmuyor. Codex bunu dogru yazdi. Gercek senaryo sinamasi
-(A bekletilir, B girer, A'nin cevabi gelir) tarayici testi ister;
-HEDEFLER 3.2.7 olarak acildi, demo sonrasina.
+5 - MIYOP-061 KAPANDI (yuzey)
+- Baska kiracinin onbellek verisini gosteren tek acik ekran Sube
+  Yetkileri'ydi; kapandi. !! Kaynaktaki suzgecsiz loadBranches() /
+  loadBranchPermissions() DURUYOR ama artik hicbir acik ekrana
+  ulasmiyor. Yuzey kapanisi, kaynak kapanisi degil (tuzak 111).
+
+6 - KENDI BELGELERIMDEKI IKI YANLIS DUZELTILDI
+- MIYOP-070 (Codex, hakli): yetenekler belgesinde MIYOP-043'u "tam oldu"
+  yazmistim - oysa biten sey goc 0091 ve o BASKA BIR IS; 043'un son adimi
+  (goc 0092 + Edge Function dagitimi) HALA ACIK. Ayrica Modul
+  Magazasi'ni "acik" saymistim - rota acik kumede DEGIL. Beni yaniltan
+  sey kayittaki eski bir YORUMDU ("rota duruyor, geri almak tek satir");
+  yorum yanlisti, o da duzeltildi.
+- MIYOP-069 (Codex, hakli): parti karekodu belgesinde iki iddia
+  gereginden gucluydu. "Her cikisin belgesi bizde var" -> source_id bos
+  kalabiliyor ve elle cikis formu onu hic gondermiyor. "Sayim farkinin
+  kime ait oldugu belli olur" -> denetim kaydi farki KAYDEDEN kisiyi
+  gosterir, mali fiziksel olarak kimin aldigini GOSTERMEZ. Ikisini
+  karistirmak, farki durustce kaydeden calisani kaybin sorumlusu
+  saymaya kadar gider.
+- Buradan yeni is cikti: HEDEFLER 2.10 (cikisin dayanagi her yolda
+  zorunlu degil).
+
+7 - KALDIRILAN MODULLER DEFTERI ACILDI
+docs/kararlar/kaldirilan-moduller.md - Emrah'in kurali: "sil ama ne ise
+yaradigini bil ve sonradan yapilacagini unutma." Bes kayit: QR Menu,
+Sistem Duyurulari, Modul Magazasi, Coklu Sube, giris vitrinindeki
+uydurma vaatler. Her birinde: ne ise yariyordu, neden kaldirildi, geri
+gelmesi icin ne gerekiyor, sahici durum (dosya silindi mi, duruyor mu).
+
+8 - IKI YENI TUZAK
+- 110 - Kod yorumu bir olcum degildir; benim yazdigim ozet de degil.
+  "Goc uygulandi" ile "is kapandi" ayni sey degil.
+- 111 - Bir ekrani kapatmak, onu besleyen ureticiyi silmez. Bir kusur
+  "kapandi" derken YUZEY mi KAYNAK mi kapandigini yaz.
+
+9 - SKT OLCUMU GENISLEDI (HEDEFLER 2.9.4, Codex)
+warehouse.service.ts:229 FEFO siralamasi gecmis tarihli partileri
+elemeden siraliyor; 572'de yalniz pozitif bakiye suzuluyor. Yani
+bakiyeli suresi gecmis parti, gecerli partiden ONCE secilebiliyor.
+Sunucu kapisi konduktan sonra istemcinin otomatik secimi de gecmis
+partiyi atlamali.
+
+Sozdizimi denetimi: alti dosya temiz (bun build --no-bundle).
+
+Co-Authored-By: Claude Opus 5 <noreply@anthropic.com>
+Claude-Session: https://claude.ai/code/session_019BwYM3mAXZUhp4YGj7tp2y

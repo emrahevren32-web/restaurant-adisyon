@@ -57,11 +57,34 @@ olduğu belli bir farka** dönüştürmektir. Fiziksel engel değildir; kapıyı
 kilitlemez.
 
 Kaçağı asıl önleyen üç şey, karekoddan bağımsız:
-- her çıkışın bir **belgesi** olması (talep / sipariş / iş emri) — bu
-  bizde var, `stock_movement.reason` + `source_type`
+- her çıkışın bir **belgesi** olması (talep / sipariş / iş emri)
 - **sayımın düzenli** yapılması ve farkın gerekçelendirilmesi — bizde var
   (0025, `COUNT_SURPLUS` / `COUNT_SHORTAGE`)
-- farkın **kişiye bağlanması** — denetim kaydı (0027, 0091)
+- farkın **kişiye bağlanması**
+
+⚠️ **25.10.2026 · İKİ İDDİA DÜZELTİLDİ (MIYOP-069 · Codex buldu, haklı).**
+İlk sürümde bu üç maddeyi *"bu bizde var"* diye yazmıştım. Kayıtların
+taşıyabileceğinden güçlü bir cümleydi:
+
+- **Belge bağı zorunlu değil.** `stock_movement.reason` ve `source_type`
+  **zorunlu** (`not null`) — yani hareketin *sebebi* ve *süreci* her zaman
+  kayıtlı. Ama `source_id` **boş olabilir** (kısıt yok) ve elle çıkış
+  formu onu **hiç göndermiyor** (`stock.postgres.ts` `null` yazıyor).
+  Yani "bu çıkış şu siparişe dayanıyor" bağı her yolda yok.
+- **Denetim kaydı, malı alanı değil KAYDEDENİ gösterir.**
+  `audit_log.actor_user_id` ve sayımın kullanıcı alanları işlemi **yapan**
+  kişiyi tutuyor. Kayıtsız malı fiziksel olarak kimin aldığını hiçbir
+  kayıt kendiliğinden söylemez. ⚠️ Bu ayrım önemli: karıştırılırsa, farkı
+  dürüstçe kaydeden çalışan kaybın sorumlusu sanılabilir.
+
+**Doğru cümle şu:** *Hareketin sebebi, süreci ve kaydı yapan kişi
+izlenebilir. Kaynak belge bağı bütün çıkış yollarında zorunlu değildir.
+Sayım, hangi lotta fark bulunduğunu ve farkı kimin kaydettiğini gösterir;
+kayıtsız malı kimin aldığını kendiliğinden belirlemez.*
+
+⚠️ Buradan **yeni bir iş** çıktı: `source_id`'nin zorunlu olduğu çıkış
+yolları belirlenmeli ve elle çıkış formuna bir dayanak alanı eklenmeli.
+→ HEDEFLER 2.10
 
 Karekod bu üçünü **hızlandırır ve doğrular**, yerini almaz.
 Emrah'a söylenecek dürüst cümle: *"kaçağı önlemez, kaçağı görünür kılar
@@ -96,7 +119,9 @@ sunucu tarafında parti kapısı (SKT/FIFO/alerjen).
 **B · TAŞIMA BİRİMİ KAREKODU — gerçek kaçak kontrolü bu, ama pahalı.**
 Her çuval/kasa/palet kendi kimliğini taşır: 20 çuval unun 20 ayrı
 karekodu olur. O zaman *"çıkan 3 çuval"* değil *"çıkan şu üç çuval"*
-bilinir ve eksik çuval **hemen** belli olur.
+bilinir ve eksik çuval **bir okutma ya da sayım yapıldığında** belli olur.
+⚠️ "Hemen belli olur" demiyorum (MIYOP-069): kimse okutmazsa hiçbir şey
+belli olmaz. Belli olmasını sağlayan şey karekod değil, **karşılaştırma**.
 Gerekli yeni iş: bir `handling_unit` (taşıma birimi) tablosu —
 `id, lot_id, qty, uom, durum(depoda/tüketildi/sevk edildi), branch_id`
 + hareket defterine bağlanması + **kısmi tüketim kuralı** (yarım çuval

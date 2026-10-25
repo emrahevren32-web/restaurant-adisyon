@@ -366,9 +366,20 @@ export const BUSINESS_WORKSPACE_MODULE_REGISTRY: BusinessWorkspaceModule[] = def
     //   · 6 modülde kurulumdan sonra menüde hiçbir şey değişmiyor
     //   · kurulunca gelen ekranların çoğu `*.mock` dosyalarından besleniyor
     //
-    // ⚠️ MODÜL SİLİNMEDİ, yalnız menü kaydı boşaltıldı. Rota duruyor
-    // (`NON_NAV_CORE_ROUTES`), yani geri almak tek satır. Mağazanın yerine
+    // ⚠️ MODÜL SİLİNMEDİ, yalnız menü kaydı boşaltıldı. Mağazanın yerine
     // demo sonrası düğmesiz bir "Yol Haritası" ekranı düşünülüyor.
+    //
+    // ⚠️ 2026-10-25 · BU YORUM YANLIŞTI, DÜZELTİLDİ (MIYOP-070).
+    // Eskiden *"Rota duruyor (`NON_NAV_CORE_ROUTES`), yani geri almak tek
+    // satır"* yazıyordu. `marketplace` o listede DEĞİL — liste yalnız
+    // `workspace-welcome`, `my-profile`, `company-profile`,
+    // `integration-center` taşıyor. Yani rota KAPALI: `getCoreWorkspaceRoutes`
+    // rotaları yalnız menü ögelerinden topluyor, `menuItems` boş olduğu için
+    // `marketplace` açık kümeye hiç girmiyor ve `RouteHost` onu reddediyor.
+    // (RouteHost'taki `route === 'marketplace'` dalına hiç ulaşılmıyor.)
+    // Yanlış yorum, benim yetenek özetinde mağazayı "açık" saymama yol açtı —
+    // Codex yakaladı. Geri açmak İKİ satır: menü ögesi ya da
+    // `NON_NAV_CORE_ROUTES` kaydı.
     menuItems: []
   },
   {
@@ -501,6 +512,15 @@ export const BUSINESS_WORKSPACE_MODULE_REGISTRY: BusinessWorkspaceModule[] = def
     // sektör şablonunun ihtiyaç duyduğu yüzey. Kapsam kararı ADR-002'nindir ve
     // ürün sahibi tarafından güncellenmiştir — mekanizma değişmedi, liste değişti.
     // Sebep: Şube yetkisi verilemeden "Yetkili şube yok" uyarısı çözülemiyor.
+    //
+    // ⚠️ 2026-10-25 · MENÜ ÖGESİ DONDURULDU · TEK MERKEZ KARARI.
+    // Emrah: *"Şube olayı zaten şu an olmasın. Şu anki seviye müşterinin
+    // genel merkezi gibi davransın."* Modül kaydı ve `branch` tablosu
+    // DURUYOR — şube ileride geri gelecek ve veritabanı onu taşımaya devam
+    // ediyor. Kapatılan şey sadece KULLANICI YÜZEYİ: ekran yarım
+    // (tarayıcıya yazıyordu) ve tek merkezde kimsenin işine yaramıyor.
+    // Geri açmak: aşağıdaki `foundationScope: 'frozen'` satırını silmek.
+    // → docs/kararlar/tek-merkez-karari.md
     foundationScope: 'core',
     code: WORKSPACE_MODULE_CODES.BRANCHES,
     name: 'Şubeler',
@@ -519,7 +539,7 @@ export const BUSINESS_WORKSPACE_MODULE_REGISTRY: BusinessWorkspaceModule[] = def
     pricing: includedPricing,
     marketplace: coreSystemMarketplace,
     menuItems: [
-      menuItem({ key: 'branches', label: 'Şubeler', route: 'branches', icon: 'SB', adminOnly: true, displayOrder: 50 })
+      menuItem({ key: 'branches', label: 'Şubeler', route: 'branches', icon: 'SB', adminOnly: true, displayOrder: 50, foundationScope: 'frozen' })
     ]
   },
   {
@@ -2679,7 +2699,20 @@ export const BUSINESS_WORKSPACE_MODULE_REGISTRY: BusinessWorkspaceModule[] = def
   },
   {
     id: 'business-multi-branch',
-    foundationScope: 'core',
+    // ⚠️ 2026-10-25 · DONDURULDU · TEK MERKEZ KARARI (Emrah).
+    // *"Şube olayı zaten şu an olmasın. Şu anki seviye müşterinin genel
+    // merkezi gibi davransın."* Bu modülün iki açık ekranı vardı — Şube
+    // Yönetimi ve Şube Yetkilendirme — ve İKİSİ DE tarayıcıya yazıyordu
+    // ("Kaydet" diyordu, veri başka cihazda yoktu). Üstelik Şube
+    // Yetkilendirme ekranı başka kiracının önbellek verisini
+    // gösterebiliyordu (MIYOP-061) ve dört uydurma demo şubeyi listeliyordu
+    // (MIYOP-058).
+    // Tek merkez kararıyla bu iki ekranın YAPILMASI gereği de kalktı:
+    // yarım ekranı onarmak yerine yüzeyi kapatıyoruz.
+    // ⚠️ `branch` tablosu, `branch_id` kolonları ve `branch.manage` izni
+    // DURUYOR. Şube geri geldiğinde buradan açılır.
+    // → docs/kararlar/tek-merkez-karari.md
+    foundationScope: 'frozen',
     code: WORKSPACE_MODULE_CODES.MULTI_BRANCH,
     name: 'Çoklu Şube',
     description: 'Şube raporlama, şubeler arası stok transferi ve merkez ofis yönetimini kapsar.',

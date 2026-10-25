@@ -119,7 +119,11 @@ export default function SystemAnnouncements({ currentUserName }: Props){
     }
   }, [])
 
-  const initialAnnouncements = React.useMemo(() => loadSystemAnnouncements(context.targetContext), [context.targetContext])
+  // ⚠️ `loadSystemAnnouncements` artık bağlam almıyor: kayıt yoksa demo
+  // duyuru üretmiyor, BOŞ dönüyor (MIYOP-059). Bu ekran zaten platform
+  // panelinde `veriKaynagi: 'hazirlaniyor'` ile kapalı — "Duyuru tablosu
+  // veritabanında yok." Açılması için sunucu tarafı gerekiyor.
+  const initialAnnouncements = React.useMemo(() => loadSystemAnnouncements(), [])
   const [announcements, setAnnouncements] = React.useState<SystemAnnouncement[]>(initialAnnouncements)
   const [selectedAnnouncementId, setSelectedAnnouncementId] = React.useState(initialAnnouncements[0]?.id || '')
   const [form, setForm] = React.useState<FormState>(() => defaultForm())

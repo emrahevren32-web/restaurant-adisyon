@@ -29,8 +29,8 @@ neyin neden yapıldığı kaybolmasın.
 
 | # | İş | Neden demo öncesi |
 |---|---|---|
-| **A1** | **B başlığı · yarım ekranlar** (3.1–3.5) · **1/5 bitti** | Kaydet'e basınca veri tarayıcıda kalıyor. Demoda ilk fark edilecek şey bu. **Sıra: ~~Profilim~~ ✅ (20.10) → Firma Profili → Şubeler → Şube Yetkileri → İşletme Ayarları** |
-| **A2** | **MIYOP-008** · şube seçimi sorgulara geçmiyor | B şubesi seçiliyken kayıt A'ya yazılıyor. Demoda şube değiştirilirse görünür. |
+| **A1** | **B başlığı · yarım ekranlar** · **1/3 bitti** | Kaydet'e basınca veri tarayıcıda kalıyor. Demoda ilk fark edilecek şey bu. **Sıra: ~~Profilim~~ ✅ (20.10) → Firma Profili → İşletme Ayarları → Karşılama**. ⚠️ **25.10:** Şubeler ve Şube Yetkileri **kapsam dışına çıktı** (tek merkez kararı), düzeltilmedi — 5'ten 3'e indi. |
+| **A2** | **MIYOP-008** · şube bağlamı kesin değil · **küçüldü** | Tek merkez kararıyla "yanlış şubeye yazma" riski pratikte kalktı. ⚠️ Kapanmadı: kod hâlâ "tercih yoksa ilk şube" diyor — tek şubede doğru sonucu **tesadüfen** veriyor. Başlıktaki şube seçici kaldırılacak, liste sorgularına şube kapsamı yazılacak. |
 | **A3** | **MIYOP-010** · etiket ekranında ürünler karışıyor · **MIYOP-064 ile birlikte 6 ekran** | Etiket, demonun en gösterişli parçası; yanlış ürünün alerjeni basılırsa itibar biter. ⚠️ Codex 21.10'da aynı kusuru Depo, Siparişler, Müşteriler, İş Emirleri ve Sevkiyatlar'da da buldu — tek ekrana yama atmak aileyi kapatmıyor (3.7). |
 | **A4** | **Sahte veri üreticileri** (3.8, 3.10) · **4 tanesi P0** | Önce `kaldirilan-moduller.md`, sonra silme. ⚠️ İş büyüdü: mesele dosya adı `*.mock.ts` olanlar değil, **27 `createDemo*` üreticisi.** Dördü açık ekrana, biri **müşterinin gördüğü portala** ulaşıyor (MIYOP-058/059/060/061). |
 | **A5** | **Şahit numune** (3.9.1) | Gerçek gıda güvenliği gereği; sahte ekran olarak değil, tabloyla. ⚠️ Tasarım kararı yazıldı: `docs/kararlar/sahit-numune.md`. **Beş açık soru cevaplanmadan göç YAZILMAYACAK.** |
@@ -347,6 +347,18 @@ güvenlik sınırı değil. Gerçek sınır veritabanında olmalı.
 - ⬜ **2.6** **MIYOP-014** · HACCP kararı istemciden geliyor
 - ⬜ **2.7** **MIYOP-015** · Sevk iptalinde sipariş durumu geri hesaplanmıyor
 - ⬜ **2.8** **MIYOP-016** · Üretim maliyeti sonraki alışlardan etkileniyor
+- ⬜ **2.10** **ÇIKIŞIN DAYANAĞI HER YOLDA ZORUNLU DEĞİL** (MIYOP-069'dan
+  çıktı, 25.10). `stock_movement.reason` ve `source_type` **zorunlu**;
+  ama `source_id` boş kalabiliyor ve **elle çıkış formu onu hiç
+  göndermiyor** (`stock.postgres.ts` `null` yazıyor). Yani "bu çıkış şu
+  siparişe/iş emrine dayanıyor" bağı her yolda yok.
+  - ⬜ **2.10.1** Hangi `reason` değerlerinde `source_id` **zorunlu**
+    olmalı, hangilerinde meşru şekilde boş kalır (sayım farkı, açılış
+    bakiyesi, elle düzeltme)? Liste yazılacak, sonra kısıt konacak.
+  - ⬜ **2.10.2** Elle çıkış formuna **dayanak alanı** eklenecek
+    (gerekçe + varsa belge). ⚠️ Zorunlu kılmadan önce meşru elle çıkış
+    yollarının kapanmadığından emin olunacak — kapanırsa kullanıcı sahte
+    belge uydurur, kayıt daha da kötüleşir.
 - ⬜ **2.9** **SKT KAPISI YOK · süresi geçmiş parti çıkarılabiliyor**
   (21.10'da parti karekodunu değerlendirirken çıktı.)
   `stock_lot.expires_on` kolonu **var** (0003) ve indeksi bile var — ama
@@ -361,6 +373,14 @@ güvenlik sınırı değil. Gerçek sınır veritabanında olmalı.
     yolu zaten orası.
   - ⬜ **2.9.2** FIFO uyarısı: daha eski açık parti varken yenisi
     seçilirse **uyar** (engelleme değil — meşru istisnalar var).
+  - ⬜ **2.9.4** ⚠️ **İstemci tarafı da ölçüldü (Codex, 25.10):**
+    `warehouse.service.ts:229` FEFO sıralaması geçmiş tarihli partileri
+    **elemeden** sıralıyor; 572'de yalnız pozitif bakiye süzülüyor.
+    Yani bakiyesi olan süresi geçmiş bir parti, geçerli partiden **önce**
+    seçilebiliyor. Elle seçimde de aidiyet ve bakiye kontrolü var, **tarih
+    reddi yok.** Sunucu kapısı konduktan sonra istemcinin otomatik seçimi
+    de geçmiş partiyi **atlamalı** — yoksa kullanıcı reddedilen bir işlemi
+    tekrar tekrar dener ve sebebini anlamaz.
   - ⬜ **2.9.3** Prova: süresi geçmiş partiyle üretim denemesi kırmızı,
     imha denemesi yeşil. Olumsuz deneme zorunlu.
 
@@ -374,12 +394,21 @@ Kullanıcı Kaydet'e basıyor, ekran kaydedildi diyor, veri tarayıcıda kalıyo
 `src/modules/kiraci-ekrani-veri-kaynagi.arch.test.ts` bunları dondurdu —
 liste yalnız KISALABİLİR (çıcır sayısı 6 → 5).
 
-⚠️ **21.10'da öğrenilen (tuzak 108):** kalan dört ekranın hepsi **aynı iki
+⚠️ **21.10'da öğrenilen (tuzak 108):** kalan ekranlar **aynı iki
 fonksiyondan** besleniyor — `loadBranches()` ve `loadCompanies()`. İkisi de
 depo boşken **demo satır üretiyor**. Yani ekranları tek tek onarmak sırayı
 kısaltıyor ama kaynağı temizlemiyor. **Firma Profili'nden önce kaynak
 onarılacak** (3.10.1), yoksa her yeni ekran aynı sahte satırları
 devralıyor.
+
+⚠️ **25.10 · TEK MERKEZ KARARI · liste 5'ten 3'e indi.**
+Emrah: *"Şube olayı zaten şu an olmasın. Şu anki seviye müşterinin genel
+merkezi gibi davransın işte."* **Şubeler (3.5)** ve **Şube Yetkileri
+(3.3)** ekranlarının menü ögeleri donduruldu; artık açık rota değiller.
+⚠️ **Bu bir DÜZELTME DEĞİL, kapsam değişikliği** (tuzak 111): iki ekranın
+kodu hâlâ depoda ve hâlâ tarayıcıya yazıyor. Şube geri geldiğinde borç da
+geri gelir. Karar belgesi: `docs/kararlar/tek-merkez-karari.md`
+Kalan üç: **Firma Profili (3.1), İşletme Ayarları (3.4), Karşılama (3.11)**.
 
 Emrah'ın onayladığı sıra:
 
@@ -524,7 +553,10 @@ Emrah'ın onayladığı sıra:
     listesinden çıkarıldı, üst sınır 6 → 5 indirildi. ⚠️ Bu test, listedeki
     her ekranın GERÇEKTEN tarayıcıya bağlı olduğunu da doğruluyor; yani
     satırı silmek zorunluydu, seçenek değildi.
-- ⬜ **3.3** Şube Yetkileri (`branch-permissions`) — ⚠️ **en kirli ekran**
+- ⏸️ **3.3** Şube Yetkileri (`branch-permissions`) — **KAPSAM DIŞI (25.10)**
+  Menü ögesi donduruldu, ekran kapandı. ✅ **MIYOP-061 kapandı** —
+  başka kiracının önbellek verisini gösteren tek açık ekran buydu.
+  ⚠️ Aşağıdaki maddeler **çözülmedi**, şube geri geldiğinde geçerli.
   - ⬜ **3.3.1** **MIYOP-058 · P0 · dört demo şube ekranda.**
     `BranchPermissions.tsx:65` ham `loadBranches()` çağırıyor;
     `readBranchesFromStorage` (storage.ts:478) depo boşken
@@ -561,7 +593,8 @@ Emrah'ın onayladığı sıra:
   - ⬜ **3.4.3** KDV ve para birimi ayrıca **ortak** `ra_settings` içine
     yazılıyor; bir kiracının değeri diğerinin varsayılanına taşınabiliyor.
     3.4.2 kararıyla birlikte kapanır.
-- ⬜ **3.5** Şubeler (`branches`)
+- ⏸️ **3.5** Şubeler (`branches`) — **KAPSAM DIŞI (25.10)**
+  ⚠️ Aşağıdaki maddeler **çözülmedi**, şube geri geldiğinde geçerli.
   - ⬜ **3.5.1** **MIYOP-062b · kayıtta alan düşmesi.** `normalizeBranch`
     (storage.ts:2496) dönüşünde `branchType`, `postalCode`, `isHeadOffice`
     **yok** — tipte var (`types.ts:1029–1043`). Kaydet bunları siliyor.
@@ -630,6 +663,11 @@ Emrah'ın onayladığı sıra:
   **27 `createDemo*` üreticisi** var. Çoğu "depo boşsa demo üret" dalından
   geçiyor. Hangi ekrana ulaştığı ÖNEMLİ olan:
   - ⬜ **3.10.1** **ÖNCE KAYNAK · `loadBranches()` ve `loadCompanies()`**
+    ⚠️ **25.10 notu (tuzak 111):** şube ekranları kapandı ama
+    **üretici DURUYOR.** `company-bridge` demo şubeleri hâlâ
+    kalıcılaştırıyor ve `loadCompanies()` hâlâ demo firma üretiyor —
+    Firma Profili ekranı onu okuyor. Yüzey kapanışı, kaynak kapanışı
+    değildir. Bu madde **açık.**
     Dört açık ekran bu ikisinden besleniyor. `readBranchesFromStorage`
     (storage.ts:478) demo şube üretiyor; `loadCompanies` (storage.ts:4393)
     demo firma üretiyor. ⚠️ **Firma Profili'nden ÖNCE bu iki fonksiyon
@@ -639,7 +677,7 @@ Emrah'ın onayladığı sıra:
     kayıtlarını **kimliğiyle** temizleyen bir adım gerekiyor.
     Kabul: temiz tarayıcı + tek gerçek şube → listede yalnız o şube;
     boş DB → sıfır şube; açılıştan sonra demo kimlikleri **üretilmeyecek.**
-  - ⬜ **3.10.2** **MIYOP-059 · P0 · PORTALDA UYDURMA DUYURU.**
+  - ✅ **3.10.2** **MIYOP-059 · KAPANDI (25.10).**
     `notification.service.ts:235` kayıt yokken `createDemoAnnouncements()`
     döndürüyor: *"Planlı bakım bildirimi · Pazar gecesi kısa süreli bakım
     penceresi"* (başlangıç = bugün+2) ve *"Lisans yenileme hatırlatması"*.
@@ -647,7 +685,19 @@ Emrah'ın onayladığı sıra:
     tarihle basıyor. Tarihler her açılışta yeniden üretiliyor.
     ⚠️ Bu, **müşterinin gördüğü ilk ekranda**, bizim vermediğimiz bir
     bakım taahhüdü. Emrah'ın kuralı burada en keskin hâliyle geçerli.
-    Üretici silinecek; duyuru yoksa bugünkü "duyuru yok" hâli kalacak.
+    **Yapılan:** `createDemoAnnouncements` **silindi**; vitrindeki
+    Duyurular bölümü **tamamen kaldırıldı**. Bölümü boş bırakmadım çünkü
+    duyuru yazma ekranı (`evren360-system-announcements`) platform
+    panelinde `veriKaynagi: 'hazirlaniyor'` ile kapalı ve duyurular yalnız
+    tarayıcıya yazılıyor — yani Emrah bir duyuru yazsa **hiçbir müşteriye
+    ulaşmazdı.** Kalıcı boş bir bölüm de "burada bir şey olacak" demektir.
+    **Yan kazanç (küçük değil):** duyuru bağlamı giriş ekranından
+    `loadCompanies()` ve `loadLicensePackages()` çağırıyordu — yani
+    müşterinin gördüğü ilk ekran, depo boşken **demo firma ve demo lisans
+    paketi üreten** iki fonksiyonu tetikliyordu. Giriş ekranı artık
+    `../storage`a **hiç dokunmuyor**; testle donduruldu.
+    Geri gelmesi için: `system_announcement` tablosu + yayınlama akışı.
+    → `docs/kararlar/kaldirilan-moduller.md` bölüm 2
   - ⬜ **3.10.3** **Kalan 24 üretici · sınıflandırılacak.** Personel, cari,
     finans, başvuru, lisans ve platform üreticileri donmuş modüllerde
     duruyor gibi görünüyor — **"gibi görünüyor" yetmez.** Her üretici için
@@ -1040,16 +1090,17 @@ yanlışlıkla çalıştırılma riski var (6.11).
 | Test | 78 dosya · 1432 test · 0 hata |
 | Göç | 0000–**0091** · 92 dosya · (giriş ACL'si 0092 olacak) |
 | Açık çekirdek rota | 25 (37'den indi) |
-| Tarayıcıya bağlı açık ekran | **5** (6'dan indi · Profilim çıktı) |
-| Sahte veri üreticisi | **27 `createDemo*`** · 4'ü açık ekranda, 1'i portalda |
+| Tarayıcıya bağlı açık ekran | **3** (6 → 5 Profilim bitti → 3 şube ekranları kapsam dışı) |
+| Sahte veri üreticisi | **26 `createDemo*`** (27'den indi · `createDemoAnnouncements` silindi) |
 | Veritabanı yazma kapısı | **45 tetikleyici** (18 → +27 tablo) |
-| Codex bulgusu | **60** · (**14'ü kapandı**: 001, 002, 031, 032, 035, 038, 039, 041, 044, 046, 048, 057, 066, 067, **068**) · 21–22.10'da **11 yeni**: 058–068 |
+| Codex bulgusu | **62** · (**17'si kapandı**: 001, 002, 031, 032, 035, 038, 039, 041, 044, 046, 048, 057, 066, 067, 068, **059**, **061**) · 21–25.10'da **13 yeni**: 058–070 |
 | Kapısız yazma yüzeyi | **0 tablo** (ölçüldü, sayılmadı) |
 | Kapı dışı `security definer` | **6 rutin** (0089'da 11 idi) · donduruldu |
 | Prova dosyası | **38 · 27 yeşil / 11 kırmızı** (11'i de bayat · 6.12) |
 | Mock dosya | 36 · hiçbiri açık kiracı rotasından erişilemiyor |
-| Tuzak | **109** (21.10: 106, 107, 108, 109 eklendi) |
+| Tuzak | **111** (21–25.10: 106–111 eklendi) |
 | Public yol | **2** · başvuru formu + müşteri portalı (ölçülüp donduruldu) |
+| Giriş vitrini | dondurulmuş **20 modül adının** hiçbiri geçmiyor (ölçüldü, donduruldu) |
 
 ⚠️ "Mock dosya" satırı **yanıltıcıydı:** doğru olan ama yetmeyen bir ölçüm.
 Asıl tehlike adı mock olmayan üreticilerdi; üstteki satır onu gösteriyor.

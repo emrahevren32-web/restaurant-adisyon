@@ -417,6 +417,33 @@ doğrudan render eden erken dönüşler. Kapıyı değil, **yüzeyi** say (tuzak
 geri çağrısını **yazdım** ama prop'un geçirilip geçirilmediğini ölçmedim
 (MIYOP-066). Yazılmış bir çağrı, bağlanmış bir çağrı değildir.
 
+**110 · Kod yorumu bir ölçüm değildir; benim yazdığım özet de değil.**
+25.10'da *"MİYOP neler yapıyor"* özetini yazdım ve içinde iki yanlış vardı
+(MIYOP-070): MIYOP-043'ü **"tam oldu"** saydım — oysa biten şey göç
+0091'di ve o **başka bir iş**; 043'ün son adımı (giriş ACL'si, göç 0092)
+hâlâ açık ve Edge Function dağıtılmadı. Modül Mağazası'nı **"açık"**
+saydım — oysa rota açık kümede değil. İkinci yanlışın sebebi öğreticiydi:
+kayıttaki bir **yorum** *"rota duruyor (NON_NAV_CORE_ROUTES), geri almak
+tek satır"* diyordu. Yorum eskimiş ve yanlıştı; ben koda değil yoruma
+inandım. ⚠️ İki kural: **(1)** bir işin bitip bitmediği, tamamlanan göçün
+numarasından değil **o işin kendi kabul ölçütünden** okunur — "bir göç
+uygulandı" ile "iş kapandı" aynı şey değildir. **(2)** Bir durum iddiası
+yazarken kaynağı **çalıştırılabilir** olmalı: "rota açık mı" sorusunun
+cevabı `getCoreWorkspaceRoutes()`tür, yanındaki yorum değil. Yorum
+yanlışsa yorumu da düzelt, yoksa bir sonraki kişiyi de yanıltır.
+
+**111 · Bir ekranı kapatmak, onu besleyen üreticiyi silmez.**
+Tek merkez kararıyla Şube Yetkileri ekranı kapandı ve MIYOP-061 (başka
+kiracının önbellek verisi) gerçekten kapandı — ama `createDemoBranches`
+hâlâ duruyor ve `company-bridge` onu hâlâ kalıcılaştırıyor. Dört uydurma
+şube üretilmeye devam ediyor; sadece onları GÖSTEREN ekran yok. ⚠️ Kural:
+bir kusuru "kapandı" yazarken kapanan şeyin **yüzey mi kaynak mı**
+olduğunu söyle. Yüzey kapanışı meşru bir ilerlemedir; kaynak kapanışı
+sanılırsa, yüzey bir gün geri açıldığında kusur onunla birlikte geri gelir.
+Aynı ayrım kapsam için de geçerli: çıcır listesinden çıkan iki şube ekranı
+**düzeltilmedi**, kapsam dışına çıktı — testin içine bu not yazıldı ki
+ileride "düzeltilmiş" sanılmasın.
+
 ---
 
 ## 5 · TEST İŞBÖLÜMÜ VE TESLİM KONTROL LİSTESİ
@@ -469,3 +496,9 @@ Son söz onun çıktısındadır.
     erken dönüşler. Sonra yüzeyi bir testle dondur.
 20. Bir geri çağrı (callback) yazdıysan **bağlandığını ölç.** Yazılmış
     çağrı, bağlanmış çağrı değildir (MIYOP-066).
+21. Bir durum özeti yazdıysan her satırın kaynağını **çalıştırılabilir**
+    bir ölçüme bağla (tuzak 110). "Göç uygulandı" ile "iş kapandı" aynı
+    şey değil; eski bir yorum ölçüm sayılmaz.
+22. Bir kusur "kapandı" diyorsan **yüzey mi kaynak mı** kapandığını yaz
+    (tuzak 111). Ekranı kapatmak üreticiyi silmez; kapsam dışına çıkarmak
+    düzeltmek değildir.

@@ -14,8 +14,12 @@
 //
 // 20.10.2026 · Profilim veritabanına bağlandı (`src/users/profil.repository.ts`)
 // ve listeden ÇIKARILDI. Kalan beş: Firma Profili, İşletme Ayarları, Şubeler,
-// Şube Yetkileri, Karşılama. Bunlardan Firma Profili hâlâ kullanıcının GİRDİĞİ
-// veriyi tarayıcıya yazıyor — sıradaki iş o.
+// Şube Yetkileri, Karşılama.
+//
+// 25.10.2026 · Şubeler ve Şube Yetkileri **kapsam dışına çıktı** (tek merkez
+// kararı), düzeltilmedi. Kalan üç: Firma Profili, İşletme Ayarları, Karşılama.
+// Bunlardan Firma Profili hâlâ kullanıcının GİRDİĞİ veriyi tarayıcıya
+// yazıyor — sıradaki iş o.
 //
 // ── BU TEST BİR CIRCIR (ratchet) ─────────────────────────────────────────
 // Listeyi SIFIRLAMIYOR, DONDURUYOR. Kural:
@@ -63,10 +67,20 @@ const DEPO_SERVISLERI = [
 const BILINEN_BORC: Record<string, string> = {
   'company-profile':    'pages/CompanyProfile.tsx',
   'settings':           'pages/Settings.tsx',
-  'branches':           'pages/BranchManagement.tsx',
-  'branch-permissions': 'pages/BranchPermissions.tsx',
   'workspace-welcome':  'pages/WorkspaceWelcome.tsx'
 }
+
+/**
+ * ⚠️ 25.10.2026 · `branches` ve `branch-permissions` listeden çıktı —
+ * ama DÜZELTİLDİKLERİ İÇİN DEĞİL. **Tek merkez kararıyla** (Emrah:
+ * *"şube olayı zaten şu an olmasın"*) ikisinin de menü ögesi donduruldu,
+ * yani artık açık rota değiller. Bu test yalnız AÇIK rotaları ölçtüğü için
+ * burada durmaları testi kırardı ("artık açık bir rota değil").
+ *
+ * ⚠️ Kodları hâlâ depoda ve hâlâ tarayıcıya yazıyorlar. Şube geri
+ * geldiğinde bu iki satır da geri gelir — HEDEFLER 3.3/3.5'te yazılı.
+ * Yani borç KAPANMADI, KAPSAM DIŞINA ÇIKTI. İkisi karıştırılmasın.
+ */
 
 /** Rota barındırıcıdaki `import`ları ad → yol olarak çıkarır. */
 const iceAktarmaHaritasi = (() => {
@@ -160,7 +174,9 @@ describe('açık kiracı rotaları · tarayıcı deposu çıcırı', () => {
   })
 
   it('borç yalnız AZALABİLİR', () => {
-    // Bugünkü sayı 5. Bu sayı büyürse biri listeye ekleme yapmış demektir.
-    expect(Object.keys(BILINEN_BORC).length).toBeLessThanOrEqual(5)
+    // Bugünkü sayı 3. Bu sayı büyürse biri listeye ekleme yapmış demektir.
+    // (5 → 3: şube ekranları düzeltilmedi, kapsam dışına çıktı. Yukarıdaki
+    // nota bakın — bu ayrım önemli.)
+    expect(Object.keys(BILINEN_BORC).length).toBeLessThanOrEqual(3)
   })
 })
