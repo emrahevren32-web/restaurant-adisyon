@@ -33,7 +33,7 @@ neyin neden yapıldığı kaybolmasın.
 | **A2** | **MIYOP-008** · şube bağlamı kesin değil · **küçüldü** | Tek merkez kararıyla "yanlış şubeye yazma" riski pratikte kalktı. ⚠️ Kapanmadı: kod hâlâ "tercih yoksa ilk şube" diyor — tek şubede doğru sonucu **tesadüfen** veriyor. Başlıktaki şube seçici kaldırılacak, liste sorgularına şube kapsamı yazılacak. |
 | **A3** | **MIYOP-010** · etiket ekranında ürünler karışıyor · **MIYOP-064 ile birlikte 6 ekran** | Etiket, demonun en gösterişli parçası; yanlış ürünün alerjeni basılırsa itibar biter. ⚠️ Codex 21.10'da aynı kusuru Depo, Siparişler, Müşteriler, İş Emirleri ve Sevkiyatlar'da da buldu — tek ekrana yama atmak aileyi kapatmıyor (3.7). |
 | **A4** | **Sahte veri üreticileri** (3.8, 3.10) · **4 tanesi P0** | Önce `kaldirilan-moduller.md`, sonra silme. ⚠️ İş büyüdü: mesele dosya adı `*.mock.ts` olanlar değil, **27 `createDemo*` üreticisi.** Dördü açık ekrana, biri **müşterinin gördüğü portala** ulaşıyor (MIYOP-058/059/060/061). |
-| **A5** | **Şahit numune** (3.9.1) · **veritabanı BİTTİ, ekran kaldı** | İsmet cevapladı (25.10): *"üretim her ürettiği parti üründen şahit numune alıyor."* Göç **0093** yazıldı, prova **21/21**. Kalan: ekran + etiketin saklama koşulunu ürün kartından okuması (3.9.3). |
+| **A5** | ~~**Şahit numune**~~ ✅ **BİTTİ (26.10) · AÇIK SORU DA KAPANDI** | Göç **0093** defteri kurdu, **0094** Codex'in bulduğu P0'ı ve iki P1'i kapattı, **0096** saklama koşulunu kalite departmanının da yazabileceği beyan alanı yaptı, **0097** Emrah'ın imha onayı kararını zorladı. Ekran **Kalite → Şahit Numune**. Prova: 21+18+9+13 = **61 sınama yeşil**. ⚠️ Kalan tek madde etiketin saklama koşulunu kartından okuması (3.9.3). |
 | **A6** | MIYOP-043 son adımı (0091) + dağıtım | Güvenlik borcu kapanmış olsun. |
 
 ⚠️ **Bu listede OLMAYANLAR demo öncesi YAPILMAYACAK:** MIYOP-049/050
@@ -422,6 +422,39 @@ güvenlik sınırı değil. Gerçek sınır veritabanında olmalı.
     ⚠️ **Kritik stok eşiği de kullanılabilire bağlandı:** kritik uyarısının
     amacı sipariş verdirmek, süresi geçmiş mal o ihtiyacı karşılamıyor.
     100 kilo süresi geçmiş mal, 5 kiloluk eşiği kapatmamalı.
+  - ✅ **2.9.9** **MIYOP-074'ÜN KALAN ÜÇ AYAĞI KAPANDI (26.10) · göç 0095**
+    25.10'da üç planlama ekranı düzeltilmişti; **üç yer daha** aynı hatayı
+    taşıyordu ve bunu ancak ölçünce gördüm:
+    **(1) KONTROL PANELİ atlanmıştı** ve bu en kötüsüydü, çünkü müşterinin
+    GÖRDÜĞÜ İLK EKRAN. `bakiyeHaritasi` hâlâ `k.miktar` okuyordu: panel
+    *"bu iş emri başlatılabilir"* derken ekrana girip denendiğinde kapı
+    reddediyordu. Kritik stok satırı da kendi kendini yalanlıyordu:
+    *"Kritik stok · Tavuk · 100 kg (en az 5)"*. Artık kullanılabilir
+    yazıyor ve fark varsa **ikisi de** yazıyor (*"0 kg kullanılabilir
+    (100 var, 100 SKT geçmiş)"*) — sayıyı tek başına küçültmek "depodaki
+    mal nereye gitti" sorusunu cevapsız bırakırdı.
+    **(2) SERVİS SÜZMESİ SUNUCUDAN DAHA DARDI.** `warehouse.service.ts`
+    süresi geçmiş miktarı `kart.sktTakipli && kart.lotTakipli` olan
+    kalemlerde arıyordu. Ama göç 0092'nin kapısı `stock_item.tracks_expiry`
+    bayrağına **HİÇ BAKMIYOR**; yalnız `stock_lot.expires_on` soruyor.
+    Yani lot takipli ama "SKT takipsiz" işaretlenmiş bir kalemin partisine
+    tarih yazılmışsa sunucu çıkışı REDDEDERKEN ekran malı "kullanılabilir"
+    sayıyordu. ⚠️ **Bayrak bir beyandır, tarih bir olgudur.** Koşul lot
+    takibine indirildi. Hem davranış testi (`warehouse.service.test.ts`)
+    hem çıcır (`skt-kapisi.arch.test.ts` → "göç `tracks_expiry` bayrağına
+    bakmıyor") eklendi.
+    **(3) ANALİZ EKRANI BAŞKA BİR CEVAP VERİYORDU.**
+    `app.isletme_gostergeleri` (0065) kritik kalemi **fiziksel** bakiyeden
+    ve `<` ile sayıyordu; Depo ekranı **kullanılabilir** bakiyeden ve `<=`
+    ile. İki fark, iki ekranın aynı soruya iki cevabı. Olumsuz kontrol
+    yapıldı: eski fonksiyonla kritik sayısı **0**, yenisiyle **2** —
+    gerçekten 2 kritik kalem varken.
+    Göç **0095** `stock_usable_balance` görünümünü kurdu (fiziksel, süresi
+    geçmiş, kullanılabilir — üçü bir arada) ve göstergeler onu okuyor.
+    ⚠️ Kuralı her sorgunun kendi içinde tekrar yazmak, aynı hatayı üçüncü
+    kez yapmanın en kolay yolu olurdu. ⚠️ `security_invoker = on` şart,
+    yoksa görünüm RLS'i atlar ve iki kiracı birbirinin bakiyesini görür —
+    göçün doğrulaması bunu ölçüyor. Prova 0095: **12/12**.
   - ✅ **2.9.7** **"Yetersiz stok" yalanı önlendi.** SKT süzgeci eklenince
     şu ortaya çıktı: süresi geçmiş partiler elendiği için kalan miktar
     yetmiyor ve kullanıcı *"Yetersiz stok: 45 istendi, defterde 30 var"*
@@ -686,6 +719,93 @@ Emrah'ın onayladığı sıra:
     numune ALAMADIĞINI ayrıca sınıyor.
     İki olumsuz deneme: türetme tetiği düşürülünce prova 4. sınamada,
     yetki kapısı düşürülünce 3. sınamada kırmızı döndü.
+  - ✅ **3.9.2.1** ⚠️ **GÖÇ 0094 · KENDİ YAZDIĞIM GÖÇTE BİR P0 VARDI
+    (Codex, 26.10) · prova 18/18**
+    `app.numune_olayi()` `security definer`dı, yani
+    RLS'i atlıyordu, ve numuneyi **yalnız `sample_id` ile** buluyordu.
+    Olay satırının kendi `tenant_id`si saldırganın kiracısını gösterdiği
+    için RLS de geçiyordu. Sonuç: **A kiracısındaki bir üretim sorumlusu,
+    B kiracısının numunesini IMHA'ya çevirebiliyordu** (MIYOP-075).
+    ⚠️ Prova ile **canlandırıldı**, tahmin değil: onarımdan önce B'nin
+    numunesi gerçekten IMHA oldu.
+    ⚠️ **AYNI KUSUR `numune_turet()`TE DE VARDI ve Codex'in raporunda
+    yoktu.** Parti, şube ve iş emri kimlikleri kiracı doğrulanmadan
+    okunuyordu: A kiracısı B'nin **partisinden** numune alabiliyordu —
+    hem B'nin SKT'sini ve saklama koşulunu okuyarak, hem kendi defterine
+    B'nin partisine referans yazarak. Gösterilen yeri onarıp aynı desenin
+    diğer yerlerine bakmamak, onarımı yarım bırakmak olurdu.
+    Diğer iki kusur: **MIYOP-077** durum okuması kilitsizdi (`for update`
+    eklendi — eşzamanlı ACILDI bir IMHA'nın üstüne binebilirdi) ve
+    **MIYOP-076** `opened_shelf_life_days` **hiç kullanılmıyordu**: 0093
+    kolonu yarattı, hiçbir yerde okumadı. Yazılı kural *"açılmış ise açık
+    kalmaya uygun olduğu gün kadar"* diyordu ama numune açıldıktan sonra
+    da saklama sonu partinin SKT'si kalıyordu — ekranda bir alan vardı,
+    hiçbir şey yapmıyordu. Artık açılışta saklama sonu `least(SKT, açılış
+    günü + açık raf ömrü)` ile **KISALIYOR**; `least` olduğu için asla
+    uzamıyor (Emrah'ın kuralı: *"süre dolunca verilmiş SKT süresi de
+    dolmuş demektir"*).
+    ⚠️ **Ölçüm bir dördüncüsünü buldu:** `sample_code_key` NOT NULL'du ama
+    hiçbir yerde türetilmiyordu — tekillik indeksi o kolonda olduğu için,
+    aynı kodu farklı bir anahtarla gönderen istemci indeksi **atlayabilir**
+    ve "N-1" ile "n-1" iki ayrı numune olurdu. Anahtar artık sunucuda,
+    `app.kimlik_anahtari()` ile ve kural uygulamadaki
+    `core/identifier.ts > normalizeIdentifier()` ile **birebir aynı**
+    (göçün doğrulaması bunu kendi içinde ölçüyor).
+  - ✅ **3.9.7** **İMHA ONAYI KARARI VERİLDİ VE ZORLANDI (26.10) · göç 0097**
+    Emrah: *"Müdür onaylar ama müdür yoksa gıda mühendisi veya kalitecide
+    onaylayabilir."* Bu, 25.10'dan beri açık duran tek soruydu.
+    ⚠️ 0093 üç olayı da (ALINDI, ACILDI, IMHA) aynı kapıya bağlamıştı —
+    yani **üretim sorumlusu numuneyi imha edebiliyordu.** Numune almak ve
+    açmak bir İŞ, imha etmek bir KARAR: şahit numune bir tartışmada
+    işletmenin tek kanıtı ve onu alan kişinin kendi başına yok edebilmesi
+    defteri anlamsız kılar. HACCP'te 0081'de verilen kararın aynısı
+    (ölçüm girmek geniş, ölçüm iptali dar).
+    İmha artık `quality.record.manage` istiyor. Bu izin **ölçüldü**:
+    `isletme_muduru`, `gida_muhendisi`, `kalite_sorumlusu` ve
+    `isletme_sahibi`de var; `uretim_sorumlusu` ve `depo_sorumlusu`da YOK —
+    kararın istediği tam bu. Göçün doğrulaması üç rolü tek tek sayıyor ve
+    üretim sorumlusunun DIŞARIDA kaldığını ayrıca ölçüyor.
+    ⚠️ **"MÜDÜR YOKSA" KOŞULU KODA YAZILMADI.** Sistem müdürün o gün işte
+    olup olmadığını bilemez; bilmediği bir şeyi kural gibi yazmak "mış
+    gibi" yapmak olurdu. Üçü de onaylayabiliyor, sıralama ekranda yazılı.
+    ⚠️ **AYRI BİR "ONAYLAYAN" KOLONU AÇILMADI.** İmha kaydını ancak
+    onaylayabilen biri yazabildiği için `actor_user_id` zaten onaylayandır;
+    ikinci bir kolon doldurulmayan ya da ilkiyle çelişen bir alan olurdu.
+    ⚠️ **ESKİ GEVŞEK TETİK DÜŞÜRÜLDÜ.** İki kapı bir tabloda birlikte
+    dururken istek EN GEVŞEK kapıdan geçer; yeni kapıyı eklemek yetmez.
+    Hem göçün doğrulaması hem prova bunu ayrıca ölçüyor (tuzak 122).
+    Ekran tarafı: İmha düğmesi yalnız onaylayana görünüyor, numune alabilen
+    ama onaylayamayan kişiye **sebebi yazılı** olarak söyleniyor.
+    Prova 0097: **13/13** — içinde "reddedilen imha durumu DEĞİŞTİRMEDİ"
+    ve "üretim numune almaya/açmaya DEVAM EDİYOR" sınamaları.
+  - ✅ **3.9.8** ⚠️ **0090'IN DONDURDUĞU YÜZEY 0093'TE SESSİZCE BÜYÜMÜŞ
+    (26.10) · göç 0098**
+    0097'yi yazdıktan sonra kapı yüzeyini ölçen eski göçleri (0085, 0089,
+    0090, 0091) **güncel** veritabanında yeniden çalıştırdım. 0090 kırmızı
+    verdi: *"gevsek kapinin ardinda LISTEDE OLMAYAN rutin(ler):
+    app.numune_olayi."*
+    0090 şu soruyu donduruyor: gevşek kapıya (`izin_gerek_coklu`) bağlı bir
+    tabloya yazan kaç `security definer` rutin var? `security definer` bir
+    rutin RLS'i ve tablo kapılarını atlar, o yüzden listesi gerekçeyle
+    tutulur. 0093 `witness_sample`ı gevşek kapıya bağladı ve
+    `app.numune_olayi()` o tabloya UPDATE yazıyor — yani yüzey 6'dan 7'ye
+    çıktı. ⚠️ **Ama 0090 zincirde 0093'ten ÖNCE çalıştığı için bunu hiç
+    görmedi.** Dondurduğum yüzey, dondurduktan sonra büyüdü (tuzak 124).
+    ⚠️ Bu, Codex'in bulduğu MIYOP-075'in yaşadığı yerin ta kendisi. 0094
+    rutini onardı; 0098 onu **adıyla listeye alıyor** ki bir dahaki
+    denetimde gözden kaçmasın.
+    ⚠️ **GEREKÇE CÜMLE OLARAK BIRAKILMADI.** "Bu rutin korumalı çünkü
+    yalnız kapıdan geçmiş bir INSERT'in sonucu olarak çalışır" iddiası üç
+    şart içeriyor; 0098 üçünü de ÖLÇÜYOR: kapı bağlı mı, rutin doğrudan
+    çağrılabiliyor mu, kiracıyı doğrulayıp satırı kilitliyor mu. Biri
+    yanlışsa göç patlıyor (tuzak 76).
+    Olumsuz deneme: `witness_sample`a yazan sahte bir `security definer`
+    fonksiyon eklendi, 0098 onu adıyla yakaladı.
+    ⚠️ **0090 ARTIK TEK BAŞINA YENİDEN ÇALIŞTIRILAMAZ** — listesi eski.
+    Sıfırdan zincir sorunsuz (0090, 0093'ten önce koşuyor); yüzey ölçümü
+    gerektiğinde **0098** çalıştırılır. 0090 dosyasına DOKUNULMADI: uygulanmış
+    bir göçü sonradan düzenlemek, canlıda koşan metinle depodaki metni
+    ayırmak olurdu.
   - ⬜ **3.9.3** ⚠️ **ETİKET EKRANI SAKLAMA KOŞULUNU ÜRÜN KARTINDAN
     OKUMALI.** Bu göçün ortaya çıkardığı eksik: saklama koşulu hiçbir yerde
     **saklanmıyordu** — etiket ekranında her baskıda **elle yazılan**
@@ -700,8 +820,56 @@ Emrah'ın onayladığı sıra:
     **doğru yakaladı.** `witness_sample` ve `witness_sample_event` yedeğe
     eklendi — numune partiden SONRA, olay defteri numuneden SONRA (geri
     yüklemede ebeveyn önce gelmeli).
-  - ⬜ **3.9.4** **Şahit numune EKRANI** · numune alma, listeleme (süresi
-    yaklaşanlar), açılış kaydı, imha kaydı. Veritabanı hazır.
+  - ✅ **3.9.4** **ŞAHİT NUMUNE EKRANI AÇILDI (26.10).**
+    Emrah 26.10'da haklı olarak yazdı: *"miyop.emrahevren.com'dan baktım,
+    Şahit numune ekranı yok."* Defter 0093'te kurulmuştu ama ekran yoktu —
+    **kullanıcı için YOK demekti.**
+    `src/pages/SahitNumune.tsx` + `src/quality/witness-sample.repository.ts`
+    + `witness-sample.service.ts`. Üç kapı da yazıldı: rota tipi
+    (`sahit-numune`), rota barındırıcı, menü ögesi (**Kalite → Şahit
+    Numune**, 3. sırada).
+    Ekranın dört işi: **numune al** (üretilmiş partiden), **izle** (ne
+    saklıyoruz, hangisinin süresi doldu), **aç** (müşteri önünde; gerekçe
+    VE sonuç zorunlu), **imha** (gerekçe zorunlu).
+    ⚠️ **Ekran hiçbir şey hesaplamıyor.** Saklama koşulu, saklama sonu,
+    açık raf ömrü ve imza sunucudan geliyor. Ekranda hesaplanan tek şey
+    "bugün o günü geçti mi" GÖSTERİMİ. Süreyi ekranda hesaplamak en kolay
+    yol olurdu ve en tehlikelisi: bir gün sunucudan ayrışır, ekran
+    *"3 gün kaldı"* derken sunucu numuneyi süresi dolmuş sayar.
+    ⚠️ **Görme izni ÖLÇÜLDÜ, tahmin edilmedi:** `role_permission`
+    tablosunda `quality.read` kalite sorumlusu, gıda mühendisi, üretim
+    sorumlusu, **depo sorumlusu**, müdür ve sahipte var — altısı da bu
+    akışın içinde (İsmet: *"gıda teknikeri ve DEPOCU kontrolünde"*).
+    Yazma kapısı ayrı ve daha dar: `quality.record.manage` **veya**
+    `production.write`. Yani depocu defteri görür, kayıt açamaz.
+    ⚠️ **Eski donmuş "Şahit Numune" ögesi yerinde duruyor ve menüye
+    ÇIKMIYOR.** O öge `pages/WitnessSamples.tsx`e bakıyor, tamamı
+    `witness-samples/witness-sample.mock.ts`ten besleniyor. Menüde iki
+    "Şahit Numune" birden durmaz.
+    Yeni çıcır: `src/quality/numune-kapisi.arch.test.ts` — göçteki
+    `izin_gerek_coklu(...)` listesini AYRIŞTIRIP ekrandaki
+    `NUMUNE_IZINLERI` ile karşılaştırıyor; ikisi ayrışırsa kırılıyor.
+  - ✅ **3.9.6** **ÜRÜN KARTINA SAKLAMA BEYANI YAZILABİLİYOR (26.10) ·
+    göç 0096 + Depo ekranı**
+    ⚠️ Bu olmadan ekran **kullanılamazdı** ve fark etmemiştim: saklama
+    koşulu kartta duruyordu ama kartı güncelleyen **hiçbir yol yoktu**
+    (`StokKatalogu` yalnız `kalemEkle` taşıyordu, "Stok Kartları" ekranı
+    donmuş). Yani var olan ürünlerin koşulu hiçbir zaman yazılamaz, o
+    ürünlerden numune hiçbir zaman alınamazdı.
+    Yapılan: `kalemBeyaniniGuncelle` (yalnız iki beyan alanı; kod ve temel
+    birim sonradan değişemez), Depo ekranında **"Saklama Beyanı"** düğmesi,
+    yeni kalem formunda iki alan, ve seçili kalemde **her zaman görünen**
+    bir satır: *"Saklama koşulu: belirlenmedi — müşteriye bildirilen koşul
+    yazılı olmadan bu üründen şahit numune alınamaz."*
+    ⚠️ **GÖÇ 0096 · SAKLAMA KOŞULU BİR BEYANDIR.** Kartın kapısı
+    (`app.stok_karti_izni`) bu iki alanı sıradan kart alanı sayıyor ve
+    `stock.write` istiyordu. `stock.write` **kalite sorumlusunda ve gıda
+    mühendisinde YOK.** Yani numunenin kuralını kalite uyguluyor, o
+    kuralın girdisini kalite yazamıyordu. İki alan artık `net_qty` ve
+    alerjen damgası gibi **beyan** sayılıyor: `quality.declaration` de
+    yetiyor. ⚠️ `stock.write` KALDIRILMADI — depocu ve üretim de yazmaya
+    devam ediyor. Prova 0096: **9/9**, içinde "kalite kartın ADINI
+    değiştiremiyor" ve "reddedilen işlem satırı DEĞİŞTİRMEDİ" sınamaları.
   - 🔄 **3.9.1** **Şahit numune** · Emrah anlattı (20.10), tasarım kararı
     `docs/kararlar/sahit-numune.md`'ye yazıldı. Çıkan üç kural:
     **(1)** Saklama süresi sabit DEĞİL — kapalı üründe **SKT**, açılmışta
@@ -1276,24 +1444,25 @@ yanlışlıkla çalıştırılma riski var (6.11).
 
 ---
 
-## Sayılar (21.10.2026)
+## Sayılar (26.10.2026)
 
 | | |
 |---|---|
-| Test | 78 dosya · 1432 test · 0 hata |
-| Göç | 0000–**0093** · 94 dosya · hepsi canlıda · (giriş ACL'si **0094** olacak) |
+| Test | **87 dosya · 1541 test** (Emrah'ın 26.10 koşusu) · ⚠️ o koşuda **8 kırmızı** vardı ve ÜÇÜ DE DOĞRU YAKALAMIŞTI: şahit numune ekranı menüyü büyüttü, iki çıcır eski sayıyı tutuyordu. Sayılar güncellendi, gerekçesi testin içinde yazılı. |
+| Göç | 0000–**0098** · 99 dosya · 0094/0095/0096/0097/0098 **26.10'da yazıldı, prova yeşil** · giriş ACL'si artık **0099** olacak |
 | Açık çekirdek rota | 25 (37'den indi) |
 | Tarayıcıya bağlı açık ekran | **3** (6 → 5 Profilim bitti → 3 şube ekranları kapsam dışı) |
 | Sahte veri üreticisi | **23 `createDemo*`** (27 → 23 · duyuru, şube, firma ve `createDemoData` silindi) · çıcır testiyle donduruldu |
 | Veritabanı yazma kapısı | **45 tetikleyici** (18 → +27 tablo) |
-| Codex bulgusu | **64** · (**21'i kapandı**: 001, 002, 031, 032, 035, 038, 039, 041, 044, 046, 048, 057, 059, 061, 066, 067, 068, 070, **058**, **069**, **071**) · 21–25.10'da **15 yeni**: 058–072 |
+| Codex bulgusu | **67** · (**25'i kapandı**: önceki 21 + **074**, **075**, **076**, **077**) · 26.10'da 075/076/077 geldi ve **aynı gün kapandı**; ölçüm 075'in İKİNCİ bir yerini daha buldu (`numune_turet`) |
 | Kapısız yazma yüzeyi | **0 tablo** (ölçüldü, sayılmadı) |
-| Kapı dışı `security definer` | **6 rutin** (0089'da 11 idi) · donduruldu |
-| Prova dosyası | **38 · 27 yeşil / 11 kırmızı** (11'i de bayat · 6.12) |
+| Gevşek kapı ardındaki `security definer` | **7 rutin** (0090'da 6 idi) · 0098'de yeniden donduruldu · ⚠️ 0090 tek başına yeniden çalıştırılamaz |
+| Prova dosyası | **42 · 31 yeşil / 11 kırmızı** (11'i de bayat · 6.12) · 26.10: prova-0094 (18), prova-0095 (12), prova-0096 (9), prova-0097 (13) eklendi |
+| Şahit numune | defter **0093** · kiracı sınırı + kilit + açık raf ömrü **0094** · ekran **26.10** · saklama beyanı izni **0096** · imha onayı **0097** · toplam **61 prova sınaması** · **açık soru kalmadı** |
 | Mock dosya | 36 · hiçbiri açık kiracı rotasından erişilemiyor |
 | Public yol | **2** · başvuru formu + müşteri portalı (ölçülüp donduruldu) |
 | Giriş vitrini | dondurulmuş **20 modül adının** hiçbiri geçmiyor (ölçüldü, donduruldu) |
-| Tuzak | **113** (25.10: 112, 113 eklendi) |
+| Tuzak | **125** (26.10: 116–125 eklendi) |
 
 ⚠️ "Mock dosya" satırı **yanıltıcıydı:** doğru olan ama yetmeyen bir ölçüm.
 Asıl tehlike adı mock olmayan üreticilerdi; üstteki satır onu gösteriyor.

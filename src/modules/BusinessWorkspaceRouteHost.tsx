@@ -38,6 +38,7 @@ import WorkOrders from '../pages/WorkOrders'
 import Traceability from '../pages/Traceability'
 import SevkiyatEkrani from '../pages/Sevkiyatlar'
 import HaccpEkrani from '../pages/Haccp'
+import SahitNumuneEkrani from '../pages/SahitNumune'
 import SayimEkrani from '../pages/Sayimlar'
 import ZayiImhaEkrani from '../pages/ZayiImha'
 import IslemGecmisiEkrani from '../pages/IslemGecmisi'
@@ -373,6 +374,11 @@ export default function BusinessWorkspaceRouteHost({
   // Aşama 3.5 · Kalite departmanının GERÇEK ekranı. Eski 'haccp-management'
   // (mock veri üstünde çalışan) dondurulmuş olarak yerinde duruyor.
   if(route === 'haccp-kayitlari') return <HaccpEkrani currentUser={currentUser} />
+  // A3.9 · Şahit numune defteri (0093 kurdu, 0094 kiracı sınırını kapattı).
+  // ⚠️ Eski 'witness-samples' rotası DURUYOR ve `pages/WitnessSamples.tsx`e
+  // bakıyor — tamamı `witness-samples/witness-sample.mock.ts`ten besleniyor.
+  // Menü ögesi donmuş durumda; bu ekran onun yerine DEĞİL, yanına kuruldu.
+  if(route === 'sahit-numune') return <SahitNumuneEkrani currentUser={currentUser} />
   if(route === 'sayimlar') return <SayimEkrani currentUser={currentUser} />
   if(route === 'zayi-imha') return <ZayiImhaEkrani currentUser={currentUser} />
   if(route === 'islem-gecmisi') return <IslemGecmisiEkrani currentUser={currentUser} />

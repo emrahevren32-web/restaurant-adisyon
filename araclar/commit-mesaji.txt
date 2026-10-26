@@ -1,29 +1,114 @@
-SKT kapisi EKRANDA gorunur oldu: Depo'da kullanilabilir/suresi gecmis
+Sahit Numune tam bitti: ekran + goc 0094/0095/0096/0097
 
-Emrah canliya bakip hakli bir sey sordu: "SKT kapisi bitti - nerede?
-sayfa olarak mi var? goremedim."
+KIRMIZI 8 TEST ONARILDI - UCU DE DOGRU YAKALAMISTI
+Emrah'in 26.10 kosusu 8 kirmizi verdi ve hicbiri hata degildi:
+- rol-ekran-matrisi.test.ts (7 rol): Sahit Numune ekrani menuyu buyuttu.
+  Sayilari TAHMIN ETMEDIM, kirminin kendisi kanitladi: ogenin izni
+  quality.read, dolayisiyla yalniz o izni TASIYAN roller +1 almali. Olcum
+  tam bunu gosterdi - yedi rol kirmizi (quality.read var), uc rol yesil
+  (satin alma, muhasebe, personel: quality.read yok). Yedi kirmizi + uc
+  yesil, kapinin dogru izne baglandiginin kaniti.
+  Ayrica KIMLIK sinamasi eklendi: sayinin dogru kalip yanlis ekranin
+  eklenmesi mumkun oldugu icin hangi rollerin GORDUGU ve hangilerinin
+  GORMEDIGI ayrica olculuyor (olumsuz kontrolle).
+- module-route-health.test.ts: Kalite grubu iki degil UC canli ekranla
+  uretiliyor. Liste kapali tutuldu (toEqual), cunku donmus 13 ekranin
+  sessizce canlanmasi da bu testi kirmali.
 
-CEVAP: SKT kapisi bir SAYFA DEGIL, var olan ekranlarin icindeki bir
-kural. Ama bu bir mazeret degil: gorunmeyen bir kural, kullanici icin
-bitmemis bir kuraldir. Iki sayiyi hesapliyordum (kullanilabilir ve
-suresi gecmis) ama HICBIR EKRAN GOSTERMIYORDU.
+GOC 0097 - SAHIT NUMUNE IMHASI BIR ONAY ISIDIR
+Emrah'in karari (26.10): "Mudur onaylar ama mudur yoksa gida muhendisi
+veya kalitecide onaylayabilir." 25.10'dan beri acik duran tek soruydu.
+0093 uc olayi da (ALINDI, ACILDI, IMHA) ayni kapiya baglamisti - yani
+URETIM SORUMLUSU NUMUNEYI IMHA EDEBILIYORDU. Numune almak ve acmak bir
+IS, imha etmek bir KARAR: sahit numune bir tartismada isletmenin tek
+kaniti ve onu alan kisinin kendi basina yok edebilmesi defteri anlamsiz
+kilar. HACCP'te 0081'de verilen kararin aynisi (olcum girmek genis,
+olcum iptali dar).
+Imha artik quality.record.manage istiyor. Izin OLCULDU: isletme muduru,
+gida muhendisi, kalite sorumlusu ve isletme sahibinde var; uretim
+sorumlusu ve depo sorumlusunda YOK. Gocun dogrulamasi uc rolu tek tek
+sayiyor ve uretim sorumlusunun DISARIDA kaldigini ayrica olcuyor.
+"Mudur yoksa" kosulu KODA YAZILMADI: sistem mudurun o gun iste olup
+olmadigini bilemez, bilmedigi bir seyi kural gibi yazmak "mis gibi"
+yapmak olurdu. Ucu de onaylayabiliyor, siralama ekranda yazili.
+Ayri bir "onaylayan" kolonu ACILMADI: imha kaydini ancak onaylayabilen
+biri yazabildigi icin actor_user_id zaten onaylayandir.
+ESKI GEVSEK TETIK DUSURULDU (tuzak 122): iki kapi bir tabloda birlikte
+dururken istek EN GEVSEGINDEN gecer; yeni kapiyi eklemek yetmez. Gocun
+dogrulamasi, prova ve cicir testi bunu uc ayri yerde olcuyor.
+Prova 0097: 13/13 - icinde "reddedilen imha durumu DEGISTIRMEDI" ve
+"uretim numune almaya/acmaya DEVAM EDIYOR" sinamalari.
 
-DEPO EKRANINA "KULLANILABILIR" SUTUNU EKLENDI
-- Goc 0092'den sonra "depoda duran mal" ile "kullanilabilir mal" ayni
-  sey degil. Tek sayi gostermek, kullaniciya "20 kilo var" deyip
-  uretime baslatmayinca sebebini soylememek olurdu.
-- Sutun YALNIZ FARK VARKEN doluyor: her satira ayni sayiyi iki kez
-  yazmak gurultu olurdu. Fark yoksa tire.
-- Fark varken SEBEBI de yaziyor: "10 - 10 SKT gecmis" ve uzerine
-  gelince "suresi gecmis: uretime giremez, sevk edilemez. Bu mal icin
-  imha kaydi acilmali."
-- !! Yeni CSS sinifi EKLENMEDI, var olanlar kullanildi. 1,4 MB'lik stil
-  dosyasina dokunmak bu turda olcemeyecegim bir riskti.
+PROVA 0093 DOGRU SEBEPLE ONARILDI (tuzak 123)
+0097'den sonra prova-0093 bes sinamada kirmizi dondu: imha adimlari
+uretim sorumlusunun oturumunda yaziliyordu. Kapiyi gevsetmek kurali yok
+etmek olurdu; butun provayi kalite rolune cevirmek ise daha sinsi -
+sinama 17 "imha edilmis defter kapandi" kuralini olcuyor ve bekledigi
+hata MI409. Rolu kalitede biraksaydim MI403 ile de yesil kalabilirdi,
+yani YANLIS SEBEPLE YESIL. Onarim adim adim: imha adimi onaylayabilen
+role gecti, sonraki adim uretime geri alindi, gerekcesi dosyaya yazildi.
 
-!! Bu commit'ten sonra DAGITIM yapilacak. Canlidaki site eski surumu
-calistiriyor: giris vitrini duzeltmeleri, SKT istemci tarafi, demo veri
-temizligi, Profilim - hicbiri canlida yok. Bu yuzden Emrah hakliydi,
-"goremedim" dedigi seylerin cogu gercekten orada degildi.
+EKRAN
+Imha dugmesi yalniz onaylayana gorunuyor. Numune alabilen ama
+onaylayamayan kisiye (uretim sorumlusu) SEBEBI YAZILI olarak soyleniyor -
+dugmeyi sessizce gizlemek, kullaniciyi "ekran bozuk" demeye gonderirdi.
+
+CICIR GUNCELLENDI
+numune-kapisi.arch.test.ts artik 0097'yi de olcuyor: imha dalinda
+production.write OLMADIGINI, ortak is blogunda IKI IZNIN DE oldugunu,
+eski tetigin dusuruldugunu ve numune ALMA kapisinin degismedigini.
+Imha dalinin TAMAMI aliniyor, ilk "end if"e kadar degil (tuzak 80:
+bulamadigi icin sessiz kalan kontrol).
+
+DOKUMAN
+HEDEFLER 3.9.7 yazildi, A5 "acik soru da kapandi", Sayilar guncellendi.
+Tuzak 122 (iki kapi varsa en gevsegi kazanir), 123 (provayi dogru sebeple
+onar) ve 124 (zincirin bir noktasinda kosan olcum, sonra ekleneni olcmez)
+eklendi; kontrol listesi 34-36.
+HEDEFLER 3.9.8 yazildi.
+sahit-numune.md: dorduncu acik soru KAPANDI, acik soru kalmadi.
+
+KENDI TESTIMI YANLIS BICIMDE YAZDIM - ONARILDI
+Ilk denemede "Sahit Numune ekrani dogru rollerde gorunuyor" sinamalari
+ROTAYI ('sahit-numune') bekledi; menuEkranlari() ETIKET donduruyor
+(out.push(x.label)). Yedi sinama kirmizi verdi ama EKRAN MENUDE VARDI -
+sayi sinamalari zaten +1 ile geciyordu. Yani test, olctugunu sandigi seyi
+olcmuyordu (tuzak 72 ailesi).
+Onarim: beklenen etiket KAYITTAN okunuyor, elle yazilmiyor - etiket bir
+gun degisirse test yanlis sebeple kirilmasin diye. Ustune bir saglama
+sinamasi eklendi: "menu listesi ETIKET tasiyor, rota degil" (olumsuz
+kontrolle). Olmasaydi menuEkranlari() bir gun rotaya donse yedi sinama
+birden "ekran menude yok" diye kirilir ve ben yine ekrani aramaya giderdim.
+
+GOC 0098 - 0090'IN DONDURDUGU YUZEY 0093'TE SESSIZCE BUYUMUS
+0097'yi yazdiktan sonra kapi yuzeyini olcen eski goclerini (0085, 0089,
+0090, 0091) GUNCEL veritabaninda yeniden calistirdim. 0090 kirmizi verdi:
+"gevsek kapinin ardinda LISTEDE OLMAYAN rutin(ler): app.numune_olayi".
+0090 sunu donduruyor: gevsek kapiya (izin_gerek_coklu) bagli bir tabloya
+yazan kac security definer rutin var? Boyle bir rutin RLS'i ve tablo
+kapilarini atlar, o yuzden listesi gerekceyle tutulur. 0093 witness_sample'i
+o kapiya bagladi ve app.numune_olayi() o tabloya UPDATE yaziyor - yuzey
+6'dan 7'ye cikti. AMA 0090 zincirde 0093'ten ONCE kostugu icin bunu hic
+gormedi: dondurdugum yuzey, dondurduktan sonra buyudu (tuzak 124).
+Buyudugu yer tam olarak Codex'in MIYOP-075'i (capraz kiraci yazimi)
+buldugu rutindi.
+0098 olcumu 0090'in AYNISIYLA tekrarliyor (farkli yazmak iki ayri soru
+soran iki olcum olurdu) ve listeyi app.numune_olayi ile genisletiyor.
+GEREKCE CUMLE OLARAK BIRAKILMADI: "bu rutin korumali cunku yalniz kapidan
+gecmis bir INSERT'in sonucu olarak calisir" iddiasi uc sart iceriyor ve
+0098 ucunu de OLCUYOR - kapi bagli mi, rutin dogrudan cagrilabiliyor mu,
+kiraciyi dogrulayip satiri kilitliyor mu. Biri yanlissa goc patliyor.
+Olumsuz deneme: witness_sample'a yazan sahte bir security definer
+fonksiyon eklendi, 0098 onu adiyla yakaladi.
+0090 DOSYASINA DOKUNULMADI (uygulanmis bir gocu sonradan duzenlemek,
+canlida kosan metinle depodaki metni ayirmak olurdu). Sonucu: 0090 artik
+TEK BASINA yeniden calistirilamaz, yuzey olcumu icin 0098 kullanilir.
+Sifirdan zincir sorunsuz - 0090, 0093'ten once kosuyor.
+
+Sahit numune provalari: 0093 21/21 + 0094 18/18 + 0095 12/12 +
+0096 9/9 + 0097 13/13 = 73 sinama. Goc zinciri sifirdan kuruldu:
+99 goc uygulandi; 0097 ve 0098 uc kez ust uste calistirildi; birlesik
+araclar/goc-bekleyen.sql iki kez hatasiz kostu.
 
 Co-Authored-By: Claude Opus 5 <noreply@anthropic.com>
 Claude-Session: https://claude.ai/code/session_019BwYM3mAXZUhp4YGj7tp2y

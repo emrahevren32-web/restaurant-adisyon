@@ -21,6 +21,10 @@ export type BusinessWorkspaceRoute =
   | 'izlenebilirlik'
   | 'sevkiyatlar'
   | 'haccp-kayitlari'
+  // A3.9 · Şahit numune (0093/0094). Donmuş 'witness-samples' rotası eski,
+  // uydurma veriyle çalışan ekranı gösteriyor — ADR-003 dikey dilim: yenisi
+  // YANINA kuruldu, eskisi yerinde kaldı ve menüye çıkmıyor.
+  | 'sahit-numune'
   | 'sayimlar'
   | 'zayi-imha'
   | 'islem-gecmisi'
@@ -213,6 +217,7 @@ export type BusinessWorkspaceNavKey =
   | 'izlenebilirlik'
   | 'sevkiyatlar'
   | 'haccp-kayitlari'
+  | 'sahit-numune'
   | 'sayimlar'
   | 'zayi-imha'
   | 'islem-gecmisi'

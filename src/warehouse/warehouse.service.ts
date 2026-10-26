@@ -27,7 +27,9 @@ import type {
   StockRepository,
 } from '../core/stock/stock.repository'
 import { convertUom } from '../core/stock/uom'
-import type { KatalogKalemi, KatalogLotu, StokKatalogu, YeniKalem } from './warehouse.catalog'
+import type {
+  KartBeyani, KatalogKalemi, KatalogLotu, StokKatalogu, YeniKalem,
+} from './warehouse.catalog'
 import { zayiNedeniMi } from './write-off.repository'
 import { GerekceGerekliError, gerekceYeterliMi } from './write-off.service'
 
@@ -405,11 +407,20 @@ export class DepoServisi {
       kartlar.map(kart => this.defter.quantityOf(ctx, kart.id)),
     )
 
-    // ⚠️ MIYOP-074 · süresi geçmiş miktar YALNIZ lot+SKT takipli kalemlerde
-    // sorulabilir; diğerlerinde sorulacak bir tarih yok. Hepsini sorgulamak
-    // sonucu değiştirmez, yalnız her kalem için gereksiz bir tur atardı —
-    // `uyarilar()` da aynı sebeple böyle çalışıyor.
-    const sktliKalemler = kartlar.filter(kart => kart.sktTakipli && kart.lotTakipli)
+    // ⚠️ MIYOP-074 · ÖNCE `kart.sktTakipli && kart.lotTakipli` YAZIYORDU ve
+    // bu, SUNUCUNUN KURALINDAN DAHA DARDI.
+    //
+    // SKT kapısı (0092) `stock_item.tracks_expiry` BAYRAĞINA HİÇ BAKMIYOR;
+    // yalnız `stock_lot.expires_on` dolu mu diye soruyor. Yani bir kalem
+    // lot takipli olup SKT takipsiz işaretlenmişse ama partilerine tarih
+    // yazılmışsa — ki mal kabulde bu olabiliyor — sunucu o partiden çıkışı
+    // REDDEDER, ekran ise malı "kullanılabilir" sayar, FEFO onu seçer ve
+    // kullanıcı anlamadığı bir hata alır.
+    //
+    // ⚠️ Bayrak değil TARİH ölçülüyor artık: koşul lot takibine indirildi,
+    // çünkü `expires_on` ancak lotu olan kalemde bulunabilir. Tarihi olmayan
+    // lot zaten aşağıda `sktGecmisMi()` ile düşüyor.
+    const sktliKalemler = kartlar.filter(kart => kart.lotTakipli)
     const lotDemetleri = await Promise.all(
       sktliKalemler.map(kart => this.lotBakiyeleri(ctx, kart.id)),
     )
@@ -465,10 +476,13 @@ export class DepoServisi {
   ): Promise<DepoUyarilari> {
     const tumKalemler = await this.kalemler(ctx)
 
-    // Lot bakiyesi yalnızca SKT takipli kalemler için sorgulanıyor. Diğerlerinde
-    // sorulacak bir raf ömrü yok; hepsini sorgulamak sonucu değiştirmez, sadece
-    // depodaki her kalem için gereksiz bir tur atardı.
-    const sktliKalemler = tumKalemler.filter(kalem => kalem.sktTakipli)
+    // ⚠️ MIYOP-074 · burada da `kalem.sktTakipli` YAZIYORDU. Aynı sebeple
+    // lot takibine indirildi: SKT takipsiz işaretlenmiş bir kalemin
+    // partisinde tarih varsa o tarih GERÇEKTİR ve sunucu ona göre davranır
+    // (0092). Bayrağa bakan uyarı listesi, sunucunun reddettiği malı hiç
+    // bildirmezdi — yani uyarı sistemi en çok gereken yerde sessiz kalırdı.
+    // Tarihi olmayan lot aşağıda `if(!lot.sonKullanma) return` ile düşüyor.
+    const sktliKalemler = tumKalemler.filter(kalem => kalem.lotTakipli)
     const lotDemetleri = await Promise.all(
       sktliKalemler.map(kalem => this.lotBakiyeleri(ctx, kalem.id)),
     )
@@ -515,6 +529,20 @@ export class DepoServisi {
 
   kalemEkle(ctx: TenantCtx, girdi: YeniKalem): Promise<KatalogKalemi> {
     return this.katalog.kalemEkle(ctx, girdi)
+  }
+
+  /**
+   * Kartın beyan alanları (saklama koşulu, açık raf ömrü).
+   *
+   * ⚠️ Burada KURAL YOK, bilerek. Kimin yazabileceğine `app.stok_karti_izni`
+   * karar veriyor (0096: `stock.write` ya da `quality.declaration`).
+   * Kuralı burada tekrar yazmak, sunucudan ayrışabilecek ikinci bir kapı
+   * kurmak olurdu.
+   */
+  kalemBeyaniniGuncelle(
+    ctx: TenantCtx, kalemId: string, beyan: KartBeyani,
+  ): Promise<KatalogKalemi> {
+    return this.katalog.kalemBeyaniniGuncelle(ctx, kalemId, beyan)
   }
 
   /** Bir kalemin hareket dökümü — "bu rakam nereden geldi" sorusunun cevabı. */

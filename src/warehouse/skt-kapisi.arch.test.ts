@@ -66,6 +66,25 @@ describe('SKT kapısı · göç ile servis aynı şeyi söylüyor', () => {
     }
   })
 
+  it('göç `tracks_expiry` BAYRAĞINA bakmıyor — tarihe bakıyor', () => {
+    // ⚠️ MIYOP-074'ün kalan yarısı buydu. Kapı yalnız `stock_lot.expires_on`
+    // soruyor; ürün kartındaki `tracks_expiry` bayrağını HİÇ okumuyor.
+    // Servis tarafı bir zaman `kart.sktTakipli && kart.lotTakipli` diye
+    // süzüyordu — yani sunucudan DAHA DAR davranıyordu: SKT takipsiz
+    // işaretlenmiş bir kalemin partisine tarih yazılmışsa sunucu çıkışı
+    // reddederken ekran o malı "kullanılabilir" sayıyordu.
+    //
+    // Bu sınama o farkın geri gelmesini engelliyor: göç bayrağa bakmaya
+    // başlarsa (ya da bu satır silinirse) test kırılır ve iki taraf yeniden
+    // birlikte düşünülür.
+    expect(
+      GOC,
+      'göç tracks_expiry bayrağını okumaya başlamış; servis süzmesi de '
+      + 'buna göre yeniden düşünülmeli (MIYOP-074)',
+    ).not.toMatch(/tracks_expiry/)
+    expect(GOC, 'göç expires_on okumuyor').toMatch(/expires_on/)
+  })
+
   it('göç ters kaydı her zaman geçiriyor', () => {
     expect(
       GOC,

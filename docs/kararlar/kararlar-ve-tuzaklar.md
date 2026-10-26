@@ -504,6 +504,163 @@ yüzünden** oluşan hata yollarını da gez ve mesajı düzelt. Doğru olmayan
 bir hata mesajı da bir tür *"mış gibi"*dir; kullanıcı sisteme değil
 kendine güvenmeyi bırakır.
 
+**116 · `security definer` bir rutin, KİRACIYI KENDİSİ DOĞRULAMAK
+ZORUNDADIR.** (MIYOP-075 · Codex, 26.10 · **P0, kendi yazdığım göçte**)
+`app.numune_olayi()` olay satırını yazarken numuneyi **yalnız
+`new.sample_id`** ile buluyordu. Fonksiyon `security definer` olduğu için
+RLS'i atlıyor; olay satırının **kendi** `tenant_id`si saldırganın kendi
+kiracısını gösterdiği için RLS politikası da geçiyordu. Sonuç: A
+kiracısındaki bir üretim sorumlusu, B kiracısının numunesini IMHA'ya
+çevirebiliyordu. Prova ile canlandırıldı; onarımdan önce B'nin numunesi
+gerçekten IMHA oldu.
+⚠️ **Yanıltan şey şuydu:** tabloda RLS AÇIK ve FORCE, politika doğru
+yazılmış, yetki tetiği bağlı. Üç kapı da yerindeydi — ama hiçbiri
+*"yazdığın satırın İŞARET ETTİĞİ kayıt senin mi"* sorusunu sormuyordu.
+RLS yazılan satırı denetler, o satırın **gösterdiğini** denetlemez.
+⚠️ Kural: `security definer` bir rutin içinde başka bir satırı okuyor ya
+da güncelliyorsan, kiracıyı `app.current_tenant_id()`den oku ve
+**aramaya kiracıyı da kat** (`where id = … and tenant_id = v_kiraci`).
+`new.tenant_id`e güvenmek, imzayı istemciden almakla aynı şeydir.
+⚠️ İkinci kural: **"yok" ile "başkasının" AYNI mesajı vermeli.** Ayrı
+mesaj vermek, denemeyle başka bir kiracıda o kimliğin var olduğunu
+doğrulatır.
+
+**117 · Bir kusur gösterildiğinde, AYNI DESENİN DİĞER YERLERİNE BAK.**
+(26.10) Codex 075'i `numune_olayi()`de gösterdi. Aynı kusur
+`numune_turet()`te de vardı ve raporda yoktu: parti, şube ve iş emri
+kimlikleri kiracı doğrulanmadan okunuyordu, yani A kiracısı B'nin
+**partisinden** numune alabiliyordu — hem B'nin SKT'sini ve saklama
+koşulunu okuyarak, hem kendi defterine B'nin partisine referans yazarak.
+⚠️ Kural: bir bulgu bir ADRES değil bir DESEN'dir. Gösterilen satırı
+onarıp aynı göçün diğer rutinlerine bakmamak, onarımı yarım bırakmaktır —
+ve ikinci yarı artık "bilinen bir kusur" olmadığı için daha uzun yaşar.
+
+**118 · YAZDIĞIN AMA OKUMADIĞIN KOLON, OLMAYAN KOLONDAN KÖTÜDÜR.**
+(MIYOP-076 · 26.10) Göç 0093 `opened_shelf_life_days` kolonunu yarattı,
+ekranda alan açılabilirdi, dokümanda kural yazılıydı — ve **hiçbir yerde
+okunmuyordu.** Numune açıldıktan sonra saklama sonu yine partinin SKT'si
+kalıyordu. Yani *"açılmış ise açık kalmaya uygun olduğu gün kadar"*
+cümlesi yazılıydı ve sistem onu yapmıyordu.
+⚠️ Olmayan bir kolon dürüsttür: kimse ona güvenmez. Var olup işlemeyen
+bir kolon **yalan söyler**: hem kullanıcı hem bir sonraki geliştirici
+kuralın işlediğini sanır.
+⚠️ Kural: bir kolon eklediğinde onu **okuyan** yolu aynı göçte yaz, ya da
+göçün doğrulamasına *"bu kolon bir yerde okunuyor mu"* ölçümünü koy. 0094
+tam bunu yapıyor: `v_olay !~ 'opened_shelf_life_days'` ise göç patlıyor.
+
+**119 · BAYRAK BİR BEYANDIR, TARİH BİR OLGUDUR — KURAL OLGUYA BAKAR.**
+(MIYOP-074'ün kalanı · 26.10) `warehouse.service.ts` süresi geçmiş miktarı
+yalnız `kart.sktTakipli && kart.lotTakipli` olan kalemlerde arıyordu. Ama
+göç 0092'nin kapısı `stock_item.tracks_expiry` bayrağına **hiç bakmıyor**;
+yalnız `stock_lot.expires_on` soruyor. Lot takipli ama "SKT takipsiz"
+işaretlenmiş bir kalemin partisine mal kabulde tarih yazılmışsa, sunucu o
+partiden çıkışı REDDEDERKEN ekran malı "kullanılabilir" sayıyor, FEFO onu
+seçiyor ve kullanıcı sebebini anlamadığı bir hata alıyordu.
+⚠️ Kural: ekranın süzgeci sunucunun kapısından **daha dar** olamaz. Daha
+geniş olması kullanıcıyı reddedilecek bir işleme sokar; **daha dar**
+olması ise sunucunun reddettiği şeyi ekranın hiç bildirmemesi demektir —
+ve uyarı sistemi en çok gereken yerde sessiz kalır.
+⚠️ İki tarafı birlikte tutmanın yolu NOT değil ÖLÇÜM: `skt-kapisi.arch.test.ts`
+artık *"göç `tracks_expiry` okumaya başlamış mı"* diye soruyor.
+
+**120 · AYNI SORUYA İKİ EKRAN İKİ CEVAP VERİYORSA, İKİSİNE DE GÜVEN
+BİTER.** (26.10 · göç 0095) "Kaç kritik kalemim var" sorusunu Depo ekranı
+**kullanılabilir** bakiyeden ve `<=` ile, Analiz ekranı
+(`app.isletme_gostergeleri`, 0065) **fiziksel** bakiyeden ve `<` ile
+cevaplıyordu. İki ayrı fark, iki ayrı sayı. Olumsuz kontrol: eski
+fonksiyonla kritik sayısı **0**, yenisiyle **2** — gerçekten 2 kritik
+kalem varken.
+⚠️ Kural: bir türetme kuralını (burada "kullanılabilir bakiye") ikinci bir
+sorguda **tekrar yazmak** yerine, veritabanında **tek bir görünüme** koy ve
+herkes onu okusun. Tekrar yazılan kural bir gün ayrışır ve hangisinin
+doğru olduğu söylenemez.
+⚠️ Görünüm kurarken `security_invoker = on` ŞART: onsuz görünüm SAHİBİNİN
+haklarıyla çalışır, RLS'i atlar ve iki kiracı birbirinin bakiyesini görür.
+Göçün doğrulaması bunu ölçüyor, yorumla geçmiyor.
+
+**121 · BİR ALANI ZORUNLU YAPTIYSAN, O ALANI YAZABİLECEK BİR YOL
+OLDUĞUNU ÖLÇ.** (26.10) Göç 0093 saklama koşulunu ürün kartına taşıdı ve
+*"koşulu yazılmayan üründen numune alınamaz"* kuralını koydu. Ekran
+yazıldığında ortaya çıktı: kartı **güncelleyen hiçbir yol yoktu**
+(`StokKatalogu` yalnız `kalemEkle` taşıyordu, eski "Stok Kartları" ekranı
+donmuş). Yani var olan ürünlerin koşulu hiçbir zaman yazılamaz, o
+ürünlerden numune hiçbir zaman alınamazdı — kural teknik olarak doğru,
+pratikte bir kilit.
+⚠️ İkinci yarısı izin tarafında çıktı: kartın yazma kapısı `stock.write`
+istiyordu ve `stock.write` **kalite sorumlusunda ve gıda mühendisinde
+YOK**. Numunenin kuralını uygulayan departman, o kuralın girdisini
+yazamıyordu. Göç 0096 iki alanı alerjen beyanı gibi **beyan** sayarak
+`quality.declaration`a da açtı; `stock.write` kaldırılmadı.
+⚠️ Kural: yeni bir zorunlu alan yazdıysan üç soruyu ölç — **(1)** bu alanı
+yazan bir ekran var mı, **(2)** var olan kayıtlar için yazılabiliyor mu,
+**(3)** yazması gereken ROLÜN izni var mı. Üçü de yoksa "kural koydum"
+demek, "kilit koydum" demektir.
+
+**122 · BİR TABLODA İKİ KAPI VARSA, İSTEK EN GEVŞEĞİNDEN GEÇER.**
+(26.10 · göç 0097) Şahit numune imhasını daraltmak için olay defterine
+yeni bir izin tetiği yazdım. 0093'ün gevşek tetiği
+(`izin_witness_sample_event`, iki izinden birini yeterli sayan) **aynı
+tabloda duruyordu.** İki BEFORE tetiği birlikte çalışır ve ikisi de
+"geçti" derse istek geçer; yani yeni dar kapı hiçbir şeyi engellemezdi —
+üretim sorumlusu eski kapıdan imhayı yine yazardı.
+⚠️ Kural: bir kapıyı sıkılaştırırken **eskisini düşürdüğünü ÖLÇ.** 0097
+hem göçün doğrulamasında (`eski gevşek izin tetiği hâlâ bağlı`) hem
+provada (sınama 11b) hem çıcırda (`drop trigger if exists ...`) bunu
+ayrıca sınıyor — üç yerde, çünkü sessizce geçmesi mümkün olan bir hatadır.
+⚠️ Aynı şey kod tarafında da geçerli: bir ekrana ikinci bir yetki kontrolü
+eklerken eskisi kalırsa gevşek olan kazanır.
+
+**123 · YENİ BİR KURAL ESKİ PROVAYI KIRDIĞINDA, PROVAYI DOĞRU SEBEPLE
+ONAR.** (26.10) 0097'den sonra `prova-0093.sql` beş sınamada kırmızı
+döndü: imha adımları üretim sorumlusunun oturumunda yazılıyordu. İki
+yanlış onarım yolu vardı — kapıyı gevşetmek (kuralı yok etmek) ya da
+bütün provayı kalite rolüne çevirmek.
+İkincisi daha sinsi: sınama 17 *"imha edilmiş defter kapandı"* kuralını
+ölçüyor ve beklediği hata **MI409** (defter kapalı). Rolü kalitede
+bıraksaydım yeşil kalırdı ama MI403 (izin yok) ile de yeşil kalabilirdi —
+yani **yanlış sebeple yeşil**. Onarım adım adım yapıldı: imha adımı
+onaylayabilen role geçti, sonraki adım üretime geri alındı.
+⚠️ Kural: bir prova kırıldığında rolü/girdiyi değiştirmeden önce *"bu
+sınama hangi kuralı ölçüyor ve beklediği hata kodu hangisi"* diye sor.
+Yanlış sebeple yeşil, kırmızıdan kötüdür (tuzak 58'in izin hâli).
+
+**124 · ZİNCİRİN BİR NOKTASINDA ÇALIŞAN ÖLÇÜM, O NOKTADAN SONRA EKLENENİ
+ÖLÇMEZ.** (26.10 · göç 0098) 0090 "gevşek kapıya bağlı tablolara yazan
+`security definer` rutinler" yüzeyini ADIYLA dondurdu ve o gün doğruydu.
+0093 (şahit numune) üç göç sonra `witness_sample`ı o kapıya bağladı ve
+`app.numune_olayi()` adlı `security definer` bir tetik o tabloya UPDATE
+yazdı. **Yüzey 6'dan 7'ye çıktı ve hiçbir şey kırılmadı** — çünkü 0090
+zincirde 0093'ten ÖNCE koşuyor ve bir daha hiç koşmuyor.
+⚠️ Yani dondurduğum yüzey, dondurduktan sonra büyüdü. Ve büyüdüğü yer tam
+olarak Codex'in MIYOP-075'i (P0, çapraz kiracı yazımı) bulduğu rutindi.
+⚠️ Kural: bir göç ÖLÇÜM yapıyorsa (sayı dondurma, yüzey listesi, "başka
+yok" iddiası), o ölçüm **tek seferlik bir fotoğraftır.** Kalıcı kılmak için
+ya aynı ölçüm bir ÇİÇİR TESTİNE taşınır (her koşuda çalışır), ya da yeni
+tablo/rutin ekleyen her göç o ölçümü kendi içinde tekrarlar.
+⚠️ Pratik alışkanlık: güvenlik yüzeyini değiştiren bir göç yazdıktan sonra
+**eski ölçüm göçlerini GÜNCEL veritabanında yeniden çalıştır** (0085, 0089,
+0090, 0091). Bu turda 0098 tam böyle doğdu.
+
+**125 · BİR YARDIMCI FONKSİYONUN NE DÖNDÜRDÜĞÜNÜ OKUMADAN ONA SINAMA
+YAZMA.** (26.10) Şahit Numune ekranının hangi rollerde göründüğünü ölçen
+yedi sınamayı `menuEkranlari()` üzerine yazdım ve **rota** bekledim
+(`'sahit-numune'`). O fonksiyon **etiket** döndürüyor (`out.push(x.label)`).
+Yedi sınama kırmızı verdi.
+⚠️ Kırmızının söylediği şey yanlıştı: *"ekran menüde yok."* Ekran menüde
+VARDI — aynı dosyadaki sayı sınamaları yedi rolde +1 ile zaten geçiyordu.
+Yani test, ölçtüğünü sandığı şeyi ölçmüyordu; yanlış biçimde bir beklenti
+yazmak, var olan bir şeyi yok göstermekle aynı şey.
+⚠️ Beni yanıltan şey, fonksiyonu daha önce okumuş olduğumu sanmamdı. Aynı
+dosyanın bir başka kesitini okumuş ve `out.push(x.route)` diye hatırlıyordum.
+**Hatırladığım kaynak, kaynak değildir** (tuzak 112'nin tekrarı: aramayı
+deponun kendisinde yap).
+⚠️ İki katmanlı onarım: **(1)** beklenen değer artık KAYITTAN okunuyor,
+elle yazılmıyor — etiket değişirse test yanlış sebeple kırılmasın.
+**(2)** Üstüne bir *sağlama* sınaması eklendi: *"menü listesi ETİKET
+taşıyor, rota değil"*, olumsuz kontrolle. Yani biçim varsayımının kendisi
+de ölçülüyor; yardımcı bir gün rotaya dönerse tek bir sınama kırılıyor,
+yedi tanesi birden *"ekran yok"* demiyor.
+
 ---
 
 ## 5 · TEST İŞBÖLÜMÜ VE TESLİM KONTROL LİSTESİ
@@ -573,3 +730,31 @@ Son söz onun çıktısındadır.
     yazıyordu"** diye sor (tuzak 114). Kuralı gevşetmek son çaredir.
 27. Bir süzgeç koyduysan **süzgecin elediği şey yüzünden oluşan hata
     mesajlarını** da gez (tuzak 115). Doğru olmayan hata mesajı da yalandır.
+28. `security definer` bir rutinde başka satırı okuyor/güncelliyorsan
+    **aramaya kiracıyı kat** (tuzak 116). RLS yazdığın satırı denetler,
+    o satırın GÖSTERDİĞİNİ denetlemez. "Yok" ile "başkasının" aynı mesajı
+    vermeli.
+29. Bir kusur gösterildiğinde **aynı desenin diğer yerlerine bak**
+    (tuzak 117). Bulgu bir adres değil bir desendir.
+30. Bir kolon eklediysen **onu okuyan yolu aynı göçte yaz** ya da göçün
+    doğrulamasına "okunuyor mu" ölçümünü koy (tuzak 118). Yazılıp
+    okunmayan kolon, olmayan kolondan kötüdür.
+31. Ekranın süzgeci sunucunun kapısından **ne geniş ne dar** olmalı
+    (tuzak 119). Bayrağa değil olguya bak; iki tarafı bir ÇIÇIRLA bağla.
+32. Bir türetme kuralını ikinci bir sorguda tekrar yazmak yerine
+    **veritabanında tek görünüme** koy (tuzak 120). Görünümde
+    `security_invoker = on` şart.
+33. Yeni bir zorunlu alan koyduysan üçünü ölç: **yazan ekran var mı, var
+    olan kayıtlar için yazılabiliyor mu, yazması gereken rolün izni var
+    mı** (tuzak 121). Yoksa kural değil kilit koymuş olursun.
+34. Bir kapıyı sıkılaştırırken **eskisini düşürdüğünü ölç** (tuzak 122).
+    Aynı tabloda iki kapı varsa istek en gevşeğinden geçer.
+35. Yeni bir kural eski provayı kırdıysa, rolü/girdiyi değiştirmeden önce
+    **"bu sınama hangi kuralı ölçüyor, beklediği hata kodu hangisi"** diye
+    sor (tuzak 123). Yanlış sebeple yeşil, kırmızıdan kötüdür.
+36. Güvenlik yüzeyini değiştiren bir göç yazdıysan **eski ölçüm göçlerini
+    güncel veritabanında yeniden çalıştır** (0085, 0089, 0090, 0091) —
+    tuzak 124. Göçteki bir ölçüm tek seferlik fotoğraftır.
+37. Bir yardımcıya sınama yazıyorsan **ne döndürdüğünü dosyadan oku**, ne
+    döndürdüğünü hatırladığını sanma (tuzak 125). Beklenen değeri
+    kaynağından türet ve biçim varsayımını ayrı bir sağlamayla ölç.

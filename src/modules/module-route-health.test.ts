@@ -214,12 +214,21 @@ describe('`isAlwaysActive` normalleştiricide EZİLMİYOR (2026-10-11)', () => {
       .forEach(m => expect(m.isAlwaysActive, `${m.id} çekirdek ama her zaman açık değil`).toBe(true))
   })
 
-  it('Kalite grubu CANLI iki ekranla üretiliyor', () => {
+  it('Kalite grubu CANLI üç ekranla üretiliyor', () => {
     // Grup, görünür çocuğu olmadan üretilmiyor (visible: children.length > 0).
-    // Donmuş 13 ögenin yanında iki gerçek ekran DURMALI.
+    // Donmuş 13 ögenin yanında gerçek ekranlar DURMALI.
+    //
+    // ⚠️ 26.10.2026 · İKİ → ÜÇ. **Şahit Numune** eklendi: defter 0093'te
+    // kurulmuştu, ekran yoktu (Emrah: *"Şahit numune ekranı yok"*). Bu test
+    // kırmızı verdi ve doğru yakaladı — grup gerçekten büyüdü.
+    //
+    // ⚠️ Liste kapalı tutuluyor (`toEqual`, `toContain` değil): donmuş bir
+    // ögenin sessizce canlanması da bu testi kırmalı. Kalite grubundaki 13
+    // donmuş ekranın hepsi uydurma veriyle çalışıyor; biri menüye çıkarsa
+    // müşteri sahte satır görür.
     const kalite = BUSINESS_WORKSPACE_MODULE_REGISTRY.find(m => m.id === 'business-quality')!
     const canli = kalite.menuItems.filter(i => i.foundationScope !== 'frozen').map(i => i.key)
-    expect(canli.sort()).toEqual(['haccp-kayitlari', 'izlenebilirlik'])
+    expect(canli.sort()).toEqual(['haccp-kayitlari', 'izlenebilirlik', 'sahit-numune'])
   })
 })
 

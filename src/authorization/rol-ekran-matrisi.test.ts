@@ -114,19 +114,87 @@ const ROL_IZINLERI: Record<string, string[]> = {
  * Yani bu tablo süs değil: izin listesi gerçekten veritabanındaki gibi mi
  * sorusunun tek kanıtı. Biri listeyi değiştirip sayıyı güncellemezse test
  * kırılır — kırılması gerekir.
+ *
+ * ── 26.10.2026 · YEDİ SAYI BİRER ARTTI · ŞAHİT NUMUNE EKRANI ─────────────
+ * Kalite modülüne üçüncü CANLI ekran eklendi (**Şahit Numune**,
+ * `requiredPermission: 'quality.read'`). Test yedi rolde kırmızı verdi ve
+ * **doğru yakaladı**: menü gerçekten büyüdü.
+ *
+ * ⚠️ SAYILARI TAHMİN ETMEDİM, KIRMIZININ KENDİSİ KANITLADI. Ögenin izni
+ * `quality.read`; dolayısıyla yalnız o izni TAŞIYAN roller +1 almalı.
+ * Ölçüm tam bunu gösterdi:
+ *
+ *   +1 alanlar (quality.read VAR)   : işletme sahibi, depo sorumlusu,
+ *      üretim sorumlusu, kalite sorumlusu, sevkiyat sorumlusu, izleyici,
+ *      gıda mühendisi  → yedisi de kırmızı verdi
+ *   değişmeyenler (quality.read YOK): satın alma, muhasebe, personel
+ *      → üçü de yeşil kaldı
+ *
+ * Yedi kırmızı + üç yeşil, kapının doğru izne bağlandığının kanıtı. Eğer
+ * satın alma ya da muhasebe da kırmızı verseydi, izin yanlış seçilmiş
+ * olurdu ve sayıyı güncellemek hatayı dondurmak olurdu (tuzak 114).
+ *
+ * ⚠️ Depo sorumlusunun ve sevkiyat sorumlusunun bu ekranı GÖRMESİ
+ * bilinçli: İsmet numune akışını *"gıda teknikeri ve depocu kontrolünde"*
+ * diye anlattı, sevkiyat da müşteri itirazının geldiği yer. İkisi de
+ * YAZAMIYOR — yazma kapısı `quality.record.manage` veya `production.write`
+ * ve ikisinde de yok (`src/quality/numune-kapisi.arch.test.ts`).
  */
 const BEKLENEN_EKRAN_SAYISI: Record<string, number> = {
-  isletme_sahibi: 19,
-  depo_sorumlusu: 12,
-  satinalma_sorumlusu: 7,
-  uretim_sorumlusu: 9,
-  kalite_sorumlusu: 11,
-  sevkiyat_sorumlusu: 8,
-  muhasebe: 8,
-  personel: 6,
-  izleyici: 16,
-  gida_muhendisi: 11,
+  isletme_sahibi: 20,      // 19 + Şahit Numune
+  depo_sorumlusu: 13,      // 12 + Şahit Numune
+  satinalma_sorumlusu: 7,  // değişmedi: quality.read yok
+  uretim_sorumlusu: 10,    // 9 + Şahit Numune
+  kalite_sorumlusu: 12,    // 11 + Şahit Numune
+  sevkiyat_sorumlusu: 9,   // 8 + Şahit Numune
+  muhasebe: 8,             // değişmedi: quality.read yok
+  personel: 6,             // değişmedi: quality.read yok
+  izleyici: 17,            // 16 + Şahit Numune
+  gida_muhendisi: 12,      // 11 + Şahit Numune
 }
+
+/**
+ * ⚠️ ŞAHİT NUMUNE EKRANINI GÖRMESİ GEREKEN VE GÖRMEMESİ GEREKEN ROLLER.
+ *
+ * Yukarıdaki sayı tablosu "kaç ekran" diyor, bu liste "HANGİ ekran" diyor.
+ * Sayı doğru kalıp yanlış ekranın eklenmesi mümkün olduğu için ikisi ayrı
+ * ölçülüyor: biri toplamı, diğeri kimliği sınıyor.
+ */
+const NUMUNEYI_GORENLER = [
+  'isletme_sahibi', 'depo_sorumlusu', 'uretim_sorumlusu', 'kalite_sorumlusu',
+  'sevkiyat_sorumlusu', 'izleyici', 'gida_muhendisi',
+] as const
+
+const NUMUNEYI_GORMEYENLER = [
+  'satinalma_sorumlusu', 'muhasebe', 'personel',
+] as const
+
+/**
+ * ⚠️ ETİKET KAYITTAN OKUNUYOR, ELLE YAZILMIYOR.
+ *
+ * `menuEkranlari()` **ROTA değil ETİKET** döndürüyor (`out.push(x.label)`).
+ * Bu sınamaları ilk yazışımda rotayı (`'sahit-numune'`) bekledim ve yedi
+ * tanesi kırmızı verdi. ⚠️ Ekran menüde VARDI — sayı sınamaları zaten +1
+ * ile geçiyordu; yanlış olan benim beklentimin BİÇİMİYDİ. Yani test
+ * ölçtüğünü sandığı şeyi ölçmüyordu (tuzak 72 ailesi).
+ *
+ * Etiketi elle yazmak aynı hatayı başka bir biçimde tekrarlamak olurdu:
+ * etiket bir gün değişirse test yine yanlış sebeple kırılırdı. Değer
+ * KAYITTAN okunuyor; öge kalkarsa dosya yüklenirken patlıyor — sessizce
+ * yeşile dönmüyor.
+ */
+const NUMUNE_ETIKETI = (() => {
+  const kalite = BUSINESS_WORKSPACE_MODULE_REGISTRY
+    .find(m => m.id === 'business-quality')
+  const oge = kalite?.menuItems.find(i => i.route === 'sahit-numune')
+  if(!oge?.label){
+    throw new Error(
+      'Kalite modülünde `sahit-numune` rotalı menü ögesi yok — '
+      + 'ekran menüden kalkmış olabilir.',
+    )
+  }
+  return oge.label
+})()
 
 /** O rolün menüsünde ÜRETİLEN ekranlar (etiketleriyle). */
 const menuEkranlari = (izinler: string[]): string[] => {
@@ -179,6 +247,40 @@ const kisi = (izinler: string[], rolKodu: string): User => ({
   role: FIRMA_GENELI.includes(rolKodu) ? 'Admin' : 'Personel',
   roleCode: rolKodu, active: true, permissions: izinler,
 }) as User
+
+// ── 0.A · ŞAHİT NUMUNE EKRANI DOĞRU ROLLERDE (26.10) ─────────────────────
+describe('Şahit Numune ekranı doğru rollerde görünüyor', () => {
+  it('sağlama: menü listesi ETİKET taşıyor, rota değil', () => {
+    // ⚠️ Bu sınamanın tek işi, ALTTAKİ sınamaların doğru biçimi
+    // beklediğini doğrulamak. Olmasaydı `menuEkranlari()` bir gün rotaya
+    // dönse yedi sınama birden "ekran menüde yok" diye kırılır ve ben
+    // yine ekranı aramaya giderdim.
+    const liste = menuEkranlari(ROL_IZINLERI.isletme_sahibi)
+    expect(liste, 'liste etiket taşımıyor').toContain('Kontrol Paneli')
+    expect(liste, 'liste ROTA taşıyor — beklenti biçimi değişmiş')
+      .not.toContain('summary')
+  })
+
+  NUMUNEYI_GORENLER.forEach(rol => {
+    it(`${rol} Şahit Numune'yi GÖRÜYOR`, () => {
+      expect(
+        menuEkranlari(ROL_IZINLERI[rol]),
+        `${rol} şahit numune ekranını görmüyor — İsmet'in anlattığı akışın içinde`,
+      ).toContain(NUMUNE_ETIKETI)
+    })
+  })
+
+  NUMUNEYI_GORMEYENLER.forEach(rol => {
+    it(`${rol} Şahit Numune'yi GÖRMÜYOR`, () => {
+      // ⚠️ Olumsuz kontrol. Yalnız "görüyor"u sınamak, ögeyi herkese
+      // açtığımızda da yeşil kalırdı.
+      expect(
+        menuEkranlari(ROL_IZINLERI[rol]),
+        `${rol} şahit numune ekranını görüyor — kapı gevşemiş olabilir`,
+      ).not.toContain(NUMUNE_ETIKETI)
+    })
+  })
+})
 
 // ── 0 · İZİN LİSTELERİ VERİTABANIYLA AYNI MI ─────────────────────────────
 describe('⚠️ İzin listeleri canlı veritabanıyla aynı menüyü üretiyor', () => {

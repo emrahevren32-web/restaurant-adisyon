@@ -248,7 +248,16 @@ export default function KontrolPaneli({
 
   // Yetersiz stokla başlatılamayacak iş emirleri — panelde görünmesi,
   // kullanıcının o ekrana girip tek tek denemesine gerek bırakmıyor.
-  const bakiyeHaritasi = new Map(kalemler.map(k => [k.id, k.miktar]))
+  // ⚠️ MIYOP-074 · BURADA `k.miktar` YAZIYORDU — FİZİKSEL bakiye.
+  // İş Emirleri, Sevkiyatlar ve Reçeteler ekranları 25.10'da
+  // `k.kullanilabilir`a çevrilmişti; KONTROL PANELİ atlanmıştı. Sonuç,
+  // düzeltilen şeyin tam tersi bir yalandı: panel "bu iş emri başlatılabilir"
+  // derken ekrana girip denendiğinde göç 0092'nin SKT kapısı reddediyordu.
+  // Üstelik panel müşterinin GÖRDÜĞÜ İLK EKRAN.
+  //
+  // ⚠️ Süresi geçmiş mal planlamada YOK sayılır: sunucu o partiden çıkış
+  // yazdırmıyor, dolayısıyla o mal bir iş emrini başlatamaz.
+  const bakiyeHaritasi = new Map(kalemler.map(k => [k.id, k.kullanilabilir]))
   const isEmriServisi = new IsEmriServisi(
     new PostgresIsEmriDeposu(getSupabase()),
     new DepoServisi(
@@ -325,7 +334,16 @@ export default function KontrolPaneli({
       id: `kritik-${k.id}`,
       aciliyet: 'uyari' as const,
       baslik: 'Kritik stok',
-      ayrinti: `${k.ad} · ${bicimle(k.miktar)} ${k.temelBirim}`
+      // ⚠️ MIYOP-074 · BURADA `k.miktar` YAZIYORDU ve satır kendi kendini
+      // yalanlıyordu: "Kritik stok · Tavuk · 100 kg (en az 5)". Kritik
+      // kararı KULLANILABİLİR bakiyeden veriliyor; gösterilen sayı fiziksel
+      // toplam olunca kullanıcı rakama bakıp "ama 100 kilo var" diyordu.
+      // ⚠️ Fark varsa İKİSİ DE yazılıyor: sayıyı tek başına küçültmek,
+      // "depodaki mal nereye gitti" sorusunu cevapsız bırakırdı.
+      ayrinti: `${k.ad} · ${bicimle(k.kullanilabilir)} ${k.temelBirim}`
+        + (k.suresiGecmis > 0
+          ? ` kullanılabilir (${bicimle(k.miktar)} var, ${bicimle(k.suresiGecmis)} SKT geçmiş)`
+          : '')
         + (k.minMiktar > 0 ? ` (en az ${bicimle(k.minMiktar)})` : ''),
       rota: 'satinalma' as BusinessWorkspaceRoute,
       navKey: 'satinalma' as BusinessWorkspaceNavKey,

@@ -31,6 +31,7 @@ import {
 } from './warehouse.service'
 import type {
   Birim,
+  KartBeyani,
   KatalogKalemi,
   KatalogLotu,
   StokKatalogu,
@@ -66,6 +67,25 @@ class SahteKatalog implements StokKatalogu {
     }
     this.kalemListesi.push(kalem)
     return kalem
+  }
+
+  async kalemBeyaniniGuncelle(
+    _ctx: TenantCtx, kalemId: string, beyan: KartBeyani,
+  ): Promise<KatalogKalemi> {
+    const mevcut = this.kalemListesi.find(k => k.id === kalemId)
+    if(!mevcut) throw new Error('kalem yok')
+    // ⚠️ `undefined` ALANA DOKUNMUYOR, `null` BOŞALTIYOR — gerçek
+    // uygulamanın (`warehouse.catalog.ts`) ayrımının aynısı. Taklit burada
+    // sadeleştirilse, testler gerçekte olmayan bir davranışı doğrulardı.
+    const guncel: KatalogKalemi = {
+      ...mevcut,
+      ...(beyan.saklamaKosulu !== undefined
+        ? { saklamaKosulu: beyan.saklamaKosulu?.trim() || undefined } : {}),
+      ...(beyan.acikRafOmruGun !== undefined
+        ? { acikRafOmruGun: beyan.acikRafOmruGun ?? undefined } : {}),
+    }
+    this.kalemListesi = this.kalemListesi.map(k => (k.id === kalemId ? guncel : k))
+    return guncel
   }
 
   async lotlar(_ctx: TenantCtx, stokKalemiId: string): Promise<KatalogLotu[]> {
@@ -253,6 +273,47 @@ describe('Depo · çıkış (FEFO)', () => {
     expect(kalem.miktar, 'fiziksel bakiye 20 olmalı').toBe(20)
     expect(kalem.suresiGecmis, 'süresi geçmiş 10 olmalı').toBe(10)
     expect(kalem.kullanilabilir, 'kullanılabilir 10 olmalı').toBe(10)
+  })
+
+  it('SKT TAKİPSİZ işaretli kalemin TARİHLİ partisi de süresi geçmiş sayılıyor (MIYOP-074)', async () => {
+    // ⚠️ BU SINAMA BİR AYRIŞMAYI KAPATIYOR.
+    //
+    // Göç 0092'nin kapısı `stock_item.tracks_expiry` bayrağına HİÇ bakmıyor;
+    // yalnız `stock_lot.expires_on` dolu mu diye soruyor. Servis tarafı ise
+    // bir süre `kart.sktTakipli && kart.lotTakipli` diye süzüyordu — yani
+    // SUNUCUDAN DAHA DAR davranıyordu.
+    //
+    // Sonuç şuydu: lot takipli ama "SKT takipsiz" işaretlenmiş bir kalemin
+    // partisine mal kabulde tarih yazılmışsa, sunucu o partiden çıkışı
+    // REDDEDERKEN ekran malı "kullanılabilir" sayıyor, FEFO onu seçiyor ve
+    // kullanıcı sebebini anlamadığı bir hata alıyordu.
+    //
+    // ⚠️ Bayrak bir BEYANDIR, tarih bir OLGUDUR. Kural olguya bakıyor.
+    const tavuk = katalog.kalemListesi.find(k => k.id === TAVUK)!
+    katalog.kalemListesi = katalog.kalemListesi.map(
+      k => (k.id === TAVUK ? { ...tavuk, sktTakipli: false } : k),
+    )
+
+    await servis.malKabul(ctx, {
+      stokKalemiId: TAVUK, miktar: 8, birim: 'kg',
+      yeniLot: { kod: 'LOT-BAYRAKSIZ', sonKullanma: bugundenGunSonra(-2) },
+    }, 'kabul-d1')
+
+    const kalem = (await servis.kalemler(ctx)).find(k => k.id === TAVUK)!
+    expect(kalem.sktTakipli, 'kart SKT takipsiz işaretli').toBe(false)
+    expect(
+      kalem.suresiGecmis,
+      'bayrak kapalı olsa da TARİHİ geçmiş parti sayılmalı — sunucu da öyle yapıyor',
+    ).toBe(8)
+    expect(kalem.kullanilabilir, 'kullanılabilir 0 olmalı').toBe(0)
+
+    // Uyarı listesi de aynı kuralı taşımalı: sunucunun reddettiği mal
+    // bildirilmiyorsa, uyarı sistemi en çok gereken yerde sessiz kalır.
+    const uyarilar = await servis.uyarilar(ctx)
+    expect(
+      uyarilar.suresiGecmis.map(u => u.lotKodu),
+      'SKT takipsiz kalemin geçmiş partisi uyarı listesinde yok',
+    ).toContain('LOT-BAYRAKSIZ')
   })
 
   it('süresi geçmiş mal KRİTİK uyarısını kapatmıyor (MIYOP-074)', async () => {

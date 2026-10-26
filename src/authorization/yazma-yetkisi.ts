@@ -89,3 +89,58 @@ export const KAPATMA_YETKISI_YOK =
   'Düzeltici faaliyeti kapatmak kalite kararıdır. Ölçümü siz girebilirsiniz '
   + 'ama "çözüldü" beyanını kalite sorumlusu, gıda mühendisi ya da yönetim '
   + 'yazar. Yapılan işi not alıp onlara bildirin.'
+
+/**
+ * ŞAHİT NUMUNE — ORTAK BİR İŞ (0093).
+ *
+ * Emrah'ın kararı (25.10.2026): *"Her ikisine de bağla sen. Bunun ortak bir
+ * iş olabileceğini de belirt. Çünkü gerçekten ikisi de bakabilir buna."*
+ * İsmet'in anlattığı akış da öyle: numuneyi ÜRETİM alıyor, gıda teknikeri ve
+ * depocunun kontrolünde.
+ *
+ * ⚠️ Depocu bu listede YOK ve bu bilinçli. İsmet "depocu kontrolünde" dedi;
+ * kontrol fiziksel bir sorumluluktur, kayıt açma yetkisi değil. İzin vermek,
+ * depocunun kendi başına numune kaydı AÇMASI demek olurdu.
+ *
+ * ⚠️ GERÇEK SINIR VERİTABANINDA: `izin_witness_sample` tetiği
+ * `app.izin_gerek_coklu('quality.record.manage', 'production.write')`.
+ * Buradaki liste onun ekrandaki yüzü — ikisinin aynı kaldığını
+ * `src/quality/numune-kapisi.arch.test.ts` ÖLÇÜYOR.
+ */
+export const NUMUNE_IZINLERI = ['quality.record.manage', 'production.write'] as const
+
+export const numuneYazabilirMi = (user: User | null | undefined): boolean =>
+  NUMUNE_IZINLERI.some(izin => yazabilirMi(user, izin))
+
+export const NUMUNE_YETKISI_YOK =
+  'Şahit numune kaydı kalite ya da üretim sorumluluğundadır. Numuneleri '
+  + 'görüntüleyebilirsiniz; kayıt açmak, açılış ve imha yazmak için kalite '
+  + 'sorumlusu, gıda mühendisi ya da üretim sorumlusu yetkisi gerekiyor.'
+
+/**
+ * ŞAHİT NUMUNE İMHASI BİR ONAY İŞİDİR (göç 0097).
+ *
+ * Emrah'ın kararı (26.10.2026): *"Müdür onaylar ama müdür yoksa gıda
+ * mühendisi veya kalitecide onaylayabilir."*
+ *
+ * Üçünün ortak izni `quality.record.manage` — HACCP'te ölçüm İPTALİ için
+ * 0081'de açılan izin. Oradaki ayrımın aynısı: numune almak ve açmak bir
+ * İŞ, imha etmek bir KARAR.
+ *
+ * ⚠️ `uretim_sorumlusu` bu izni TAŞIMIYOR ve kararın amacı tam bu: numuneyi
+ * alan kişi, kendi aldığı numuneyi kendi başına yok edemiyor. Şahit numune
+ * bir tartışmada işletmenin tek kanıtı.
+ *
+ * ⚠️ "MÜDÜR YOKSA" KOŞULU KODA YAZILMADI. Sistem müdürün o gün işte olup
+ * olmadığını bilemez; bilmediği bir şeyi kural gibi yazmak "mış gibi"
+ * yapmak olurdu. Üçü de onaylayabiliyor, sıralama ekranda yazılı.
+ *
+ * ⚠️ GERÇEK SINIR VERİTABANINDA: `app.numune_olayi_izni()` (0097).
+ */
+export const numuneImhaOnaylayabilirMi = (user: User | null | undefined): boolean =>
+  yazabilirMi(user, KALITE_KAYIT_DUZELTME)
+
+export const NUMUNE_IMHA_YETKISI_YOK =
+  'Şahit numune imhası bir onay işidir. İşletme müdürü onaylar; müdür yoksa '
+  + 'gıda mühendisi ya da kalite sorumlusu onaylayabilir. Numuneyi alabilir '
+  + 've müşteri önünde açabilirsiniz — imhayı onlar yazar.'

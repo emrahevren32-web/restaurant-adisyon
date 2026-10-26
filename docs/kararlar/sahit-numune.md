@@ -129,18 +129,128 @@ kural 2 yine çöker. → HEDEFLER **3.9.3**
 2. ✅ **Kim alıyor** — üretim alıyor, gıda teknikeri ve depocu kontrolünde.
    İzin: `quality.record.manage` **veya** `production.write`.
 3. ✅ **Her üretim partisinden.** Sevkiyat başına değil.
-4. 🔄 **İmhayı kim onaylıyor** — hâlâ açık. Kayıt tutuluyor (zorunlu),
-   onay adımı eklenebilir. İsmet'e sorulacak.
+4. ✅ **İmhayı kim onaylıyor** — **Emrah cevapladı (26.10):** *"Müdür
+   onaylar ama müdür yoksa gıda mühendisi veya kalitecide onaylayabilir."*
+   Göç **0097** ile zorlandı: imha olayı artık `quality.record.manage`
+   istiyor. Bu izin işletme müdürü, gıda mühendisi, kalite sorumlusu ve
+   işletme sahibinde var; **üretim sorumlusu ve depo sorumlusunda YOK.**
+   ⚠️ 0093 üç olayı da aynı kapıya bağlamıştı, yani **üretim sorumlusu
+   numuneyi imha edebiliyordu** — karar bunu kapattı. Numune almak ve açmak
+   bir İŞ, imha etmek bir KARAR.
+   ⚠️ *"Müdür yoksa"* koşulu **koda yazılmadı**: sistem müdürün o gün işte
+   olup olmadığını bilemez. Üçü de onaylayabiliyor, sıralama ekranda yazılı.
+   ⚠️ Ayrı bir "onaylayan" kolonu açılmadı: imha kaydını ancak onaylayabilen
+   biri yazabildiği için `actor_user_id` zaten onaylayandır.
 5. ✅ **Müşteri itirazında açılıyor**, müşteri önünde, ispatlı. Açılış
    kaydı zorunlu; gerekçe ve sonuç yazılıyor.
 
-⚠️ Kalan tek soru (4) **ekranı engellemiyor**: bugün kaydı YAPAN yazılıyor,
-onay sonradan eklenince eski kayıtlar bozulmuyor.
+✅ **Açık soru kalmadı.**
+
+## 26.10.2026 · ÜÇ GÖÇ DAHA VE EKRAN
+
+### Göç 0094 · kiracı sınırı, satır kilidi, açık raf ömrü
+
+Codex **kendi yazdığım 0093'te bir P0 buldu** (MIYOP-075):
+`app.numune_olayi()` `security definer`dı, yani RLS'i atlıyordu, ve
+numuneyi **yalnız `sample_id` ile** buluyordu. Olay satırının kendi
+`tenant_id`si saldırganın kiracısını gösterdiği için RLS de geçiyordu.
+**A kiracısındaki bir üretim sorumlusu, B kiracısının numunesini IMHA'ya
+çevirebiliyordu.** Prova ile canlandırıldı: onarımdan önce B'nin numunesi
+gerçekten IMHA oldu.
+
+⚠️ **Aynı kusur `numune_turet()`te de vardı ve raporda yoktu.** Parti,
+şube ve iş emri kimlikleri kiracı doğrulanmadan okunuyordu: A kiracısı
+B'nin **partisinden** numune alabiliyordu. Gösterilen yeri onarıp aynı
+desenin diğer yerlerine bakmamak, onarımı yarım bırakmak olurdu
+(tuzak 117).
+
+Diğer iki bulgu:
+- **MIYOP-077** · durum okuması kilitsizdi. `for update` eklendi; eşzamanlı
+  bir ACILDI artık bir IMHA'nın üstüne binemiyor.
+- **MIYOP-076** · `opened_shelf_life_days` **hiç kullanılmıyordu.** Kural
+  yazılıydı, kolon vardı, hiçbir yerde okunmuyordu — yani ekranda bir alan
+  duruyor, hiçbir şey yapmıyordu (tuzak 118). Artık **açılışta** saklama
+  sonu `least(partinin SKT'si, açılış günü + açık raf ömrü)` ile
+  **KISALIYOR**. `least` olduğu için asla uzamıyor — Emrah'ın kuralı:
+  *"süre dolunca aynı zamanda verilmiş SKT süresi de dolmuş demektir."*
+
+Ölçüm bir dördüncüsünü buldu: `sample_code_key` NOT NULL'du ama hiçbir
+yerde türetilmiyordu. Tekillik indeksi o kolonda olduğu için aynı kodu
+farklı bir anahtarla gönderen istemci indeksi **atlayabilirdi** — "N-1"
+ile "n-1" iki ayrı numune olurdu. Anahtar artık sunucuda
+(`app.kimlik_anahtari()`), kural uygulamadaki `normalizeIdentifier()` ile
+birebir aynı.
+
+Prova 0094: **18/18**.
+
+### Göç 0096 · saklama koşulu bir BEYANDIR
+
+Ekran yazılırken ortaya çıktı: saklama koşulu kartta duruyordu ama kartı
+**güncelleyen hiçbir yol yoktu** — `StokKatalogu` yalnız `kalemEkle`
+taşıyordu ve eski "Stok Kartları" ekranı donmuş. Yani var olan ürünlerin
+koşulu hiçbir zaman yazılamaz, o ürünlerden numune hiçbir zaman
+alınamazdı (tuzak 121).
+
+İkinci yarısı izin tarafındaydı: kartın kapısı `stock.write` istiyor ve
+`stock.write` **kalite sorumlusunda ve gıda mühendisinde YOK.** Numunenin
+kuralını uygulayan departman, o kuralın girdisini yazamıyordu.
+
+Saklama koşulu bir stok özelliği değil, **müşteriye yapılan bir
+beyandır** — etikete basılan, müşteriye söylenen ve numunenin uymak
+zorunda olduğu cümle aynı cümle. Alerjen beyanı 0072/0073'te tam bu
+sebeple `quality.declaration`a bağlanmıştı. Göç 0096 iki alanı o listeye
+ekledi. ⚠️ `stock.write` **kaldırılmadı**: depocu ve üretim de yazmaya
+devam ediyor.
+
+Prova 0096: **9/9** — içinde *"kalite kartın ADINI değiştiremiyor"* ve
+*"reddedilen işlem satırı DEĞİŞTİRMEDİ"* sınamaları.
+
+### Göç 0097 · imha bir ONAY işidir
+
+Emrah (26.10): *"Müdür onaylar ama müdür yoksa gıda mühendisi veya
+kalitecide onaylayabilir."*
+
+İmha olayı artık `quality.record.manage` istiyor; ALINDI ve ACILDI eski
+ortak kapıda (`quality.record.manage` **veya** `production.write`).
+Üretim numuneyi almaya ve müşteri önünde açmaya devam ediyor.
+
+⚠️ **Eski gevşek tetik düşürüldü.** 0093'ün `izin_witness_sample_event`
+tetiği aynı tabloda kalsaydı iki kapı birlikte çalışır ve istek **en
+gevşeğinden** geçerdi — yeni dar kapı hiçbir şeyi engellemezdi. Hem göçün
+doğrulaması, hem prova, hem çıcır testi bunu ayrıca ölçüyor (tuzak 122).
+
+Prova 0097: **13/13** — içinde *"reddedilen imha durumu DEĞİŞTİRMEDİ"*
+(hata kodu dönüp satırın yine değişmesi, "kapı var" demenin en kötü
+biçimi olurdu) ve *"üretim numune almaya/açmaya DEVAM EDİYOR"* sınamaları.
+
+### Ekran · Kalite → Şahit Numune
+
+`src/pages/SahitNumune.tsx`. Dört işi var: **numune al**, **izle**,
+**aç** (müşteri önünde; gerekçe VE sonuç zorunlu), **imha** (gerekçe
+zorunlu). Ürün kartına saklama beyanı **Depo ekranından** yazılıyor.
+
+⚠️ **Ekran hiçbir şey hesaplamıyor.** Saklama koşulu, saklama sonu, açık
+raf ömrü ve imza sunucudan geliyor. Ekranda hesaplanan tek şey "bugün o
+günü geçti mi" GÖSTERİMİ.
+
+⚠️ **Görme izni `quality.read`** — ölçüldü, tahmin edilmedi: altı rolde
+de var (kalite, gıda mühendisi, üretim, **depo**, müdür, sahip) ve altısı
+da bu akışın içinde. Yazma kapısı daha dar: `quality.record.manage` veya
+`production.write`. Depocu defteri görür, kayıt açamaz — İsmet "depocu
+kontrolünde" dedi, kontrol fiziksel sorumluluktur.
+
+---
 
 ## Durum
 
-HEDEFLER **A5** (demo öncesi) ve **3.9.1**.
-- ✅ **Veritabanı tarafı BİTTİ** — göç 0093, prova 21/21.
-- ⬜ **Ekran yazılmadı.** Numune alma, listeleme, açılış ve imha kaydı.
+HEDEFLER **A5** (demo öncesi) ve **3.9.1/3.9.4/3.9.6**.
+- ✅ **Veritabanı BİTTİ** — 0093 (defter) + 0094 (kiracı sınırı, kilit,
+  açık raf ömrü, kod anahtarı) + 0096 (beyan izni) + 0097 (imha onayı).
+  Prova **61 sınama**.
+- ✅ **EKRAN AÇILDI** — Kalite → Şahit Numune (26.10).
+- ✅ **Ürün kartına saklama beyanı yazılabiliyor** — Depo ekranı.
 - ⬜ **Etiket ekranı saklama koşulunu ürün kartından okumalı** (3.9.3).
-- 🔄 İmha onayı sorusu İsmet'ten bekleniyor (ekranı engellemiyor).
+  **Kalan tek iş bu.**
+- ✅ **İmha onayı kararı verildi ve zorlandı** — göç 0097, prova 13/13.
+  Müdür onaylar; müdür yoksa gıda mühendisi ya da kalite sorumlusu.
+  Üretim sorumlusu numune alır ve açar, **imha edemez.**

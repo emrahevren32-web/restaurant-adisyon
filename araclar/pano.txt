@@ -1,1 +1,1 @@
-docs/codex-brifi.md
+araclar/goc-bekleyen.sql

@@ -1847,6 +1847,31 @@ export const BUSINESS_WORKSPACE_MODULE_REGISTRY: BusinessWorkspaceModule[] = def
       // giriyor.
       menuItem({ key: 'haccp-kayitlari', label: 'HACCP Kontrolleri', route: 'haccp-kayitlari', icon: 'HC', requiredPermission: 'quality.read', adminOnly: true, displayOrder: 1 }),
       menuItem({ key: 'izlenebilirlik', label: 'Ürün İzlenebilirliği', route: 'izlenebilirlik', icon: 'IZ', requiredPermission: 'quality.read', adminOnly: true, displayOrder: 2 }),
+      // ⚠️ 26.10.2026 · ÜÇÜNCÜ GERÇEK EKRAN. Emrah: *"miyop.emrahevren.com'dan
+      // baktım, Şahit numune ekranı yok."* Defter 0093'te kurulmuştu, ekran
+      // yoktu — kullanıcı için YOK demekti.
+      //
+      // ⚠️ Aşağıdaki donmuş 'witness-samples' ögesi SİLİNMEDİ ve menüye
+      // ÇIKMIYOR. O öge `pages/WitnessSamples.tsx`e bakıyor ve tamamı uydurma
+      // veriyle çalışıyor. İki "Şahit Numune" menüde birden durmaz: gerçek
+      // olan bu, donmuş olan görünmüyor.
+      //
+      // ── GÖRME İZNİ NEDEN `quality.read` ───────────────────────────────
+      // `requiredPermission` TEK bir izin alıyor, liste almıyor. Yanlış izni
+      // yazmak ekranı ilgili birine kapatırdı; o yüzden tahmin edilmedi,
+      // ÖLÇÜLDÜ. `role_permission` tablosunda `quality.read` şu rollerin
+      // HEPSİNDE var: kalite sorumlusu, gıda mühendisi, üretim sorumlusu,
+      // depo sorumlusu, işletme müdürü, işletme sahibi.
+      //
+      // Altısının da burayı görmesi İsmet'in anlattığı akışın kendisi:
+      // numuneyi ÜRETİM alıyor, gıda teknikeri ve DEPOCU kontrolünde.
+      //
+      // ⚠️ GÖRME ile YAZMA burada bilerek AYRI: yazma kapısı iki izinden
+      // birini istiyor (`NUMUNE_IZINLERI` → `quality.record.manage` veya
+      // `production.write`) ve asıl kapı veritabanında
+      // (`izin_witness_sample` tetiği). Yani depocu defteri görür, kayıt
+      // açamaz — kontrol fiziksel bir sorumluluk, kayıt yetkisi değil.
+      menuItem({ key: 'sahit-numune', label: 'Şahit Numune', route: 'sahit-numune', icon: 'SN', requiredPermission: 'quality.read', adminOnly: true, displayOrder: 3 }),
 
       menuItem({ key: 'label-management', foundationScope: 'frozen', label: 'Etiket Yönetimi', route: 'label-management', icon: 'ET', adminOnly: true, displayOrder: 4 }),
       menuItem({ key: 'lot-system', foundationScope: 'frozen', label: 'Lot Sistemi', route: 'lot-system', icon: 'LS', adminOnly: true, displayOrder: 5 }),

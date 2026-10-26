@@ -38,6 +38,25 @@ export type KatalogKalemi = {
    * üretirdik. Boşluk, sorulması gereken bir sorudur.
    */
   kdvOrani?: number
+  /**
+   * MÜŞTERİYE BİLDİRİLEN saklama koşulu (örn. "-18 °C", "0-4 °C").
+   *
+   * BOŞ = BELİRLENMEDİ ve bu bilinçli: uydurma bir koşul, etikete basılan ve
+   * şahit numunenin uymak zorunda olduğu cümleyi uydurmak olurdu.
+   *
+   * ⚠️ Bu alan 0093'te kartın üstüne TAŞINDI. Öncesinde etiket ekranında her
+   * baskıda elle yazılan serbest bir metindi — aynı ürün iki baskıda iki
+   * farklı koşul taşıyabiliyordu. Şahit numune bu alandan kopyalanıyor;
+   * koşulu yazılmayan üründen numune ALINAMAZ (0093 tetiği reddediyor).
+   */
+  saklamaKosulu?: string
+  /**
+   * Açıldıktan sonra kaç gün uygun kaldığı (0094). BOŞ = belirlenmedi.
+   *
+   * Şahit numune açıldığında saklama sonu bu sayı kadar KISALIR; boşsa
+   * saklama sonu partinin SKT'si olarak kalır.
+   */
+  acikRafOmruGun?: number
   aktif: boolean
 }
 
@@ -61,6 +80,27 @@ export type YeniKalem = {
   sktTakipli: boolean
   minMiktar?: number
   kdvOrani?: number
+  saklamaKosulu?: string
+  acikRafOmruGun?: number
+}
+
+/**
+ * Kartın BEYAN alanlarının güncellenmesi.
+ *
+ * ⚠️ YALNIZ bu iki alan. Kartın tamamını güncelleyen bir yol açmak, kodun ve
+ * temel birimin de değiştirilebilmesi demek olurdu: kod tekillik anahtarıdır,
+ * temel birim ise defterin birimi — ikisi de sonradan değişemez (0003).
+ *
+ * ⚠️ Sunucu tarafı: `app.stok_karti_izni` (0096) bu iki alanı BEYAN sayıyor,
+ * yani `stock.write` ya da `quality.declaration` yeter. Kalite sorumlusu ve
+ * gıda mühendisi bu yüzden yazabiliyor.
+ *
+ * ⚠️ `null` alanı BOŞALTIR ("belirlenmedi"e döner); `undefined` alana
+ * DOKUNMAZ. İkisi ayrı: boşaltmak bir karar, dokunmamak karar yokluğudur.
+ */
+export type KartBeyani = {
+  saklamaKosulu?: string | null
+  acikRafOmruGun?: number | null
 }
 
 export type YeniLot = {
@@ -76,6 +116,9 @@ export type Birim = { kod: string; ad: string; boyut: string }
 export interface StokKatalogu {
   kalemler(ctx: TenantCtx): Promise<KatalogKalemi[]>
   kalemEkle(ctx: TenantCtx, girdi: YeniKalem): Promise<KatalogKalemi>
+  kalemBeyaniniGuncelle(
+    ctx: TenantCtx, kalemId: string, beyan: KartBeyani,
+  ): Promise<KatalogKalemi>
   lotlar(ctx: TenantCtx, stokKalemiId: string): Promise<KatalogLotu[]>
   lotEkle(ctx: TenantCtx, girdi: YeniLot): Promise<KatalogLotu>
   birimler(): Promise<Birim[]>
@@ -107,6 +150,8 @@ type StockItemSatiri = {
   tracks_expiry: boolean
   min_qty: number | string
   vat_rate: number | string | null
+  storage_condition: string | null
+  opened_shelf_life_days: number | string | null
   is_active: boolean
 }
 
@@ -118,6 +163,18 @@ type StockLotSatiri = {
   supplier_name: string | null
   origin_type: string
 }
+
+/**
+ * Kart okumalarında istenen alanlar — TEK YERDE.
+ *
+ * ⚠️ Aynı liste iki sorguda tekrar ediyordu, şimdi üç oldu. 0093/0094'ün iki
+ * yeni alanını eklerken birini atlamak, o yoldan dönen kartta alanın sessizce
+ * `undefined` kalması demekti; ekran da "koşul yazılı değil" derdi. Liste
+ * artık tek yerde.
+ */
+const KALEM_ALANLARI = 'id, code, name, category, base_uom, tracks_lot, '
+  + 'tracks_expiry, min_qty, vat_rate, storage_condition, '
+  + 'opened_shelf_life_days, is_active'
 
 const kalemeCevir = (satir: StockItemSatiri): KatalogKalemi => ({
   id: satir.id,
@@ -132,6 +189,10 @@ const kalemeCevir = (satir: StockItemSatiri): KatalogKalemi => ({
   minMiktar: Number(satir.min_qty),
   kdvOrani: satir.vat_rate === null || satir.vat_rate === undefined
     ? undefined : Number(satir.vat_rate),
+  saklamaKosulu: bosaCevir(satir.storage_condition),
+  acikRafOmruGun: satir.opened_shelf_life_days === null
+    || satir.opened_shelf_life_days === undefined
+    ? undefined : Number(satir.opened_shelf_life_days),
   aktif: satir.is_active,
 })
 
@@ -158,7 +219,7 @@ export class PostgresStokKatalogu implements StokKatalogu {
   async kalemler(_ctx: TenantCtx): Promise<KatalogKalemi[]> {
     const { data, error } = await this.client
       .from('stock_item')
-      .select('id, code, name, category, base_uom, tracks_lot, tracks_expiry, min_qty, vat_rate, is_active')
+      .select(KALEM_ALANLARI)
       .order('name', { ascending: true })
 
     if(error) throw new Error(`Stok kalemleri okunamadı: ${error.message}`)
@@ -180,8 +241,13 @@ export class PostgresStokKatalogu implements StokKatalogu {
         tracks_expiry: girdi.sktTakipli,
         min_qty: girdi.minMiktar ?? 0,
         vat_rate: girdi.kdvOrani ?? null,
+        // ⚠️ Boş metin DEĞİL null: şemada `btrim(storage_condition) <> ''`
+        // kısıtı var (0093) ve boş metin onu ihlal eder. "Belirlenmedi"
+        // null ile ifade edilir.
+        storage_condition: girdi.saklamaKosulu?.trim() || null,
+        opened_shelf_life_days: girdi.acikRafOmruGun ?? null,
       })
-      .select('id, code, name, category, base_uom, tracks_lot, tracks_expiry, min_qty, vat_rate, is_active')
+      .select(KALEM_ALANLARI)
       .single()
 
     if(error){
@@ -190,6 +256,38 @@ export class PostgresStokKatalogu implements StokKatalogu {
       }
       throw new Error(`Stok kalemi oluşturulamadı: ${error.message}`)
     }
+    return kalemeCevir(data as StockItemSatiri)
+  }
+
+  /**
+   * ⚠️ Gönderilmeyen alan sorguya HİÇ GİRMİYOR, `null` gönderilen alan
+   * boşaltılıyor. İkisini birleştirmek "açık raf ömrünü yazarken saklama
+   * koşulunu silmek" sınıfı sessiz veri kaybı demek olurdu.
+   */
+  async kalemBeyaniniGuncelle(
+    _ctx: TenantCtx, kalemId: string, beyan: KartBeyani,
+  ): Promise<KatalogKalemi> {
+    const yama: Record<string, unknown> = {}
+    if(beyan.saklamaKosulu !== undefined){
+      yama.storage_condition = beyan.saklamaKosulu?.trim() || null
+    }
+    if(beyan.acikRafOmruGun !== undefined){
+      yama.opened_shelf_life_days = beyan.acikRafOmruGun
+    }
+    if(Object.keys(yama).length === 0){
+      throw new Error('Güncellenecek bir alan verilmedi.')
+    }
+
+    const { data, error } = await this.client
+      .from('stock_item')
+      .update(yama)
+      .eq('id', kalemId)
+      .select(KALEM_ALANLARI)
+      .single()
+
+    // ⚠️ Sunucunun MI403 cümlesi hangi iznin gerektiğini zaten söylüyor
+    // (0096); üstüne kendi tahminimizi yazmıyoruz.
+    if(error) throw new Error(`Ürün kartı güncellenemedi: ${error.message}`)
     return kalemeCevir(data as StockItemSatiri)
   }
 

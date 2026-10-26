@@ -23,7 +23,9 @@ import { getSupabase, isSupabaseConfigured } from '../core/supabase'
 import { createStockRepository, resolveStockRepositoryMode } from '../core/stock/index'
 import { InMemoryStockItemLookup } from '../core/stock/stock-item-lookup'
 import type { Movement, MovementReason } from '../core/stock/stock.repository'
-import { PostgresStokKatalogu, type Birim, type YeniKalem } from '../warehouse/warehouse.catalog'
+import {
+  PostgresStokKatalogu, type Birim, type KartBeyani, type YeniKalem,
+} from '../warehouse/warehouse.catalog'
 import { convertUom } from '../core/stock/uom'
 import {
   DepoServisi,
@@ -55,7 +57,8 @@ import {
 } from '../authorization/maliyet-gorunurlugu'
 
 type Props = { currentUser: User }
-type Islem = 'kabul' | 'cikis' | 'sayim' | 'yeni-kalem' | 'ice-aktar' | null
+type Islem = 'kabul' | 'cikis' | 'sayim' | 'yeni-kalem' | 'ice-aktar'
+  | 'saklama' | null
 
 const NEDEN_ETIKETLERI: Record<MovementReason, string> = {
   PURCHASE_RECEIPT: 'Mal kabul',
@@ -282,6 +285,14 @@ export default function Warehouse({ currentUser }: Props){
   // (tuzak 71): liste kaybolunca kapı açılıyordu. Kapının bilmediği
   // durumda AÇIK kalması, kapı olmaması demektir.
   const yazabilir = yazabilirMi(currentUser, 'stock.write')
+  /**
+   * ⚠️ SAKLAMA BEYANI AYRI BİR KAPI. `stock.write` kalite sorumlusunda ve
+   * gıda mühendisinde YOK (role_permission'da ölçüldü) — ama saklama koşulu
+   * müşteriye yapılan bir beyandır ve onu yazması gereken tam o iki rol.
+   * Göç 0096 bu iki alanı beyan sayıyor: `stock.write` VEYA
+   * `quality.declaration` yeter. Buradaki ifade onun ekrandaki yüzü.
+   */
+  const beyanYazabilir = yazabilir || yazabilirMi(currentUser, 'quality.declaration')
 
   const [baglam, setBaglam] = React.useState<DepoBaglami | null>(null)
   const [birimler, setBirimler] = React.useState<Birim[]>([])
@@ -590,8 +601,13 @@ export default function Warehouse({ currentUser }: Props){
                 sutunlar={KALEM_SUTUNLARI}
                 sablonDosyaAdi="stok-kartlari-sablon.xlsx"
                 cozumle={satirlar => kalemleriCozumle(satirlar, kalemler, birimler)}
-                // Katalogda henüz "kalem güncelle" işlemi YOK; kodu zaten olan
-                // satırlar atlanır. Panel bunu ekranda açıkça yazıyor.
+                // ⚠️ Aktarım kart GÜNCELLEMİYOR; kodu zaten olan satırlar
+                // atlanır. Panel bunu ekranda açıkça yazıyor.
+                // ⚠️ 26.10.2026 · Katalogda artık `kalemBeyaniniGuncelle`
+                // VAR ama YALNIZ iki beyan alanı için (saklama koşulu, açık
+                // raf ömrü) ve bilerek öyle: kod tekillik anahtarı, temel
+                // birim defterin birimi — ikisi de sonradan değişemez. Yani
+                // aktarımın "güncelleme yok" davranışı hâlâ doğru.
                 guncellemeDestekli={false}
                 yaz={(onizleme: KalemOnizlemesi) => satirlariYaz(
                   onizleme,
@@ -635,6 +651,32 @@ export default function Warehouse({ currentUser }: Props){
                   <h3>{secili.ad}</h3>
                   <span className="warehouse-qty-big">{bicimle(secili.miktar)} {secili.temelBirim}</span>
                 </div>
+                {/* ── SAKLAMA BEYANI · HER ZAMAN GÖRÜNÜR ────────────────
+                    ⚠️ Bu satır `yazabilir` kapısının DIŞINDA: koşulun ne
+                    olduğunu görmek bir yazma işlemi değil. Üstelik eksikliği
+                    görünmezse kimse düzeltmez — şahit numune tam bu alan
+                    yüzünden alınamıyor. */}
+                <p className="muted detail-hint" style={{ margin: '0 0 12px' }}>
+                  <strong>Saklama koşulu:</strong>{' '}
+                  {secili.saklamaKosulu ?? 'belirlenmedi'}
+                  {secili.acikRafOmruGun
+                    ? ` · açıldıktan sonra ${secili.acikRafOmruGun} gün uygun`
+                    : ''}
+                  {!secili.saklamaKosulu && (
+                    <>
+                      {' — '}müşteriye bildirilen koşul yazılı olmadan bu
+                      üründen <strong>şahit numune alınamaz</strong>.
+                    </>
+                  )}
+                </p>
+                {beyanYazabilir && (
+                  <div className="form-actions" style={{ marginBottom: 12 }}>
+                    <button className="btn" onClick={() => { setIslem('saklama'); setHata('') }}>
+                      Saklama Beyanı
+                    </button>
+                  </div>
+                )}
+
                 {yazabilir ? (
                   <>
                     <div className="form-actions">
@@ -653,6 +695,32 @@ export default function Warehouse({ currentUser }: Props){
                   <p className="muted">İşlem yapmak için <code>stock.write</code> izni gerekiyor.</p>
                 )}
               </section>
+
+              {islem === 'saklama' && beyanYazabilir && (
+                <section className="card">
+                  <div className="section-header compact"><h3>Saklama Beyanı</h3></div>
+                  <p className="muted detail-hint">
+                    Müşteriye <strong>bildirdiğiniz</strong> koşulu yazın. Şahit
+                    numune bu koşulun <strong>aynısında</strong> saklanır
+                    (Emrah'ın kuralı: <em>"birebir aynısı, müşteri gibi"</em>) ve
+                    numune kaydı bu alandan kopyalanır — sonradan kart değişse
+                    bile o numune, alındığı gün söylenen koşulu taşır.
+                  </p>
+                  <SaklamaBeyaniFormu
+                    kalem={secili}
+                    onIptal={() => setIslem(null)}
+                    onKaydet={async beyan => {
+                      try{
+                        await servis!.kalemBeyaniniGuncelle(baglam.ctx, secili.id, beyan)
+                        setIslem(null)
+                        setHata('')
+                        setBilgi('Saklama beyanı kaydedildi.')
+                        await kalemleriYenile(baglam)
+                      } catch (e) { setHata(hataMetni(e)) }
+                    }}
+                  />
+                </section>
+              )}
 
               {islem === 'kabul' && (
                 <section className="card">
@@ -879,7 +947,7 @@ export default function Warehouse({ currentUser }: Props){
 
 function YeniKalemFormu({ birimler, onKaydet, onIptal }: {
   birimler: Birim[]
-  onKaydet: (girdi: { kod: string; ad: string; temelBirim: string; lotTakipli: boolean; sktTakipli: boolean; minMiktar: number; kdvOrani?: number }) => void | Promise<void>
+  onKaydet: (girdi: { kod: string; ad: string; temelBirim: string; lotTakipli: boolean; sktTakipli: boolean; minMiktar: number; kdvOrani?: number; saklamaKosulu?: string; acikRafOmruGun?: number }) => void | Promise<void>
   onIptal: () => void
 }){
   const [kod, setKod] = React.useState('')
@@ -891,15 +959,23 @@ function YeniKalemFormu({ birimler, onKaydet, onIptal }: {
   // ⚠️ Varsayılan BOŞ. Gıdada tek oran yok (temel gıda %1, yeme-içme %10);
   // hazır bir oran yazsaydık kimsenin sorgulamadığı yanlış bir sayı olurdu.
   const [kdv, setKdv] = React.useState('')
+  // ⚠️ İkisi de BOŞ başlıyor. Uydurma bir saklama koşulu, etikete basılan ve
+  // şahit numunenin uymak zorunda olduğu cümleyi uydurmak olurdu (0093).
+  const [saklama, setSaklama] = React.useState('')
+  const [acikOmur, setAcikOmur] = React.useState('')
 
   return (
     <form className="stacked-form" onSubmit={e => {
       e.preventDefault()
       const oran = kdv.trim() === '' ? undefined : Number(kdv)
+      const omur = acikOmur.trim() === '' ? undefined : Number(acikOmur)
       void onKaydet({
         kod, ad, temelBirim, lotTakipli, sktTakipli,
         minMiktar: Number(minMiktar) || 0,
         ...(oran !== undefined && Number.isFinite(oran) ? { kdvOrani: oran } : {}),
+        ...(saklama.trim() === '' ? {} : { saklamaKosulu: saklama.trim() }),
+        ...(omur !== undefined && Number.isFinite(omur) && omur > 0
+          ? { acikRafOmruGun: omur } : {}),
       })
     }}>
       <div className="form-field"><label>Kod</label>
@@ -926,6 +1002,28 @@ function YeniKalemFormu({ birimler, onKaydet, onIptal }: {
           bu oran satıra kopyalanır ve orada donar.
         </small>
       </div>
+      <div className="form-field"><label>Saklama koşulu</label>
+        <input
+          value={saklama} placeholder="örn. -18 °C  ·  boş = belirlenmedi"
+          onChange={e => setSaklama(e.target.value)}
+        />
+        <small className="muted">
+          Müşteriye <strong>bildirdiğiniz</strong> koşul. Etiket de buradan
+          okur, şahit numune de — numune bu koşulun aynısında saklanır. Emin
+          değilseniz boş bırakın; sonradan yazabilirsiniz.
+        </small>
+      </div>
+      <div className="form-field"><label>Açıldıktan sonra kaç gün uygun</label>
+        <input
+          type="number" min="1" step="1" value={acikOmur}
+          placeholder="boş = belirlenmedi"
+          onChange={e => setAcikOmur(e.target.value)}
+        />
+        <small className="muted">
+          Şahit numune açıldığında saklama sonu bu sayı kadar kısalır. Boşsa
+          saklama sonu partinin son kullanma tarihi olarak kalır.
+        </small>
+      </div>
       <label className="check-row form-check-field">
         <input type="checkbox" checked={lotTakipli} onChange={e => setLotTakipli(e.target.checked)} /> Lot takibi
       </label>
@@ -944,6 +1042,61 @@ function YeniKalemFormu({ birimler, onKaydet, onIptal }: {
         çünkü her parti farklı tarih taşır. İşaretliyken: lotsuz giriş yapılamaz,
         SKT’siz parti açılamaz, çıkışta FEFO uygulanır.
       </p>
+      <div className="form-actions">
+        <button className="btn primary" type="submit">Kaydet</button>
+        <button className="btn" type="button" onClick={onIptal}>İptal</button>
+      </div>
+    </form>
+  )
+}
+
+/**
+ * Saklama beyanı formu.
+ *
+ * ⚠️ BOŞ BIRAKMAK BİR SEÇENEK ve bu bilinçli: koşulu bilmiyorsa yazmaması
+ * gerekir. Bir varsayılan koymak ("oda sıcaklığı" gibi) müşteriye yanlış bir
+ * şey söylemek ve şahit numuneyi yanlış koşulda saklamak olurdu.
+ *
+ * ⚠️ Alan BOŞALTILABİLİYOR: daha önce yazılmış bir koşul yanlışsa silinmesi
+ * gerekir. `null` gönderiliyor (alanı boşalt), `undefined` değil (dokunma).
+ */
+function SaklamaBeyaniFormu({ kalem, onKaydet, onIptal }: {
+  kalem: DepoKalemi
+  onKaydet: (beyan: KartBeyani) => void | Promise<void>
+  onIptal: () => void
+}){
+  const [kosul, setKosul] = React.useState(kalem.saklamaKosulu ?? '')
+  const [omur, setOmur] = React.useState(
+    kalem.acikRafOmruGun === undefined ? '' : String(kalem.acikRafOmruGun),
+  )
+
+  return (
+    <form className="stacked-form" onSubmit={e => {
+      e.preventDefault()
+      const sayi = omur.trim() === '' ? null : Number(omur)
+      void onKaydet({
+        saklamaKosulu: kosul.trim() === '' ? null : kosul.trim(),
+        acikRafOmruGun: sayi !== null && Number.isFinite(sayi) && sayi > 0
+          ? sayi : null,
+      })
+    }}>
+      <div className="form-field"><label>Saklama koşulu</label>
+        <input
+          value={kosul} placeholder="örn. -18 °C  ·  boş = belirlenmedi"
+          onChange={e => setKosul(e.target.value)}
+        />
+        <small className="muted">
+          Müşteriye bildirdiğiniz koşulun aynısı. Boş bırakmak "belirlenmedi"
+          demektir; bu üründen şahit numune alınamaz.
+        </small>
+      </div>
+      <div className="form-field"><label>Açıldıktan sonra kaç gün uygun</label>
+        <input
+          type="number" min="1" step="1" value={omur}
+          placeholder="boş = belirlenmedi"
+          onChange={e => setOmur(e.target.value)}
+        />
+      </div>
       <div className="form-actions">
         <button className="btn primary" type="submit">Kaydet</button>
         <button className="btn" type="button" onClick={onIptal}>İptal</button>

@@ -21,6 +21,7 @@ begin;
 --  14 · Açılış durumu ACILDI yapıyor mu?                 → EVET
 --  15 · Olay kaydı değiştirilebiliyor mu?                → DEĞİŞTİRİLEMEMELİ
 --  16 · İmha durumu IMHA yapıyor mu?                     → EVET
+--       ⚠️ 0097'den sonra imhayı ONAYLAYABİLEN rol yazar (bkz. prova-0097)
 --  17 · İmhadan sonra yeni olay yazılabiliyor mu?        → YAZILAMAMALI
 --  18 · Aynı partide ikinci AÇIK numune?                 → AÇILAMAMALI
 --  19 · İmhadan sonra yeniden numune alınabiliyor mu?    → ALINABİLMELİ
@@ -168,7 +169,14 @@ begin
 
   select id, storage_condition, keep_until, taken_by
     into v_id, v_kosul, v_sonu, v_imza
-    from public.witness_sample where sample_code_key = 'num-1';
+    -- ⚠️ 26.10.2026 · BURADA `sample_code_key = 'num-1'` YAZIYORDU ve göç
+    -- 0094'ten sonra HİÇBİR SATIR BULMADI. Sebep gevşeme değil SIKILAŞMA:
+    -- 0094 tekillik anahtarını SUNUCUDA türetiyor (istemcinin gönderdiği
+    -- anahtar yok sayılıyor), kural `normalizeIdentifier()` ile aynı olduğu
+    -- için anahtar artık 'NUM-1'. Bu prova eski kuralı — "anahtarı ekran
+    -- yazar" — kodlamıştı. Gevşetilmedi: arama insanın gördüğü KODA çevrildi,
+    -- anahtarın kendisi 0094'ün provasında ayrıca ölçülüyor (sınama 15/16).
+    from public.witness_sample where sample_code = 'NUM-1';
 
   -- 4-5 · koşul ürün kartından geldi, ekranınki yok sayıldı
   perform prova_bak('4 · saklama kosulu URUN KARTINDAN geldi (gelen: '||v_kosul||')',
@@ -271,6 +279,16 @@ begin
                and g.tgname = 'numune_olayi_degismez' and not g.tgisinternal));
 
   -- 16 · imha
+  -- ⚠️ 26.10.2026 · BURADA OTURUM ÜRETİM SORUMLUSUNDAYDI ve göç 0097'den
+  -- sonra MI403 ile kırmızı döndü. Gevşeme değil SIKILAŞMA: Emrah'ın
+  -- kararıyla (*"müdür onaylar ama müdür yoksa gıda mühendisi veya
+  -- kalitecide onaylayabilir"*) imha bir ONAY işi oldu ve üretim sorumlusu
+  -- artık imha yazamıyor.
+  -- ⚠️ Prova GEVŞETİLMEDİ: sınama kuralın yeni hâlini ölçüyor, oturum
+  -- onaylayabilen bir role geçiyor. Üretimin imha YAZAMADIĞI ayrıca
+  -- `prova-0097.sql` sınama 3'te ölçülüyor — yani eski davranışın gittiği
+  -- de kayıtlı, sessizce değişmedi.
+  perform prova_oturum(current_setting('prova.auth.kalite_sorumlusu')::uuid);
   insert into public.witness_sample_event (tenant_id, sample_id, event_type, reason)
   values (v_t, v_id, 'IMHA', 'SKT doldu, imha edildi');
   select status into v_durum from public.witness_sample where id = v_id;
@@ -278,6 +296,11 @@ begin
     v_durum = 'IMHA');
 
   -- 17 · imhadan sonra yeni olay
+  -- ⚠️ Oturum ÜRETİME geri alınıyor: bu sınama "imha edilmiş defter kapandı"
+  -- kuralını ölçüyor, izin kuralını değil. Açılış yazmak üretimin hakkı;
+  -- reddedilmesinin sebebi MI409 (defter kapalı) olmalı, MI403 (izin yok)
+  -- değil. Rolü kalitede bırakmak, yanlış sebeple yeşil olmak olurdu.
+  perform prova_oturum(current_setting('prova.auth.uretim_sorumlusu')::uuid);
   begin
     insert into public.witness_sample_event (tenant_id, sample_id, event_type, reason)
     values (v_t, v_id, 'ACILDI', 'tekrar acalim');
