@@ -661,6 +661,22 @@ taşıyor, rota değil"*, olumsuz kontrolle. Yani biçim varsayımının kendisi
 de ölçülüyor; yardımcı bir gün rotaya dönerse tek bir sınama kırılıyor,
 yedi tanesi birden *"ekran yok"* demiyor.
 
+**126 · BİR ENGELİ YALNIZ SEÇİLİ ÖGE İÇİN GÖSTERMEK, SEÇEMEYEN KULLANICIYA
+HİÇ GÖSTERMEMEKTİR.** (26.10) Şahit Numune ekranında parti listesi doluydu
+ama hepsi "seçilemez" durumdaydı (ürün kartlarında saklama koşulu yazılı
+değil). Sebebi yazmıştım — ama **yalnız SEÇİLEN parti için.** Kullanıcı
+hiçbir şey seçemediği için sebebi hiç görmedi. Emrah ekranı açtı ve
+*"numune alamıyorum"* dedi; ekran neden olmadığını söylemiyordu.
+⚠️ İki durum AYRI ve ayrı cümle ister: **"liste boş"** (yapacak bir şey
+yok) ile **"listede var ama hiçbiri seçilemez"** (eksik olan şey
+DÜZELTİLEBİLİR). İkincisinde kaç tanesinin neden seçilemediğini ve nerede
+düzeltileceğini söylemek gerekiyor.
+⚠️ Genel kural: bir seçim kontrolünde ögeleri `disabled` yapıyorsan,
+**hiçbirinin seçilemediği hâli ayrıca ele al.** O hâlde kullanıcı tek bir
+tıklama bile yapamaz ve senin yazdığın bütün açıklamalar erişilemez olur.
+Aynı tuzak boş liste + süzgeç kombinasyonlarında da geçerli: süzgecin
+hepsini elediği durum, verinin hiç olmadığı durumdan farklıdır.
+
 ---
 
 ## 5 · TEST İŞBÖLÜMÜ VE TESLİM KONTROL LİSTESİ
@@ -758,3 +774,6 @@ Son söz onun çıktısındadır.
 37. Bir yardımcıya sınama yazıyorsan **ne döndürdüğünü dosyadan oku**, ne
     döndürdüğünü hatırladığını sanma (tuzak 125). Beklenen değeri
     kaynağından türet ve biçim varsayımını ayrı bir sağlamayla ölç.
+38. Bir seçim kontrolünde öge `disabled` yapıyorsan **hiçbirinin
+    seçilemediği hâli ayrıca ele al** (tuzak 126). Yoksa yazdığın bütün
+    sebep açıklamaları erişilemez kalır.

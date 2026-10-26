@@ -776,6 +776,14 @@ Emrah'ın onayladığı sıra:
     Hem göçün doğrulaması hem prova bunu ayrıca ölçüyor (tuzak 122).
     Ekran tarafı: İmha düğmesi yalnız onaylayana görünüyor, numune alabilen
     ama onaylayamayan kişiye **sebebi yazılı** olarak söyleniyor.
+    ⚠️ **26.10 akşam · bir eksik daha kapandı.** Emrah ekranı açtı ve
+    *"numune alamıyorum"* dedi — haklıydı. Parti listesi doluydu ama hepsi
+    seçilemez durumdaydı (ürün kartlarında saklama koşulu yok) ve sebebi
+    **yalnız seçilen parti için** yazıyordu; kullanıcı seçemediği için
+    sebebi hiç görmedi. Artık hiçbiri seçilemiyorsa sebep TOPLUCA yazılıyor
+    (kaç partide saklama koşulu eksik, kaçının zaten numunesi var, nereden
+    düzeltilir) ve kısmen seçilebiliyorsa kaç tanesinin alınabildiği
+    söyleniyor (tuzak 126).
     Prova 0097: **13/13** — içinde "reddedilen imha durumu DEĞİŞTİRMEDİ"
     ve "üretim numune almaya/açmaya DEVAM EDİYOR" sınamaları.
   - ✅ **3.9.8** ⚠️ **0090'IN DONDURDUĞU YÜZEY 0093'TE SESSİZCE BÜYÜMÜŞ
@@ -1462,7 +1470,7 @@ yanlışlıkla çalıştırılma riski var (6.11).
 | Mock dosya | 36 · hiçbiri açık kiracı rotasından erişilemiyor |
 | Public yol | **2** · başvuru formu + müşteri portalı (ölçülüp donduruldu) |
 | Giriş vitrini | dondurulmuş **20 modül adının** hiçbiri geçmiyor (ölçüldü, donduruldu) |
-| Tuzak | **125** (26.10: 116–125 eklendi) |
+| Tuzak | **126** (26.10: 116–126 eklendi) |
 
 ⚠️ "Mock dosya" satırı **yanıltıcıydı:** doğru olan ama yetmeyen bir ölçüm.
 Asıl tehlike adı mock olmayan üreticilerdi; üstteki satır onu gösteriyor.

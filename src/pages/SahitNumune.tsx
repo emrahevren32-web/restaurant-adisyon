@@ -45,7 +45,8 @@ import {
   type NumuneAdayi, type NumuneDurumu, type NumuneOlayi, type SahitNumune,
 } from '../quality/witness-sample.repository'
 import {
-  gerekceYeterliMi, kalanGun, numuneAlinamazSebebi, numuneKoduYeterliMi,
+  gerekceYeterliMi, kalanGun, numuneAlinabilir, numuneAlinamazSebebi,
+  numuneKoduYeterliMi,
   numuneOzeti, numuneSirasi, suresiDolduMu,
 } from '../quality/witness-sample.service'
 
@@ -173,6 +174,24 @@ export default function SahitNumune({ currentUser }: Props){
   const aktifBaglam = baglam
   const ozet = numuneOzeti(numuneler)
   const sirali = numuneSirasi(numuneler)
+  /**
+   * ⚠️ 26.10 · EMRAH'IN EKRANINDA GÖRDÜĞÜM EKSİK.
+   *
+   * Parti listesi DOLU ama hepsi seçilemez durumdaysa kullanıcı hiçbir şey
+   * seçemiyor ve **sebebini hiç görmüyordu**: sebep yalnız SEÇİLEN parti
+   * için yazılıyordu, seçemediği için de hiç yazılmıyordu. Emrah ekranı
+   * açtı, "numune alamıyorum" dedi ve haklıydı — ekran neden olmadığını
+   * söylemiyordu.
+   *
+   * ⚠️ "Liste boş" ile "listede var ama hiçbiri seçilemez" AYRI iki durum
+   * ve ayrı iki cümle ister. İkincisinde eksik olan şey DÜZELTİLEBİLİR;
+   * nerede düzeltileceğini söylemek bu ekranın işi.
+   */
+  const secilebilirler = adaylar.filter(numuneAlinabilir)
+  const kosulsuzlar = adaylar.filter(
+    a => !a.saklamaKosulu || a.saklamaKosulu.trim() === '').length
+  const numunesiOlanlar = adaylar.filter(a => a.numunesiVar).length
+
   const secili = adaylar.find(a => a.lotId === secilenLot)
   const seciliEngel = secili ? numuneAlinamazSebebi(secili) : undefined
   const alinabilir = yazabilir && !!secili && !seciliEngel && numuneKoduYeterliMi(yeniKod)
@@ -322,6 +341,41 @@ export default function SahitNumune({ currentUser }: Props){
             </p>
           ) : (
             <div className="stacked-form">
+              {/* ⚠️ HİÇBİRİ SEÇİLEMİYORSA SEBEBİ BURADA, TOPLUCA.
+                  Seçilemeyen bir listede tek tek sebep göstermek işe
+                  yaramıyor: kullanıcı seçemediği için sebebi hiç
+                  göremiyor. */}
+              {secilebilirler.length === 0 && (
+                <p className="muted" style={{ margin: 0 }}>
+                  <strong>
+                    Listedeki {adaylar.length} partinin hiçbirinden şu anda
+                    numune alınamıyor.
+                  </strong>
+                  {kosulsuzlar > 0 && (
+                    <>
+                      {' '}<strong>{kosulsuzlar}</strong> partinin ürün kartında{' '}
+                      <strong>saklama koşulu yazılı değil</strong> — şahit numune
+                      müşteriye bildirilen koşulun aynısında saklanmak zorunda.
+                      Depo ekranında ürünü seçip <strong>“Saklama Beyanı”</strong>{' '}
+                      düğmesinden koşulu yazın, sonra buraya dönün.
+                    </>
+                  )}
+                  {numunesiOlanlar > 0 && (
+                    <>
+                      {' '}<strong>{numunesiOlanlar}</strong> partinin açık bir
+                      şahit numunesi zaten var.
+                    </>
+                  )}
+                </p>
+              )}
+              {secilebilirler.length > 0 && secilebilirler.length < adaylar.length && (
+                <p className="muted" style={{ margin: 0 }}>
+                  {adaylar.length} partiden <strong>{secilebilirler.length}</strong>{' '}
+                  tanesinden numune alınabiliyor; kalanlar listede
+                  <strong> seçilemez</strong> olarak duruyor, sebebi seçince
+                  yazıyor.
+                </p>
+              )}
               <div className="form-field">
                 <label>Parti</label>
                 <select value={secilenLot} onChange={e => setSecilenLot(e.target.value)}>

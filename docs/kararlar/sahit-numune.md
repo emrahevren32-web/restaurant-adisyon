@@ -233,6 +233,11 @@ zorunlu). Ürün kartına saklama beyanı **Depo ekranından** yazılıyor.
 raf ömrü ve imza sunucudan geliyor. Ekranda hesaplanan tek şey "bugün o
 günü geçti mi" GÖSTERİMİ.
 
+⚠️ **Hiçbir parti seçilemiyorsa sebep TOPLUCA yazılıyor** (26.10 akşam):
+"listede parti var ama hepsi seçilemez" hâli, "liste boş" hâlinden ayrı bir
+cümle ister — çünkü eksik olan şey düzeltilebilir ve nerede düzeltileceğini
+söylemek bu ekranın işi (tuzak 126).
+
 ⚠️ **Görme izni `quality.read`** — ölçüldü, tahmin edilmedi: altı rolde
 de var (kalite, gıda mühendisi, üretim, **depo**, müdür, sahip) ve altısı
 da bu akışın içinde. Yazma kapısı daha dar: `quality.record.manage` veya
