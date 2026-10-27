@@ -127,3 +127,56 @@ describe('etiketHtml', () => {
     expect(h).toContain('&lt;img src=x')
   })
 })
+
+
+// ═══════════════════════════════════════════════════════════════════════════
+// SAKLAMA KOŞULU · TASLAK ÖLÇÜTÜ (3.9.3)
+//
+// Karar (27.10 · Emrah): saklama koşulu HER ÜRÜNDE zorunlu değil. Türk Gıda
+// Kodeksi "gerektiğinde" diyor. Ayırt edici ölçüt lot/SKT takibi: takip
+// edilen ürün bozulabilen üründür.
+//
+// ⚠️ Her iki yön de ölçülüyor. Yalnız "zorunluyken eksik veriyor mu" diye
+// sorsaydık, HER ürünü taslağa düşüren bir kuralı da onaylardık.
+// ═══════════════════════════════════════════════════════════════════════════
+describe('saklama koşulu · taslak ölçütü', () => {
+  it('ZORUNLU ve boşsa eksik listesine giriyor', () => {
+    const e = etiketEksikleri(tam({ saklama: undefined, saklamaZorunlu: true }))
+    expect(e.some(x => x.includes('Saklama koşulu'))).toBe(true)
+  })
+
+  it('zorunlu ve boşsa etiket TASLAK', () => {
+    expect(etiketKesilebilir(tam({ saklama: undefined, saklamaZorunlu: true })))
+      .toBe(false)
+  })
+
+  it('⚠️ ZORUNLU DEĞİLSE boş olması etiketi taslak YAPMIYOR', () => {
+    const v = tam({ saklama: undefined })
+    expect(v.saklamaZorunlu).toBeUndefined()
+    expect(etiketEksikleri(v).some(x => x.includes('Saklama koşulu'))).toBe(false)
+    expect(etiketKesilebilir(v)).toBe(true)
+  })
+
+  it('zorunlu ama DOLUYSA eksik yok', () => {
+    const v = tam({ saklama: '-18 °C', saklamaZorunlu: true })
+    expect(etiketEksikleri(v).some(x => x.includes('Saklama koşulu'))).toBe(false)
+    expect(etiketKesilebilir(v)).toBe(true)
+  })
+
+  it('eksik cümlesi NEREYE yazılacağını söylüyor', () => {
+    // "Saklama koşulu yok" diyen ama nereye yazılacağını söylemeyen bir mesaj,
+    // kullanıcıyı çaresiz bırakır (0071'in hata mesajı kuralı).
+    const e = etiketEksikleri(tam({ saklama: undefined, saklamaZorunlu: true }))
+    expect(e.find(x => x.includes('Saklama koşulu'))).toMatch(/Saklama Beyanı/)
+  })
+
+  it('zorunlu ve boşken TASLAK bandı kâğıda basılıyor', () => {
+    const h = etiketHtml(tam({ saklama: undefined, saklamaZorunlu: true }))
+    expect(h).toContain('TASLAK')
+    expect(h).toMatch(/Saklama koşulu/)
+  })
+
+  it('saklama doluysa etikette Saklama satırı var', () => {
+    expect(etiketHtml(tam({ saklama: '-18 °C' }))).toContain('-18 °C')
+  })
+})

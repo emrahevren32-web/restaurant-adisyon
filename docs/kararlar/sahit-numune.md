@@ -254,8 +254,59 @@ HEDEFLER **A5** (demo öncesi) ve **3.9.1/3.9.4/3.9.6**.
   Prova **61 sınama**.
 - ✅ **EKRAN AÇILDI** — Kalite → Şahit Numune (26.10).
 - ✅ **Ürün kartına saklama beyanı yazılabiliyor** — Depo ekranı.
-- ⬜ **Etiket ekranı saklama koşulunu ürün kartından okumalı** (3.9.3).
-  **Kalan tek iş bu.**
+- ✅ **Etiket saklama koşulunu ürün kartından okuyor** (3.9.3 · 27.10).
+  **Şahit numune tam bitti.**
 - ✅ **İmha onayı kararı verildi ve zorlandı** — göç 0097, prova 13/13.
   Müdür onaylar; müdür yoksa gıda mühendisi ya da kalite sorumlusu.
   Üretim sorumlusu numune alır ve açar, **imha edemez.**
+
+
+---
+
+## Etiket saklama koşulu · kaynak kararı (27.10.2026)
+
+Göç 0093 `stock_item.storage_condition` sütununu açarken yorumuna şunu
+yazmıştı: *"Etiket de buradan okumalı."* **Okumuyordu.** Etiketteki Saklama
+satırı ekranda her baskıda elle yazılan serbest bir metindi.
+
+Bu bir yazım hatası değil, bir ÇELİŞKİ kaynağıydı: aynı lotun şahit numunesi
+saklama koşulunu **karttan** kopyalıyor (0093/0094). Yani tek ürünün iki
+"kayıtlı" saklama koşulu olabiliyordu — biri numune defterinde, biri
+ambalajın üstünde. İkisi de kayıtlı görünür, hangisinin doğru olduğunu kimse
+bilemez. Bu modülün bütün varlık sebebi *"numune, müşteriye söylenenin
+aynısında durur"* iddiasıydı; o iddia bu çelişkiyle çöküyordu.
+
+### Karar 1 · Kaynak: ÜRÜN KARTI ÖNCE
+
+Kart doluysa ekranda yazılan değer **yok sayılır**. Ekran kartla çelişen bir
+etiket basabilseydi, *"kartta ne yazıyorsa o basılır"* güvencesi biterdi.
+
+### Karar 2 · Zorunluluk ölçütü: LOT ya da SKT TAKİBİ (Emrah, seçenek c)
+
+Saklama koşulu **her üründe zorunlu değil.** Türk Gıda Kodeksi
+*"gerektiğinde"* diyor: kuru bakliyatta aranmaz, soğuk zincirde şarttır.
+Ayırt edici ölçüt **takip**: lot ya da SKT takibi açık olan ürün,
+bozulabilen üründür.
+
+- Takipli üründe koşul boşsa → etiket **TASLAK**, eksik cümlesi nereye
+  yazılacağını söyler (Depo → Saklama Beyanı).
+- Takipsiz üründe boşsa → satır sessizce basılmaz. Zorunlu tutsaydık kural
+  değil **kilit** olurdu ve insanlar kuralı atlamanın yolunu arardı.
+
+### Karar 3 · Elle yazılan kutu KALIYOR ama dürüstleşiyor (Emrah)
+
+- Kart doluysa kutu **salt okunur**, altında *"ürün kartından geliyor ·
+  değiştirmek için Depo → Saklama Beyanı"*.
+- Kart boşsa yazılabilir, ama ekran *"bu değer karta kaydedilmedi, bir
+  sonraki baskıda yeniden yazman gerekir"* der.
+
+Kullanıcı etikette gördüğü değerin **nereden geldiğini** biliyor; yanlışsa
+nereyi düzelteceğini de.
+
+### Ölçüm
+
+9 servis sınaması + 7 belge sınaması + `etiket-saklama-kaynagi.arch.test.ts`
+(7 sınama). Emrah'ın koşusunda toplam **1584 test**. Mimari test **dosyanın metnini** ölçüyor: arıza bir sütunun
+`select` listesinde olmamasıydı ve sahte depolu bir davranış testi gerçek
+sorguyu hiç görmez. Kuralı 0093'ün sütun yorumuna yazmak **uyarmadı**
+(tuzak 139: yorum hatırlatır, test engeller).

@@ -1,32 +1,45 @@
-goc 0101: fire dokumu finans kapisi geri konuyor (canlida YOKTU)
+3.9.3: etiket saklama kosulunu urun kartindan okuyor
 
-Canli teshis tablosu (27.10) olctu: app.fire_dokumu finans kapisi YOK.
-Fire dokumu TUTAR tasiyor ve gostergelerden daha ayrintili; kapisiz bir
-fire dokumu maliyeti herkese tek tek gosterir.
+Goc 0093 stock_item.storage_condition sutununu acarken yorumuna "Etiket de
+buradan okumali" yazmisti. OKUMUYORDU: etiketteki Saklama satiri ekranda her
+baskida elle yazilan serbest bir metindi.
 
-Depoda bu ada yalniz 0065 (ham hesap) ve 0071 (kapi) yaziyor. Yerelde kapi
-duruyor, canlida durmuyor -- yani canlida ya 0065 sonradan yeniden kostu ya
-0071 hic kosmadi. Hangisi oldugu BILINMIYOR; 0101 ikisini de onariyor ve
-hangi durumdan geldigini notice ile soyluyor.
+Bu bir yazim hatasi degil CELISKI kaynagiydi: ayni lotun sahit numunesi
+saklama kosulunu KARTTAN kopyaliyor (0093/0094). Yani tek urunun iki
+"kayitli" saklama kosulu olabiliyordu -- biri numune defterinde, biri
+ambalajin ustunde. Ikisi de kayitli gorunur, hangisi dogru bilinmez.
 
-- db/migrations/0101: ham hesap _ham'a (govde 0065'ten birebir), kapi asil
-  ada, security definer DEGIL. Dogrulama yalniz kendi yazdigini olcuyor
-  (tuzak 133) + dis yuzeyin (public.fire_dokumu) KAPIYI cagirdigini.
-- db/prova/prova-0101.sql: 17/17. Yapisal kontrol + GERCEK oturum olcumu:
-  depo_sorumlusu -> MI403, isletme_sahibi -> 4 kg fire. Rolun izni bile
-  varsayilmiyor, olculuyor. Bozuk durumdan KIRMIZI verdigi dogrulandi.
-  ILK HALI KOR PROVAYDI: `set local role authenticated` yoktu, RLS atlaniyordu
-  ve olumlu ayak yanlis sebeple yesildi. MIYOP-042'nin donmus listesi
-  (yazma-kapilari-tamam.arch.test.ts) yakaladi -- yazili kural degil, olcen
-  test uyardi (tuzak 139).
-- src/reporting/gosterge-kapisi.arch.test.ts: artik dosya listesi saymiyor,
-  db/migrations klasorunu tariyor -- "0071'den SONRAKI hicbir goc bu iki ada
-  ham hesap yazamaz" (tuzak 135).
-- db/prova/paket-bozuk-durumdan.sh: pipefail + --single-transaction (Codex),
-  ONARIR/DAYANIR ayrimi, mktemp izin hatasi. Dort senaryo yesil.
-- araclar/goc-bekleyen.sql: yalniz 0101. Guvenlik onarimi veriye bagli bir
-  gocle ayni pakette gitmez (tuzak 136).
-- docs: tuzak 135-139, kontrol listesi 48-51, HEDEFLER 3.9.10.
+- label.repository.ts: kalem sorgusu artik storage_condition, tracks_lot,
+  tracks_expiry sutunlarini da okuyor. EtiketKalemi saklamayi ve iki takip
+  bayragini tasiyor.
+- label.service.ts: KAYNAK SIRASI urun karti ONCE. Kart doluysa ekranda
+  yazilan deger YOK SAYILIYOR -- yoksa "kartta ne yaziyorsa o basilir"
+  guvencesi biter. saklamaZorunluMu() ve saklamaKaynagi() eklendi.
+- label-documents.ts: saklamaZorunlu bayragi + taslak olcutu.
+- Etiketler.tsx: kart doluyken kutu SALT OKUNUR ve "urun kartindan geliyor"
+  yaziyor; kart bosken yazilabiliyor ama "bu deger karta kaydedilmedi"
+  deniyor.
+
+Emrah'in kararlari:
+- (c) Kosul LOT ya da SKT takipli urunde zorunlu, otekinde sessiz. TGK
+  "gerektiginde" diyor; kuru bakliyatta aranmaz, soguk zincirde sarttir.
+  Zorunlu urunde bossa etiket TASLAK ve eksik cumlesi NEREYE yazilacagini
+  soyluyor. Takipsiz urunde satir sessizce basilmiyor -- zorunlu tutsak
+  kural degil kilit olurdu.
+- Elle yazilan kutu KALIYOR ama durustlesiyor (yukarida).
+
+Olcum: 9 servis sinamasi + 7 belge sinamasi + yeni mimari test
+src/production/etiket-saklama-kaynagi.arch.test.ts (7 sinama). Mimari test
+DOSYANIN METNINI olcuyor, cunku ariza bir sutunun select listesinde
+olmamasiydi; sahte depolu bir davranis testi gercek sorguyu hic gormez.
+Kurali 0093'un sutun yorumuna yazmak uyarmadi (tuzak 139).
+
+Sahit numune (A5) TAM BITTI. Kalan tek sey sayfalama borcu (3.9.9).
+
+Not: ilk kosuda iki sinama ReferenceError verdi -- import satirini
+degistiren betigimde `assert` yoktu, degisiklik sessizce uygulanmadi ve
+"yazdim" sandim. Kontrol listesi 49'un ta kendisi: yazdigini "written" diye
+kabul etme, ICERIGINDEN dogrula.
 
 Co-Authored-By: Claude Opus 5 <noreply@anthropic.com>
 Claude-Session: https://claude.ai/code/session_019BwYM3mAXZUhp4YGj7tp2y

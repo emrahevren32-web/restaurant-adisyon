@@ -150,7 +150,18 @@ export const etiketVerisiKur = (girdi: {
   if(girdi.lotKodu)      v.lotKodu      = girdi.lotKodu
   if(girdi.uretimTarihi) v.uretimTarihi = girdi.uretimTarihi
   if(girdi.sonKullanma)  v.sonKullanma  = girdi.sonKullanma
-  if(girdi.saklama)      v.saklama      = girdi.saklama
+
+  // ── SAKLAMA KOŞULU · KAYNAK SIRASI ───────────────────────────────────────
+  // ⚠️ ÜRÜN KARTI ÖNCE GELİR. Kart doluysa ekranda yazılan değer YOK SAYILIR.
+  // Sebep: aynı lotun şahit numunesi saklama koşulunu KARTTAN kopyalıyor
+  // (göç 0093/0094). Etiket elden yazılabilseydi tek ürünün iki farklı
+  // saklama koşulu olurdu — biri numune defterinde, biri ambalajın üstünde.
+  // "Kartta ne yazıyorsa o basılır" güvencesi ancak böyle ayakta kalır.
+  // Ekran bunu gizlemiyor: kart doluyken kutu salt okunur gösteriliyor.
+  const saklama = kirp(girdi.kalem.saklama) || kirp(girdi.saklama)
+  if(saklama) v.saklama = saklama
+  // ⚠️ Zorunluluk ölçütü ÜRÜNDEN geliyor, ekrandan değil (karar: Emrah, 27.10).
+  if(saklamaZorunluMu(girdi.kalem)) v.saklamaZorunlu = true
   if(girdi.besin){
     v.besin = {
       ...(girdi.besin.enerjiKj     !== undefined ? { enerjiKj: girdi.besin.enerjiKj } : {}),
@@ -164,6 +175,29 @@ export const etiketVerisiKur = (girdi: {
     }
   }
   return v
+}
+
+/**
+ * Saklama koşulu bu üründe ZORUNLU mu.
+ *
+ * ⚠️ Lot ya da SKT takibi = bozulabilen ürün. Takipsiz üründe (kuru
+ * bakliyat, ambalaj malzemesi) saklama koşulu aranmaz; aranırsa kural değil
+ * kilit olur ve insanlar kuralı atlamanın yolunu arar.
+ */
+export const saklamaZorunluMu = (kalem: EtiketKalemi): boolean =>
+  kalem.lotTakipli || kalem.sktTakipli
+
+/** Etikete basılacak saklama koşulu NEREDEN geliyor. */
+export type SaklamaKaynagi = 'kart' | 'elle' | 'yok'
+
+/**
+ * ⚠️ Ekran bunu YAZMAK ZORUNDA. Kullanıcı etikette gördüğü bir değerin
+ * nereden geldiğini bilmiyorsa, yanlış olduğunda nereyi düzelteceğini de
+ * bilmez.
+ */
+export const saklamaKaynagi = (kalem: EtiketKalemi, elle?: string): SaklamaKaynagi => {
+  if(kirp(kalem.saklama)) return 'kart'
+  return kirp(elle) ? 'elle' : 'yok'
 }
 
 /** Listede kalemin yanına yazılan tek cümle. */

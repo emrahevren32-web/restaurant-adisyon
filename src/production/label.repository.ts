@@ -42,6 +42,12 @@ export type EtiketKalemi = {
   /** BOŞ = alerjeni hiç incelenmemiş. "Alerjen yok" DEĞİL. */
   incelemeZamani?: string
   aktif: boolean
+  /** Ürün kartındaki saklama koşulu (göç 0093). Etiketin ASIL kaynağı. */
+  saklama?: string
+  /** Lot takibi açık mı — saklama koşulunun zorunlu olup olmadığını belirler. */
+  lotTakipli: boolean
+  /** SKT takibi açık mı — aynı ölçütün ikinci ayağı. */
+  sktTakipli: boolean
 }
 
 export type TuretilmisAlerjen = {
@@ -120,7 +126,13 @@ const sayi = (d: unknown): number | undefined =>
   d === null || d === undefined ? undefined : Number(d)
 
 // ⚠️ Sütun listeleri TEK PARÇA metin (tuzak 40).
-const KALEM_SUTUNLARI = 'id, code, name, base_uom, net_qty, net_uom, allergen_reviewed_at, is_active'
+// ⚠️ 27.10 · `storage_condition`, `tracks_lot`, `tracks_expiry` EKLENDİ.
+// Göç 0093 saklama koşulunu ürün kartına koyarken yorumuna "Etiket de
+// buradan okumalı" yazmıştı; okumuyordu — etiketteki saklama satırı
+// ekranda ELLE yazılıyordu. Aynı lotun şahit numunesi karttan kopyalanıyor,
+// etiketi elden geliyordu: iki farklı saklama koşulu, tek ürün (3.9.3).
+const KALEM_SUTUNLARI = 'id, code, name, base_uom, net_qty, net_uom, '
+  + 'allergen_reviewed_at, is_active, storage_condition, tracks_lot, tracks_expiry'
 const BESIN_SUTUNLARI = 'basis, energy_kj, energy_kcal, fat, saturated_fat, carbohydrate, sugars, protein, salt, source'
 
 export class PostgresEtiketDeposu implements EtiketDeposu {
@@ -155,14 +167,21 @@ export class PostgresEtiketDeposu implements EtiketDeposu {
       id: string; code: string; name: string; base_uom: string
       net_qty: string | number | null; net_uom: string | null
       allergen_reviewed_at: string | null; is_active: boolean
+      storage_condition: string | null
+      tracks_lot: boolean | null; tracks_expiry: boolean | null
     }
     return ((data as unknown as S[] | null) ?? []).map(k => {
       const e: EtiketKalemi = {
         id: k.id, kod: k.code, ad: k.name, temelBirim: k.base_uom, aktif: k.is_active,
+        // ⚠️ `?? false`: sütun null gelirse "takip yok" sayılır. Burada
+        // `true` varsaymak, takipsiz her ürünü TASLAK'a düşürürdü.
+        lotTakipli: k.tracks_lot ?? false,
+        sktTakipli: k.tracks_expiry ?? false,
       }
       const nm = sayi(k.net_qty);                 if(nm !== undefined) e.netMiktar = nm
       const nb = bos(k.net_uom);                  if(nb !== undefined) e.netBirim = nb
       const iz = bos(k.allergen_reviewed_at);     if(iz !== undefined) e.incelemeZamani = iz
+      const sk = bos(k.storage_condition);        if(sk !== undefined) e.saklama = sk
       return e
     })
   }

@@ -33,7 +33,7 @@ neyin neden yapıldığı kaybolmasın.
 | **A2** | **MIYOP-008** · şube bağlamı kesin değil · **küçüldü** | Tek merkez kararıyla "yanlış şubeye yazma" riski pratikte kalktı. ⚠️ Kapanmadı: kod hâlâ "tercih yoksa ilk şube" diyor — tek şubede doğru sonucu **tesadüfen** veriyor. Başlıktaki şube seçici kaldırılacak, liste sorgularına şube kapsamı yazılacak. |
 | **A3** | **MIYOP-010** · etiket ekranında ürünler karışıyor · **MIYOP-064 ile birlikte 6 ekran** | Etiket, demonun en gösterişli parçası; yanlış ürünün alerjeni basılırsa itibar biter. ⚠️ Codex 21.10'da aynı kusuru Depo, Siparişler, Müşteriler, İş Emirleri ve Sevkiyatlar'da da buldu — tek ekrana yama atmak aileyi kapatmıyor (3.7). |
 | **A4** | **Sahte veri üreticileri** (3.8, 3.10) · **4 tanesi P0** | Önce `kaldirilan-moduller.md`, sonra silme. ⚠️ İş büyüdü: mesele dosya adı `*.mock.ts` olanlar değil, **27 `createDemo*` üreticisi.** Dördü açık ekrana, biri **müşterinin gördüğü portala** ulaşıyor (MIYOP-058/059/060/061). |
-| **A5** | ~~**Şahit numune**~~ ✅ **BİTTİ (26.10) · AÇIK SORU DA KAPANDI** | Göç **0093** defteri kurdu, **0094** Codex'in bulduğu P0'ı ve iki P1'i kapattı, **0096** saklama koşulunu kalite departmanının da yazabileceği beyan alanı yaptı, **0097** Emrah'ın imha onayı kararını zorladı. Ekran **Kalite → Şahit Numune**. Prova: 21+18+9+13 = **61 sınama yeşil**. ⚠️ Kalan tek madde etiketin saklama koşulunu kartından okuması (3.9.3). |
+| **A5** | ~~**Şahit numune**~~ ✅ **BİTTİ (26.10) · AÇIK SORU DA KAPANDI** | Göç **0093** defteri kurdu, **0094** Codex'in bulduğu P0'ı ve iki P1'i kapattı, **0096** saklama koşulunu kalite departmanının da yazabileceği beyan alanı yaptı, **0097** Emrah'ın imha onayı kararını zorladı. Ekran **Kalite → Şahit Numune**. Prova: 21+18+9+13 = **61 sınama yeşil**. ✅ **27.10:** son madde de kapandı — etiket saklama koşulunu artık ürün kartından okuyor (3.9.3). Şahit numune **tam bitti**; kalan tek şey sayfalama borcu (3.9.9). |
 | **A6** | MIYOP-043 son adımı (0091) + dağıtım | Güvenlik borcu kapanmış olsun. |
 
 ⚠️ **Bu listede OLMAYANLAR demo öncesi YAPILMAYACAK:** MIYOP-049/050
@@ -954,14 +954,38 @@ Emrah'ın onayladığı sıra:
     (artık **ONARIR / DAYANIR** ayrı), ve `mktemp -d` 0700 açtığı için
     postgres taklit dosyalarını okuyamıyor, betik bunu *"taklit yanlış"*
     diye yanlış sebeple bildiriyordu. Dört senaryo da yeşil (tuzak 138).
-  - ⬜ **3.9.3** ⚠️ **ETİKET EKRANI SAKLAMA KOŞULUNU ÜRÜN KARTINDAN
-    OKUMALI.** Bu göçün ortaya çıkardığı eksik: saklama koşulu hiçbir yerde
-    **saklanmıyordu** — etiket ekranında her baskıda **elle yazılan**
-    serbest bir metin alanıydı (yer tutucu `0–4 °C`). Yani aynı ürün iki
-    baskıda iki farklı koşul taşıyabiliyordu. Koşul artık ürün kartında
-    (`stock_item.storage_condition`); **etiket de oradan okumalı**, yoksa
-    iki ayrı doğru olur ve *"numune müşteriye söylenenin aynısında durur"*
-    kuralı yine çöker.
+  - ✅ **3.9.3** ⚠️ **ETİKET SAKLAMA KOŞULUNU ARTIK ÜRÜN KARTINDAN OKUYOR
+    (27.10) · şahit numunenin SON maddesi.** Eksik şuydu: saklama koşulu
+    hiçbir yerde **saklanmıyordu** — etiket ekranında her baskıda **elle
+    yazılan** serbest bir metin alanıydı (yer tutucu `0–4 °C`). Aynı ürün iki
+    baskıda iki farklı koşul taşıyabiliyordu; üstelik aynı lotun şahit
+    numunesi koşulu **karttan** kopyalıyor (0093/0094), yani tek ürünün iki
+    "kayıtlı" saklama koşulu olabiliyordu — biri numune defterinde, biri
+    ambalajın üstünde. Hangisi doğru? Kimse bilemezdi.
+    **Ne yapıldı:** `label.repository.ts` kalem sorgusu artık
+    `storage_condition, tracks_lot, tracks_expiry` sütunlarını da okuyor;
+    `EtiketKalemi` saklamayı ve iki takip bayrağını taşıyor.
+    ⚠️ **KAYNAK SIRASI: ÜRÜN KARTI ÖNCE.** Kart doluysa ekranda yazılan değer
+    **yok sayılıyor** — ekran kartla çelişen bir etiket basabilseydi "kartta
+    ne yazıyorsa o basılır" güvencesi biterdi.
+    ⚠️ **Emrah'ın kararı (c):** koşul **lot ya da SKT takipli** üründe zorunlu,
+    ötekinde sessiz. Türk Gıda Kodeksi *"gerektiğinde"* diyor; kuru bakliyatta
+    aranmaz, soğuk zincirde şarttır. Ayırt edici ölçüt takip: takip edilen
+    ürün bozulabilen üründür. Zorunlu üründe koşul boşsa etiket **TASLAK**
+    basılıyor ve eksik cümlesi **nereye yazılacağını** söylüyor (Depo →
+    Saklama Beyanı). Takipsiz üründe satır sessizce basılmıyor — zorunlu
+    tutsaydık kural değil kilit olurdu.
+    ⚠️ **Elle yazılan kutu KALDI** (Emrah'ın ikinci kararı) ama dürüstleşti:
+    kart doluyken **salt okunur** ve "ürün kartından geliyor" yazıyor; kart
+    boşken yazılabiliyor ama "**bu değer karta kaydedilmedi, sonraki baskıda
+    yeniden yazman gerekir**" deniyor. Kullanıcı etikette gördüğü değerin
+    nereden geldiğini biliyor, yanlışsa nereyi düzelteceğini de.
+    **Ölçüm:** 9 yeni servis sınaması + 7 belge sınaması + yeni mimari test
+    `src/production/etiket-saklama-kaynagi.arch.test.ts` (7 sınama).
+    ⚠️ Mimari test **dosyanın metnini** ölçüyor, çünkü arıza bir sütunun
+    `select` listesinde OLMAMASIYDI — sahte depolu bir davranış testi gerçek
+    sorguyu hiç görmez. Kuralı 0093'ün **sütun yorumuna** yazmıştım
+    (*"Etiket de buradan okumalı"*); o yorum bir yıl uyarmadı (tuzak 139).
   - ✅ **3.9.5** **Yedek defterine eklendi.** `tenant-export.arch.test.ts`
     her kiracı tablosunun ya yedekte ya **gerekçeli** dışarıda olmasını
     zorunlu kılıyor; iki yeni tablo yazılmayınca test kırmızı verdi ve

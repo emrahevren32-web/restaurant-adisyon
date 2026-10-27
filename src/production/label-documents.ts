@@ -55,6 +55,16 @@ export type EtiketVerisi = {
   uretimTarihi?: string
   sonKullanma?: string
   saklama?: string
+  /**
+   * Saklama koşulu BU ÜRÜN İÇİN zorunlu mu.
+   *
+   * ⚠️ Karar (27.10 · Emrah): koşul her üründe zorunlu DEĞİL. Türk Gıda
+   * Kodeksi "gerektiğinde" diyor — kuru bakliyatta aranmaz, soğuk zincirde
+   * şarttır. Ayırt edici ölçüt LOT ya da SKT TAKİBİ: takip edilen ürün,
+   * bozulabilen üründür. Takipsiz üründe satır sessizce basılmaz, takipli
+   * üründe boşsa etiket TASLAK olur.
+   */
+  saklamaZorunlu?: boolean
   firmaAdi: string
   firmaAdresi?: string
   /** Azalan miktar sırasında. Boş olabilir; o zaman içindekiler basılmaz. */
@@ -88,6 +98,13 @@ export const etiketEksikleri = (v: EtiketVerisi): string[] => {
   if(!v.netMiktar) eksik.push('Net miktar (gramaj) girilmemiş.')
   if(!v.lotKodu) eksik.push('Parti numarası yok.')
   if(!v.sonKullanma) eksik.push('Son kullanma tarihi yok.')
+  if(v.saklamaZorunlu && !v.saklama){
+    eksik.push(
+      'Saklama koşulu yazılmamış. Lot ya da son kullanma tarihi takip edilen '
+      + 'bir üründe saklama koşulu etikette bulunmak zorunda; ürün kartına '
+      + 'Depo ekranındaki Saklama Beyanı alanından yazılır.',
+    )
+  }
   return eksik
 }
 

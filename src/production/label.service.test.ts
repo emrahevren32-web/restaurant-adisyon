@@ -10,7 +10,7 @@ import type {
 } from './label.repository'
 import {
   EtiketDogrulamaError, EtiketServisi, alerjenDurumu, alerjenleriDogrula,
-  besinDogrula, etiketVerisiKur,
+  besinDogrula, etiketVerisiKur, saklamaKaynagi, saklamaZorunluMu,
 } from './label.service'
 import { etiketKesilebilir } from './label-documents'
 
@@ -62,7 +62,11 @@ const kur = () => {
 }
 
 const kalem = (y: Partial<EtiketKalemi> = {}): EtiketKalemi => ({
-  id: 'k1', kod: 'P-CRB', ad: 'Mercimek çorbası', temelBirim: 'koli', aktif: true, ...y,
+  id: 'k1', kod: 'P-CRB', ad: 'Mercimek çorbası', temelBirim: 'koli', aktif: true,
+  // ⚠️ Varsayılan TAKİPSİZ: saklama koşulunun zorunlu olmadığı hâl. Zorunlu
+  // hâli her sınama kendi içinde AÇIKÇA kuruyor, yoksa hangi kuralı ölçtüğü
+  // belirsiz kalır.
+  lotTakipli: false, sktTakipli: false, ...y,
 })
 
 describe('alerjenleriDogrula', () => {
@@ -240,5 +244,85 @@ describe('alerjenDurumu', () => {
     const k = kalem({ incelemeZamani: '2026-10-01T10:00:00Z' })
     expect(alerjenDurumu(k, 0)).toBe('incelendi · alerjen yok')
     expect(alerjenDurumu(k, 2)).toBe('incelendi · 2 alerjen')
+  })
+})
+
+
+// ═══════════════════════════════════════════════════════════════════════════
+// SAKLAMA KOŞULU · 3.9.3
+//
+// Göç 0093 saklama koşulunu ürün kartına koyarken yorumuna "Etiket de buradan
+// okumalı" yazdı. Okumuyordu: etiketteki satır ekranda ELLE yazılıyordu. Aynı
+// lotun şahit numunesi koşulu KARTTAN kopyalıyor (0093/0094) — yani tek ürünün
+// iki farklı saklama koşulu olabiliyordu: biri numune defterinde, biri
+// ambalajın üstünde. Hangisi doğru? Kimse bilemezdi.
+//
+// Karar (27.10 · Emrah): koşul LOT ya da SKT TAKİPLİ üründe zorunlu, ötekinde
+// sessiz. Kutu ekranda KALIYOR ama kart doluyken salt okunur.
+// ═══════════════════════════════════════════════════════════════════════════
+describe('saklama koşulu · kaynak ürün kartı', () => {
+  const temel = {
+    firmaAdi: 'ABC Gıda A.Ş.',
+    bilesenler: [] as { ad: string; alerjenMi: boolean }[],
+    alerjenler: [] as TuretilmisAlerjen[],
+    alerjenEksikleri: [] as EksikKalem[],
+    besinEksikleri: [] as EksikKalem[],
+  }
+
+  it('⚠️ KART DOLUYSA elle yazılan YOK SAYILIYOR', () => {
+    // Bu satır bu bölümün sebebi. Ekran kartla çelişen bir değer
+    // basabilseydi, "kartta ne yazıyorsa o basılır" güvencesi biter.
+    const v = etiketVerisiKur({
+      ...temel,
+      kalem: kalem({ saklama: '-18 °C', lotTakipli: true }),
+      saklama: '0–4 °C',
+    })
+    expect(v.saklama).toBe('-18 °C')
+  })
+
+  it('kart BOŞSA elle yazılan basılıyor', () => {
+    const v = etiketVerisiKur({ ...temel, kalem: kalem(), saklama: '0–4 °C' })
+    expect(v.saklama).toBe('0–4 °C')
+  })
+
+  it('ikisi de boşsa saklama satırı YOK', () => {
+    expect(etiketVerisiKur({ ...temel, kalem: kalem() }).saklama).toBeUndefined()
+  })
+
+  it('kartta yalnız boşluk varsa dolu SAYILMIYOR', () => {
+    const v = etiketVerisiKur({
+      ...temel, kalem: kalem({ saklama: '   ' }), saklama: '0–4 °C',
+    })
+    expect(v.saklama).toBe('0–4 °C')
+  })
+
+  it('LOT takipli üründe koşul ZORUNLU', () => {
+    const v = etiketVerisiKur({ ...temel, kalem: kalem({ lotTakipli: true }) })
+    expect(v.saklamaZorunlu).toBe(true)
+  })
+
+  it('SKT takipli üründe de ZORUNLU', () => {
+    const v = etiketVerisiKur({ ...temel, kalem: kalem({ sktTakipli: true }) })
+    expect(v.saklamaZorunlu).toBe(true)
+  })
+
+  it('takipsiz üründe zorunlu DEĞİL', () => {
+    // Kuru bakliyat, ambalaj malzemesi. Zorunlu tutsaydık kural değil kilit
+    // olurdu ve insanlar kuralı atlamanın yolunu arardı.
+    const v = etiketVerisiKur({ ...temel, kalem: kalem() })
+    expect(v.saklamaZorunlu).toBeUndefined()
+  })
+
+  it('saklamaZorunluMu iki ayağı da sayıyor', () => {
+    expect(saklamaZorunluMu(kalem())).toBe(false)
+    expect(saklamaZorunluMu(kalem({ lotTakipli: true }))).toBe(true)
+    expect(saklamaZorunluMu(kalem({ sktTakipli: true }))).toBe(true)
+  })
+
+  it('saklamaKaynagi ekrana NEREDEN geldiğini söylüyor', () => {
+    expect(saklamaKaynagi(kalem({ saklama: '-18 °C' }), '0–4 °C')).toBe('kart')
+    expect(saklamaKaynagi(kalem(), '0–4 °C')).toBe('elle')
+    expect(saklamaKaynagi(kalem(), '')).toBe('yok')
+    expect(saklamaKaynagi(kalem(), undefined)).toBe('yok')
   })
 })

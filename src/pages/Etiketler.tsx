@@ -23,7 +23,7 @@ import {
   type EtiketKalemi, type KalemAlerjeni, type TuretilmisAlerjen,
   type UretilenParti,
 } from '../production/label.repository'
-import { EtiketServisi, alerjenDurumu, etiketVerisiKur } from '../production/label.service'
+import { EtiketServisi, alerjenDurumu, etiketVerisiKur, saklamaKaynagi, saklamaZorunluMu } from '../production/label.service'
 import { etiketHtml, etiketKesilebilir } from '../production/label-documents'
 import { belgeYazdir } from '../core/print/print'
 
@@ -210,6 +210,11 @@ export default function Etiketler({ currentUser }: Props){
       await yenile()
     } catch (e) { setBilgi(''); setHata(hataMetni(e)) }
   }
+
+  // ⚠️ Ürün kartındaki saklama koşulu (göç 0093). Etiketin ASIL kaynağı;
+  // ekrandaki kutu yalnız kart boşken devreye giriyor.
+  const kartSaklama = (secili?.saklama ?? '').trim()
+  const saklamaNereden = secili ? saklamaKaynagi(secili, saklama) : 'yok'
 
   const etiketVerisi = secili ? etiketVerisiKur({
     kalem: secili,
@@ -488,9 +493,20 @@ export default function Etiketler({ currentUser }: Props){
                         ))}
                       </select>
                     </label>
+                    {/* ── SAKLAMA KOŞULU ──────────────────────────────
+                        ⚠️ 3.9.3 · Kart doluysa kutu SALT OKUNUR. Kullanıcı
+                        burada değiştirebilseydi, aynı lotun şahit numunesi
+                        (karttan kopyalanıyor) ile ambalajın üstü farklı
+                        şeyler söylerdi. Kutuyu gizlemiyoruz: kart boşken
+                        hâlâ yazılabiliyor, ama o değerin karta YAZILMADIĞI
+                        da söyleniyor. */}
                     <label>Saklama
-                      <input value={saklama} placeholder="0–4 °C"
-                        onChange={e => setSaklama(e.target.value)} />
+                      <input
+                        value={kartSaklama || saklama}
+                        readOnly={kartSaklama !== ''}
+                        placeholder="0–4 °C"
+                        onChange={e => setSaklama(e.target.value)}
+                      />
                     </label>
                   </div>
                 )}
@@ -503,6 +519,31 @@ export default function Etiketler({ currentUser }: Props){
                     Son kullanma: <strong>{skt ? tarihYaz(skt) : 'kayıtta yok'}</strong>
                     {' — '}bu iki tarih partinin kaydından geliyor, elle
                     değiştirilemez.
+                  </p>
+                )}
+                {secili && (
+                  <p className="muted" style={{ marginTop: 0 }}>
+                    {saklamaNereden === 'kart' && <>
+                      Saklama koşulu <strong>ürün kartından</strong> geliyor:{' '}
+                      <strong>{kartSaklama}</strong>. Değiştirmek için
+                      Depo → Saklama Beyanı.
+                    </>}
+                    {saklamaNereden === 'elle' && <>
+                      Bu saklama koşulu <strong>yalnız bu baskı için</strong>
+                      {' '}yazıldı, ürün kartına kaydedilmedi — bir sonraki
+                      baskıda yeniden yazman gerekir. Kalıcı olması için
+                      Depo → Saklama Beyanı.
+                    </>}
+                    {saklamaNereden === 'yok' && (
+                      saklamaZorunluMu(secili)
+                        ? <>Saklama koşulu <strong>yazılmamış</strong>. Bu ürün
+                            lot ya da son kullanma tarihi takipli olduğu için
+                            koşul etikette bulunmak zorunda; boş kalırsa etiket
+                            TASLAK basılır.</>
+                        : <>Saklama koşulu yazılmamış. Bu ürün lot/SKT takipli
+                            olmadığı için koşul zorunlu değil; etikette o satır
+                            hiç basılmaz.</>
+                    )}
                   </p>
                 )}
                 {etiketVerisi && !etiketKesilebilir(etiketVerisi) && (
