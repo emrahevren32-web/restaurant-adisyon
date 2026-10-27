@@ -1553,7 +1553,7 @@ yanlışlıkla çalıştırılma riski var (6.11).
 | Mock dosya | 36 · hiçbiri açık kiracı rotasından erişilemiyor |
 | Public yol | **2** · başvuru formu + müşteri portalı (ölçülüp donduruldu) |
 | Giriş vitrini | dondurulmuş **20 modül adının** hiçbiri geçmiyor (ölçüldü, donduruldu) |
-| Tuzak | **132** (26–27.10: 116–132 eklendi) |
+| Tuzak | **134** (26–27.10: 116–134 eklendi) |
 
 ⚠️ "Mock dosya" satırı **yanıltıcıydı:** doğru olan ama yetmeyen bir ölçüm.
 Asıl tehlike adı mock olmayan üreticilerdi; üstteki satır onu gösteriyor.

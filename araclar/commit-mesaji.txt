@@ -1,56 +1,48 @@
-Dagitim dogrulamasi yalan soyluyormus + paket bozuk durumdan sinaniyor
+Ayni hatayi UC KEZ yaptim: goc dogrulamasi gecmisi yargiliyordu (tuzak 133)
 
-SITE CALISIYOR, BETIK YALAN SOYLUYORMUS
-Emrah tarayicidan dogruladi: https://miyop.emrahevren.com aciliyor, Sahit
-Numune ekrani Kalite menusunde, Kontrol Paneli gercek rakamlari gosteriyor
-("pirinc 93,237 kg kullanilabilir (103,237 var, 10 SKT gecmis)" - MIYOP-074
-duzeltmesi canlida calisiyor).
-Ama 26.10 yayininda uc dogrulama da 0 dondu ve altinda "YAYINDA" yazdi.
+0095'in kapiyi bir daha ezmemesini garanti etmek icin dogrulamasina bir
+kontrol koymustum. Uc turda uc kez paketi rehin aldi ve P0 uc tur boyunca
+canlida acik kaldi:
 
-IKI KUSUR:
-1 - Cagri -SkipHttpErrorCheck kullaniyordu. O PowerShell 7+ parametresi;
-    Windows PowerShell 5.1'de YOK. Invoke-WebRequest "boyle bir parametre
-    yok" diye hata atiyor, catch onu yutuyordu. Yani kontrol HICBIR ZAMAN
-    calismamis - uc satir da her zaman 0 donuyordu.
-2 - Daha kotusu: catch { $k = 0 } "KONTROL EDEMEDIM" ile "SITE CALISMIYOR"
-    arasindaki farki siliyordu. Ikisi de 0 goruluyor, ikisi de yalniz bir
-    uyari satiri uretiyor ve betik "YAYINDA" demeye devam ediyordu.
+  1. "Kapi yerinde mi (finance.read var mi)" -> canlida patladi: kapiyi 0099
+     onariyor, kontrol 0095'te, yani onarimdan ONCE.
+  2. "Ham hesap kapinin adina yazilmis mi" -> yine patladi: canlida kapinin
+     adinda DUN bu gocun eski halinin yazdigi ham hesap duruyordu ve kontrol
+     onu gordu.
+  3. Her seferinde Supabase butun paketi tek islemde geri aldi.
 
-Duzeltildi: PS 5.1 uyumlu cagri (-UseBasicParsing), TLS 1.2 aciliyor, hata
-YUTULMUYOR (sebep yaziliyor), gecen/toplam sayiliyor. Hepsi gecmezse betik
-"YAYINDA" DEMIYOR: "DOSYALAR YAYINA ALINDI AMA DOGRULANAMADI - adresi
-tarayicidan kendin ac" diyor.
-Tuzak 132: bir kontrolun UC sonucu vardir - gecti, kaldi, OLCEMEDIM.
-Ucuncusunu ikincisiyle karistirmak, olcmedigin seyi olctun sanmaktir.
+ASIL HATA: app.isletme_gostergeleri fonksiyonunun icerigi artik bu gocun
+yazdigi bir sey DEGIL - goc _ham adina yaziyor. Onun icerigini olcmek, kendi
+isini degil GECMISI yargilamakti; gecmis bozuksa onarimdan once patliyordu.
+Bir goc ancak "ben ne yazdim" diye sorabilir.
 
-0095 IKINCI KEZ PAKETI REHIN ALDI - AYNI SINIF, BASKA YER
-Pano duzeltmesi calisti (Turkce harfler artik dogru gidiyor) ama paket yine
-patladi: bu sefer 0095'e ekledigim "kapi yerinde mi" kontrolu. Sebep sira -
-paket 0094'ten 0100'e sirayla kosuyor, kapiyi 0099 onariyor, ama kontrol
-0095'te yani onarimdan ONCE. Canlida kapi o anda hala ezikti ve kontrol
-hakli olarak patladi; Supabase tek islem oldugu icin paketin tamami yine
-geri alindi.
-0095'in kontrolu kendi isine indirildi: "kapi var mi" degil, "BU GOC kapiyi
-ezdi mi" (ham hesap kapinin adina yazilmis mi). Kapinin varligi 0071 ve
-0099'un sorumlulugu, ikisi de kendi icinde olcuyor. Olumsuz deneme: kapiya
-ham hesap yazilinca 0095 patliyor.
+Kontrol TAMAMEN KALDIRILDI. Garanti artik iki yerde:
+  - KODDA: 0095 `create or replace function app.isletme_gostergeleri_ham(`
+    yaziyor; kapiyi ezmesi imkansiz.
+  - CICIRDA: src/reporting/gosterge-kapisi.arch.test.ts goc dosyalarinin
+    METNINI olcuyor - hangi gocun hangi ada yazdigini, veritabaninin o anki
+    halinden bagimsiz olarak. Alti sinama: 0071 ayrimi kurmus mu, 0095 kapiya
+    yazmiyor mu, 0099 kapiyi geri koyuyor ve govdesinde ham hesap yok mu,
+    kapi security definer degil mi, fire_dokumu ayrimi duruyor mu.
+"Bir daha olmasin" guvencesi calisma zamanina degil koda ve cicira konur.
 
-KOK SEBEP PROVADAYDI - YENI BETIK
-kur.sh gocleri TEMIZ bir veritabanina sirayla uyguluyor. Temiz zincirde kapi
-HIC ezilmiyor, dolayisiyla paketim yerelde sorunsuz geciyordu. Canlida ise
-kapi dun ezilmisti ve paket o durumdan basliyordu. Yani provam, onarimin
-calismasi GEREKEN tek durumu hic kurmuyordu.
-db/prova/paket-bozuk-durumdan.sh: kapiyi eziyor (0095'in eski halinin
-yaptigini yapiyor), paketi calistiriyor, onarimin GERCEKLESTIGINI olcuyor.
-ON_ERROR_STOP ile - Supabase'in tek-islem davranisini taklit etmeli; hatayi
-yutan bir prova canlidan daha hosgorulu olur ve yanlis guven verir.
-Tuzak 131: "temiz kurulumda calisiyor" ile "bozuk kurulumu onariyor" ayri
-iddialar; bir onarim gocunun iddiasi IKINCISIDIR.
+OLUMSUZ KONTROLUM DE YANLIS DURUMU KURMUSTU (tuzak 134)
+Tuzak 131'i yazip paket-bozuk-durumdan.sh betigini kurdugum turda, ayni
+tuzaga betigin ICINDE yeniden dustum. Kapiyi ezerken ham hesap olarak
+stock_balance kullandim; canlidaki ezik fonksiyon 0095'in eski haliydi, yani
+icinde stock_usable_balance VARDI. Benim kurdugum bozuk durumda o yoktu,
+dolayisiyla kontrol yerelde hic tetiklenmedi ve prova yesil gecti.
+Taklit duzeltildi: artik bozuklugu URETEN kodun kendisini kullaniyor.
+Dogrulugu da olculdu - duzeltilmeden onceki paketle betik Emrah'in canlida
+gordugu hatayi BIREBIR yeniden uretti. Bir olumsuz kontrolun dogrulugu,
+hatayi canlandirabilmesiyle olculur.
 
 DOGRULAMA
-- Temiz zincir: 101 goc, provalar 21+18+15+9+13+10 = 86 sinama yesil
-- Bozuk durumdan paket: hatasiz kostu VE kapi geri geldi
+- Bozuk durumdan paket: once KIRMIZI (hata canlandirildi), sonra YESIL
+  (kapi geri geldi, hesap _ham'da)
+- Temiz zincir: 101 goc; provalar 21+18+15+9+13+10 = 86 sinama yesil
 - Paket iki kez ust uste kostu, ikincisinde de hata yok
+- Cicirin alti deseni gercek goc dosyalarina karsi dogrulandi
 
 Co-Authored-By: Claude Opus 5 <noreply@anthropic.com>
 Claude-Session: https://claude.ai/code/session_019BwYM3mAXZUhp4YGj7tp2y

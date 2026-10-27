@@ -34,6 +34,14 @@ bash "$KOK/db/prova/kur.sh" | tail -1
 echo "── 2/4 · CANLININ BOZUK HÂLİ taklit ediliyor (finans kapısı eziliyor)"
 su postgres -c "psql -q -v ON_ERROR_STOP=1 -d miyop" <<'SQL'
 -- 0095'in ESKİ (hatalı) hâlinin yaptığı şey: ham hesabı kapının adına yazmak.
+--
+-- ⚠️ 27.10 · İLK YAZIŞIMDA BURADA `stock_balance` KULLANDIM ve taklit
+-- CANLIDAN FARKLI OLDU. Canlıdaki ezik fonksiyon 0095'in eski hâliydi, yani
+-- içinde `stock_usable_balance` VARDI. Benim kurduğum bozuk durumda o yoktu;
+-- dolayısıyla 0095'in "ham hesap kapıya yazılmış mı" kontrolü yerelde
+-- tetiklenmedi ve prova yeşil geçti — canlıda ise patladı.
+-- Yani tuzak 131'i yazdığım turda, aynı tuzağa taklidin İÇİNDE yeniden
+-- düştüm: bozuk durumu kurmak yetmez, DOĞRU bozuk durumu kurmak gerekir.
 create or replace function app.isletme_gostergeleri(
   p_sube uuid, p_bas date, p_bit date
 )
@@ -42,10 +50,10 @@ language sql stable set search_path = public, app, pg_temp
 as $$
   select 'kritik_kalem'::text, count(*)::numeric, null::numeric
     from public.stock_item i
-    left join public.stock_balance b
+    left join public.stock_usable_balance b
            on b.stock_item_id = i.id and b.branch_id = p_sube
    where i.branch_id = p_sube and i.is_active and i.min_qty > 0
-     and coalesce(b.qty, 0) < i.min_qty
+     and coalesce(b.usable_qty, 0) <= i.min_qty
 $$;
 
 do $$

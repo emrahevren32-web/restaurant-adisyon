@@ -637,33 +637,31 @@ begin
     raise exception '0095: kritik eşiği <= değil; Depo ekranından ayrı davranır.';
   end if;
 
-  -- ⚠️ BU GÖÇ KAPIYI EZDİ Mİ? — ve YALNIZ bu soruluyor.
+  -- ═════════════════════════════════════════════════════════════════════
+  -- ⚠️ 27.10 · BURADA BİR KONTROL VARDI, ÜÇ KEZ PAKETİ REHİN ALDI, KALDIRILDI
   --
-  -- 27.10 akşamı burada *"kapı yerinde mi (finance.read var mı)"* diye
-  -- soruyordum ve CANLIDA PATLADI: paket 0094→0100 sırayla çalışıyor,
-  -- kapıyı 0099 onarıyor, ama bu kontrol 0095'te — yani onarımdan ÖNCE.
-  -- Kapı o anda hâlâ ezikti (dün bu göçün eski hâli ezmişti) ve kontrol
-  -- haklı olarak kırmızı verdi; ama Supabase betiği tek işlemde çalıştırdığı
-  -- için **bütün paketi geri aldı** ve 0099'un onarımı hiç uygulanamadı.
-  -- Yani doğru bir kontrol, yanlış yerde durduğu için onarımı rehin aldı
-  -- (tuzak 129'un ikinci hâli).
+  -- Önce *"kapı yerinde mi (finance.read var mı)"* diye sordu → canlıda
+  -- patladı, çünkü kapıyı 0099 onarıyor ve bu kontrol 0095'te, yani
+  -- onarımdan ÖNCE çalışıyor.
+  -- Sonra *"ham hesap kapının adına yazılmış mı"* diye sordu → yine patladı,
+  -- çünkü canlıda kapının adında DÜN bu göçün eski hâlinin yazdığı ham hesap
+  -- duruyordu ve kontrol onu gördü.
   --
-  -- ⚠️ Kapının VARLIĞI bu göçün sorumluluğu değil — 0071 kurar, 0099 onarır,
-  -- ikisi de kendi içinde ölçer. Bu göçün sorumluluğu **kapıyı ezmemek**.
-  -- Ölçülen soru da o: ham hesap kapının adına yazılmış mı?
-  select pg_get_functiondef(p.oid) into v_govde
-    from pg_proc p join pg_namespace n on n.oid = p.pronamespace
-   where n.nspname = 'app' and p.proname = 'isletme_gostergeleri';
-  if v_govde is not null
-     and (v_govde ~ 'stock_usable_balance' or v_govde ~ 'from public\.stock_movement')
-  then
-    raise exception
-      '0095: ham hesap İZİN KAPISININ adına yazılmış (MIYOP-078 tekrarı). '
-      'Hesap app.isletme_gostergeleri_ham fonksiyonuna yazılmalı; '
-      'app.isletme_gostergeleri yalnız finance.read kapısıdır (0071).';
-  end if;
+  -- ⚠️ ASIL HATA ŞUYDU: **bir göçün doğrulaması yalnız O GÖÇÜN KENDİ
+  -- YAZDIĞINI ölçebilir, ortamın geçmişini değil.** `app.isletme_gostergeleri`
+  -- fonksiyonunun içeriği artık bu göçün yazdığı bir şey DEĞİL — bu göç
+  -- `_ham` adına yazıyor. Onun içeriğini ölçmek, kendi işini değil
+  -- GEÇMİŞİ yargılamaktı; ve geçmiş bozuksa onarımdan önce patlıyordu.
+  --
+  -- ⚠️ "Bu göç bir daha kapıyı ezmesin" güvencesi KONTROLDE DEĞİL, KODDA:
+  -- yukarıda `create or replace function app.isletme_gostergeleri_ham(`
+  -- yazıyor. Dosyanın bu şekilde kaldığını ölçmek çalışma zamanının değil
+  -- bir ÇIÇIRIN işi: `src/reporting/gosterge-kapisi.arch.test.ts`.
+  --
+  -- Kapının yerinde olduğu 0099'da ölçülüyor — orası onun işi.
+  -- ═════════════════════════════════════════════════════════════════════
 
-  raise notice '0095: Kullanılabilir bakiye görünümü kuruldu; hesap _ham''da, kapı ezilmedi.';
+  raise notice '0095: Kullanılabilir bakiye görünümü kuruldu; düzeltilmiş hesap _ham''da.';
 end $$;
 
 

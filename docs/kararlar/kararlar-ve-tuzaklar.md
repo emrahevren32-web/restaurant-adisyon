@@ -779,6 +779,44 @@ bir uyarı satırı üretti ve betik "YAYINDA" demeye devam etti.
 geçen/toplam sayıyor ve hepsi geçmezse *"DOSYALAR YAYINA ALINDI AMA
 DOĞRULANAMADI — adresi tarayıcıdan kendin aç"* yazıyor.
 
+**133 · BİR GÖÇÜN DOĞRULAMASI YALNIZ *KENDİ YAZDIĞINI* ÖLÇEBİLİR, ORTAMIN
+GEÇMİŞİNİ DEĞİL.** (27.10 · aynı hatayı ÜÇ KEZ yaptım)
+0095'in kapıyı bir daha ezmemesini garanti etmek için doğrulamasına bir
+kontrol koydum. Üç turda üç kez paketi rehin aldı:
+1. *"Kapı yerinde mi (`finance.read` var mı)"* → canlıda patladı: kapıyı
+   **0099** onarıyor, kontrol **0095**'te, yani onarımdan önce.
+2. *"Ham hesap kapının adına yazılmış mı"* → yine patladı: canlıda kapının
+   adında DÜN bu göçün eski hâlinin yazdığı ham hesap duruyordu.
+3. Her seferinde Supabase bütün paketi tek işlemde geri aldı ve **onarım hiç
+   uygulanamadı** — yani P0 açık kaldı, üç tur boyunca.
+⚠️ Asıl hata şuydu: `app.isletme_gostergeleri` fonksiyonunun içeriği artık
+bu göçün yazdığı bir şey DEĞİL (göç `_ham` adına yazıyor). Onun içeriğini
+ölçmek, kendi işini değil **GEÇMİŞİ** yargılamaktı; geçmiş bozuksa onarımdan
+önce patlıyordu. Bir göç ancak *"ben ne yazdım"* diye sorabilir.
+⚠️ **Garanti kontrolde değil KODDA olmalı:** 0095 artık
+`create or replace function app.isletme_gostergeleri_ham(` yazıyor; kapıyı
+ezmesi imkânsız. Dosyanın öyle kaldığını ölçmek bir ÇIÇIRIN işi —
+`src/reporting/gosterge-kapisi.arch.test.ts` göç dosyalarının METNİNİ
+ölçüyor, veritabanının o anki hâlini değil. Metin ölçümü ortamın geçmişinden
+bağımsızdır ve her test koşusunda çalışır.
+⚠️ Genel kalıp: **"bir daha olmasın" güvencesini çalışma zamanına değil,
+koda ve çıcıra koy.** Çalışma zamanındaki kontrol yalnız o anın durumunu
+görür; hangi göçün neyi yazdığını göremez.
+
+**134 · BOZUK DURUMU TAKLİT ETMEK YETMEZ — *DOĞRU* BOZUK DURUMU KUR.**
+(27.10) Tuzak 131'i yazıp `paket-bozuk-durumdan.sh` betiğini kurduğum turda,
+aynı tuzağa betiğin İÇİNDE yeniden düştüm. Kapıyı ezerken ham hesap olarak
+`stock_balance` kullandım; **canlıdaki ezik fonksiyon 0095'in eski hâliydi,
+yani içinde `stock_usable_balance` VARDI.** Benim kurduğum bozuk durumda o
+yoktu, dolayısıyla 0095'in kontrolü yerelde hiç tetiklenmedi ve prova yeşil
+geçti — canlıda ise patladı.
+⚠️ Kural: bozuk durumu taklit ederken **bozukluğu ÜRETEN kodun ta kendisini**
+kullan (burada: 0095'in eski gövdesi), yaklaşık bir benzerini değil.
+⚠️ Ölçütü de yaz: taklit doğruysa, **onarımdan ÖNCEKİ paketle prova KIRMIZI
+vermeli.** Bu turda tam bunu yaptım — taklit düzeltilince betik Emrah'ın
+canlıda gördüğü hatayı birebir yeniden üretti. Bir olumsuz kontrolün
+doğruluğu, hatayı canlandırabilmesiyle ölçülür.
+
 ---
 
 ## 5 · TEST İŞBÖLÜMÜ VE TESLİM KONTROL LİSTESİ
@@ -897,3 +935,8 @@ Son söz onun çıktısındadır.
 45. Bir kontrolün **üç** sonucu vardır: geçti, kaldı, **ölçemedim**
     (tuzak 132). `catch`te hatayı yutma; "yayına alındı" ile "çalışıyor"u
     ayrı söyle.
+46. Bir göçün doğrulaması **yalnız kendi yazdığını** ölçsün (tuzak 133).
+    "Bir daha olmasın" güvencesi çalışma zamanına değil **koda ve çıcıra**
+    konur.
+47. Bozuk durumu taklit ederken **bozukluğu üreten kodun kendisini** kullan
+    ve taklidin doğruluğunu **hatayı canlandırarak** ölç (tuzak 134).
