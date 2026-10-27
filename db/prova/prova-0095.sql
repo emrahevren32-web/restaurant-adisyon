@@ -18,6 +18,12 @@ begin;
 --   7 · Analiz kritik sayısı artık onu okuyor mu?        → OKUMALI
 --   8 · Eşiğe TAM inmiş kalem kritik mi?                 → KRİTİK (<=)
 --   9 · Başka kiracının bakiyesi görünüyor mu?           → GÖRÜNMEMELİ
+--  10 · FİNANS İZNİ OLMAYAN göstergeleri okuyabiliyor mu? → OKUYAMAMALI
+--       ⚠️ 27.10 · BU SINAMA YOKTU ve MIYOP-078'i (P0) kaçırdı. Prova
+--       göstergeleri yalnız `isletme_sahibi` oturumunda çağırıyordu ve
+--       onda `finance.read` VAR — kapının kalkması hiçbir fark
+--       yaratmıyordu. Olumsuz kontrolü olmayan bir sınama, kapının
+--       varlığını değil yokluğunu da onaylar.
 -- ═══════════════════════════════════════════════════════════════════════════
 
 create or replace function prova_bak(p_ad text, p_kosul boolean) returns void
@@ -65,6 +71,17 @@ begin
                                username_key, full_name, role_code, is_active)
   values (v_app, v_t, v_f, v_auth, 'p95', 'p95', 'Prova 95', 'isletme_sahibi', true);
   perform set_config('prova.auth', v_auth::text, false);
+
+  -- ⚠️ FİNANS İZNİ OLMAYAN İKİNCİ KULLANICI. `depo_sorumlusu` rolünde
+  -- `finance.read` YOK (role_permission'dan ölçüldü) — kapının gerçekten
+  -- kapattığını ancak böyle bir oturumla görebiliriz.
+  v_auth := gen_random_uuid(); v_app := gen_random_uuid();
+  insert into auth.users (id, email) values (v_auth, 'p95.depo@o.local');
+  insert into public.app_user (id, tenant_id, company_id, auth_user_id, username,
+                               username_key, full_name, role_code, is_active)
+  values (v_app, v_t, v_f, v_auth, 'p95depo', 'p95depo', 'Prova 95 Depo',
+          'depo_sorumlusu', true);
+  perform set_config('prova.auth.depo', v_auth::text, false);
 
   -- Dört kalem: hepsi lot takipli, eşikleri farklı.
   v_gecmis := gen_random_uuid(); v_bugun := gen_random_uuid();
@@ -214,6 +231,52 @@ begin
   perform prova_bak('9 · B kiracısının bakiyesi görünmüyor',
     not exists (select 1 from public.stock_usable_balance
                  where stock_item_id = current_setting('prova.kb')::uuid));
+end $$;
+
+-- ── 10 · FİNANS KAPISI · OLUMSUZ KONTROL (MIYOP-078) ─────────────────────
+-- ⚠️ Ayrı bir blokta, çünkü oturum değişiyor ve yukarıdaki blok iş emri
+-- sayısı gibi başka ölçümleri de yapıyor.
+do $$
+declare
+  v_t uuid := current_setting('prova.t')::uuid;
+  v_b uuid := current_setting('prova.b')::uuid;
+  v_kod text; v_sayi numeric;
+begin
+  -- Finans izni OLMAYAN kullanıcı
+  perform set_config('request.jwt.claim.sub', current_setting('prova.auth.depo'), false);
+  perform set_config('request.jwt.claims',
+    json_build_object('sub', current_setting('prova.auth.depo'), 'tenant_id', v_t)::text,
+    false);
+  perform set_config('app.tenant_id', v_t::text, false);
+  begin
+    perform * from app.isletme_gostergeleri(v_b, current_date - 30, current_date);
+    v_kod := '00000';
+  exception when others then v_kod := sqlstate;
+  end;
+  perform prova_bak('10a · FİNANS izni olmayan göstergeleri OKUYAMIYOR (gelen: '
+    ||v_kod||')', v_kod = 'MI403');
+
+  -- ⚠️ Ham fonksiyon da dışarıdan çağrılamamalı mı? HAYIR — 0071'in kararı:
+  -- `app` şeması PostgREST ile yayınlanmadığı için `_ham` dışarıdan zaten
+  -- çağrılamaz ve execute yetkisi alınırsa KAPININ KENDİSİ çalışmaz
+  -- (kapı `security invoker`). Bu satır o kararın hatırlatıcısı.
+
+  -- Finans izni OLAN kullanıcı · kapı onu geçirmeli
+  perform set_config('request.jwt.claim.sub', current_setting('prova.auth'), false);
+  perform set_config('request.jwt.claims',
+    json_build_object('sub', current_setting('prova.auth'), 'tenant_id', v_t)::text,
+    false);
+  begin
+    select g.deger into v_sayi
+      from app.isletme_gostergeleri(v_b, current_date - 30, current_date) g
+     where g.anahtar = 'kritik_kalem';
+    v_kod := '00000';
+  exception when others then v_kod := sqlstate;
+  end;
+  perform prova_bak('10b · FİNANS izni olan OKUYABİLİYOR (gelen: '||v_kod||')',
+    v_kod = '00000');
+  perform prova_bak('10c · kapıdan geçen çağrı YENİ kritik hesabı döndürüyor '
+    '(gelen: '||coalesce(v_sayi::text,'NULL')||')', v_sayi = 2);
 end $$;
 
 do $$ begin raise notice '═══ PROVA 0095 · HEPSİ YEŞİL ═══'; end $$;

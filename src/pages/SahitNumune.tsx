@@ -42,12 +42,13 @@ import {
 import {
   NUMUNE_DURUM_ETIKETLERI, NUMUNE_OLAY_ETIKETLERI,
   PostgresSahitNumuneDeposu,
-  type NumuneAdayi, type NumuneDurumu, type NumuneOlayi, type SahitNumune,
+  type NumuneAdayi, type NumuneDurumSayilari, type NumuneDurumu,
+  type NumuneOlayi, type SahitNumune,
 } from '../quality/witness-sample.repository'
 import {
   gerekceYeterliMi, kalanGun, numuneAlinabilir, numuneAlinamazSebebi,
   numuneKoduYeterliMi,
-  numuneOzeti, numuneSirasi, suresiDolduMu,
+  numuneSirasi, suresiDolduMu,
 } from '../quality/witness-sample.service'
 
 type Props = { currentUser: User }
@@ -92,7 +93,16 @@ export default function SahitNumune({ currentUser }: Props){
 
   const [baglam, setBaglam] = React.useState<DepoBaglami | null>(null)
   const [numuneler, setNumuneler] = React.useState<SahitNumune[]>([])
+  /** ⚠️ Liste kesildiyse ekran bunu SÖYLEMEK zorunda (MIYOP-080). */
+  const [numuneToplam, setNumuneToplam] = React.useState(0)
+  const [numuneKesildi, setNumuneKesildi] = React.useState(false)
+  /** ⚠️ Sayılar listeden DEĞİL sunucudan (MIYOP-080). */
+  const [ozet, setOzet] = React.useState<NumuneDurumSayilari>(
+    { saklanan: 0, acilan: 0, imha: 0, imhaBekleyen: 0 })
+  const [yalnizBekleyen, setYalnizBekleyen] = React.useState(false)
   const [adaylar, setAdaylar] = React.useState<NumuneAdayi[]>([])
+  const [adayToplam, setAdayToplam] = React.useState(0)
+  const [adayKesildi, setAdayKesildi] = React.useState(false)
   const [olaylar, setOlaylar] = React.useState<NumuneOlayi[]>([])
   const [acikNumuneId, setAcikNumuneId] = React.useState<string | null>(null)
 
@@ -117,13 +127,19 @@ export default function SahitNumune({ currentUser }: Props){
 
   const yenile = React.useCallback(async (aktif: DepoBaglami) => {
     if(!depo) return
-    const [kayitlar, partiler] = await Promise.all([
-      depo.numuneler(aktif.ctx),
+    const [kayitlar, partiler, sayilar] = await Promise.all([
+      depo.numuneler(aktif.ctx, { yalnizImhaBekleyen: yalnizBekleyen }),
       depo.adaylar(aktif.ctx),
+      depo.ozet(aktif.ctx),
     ])
-    setNumuneler(kayitlar)
-    setAdaylar(partiler)
-  }, [depo])
+    setNumuneler(kayitlar.satirlar)
+    setNumuneToplam(kayitlar.toplam)
+    setNumuneKesildi(kayitlar.kesildi)
+    setAdaylar(partiler.satirlar)
+    setAdayToplam(partiler.toplam)
+    setAdayKesildi(partiler.kesildi)
+    setOzet(sayilar)
+  }, [depo, yalnizBekleyen])
 
   React.useEffect(() => {
     let iptal = false
@@ -172,7 +188,6 @@ export default function SahitNumune({ currentUser }: Props){
   }
 
   const aktifBaglam = baglam
-  const ozet = numuneOzeti(numuneler)
   const sirali = numuneSirasi(numuneler)
   /**
    * ⚠️ 26.10 · EMRAH'IN EKRANINDA GÖRDÜĞÜM EKSİK.
@@ -319,6 +334,14 @@ export default function SahitNumune({ currentUser }: Props){
           ister</strong>: işletme müdürü onaylar, müdür yoksa gıda mühendisi
           ya da kalite sorumlusu.
         </p>
+        {/* ⚠️ MIYOP-080 · BU SAYILAR SUNUCUDAN SAYILIYOR, aşağıdaki
+            listeden türetilmiyor. Liste kesilse bile sayı doğru kalır —
+            önceki hâlde 500'üncüden sonraki eski bir açık kayıt hem
+            listeden hem sayıdan sessizce düşüyordu. */}
+        <p className="muted detail-hint" style={{ margin: '8px 0 0' }}>
+          Sayılar <strong>bütün defterden</strong> sayılıyor; aşağıdaki liste
+          en fazla {NUMUNE_SAYFA} satır gösterir.
+        </p>
       </section>
 
       {/* ── 1 · NUMUNE AL ────────────────────────────────────────────────── */}
@@ -378,20 +401,31 @@ export default function SahitNumune({ currentUser }: Props){
               )}
               <div className="form-field">
                 <label>Parti</label>
+                {/* ⚠️ MIYOP-082 · ÖGELER ARTIK `disabled` DEĞİL.
+                    Önceki hâlde seçilemeyen partinin SEBEBİ yalnız seçilince
+                    yazılıyordu — seçilemediği için de hiç yazılmıyordu.
+                    Kullanıcı "seçilemez" görüyor ama düzeltme yoluna
+                    (Depo → Saklama Beyanı) ulaşamıyordu.
+                    Şimdi parti SEÇİLEBİLİYOR, sebep yazılıyor ve kaydı
+                    SUNUCU değil DÜĞME engelliyor. Sunucu zaten reddediyor
+                    (0093); burada amaç kullanıcıyı bilgilendirmek. */}
                 <select value={secilenLot} onChange={e => setSecilenLot(e.target.value)}>
                   <option value="">Parti seçin…</option>
                   {adaylar.map(a => (
-                    <option key={a.lotId} value={a.lotId}
-                      disabled={numuneAlinamazSebebi(a) !== undefined}>
+                    <option key={a.lotId} value={a.lotId}>
                       {a.lotKodu} · {a.kalemAd} · SKT {gunBicimle(a.skt)}
                       {a.uretimPartisiMi ? '' : ' · mal kabul'}
-                      {numuneAlinamazSebebi(a) ? ' · seçilemez' : ''}
+                      {numuneAlinamazSebebi(a) ? ' · ⚠ numune alınamaz' : ''}
                     </option>
                   ))}
                 </select>
                 {/* ⚠️ Sebep YAZILI: "seçilemez" demek yetmez, eksik olanın
                     nerede düzeltileceğini söylemek gerekiyor. */}
-                {seciliEngel && <small className="muted">{seciliEngel}</small>}
+                {seciliEngel && (
+                  <small className="muted">
+                    <strong>Bu partiden numune alınamıyor.</strong> {seciliEngel}
+                  </small>
+                )}
                 {secili && !seciliEngel && (
                   <small className="muted">
                     Saklama koşulu: <strong>{secili.saklamaKosulu}</strong> ·
@@ -403,6 +437,13 @@ export default function SahitNumune({ currentUser }: Props){
                 )}
               </div>
 
+              {adayKesildi && (
+                <p className="muted detail-hint" style={{ margin: 0 }}>
+                  ⚠️ {adayToplam} partiden en yeni {adaylar.length} tanesi
+                  listeleniyor. Daha eski bir partiden numune alman gerekiyorsa
+                  bana söyle — sayfalama henüz yok ve bunu saklamıyorum.
+                </p>
+              )}
               <div className="form-field">
                 <label>Numune kodu</label>
                 <input value={yeniKod} onChange={e => setYeniKod(e.target.value)}
@@ -432,11 +473,36 @@ export default function SahitNumune({ currentUser }: Props){
 
       {/* ── 2 · DEFTER ───────────────────────────────────────────────────── */}
       <section className="card">
-        <div className="section-header"><div><h3>Numune Defteri</h3></div></div>
+        <div className="section-header">
+          <div><h3>Numune Defteri</h3></div>
+          {/* ⚠️ MIYOP-080 · SUNUCU TARAFLI SÜZGEÇ. Liste kesilebildiği için,
+              işi olan satırların (süresi dolmuş ve hâlâ imha edilmemiş)
+              listenin dışında kalma ihtimali vardı. Bu süzgeç sunucuda
+              çalışıyor; yani eski bir kayıt da erişilebilir kalıyor. */}
+          <label className="check-row">
+            <input type="checkbox" checked={yalnizBekleyen} disabled={calisiyor}
+              onChange={e => {
+                setYalnizBekleyen(e.target.checked)
+                setAcikNumuneId(null); setOlaylar([])
+              }} />
+            {' '}Yalnız imha bekleyenler ({ozet.imhaBekleyen})
+          </label>
+        </div>
+
+        {numuneKesildi && (
+          <p className="muted detail-hint" style={{ margin: '0 0 12px' }}>
+            ⚠️ {numuneToplam} kayıttan {numuneler.length} tanesi listeleniyor
+            (saklama sonu en yakın olanlar). Sayfalama henüz yok; eski bir
+            kaydı görmen gerekiyorsa <strong>“Yalnız imha bekleyenler”</strong>
+            süzgecini kullan — o süzgeç sunucuda çalışıyor.
+          </p>
+        )}
 
         {sirali.length === 0 ? (
           <p className="muted" style={{ margin: 0 }}>
-            Henüz şahit numune kaydı yok.
+            {yalnizBekleyen
+              ? 'İmha bekleyen numune yok. Süresi dolmuş her numunenin imha kaydı yazılmış.'
+              : 'Henüz şahit numune kaydı yok.'}
           </p>
         ) : (
           <div className="table-wrap">

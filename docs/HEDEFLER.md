@@ -814,6 +814,56 @@ Emrah'ın onayladığı sıra:
     gerektiğinde **0098** çalıştırılır. 0090 dosyasına DOKUNULMADI: uygulanmış
     bir göçü sonradan düzenlemek, canlıda koşan metinle depodaki metni
     ayırmak olurdu.
+  - ✅ **3.9.9** ⚠️ **CODEX BEŞ BULGU DAHA GETİRDİ (27.10) · BİRİ CANLIDA
+    AÇIK BİR P0'DI · göç 0099 + 0100**
+    **MIYOP-078 · P0 · 0095 FİNANS KAPISINI YOK ETMİŞ.** 0065 gösterge
+    fonksiyonunu yazdı, **0071 onu ikiye ayırdı**: ham hesap `..._ham`,
+    asıl ad bir `finance.read` İZİN KAPISI. 0095'i yazarken gövdeyi
+    0065'ten kopyalayıp asıl ada yazdım — kapıyı ezdim. Sonuç canlıya
+    gitti: finans izni olmayan depo/üretim/kalite/gıda mühendisi, fire
+    tutarını ve stok maliyeti göstergelerini doğrudan RPC'den okuyabildi.
+    ⚠️ **Kendi doğrulamam hatayı GEREKTİRİYORDU:** *"`isletme_gostergeleri`
+    gövdesinde `stock_usable_balance` var mı"* diye soruyordu ve ham gövdeyi
+    oraya yazdığım için geçiyordu — doğru yere yazsaydım kırmızı verecekti.
+    ⚠️ **Provam da kaçırdı:** göstergeleri yalnız `isletme_sahibi` oturumunda
+    çağırıyordu ve onda izin VAR; kapının kalkması hiçbir fark yaratmıyordu.
+    **Olumsuz kontrolü olmayan sınama, kapının yokluğunu da onaylar.**
+    0099 kapıyı geri koydu, düzeltilmiş hesabı `_ham`'a yazdı, prova-0095'e
+    olumsuz kontrol eklendi (15/15). **0095 dosyası da düzeltildi** —
+    eski hâli yeniden çalıştırılsa *"Success"* der ve kapıyı sessizce
+    düşürürdü; depoda böyle bir mayın bırakmak kuralı yorumda tutmak olurdu.
+    Tuzak 127.
+    **MIYOP-079 · pano yolunda bozulan metin.** Codex'e yapıştırılan metinde
+    `İ/ı` bozulmuştu (`Ä°`/`Ä±`). Depo dosyası ve yerel prova doğru çıktı —
+    ama canlıya pano üzerinden gitti. "Dosya doğru" ile "canlıdaki fonksiyon
+    doğru" aynı şey değil: 0099 artık CANLIDA ölçüyor (dört i varyantı tek
+    harfe katlanıyor mu).
+    **MIYOP-081 · açılış sonucu sunucuda zorunlu değildi.** Ekran istiyordu,
+    veritabanı istemiyordu — `write-off.service.ts`te yazdığım kuralın
+    ihlali (*"gerekçe ekran kuralı değil servis kuralıdır"*). Göç 0100 bir
+    `check` kısıtı ekledi. Prova 0100 (10/10) reddedilen açılışın **durumu
+    ve saklama sonunu değiştirmediğini** de ölçüyor: tetik BEFORE INSERT'te
+    güncelleme yapıyor, kısıt sonradan denetleniyor.
+    **MIYOP-080 · liste ve sayı sessizce kesiliyordu.** Defter 500, parti
+    300 satırla kesiliyor ve ekran **toplamları o kesilmiş listeden**
+    hesaplıyordu: 500'üncüden sonraki eski bir açık kayıt hem listeden hem
+    "İmha bekleyen" sayısından düşüyordu. Sayılar artık sunucuda sayılıyor
+    (`ozet()`), kesilme ekranda yazıyor, ve **"yalnız imha bekleyenler"**
+    süzgeci sunucuda çalıştığı için eski kritik kayıtlar erişilebilir.
+    ⚠️ `numuneOzeti()` yardımcısı SİLİNDİ: duran bir yardımcıyı bir gün biri
+    yeniden çağırır ve aynı hatayı geri getirir.
+    ⚠️ **Gerçek sayfalama hâlâ YOK ve bu bir borç.** 500'üncüden sonraki,
+    süresi DOLMAMIŞ eski bir numune hâlâ listelenmiyor. Bugünkü dürüst
+    davranış kesildiğini söylemek; sayfalama demo sonrası.
+    **MIYOP-082 · seçilemeyen partinin sebebi erişilemiyordu** — 26.10
+    akşamı Emrah'ın bildirmesiyle zaten kapanmıştı (tuzak 126). Codex'in
+    önerisi daha iyiydi ve uygulandı: parti artık `disabled` değil,
+    **seçilebiliyor**, sebep yazılıyor ve kaydı düğme engelliyor.
+    ⚠️ **ALTYAPI ONARIMI:** `db/prova/kur.sh` göçleri `00[0-9][0-9]_*.sql`
+    deseniyle tarıyordu. **0100 bu desene uymadı** ve betik *"100 göç
+    uygulandı"* diyerek sessizce geçti; prova-0100 kırmızı değil BOŞ döndü.
+    Desen genişletildi **ve sağlama eklendi**: uygulanan sayı ile klasördeki
+    dosya sayısı eşit olmalı (tuzak 128).
   - ⬜ **3.9.3** ⚠️ **ETİKET EKRANI SAKLAMA KOŞULUNU ÜRÜN KARTINDAN
     OKUMALI.** Bu göçün ortaya çıkardığı eksik: saklama koşulu hiçbir yerde
     **saklanmıyordu** — etiket ekranında her baskıda **elle yazılan**
@@ -1457,20 +1507,20 @@ yanlışlıkla çalıştırılma riski var (6.11).
 | | |
 |---|---|
 | Test | **87 dosya · 1541 test** (Emrah'ın 26.10 koşusu) · ⚠️ o koşuda **8 kırmızı** vardı ve ÜÇÜ DE DOĞRU YAKALAMIŞTI: şahit numune ekranı menüyü büyüttü, iki çıcır eski sayıyı tutuyordu. Sayılar güncellendi, gerekçesi testin içinde yazılı. |
-| Göç | 0000–**0098** · 99 dosya · 0094/0095/0096/0097/0098 **26.10'da yazıldı, prova yeşil** · giriş ACL'si artık **0099** olacak |
+| Göç | 0000–**0100** · 101 dosya · 0094–0098 **26.10'da canlıya alındı**; **0099 ve 0100 27.10'da yazıldı, Supabase'de BEKLİYOR** · giriş ACL'si artık **0101** olacak |
 | Açık çekirdek rota | 25 (37'den indi) |
 | Tarayıcıya bağlı açık ekran | **3** (6 → 5 Profilim bitti → 3 şube ekranları kapsam dışı) |
 | Sahte veri üreticisi | **23 `createDemo*`** (27 → 23 · duyuru, şube, firma ve `createDemoData` silindi) · çıcır testiyle donduruldu |
 | Veritabanı yazma kapısı | **45 tetikleyici** (18 → +27 tablo) |
-| Codex bulgusu | **67** · (**25'i kapandı**: önceki 21 + **074**, **075**, **076**, **077**) · 26.10'da 075/076/077 geldi ve **aynı gün kapandı**; ölçüm 075'in İKİNCİ bir yerini daha buldu (`numune_turet`) |
+| Codex bulgusu | **72** · (**30'u kapandı**: önceki 25 + **078**, **079**, **080**, **081**, **082**) · 27.10'da 078–082 geldi ve **aynı gün kapandı**. ⚠️ **078 bir P0'dı ve CANLIYA GİTMİŞTİ**: 0095, 0071'in `finance.read` kapısını ezmişti |
 | Kapısız yazma yüzeyi | **0 tablo** (ölçüldü, sayılmadı) |
 | Gevşek kapı ardındaki `security definer` | **7 rutin** (0090'da 6 idi) · 0098'de yeniden donduruldu · ⚠️ 0090 tek başına yeniden çalıştırılamaz |
 | Prova dosyası | **42 · 31 yeşil / 11 kırmızı** (11'i de bayat · 6.12) · 26.10: prova-0094 (18), prova-0095 (12), prova-0096 (9), prova-0097 (13) eklendi |
-| Şahit numune | defter **0093** · kiracı sınırı + kilit + açık raf ömrü **0094** · ekran **26.10** · saklama beyanı izni **0096** · imha onayı **0097** · toplam **61 prova sınaması** · **açık soru kalmadı** |
+| Şahit numune | 0093 defter · 0094 kiracı sınırı/kilit/açık raf ömrü · 0096 saklama beyanı izni · 0097 imha onayı · 0100 açılış sonucu · ekran 26.10 · toplam **71 prova sınaması** · **açık soru kalmadı** · ⬜ sayfalama borcu |
 | Mock dosya | 36 · hiçbiri açık kiracı rotasından erişilemiyor |
 | Public yol | **2** · başvuru formu + müşteri portalı (ölçülüp donduruldu) |
 | Giriş vitrini | dondurulmuş **20 modül adının** hiçbiri geçmiyor (ölçüldü, donduruldu) |
-| Tuzak | **126** (26.10: 116–126 eklendi) |
+| Tuzak | **128** (26–27.10: 116–128 eklendi) |
 
 ⚠️ "Mock dosya" satırı **yanıltıcıydı:** doğru olan ama yetmeyen bir ölçüm.
 Asıl tehlike adı mock olmayan üreticilerdi; üstteki satır onu gösteriyor.

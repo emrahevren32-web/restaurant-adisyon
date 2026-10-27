@@ -11,8 +11,7 @@
 import { describe, expect, it } from 'vitest'
 import {
   bugununGunu, gerekceYeterliMi, kalanGun, numuneAlinabilir,
-  numuneAlinamazSebebi, numuneKoduYeterliMi, numuneOzeti, numuneSirasi,
-  suresiDolduMu,
+  numuneAlinamazSebebi, numuneKoduYeterliMi, numuneSirasi, suresiDolduMu,
 } from './witness-sample.service'
 import type { NumuneAdayi, SahitNumune } from './witness-sample.repository'
 
@@ -100,27 +99,9 @@ describe('numune alınabilir mi', () => {
   })
 })
 
-describe('özet', () => {
-  it('durumları sayar ve imha bekleyeni ayırır', () => {
-    const ozet = numuneOzeti([
-      numune({ id: '1', durum: 'SAKLANIYOR', saklamaSonu: '2026-12-31' }),
-      numune({ id: '2', durum: 'SAKLANIYOR', saklamaSonu: '2026-10-01' }),
-      numune({ id: '3', durum: 'ACILDI', saklamaSonu: '2026-10-02' }),
-      numune({ id: '4', durum: 'IMHA', saklamaSonu: '2026-01-01' }),
-    ], '2026-10-26')
-    expect(ozet.saklanan).toBe(2)
-    expect(ozet.acilan).toBe(1)
-    expect(ozet.imha).toBe(1)
-    // 2 ve 3 süresi dolmuş ve imha edilmemiş; 4 zaten imha.
-    expect(ozet.imhaBekleyen).toBe(2)
-  })
-
-  it('imha edilmiş numune imha bekleyen sayılmaz', () => {
-    const ozet = numuneOzeti(
-      [numune({ durum: 'IMHA', saklamaSonu: '2020-01-01' })], '2026-10-26')
-    expect(ozet.imhaBekleyen).toBe(0)
-  })
-})
+// ⚠️ `numuneOzeti` sınamaları 27.10'da KALDIRILDI çünkü fonksiyon silindi
+// (MIYOP-080): durum sayıları artık KESİLMİŞ listeden değil sunucudan
+// sayılıyor. Sınamaları bırakmak, olmayan bir davranışı doğrulamak olurdu.
 
 describe('sıralama', () => {
   it('işi olan satır üstte: imha bekleyen, açılan, saklanan, imha', () => {

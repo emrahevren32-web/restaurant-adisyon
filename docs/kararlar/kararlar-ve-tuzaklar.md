@@ -677,6 +677,40 @@ tıklama bile yapamaz ve senin yazdığın bütün açıklamalar erişilemez olu
 Aynı tuzak boş liste + süzgeç kombinasyonlarında da geçerli: süzgecin
 hepsini elediği durum, verinin hiç olmadığı durumdan farklıdır.
 
+**127 · BİR FONKSİYONUN GÖVDESİNİ İLERİ TAŞIRKEN, O ADIN SONRADAN BAŞKA
+BİR ŞEYE DÖNÜŞMÜŞ OLABİLECEĞİNİ SOR.** (MIYOP-078 · P0 · Codex, 27.10)
+0095'i yazarken gösterge hesabını **0065'ten** kopyalayıp
+`app.isletme_gostergeleri` adına yazdım. Ama **0071 o adı bir `finance.read`
+İZİN KAPISINA çevirmiş**, ham hesabı `..._ham` adına taşımıştı. Yani 0095,
+otuz göç sonra, bir güvenlik kapısını ham hesapla EZDİ.
+⚠️ Sonuç canlıya gitti: finans izni olmayan depo/üretim/kalite/gıda
+mühendisi, fire tutarını ve stok maliyetini doğrudan RPC'den okuyabildi.
+⚠️ **KENDİ DOĞRULAMAM HATAYI GEREKTİRİYORDU.** 0095 şunu ölçüyordu:
+*"`isletme_gostergeleri` gövdesinde `stock_usable_balance` geçiyor mu?"*
+Ham gövdeyi oraya yazdığım için ölçüm GEÇTİ — **doğru yere yazsaydım kendi
+doğrulamam kırmızı verecekti.** Yani doğrulama yanlış fonksiyonu ölçüyordu
+ve hatayı yakalamak şöyle dursun, onu şart koşuyordu.
+⚠️ Provam da kaçırdı: göstergeleri yalnız `isletme_sahibi` oturumunda
+çağırıyordu ve onda `finance.read` VAR. **Olumsuz kontrolü olmayan bir
+sınama, kapının varlığını değil yokluğunu da onaylar.**
+⚠️ Üç kural: **(1)** `create or replace` yazmadan önce o adın BUGÜN ne
+olduğuna `pg_get_functiondef` ile bak, en son hangi göçün yazdığını bul.
+**(2)** Bir izin kapısı yazdığın/koruduğun her yerde İZNİ OLMAYAN bir
+oturumla da sına. **(3)** Göçün doğrulaması, hesabın DOĞRU YERDE olduğunu
+ve kapının YERİNDE kaldığını AYRI AYRI ölçsün.
+
+**128 · DOSYA ADI DESENİ, ADLARIN BÜYÜMESİNİ HESABA KATMALI.** (27.10)
+`db/prova/kur.sh` göçleri `00[0-9][0-9]_*.sql` deseniyle tarıyordu —
+yani 0000–0099. Göç **0100** yazıldığında desen onu yakalamadı ve betik
+*"✅ 100 göç uygulandı"* diyerek **sessizce geçti**; prova-0100 kırmızı
+değil BOŞ döndü (sıfır sınama). Yani yeni göç provasız kaldı ve bunu
+söyleyen hiçbir şey yoktu.
+⚠️ Bu tuzak 80'in kardeşi: bulamadığı için sessiz kalan bir kontrol,
+kontrol değildir. Desen genişletildi (`[0-9][0-9][0-9][0-9]_`) **ve bir
+sağlama eklendi**: uygulanan göç sayısı ile klasördeki numaralı dosya
+sayısı EŞİT olmalı, değilse betik patlıyor. Deseni düzeltmek yetmezdi —
+bir sonraki sınır (05000?) yine sessizce gelirdi.
+
 ---
 
 ## 5 · TEST İŞBÖLÜMÜ VE TESLİM KONTROL LİSTESİ
@@ -777,3 +811,10 @@ Son söz onun çıktısındadır.
 38. Bir seçim kontrolünde öge `disabled` yapıyorsan **hiçbirinin
     seçilemediği hâli ayrıca ele al** (tuzak 126). Yoksa yazdığın bütün
     sebep açıklamaları erişilemez kalır.
+39. `create or replace function` yazmadan önce **o adın BUGÜN ne olduğuna
+    bak** (tuzak 127). Eski bir göçten gövde kopyalamak, aradaki
+    sertleştirmeyi ezebilir. Bir izin kapısını izni OLMAYAN oturumla sına.
+40. Bir listede ya da sayıda **kesilme (limit) varsa, toplamı listeden
+    türetme** (MIYOP-080). Sayı sunucudan gelsin, kesildiğini ekran söylesin.
+41. Dosya/ad deseni yazıyorsan **adların büyümesini hesaba kat** ve
+    "kaç tane bulundu, kaç tane olmalıydı" sağlamasını ekle (tuzak 128).

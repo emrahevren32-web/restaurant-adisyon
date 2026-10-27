@@ -25,6 +25,7 @@ import { readFileSync } from 'node:fs'
 import { join } from 'node:path'
 import { projeKokunuBul } from '../core/test-support/goc-tarama'
 import { NUMUNE_IZINLERI } from '../authorization/yazma-yetkisi'
+import { readFileSync as oku } from 'node:fs'
 
 const KOK = projeKokunuBul()
 const GOC_0093 = readFileSync(
@@ -42,6 +43,45 @@ const gocIzinleri = (sql: string, tablo: string): string[] => {
   const cagri = /izin_gerek_coklu\(([^)]*)\)/.exec(parca)?.[1] ?? ''
   return [...cagri.matchAll(/'([a-z_.]+)'/g)].map(m => m[1] as string).sort()
 }
+
+// ═══════════════════════════════════════════════════════════════════════════
+// MIYOP-080 · SAYIM SINIRI İKİ YERDE AYNI OLMALI
+//
+// "Süresi dolmuş" kararı ÜÇ yerde veriliyor ve üçü aynı günü kastetmek
+// zorunda:
+//   · `witness-sample.service.ts > suresiDolduMu()` → `bugun > saklamaSonu`
+//   · depo: numune listesi süzgeci                  → `.lt('keep_until', …)`
+//   · depo: imha bekleyen SAYIMI                    → `.lt('keep_until', …)`
+//
+// ⚠️ Biri `lte`ye dönerse saklama sonu GÜNÜNDEKİ numune "süresi dolmuş"
+// sayılır — SKT kapısının (0092) kararına da aykırı olur. Üçünü birlikte
+// tutmanın yolu not değil ölçüm.
+// ═══════════════════════════════════════════════════════════════════════════
+describe('numune sayım sınırı · saklama sonu GÜNÜ hâlâ süre içinde', () => {
+  const DEPO = oku(join(KOK, 'src/quality/witness-sample.repository.ts'), 'utf8') as string
+
+  it('depo `lt` kullanıyor, `lte` DEĞİL', () => {
+    const ltSayisi = (DEPO.match(/\.lt\('keep_until'/g) ?? []).length
+    expect(ltSayisi, 'keep_until süzgeci bulunamadı').toBeGreaterThanOrEqual(2)
+    expect(DEPO, '`lte` kullanılmış: saklama sonu günü süresi dolmuş sayılır')
+      .not.toMatch(/\.lte\('keep_until'/)
+  })
+
+  it('liste süzgeci ile SAYIM süzgeci aynı', () => {
+    // ⚠️ İkisi ayrışırsa sayı ile liste birbirini tutmaz ve hangisinin
+    // doğru olduğu söylenemez.
+    const desen = /neq\('status', 'IMHA'\)\s*\.lt\('keep_until', bugun/g
+    const dusuk = /neq\('status', 'IMHA'\)\.lt\('keep_until', bugununGunu\(\)\)/g
+    const toplam = (DEPO.match(desen) ?? []).length + (DEPO.match(dusuk) ?? []).length
+    expect(toplam, 'liste ve sayım süzgeçleri aynı ifadeyi kullanmıyor')
+      .toBeGreaterThanOrEqual(2)
+  })
+
+  it('sayfa sınırları ADIYLA duruyor (gömülü sayı değil)', () => {
+    expect(DEPO).toMatch(/export const NUMUNE_SAYFA = \d+/)
+    expect(DEPO).toMatch(/export const PARTI_SAYFA = \d+/)
+  })
+})
 
 describe('numune kapısı · göç ile ekran aynı izinleri istiyor', () => {
   it('sağlama: göç dosyaları okundu', () => {

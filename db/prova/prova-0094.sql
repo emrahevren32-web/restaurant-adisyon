@@ -45,6 +45,14 @@ begin;
 --  16 · Aynı kod farklı yazımla ikinci kez yazılabilir mi?  → YAZILAMAMALI
 -- ═══════════════════════════════════════════════════════════════════════════
 
+-- ⚠️ 27.10.2026 · AÇILIŞ KAYITLARINA SONUÇ EKLENDİ.
+-- Göç 0100 (MIYOP-081) `ACILDI` olayında sonucu SUNUCUDA zorunlu kıldı.
+-- Bu prova eski kuralı kodluyordu (sonuçsuz açılış) ve 0100'den sonra
+-- sekiz sınamada kırmızı döndü. Gevşetilmedi: sınamaların ölçtüğü şey
+-- kiracı sınırı ve açık raf ömrü; sonuç alanı o ölçümlerin konusu değil,
+-- girdisi. Sonuçsuz açılışın REDDEDİLDİĞİ `prova-0100.sql`de ayrıca
+-- ölçülüyor — yani eski davranışın gittiği de kayıtlı (tuzak 123).
+
 create or replace function prova_bak(p_ad text, p_kosul boolean) returns void
 language plpgsql as $$
 begin
@@ -194,8 +202,8 @@ begin
 
   -- ── 1 · A, B'NİN NUMUNESİNE OLAY YAZAMAZ (MIYOP-075) ──────────────────
   begin
-    insert into public.witness_sample_event (tenant_id, sample_id, event_type, reason)
-    values (v_t, v_numuneb, 'ACILDI', 'çapraz kiracı denemesi');
+    insert into public.witness_sample_event (tenant_id, sample_id, event_type, reason, result)
+    values (v_t, v_numuneb, 'ACILDI', 'çapraz kiracı denemesi', 'sonuç yazıldı');
     perform prova_bak('1 · A kiracısı B''nin numunesine olay YAZAMAZ', false);
   exception
     when sqlstate 'MI404' then
@@ -269,9 +277,9 @@ begin
 
   -- ── 5 · OLAYIN KİRACISI SUNUCUDAN ─────────────────────────────────────
   -- Uydurma tenant_id (B) gönderiliyor; sunucu A'ya düzeltmeli.
-  insert into public.witness_sample_event (tenant_id, sample_id, event_type, reason)
+  insert into public.witness_sample_event (tenant_id, sample_id, event_type, reason, result)
   values (current_setting('prova.numuneb')::uuid,  -- uuid ama kiracı değil: uydurma
-          v_n1, 'ACILDI', 'kiracı uydurma denemesi')
+          v_n1, 'ACILDI', 'kiracı uydurma denemesi', 'sonuç yazıldı')
   returning tenant_id into v_kiraci;
   perform prova_bak('5 · olayın kiracısı SUNUCUDAN yazıldı', v_kiraci = v_t);
 
@@ -281,8 +289,8 @@ begin
                                      sample_code, sample_code_key, storage_condition, keep_until)
   values (v_n2, v_t, v_b, null, current_setting('prova.l2')::uuid,
           'P94-N2', 'p94-n2', 'x', current_date);
-  insert into public.witness_sample_event (tenant_id, sample_id, event_type, reason)
-  values (v_t, v_n2, 'ACILDI', 'kısa SKT denemesi');
+  insert into public.witness_sample_event (tenant_id, sample_id, event_type, reason, result)
+  values (v_t, v_n2, 'ACILDI', 'kısa SKT denemesi', 'sonuç yazıldı');
   select keep_until into v_sure from public.witness_sample where id = v_n2;
   perform prova_bak('11 · açık pencere (30g) SKT''yi (1g) AŞMADI',
     v_sure = current_date + 1);
@@ -293,8 +301,8 @@ begin
                                      sample_code, sample_code_key, storage_condition, keep_until)
   values (v_n3, v_t, v_b, null, current_setting('prova.l3')::uuid,
           'P94-N3', 'UYDURMA-ANAHTAR', 'x', current_date);
-  insert into public.witness_sample_event (tenant_id, sample_id, event_type, reason)
-  values (v_t, v_n3, 'ACILDI', 'açık ömür yok denemesi');
+  insert into public.witness_sample_event (tenant_id, sample_id, event_type, reason, result)
+  values (v_t, v_n3, 'ACILDI', 'açık ömür yok denemesi', 'sonuç yazıldı');
   select keep_until, opened_shelf_life_days into v_sure, v_acik
     from public.witness_sample where id = v_n3;
   perform prova_bak('12a · açık raf ömrü tanımsız kaldı', v_acik is null);

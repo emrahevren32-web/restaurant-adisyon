@@ -85,7 +85,27 @@ revoke all privileges on stock_usable_balance from anon;
 -- ⚠️ Gövdenin TAMAMI 0065'ten alındı ve YALNIZ `kritik_kalem` bloğu
 -- değişti. `create or replace function` gövdeyi komple değiştirdiği için
 -- tek satır yazmak mümkün değil; değişen yer aşağıda ⚠️ ile işaretli.
-create or replace function app.isletme_gostergeleri(
+--
+-- ╔═══════════════════════════════════════════════════════════════════════╗
+-- ║ ⚠️ 27.10.2026 · BU DOSYA DÜZELTİLDİ · MIYOP-078 (P0, Codex)            ║
+-- ╚═══════════════════════════════════════════════════════════════════════╝
+-- İlk yazdığım hâlde gövde `app.isletme_gostergeleri` adına yazılıyordu.
+-- Ama **0071 o adı bir İZİN KAPISINA çevirmişti** ve ham hesabı
+-- `app.isletme_gostergeleri_ham` adına taşımıştı. Yani bu göç, gövdeyi
+-- 0065'ten kopyalarken 0071'in `finance.read` kapısını EZİYORDU.
+--
+-- Sonucu: finans izni olmayan bir kullanıcı (depo, üretim, kalite, gıda
+-- mühendisi) fire tutarını ve stok maliyetini doğrudan RPC'den okuyabildi.
+-- Göç 0099 canlıdaki kapıyı geri koydu.
+--
+-- ⚠️ **DOSYA NEDEN DEĞİŞTİRİLDİ** — normalde uygulanmış bir göçe
+-- dokunmuyorum (bkz. 0090/0098 kararı). Buradaki fark şu: 0090'ın bayat
+-- hâli yeniden çalıştırılınca yalnız HATA veriyordu. Bu dosyanın eski hâli
+-- ise yeniden çalıştırılınca **"Success" der ve bir güvenlik kapısını
+-- sessizce düşürürdü.** Depoda böyle bir mayını not bırakarak çözmek,
+-- kuralı yorumda tutmak olurdu (tuzak 74). Dosya artık doğru adı yazıyor;
+-- canlıdaki durum değişmedi, yalnız aynı zararın tekrarı imkânsız oldu.
+create or replace function app.isletme_gostergeleri_ham(
   p_sube uuid,
   p_bas  date,
   p_bit  date
@@ -243,11 +263,17 @@ begin
     raise exception '0095: anon kullanılabilir bakiyeyi görebiliyor.';
   end if;
 
+  -- ⚠️ 27.10 · BU BLOK YANLIŞ FONKSİYONU ÖLÇÜYORDU (MIYOP-078).
+  -- `isletme_gostergeleri` gövdesinde `stock_usable_balance` arıyordu; ham
+  -- hesabı oraya yazdığım için ölçüm GEÇİYORDU. Doğru yere yazsaydım kendi
+  -- doğrulamam kırmızı verecekti. Yani doğrulama, hatayı yakalamak şöyle
+  -- dursun, hatayı GEREKTİRİYORDU (tuzak 127).
   select pg_get_functiondef(p.oid) into v_govde
     from pg_proc p join pg_namespace n on n.oid = p.pronamespace
-   where n.nspname = 'app' and p.proname = 'isletme_gostergeleri';
+   where n.nspname = 'app' and p.proname = 'isletme_gostergeleri_ham';
   if v_govde is null then
-    raise exception '0095: app.isletme_gostergeleri bulunamadı.';
+    raise exception '0095: app.isletme_gostergeleri_ham bulunamadı. '
+      'Bu göç 0071''den SONRA çalışmalı.';
   end if;
   if v_govde !~ 'stock_usable_balance' then
     raise exception '0095: göstergeler hâlâ fiziksel bakiyeden kritik kalem sayıyor.';
@@ -256,5 +282,16 @@ begin
     raise exception '0095: kritik eşiği <= değil; Depo ekranından ayrı davranır.';
   end if;
 
-  raise notice '0095: Kullanılabilir bakiye görünümü kuruldu; Analiz onu okuyor.';
+  -- ⚠️ VE İZİN KAPISI YERİNDE Mİ? Bu satır olmasaydı bu göç kapıyı yine
+  -- ezebilir ve kendi doğrulamasından yeşil geçebilirdi.
+  select pg_get_functiondef(p.oid) into v_govde
+    from pg_proc p join pg_namespace n on n.oid = p.pronamespace
+   where n.nspname = 'app' and p.proname = 'isletme_gostergeleri';
+  if v_govde is null or v_govde !~ 'finance\.read' then
+    raise exception
+      '0095: app.isletme_gostergeleri finans izin kapısı DEĞİL (MIYOP-078). '
+      'Ham hesap _ham fonksiyonuna, kapı bu ada yazılmalı.';
+  end if;
+
+  raise notice '0095: Kullanılabilir bakiye görünümü kuruldu; _ham onu okuyor, kapı yerinde.';
 end $$;

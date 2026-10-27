@@ -23,6 +23,7 @@
 
 import type { SupabaseClient } from '@supabase/supabase-js'
 import type { TenantCtx } from '../core/context'
+import { bugununGunu } from './witness-sample.service'
 
 export const NUMUNE_DURUMLARI = ['SAKLANIYOR', 'ACILDI', 'IMHA'] as const
 export type NumuneDurumu = (typeof NUMUNE_DURUMLARI)[number]
@@ -93,11 +94,53 @@ export type NumuneAdayi = {
   numunesiVar: boolean
 }
 
+/**
+ * Durum sayıları. ⚠️ Ekranda hesaplanmıyor, SUNUCUDA sayılıyor (MIYOP-080).
+ * Servisteki eski `numuneOzeti()` yardımcısı SİLİNDİ: kesilmiş bir listeden
+ * sayı çıkarıyordu ve duran bir yardımcıyı bir gün biri yeniden çağırır.
+ */
+export type NumuneDurumSayilari = {
+  saklanan: number
+  acilan: number
+  imha: number
+  imhaBekleyen: number
+}
+
 export type YeniNumune = {
   lotId: string
   kod: string
   isEmriId?: string
   not?: string
+}
+
+/**
+ * Kesilmiş bir liste ve o listenin BÜTÜN kapsamdaki sayısı.
+ *
+ * ⚠️ MIYOP-080 (Codex, 27.10) · önce yalnız dizi dönüyordu ve ekran
+ * toplamları o KESİLMİŞ listeden hesaplıyordu. 500'üncü numuneden sonra eski
+ * bir açık kayıt hem defterden hem "İmha bekleyen" sayısından **sessizce
+ * kaybolabiliyordu** — yani sayı yanlış olduğu hâlde doğru görünüyordu.
+ *
+ * `toplam` sunucudan geliyor (`count: 'exact'`), `satirlar` kesilmiş olabilir.
+ * İkisini aynı nesnede taşımak, ekranın "kesildi mi" sorusunu sormayı
+ * unutmasını zorlaştırıyor.
+ */
+export type Sayfa<T> = {
+  satirlar: T[]
+  /** Süzgece uyan TOPLAM kayıt sayısı — kesilmeden önceki. */
+  toplam: number
+  /** `satirlar` tamamını taşımıyor mu? */
+  kesildi: boolean
+}
+
+/** Numune defteri süzgeci. */
+export type NumuneSorgusu = {
+  /**
+   * ⚠️ Yalnız süresi DOLMUŞ ve henüz imha edilmemiş numuneler.
+   * 080'in asıl derdi buydu: işi olan satır listenin dışında kalabiliyordu.
+   * Bu süzgeç sunucuda çalıştığı için eski kayıtlar da erişilebilir kalıyor.
+   */
+  yalnizImhaBekleyen?: boolean
 }
 
 export type YeniNumuneOlayi = {
@@ -108,12 +151,26 @@ export type YeniNumuneOlayi = {
 }
 
 export interface SahitNumuneDeposu {
-  numuneler(ctx: TenantCtx): Promise<SahitNumune[]>
+  numuneler(ctx: TenantCtx, sorgu?: NumuneSorgusu): Promise<Sayfa<SahitNumune>>
+  /** Durum sayıları — KESİLMİŞ listeden değil, sunucudan sayılarak. */
+  ozet(ctx: TenantCtx): Promise<NumuneDurumSayilari>
   olaylar(ctx: TenantCtx, numuneId: string): Promise<NumuneOlayi[]>
-  adaylar(ctx: TenantCtx): Promise<NumuneAdayi[]>
+  adaylar(ctx: TenantCtx): Promise<Sayfa<NumuneAdayi>>
   numuneAl(ctx: TenantCtx, girdi: YeniNumune): Promise<void>
   olayYaz(ctx: TenantCtx, girdi: YeniNumuneOlayi): Promise<void>
 }
+
+/**
+ * ⚠️ SAYFA BOYUTLARI ADIYLA DURUYOR, sorgunun içine gömülü değil.
+ * MIYOP-080'de bu sayılar sorgu gövdesinde `.limit(500)` / `.limit(300)`
+ * diye duruyordu ve kesilmenin bir sonucu olduğu hiçbir yerde yazmıyordu.
+ *
+ * ⚠️ Bu sınırlar BİR BORÇTUR, çözüm değil: gerçek sayfalama hâlâ yok
+ * (HEDEFLER 3.9.9). Bugünkü dürüst davranış, kesildiğini EKRANDA SÖYLEMEK
+ * ve işi olan satırları sunucu süzgeciyle erişilebilir tutmaktır.
+ */
+export const NUMUNE_SAYFA = 500
+export const PARTI_SAYFA = 300
 
 const NUMUNE_SECIM = `
   id, sample_code, stock_item_id, lot_id, work_order_id, taken_at,
@@ -197,14 +254,63 @@ type AdayKaydi = {
 export class PostgresSahitNumuneDeposu implements SahitNumuneDeposu {
   constructor(private readonly client: SupabaseClient) {}
 
-  async numuneler(_ctx: TenantCtx): Promise<SahitNumune[]> {
-    const { data, error } = await this.client
+  async numuneler(
+    _ctx: TenantCtx, sorgu: NumuneSorgusu = {},
+  ): Promise<Sayfa<SahitNumune>> {
+    let q = this.client
       .from('witness_sample')
-      .select(NUMUNE_SECIM)
+      // ⚠️ `count: 'exact'` — TOPLAM sunucudan geliyor, kesilmiş listeden
+      // sayılmıyor (MIYOP-080).
+      .select(NUMUNE_SECIM, { count: 'exact' })
+
+    if(sorgu.yalnizImhaBekleyen){
+      // ⚠️ `lt`, `lte` DEĞİL: saklama sonu GÜNÜ hâlâ süre içindedir.
+      // Servisteki `suresiDolduMu()` ile birebir aynı sınır
+      // (`bugun > saklamaSonu`); ikisi ayrışırsa ekran bir günlük numuneyi
+      // "süresi dolmuş" sayar. Sınır `skt-kapisi` ailesiyle de tutarlı.
+      q = q.neq('status', 'IMHA').lt('keep_until', bugununGunu())
+    }
+
+    const { data, error, count } = await q
+      .order('keep_until', { ascending: true })
       .order('taken_at', { ascending: false })
-      .limit(500)
+      .limit(NUMUNE_SAYFA)
     if(error) throw new Error(`Şahit numuneler okunamadı: ${error.message}`)
-    return ((data as unknown as NumuneKaydi[] | null) ?? []).map(numuneyeCevir)
+
+    const satirlar = ((data as unknown as NumuneKaydi[] | null) ?? []).map(numuneyeCevir)
+    const toplam = count ?? satirlar.length
+    return { satirlar, toplam, kesildi: toplam > satirlar.length }
+  }
+
+  /**
+   * ⚠️ DÖRT AYRI SAYIM, hepsi `head: true` ile — satır indirilmiyor, yalnız
+   * sayı. Ekran bu sayıları listeden türetseydi liste kesildiği anda sayı
+   * da yanlış olurdu ve bunu kimse fark etmezdi (MIYOP-080).
+   */
+  async ozet(_ctx: TenantCtx): Promise<NumuneDurumSayilari> {
+    const bugun = bugununGunu()
+    const taban = () => this.client
+      .from('witness_sample')
+      .select('id', { count: 'exact', head: true })
+
+    const [saklanan, acilan, imha, bekleyen] = await Promise.all([
+      taban().eq('status', 'SAKLANIYOR'),
+      taban().eq('status', 'ACILDI'),
+      taban().eq('status', 'IMHA'),
+      // ⚠️ `numuneler()` süzgecinin AYNISI. İkisi ayrışırsa sayı ile liste
+      // birbirini tutmaz ve hangisinin doğru olduğu bilinemez.
+      taban().neq('status', 'IMHA').lt('keep_until', bugun),
+    ])
+
+    for(const sonuc of [saklanan, acilan, imha, bekleyen]){
+      if(sonuc.error) throw new Error(`Numune sayısı okunamadı: ${sonuc.error.message}`)
+    }
+    return {
+      saklanan: saklanan.count ?? 0,
+      acilan: acilan.count ?? 0,
+      imha: imha.count ?? 0,
+      imhaBekleyen: bekleyen.count ?? 0,
+    }
   }
 
   async olaylar(_ctx: TenantCtx, numuneId: string): Promise<NumuneOlayi[]> {
@@ -229,20 +335,23 @@ export class PostgresSahitNumuneDeposu implements SahitNumuneDeposu {
    * sorusunu cevapsız bırakırdı — eksik olan ürün kartıdır, kullanıcı onu
    * düzeltebilir.
    */
-  async adaylar(_ctx: TenantCtx): Promise<NumuneAdayi[]> {
-    const { data, error } = await this.client
+  async adaylar(_ctx: TenantCtx): Promise<Sayfa<NumuneAdayi>> {
+    const { data, error, count } = await this.client
       .from('stock_lot')
       .select(`
         id, lot_code, expires_on, origin_type, origin_id, stock_item_id,
         stock_item:stock_item_id ( code, name, storage_condition, opened_shelf_life_days )
-      `)
+      `, { count: 'exact' })
       .not('expires_on', 'is', null)
       .order('created_at', { ascending: false })
-      .limit(300)
+      .limit(PARTI_SAYFA)
     if(error) throw new Error(`Partiler okunamadı: ${error.message}`)
 
     const partiler = (data as unknown as AdayKaydi[] | null) ?? []
-    if(partiler.length === 0) return []
+    const toplam = count ?? partiler.length
+    if(partiler.length === 0){
+      return { satirlar: [], toplam, kesildi: toplam > 0 }
+    }
 
     // Hangi partilerin AÇIK numunesi var? Tek sorguda, listedeki partiler için.
     const { data: mevcut, error: mevcutHatasi } = await this.client
@@ -256,7 +365,7 @@ export class PostgresSahitNumuneDeposu implements SahitNumuneDeposu {
       ((mevcut as Array<{ lot_id: string }> | null) ?? []).map(s => s.lot_id),
     )
 
-    return partiler.map(p => ({
+    const satirlar: NumuneAdayi[] = partiler.map(p => ({
       lotId: p.id,
       lotKodu: p.lot_code,
       kalemId: p.stock_item_id,
@@ -270,6 +379,7 @@ export class PostgresSahitNumuneDeposu implements SahitNumuneDeposu {
       acikRafOmruGun: p.stock_item?.opened_shelf_life_days ?? undefined,
       numunesiVar: numunesiOlanlar.has(p.id),
     }))
+    return { satirlar, toplam, kesildi: toplam > satirlar.length }
   }
 
   /**

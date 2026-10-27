@@ -1,27 +1,92 @@
-Sahit Numune: hicbir parti secilemiyorsa SEBEBI yaziyor (tuzak 126)
+Codex 078-082: canlida acik bir P0 kapandi (goc 0099 + 0100)
 
-Emrah ekrani canlida degil localde acti ve "numune alamiyorum" dedi -
-hakliydi. Parti listesi DOLUYDU ama hepsi "secilemez" durumdaydi (ABC
-firmasinin urun kartlarinda saklama kosulu yazili degil). Sebebi
-yazmistim ama YALNIZ SECILEN parti icin; kullanici hicbir sey secemedigi
-icin sebebi hic gormedi.
+GOC 0099 - MIYOP-078 (P0, CANLIDA ACIKTI) - 0095 FINANS KAPISINI EZMIS
+0065 gosterge fonksiyonunu yazdi; 0071 onu IKIYE AYIRDI: ham hesap
+app.isletme_gostergeleri_ham, asil ad bir finance.read IZIN KAPISI.
+0095'i yazarken govdeyi 0065'ten kopyalayip ASIL ADA yazdim - yani otuz goc
+sonra bir guvenlik kapisini ham hesapla ezdim. Emrah 26.10'da 0095'i
+Supabase'de calistirmisti, dolayisiyla acik CANLIYA gitti: finans izni
+olmayan depo/uretim/kalite/gida muhendisi, fire tutarini, alis maliyetini
+ve stok maliyeti gostergelerini dogrudan RPC'den okuyabiliyordu.
 
-Iki durum AYRI ve ayri cumle ister:
-  - "liste bos"                          -> yapacak bir sey yok
-  - "listede var ama hicbiri secilemez"  -> eksik olan DUZELTILEBILIR
+KENDI DOGRULAMAM HATAYI GEREKTIRIYORDU. 0095 sunu olcuyordu:
+"isletme_gostergeleri govdesinde stock_usable_balance geciyor mu?" Ham
+govdeyi oraya yazdigim icin olcum GECTI - dogru yere (_ham) yazsaydim kendi
+dogrulamam KIRMIZI verecekti. Yani olcum yanlis fonksiyonu olcuyordu ve
+hatayi yakalamak soyle dursun onu sart kosuyordu (tuzak 127).
 
-Artik ikincisinde sebep TOPLUCA yaziliyor: kac partide saklama kosulu
-eksik, kacinin zaten acik numunesi var, ve nereden duzeltilir ("Depo
-ekraninda urunu secip Saklama Beyani dugmesinden kosulu yazin, sonra
-buraya donun"). Kismen secilebiliyorsa kac tanesinden numune
-alinabildigi soyleniyor.
+PROVAM DA KACIRDI: gostergeleri yalniz isletme_sahibi oturumunda
+cagiriyordu ve onda finance.read VAR; kapinin kalkmasi o oturumda hicbir
+fark yaratmiyordu. Olumsuz kontrolu olmayan bir sinama, kapinin varligini
+degil YOKLUGUNU da onaylar. prova-0095'e eklendi: finans izni olmayan
+depo_sorumlusu MI403 aliyor, izni olan okuyabiliyor ve yeni kritik hesabi
+donduruyor (15/15).
 
-Genel kural (tuzak 126): bir secim kontrolunde oge disabled yapiyorsan,
-HICBIRININ secilemedigi hali ayrica ele al. O halde kullanici tek bir
-tiklama bile yapamaz ve yazdigin butun aciklamalar erisilemez kalir.
+0095 DOSYASI DA DUZELTILDI. Normalde uygulanmis goce dokunmuyorum
+(0090/0098 karari) ama fark su: 0090'in bayat hali yeniden calistirilinca
+yalniz HATA veriyordu; 0095'in eski hali ise "Success" der ve bir guvenlik
+kapisini SESSIZCE dusururdu. Depoda boyle bir mayini not birakarak cozmek,
+kurali yorumda tutmak olurdu (tuzak 74). Dosya artik _ham'a yaziyor ve
+kendi dogrulamasi kapinin yerinde oldugunu da olcuyor; olumsuz deneme
+yapildi (kapi kaldirilinca goc patliyor).
 
-Dokuman: tuzak 126 + kontrol listesi 38, HEDEFLER 3.9.7 notu,
-sahit-numune.md ekran bolumu.
+MIYOP-079 - PANO YOLUNDA BOZULAN METIN
+Codex'e yapistirilan metinde I/i karakterleri bozulmustu. Depo dosyasi dogru
+UTF-8 (U+0130/U+0131 olculdu) ve yerel provada dort i varyanti tek harfe
+katlaniyor. AMA canliya pano uzerinden gitti: "dosya dogru" ile "canlidaki
+fonksiyon dogru" ayni sey degil. 0099 artik CANLIDA olcuyor - bozuk bir
+fonksiyon orada patliyor.
+
+GOC 0100 - MIYOP-081 - ACILIS SONUCU SUNUCUDA ZORUNLU
+0093 gerekceyi zorunlu kilmisti, sonucu kilmamisti. Ekran istiyordu,
+veritabani istemiyordu - write-off.service.ts'te yazdigim kuralin ihlali
+("gerekce ekran kurali degil SERVIS kuralidir"). Sahit numunenin butun amaci
+o cumle; ustelik acilis saklama sonunu KISALTIYOR (0094), yani sonucsuz bir
+acilis numunenin omrunu sebepsiz azaltabilirdi.
+check kisiti eklendi (tetik degil: bildirimsel, atlanamaz). Prova 0100
+(10/10) reddedilen acilisin DURUMU ve SAKLAMA SONUNU degistirmedigini de
+olcuyor - tetik BEFORE INSERT'te guncelleme yapiyor, kisit sonradan
+denetleniyor.
+
+MIYOP-080 - LISTE VE SAYI SESSIZCE KESILIYORDU
+Defter 500, parti 300 satirla kesiliyordu ve ekran TOPLAMLARI o kesilmis
+listeden hesapliyordu: 500'uncuden sonraki eski bir acik kayit hem defterden
+hem "Imha bekleyen" sayisindan dusuyordu - sayi yanlis oldugu halde dogru
+gorunuyordu.
+- Sayilar artik SUNUCUDA sayiliyor (ozet(), dort count sorgusu, head:true)
+- Kesilme ekranda yaziliyor (kac kayittan kaci listeleniyor)
+- "Yalniz imha bekleyenler" suzgeci SUNUCUDA calisiyor: eski kritik kayitlar
+  erisilebilir kaliyor
+- numuneOzeti() yardimcisi SILINDI. Duran bir yardimciyi bir gun biri
+  yeniden cagirir ve ayni hatayi geri getirir; mezar tasi yorumu birakildi.
+- Sinir uc yerde ayni olmali (lt, lte degil): cicir testi olcuyor.
+GERCEK SAYFALAMA HALA YOK ve bu bir borc (HEDEFLER 3.9.9): 500'uncuden
+sonraki, suresi DOLMAMIS eski bir numune hala listelenmiyor.
+
+MIYOP-082 - SECILEMEYEN PARTININ SEBEBI
+26.10 aksami Emrah'in bildirmesiyle zaten kapanmisti (tuzak 126). Codex'in
+onerisi daha iyiydi ve uygulandi: parti artik disabled DEGIL, secilebiliyor,
+sebep yaziliyor ve kaydi dugme engelliyor.
+
+ALTYAPI ONARIMI - kur.sh 0100'u HIC GORMEMIS
+db/prova/kur.sh gocleri 00[0-9][0-9]_*.sql deseniyle tariyordu, yani
+0000-0099. Goc 0100 bu desene uymadi ve betik "100 goc uygulandi" diyerek
+SESSIZCE gecti; prova-0100 kirmizi degil BOS dondu (sifir sinama). Yani yeni
+goc provasiz kaldi ve bunu soyleyen hicbir sey yoktu (tuzak 80'in kardesi).
+Desen genisletildi VE saglama eklendi: uygulanan sayi ile klasordeki
+numarali dosya sayisi esit olmali, degilse betik patliyor. Deseni duzeltmek
+yetmezdi - bir sonraki sinir yine sessizce gelirdi (tuzak 128).
+
+PROVA 0094 DOGRU SEBEPLE ONARILDI
+0100'un kisiti prova-0094'u sekiz sinamada kirdi (sonucsuz acilis
+yaziyordu). Gevsetilmedi: sinamalarin olctugu sey kiraci siniri ve acik raf
+omru, sonuc alani onlarin girdisi. Sonucsuz acilisin REDDEDILDIGI
+prova-0100'de ayrica olculuyor - eski davranisin gittigi de kayitli.
+
+Prova toplami: 0093 21 + 0094 18 + 0095 15 + 0096 9 + 0097 13 + 0100 10
+= 86 sinama. Zincir sifirdan kuruldu: 101 goc uygulandi (saglama ile),
+0099 ve 0100 uc kez ust uste calistirildi, birlesik dosya iki kez hatasiz
+kostu.
 
 Co-Authored-By: Claude Opus 5 <noreply@anthropic.com>
 Claude-Session: https://claude.ai/code/session_019BwYM3mAXZUhp4YGj7tp2y

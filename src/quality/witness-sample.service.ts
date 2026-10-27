@@ -85,25 +85,22 @@ export const numuneAlinamazSebebi = (aday: NumuneAdayi): string | undefined => {
 export const numuneAlinabilir = (aday: NumuneAdayi): boolean =>
   numuneAlinamazSebebi(aday) === undefined
 
-/** Durum özeti — "kaç numune saklıyoruz, kaçının süresi doldu". */
-export type NumuneOzeti = {
-  saklanan: number
-  acilan: number
-  imha: number
-  /** Saklanan ya da açılmış ama süresi DOLMUŞ olanlar: imha bekliyor. */
-  imhaBekleyen: number
-}
-
-export const numuneOzeti = (
-  numuneler: SahitNumune[], bugun: string = bugununGunu(),
-): NumuneOzeti => ({
-  saklanan: numuneler.filter(n => n.durum === 'SAKLANIYOR').length,
-  acilan: numuneler.filter(n => n.durum === 'ACILDI').length,
-  imha: numuneler.filter(n => n.durum === 'IMHA').length,
-  imhaBekleyen: numuneler.filter(
-    n => n.durum !== 'IMHA' && suresiDolduMu(n.saklamaSonu, bugun),
-  ).length,
-})
+/**
+ * ⚠️ `NumuneOzeti` ve `numuneOzeti()` 27.10.2026'DA SİLİNDİ — MIYOP-080.
+ *
+ * Ne yapıyordu: elindeki numune dizisinden durum sayılarını çıkarıyordu
+ * (saklanan / açılmış / imha / imha bekleyen) ve ekran onu çağırıyordu.
+ *
+ * Neden silindi: ekran defteri **kesilmiş** olarak okuyor (en fazla 500
+ * satır). Kesilmiş bir listeden sayı çıkarmak, 500'üncüden sonraki eski bir
+ * açık kaydı hem listeden hem SAYIDAN düşürüyordu — sayı yanlış olduğu hâlde
+ * doğru görünüyordu. Sayılar artık `PostgresSahitNumuneDeposu.ozet()` ile
+ * SUNUCUDA sayılıyor.
+ *
+ * ⚠️ Fonksiyon "çalışıyor ama yanlış yerde" olduğu için bırakılmadı: duran
+ * bir yardımcıyı bir gün biri yeniden çağırır ve aynı hatayı geri getirir.
+ * Tam liste elindeyken sayım gerekirse `satirlar.filter(...)` üç satırdır.
+ */
 
 /**
  * Listeleme sırası: işi olan satır üstte.
