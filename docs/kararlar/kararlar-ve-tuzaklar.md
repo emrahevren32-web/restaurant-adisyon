@@ -711,6 +711,40 @@ sağlama eklendi**: uygulanan göç sayısı ile klasördeki numaralı dosya
 sayısı EŞİT olmalı, değilse betik patlıyor. Deseni düzeltmek yetmezdi —
 bir sonraki sınır (05000?) yine sessizce gelirdi.
 
+**129 · BİR ONARIM GÖÇÜNE, ONARIMLA İLGİSİ OLMAYAN KONTROL KOYMA — ONARIMI
+REHİN ALIR.** (27.10) 0099'un işi bir P0'ı kapatmaktı: 0095'in ezdiği
+`finance.read` kapısını geri koymak. Doğrulamasına bir de *"benzeri de
+kırıldı mı"* diye `fire_dokumu` kapısını ekledim (tuzak 117'yi uygulayayım
+diye). O kontrol canlıda kırmızı verdi — **ve Supabase bütün betiği tek
+işlemde çalıştırdığı için yukarıdaki kapı onarımı da GERİ ALINDI.** Yani
+fazladan koyduğum iyi niyetli bir kontrol yüzünden **P0 açık kaldı.**
+⚠️ Kural: bir göç ya ONARIR ya TEŞHİS EDER. Onarım göçünün doğrulaması
+yalnız *kendi* onarımını ölçsün; başka bir şüphe varsa ayrı bir teşhis
+sorgusu yazılır. Teşhis sorgusu bir TABLO döndürmeli, çünkü Supabase SQL
+editörü `NOTICE` satırlarını göstermiyor — yalnız sonuç tablosunu.
+⚠️ Daha genel hâli: **tek işlemde çalışan bir betikte, en kritik iş en az
+şeye bağlı olmalı.** Kritik onarımı ikincil bir kontrolle aynı işleme
+koymak, onu o kontrolün doğruluğuna bağımlı kılar.
+
+**130 · PANO DA BİR KANALDIR VE METNİ BOZABİLİR.** (MIYOP-079 · 27.10)
+`araclar/kaydet.ps1` göç paketini panoya `Get-Content -Raw | Set-Clipboard`
+ile kopyalıyordu. **Windows PowerShell 5.1'de `Get-Content`, BOM'suz bir
+UTF-8 dosyayı varsayılan ANSI kod sayfasıyla (Türkçe'de CP1254) okur.**
+Depodaki göçler BOM'suz UTF-8; sonuçta `İ` harfinin iki baytı (C4 B0) `Ä`
+ve `°` olarak çözülüyor ve panoya **bozuk metin** gidiyordu.
+⚠️ Bu kozmetik bir sorun değildi: `app.kimlik_anahtari()` gerçek `İ` ve `ı`
+yerine bozulmuş iki karakteri aramaya başladı — yani numune kodu tekilliği
+zayıfladı. Hata mesajları da okunamaz hâle geldi ve müşteri onları görecekti.
+⚠️ **Betiğin kendi başındaki not tam bu tuzağı yazıyordu** ("PS 5.1 BOM'suz
+UTF-8'i ANSI sanıp çözüyor") — ama o uyarı betiğin KENDİ kodlaması için
+yazılmıştı, OKUDUĞU dosyalar için değil. Yazılı bir uyarı, uygulanmadığı
+yerde uyarmaz (tuzak 74'ün akrabası).
+⚠️ İki kural: **(1)** Dosya okuyan her PowerShell satırına `-Encoding UTF8`
+yaz. **(2)** Canlıya giden bir metnin doğru gittiğini, **canlıda** ölç —
+"depo dosyası doğru" ile "canlıdaki fonksiyon doğru" aynı şey değil. 0099
+artık `app.kimlik_anahtari('İSTANBUL') = app.kimlik_anahtari('istanbul')`
+diye soruyor; bozuk bir kurulum orada patlıyor.
+
 ---
 
 ## 5 · TEST İŞBÖLÜMÜ VE TESLİM KONTROL LİSTESİ
@@ -818,3 +852,8 @@ Son söz onun çıktısındadır.
     türetme** (MIYOP-080). Sayı sunucudan gelsin, kesildiğini ekran söylesin.
 41. Dosya/ad deseni yazıyorsan **adların büyümesini hesaba kat** ve
     "kaç tane bulundu, kaç tane olmalıydı" sağlamasını ekle (tuzak 128).
+42. Bir onarım göçünün doğrulaması **yalnız kendi onarımını** ölçsün
+    (tuzak 129). Başka şüpheler ayrı bir TEŞHİS sorgusuna; Supabase
+    `NOTICE` göstermiyor, sonuç tablosu gösteriyor.
+43. Dosya okuyan her PowerShell satırına **`-Encoding UTF8`** yaz ve
+    canlıya giden metnin doğru gittiğini **canlıda ölç** (tuzak 130).

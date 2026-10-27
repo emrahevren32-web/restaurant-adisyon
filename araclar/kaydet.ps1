@@ -62,9 +62,25 @@ git log --oneline -1
 
 $panoYolu = Join-Path $PSScriptRoot 'pano.txt'
 if (Test-Path $panoYolu) {
-  $hedef = (Get-Content $panoYolu -Raw).Trim()
+  $hedef = (Get-Content $panoYolu -Raw -Encoding UTF8).Trim()
   if ($hedef -and (Test-Path (Join-Path $kok $hedef))) {
-    Get-Content (Join-Path $kok $hedef) -Raw | Set-Clipboard
+    # !! -Encoding UTF8 SART. Windows PowerShell 5.1'de Get-Content, BOM'suz
+    # bir UTF-8 dosyayi VARSAYILAN ANSI kod sayfasiyla (Turkce icin CP1254)
+    # okur. Depodaki goc dosyalari BOM'suz UTF-8; sonuc olarak 'I' harfinin
+    # iki bayti (C4 B0) 'A' ve derece isareti olarak cozuluyor ve panoya
+    # BOZUK metin gidiyordu.
+    #
+    # 27.10.2026'da bu gercekten oldu: Emrah panodaki goc paketini Supabase'e
+    # yapistirdi, butun Turkce karakterler bozuk gitti ve
+    # app.kimlik_anahtari fonksiyonu YANLIS harfleri aramaya basladi (gercek
+    # I/i yerine bozulmus iki karakteri). Hata mesajlari da okunamaz hale
+    # geldi. Codex bunu MIYOP-079 olarak isaret etmisti; kok sebep buymus.
+    #
+    # !! Bu betigin en basindaki not ("PS 5.1 BOM'suz UTF-8'i ANSI sanip
+    # cozuyor") tam bu tuzagi yaziyordu - ama uyari betigin KENDI
+    # kodlamasi icin yazilmisti, OKUDUGU dosyalar icin degil. Yazili bir
+    # uyari, uygulanmadigi yerde uyarmaz.
+    Get-Content (Join-Path $kok $hedef) -Raw -Encoding UTF8 | Set-Clipboard
     Write-Host ""
     Write-Host "Panoya kopyalandi: $hedef" -ForegroundColor Green
   }

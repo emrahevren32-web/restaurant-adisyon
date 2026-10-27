@@ -33,9 +33,12 @@
 -- 3. Kapının gerçekten orada olduğunu, `security definer` OLMADIĞINI ve
 --    ham hesabın doğru fonksiyonda olduğunu ölçer.
 --
--- ⚠️ `fire_dokumu` kapısına DOKUNULMADI ve ölçüldü: 0095 onu hiç yazmamıştı,
--- kapısı yerinde duruyor. Yine de bu göç onu da kontrol ediyor — "bir yerde
--- kırıldıysa benzeri de kırılmış olabilir" (tuzak 117).
+-- ⚠️ `fire_dokumu` kapısına DOKUNULMADI: 0095 onu hiç yazmamıştı.
+-- ⚠️ 27.10 · ÖNCE BU GÖÇ onun durumunu da SINIYORDU ve canlıda patladı —
+-- böylece P0 onarımını rehin aldı (Supabase tek işlem). Kontrol kaldırıldı;
+-- `fire_dokumu` ayrı bir soru ve `araclar/teshis-fire-dokumu.sql` ile
+-- ölçülüyor. Bir onarım göçü, onarımla ilgisi olmayan bir kontrol yüzünden
+-- durmamalı (tuzak 129).
 --
 -- Tekrar çalıştırılabilir (idempotent).
 -- ═══════════════════════════════════════════════════════════════════════════
@@ -259,10 +262,19 @@ begin
     raise exception '0099: kritik eşiği _ham''da <= değil.';
   end if;
 
-  -- ⚠️ BENZERİ DE KIRILDI MI? `fire_dokumu` kapısı duruyor mu (tuzak 117).
-  if v_fire !~ 'finance\.read' or v_fire !~ 'fire_dokumu_ham' then
-    raise exception '0099: fire_dokumu kapısı da kırılmış.';
-  end if;
+  -- ⚠️ 27.10 · BURADA `fire_dokumu` KAPISI DA SINANIYOR VE `raise exception`
+  -- İLE PATLIYORDU. Canlıda patladı ve **P0 ONARIMINI REHİN ALDI**: Supabase
+  -- bütün betiği tek işlemde çalıştırdığı için, bu ikincil kontrol
+  -- başarısız olunca yukarıdaki kapı onarımı da GERİ ALINDI. Yani fazladan
+  -- koyduğum bir kontrol yüzünden açık kapalı kalmadı (tuzak 129).
+  --
+  -- Kontrol kaldırıldı. `fire_dokumu` AYRI bir sorudur ve ayrı ölçülür:
+  -- `araclar/teshis-fire-dokumu.sql` bir TABLO döndürüyor (Supabase NOTICE
+  -- göstermiyor, sonuç tablosu gösteriyor). Onarım göçünün işi onarmaktır;
+  -- başka bir derdi teşhis etmek değil.
+  --
+  -- ⚠️ `v_fire` yine okunuyor ama YALNIZ fonksiyonun var olduğunu
+  -- doğrulamak için (yukarıdaki null kontrolü). Durumu bu göç yargılamıyor.
 
   raise notice '0099: Finans kapısı geri kondu; düzeltilmiş hesap _ham''da.';
 end $$;

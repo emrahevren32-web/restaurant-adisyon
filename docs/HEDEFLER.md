@@ -829,15 +829,35 @@ Emrah'ın onayladığı sıra:
     çağırıyordu ve onda izin VAR; kapının kalkması hiçbir fark yaratmıyordu.
     **Olumsuz kontrolü olmayan sınama, kapının yokluğunu da onaylar.**
     0099 kapıyı geri koydu, düzeltilmiş hesabı `_ham`'a yazdı, prova-0095'e
-    olumsuz kontrol eklendi (15/15). **0095 dosyası da düzeltildi** —
+    olumsuz kontrol eklendi (15/15).
+    ⚠️ **0099 İLK DENEMEDE CANLIDA PATLADI VE P0'I REHİN ALDI.** Doğrulamasına
+    *"benzeri de kırıldı mı"* diye `fire_dokumu` kapısını da eklemiştim
+    (tuzak 117'yi uygulayayım diye). O kontrol kırmızı verdi ve **Supabase
+    bütün betiği tek işlemde çalıştırdığı için kapı onarımı da geri alındı** —
+    yani fazladan koyduğum iyi niyetli bir kontrol yüzünden açık kapalı
+    kalmadı. Kontrol kaldırıldı; `fire_dokumu` ayrı bir soru ve
+    `araclar/teshis-canli-durum.sql` ile ölçülüyor (TABLO döndürüyor, çünkü
+    Supabase `NOTICE` göstermiyor). Tuzak 129: bir göç ya ONARIR ya TEŞHİS
+    EDER; kritik onarım ikincil bir kontrole bağlanmaz. **0095 dosyası da düzeltildi** —
     eski hâli yeniden çalıştırılsa *"Success"* der ve kapıyı sessizce
     düşürürdü; depoda böyle bir mayın bırakmak kuralı yorumda tutmak olurdu.
     Tuzak 127.
-    **MIYOP-079 · pano yolunda bozulan metin.** Codex'e yapıştırılan metinde
-    `İ/ı` bozulmuştu (`Ä°`/`Ä±`). Depo dosyası ve yerel prova doğru çıktı —
-    ama canlıya pano üzerinden gitti. "Dosya doğru" ile "canlıdaki fonksiyon
-    doğru" aynı şey değil: 0099 artık CANLIDA ölçüyor (dört i varyantı tek
-    harfe katlanıyor mu).
+    **MIYOP-079 · KÖK SEBEP BULUNDU (27.10 akşam) · pano metni bozuyormuş.**
+    Önce "Codex'e yapıştırırken bozulmuş, depo dosyası temiz" demiştim —
+    **eksik teşhisti.** Emrah göç paketini Supabase'e yapıştırdığında
+    Türkçe harflerin hepsi bozuk gitti (ekran görüntüsüyle doğrulandı).
+    Sebep: `araclar/kaydet.ps1` panoya kopyalarken `Get-Content -Raw`
+    kullanıyordu ve **Windows PowerShell 5.1 BOM'suz UTF-8 dosyayı ANSI
+    (CP1254) sanıp çözüyor** — `İ`nin iki baytı `Ä°` oluyor. Kanıtlandı:
+    `'İSTANBUL'.encode('utf-8').decode('cp1254')` = `Ä°STANBUL`, ekrandaki
+    metnin aynısı.
+    ⚠️ Kozmetik değildi: `app.kimlik_anahtari()` gerçek `İ`/`ı` yerine
+    bozulmuş karakterleri aramaya başladı — numune kodu tekilliği zayıfladı.
+    Hata mesajları da okunamaz hâle geldi ve müşteri onları görecekti.
+    ⚠️ **Betiğin kendi başındaki not tam bu tuzağı yazıyordu** ama o uyarı
+    betiğin KENDİ kodlaması içindi, okuduğu dosyalar için değil. Yazılı bir
+    uyarı, uygulanmadığı yerde uyarmaz. `-Encoding UTF8` eklendi (tuzak 130).
+    0099 ayrıca CANLIDA ölçüyor: dört i varyantı tek harfe katlanıyor mu.
     **MIYOP-081 · açılış sonucu sunucuda zorunlu değildi.** Ekran istiyordu,
     veritabanı istemiyordu — `write-off.service.ts`te yazdığım kuralın
     ihlali (*"gerekçe ekran kuralı değil servis kuralıdır"*). Göç 0100 bir
@@ -1520,7 +1540,7 @@ yanlışlıkla çalıştırılma riski var (6.11).
 | Mock dosya | 36 · hiçbiri açık kiracı rotasından erişilemiyor |
 | Public yol | **2** · başvuru formu + müşteri portalı (ölçülüp donduruldu) |
 | Giriş vitrini | dondurulmuş **20 modül adının** hiçbiri geçmiyor (ölçüldü, donduruldu) |
-| Tuzak | **128** (26–27.10: 116–128 eklendi) |
+| Tuzak | **130** (26–27.10: 116–130 eklendi) |
 
 ⚠️ "Mock dosya" satırı **yanıltıcıydı:** doğru olan ama yetmeyen bir ölçüm.
 Asıl tehlike adı mock olmayan üreticilerdi; üstteki satır onu gösteriyor.
