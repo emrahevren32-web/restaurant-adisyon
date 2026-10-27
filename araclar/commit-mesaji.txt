@@ -1,48 +1,32 @@
-Ayni hatayi UC KEZ yaptim: goc dogrulamasi gecmisi yargiliyordu (tuzak 133)
+goc 0101: fire dokumu finans kapisi geri konuyor (canlida YOKTU)
 
-0095'in kapiyi bir daha ezmemesini garanti etmek icin dogrulamasina bir
-kontrol koymustum. Uc turda uc kez paketi rehin aldi ve P0 uc tur boyunca
-canlida acik kaldi:
+Canli teshis tablosu (27.10) olctu: app.fire_dokumu finans kapisi YOK.
+Fire dokumu TUTAR tasiyor ve gostergelerden daha ayrintili; kapisiz bir
+fire dokumu maliyeti herkese tek tek gosterir.
 
-  1. "Kapi yerinde mi (finance.read var mi)" -> canlida patladi: kapiyi 0099
-     onariyor, kontrol 0095'te, yani onarimdan ONCE.
-  2. "Ham hesap kapinin adina yazilmis mi" -> yine patladi: canlida kapinin
-     adinda DUN bu gocun eski halinin yazdigi ham hesap duruyordu ve kontrol
-     onu gordu.
-  3. Her seferinde Supabase butun paketi tek islemde geri aldi.
+Depoda bu ada yalniz 0065 (ham hesap) ve 0071 (kapi) yaziyor. Yerelde kapi
+duruyor, canlida durmuyor -- yani canlida ya 0065 sonradan yeniden kostu ya
+0071 hic kosmadi. Hangisi oldugu BILINMIYOR; 0101 ikisini de onariyor ve
+hangi durumdan geldigini notice ile soyluyor.
 
-ASIL HATA: app.isletme_gostergeleri fonksiyonunun icerigi artik bu gocun
-yazdigi bir sey DEGIL - goc _ham adina yaziyor. Onun icerigini olcmek, kendi
-isini degil GECMISI yargilamakti; gecmis bozuksa onarimdan once patliyordu.
-Bir goc ancak "ben ne yazdim" diye sorabilir.
-
-Kontrol TAMAMEN KALDIRILDI. Garanti artik iki yerde:
-  - KODDA: 0095 `create or replace function app.isletme_gostergeleri_ham(`
-    yaziyor; kapiyi ezmesi imkansiz.
-  - CICIRDA: src/reporting/gosterge-kapisi.arch.test.ts goc dosyalarinin
-    METNINI olcuyor - hangi gocun hangi ada yazdigini, veritabaninin o anki
-    halinden bagimsiz olarak. Alti sinama: 0071 ayrimi kurmus mu, 0095 kapiya
-    yazmiyor mu, 0099 kapiyi geri koyuyor ve govdesinde ham hesap yok mu,
-    kapi security definer degil mi, fire_dokumu ayrimi duruyor mu.
-"Bir daha olmasin" guvencesi calisma zamanina degil koda ve cicira konur.
-
-OLUMSUZ KONTROLUM DE YANLIS DURUMU KURMUSTU (tuzak 134)
-Tuzak 131'i yazip paket-bozuk-durumdan.sh betigini kurdugum turda, ayni
-tuzaga betigin ICINDE yeniden dustum. Kapiyi ezerken ham hesap olarak
-stock_balance kullandim; canlidaki ezik fonksiyon 0095'in eski haliydi, yani
-icinde stock_usable_balance VARDI. Benim kurdugum bozuk durumda o yoktu,
-dolayisiyla kontrol yerelde hic tetiklenmedi ve prova yesil gecti.
-Taklit duzeltildi: artik bozuklugu URETEN kodun kendisini kullaniyor.
-Dogrulugu da olculdu - duzeltilmeden onceki paketle betik Emrah'in canlida
-gordugu hatayi BIREBIR yeniden uretti. Bir olumsuz kontrolun dogrulugu,
-hatayi canlandirabilmesiyle olculur.
-
-DOGRULAMA
-- Bozuk durumdan paket: once KIRMIZI (hata canlandirildi), sonra YESIL
-  (kapi geri geldi, hesap _ham'da)
-- Temiz zincir: 101 goc; provalar 21+18+15+9+13+10 = 86 sinama yesil
-- Paket iki kez ust uste kostu, ikincisinde de hata yok
-- Cicirin alti deseni gercek goc dosyalarina karsi dogrulandi
+- db/migrations/0101: ham hesap _ham'a (govde 0065'ten birebir), kapi asil
+  ada, security definer DEGIL. Dogrulama yalniz kendi yazdigini olcuyor
+  (tuzak 133) + dis yuzeyin (public.fire_dokumu) KAPIYI cagirdigini.
+- db/prova/prova-0101.sql: 17/17. Yapisal kontrol + GERCEK oturum olcumu:
+  depo_sorumlusu -> MI403, isletme_sahibi -> 4 kg fire. Rolun izni bile
+  varsayilmiyor, olculuyor. Bozuk durumdan KIRMIZI verdigi dogrulandi.
+  ILK HALI KOR PROVAYDI: `set local role authenticated` yoktu, RLS atlaniyordu
+  ve olumlu ayak yanlis sebeple yesildi. MIYOP-042'nin donmus listesi
+  (yazma-kapilari-tamam.arch.test.ts) yakaladi -- yazili kural degil, olcen
+  test uyardi (tuzak 139).
+- src/reporting/gosterge-kapisi.arch.test.ts: artik dosya listesi saymiyor,
+  db/migrations klasorunu tariyor -- "0071'den SONRAKI hicbir goc bu iki ada
+  ham hesap yazamaz" (tuzak 135).
+- db/prova/paket-bozuk-durumdan.sh: pipefail + --single-transaction (Codex),
+  ONARIR/DAYANIR ayrimi, mktemp izin hatasi. Dort senaryo yesil.
+- araclar/goc-bekleyen.sql: yalniz 0101. Guvenlik onarimi veriye bagli bir
+  gocle ayni pakette gitmez (tuzak 136).
+- docs: tuzak 135-139, kontrol listesi 48-51, HEDEFLER 3.9.10.
 
 Co-Authored-By: Claude Opus 5 <noreply@anthropic.com>
 Claude-Session: https://claude.ai/code/session_019BwYM3mAXZUhp4YGj7tp2y

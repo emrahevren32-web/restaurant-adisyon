@@ -1,99 +1,150 @@
 // ═══════════════════════════════════════════════════════════════════════════
-// MİYOP · Mimari test — GÖSTERGE KAPISI YERİNDE, HAM HESAP KAPININ İÇİNDE DEĞİL
+// MİYOP · Mimari test — FİNANS KAPILARI YERİNDE, HAM HESAP KAPININ İÇİNDE DEĞİL
 //
 // ── NEDEN VAR (MIYOP-078 · P0 · 27.10.2026) ──────────────────────────────
-// 0065 `app.isletme_gostergeleri` fonksiyonunu yazdı. **0071 onu ikiye
-// ayırdı:** ham hesap `..._ham` adına, asıl ad bir `finance.read` İZİN
-// KAPISI oldu. 0095'i yazarken gövdeyi 0065'ten kopyalayıp **asıl ada**
-// yazdım ve otuz göç sonra o kapıyı ezdim. Açık canlıya gitti: finans izni
-// olmayan depo/üretim/kalite/gıda mühendisi fire tutarını ve stok maliyetini
-// doğrudan RPC'den okuyabildi.
+// 0065 `app.isletme_gostergeleri` ve `app.fire_dokumu` fonksiyonlarını yazdı.
+// **0071 ikisini de ikiye ayırdı:** ham hesap `..._ham` adına, asıl ad bir
+// `finance.read` İZİN KAPISI oldu. 0095'i yazarken gövdeyi 0065'ten
+// kopyalayıp **asıl ada** yazdım ve otuz göç sonra o kapıyı ezdim. Açık
+// canlıya gitti: finans izni olmayan depo/üretim/kalite/gıda mühendisi fire
+// tutarını ve stok maliyetini doğrudan RPC'den okuyabildi.
 //
 // ⚠️ Bunu bir ÇALIŞMA ZAMANI kontrolüyle önlemeye üç kez çalıştım ve üçünde
 // de paketi rehin aldı: göç 0095, kapıyı onaran 0099'dan ÖNCE çalışıyor ve
 // canlıdaki bozuk geçmişi görüp patlıyordu. Bir göçün doğrulaması yalnız
 // KENDİ YAZDIĞINI ölçebilir, ortamın geçmişini değil (tuzak 133).
 //
-// ⚠️ Doğru yer burası: ölçülen şey DOSYANIN METNİ. Hangi göçün hangi ada
-// yazdığı, veritabanının o anki hâlinden bağımsızdır ve her test koşusunda
-// ölçülür.
+// ⚠️ Doğru yer burası: ölçülen şey DOSYANIN METNİ. Hangi göçün hangi ada ne
+// yazdığı, veritabanının o anki hâlinden bağımsızdır ve her koşuda ölçülür.
+//
+// ── 27.10 · İKİNCİ YER DE EZİLMİŞTİ ──────────────────────────────────────
+// Canlı teşhiste `app.fire_dokumu` kapısı da YOKTU. Bu testin eski hâli onu
+// yakalayamazdı, çünkü yalnız ÜÇ dosyayı (0071/0095/0099) okuyordu ve kapıyı
+// ezen şeyi "0095 fire_dokumu'ya yazmasın" diye tek tek sayıyordu.
+// ⚠️ Tek tek saymak, bir sonraki göçü hiç ölçmez. Kural artık DOSYA
+// LİSTESİNDEN BAĞIMSIZ: 0071'den SONRAKİ HİÇBİR göç bu iki ada ham hesap
+// yazamaz; yazdığı her gövde bir KAPI olmak zorundadır.
 // ═══════════════════════════════════════════════════════════════════════════
 
 import { describe, expect, it } from 'vitest'
-import { readFileSync } from 'node:fs'
+import { readFileSync, readdirSync } from 'node:fs'
 import { join } from 'node:path'
 import { projeKokunuBul } from '../core/test-support/goc-tarama'
 
 const KOK = projeKokunuBul()
-const oku = (ad: string) => readFileSync(join(KOK, 'db/migrations', ad), 'utf8') as string
+const GOC_KLASORU = join(KOK, 'db/migrations')
+const oku = (ad: string) => readFileSync(join(GOC_KLASORU, ad), 'utf8') as string
+
+/** Ayrımı kuran göç. Ondan ÖNCEKİ göçlerde kapı diye bir şey yoktu. */
+const AYRIM_NUMARASI = 71
+
+/** Kapıya dönüştürülmüş iki ad ve `_ham`'ında beklenen hesap izi. */
+const KAPILAR = [
+  { ad: 'isletme_gostergeleri', ham_iz: /from public\.stock_movement|stock_usable_balance/ },
+  { ad: 'fire_dokumu',          ham_iz: /from public\.stock_movement/ },
+] as const
+
+const gocDosyalari = () =>
+  readdirSync(GOC_KLASORU).filter((d) => /^\d{4}_.*\.sql$/.test(d)).sort()
+
+const numarasi = (dosya: string) => Number(dosya.slice(0, 4))
+
+/** `create or replace function app.<ad>(` ... `$$;` arasını döndürür. */
+function govdeler(sql: string, ad: string): string[] {
+  const kalip = new RegExp(`create or replace function app\\.${ad}\\s*\\(`, 'g')
+  const cikti: string[] = []
+  let e: RegExpExecArray | null
+  while ((e = kalip.exec(sql)) !== null) {
+    const son = sql.indexOf('$$;', e.index)
+    cikti.push(sql.slice(e.index, son < 0 ? sql.length : son + 3))
+  }
+  return cikti
+}
 
 const GOC_0071 = oku('0071_analiz_yetkisi_sunucuda.sql')
-const GOC_0095 = oku('0095_kullanilabilir_bakiye.sql')
-const GOC_0099 = oku('0099_finans_kapisi_geri.sql')
 
-/** `create or replace function app.<ad>(` geçiyor mu? */
-const yaziyorMu = (sql: string, ad: string) =>
-  new RegExp(`create or replace function app\\.${ad}\\s*\\(`).test(sql)
+describe('finans kapıları · ham hesap kapının adına yazılmıyor', () => {
+  it('sağlama: göç klasörü okunuyor ve 0071 yerinde', () => {
+    const dosyalar = gocDosyalari()
+    expect(dosyalar.length, 'göç klasörü boş okundu').toBeGreaterThan(90)
+    expect(dosyalar.some((d) => numarasi(d) === AYRIM_NUMARASI), '0071 yok').toBe(true)
+    expect(GOC_0071.length).toBeGreaterThan(500)
+  })
 
-describe('gösterge kapısı · ham hesap kapının adına yazılmıyor', () => {
-  it('sağlama: üç göç de okundu', () => {
-    for(const [ad, metin] of [['0071', GOC_0071], ['0095', GOC_0095], ['0099', GOC_0099]] as const){
-      expect(metin.length, `${ad} okunamadı`).toBeGreaterThan(500)
+  it("0071 ayrımı KURMUŞ: iki adın ham hesabı _ham'a taşınmış", () => {
+    for (const { ad } of KAPILAR) {
+      expect(GOC_0071, `0071 ${ad} ham hesabını taşımıyor`)
+        .toMatch(new RegExp(`rename to ${ad}_ham`))
+      const g = govdeler(GOC_0071, ad)
+      expect(g.length, `0071 ${ad} kapısını yazmıyor`).toBeGreaterThan(0)
+      expect(g[g.length - 1], `0071 ${ad} kapısı finance.read sormuyor`)
+        .toMatch(/finance\.read/)
     }
   })
 
-  it('0071 ayrımı kurmuş: _ham ham hesap, asıl ad izin kapısı', () => {
-    expect(GOC_0071, '0071 ham hesabı _ham adına taşımıyor')
-      .toMatch(/rename to isletme_gostergeleri_ham/)
-    expect(yaziyorMu(GOC_0071, 'isletme_gostergeleri'), '0071 kapıyı yazmıyor').toBe(true)
-    expect(GOC_0071, '0071 kapısı finance.read sormuyor').toMatch(/finance\.read/)
-  })
-
-  it('⚠️ 0095 İZİN KAPISININ ADINA YAZMIYOR', () => {
-    // MIYOP-078'in ta kendisi. Bu satır kırmızı verirse kapı yine ezilmiş
-    // demektir — ve bu sefer canlıya gitmeden önce yakalanır.
+  // ⚠️ BU TESTİN KALBİ. Dosya adı saymıyor; klasörde ne varsa ölçüyor.
+  // Yarın 0102 yazılır ve kapıya ham hesap yazarsa, burada kırmızı verir.
+  it("0071'den SONRAKİ hiçbir göç kapıya HAM HESAP yazmıyor", () => {
+    const suclular: string[] = []
+    for (const dosya of gocDosyalari()) {
+      if (numarasi(dosya) <= AYRIM_NUMARASI) continue
+      const sql = oku(dosya)
+      for (const { ad } of KAPILAR) {
+        for (const govde of govdeler(sql, ad)) {
+          const kapiMi = /finance\.read/.test(govde) && new RegExp(`${ad}_ham`).test(govde)
+          const hamMi = /from public\.stock_movement|from public\.stock_item/.test(govde)
+          if (!kapiMi || hamMi) {
+            suclular.push(
+              `${dosya} → app.${ad} gövdesi kapı değil`
+              + ` (finance.read: ${/finance\.read/.test(govde)},`
+              + ` _ham çağrısı: ${new RegExp(`${ad}_ham`).test(govde)},`
+              + ` ham hesap: ${hamMi})`,
+            )
+          }
+        }
+      }
+    }
     expect(
-      yaziyorMu(GOC_0095, 'isletme_gostergeleri'),
-      '0095 `app.isletme_gostergeleri` adına yazıyor — bu ad 0071 ile bir '
-      + 'IZIN KAPISIDIR, ham hesap `_ham` adına yazılmalı (MIYOP-078).',
-    ).toBe(false)
-    expect(yaziyorMu(GOC_0095, 'isletme_gostergeleri_ham'), "0095 _ham'a yazmıyor")
-      .toBe(true)
+      suclular,
+      'Bu adlar 0071 ile İZİN KAPISI oldu. Ham hesap `_ham` adına yazılır '
+      + '(MIYOP-078). Suçlular:\n' + suclular.join('\n'),
+    ).toEqual([])
   })
 
-  it('0099 kapıyı geri koyuyor ve ham hesap içine yazmıyor', () => {
-    expect(yaziyorMu(GOC_0099, 'isletme_gostergeleri'), '0099 kapıyı yazmıyor').toBe(true)
-    expect(GOC_0099, '0099 kapısı finance.read sormuyor').toMatch(/finance\.read/)
-
-    // ⚠️ 0099 HEM `_ham`'ı HEM kapıyı yazıyor; kapının gövdesinde ham hesap
-    // OLMAMALI. Dosyayı kapı tanımından itibaren kesip ölçüyoruz.
-    const kapiBasi = GOC_0099.search(/create or replace function app\.isletme_gostergeleri\s*\(/)
-    expect(kapiBasi, "0099'da kapı tanımı bulunamadı").toBeGreaterThan(-1)
-    const kapiGovdesi = GOC_0099.slice(kapiBasi, GOC_0099.indexOf('$$;', kapiBasi) + 3)
-    expect(kapiGovdesi, 'kapının gövdesinde ham hesap var')
-      .not.toMatch(/stock_usable_balance|from public\.stock_movement/)
-    expect(kapiGovdesi, 'kapı ham fonksiyonu çağırmıyor')
-      .toMatch(/isletme_gostergeleri_ham/)
-  })
-
-  it('kapı `security definer` YAPILMIYOR', () => {
+  it('kapılar `security definer` YAPILMIYOR', () => {
     // 0071'in kararı: definer olsaydı izin kontrolünü geçen bir çağrı RLS'i
     // de aşar ve BÜTÜN kiracıları okurdu.
-    for(const [ad, metin] of [['0071', GOC_0071], ['0099', GOC_0099]] as const){
-      const yer = metin.search(/create or replace function app\.isletme_gostergeleri\s*\(/)
-      if(yer < 0) continue
-      const govde = metin.slice(yer, metin.indexOf('$$;', yer) + 3)
-      expect(govde, `${ad} kapıyı security definer yapıyor`)
-        .not.toMatch(/security definer/)
+    for (const dosya of gocDosyalari()) {
+      const sql = oku(dosya)
+      for (const { ad } of KAPILAR) {
+        for (const govde of govdeler(sql, ad)) {
+          if (!/finance\.read/.test(govde)) continue
+          expect(govde, `${dosya} → app.${ad} kapısını security definer yapıyor`)
+            .not.toMatch(/security definer/)
+        }
+      }
     }
   })
 
-  it('fire_dokumu ayrımı da duruyor (aynı desen, ikinci yer)', () => {
-    expect(GOC_0071).toMatch(/rename to fire_dokumu_ham/)
-    // Hiçbir göç `app.fire_dokumu` adına ham hesap yazmamalı.
-    for(const [ad, metin] of [['0095', GOC_0095], ['0099', GOC_0099]] as const){
-      expect(yaziyorMu(metin, 'fire_dokumu'), `${ad} fire_dokumu kapısına yazıyor`)
-        .toBe(false)
+  it('onarım göçleri kapıyı GERİ KOYUYOR (0099 göstergeler, 0101 fire)', () => {
+    const onarimlar = [
+      { dosya: '0099_finans_kapisi_geri.sql', ad: 'isletme_gostergeleri' },
+      { dosya: '0101_fire_kapisi_geri.sql',   ad: 'fire_dokumu' },
+    ] as const
+    for (const { dosya, ad } of onarimlar) {
+      const sql = oku(dosya)
+      const g = govdeler(sql, ad)
+      expect(g.length, `${dosya} ${ad} kapısını yazmıyor`).toBeGreaterThan(0)
+      expect(g[g.length - 1], `${dosya} kapısı finance.read sormuyor`)
+        .toMatch(/finance\.read/)
+      // ⚠️ Onarım göçü HEM `_ham`'ı HEM kapıyı yazıyor; kapının gövdesinde
+      // ham hesap OLMAMALI — yoksa onarım kendi onardığı şeyi bozar.
+      expect(g[g.length - 1], `${dosya} kapısının gövdesinde ham hesap var`)
+        .not.toMatch(/from public\.stock_movement|from public\.stock_item/)
+      const ham = govdeler(sql, `${ad}_ham`)
+      expect(ham.length, `${dosya} ${ad}_ham'ı yazmıyor`).toBeGreaterThan(0)
+      expect(ham[ham.length - 1], `${dosya} _ham'a kapı yazıyor`)
+        .not.toMatch(/finance\.read/)
     }
   })
 })

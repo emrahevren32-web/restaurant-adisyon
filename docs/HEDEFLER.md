@@ -897,6 +897,63 @@ Emrah'ın onayladığı sıra:
     yazılıyor), ve geçen/toplam sayılıyor — hepsi geçmezse betik
     *"DOSYALAR YAYINA ALINDI AMA DOĞRULANAMADI"* diyor. Tuzak 132:
     bir kontrolün üç sonucu vardır — geçti, kaldı, **ölçemedim**.
+  - ✅ **3.9.10** ⚠️ **FİRE DÖKÜMÜ KAPISI DA YOKMUŞ — CANLIDA · göç 0101**
+    (27.10 · teşhis tablosu 8 satırın 7'si OK, biri değil)
+    `araclar/teshis-canli-durum.sql` canlıda ölçtü:
+    **`app.fire_dokumu` · finans kapısı → KAPI YOK.** Fire dökümü TUTAR
+    taşıyor ve göstergelerden daha ayrıntılı (hangi ürün, ne kadar, kaç TL);
+    kapısı olmayan bir fire dökümü, maliyeti herkese tek tek gösterir.
+    ⚠️ **Teşhis tablosu olmasaydı bunu kimse görmezdi.** 0099'a koyduğum
+    `fire_dokumu` kontrolü P0'ı rehin alıp kaldırılmıştı (tuzak 129); yerine
+    koyduğum teşhis sorgusu bir gün sonra asıl işini yaptı. Kaldırılan bir
+    kontrolün yerine ÖLÇÜM koymak, kontrolü kaldırmaktan farklıdır.
+    **Ölçüm, sebep hakkında:** depoda `app.fire_dokumu` adına yalnız iki göç
+    yazıyor — 0065 (ham hesap) ve 0071 (kapı). Teşhis tablosunun *"kaç tane
+    ve nerede"* satırı canlıda **`app.fire_dokumu_ham`'ın VAR olduğunu**
+    gösterdi; yani **0071 canlıda koşmuş** (ad değişikliğini o yapıyor) ve
+    kapının üstüne SONRADAN 0065'in gövdesi yazılmış. ⚠️ **Ne zaman ve neyle
+    yazıldığını bilmiyorum** — 0065'in yeniden yapıştırılması en olası yol
+    ama bunu ölçmedim, söylemiyorum. 0101 yine de İKİ DURUMU DA onarıyor ve
+    hangisinden geldiğini `notice` ile söylüyor; onarımı sebebi bilmeye
+    bağlamak, açık bir kapıyı merak yüzünden açık tutmak olurdu.
+    0101: ham hesabı `_ham`'a (gövde 0065'ten birebir; yerelde ölçtüm, canlı
+    `_ham` gövdesi 0065'in metniyle BİREBİR aynı), kapıyı asıl ada,
+    `security definer` DEĞİL. Doğrulaması yalnız kendi yazdığını ölçüyor
+    (tuzak 133) + **en önemlisi: dış yüzeyin (`public.fire_dokumu`) KAPIYI
+    çağırdığını** — `_ham`'ı atlayan bir dış yüzey, onarımı anlamsız kılar.
+    Prova 0101 (**17/17**) yapısal kontrolle yetinmiyor: `depo_sorumlusu`
+    oturumunda **MI403**, `isletme_sahibi` oturumunda **4 kg fire** okunuyor.
+    İkisi de ölçüm; rolün izni olup olmadığı bile varsayılmıyor, ölçülüyor.
+    ⚠️ **PROVA 0101 İLK HÂLİYLE KÖR PROVAYDI ve MIYOP-042'nin donmuş listesi
+    onu yakaladı.** `yazma-kapilari-tamam.arch.test.ts` kırmızı verdi:
+    *"YENİ kör prova: prova-0101.sql"*. JWT koymuştum ama
+    `set local role authenticated` yapmamıştım; o satır olmadan prova tablo
+    sahibi olarak koşar, **RLS atlanır.** MI403 yine gelirdi (izin kontrolü
+    JWT'ye bakıyor) ama 6b ve 7 **yanlış sebeple** yeşil olurdu: RLS'siz
+    okunan bir rapor, kapıyı değil sahipliği ölçer. Rol takıldı, 17/17 yine
+    yeşil — ama artık doğru sebeple. ⚠️ Not: bu kuralı aylar önce yazmıştım
+    (kontrol listesi 15) ve **kendi yeni provamda yine unuttum.** Yazılı kural
+    uyarmadı; ÖLÇEN test uyardı. Kuralı koda bağlamanın karşılığı tam bu.
+    ⚠️ **Mimari test genelleştirildi (tuzak 135):** eski hâli üç dosyayı
+    okuyup *"0095 fire_dokumu'ya yazmasın"* diyordu — listede olmayan bir
+    göç bunu yapsa göremezdi. Artık `db/migrations` klasörünü tarıyor:
+    *"0071'den SONRAKİ hiçbir göç bu iki ada ham hesap yazamaz."* Yarın
+    yazılacak göçü de ölçer.
+    ⚠️ **0101'in doğrulaması ilk yazışımda yanlış ölçüyordu** ve bozuk durum
+    provası bunu yerelde yakaladı: `pg_get_function_identity_arguments`
+    argüman ADLARINI da döndürüyor (`'p_sube uuid, …'`), ben tip listesi
+    bekliyordum, fonksiyon "yok" sayılıyordu. Canlıda patlasaydı Supabase
+    paketi geri alır ve kapı yine açık kalırdı (tuzak 137).
+    ⚠️ **Paket kuralı yazıldı (tuzak 136):** güvenlik onarımı, veriye bağlı
+    bir göçle AYNI PAKETTE gitmez. 0099 ile 0100 aynı pakette gitmişti;
+    0100 düşse onarım da geri alınacaktı. `araclar/goc-bekleyen.sql` artık
+    yalnız 0101'i taşıyor ve başlığında bu kural yazılı.
+    ⚠️ **`paket-bozuk-durumdan.sh` onarıldı (Codex'in üç bulgusu + biri
+    benden):** `set -o pipefail` yoktu, `--single-transaction` yoktu (yani
+    prova Supabase'den DAHA HOŞGÖRÜLÜYDÜ), tek beklenti türü vardı
+    (artık **ONARIR / DAYANIR** ayrı), ve `mktemp -d` 0700 açtığı için
+    postgres taklit dosyalarını okuyamıyor, betik bunu *"taklit yanlış"*
+    diye yanlış sebeple bildiriyordu. Dört senaryo da yeşil (tuzak 138).
   - ⬜ **3.9.3** ⚠️ **ETİKET EKRANI SAKLAMA KOŞULUNU ÜRÜN KARTINDAN
     OKUMALI.** Bu göçün ortaya çıkardığı eksik: saklama koşulu hiçbir yerde
     **saklanmıyordu** — etiket ekranında her baskıda **elle yazılan**
@@ -1540,7 +1597,7 @@ yanlışlıkla çalıştırılma riski var (6.11).
 | | |
 |---|---|
 | Test | **87 dosya · 1541 test** (Emrah'ın 26.10 koşusu) · ⚠️ o koşuda **8 kırmızı** vardı ve ÜÇÜ DE DOĞRU YAKALAMIŞTI: şahit numune ekranı menüyü büyüttü, iki çıcır eski sayıyı tutuyordu. Sayılar güncellendi, gerekçesi testin içinde yazılı. |
-| Göç | 0000–**0100** · 101 dosya · 0094–0098 **26.10'da canlıya alındı**; **0099 ve 0100 27.10'da yazıldı, Supabase'de BEKLİYOR** · giriş ACL'si artık **0101** olacak |
+| Göç | 0000–**0101** · 102 dosya · 0094–0098 **26.10'da canlıya alındı**; **0099 + 0100 27.10'da canlıya alındı** (teşhis tablosu doğruladı); **0101 (fire kapısı) yazıldı, Supabase'de BEKLİYOR** · giriş ACL'si artık **0102** olacak |
 | Açık çekirdek rota | 25 (37'den indi) |
 | Tarayıcıya bağlı açık ekran | **3** (6 → 5 Profilim bitti → 3 şube ekranları kapsam dışı) |
 | Sahte veri üreticisi | **23 `createDemo*`** (27 → 23 · duyuru, şube, firma ve `createDemoData` silindi) · çıcır testiyle donduruldu |

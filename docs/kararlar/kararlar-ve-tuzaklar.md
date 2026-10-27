@@ -795,12 +795,12 @@ bu göçün yazdığı bir şey DEĞİL (göç `_ham` adına yazıyor). Onun iç
 önce patlıyordu. Bir göç ancak *"ben ne yazdım"* diye sorabilir.
 ⚠️ **Garanti kontrolde değil KODDA olmalı:** 0095 artık
 `create or replace function app.isletme_gostergeleri_ham(` yazıyor; kapıyı
-ezmesi imkânsız. Dosyanın öyle kaldığını ölçmek bir ÇIÇIRIN işi —
+ezmesi imkânsız. Dosyanın öyle kaldığını ölçmek bir MİMARİ TESTİN işi —
 `src/reporting/gosterge-kapisi.arch.test.ts` göç dosyalarının METNİNİ
 ölçüyor, veritabanının o anki hâlini değil. Metin ölçümü ortamın geçmişinden
 bağımsızdır ve her test koşusunda çalışır.
 ⚠️ Genel kalıp: **"bir daha olmasın" güvencesini çalışma zamanına değil,
-koda ve çıcıra koy.** Çalışma zamanındaki kontrol yalnız o anın durumunu
+koda ve mimari teste koy.** Çalışma zamanındaki kontrol yalnız o anın durumunu
 görür; hangi göçün neyi yazdığını göremez.
 
 **134 · BOZUK DURUMU TAKLİT ETMEK YETMEZ — *DOĞRU* BOZUK DURUMU KUR.**
@@ -816,6 +816,75 @@ kullan (burada: 0095'in eski gövdesi), yaklaşık bir benzerini değil.
 vermeli.** Bu turda tam bunu yaptım — taklit düzeltilince betik Emrah'ın
 canlıda gördüğü hatayı birebir yeniden üretti. Bir olumsuz kontrolün
 doğruluğu, hatayı canlandırabilmesiyle ölçülür.
+
+**135 · TEK TEK SAYMAK, BİR SONRAKİNİ HİÇ ÖLÇMEZ.**
+(27.10) MIYOP-078'den sonra yazdığım mimari test üç dosyayı okuyordu
+(0071/0095/0099) ve *"0095 `fire_dokumu` kapısına yazmasın"* diye tek tek
+sayıyordu. Aynı gün canlı teşhis **`app.fire_dokumu` kapısının da YOK**
+olduğunu gösterdi; testim bunu yakalayamazdı, çünkü o adı ezen şey listede
+olmayan bir şeydi.
+⚠️ Kural: bir yasak koyuyorsan **yasağı dosya listesinden bağımsız yaz.**
+Test artık `db/migrations` klasörünü okuyor ve *"0071'den SONRAKİ HİÇBİR göç
+bu iki ada ham hesap yazamaz; yazdığı her gövde bir KAPI olmak zorundadır"*
+diyor. Yarın yazılacak 0102'yi de ölçer.
+⚠️ Ölçütü: yeni bir dosya eklediğinde testin kapsamı **kendiliğinden**
+büyüyor mu? Büyümüyorsa yasak değil, bir tutanak yazmışsın.
+
+**136 · GÜVENLİK ONARIMI, VERİYE BAĞLI BİR GÖÇLE AYNI PAKETTE GİTMEZ.**
+(27.10 · tuzak 129'un bedeli ikinci kez) Supabase yapıştırılan betiğin
+TAMAMINI tek işlemde çalıştırıyor. 0099 (finans kapısı onarımı) ile 0100
+(eski satırlar yeni bir `check`'i ihlal ediyorsa DÜŞEN göç) aynı pakette
+gitti. 0100 düşse, onarım da geri alınacaktı — yani kapı açık kalacak ve
+"Success" yazmadığı için kimse nedenini aramayacaktı.
+⚠️ Kural: paket sırası **ONARIM → RUN → SONUÇ GÖRÜLDÜ → sonra veriye bağlı
+göç.** Veriye bağlı göç, onarımı rehin alamaz.
+⚠️ `araclar/goc-bekleyen.sql` başlığına bu kural yazıldı.
+
+**137 · `pg_get_function_identity_arguments` ARGÜMAN *ADLARINI* DA DÖNDÜRÜR.**
+(27.10) 0101'in doğrulamasında fonksiyonu
+`pg_get_function_identity_arguments(p.oid) = 'uuid, date, date'` ile aradım.
+Hiç bulamadı: o fonksiyon `'p_sube uuid, p_bas date, p_bit date'` döndürüyor.
+Yani doğrulamam *"fonksiyon yok"* diye patlıyordu, oysa fonksiyon duruyordu.
+⚠️ Fonksiyonu **tipine göre** ara: `to_regprocedure('app.ad(uuid, date, date)')`.
+⚠️ Bunu **bozuk durum provası yerelde yakaladı.** Canlıda patlasaydı Supabase
+bütün paketi geri alır ve kapı yine açık kalırdı — yani prova bu turda
+doğrudan bir P0'ın tekrarını önledi.
+
+**138 · PROVA, PAKETİN BUGÜNKÜ İÇERİĞİNİ BEKLEMELİ.**
+(27.10) `paket-bozuk-durumdan.sh`'in tek bir beklentisi vardı: *"paket bu
+bozukluğu onarır."* Paketi tek göce (0101) indirdiğim an, *"göstergeler
+ezilmiş"* senaryosu haklı olarak kırmızı verdi — çünkü onu **0099** onarıyor
+ve 0099 canlıda ZATEN uygulanmıştı. Prova yanlış şeyi bekliyordu.
+⚠️ İki beklenti ayrıldı: **ONARIR** (paket bunu giderecek) ve **DAYANIR**
+(paket bunu gidermeyecek ama o durumda DÜŞMEYECEK). İkincisi tuzak 129/136'nın
+tam ölçümüdür: ilgisiz bir bozukluk yüzünden düşen paket, kendi onarımını da
+geri alır.
+⚠️ Betiğin iki kabuk kusuru da aynı turda ölçüldü (Codex): `set -o pipefail`
+yoktu (`kur.sh | tail -1` boru hattında kurulum düşse bile devam ediyordu) ve
+`--single-transaction` yoktu (Supabase'in davranışını taklit etmiyordu, yani
+prova canlıdan DAHA HOŞGÖRÜLÜYDÜ).
+⚠️ Üçüncü kusur kendi elimden: `mktemp -d` 0700 açıyor ve sahibi root;
+betikler `su postgres -c psql -f` ile okunuyor, postgres o klasörü göremiyor
+ve psql "No such file" diyor. Betik bunu *"taklit yanlış"* diye YANLIŞ bir
+sebeple bildirdi. Bir hata mesajı, hatayı **olduğu gibi** basmalı
+(`grep ERROR` boş dönerse `tail` bas) — yoksa yanlış yere bakarsın.
+
+
+**139 · YAZILI KURAL UYARMAZ, ÖLÇEN TEST UYARIR.**
+(27.10) Prova 0101'i yazdım, JWT koydum, `set local role authenticated`
+koymayı UNUTTUM. O satır olmadan prova tablo sahibi olarak koşar ve **RLS
+atlanır**: izin kontrolü JWT'ye baktığı için MI403 yine gelir, ama olumlu
+ayak (*"izni olan okuyabiliyor"*) **yanlış sebeple** yeşil olur — RLS'siz
+okunan bir rapor, kapıyı değil sahipliği ölçer.
+⚠️ Bu kuralı aylar önce kendim yazmıştım: **kontrol listesi 15.** Yazılı
+olması beni uyarmadı. Uyaran şey MIYOP-042 için kurduğum
+`yazma-kapilari-tamam.arch.test.ts` oldu — donmuş bir liste tutuyor ve
+listeye GİRMEYE çalışan her yeni provayı kırmızı veriyor
+(*"YENİ kör prova: prova-0101.sql"*).
+⚠️ Genel kalıp: bir kuralı **belgeye** yazmak hatırlatma, **teste** yazmak
+engellemedir. Üçüncü kez aynı sınıftan bir ders: tuzak 133 (garanti koda),
+tuzak 135 (yasak dosya listesinden bağımsız), ve bu.
+
 
 ---
 
@@ -936,7 +1005,16 @@ Son söz onun çıktısındadır.
     (tuzak 132). `catch`te hatayı yutma; "yayına alındı" ile "çalışıyor"u
     ayrı söyle.
 46. Bir göçün doğrulaması **yalnız kendi yazdığını** ölçsün (tuzak 133).
-    "Bir daha olmasın" güvencesi çalışma zamanına değil **koda ve çıcıra**
-    konur.
+    "Bir daha olmasın" güvencesi çalışma zamanına değil **koda ve mimari
+    teste** konur.
 47. Bozuk durumu taklit ederken **bozukluğu üreten kodun kendisini** kullan
     ve taklidin doğruluğunu **hatayı canlandırarak** ölç (tuzak 134).
+48. Bir yasak koyuyorsan **dosya listesinden bağımsız** yaz: klasörü tara,
+    kuralı her yeni dosyaya kendiliğinden uygulat (tuzak 135).
+49. **Güvenlik onarımı, veriye bağlı bir göçle aynı pakette gitmez**
+    (tuzak 136). Önce onarım, Run, sonuç görülür; sonra gerisi.
+50. Bir fonksiyonu `pg_catalog`'da ararken **tipine göre** ara
+    (`to_regprocedure`), `identity_arguments` metnine göre değil (tuzak 137).
+51. Provanın beklentisi **paketin bugünkü içeriğine** göre ayarlanır: hangi
+    bozukluğu ONARIR, hangisinden sadece DAYANIR (tuzak 138). Kabuk
+    betiklerinde `set -o pipefail` ve `--single-transaction` şart.
