@@ -745,6 +745,40 @@ yaz. **(2)** Canlıya giden bir metnin doğru gittiğini, **canlıda** ölç —
 artık `app.kimlik_anahtari('İSTANBUL') = app.kimlik_anahtari('istanbul')`
 diye soruyor; bozuk bir kurulum orada patlıyor.
 
+**131 · BİR ONARIM GÖÇÜNÜ, ONARDIĞI *BOZUK* DURUMDAN BAŞLAYARAK SINA.**
+(27.10) `kur.sh` göçleri sırayla TEMİZ bir veritabanına uyguluyor — doğru
+ama yetmez. 0099 canlıdaki bir P0'ı onarıyordu: 0095'in ezdiği
+`finance.read` kapısını. **Temiz zincirde kapı hiç ezilmiyor**, dolayısıyla
+paketim yerelde sorunsuz geçti. Canlıda ise kapı dün ezilmişti ve paket o
+durumdan başladı; 0095'e koyduğum bir kontrol 0099'dan ÖNCE çalışıp kırmızı
+verdi ve Supabase bütün paketi geri aldı. Onarım hiç uygulanamadı.
+⚠️ Yani provam, onarımın çalışması GEREKEN tek durumu hiç kurmuyordu.
+"Temiz kurulumda çalışıyor" ile "bozuk kurulumu onarıyor" ayrı iddialar ve
+bir onarım göçünün iddiası İKİNCİSİDİR.
+⚠️ Çözüm bir betik oldu: `db/prova/paket-bozuk-durumdan.sh` — kapıyı ezer,
+paketi çalıştırır, onarımın GERÇEKLEŞTİĞİNİ ölçer. `ON_ERROR_STOP` ile,
+çünkü Supabase'in tek-işlem davranışını taklit etmeli; hatayı yutan bir
+prova canlıdan daha hoşgörülü olur ve yanlış güven verir.
+
+**132 · BİR KONTROL, "KONTROL EDEMEDİM" DİYEBİLMELİ.** (27.10)
+`miyop-yukle.ps1`in son adımı siteyi sınıyordu:
+`try { ... } catch { $k = 0 }`. Üç kontrol de her zaman **0** döndü ve
+hemen altında betik **"YAYINDA"** yazdı.
+İki ayrı kusur vardı:
+**(1)** Çağrı `-SkipHttpErrorCheck` kullanıyordu — o **PowerShell 7+**
+parametresi; Windows PowerShell 5.1'de yok. `Invoke-WebRequest` "böyle bir
+parametre yok" diye hata atıyor, `catch` onu yutuyordu. Yani kontrol hiçbir
+zaman çalışmadı.
+**(2)** Daha kötüsü: `catch { $k = 0 }` **"kontrol edemedim" ile "site
+çalışmıyor"u aynı şeye indiriyordu.** İkisi de 0 göründü, ikisi de yalnız
+bir uyarı satırı üretti ve betik "YAYINDA" demeye devam etti.
+⚠️ Kural: bir kontrolün üç sonucu vardır — **geçti, kaldı, ÖLÇEMEDİM.**
+Üçüncüsünü ikincisiyle karıştırmak, ölçmediğin şeyi ölçtün sanmaktır.
+⚠️ İkinci kural: **"yayına alındı" ile "çalışıyor" ayrı iki iddiadır.**
+İkincisini ölçemediysen birincisini söyleyip susmalısın. Betik artık
+geçen/toplam sayıyor ve hepsi geçmezse *"DOSYALAR YAYINA ALINDI AMA
+DOĞRULANAMADI — adresi tarayıcıdan kendin aç"* yazıyor.
+
 ---
 
 ## 5 · TEST İŞBÖLÜMÜ VE TESLİM KONTROL LİSTESİ
@@ -857,3 +891,9 @@ Son söz onun çıktısındadır.
     `NOTICE` göstermiyor, sonuç tablosu gösteriyor.
 43. Dosya okuyan her PowerShell satırına **`-Encoding UTF8`** yaz ve
     canlıya giden metnin doğru gittiğini **canlıda ölç** (tuzak 130).
+44. Onarım paketini **bozuk durumdan başlatarak** da sına
+    (`db/prova/paket-bozuk-durumdan.sh`) — tuzak 131. Temiz zincir,
+    onarımın çalışması gereken durumu hiç kurmaz.
+45. Bir kontrolün **üç** sonucu vardır: geçti, kaldı, **ölçemedim**
+    (tuzak 132). `catch`te hatayı yutma; "yayına alındı" ile "çalışıyor"u
+    ayrı söyle.

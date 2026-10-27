@@ -96,12 +96,59 @@ Tamam "Yayinda. Onceki surum: $Yedek"
 # ── 5 · Dogrulama ─────────────────────────────────────────────────────────
 Bilgi '5/5 - Dogrulama'
 
+# !! 27.10.2026 - BU ADIM YALAN SOYLUYORDU.
+# Eski hali `-SkipHttpErrorCheck` kullaniyordu; o parametre PowerShell 7+
+# parametresidir ve Windows PowerShell 5.1'de YOKTUR. Invoke-WebRequest
+# "boyle bir parametre yok" diye hata atiyor, catch onu yutup $k = 0
+# yapiyordu. Yani uc kontrol de HER ZAMAN 0 donuyordu - site calissin ya da
+# calismasin.
+#
+# !! Daha kotusu: catch "KONTROL EDEMEDIM" ile "SITE CALISMIYOR" arasindaki
+# farki siliyordu. Ikisi de 0 goruluyordu ve betik hemen altinda "YAYINDA"
+# yaziyordu. Kontrol edemeyen ama "yayinda" diyen bir betik, hic kontrol
+# etmeyenden kotudur: ilkine guvenilir.
+#
+# Uc duzeltme:
+#   1. PS 5.1 uyumlu cagri (-UseBasicParsing, SkipHttpErrorCheck YOK).
+#      4xx/5xx'te Invoke-WebRequest istisna atar; durum kodu istisnanin
+#      icinden okunur.
+#   2. TLS 1.2 aciliyor. PS 5.1 varsayilani eski TLS surumleri olabiliyor ve
+#      nginx onlari reddeder - bu da "baglanamadim" gibi gorunur.
+#   3. HATA YUTULMUYOR: sebep yaziliyor ve sonuc SAYILIYOR. Dogrulama
+#      gecmezse betik "YAYINDA" DEMIYOR.
+[Net.ServicePointManager]::SecurityProtocol =
+  [Net.SecurityProtocolType]::Tls12 -bor [Net.ServicePointManager]::SecurityProtocol
+
+$script:DogrulamaGecen = 0
+$script:DogrulamaToplam = 0
+
 function Dene($yol, $beklenen, $aciklama){
+  $script:DogrulamaToplam++
+  $k = $null
+  $sebep = ''
   try{
-    $y = Invoke-WebRequest -Uri "https://$Alan$yol" -MaximumRedirection 0 -SkipHttpErrorCheck -TimeoutSec 20
+    $y = Invoke-WebRequest -Uri "https://$Alan$yol" -MaximumRedirection 0 `
+         -UseBasicParsing -TimeoutSec 20
     $k = [int]$y.StatusCode
-  } catch { $k = 0 }
-  if($k -eq $beklenen){ Tamam "$aciklama ($k)" } else { Uyari "$aciklama -> $k (beklenen $beklenen)" }
+  } catch {
+    # 4xx/5xx burada gelir ve BU NORMALDIR (assets icin 403 bekliyoruz).
+    $yanit = $_.Exception.Response
+    if($yanit -and $yanit.StatusCode){
+      $k = [int]$yanit.StatusCode
+    } else {
+      $sebep = $_.Exception.Message
+    }
+  }
+
+  if($k -eq $beklenen){
+    $script:DogrulamaGecen++
+    Tamam "$aciklama ($k)"
+  } elseif($null -eq $k){
+    # !! "Kontrol edemedim" ayri bir sonuctur, 0 degil.
+    Uyari "$aciklama -> KONTROL EDILEMEDI: $sebep"
+  } else {
+    Uyari "$aciklama -> $k (beklenen $beklenen)"
+  }
 }
 
 Dene '/'            200 'Ana sayfa'
@@ -111,7 +158,15 @@ Dene '/assets/'     403 'assets dizin listesi kapali'
 
 Write-Host ''
 Write-Host '═══════════════════════════════════════════════════════════' -ForegroundColor DarkGray
-Write-Host " YAYINDA: https://$Alan" -ForegroundColor Green
+if($script:DogrulamaGecen -eq $script:DogrulamaToplam){
+  Write-Host " YAYINDA ve DOGRULANDI ($script:DogrulamaGecen/$script:DogrulamaToplam): https://$Alan" -ForegroundColor Green
+} else {
+  # !! "Yayina alindi" ile "calisiyor" ayri iki iddia. Ikincisini
+  # olcemediysek birincisini soyleyip susmak zorundayiz.
+  Write-Host " DOSYALAR YAYINA ALINDI AMA DOGRULANAMADI ($script:DogrulamaGecen/$script:DogrulamaToplam)" -ForegroundColor Yellow
+  Write-Host " Adresi tarayicidan KENDIN ac ve bak: https://$Alan" -ForegroundColor Yellow
+  Write-Host " Yukaridaki satirlar neyin kontrol edilemedigini yaziyor." -ForegroundColor Yellow
+}
 Write-Host ''
 Write-Host ' Bir sorun olursa onceki surume donus (sunucuda):' -ForegroundColor DarkGray
 Write-Host "   rm -rf $Kok && mv $Yedek $Kok && systemctl reload nginx" -ForegroundColor DarkGray

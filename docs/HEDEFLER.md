@@ -884,6 +884,19 @@ Emrah'ın onayladığı sıra:
     uygulandı"* diyerek sessizce geçti; prova-0100 kırmızı değil BOŞ döndü.
     Desen genişletildi **ve sağlama eklendi**: uygulanan sayı ile klasördeki
     dosya sayısı eşit olmalı (tuzak 128).
+  - ✅ **3.12.1** ⚠️ **DAĞITIM BETİĞİNİN DOĞRULAMA ADIMI YALAN SÖYLÜYORDU
+    (27.10)** · Emrah 26.10 yayınında üç kontrolün de `0` döndüğünü, altında
+    ise **"YAYINDA"** yazdığını gösterdi. Ölçüldü: site gerçekten çalışıyor
+    (Emrah tarayıcıda doğruladı, Şahit Numune ekranı canlıda).
+    İki kusur: **(1)** Çağrı `-SkipHttpErrorCheck` kullanıyordu — o
+    **PowerShell 7+** parametresi, 5.1'de YOK; `Invoke-WebRequest` hata
+    atıyor ve `catch` onu yutuyordu. Kontrol hiçbir zaman çalışmamış.
+    **(2)** `catch { $k = 0 }` **"kontrol edemedim" ile "çalışmıyor"u aynı
+    şeye indiriyordu** ve betik yine de "YAYINDA" diyordu.
+    Düzeltildi: PS 5.1 uyumlu çağrı, TLS 1.2, hata yutulmuyor (sebep
+    yazılıyor), ve geçen/toplam sayılıyor — hepsi geçmezse betik
+    *"DOSYALAR YAYINA ALINDI AMA DOĞRULANAMADI"* diyor. Tuzak 132:
+    bir kontrolün üç sonucu vardır — geçti, kaldı, **ölçemedim**.
   - ⬜ **3.9.3** ⚠️ **ETİKET EKRANI SAKLAMA KOŞULUNU ÜRÜN KARTINDAN
     OKUMALI.** Bu göçün ortaya çıkardığı eksik: saklama koşulu hiçbir yerde
     **saklanmıyordu** — etiket ekranında her baskıda **elle yazılan**
@@ -1540,7 +1553,7 @@ yanlışlıkla çalıştırılma riski var (6.11).
 | Mock dosya | 36 · hiçbiri açık kiracı rotasından erişilemiyor |
 | Public yol | **2** · başvuru formu + müşteri portalı (ölçülüp donduruldu) |
 | Giriş vitrini | dondurulmuş **20 modül adının** hiçbiri geçmiyor (ölçüldü, donduruldu) |
-| Tuzak | **130** (26–27.10: 116–130 eklendi) |
+| Tuzak | **132** (26–27.10: 116–132 eklendi) |
 
 ⚠️ "Mock dosya" satırı **yanıltıcıydı:** doğru olan ama yetmeyen bir ölçüm.
 Asıl tehlike adı mock olmayan üreticilerdi; üstteki satır onu gösteriyor.

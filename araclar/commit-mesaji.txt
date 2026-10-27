@@ -1,50 +1,56 @@
-Pano metni bozuyormus (MIYOP-079 kok sebep) + 0099 P0'i rehin almis
+Dagitim dogrulamasi yalan soyluyormus + paket bozuk durumdan sinaniyor
 
-IKI SEY OLDU, IKISI DE BENIM HATAM.
+SITE CALISIYOR, BETIK YALAN SOYLUYORMUS
+Emrah tarayicidan dogruladi: https://miyop.emrahevren.com aciliyor, Sahit
+Numune ekrani Kalite menusunde, Kontrol Paneli gercek rakamlari gosteriyor
+("pirinc 93,237 kg kullanilabilir (103,237 var, 10 SKT gecmis)" - MIYOP-074
+duzeltmesi canlida calisiyor).
+Ama 26.10 yayininda uc dogrulama da 0 dondu ve altinda "YAYINDA" yazdi.
 
-1 - PANO METNI BOZUYORMUS (MIYOP-079'un KOK SEBEBI)
-Dun "Codex'e yapistirirken bozulmus, depo dosyasi temiz" demistim. EKSIK
-TESHISTI. Emrah goc paketini Supabase'e yapistirdiginda butun Turkce
-harfler bozuk gitti (ekran goruntusuyle dogrulandi: "kapAsA" gibi).
-Sebep: araclar/kaydet.ps1 panoya kopyalarken Get-Content -Raw kullaniyordu
-ve Windows PowerShell 5.1 BOM'suz bir UTF-8 dosyayi varsayilan ANSI kod
-sayfasiyla (Turkce'de CP1254) okuyor. 'I' harfinin iki bayti (C4 B0) 'A' ve
-derece isareti olarak cozuluyor. Kanitlandi: UTF-8 baytlarini CP1254 ile
-cozunce ekrandaki metnin AYNISI cikiyor.
+IKI KUSUR:
+1 - Cagri -SkipHttpErrorCheck kullaniyordu. O PowerShell 7+ parametresi;
+    Windows PowerShell 5.1'de YOK. Invoke-WebRequest "boyle bir parametre
+    yok" diye hata atiyor, catch onu yutuyordu. Yani kontrol HICBIR ZAMAN
+    calismamis - uc satir da her zaman 0 donuyordu.
+2 - Daha kotusu: catch { $k = 0 } "KONTROL EDEMEDIM" ile "SITE CALISMIYOR"
+    arasindaki farki siliyordu. Ikisi de 0 goruluyor, ikisi de yalniz bir
+    uyari satiri uretiyor ve betik "YAYINDA" demeye devam ediyordu.
 
-Kozmetik degildi: app.kimlik_anahtari() gercek I/i yerine bozulmus iki
-karakteri aramaya basladi, yani numune kodu tekilligi zayifladi. Hata
-mesajlari da okunamaz hale geldi ve musteri onlari gorecekti.
+Duzeltildi: PS 5.1 uyumlu cagri (-UseBasicParsing), TLS 1.2 aciliyor, hata
+YUTULMUYOR (sebep yaziliyor), gecen/toplam sayiliyor. Hepsi gecmezse betik
+"YAYINDA" DEMIYOR: "DOSYALAR YAYINA ALINDI AMA DOGRULANAMADI - adresi
+tarayicidan kendin ac" diyor.
+Tuzak 132: bir kontrolun UC sonucu vardir - gecti, kaldi, OLCEMEDIM.
+Ucuncusunu ikincisiyle karistirmak, olcmedigin seyi olctun sanmaktir.
 
-Betigin KENDI basindaki not tam bu tuzagi yaziyordu ("PS 5.1 BOM'suz
-UTF-8'i ANSI sanip cozuyor") - ama o uyari betigin kendi kodlamasi icindi,
-OKUDUGU dosyalar icin degil. Yazili bir uyari, uygulanmadigi yerde uyarmaz
-(tuzak 130). -Encoding UTF8 eklendi; betik ASCII kaldi.
+0095 IKINCI KEZ PAKETI REHIN ALDI - AYNI SINIF, BASKA YER
+Pano duzeltmesi calisti (Turkce harfler artik dogru gidiyor) ama paket yine
+patladi: bu sefer 0095'e ekledigim "kapi yerinde mi" kontrolu. Sebep sira -
+paket 0094'ten 0100'e sirayla kosuyor, kapiyi 0099 onariyor, ama kontrol
+0095'te yani onarimdan ONCE. Canlida kapi o anda hala ezikti ve kontrol
+hakli olarak patladi; Supabase tek islem oldugu icin paketin tamami yine
+geri alindi.
+0095'in kontrolu kendi isine indirildi: "kapi var mi" degil, "BU GOC kapiyi
+ezdi mi" (ham hesap kapinin adina yazilmis mi). Kapinin varligi 0071 ve
+0099'un sorumlulugu, ikisi de kendi icinde olcuyor. Olumsuz deneme: kapiya
+ham hesap yazilinca 0095 patliyor.
 
-2 - 0099 CANLIDA PATLADI VE P0'I REHIN ALDI
-0099'un isi bir P0'i kapatmakti. Dogrulamasina bir de "benzeri de kirildi
-mi" diye fire_dokumu kapisini eklemistim (tuzak 117'yi uygulayayim diye).
-O kontrol canlida kirmizi verdi VE Supabase butun betigi tek islemde
-calistirdigi icin yukaridaki kapi onarimi da GERI ALINDI. Yani fazladan
-koydugum iyi niyetli bir kontrol yuzunden P0 acik kaldi.
-Kontrol kaldirildi. Bir goc ya ONARIR ya TESHIS EDER; kritik onarim
-ikincil bir kontrole baglanmaz (tuzak 129).
+KOK SEBEP PROVADAYDI - YENI BETIK
+kur.sh gocleri TEMIZ bir veritabanina sirayla uyguluyor. Temiz zincirde kapi
+HIC ezilmiyor, dolayisiyla paketim yerelde sorunsuz geciyordu. Canlida ise
+kapi dun ezilmisti ve paket o durumdan basliyordu. Yani provam, onarimin
+calismasi GEREKEN tek durumu hic kurmuyordu.
+db/prova/paket-bozuk-durumdan.sh: kapiyi eziyor (0095'in eski halinin
+yaptigini yapiyor), paketi calistiriyor, onarimin GERCEKLESTIGINI olcuyor.
+ON_ERROR_STOP ile - Supabase'in tek-islem davranisini taklit etmeli; hatayi
+yutan bir prova canlidan daha hosgorulu olur ve yanlis guven verir.
+Tuzak 131: "temiz kurulumda calisiyor" ile "bozuk kurulumu onariyor" ayri
+iddialar; bir onarim gocunun iddiasi IKINCISIDIR.
 
-YENI: araclar/teshis-canli-durum.sql
-fire_dokumu ve diger supheler artik ayri bir TESHIS sorgusuyla olculuyor.
-TABLO donduruyor, cunku Supabase SQL editoru NOTICE satirlarini
-gostermiyor - yalniz sonuc tablosunu. Sekiz satir: kimlik anahtari, finans
-kapisi, ham hesap, fire_dokumu (kac tane ve nerede), sonuc kisiti,
-kullanilabilir bakiye gorunumu, imha kapisi.
-
-GOC PAKETI YEDIYE CIKTI: 0094 → 0100
-0094-0098 canlida uygulandi AMA METIN BOZUK GITTI. Yedisi de yeniden
-uygulanacak; hepsi idempotent. En onemlisi 0094: bozuk giden
-app.kimlik_anahtari orada.
-
-Yerel dogrulama: 101 goc sifirdan kuruldu (saglama ile), birlesik dosya iki
-kez hatasiz kostu, teshis sorgusu yerelde sekiz satirin sekizini OK
-donduruyor.
+DOGRULAMA
+- Temiz zincir: 101 goc, provalar 21+18+15+9+13+10 = 86 sinama yesil
+- Bozuk durumdan paket: hatasiz kostu VE kapi geri geldi
+- Paket iki kez ust uste kostu, ikincisinde de hata yok
 
 Co-Authored-By: Claude Opus 5 <noreply@anthropic.com>
 Claude-Session: https://claude.ai/code/session_019BwYM3mAXZUhp4YGj7tp2y
