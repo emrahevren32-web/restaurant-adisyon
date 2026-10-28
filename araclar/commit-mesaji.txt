@@ -1,68 +1,45 @@
-CANLIDA COKEN EKRAN + tip denetimi hatta eklendi
+A3 basladi: ayrinti kapisi kuruldu + Etiketler ekranina takildi (1/7)
 
-Sahit Numune ekrani CANLIDA "Bu ekran acilamadi" veriyordu. client_error
-kaydi sebebi yazdi (referans ideuta):
+MIYOP-010 ve MIYOP-064 ayni kusurun alti ekrandaki haliydi: solda liste,
+sagda secilen kaydin ayrintisi; secim HEMEN degisiyor, ayrinti istekler
+donunce yaziliyor. Arada ekranda YENI KAYDIN ADI, ESKI KAYDIN AYRINTISI
+duruyor.
 
-  ReferenceError: NUMUNE_SAYFA is not defined
+Olculdu (Etiketler.tsx):
+  const sec = async (k) => {
+    setSecili(k)                  // (1) secim aninda degisti
+    await ayrintiYukle(k, baglam) // (2) ayrinti yedi istek donunce yazildi
+  }
+(1) ile (2) arasinda ekranda B'nin adi, A'nin alerjenleri duruyordu ve
+Kaydet'e basilirsa A'nin beyani B'nin kartina yazilabiliyordu.
+IKINCI KUSUR: sec() icinde iptal korumasi YOKTU -- hizli A->B seciminde
+A'nin cevabi B'ninkinden SONRA donerse B'nin ayrintisini eziyordu. Hicbir
+hata cikmiyor; yanlis olan sey sessizce dogru gorunuyor.
 
-Sabit `witness-sample.repository.ts` icinde export edilmis, ekran onu
-kullaniyor ama IMPORT ETMEMIS. Ozet bolumu "liste en fazla N satir gosterir"
-derken sabiti okuyor; tanimsiz oldugu icin React agaci sokuluyor.
+ORTAK COZUM -- src/core/secim/ayrinti-kapisi.ts
+- React yok, istek yok, zaman yok: SAF bir karar birimi. Ekranlar kendi
+  state'lerini tutmaya devam ediyor; buradan yalniz iki sorunun cevabini
+  aliyorlar: "gelen cevabi yazayim mi" ve "yazma dugmesi acik mi".
+- KIMLIK SURUM NUMARASIDIR: ayri bir sayac yerine gelen cevabin hangi kayda
+  ait oldugu soruluyor. Bu tek kural hem gec gelen cevabi hem de "eski
+  ayrinti ekranda kaldi" halini kapatiyor.
+- Hata halinde `ekranda` null KALIYOR: yarim veriyle acik kalan bir ekran,
+  hata mesajindan tehlikelidir.
+- 15 birim sinamasi. Hepsi gercek kodla kosturularak dogrulandi.
 
-!! ASIL KUSUR O SATIR DEGIL, HATTIN KENDISIYDI:
-   - npm test (vitest)   -> tip DENETLEMEZ
-   - vite build (esbuild) -> tip DENETLEMEZ
-   - package.json'daki `typecheck` betigi DURUYORDU, hic cagrilmiyordu
-Yani "1584 test yesil" ve "derleme basarili" cumlelerinin ikisi de dogruydu
-ve ekran calismiyordu. tsc bunu ilk saniyede yakalardi.
+src/pages/Etiketler.tsx -- kapi UC yere birden takildi:
+- dugme `disabled={!ayrintiHazir(secim)}` (uc eylem: alerjen beyani, besin
+  degeri, etiket yazdirma)
+- eylemin GOVDESINDE erken donus `ayrintiBekliyorMu()` -- dugmeyi atlayan
+  bir yol kaydi bozmasin
+- sebep EKRANDA yazili (tuzak 126): dugme neden kapali, kullanici bilsin
+Yazdirma da YAZMA sayiliyor: kagit ambalaja yapisir, geri alinamaz.
 
-!! Dahasi: ekrani 26.10'da "bitti, CANLIDA" diye kapattim. Canlida hic
-acilmamis; yalniz yerelde, verisi olan kiraci ile gormustum. A5 yeniden
-acildi (tuzak 141 ve 142).
-
-- src/pages/SahitNumune.tsx: NUMUNE_SAYFA import edildi, sebep yazildi.
-- araclar/kaydet.ps1: commit ONCESI `npm run typecheck`. Kirmizi -> commit yok.
-- miyop-yukle.ps1: yayin ONCESI `npm run typecheck`. Kirmizi -> dagitim yok.
-  Ikisinde de tip denetimi TESTLERDEN ONCE kosuyor (saniye vs dakika).
-- src/core/derleme-kapisi.arch.test.ts (YENI): kapinin betiklerden DUSMESINI
-  engelliyor. Betiklerin metnini olcuyor; yorum satirlarini ayikliyor (ilk
-  yazisimda yorumlar "npm test" ifadesini gecirip yanlis kirmizi verdi).
-
-Emrah'in bildirdigi iki ekran kusuru:
-- src/styles.css: `.card { height:100% }` -> `min-height:100%`. height:100%
-  karti kapsayicinin yuksekligine SABITLIYOR; icerik asinca kartin zemini
-  bitiyor ama icerik devam ediyor. Sirket Ayarlari'nda Kaydet dugmesinin alt
-  yarisi bu yuzden kesikti. Sigan kartlar etkilenmez, yalniz tasanlar duzelir.
-- src/pages/IslemGecmisi.tsx: "N kaydin kimin yaptigi cozulemedi (veritabanina
-  dogrudan yazilmis olabilir)" cumlesi kirmiziydi ve EN KOTU IHTIMALI
-  yaziyordu. Emrah: "bu yazilar guvensizlik olusturabilir." Olcum: imzasiz uc
-  satir app_user, user_role, user_branch_access -- ucu de "Giris hesabi ac ve
-  davet gonder" adiminda, Edge Function icinde service_role ile olustu, yani
-  app.aktif_kullanici_id() bos donuyor. Kimse veritabanina elle girmedi.
-  Cumle artik dogru seyi soyluyor. !! Bu YARIM bir duzeltme ve oyle oldugu
-  yazili: asil cozum hesap acma adiminin imzayi SUNUCUYA yazmasi (Emrah'in
-  karari: once (a), sonra (b)).
-
-!! TIP DENETIMI ILK KOSUSUNDA 30 HATA BULDU (9 dosya). Hepsi bugune kadar
-oradaydi ve hicbiri gorunmuyordu. Ayni commit'te kapatildi:
-
-- src/pages/WorkOrders.tsx: IKINCI CANLI COKME. Maliyet bolumu `paraGorur`
-  okuyor ama degisken ana bilesende tanimli, IsEmriDetayi'ne hic
-  gecirilmemis. Bos kiracida maliyet olusmadigi icin gorunmuyordu; veri
-  girildigi an Is Emirleri ekrani cokerdi. Prop olarak gecirildi.
-  (Sahit Numune'deki NUMUNE_SAYFA ile AYNI SINIF.)
-- Alti sahte katalog (shipment, work-order, asama2-zincir, goods-receipt,
-  supplier-return, write-off): 27.10'da StokKatalogu arayuzune ekledigim
-  `kalemBeyaniniGuncelle` eksikti -- benim borcum. Bilerek firlatan bir
-  govde eklendi: o sinama dosyalari beyan guncellemiyor, bir gun cagrilirsa
-  sessizce yanlis veri dondurmek yerine yuksek sesle dursun.
-- src/warehouse/warehouse.catalog.ts: supabase-js `data` tipine hata dizisini
-  de katiyor; uc donusum `as unknown as` yapildi. Hata zaten ustte firlatiliyor.
-- src/auth/authenticateUser.test.ts: sahte cevap tipleri aciklandi
-  (`SahteCevap<T>`). Once `{ data: null; error: null }` diye DARALIYORDU ve
-  12 `mockResolvedValue` cagrisi tip hatasi veriyordu.
-
-- docs: tuzak 141-142, kontrol listesi 54-55, HEDEFLER A5 yeniden acildi.
+src/core/secim/ayrinti-kapisi.arch.test.ts -- kalan ALTI ekran adlariyla
+DONDURULDU (Warehouse, Siparisler, Musteriler, WorkOrders, Sevkiyatlar,
+Traceability). Liste yalniz KISALIR: bir ekrana kapi takilinca test kirmizi
+verir ve listeden cikarilmaya zorlar. Yapilacak isi belgeye degil TESTE
+yazmak (tuzak 139).
 
 Co-Authored-By: Claude Opus 5 <noreply@anthropic.com>
 Claude-Session: https://claude.ai/code/session_019BwYM3mAXZUhp4YGj7tp2y

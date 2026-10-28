@@ -1292,7 +1292,25 @@ Emrah'ın onayladığı sıra:
     (`original.branchId` körlemesine aktif şubeye çevrilmeyecek);
     sevkiyatın **hedef şubesi** gibi belge alanları işlemin kaynak
     şubesiyle karıştırılmayacak.
-- ⬜ **3.7** **MIYOP-010** · Etiket ekranında ürünler arası veri karışması
+- 🔄 **3.7** **MIYOP-010** · Etiket ekranında ürünler arası veri karışması
+  · **28.10: ORTAK ÇÖZÜM KURULDU, 1/7 ekran takıldı**
+  ⚠️ Kusur ölçüldü, tahmin edilmedi. `Etiketler.tsx`:
+  `sec()` içinde `setSecili(k)` HEMEN, `await ayrintiYukle(k)` SONRA. Arada
+  ekranda **B'nin adı, A'nın alerjenleri** duruyordu ve Kaydet'e basılırsa
+  A'nın beyanı B'nin kartına yazılabiliyordu. İkinci kusur: `sec()` içinde
+  iptal koruması YOKTU — hızlı A→B'de A'nın cevabı B'ninkinden sonra dönerse
+  B'nin ayrıntısını eziyordu, hiçbir hata çıkmadan.
+  **Ortak çözüm:** `src/core/secim/ayrinti-kapisi.ts` — React'sız, isteksiz,
+  zamansız **saf** bir karar birimi. İki soruyu cevaplıyor: *"gelen cevabı
+  yazayım mı"* ve *"yazma düğmesi açık mı"*. Kimlik SÜRÜM NUMARASI sayılıyor;
+  ayrı bir sayaç yok. 15 birim sınaması (hepsi gerçek kodla koşturularak
+  ölçüldü).
+  ⚠️ Kapı ekranda ÜÇ yere birden takılıyor: düğme `disabled`, eylemin
+  **gövdesinde** erken dönüş, ve ekranda **sebep yazılı** (tuzak 126).
+  Yazdırma da yazma sayılıyor: kâğıt ambalaja yapışır, geri alınamaz.
+  ⚠️ `ayrinti-kapisi.arch.test.ts` kalan altı ekranı **adlarıyla
+  dondurdu** — liste yalnız kısalır. Bir ekrana kapı takılınca test kırmızı
+  verir ve listeden çıkarılmaya zorlar; kalan iş sayılabilir kalıyor.
   - ⬜ **3.7.1** **MIYOP-064 · aynı kusur beş ekran daha** (Codex, 21.10):
     Depo, Siparişler, Müşteriler, İş Emirleri, Sevkiyatlar. Desen aynı:
     seçim **hemen** değişiyor, ayrıntılar isteklerin tamamı dönünce

@@ -26,6 +26,11 @@ import {
 import { EtiketServisi, alerjenDurumu, etiketVerisiKur, saklamaKaynagi, saklamaZorunluMu } from '../production/label.service'
 import { etiketHtml, etiketKesilebilir } from '../production/label-documents'
 import { belgeYazdir } from '../core/print/print'
+// ⚠️ A3 · MIYOP-010/064 · Ekrandaki ayrıntı, başlıktaki kayda ait mi?
+import {
+  SECIM_BOS, ayrintiBeklemeSebebi, ayrintiDustu, ayrintiGeldi, ayrintiHazir,
+  secildi, type SecimDurumu,
+} from '../core/secim/ayrinti-kapisi'
 
 type Props = { currentUser: User }
 
@@ -73,6 +78,18 @@ export default function Etiketler({ currentUser }: Props){
   const [kalemler, setKalemler] = React.useState<EtiketKalemi[]>([])
   const [arama, setArama] = React.useState('')
   const [secili, setSecili] = React.useState<EtiketKalemi | null>(null)
+  /**
+   * ⚠️ A3 · MIYOP-010. `secili` seçim anında değişiyordu, ayrıntı ise
+   * istekler dönünce yazılıyordu: aradaki anda ekranda YENİ ÜRÜNÜN ADI ve
+   * ESKİ ÜRÜNÜN ALERJENİ duruyordu. Kaydet'e basılırsa A'nın beyanı B'nin
+   * kartına yazılabiliyordu. Bu durum o aralığı kapatıyor.
+   */
+  const [secim, setSecim] = React.useState<SecimDurumu>(SECIM_BOS)
+  /**
+   * ⚠️ REF ŞART: `secim` state'i async gövdenin içinde ESKİ değeri taşır
+   * (kapanış). Geç gelen cevabı atmak için o anki seçimi ref'ten okuyoruz.
+   */
+  const secilenRef = React.useRef<string | null>(null)
 
   const [beyan, setBeyan] = React.useState<KalemAlerjeni[]>([])
   const [besin, setBesin] = React.useState<BesinTaslagi>({})
@@ -127,6 +144,22 @@ export default function Etiketler({ currentUser }: Props){
     return () => { iptal = true }
   }, [servis])
 
+  /**
+   * Ekrandaki ayrıntıyı ANINDA boşaltır.
+   *
+   * ⚠️ Seçim değişir değişmez çağrılıyor. Eski hâlde bu temizlik yalnız
+   * istekler DÖNDÜKTEN sonra yapılıyordu; arada kalan birkaç saniye bu
+   * ekranın bütün kusuruydu.
+   */
+  const ayrintiBosalt = () => {
+    setBeyan([]); setBesin({}); setBesinKaynak('')
+    setNetMiktar(''); setNetBirim('')
+    setTuretilen([]); setAlerjenEksik([])
+    setTuretilenBesin(undefined); setBesinEksik([])
+    setPartiler([]); setPartiId(''); setLot(''); setUretim(bugun()); setSkt('')
+    setSaklama('')
+  }
+
   const ayrintiYukle = async (k: EtiketKalemi, b: DepoBaglami) => {
     if(!servis) return
     const [b1, b2, t, ae, tb, be, pl] = await Promise.all([
@@ -138,6 +171,11 @@ export default function Etiketler({ currentUser }: Props){
       servis.mamulBesinEksikleri(b.ctx, k.id),
       servis.uretilenPartiler(b.ctx, k.id),
     ])
+
+    // ⚠️ GEÇ GELEN CEVAP BURADA DURUYOR (A3). Hızlı A→B seçiminde A'nın
+    // isteği B'den SONRA dönebilir; koruma olmadan B'nin ayrıntısını ezer ve
+    // ekranda B yazarken içerik A olur. Hiçbir hata çıkmaz.
+    if(secilenRef.current !== k.id) return
 
     // ── PARTİ SEÇİMİ SIFIRLANIYOR ───────────────────────────────────────
     // ⚠️ Başka bir ürüne geçildiğinde önceki ürünün partisi EKRANDA
@@ -157,12 +195,24 @@ export default function Etiketler({ currentUser }: Props){
     setBesinKaynak(b2?.kaynak ?? '')
     setNetMiktar(k.netMiktar === undefined ? '' : String(k.netMiktar))
     setNetBirim(k.netBirim ?? '')
+    setSecim(d => ayrintiGeldi(d, k.id))
   }
 
   const sec = async (k: EtiketKalemi) => {
-    setSecili(k); setHata(''); setBilgi('')
+    secilenRef.current = k.id
+    setSecili(k); setSecim(secildi(k.id)); setHata(''); setBilgi('')
+    // ⚠️ Sıra önemli: ayrıntı ÖNCE boşalır, sonra yüklenir.
+    ayrintiBosalt()
     if(!baglam) return
-    try { await ayrintiYukle(k, baglam) } catch (e) { setHata(hataMetni(e)) }
+    try { await ayrintiYukle(k, baglam) }
+    catch (e) {
+      // ⚠️ Hata da sahibine ait: başka kayda geçildiyse bu hata artık
+      // kimseyi ilgilendirmiyor.
+      if(secilenRef.current === k.id){
+        setSecim(d => ayrintiDustu(d, k.id, hataMetni(e)))
+        setHata(hataMetni(e))
+      }
+    }
   }
 
   const yenile = async () => {
@@ -181,7 +231,21 @@ export default function Etiketler({ currentUser }: Props){
     })
   }
 
+  /**
+   * ⚠️ A3 · KAPI EKRANDA DEĞİL BURADA DA DURUYOR. Düğmeyi `disabled`
+   * yapmak kullanıcıyı korur; bir klavye/otomasyon yolu düğmeyi atlarsa bu
+   * satır kaydı korur. "Gerekçe ekran kuralı değil servis kuralıdır"
+   * ilkesinin bu ekrandaki karşılığı: hangi kaydın verisi formda duruyor
+   * sorusu ekranın işi, ama cevabı YAZMADAN ÖNCE sorulmalı.
+   */
+  const ayrintiBekliyorMu = () => {
+    if(ayrintiHazir(secim)) return false
+    setBilgi(''); setHata(ayrintiBeklemeSebebi(secim))
+    return true
+  }
+
   const beyanKaydet = async () => {
+    if(ayrintiBekliyorMu()) return
     if(!servis || !baglam || !secili) return
     try{
       // ⚠️ TEK ÇAĞRI (0072). Eskiden burada İKİ çağrı vardı: önce satırlar,
@@ -196,6 +260,7 @@ export default function Etiketler({ currentUser }: Props){
   }
 
   const besinKaydet = async () => {
+    if(ayrintiBekliyorMu()) return
     if(!servis || !baglam || !secili) return
     try{
       const g: BesinDegeri = { temel: '100g', kaynak: besinKaynak }
@@ -233,6 +298,10 @@ export default function Etiketler({ currentUser }: Props){
   }) : null
 
   const etiketYazdir = () => {
+    // ⚠️ Yazdırma da bir YAZMA eylemidir: kâğıt ambalaja yapışır ve geri
+    // alınamaz. Ayrıntı seçili kayda ait değilken basılan etiket, yanlış
+    // ürünün alerjenini taşır.
+    if(ayrintiBekliyorMu()) return
     if(!etiketVerisi) return
     belgeYazdir(`Etiket · ${etiketVerisi.urunAdi}`, etiketHtml(etiketVerisi))
   }
@@ -352,7 +421,9 @@ export default function Etiketler({ currentUser }: Props){
                 })}
                 {yazabilir && (
                   <div className="form-actions">
-                    <button className="btn primary" type="button" onClick={() => { void beyanKaydet() }}>
+                    <button className="btn primary" type="button"
+                      disabled={!ayrintiHazir(secim)}
+                      onClick={() => { void beyanKaydet() }}>
                       Kaydet ve &quot;incelendi&quot; işaretle
                     </button>
                   </div>
@@ -395,7 +466,9 @@ export default function Etiketler({ currentUser }: Props){
                 </label>
                 {yazabilir && (
                   <div className="form-actions">
-                    <button className="btn primary" type="button" onClick={() => { void besinKaydet() }}>
+                    <button className="btn primary" type="button"
+                      disabled={!ayrintiHazir(secim)}
+                      onClick={() => { void besinKaydet() }}>
                       Kaydet
                     </button>
                   </div>
@@ -521,6 +594,13 @@ export default function Etiketler({ currentUser }: Props){
                     değiştirilemez.
                   </p>
                 )}
+                {/* ⚠️ Düğme kapalıysa SEBEBİ yazılı olmalı; yoksa kullanıcı
+                    kuralı atlamanın yolunu arar (tuzak 126). */}
+                {secili && !ayrintiHazir(secim) && (
+                  <p className="form-error" style={{ marginTop: 0 }}>
+                    {ayrintiBeklemeSebebi(secim)}
+                  </p>
+                )}
                 {secili && (
                   <p className="muted" style={{ marginTop: 0 }}>
                     {saklamaNereden === 'kart' && <>
@@ -553,7 +633,9 @@ export default function Etiketler({ currentUser }: Props){
                   </div>
                 )}
                 <div className="form-actions">
-                  <button className="btn primary" type="button" onClick={etiketYazdir}>
+                  <button className="btn primary" type="button"
+                    disabled={!ayrintiHazir(secim)}
+                    onClick={etiketYazdir}>
                     Etiketi yazdır
                   </button>
                 </div>
