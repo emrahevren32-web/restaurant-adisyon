@@ -1,21 +1,40 @@
-dagitim dogrulamasi: yanlis alarm giderildi + "bu dagitim yayinda" kontrolu
+karsilama turu Turkcelestirildi + davet e-postasi denemesinin bulgulari
 
-3.9.3 canliya alindi ve calisiyor (ekranda dogrulandi). Ama betik
-"DOGRULANAMADI (2/3)" dedi: /assets/ kontrolu TAM 403 bekliyordu, nginx 404
-dondurdu. 404 da en az 403 kadar kapalidir (autoindex off, dizin index
-dosyasi olmadan servis edilmiyor). Kontrol dogru seyi olctu, BEKLENTI
-yanlisti.
+Emrah 28.10'da GERCEK bir davet akisini uctan uca denedi ve akis CALISTI:
+basvuru -> bildirim -> Incele/Incelemeye Al/gerekceli Onayla -> isletme
+acildi (YAM002) -> davet e-postasi gitti -> musteri kendi sifresini belirledi
+-> panele girdi. "Davet e-postasi hic denenmedi" riski KAPANDI.
 
-Yanlis alarm veren bir kontrol hic kontrol etmemekten de kotudur: bir
-sonraki sefer GERCEK bir ariza da "her zamanki uyari" diye gecilir.
+Uc kusur cikti:
 
-- Beklenen artik bir LISTE: Dene '/assets/' @(403, 404).
-- YENI KONTROL: dist/index.html icinden bu derlemenin JS dosyasinin adresi
-  (index-XXXXXXXX.js, adinda icerik ozeti var) okunup sunucudan isteniyor.
-  Eski uc kontrol "bir site ayakta" diyordu; bu kontrol "BU DAGITIM
-  yayinda" diyor. Eski surum duruyorsa adres 404 doner, yalan soylenemez.
-- Kutu cizgileri (=) ASCII yapildi; konsolda mojibake goruluyordu.
-- docs: tuzak 140, kontrol listesi 52-53, HEDEFLER 3.12.1.1.
+1) E-posta JUNK'a dustu (Outlook). Kod isi degil kurulum isi: gonderen alan
+   adi icin SPF/DKIM/DMARC yok ve muhtemelen Supabase'in varsayilan SMTP'si
+   kullaniliyor. Yol haritasi docs/kararlar/davet-epostasi.md'de.
+
+2) E-posta INGILIZCE ve markasiz -- Supabase'in varsayilan "You've been
+   invited" sablonu. Turkce sablon yazildi, ayni dosyada; Supabase panelinden
+   yapistirilacak.
+
+3) Karsilama turu TURKCE KARAKTERSIZ yaziliydi ve musterinin sifresini
+   belirledikten sonra GORDUGU ILK EKRAN buydu:
+   "Kurulum basariyla tamamlandi · Isletmeniz artik kullanima hazir."
+   - src/components/OnboardingExperience.tsx: dokuz adimin metni duzeltildi
+     ve ICERIK olarak da yenilendi. "Sidebar", "Global Arama", "Widget
+     Alani" kullanicinin degil gelistiricinin diliydi; adimlar artik ekranda
+     DURAN seyi kullanicinin kelimeleriyle anlatiyor.
+   - src/components/ProductTour.tsx: "Hos Geldiniz" -> "Hoş geldiniz",
+     "Rehberi Baslat" -> "Tura başla", "Adim" -> "Adım".
+   - Sube adimina not dusuldu: tek merkez karariyla o secici kaldirilacak
+     (A2 · MIYOP-008), adim o zaman yeniden yazilir.
+
+⚠️ src/pages/WorkspaceWelcome.tsx DOKUNULMADI. O da bastan sona Turkcesiz
+ve icinde "Workspace", "Widget", "Dashboarda Git" geciyor. Yalniz sapka
+takmak yarim is olurdu; o ekran HEDEFLER 3.11'de bastan yazilacak.
+
+Ayrica olculdu: basvuru numarasi (MIY-8G2P9) arama alaninda GERCEKTEN
+araniyor (PendingApplications.tsx:273 · referans + firma + yetkili + eposta
++ telefon, Turkce duyarli eslesme). Tuzak: durum suzgeci varsayilan olarak
+"Karar bekleyenler"; onaylanmis basvuru icin "Tumu" yapilmali.
 
 Co-Authored-By: Claude Opus 5 <noreply@anthropic.com>
 Claude-Session: https://claude.ai/code/session_019BwYM3mAXZUhp4YGj7tp2y

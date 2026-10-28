@@ -24,53 +24,73 @@ type OnboardingStep = ProductTourStep & {
   routeTarget?: 'dashboard' | 'module-store'
 }
 
+// ⚠️ 28.10.2026 · BU DOSYANIN METİNLERİ TÜRKÇE KARAKTERSİZ YAZILMIŞTI
+// ("Kurulum basariyla tamamlandi", "Isletmeniz artik kullanima hazir").
+// Emrah 28.10'da gerçek bir davet akışı denedi: müşteri şifresini belirledi
+// ve **ilk gördüğü ekran** bu turdu. Türkçesiz bir karşılama, ürünün
+// tamamı hakkında ilk izlenimi verir.
+//
+// ⚠️ Metinler aynı turda İÇERİK olarak da yenilendi: "Sidebar", "Global
+// Arama", "Widget Alani" gibi başlıklar kullanıcının dilinde değil
+// geliştiricinin dilindeydi. Tur, ekranda DURAN şeyi kullanıcının
+// kelimeleriyle anlatır.
 const onboardingSteps: OnboardingStep[] = [
   {
     key: ONBOARDING_EXPERIENCE_STEP_KEYS.WELCOME,
-    title: 'Kurulum basariyla tamamlandi',
-    description: 'Isletmeniz artik kullanima hazir. Simdi birlikte sistemi taniyalim.',
+    title: 'Kurulum tamamlandı',
+    description: 'İşletmeniz kullanıma hazır. Birlikte kısa bir tur yapalım; '
+      + 'iki dakika sürer, istediğiniz an kapatabilirsiniz.',
     icon: 'success'
   },
   {
     key: ONBOARDING_EXPERIENCE_STEP_KEYS.DASHBOARD,
     title: 'Kontrol Paneli',
-    description: 'Isletmenizin onemli ozetleri ve gunluk aksiyonlari burada toplanir.',
+    description: 'Günün özeti burada: depodaki kalem, açık iş emri, sevk bekleyen '
+      + 've dikkat gerektiren konular. Bütün rakamlar kendi defterinizden okunur.',
     target: 'control-panel',
     routeTarget: 'dashboard',
     icon: 'dashboard'
   },
   {
     key: ONBOARDING_EXPERIENCE_STEP_KEYS.SIDE_MENU,
-    title: 'Sidebar',
-    description: 'Sol menu calisma alaninizdaki ekranlara hizli gecis yapmanizi saglar.',
+    title: 'Sol menü',
+    description: 'Ekranlar burada gruplanır: Satın Alma, Depo, Üretim, Kalite. '
+      + 'Yetkiniz olmayan ekran menüde hiç görünmez.',
     target: 'side-menu',
     icon: 'workspace'
   },
   {
     key: ONBOARDING_EXPERIENCE_STEP_KEYS.SEARCH,
-    title: 'Global Arama',
-    description: 'Arama kutusu ekran, modul ve islemleri hizli bulmaniza yardim eder.',
+    title: 'Arama',
+    description: 'Ekran, modül ya da işlem adını yazın; menüde gezmeden doğrudan '
+      + 'açılır.',
     target: 'global-search',
     icon: 'search'
   },
   {
     key: ONBOARDING_EXPERIENCE_STEP_KEYS.NOTIFICATIONS,
-    title: 'Bildirim Merkezi',
-    description: 'Basvuru, lisans, destek ve sistem uyarilari bildirim merkezinde toplanir.',
+    title: 'Bildirimler',
+    description: 'Lisans, destek ve sistem uyarıları burada toplanır. Okunmamış '
+      + 'bildirim sayısı zilin üstünde yazar.',
     target: 'notifications',
     icon: 'notification'
   },
   {
     key: ONBOARDING_EXPERIENCE_STEP_KEYS.WORKSPACE,
-    title: 'Workspace ve Sube',
-    description: 'Aktif workspace ve sube kapsamini buradan takip edebilirsiniz.',
+    // ⚠️ TEK MERKEZ KARARI (25.10): bugün tek şube var ve bu seçici
+    // kaldırılacak (HEDEFLER A2 · MIYOP-008). Adım o zaman yeniden yazılır;
+    // şimdilik ekranda DURAN şeyi anlatıyor, olmayanı değil.
+    title: 'Aktif şube',
+    description: 'Hangi şubede çalıştığınız burada yazar. Yazdığınız her kayıt '
+      + 'bu şubeye işlenir.',
     target: 'workspace-control',
     icon: 'workspace'
   },
   {
     key: ONBOARDING_EXPERIENCE_STEP_KEYS.WIDGETS,
-    title: 'Widget Alani',
-    description: 'Takip etmek istediginiz ozetleri kontrol panelinde widget olarak toplayabilirsiniz.',
+    title: 'Özet kartları',
+    description: 'Takip etmek istediğiniz özetleri kontrol paneline kart olarak '
+      + 'ekleyebilirsiniz.',
     target: 'widget-area',
     routeTarget: 'dashboard',
     icon: 'module'
@@ -83,15 +103,17 @@ const onboardingSteps: OnboardingStep[] = [
   // geri gelirse adim da geri gelir.
   {
     key: ONBOARDING_EXPERIENCE_STEP_KEYS.PROFILE,
-    title: 'Profil Alani',
-    description: 'Kullanici, oturum ve yardim islemleri profil alaninda yer alir.',
+    title: 'Profiliniz',
+    description: 'Şifre değiştirme, oturumu kapatma ve Yardım Merkezi buradan '
+      + 'açılır.',
     target: 'profile',
     icon: 'user'
   },
   {
     key: ONBOARDING_EXPERIENCE_STEP_KEYS.READY,
-    title: 'Hazirsiniz',
-    description: "MIYOP'u kendi ritminizde kesfetmeye baslayabilirsiniz.",
+    title: 'Hazırsınız',
+    description: 'İlk adım önerimiz: Depo → Stok Durumu ekranından ilk stok '
+      + 'kartınızı açmak. Reçete, iş emri ve sevkiyat onun üstüne kurulur.',
     icon: 'success'
   }
 ]

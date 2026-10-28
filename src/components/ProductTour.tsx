@@ -293,7 +293,7 @@ export const TourStep = ({
     >
       <div className="product-tour-card-header">
         <span className="status-pill info-pill">
-          {step.badge || (welcome ? 'Hos Geldiniz' : `Adim ${activeIndex + 1}/${total}`)}
+          {step.badge || (welcome ? 'Hoş geldiniz' : `Adım ${activeIndex + 1}/${total}`)}
         </span>
         <button className="btn ghost product-tour-close" type="button" onClick={onSkip}>Atla</button>
       </div>
@@ -323,7 +323,7 @@ export const TourStep = ({
           </button>
         ) : (
           <button className="btn primary" type="button" onClick={onNext}>
-            {welcome ? 'Rehberi Baslat' : 'Devam Et'}
+            {welcome ? 'Tura başla' : 'Devam et'}
           </button>
         )}
       </div>
