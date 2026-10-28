@@ -54,6 +54,17 @@ class BellekKatalog implements StokKatalogu {
   lotListesi: KatalogLotu[] = []
   private sayac = 0
   async kalemler(): Promise<KatalogKalemi[]> { return [...this.kalemListesi] }
+
+  /**
+   * ⚠️ 28.10 · Arayüze `kalemBeyaniniGuncelle` 27.10'da eklendi (saklama
+   * beyanı) ve bu sahte katalog güncellenmedi. `tsc` hattında koşmadığı için
+   * altı dosyada birden sessizce bekledi. Bilerek FIRLATIYOR: bu sınama
+   * dosyası beyan güncellemiyor; bir gün çağrılırsa sessizce yanlış veri
+   * döndürmek yerine yüksek sesle durur.
+   */
+  async kalemBeyaniniGuncelle(): Promise<KatalogKalemi> {
+    throw new Error('Bu sahte katalog beyan güncellemiyor.')
+  }
   async kalemEkle(_c: TenantCtx, g: YeniKalem): Promise<KatalogKalemi> {
     const k: KatalogKalemi = {
       id: `kalem-${++this.sayac}`, kod: g.kod, ad: g.ad, temelBirim: g.temelBirim,

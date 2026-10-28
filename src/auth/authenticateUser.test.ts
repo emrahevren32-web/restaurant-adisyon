@@ -19,7 +19,21 @@ const select = vi.fn(() => ({ eq }))
 const from = vi.fn(() => ({ select }))
 // 0077: giriş artık kullanıcı adıyla da yapılabiliyor; `authenticateUser`
 // girdiyi önce `giris_adresi_bul` ile gerçek giriş adresine çeviriyor.
-const rpc = vi.fn(async (_ad: string, _p: unknown) => ({ data: null, error: null }))
+// ⚠️ 28.10 · SAHTE CEVAP TİPLERİ AÇIKÇA YAZILDI. Önce `vi.fn(async () =>
+// ({ data: null, error: null }))` biçimindeydi; TypeScript dönüş tipini
+// `{ data: null; error: null }` diye DARALTIYOR ve sınamaların
+// `mockResolvedValue({ data: 'x' })` çağrıları tip hatası veriyordu. Hata
+// `tsc` hattında hiç koşmadığı için 12 satır sessizce bekledi. Sahte cevap
+// gerçek cevabın şeklini taşımalı: veri VEYA hata.
+type SahteCevap<T> = {
+  data: T | null
+  error: { message: string; context?: { status: number } } | null
+}
+
+const rpc = vi.fn(
+  async (_ad: string, _p: unknown): Promise<SahteCevap<string>> =>
+    ({ data: null, error: null }),
+)
 
 // ── MIYOP-043 · giriş sunucuya taşındı ──────────────────────────────────
 // `authenticateUser` artık önce `giris-yap` Edge Function'ını çağırıyor.
@@ -31,12 +45,24 @@ const rpc = vi.fn(async (_ad: string, _p: unknown) => ({ data: null, error: null
 // Varsayılan: fonksiyon DAĞITILMAMIŞ (404) → yedek yol. Bugünkü canlı
 // durum budur, o yüzden eski testler aynen geçerli kalıyor. Sunucu yolunu
 // sınayan testler `invoke`u kendi içinde ayarlıyor.
-const invoke = vi.fn(async (_ad: string, _ayar?: unknown) => ({
-  data: null,
-  error: { message: 'Function not found', context: { status: 404 } }
-}))
-const setSession = vi.fn(async () => ({ data: {}, error: null }))
-const getUser = vi.fn(async () => ({ data: { user: null }, error: null }))
+const invoke = vi.fn(
+  async (
+    _ad: string, _ayar?: unknown,
+  ): Promise<SahteCevap<{ access_token: string; refresh_token: string }>> => ({
+    data: null,
+    error: { message: 'Function not found', context: { status: 404 } },
+  }),
+)
+const setSession = vi.fn(
+  async (): Promise<SahteCevap<Record<string, unknown>>> =>
+    ({ data: {}, error: null }),
+)
+const getUser = vi.fn(
+  async (): Promise<{
+    data: { user: { id: string; email?: string } | null }
+    error: { message: string } | null
+  }> => ({ data: { user: null }, error: null }),
+)
 
 vi.mock('../core/supabase', () => ({
   isSupabaseConfigured: () => true,

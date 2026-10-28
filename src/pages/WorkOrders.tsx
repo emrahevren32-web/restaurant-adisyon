@@ -454,6 +454,7 @@ export default function WorkOrders({ currentUser }: Props){
               kalemler={kalemler}
               maliyet={maliyet}
               yazabilir={yazabilir}
+              paraGorur={paraGorur}
               calisiyor={calisiyor}
               onDurum={durum => durumIslemi(secili, durum)}
             />
@@ -476,9 +477,16 @@ export default function WorkOrders({ currentUser }: Props){
 // Detay
 // ═══════════════════════════════════════════════════════════════════════════
 
+// ⚠️ 28.10 · `paraGorur` BU BİLEŞENE HİÇ GEÇİRİLMİYORDU. Maliyet bölümü
+// `paraGorur` okuyor ama değişken ana bileşende (WorkOrders) tanımlı; burada
+// yok. Yani `maliyet` dolu olduğu an ekran
+// "ReferenceError: paraGorur is not defined" ile çöküyordu. Boş kiracıda
+// maliyet hiç oluşmadığı için görünmüyordu; veri girildiği an çökerdi.
+// Şahit Numune'deki NUMUNE_SAYFA ile AYNI SINIFTAN hata (tuzak 141) ve ikisi
+// de aynı sebeple canlıya gitti: hatta tip denetimi koşmuyordu.
 function IsEmriDetayi({
   isEmri, yeterlilik, hareketler, lotlar, kalemler, maliyet,
-  yazabilir, calisiyor, onDurum,
+  yazabilir, paraGorur, calisiyor, onDurum,
 }: {
   isEmri: IsEmri
   yeterlilik: YeterlilikSatiri[]
@@ -487,6 +495,8 @@ function IsEmriDetayi({
   kalemler: KatalogKalemi[]
   maliyet: EkranMaliyeti | null
   yazabilir: boolean
+  /** `finance.read` var mı. Maliyet bölümünün iki yüzü de buna bakıyor. */
+  paraGorur: boolean
   calisiyor: boolean
   onDurum: (durum: IsEmriDurumu) => void
 }){

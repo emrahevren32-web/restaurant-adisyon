@@ -223,7 +223,10 @@ export class PostgresStokKatalogu implements StokKatalogu {
       .order('name', { ascending: true })
 
     if(error) throw new Error(`Stok kalemleri okunamadı: ${error.message}`)
-    return ((data as StockItemSatiri[] | null) ?? []).map(kalemeCevir)
+    // ⚠️ `as unknown as`: supabase-js `data` tipine hata dizisini de
+    // katıyor (`GenericStringError[]`), o yüzden doğrudan dönüşüm
+    // reddediliyor. Hata zaten üstte fırlatıldı; buraya yalnız veri gelir.
+    return ((data as unknown as StockItemSatiri[] | null) ?? []).map(kalemeCevir)
   }
 
   async kalemEkle(ctx: TenantCtx, girdi: YeniKalem): Promise<KatalogKalemi> {
@@ -256,7 +259,7 @@ export class PostgresStokKatalogu implements StokKatalogu {
       }
       throw new Error(`Stok kalemi oluşturulamadı: ${error.message}`)
     }
-    return kalemeCevir(data as StockItemSatiri)
+    return kalemeCevir(data as unknown as StockItemSatiri)
   }
 
   /**
@@ -288,7 +291,7 @@ export class PostgresStokKatalogu implements StokKatalogu {
     // ⚠️ Sunucunun MI403 cümlesi hangi iznin gerektiğini zaten söylüyor
     // (0096); üstüne kendi tahminimizi yazmıyoruz.
     if(error) throw new Error(`Ürün kartı güncellenemedi: ${error.message}`)
-    return kalemeCevir(data as StockItemSatiri)
+    return kalemeCevir(data as unknown as StockItemSatiri)
   }
 
   async lotlar(_ctx: TenantCtx, stokKalemiId: string): Promise<KatalogLotu[]> {

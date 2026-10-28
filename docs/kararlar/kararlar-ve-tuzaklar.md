@@ -903,6 +903,53 @@ derlemenin JS dosyasının adresini okuyup sunucudan istiyor; adında içerik
 doğruladığını söyleyebilmeli.**
 
 
+**141 · "TESTLER YEŞİL" İLE "KOD DERLENİYOR" AYRI İKİ İDDİADIR.**
+(28.10 · canlıda çöken ekran) Şahit Numune ekranı canlıda *"Bu ekran
+açılamadı"* veriyordu. Sebep tek bir satır: `NUMUNE_SAYFA` sabiti kullanılmış
+ama **import edilmemişti.** Tarayıcı `ReferenceError` fırlatıyor, React ağacı
+sökülüyor.
+⚠️ **Bu hatayı `tsc` ilk saniyede yakalardı. Hiç koşmuyordu:**
+`npm test` (vitest) tip DENETLEMEZ, `vite build` (esbuild) tip DENETLEMEZ,
+ve `typecheck` betiği `package.json`'da **duruyordu ama hiçbir yerden
+çağrılmıyordu.** Yani *"1584 test yeşil"* ve *"derleme başarılı"* cümlelerinin
+ikisi de doğruydu ve ekran çalışmıyordu.
+⚠️ Dahası: ekranı **26.10'da bitti ilan ettim** ve *"canlıda"* dedim. Canlıda
+hiç açılmamıştı; ben yalnız yerelde, verisi olan kiracıda görmüştüm. Bir
+ekranı "bitti" saymak için **o ekranın canlıda AÇILDIĞINI** görmek gerekir.
+⚠️ Kapı kondu: `kaydet.ps1` ve `miyop-yukle.ps1` artık testlerden ÖNCE
+`npm run typecheck` koşuyor, kırmızıysa commit/dağıtım yok.
+⚠️ Kapının düşmesini `src/core/derleme-kapisi.arch.test.ts` engelliyor —
+betiklerin metnini ölçüyor (tuzak 139'un üçüncü uygulaması).
+⚠️ O testi yazarken aynı turda **kendi ölçümüm yanlış şeyi ölçtü:** sıra
+kontrolü `indexOf('npm test')` ile yapılıyordu ve betiklere yazdığım
+AÇIKLAMA satırları o ifadeyi geçiriyordu. Yorum kod değildir; ölçümden önce
+yorum satırları ayıklanıyor.
+
+⚠️ **KAPI AÇILIR AÇILMAZ 30 HATA ÇIKTI · 9 dosya.** İkisi aynı sınıftan
+**ikinci bir canlı çökmeydi**: `WorkOrders.tsx` içinde maliyet bölümü
+`paraGorur` okuyor ama o değişken ana bileşende tanımlı, alt bileşene hiç
+geçirilmemiş. Boş kiracıda maliyet oluşmadığı için görünmüyordu; **veri
+girildiği an İş Emirleri ekranı çökerdi.** Yani kapıyı açmak, daha patlamamış
+bir mayını da buldu.
+Geri kalanı: altı sahte katalogda 27.10'da arayüze eklediğim
+`kalemBeyaniniGuncelle` yok (benim borcum), `warehouse.catalog.ts`te
+supabase-js dönüş tipi, ve `authenticateUser.test.ts`te daraltılmış sahte
+cevap tipleri.
+⚠️ **Ders: bir kapıyı açmadan önce arkasında ne biriktiğini bilmiyorsun.**
+30 hatanın hiçbiri yeni değildi; hepsi bugüne kadar oradaydı ve hiçbiri
+görünmüyordu.
+
+**142 · BOŞ KİRACIYI CANLIDA DENEMEDEN "BİTTİ" DEME.**
+(28.10) Ürünü hep verisi olan kiracıda deniyoruz; müşteri ise **boş**
+kiracıda karşılıyor. 28.10'da gerçek bir davet akışı denendi ve iki şey aynı
+anda çıktı: bir ekran çöküyordu ve yeni müşterinin gördüğü ilk metinler
+Türkçesizdi (`Kurulum basariyla tamamlandi`). İkisi de "dolu kiracıda bakmak"
+yüzünden görülmemişti.
+⚠️ Kural: bir ekran bitmiş sayılmadan önce **sıfırdan açılmış bir kiracıda,
+canlıda** açılır. Boş liste testi bunun yerine geçmez: test sahte depodan
+besleniyor, canlı kiracı gerçek sorgudan.
+
+
 ---
 
 ## 5 · TEST İŞBÖLÜMÜ VE TESLİM KONTROL LİSTESİ
@@ -1039,3 +1086,7 @@ Son söz onun çıktısındadır.
     say (tuzak 140). Her koşuda uyarı veren betiğin uyarısı okunmaz olur.
 53. Bir dağıtım doğrulaması **"bu dağıtım yayında"** diyebilmeli: içerik
     özetli dosya adını derlemeden okuyup sunucudan iste (tuzak 140).
+54. **Tip denetimi hattın içinde olmalı** (tuzak 141). "Testler yeşil" ile
+    "kod derleniyor" ayrı iki iddiadır; vitest ve esbuild tip denetlemez.
+55. Bir ekranı "bitti" saymadan önce **sıfırdan açılmış bir kiracıda,
+    canlıda** aç (tuzak 142). Boş liste testi bunun yerine geçmez.

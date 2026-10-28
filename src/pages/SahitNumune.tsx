@@ -41,6 +41,18 @@ import {
 } from '../authorization/yazma-yetkisi'
 import {
   NUMUNE_DURUM_ETIKETLERI, NUMUNE_OLAY_ETIKETLERI,
+  // ⚠️ 28.10 · `NUMUNE_SAYFA` BURADA EKSİKTİ ve ekran CANLIDA ÇÖKÜYORDU:
+  // "ReferenceError: NUMUNE_SAYFA is not defined". Ekranın özet bölümü
+  // "liste en fazla N satır gösterir" derken bu sabiti okuyor; sabit
+  // tanımsız olduğu için React ağacı sökülüyor ve kullanıcı "Bu ekran
+  // açılamadı" kutusunu görüyordu (client_error referansı: ideuta).
+  //
+  // ⚠️ ASIL KUSUR BU SATIR DEĞİL: `tsc` bunu ilk derlemede yakalardı ama
+  // derleme hattında TİP DENETİMİ HİÇ KOŞMUYORDU. `npm test` (vitest) ve
+  // `vite build` (esbuild) ikisi de tip denetlemez. `typecheck` betiği
+  // package.json'da DURUYORDU ve hiç çağrılmıyordu. 28.10'da kaydet.ps1 ve
+  // miyop-yukle.ps1 betiklerine eklendi.
+  NUMUNE_SAYFA,
   PostgresSahitNumuneDeposu,
   type NumuneAdayi, type NumuneDurumSayilari, type NumuneDurumu,
   type NumuneOlayi, type SahitNumune,

@@ -30,6 +30,22 @@ $kok = Split-Path -Parent $PSScriptRoot
 Set-Location $kok
 
 if (-not $TestiAtla) {
+  # !! 28.10.2026 - TIP DENETIMI BURAYA EKLENDI. Oncesinde HIC KOSMUYORDU.
+  # Sahit Numune ekrani canlida "Bu ekran acilamadi" veriyordu; sebep
+  # "ReferenceError: NUMUNE_SAYFA is not defined" idi - bir sabit kullanilmis
+  # ama import edilmemisti. tsc bunu ilk derlemede yakalar; ama `npm test`
+  # (vitest) ve `vite build` (esbuild) IKISI DE tip denetlemez. package.json
+  # icindeki `typecheck` betigi duruyordu ve hicbir yerden cagrilmiyordu.
+  # "Testler yesil" ile "kod derleniyor" AYRI IKI IDDIADIR.
+  Write-Host "-- Tip denetimi kosuyor..." -ForegroundColor Cyan
+  npm run typecheck
+  if ($LASTEXITCODE -ne 0) {
+    Write-Host ""
+    Write-Host "TIP DENETIMI KIRMIZI - commit YAPILMADI." -ForegroundColor Red
+    Write-Host "Yukaridaki satirlar hangi dosyada ne eksik oldugunu yaziyor." -ForegroundColor Red
+    exit 1
+  }
+
   Write-Host "-- Testler kosuyor..." -ForegroundColor Cyan
   npm test
   if ($LASTEXITCODE -ne 0) {

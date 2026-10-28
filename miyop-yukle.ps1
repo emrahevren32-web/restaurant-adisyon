@@ -40,12 +40,21 @@ foreach($arac in @('ssh','scp')){
 }
 Tamam 'ssh ve scp hazir'
 
-# ── 1 · Testler ───────────────────────────────────────────────────────────
+# ── 1 · Tip denetimi ve testler ───────────────────────────────────────────
 # Kirmizi testle yayina cikilmaz. Bu adim bilerek atlanabilir degil.
-Bilgi '1/5 - Testler kosuluyor (1-2 dakika)'
+#
+# !! 28.10.2026 - TIP DENETIMI EKLENDI. Oncesinde bu hatta HIC KOSMUYORDU ve
+# bedeli canliya gitti: Sahit Numune ekrani "Bu ekran acilamadi" veriyordu,
+# sebep "ReferenceError: NUMUNE_SAYFA is not defined" - kullanilmis ama import
+# edilmemis bir sabit. tsc bunu ilk derlemede yakalar; `npm test` (vitest) ve
+# `vite build` (esbuild) IKISI DE tip denetlemez. Yani "1584 test yesil" ve
+# "derleme basarili" cumlelerinin ikisi de dogruydu, kod ise CALISMIYORDU.
+Bilgi '1/5 - Tip denetimi ve testler (1-2 dakika)'
+npm run typecheck
+if($LASTEXITCODE -ne 0){ Hata 'Tip denetimi kirmizi. Yayina cikilmiyor.' }
 npm test
 if($LASTEXITCODE -ne 0){ Hata 'Testler kirmizi. Yayina cikilmiyor.' }
-Tamam 'Testler yesil'
+Tamam 'Tip denetimi ve testler yesil'
 
 # ── 2 · Derleme ───────────────────────────────────────────────────────────
 Bilgi '2/5 - Uygulama derleniyor'

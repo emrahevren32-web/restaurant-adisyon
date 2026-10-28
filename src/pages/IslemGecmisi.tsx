@@ -202,10 +202,27 @@ export default function IslemGecmisi({ currentUser }: Props){
           <strong>{ozet.toplam}</strong> kayıt · {ozet.olusturma} oluşturma,
           {' '}{ozet.degisiklik} değişiklik, {ozet.silme} silme ·
           {' '}<strong>{ozet.kisi}</strong> kişi
+          {/* ⚠️ 28.10 · ESKİ CÜMLE: "{n} kaydın kimin yaptığı çözülemedi
+              (veritabanına doğrudan yazılmış olabilir)" — kırmızı, ve
+              EN KÖTÜ İHTİMALİ yazıyordu. Emrah ilk gerçek müşteri akışında
+              gördü: *"bu yazılar güvensizlik oluşturabilir."* Haklıydı, ve
+              cümle YANILTICIYDI.
+              Ölçüm: imzasız üç satır `app_user`, `user_role` ve
+              `user_branch_access`; üçü de "Giriş hesabı aç ve davet gönder"
+              adımında oluştu. O adım Edge Function içinde `service_role` ile
+              koşuyor, dolayısıyla `app.aktif_kullanici_id()` boş dönüyor.
+              Kimse veritabanına elle girmedi — MİYOP'un kendi adımıydı.
+              ⚠️ Bu YARIM bir düzeltme ve öyle olduğu biliniyor: cümle artık
+              doğru şeyi söylüyor ama imza hâlâ atılmıyor. Asıl çözüm,
+              hesap açma adımının kimin adına yapıldığını SUNUCUYA yazması
+              (HEDEFLER · denetim imzası maddesi). O gelince bu kutu da
+              kendiliğinden boşalır. */}
           {ozet.aktorsuz > 0 && (
-            <span className="is-critical">
-              {' '}· {ozet.aktorsuz} kaydın kimin yaptığı çözülemedi
-              (veritabanına doğrudan yazılmış olabilir)
+            <span className="muted">
+              {' '}· {ozet.aktorsuz} kaydın imzası yok. Bunlar kullanıcı
+              hesabı açma gibi <strong>MİYOP tarafından yapılan</strong>
+              {' '}adımlardır; bir kişinin imzası yerine sistem işlemi olarak
+              geçer.
             </span>
           )}
         </p>
