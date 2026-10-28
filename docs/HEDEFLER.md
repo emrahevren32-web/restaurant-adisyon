@@ -897,6 +897,23 @@ Emrah'ın onayladığı sıra:
     yazılıyor), ve geçen/toplam sayılıyor — hepsi geçmezse betik
     *"DOSYALAR YAYINA ALINDI AMA DOĞRULANAMADI"* diyor. Tuzak 132:
     bir kontrolün üç sonucu vardır — geçti, kaldı, **ölçemedim**.
+    - ✅ **3.12.1.1 ⚠️ AYNI ADIM BU SEFER YANLIŞ ALARM VERDİ (27.10 akşam).**
+      Dağıtım geçti, site çalışıyor (Emrah ekranı doğruladı), ama betik
+      *"DOĞRULANAMADI (2/3)"* dedi. Sebep: `/assets/` kontrolü **tam 403**
+      bekliyordu, nginx **404** döndürdü. Oysa 404 da en az 403 kadar
+      kapalıdır — `autoindex off` ve dizin, index dosyası olmadan servis
+      edilmiyor. Yani kontrol doğru şeyi ölçtü, **benim beklentim yanlıştı.**
+      ⚠️ **Yanlış alarm veren bir kontrol, hiç kontrol etmemekten de
+      kötüdür:** bir sonraki sefer GERÇEK bir arıza da *"her zamanki uyarı"*
+      diye geçilir. Beklenen artık bir **liste** (`@(403, 404)`).
+      ⚠️ **Üstüne asıl eksik kontrol eklendi:** eski üç kontrol *"bir site
+      ayakta"* diyordu, *"BU DAĞITIM yayında"* demiyordu. Betik artık
+      `dist/index.html` içinden **bu derlemenin JS dosyasının adresini**
+      (`index-XXXXXXXX.js` — adında içerik özeti var) okuyup sunucudan
+      istiyor. Eski sürüm duruyorsa o adres 404 döner ve yalan söylenemez.
+      ⚠️ Çıktıdaki kutu çizgileri (`═`) konsolda bozuk görünüyordu
+      (`â•â•â•`); ASCII `=` yapıldı. Kullanıcının okuduğu metin okunaksızsa
+      okunmaz.
   - ✅ **3.9.10** ⚠️ **FİRE DÖKÜMÜ KAPISI DA YOKMUŞ — CANLIDA · göç 0101**
     (27.10 · teşhis tablosu 8 satırın 7'si OK, biri değil)
     `araclar/teshis-canli-durum.sql` canlıda ölçtü:

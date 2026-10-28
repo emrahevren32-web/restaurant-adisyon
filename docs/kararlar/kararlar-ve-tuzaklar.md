@@ -886,6 +886,23 @@ engellemedir. Üçüncü kez aynı sınıftan bir ders: tuzak 133 (garanti koda)
 tuzak 135 (yasak dosya listesinden bağımsız), ve bu.
 
 
+**140 · YANLIS ALARM VEREN KONTROL, HIC KONTROL ETMEMEKTEN DE KOTUDUR.**
+(27.10 akşam) Dağıtım betiğinin `/assets/` kontrolü **tam 403** bekliyordu;
+nginx **404** döndürdü ve betik *"DOĞRULANAMADI (2/3)"* dedi. Site
+çalışıyordu, dizin listesi de kapalıydı — 404 da en az 403 kadar kapalıdır
+(`autoindex off`, dizin index dosyası olmadan servis edilmiyor). Kontrol
+doğru şeyi ölçtü; **beklenti yanlıştı.**
+⚠️ Bedeli ölçümün kendisinden büyük: bir betik her koşuda uyarı veriyorsa,
+bir sonraki sefer GERÇEK bir arıza da *"her zamanki uyarı"* diye geçilir.
+Dün tuzak 132'de "ölçemedim"i "kaldı"dan ayırmıştım; bu onun ikizi — **"kaldı"
+da "beklentim dardı"dan ayrılmalı.** Beklenen artık bir liste.
+⚠️ Aynı turda asıl eksik de görüldü: üç kontrol *"bir site ayakta"* diyordu,
+*"BU DAĞITIM yayında"* demiyordu. Betik artık `dist/index.html` içinden bu
+derlemenin JS dosyasının adresini okuyup sunucudan istiyor; adında içerik
+özeti olduğu için eski sürüm duruyorsa 404 döner. **Bir doğrulama, neyi
+doğruladığını söyleyebilmeli.**
+
+
 ---
 
 ## 5 · TEST İŞBÖLÜMÜ VE TESLİM KONTROL LİSTESİ
@@ -1018,3 +1035,7 @@ Son söz onun çıktısındadır.
 51. Provanın beklentisi **paketin bugünkü içeriğine** göre ayarlanır: hangi
     bozukluğu ONARIR, hangisinden sadece DAYANIR (tuzak 138). Kabuk
     betiklerinde `set -o pipefail` ve `--single-transaction` şart.
+52. Bir kontrolün beklentisini **dar tutma**: kabul edilebilir her sonucu
+    say (tuzak 140). Her koşuda uyarı veren betiğin uyarısı okunmaz olur.
+53. Bir dağıtım doğrulaması **"bu dağıtım yayında"** diyebilmeli: içerik
+    özetli dosya adını derlemeden okuyup sunucudan iste (tuzak 140).

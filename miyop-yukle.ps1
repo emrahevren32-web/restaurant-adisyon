@@ -1,4 +1,4 @@
-# ═══════════════════════════════════════════════════════════════════════════
+# ===========================================================================
 # MİYOP · SUNUCUYA YÜKLEME — HER GÜNCELLEMEDE ÇALIŞTIRILIR
 #
 #   Kendi bilgisayarında, PowerShell'de, PROJE KLASÖRÜNDE çalıştır:
@@ -8,7 +8,7 @@
 #
 # ⚠️ Kaynak kod sunucuya GİTMEZ. Yalnız derlenmiş statik dosyalar gider.
 #    Sunucuda Node, npm, git, Docker YOK — olmasına gerek de yok.
-# ═══════════════════════════════════════════════════════════════════════════
+# ===========================================================================
 
 $ErrorActionPreference = 'Stop'
 
@@ -122,7 +122,14 @@ Bilgi '5/5 - Dogrulama'
 $script:DogrulamaGecen = 0
 $script:DogrulamaToplam = 0
 
-function Dene($yol, $beklenen, $aciklama){
+# !! 27.10.2026 - IKINCI DUZELTME: `$beklenen` TEK bir sayiydi ve assets
+# kontrolu icin 403 istiyordu. nginx 404 dondurdu ve betik "DOGRULANAMADI"
+# dedi - oysa dizin listesi KAPALIYDI; 404 da en az 403 kadar kapalidir
+# (autoindex off, dizin index dosyasi olmadan servis edilmiyor).
+# Yanlis alarm veren bir kontrol, hic kontrol etmemekten de kotudur: bir
+# sonraki sefer GERCEK bir ariza da "her zamanki uyari" diye gecilir.
+# Beklenen artik bir LISTE.
+function Dene($yol, $beklenenler, $aciklama){
   $script:DogrulamaToplam++
   $k = $null
   $sebep = ''
@@ -131,7 +138,7 @@ function Dene($yol, $beklenen, $aciklama){
          -UseBasicParsing -TimeoutSec 20
     $k = [int]$y.StatusCode
   } catch {
-    # 4xx/5xx burada gelir ve BU NORMALDIR (assets icin 403 bekliyoruz).
+    # 4xx/5xx burada gelir ve BU NORMALDIR (assets icin 403/404 bekliyoruz).
     $yanit = $_.Exception.Response
     if($yanit -and $yanit.StatusCode){
       $k = [int]$yanit.StatusCode
@@ -140,24 +147,45 @@ function Dene($yol, $beklenen, $aciklama){
     }
   }
 
-  if($k -eq $beklenen){
+  if($null -ne $k -and ($beklenenler -contains $k)){
     $script:DogrulamaGecen++
     Tamam "$aciklama ($k)"
   } elseif($null -eq $k){
     # !! "Kontrol edemedim" ayri bir sonuctur, 0 degil.
     Uyari "$aciklama -> KONTROL EDILEMEDI: $sebep"
   } else {
-    Uyari "$aciklama -> $k (beklenen $beklenen)"
+    Uyari "$aciklama -> $k (beklenen: $($beklenenler -join ' ya da '))"
   }
 }
 
-Dene '/'            200 'Ana sayfa'
+Dene '/'            @(200) 'Ana sayfa'
 # Tek sayfa yonlendirmesi: bu adres sunucuda DOSYA olarak yok.
-Dene '/depo'        200 'Ic sayfa (tek sayfa yonlendirmesi)'
-Dene '/assets/'     403 'assets dizin listesi kapali'
+Dene '/depo'        @(200) 'Ic sayfa (tek sayfa yonlendirmesi)'
+Dene '/assets/'     @(403, 404) 'assets dizin listesi kapali'
+
+# !! EN ONEMLI KONTROL BURASI: YENI derlemenin kendi JS dosyasi sunucuda mi?
+# Ust uc kontrol "bir site ayakta" der; bu kontrol "BU DAGITIM yayinda" der.
+# Dosya adinda icerik ozeti var (index-XXXXXXXX.js), yani eski surum
+# duruyorsa bu adres 404 doner ve yalan soylenemez.
+# Betigin geri kalani gibi GORECELI yol: 0/5 adimi zaten proje klasorunde
+# oldugumuzu dogruluyor.
+if(Test-Path '.\dist\index.html'){
+  # !! `-Encoding UTF8`: tuzak 130. Bu dosyayi yanlis cozersek adres de bozulur.
+  $html = Get-Content '.\dist\index.html' -Raw -Encoding UTF8
+  $e = [regex]::Match($html, '/assets/index-[A-Za-z0-9_-]+\.js')
+  if($e.Success){
+    Dene $e.Value @(200) "Yeni derlemenin JS dosyasi ($($e.Value))"
+  } else {
+    $script:DogrulamaToplam++
+    Uyari "Yeni derlemenin JS dosyasi -> KONTROL EDILEMEDI: dist/index.html icinde adres bulunamadi"
+  }
+} else {
+  $script:DogrulamaToplam++
+  Uyari 'Yeni derlemenin JS dosyasi -> KONTROL EDILEMEDI: dist/index.html yok'
+}
 
 Write-Host ''
-Write-Host '═══════════════════════════════════════════════════════════' -ForegroundColor DarkGray
+Write-Host '===========================================================' -ForegroundColor DarkGray
 if($script:DogrulamaGecen -eq $script:DogrulamaToplam){
   Write-Host " YAYINDA ve DOGRULANDI ($script:DogrulamaGecen/$script:DogrulamaToplam): https://$Alan" -ForegroundColor Green
 } else {
@@ -170,4 +198,4 @@ if($script:DogrulamaGecen -eq $script:DogrulamaToplam){
 Write-Host ''
 Write-Host ' Bir sorun olursa onceki surume donus (sunucuda):' -ForegroundColor DarkGray
 Write-Host "   rm -rf $Kok && mv $Yedek $Kok && systemctl reload nginx" -ForegroundColor DarkGray
-Write-Host '═══════════════════════════════════════════════════════════' -ForegroundColor DarkGray
+Write-Host '===========================================================' -ForegroundColor DarkGray
