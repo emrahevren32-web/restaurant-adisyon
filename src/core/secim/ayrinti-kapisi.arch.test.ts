@@ -25,6 +25,7 @@ const ekran = (ad: string) => readFileSync(join(KOK, 'src/pages', ad), 'utf8') a
 /** Kapı takılmış ekranlar. Bu liste yalnız UZAR. */
 const KAPISI_TAKILI = [
   'Etiketler.tsx',
+  'Warehouse.tsx',
 ] as const
 
 /**
@@ -33,7 +34,6 @@ const KAPISI_TAKILI = [
  * olmayan izlenebilirlik ekranı.
  */
 const KAPISI_YOK = [
-  'Warehouse.tsx',
   'Siparisler.tsx',
   'Musteriler.tsx',
   'WorkOrders.tsx',
@@ -92,8 +92,11 @@ describe('ayrıntı kapısı · ekranlara takılması', () => {
       'Bu ekran(lar)a kapı takılmış ama liste güncellenmemiş: '
       + sizanlar.join(', '),
     ).toEqual([])
+    // ⚠️ 29.10 · Warehouse kapıldı, tavan 6'dan 5'e indi. Bu sayı yalnız
+    // AŞAĞI gider: her ekran kapatıldığında burası da küçülür ve kalan iş
+    // tek bakışta sayılır.
     expect(KAPISI_YOK.length, 'liste uzamış — yeni kapısız ekran eklenmiş')
-      .toBeLessThanOrEqual(6)
+      .toBeLessThanOrEqual(5)
   })
 
   it('iki liste ÇAKIŞMIYOR', () => {

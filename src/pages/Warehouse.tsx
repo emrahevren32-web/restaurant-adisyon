@@ -36,6 +36,11 @@ import {
   type DepoUyarilari,
 } from '../warehouse/warehouse.service'
 import { depoBaglamiKur, type DepoBaglami } from '../warehouse/warehouse.context'
+// ⚠️ A3 · MIYOP-064 · Ekrandaki hareket/lot, başlıktaki kaleme mi ait?
+import {
+  SECIM_BOS, ayrintiBeklemeSebebi, ayrintiDustu, ayrintiGeldi, ayrintiHazir,
+  secildi, type SecimDurumu,
+} from '../core/secim/ayrinti-kapisi'
 import { ZAYI_ACIKLAMALARI, zayiNedeniMi, type ZayiNedeni } from '../warehouse/write-off.repository'
 import { gerekceYeterliMi } from '../warehouse/write-off.service'
 import { satirlariYaz } from '../core/import/sheet'
@@ -298,6 +303,17 @@ export default function Warehouse({ currentUser }: Props){
   const [birimler, setBirimler] = React.useState<Birim[]>([])
   const [kalemler, setKalemler] = React.useState<DepoKalemi[]>([])
   const [seciliId, setSeciliId] = React.useState<string | null>(null)
+  /**
+   * ⚠️ A3 · MIYOP-064. `seciliId` seçim anında değişiyor, `hareketler` ve
+   * `lotlar` ise istekler dönünce yazılıyordu. Aradaki anda ekranda B
+   * kaleminin adı, A kaleminin HAREKETLERİ ve LOTLARI duruyordu. Bu, Etiket
+   * ekranındakinden somut bir risk: **Çıkış** formu A'nın lotlarını B için
+   * listeler, **Sayım** yanlış bakiyeyle karşılaştırır, **maliyet** A'nın
+   * maliyetini B'nin başlığı altında gösterir.
+   */
+  const [secim, setSecim] = React.useState<SecimDurumu>(SECIM_BOS)
+  /** Async gövde `secim` state'inin ESKİ değerini taşır; o anki seçim burada. */
+  const secilenRef = React.useRef<string | null>(null)
   const [hareketler, setHareketler] = React.useState<Movement[]>([])
   const [lotlar, setLotlar] = React.useState<DepoLotu[]>([])
   const [uyarilar, setUyarilar] = React.useState<DepoUyarilari | null>(null)
@@ -347,9 +363,15 @@ export default function Warehouse({ currentUser }: Props){
       servis.hareketler(aktifBaglam.ctx, kalemId),
       servis.lotBakiyeleri(aktifBaglam.ctx, kalemId),
     ])
+    // ⚠️ GEÇ GELEN CEVAP BURADA DURUYOR (A3). Hızlı A→B seçiminde A'nın
+    // isteği B'den SONRA dönebilir; koruma olmadan B'nin hareketlerini ve
+    // lotlarını ezer. Ekranda B yazarken içerik A olur ve hiçbir hata çıkmaz.
+    if(secilenRef.current !== kalemId) return
+
     // En yeni hareket üstte: kullanıcı "en son ne oldu" diye bakar.
     setHareketler([...dokum].sort((a, b) => new Date(b.occurredAt).getTime() - new Date(a.occurredAt).getTime()))
     setLotlar(lotBakiyeleri)
+    setSecim(d => ayrintiGeldi(d, kalemId))
   }, [servis])
 
   // İlk yükleme
@@ -381,8 +403,24 @@ export default function Warehouse({ currentUser }: Props){
     return () => { iptal = true }
   }, [servis])
 
+  /**
+   * Ekrandaki ayrıntıyı ANINDA boşaltır: hareket defteri, lot bakiyeleri ve
+   * onlardan türeyen maliyet.
+   *
+   * ⚠️ Eski hâlde bu temizlik istekler DÖNDÜKTEN sonra oluyordu; arada kalan
+   * saniyeler bu ekranın kusuruydu.
+   */
+  const ayrintiBosalt = () => {
+    setHareketler([])
+    setLotlar([])
+  }
+
   const kalemSec = async (kalem: DepoKalemi) => {
+    secilenRef.current = kalem.id
     setSeciliId(kalem.id)
+    setSecim(secildi(kalem.id))
+    // ⚠️ Sıra önemli: ayrıntı ÖNCE boşalır, sonra yüklenir.
+    ayrintiBosalt()
     setIslem(null)
     setHata('')
     setBilgi('')
@@ -390,8 +428,24 @@ export default function Warehouse({ currentUser }: Props){
     try{
       await detayYenile(baglam, kalem.id)
     } catch (e) {
-      setHata(hataMetni(e))
+      // ⚠️ Hata da sahibine ait: başka kaleme geçildiyse artık kimseyi
+      // ilgilendirmiyor.
+      if(secilenRef.current === kalem.id){
+        setSecim(d => ayrintiDustu(d, kalem.id, hataMetni(e)))
+        setHata(hataMetni(e))
+      }
     }
+  }
+
+  /**
+   * ⚠️ Kapı yalnız `disabled` ile durmaz: klavye ya da otomasyon düğmeyi
+   * atlarsa bu satır formu açtırmaz. "Gerekçe ekran kuralı değil servis
+   * kuralıdır" ilkesinin bu ekrandaki karşılığı.
+   */
+  const ayrintiBekliyorMu = () => {
+    if(ayrintiHazir(secim)) return false
+    setBilgi(''); setHata(ayrintiBeklemeSebebi(secim))
+    return true
   }
 
   const islemSonrasi = async (mesaj: string) => {
@@ -632,7 +686,12 @@ export default function Warehouse({ currentUser }: Props){
                     // Yeni bir stok kaleminin bakiyesi tanım gereği 0'dır ve
                     // sıradaki iş her zaman aynıdır: ilk mal kabulünü yapmak.
                     // Kalem seçiliyor ve form doğrudan açılıyor.
+                    // ⚠️ REF DE GÜNCELLENİYOR. Yalnız `setSeciliId` deseydik
+                    // `detayYenile` içindeki kapı yeni kalemin kendi cevabını
+                    // "geç gelen cevap" sanıp ATACAKTI ve ekran boş kalacaktı.
+                    secilenRef.current = yeni.id
                     setSeciliId(yeni.id)
+                    setSecim(secildi(yeni.id))
                     setBilgi(`"${girdi.ad}" eklendi. Şimdi ilk mal kabulünü yap.`)
                     setHata('')
                     setIslem('kabul')
@@ -669,9 +728,20 @@ export default function Warehouse({ currentUser }: Props){
                     </>
                   )}
                 </p>
+                {/* ⚠️ Düğme kapalıysa SEBEBİ yazılı olmalı; yoksa kullanıcı
+                    kuralı atlamanın yolunu arar (tuzak 126). Bu satır, kapı
+                    kapalıyken GÖRÜNEN bir yerde duruyor — ayrıntıya bağlı
+                    bölümlerin içinde değil. */}
+                {!ayrintiHazir(secim) && (
+                  <p className="form-error" style={{ marginTop: 0 }}>
+                    {ayrintiBeklemeSebebi(secim)}
+                  </p>
+                )}
+
                 {beyanYazabilir && (
                   <div className="form-actions" style={{ marginBottom: 12 }}>
-                    <button className="btn" onClick={() => { setIslem('saklama'); setHata('') }}>
+                    <button className="btn" disabled={!ayrintiHazir(secim)}
+                      onClick={() => { if(ayrintiBekliyorMu()) return; setIslem('saklama'); setHata('') }}>
                       Saklama Beyanı
                     </button>
                   </div>
@@ -680,9 +750,16 @@ export default function Warehouse({ currentUser }: Props){
                 {yazabilir ? (
                   <>
                     <div className="form-actions">
-                      <button className="btn primary" onClick={() => { setIslem('kabul'); setHata('') }}>Elle Giriş</button>
-                      <button className="btn" onClick={() => { setIslem('cikis'); setHata('') }}>Çıkış</button>
-                      <button className="btn" onClick={() => { setIslem('sayim'); setHata('') }}>Sayım</button>
+                      {/* ⚠️ Kapı formun AÇILMASINDA duruyor, gönderiminde
+                          değil. Yanlış lot listesiyle açılmış bir form zaten
+                          yanlış seçenekler sunar; kullanıcıyı o forma hiç
+                          sokmamak, sonunda reddetmekten dürüsttür. */}
+                      <button className="btn primary" disabled={!ayrintiHazir(secim)}
+                        onClick={() => { if(ayrintiBekliyorMu()) return; setIslem('kabul'); setHata('') }}>Elle Giriş</button>
+                      <button className="btn" disabled={!ayrintiHazir(secim)}
+                        onClick={() => { if(ayrintiBekliyorMu()) return; setIslem('cikis'); setHata('') }}>Çıkış</button>
+                      <button className="btn" disabled={!ayrintiHazir(secim)}
+                        onClick={() => { if(ayrintiBekliyorMu()) return; setIslem('sayim'); setHata('') }}>Sayım</button>
                     </div>
                     {secili.miktar === 0 && (
                       <p className="muted">

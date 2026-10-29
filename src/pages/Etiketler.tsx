@@ -396,6 +396,19 @@ export default function Etiketler({ currentUser }: Props){
                   <span className="muted">{secili.kod}</span>
                 </div>
 
+                {/* ⚠️ 29.10 · BU CÜMLE ÖNCE EKRANIN ALTINDAYDI (Etiket
+                    bölümünün içinde) ve Emrah hızlı ürün değiştirirken onu
+                    HİÇ GÖREMEDİ: sağ sütun uzun, cümle görünen alanın
+                    dışında beliriyor ve kayboluyordu. Yani yazı vardı ama
+                    ERİŞİLEMEZDİ — tuzak 126'nın ta kendisi, ikinci kez.
+                    Artık ürün adının hemen altında: kapı kapalıyken göz
+                    zaten oraya bakıyor. */}
+                {!ayrintiHazir(secim) && (
+                  <p className="form-error" style={{ margin: '0 0 12px' }}>
+                    {ayrintiBeklemeSebebi(secim)}
+                  </p>
+                )}
+
                 <h4>Alerjen beyanı</h4>
                 <p className="muted detail-hint">
                   <strong>İçerir</strong> bileşendir; <strong>iz</strong> çapraz
@@ -592,13 +605,6 @@ export default function Etiketler({ currentUser }: Props){
                     Son kullanma: <strong>{skt ? tarihYaz(skt) : 'kayıtta yok'}</strong>
                     {' — '}bu iki tarih partinin kaydından geliyor, elle
                     değiştirilemez.
-                  </p>
-                )}
-                {/* ⚠️ Düğme kapalıysa SEBEBİ yazılı olmalı; yoksa kullanıcı
-                    kuralı atlamanın yolunu arar (tuzak 126). */}
-                {secili && !ayrintiHazir(secim) && (
-                  <p className="form-error" style={{ marginTop: 0 }}>
-                    {ayrintiBeklemeSebebi(secim)}
                   </p>
                 )}
                 {secili && (

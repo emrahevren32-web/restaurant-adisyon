@@ -1,45 +1,34 @@
-A3 basladi: ayrinti kapisi kuruldu + Etiketler ekranina takildi (1/7)
+A3 · Depo ekranina da ayrinti kapisi (2/7) + Etiketler'de sebep gorunur yere
 
-MIYOP-010 ve MIYOP-064 ayni kusurun alti ekrandaki haliydi: solda liste,
-sagda secilen kaydin ayrintisi; secim HEMEN degisiyor, ayrinti istekler
-donunce yaziliyor. Arada ekranda YENI KAYDIN ADI, ESKI KAYDIN AYRINTISI
-duruyor.
+DEPO (Warehouse.tsx) -- olculdu:
+  kalemSec -> setSeciliId(id) HEMEN, await detayYenile(...) SONRA.
+Aradaki anda ekranda B kaleminin adi, A kaleminin HAREKETLERI ve LOTLARI
+duruyordu. Etiket ekranindakinden somut bir risk:
+ - "Cikis" formu A'nin lotlarini B kalemi icin listeler
+ - "Sayim" yanlis bakiyeyle karsilastirir
+ - maliyet A'nin maliyetini B'nin basligi altinda gosterir
+Dort yazma eylemi kapandi: Saklama Beyani, Elle Giris, Cikis, Sayim.
+Kapi formun ACILMASINDA duruyor, gonderiminde degil: yanlis lot listesiyle
+acilmis bir form zaten yanlis secenekler sunar; kullaniciyi o forma hic
+sokmamak, sonunda reddetmekten durusttur.
 
-Olculdu (Etiketler.tsx):
-  const sec = async (k) => {
-    setSecili(k)                  // (1) secim aninda degisti
-    await ayrintiYukle(k, baglam) // (2) ayrinti yedi istek donunce yazildi
-  }
-(1) ile (2) arasinda ekranda B'nin adi, A'nin alerjenleri duruyordu ve
-Kaydet'e basilirsa A'nin beyani B'nin kartina yazilabiliyordu.
-IKINCI KUSUR: sec() icinde iptal korumasi YOKTU -- hizli A->B seciminde
-A'nin cevabi B'ninkinden SONRA donerse B'nin ayrintisini eziyordu. Hicbir
-hata cikmiyor; yanlis olan sey sessizce dogru gorunuyor.
+!! YENI KALEM AKISINDA BIR TUZAK VARDI ve yakalandi: kalem eklendikten sonra
+`setSeciliId(yeni.id)` cagriliyor. Yalniz onu deseydik, detayYenile icindeki
+kapi yeni kalemin KENDI cevabini "gec gelen cevap" sanip atacak ve ekran bos
+kalacakti. `secilenRef` de guncelleniyor.
 
-ORTAK COZUM -- src/core/secim/ayrinti-kapisi.ts
-- React yok, istek yok, zaman yok: SAF bir karar birimi. Ekranlar kendi
-  state'lerini tutmaya devam ediyor; buradan yalniz iki sorunun cevabini
-  aliyorlar: "gelen cevabi yazayim mi" ve "yazma dugmesi acik mi".
-- KIMLIK SURUM NUMARASIDIR: ayri bir sayac yerine gelen cevabin hangi kayda
-  ait oldugu soruluyor. Bu tek kural hem gec gelen cevabi hem de "eski
-  ayrinti ekranda kaldi" halini kapatiyor.
-- Hata halinde `ekranda` null KALIYOR: yarim veriyle acik kalan bir ekran,
-  hata mesajindan tehlikelidir.
-- 15 birim sinamasi. Hepsi gercek kodla kosturularak dogrulandi.
+ETIKETLER -- sebep cumlesi TASINDI:
+Emrah Slow 3G ile hizli urun degistirdi ve "Bu kaydin ayrintisi henuz
+yuklenmedi" cumlesini HIC GOREMEDI. Sebep: cumleyi Etiket bolumunun icine,
+yani sag sutunun en altina koymustum; ekranin gorunen alaninin disinda
+beliriyor ve kayboluyordu. Yazi vardi ama ERISILEMEZDI -- tuzak 126'nin ta
+kendisi, ikinci kez. Artik urun adinin hemen altinda.
+Depo ekraninda da ayni ders uygulandi: sebep, ayrintiya bagli bolumlerin
+ICINDE degil, dugmelerin hemen ustunde.
 
-src/pages/Etiketler.tsx -- kapi UC yere birden takildi:
-- dugme `disabled={!ayrintiHazir(secim)}` (uc eylem: alerjen beyani, besin
-  degeri, etiket yazdirma)
-- eylemin GOVDESINDE erken donus `ayrintiBekliyorMu()` -- dugmeyi atlayan
-  bir yol kaydi bozmasin
-- sebep EKRANDA yazili (tuzak 126): dugme neden kapali, kullanici bilsin
-Yazdirma da YAZMA sayiliyor: kagit ambalaja yapisir, geri alinamaz.
-
-src/core/secim/ayrinti-kapisi.arch.test.ts -- kalan ALTI ekran adlariyla
-DONDURULDU (Warehouse, Siparisler, Musteriler, WorkOrders, Sevkiyatlar,
-Traceability). Liste yalniz KISALIR: bir ekrana kapi takilinca test kirmizi
-verir ve listeden cikarilmaya zorlar. Yapilacak isi belgeye degil TESTE
-yazmak (tuzak 139).
+Mimari test: Warehouse KAPISI_TAKILI'ya tasindi, dondurulmus listenin tavani
+6'dan 5'e indi. Kalan: Siparisler, Sevkiyatlar, Musteriler, WorkOrders,
+Traceability.
 
 Co-Authored-By: Claude Opus 5 <noreply@anthropic.com>
 Claude-Session: https://claude.ai/code/session_019BwYM3mAXZUhp4YGj7tp2y
