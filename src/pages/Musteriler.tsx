@@ -23,6 +23,11 @@ import type { User } from '../types'
 import { getSupabase, isSupabaseConfigured } from '../core/supabase'
 import { resolveStockRepositoryMode } from '../core/stock/index'
 import { depoBaglamiKur, type DepoBaglami } from '../warehouse/warehouse.context'
+// ⚠️ A3 · MIYOP-064 · Ekrandaki nokta/fiyat/portal, başlıktaki müşteriye mi ait?
+import {
+  SECIM_BOS, ayrintiBeklemeSebebi, ayrintiDustu, ayrintiGeldi, ayrintiHazir,
+  secildi, type SecimDurumu,
+} from '../core/secim/ayrinti-kapisi'
 import { PostgresStokKatalogu, type KatalogKalemi } from '../warehouse/warehouse.catalog'
 import { gommeKodu, portalBaglantisi } from '../portal/portal-giris'
 import {
@@ -98,6 +103,16 @@ export default function Musteriler({ currentUser }: Props){
   const [arama, setArama] = React.useState('')
   const [pasifleriGoster, setPasifleriGoster] = React.useState(false)
   const [secili, setSecili] = React.useState<Musteri | null>(null)
+  /**
+   * ⚠️ A3 · MIYOP-064. `secili` seçim anında değişiyor; noktalar, fiyatlar,
+   * portal kullanıcıları ve pencereler istekler dönünce yazılıyordu.
+   * ⚠️ Buradaki bedel FİYAT: "Fiyat deftere yazılır, değiştirilemez" kuralı
+   * bu ekranda. A müşterisinin fiyat listesi ekrandayken B'ye geçilip fiyat
+   * eklenirse, yanlış müşterinin fiyatı B'nin defterine KALICI olarak
+   * yazılır ve geri alınamaz — yeni bir satırla düzeltilir ancak.
+   */
+  const [secim, setSecim] = React.useState<SecimDurumu>(SECIM_BOS)
+  const secilenRef = React.useRef<string | null>(null)
   const [sekme, setSekme] = React.useState<'noktalar' | 'fiyatlar' | 'portal'>('noktalar')
   const [portalcilar, setPortalcilar] = React.useState<PortalKullanicisi[]>([])
   const [noktalar, setNoktalar] = React.useState<TeslimNoktasi[]>([])
@@ -156,6 +171,9 @@ export default function Musteriler({ currentUser }: Props){
       servis.fiyatlar(ctx.ctx, musteri.id),
       servis.portalKullanicilari(ctx.ctx, musteri.id),
     ])
+    // ⚠️ GEÇ GELEN CEVAP BURADA DURUYOR (A3).
+    if(secilenRef.current !== musteri.id) return
+
     setNoktalar(n)
     setFiyatlar(f)
     setPortalcilar(p)
@@ -163,18 +181,34 @@ export default function Musteriler({ currentUser }: Props){
     for(const nokta of n){
       cozulen[nokta.id] = await servis.pencere(ctx.ctx, nokta.id)
     }
+    if(secilenRef.current !== musteri.id) return
     setPencereler(cozulen)
+    setSecim(d => ayrintiGeldi(d, musteri.id))
   }, [servis])
 
+  /** Ekrandaki dört ayrıntıyı ANINDA boşaltır. */
+  const ayrintiBosalt = () => {
+    setNoktalar([]); setFiyatlar([]); setPortalcilar([]); setPencereler({})
+  }
+
   const musteriSec = async (musteri: Musteri) => {
+    secilenRef.current = musteri.id
     setSecili(musteri)
+    setSecim(secildi(musteri.id))
+    // ⚠️ Sıra önemli: ayrıntı ÖNCE boşalır, sonra yüklenir.
+    ayrintiBosalt()
     setMusteriFormu(null)
     setNoktaFormu(null)
     setFiyatFormu(null)
     setHata('')
     if(!baglam) return
     try{ await ayrintiyiYukle(musteri, baglam) }
-    catch (e) { setHata(hataMetni(e)) }
+    catch (e) {
+      if(secilenRef.current === musteri.id){
+        setSecim(d => ayrintiDustu(d, musteri.id, hataMetni(e)))
+        setHata(hataMetni(e))
+      }
+    }
   }
 
   // ── Portal erişimi (0054) ─────────────────────────────────────────────
@@ -211,7 +245,12 @@ export default function Musteriler({ currentUser }: Props){
     setMusteriler(liste)
     if(secili){
       const guncel = liste.find(m => m.id === secili.id) ?? null
+      // ⚠️ Ref de güncelleniyor; yoksa kapı müşterinin KENDİ cevabını "geç
+      // gelen" sanıp atardı (aynı tuzağı Depo, Siparişler ve Sevkiyatlar'da
+      // da yakaladım — desen tekrar ediyor).
+      secilenRef.current = guncel?.id ?? null
       setSecili(guncel)
+      setSecim(secildi(guncel?.id ?? null))
       if(guncel) await ayrintiyiYukle(guncel, baglam)
     }
   }
@@ -262,7 +301,9 @@ export default function Musteriler({ currentUser }: Props){
       } else {
         const yeni = await servis!.ekle(baglam.ctx, musteriFormu)
         setBilgi(`"${yeni.ad}" eklendi. Şimdi teslim noktalarını girebilirsiniz.`)
+        secilenRef.current = yeni.id
         setSecili(yeni)
+        setSecim(secildi(yeni.id))
       }
       setHata('')
       setMusteriFormu(null)
@@ -282,7 +323,20 @@ export default function Musteriler({ currentUser }: Props){
     } catch (e) { setHata(hataMetni(e)) }
   }
 
+  /**
+   * ⚠️ Kapı yalnız `disabled` ile durmaz.
+   * ⚠️ `musteriKaydet` BİLEREK kapının DIŞINDA: müşterinin kendi alanları
+   * (ad, vergi no) ayrıntı listelerinden gelmiyor, formun içinden geliyor.
+   * Gereksiz kapı, kullanılamaz ekran demektir.
+   */
+  const ayrintiBekliyorMu = () => {
+    if(ayrintiHazir(secim)) return false
+    setBilgi(''); setHata(ayrintiBeklemeSebebi(secim))
+    return true
+  }
+
   const noktaKaydet = async () => {
+    if(ayrintiBekliyorMu()) return
     if(!noktaFormu) return
     try{
       if(duzenlenenNoktaId){
@@ -309,6 +363,7 @@ export default function Musteriler({ currentUser }: Props){
   }
 
   const fiyatKaydet = async () => {
+    if(ayrintiBekliyorMu()) return
     if(!fiyatFormu) return
     try{
       await servis!.fiyatEkle(baglam.ctx, fiyatFormu)
@@ -475,6 +530,13 @@ export default function Musteriler({ currentUser }: Props){
                 <span className="muted">{secili.kod}</span>
               </div>
 
+              {/* ⚠️ Sebep müşteri adının HEMEN ALTINDA (tuzak 126). */}
+              {!ayrintiHazir(secim) && (
+                <p className="form-error" style={{ margin: '0 0 12px' }}>
+                  {ayrintiBeklemeSebebi(secim)}
+                </p>
+              )}
+
               <div className="karar-ozet">
                 <div className="karar-ozet-satir">
                   <span>Vergi no</span><strong>{secili.vergiNo ?? '—'}</strong>
@@ -551,7 +613,14 @@ export default function Musteriler({ currentUser }: Props){
                     <button
                       className="btn"
                       type="button"
+                      disabled={!ayrintiHazir(secim)}
                       onClick={() => {
+                        // ⚠️ A3 · BU DÜĞME EKRANDAKİ `noktalar` LİSTESİNİ
+                        // OKUYOR: yeni nokta kodu ondan türetiliyor. Liste bir
+                        // an için başka müşterinin noktalarıysa, B müşterisine
+                        // A'nın sırasından devam eden bir kod verilir —
+                        // irsaliyede yanlış müşterinin numarası görünür.
+                        if(ayrintiBekliyorMu()) return
                         // Nokta kodu müşteri kodunun ALTINDA sıralanıyor
                         // (35060-01, 35060-02): irsaliyede görülünce hangi
                         // müşterinin kaçıncı noktası olduğu belli olsun.
@@ -633,7 +702,9 @@ export default function Musteriler({ currentUser }: Props){
                     <button
                       className="btn"
                       type="button"
+                      disabled={!ayrintiHazir(secim)}
                       onClick={() => {
+                        if(ayrintiBekliyorMu()) return
                         setFiyatFormu({
                           musteriId: secili.id,
                           kalemId: '',

@@ -27,6 +27,10 @@ const KAPISI_TAKILI = [
   'Etiketler.tsx',
   'Warehouse.tsx',
   'Siparisler.tsx',
+  'Sevkiyatlar.tsx',
+  'Musteriler.tsx',
+  'WorkOrders.tsx',
+  'Traceability.tsx',
 ] as const
 
 /**
@@ -34,12 +38,7 @@ const KAPISI_TAKILI = [
  * Codex'in MIYOP-064'te adıyla işaret ettiği ekranlar + geç cevap koruması
  * olmayan izlenebilirlik ekranı.
  */
-const KAPISI_YOK = [
-  'Musteriler.tsx',
-  'WorkOrders.tsx',
-  'Sevkiyatlar.tsx',
-  'Traceability.tsx',
-] as const
+const KAPISI_YOK = [] as const
 
 const KAPI_IZI = /from '\.\.\/core\/secim\/ayrinti-kapisi'/
 
@@ -59,16 +58,24 @@ describe('ayrıntı kapısı · ekranlara takılması', () => {
       expect(m, `${ad} seçimde \`secildi()\` çağırmıyor`).toMatch(/secildi\(/)
 
       // 2. Geç gelen cevap atılıyor mu? (asıl tuzak)
+      // ⚠️ KURALI ÖLÇ, YAZIMI DEĞİL. İki biçim de geçerli: erken dönüş
+      // (`!==` ile at) ya da korumalı yazım (`===` ise yaz). Sevkiyatlar
+      // ikincisini kullanıyor çünkü yazım bir `useEffect` içinde ve `iptal`
+      // bayrağıyla birlikte duruyor. Testin tek bir yazım biçimini dayatması,
+      // doğru çözümü reddetmek olurdu.
       expect(
         m,
         `${ad} geç gelen cevabı atmıyor — hızlı A→B seçiminde A'nın cevabı `
         + `B'nin ayrıntısını ezebilir.`,
-      ).toMatch(/secilenRef\.current !==/)
+      ).toMatch(/secilenRef\.current\s*[!=]==/)
 
       // 3. Yazma/yazdırma düğmeleri ayrıntı hazır değilken kapalı mı?
+      // ⚠️ Yine kural ölçülüyor: `disabled` ifadesi kapıya BAKIYOR mu.
+      // `!ayrintiHazir(secim)` de olur, alt bileşene geçirilen
+      // `!ayrintiHazirMi` de — Sevkiyatlar'da düğmeler alt bileşende.
       expect(
         m, `${ad} düğmeleri \`ayrintiHazir\` ile kapatmıyor`,
-      ).toMatch(/disabled=\{!ayrintiHazir\(/)
+      ).toMatch(/disabled=\{[^}]*ayrintiHazir/)
 
       // 4. Kapı yalnız düğmede değil, eylemin GÖVDESİNDE de duruyor mu?
       expect(
@@ -82,25 +89,34 @@ describe('ayrıntı kapısı · ekranlara takılması', () => {
     }
   })
 
-  it('⚠️ DONDURULMUŞ LİSTE yalnız kısalır', () => {
-    // Bir ekrana kapı takıldığında bu test kırmızı verir ve ekranın
-    // `KAPISI_YOK`tan `KAPISI_TAKILI`ya taşınmasını zorlar. Kalan iş
-    // böylece sayılabilir kalıyor.
-    const sizanlar = KAPISI_YOK.filter(ad => KAPI_IZI.test(ekran(ad)))
+  it('⚠️ DONDURULMUŞ LİSTE BOŞ · A3 kapandı (29.10)', () => {
+    // Liste 6 → 5 → 4 → 3 → 2 → 0 diye kısaldı ve bitti. Artık boş kalmalı:
+    // yeni bir "solda liste, sağda ayrıntı" ekranı eklenirse kapı da onunla
+    // birlikte eklenir, buraya borç yazılmaz.
     expect(
-      sizanlar,
-      'Bu ekran(lar)a kapı takılmış ama liste güncellenmemiş: '
-      + sizanlar.join(', '),
+      KAPISI_YOK as readonly string[],
+      'Liste yeniden doldurulmuş — kapısız bir liste+ayrıntı ekranı eklenmiş. '
+      + 'Yeni ekran kapıyla birlikte gelir; buraya borç yazılmaz.',
     ).toEqual([])
     // ⚠️ Tavan yalnız AŞAĞI gider: 6 → 5 (Warehouse) → 4 (Siparişler).
     // Her ekran kapatıldığında burası da küçülür ve kalan iş tek bakışta
     // sayılır.
-    expect(KAPISI_YOK.length, 'liste uzamış — yeni kapısız ekran eklenmiş')
-      .toBeLessThanOrEqual(4)
+    expect(KAPISI_TAKILI.length, 'kapı takılı ekran sayısı azalmış')
+      .toBeGreaterThanOrEqual(7)
   })
 
   it('iki liste ÇAKIŞMIYOR', () => {
     const kesisim = KAPISI_TAKILI.filter(ad => (KAPISI_YOK as readonly string[]).includes(ad))
     expect(kesisim, 'aynı ekran iki listede').toEqual([])
+  })
+
+  it('kapı modülü saf kalıyor · React ya da istek sızmamış', () => {
+    // ⚠️ Kapının değeri SAF olmasından geliyor: yedi ekran aynı kararı
+    // paylaşıyor ve karar testle donduruldu. İçine bir `useState` ya da bir
+    // sorgu girdiği gün, karar ekrana geri taşınmış olur.
+    const kapi = readFileSync(
+      join(KOK, 'src/core/secim/ayrinti-kapisi.ts'), 'utf8') as string
+    expect(kapi, 'kapıya React sızmış').not.toMatch(/from 'react'/)
+    expect(kapi, 'kapıya istek sızmış').not.toMatch(/supabase|fetch\(/)
   })
 })

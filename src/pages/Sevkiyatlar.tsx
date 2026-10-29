@@ -24,6 +24,11 @@ import { createStockRepository, resolveStockRepositoryMode } from '../core/stock
 import { InMemoryStockItemLookup } from '../core/stock/stock-item-lookup'
 import type { Movement } from '../core/stock/stock.repository'
 import { depoBaglamiKur, type DepoBaglami } from '../warehouse/warehouse.context'
+// ⚠️ A3 · MIYOP-064 · Ekrandaki hareket/lot/içerik, başlıktaki sevkiyata mı ait?
+import {
+  SECIM_BOS, ayrintiBeklemeSebebi, ayrintiDustu, ayrintiGeldi, ayrintiHazir,
+  secildi, type SecimDurumu,
+} from '../core/secim/ayrinti-kapisi'
 import {
   PostgresStokKatalogu, type Birim, type KatalogKalemi, type KatalogLotu,
 } from '../warehouse/warehouse.catalog'
@@ -109,6 +114,17 @@ export default function Sevkiyatlar({ currentUser }: Props){
   const [soforler, setSoforler] = React.useState<Sofor[]>([])
   const [bakiyeler, setBakiyeler] = React.useState<DepoKalemi[]>([])
   const [seciliId, setSeciliId] = React.useState<string | null>(null)
+  /**
+   * ⚠️ A3 · MIYOP-064. Bu ekran 09.10'da ZATEN KISMEN korunmuştu: ölçümler
+   * `olcumSevkiyatId` ile seçili sevkiyata karşı doğrulanıyordu, çünkü
+   * "A'nın sıcaklığı B'nin irsaliyesine basılır" tuzağı o gün görülmüştü.
+   * ⚠️ Ama koruma YALNIZ ÖLÇÜMLERDEYDİ. `hareketler`, `lotlar` ve `icerik`
+   * A→B geçişinde eskisini tutmaya devam ediyordu — yani irsaliyeye A'nın
+   * içeriği, B'nin numarasıyla basılabiliyordu. Alan alan koruma, bir alanı
+   * unutmaya açıktır; kapı artık hepsini birden tutuyor.
+   */
+  const [secim, setSecim] = React.useState<SecimDurumu>(SECIM_BOS)
+  const secilenRef = React.useRef<string | null>(null)
   const [hareketler, setHareketler] = React.useState<Movement[]>([])
   // ── YÜKLEME ÖLÇÜMLERİ (A4B-3/4) ────────────────────────────────────────
   // Bu sevkiyata bağlanmış HACCP ölçümleri. Kalite ekranından "Sevkiyat"
@@ -223,9 +239,17 @@ export default function Sevkiyatlar({ currentUser }: Props){
   React.useEffect(() => {
     let iptal = false
     if(!secili || !servis || !baglam){
+      secilenRef.current = null
+      setSecim(secildi(null))
       setHareketler([]); setLotlar([]); setIcerik([])
       setOlcumler([]); setOlcumSevkiyatId(''); return
     }
+
+    // ⚠️ SEÇİM DEĞİŞTİ: ayrıntının TAMAMI anında düşüyor. Eski hâlde yalnız
+    // ölçümler boşalıyordu; hareket, lot ve içerik eskisini tutuyordu.
+    secilenRef.current = secili.id
+    setSecim(secildi(secili.id))
+    setHareketler([]); setLotlar([]); setIcerik([])
 
     ;(async () => {
       // ⚠️ ÖNCEKİ SEVKİYATIN ÖLÇÜMLERİ HEMEN SİLİNİYOR (09.10).
@@ -271,16 +295,31 @@ export default function Sevkiyatlar({ currentUser }: Props){
         // orada yazılı. Tek kaynak (önbelleği paylaşsın diye) her parti için
         // ayrı ayrı iniyor.
         const lotIdleri = sevkiyatinLotIdleri(h)
-        if(lotIdleri.length === 0){ setIcerik([]); return }
+        if(lotIdleri.length === 0){
+          // ⚠️ İçeriği olmayan sevkiyat da HAZIRDIR. Burada erken dönüp
+          // kapıyı açmasaydık, lotsuz bir sevkiyatta düğmeler hiç
+          // açılmayacaktı — koruma, kullanılamazlığa dönüşürdü.
+          setIcerik([])
+          if(!iptal && secilenRef.current === secili.id){
+            setSecim(d => ayrintiGeldi(d, secili.id))
+          }
+          return
+        }
 
         const kaynak = new PostgresSoyagaciKaynagi(getSupabase())
         const agaclar = await Promise.all(
           lotIdleri.map(id => soyagaciCikar(baglam.ctx, kaynak, id)),
         )
-        if(!iptal){
+        if(!iptal && secilenRef.current === secili.id){
           setIcerik(agaclar.flatMap(a => (a ? soyagaciniDuzlestir(a) : [])))
+          setSecim(d => ayrintiGeldi(d, secili.id))
         }
-      } catch (e) { if(!iptal) setHata(hataMetni(e)) }
+      } catch (e) {
+        if(!iptal && secilenRef.current === secili.id){
+          setSecim(d => ayrintiDustu(d, secili.id, hataMetni(e)))
+          setHata(hataMetni(e))
+        }
+      }
     })()
 
     return () => { iptal = true }
@@ -332,12 +371,26 @@ export default function Sevkiyatlar({ currentUser }: Props){
   const olustur = async (girdi: YeniSevkiyat) => {
     try{
       const yeni = await servis!.ekle(baglam.ctx, girdi)
+      // ⚠️ Ref de güncelleniyor; yoksa kapı yeni sevkiyatın kendi cevabını
+      // "geç gelen" sanıp atardı (Depo ve Siparişler'de aynı tuzak).
+      secilenRef.current = yeni.id
       setSeciliId(yeni.id)
       await sonrasi(`${yeni.sevkiyatNo} hazırlandı. “Sevk Et” deyince mal deftere düşecek.`)
     } catch (e) { setHata(hataMetni(e)) }
   }
 
+  /**
+   * ⚠️ Kapı yalnız `disabled` ile durmaz; klavye ya da otomasyon düğmeyi
+   * atlarsa bu satır yazmayı durdurur.
+   */
+  const ayrintiBekliyorMu = () => {
+    if(ayrintiHazir(secim)) return false
+    setBilgi(''); setHata(ayrintiBeklemeSebebi(secim))
+    return true
+  }
+
   const kaydet = async (sevkiyat: Sevkiyat, girdi: YeniSevkiyat) => {
+    if(ayrintiBekliyorMu()) return
     try{
       const guncel = await servis!.guncelle(baglam.ctx, sevkiyat, girdi)
       await sonrasi(`${guncel.sevkiyatNo} güncellendi.`)
@@ -345,6 +398,7 @@ export default function Sevkiyatlar({ currentUser }: Props){
   }
 
   const sevkEt = async (sevkiyat: Sevkiyat) => {
+    if(ayrintiBekliyorMu()) return
     setCalisiyor(true)
     try{
       const guncel = await servis!.sevkEt(baglam.ctx, sevkiyat, bakiyeHaritasi, kalemler)
@@ -357,6 +411,7 @@ export default function Sevkiyatlar({ currentUser }: Props){
   }
 
   const iptalEt = async (sevkiyat: Sevkiyat) => {
+    if(ayrintiBekliyorMu()) return
     const sevkEdilmis = sevkiyat.durum === 'SHIPPED'
     if(!window.confirm(
       `${sevkiyat.sevkiyatNo} iptal edilecek.\n\n`
@@ -496,6 +551,8 @@ export default function Sevkiyatlar({ currentUser }: Props){
               icerik={icerik}
               firmaAdi={baglam.subeler.find(sb => sb.id === baglam.ctx.branchId)?.ad}
               yazabilir={yazabilir}
+              ayrintiHazirMi={ayrintiHazir(secim)}
+              beklemeSebebi={ayrintiBeklemeSebebi(secim)}
               calisiyor={calisiyor}
               onDuzenle={() => { setIslem('duzenle'); setHata(''); setBilgi('') }}
               onDurum={durum => durumIslemi(secili, durum)}
@@ -800,7 +857,7 @@ function FiloBolumu({
 
 function SevkiyatDetayi({
   sevkiyat, yeterlilik, hareketler, olcumler, lotlar, kalemler, icerik, firmaAdi,
-  yazabilir, calisiyor, onDuzenle, onDurum,
+  yazabilir, ayrintiHazirMi, beklemeSebebi, calisiyor, onDuzenle, onDurum,
 }: {
   sevkiyat: Sevkiyat
   yeterlilik: YeterlilikSatiri[]
@@ -811,6 +868,12 @@ function SevkiyatDetayi({
   icerik: SoyagaciSatiri[]
   firmaAdi?: string
   yazabilir: boolean
+  /**
+   * ⚠️ Ekrandaki hareket/lot/içerik BU sevkiyata mı ait. İrsaliye bu
+   * listelerden basılıyor; yanlışsa kâğıt olmayan bir sevkiyatı belgeler.
+   */
+  ayrintiHazirMi: boolean
+  beklemeSebebi: string
   calisiyor: boolean
   onDuzenle: () => void
   onDurum: (durum: SevkiyatDurumu) => void
@@ -919,11 +982,18 @@ function SevkiyatDetayi({
           </p>
         )}
 
+        {/* ⚠️ Düğme kapalıysa SEBEBİ burada yazılı (tuzak 126). */}
+        {!ayrintiHazirMi && (
+          <p className="form-error" style={{ margin: '0 0 12px' }}>{beklemeSebebi}</p>
+        )}
+
         <div className="form-actions">
           {/* İrsaliye HER durumda alınabilir; sevk edilmemişse kâğıdın başına
-              "bu belge resmî irsaliye yerine geçmez" uyarısı basılıyor. */}
+              "bu belge resmî irsaliye yerine geçmez" uyarısı basılıyor.
+              ⚠️ Ama ayrıntı YÜKLENMEDEN basılamaz: kâğıt `hareketler`den
+              çıkıyor ve o liste bir an için önceki sevkiyatın olabilir. */}
           <button
-            className="btn" type="button"
+            className="btn" type="button" disabled={!ayrintiHazirMi}
             onClick={() => belgeYazdir(
               `İrsaliye · ${sevkiyat.sevkiyatNo}`,
               irsaliyeHtml(sevkiyat, hareketler, {
@@ -934,7 +1004,8 @@ function SevkiyatDetayi({
             İrsaliye Yazdır / PDF
           </button>
           {yazabilir && taslak && (
-            <button className="btn" type="button" disabled={calisiyor} onClick={onDuzenle}>
+            <button className="btn" type="button"
+              disabled={calisiyor || !ayrintiHazirMi} onClick={onDuzenle}>
               Düzenle
             </button>
           )}
@@ -943,7 +1014,8 @@ function SevkiyatDetayi({
               key={durum}
               className={durum === 'CANCELLED' ? 'btn' : 'btn primary'}
               type="button"
-              disabled={calisiyor || (durum === 'SHIPPED' && eksikler.length > 0)}
+              disabled={calisiyor || !ayrintiHazirMi
+                || (durum === 'SHIPPED' && eksikler.length > 0)}
               title={durum === 'SHIPPED' && eksikler.length > 0
                 ? `Eksik: ${eksikler.map(e => `${e.satir.stokKalemiAd ?? 'kalem'} ${bicimle(e.eksik)} ${e.birim}`).join(', ')}`
                 : undefined}

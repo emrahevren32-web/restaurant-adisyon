@@ -1,37 +1,54 @@
-A3 · Siparisler ekranina da ayrinti kapisi (3/7)
+A3 BITTI · ayrinti kapisi YEDI EKRANIN YEDISINDE de takili (7/7)
 
-Siparis ekraninda SEKIZ ayrinti listesi var: satirlar, revizyonlar, farklar,
-sevk durumu, onaylar, karsilama, teslim, sevkiyatlar. Hepsi `sec()` icinde
-istekler donunce yaziliyordu; `setSecili(s)` ise HEMEN. Aradaki anda ekranda
-B siparisinin numarasi, A siparisinin SATIRLARI duruyordu.
+MIYOP-010 + MIYOP-064 kapandi. Kalan dort ekran bu commit'te:
+Sevkiyatlar, Musteriler, Is Emirleri, Izlenebilirlik.
 
-!! Buradaki bedel para ve kagit tasiyor:
- - `isEmriCikar` EKRANDAKI satirlardan uretim is emri aciyor. Yanlis
-   siparisin satirlariyla acilmis bir is emri, uretimi yanlis urune baslatir.
- - `irsaliyeYazdir` kagit basiyor; kagit musteriye gider, geri alinamaz.
- - `revizyonAc` formu ekrandaki satirlari BASLANGIC DEGERI aliyor: yanlis
-   siparisin satirlariyla acilan revizyon, dogru siparisin numarasiyla
-   kaydedilir.
+Her ekranin KENDI bedeli olculdu ve koda yazildi:
 
-Takilanlar:
-- Gec gelen cevap `ayrintiYukle` icinde duruyor: secilenRef.current !== s.id
-  ise sekiz setState'in hicbiri calismiyor.
-- `sec()` once ayrintiBosalt() cagiriyor: sekiz liste ANINDA bosaliyor.
-- Yedi yazma eyleminin GOVDESINDE kapi: durumDegistir, revizyonAc, farkAc,
-  kararVer, onayVer, isEmriCikar, irsaliyeYazdir.
-- Uc dugme disabled: durum gecis dugmeleri (mevcut `kapali` kosuluyla
-  birlikte), + Revizyon, Fark bildir.
-- Sebep siparis numarasinin HEMEN ALTINDA. Etiket ekraninda bu cumleyi sag
-  sutunun diplerine koymustum ve Emrah onu hic goremedi; yazi vardi ama
-  erisilemezdi (tuzak 126). Ayni hata tekrarlanmiyor.
+- SEVKIYATLAR: !! kismen ZATEN korunuyordu. 09.10'da olcumler icin
+  `olcumSevkiyatId` konmustu ("A'nin sicakligi B'nin irsaliyesine basilir"
+  tuzagi o gun gorulmus). Ama koruma YALNIZ O ALANDAYDI; hareket, lot ve
+  icerik eskisini tutuyordu, yani irsaliyeye A'nin icerigi B'nin numarasiyla
+  basilabiliyordu. ALAN ALAN KORUMA, BIR ALANI UNUTMAYA ACIKTIR.
+  Irsaliye, Duzenle ve durum gecis dugmeleri kapandi; kapi alt bilesene
+  `ayrintiHazirMi` prop'uyla gecti.
+  Icerigi olmayan sevkiyatta da kapi ACILIYOR -- yoksa koruma
+  kullanilamazliga donusurdu.
 
-!! `yenile(seciliId?)` icinde de secilenRef guncelleniyor. Yalniz setSecili
-deseydik, islem sonrasi yenilemede kapi siparisin KENDI cevabini "gec gelen"
-sanip atacak ve ekran bos kalacakti -- Depo'da ayni tuzagi yeni kalem
-akisinda yakalamistim.
+- MUSTERILER: bedeli FIYAT. "Fiyat deftere yazilir, degistirilemez" kurali bu
+  ekranda; yanlis musterinin fiyati B'nin defterine KALICI yazilirdi.
+  Ustelik "+ Nokta" dugmesi yeni kodu EKRANDAKI nokta listesinden turetiyor:
+  yanlis listeyle B musterisine A'nin sirasindan kod verilirdi ve irsaliyede
+  yanlis musterinin numarasi gorunurdu.
+  !! `musteriKaydet` BILEREK kapinin DISINDA: musterinin kendi alanlari
+  ayrinti listelerinden gelmiyor. Gereksiz kapi, kullanilamaz ekran demektir.
 
-Mimari test: Siparisler KAPISI_TAKILI'ya tasindi, dondurulmus listenin tavani
-5'ten 4'e indi. Kalan: Sevkiyatlar, Musteriler, WorkOrders, Traceability.
+- IS EMIRLERI: Baslat hammaddeyi deftere dusuruyor, Tamamla mamul girisi
+  yazip yeni lot aciyor. Ikisi de geri alinamayan defter kaydi.
+
+- IZLENEBILIRLIK: eski zinciri ZATEN temizliyordu (cikar() basinda alti alan)
+  ama GEC GELEN CEVAP korumasi yoktu. Yazma eylemi yok; buna karsilik bedeli
+  en agir olan ekran bu -- cikan kagit GERI CAGIRMA listesi. Yanlis partinin
+  zinciri dogru numaranin altinda basilirsa, toplanmasi gereken palet depoda
+  kalir ve toplanmamasi gereken palet geri cagrilir.
+
+!! AYNI TUZAK BES EKRANDA TEKRARLANDI ve besinde de yakalandi: yeni kayit
+eklendiginde ya da islem sonrasi yenilemede setSecili/setSeciliId cagriliyor
+ama REF GUNCELLENMIYORDU; o halde kapi kaydin KENDI cevabini "gec gelen"
+sanip atacak ve ekran bos kalacakti.
+
+Mimari test:
+- Dondurulmus liste 6 -> 5 -> 4 -> 3 -> 2 -> 0 diye kisaldi ve BOSALDI.
+  Artik bos kalmali: yeni bir liste+ayrinti ekrani kapiyla birlikte gelir.
+- Test KURALI olcuyor, YAZIMI degil. Gec cevap korumasi hem erken donusle
+  (`!==`) hem korumali yazimla (`===`) yapilabiliyor; dugme kapisi hem
+  `!ayrintiHazir(secim)` hem alt bilesene gecen `!ayrintiHazirMi` ile.
+  Tek bir yazimi dayatmak dogru cozumu reddetmek olurdu.
+- YENI: kapinin SAF kaldigi olculuyor. Icine React ya da istek sizarsa test
+  kirmizi verir -- karar yedi ekranin ortak mali, biri onu kendi icinde
+  yeniden yorumlayamaz.
+
+docs/HEDEFLER.md: 3.7 kapandi, 3.7.3 eklendi (her ekranin bedeli yazili).
 
 Co-Authored-By: Claude Opus 5 <noreply@anthropic.com>
 Claude-Session: https://claude.ai/code/session_019BwYM3mAXZUhp4YGj7tp2y

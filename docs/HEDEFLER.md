@@ -1292,8 +1292,8 @@ Emrah'ın onayladığı sıra:
     (`original.branchId` körlemesine aktif şubeye çevrilmeyecek);
     sevkiyatın **hedef şubesi** gibi belge alanları işlemin kaynak
     şubesiyle karıştırılmayacak.
-- 🔄 **3.7** **MIYOP-010** · Etiket ekranında ürünler arası veri karışması
-  · **28.10: ORTAK ÇÖZÜM KURULDU, 1/7 ekran takıldı**
+- ✅ **3.7** **MIYOP-010 + MIYOP-064 · KAPANDI (29.10) · 7/7 ekran**
+  · **A3 BİTTİ**
   ⚠️ Kusur ölçüldü, tahmin edilmedi. `Etiketler.tsx`:
   `sec()` içinde `setSecili(k)` HEMEN, `await ayrintiYukle(k)` SONRA. Arada
   ekranda **B'nin adı, A'nın alerjenleri** duruyordu ve Kaydet'e basılırsa
@@ -1311,6 +1311,46 @@ Emrah'ın onayladığı sıra:
   ⚠️ `ayrinti-kapisi.arch.test.ts` kalan altı ekranı **adlarıyla
   dondurdu** — liste yalnız kısalır. Bir ekrana kapı takılınca test kırmızı
   verir ve listeden çıkarılmaya zorlar; kalan iş sayılabilir kalıyor.
+  **Liste 6 → 5 → 4 → 3 → 2 → 0 diye kısaldı ve 29.10'da BOŞALDI.**
+  - ✅ **3.7.3** **YEDİ EKRANIN YEDİSİ DE TAKILDI (29.10 gecesi).**
+    Her ekranda altı şey ölçülüyor: kapı içeri alınmış, seçimde `secildi()`
+    çağrılıyor, geç gelen cevap atılıyor, düğmeler `ayrintiHazir` ile
+    kapanıyor, kapı eylemin **gövdesinde** de duruyor, ve **sebep ekranda
+    yazılı**.
+    **Her ekranın kendi bedeli yazıldı:**
+    · **Etiketler** — B'nin başlığı altında A'nın alerjeni; Kaydet A'nın
+      beyanını B'nin kartına yazabiliyordu.
+    · **Depo** — Çıkış formu A'nın lotlarını B için listeliyor, Sayım yanlış
+      bakiyeyle karşılaştırıyor, maliyet A'nınkini gösteriyordu.
+    · **Siparişler** — `isEmriCikar` ekrandaki satırlardan üretim başlatıyor,
+      `irsaliyeYazdir` kâğıt basıyor, revizyon formu ekrandaki satırları
+      başlangıç değeri alıyordu. Sekiz liste birden eziliyordu.
+    · **Sevkiyatlar** — ⚠️ **kısmen zaten korunuyordu:** 09.10'da ölçümler
+      için `olcumSevkiyatId` konmuştu ("A'nın sıcaklığı B'nin irsaliyesine
+      basılır" tuzağı). Ama koruma **yalnız o alandaydı**; hareket, lot ve
+      içerik eskisini tutuyordu. **Alan alan koruma, bir alanı unutmaya
+      açıktır.**
+    · **Müşteriler** — bedeli FİYAT: "fiyat deftere yazılır, değiştirilemez".
+      Üstelik "+ Nokta" düğmesi yeni kodu **ekrandaki** nokta listesinden
+      türetiyordu: yanlış listeyle B müşterisine A'nın sırasından kod
+      verilirdi.
+    · **İş Emirleri** — Başlat hammaddeyi deftere düşürüyor, Tamamla mamul
+      girişi yazıp yeni lot açıyor; ikisi de geri alınamaz.
+    · **İzlenebilirlik** — eski zinciri zaten temizliyordu ama **geç gelen
+      cevap koruması yoktu**. Yazma eylemi yok; buna karşılık bedeli en ağır
+      olan ekran bu: çıkan kâğıt GERİ ÇAĞIRMA listesi.
+    ⚠️ **AYNI TUZAK BEŞ EKRANDA TEKRARLANDI ve beşinde de yakalandı:** yeni
+    kayıt eklendiğinde ya da işlem sonrası yenilemede `setSecili`/`setSeciliId`
+    çağrılıyor ama **ref güncellenmiyordu**; o hâlde kapı kaydın KENDİ
+    cevabını "geç gelen" sanıp atacak ve ekran boş kalacaktı.
+    ⚠️ **Mimari test kuralı ölçüyor, YAZIMI değil:** geç cevap koruması hem
+    erken dönüşle (`!==`) hem korumalı yazımla (`===`) yapılabiliyor;
+    düğme kapısı hem `!ayrintiHazir(secim)` hem alt bileşene geçirilen
+    `!ayrintiHazirMi` ile. Tek bir yazımı dayatmak doğru çözümü reddetmek
+    olurdu.
+    ⚠️ Kapının **saf kaldığı** da ölçülüyor: içine React ya da istek sızarsa
+    test kırmızı verir — karar yedi ekranın ortak malı, biri onu kendi
+    içinde yeniden yorumlayamaz.
   - ⬜ **3.7.1** **MIYOP-064 · aynı kusur beş ekran daha** (Codex, 21.10):
     Depo, Siparişler, Müşteriler, İş Emirleri, Sevkiyatlar. Desen aynı:
     seçim **hemen** değişiyor, ayrıntılar isteklerin tamamı dönünce

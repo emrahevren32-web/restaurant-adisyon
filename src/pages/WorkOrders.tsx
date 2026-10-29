@@ -27,6 +27,11 @@ import { createStockRepository, resolveStockRepositoryMode } from '../core/stock
 import { InMemoryStockItemLookup } from '../core/stock/stock-item-lookup'
 import type { Movement, MovementReason } from '../core/stock/stock.repository'
 import { depoBaglamiKur, type DepoBaglami } from '../warehouse/warehouse.context'
+// ⚠️ A3 · MIYOP-064 · Ekrandaki hareket/lot/maliyet, başlıktaki iş emrine mi ait?
+import {
+  SECIM_BOS, ayrintiBeklemeSebebi, ayrintiDustu, ayrintiGeldi, ayrintiHazir,
+  secildi, type SecimDurumu,
+} from '../core/secim/ayrinti-kapisi'
 import {
   PostgresStokKatalogu, type Birim, type KatalogKalemi, type KatalogLotu,
 } from '../warehouse/warehouse.catalog'
@@ -121,6 +126,16 @@ export default function WorkOrders({ currentUser }: Props){
   const [birimler, setBirimler] = React.useState<Birim[]>([])
   const [bakiyeler, setBakiyeler] = React.useState<DepoKalemi[]>([])
   const [seciliId, setSeciliId] = React.useState<string | null>(null)
+  /**
+   * ⚠️ A3 · MIYOP-064. `seciliId` seçim anında değişiyor; `hareketler`,
+   * `lotlar` ve `maliyet` istekler dönünce yazılıyordu.
+   * ⚠️ Bu ekranda bedel ÜRETİM: **Başlat** düğmesi hammaddeyi deftere
+   * düşürüyor, **Tamamla** mamul girişi yazıp yeni lot açıyor. Yanlış iş
+   * emrinin lot listesiyle başlatılan bir üretim, yanlış partiden hammadde
+   * çeker ve zincir oradan itibaren yalan söyler.
+   */
+  const [secim, setSecim] = React.useState<SecimDurumu>(SECIM_BOS)
+  const secilenRef = React.useRef<string | null>(null)
   const [hareketler, setHareketler] = React.useState<Movement[]>([])
   const [lotlar, setLotlar] = React.useState<KatalogLotu[]>([])
   const [maliyet, setMaliyet] = React.useState<EkranMaliyeti | null>(null)
@@ -204,8 +219,15 @@ export default function WorkOrders({ currentUser }: Props){
   React.useEffect(() => {
     let iptal = false
     if(!secili || !servis || !baglam || !depoServisi){
+      secilenRef.current = null
+      setSecim(secildi(null))
       setHareketler([]); setLotlar([]); setMaliyet(null); return
     }
+
+    // ⚠️ SEÇİM DEĞİŞTİ: ayrıntı ANINDA düşüyor, istekler dönmeden.
+    secilenRef.current = secili.id
+    setSecim(secildi(secili.id))
+    setHareketler([]); setLotlar([]); setMaliyet(null)
 
     ;(async () => {
       try{
@@ -236,7 +258,17 @@ export default function WorkOrders({ currentUser }: Props){
         } else {
           setMaliyet(null)
         }
-      } catch (e) { if(!iptal) setHata(hataMetni(e)) }
+
+        // ⚠️ GEÇ GELEN CEVAP: yalnız hâlâ bu iş emri seçiliyken kapı açılıyor.
+        if(!iptal && secilenRef.current === secili.id){
+          setSecim(d => ayrintiGeldi(d, secili.id))
+        }
+      } catch (e) {
+        if(!iptal && secilenRef.current === secili.id){
+          setSecim(d => ayrintiDustu(d, secili.id, hataMetni(e)))
+          setHata(hataMetni(e))
+        }
+      }
     })()
 
     return () => { iptal = true }
@@ -291,6 +323,9 @@ export default function WorkOrders({ currentUser }: Props){
   const olustur = async (girdi: YeniIsEmri) => {
     try{
       const yeni = await servis!.ekle(baglam.ctx, girdi)
+      // ⚠️ Ref de güncelleniyor; yoksa kapı yeni iş emrinin kendi cevabını
+      // "geç gelen" sanıp atardı.
+      secilenRef.current = yeni.id
       setSeciliId(yeni.id)
       await sonrasi(`${yeni.isEmriNo} açıldı. Başlatınca hammadde deftere düşecek.`)
     } catch (e) { setHata(hataMetni(e)) }
@@ -341,7 +376,19 @@ export default function WorkOrders({ currentUser }: Props){
     finally { setCalisiyor(false) }
   }
 
+  /**
+   * ⚠️ Kapı yalnız `disabled` ile durmaz. Bu ekranda bedeli yüksek:
+   * **Başlat** hammaddeyi deftere düşürüyor, **Tamamla** mamul girişi yazıp
+   * yeni lot açıyor. İkisi de geri alınamayan defter kaydı.
+   */
+  const ayrintiBekliyorMu = () => {
+    if(ayrintiHazir(secim)) return false
+    setBilgi(''); setHata(ayrintiBeklemeSebebi(secim))
+    return true
+  }
+
   const durumIslemi = (isEmri: IsEmri, durum: IsEmriDurumu) => {
+    if(ayrintiBekliyorMu()) return
     if(durum === 'STARTED') return void baslat(isEmri)
     if(durum === 'COMPLETED') return setIslem('tamamla')
     if(durum === 'CANCELLED') return void iptalEt(isEmri)
@@ -455,6 +502,8 @@ export default function WorkOrders({ currentUser }: Props){
               maliyet={maliyet}
               yazabilir={yazabilir}
               paraGorur={paraGorur}
+              ayrintiHazirMi={ayrintiHazir(secim)}
+              beklemeSebebi={ayrintiBeklemeSebebi(secim)}
               calisiyor={calisiyor}
               onDurum={durum => durumIslemi(secili, durum)}
             />
@@ -486,7 +535,7 @@ export default function WorkOrders({ currentUser }: Props){
 // de aynı sebeple canlıya gitti: hatta tip denetimi koşmuyordu.
 function IsEmriDetayi({
   isEmri, yeterlilik, hareketler, lotlar, kalemler, maliyet,
-  yazabilir, paraGorur, calisiyor, onDurum,
+  yazabilir, paraGorur, ayrintiHazirMi, beklemeSebebi, calisiyor, onDurum,
 }: {
   isEmri: IsEmri
   yeterlilik: YeterlilikSatiri[]
@@ -497,6 +546,9 @@ function IsEmriDetayi({
   yazabilir: boolean
   /** `finance.read` var mı. Maliyet bölümünün iki yüzü de buna bakıyor. */
   paraGorur: boolean
+  /** Ekrandaki hareket/lot/maliyet BU iş emrine mi ait (A3). */
+  ayrintiHazirMi: boolean
+  beklemeSebebi: string
   calisiyor: boolean
   onDurum: (durum: IsEmriDurumu) => void
 }){
@@ -624,12 +676,17 @@ function IsEmriDetayi({
 
         {yazabilir && gecisler.length > 0 && (
           <div className="form-actions">
+            {/* ⚠️ Düğme kapalıysa sebebi yazılı (tuzak 126). */}
+            {!ayrintiHazirMi && (
+              <p className="form-error" style={{ margin: '0 0 12px' }}>{beklemeSebebi}</p>
+            )}
             {gecisler.map(durum => (
               <button
                 key={durum}
                 className={durum === 'CANCELLED' ? 'btn' : 'btn primary'}
                 type="button"
-                disabled={calisiyor || (durum === 'STARTED' && eksikler.length > 0)}
+                disabled={calisiyor || !ayrintiHazirMi
+                  || (durum === 'STARTED' && eksikler.length > 0)}
                 // Kapalı bir düğme, sebebi yazmıyorsa bozuk görünür. Fare
                 // üstüne gelince eksik olan malzeme adıyla söyleniyor.
                 title={durum === 'STARTED' && eksikler.length > 0

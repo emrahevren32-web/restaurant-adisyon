@@ -50,6 +50,11 @@ import {
 import { geriCagirmaRaporu } from '../production/recall'
 import { geriCagirmaHtml } from '../production/shipment-documents'
 import { belgeYazdir } from '../core/print/print'
+// ⚠️ A3 · 3.7.2 · Ekrandaki zincir, seçili partiye mi ait?
+import {
+  SECIM_BOS, ayrintiBeklemeSebebi, ayrintiDustu, ayrintiGeldi, ayrintiHazir,
+  secildi, type SecimDurumu,
+} from '../core/secim/ayrinti-kapisi'
 import { PostgresHaccpDeposu, type Olcum } from '../quality/haccp.repository'
 import { HaccpServisi } from '../quality/haccp.service'
 
@@ -104,6 +109,18 @@ export default function Traceability({ currentUser }: Props){
   const [arama, setArama] = React.useState('')
   const [sonuclar, setSonuclar] = React.useState<SoyagaciLotu[]>([])
   const [seciliLot, setSeciliLot] = React.useState<SoyagaciLotu | null>(null)
+  /**
+   * ⚠️ A3 · HEDEFLER 3.7.2. Bu ekran eski zinciri ZATEN temizliyordu
+   * (`cikar()` başında altı alanı birden boşaltıyor) — ama **geç gelen cevap**
+   * koruması yoktu. Kullanıcı A partisini açıp hemen B'ye geçerse A'nın
+   * çıkarımı sonra dönüp B'nin zincirini ezebilir.
+   * ⚠️ Burada yazma eylemi yok ama bedeli en ağır olan ekran bu: çıkan kâğıt
+   * GERİ ÇAĞIRMA listesi. Yanlış partinin zinciri doğru parti numarasının
+   * altında basılırsa, toplanması gereken palet depoda kalır ve toplanmaması
+   * gereken palet geri çağrılır.
+   */
+  const [secim, setSecim] = React.useState<SecimDurumu>(SECIM_BOS)
+  const secilenRef = React.useRef<string | null>(null)
   const [agac, setAgac] = React.useState<SoyagaciDugumu | null>(null)
   const [ileri, setIleri] = React.useState<IleriIzlemeSonucu | null>(null)
   const [sevkiyatlar, setSevkiyatlar] = React.useState<Sevkiyat[]>([])
@@ -134,6 +151,8 @@ export default function Traceability({ currentUser }: Props){
     // altta hâlâ LHN'nin zinciri duruyor" hâli oluşur; kullanıcı yanlış
     // partinin içeriğine bakar ve bunu fark etmez. Geri çağırmada bu,
     // yanlış listeyi doğru sanmak demektir.
+    secilenRef.current = null
+    setSecim(secildi(null))
     setSeciliLot(null)
     setAgac(null)
     setIleri(null)
@@ -150,8 +169,17 @@ export default function Traceability({ currentUser }: Props){
     finally { setAraniyor(false) }
   }
 
+  /** ⚠️ Kapı yalnız `disabled` ile durmaz. */
+  const ayrintiBekliyorMu = () => {
+    if(ayrintiHazir(secim)) return false
+    setHata(ayrintiBeklemeSebebi(secim))
+    return true
+  }
+
   const cikar = async (lot: SoyagaciLotu) => {
     if(!baglam) return
+    secilenRef.current = lot.lotId
+    setSecim(secildi(lot.lotId))
     setSeciliLot(lot)
     setAgac(null)
     setIleri(null)
@@ -175,6 +203,10 @@ export default function Traceability({ currentUser }: Props){
         new HaccpServisi(new PostgresHaccpDeposu(getSupabase()))
           .lotunOlcumleri(baglam.ctx, lot.lotId),
       ])
+      // ⚠️ GEÇ GELEN CEVAP BURADA DURUYOR (3.7.2). Hızlı A→B seçiminde
+      // A'nın çıkarımı B'ninkinden sonra dönebilir ve B'nin zincirini ezer.
+      if(secilenRef.current !== lot.lotId) return
+
       setAgac(geri)
       setIleri(gidis)
       setGecmis(dongu)
@@ -183,13 +215,19 @@ export default function Traceability({ currentUser }: Props){
       // Sevkiyat belgeleri ayrı okunuyor: defter yalnızca kimliği bilir,
       // müşteri adı ve telefon belgede durur — aranacak numara odur.
       const idler = etkilenenSevkiyatIdleri(gidis)
-      setSevkiyatlar(
-        idler.length === 0
-          ? []
-          : await new PostgresSevkiyatDeposu(getSupabase()).kimliklerden(baglam.ctx, idler),
-      )
+      const belgeler = idler.length === 0
+        ? []
+        : await new PostgresSevkiyatDeposu(getSupabase()).kimliklerden(baglam.ctx, idler)
+      if(secilenRef.current !== lot.lotId) return
+      setSevkiyatlar(belgeler)
       setHata('')
-    } catch (e) { setHata(hataMetni(e)) }
+      setSecim(d => ayrintiGeldi(d, lot.lotId))
+    } catch (e) {
+      if(secilenRef.current === lot.lotId){
+        setSecim(d => ayrintiDustu(d, lot.lotId, hataMetni(e)))
+        setHata(hataMetni(e))
+      }
+    }
     finally { setCikariliyor(false) }
   }
 
@@ -488,10 +526,20 @@ export default function Traceability({ currentUser }: Props){
                   {/* TEK TUŞ. Aranacak liste ekranda ne ise kâğıtta da odur —
                       ikisi aynı `geriCagirmaRaporu` çağrısından çıkıyor; iki
                       ayrı hesap olsaydı biri düzelirken diğeri unutulurdu. */}
+                  {!ayrintiHazir(secim) && (
+                    <p className="form-error" style={{ margin: '0 0 12px' }}>
+                      {ayrintiBeklemeSebebi(secim)}
+                    </p>
+                  )}
                   {ileri.sevkiyatlar.length > 0 && (
                     <button
                       className="btn primary" type="button"
+                      disabled={!ayrintiHazir(secim)}
                       onClick={() => {
+                        // ⚠️ Kâğıt geri alınamaz: zincir seçili partiye ait
+                        // değilken basılan bir geri çağırma listesi, yanlış
+                        // paletleri işaret eder.
+                        if(ayrintiBekliyorMu()) return
                         const rapor = geriCagirmaRaporu(agac.lot, ileri, sevkiyatlar)
                         belgeYazdir(
                           `Geri çağırma · ${agac.lot.lotKodu}`,
