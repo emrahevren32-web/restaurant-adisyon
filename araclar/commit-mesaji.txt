@@ -1,34 +1,37 @@
-A3 · Depo ekranina da ayrinti kapisi (2/7) + Etiketler'de sebep gorunur yere
+A3 · Siparisler ekranina da ayrinti kapisi (3/7)
 
-DEPO (Warehouse.tsx) -- olculdu:
-  kalemSec -> setSeciliId(id) HEMEN, await detayYenile(...) SONRA.
-Aradaki anda ekranda B kaleminin adi, A kaleminin HAREKETLERI ve LOTLARI
-duruyordu. Etiket ekranindakinden somut bir risk:
- - "Cikis" formu A'nin lotlarini B kalemi icin listeler
- - "Sayim" yanlis bakiyeyle karsilastirir
- - maliyet A'nin maliyetini B'nin basligi altinda gosterir
-Dort yazma eylemi kapandi: Saklama Beyani, Elle Giris, Cikis, Sayim.
-Kapi formun ACILMASINDA duruyor, gonderiminde degil: yanlis lot listesiyle
-acilmis bir form zaten yanlis secenekler sunar; kullaniciyi o forma hic
-sokmamak, sonunda reddetmekten durusttur.
+Siparis ekraninda SEKIZ ayrinti listesi var: satirlar, revizyonlar, farklar,
+sevk durumu, onaylar, karsilama, teslim, sevkiyatlar. Hepsi `sec()` icinde
+istekler donunce yaziliyordu; `setSecili(s)` ise HEMEN. Aradaki anda ekranda
+B siparisinin numarasi, A siparisinin SATIRLARI duruyordu.
 
-!! YENI KALEM AKISINDA BIR TUZAK VARDI ve yakalandi: kalem eklendikten sonra
-`setSeciliId(yeni.id)` cagriliyor. Yalniz onu deseydik, detayYenile icindeki
-kapi yeni kalemin KENDI cevabini "gec gelen cevap" sanip atacak ve ekran bos
-kalacakti. `secilenRef` de guncelleniyor.
+!! Buradaki bedel para ve kagit tasiyor:
+ - `isEmriCikar` EKRANDAKI satirlardan uretim is emri aciyor. Yanlis
+   siparisin satirlariyla acilmis bir is emri, uretimi yanlis urune baslatir.
+ - `irsaliyeYazdir` kagit basiyor; kagit musteriye gider, geri alinamaz.
+ - `revizyonAc` formu ekrandaki satirlari BASLANGIC DEGERI aliyor: yanlis
+   siparisin satirlariyla acilan revizyon, dogru siparisin numarasiyla
+   kaydedilir.
 
-ETIKETLER -- sebep cumlesi TASINDI:
-Emrah Slow 3G ile hizli urun degistirdi ve "Bu kaydin ayrintisi henuz
-yuklenmedi" cumlesini HIC GOREMEDI. Sebep: cumleyi Etiket bolumunun icine,
-yani sag sutunun en altina koymustum; ekranin gorunen alaninin disinda
-beliriyor ve kayboluyordu. Yazi vardi ama ERISILEMEZDI -- tuzak 126'nin ta
-kendisi, ikinci kez. Artik urun adinin hemen altinda.
-Depo ekraninda da ayni ders uygulandi: sebep, ayrintiya bagli bolumlerin
-ICINDE degil, dugmelerin hemen ustunde.
+Takilanlar:
+- Gec gelen cevap `ayrintiYukle` icinde duruyor: secilenRef.current !== s.id
+  ise sekiz setState'in hicbiri calismiyor.
+- `sec()` once ayrintiBosalt() cagiriyor: sekiz liste ANINDA bosaliyor.
+- Yedi yazma eyleminin GOVDESINDE kapi: durumDegistir, revizyonAc, farkAc,
+  kararVer, onayVer, isEmriCikar, irsaliyeYazdir.
+- Uc dugme disabled: durum gecis dugmeleri (mevcut `kapali` kosuluyla
+  birlikte), + Revizyon, Fark bildir.
+- Sebep siparis numarasinin HEMEN ALTINDA. Etiket ekraninda bu cumleyi sag
+  sutunun diplerine koymustum ve Emrah onu hic goremedi; yazi vardi ama
+  erisilemezdi (tuzak 126). Ayni hata tekrarlanmiyor.
 
-Mimari test: Warehouse KAPISI_TAKILI'ya tasindi, dondurulmus listenin tavani
-6'dan 5'e indi. Kalan: Siparisler, Sevkiyatlar, Musteriler, WorkOrders,
-Traceability.
+!! `yenile(seciliId?)` icinde de secilenRef guncelleniyor. Yalniz setSecili
+deseydik, islem sonrasi yenilemede kapi siparisin KENDI cevabini "gec gelen"
+sanip atacak ve ekran bos kalacakti -- Depo'da ayni tuzagi yeni kalem
+akisinda yakalamistim.
+
+Mimari test: Siparisler KAPISI_TAKILI'ya tasindi, dondurulmus listenin tavani
+5'ten 4'e indi. Kalan: Sevkiyatlar, Musteriler, WorkOrders, Traceability.
 
 Co-Authored-By: Claude Opus 5 <noreply@anthropic.com>
 Claude-Session: https://claude.ai/code/session_019BwYM3mAXZUhp4YGj7tp2y

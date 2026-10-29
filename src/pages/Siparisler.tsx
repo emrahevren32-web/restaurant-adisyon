@@ -21,6 +21,11 @@ import { getSupabase, isSupabaseConfigured } from '../core/supabase'
 import { createStockRepository, resolveStockRepositoryMode } from '../core/stock/index'
 import { InMemoryStockItemLookup } from '../core/stock/stock-item-lookup'
 import { depoBaglamiKur, type DepoBaglami } from '../warehouse/warehouse.context'
+// ⚠️ A3 · MIYOP-064 · Ekrandaki satır/revizyon/onay, başlıktaki siparişe mi ait?
+import {
+  SECIM_BOS, ayrintiBeklemeSebebi, ayrintiDustu, ayrintiGeldi, ayrintiHazir,
+  secildi, type SecimDurumu,
+} from '../core/secim/ayrinti-kapisi'
 import {
   PostgresStokKatalogu, type Birim, type KatalogKalemi, type KatalogLotu,
 } from '../warehouse/warehouse.catalog'
@@ -143,6 +148,19 @@ export default function Siparisler({ currentUser }: Props){
   const [arama, setArama] = React.useState('')
   const [durumSuzgeci, setDurumSuzgeci] = React.useState<SiparisDurumu | 'hepsi'>('hepsi')
   const [secili, setSecili] = React.useState<Siparis | null>(null)
+  /**
+   * ⚠️ A3 · MIYOP-064. `secili` seçim anında değişiyor, SEKİZ ayrıntı
+   * listesi (satırlar, revizyonlar, farklar, sevk durumu, onaylar, karşılama,
+   * teslim, sevkiyatlar) istekler dönünce yazılıyordu. Aradaki anda ekranda
+   * B siparişinin numarası, A siparişinin SATIRLARI duruyordu.
+   * ⚠️ Buradaki risk para ve kâğıt taşıyor: `isEmriCikar` ekrandaki
+   * satırlardan iş emri açıyor, `irsaliyeYazdir` kâğıt basıyor. Yanlış
+   * siparişin satırlarıyla açılmış bir iş emri üretimi yanlış ürüne
+   * başlatır; yanlış irsaliye müşteriye gider.
+   */
+  const [secim, setSecim] = React.useState<SecimDurumu>(SECIM_BOS)
+  /** Async gövde `secim`in ESKİ değerini taşır; o anki seçim burada. */
+  const secilenRef = React.useRef<string | null>(null)
   const [satirlar, setSatirlar] = React.useState<SiparisSatiri[]>([])
   const [revizyonlar, setRevizyonlar] = React.useState<Revizyon[]>([])
   const [farklar, setFarklar] = React.useState<Fark[]>([])
@@ -215,6 +233,10 @@ export default function Siparisler({ currentUser }: Props){
       // gömseydik test edemezdik. Depo hepsini veriyor, saf işlev süzüyor.
       sevkiyatDeposu ? sevkiyatDeposu.hepsi(b.ctx) : Promise.resolve([]),
     ])
+    // ⚠️ GEÇ GELEN CEVAP BURADA DURUYOR (A3). Hızlı A→B seçiminde A'nın
+    // isteği B'den SONRA dönebilir ve B'nin sekiz listesini birden ezer.
+    if(secilenRef.current !== s.id) return
+
     setSevkiyatlar(sv)
     setRevizyonlar(r)
     setFarklar(f)
@@ -226,6 +248,7 @@ export default function Siparisler({ currentUser }: Props){
     // yazmıyoruz: servis okunan revizyonlardan seçiyor.
     const satirli = r.filter(x => x.satirlar.length > 0)
     setSatirlar(satirli.length === 0 ? [] : satirli[satirli.length - 1].satirlar)
+    setSecim(d => ayrintiGeldi(d, s.id))
   }, [servis, sevkiyatDeposu])
 
   React.useEffect(() => {
@@ -304,13 +327,35 @@ export default function Siparisler({ currentUser }: Props){
     const liste = await servis.hepsi(baglam.ctx)
     setSiparisler(liste)
     const hedef = liste.find(s => s.id === (seciliId ?? secili?.id)) ?? null
+    // ⚠️ REF DE GÜNCELLENİYOR. Yalnız `setSecili` deseydik, işlem sonrası
+    // yenilemede kapı siparişin KENDİ cevabını "geç gelen" sanıp atacak ve
+    // ekran boş kalacaktı (Depo'da aynı tuzağı yakalamıştım).
+    secilenRef.current = hedef?.id ?? null
     setSecili(hedef)
+    setSecim(secildi(hedef?.id ?? null))
     if(hedef) await ayrintiYukle(hedef, baglam)
   }
 
+  /** Ekrandaki sekiz ayrıntı listesini ANINDA boşaltır. */
+  const ayrintiBosalt = () => {
+    setSatirlar([]); setRevizyonlar([]); setFarklar([])
+    setSevkDurumu([]); setOnaylar([]); setKarsilama([])
+    setTeslim([]); setSevkiyatlar([])
+  }
+
   const sec = async (s: Siparis) => {
-    setSecili(s); setIslem(null); setHata(''); setSekme('satirlar')
-    try { await ayrintiYukle(s, baglam) } catch (e) { setHata(hataMetni(e)) }
+    secilenRef.current = s.id
+    setSecili(s); setSecim(secildi(s.id))
+    // ⚠️ Sıra önemli: ayrıntı ÖNCE boşalır, sonra yüklenir.
+    ayrintiBosalt()
+    setIslem(null); setHata(''); setSekme('satirlar')
+    try { await ayrintiYukle(s, baglam) }
+    catch (e) {
+      if(secilenRef.current === s.id){
+        setSecim(d => ayrintiDustu(d, s.id, hataMetni(e)))
+        setHata(hataMetni(e))
+      }
+    }
   }
 
   /**
@@ -336,7 +381,19 @@ export default function Siparisler({ currentUser }: Props){
     } catch (e) { setHata(hataMetni(e)) }
   }
 
+  /**
+   * ⚠️ Kapı yalnız `disabled` ile durmaz: klavye ya da otomasyon düğmeyi
+   * atlarsa bu satır yazmayı durdurur. Siparişte bedeli yüksek — `isEmriCikar`
+   * ekrandaki satırlardan üretim başlatıyor, `irsaliyeYazdir` kâğıt basıyor.
+   */
+  const ayrintiBekliyorMu = () => {
+    if(ayrintiHazir(secim)) return false
+    setBilgi(''); setHata(ayrintiBeklemeSebebi(secim))
+    return true
+  }
+
   const durumDegistir = async (yeni: SiparisDurumu) => {
+    if(ayrintiBekliyorMu()) return
     if(!secili) return
     try{
       await servis!.durumDegistir(baglam.ctx, secili, yeni)
@@ -347,6 +404,7 @@ export default function Siparisler({ currentUser }: Props){
   }
 
   const revizyonAc = async (girdi: YeniRevizyon) => {
+    if(ayrintiBekliyorMu()) return
     if(!secili) return
     try{
       await servis!.revizyonEkle(baglam.ctx, secili, girdi)
@@ -357,6 +415,7 @@ export default function Siparisler({ currentUser }: Props){
   }
 
   const farkAc = async (girdi: YeniFark) => {
+    if(ayrintiBekliyorMu()) return
     try{
       await servis!.farkAc(baglam.ctx, girdi)
       setBilgi('Fark kaydı açıldı. İncelenip karara bağlanması gerekiyor.')
@@ -366,6 +425,7 @@ export default function Siparisler({ currentUser }: Props){
   }
 
   const kararVer = async (farkId: string, karar: FarkKarari, not: string, sorumluId?: string) => {
+    if(ayrintiBekliyorMu()) return
     try{
       await servis!.farkiKararaBagla(baglam.ctx, farkId, { karar, kararNotu: not, sorumluId })
       setBilgi('Fark karara bağlandı.')
@@ -382,6 +442,7 @@ export default function Siparisler({ currentUser }: Props){
    * zincirin hiçbir anlamı kalmazdı.
    */
   const onayVer = async (adimKodu: string, karar: OnayKarari, not: string, sozTarihi: string) => {
+    if(ayrintiBekliyorMu()) return
     if(!secili || !servis || !baglam) return
     try{
       await servis.onayVer(baglam.ctx, {
@@ -406,6 +467,7 @@ export default function Siparisler({ currentUser }: Props){
    * başlatmış oluruz.
    */
   const isEmriCikar = async () => {
+    if(ayrintiBekliyorMu()) return
     if(!secili || !uretimDepolari || !baglam) return
     try{
       // Reçeteleri ÖNCE okuyoruz: biri okunamazsa hiç iş emri açmıyoruz.
@@ -448,6 +510,7 @@ export default function Siparisler({ currentUser }: Props){
    * cevap yoktur. Hangi partiden ne kadar gittiği yalnız hareketlerde yazılı.
    */
   const irsaliyeYazdir = async (irsaliye: SiparisIrsaliyesi) => {
+    if(ayrintiBekliyorMu()) return
     if(!sevkiyatServisi || !baglam || !secili) return
     const belge = sevkiyatlar.find(x => x.id === irsaliye.sevkiyatId)
     if(!belge) return
@@ -671,6 +734,16 @@ export default function Siparisler({ currentUser }: Props){
                 <span className={`status-pill ${DURUM_ROZETI[secili.durum]}`}>{secili.durum}</span>
               </div>
 
+              {/* ⚠️ Sebep, sipariş numarasının HEMEN ALTINDA. Etiket
+                  ekranında bu cümleyi sağ sütunun diplerine koymuştum ve
+                  Emrah onu hiç göremedi — yazı vardı ama erişilemezdi
+                  (tuzak 126). Aynı hatayı burada tekrarlamıyoruz. */}
+              {!ayrintiHazir(secim) && (
+                <p className="form-error" style={{ margin: '0 0 12px' }}>
+                  {ayrintiBeklemeSebebi(secim)}
+                </p>
+              )}
+
               <div className="karar-ozet">
                 <div className="karar-ozet-satir">
                   <span>Müşteri</span><strong>{secili.musteriAdi ?? '—'}</strong>
@@ -704,7 +777,8 @@ export default function Siparisler({ currentUser }: Props){
                     const kapali = d === 'Onaylandı' && !zincirTamam
                     return (
                       <button
-                        key={d} className="btn" type="button" disabled={kapali}
+                        key={d} className="btn" type="button"
+                        disabled={kapali || !ayrintiHazir(secim)}
                         title={kapali ? onayOzeti(zincirDurumu) : undefined}
                         onClick={() => { void durumDegistir(d) }}
                       >
@@ -720,10 +794,16 @@ export default function Siparisler({ currentUser }: Props){
 
               {yazabilir && !islem && secili.durum !== 'İptal' && (
                 <div className="form-actions">
-                  <button className="btn" type="button" onClick={() => { setIslem('revizyon'); setHata('') }}>
+                  {/* ⚠️ Kapı formun AÇILMASINDA: revizyon formu EKRANDAKİ
+                      satırları başlangıç değeri alıyor. Yanlış siparişin
+                      satırlarıyla açılmış bir revizyon formu, doğru siparişin
+                      numarasıyla kaydedilir. */}
+                  <button className="btn" type="button" disabled={!ayrintiHazir(secim)}
+                    onClick={() => { if(ayrintiBekliyorMu()) return; setIslem('revizyon'); setHata('') }}>
                     + Revizyon
                   </button>
-                  <button className="btn" type="button" onClick={() => { setIslem('fark'); setHata('') }}>
+                  <button className="btn" type="button" disabled={!ayrintiHazir(secim)}
+                    onClick={() => { if(ayrintiBekliyorMu()) return; setIslem('fark'); setHata('') }}>
                     Fark bildir
                   </button>
                 </div>
