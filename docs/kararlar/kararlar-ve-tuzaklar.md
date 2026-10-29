@@ -949,6 +949,66 @@ yüzünden görülmemişti.
 canlıda** açılır. Boş liste testi bunun yerine geçmez: test sahte depodan
 besleniyor, canlı kiracı gerçek sorgudan.
 
+**143 · PROVA VERİTABANI 0099'DA DONMUŞTU VE HİÇBİR ŞEY KIRMIZI YANMADI.**
+(29.10) `db/prova/kur.sh` göçleri `00[0-9][0-9]_*.sql` deseniyle arıyordu.
+O desen 0000–0099 arasını tutar; **0100'den sonrasını sessizce atlar.** Yani
+prova veritabanı 0100 ve 0101 olmadan kuruluyordu ve üzerinde koşan her prova
+"yeşil" diyordu — ölçtüğü şey hiç uygulanmamış olduğu hâlde.
+⚠️ Hiçbir hata çıkmıyordu. Tek belirti, en sondaki `✅ 98 göç uygulandı`
+satırındaki **sayıydı** — ve o sayıyı kimse okumuyordu. Bir betiğin
+"başarılı" demesi, doğru işi yaptığı anlamına gelmez.
+Onarım iki parçalı: desen `[0-9][0-9][0-9][0-9]_*.sql` oldu **ve** uygulanan
+sayı klasördeki dosya sayısıyla **karşılaştırılıyor** — eşit değilse betik
+durur. Yani bir dahaki sefere sayıyı insan değil betik okur.
+
+**144 · PANELDE VARSAYILAN KALAN KUTU, SESSİZCE YANLIŞ BİR ŞEY KURAR.**
+(29.10) Edge Function panelden (Via Editor) dağıtıldı. Kod doğru, yapıştırma
+doğru, panel *"Successfully deployed edge function"* dedi — ama sağ alttaki
+**Function name** kutusu varsayılan `rapid-function` olarak kalmıştı.
+Tarayıcı `giris-yap` çağırdığı için fonksiyon **hiç bulunmuyordu**; istek
+404 alıyor, istemci "ulaşılamadı" sayıp eski yola düşüyordu. Giriş çalışmaya
+devam ettiği için **hiçbir belirti yoktu**.
+⚠️ Panelde adı değiştirmek de kurtarmıyor: *"Your slug and endpoint URL will
+remain the same"*. Silip yeniden kurmak gerekti.
+⚠️ Kural: bir dağıtımın "oldu" demesi yetmez; **çağıran taraftan** ölçülür.
+Burada ölçü Invocations sekmesindeki `POST 200` satırıdır — o satır yoksa
+dağıtım olmamıştır, panel ne derse desin.
+
+**145 · `Get-Content -Raw` DOSYAYI ESKİ ALFABEYLE OKUYOR.**
+(29.10) Kodu panoya kopyalamak için verdiğim komut `Get-Content -Raw`
+kullanıyordu. Windows PowerShell 5.1 BOM'suz bir UTF-8 dosyayı sistemin eski
+alfabesiyle okur: Türkçe harfler `Ã§`, `Ä±`, `âš ï¸` diye panoya gider ve
+öyle yapışır. Bozulan şey yalnız yorum satırları değildi — **müşterinin
+göreceği hata mesajları** da (`'Çok fazla deneme yapıldı'`) bozuluyordu.
+⚠️ Doğrusu: `[IO.File]::ReadAllText($yol, [Text.Encoding]::UTF8)`.
+⚠️ Ve komut kendi çıktısını **ölçmeli**: panoda `ş` var mı, bozuk `Ã` var
+mı. "Kopyaladım" demek yetmez; kopyanın sağlam olduğu gösterilir.
+
+**147 · BİR DOSYAYI SİLERKEN İÇİNDEKİ SAF KARARI DA SİLDİM.**
+(29.10) `giris-adresi.ts` kaldırılırken içindeki `kesinEpostaMi` de gitti —
+oysa o, hiçbir şey sormayan saf bir kuraldı ve `Login.tsx` onu şifre
+sıfırlamada kullanıyordu. Derleme kırıldı.
+⚠️ **ASIL KUSUR, SİLMEK DEĞİL, ÖLÇÜMÜN YANLIŞ KOPYADAN YAPILMASIYDI.**
+Silmeden önce "kim kullanıyor" diye taradım ve "kimse" cevabını aldım; ama
+taradığım şey, Emrah'ın makinesindeki depoya ait **eski bir kopyaydı** —
+o kopyada `Login.tsx` bu alıntıyı henüz içermiyordu. Yani ölçüm yapıldı ve
+**yanlış kaynaktan** yapıldı; sonuç "ölçtüm" diye güven verdi.
+⚠️ Kural: bir dosyayı silmeden önce "kim kullanıyor" taraması **o anki
+gerçek depoda** yapılır. Ve asıl güvence derleme kapısıdır: tip denetimi
+bunu ilk saniyede yakaladı (tuzak 141'in kapısı işe yaradı).
+⚠️ İkinci ders: kaldırılan bir dosyanın **saf** parçaları taşınır, silinmez
+— ve kopyalanmaz: `kesinEpostaMi` yeni bir dosyaya (`giris-adi-bicimi.ts`)
+kendi testiyle taşındı, `Login.tsx`e kopyalanmadı.
+
+**146 · BORCU "YAZILI DURUYOR" DİYE DONDURAN TEST, BORÇ KAPANINCA TERSİNE
+ÇEVRİLİR — SİLİNMEZ.** (29.10) `giris-sunucuda.arch.test.ts` içinde bilerek
+*"GEÇİŞ DÖNEMİ: yedek yol hâlâ duruyor ve bu YAZILI"* diyen bir blok vardı.
+Borç kapanınca o bloğu silmek kolaydı; ama o zaman geriye **hiçbir şey**
+kalmazdı ve yedek yol bir gün sessizce geri gelebilirdi.
+Blok **tersine çevrildi**: artık o yolun geri GELMEDİĞİNİ ölçüyor — hem
+`storage.ts`te, hem **bütün tarayıcı kaynağında** (tek dosyaya bakmak
+yetmez: başka bir ekran aynı RPC'yi çağırarak sızıntıyı geri açabilirdi).
+
 
 ---
 
@@ -1090,3 +1150,21 @@ Son söz onun çıktısındadır.
     "kod derleniyor" ayrı iki iddiadır; vitest ve esbuild tip denetlemez.
 55. Bir ekranı "bitti" saymadan önce **sıfırdan açılmış bir kiracıda,
     canlıda** aç (tuzak 142). Boş liste testi bunun yerine geçmez.
+56. Bir dosya listesini **desenle** tarayan betik, desenin kapsadığı aralığı
+    da **ölçsün**: kaç dosya bulundu, kaçı işlendi (tuzak 143). "Başarılı"
+    demek, doğru işi yaptı demek değildir.
+57. Bir dağıtımı **çağıran taraftan** doğrula (tuzak 144). Panelin
+    "Successfully deployed" demesi değil, isteğin gerçekten o fonksiyona
+    ulaştığını gösteren kayıt (Invocations · `POST 200`) kanıttır.
+58. Windows'ta dosya okurken **alfabeyi açıkça yaz**
+    (`[IO.File]::ReadAllText(..., UTF8)`), ve kopyanın sağlamlığını
+    **ölç** (tuzak 145).
+59. Bir borcu donduran test, borç kapanınca **tersine çevrilir, silinmez**
+    (tuzak 146). Silinirse geri dönüşü hiçbir şey engellemez.
+60. Bir yasağı **tek dosyada** değil, **bütün kaynakta** ölç (tuzak 146):
+    silinen bir yol başka bir ekrandan geri gelebilir.
+61. Bir dosyayı silmeden önce "kim kullanıyor" taramasını **o anki gerçek
+    depoda** yap (tuzak 147). Eski bir kopyadan yapılan ölçüm, ölçüm
+    olmadığı hâlde güven verir.
+62. Kaldırılan bir dosyanın **saf** parçaları **taşınır** — silinmez, ve
+    çağıran dosyaya kopyalanmaz (tuzak 147).

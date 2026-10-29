@@ -43,18 +43,13 @@ su postgres -c "psql -q -v ON_ERROR_STOP=1 -d miyop -f $PROVA/00_supabase_taklit
 # diye yazdığım satırlar, hata olduğunda çalışmıyordu.
 # Doğrusu: çağrıyı `if`in KOŞULUNA almak — `set -e` bir koşulda
 # değerlendirilen komutu sonlandırmaz.
-# ⚠️ 27.10.2026 · DESEN GENİŞLETİLDİ. Önce `00[0-9][0-9]_*.sql` yazıyordu;
-# yani 0000–0099 arası. Göç 0100 yazıldığında desen onu YAKALAMADI ve betik
-# "✅ 100 göç uygulandı" diyerek SESSİZCE geçti — prova-0100 kırmızı değil
-# BOŞ döndü. Bulamadığı için sessiz kalan bir kontrol, kontrol değildir
-# (tuzak 80). Aşağıdaki sağlama da bu yüzden eklendi: uygulanan göç sayısı
-# ile klasördeki numaralı dosya sayısı EŞİT olmalı.
-BEKLENEN=$(ls "$GOC"/[0-9][0-9][0-9][0-9]_*.sql 2>/dev/null | wc -l)
-if [ "$BEKLENEN" -eq 0 ]; then
-  echo "❌ Numaralı göç dosyası bulunamadı: $GOC"; exit 1
-fi
-
 SAYI=0
+# ⚠️ TUZAK 143 · DESEN 0099'DA DONDU. İlk hâli `00[0-9][0-9]_*.sql` idi;
+# bu desen 0000-0099 arasını tutar ve **0100'den sonrasını sessizce ATLAR**.
+# Prova veritabanı 0099'da donmuş olur, üzerinde koşan her prova
+# "yeşil" der çünkü ölçtüğü şey hiç uygulanmamıştır. Hiçbir şey
+# kırmızı yanmaz; yalnızca aşağıdaki sayı eksik çıkar — ve o sayıyı kimse
+# okumaz. ⚠️ Bu yüzden aşağıda beklenen sayı da ÖLÇÜLÜYOR.
 for f in $(ls "$GOC"/[0-9][0-9][0-9][0-9]_*.sql | sort); do
   if CIKTI=$(su postgres -c "psql -v ON_ERROR_STOP=1 -d miyop -f $f" 2>&1); then
     SAYI=$((SAYI+1))
@@ -64,8 +59,9 @@ for f in $(ls "$GOC"/[0-9][0-9][0-9][0-9]_*.sql | sort); do
     exit 1
   fi
 done
+BEKLENEN=$(ls "$GOC"/[0-9][0-9][0-9][0-9]_*.sql | wc -l)
 if [ "$SAYI" -ne "$BEKLENEN" ]; then
-  echo "❌ $BEKLENEN numaralı göç var ama $SAYI tanesi uygulandı."
+  echo "❌ $SAYI göç uygulandı ama klasörde $BEKLENEN var — desen dosya atlıyor."
   exit 1
 fi
-echo "✅ $SAYI göç uygulandı (klasörde $BEKLENEN numaralı dosya var)"
+echo "✅ $SAYI göç uygulandı (klasördeki $BEKLENEN dosyanın hepsi)"

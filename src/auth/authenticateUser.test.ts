@@ -42,15 +42,19 @@ const rpc = vi.fn(
 // yakalanıp "ulaşılamadı" sayılıyor ve hep YEDEK yola düşülüyordu. Yani
 // 14 test, dağıtımdan sonra çalışacak yolu hiç sınamıyordu.
 //
-// Varsayılan: fonksiyon DAĞITILMAMIŞ (404) → yedek yol. Bugünkü canlı
-// durum budur, o yüzden eski testler aynen geçerli kalıyor. Sunucu yolunu
-// sınayan testler `invoke`u kendi içinde ayarlıyor.
+// ⚠️ 29.10 · YEDEK YOL SİLİNDİ (göç 0102). Daha önce varsayılan "fonksiyon
+// DAĞITILMAMIŞ (404)" idi ve bütün eski testler sessizce YEDEK yoldan
+// geçiyordu. Göç 0102 `giris_adresi_bul`un `anon` VE `authenticated`
+// haklarını aldı; tarayıcının eski yolu artık YOK. Bu yüzden varsayılan
+// ARTIK BAŞARIDIR. Reddi sınayan test `sunucuReddeder()`, ulaşılamamayı
+// sınayan `sunucuyaUlasilamiyor()` çağırır.
+const OTURUM = { access_token: 'erisim-jetonu', refresh_token: 'tazeleme-jetonu' }
 const invoke = vi.fn(
   async (
     _ad: string, _ayar?: unknown,
   ): Promise<SahteCevap<{ access_token: string; refresh_token: string }>> => ({
-    data: null,
-    error: { message: 'Function not found', context: { status: 404 } },
+    data: { ...OTURUM },
+    error: null,
   }),
 )
 const setSession = vi.fn(
@@ -76,28 +80,51 @@ vi.mock('../core/supabase', () => ({
 
 const { authenticateUser } = await import('../storage')
 
+// ── YARDIMCILAR · üç hâl, üç ayrı kurulum ───────────────────────────────
+// ⚠️ Bu üçü KARIŞTIRILMAMALI: "reddedildi" kullanıcıya söylenir,
+// "ulaşılamadı" bir arızadır ve artık giriş OLMAZ (yedek yol silindi).
+
+/** Sunucu girişi OLDU: fonksiyon oturum verir, oturumdan kullanıcı okunur. */
+const sunucuGirisVerir = (kullanici: { id: string; email?: string }) => {
+  invoke.mockResolvedValue({ data: { ...OTURUM }, error: null })
+  setSession.mockResolvedValue({ data: {}, error: null })
+  getUser.mockResolvedValue({ data: { user: kullanici }, error: null })
+}
+
+/** Sunucu REDDETTİ. ⚠️ Olmayan kullanıcı ile yanlış parola AYNI cevaptır. */
+const sunucuReddeder = () => {
+  invoke.mockResolvedValue({
+    data: null,
+    error: { message: 'Unauthorized', context: { status: 401 } },
+  })
+}
+
+/** Fonksiyona ULAŞILAMIYOR. ⚠️ 0102'den sonra bu, girişin olmaması demek. */
+const sunucuyaUlasilamiyor = () => {
+  invoke.mockResolvedValue({
+    data: null,
+    error: { message: 'Function not found', context: { status: 404 } },
+  })
+}
+
 describe('authenticateUser — Supabase Auth ile gerçek oturum açma', () => {
   beforeEach(() => {
     vi.clearAllMocks()
   })
 
   it('yanlış e-posta veya şifre reddedilir, app_user hiç sorgulanmaz', async () => {
-    signInWithPassword.mockResolvedValue({
-      data: { user: null },
-      error: { message: 'Invalid login credentials' }
-    })
+    sunucuReddeder()
 
     const user = await authenticateUser('yanlis@ornek.com', 'yanlis-sifre')
 
     expect(user).toBeNull()
     expect(from).not.toHaveBeenCalled()
+    // ⚠️ Tarayıcı parolayı Auth'a KENDİ sormuyor; bu iş sunucuda.
+    expect(signInWithPassword).not.toHaveBeenCalled()
   })
 
   it('Supabase girişi başarılı ama app_user eşleşmesi yoksa reddedilir ve oturum kapatılır', async () => {
-    signInWithPassword.mockResolvedValue({
-      data: { user: { id: 'auth-uid-eslesmeyen' } },
-      error: null
-    })
+    sunucuGirisVerir({ id: 'auth-uid-eslesmeyen' })
     maybeSingle.mockResolvedValue({ data: null, error: null })
 
     const user = await authenticateUser('eslesmeyen@ornek.com', 'sifre123')
@@ -107,10 +134,7 @@ describe('authenticateUser — Supabase Auth ile gerçek oturum açma', () => {
   })
 
   it('pasif (is_active=false) app_user girişi reddedilir ve oturum kapatılır', async () => {
-    signInWithPassword.mockResolvedValue({
-      data: { user: { id: 'auth-uid-pasif' } },
-      error: null
-    })
+    sunucuGirisVerir({ id: 'auth-uid-pasif' })
     maybeSingle.mockResolvedValue({
       data: {
         id: 'app-user-pasif',
@@ -134,10 +158,7 @@ describe('authenticateUser — Supabase Auth ile gerçek oturum açma', () => {
 
   it('geçerli admin girişinde User nesnesi döner ve düz metin parola içermez', async () => {
     const authUid = '141939e8-5779-43af-b468-9cbc8ee2b1fb'
-    signInWithPassword.mockResolvedValue({
-      data: { user: { id: authUid } },
-      error: null
-    })
+    sunucuGirisVerir({ id: authUid })
     maybeSingle.mockResolvedValue({
       data: {
         id: 'app-user-emrah',
@@ -174,10 +195,7 @@ describe('authenticateUser — Supabase Auth ile gerçek oturum açma', () => {
     // oturumunda var. Taşınmazsa kişi kendi giriş adresini programın
     // hiçbir ekranında göremez — "Profilim" ekranındaki alan da bu yüzden
     // yıllarca kullanıcı adını gösteriyordu.
-    signInWithPassword.mockResolvedValue({
-      data: { user: { id: 'auth-uid-eposta', email: 'kullanici@ornek.com' } },
-      error: null
-    })
+    sunucuGirisVerir({ id: 'auth-uid-eposta', email: 'kullanici@ornek.com' })
     maybeSingle.mockResolvedValue({
       data: {
         id: 'app-user-eposta',
@@ -201,10 +219,7 @@ describe('authenticateUser — Supabase Auth ile gerçek oturum açma', () => {
   })
 
   it('oturumda e-posta yoksa alan boş kalır, kullanıcı adıyla doldurulmaz', async () => {
-    signInWithPassword.mockResolvedValue({
-      data: { user: { id: 'auth-uid-epostasiz' } },
-      error: null
-    })
+    sunucuGirisVerir({ id: 'auth-uid-epostasiz' })
     maybeSingle.mockResolvedValue({
       data: {
         id: 'app-user-epostasiz',
@@ -226,10 +241,7 @@ describe('authenticateUser — Supabase Auth ile gerçek oturum açma', () => {
   })
 
   it('role_code admin dışındaki her rolü Personel olarak eşler', async () => {
-    signInWithPassword.mockResolvedValue({
-      data: { user: { id: 'auth-uid-personel' } },
-      error: null
-    })
+    sunucuGirisVerir({ id: 'auth-uid-personel' })
     maybeSingle.mockResolvedValue({
       data: {
         id: 'app-user-personel',
@@ -251,10 +263,9 @@ describe('authenticateUser — Supabase Auth ile gerçek oturum açma', () => {
   })
 })
 
-describe('kullanıcı adıyla giriş (0077) ve geçici şifre bayrağı (0076)', () => {
+describe('giriş adıyla giriş (0077/0102) ve geçici şifre bayrağı (0076)', () => {
   beforeEach(() => {
     vi.clearAllMocks()
-    rpc.mockResolvedValue({ data: null, error: null })
   })
 
   const personelSatiri = (bayrak: boolean) => ({
@@ -273,73 +284,45 @@ describe('kullanıcı adıyla giriş (0077) ve geçici şifre bayrağı (0076)',
     error: null
   })
 
-  it('⚠️ kullanıcı adı, girişten ÖNCE gerçek giriş adresine çevrilir', async () => {
-    rpc.mockResolvedValue({ data: 'depocu@abcgida.miyop.local', error: null })
-    signInWithPassword.mockResolvedValue({
-      data: { user: { id: 'auth-depocu', email: 'depocu@abcgida.miyop.local' } },
-      error: null
-    })
+  // ⚠️ 29.10 · BURADA DÖRT TEST SİLİNDİ, ÇÜNKÜ ÖLÇTÜKLERİ KOD SİLİNDİ.
+  // Eskiden tarayıcı kullanıcı adını kendisi adrese çeviriyordu
+  // (`giris_adresi_bul`), e-posta yazana çevirmiyordu, çeviri düşerse
+  // girdiyi olduğu gibi deniyordu. Bu üç davranış ARTIK SUNUCUDA:
+  // `supabase/functions/giris-yap/index.ts`. Metni
+  // `giris-sunucuda.arch.test.ts` ölçüyor.
+  //
+  // ⚠️ Bu testleri "sahte bir sunucu" kurup burada yaşatmak mümkündü ve
+  // YANLIŞ olurdu: o sahte sunucunun içine aynı kuralı ben yazardım ve
+  // test kendi taklidini ölçerdi. Tarayıcıda ölçülecek şey artık tek:
+  // girdiyi OLDUĞU GİBİ gövdeye koyuyor mu, ve adresi HİÇ sormuyor mu.
+
+  it('⚠️ giriş adı ve işletme kodu sunucuya GÖVDEDE gider, tarayıcı çözmez', async () => {
+    sunucuGirisVerir({ id: 'auth-depocu', email: 'depocu@abcgida.miyop.local' })
     maybeSingle.mockResolvedValue(personelSatiri(false))
 
-    const user = await authenticateUser('depocu', 'gecici-sifre1')
+    const user = await authenticateUser('  depocu  ', 'gecici-sifre1', 'ABCGIDA')
 
-    expect(rpc).toHaveBeenCalledWith('giris_adresi_bul', {
-      p_kullanici: 'depocu',
-      p_isletme: null
-    })
-    // Supabase'e kullanıcı adı DEĞİL, çözülen adres gidiyor.
-    expect(signInWithPassword).toHaveBeenCalledWith({
-      email: 'depocu@abcgida.miyop.local',
-      password: 'gecici-sifre1'
+    expect(invoke).toHaveBeenCalledWith('giris-yap', {
+      body: { giris: 'depocu', sifre: 'gecici-sifre1', isletme: 'ABCGIDA' },
     })
     expect(user!.username).toBe('depocu')
   })
 
-  it('işletme kodu verilirse sunucuya o kodla sorulur', async () => {
-    rpc.mockResolvedValue({ data: 'depocu@abcgida.miyop.local', error: null })
-    signInWithPassword.mockResolvedValue({
-      data: { user: { id: 'auth-depocu' } }, error: null
-    })
-    maybeSingle.mockResolvedValue(personelSatiri(false))
-
-    await authenticateUser('depocu', 'gecici-sifre1', 'ABCGIDA')
-
-    expect(rpc).toHaveBeenCalledWith('giris_adresi_bul', {
-      p_kullanici: 'depocu',
-      p_isletme: 'ABCGIDA'
-    })
-  })
-
-  it('⚠️ e-posta yazan kişi için sunucuya HİÇ gidilmez (fazladan istek yok)', async () => {
-    signInWithPassword.mockResolvedValue({
-      data: { user: { id: 'auth-patron', email: 'abc.bey@ornek.com' } },
-      error: null
-    })
+  it('⚠️ tarayıcı adresi HİÇ sormuyor — sızıntının kapandığının kanıtı', async () => {
+    sunucuGirisVerir({ id: 'auth-patron', email: 'abc.bey@ornek.com' })
     maybeSingle.mockResolvedValue(personelSatiri(false))
 
     await authenticateUser('ABC.Bey@Ornek.COM', 'sifre123')
 
+    // ⚠️ Göç 0102'den sonra tarayıcının bu hakkı ZATEN YOK; çağırsa 42501
+    // alırdı. Yine de ölçülüyor: hakkı olmayan bir çağrı yapmak, girişi
+    // sessizce kıran bir hata olurdu.
     expect(rpc).not.toHaveBeenCalled()
-    // Adres küçük harfe indirilir; Supabase'in beklediği biçim budur.
-    expect(signInWithPassword).toHaveBeenCalledWith({
-      email: 'abc.bey@ornek.com',
-      password: 'sifre123'
-    })
-  })
-
-  it('⚠️ çeviri başarısız olsa bile giriş denenir (RPC arızası bütün girişi kilitlemez)', async () => {
-    rpc.mockResolvedValue({ data: null, error: { message: 'network' } })
-    signInWithPassword.mockResolvedValue({ data: { user: null }, error: { message: 'Invalid' } })
-
-    const user = await authenticateUser('depocu', 'sifre123')
-
-    expect(signInWithPassword).toHaveBeenCalledWith({ email: 'depocu', password: 'sifre123' })
-    expect(user).toBeNull()
+    expect(signInWithPassword).not.toHaveBeenCalled()
   })
 
   it('⚠️ geçici şifre bayrağı User nesnesine taşınır (taşınmazsa kapı hiç kapanmaz)', async () => {
-    rpc.mockResolvedValue({ data: 'depocu@abcgida.miyop.local', error: null })
-    signInWithPassword.mockResolvedValue({ data: { user: { id: 'auth-depocu' } }, error: null })
+    sunucuGirisVerir({ id: 'auth-depocu' })
     maybeSingle.mockResolvedValue(personelSatiri(true))
 
     const user = await authenticateUser('depocu', 'gecici-sifre1')
@@ -348,8 +331,7 @@ describe('kullanıcı adıyla giriş (0077) ve geçici şifre bayrağı (0076)',
   })
 
   it('bayrak yoksa (eski kayıt / null) false olur — kimse boşuna kapıda kalmaz', async () => {
-    rpc.mockResolvedValue({ data: 'patron@ornek.com', error: null })
-    signInWithPassword.mockResolvedValue({ data: { user: { id: 'auth-eski' } }, error: null })
+    sunucuGirisVerir({ id: 'auth-eski' })
     maybeSingle.mockResolvedValue({
       data: {
         id: 'app-user-eski', tenant_id: 'tenant-abc', company_id: null,
@@ -366,8 +348,7 @@ describe('kullanıcı adıyla giriş (0077) ve geçici şifre bayrağı (0076)',
   })
 
   it('⚠️ seçilen sütunlar arasında must_change_password VAR', async () => {
-    rpc.mockResolvedValue({ data: 'depocu@abcgida.miyop.local', error: null })
-    signInWithPassword.mockResolvedValue({ data: { user: { id: 'auth-depocu' } }, error: null })
+    sunucuGirisVerir({ id: 'auth-depocu' })
     maybeSingle.mockResolvedValue(personelSatiri(true))
 
     await authenticateUser('depocu', 'gecici-sifre1')
@@ -470,11 +451,14 @@ describe('MIYOP-043 · giriş sunucuda yapılıyor', () => {
     expect(from).not.toHaveBeenCalled()
   })
 
-  it('fonksiyon dağıtılmamışsa YEDEK yol devreye girer (bugünkü canlı durum)', async () => {
-    // invoke varsayılanı 404 · yedek yol
-    signInWithPassword.mockResolvedValue({
-      data: { user: { id: 'auth-uid-3', email: 'z@y.miyop.local' } }, error: null
-    })
+  it('⚠️ fonksiyona ULAŞILAMAZSA giriş OLMAZ — yedek yol SİLİNDİ (0102)', async () => {
+    // ⚠️ BU TESTİN ÖNCEKİ HÂLİ TAM TERSİNİ SÖYLÜYORDU: "yedek yol devreye
+    // girer (bugünkü canlı durum)". O dal 29.10'da silindi; `giris-yap`
+    // canlıda doğrulandıktan (Invocations · POST 200) ve göç 0102
+    // `giris_adresi_bul`un `anon`/`authenticated` haklarını aldıktan
+    // sonra. Yedek yol dursaydı, kapanan sızıntı ilk ağ arızasında geri
+    // açılırdı — ve kimse fark etmezdi.
+    sunucuyaUlasilamiyor()
     maybeSingle.mockResolvedValue({
       data: {
         id: 'u3', tenant_id: 't1', company_id: 'c1', username: 'depocu',
@@ -484,13 +468,18 @@ describe('MIYOP-043 · giriş sunucuda yapılıyor', () => {
       error: null
     })
 
-    const user = await authenticateUser('depocu@ABCGIDA', 'sifre123')
+    const ariza: { deger?: { mesaj: string } } = {}
+    const user = await authenticateUser('depocu@ABCGIDA', 'sifre123', undefined, ariza)
 
-    expect(user).not.toBeNull()
-    expect(signInWithPassword).toHaveBeenCalled()
-    // ⚠️ Yedek yol HÂLÂ adresi soruyor — açık tam olarak burada duruyor.
-    // Göç 0091 bu dalı sildiğinde bu test de kalkacak.
-    expect(rpc).toHaveBeenCalledWith('giris_adresi_bul', expect.anything())
+    expect(user).toBeNull()
+    // Eski yol gerçekten YOK: ne adres soruluyor, ne de Auth'a gidiliyor.
+    expect(rpc).not.toHaveBeenCalled()
+    expect(signInWithPassword).not.toHaveBeenCalled()
+    expect(from).not.toHaveBeenCalled()
+    // ⚠️ Ve sebep PAROLA DEĞİL: kişi şifresini boş yere değiştirmeye
+    // kalkmasın diye mesaj çağırana taşınıyor (MIYOP-051'in dersi).
+    expect(ariza.deger?.mesaj).toBeTruthy()
+    expect(ariza.deger?.mesaj).not.toMatch(/şifre|parola/i)
   })
 
   it('MIYOP-051 · kota/arıza yanlış parola sayılmaz ve YEDEK YOLA DÜŞÜLMEZ', async () => {
@@ -529,12 +518,12 @@ describe('MIYOP-043 · giriş sunucuda yapılıyor', () => {
   it('oturum kurulamazsa giriş reddedilir, yarım oturum bırakılmaz', async () => {
     sunucuOturumVerir()
     setSession.mockResolvedValue({ data: {}, error: { message: 'bozuk jeton' } })
-    signInWithPassword.mockResolvedValue({
-      data: { user: null }, error: { message: 'Invalid login credentials' }
-    })
 
     const user = await authenticateUser('depocu@ABCGIDA', 'sifre123')
 
     expect(user).toBeNull()
+    // ⚠️ Yedek yola da düşülmüyor: oturum kurulamaması bir arızadır,
+    // eski sızdıran yolu açmanın gerekçesi değil.
+    expect(signInWithPassword).not.toHaveBeenCalled()
   })
 })

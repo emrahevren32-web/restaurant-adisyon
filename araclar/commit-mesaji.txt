@@ -1,54 +1,97 @@
-A3 BITTI · ayrinti kapisi YEDI EKRANIN YEDISINDE de takili (7/7)
+A6 BITTI · MIYOP-043 kapandi · giris sunucuda, yedek yol SILINDI
 
-MIYOP-010 + MIYOP-064 kapandi. Kalan dort ekran bu commit'te:
-Sevkiyatlar, Musteriler, Is Emirleri, Izlenebilirlik.
+Uc adimin ucu de bitti ve HER BIRI OLCULDU:
 
-Her ekranin KENDI bedeli olculdu ve koda yazildi:
+1) giris-yap Edge Function CANLIDA. Panelden (Via Editor) dagitildi.
+   Dogrulama panelin "Successfully deployed" yazisi DEGIL, cagiran
+   taraftan olculdu: Edge Functions > giris-yap > Invocations
+   "POST 200" (05:02:08), Overview "7 invocations since last deploy
+   and no errors", 4XX ve 5XX orani %0.
 
-- SEVKIYATLAR: !! kismen ZATEN korunuyordu. 09.10'da olcumler icin
-  `olcumSevkiyatId` konmustu ("A'nin sicakligi B'nin irsaliyesine basilir"
-  tuzagi o gun gorulmus). Ama koruma YALNIZ O ALANDAYDI; hareket, lot ve
-  icerik eskisini tutuyordu, yani irsaliyeye A'nin icerigi B'nin numarasiyla
-  basilabiliyordu. ALAN ALAN KORUMA, BIR ALANI UNUTMAYA ACIKTIR.
-  Irsaliye, Duzenle ve durum gecis dugmeleri kapandi; kapi alt bilesene
-  `ayrintiHazirMi` prop'uyla gecti.
-  Icerigi olmayan sevkiyatta da kapi ACILIYOR -- yoksa koruma
-  kullanilamazliga donusurdu.
+2) Goc 0102 canliya uygulandi ("Success. No rows returned.").
+   public.giris_adresi_bul'un anon VE authenticated haklari alindi.
+   !! Yalniz anon'dan almak YARIM olurdu: oturum acmis biri baska
+   isletmenin kullanici adini sorup gercek Auth adresini alabiliyordu,
+   ve fonksiyonun ICINDE kiraci kapisi yok.
+   !! Fonksiyon SILINMEDI -- Edge Function onu service_role ile
+   cagiriyor; silmek girisi kirardi. Kapanan sey disari acilan kapi.
+   !! public.personel_giris_adresi DOKUNULMADI; goc bunu kendisi olcuyor.
 
-- MUSTERILER: bedeli FIYAT. "Fiyat deftere yazilir, degistirilemez" kurali bu
-  ekranda; yanlis musterinin fiyati B'nin defterine KALICI yazilirdi.
-  Ustelik "+ Nokta" dugmesi yeni kodu EKRANDAKI nokta listesinden turetiyor:
-  yanlis listeyle B musterisine A'nin sirasindan kod verilirdi ve irsaliyede
-  yanlis musterinin numarasi gorunurdu.
-  !! `musteriKaydet` BILEREK kapinin DISINDA: musterinin kendi alanlari
-  ayrinti listelerinden gelmiyor. Gereksiz kapi, kullanilamaz ekran demektir.
+3) storage.ts'teki GECICI YEDEK YOL silindi, src/auth/giris-adresi.ts
+   ve testi kaldirildi (kaydi: docs/kararlar/kaldirilan-moduller.md §6).
+   O dal kapatilan sizintinin TA KENDISIYDI: ilk ag arizasinda acik geri
+   acilirdi ve kimse fark etmezdi.
+   ulasilamadi dali artik "giris olmadi" demek -- ve sebep PAROLA DEGIL:
+   mesaj cagirana tasiniyor, yoksa ekran yine "sifre hatali" der ve
+   parolasi DOGRU olan kisi sifresini bos yere degistirmeye kalkar
+   (MIYOP-051'in dersi).
 
-- IS EMIRLERI: Baslat hammaddeyi deftere dusuruyor, Tamamla mamul girisi
-  yazip yeni lot aciyor. Ikisi de geri alinamayan defter kaydi.
+prova-0102 · 19 olcum, hepsi yesil (yerel PostgreSQL 16, 103 goc):
+  - anon VAR OLAN adi soramiyor (42501)
+  - anon OLMAYAN adi da soramiyor (42501)
+  - IKISI BIREBIR AYNI  <-- 1.8.5'in istedigi karsilastirma buydu.
+    prova-0077 yalniz bulunan hesabi siniyordu; oysa sizintinin kendisi
+    "iki halin FARKLI cevap vermesi" idi.
+  - oturum acmis kullanici da soramiyor (isletme sahibinin gercek
+    e-postasi dahil)
+  - service_role hala cozebiliyor -> giris kirilmadi
+  - personel_giris_adresi authenticated'a acik kaldi
+TERS PROVA: yetki geri verilince sizinti aynen cikiyor
+  (abc.bey@gercek-eposta.com / ...@bulunamadi.miyop.local).
+Yani prova boslugu degil, gercekten kapatilan seyi olcuyor.
 
-- IZLENEBILIRLIK: eski zinciri ZATEN temizliyordu (cikar() basinda alti alan)
-  ama GEC GELEN CEVAP korumasi yoktu. Yazma eylemi yok; buna karsilik bedeli
-  en agir olan ekran bu -- cikan kagit GERI CAGIRMA listesi. Yanlis partinin
-  zinciri dogru numaranin altinda basilirsa, toplanmasi gereken palet depoda
-  kalir ve toplanmamasi gereken palet geri cagrilir.
+DORT YENI TUZAK:
 
-!! AYNI TUZAK BES EKRANDA TEKRARLANDI ve besinde de yakalandi: yeni kayit
-eklendiginde ya da islem sonrasi yenilemede setSecili/setSeciliId cagriliyor
-ama REF GUNCELLENMIYORDU; o halde kapi kaydin KENDI cevabini "gec gelen"
-sanip atacak ve ekran bos kalacakti.
+143 · PROVA VERITABANI 0099'DA DONMUSTU. kur.sh goc desenini
+  00[0-9][0-9]_*.sql ile ariyordu; o desen 0100'den sonrasini SESSIZCE
+  atliyor. Prova veritabani 0100/0101 olmadan kuruluyordu ve uzerinde
+  kosan her prova "yesil" diyordu. Hicbir sey kirmizi yanmadi; tek belirti
+  sondaki SAYIydi ve o sayiyi kimse okumuyordu. Desen duzeltildi VE
+  uygulanan sayi klasordeki dosya sayisiyla karsilastiriliyor.
 
-Mimari test:
-- Dondurulmus liste 6 -> 5 -> 4 -> 3 -> 2 -> 0 diye kisaldi ve BOSALDI.
-  Artik bos kalmali: yeni bir liste+ayrinti ekrani kapiyla birlikte gelir.
-- Test KURALI olcuyor, YAZIMI degil. Gec cevap korumasi hem erken donusle
-  (`!==`) hem korumali yazimla (`===`) yapilabiliyor; dugme kapisi hem
-  `!ayrintiHazir(secim)` hem alt bilesene gecen `!ayrintiHazirMi` ile.
-  Tek bir yazimi dayatmak dogru cozumu reddetmek olurdu.
-- YENI: kapinin SAF kaldigi olculuyor. Icine React ya da istek sizarsa test
-  kirmizi verir -- karar yedi ekranin ortak mali, biri onu kendi icinde
-  yeniden yorumlayamaz.
+144 · PANELDE VARSAYILAN KALAN KUTU. Ilk dagitimda Function name kutusu
+  varsayilan "rapid-function" olarak kalmis; panel "Successfully deployed"
+  dedi ama tarayici giris-yap cagirdigi icin fonksiyon HIC bulunmuyordu.
+  Giris calismaya devam ettigi icin belirti yoktu. Adi degistirmek de
+  kurtarmiyor ("slug and endpoint URL will remain the same") -- silip
+  yeniden kurmak gerekti.
 
-docs/HEDEFLER.md: 3.7 kapandi, 3.7.3 eklendi (her ekranin bedeli yazili).
+145 · Get-Content -Raw DOSYAYI ESKI ALFABEYLE OKUYOR. Kodu panoya kopyalayan
+  komut bu yuzden Turkce harfleri bozuk yapistirdi (Ã§, Ä±) -- yalniz yorum
+  satirlarini degil, MUSTERININ GORECEGI hata mesajlarini da.
+  Dogrusu [IO.File]::ReadAllText(yol, UTF8), ve komut kendi ciktisini olcer.
+
+146 · BORCU DONDURAN TEST, BORC KAPANINCA TERSINE CEVRILIR, SILINMEZ.
+  giris-sunucuda.arch.test.ts'te bilerek "yedek yol hala duruyor" diyen bir
+  blok vardi. Silmek kolaydi ama geriye hicbir sey kalmazdi. Blok tersine
+  cevrildi: artik o yolun geri GELMEDIGINI olcuyor -- hem storage.ts'te hem
+  BUTUN tarayici kaynaginda (tek dosyaya bakmak yetmez; baska bir ekran
+  ayni RPC'yi cagirarak sizintiyi geri acabilirdi).
+
+authenticateUser.test.ts'te dort test SILINDI, cunku olctukleri KOD silindi
+(kullanici adini adrese cevirme, e-posta atlamasi, ceviri arizasinda devam).
+Bu uc davranis artik SUNUCUDA; metnini arch test olcuyor.
+!! Onlari "sahte bir sunucu" kurup burada yasatmak mumkundu ve YANLIS
+olurdu: o taklidin icine ayni kurali ben yazardim, test kendi taklidini
+olcerdi. Tarayicida olculecek sey artik tek: girdiyi oldugu gibi govdeye
+koyuyor mu, ve adresi HIC sormuyor mu.
+
+147 · BIR DOSYAYI SILERKEN ICINDEKI SAF KARARI DA SILDIM. giris-adresi.ts
+  kaldirilirken icindeki kesinEpostaMi de gitti; oysa o hicbir sey sormayan
+  saf bir kuraldi ve Login.tsx onu sifre sifirlamada kullaniyordu
+  (ad.soyad@ABCGIDA de @ tasir ama oraya posta gitmez). Derleme kirildi.
+  !! ASIL KUSUR SILMEK DEGIL, OLCUMUN YANLIS KOPYADAN YAPILMASIYDI:
+  "kim kullaniyor" taramasini deponun ESKI bir kopyasinda yaptim ve
+  "kimse" cevabini aldim. Olcum yapildi ve yanlis kaynaktan yapildi.
+  Kural giris-adi-bicimi.ts'e TASINDI (kendi testiyle, 5 olcum);
+  Login.tsx'e KOPYALANMADI -- "ayirmayi tek yerde yap" karari duruyor.
+  !! Tip denetimi kapisi bunu ilk saniyede yakaladi (tuzak 141'in kapisi
+  ise yaradi) -- commit hic olusmadi.
+
+docs/HEDEFLER.md: A6 ve 0.11 kapandi, 1.8.3/1.8.4/1.8.5 olculen kanitla
+yazildi. 1.8 acik kaliyor: ayni aileden uc ikincil kusur (zamanlama 1.8.10,
+istek siniri 1.8.11, basvuru ayrimi 1.8.6) -- ama "adres siziyor" kusuru
+degil, kapi artik kapali.
 
 Co-Authored-By: Claude Opus 5 <noreply@anthropic.com>
 Claude-Session: https://claude.ai/code/session_019BwYM3mAXZUhp4YGj7tp2y

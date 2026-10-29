@@ -1,6 +1,5 @@
 import { normalizeIdentifier } from './core/identifier'
 import { getSupabase, isSupabaseConfigured } from './core/supabase'
-import { girisAdresiniCoz } from './auth/giris-adresi'
 import { sunucudaGirisYap } from './auth/sunucu-girisi'
 import {
   ActionLog,
@@ -5121,12 +5120,15 @@ const COMPANY_WIDE_ROLE_CODES = ['super_admin', 'admin', 'isletme_sahibi', 'isle
 /**
  * Girişi açan tek kapı.
  *
- * ⚠️ İLK PARAMETRE ARTIK "E-POSTA" DEĞİL, "KULLANICI ADI YA DA E-POSTA".
- * Personelin e-postası yok (bkz. src/auth/giris-adresi.ts); yazdığı
- * kullanıcı adı burada, girişten ÖNCE, gerçek giriş adresine çevriliyor.
- * Çeviri burada duruyor ki her giriş yolu — giriş ekranı, yedek geri
- * yükleme, testler — aynı kapıdan geçsin; ekranların birinde unutulsaydı
- * o yoldan girenler sessizce kapıda kalırdı.
+ * ⚠️ İLK PARAMETRE ARTIK "E-POSTA" DEĞİL, "GİRİŞ ADI YA DA E-POSTA".
+ * Personelin e-postası yok (karar: docs/yetki-ekrani.md); işletme sahibi
+ * gerçek e-postasıyla, personel `ad.soyad@İŞLETMEKODU` ile girer.
+ *
+ * ⚠️ ÇEVİRİ ARTIK BURADA DEĞİL, SUNUCUDA. 29.10'a kadar tarayıcı adresi
+ * kendisi çözüyordu (`giris_adresi_bul`); o RPC `anon`a açıktı ve
+ * bulunan kullanıcı için GERÇEK Auth e-postasını dönüyordu (MIYOP-043).
+ * Çeviri `supabase/functions/giris-yap`a taşındı, göç 0102 de RPC'nin
+ * `anon`/`authenticated` haklarını aldı. Tarayıcı adresi HİÇ görmüyor.
  */
 /**
  * Girişin PAROLA HATASI OLMAYAN sebeple düşmesi.
@@ -5187,14 +5189,24 @@ export const authenticateUser = async (
     }
     authUser = data.user
   } else {
-    // ⚠️ GEÇİCİ YEDEK YOL · göç 0091 ile SİLİNECEK.
-    // `giris-yap` dağıtılmadan eski yolu kaldırmak HERKESİ kapıda
-    // bırakırdı. Bu dal durdukça MIYOP-043 kapanmış SAYILMAZ.
-    const girisAdresi = await girisAdresiniCoz(email, isletmeKodu)
-    const { data, error } =
-      await supabase.auth.signInWithPassword({ email: girisAdresi, password })
-    if(error || !data?.user) return null
-    authUser = data.user
+    // ── MIYOP-043 KAPANDI · 29.10.2026 ───────────────────────────────────
+    // ⚠️ BURADA BİR YEDEK YOL VARDI VE SİLİNDİ. Eskiden `giris-yap`a
+    // ulaşılamazsa tarayıcı `giris_adresi_bul` ile adresi kendisi sorup
+    // Auth'a gidiyordu. O dal, kapatılan sızıntının TA KENDİSİYDİ: ilk ağ
+    // arızasında açık geri açılırdı ve kimse fark etmezdi.
+    //
+    // Silmenin ön koşulları ÖLÇÜLDÜ, varsayılmadı:
+    //   · `giris-yap` canlıda çalıştı → Invocations: POST 200 (05:02)
+    //   · göç 0102 `giris_adresi_bul`un `anon` VE `authenticated`
+    //     haklarını aldı → `prova-0102`, 19 ölçüm
+    // Yani bu dal dursaydı bile artık 42501 alırdı; yalnız sebebi
+    // "parola hatalı" diye görünürdü.
+    //
+    // ⚠️ `ulasilamadi` PAROLA HATASI DEĞİLDİR. Mesaj çağırana taşınmazsa
+    // ekran yine "şifre hatalı" der ve parolası doğru olan kişi şifresini
+    // boş yere değiştirmeye kalkar (MIYOP-051'in dersi).
+    if(ariza) ariza.deger = { mesaj: 'Giriş şu an yapılamıyor, birazdan tekrar deneyin.' }
+    return null
   }
 
   if(!authUser) return null

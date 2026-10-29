@@ -34,7 +34,7 @@ neyin neden yapıldığı kaybolmasın.
 | **A3** | **MIYOP-010** · etiket ekranında ürünler karışıyor · **MIYOP-064 ile birlikte 6 ekran** | Etiket, demonun en gösterişli parçası; yanlış ürünün alerjeni basılırsa itibar biter. ⚠️ Codex 21.10'da aynı kusuru Depo, Siparişler, Müşteriler, İş Emirleri ve Sevkiyatlar'da da buldu — tek ekrana yama atmak aileyi kapatmıyor (3.7). |
 | **A4** | **Sahte veri üreticileri** (3.8, 3.10) · **4 tanesi P0** | Önce `kaldirilan-moduller.md`, sonra silme. ⚠️ İş büyüdü: mesele dosya adı `*.mock.ts` olanlar değil, **27 `createDemo*` üreticisi.** Dördü açık ekrana, biri **müşterinin gördüğü portala** ulaşıyor (MIYOP-058/059/060/061). |
 | **A5** | **Şahit numune** 🔄 ⚠️ **28.10'da YENİDEN AÇILDI** | Göç **0093** defteri kurdu, **0094** Codex'in bulduğu P0'ı ve iki P1'i kapattı, **0096** saklama koşulunu kalite departmanının da yazabileceği beyan alanı yaptı, **0097** Emrah'ın imha onayı kararını zorladı. Ekran **Kalite → Şahit Numune**. Prova: 21+18+9+13 = **61 sınama yeşil**. ✅ **27.10:** etiket saklama koşulunu artık ürün kartından okuyor (3.9.3). ⚠️ **28.10 · EKRAN CANLIDA HİÇ AÇILMAMIŞ.** Emrah sıfırdan açılan bir kiracıda denedi: *"Bu ekran açılamadı"*. `client_error` kaydı sebebi yazdı — `ReferenceError: NUMUNE_SAYFA is not defined`: sabit kullanılmış, import edilmemiş. **26.10'da "bitti, canlıda" dedim; yalnız yerelde görmüştüm.** Düzeltildi; asıl kusur hatta tip denetiminin hiç koşmamasıydı (tuzak 141). Kalan: sayfalama borcu (3.9.9) + boş kiracıda canlı doğrulama. |
-| **A6** | MIYOP-043 son adımı (0091) + dağıtım | Güvenlik borcu kapanmış olsun. |
+| **A6** | ✅ **BİTTİ (29.10)** · MIYOP-043 · Edge Function canlıda + göç 0102 + yedek yol silindi | Güvenlik borcu kapandı. |
 
 ⚠️ **Bu listede OLMAYANLAR demo öncesi YAPILMAYACAK:** MIYOP-049/050
 (zamanlama, istek sınırı), MIYOP-003/004/005/006, prestij başlığı,
@@ -58,8 +58,10 @@ EVREN360'ın kilitli menüleri. Hepsi hedefte duruyor, sırası sonra.
 - ✅ **0.8** Codex 0089 denetimi yaptı · **haklı çıktı: kapıyı gereğinden
   fazla gevşetmiştim.** 11 fonksiyonun üçü kendi yetki kontrolünü yapmıyor.
 - ✅ **0.9** Göç **0090** uygulandı · prova 20/20.
-- 🔄 **0.11** **MIYOP-043 · 1. adım** · `giris-yap` Edge Function yazıldı.
-  ⚠️ **Dağıtılmadan 2. adım yapılamaz** — sıra aşağıda 1.8'de.
+- ✅ **0.11** **MIYOP-043 · ÜÇ ADIM DA BİTTİ (29.10.2026)** · `giris-yap`
+  Edge Function yazıldı → **canlıya alındı ve POST 200 ile doğrulandı** →
+  göç **0102** `giris_adresi_bul`un `anon`/`authenticated` haklarını aldı →
+  tarayıcıdaki geçici yedek yol **silindi**. Ayrıntı 1.8'de.
 - ⬜ **0.10** Dağıtım · 0090 uygulandıktan ve MIYOP-043 bittikten sonra
   tek seferde (arayüzde zil yönlendirmesi de bu dağıtımla gider)
 - ✅ **0.12** **Göç 0092 · SKT kapısı · CANLIDA** (25.10)
@@ -217,6 +219,10 @@ güvenlik sınırı değil. Gerçek sınır veritabanında olmalı.
 - ⬜ **1.6** **MIYOP-017** · Çıkış Supabase oturumunu kapatmıyor
 - ⬜ **1.7** **MIYOP-018** · Zorunlu parola değişimi tek RPC ile atlanabiliyor
 - 🔄 **1.8** **MIYOP-043 · P1 · Giriş adresi çözümü kullanıcıyı ele veriyor**
+  ✅ **ASIL SIZINTI 29.10.2026'DA KAPANDI** (1.8.1–1.8.5). Madde açık
+  duruyor çünkü aynı aileden **üç ikincil kusur** hâlâ bekliyor: zamanlama
+  (1.8.10), istek sınırı (1.8.11), başvuru ayrımı (1.8.6). ⚠️ Bunlar
+  "adres sızıyor" kusuru değil; kapı artık kapalı.
   (Codex, 18.10.2026) `0078`in anonim RPC'si bulunamayan kullanıcıya
   `@bulunamadi.miyop.local`, **bulunana gerçek Auth e-postasını** dönüyor
   ve RPC `anon` rolüne açık. Parola bilmeden kullanıcı/firma eşleşmesi ve
@@ -239,11 +245,21 @@ güvenlik sınırı değil. Gerçek sınır veritabanında olmalı.
     Mock'lar eklendi, beş yeni test yazıldı: sunucu yolu çalışınca
     **tarayıcı adresi hiç sormuyor** (sızıntının kapandığının kanıtı) ve
     401 gelince **yedek yola düşülmüyor**. → tuzak 98.
-  - ⬜ **1.8.3** **Emrah fonksiyonu DAĞITIR ve girişin çalıştığını
-    doğrular.** (`supabase functions deploy giris-yap`)
-  - ⬜ **1.8.4** Göç **0091**: `giris_adresi_bul`un `anon` **VE
-    `authenticated`** hakkı alınır, **VE** `storage.ts`teki geçici yedek
-    yol SİLİNİR.
+  - ✅ **1.8.3** **Fonksiyon CANLIDA · 29.10.2026.** Panelden (Via Editor)
+    dağıtıldı. ⚠️ İlk denemede iki kusur çıktı ve ikisi de ölçümle
+    yakalandı: (a) **Function name kutusu varsayılan `rapid-function`
+    olarak kalmış** — panel *"Successfully deployed"* dedi ama tarayıcı
+    `giris-yap` çağırdığı için fonksiyon hiç bulunmuyordu; (b) kodu panoya
+    kopyalayan komut `Get-Content -Raw` kullanıyordu, Windows dosyayı eski
+    alfabeyle okudu ve **Türkçe harfler bozuk yapıştı** (`Ã§`, `Ä±`) —
+    müşterinin göreceği hata mesajları dâhil. → tuzaklar 144, 145.
+    **Doğrulama (ölçüm, varsayım değil):** Edge Functions → giris-yap →
+    Invocations `POST 200` (05:02:08), Overview *"7 invocations since last
+    deploy and no errors"*, 4XX ve 5XX oranı %0.
+  - ✅ **1.8.4** Göç **0102** (0091 DEĞİL — o numara yetki denetimine
+    gitmişti): `giris_adresi_bul`un `anon` **VE `authenticated`** hakkı
+    alındı, **VE** `storage.ts`teki geçici yedek yol SİLİNDİ.
+    Canlıda çalıştırıldı: *"Success. No rows returned."*
     ⚠️ **KAPSAM DÜZELTMESİ (Codex, 20.10):** 0078 bu fonksiyonu
     `anon, authenticated, service_role`e birlikte veriyor. Yalnız
     `anon`dan almak **oturum açmış birinin başka işletmenin kullanıcı
@@ -255,8 +271,17 @@ güvenlik sınırı değil. Gerçek sınır veritabanında olmalı.
     `authenticated` hakkını topluca almak personel açmayı kırar.
     ⚠️ Bu madde bitene kadar MIYOP-043 **KAPANMIŞ SAYILMAZ**; sızıntı
     hâlâ açıktır, yalnız olağan giriş akışı artık sızdırmıyor.
-  - ⬜ **1.8.5** `prova-0077` bulunan hesabı bulunmayanla karşılaştırmıyor;
-    0091'in provası bu ayrımı sınayacak
+  - ✅ **1.8.5** `prova-0102` bulunan hesabı bulunmayanla **karşılaştırıyor.**
+    `prova-0077` yalnız bulunan hesabı sınıyordu; oysa sızıntının kendisi
+    "iki hâlin FARKLI cevap vermesi" idi, yani ölçülmesi gereken şey tam
+    olarak o FARKtı. 19 ölçüm, hepsi yerel provada yeşil: `anon` var olan
+    adı da olmayan adı da soramıyor ve **ikisi birebir aynı** (`42501`);
+    oturum açmış kullanıcı da soramıyor (işletme sahibinin gerçek
+    e-postası dâhil); `service_role` hâlâ çözebiliyor (giriş kırılmadı);
+    `personel_giris_adresi` dokunulmadı.
+    ⚠️ **TERS PROVA da yapıldı:** yetki geri verilince sızıntı aynen
+    çıkıyor — `abc.bey@gercek-eposta.com` / `...@bulunamadi.miyop.local`.
+    Yani prova boşluğu değil, gerçekten kapatılan şeyi ölçüyor.
   - ✅ **1.8.7a** ⚠️ **MIYOP-051'İN İLK ONARIMI YARIM KALMIŞTI.** Edge
     Function kotayı ayırıyordu, istemci `gecici` diye işaretliyordu — ama
     `storage.ts` `null` döndüğü için mesaj **ekrana hiç ulaşmıyordu** ve

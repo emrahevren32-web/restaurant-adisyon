@@ -133,3 +133,41 @@ Karar belgesi: `tek-merkez-karari.md`.
 **Durum:** hepsi silindi. Donduran test dondurulmuş modül adlarını
 **kayıttan okuyor** ve vitrinde geçmelerini yasaklıyor — yani yeni bir
 modül dondurulduğunda adı vitrinde kalmışsa test onu kendiliğinden yakalar.
+
+---
+
+## 6 · `src/auth/giris-adresi.ts` · tarayıcıdaki adres çözümü (29.10.2026)
+
+**Ne işe yarıyordu:** kişi giriş ekranına `depocu@ABCGIDA` yazdığında,
+giriş yapmadan ÖNCE sunucuya *"bu adın giriş adresi nedir?"* diye soruyordu
+(`public.giris_adresi_bul`, göç 0077/0078), dönen gerçek adresle Supabase
+Auth girişini yapıyordu. Personelin e-postası olmadığı için bu çeviri
+zorunluydu; adres **uydurulmuyordu**, çünkü işletme sahibinin giriş adresi
+kendi gerçek e-postası ve kurala uymuyor.
+
+**Neden kaldırıldı:** o RPC `anon` rolüne açıktı ve cevabın **biçimi** iki
+hâli ayırt ettiriyordu — bulunan kullanıcı için **gerçek Auth e-postası**,
+bulunamayan için `...@bulunamadi.miyop.local`. Yani parola bilmeden
+"bu kullanıcı var mı" sorusu cevaplanabiliyor, işletme sahibinin gerçek
+adresi dışarı sızıyordu (MIYOP-043, Codex 18.10.2026).
+
+**Nereye taşındı:** aynı çeviri `supabase/functions/giris-yap/index.ts`
+içinde, `service_role` ile yapılıyor. Tarayıcı adresi HİÇ görmüyor; dışarı
+yalnız oturum ya da **tek genel hata** çıkıyor.
+
+**Sonradan yapılacak bir şey YOK** — bu bir erteleme değil, bir taşıma.
+Silinen dosyalar: `src/auth/giris-adresi.ts`, `src/auth/giris-adresi.test.ts`.
+`storage.ts`teki geçici yedek yol da aynı gün silindi.
+
+⚠️ **DOSYANIN İÇİNDEKİ HER ŞEY SIZINTI DEĞİLDİ.** `kesinEpostaMi` — *"bu
+girdi kesinlikle bir e-posta mı?"* — hiçbir şey sormayan, hiçbir yere
+gitmeyen **saf** bir karardı ve `Login.tsx` onu şifre sıfırlamada
+kullanıyordu (`ad.soyad@ABCGIDA` de @ taşır ama oraya posta gitmez).
+Dosyayla birlikte silinince tip denetimi anında kırmızı verdi. Kural
+`src/auth/giris-adi-bicimi.ts`e **taşındı** (kendi testiyle); `Login.tsx`e
+kopyalanmadı, çünkü "ayırmayı TEK YERDE yap" kararı duruyor. → tuzak 147
+
+⚠️ **Geri gelmemesi ölçülüyor:** `src/auth/giris-sunucuda.arch.test.ts`
+**bütün tarayıcı kaynağını** tarıyor ve `'giris_adresi_bul'` adının hiçbir
+ekranda geçmemesini şart koşuyor. Göç **0102** da RPC'nin `anon` ve
+`authenticated` haklarını aldı: geri gelse bile `42501` alır.

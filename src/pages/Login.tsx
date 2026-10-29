@@ -1,7 +1,7 @@
 import React from 'react'
 import { authenticateCredentials, AuthenticationState } from '../auth/authentication.service'
 import { getSupabase, isSupabaseConfigured } from '../core/supabase'
-import { kesinEpostaMi } from '../auth/giris-adresi'
+import { kesinEpostaMi } from '../auth/giris-adi-bicimi'
 
 type Props = { onLogin: (state: AuthenticationState) => void }
 
@@ -249,7 +249,7 @@ export default function Login({ onLogin }: Props){
     // girişinde kendisi belirler.
     // ⚠️ `includes('@')` YETMEZ: `ad.soyad@ABCGIDA` de @ taşıyor ama bir
     // e-posta değil, oraya posta gitmez. Ayırmayı tek yerde yapan
-    // `kesinEpostaMi` kullanılıyor (bkz. auth/giris-adresi.ts).
+    // `kesinEpostaMi` kullanılıyor (bkz. auth/giris-adi-bicimi.ts).
     if(!kesinEpostaMi(adres)){
       setError('Şifre sıfırlama bağlantısı yalnızca e-posta adresine '
         + 'gönderilebilir. Giriş adınız ad.soyad@FIRMAKODU biçimindeyse '

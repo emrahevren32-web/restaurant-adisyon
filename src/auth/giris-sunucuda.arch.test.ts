@@ -11,12 +11,14 @@
 //   1. `giris-yap` Edge Function'ı adresi DIŞARI VERMİYOR ve iki hâl
 //      (olmayan kullanıcı / yanlış parola) için AYNI cevabı veriyor.
 //   2. Tarayıcı girişi önce sunucudan deniyor.
-//   3. ⚠️ Geçici yedek yol HÂLÂ DURUYOR — ve bu test onu SAYIYOR.
-//      Yedek yol silindiğinde bu testin son bloğu güncellenecek; o güne
-//      kadar MIYOP-043 "kapandı" diye işaretlenemez.
+//   3. ⚠️ Geçici yedek yol SİLİNDİ (29.10.2026) — ve bu test onun geri
+//      GELMEDİĞİNİ ölçüyor. Eskiden burada "yedek yol hâlâ duruyor"
+//      diyen bir blok vardı; borç kapanınca bloğun kendisi de değişti.
+//      Ön koşullar ölçüldü: `giris-yap` canlıda POST 200, göç 0102
+//      `anon` ve `authenticated` haklarını aldı (prova-0102, 19 ölçüm).
 // ═══════════════════════════════════════════════════════════════════════════
 
-import { readFileSync } from 'node:fs'
+import { readFileSync, readdirSync, statSync } from 'node:fs'
 import { join } from 'node:path'
 import { describe, expect, it } from 'vitest'
 
@@ -27,6 +29,21 @@ const ISTEMCI   = oku('src', 'auth', 'sunucu-girisi.ts')
 const DEPO      = oku('src', 'storage.ts')
 const SERVIS    = oku('src', 'auth', 'authentication.service.ts')
 const GIRIS     = oku('src', 'pages', 'Login.tsx')
+const GOC_0102  = oku('db', 'migrations', '0102_giris_adresi_kapandi.sql')
+
+// ⚠️ TEK DOSYAYA BAKMAK YETMEZ: yedek yol `storage.ts`ten silinse bile
+// başka bir ekran aynı RPC'yi çağırarak sızıntıyı geri açabilirdi.
+// Bu yüzden bütün tarayıcı kaynağı taranıyor — testler hariç.
+const KAYNAK_METNI = (() => {
+  const topla = (dizin: string): string[] => readdirSync(dizin).flatMap((ad) => {
+    const yol = join(dizin, ad)
+    if(statSync(yol).isDirectory()) return topla(yol)
+    if(!/\.tsx?$/.test(ad)) return []
+    if(/\.test\.tsx?$/.test(ad)) return []
+    return [readFileSync(yol, 'utf8')]
+  })
+  return topla(join(process.cwd(), 'src')).join('\n')
+})()
 
 describe('MIYOP-043 · giriş sunucuda', () => {
   it('sağlama: üç dosya da okundu', () => {
@@ -61,12 +78,10 @@ describe('MIYOP-043 · giriş sunucuda', () => {
     expect(FONKSIYON).toContain('password: sifre')
   })
 
-  it('tarayıcı önce sunucudan deniyor', () => {
+  it('tarayıcı girişi YALNIZ sunucudan yapıyor', () => {
     expect(DEPO).toContain('sunucudaGirisYap')
     const bas = DEPO.indexOf('const sunucu = await sunucudaGirisYap')
-    const yedek = DEPO.indexOf('girisAdresiniCoz(email, isletmeKodu)', bas)
     expect(bas, 'sunucu çağrısı authenticateUser içinde yok').toBeGreaterThan(0)
-    expect(yedek, 'yedek yol sunucu çağrısından ÖNCE geliyor').toBeGreaterThan(bas)
   })
 
   it('`reddedildi` ile `ulasilamadi` ayrı tutuluyor', () => {
@@ -153,12 +168,42 @@ describe('MIYOP-043 · giriş sunucuda', () => {
     expect(FONKSIYON.slice(bas, son)).toContain('400)')
   })
 
-  // ⚠️ AÇIK BORÇ · bu blok BİLEREK "hâlâ duruyor" diyor.
-  it('GEÇİŞ DÖNEMİ: yedek yol hâlâ duruyor ve bu YAZILI', () => {
-    expect(DEPO).toContain('GEÇİCİ YEDEK YOL')
-    expect(DEPO).toContain('0091')
-    expect(ISTEMCI).toContain('MIYOP-043 KAPANMIŞ SAYILMAZ')
-    // Yedek yol silindiğinde: bu bloğu, `giris_adresi_bul`un `anon`
-    // hakkının alındığını sınayan bir blokla değiştir.
+  // ⚠️ BORÇ KAPANDI · bu blok eskiden "yedek yol hâlâ duruyor" diyordu.
+  // Şimdi tam tersini ölçüyor: o yol GERİ GELMEDİ.
+  it('⚠️ YEDEK YOL SİLİNDİ ve geri gelmedi', () => {
+    // Tarayıcı artık adresi hiçbir koşulda sormuyor.
+    expect(DEPO).not.toContain('girisAdresiniCoz')
+    expect(DEPO).not.toContain("rpc('giris_adresi_bul'")
+    expect(DEPO).not.toContain('GEÇİCİ YEDEK YOL')
+    // Ve bütün tarayıcı kodunda o RPC'nin adı geçmiyor.
+    expect(KAYNAK_METNI).not.toContain("'giris_adresi_bul'")
+    // Silindiği, sebebiyle birlikte YAZILI duruyor.
+    expect(DEPO).toContain('MIYOP-043 KAPANDI')
+  })
+
+  it('⚠️ ulaşılamama PAROLA HATASI olarak gösterilmiyor', () => {
+    // Yedek yol silinince `ulasilamadi` dalı "giriş olmadı" demek oldu.
+    // Sebep söylenmezse ekran "şifre hatalı" der ve parolası DOĞRU olan
+    // kişi şifresini boş yere değiştirmeye kalkar (MIYOP-051'in dersi).
+    // ⚠️ DAHA ÖNCE İKİ KEZ AYNI HATAYI YAPTIM: "bu metin dosyada GEÇMESİN"
+    // diye ölçüp kendi açıklama satırıma takıldım. Ölçülecek şey yorum
+    // değil, EKRANA GİDEN DİZGİ. O yüzden dizginin kendisi çekiliyor.
+    const bas = DEPO.indexOf('MIYOP-043 KAPANDI')
+    expect(bas, 'silme açıklaması bulunamadı').toBeGreaterThan(0)
+    const parca = DEPO.slice(bas, bas + 1800)
+    const mesaj = /ariza\.deger = \{ mesaj: '([^']*)'/.exec(parca)?.[1] ?? ''
+    expect(mesaj, 'ulaşılamadı dalında mesaj hiç kurulmuyor').toBeTruthy()
+    expect(mesaj).not.toMatch(/şifre|parola/i)
+  })
+
+  it('göç 0102 depoda duruyor ve iki rolden birden alıyor', () => {
+    expect(GOC_0102).toContain('from anon')
+    expect(GOC_0102).toContain('from authenticated')
+    // ⚠️ Fonksiyon SİLİNMİYOR: Edge Function onu `service_role` ile
+    // çağırıyor. Silmek girişi kırardı.
+    expect(GOC_0102).toContain('to service_role')
+    expect(GOC_0102).not.toMatch(/drop\s+function/i)
+    // ⚠️ Personel akışı dokunulmamış olmalı; göç bunu kendisi ölçüyor.
+    expect(GOC_0102).toContain('personel_giris_adresi')
   })
 })
