@@ -1,244 +1,273 @@
 import React from 'react'
-import { addActionLog, getCompanyIdForUser, loadCompanies } from '../storage'
 import {
-  getCompanyForUser,
-  loadCompanyBranches,
-  resolveHeadOfficeId,
-  saveCompanyProfile
-} from '../companies/branch-directory.service'
-import type { Company, User } from '../types'
+  firmaProfiliniOku,
+  firmaProfiliniYaz,
+  type FirmaProfili,
+  type FirmaProfiliYazimi,
+} from '../companies/firma-profili.repository'
+import type { User } from '../types'
 
-type Props = {
-  currentUser: User
-  onCompanyChange?: (company: Company) => void
+// ═══════════════════════════════════════════════════════════════════════════
+// MİYOP · Firma Profili
+//
+// ⚠️ 29.10.2026'ya kadar bu ekran Kaydet'e basınca veriyi TARAYICIYA
+// yazıyordu. Müşteri vergi numarasını girip "kaydedildi" yazısını görüyor,
+// başka bir bilgisayardan giriyor ve hiçbir şey bulamıyordu. Artık
+// `company` tablosunu okuyup yazıyor; gerekçe ve yazma sözleşmesi
+// `src/companies/firma-profili.repository.ts` dosya başında.
+//
+// ⚠️ BOŞ ALAN UYDURULMUYOR (MIYOP-060). Ticari unvan boşsa boş görünür;
+// eskiden firma adı unvan gibi gösteriliyordu ve kullanıcı alanı boşaltsa
+// geri doluyordu. Göç 0084 bu yalanı veritabanında onarmıştı; ikinci
+// katmanda yaşıyordu.
+//
+// ⚠️ Şube göstergeleri KALDIRILDI: tarayıcıdaki şube listesinden
+// besleniyorlardı ve şube bu seviyede artık yok (tek merkez kararı).
+// Yerlerine veritabanından okunan şeyler kondu — "son güncelleme" dâhil,
+// çünkü "kaydedildi" iddiasının tek kanıtı odur.
+// ═══════════════════════════════════════════════════════════════════════════
+
+type Props = { currentUser: User }
+
+type Form = FirmaProfiliYazimi
+
+const BOS_FORM: Form = {
+  firmaAdi: '', kisaAd: '', ticariUnvan: '', vergiDairesi: '', vergiNumarasi: '',
+  telefon: '', eposta: '', web: '', adres: '', il: '', ilce: '', postaKodu: '',
+  logoAdresi: '', yetkiliAdSoyad: '', yetkiliUnvan: '', yetkiliTelefon: '',
+  yetkiliEposta: '',
+}
+
+/** ⚠️ `null` alan BOŞ metne döner — başka bir alandan DOLDURULMAZ. */
+const formaCevir = (profil: FirmaProfili): Form => ({
+  firmaAdi: profil.firmaAdi,
+  kisaAd: profil.kisaAd ?? '',
+  ticariUnvan: profil.ticariUnvan ?? '',
+  vergiDairesi: profil.vergiDairesi ?? '',
+  vergiNumarasi: profil.vergiNumarasi ?? '',
+  telefon: profil.telefon ?? '',
+  eposta: profil.eposta ?? '',
+  web: profil.web ?? '',
+  adres: profil.adres ?? '',
+  il: profil.il ?? '',
+  ilce: profil.ilce ?? '',
+  postaKodu: profil.postaKodu ?? '',
+  logoAdresi: profil.logoAdresi ?? '',
+  yetkiliAdSoyad: profil.yetkiliAdSoyad ?? '',
+  yetkiliUnvan: profil.yetkiliUnvan ?? '',
+  yetkiliTelefon: profil.yetkiliTelefon ?? '',
+  yetkiliEposta: profil.yetkiliEposta ?? '',
+})
+
+const tarih = (iso: string | null): string => {
+  if(!iso) return '—'
+  const d = new Date(iso)
+  if(Number.isNaN(d.getTime())) return '—'
+  return d.toLocaleString('tr-TR', {
+    day: '2-digit', month: '2-digit', year: 'numeric',
+    hour: '2-digit', minute: '2-digit',
+  })
 }
 
 /**
- * Corporate profile — tenant/company level, deliberately separate from both
- * branch records and the signed-in user's own account. A company has one of
- * these; branches have addresses of their own and never carry tax identity.
+ * Yazma yetkisi.
+ *
+ * ⚠️ `permissions` TANIMSIZ olabiliyor (App.tsx'teki bilinçli taviz).
+ * Tanımsızken "yetkin yok" demek YALAN olur — bilmiyoruz. O yüzden form
+ * açık bırakılıyor ve kararı veritabanı veriyor: yetkisiz UPDATE `izin_company`
+ * tetiğinde reddedilir ve ekran o sebebi yazar. Rozet kolaylık, kapı sunucuda.
  */
-
-type ProfileFormValues = {
-  companyName: string
-  shortName: string
-  legalName: string
-  taxOffice: string
-  taxNumber: string
-  phone: string
-  email: string
-  website: string
-  address: string
-  city: string
-  district: string
-  postalCode: string
-  logoUrl: string
-  authorizedPerson: string
-  authorizedTitle: string
-  authorizedPhone: string
-  authorizedEmail: string
-}
-
-const toFormValues = (company: Company | undefined): ProfileFormValues => ({
-  companyName: company?.companyName || '',
-  shortName: company?.shortName || '',
-  legalName: company?.legalName || '',
-  taxOffice: company?.taxOffice || '',
-  taxNumber: company?.taxNumber || '',
-  phone: company?.phone || '',
-  email: company?.email || '',
-  website: company?.website || '',
-  address: company?.address || '',
-  city: company?.city || '',
-  district: company?.district || '',
-  postalCode: company?.postalCode || '',
-  logoUrl: company?.logoUrl || '',
-  authorizedPerson: company?.authorizedPerson || company?.ownerName || '',
-  authorizedTitle: company?.authorizedTitle || '',
-  authorizedPhone: company?.authorizedPhone || '',
-  authorizedEmail: company?.authorizedEmail || ''
-})
-
-const trimAll = (values: ProfileFormValues): ProfileFormValues => (
-  Object.fromEntries(
-    Object.entries(values).map(([key, value]) => [key, String(value).trim()])
-  ) as ProfileFormValues
+const yazabilirMi = (user: User): boolean => (
+  user.permissions === undefined || user.permissions.includes('company.manage')
 )
 
-export default function CompanyProfile({ currentUser, onCompanyChange }: Props){
-  const canManage = currentUser.role === 'Admin'
-  const [company, setCompany] = React.useState<Company | undefined>(() => getCompanyForUser(currentUser))
-  const [values, setValues] = React.useState<ProfileFormValues>(() => toFormValues(getCompanyForUser(currentUser)))
-  const [error, setError] = React.useState('')
-  const [notice, setNotice] = React.useState('')
+export default function CompanyProfile({ currentUser }: Props){
+  const yazabilir = yazabilirMi(currentUser)
 
-  React.useEffect(() => {
-    const next = getCompanyForUser(currentUser)
-    setCompany(next)
-    setValues(toFormValues(next))
-    setError('')
-    setNotice('')
-  }, [currentUser])
+  const [profil, setProfil] = React.useState<FirmaProfili | null>(null)
+  const [values, setValues] = React.useState<Form>(BOS_FORM)
+  const [yukleniyor, setYukleniyor] = React.useState(true)
+  const [kaydediliyor, setKaydediliyor] = React.useState(false)
+  const [hata, setHata] = React.useState('')
+  const [bilgi, setBilgi] = React.useState('')
 
-  const branches = React.useMemo(() => loadCompanyBranches(currentUser), [currentUser, company])
-  const headOfficeId = React.useMemo(() => resolveHeadOfficeId(branches, company), [branches, company])
-  const headOffice = branches.find(branch => branch.id === headOfficeId)
-  const activeBranchCount = branches.filter(branch => branch.isActive).length
+  const yukle = React.useCallback(async () => {
+    setYukleniyor(true)
+    setHata('')
+    setBilgi('')
+    const gelen = await firmaProfiliniOku(currentUser.companyId)
+    if(gelen){
+      setProfil(gelen)
+      setValues(formaCevir(gelen))
+    } else {
+      setProfil(null)
+      setValues(BOS_FORM)
+      setHata('Firma kaydı okunamadı. Bu kullanıcı bir firmaya bağlı olmayabilir.')
+    }
+    setYukleniyor(false)
+  }, [currentUser.companyId])
 
-  const updateField = <K extends keyof ProfileFormValues>(key: K, value: ProfileFormValues[K]) => {
+  React.useEffect(() => { void yukle() }, [yukle])
+
+  const alanYaz = <K extends keyof Form>(key: K, value: Form[K]) => {
     setValues(previous => ({ ...previous, [key]: value }))
-    setNotice('')
+    setBilgi('')
   }
 
-  const submit = (event: React.FormEvent) => {
+  const kaydet = async (event: React.FormEvent) => {
     event.preventDefault()
-    if(!canManage) return
+    if(!profil || kaydediliyor) return
 
-    const normalized = trimAll(values)
+    setKaydediliyor(true)
+    setHata('')
+    setBilgi('')
 
-    if(!normalized.companyName){
-      setError('Firma adı zorunludur.')
+    const sonuc = await firmaProfiliniYaz(profil.id, values)
+    if(sonuc.durum === 'hata'){
+      setHata(sonuc.mesaj)
+      setKaydediliyor(false)
       return
     }
 
-    const companyId = company?.id || getCompanyIdForUser(currentUser)
-    if(!companyId){
-      setError('Bu kullanıcı bir firmaya bağlı değil. Firma profili güncellenemiyor.')
-      return
-    }
-
-    const updated = saveCompanyProfile(companyId, normalized)
-    if(!updated){
-      setError('Firma kaydı bulunamadı.')
-      return
-    }
-
-    setCompany(updated)
-    setValues(toFormValues(updated))
-    setError('')
-    setNotice('Firma bilgileri kaydedildi.')
-    onCompanyChange?.(updated)
-    addActionLog({
-      operationType: 'Firma profili güncellendi',
-      user: currentUser,
-      description: `${updated.companyName} firma bilgileri güncellendi.`
-    })
+    // ⚠️ Ekranda gösterilen şey, VERİTABANINDAN GERİ OKUNAN şey.
+    setProfil(sonuc.profil)
+    setValues(formaCevir(sonuc.profil))
+    setBilgi('Firma bilgileri kaydedildi.')
+    setKaydediliyor(false)
   }
 
-  if(!company && loadCompanies().length === 0){
+  if(yukleniyor){
+    return (
+      <div className="company-profile-page">
+        <section className="card"><p className="muted">Firma bilgileri yükleniyor…</p></section>
+      </div>
+    )
+  }
+
+  if(!profil){
     return (
       <div className="company-profile-page">
         <section className="card">
-          <h3>Şirket Profili</h3>
-          <p className="muted">Bu workspace'e bağlı bir firma kaydı bulunamadı.</p>
+          <h3>Firma Profili</h3>
+          <p className="form-error">{hata || 'Firma kaydı bulunamadı.'}</p>
+          <div className="form-actions">
+            <button className="btn" type="button" onClick={() => void yukle()}>Tekrar dene</button>
+          </div>
         </section>
       </div>
     )
   }
+
+  const kilitli = !yazabilir || kaydediliyor
 
   return (
     <div className="company-profile-page">
       <div className="metric-grid">
         <div className="metric-card">
           <span>Firma</span>
-          <strong>{company?.companyName || '-'}</strong>
+          <strong>{profil.firmaAdi || '—'}</strong>
         </div>
         <div className="metric-card">
-          <span>Merkez Şube</span>
-          <strong>{headOffice?.name || '-'}</strong>
+          <span>Firma Kodu</span>
+          <strong>{profil.firmaKodu || '—'}</strong>
         </div>
         <div className="metric-card">
-          <span>Aktif Şube</span>
-          <strong>{activeBranchCount}</strong>
+          <span>Vergi Numarası</span>
+          <strong>{profil.vergiNumarasi || '—'}</strong>
         </div>
         <div className="metric-card">
-          <span>Vergi No</span>
-          <strong>{company?.taxNumber || '-'}</strong>
+          <span>Son Kayıt</span>
+          <strong>{tarih(profil.guncellendi)}</strong>
         </div>
       </div>
 
-      {!canManage && (
+      {!yazabilir && (
         <div className="form-error">
-          Firma bilgilerini yalnızca yönetici rolündeki kullanıcılar güncelleyebilir.
+          Firma bilgilerini yalnızca işletme sahibi değiştirebilir. Bilgileri
+          görebilirsiniz, kaydedemezsiniz.
         </div>
       )}
-      {error && <div className="form-error">{error}</div>}
-      {notice && !error && <div className="form-success">{notice}</div>}
+      {hata && <div className="form-error">{hata}</div>}
+      {bilgi && !hata && <div className="form-success">{bilgi}</div>}
 
-      <form className="company-profile-form" onSubmit={submit}>
+      <form className="company-profile-form" onSubmit={e => void kaydet(e)}>
         <section className="card">
           <div className="section-header compact">
             <div>
               <h3>Firma Bilgileri</h3>
-              <p className="muted">Kurumsal kimlik bilgileri firma seviyesinde tutulur, şubeye bağlı değildir.</p>
+              <p className="muted">
+                Bu bilgiler irsaliye, etiket ve sözleşmelerde kullanılır.
+                Boş bıraktığınız alan boş kalır; tahmin edilmez.
+              </p>
             </div>
           </div>
 
           <div className="form-grid">
             <div className="form-field">
-              <label>Firma / Ticari Unvan</label>
-              <input value={values.companyName} disabled={!canManage} required
-                onChange={event => updateField('companyName', event.target.value)} />
+              <label>Firma Adı</label>
+              <input value={values.firmaAdi} disabled={kilitli} required
+                onChange={e => alanYaz('firmaAdi', e.target.value)} />
             </div>
             <div className="form-field">
-              <label>Kısa Firma Adı</label>
-              <input value={values.shortName} disabled={!canManage}
-                onChange={event => updateField('shortName', event.target.value)} />
+              <label>Kısa Ad</label>
+              <input value={values.kisaAd} disabled={kilitli}
+                onChange={e => alanYaz('kisaAd', e.target.value)} />
             </div>
             <div className="form-field">
-              <label>Yasal Unvan</label>
-              <input value={values.legalName} disabled={!canManage}
-                onChange={event => updateField('legalName', event.target.value)} />
+              <label>Ticari Unvan (resmî)</label>
+              <input value={values.ticariUnvan} disabled={kilitli}
+                placeholder="Vergi levhasındaki tam unvan"
+                onChange={e => alanYaz('ticariUnvan', e.target.value)} />
             </div>
             <div className="form-field">
               <label>Vergi Dairesi</label>
-              <input value={values.taxOffice} disabled={!canManage}
-                onChange={event => updateField('taxOffice', event.target.value)} />
+              <input value={values.vergiDairesi} disabled={kilitli}
+                onChange={e => alanYaz('vergiDairesi', e.target.value)} />
             </div>
             <div className="form-field">
               <label>Vergi Numarası</label>
-              <input value={values.taxNumber} disabled={!canManage} inputMode="numeric"
-                onChange={event => updateField('taxNumber', event.target.value)} />
+              <input value={values.vergiNumarasi} disabled={kilitli} inputMode="numeric"
+                onChange={e => alanYaz('vergiNumarasi', e.target.value)} />
             </div>
             <div className="form-field">
               <label>Telefon</label>
-              <input value={values.phone} disabled={!canManage}
-                onChange={event => updateField('phone', event.target.value)} />
+              <input value={values.telefon} disabled={kilitli}
+                onChange={e => alanYaz('telefon', e.target.value)} />
             </div>
             <div className="form-field">
               <label>E-posta</label>
-              <input type="email" value={values.email} disabled={!canManage}
-                onChange={event => updateField('email', event.target.value)} />
+              <input type="email" value={values.eposta} disabled={kilitli}
+                onChange={e => alanYaz('eposta', e.target.value)} />
             </div>
             <div className="form-field">
               <label>Web Sitesi</label>
-              <input value={values.website} disabled={!canManage} placeholder="https://"
-                onChange={event => updateField('website', event.target.value)} />
+              <input value={values.web} disabled={kilitli} placeholder="https://"
+                onChange={e => alanYaz('web', e.target.value)} />
             </div>
             <div className="form-field">
               <label>İl</label>
-              <input value={values.city} disabled={!canManage}
-                onChange={event => updateField('city', event.target.value)} />
+              <input value={values.il} disabled={kilitli}
+                onChange={e => alanYaz('il', e.target.value)} />
             </div>
             <div className="form-field">
               <label>İlçe</label>
-              <input value={values.district} disabled={!canManage}
-                onChange={event => updateField('district', event.target.value)} />
+              <input value={values.ilce} disabled={kilitli}
+                onChange={e => alanYaz('ilce', e.target.value)} />
             </div>
             <div className="form-field">
               <label>Posta Kodu</label>
-              <input value={values.postalCode} disabled={!canManage} inputMode="numeric"
-                onChange={event => updateField('postalCode', event.target.value)} />
+              <input value={values.postaKodu} disabled={kilitli} inputMode="numeric"
+                onChange={e => alanYaz('postaKodu', e.target.value)} />
             </div>
             <div className="form-field">
-              <label>Firma Logosu (URL)</label>
-              <input value={values.logoUrl} disabled={!canManage} placeholder="https://"
-                onChange={event => updateField('logoUrl', event.target.value)} />
+              <label>Firma Logosu (bağlantı)</label>
+              <input value={values.logoAdresi} disabled={kilitli} placeholder="https://"
+                onChange={e => alanYaz('logoAdresi', e.target.value)} />
             </div>
             <div className="form-field form-field-wide">
               <label>Adres</label>
-              <textarea rows={2} value={values.address} disabled={!canManage}
-                onChange={event => updateField('address', event.target.value)} />
+              <textarea rows={2} value={values.adres} disabled={kilitli}
+                onChange={e => alanYaz('adres', e.target.value)} />
             </div>
           </div>
         </section>
@@ -254,30 +283,33 @@ export default function CompanyProfile({ currentUser, onCompanyChange }: Props){
           <div className="form-grid">
             <div className="form-field">
               <label>Ad Soyad</label>
-              <input value={values.authorizedPerson} disabled={!canManage}
-                onChange={event => updateField('authorizedPerson', event.target.value)} />
+              <input value={values.yetkiliAdSoyad} disabled={kilitli}
+                onChange={e => alanYaz('yetkiliAdSoyad', e.target.value)} />
             </div>
             <div className="form-field">
-              <label>Görevi / Ünvanı</label>
-              <input value={values.authorizedTitle} disabled={!canManage}
-                onChange={event => updateField('authorizedTitle', event.target.value)} />
+              <label>Görevi / Unvanı</label>
+              <input value={values.yetkiliUnvan} disabled={kilitli}
+                onChange={e => alanYaz('yetkiliUnvan', e.target.value)} />
             </div>
             <div className="form-field">
               <label>Telefon</label>
-              <input value={values.authorizedPhone} disabled={!canManage}
-                onChange={event => updateField('authorizedPhone', event.target.value)} />
+              <input value={values.yetkiliTelefon} disabled={kilitli}
+                onChange={e => alanYaz('yetkiliTelefon', e.target.value)} />
             </div>
             <div className="form-field">
               <label>E-posta</label>
-              <input type="email" value={values.authorizedEmail} disabled={!canManage}
-                onChange={event => updateField('authorizedEmail', event.target.value)} />
+              <input type="email" value={values.yetkiliEposta} disabled={kilitli}
+                onChange={e => alanYaz('yetkiliEposta', e.target.value)} />
             </div>
           </div>
 
-          {canManage && (
+          {yazabilir && (
             <div className="form-actions">
-              <button className="btn primary" type="submit">Kaydet</button>
-              <button className="btn" type="button" onClick={() => { setValues(toFormValues(company)); setError(''); setNotice('') }}>
+              <button className="btn primary" type="submit" disabled={kaydediliyor}>
+                {kaydediliyor ? 'Kaydediliyor…' : 'Kaydet'}
+              </button>
+              <button className="btn" type="button" disabled={kaydediliyor}
+                onClick={() => { setValues(formaCevir(profil)); setHata(''); setBilgi('') }}>
                 Değişiklikleri Geri Al
               </button>
             </div>

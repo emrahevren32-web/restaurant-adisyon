@@ -984,6 +984,36 @@ göreceği hata mesajları** da (`'Çok fazla deneme yapıldı'`) bozuluyordu.
 ⚠️ Ve komut kendi çıktısını **ölçmeli**: panoda `ş` var mı, bozuk `Ã` var
 mı. "Kopyaladım" demek yetmez; kopyanın sağlam olduğu gösterilir.
 
+**149 · `id` KOLONU OLMAYAN TABLO, DENETİME '?' YAZIYOR.**
+(29.10) `tenant_settings` tablosunun ilk hâlinde birincil anahtar doğrudan
+`tenant_id` idi: *"kiracı başına tek satır, ayrı bir kimliğe ne gerek var"*.
+Mantıklı görünüyordu. Ama `app.denetim_yaz()` satır kimliğini
+`coalesce(new ->> 'id', old ->> 'id', '?')` ile okuyor — `id` kolonu olmayan
+tabloda denetim kaydı YAZILIYOR ama `row_id` alanına **'?'** düşüyor.
+⚠️ Yani *"bunu kim değiştirdi"* cevaplanıyor, *"NEYİ değiştirdi"*
+cevaplanmıyordu. Hiçbir hata çıkmıyordu; denetim defterinde '?' satırları
+birikecekti ve bunu aylar sonra, bir tartışmanın ortasında fark ederdik.
+⚠️ **Provanın yakaladığı bir kusurdu, derlemenin değil.** Yapısal ölçümler
+(tablo var mı, RLS açık mı) yeşildi; kırmızı veren şey denetim kaydını
+GERÇEKTEN arayan ölçümdü.
+⚠️ Kural: denetime düşen her tablonun `id` kolonu olur. Kiracı başına tek
+satır zorunluluğu `tenant_id`de **unique** ile kurulur; birincil anahtarı
+oraya taşıyarak değil.
+
+**148 · MÜŞTERİYE BİZİM DİLİMİZLE KONUŞAN EKRAN.**
+(29.10) Karşılama ekranı — müşterinin şifresini belirledikten sonra gördüğü
+**ilk ekran** — şunları yazıyordu: *"Workspace henuz bos"*, *"Ilk Widget
+Ekle"*, *"Dashboarda Git"*, *"Premium onboarding deneyimi aktif"*, ve
+*"Product tour, quick tips, getting started kartlari ve empty state sistemi
+birlikte calisir."*
+⚠️ Sonuncusu müşteriye değil, BİZE söylenmiş bir cümleydi. Kimse müşteriden
+"widget" ya da "empty state" bilmesini bekleyemez; dahası bu kelimeler
+ürünün kendisine değil, onu yapan ekibin iç konuşmasına ait.
+⚠️ Kural: bir ekranın metni, o ekranı GÖRECEK kişinin kelimeleriyle yazılır.
+Geliştirici kelimeleri (workspace, widget, dashboard, empty state, onboarding)
+müşteri ekranında geçmez. Ve bir özelliğin kendi kendini övdüğü kart —
+*"premium deneyim aktif"* — müşteriye bir şey söylemez, yalnız yer kaplar.
+
 **147 · BİR DOSYAYI SİLERKEN İÇİNDEKİ SAF KARARI DA SİLDİM.**
 (29.10) `giris-adresi.ts` kaldırılırken içindeki `kesinEpostaMi` de gitti —
 oysa o, hiçbir şey sormayan saf bir kuraldı ve `Login.tsx` onu şifre
@@ -1168,3 +1198,21 @@ Son söz onun çıktısındadır.
     olmadığı hâlde güven verir.
 62. Kaldırılan bir dosyanın **saf** parçaları **taşınır** — silinmez, ve
     çağıran dosyaya kopyalanmaz (tuzak 147).
+63. Müşteri ekranının metnini **müşterinin kelimeleriyle** yaz (tuzak 148).
+    "workspace", "widget", "dashboard", "empty state", "onboarding" bizim
+    kelimelerimiz. Bir özelliğin kendini övdüğü kart da müşteriye bir şey
+    söylemez.
+64. Bir **rozet** ya gerçek bir sorgudan ölçülür ya da hiç konmaz
+    (MIYOP-065). "Tamamlandı" yazan bir rozet, tamamlandığını KANITLAYAN
+    bir şeyden beslenmiyorsa *mış gibi*dir.
+66. **Denetime düşen her tablonun `id` kolonu olur** (tuzak 149).
+    `app.denetim_yaz()` satır kimliğini `new ->> 'id'` ile okur; yoksa
+    `row_id` alanına '?' yazar ve "neyi değiştirdi" cevapsız kalır.
+    Kiracı başına tek satır kuralı `unique (tenant_id)` ile kurulur.
+67. Bir ayarın **varsayılanı varsa, o varsayılan bir CEVAPTIR.** Kimsenin
+    vermediği bir cevabı varsayılan diye koymak (`vatRate: 10`) *mış gibi*
+    yapmaktır; "belirlenmemiş" (`null`) geçerli ve gösterilebilir bir
+    değerdir (MIYOP-060b).
+65. Bir sayım düşerse `null` döndür, **`0` değil**. "Sayamadım" ile "hiç
+    yok" aynı şey değil; ikincisini göstermek kullanıcıya yanlış iş
+    yaptırır (kontrol listesi 45'in ekran tarafı).

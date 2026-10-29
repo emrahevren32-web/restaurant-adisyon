@@ -18,8 +18,14 @@
 //
 // 25.10.2026 · Şubeler ve Şube Yetkileri **kapsam dışına çıktı** (tek merkez
 // kararı), düzeltilmedi. Kalan üç: Firma Profili, İşletme Ayarları, Karşılama.
-// Bunlardan Firma Profili hâlâ kullanıcının GİRDİĞİ veriyi tarayıcıya
-// yazıyor — sıradaki iş o.
+//
+// 29.10.2026 · **Firma Profili** ve **Karşılama** veritabanına bağlandı ve
+// listeden ÇIKARILDI (`companies/firma-profili.repository.ts`,
+// `workspace/karsilama.repository.ts`). Kalan **bir**: İşletme Ayarları.
+// ⚠️ O ekran bilerek bekliyor: HEDEFLER 3.4.2'de açık bir karar var — kiracı
+// genelindeki para birimi ve KDV'nin göçlerde KARŞILIĞI YOK. Alan korunacaksa
+// yeni şema ister, korunmayacaksa kaldırılır. Karar verilmeden ekran
+// taşınmaz; taşınırsa olmayan bir kolona yazmaya çalışırız.
 //
 // ── BU TEST BİR CIRCIR (ratchet) ─────────────────────────────────────────
 // Listeyi SIFIRLAMIYOR, DONDURUYOR. Kural:
@@ -65,9 +71,7 @@ const DEPO_SERVISLERI = [
  * Her satır: açık bir rota ve o rotanın tarayıcıya bağlı ekranı.
  */
 const BILINEN_BORC: Record<string, string> = {
-  'company-profile':    'pages/CompanyProfile.tsx',
-  'settings':           'pages/Settings.tsx',
-  'workspace-welcome':  'pages/WorkspaceWelcome.tsx'
+  'settings': 'pages/Settings.tsx'
 }
 
 /**
@@ -174,9 +178,10 @@ describe('açık kiracı rotaları · tarayıcı deposu çıcırı', () => {
   })
 
   it('borç yalnız AZALABİLİR', () => {
-    // Bugünkü sayı 3. Bu sayı büyürse biri listeye ekleme yapmış demektir.
-    // (5 → 3: şube ekranları düzeltilmedi, kapsam dışına çıktı. Yukarıdaki
-    // nota bakın — bu ayrım önemli.)
-    expect(Object.keys(BILINEN_BORC).length).toBeLessThanOrEqual(3)
+    // 6 → 5 → 3 → 1. Bu sayı büyürse biri listeye ekleme yapmış demektir.
+    // ⚠️ 5 → 3 bir DÜZELTME değildi: şube ekranları kapsam dışına çıktı.
+    // 3 → 1 düzeltmedir: Firma Profili ve Karşılama veritabanına bağlandı.
+    // İkisi karıştırılmasın.
+    expect(Object.keys(BILINEN_BORC).length).toBeLessThanOrEqual(1)
   })
 })

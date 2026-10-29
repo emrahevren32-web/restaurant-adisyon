@@ -29,7 +29,7 @@ neyin neden yapıldığı kaybolmasın.
 
 | # | İş | Neden demo öncesi |
 |---|---|---|
-| **A1** | **B başlığı · yarım ekranlar** · **1/3 bitti** | Kaydet'e basınca veri tarayıcıda kalıyor. Demoda ilk fark edilecek şey bu. **Sıra: ~~Profilim~~ ✅ (20.10) → Firma Profili → İşletme Ayarları → Karşılama**. ⚠️ **25.10:** Şubeler ve Şube Yetkileri **kapsam dışına çıktı** (tek merkez kararı), düzeltilmedi — 5'ten 3'e indi. |
+| **A1** | **B başlığı · yarım ekranlar** · **3/4 bitti (29.10)** | Kaydet'e basınca veri tarayıcıda kalıyor. Demoda ilk fark edilecek şey bu. **Sıra: ~~Profilim~~ ✅ (20.10) → ~~Firma Profili~~ ✅ (29.10) → ~~Karşılama~~ ✅ (29.10) → İşletme Ayarları (3.4.2 kararı bekliyor)**. ⚠️ **25.10:** Şubeler ve Şube Yetkileri **kapsam dışına çıktı** (tek merkez kararı), düzeltilmedi — 5'ten 3'e indi. |
 | **A2** | **MIYOP-008** · şube bağlamı kesin değil · **küçüldü** | Tek merkez kararıyla "yanlış şubeye yazma" riski pratikte kalktı. ⚠️ Kapanmadı: kod hâlâ "tercih yoksa ilk şube" diyor — tek şubede doğru sonucu **tesadüfen** veriyor. Başlıktaki şube seçici kaldırılacak, liste sorgularına şube kapsamı yazılacak. |
 | **A3** | **MIYOP-010** · etiket ekranında ürünler karışıyor · **MIYOP-064 ile birlikte 6 ekran** | Etiket, demonun en gösterişli parçası; yanlış ürünün alerjeni basılırsa itibar biter. ⚠️ Codex 21.10'da aynı kusuru Depo, Siparişler, Müşteriler, İş Emirleri ve Sevkiyatlar'da da buldu — tek ekrana yama atmak aileyi kapatmıyor (3.7). |
 | **A4** | **Sahte veri üreticileri** (3.8, 3.10) · **4 tanesi P0** | Önce `kaldirilan-moduller.md`, sonra silme. ⚠️ İş büyüdü: mesele dosya adı `*.mock.ts` olanlar değil, **27 `createDemo*` üreticisi.** Dördü açık ekrana, biri **müşterinin gördüğü portala** ulaşıyor (MIYOP-058/059/060/061). |
@@ -523,7 +523,8 @@ Kalan üç: **Firma Profili (3.1), İşletme Ayarları (3.4), Karşılama (3.11)
 
 Emrah'ın onayladığı sıra:
 
-- 🔄 **3.1** Firma Profili (`company-profile`) — **sıradaki ekran**
+- ✅ **3.1** Firma Profili (`company-profile`) — **BİTTİ (29.10).** Artık
+  `company` tablosunu okuyup yazıyor; tarayıcı hafızasıyla ilgisi kalmadı.
   - ✅ **3.1.1** **KİM DEĞİŞTİREBİLİR · KARAR VERİLDİ** (Emrah, 21.10):
     **yalnız işletme sahibi.** Müdür değiştiremez.
     ⚠️ Bu karar **zaten veritabanında yazılıydı:** göç `0015`
@@ -548,42 +549,58 @@ Emrah'ın onayladığı sıra:
     **Sonuç: ekran `company` tablosuna doğrudan yazabilir, RPC gerekmiyor.**
     ⚠️ Ama `0012` desenini burada da kurmak gerekip gerekmediği ayrı bir
     soru → 1.10.3.
-  - ⬜ **3.1.3** **Ekranı gerçek veriye bağla.** Formdaki alanların
-    **tamamı** `company` tablosunda mevcut (`0001`: `short_name`,
-    `legal_name`, `tax_office`, `tax_number`, `phone`, `email`, `website`,
-    `address`, `city`, `district`, `postal_code`, `logo_url`,
-    `authorized_person`, `authorized_title`, `authorized_phone`,
-    `authorized_email`, `primary_sector_id`). **Yeni alan göçü GEREKMİYOR** —
-    eksik olan okuma/yazma katmanı.
-  - ⬜ **3.1.4** **MIYOP-060 · boş alan uydurularak doldurulmuyor.**
-    Bugün `normalizeCompany` (storage.ts:2841–2857) şunu yapıyor:
-    `legalName: item.legalName || companyName`,
-    `authorizedPerson: item.authorizedPerson || ownerName || companyName`,
-    `authorizedPhone: item.authorizedPhone || phone`. Yani ticari unvan boş
-    olsa ekran **firma adını** unvan gibi gösteriyor; kullanıcı alanı
-    boşaltsa normalizasyon geri dolduruyor.
-    ⚠️ **Bu tam olarak göç `0084`ün veritabanı tarafında ONARDIĞI yalan.**
-    Düzeltilmiş bir kusurun ikinci katmanda yaşaması → **tuzak 106.**
-    Kabul: DB'de boş olan yetkili/unvan ekranda boş görünecek; boşaltılan
-    alan tekrar firma adı olmayacak.
-  - ⬜ **3.1.5** **MIYOP-062 · kayıtta alan düşmesi.** `normalizeCompany`
-    dönüş nesnesinde `shortName`, `website`, `postalCode`,
-    `authorizedTitle` **yok** — tipte var (`types.ts:827–832`), kayıtta yok.
-    Kaydet `JSON.stringify(items.map(normalizeCompany))` yazdığı için bu
-    dört alan **sessizce siliniyor.** Kabul: her alana farklı değer gir →
-    kaydet → ekranı kapat/aç → yenile → hepsi yerinde olacak.
-  - ⬜ **3.1.7** ⚠️ **063 YALNIZ Firma Profili ile sınırlı değil** (Codex,
-    22.10): `assignHeadOffice` içindeki **"Merkez Yap"** yolu da süzülmüş
-    firma listesini ortak koleksiyona yazıyor. İki yolun da diğer firmanın
-    yerel verisini koruması gerekiyor — biri onarılıp öteki bırakılırsa
-    kusur ayakta kalır (tuzak 104'ün aynısı).
-  - ⬜ **3.1.6** **MIYOP-063 · bir firmayı kaydetmek diğerini düşürüyor.**
-    `saveCompanyProfile` (branch-directory.service.ts:126) **süzülmüş**
-    `loadCompanies()` sonucunu `saveCompanies()`e veriyor; `saveCompanies`
-    (storage.ts:4412) ortak koleksiyonu bununla **değiştiriyor** ve yalnız
-    `deletedAt` dolu olanları koruyor. Yani B firmasını kaydetmek A'nın
-    yerel kaydını siliyor. ⚠️ Veritabanında silme OLMUYOR — bu tarayıcı
-    katmanının kusuru; ekran DB'ye bağlanınca kendiliğinden kapanıyor.
+  - ✅ **3.1.3** **Ekran gerçek veriye bağlandı (29.10).**
+    `src/companies/firma-profili.repository.ts` · 17 alanın hepsi `company`
+    tablosundan okunuyor ve oraya yazılıyor. Yeni alan göçü gerekmedi.
+    ⚠️ **Yazılan kolon kümesi DONDURULDU** (test): `company_code`,
+    `tenant_id`, `primary_sector_id`, `status`, `default_branch_id` bu
+    nesneye bir gün eklenirse, bir ekran kiracının kimliğini
+    değiştirebiliyor olur — ve bu sessizce olur.
+    ⚠️ Kaydettikten sonra **geri okunuyor**: ekranda görünen şey,
+    veritabanının yazdığı şey. Formdaki değeri "başarılı" diye bırakmak,
+    veritabanının başka bir şey yazmış olma ihtimalini gizler.
+    ⚠️ Göstergelerden **şube olanlar kaldırıldı** (tarayıcıdan besleniyordu
+    ve şube bu seviyede yok); yerine firma kodu ve **son kayıt zamanı**
+    kondu — "kaydedildi" iddiasının tek kanıtı odur.
+  - ✅ **3.1.4** **MIYOP-060 · BİTTİ (29.10).** Ekran artık `company`
+    tablosundan okuyor; boş alan boş görünüyor. Üstüne `normalizeCompany`
+    (storage.ts) içindeki uydurma da **kaldırıldı** — düzeltilmiş bir
+    kusurun ikinci katmanda yaşamasına son verildi (tuzak 106):
+    `legalName ← companyName`, `authorizedPerson ← companyName`,
+    `authorizedPhone ← phone`, `authorizedEmail ← email` fallback'leri
+    silindi. ⚠️ `ownerName` fallback'i KALDI: o uydurma değil, başvuru
+    formunda kişinin kendi yazdığı ad. ⚠️ İki kurulum yolu
+    (`businessRegistration`, `businessApplication`) da artık ticari unvanı
+    firma adından TÜRETMİYOR — başvuruda o soru sorulmuyor.
+  - ✅ **3.1.8** **VERGİ NUMARASI BİÇİM KONTROLÜ** (Emrah: *"koy gitsin"*,
+    29.10). Girildiyse **10 hane (VKN)** ya da **11 hane (TC Kimlik No)**
+    olmalı ve yalnız rakam içermeli; **boş serbest** (yeni açılmış işletme
+    henüz girmemiş olabilir, onu kapıda bırakmayız). Aradaki boşluklar
+    temizlenerek yazılıyor (`1234 567 890` → `1234567890`), ama harf ya da
+    tire **sessizce atılmıyor** — kullanıcı bir şey yazmıştır, biz onu
+    "düzeltip" kaydedersek neyin kaydedildiğini bilmez.
+    ⚠️ Biçim yanlışsa veritabanına **hiç gidilmiyor**: yanlış numarayı
+    kaydedip aylar sonra e-fatura tarafında öğrenmektense burada söylemek
+    ucuzdur.
+  - ✅ **3.1.5** **MIYOP-062 · BİTTİ (29.10).** Dört alan
+    (`shortName`, `website`, `postalCode`, `authorizedTitle`)
+    `normalizeCompany` dönüş nesnesine eklendi. Ekran zaten veritabanına
+    yazdığı için bu düşme ekranı artık etkilemiyor; ama normalizasyon
+    aynasını da sessizce kırpıyordu.
+  - ⏸️ **3.1.7** ⚠️ **063'ün İKİNCİ YARISI · ŞUBE TARAFINDA, KAPSAM DIŞI**
+    (Codex, 22.10): `assignHeadOffice` içindeki **"Merkez Yap"** yolu da
+    süzülmüş firma listesini ortak koleksiyona yazıyor.
+    ⚠️ **29.10 durumu:** Firma Profili yarısı kapandı (`saveCompanyProfile`
+    kaldırıldı), bu yarı DURUYOR — ama **düzeltildiği için değil**, şube
+    ekranları tek merkez kararıyla kapsam dışına çıktığı için. O düğme
+    bugün hiçbir açık ekranda yok. Şube geri gelirse bu madde de geri gelir.
+    ⚠️ Bu ayrım önemli: "kapandı" ile "kapsam dışı" karıştırılmasın
+    (tuzak 104'ün dersi).
+  - ✅ **3.1.6** **MIYOP-063 · BİTTİ (29.10).** Kusurun kaynağı olan
+    `saveCompanyProfile` **kaldırıldı** (`branch-directory.service.ts`);
+    yerine gerekçesi yazıldı. Ekran `company` tablosuna tek satır yazıyor,
+    ortak koleksiyonu değiştirmiyor — yani başka firmanın kaydını
+    düşürecek bir yol kalmadı.
 - ✅ **3.2** Profilim (`my-profile`) — **BİTTİ (20.10).** Artık veritabanını
   okuyup yazıyor; tarayıcı hafızasıyla ilgisi kalmadı
   - ✅ **3.2.1** **KÖK NEDEN BULUNDU.** Ekran `loadUsers()` ile
@@ -690,7 +707,34 @@ Emrah'ın onayladığı sıra:
     **YOK** — gerçek yazma yetkisi rol/izinden geliyor. Yani ekran
     taşınmadan **önce** neyi yönettiğine karar verilmeli: üyelik mi,
     yoksa şube bazlı izin mi? İkincisi yeni göç ister. → İsmet **B2**
-- ⬜ **3.4** İşletme Ayarları (`settings`)
+- 🔄 **3.4** İşletme Ayarları (`settings`) — **KARAR VERİLDİ, GÖÇ YAZILDI**
+  - ✅ **3.4.0** **KARAR (Emrah, 29.10):** *"Kiracı ayarları tablosu yap.
+    Herkes kendi KDV oranını ve para birimini kendi seçsin."* → İki ayar da
+    **kalıyor**; göç **0103** onların yeri.
+  - ✅ **3.4.2a** **Göç 0103 yazıldı · prova 30/30** (yerel PostgreSQL 16,
+    104 göç). `public.tenant_settings`: kiracı başına tek satır,
+    `currency_code` (varsayılan `TRY`, biçim `^[A-Z]{3}$`), `vat_rate`
+    (**varsayılanı YOK**, 0–100 aralığı).
+    ⚠️ **KDV'nin varsayılanı BİLEREK YOK** ve göç bunu kendi doğrulamasında
+    ÖLÇÜYOR: bu göçün varlık sebebi `vatRate: 10`'un kimsenin vermediği bir
+    cevap olmasıydı; buraya `default 10` koymak aynı yalanı bir katman
+    aşağıya taşımak olurdu. Ters prova da yapıldı: varsayılan konunca ölçüm
+    yakalıyor.
+    ⚠️ Kapılar: RLS (force) + `izin_settings` → `settings.manage`
+    (`isletme_muduru`da YOK — provada MI403 ile ölçüldü) + `denetim_yaz`.
+    ⚠️ `updated_at`/`updated_by` **sunucuda** yazılıyor; provada istemci
+    bile bile 2020 tarihi ve başkasının kimliğini gönderdi, ikisi de yok
+    sayıldı.
+    ⚠️ Satır **ekran değil veritabanı** açıyor (`tenant` tablosuna AFTER
+    INSERT tetiği + geriye dönük doldurma). Ekranın satır açabilmesi, hangi
+    kiracı adına açtığının ekranın elinde olması demekti.
+    ⚠️ **Tuzak 149 burada çıktı:** ilk hâlinde `id` kolonu yoktu ve denetim
+    kaydı `row_id` alanına '?' yazıyordu. Prova yakaladı.
+  - ⬜ **3.4.4** **Ekranı 0103'e bağla.** Göç canlıya uygulandıktan sonra:
+    `settings` ekranı `tenant_settings`i okuyup yazacak, `DEFAULT_SETTINGS`
+    içindeki `vatRate: 10` kaldırılacak, belirlenmemiş KDV **boş**
+    görünecek. ⚠️ Bu madde bitene kadar A1 kapanmaz ve
+    `kiraci-ekrani-veri-kaynagi.arch.test.ts` çıcırı 1'de kalır.
   - ⬜ **3.4.1** **MIYOP-060b · sorulmamış soruya cevap.**
     `DEFAULT_SETTINGS` (storage.ts:306) `vatRate: 10` yazıyor ve form bunu
     **işletmenin KDV oranı** gibi gösteriyor. Kimse %10 demedi.
@@ -1255,16 +1299,30 @@ Emrah'ın onayladığı sıra:
     rotadan çağrılıyor, o rota AÇIK mı. Açık olan her biri 3.10.1'in
     kuralına girer. ⚠️ Donmuş modülün üreticisi bile raporlardan
     okunabiliyor olabilir; sayarak değil **izleyerek** karar verilecek.
-- ⬜ **3.11** **Karşılama ekranı (`workspace-welcome`) · MIYOP-065**
-  "Kaydet"i yok, o yüzden *"kaydedildi deyip tarayıcıya yazan"* ekran
-  değil — ama başka bir *mış gibi* var: `WorkspaceWelcome.tsx:67`
-  **"İlk stok kartı tamamlandı"** rozetini `hasBusinessModules` ile
-  ölçüyor. Bir modül kaydının varlığı, stok kartı olduğunu kanıtlamaz.
-  Ayrıca rehberdeki bazı düğmeler **donmuş** rotalara (`recipes`,
-  `products`) ve artık olmayan "widget ekle" adımına gidiyor.
-  Yapılacak: tamamlanma **gerçek stok sorgusundan** ölçülecek ya da rozet
-  kaldırılacak; her görünür düğme yetkili kullanıcıyı **çalışan** ekrana
-  götürecek.
+- ✅ **3.11** **Karşılama ekranı (`workspace-welcome`) · MIYOP-065 · BİTTİ (29.10)**
+  ⚠️ **Müşterinin gördüğü İLK ekran budur** — şifresini belirledikten hemen
+  sonra buraya düşüyor. Dört şey düzeltildi:
+  - **Dil.** Ekran Türkçe karaktersiz yazılmıştı *ve* geliştiricinin
+    dilindeydi: *"Workspace henuz bos"*, *"Ilk Widget Ekle"*,
+    *"Dashboarda Git"*, *"Premium onboarding deneyimi aktif"*,
+    *"Product tour, quick tips, getting started kartlari ve empty state
+    sistemi birlikte calisir."* Sonuncusu müşteriye değil, bize söylenmiş
+    bir cümleydi. Hepsi yeniden yazıldı.
+  - **Sahte rozet.** *"İlk stok kartı tamamlandı"* `hasBusinessModules` ile
+    ölçülüyordu — bir MODÜL kaydının varlığıyla. Yeni müşteri hiçbir şey
+    yapmadan "tamamlandı" görüyordu. Artık üç adımın üçü de veritabanından
+    **sayılıyor** (`src/workspace/karsilama.repository.ts`).
+    ⚠️ Sorgu düşerse `null` dönüyor, `0` değil: "sayamadım" ile "hiç yok"
+    aynı şey değil, ve ikincisini göstermek müşteriye yanlış iş yaptırır.
+  - **Çalışmayan düğmeler.** *"Reçetelere Git"* ve *"Ürünlere Git"* donmuş
+    rotalara gidiyordu. Kaldırıldı. Altı adım üçe indi ve üçü de çalışıyor:
+    firma bilgileri → ilk ürün kartı → ekip.
+  - **Tarayıcı bağımlılığı.** Firma adını `localStorage`dan okuyordu;
+    artık veritabanından okuyor. `kiraci-ekrani-veri-kaynagi.arch.test.ts`
+    çıcırı **3 → 1**'e indi.
+  ⚠️ *"İşletme Ayarları"* düğmesi BİLEREK konmadı: o ekran hâlâ tarayıcıya
+  yazıyor (3.4), yeni müşteriyi ilk dakikasında oraya yollamak onu
+  "kaydedildi" deyip kaybeden bir ekrana yollamak olur.
 - ✅ **3.12** **MIYOP-067 · DONMUŞ MODÜL PUBLIC YOLDAN AÇILIYORDU · kapatıldı**
   Codex buldu (21.10) ve doğruladım: `App.tsx` `/qr/<id>` yolunu yakalayıp
   `QRMenu` ekranını **doğrudan** döndürüyordu. `business-qr-menu` modülü

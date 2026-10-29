@@ -1,199 +1,195 @@
 import React from 'react'
-import { FeatureHighlight } from '../components/FeatureHighlight'
 import { GettingStartedCard } from '../components/GettingStartedCard'
-import { PremiumEmptyState } from '../components/PremiumEmptyState'
-import { QuickTip } from '../components/QuickTip'
 import type {
   BusinessWorkspaceNavKey,
   BusinessWorkspaceRoute
 } from '../navigation/app-navigation.types'
-import { getCompanyIdForUser, loadCompanies } from '../storage'
-import { getManagedWorkspaceModulesForUser } from '../workspace/workspace-module-lifecycle.service'
-import { WORKSPACE_MODULE_TYPES } from '../modules/module-registry.types'
+import { karsilamaDurumunuOku, type KarsilamaDurumu } from '../workspace/karsilama.repository'
 import type { User } from '../types'
+
+// ═══════════════════════════════════════════════════════════════════════════
+// MİYOP · Karşılama ekranı · MIYOP-065
+//
+// ⚠️ MÜŞTERİNİN GÖRDÜĞÜ İLK EKRAN BUDUR. Şifresini belirledikten hemen
+// sonra buraya düşüyor. 29.10.2026'ya kadar burası şöyle yazıyordu:
+//
+//     "Hos geldiniz"  ·  "Workspace henuz bos"  ·  "Ilk Widget Ekle"
+//     "Dashboarda Git"  ·  "Premium onboarding deneyimi aktif"
+//     "Product tour, quick tips, getting started kartlari ve empty state
+//      sistemi birlikte calisir."
+//
+// Yani Türkçe karaktersiz, ve GELİŞTİRİCİNİN dilinde. Müşteri "widget"
+// kelimesini bilmek zorunda değil; "empty state sistemi" ise ona değil,
+// bize söylenmiş bir cümle. Hepsi yeniden yazıldı.
+//
+// ── ÜÇ KUSUR DAHA VARDI ──────────────────────────────────────────────────
+//  1. ⚠️ **"Tamamlandı" rozeti SAHTEYDİ.** `hasBusinessModules` ile
+//     ölçülüyordu — yani bir MODÜL kaydının varlığıyla. Bir modülün kurulu
+//     olması stok kartı açıldığını kanıtlamaz; yeni müşteri hiçbir şey
+//     yapmadan "tamamlandı" görüyordu. Artık üç adımın üçü de
+//     veritabanından SAYILIYOR (`workspace/karsilama.repository.ts`).
+//  2. ⚠️ **Donmuş rotalara düğme vardı:** "Reçetelere Git" ve "Ürünlere
+//     Git". O ekranlar kapalı; müşteri boşa tıklıyordu. Kaldırıldı.
+//  3. ⚠️ Altı adım vardı ve ikisi ("Widget ekle", "Workspace Ayarları")
+//     artık olmayan ya da hazır olmayan şeylere götürüyordu. Üç gerçek
+//     adım kaldı: firma bilgileri, ilk ürün kartı, ekip.
+//
+// ⚠️ Bu ekran artık `localStorage` OKUMUYOR. Eskiden firma adını oradan
+// alıyordu; `kiraci-ekrani-veri-kaynagi.arch.test.ts` bu yüzden onu borç
+// listesinde tutuyordu.
+// ═══════════════════════════════════════════════════════════════════════════
 
 type Props = {
   currentUser: User
+  /**
+   * ⚠️ BİLEREK KULLANILMIYOR. İşletme Ayarları ekranı hâlâ veriyi
+   * tarayıcıya yazıyor (HEDEFLER 3.4) — yeni bir müşteriyi ilk dakikasında
+   * oraya yollamak, "kaydedildi" deyip kaybeden bir ekrana yollamak olur.
+   * Prop çağıran taraf için duruyor; o ekran veritabanına bağlanınca
+   * buradan bir düğme açılacak.
+   */
   onOpenWorkspaceSettings: () => void
   onOpenWorkspaceRoute: (route: BusinessWorkspaceRoute, navKey: BusinessWorkspaceNavKey) => void
 }
 
-type GettingStartedAction = {
+type Adim = {
   key: string
-  title: string
-  description: string
-  icon: 'marketplace' | 'dashboard' | 'user' | 'recipe' | 'stock' | 'settings'
-  actionLabel: string
-  route?: BusinessWorkspaceRoute
-  navKey?: BusinessWorkspaceNavKey
-  done?: boolean
-  onAction?: () => void
+  baslik: string
+  aciklama: string
+  icon: 'stock' | 'user' | 'settings'
+  dugme: string
+  route: BusinessWorkspaceRoute
+  navKey: BusinessWorkspaceNavKey
+  /** `true` bitti, `false` bekliyor, `null` ÖLÇÜLEMEDİ. */
+  bitti: boolean | null
+  /** Rozetin altında görünen ölçüm. Boşsa yazılmaz. */
+  olcum: string
 }
 
-export default function WorkspaceWelcome({
-  currentUser,
-  onOpenWorkspaceSettings,
-  onOpenWorkspaceRoute
-}: Props){
-  const company = React.useMemo(() => {
-    const companyId = getCompanyIdForUser(currentUser)
-    return loadCompanies({ allTenants: true }).find(item => item.id === companyId) || null
-  }, [currentUser])
+/** ⚠️ `null` "sayamadım" demek; "0" diye göstermek yalan olur. */
+const sayiMetni = (sayi: number | null, tekil: string): string => {
+  if(sayi === null) return 'Ölçülemedi'
+  return `${sayi} ${tekil}`
+}
 
-  const managedBusinessModules = React.useMemo(() => (
-    getManagedWorkspaceModulesForUser(currentUser)
-      .filter(module => module.moduleType === WORKSPACE_MODULE_TYPES.BUSINESS)
-  ), [currentUser])
+const adimlariKur = (durum: KarsilamaDurumu): Adim[] => [
+  {
+    key: 'firma-bilgileri',
+    baslik: 'Firma bilgilerinizi tamamlayın',
+    aciklama: 'Vergi dairesi, vergi numarası ve adres; irsaliye, etiket ve '
+      + 'sözleşmelerde bu bilgiler kullanılıyor.',
+    icon: 'settings',
+    dugme: 'Firma Profilini Aç',
+    route: 'company-profile',
+    navKey: 'company-profile',
+    bitti: durum.vergiNumarasiVar,
+    olcum: durum.vergiNumarasiVar === null
+      ? 'Ölçülemedi'
+      : durum.vergiNumarasiVar ? 'Vergi numarası girilmiş' : 'Vergi numarası boş',
+  },
+  {
+    key: 'ilk-urun-karti',
+    baslik: 'İlk ürün kartınızı açın',
+    aciklama: 'Hammadde ve mamul kartları işin temeli: reçete de, iş emri de, '
+      + 'sevkiyat da bunların üstüne kuruluyor.',
+    icon: 'stock',
+    dugme: 'Depoyu Aç',
+    route: 'depo',
+    navKey: 'depo',
+    bitti: durum.urunKartiSayisi === null ? null : durum.urunKartiSayisi > 0,
+    olcum: sayiMetni(durum.urunKartiSayisi, 'kart'),
+  },
+  {
+    key: 'ekip',
+    baslik: 'Ekibinizi ekleyin',
+    aciklama: 'Depo sorumlusu, üretim şefi, kalite… Herkes kendi adıyla girer '
+      + 've yaptığı işin altında kendi imzası kalır.',
+    icon: 'user',
+    dugme: 'Kullanıcıları Aç',
+    route: 'users',
+    navKey: 'users',
+    // Tek kullanıcı = yalnız işletme sahibi; ekip henüz eklenmemiş.
+    bitti: durum.kullaniciSayisi === null ? null : durum.kullaniciSayisi > 1,
+    olcum: sayiMetni(durum.kullaniciSayisi, 'kullanıcı'),
+  },
+]
 
-  const workspaceName = company?.companyName || 'Isletme Calisma Alani'
-  const ownerName = company?.authorizedPerson || company?.ownerName || currentUser.fullName || currentUser.username
-  const hasBusinessModules = managedBusinessModules.length > 0
+export default function WorkspaceWelcome({ currentUser, onOpenWorkspaceRoute }: Props){
+  const [durum, setDurum] = React.useState<KarsilamaDurumu | null>(null)
 
-  const gettingStartedActions: GettingStartedAction[] = [
-    // ⚠️ 2026-10-11 · "Ilk Modul Kur" adimi KALDIRILDI; yerine gercek bir
-    // ilk adim kondu. Modul Magazasi menuden cikarildi (bkz.
-    // claude/modul-magazasi-denetimi.md) ve yeni bir kiraciyi calismayan
-    // bir ekrana yollamak karsilama ekraninin isi degil. Stok karti
-    // olusturmak kurulumun GERCEK ilk adimi: recete de, is emri de,
-    // sevkiyat da onun ustune kuruluyor.
-    {
-      key: 'first-stock-item',
-      title: 'Ilk Stok Kartini Olustur',
-      description: 'Hammadde ve mamul kartlari sistemin temeli; recete, is emri ve sevkiyat bunlarin ustune kuruluyor.',
-      icon: 'stock',
-      actionLabel: 'Depoya Git',
-      route: 'depo',
-      navKey: 'depo',
-      done: hasBusinessModules
-    },
-    {
-      key: 'first-widget',
-      title: 'Ilk Widget Ekle',
-      description: 'Kontrol panelinde takip etmek istediginiz ozetleri one cikarin.',
-      icon: 'dashboard',
-      actionLabel: 'Dashboarda Git',
-      route: 'summary',
-      navKey: 'dashboard'
-    },
-    {
-      key: 'first-user',
-      title: 'Ilk Kullanici Olustur',
-      description: 'Ekip uyelerinizi workspace icine davet edip rollerle yonetin.',
-      icon: 'user',
-      actionLabel: 'Kullanicilara Git',
-      route: 'users',
-      navKey: 'users'
-    },
-    {
-      key: 'first-recipe',
-      title: 'Ilk Recete',
-      description: 'Recete ve maliyet takibini baslatmak icin recete ekranini acin.',
-      icon: 'recipe',
-      actionLabel: 'Recetelere Git',
-      route: 'recipes',
-      navKey: 'recipes'
-    },
-    {
-      key: 'first-product',
-      title: 'Ilk Urun',
-      description: 'Satis, stok ve recete baglantilari icin urun listenizi hazirlayin.',
-      icon: 'stock',
-      actionLabel: 'Urunlere Git',
-      route: 'products',
-      navKey: 'products'
-    },
-    {
-      key: 'workspace-settings',
-      title: 'Workspace Ayarlari',
-      description: 'Logo, para birimi, dil ve temel workspace tercihlerinizi kontrol edin.',
-      icon: 'settings',
-      actionLabel: 'Ayarlari Ac',
-      onAction: onOpenWorkspaceSettings
-    }
-  ]
+  React.useEffect(() => {
+    let gecerli = true
+    void karsilamaDurumunuOku().then(gelen => { if(gecerli) setDurum(gelen) })
+    return () => { gecerli = false }
+  }, [currentUser.id])
+
+  const kisi = currentUser.fullName || currentUser.username
+  const firmaAdi = durum?.firmaAdi
+  const adimlar = durum ? adimlariKur(durum) : []
+  const kalan = adimlar.filter(adim => adim.bitti === false).length
+  const olculemeyen = adimlar.filter(adim => adim.bitti === null).length
 
   return (
     <div className="workspace-welcome-page">
       <section className="workspace-welcome-hero">
         <div>
-          <span className="status-pill success">Calisma alani hazir</span>
-          <h2>Hos geldiniz, {ownerName}</h2>
+          <span className="status-pill success">Kurulum tamamlandı</span>
+          <h2>Hoş geldiniz, {kisi}</h2>
           <p>
-            {workspaceName} baslangic deneyimi hazir. Ilk modulu kurabilir, ilk widgeti ekleyebilir ve temel kayitlara dogru ilerleyebilirsiniz.
+            {firmaAdi
+              ? `${firmaAdi} için MİYOP kullanıma hazır.`
+              : 'MİYOP kullanıma hazır.'}
+            {' '}
+            Aşağıdaki üç adımı tamamladığınızda günlük işe geçebilirsiniz.
+            İsterseniz doğrudan menüden de ilerleyebilirsiniz.
           </p>
         </div>
         <div className="workspace-welcome-mark">
-          <span aria-hidden="true">MI</span>
+          <span aria-hidden="true">Mİ</span>
         </div>
       </section>
 
-      <FeatureHighlight
-        title="Premium onboarding deneyimi aktif"
-        description="Product tour, quick tips, getting started kartlari ve empty state sistemi birlikte calisir."
-        icon="workspace"
-        tone="success"
-        badge="Yeni Ozellik"
-      />
-
-      {!hasBusinessModules && (
-        <PremiumEmptyState
-          title="Workspace henuz bos"
-          description="Bos ekran yerine ilk adimlarinizi buradan baslatabilirsiniz."
-          icon="workspace"
-          size="hero"
-          actions={[
-            {
-              key: 'create-first-stock-item',
-              label: 'Ilk stok kartini olustur',
-              icon: 'stock',
-              tone: 'primary',
-              onClick: () => onOpenWorkspaceRoute('depo', 'depo')
-            },
-            {
-              key: 'open-help',
-              label: 'Yardimi ac',
-              icon: 'help',
-              onClick: onOpenWorkspaceSettings
-            }
-          ]}
-        />
+      {durum === null && (
+        <section className="card"><p className="muted">Kurulum durumu okunuyor…</p></section>
       )}
 
-      <QuickTip title="Baslangic ipucu" dismissible>
-        Once modulleri kurup dashboard widgetlarini ekleyin; sonra urun, recete ve kullanici kartlariyla operasyonu genisletin.
-      </QuickTip>
+      {durum !== null && (
+        <section className="getting-started-grid" aria-label="Başlangıç adımları">
+          {adimlar.map(adim => (
+            <GettingStartedCard
+              key={adim.key}
+              title={adim.baslik}
+              description={adim.aciklama}
+              icon={adim.icon}
+              badge={adim.bitti === null ? 'Ölçülemedi' : adim.bitti ? 'Tamamlandı' : 'Bekliyor'}
+              actionLabel={adim.dugme}
+              steps={[
+                // ⚠️ Tek adım, ve ölçülen adım. Eskiden burada "Ekranı aç" ve
+                // "İlk aksiyonu tamamla" diye iki satır vardı; ikincisi HİÇBİR
+                // ZAMAN işaretlenmiyordu, yani her kart hep yarım görünüyordu.
+                { key: `${adim.key}:olcum`, label: adim.olcum, done: adim.bitti === true },
+              ]}
+              onAction={() => onOpenWorkspaceRoute(adim.route, adim.navKey)}
+            />
+          ))}
+        </section>
+      )}
 
-      <section className="getting-started-grid" aria-label="Baslangic kartlari">
-        {gettingStartedActions.map(action => (
-          <GettingStartedCard
-            key={action.key}
-            title={action.title}
-            description={action.description}
-            icon={action.icon}
-            badge={action.done ? 'Tamamlandi' : 'Baslangic'}
-            actionLabel={action.actionLabel}
-            steps={[
-              { key: `${action.key}:discover`, label: 'Ekrani ac', done: action.done },
-              { key: `${action.key}:complete`, label: 'Ilk aksiyonu tamamla', done: false }
-            ]}
-            onAction={action.onAction || (action.route && action.navKey
-              ? () => onOpenWorkspaceRoute(action.route as BusinessWorkspaceRoute, action.navKey as BusinessWorkspaceNavKey)
-              : undefined)}
-          />
-        ))}
-      </section>
-
-      <section className="workspace-welcome-action">
-        <div>
-          <h3>Kurulum bilgileri</h3>
-          <p>Bu alan yeni kullanicilar icin baslangic rehberi olarak calisir. Kurulum tamamlandiktan sonra ana deneyim kontrol paneli uzerinden devam eder.</p>
-        </div>
-        <div className="workspace-welcome-actions">
-          <button className="btn primary workspace-welcome-button" type="button" onClick={onOpenWorkspaceSettings}>
-            Calisma Alani Ayarlari
-          </button>
-        </div>
-      </section>
+      {durum !== null && (
+        <section className="workspace-welcome-action">
+          <div>
+            <h3>Durum</h3>
+            <p>
+              {olculemeyen > 0
+                ? `${olculemeyen} adım şu an ölçülemedi. Bağlantı döndüğünde `
+                  + 'bu sayfayı yenileyin.'
+                : kalan === 0
+                  ? 'Üç adımın üçü de tamam. Artık günlük işe geçebilirsiniz.'
+                  : `${kalan} adım bekliyor. Sırayla gitmek zorunda değilsiniz.`}
+            </p>
+          </div>
+        </section>
+      )}
     </div>
   )
 }

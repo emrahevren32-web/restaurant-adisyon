@@ -1,243 +1,323 @@
 -- ═══════════════════════════════════════════════════════════════════════════
--- MİYOP · CANLIYA YAPIŞTIRILACAK GÖÇ PAKETİ · 27.10.2026
+-- MİYOP · CANLIYA YAPIŞTIRILACAK GÖÇ PAKETİ · 29.10.2026
 --
 -- Supabase → SQL Editor → hepsini seç, yapıştır, Run.
+-- Beklenen çıktı: "Success. No rows returned."
 --
 -- ⚠️ SUPABASE YAPIŞTIRILAN BETİĞİN TAMAMINI **TEK İŞLEMDE** ÇALIŞTIRIR.
--- Bir satır düşerse HİÇBİR ŞEY uygulanmaz. Bu yüzden:
---
+-- Bir satır düşerse HİÇBİR ŞEY uygulanmaz.
 --   KURAL (27.10, tuzak 129'un bedeli): **BİR GÜVENLİK ONARIMI, VERİYE
---   BAĞLI BİR GÖÇLE AYNI PAKETTE GİTMEZ.** Veriye bağlı göç (eski satırlar
---   yeni bir `check`'i ihlal ediyorsa düşen göç) onarımı rehin alır:
---   kapı açık kalır ve kimse fark etmez. Önce onarım paketi, Run, sonuç
---   görülür; sonra veriye bağlı paket.
+--   BAĞLI BİR GÖÇLE AYNI PAKETTE GİTMEZ.**
+-- BU PAKETTE TEK GÖÇ VAR: 0103. Güvenlik onarımı değil, yeni bir tablo.
 --
--- BU PAKETTE TEK GÖÇ VAR ve o bir güvenlik onarımıdır. Rehin alacak bir şey
--- yok — bilerek böyle.
+-- ── 0103 NEDEN GEREKLİ ────────────────────────────────────────────────────
+-- İşletme Ayarları ekranı para birimi ve KDV oranını gösteriyor ama
+-- ikisinin de veritabanında KARŞILIĞI YOK; ekran onları tarayıcıya yazıyor.
+-- Üstüne `vatRate: 10` diye **kimsenin vermediği bir cevap** duruyor.
+-- Emrah'ın kararı (29.10): *"Kiracı ayarları tablosu yap. Herkes kendi KDV
+-- oranını ve para birimini kendi seçsin."*
 --
--- Beklenen çıktı: "Success. No rows returned."
--- Sonra `araclar/teshis-canli-durum.sql`'i çalıştırın: 8 satırın HEPSİ OK
--- olmalı (dün 7 OK + 1 "KAPI YOK" idi; onarılan satır o).
+-- ⚠️ EKRAN BU GÖÇTEN SONRA BAĞLANACAK. Sıra önemli değil (tablo yokken ekran
+-- eski hâliyle çalışmaya devam ediyor), ama ekran bağlanmadan A1 kapanmaz.
+--
+-- Yerel prova: `db/prova/prova-0103.sql` · 30 ölçüm, hepsi yeşil
+-- (PostgreSQL 16, 104 göç). Ters prova da yapıldı: KDV'ye varsayılan
+-- konunca ölçüm yakalıyor.
 -- ═══════════════════════════════════════════════════════════════════════════
 
--- ══════════════ 0101_fire_kapisi_geri.sql ══════════════
+-- ══════════════ 0103_kiraci_ayarlari.sql ══════════════
 
 -- ═══════════════════════════════════════════════════════════════════════════
--- MİYOP · göç 0101 · `app.fire_dokumu` finans kapısı geri konuyor
+-- MİYOP · Göç 0103 · KİRACI AYARLARI · MIYOP-060b (HEDEFLER 3.4.1–3.4.3)
 --
--- ÖLÇÜM (27.10.2026, canlı teşhis tablosu, 8 satırın 7'si OK):
---     fire_dokumu (app) · finans kapısı → KAPI YOK
+-- ── SORUN ─────────────────────────────────────────────────────────────────
+-- İşletme Ayarları ekranı iki ayar gösteriyor — **para birimi** ve **KDV
+-- oranı** — ve ikisinin de göçlerde KARŞILIĞI YOK. Ekran onları
+-- `localStorage`a yazıyor. Üç ayrı kusur:
 --
--- Depoda yalnız iki göç `app.fire_dokumu`'yu YAZIYOR:
---   · 0065 → ham hesabı yazar (kapı yoktur, o zaman kapı diye bir şey yoktu)
---   · 0071 → hesabı `_ham`'a taşır, ADININ ÜSTÜNE kapıyı yazar
--- Yerelde kapı DURUYOR, canlıda DURMUYOR. Yani canlıda 0065'in gövdesi
--- 0071'in kapısının üstüne yazılmış, ya da 0071 hiç çalışmamış.
+--   · **MIYOP-060b · SORULMAMIŞ SORUYA CEVAP.** `DEFAULT_SETTINGS`
+--     `vatRate: 10` yazıyor ve form bunu *"işletmenin KDV oranı"* gibi
+--     gösteriyor. ⚠️ **Kimse %10 demedi.** Belirlenmemiş bir değeri
+--     belirlenmiş gibi göstermek, bu projedeki *mış gibi* yasağının tam
+--     ortasıdır.
+--   · **Karşılığı olmayan alan.** Sipariş/stok satırındaki `vat_rate`
+--     SATIRIN vergisidir, işletme ayarı değildir. İkisi karıştırılırsa
+--     "işletmenin KDV'si" diye gösterilen şey aslında son satırın vergisi
+--     olur.
+--   · **Ortak anahtar sızıntısı.** İkisi de `ra_settings` içine yazılıyor;
+--     bir kiracının değeri ötekinin varsayılanına taşınabiliyor.
 --
--- ⚠️ HANGİSİ OLDUĞUNU BİLMİYORUM. Tahmin etmiyorum: bu göç İKİSİNİ DE
--- onarır ve hangi durumdan geldiğini `notice` ile söyler. Sebebi bilmemek
--- onarımı geciktirmemeli; ama "sebebini biliyorum" demek de yalan olur.
+-- ── KARAR (Emrah, 29.10.2026) ─────────────────────────────────────────────
+-- *"Kiracı ayarları tablosu yap. Herkes kendi KDV oranını ve para birimini
+-- kendi seçsin."* → İki ayar da KALIYOR ve bu tablo onların yeri oluyor.
 --
--- ⚠️ 0078 TUZAĞI (tuzak 127) AYNI AİLEDEN: bir hesabı `create or replace`
--- ile KAPININ ADINA yazmak kapıyı sessizce siler. Hata vermez, test kırmaz,
--- ekran çalışmaya devam eder — yalnız para herkese görünür olur.
--- `src/reporting/gosterge-kapisi.arch.test.ts` bu göçün metnini de ölçüyor.
+-- ── BELİRLENMEMİŞ, BİR DEĞERDİR ───────────────────────────────────────────
+-- ⚠️ `vat_rate` BİLEREK `null` olabiliyor ve varsayılanı YOK.
+-- Bu göçün varlık sebebi tam olarak budur: `vatRate: 10` bir cevaptı ve o
+-- cevabı kimse vermemişti. `null` = *"işletme henüz seçmedi"*; ekran bunu
+-- boş gösterir ve sormaz-göstermez. Buraya bir `default 10` koymak, aynı
+-- yalanı bir katman aşağıya taşımak olurdu.
 --
--- ⚠️ TUZAK 129: bu göç KENDİ İŞİNDEN BAŞKA HİÇBİR ŞEYİ doğrulamıyor.
--- 0099'da `fire_dokumu` kontrolü koymuştum; o kontrol düştü ve Supabase
--- betiğin TAMAMINI geri aldı — asıl onarım da uygulanmadı. Bir göçün
--- doğrulaması yalnız KENDİ yazdığını ölçer.
+-- ⚠️ `currency_code`un varsayılanı VAR (`TRY`) ve bu bir tahmin değil:
+-- MİYOP Türkiye'de satılıyor, fatura TL kesiliyor. Yine de alan
+-- değiştirilebilir — karar "herkes kendi seçsin" idi.
+--
+-- ── KAPILAR ───────────────────────────────────────────────────────────────
+--   · RLS `tenant_settings_tenant_isolation` → satır kiracıya bağlı (force).
+--   · Yazma kapısı `izin_settings` → `app.izin_gerek('settings.manage')`.
+--     ⚠️ Ölçüldü: bu izin `admin`, `isletme_sahibi`, `super_admin`de var;
+--     `isletme_muduru`da YOK. Müdür işi yürütür, işletmenin kimliğini ve
+--     vergi düzenini değiştirmez — `company.manage` ile aynı aile (0015).
+--   · Okuma herkese açık (kiracı içinde): fiyatı ekrana basan her ekranın
+--     para birimini bilmesi gerekiyor.
+--   · `denetim_tenant_settings` → kim neyi değiştirdi, yazılı (0091).
+--
+-- ⚠️ `updated_at` ve `updated_by` SUNUCUDA yazılıyor, istemciden gelen değer
+-- YOK SAYILIYOR (0087'nin kuralı). "Ne zaman kaydedildi" ekranın iddiası
+-- değil, veritabanının kaydı olmalı.
 -- ═══════════════════════════════════════════════════════════════════════════
 
--- ── ÖN KOŞUL ───────────────────────────────────────────────────────────────
--- Gövde `app.fire_nedenleri()` ve `app.kalem_alis_fiyati()` çağırıyor.
--- Yoklarsa PostgreSQL çıplak bir 42883 verir ve kimse ne olduğunu anlamaz.
-do $$
-begin
-  if to_regprocedure('app.fire_nedenleri()') is null then
-    raise exception '0101: app.fire_nedenleri() yok. Bu göç 0065''ten SONRA '
-      'çalışmalı.' using errcode = 'MI500';
-  end if;
-  if to_regprocedure('app.kalem_alis_fiyati(uuid, timestamptz)') is null then
-    raise exception '0101: app.kalem_alis_fiyati(uuid, timestamptz) yok. '
-      'Bu göç 0065''ten SONRA çalışmalı.' using errcode = 'MI500';
-  end if;
-end;
-$$;
+-- ── 1 · TABLO ─────────────────────────────────────────────────────────────
+create table if not exists public.tenant_settings (
+  -- ⚠️ `id` KOLONU BİLEREK VAR, VE BUNU PROVA ÖĞRETTİ.
+  -- İlk hâlinde birincil anahtar doğrudan `tenant_id` idi ("kiracı başına
+  -- tek satır, ayrı kimliğe ne gerek var"). Mantıklı görünüyordu ama
+  -- `app.denetim_yaz()` satır kimliğini `new ->> 'id'` ile okuyor: `id`
+  -- olmayan tabloda denetim kaydı yazılıyor ama `row_id` alanına **'?'**
+  -- düşüyor. Yani "bunu kim değiştirdi" sorusu cevaplanıyor, "NEYİ
+  -- değiştirdi" sorusu cevaplanmıyordu. Prova yakaladı. → tuzak 149
+  id            uuid primary key default gen_random_uuid(),
 
--- ── `_ham` VAR MI? ─────────────────────────────────────────────────────────
--- 0071'in atladığı adım burada telafi ediliyor: `_ham` yoksa hesap hâlâ
--- kapının adında duruyor demektir, önce taşınır.
-do $$
-begin
-  if to_regprocedure('app.fire_dokumu_ham(uuid, date, date)') is not null then
-    raise notice '0101: fire_dokumu_ham duruyor — 0071 çalışmış, '
-      'kapının üstüne sonradan yazılmış.';
-  elsif to_regprocedure('app.fire_dokumu(uuid, date, date)') is null then
-    raise exception '0101: ne app.fire_dokumu ne app.fire_dokumu_ham var. '
-      'Bu göç 0065''ten SONRA çalışmalı.' using errcode = 'MI500';
-  else
-    execute 'alter function app.fire_dokumu(uuid, date, date) '
-         || 'rename to fire_dokumu_ham';
-    raise notice '0101: fire_dokumu → _ham olarak taşındı — 0071 bu '
-      'veritabanında hiç çalışmamış.';
-  end if;
-end;
-$$;
+  -- Kiracı başına TEK satır: ikinci satır diye bir şey olmamalı.
+  tenant_id     uuid not null unique references public.tenant(id) on delete cascade,
 
--- ── HAM HESAP ──────────────────────────────────────────────────────────────
--- ⚠️ Gövde 0065'ten HARFİ HARFİNE kopya. Yerelde ölçtüm: canlı
--- `app.fire_dokumu_ham` gövdesi ile 0065'in metni BİREBİR aynı (fark yok).
--- 0070 bu fonksiyonun gövdesine dokunmuyor, yalnız yetki veriyor.
--- Yani buraya yazılan hesap hiçbir düzeltmeyi geri almıyor.
-create or replace function app.fire_dokumu_ham(
-  p_sube uuid,
-  p_bas  date,
-  p_bit  date
-)
-returns table (
-  neden       text,
-  kalem_id    uuid,
-  kalem_adi   text,
-  miktar      numeric,
-  birim       text,
-  tutar       numeric,
-  fiyatsiz    boolean
-)
-language sql
-stable
-set search_path = public, app, pg_temp
-as $$
-with iptal as (
-  select m.id from public.stock_movement m where m.reason = 'REVERSAL'
-  union
-  select m.reverses_movement_id from public.stock_movement m
-   where m.reason = 'REVERSAL' and m.reverses_movement_id is not null
-)
-select d.reason,
-       d.stock_item_id,
-       -- ⚠️ `left join`: kalem kartı silinmişse satır KAYBOLMAZ (tuzak 54).
-       k.name,
-       sum(abs(d.quantity_base)),
-       max(k.base_uom),
-       sum(abs(d.quantity_base) * app.kalem_alis_fiyati(d.stock_item_id, d.occurred_at)),
-       bool_or(app.kalem_alis_fiyati(d.stock_item_id, d.occurred_at) is null)
-  from public.stock_movement d
-  left join public.stock_item k on k.id = d.stock_item_id
- where d.branch_id = p_sube
-   and d.occurred_at >= p_bas::timestamptz
-   and d.occurred_at <  (p_bit + 1)::timestamptz
-   and d.reason = any(app.fire_nedenleri())
-   and d.quantity_base < 0
-   and d.id not in (select id from iptal)
- group by d.reason, d.stock_item_id, k.name
- order by sum(abs(d.quantity_base) * app.kalem_alis_fiyati(d.stock_item_id, d.occurred_at))
-          desc nulls last
-$$;
+  currency_code text not null default 'TRY'
+                  constraint tenant_settings_currency_bicim
+                  check (currency_code ~ '^[A-Z]{3}$'),
 
--- ── KAPI ───────────────────────────────────────────────────────────────────
--- ⚠️ Metin 0071'den HARFİ HARFİNE kopya. Kapı `security invoker`
--- (yani `definer` DEĞİL): `definer` olsaydı kapının kendisi RLS'i atlardı.
-create or replace function app.fire_dokumu(p_sube uuid, p_bas date, p_bit date)
-returns table (neden text, kalem_id uuid, kalem_adi text, miktar numeric,
-               birim text, tutar numeric, fiyatsiz boolean)
+  -- ⚠️ VARSAYILANI YOK. Bkz. dosya başı: `null` = "işletme henüz seçmedi".
+  vat_rate      numeric(5,2)
+                  constraint tenant_settings_vat_araligi
+                  check (vat_rate is null or (vat_rate >= 0 and vat_rate <= 100)),
+
+  created_at    timestamptz not null default now(),
+  updated_at    timestamptz not null default now(),
+  -- Kim değiştirdi. ⚠️ Sunucu yazar; istemci gönderemez.
+  updated_by    uuid references public.app_user(id) on delete set null
+);
+
+comment on table public.tenant_settings is
+  'Kiraci genelindeki ayarlar (para birimi, KDV orani). Satir basina vergi '
+  'DEGIL -- o siparis/stok satirinin kendi vat_rate alanidir (0103).';
+comment on column public.tenant_settings.vat_rate is
+  'BELIRLENMEMIS olabilir (null). Varsayilan YOKTUR: eski ekran vatRate=10 '
+  'diye sorulmamis bir soruya cevap veriyordu (MIYOP-060b).';
+
+alter table public.tenant_settings enable row level security;
+alter table public.tenant_settings force  row level security;
+drop policy if exists tenant_settings_tenant_isolation on public.tenant_settings;
+create policy tenant_settings_tenant_isolation on public.tenant_settings
+  using      (tenant_id = app.current_tenant_id())
+  with check (tenant_id = app.current_tenant_id());
+
+
+-- ── 2 · SUNUCU İMZASI ─────────────────────────────────────────────────────
+-- ⚠️ İstemciden gelen `updated_at`/`updated_by` YOK SAYILIYOR. Ekranın
+-- "şu an kaydedildi" demesi yetmez; kaydı veritabanı tutar.
+create or replace function app.tenant_settings_imza()
+returns trigger
 language plpgsql
-stable
-set search_path = public, app, pg_temp
+security definer
+set search_path = ''
 as $$
 begin
-  if not app.yetkim_var('finance.read') then
-    raise exception 'Fire dökümü maliyet bilgisi içeriyor; `finance.read` '
-      'izni gerekiyor.'
-      using errcode = 'MI403';
+  new.updated_at := now();
+  new.updated_by := app.aktif_kullanici_id();
+  if tg_op = 'INSERT' then
+    new.created_at := now();
+  else
+    -- Doğum tarihi değiştirilemez.
+    new.created_at := old.created_at;
   end if;
-
-  return query select * from app.fire_dokumu_ham(p_sube, p_bas, p_bit);
+  return new;
 end;
 $$;
 
-comment on function app.fire_dokumu(uuid, date, date) is
-  'Fire dökümü KAPISI. Hesap app.fire_dokumu_ham''da. Bu gövdeye hesap '
-  'YAZILMAZ — yazıldığı an finans kapısı sessizce silinir (tuzak 127).';
+drop trigger if exists tenant_settings_imza on public.tenant_settings;
+create trigger tenant_settings_imza
+  before insert or update on public.tenant_settings
+  for each row execute function app.tenant_settings_imza();
 
--- ── DOĞRULAMA ──────────────────────────────────────────────────────────────
--- Yalnız bu göçün yazdığı üç şey ölçülüyor: kapı, ham hesap, dış yüzey.
---
--- ⚠️ İLK YAZIŞIMDA fonksiyonu `pg_get_function_identity_arguments(p.oid)
--- = 'uuid, date, date'` ile aradım ve BULAMADI: o fonksiyon argüman
--- ADLARINI DA döndürüyor ('p_sube uuid, p_bas date, p_bit date'). Yani
--- doğrulamam "fonksiyon yok" diye patlıyordu, oysa fonksiyon duruyordu.
--- Bozuk durum provası bunu YERELDE yakaladı; canlıda patlasaydı Supabase
--- bütün paketi geri alır ve kapı yine açık kalırdı. `to_regprocedure`
--- argüman TİPLERİNE göre arar; doğru arama budur.
-do $$
-declare
-  v_kapi    text;
-  v_ham     text;
-  v_dis     text;
-  v_definer boolean;
+
+-- ── 3 · YAZMA KAPISI ──────────────────────────────────────────────────────
+drop trigger if exists izin_tenant_settings on public.tenant_settings;
+create trigger izin_tenant_settings
+  before insert or update or delete on public.tenant_settings
+  for each row execute function app.izin_gerek('settings.manage');
+
+
+-- ── 4 · DENETİM ───────────────────────────────────────────────────────────
+drop trigger if exists denetim_tenant_settings on public.tenant_settings;
+create trigger denetim_tenant_settings
+  after insert or update or delete on public.tenant_settings
+  for each row execute function app.denetim_yaz();
+
+
+-- ── 5 · HER KİRACININ BİR SATIRI OLSUN ────────────────────────────────────
+-- ⚠️ Ekranın "satır yoksa oluştur" yapmasını İSTEMİYORUZ: o yol, ekranın
+-- kiracı adına satır açabilmesi demek ve hangi kiracı adına açtığı
+-- ekranın elinde olur. Satırı veritabanı açar.
+create or replace function app.kiraci_ayarlarini_kur(p_tenant uuid)
+returns void
+language plpgsql
+security definer
+set search_path = ''
+as $$
 begin
-  select p.prosrc, p.prosecdef into v_kapi, v_definer
-    from pg_proc p
-   where p.oid = to_regprocedure('app.fire_dokumu(uuid, date, date)');
+  if p_tenant is null then return; end if;
+  insert into public.tenant_settings (tenant_id)
+  values (p_tenant)
+  on conflict (tenant_id) do nothing;
+end;
+$$;
 
-  if v_kapi is null then
-    raise exception '0101: app.fire_dokumu(uuid, date, date) yok.';
+create or replace function app.kiraci_dogunca_ayar_kur()
+returns trigger
+language plpgsql
+security definer
+set search_path = ''
+as $$
+begin
+  perform app.kiraci_ayarlarini_kur(new.id);
+  return null;
+end;
+$$;
+
+drop trigger if exists trg_kiraci_ayarlari on public.tenant;
+create trigger trg_kiraci_ayarlari
+  after insert on public.tenant
+  for each row execute function app.kiraci_dogunca_ayar_kur();
+
+-- Göçten önce doğmuş kiracılar da doldurulsun.
+do $$
+declare r record; v_say int := 0;
+begin
+  for r in select t.id from public.tenant t
+            where not exists (select 1 from public.tenant_settings s
+                               where s.tenant_id = t.id)
+  loop
+    perform app.kiraci_ayarlarini_kur(r.id);
+    v_say := v_say + 1;
+  end loop;
+  if v_say > 0 then
+    raise notice '0103: ayarı olmayan % kiracıya satır açıldı', v_say;
   end if;
-  if v_kapi not like '%yetkim_var(''finance.read'')%' then
-    raise exception '0101: app.fire_dokumu finans izin kapısı DEĞİL.';
-  end if;
-  if v_definer then
-    raise exception '0101: kapı `security definer` olmuş — bu hâliyle kapı '
-      'RLS''i atlar. `invoker` olmalı.';
-  end if;
-  if v_kapi like '%stock_movement%' then
-    raise exception '0101: kapının gövdesinde HAM HESAP var. Hesap _ham''da '
-      'kalmalı, yoksa hesabı değiştiren bir göç kapıyı yine siler.';
+end;
+$$;
+
+
+-- ── 6 · HAKLAR ────────────────────────────────────────────────────────────
+-- ⚠️ PostgreSQL varsayılanı `PUBLIC EXECUTE` (tuzak 67).
+revoke all on function app.tenant_settings_imza()      from public;
+revoke all on function app.kiraci_ayarlarini_kur(uuid)  from public;
+revoke all on function app.kiraci_dogunca_ayar_kur()    from public;
+grant execute on function app.kiraci_ayarlarini_kur(uuid) to service_role;
+
+-- Okuma kiracı içinde HERKESE açık: fiyat gösteren her ekran para birimini
+-- bilmek zorunda. Yazma hakkı tabloda var ama kapı tetikte.
+grant select, insert, update on public.tenant_settings to authenticated;
+grant all on public.tenant_settings to service_role;
+-- ⚠️ `delete` VERİLMİYOR: kiracının ayar satırı silinmez, değiştirilir.
+
+
+-- ── 7 · DOĞRULAMA · YALNIZ BU GÖÇÜN YAZDIĞINI ÖLÇER ───────────────────────
+do $$
+declare v_say int;
+begin
+  if to_regclass('public.tenant_settings') is null then
+    raise exception '0103: tablo oluşmadı.';
   end if;
 
-  select p.prosrc, p.prosecdef into v_ham, v_definer
-    from pg_proc p
-   where p.oid = to_regprocedure('app.fire_dokumu_ham(uuid, date, date)');
-
-  if v_ham is null then
-    raise exception '0101: app.fire_dokumu_ham(uuid, date, date) yok.';
-  end if;
-  if v_ham not like '%stock_movement%' then
-    raise exception '0101: _ham''da hesap yok.';
-  end if;
-  if v_ham like '%yetkim_var%' then
-    raise exception '0101: _ham''a kapı yazılmış. Kapı tek yerde olmalı.';
-  end if;
-  if v_definer then
-    raise exception '0101: _ham `security definer` olmuş.';
+  -- ⚠️ EN ÖNEMLİ ÖLÇÜM: KDV'nin varsayılanı OLMAMALI.
+  if exists (
+    select 1 from pg_attrdef d
+    join pg_attribute a on a.attrelid = d.adrelid and a.attnum = d.adnum
+    where d.adrelid = 'public.tenant_settings'::regclass and a.attname = 'vat_rate'
+  ) then
+    raise exception '0103: vat_rate''a varsayılan konmuş — MIYOP-060b geri geldi.';
   end if;
 
-  -- ⚠️ EN ÖNEMLİ ÖLÇÜM: dışarıdan gelen çağrı kapıdan GEÇİYOR mu?
-  -- Kapıyı onarmak, dış yüzey `_ham`'ı çağırıyorsa hiçbir şey onarmaz.
-  select p.prosrc into v_dis
-    from pg_proc p
-   where p.oid = to_regprocedure('public.fire_dokumu(uuid, date, date)');
-
-  if v_dis is null then
-    raise exception '0101: public.fire_dokumu(uuid, date, date) yok — '
-      'ekran fire dökümünü hiç çağıramaz.';
+  -- ⚠️ Denetimin satırı adıyla yazabilmesi için `id` kolonu ŞART
+  -- (`app.denetim_yaz` onu `new ->> 'id'` ile okuyor). Yoksa `row_id`
+  -- alanına '?' düşer ve "neyi değiştirdi" cevapsız kalır.
+  if not exists (
+    select 1 from pg_attribute
+     where attrelid = 'public.tenant_settings'::regclass
+       and attname = 'id' and attnum > 0 and not attisdropped
+  ) then
+    raise exception '0103: `id` kolonu yok — denetim satırı adıyla yazamaz.';
   end if;
-  if v_dis not like '%app.fire_dokumu(%' then
-    raise exception '0101: public.fire_dokumu KAPIYI çağırmıyor. Gövde: %',
-      left(v_dis, 200);
-  end if;
-  if v_dis like '%fire_dokumu_ham%' then
-    raise exception '0101: public.fire_dokumu doğrudan _ham''ı çağırıyor — '
-      'kapı ATLANIYOR.';
-  end if;
-
-  if has_function_privilege('anon',
-       'public.fire_dokumu(uuid, date, date)'::regprocedure, 'execute') then
-    raise exception '0101: anon fire dökümünü çağırabiliyor.';
+  if not exists (
+    select 1 from pg_constraint
+     where conrelid = 'public.tenant_settings'::regclass
+       and contype = 'u'
+       and conkey = array[(select attnum from pg_attribute
+                            where attrelid = 'public.tenant_settings'::regclass
+                              and attname = 'tenant_id')]
+  ) then
+    raise exception '0103: tenant_id tekil değil — ikinci ayar satırı açılabilir.';
   end if;
 
-  raise notice '0101 TAMAM · app.fire_dokumu finans kapısı geri kondu · '
-    'hesap _ham''da · dış yüzey kapıdan geçiyor · anon kapalı.';
+  if (select count(*) from pg_policy
+       where polrelid = 'public.tenant_settings'::regclass) = 0 then
+    raise exception '0103: RLS politikası yok.';
+  end if;
+  if not (select relrowsecurity and relforcerowsecurity
+            from pg_class where oid = 'public.tenant_settings'::regclass) then
+    raise exception '0103: RLS açık/zorunlu değil.';
+  end if;
+
+  for v_say in
+    select 1 where not exists (
+      select 1 from pg_trigger
+       where tgrelid = 'public.tenant_settings'::regclass
+         and tgname = 'izin_tenant_settings' and not tgisinternal)
+  loop
+    raise exception '0103: yazma kapısı takılmamış.';
+  end loop;
+
+  if not exists (select 1 from pg_trigger
+       where tgrelid = 'public.tenant_settings'::regclass
+         and tgname = 'denetim_tenant_settings' and not tgisinternal) then
+    raise exception '0103: denetim tetiği yok.';
+  end if;
+  if not exists (select 1 from pg_trigger
+       where tgrelid = 'public.tenant_settings'::regclass
+         and tgname = 'tenant_settings_imza' and not tgisinternal) then
+    raise exception '0103: sunucu imzası tetiği yok.';
+  end if;
+  if not exists (select 1 from pg_trigger
+       where tgrelid = 'public.tenant'::regclass
+         and tgname = 'trg_kiraci_ayarlari' and not tgisinternal) then
+    raise exception '0103: yeni kiracı tetiği yok.';
+  end if;
+
+  -- Geriye dönük doldurma tamam mı?
+  select count(*) into v_say from public.tenant t
+   where not exists (select 1 from public.tenant_settings s
+                      where s.tenant_id = t.id);
+  if v_say > 0 then
+    raise exception '0103: % kiracının ayar satırı yok.', v_say;
+  end if;
+
+  -- `authenticated` silemiyor olmalı.
+  if has_table_privilege('authenticated', 'public.tenant_settings', 'delete') then
+    raise exception '0103: authenticated ayar satırını SİLEBİLİYOR.';
+  end if;
+  if not has_table_privilege('authenticated', 'public.tenant_settings', 'select') then
+    raise exception '0103: authenticated ayarları okuyamıyor.';
+  end if;
+
+  raise notice '✅ 0103: tenant_settings kuruldu · KDV varsayılanı YOK · kapı settings.manage';
 end;
 $$;

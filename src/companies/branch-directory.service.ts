@@ -121,14 +121,13 @@ export const findDuplicateCode = (branches: Branch[], code: string, ignoreId?: s
   ))
 )
 
-/** Corporate profile lives on the company record, never on a branch. */
-export const saveCompanyProfile = (companyId: string, patch: Partial<Company>): Company | undefined => {
-  const companies = loadCompanies()
-  const index = companies.findIndex(company => company.id === companyId)
-  if(index < 0) return undefined
-
-  const updated: Company = { ...companies[index], ...patch, id: companies[index].id, updatedAt: now() }
-  companies[index] = updated
-  saveCompanies(companies)
-  return updated
-}
+// ⚠️ `saveCompanyProfile` 29.10.2026'da KALDIRILDI (MIYOP-060/062/063).
+// Firma profilini `localStorage`daki ortak koleksiyona yazıyordu ve üç
+// kusurun kaynağıydı: süzülmüş listeyi geri yazdığı için bir firmayı
+// kaydetmek diğerinin kaydını siliyordu (063), `normalizeCompany` dört
+// alanı düşürüyordu (062), ve boş alanlar firma adıyla dolduruluyordu (060).
+// Firma Profili ekranı artık `company` tablosunu doğrudan okuyup yazıyor:
+// `src/companies/firma-profili.repository.ts`.
+// ⚠️ Şube tarafı HÂLÂ bu dosyadan geçiyor; şube veritabanına taşınana kadar
+// `persistCompanyBranches` ve `assignHeadOffice` duruyor (HEDEFLER 3.5,
+// tek merkez kararıyla kapsam dışı).

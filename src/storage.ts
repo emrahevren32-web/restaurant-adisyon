@@ -2790,10 +2790,25 @@ const normalizeCompany = (item: Partial<Company>): Company => {
   const timestamp = item.createdAt || new Date().toISOString()
   const companyId = String(item.id || `company_${Date.now()}`)
   const companyName = String(item.companyName || 'İsimsiz Firma').trim() || 'İsimsiz Firma'
+  // ⚠️ MIYOP-060 · BURADA ÜÇ ALAN UYDURULUYORDU (29.10'da kaldırıldı).
+  // Eski hâli şöyleydi:
+  //     authorizedPerson = item.authorizedPerson || ownerName || companyName
+  //     phone            = item.phone || item.authorizedPhone
+  //     legalName        = item.legalName || companyName
+  //     authorizedPhone  = item.authorizedPhone || phone
+  // Yani ticari unvan boşsa ekran FİRMA ADINI unvan gibi gösteriyor,
+  // yetkili kişi boşsa oraya da firma adı düşüyordu — ve kullanıcı alanı
+  // boşaltsa normalizasyon geri dolduruyordu.
+  // ⚠️ Bu tam olarak göç 0084'ün veritabanı tarafında ONARDIĞI yalandı;
+  // düzeltilmiş bir kusurun ikinci katmanda yaşaması → tuzak 106.
+  // Firmanın telefonu ile yetkilinin telefonu AYRI iki şeydir; biri
+  // diğerinin varsayılanı değildir.
+  // ⚠️ `ownerName` fallback'i KALIYOR: o uydurma değil, başvuru formunda
+  // kişinin kendi yazdığı addır.
   const ownerName = String(item.ownerName || item.authorizedPerson || '').trim()
-  const authorizedPerson = String(item.authorizedPerson || ownerName || companyName).trim() || companyName
-  const phone = String(item.phone || item.authorizedPhone || '').trim()
-  const email = String(item.email || item.authorizedEmail || '').trim()
+  const authorizedPerson = String(item.authorizedPerson || ownerName || '').trim()
+  const phone = String(item.phone || '').trim()
+  const email = String(item.email || '').trim()
   const status = normalizeCompanyStatus(item.status)
   const isApproved = item.isApproved === true || ['Aktif', 'Askıda'].includes(status)
   const deletedAt = String(item.deletedAt || '').trim()
@@ -2804,7 +2819,15 @@ const normalizeCompany = (item: Partial<Company>): Company => {
     id: companyId,
     companyCode: String(item.companyCode || '').trim().toLocaleUpperCase('tr-TR') || createCompanyCode(companyName, companyId),
     companyName,
-    legalName: String(item.legalName || companyName).trim() || companyName,
+    // ⚠️ MIYOP-062 · BU DÖRT ALAN DÖNÜŞ NESNESİNDE YOKTU. Tipte vardı
+    // (`types.ts`), kayıtta yoktu; `saveCompanies` bu nesneyi yazdığı için
+    // kullanıcının girdiği kısa ad, web adresi, posta kodu ve yetkili
+    // unvanı her kayıtta SESSİZCE siliniyordu. Hiçbir hata çıkmıyordu.
+    shortName: String(item.shortName || '').trim(),
+    website: String(item.website || '').trim(),
+    postalCode: String(item.postalCode || '').trim(),
+    authorizedTitle: String(item.authorizedTitle || '').trim(),
+    legalName: String(item.legalName || '').trim(),
     taxOffice: String(item.taxOffice || '').trim(),
     taxNumber: String(item.taxNumber || '').trim(),
     phone,
@@ -2813,8 +2836,8 @@ const normalizeCompany = (item: Partial<Company>): Company => {
     district: String(item.district || '').trim(),
     address: String(item.address || '').trim(),
     authorizedPerson,
-    authorizedPhone: String(item.authorizedPhone || phone).trim(),
-    authorizedEmail: String(item.authorizedEmail || email).trim(),
+    authorizedPhone: String(item.authorizedPhone || '').trim(),
+    authorizedEmail: String(item.authorizedEmail || '').trim(),
     status,
     isApproved,
     primarySectorId: normalizePrimarySectorId(item.primarySectorId),
@@ -5914,7 +5937,9 @@ export const completeCompanySetupFromRegistration = ({
     id: companyId,
     tenantId,
     companyName: registration.businessName,
-    legalName: registration.businessName,
+    // ⚠️ Ticari unvan UYDURULMUYOR (MIYOP-060): başvuruda yalnız firma adı
+    // soruluyor, vergi levhasındaki tam unvan sorulmuyor. Boş kalır,
+    // işletme sahibi Firma Profili ekranından girer.
     ownerName: registration.ownerName,
     authorizedPerson: registration.ownerName,
     authorizedPhone: registration.phone,
@@ -6177,7 +6202,7 @@ const createPendingCompanyFromApplication = (
     id: companyId,
     primarySectorId: application.primarySectorId,
     companyName: application.companyName,
-    legalName: application.companyName,
+    // ⚠️ Ticari unvan UYDURULMUYOR (MIYOP-060) — bkz. yukarıdaki not.
     ownerName: application.ownerName,
     authorizedPerson: application.ownerName,
     authorizedPhone: application.phone,

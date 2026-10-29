@@ -154,6 +154,7 @@ export const TABLO_ACIKLAMALARI: Record<string, string> = {
   app_user: 'Kullanıcılar',
   user_role: 'Kullanıcıların ek rolleri',
   user_branch_access: 'Kullanıcının erişebildiği şubeler',
+  tenant_settings: 'İşletme ayarları — para birimi ve KDV oranı',
   stock_item: 'Stok kartları (ürün ve hammadde tanımları)',
   stock_lot: 'Partiler — parti kodu, son kullanma tarihi, tedarikçi',
   stock_movement: 'STOK DEFTERİ — her giriş ve çıkış. Bakiye bundan hesaplanır.',

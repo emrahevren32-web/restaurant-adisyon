@@ -53,6 +53,13 @@ import type { TenantCtx } from '../core/context'
 export const DISA_AKTARILAN_TABLOLAR = [
   // Kimlik ve yapı
   'tenant', 'company', 'branch', 'app_user', 'user_role', 'user_branch_access',
+  // Kiracı ayarları (0103) — `app_user`dan SONRA: `updated_by` ona atıf
+  // yapıyor ve geri yüklemede kullanıcı önce durmalı.
+  // ⚠️ Bu tablo yedeğe GİRMEK ZORUNDA: işletmenin kendi seçtiği para birimi
+  // ve KDV oranı burada. Yedekten dönen bir işletme bunları kaybederse
+  // fiyatlar yanlış para biriminde görünür ve KDV yine "belirlenmemiş"e
+  // döner — yani müşteri aynı soruyu ikinci kez cevaplar.
+  'tenant_settings',
   // Stok çekirdeği
   'stock_item', 'stock_lot', 'stock_movement',
   // Alerjen ve besin değeri (0057) — stok kartından SONRA: ikisi de ona
