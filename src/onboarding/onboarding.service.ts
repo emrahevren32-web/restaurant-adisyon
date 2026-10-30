@@ -381,7 +381,13 @@ export const completeFirstLoginOnboarding = ({
     ...currentSettings,
     restaurantName: companyName,
     logoUrl: workspaceLogoUrl,
-    currency: workspaceCurrency
+    // ⚠️ `currency` BURADAN KALDIRILDI (29.10.2026, MIYOP-060b). Para birimi
+    // artık `public.tenant_settings` tablosunda (göç 0103) ve onu okuyup
+    // yazan yer `src/workspace/isletme-ayarlari.repository.ts`. Burada da
+    // tutmak, hangisinin doğru olduğunu bilemediğimiz İKİ KAYNAK demekti.
+    // ⚠️ Aşağıdaki `saveTenantSettings` çağrısı HÂLÂ tarayıcıya bir para
+    // birimi yazıyor (satır ~365). O da kalkmalı; ilk giriş sihirbazı
+    // `tenant_settings`e yazacak. HEDEFLER 3.4.5'te açık madde.
   })
   saveBranches(existingBranch
     ? allBranches.map(item => item.id === existingBranch.id ? updatedBranch : item)

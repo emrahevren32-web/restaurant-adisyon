@@ -19,13 +19,16 @@
 // 25.10.2026 · Şubeler ve Şube Yetkileri **kapsam dışına çıktı** (tek merkez
 // kararı), düzeltilmedi. Kalan üç: Firma Profili, İşletme Ayarları, Karşılama.
 //
-// 29.10.2026 · **Firma Profili** ve **Karşılama** veritabanına bağlandı ve
-// listeden ÇIKARILDI (`companies/firma-profili.repository.ts`,
-// `workspace/karsilama.repository.ts`). Kalan **bir**: İşletme Ayarları.
-// ⚠️ O ekran bilerek bekliyor: HEDEFLER 3.4.2'de açık bir karar var — kiracı
-// genelindeki para birimi ve KDV'nin göçlerde KARŞILIĞI YOK. Alan korunacaksa
-// yeni şema ister, korunmayacaksa kaldırılır. Karar verilmeden ekran
-// taşınmaz; taşınırsa olmayan bir kolona yazmaya çalışırız.
+// 29.10.2026 · **Firma Profili**, **Karşılama** ve **İşletme Ayarları**
+// veritabanına bağlandı. **LİSTE BOŞALDI.**
+// Sırasıyla: `companies/firma-profili.repository.ts`,
+// `workspace/karsilama.repository.ts`,
+// `workspace/isletme-ayarlari.repository.ts` (göç **0103** ·
+// `public.tenant_settings`).
+//
+// ⚠️ LİSTE BOŞALDI AMA TEST KALDI, VE ASIL İŞİ ŞİMDİ BAŞLIYOR: bundan
+// sonra `storage.ts`e bağlanan HER YENİ açık ekran kırmızı verecek. Bir
+// çıcırın değeri, sıfıra indikten sonra da orada durmasındadır.
 //
 // ── BU TEST BİR CIRCIR (ratchet) ─────────────────────────────────────────
 // Listeyi SIFIRLAMIYOR, DONDURUYOR. Kural:
@@ -70,9 +73,9 @@ const DEPO_SERVISLERI = [
  * ⚠️ DÜZELTİLDİKÇE BU LİSTEDEN SİLİN. Eklemeyin.
  * Her satır: açık bir rota ve o rotanın tarayıcıya bağlı ekranı.
  */
-const BILINEN_BORC: Record<string, string> = {
-  'settings': 'pages/Settings.tsx'
-}
+// ⚠️ 29.10.2026: BOŞ. Açık kiracı ekranlarının hiçbiri artık kullanıcının
+// girdiği veriyi tarayıcıya yazmıyor.
+const BILINEN_BORC: Record<string, string> = {}
 
 /**
  * ⚠️ 25.10.2026 · `branches` ve `branch-permissions` listeden çıktı —
@@ -177,11 +180,10 @@ describe('açık kiracı rotaları · tarayıcı deposu çıcırı', () => {
     ).toEqual([])
   })
 
-  it('borç yalnız AZALABİLİR', () => {
-    // 6 → 5 → 3 → 1. Bu sayı büyürse biri listeye ekleme yapmış demektir.
-    // ⚠️ 5 → 3 bir DÜZELTME değildi: şube ekranları kapsam dışına çıktı.
-    // 3 → 1 düzeltmedir: Firma Profili ve Karşılama veritabanına bağlandı.
-    // İkisi karıştırılmasın.
-    expect(Object.keys(BILINEN_BORC).length).toBeLessThanOrEqual(1)
+  it('borç BİTTİ ve geri gelmiyor', () => {
+    // 6 → 5 → 3 → 1 → **0**.
+    // ⚠️ 5 → 3 bir DÜZELTME değildi: şube ekranları tek merkez kararıyla
+    // kapsam dışına çıktı. 3 → 0 düzeltmedir. İkisi karıştırılmasın.
+    expect(Object.keys(BILINEN_BORC).length).toBe(0)
   })
 })

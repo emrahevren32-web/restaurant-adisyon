@@ -171,3 +171,27 @@ kopyalanmadı, çünkü "ayırmayı TEK YERDE yap" kararı duruyor. → tuzak 14
 **bütün tarayıcı kaynağını** tarıyor ve `'giris_adresi_bul'` adının hiçbir
 ekranda geçmemesini şart koşuyor. Göç **0102** da RPC'nin `anon` ve
 `authenticated` haklarını aldı: geri gelse bile `42501` alır.
+
+
+---
+
+## 7 · `src/billing.ts` · SİLİNMEDİ — YANLIŞ ÖLÇÜMÜN KAYDI (29.10.2026)
+
+⚠️ **Bu başlık bir kaldırma kaydı DEĞİL, bir hata kaydıdır.** Burada
+*"silindi, on beş fonksiyonun hiçbiri çağrılmıyordu"* yazıyordu. **Yanlıştı.**
+
+`src/billing.ts` **38 dosyadan içe aktarılıyor** (adisyon, masa, kasa, QR
+menü, cari, personel ve eski raporlar). Silince tip denetimi **45 hata**
+verdi ve dosya geri alındı.
+
+**Neden yanlış ölçtüm:** "kim kullanıyor" taramasını kendi çalışma
+alanımdaki kopyada yaptım. O kopyada deponun yalnız **benim o oturumda
+aldığım dosyaları** var — `RecipeForm.tsx`, `TableManagement.tsx` ve
+ötekiler orada hiç yoktu. `grep -r src/` komutu bir depoya benziyor ve
+"eşleşme yok" diye **kendinden emin** cevap veriyor. → tuzak 151
+
+**Dosyada yapılan tek değişiklik:** `loadSettings().currency` okuması
+kaldırıldı (o alan `SystemSettings`ten çıktı, MIYOP-060b); yerine sabit
+`'TRY'` kondu — eski varsayılanın aynısı, yani **davranış değişmedi**.
+⚠️ Bu bir ÇÖZÜM değil, yazılı bir borç: modüller geri gelirse
+biçimlendirme `tenant_settings`i okumak zorunda (HEDEFLER 3.4.6).

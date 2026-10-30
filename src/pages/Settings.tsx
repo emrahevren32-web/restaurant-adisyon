@@ -1,227 +1,261 @@
 import React from 'react'
-import { SystemSettings, User } from '../types'
 import LisansKarti from '../components/LisansKarti'
 import {
-  getCompanyIdForUser,
-  loadCompanies,
-  loadSettings,
-  loadTenantSettings,
-  saveCompanies,
-  saveSettings,
-  saveTenantSettings
-} from '../storage'
+  PARA_BIRIMLERI,
+  isletmeAyarlariniOku,
+  isletmeAyarlariniYaz,
+  type IsletmeAyarlari,
+} from '../workspace/isletme-ayarlari.repository'
+import { firmaProfiliniOku, type FirmaProfili } from '../companies/firma-profili.repository'
+import type { User } from '../types'
+
+// ═══════════════════════════════════════════════════════════════════════════
+// MİYOP · İşletme Ayarları · MIYOP-060b
+//
+// ⚠️ 29.10.2026'ya kadar bu ekran iki ayarı — para birimi ve KDV oranı —
+// `localStorage`a yazıyordu ve ikisinin de veritabanında KARŞILIĞI YOKTU.
+// Üstüne `DEFAULT_SETTINGS.vatRate = 10` duruyordu ve form bunu
+// **işletmenin KDV oranı** gibi gösteriyordu. Kimse %10 demedi.
+//
+// Göç **0103** (`public.tenant_settings`) ikisinin de yerini açtı; ekran
+// artık oraya yazıyor. Gerekçe ve ölçümler:
+// `src/workspace/isletme-ayarlari.repository.ts` dosya başı.
+//
+// ⚠️ FİRMA ADI VE LOGO ARTIK BURADAN DEĞİŞMİYOR. İkisi de `company`
+// tablosunda ve o tablonun sahibi **Firma Profili** ekranı (3.1). İki ekranın
+// aynı kolona yazması, "orada değiştirdim burada değişti" karışıklığının ta
+// kendisidir — ve o kolonların kapısı (`company.manage`) buradakinden
+// (`settings.manage`) farklı. Burada yalnız GÖSTERİLİYOR.
+//
+// ⚠️ "Yetkisiz Erişim" ekranı da kaldırıldı: eski hâli `role === 'Admin'`
+// değilse hiçbir şey göstermiyordu. Müdür ayarları GÖREBİLMELİ, yalnız
+// değiştiremez. Görmeyi engellemek, ona işletmenin para biriminin ne
+// olduğunu da söylememek demekti.
+// ═══════════════════════════════════════════════════════════════════════════
 
 type Props = {
   currentUser: User
+  /** Üst çubuk adı/logoyu tazelesin diye; firma adı buradan değişmese de
+   *  çağıran taraf için duruyor. */
   onSettingsChange?: () => void
 }
 
-type Message = {
-  type: 'success' | 'error'
-  text: string
-} | null
+/**
+ * ⚠️ `permissions` TANIMSIZ olabiliyor (App.tsx'teki bilinçli taviz).
+ * Tanımsızken "yetkin yok" demek YALAN olur. Form açık bırakılıyor ve
+ * kararı veritabanı veriyor: yetkisiz UPDATE `izin_tenant_settings`
+ * tetiğinde reddedilir, ekran o sebebi yazar.
+ */
+const yazabilirMi = (user: User): boolean => (
+  user.permissions === undefined || user.permissions.includes('settings.manage')
+)
 
-const currencyOptions = [
-  { value: 'TRY', label: 'Türk Lirası (TRY)' },
-  { value: 'USD', label: 'Dolar (USD)' },
-  { value: 'EUR', label: 'Euro (EUR)' },
-  { value: 'GBP', label: 'Sterlin (GBP)' }
-]
-
-const getScopedSettings = (user: User): SystemSettings => {
-  const baseSettings = loadSettings()
-  const companyId = getCompanyIdForUser(user)
-  const company = companyId
-    ? loadCompanies({ allTenants: true }).find(item => item.id === companyId) || null
-    : null
-  const tenantSettings = company?.tenantId
-    ? loadTenantSettings().find(item => item.tenantId === company.tenantId) || null
-    : null
-
-  return {
-    ...baseSettings,
-    restaurantName: company?.companyName || baseSettings.restaurantName,
-    logoUrl: company?.logoUrl || baseSettings.logoUrl,
-    currency: tenantSettings?.currency || baseSettings.currency
-  }
+const tarih = (iso: string | null): string => {
+  if(!iso) return '—'
+  const d = new Date(iso)
+  if(Number.isNaN(d.getTime())) return '—'
+  return d.toLocaleString('tr-TR', {
+    day: '2-digit', month: '2-digit', year: 'numeric',
+    hour: '2-digit', minute: '2-digit',
+  })
 }
 
-export default function Settings({ currentUser, onSettingsChange }: Props){
-  const [settings, setSettings] = React.useState<SystemSettings>(() => getScopedSettings(currentUser))
-  const [message, setMessage] = React.useState<Message>(null)
+export default function Settings({ currentUser }: Props){
+  const yazabilir = yazabilirMi(currentUser)
 
-  React.useEffect(() => {
-    setSettings(getScopedSettings(currentUser))
-  }, [currentUser])
+  const [ayarlar, setAyarlar] = React.useState<IsletmeAyarlari | null>(null)
+  const [firma, setFirma] = React.useState<FirmaProfili | null>(null)
+  const [paraBirimi, setParaBirimi] = React.useState('TRY')
+  const [kdv, setKdv] = React.useState('')
+  const [yukleniyor, setYukleniyor] = React.useState(true)
+  const [kaydediliyor, setKaydediliyor] = React.useState(false)
+  const [hata, setHata] = React.useState('')
+  const [bilgi, setBilgi] = React.useState('')
 
-  if(currentUser.role !== 'Admin'){
-    return (
-      <div className="settings-page">
-        <section className="card">
-          <h2>Yetkisiz Erişim</h2>
-          <p className="muted">Ayarlar ekranını sadece Yönetici rolündeki kullanıcılar görebilir.</p>
-        </section>
-      </div>
-    )
-  }
+  const yukle = React.useCallback(async () => {
+    setYukleniyor(true)
+    setHata('')
+    setBilgi('')
+    const [gelenAyar, gelenFirma] = await Promise.all([
+      isletmeAyarlariniOku(),
+      firmaProfiliniOku(currentUser.companyId),
+    ])
+    setFirma(gelenFirma)
+    if(gelenAyar){
+      setAyarlar(gelenAyar)
+      setParaBirimi(gelenAyar.paraBirimi)
+      // ⚠️ `null` BOŞ metne dönüyor — `0` değil. "Seçilmedi" ile "%0" ayrı.
+      setKdv(gelenAyar.kdvOrani === null ? '' : String(gelenAyar.kdvOrani))
+    } else {
+      setAyarlar(null)
+      setHata('İşletme ayarları okunamadı. Bağlantınızı kontrol edip tekrar deneyin.')
+    }
+    setYukleniyor(false)
+  }, [currentUser.companyId])
 
-  const updateField = <K extends keyof SystemSettings>(key: K, value: SystemSettings[K]) => {
-    setSettings(prev => ({ ...prev, [key]: value }))
-  }
+  React.useEffect(() => { void yukle() }, [yukle])
 
-  const saveGeneralSettings = (event: React.FormEvent) => {
+  const kaydet = async (event: React.FormEvent) => {
     event.preventDefault()
-    const companyId = getCompanyIdForUser(currentUser)
-    if(companyId){
-      const now = new Date().toISOString()
-      const companies = loadCompanies({ allTenants: true })
-      const currentCompany = companies.find(company => company.id === companyId) || null
+    if(!ayarlar || kaydediliyor) return
 
-      saveCompanies(companies.map(company => company.id === companyId
-        ? {
-          ...company,
-          companyName: settings.restaurantName.trim() || company.companyName,
-          logoUrl: settings.logoUrl.trim(),
-          updatedAt: now
-        }
-        : company))
+    setKaydediliyor(true)
+    setHata('')
+    setBilgi('')
 
-      const tenantId = currentCompany?.tenantId || currentUser.tenantId
-      if(tenantId){
-        const tenantSettings = loadTenantSettings()
-        const existingTenantSettings = tenantSettings.find(item => item.tenantId === tenantId)
-        saveTenantSettings([
-          {
-            id: existingTenantSettings?.id || `tenant_settings_${tenantId}`,
-            tenantId,
-            timezone: existingTenantSettings?.timezone || 'Europe/Istanbul',
-            currency: settings.currency,
-            language: existingTenantSettings?.language || 'tr-TR',
-            dateFormat: existingTenantSettings?.dateFormat || 'DD.MM.YYYY',
-            theme: existingTenantSettings?.theme || 'Varsayılan',
-            createdAt: existingTenantSettings?.createdAt || now,
-            updatedAt: now
-          },
-          ...tenantSettings.filter(item => item.tenantId !== tenantId)
-        ])
-      }
+    const sonuc = await isletmeAyarlariniYaz(ayarlar.id, { paraBirimi, kdvOrani: kdv })
+    if(sonuc.durum === 'hata'){
+      setHata(sonuc.mesaj)
+      setKaydediliyor(false)
+      return
     }
 
-    const baseSettings = loadSettings()
-    saveSettings({
-      ...baseSettings,
-      vatRate: settings.vatRate,
-      currency: settings.currency
-    })
-    setSettings(getScopedSettings(currentUser))
-    onSettingsChange?.()
-    setMessage({ type: 'success', text: 'Genel ayarlar kaydedildi.' })
+    // ⚠️ Ekranda gösterilen şey, VERİTABANINDAN GERİ OKUNAN şey.
+    setAyarlar(sonuc.ayarlar)
+    setParaBirimi(sonuc.ayarlar.paraBirimi)
+    setKdv(sonuc.ayarlar.kdvOrani === null ? '' : String(sonuc.ayarlar.kdvOrani))
+    setBilgi('İşletme ayarları kaydedildi.')
+    setKaydediliyor(false)
   }
 
+  const kilitli = !yazabilir || kaydediliyor
 
   return (
     <div className="settings-page">
       <div className="page-title">
         <div>
-          <h2>Ayarlar</h2>
+          <h2>İşletme Ayarları</h2>
           <p className="muted">
-            Çalışma alanı bilgileri. Veri yedeği için soldaki
+            Para birimi ve KDV oranı. Veri yedeği için soldaki
             <strong> Veri Yedeği</strong> ekranını kullanın.
           </p>
         </div>
       </div>
 
-      {message && <div className={`settings-message ${message.type}`}>{message.text}</div>}
+      {!yazabilir && (
+        <div className="form-error">
+          İşletme ayarlarını yalnızca işletme sahibi değiştirebilir.
+          Bilgileri görebilirsiniz, kaydedemezsiniz.
+        </div>
+      )}
+      {hata && <div className="form-error">{hata}</div>}
+      {bilgi && !hata && <div className="form-success">{bilgi}</div>}
 
       <div className="settings-layout">
         {/* Lisans EN ÜSTTE: müşterinin "ne zamana kadar kullanabilirim"
-            sorusu, yazı tipi ve para birimi ayarlarından önce gelir. */}
+            sorusu, para birimi ayarından önce gelir. */}
         <LisansKarti currentUser={currentUser} />
 
         <section className="card">
           <div className="section-header compact">
-            <h3>Genel Ayarlar</h3>
+            <h3>Firma</h3>
           </div>
-
-          <form className="settings-form" onSubmit={saveGeneralSettings}>
+          {/* ⚠️ SALT OKUNUR. Bu iki alan `company` tablosunda ve oranın
+              sahibi Firma Profili ekranı. Bkz. dosya başı. */}
+          <div className="form-grid">
             <div className="form-field">
-              <label>Çalışma alanı adı</label>
-              <input
-                value={settings.restaurantName}
-                onChange={event => updateField('restaurantName', event.target.value)}
-                placeholder="Çalışma alanı adı"
-              />
+              <label>Firma adı</label>
+              <input value={firma?.firmaAdi ?? ''} disabled readOnly />
             </div>
-
             <div className="form-field">
-              <label>Logo URL</label>
-              <input
-                value={settings.logoUrl}
-                onChange={event => updateField('logoUrl', event.target.value)}
-                placeholder="https://..."
-              />
+              <label>Firma logosu (bağlantı)</label>
+              <input value={firma?.logoAdresi ?? ''} disabled readOnly />
             </div>
-
-            {settings.logoUrl && (
-              <div className="logo-preview">
-                <span>Logo Önizleme</span>
-                <img src={settings.logoUrl} alt="Çalışma alanı logosu" />
-              </div>
-            )}
-
-            <div className="settings-form-grid">
-              <div className="form-field">
-                <label>KDV oranı (%)</label>
-                <input
-                  type="number"
-                  min="0"
-                  max="100"
-                  step="0.01"
-                  value={settings.vatRate}
-                  onChange={event => updateField('vatRate', Number(event.target.value))}
-                />
-                <p className="muted small-text">KDV oranı gelecekte fiş ve raporlama sistemi için kullanılacaktır.</p>
-              </div>
-
-              <div className="form-field">
-                <label>Para birimi</label>
-                <select
-                  value={settings.currency}
-                  onChange={event => updateField('currency', event.target.value)}
-                >
-                  {currencyOptions.map(option => (
-                    <option key={option.value} value={option.value}>{option.label}</option>
-                  ))}
-                </select>
-              </div>
+          </div>
+          <p className="muted small-text">
+            Firma adı ve logo <strong>Firma Profili</strong> ekranından
+            değiştirilir. Orası vergi dairesi, adres ve yetkili bilgilerinin de
+            tutulduğu yerdir.
+          </p>
+          {firma?.logoAdresi && (
+            <div className="logo-preview">
+              <span>Logo önizleme</span>
+              <img src={firma.logoAdresi} alt="Firma logosu" />
             </div>
-
-            <div className="form-actions">
-              <button className="btn primary" type="submit">Kaydet</button>
-            </div>
-          </form>
+          )}
         </section>
 
-        {/* ⚠️ BURADA "Yedekleme" ve "Geri Yükleme" BÖLÜMLERİ VARDI. KALDIRILDI.
-            (2026-09-13)
+        <section className="card">
+          <div className="section-header compact">
+            <h3>Para Birimi ve KDV</h3>
+          </div>
 
-            İkisi de TARAYICI HAFIZASINI (localStorage) yedekliyor ve geri
-            yüklüyordu. Gerçek iş verisi Postgres'te; o düğmeye basan bir
-            müşteri "yedeğim var" sanıyor ama elindeki dosyada stok defteri,
-            sayım, sevkiyat, HACCP kaydı YOK.
+          {yukleniyor ? (
+            <p className="muted">Ayarlar yükleniyor…</p>
+          ) : !ayarlar ? (
+            <div className="form-actions">
+              <button className="btn" type="button" onClick={() => void yukle()}>
+                Tekrar dene
+              </button>
+            </div>
+          ) : (
+            <form className="settings-form" onSubmit={e => void kaydet(e)}>
+              <div className="settings-form-grid">
+                <div className="form-field">
+                  <label>Para birimi</label>
+                  <select value={paraBirimi} disabled={kilitli}
+                    onChange={e => { setParaBirimi(e.target.value); setBilgi('') }}>
+                    {PARA_BIRIMLERI.map(p => (
+                      <option key={p.kod} value={p.kod}>{p.ad}</option>
+                    ))}
+                  </select>
+                </div>
 
-            Yedeği olduğunu sanıp olmamak, hiç yedek almamaktan tehlikelidir.
-            Bu yüzden düğmeyi düzeltmedik, KALDIRDIK.
+                <div className="form-field">
+                  <label>KDV oranı (%)</label>
+                  {/* ⚠️ `type="number"` DEĞİL ve bu bilinçli: boş bırakmak
+                      geçerli bir cevap ("henüz seçmedim") ve sayı kutusu boş
+                      değeri bazı tarayıcılarda 0'a çeviriyor. 0 ile "boş"
+                      aynı şey değil. */}
+                  <input
+                    value={kdv}
+                    disabled={kilitli}
+                    inputMode="decimal"
+                    placeholder="Belirlenmedi"
+                    onChange={e => { setKdv(e.target.value); setBilgi('') }}
+                  />
+                  <p className="muted small-text">
+                    {ayarlar.kdvOrani === null
+                      ? 'Henüz belirlenmedi. Boş bırakabilirsiniz — MİYOP sizin '
+                        + 'adınıza bir oran varsaymaz.'
+                      : 'Boşaltırsanız "belirlenmedi" durumuna döner.'}
+                  </p>
+                </div>
+              </div>
 
+              <p className="muted small-text">
+                Son kayıt: {tarih(ayarlar.guncellendi)}
+              </p>
+
+              {yazabilir && (
+                <div className="form-actions">
+                  <button className="btn primary" type="submit" disabled={kaydediliyor}>
+                    {kaydediliyor ? 'Kaydediliyor…' : 'Kaydet'}
+                  </button>
+                  <button className="btn" type="button" disabled={kaydediliyor}
+                    onClick={() => {
+                      setParaBirimi(ayarlar.paraBirimi)
+                      setKdv(ayarlar.kdvOrani === null ? '' : String(ayarlar.kdvOrani))
+                      setHata(''); setBilgi('')
+                    }}>
+                    Değişiklikleri Geri Al
+                  </button>
+                </div>
+              )}
+            </form>
+          )}
+        </section>
+
+        {/* ⚠️ BURADA "Yedekleme" ve "Geri Yükleme" BÖLÜMLERİ VARDI. KALDIRILDI
+            (2026-09-13). İkisi de TARAYICI HAFIZASINI yedekliyor ve geri
+            yüklüyordu; gerçek iş verisi Postgres'te. O düğmeye basan müşteri
+            "yedeğim var" sanıyor ama dosyada stok defteri, sayım, sevkiyat,
+            HACCP kaydı YOK. Yedeği olduğunu sanıp olmamak, hiç yedek
+            almamaktan tehlikelidir.
             Gerçek yedek: Ayarlar → Veri Yedeği (src/pages/VeriYedegi.tsx).
-            Kiracının bütün iş verisini Postgres'ten okur, doğrulaması var,
-            her alış günlüğe yazılır.
-
-            "Geri Yükleme" düğmesi ise BİLEREK YENİDEN YAPILMADI. Yanlış
-            yapılmış bir geri yükleme veri kaybından kötüdür: iki dönemin
-            verisi karışır ve hangisinin doğru olduğu bir daha bilinemez.
-            Karar (Emrah, 2026-09-13): geri yükleme talebi MİYOP'a gelir,
-            elle ve kayıt altında yapılır. Bkz. docs/YEDEKLEME.md §4.6 */}
+            "Geri Yükleme" BİLEREK yeniden yapılmadı: yanlış yapılmış bir geri
+            yükleme veri kaybından kötüdür. Karar (Emrah, 2026-09-13): talep
+            MİYOP'a gelir, elle ve kayıt altında yapılır. docs/YEDEKLEME.md §4.6 */}
       </div>
     </div>
   )

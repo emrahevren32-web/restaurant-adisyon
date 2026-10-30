@@ -1,8 +1,29 @@
 import { ClosedBill, Discount, Order, PaymentPart, Product } from './types'
-import { loadSettings } from './storage'
+
+// ═══════════════════════════════════════════════════════════════════════
+// ⚠️ 29.10.2026 · BURASI `loadSettings().currency` OKUYORDU.
+// O alan `SystemSettings` tipinden KALDIRILDI (MIYOP-060b): kiracının para
+// birimi artık `public.tenant_settings` tablosunda (göç 0103) ve onu okuyup
+// yazan yer `src/workspace/isletme-ayarlari.repository.ts`.
+//
+// ⚠️ SABİT 'TRY' BİR ÇÖZÜM DEĞİL, YAZILI BİR BORÇTUR (HEDEFLER 3.4.6).
+// Eski `DEFAULT_SETTINGS.currency` de 'TRY' idi ve eski ekran onu yalnız
+// tarayıcıya yazdığı için hiçbir kiracıda değişmemişti — yani bu satır
+// DAVRANIŞI DEĞİŞTİRMİYOR. Ama müşteri EUR seçerse buradan geçen ekranlar
+// yine ₺ basar.
+//
+// ⚠️ Bu dosyayı **38 ekran** kullanıyor (adisyon, masa, kasa, QR menü, cari,
+// personel, eski raporlar). Hangilerinin bugün AÇIK rota olduğu ÖLÇÜLMEDİ;
+// ölçülmeden "kimse görmüyor" denmeyecek.
+//
+// ⚠️ Buraya `tenant_settings` okuması EKLENMEZ: bu fonksiyon eşzamanlı
+// (sync) ve çizim sırasında çağrılıyor. Doğru çözüm, para birimini tek bir
+// yerden besleyip bu dosyanın oradan okumasıdır — 3.4.6'nın işi.
+// ═══════════════════════════════════════════════════════════════════════
+const PARA_BIRIMI = 'TRY'
 
 const createCurrencyFormatter = () => {
-  const currency = loadSettings().currency || 'TRY'
+  const currency = PARA_BIRIMI
 
   try {
     return new Intl.NumberFormat('tr-TR', {

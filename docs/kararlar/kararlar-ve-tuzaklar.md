@@ -984,6 +984,67 @@ göreceği hata mesajları** da (`'Çok fazla deneme yapıldı'`) bozuluyordu.
 ⚠️ Ve komut kendi çıktısını **ölçmeli**: panoda `ş` var mı, bozuk `Ã` var
 mı. "Kopyaladım" demek yetmez; kopyanın sağlam olduğu gösterilir.
 
+**152 · KIRMIZI VEREN HAT, KODU DEĞİL KENDİNİ GÖSTERİYORDU.**
+(29–30.10) Testler üç kez üst üste kırmızı verdi: 23, sonra 28, sonra yine 28
+paket "düştü". Bir gün kaybettik ve **kodda hiçbir şey yoktu.**
+
+⚠️ **AYIRT EDEN İKİ ÖLÇÜM ŞUYDU:**
+  1. **Tek bir iddia hatası yoktu.** Hiçbir yerde *"beklenen X, gelen Y"*
+     yazmıyordu; hepsi `[vitest-worker]: Timeout calling "fetch"` idi — yani
+     vitest'in KENDİ dosya okuması zaman aşımına uğruyordu. Düşen paketler
+     **(0)** test topluyordu: hiç başlamamışlardı.
+  2. **Düşen dosyalar her koşuda DEĞİŞİYORDU.** Bir koşuda geçen dosya
+     ötekinde düşüyordu. ⚠️ **Gerçek bir hata hep aynı yerden çıkar.**
+     Gezinen bir kırmızı, koddan değil hattan gelir.
+
+Ölçüm (aynı kod, aynı makine, arka arkaya):
+  · paralel havuz → **429 sn**, 28 paket hiç başlamadan düştü, 0 iddia hatası
+  · tek işçi      → **8 sn**, 95 paketin 95'i, 1643 testin 1643'ü yeşil
+**53 kat.** Her işçi kendi Vite dönüştürme hattını ve kendi jsdom ortamını
+kuruyor; 95 dosya × N işçi bu makinede diski kilitliyor.
+
+⚠️ **Bu kapıyı gevşetmek değildir:** hangi testin koştuğu, neyi ölçtüğü ve
+kaç tane olduğu birebir aynı; değişen tek şey sıraya dizilişleri.
+⚠️ **Ve asıl ders bu:** bir kapının HIZI, güvenilirliğinin parçasıdır.
+429 saniye süren ve rastgele kırmızı veren bir kapı er geç atlanır
+("yine takıldı herhalde"). 8 saniyelik kapı her seferinde koşturulur.
+Bedeli yazılı: tek süreçte bütün dosyalar global durumu paylaşır. Bir gün
+bir test TEK BAŞINA geçip BÜTÜN takımda düşerse ilk şüpheli odur.
+
+**151 · AYNA DEPO DEĞİLDİR — ÜÇÜNCÜ KEZ.**
+(29.10) `src/billing.ts`i *"hiçbir yerden içe aktarılmıyor"* diye sildim.
+Tip denetimi **38 dosyada 45 hata** verdi: dosya adisyon, masa, kasa, QR
+menü, cari, personel ve eski raporlardan çağrılıyormuş.
+⚠️ Taramayı kendi çalışma alanımdaki kopyada yaptım. Orada deponun yalnız
+**benim o oturumda aldığım dosyaları** var. `grep -r src/` bir depoya
+benziyor ve "eşleşme yok" diye **kendinden emin** cevap veriyor. Yokluğu
+kanıt sandım; oysa dosyanın orada olmaması, kodda olmaması demek değil.
+⚠️ **Aynı kök, üçüncü kez:** 147 (yanlış kopyadan ölçtüm), 150 (ölçümü
+`head` ile kestim), 151 (ayna eksik). Üçünde de ölçüm YAPILDI ve üçünde de
+"ölçtüm" demek güven verdi. Uyarı yazmak işe yaramıyor — bunu üç kez yazdım.
+⚠️ **MEKANİZMA (kural değil, sıra):** bir dosyayı ya da bir `export`u
+kaldırmak İKİ ADIMDIR.
+  1. Kaldır, **tip denetimini koştur**, çıkan listeyi oku.
+  2. Kararı O LİSTEDEN ver.
+"Kimse kullanmıyor" cümlesi 1. adımdan ÖNCE kurulmaz. `tsc`, bu kod
+tabanının elimdeki tek EKSİKSİZ dizinidir; tarama değil o ölçer.
+
+**150 · ÖLÇÜMÜ `head` İLE KESİP "HEPSİ BU" DEMEK.**
+(29.10) `SystemSettings` tipinden `vatRate` ve `currency`yi kaldırmadan önce
+"kim okuyor" diye taradım ve *"ikisini de başka okuyan yok"* dedim. Tarama
+`| head -20` ile bitiyordu ve eşleşmeler yirmiden fazlaydı. `billing.ts` ile
+`onboarding.service.ts` o kesilen kuyrukta kaldı; tip denetimi ikisini de
+gösterdi.
+⚠️ Tuzak 147'nin kardeşi: orada **yanlış kopyadan** ölçmüştüm, burada
+**eksik ölçtüm**. İkisinde de ölçüm YAPILDI ve ikisinde de sonuç "ölçtüm"
+diye güven verdi.
+⚠️ İkinci yarısı aynı gün çıktı: bu sefer `grep | wc -l` ile SAYIYA baktım,
+*"3 dosya billing'i içe aktarıyor"* sandım ve doğru olan bir kararı neredeyse
+geri alıyordum. Üçü de `'billing'` kelimesinin metin içinde geçtiği
+satırlardı. **Bir sayı ölçüm değildir; satırlar ölçümdür.**
+⚠️ Kural: bir şeyi silmeden önceki "kim kullanıyor" taraması KESİLMEZ
+(`head` yok) ve SATIRLARIYLA okunur. Kuyruğu görmüyorsan ölçmedin.
+
 **149 · `id` KOLONU OLMAYAN TABLO, DENETİME '?' YAZIYOR.**
 (29.10) `tenant_settings` tablosunun ilk hâlinde birincil anahtar doğrudan
 `tenant_id` idi: *"kiracı başına tek satır, ayrı bir kimliğe ne gerek var"*.
@@ -1205,6 +1266,21 @@ Son söz onun çıktısındadır.
 64. Bir **rozet** ya gerçek bir sorgudan ölçülür ya da hiç konmaz
     (MIYOP-065). "Tamamlandı" yazan bir rozet, tamamlandığını KANITLAYAN
     bir şeyden beslenmiyorsa *mış gibi*dir.
+71. Bir kırmızıyı koda yormadan önce **iki şeyi ölç** (tuzak 152):
+    (a) tek bir **iddia hatası** var mı — yoksa hata koddan gelmiyor olabilir;
+    (b) düşen dosyalar koşudan koşuya **değişiyor mu** — değişiyorsa hattan
+    gelir, çünkü gerçek bir hata hep aynı yerden çıkar.
+72. Bir kapının **hızı, güvenilirliğinin parçasıdır** (tuzak 152). Dakikalarca
+    süren ve ara sıra sahte kırmızı veren bir kapı atlanmaya başlar.
+69. Bir dosyayı ya da `export`u kaldırmak **iki adımdır** (tuzak 151):
+    önce kaldır + **tip denetimini koştur**, sonra kararı çıkan listeden
+    ver. "Kimse kullanmıyor" cümlesi tip denetiminden ÖNCE kurulmaz.
+70. Çalışma alanındaki depo kopyası **eksiktir** (tuzak 147, 151): yalnız
+    bu oturumda alınan dosyaları taşır. Orada "eşleşme yok" bulmak,
+    **kodda yok** demek DEĞİLDİR.
+68. Bir şeyi silmeden önceki "kim kullanıyor" taraması **kesilmez**
+    (`head` yok) ve **satırlarıyla** okunur (tuzak 150). `wc -l` sayısı
+    ölçüm değildir: kelime başka bağlamda da geçebilir.
 66. **Denetime düşen her tablonun `id` kolonu olur** (tuzak 149).
     `app.denetim_yaz()` satır kimliğini `new ->> 'id'` ile okur; yoksa
     `row_id` alanına '?' yazar ve "neyi değiştirdi" cevapsız kalır.

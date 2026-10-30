@@ -29,7 +29,7 @@ neyin neden yapıldığı kaybolmasın.
 
 | # | İş | Neden demo öncesi |
 |---|---|---|
-| **A1** | **B başlığı · yarım ekranlar** · **3/4 bitti (29.10)** | Kaydet'e basınca veri tarayıcıda kalıyor. Demoda ilk fark edilecek şey bu. **Sıra: ~~Profilim~~ ✅ (20.10) → ~~Firma Profili~~ ✅ (29.10) → ~~Karşılama~~ ✅ (29.10) → İşletme Ayarları (3.4.2 kararı bekliyor)**. ⚠️ **25.10:** Şubeler ve Şube Yetkileri **kapsam dışına çıktı** (tek merkez kararı), düzeltilmedi — 5'ten 3'e indi. |
+| **A1** | ✅ **BİTTİ (29.10)** · **B başlığı · yarım ekranlar** · 4/4 | Kaydet'e basınca veri tarayıcıda kalıyor. Demoda ilk fark edilecek şey bu. **Sıra: ~~Profilim~~ ✅ (20.10) → ~~Firma Profili~~ ✅ (29.10) → ~~Karşılama~~ ✅ (29.10) → ~~İşletme Ayarları~~ ✅ (29.10, göç 0103)**. ⚠️ Açık kiracı ekranlarının hiçbiri artık kullanıcının girdiği veriyi tarayıcıya yazmıyor: `kiraci-ekrani-veri-kaynagi.arch.test.ts` çıcırı **6 → 0**. ⚠️ **25.10:** Şubeler ve Şube Yetkileri **kapsam dışına çıktı** (tek merkez kararı), düzeltilmedi — 5'ten 3'e indi. |
 | **A2** | **MIYOP-008** · şube bağlamı kesin değil · **küçüldü** | Tek merkez kararıyla "yanlış şubeye yazma" riski pratikte kalktı. ⚠️ Kapanmadı: kod hâlâ "tercih yoksa ilk şube" diyor — tek şubede doğru sonucu **tesadüfen** veriyor. Başlıktaki şube seçici kaldırılacak, liste sorgularına şube kapsamı yazılacak. |
 | **A3** | **MIYOP-010** · etiket ekranında ürünler karışıyor · **MIYOP-064 ile birlikte 6 ekran** | Etiket, demonun en gösterişli parçası; yanlış ürünün alerjeni basılırsa itibar biter. ⚠️ Codex 21.10'da aynı kusuru Depo, Siparişler, Müşteriler, İş Emirleri ve Sevkiyatlar'da da buldu — tek ekrana yama atmak aileyi kapatmıyor (3.7). |
 | **A4** | **Sahte veri üreticileri** (3.8, 3.10) · **4 tanesi P0** | Önce `kaldirilan-moduller.md`, sonra silme. ⚠️ İş büyüdü: mesele dosya adı `*.mock.ts` olanlar değil, **27 `createDemo*` üreticisi.** Dördü açık ekrana, biri **müşterinin gördüğü portala** ulaşıyor (MIYOP-058/059/060/061). |
@@ -707,7 +707,8 @@ Emrah'ın onayladığı sıra:
     **YOK** — gerçek yazma yetkisi rol/izinden geliyor. Yani ekran
     taşınmadan **önce** neyi yönettiğine karar verilmeli: üyelik mi,
     yoksa şube bazlı izin mi? İkincisi yeni göç ister. → İsmet **B2**
-- 🔄 **3.4** İşletme Ayarları (`settings`) — **KARAR VERİLDİ, GÖÇ YAZILDI**
+- ✅ **3.4** İşletme Ayarları (`settings`) — **BİTTİ (29.10).** Artık
+  `tenant_settings` tablosunu okuyup yazıyor.
   - ✅ **3.4.0** **KARAR (Emrah, 29.10):** *"Kiracı ayarları tablosu yap.
     Herkes kendi KDV oranını ve para birimini kendi seçsin."* → İki ayar da
     **kalıyor**; göç **0103** onların yeri.
@@ -730,11 +731,46 @@ Emrah'ın onayladığı sıra:
     kiracı adına açtığının ekranın elinde olması demekti.
     ⚠️ **Tuzak 149 burada çıktı:** ilk hâlinde `id` kolonu yoktu ve denetim
     kaydı `row_id` alanına '?' yazıyordu. Prova yakaladı.
-  - ⬜ **3.4.4** **Ekranı 0103'e bağla.** Göç canlıya uygulandıktan sonra:
-    `settings` ekranı `tenant_settings`i okuyup yazacak, `DEFAULT_SETTINGS`
-    içindeki `vatRate: 10` kaldırılacak, belirlenmemiş KDV **boş**
-    görünecek. ⚠️ Bu madde bitene kadar A1 kapanmaz ve
-    `kiraci-ekrani-veri-kaynagi.arch.test.ts` çıcırı 1'de kalır.
+  - ✅ **3.4.4** **Ekran 0103'e bağlandı (29.10).** Göç canlıya uygulandı
+    (*"Success. No rows returned."*), ardından ekran yazıldı:
+    `src/workspace/isletme-ayarlari.repository.ts`.
+    ⚠️ `SystemSettings` tipinden **`vatRate` ve `currency` kaldırıldı**;
+    `DEFAULT_SETTINGS.vatRate = 10` silindi. Ölçüldü: ikisini de o tipten
+    BAŞKA okuyan yoktu — stok kartının para birimi ayrı bir alan
+    (`stock_item.currency`), sipariş satırının vergisi ayrı (`vat_rate`).
+    ⚠️ **Belirlenmemiş KDV boş görünüyor** ve `null` kalıyor; `0`a dönmüyor.
+    Test bunu ayrıca ölçüyor çünkü `Number(null)` sıfırdır ve kusur sessizce
+    geri gelebilir — kaldırdığımız yalanın aynısı olurdu, sadece 10 yerine 0.
+    Kutu `type="number"` DEĞİL: sayı kutusu boş değeri bazı tarayıcılarda
+    0'a çeviriyor ve 0 ile "boş" aynı şey değil.
+    ⚠️ **Firma adı ve logo artık buradan DEĞİŞMİYOR**, salt okunur
+    gösteriliyor. İkisi de `company` tablosunda ve sahibi Firma Profili
+    ekranı; iki ekranın aynı kolona yazması "orada değiştirdim burada
+    değişti" karışıklığının ta kendisi — üstelik kapıları farklı
+    (`company.manage` ≠ `settings.manage`).
+    ⚠️ *"Yetkisiz Erişim"* ekranı kaldırıldı: eski hâli `role === 'Admin'`
+    değilse hiçbir şey göstermiyordu. **Müdür ayarları görebilmeli**, yalnız
+    değiştiremez.
+  - ⬜ **3.4.6** **Fiyat biçimlendirmesi para birimini `tenant_settings`ten
+    okumuyor.** `src/billing.ts` eskiden `loadSettings().currency` okuyordu;
+    o alan kaldırılınca yerine sabit `'TRY'` kondu — eski varsayılanın
+    aynısı, yani davranış değişmedi. Ama bu bir **borç**: müşteri EUR
+    seçerse o dosyadan geçen ekranlar yine `₺` basar.
+    ⚠️ O dosyayı **38 ekran** kullanıyor (adisyon, masa, kasa, QR menü,
+    cari, personel, eski raporlar). Hangilerinin bugün AÇIK rota olduğunu
+    **ölçmedim**; ölçmeden "kimse görmüyor" demem.
+    Yapılacak: biçimlendirme kiracının para birimini okuyacak (tek yerden),
+    ya da o ekranların durumu 3.8'de netleşince birlikte karara bağlanacak.
+  - ⬜ **3.4.5** **İlk giriş sihirbazı hâlâ tarayıcıya para birimi yazıyor.**
+    `onboarding.service.ts` (~365) `saveTenantSettings` ile `localStorage`a
+    bir `currency` koyuyor ve `FirstLoginWizard` onu okuyor. Göç 0103'ten
+    sonra bu **ikinci bir kaynak**: sihirbazda seçilen para birimi ile
+    İşletme Ayarları'nda görünen ayrışabilir.
+    ⚠️ Çıcır testi bunu YAKALAMIYOR çünkü `first-login` açık bir kiracı
+    rotası değil (sihirbaz giriş akışının içinde). Yani test yeşil, kusur
+    duruyor — bu yüzden madde buraya yazıldı.
+    Yapılacak: sihirbaz `tenant_settings`e yazacak ya da para birimi
+    sorusu sihirbazdan kalkacak (işletme ayarlardan seçsin).
   - ⬜ **3.4.1** **MIYOP-060b · sorulmamış soruya cevap.**
     `DEFAULT_SETTINGS` (storage.ts:306) `vatRate: 10` yazıyor ve form bunu
     **işletmenin KDV oranı** gibi gösteriyor. Kimse %10 demedi.

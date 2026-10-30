@@ -650,8 +650,13 @@ export type QRAuditEvent = {
 export type SystemSettings = {
   restaurantName: string
   logoUrl: string
-  vatRate: number
-  currency: string
+  // ⚠️ `vatRate` ve `currency` 29.10.2026'da BURADAN KALDIRILDI (MIYOP-060b).
+  // İkisi de tarayıcıya yazılıyordu ve `vatRate: 10` kimsenin vermediği bir
+  // cevaptı. Yerleri artık `public.tenant_settings` (göç 0103); okuyup yazan
+  // yer `src/workspace/isletme-ayarlari.repository.ts`.
+  // ⚠️ Ölçüldü: ikisini de bu tipten BAŞKA okuyan yoktu — stok kartının
+  // para birimi ayrı bir alan (`stock_item.currency`), sipariş satırının
+  // vergisi ayrı (`vat_rate`). Karıştırılmasınlar.
 }
 
 export type ClosedBill = {

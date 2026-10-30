@@ -305,8 +305,10 @@ const SYSTEM_USAGE_ACTION_TYPES: SystemUsageActionType[] = ['Görüntüleme', 'O
 export const DEFAULT_SETTINGS: SystemSettings = {
   restaurantName: 'MIYOP İşletme Çalışma Alanı',
   logoUrl: '',
-  vatRate: 10,
-  currency: 'TRY'
+  // ⚠️ `vatRate: 10` BURADAYDI ve KALDIRILDI (MIYOP-060b, 29.10.2026).
+  // Kimse %10 demedi; form bunu "işletmenin KDV oranı" gibi gösteriyordu.
+  // KDV ve para birimi artık `public.tenant_settings` tablosunda (0103) ve
+  // KDV'nin orada da VARSAYILANI YOK: "belirlenmemiş" bir değerdir.
 }
 
 const createDefaultCategory = (): ProductCategory => ({
@@ -2434,16 +2436,14 @@ const normalizeClosedBill = (item: Partial<ClosedBill>): ClosedBill => {
   }
 }
 
-const normalizeSettings = (item: Partial<SystemSettings>): SystemSettings => {
-  const vatRate = Number(item.vatRate)
-
-  return {
-    restaurantName: String(item.restaurantName || DEFAULT_SETTINGS.restaurantName).trim() || DEFAULT_SETTINGS.restaurantName,
-    logoUrl: String(item.logoUrl || '').trim(),
-    vatRate: Number.isFinite(vatRate) ? Math.min(100, Math.max(0, vatRate)) : DEFAULT_SETTINGS.vatRate,
-    currency: String(item.currency || DEFAULT_SETTINGS.currency).trim() || DEFAULT_SETTINGS.currency
-  }
-}
+const normalizeSettings = (item: Partial<SystemSettings>): SystemSettings => ({
+  restaurantName: String(item.restaurantName || DEFAULT_SETTINGS.restaurantName).trim() || DEFAULT_SETTINGS.restaurantName,
+  logoUrl: String(item.logoUrl || '').trim(),
+  // ⚠️ `vatRate` ve `currency` buradan DÜŞÜRÜLÜYOR: eski tarayıcı
+  // kayıtlarında duruyor olabilirler ama artık yetkili kaynak
+  // `public.tenant_settings` (0103). İkisini birden okumak, hangisinin
+  // doğru olduğunu bilemediğimiz iki kaynak demektir.
+})
 
 const normalizeBranch = (item: Partial<Branch>): Branch => {
   const timestamp = item.createdAt || new Date().toISOString()

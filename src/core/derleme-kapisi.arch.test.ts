@@ -29,6 +29,23 @@ const oku = (ad: string) => readFileSync(join(KOK, ad), 'utf8') as string
 
 const PAKET = JSON.parse(oku('package.json')) as { scripts?: Record<string, string> }
 const KAYDET = oku('araclar/kaydet.ps1')
+const VITEST = oku('vitest.config.ts')
+
+/**
+ * ⚠️ METNİ ARARKEN SATIR SONLARI DÜZLEŞTİRİLİR.
+ * İlk yazışımda `toMatch(/global durumu payla/)` KIRMIZI verdi: aradığım
+ * cümle dosyada *"aynı global"* ve *"durumu paylaşır"* diye İKİ SATIRA
+ * bölünmüştü. Yani kendi yazdığım metni, satır sonu yüzünden bulamadım.
+ * Bu, tuzak 133'ün aynısı (ölçüm kendi yazdığıma takılıyor) ve bu dosyanın
+ * başında zaten bir kez yaşanmıştı — orada PowerShell yorumlarıydı.
+ * Bir metin ararken aranan şey KELİMELERDİR, satır düzeni değil.
+ */
+const duz = (metin: string) => metin
+  // ⚠️ Yorum yıldızları da atılıyor: *"aynı global"* + *" * durumu
+  // paylaşır"* düzleşince araya `*` giriyor ve arama yine tutmuyordu.
+  // İkinci denemede bunu da ölçerek gördüm.
+  .replace(/^\s*\*/gm, ' ')
+  .replace(/\s+/g, ' ')
 const YUKLE = oku('miyop-yukle.ps1')
 
 /**
@@ -87,6 +104,37 @@ describe('derleme kapısı · tip denetimi hattın içinde', () => {
     const yer = YUKLE.indexOf('npm run typecheck')
     const ardindan = YUKLE.slice(yer, yer + 300)
     expect(ardindan, 'typecheck kırmızıyken dağıtım durmuyor').toMatch(/LASTEXITCODE/)
+  })
+
+  // ⚠️ 30.10.2026 · BU TEST BİR GÜNÜN BEDELİYLE YAZILDI.
+  // Testler üç kez üst üste kırmızı verdi ve hiçbirinde tek bir iddia hatası
+  // yoktu: hepsi `[vitest-worker]: Timeout calling "fetch"` idi ve düşen
+  // dosyalar her koşuda DEĞİŞİYORDU. Ölçüm (aynı kod, aynı makine):
+  //   · paralel havuz → 429 sn, 28 paket hiç başlamadan "düştü"
+  //   · tek işçi      →   8 sn, 1643 testin 1643'ü yeşil
+  // Ayar dosyadan düşerse o gün geri gelir ve yarım gün daha yanlış yerde
+  // hata aranır. Bu yüzden donduruluyor.
+  it('⚠️ vitest TEK İŞÇİYLE koşuyor ve sebebi YAZILI', () => {
+    expect(
+      VITEST,
+      'vitest.config.ts tek işçi ayarını taşımıyor — paralel havuz bu '
+      + 'makinede sahte kırmızı üretiyor (429 sn, 28 paket hiç başlamıyor).',
+    ).toMatch(/singleThread:\s*true/)
+
+    // ⚠️ Ayarın KENDİSİ yetmez; neden orada olduğu da yazılı olmalı. Yoksa
+    // bir gün biri "bu niye böyle" deyip siler ve aynı günü yeniden yaşarız.
+    expect(
+      duz(VITEST),
+      'tek işçi ayarının GEREKÇESİ dosyada yazılı değil',
+    ).toContain('TEK İŞÇİ')
+
+    // ⚠️ Ve BEDELİ de yazılı olmalı: tek süreçte global durum paylaşılıyor.
+    // Yoksa bir gün "tek başına geçiyor, takımda düşüyor" diye bir test
+    // çıkar ve kimse sebebini bilmez.
+    expect(
+      duz(VITEST),
+      'tek işçinin BEDELİ (paylaşılan global durum) dosyada yazılı değil',
+    ).toMatch(/global durumu payla/)
   })
 
   it('tip denetimi TESTLERDEN ÖNCE koşuyor (hızlı geri bildirim)', () => {
