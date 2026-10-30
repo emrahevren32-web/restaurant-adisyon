@@ -1,75 +1,58 @@
-denetim defteri doğru satırı yazıyor + müdür ayarları görebiliyor (0104, MIYOP-083/084/085)
+veritabaninin hic yedegi yokmus: yedek-al.ps1 + YEDEKLEME.md (tuzak 156, 157)
 
-Codex'in 30.10 denetimi üç bulgu verdi; üçü de kapandı, biri de kendi
-tarayıcımızdaki bir körlüğü ortaya çıkardı.
+Emrah sunucudaki yedek klasorlerini sorunca ortaya cikti: o klasorler sitenin
+DERLENMIS hali (31 dosya, 8.51 MB) ve iclerinde TEK SATIR IS VERISI YOK.
+Is verisi Supabase'deki Postgres'te.
 
-── MIYOP-083 · göç 0104 · defter HANGİ SATIR olduğunu yazamıyordu ────────
-`app.denetim_yaz()` satır kimliğini
-    coalesce(v_yeni ->> 'id', v_eski ->> 'id', '?')
-ile üretiyordu. `id` kolonu olmayan DÖRT tabloda `row_id` alanına '?'
-düşüyordu: stock_item_allergen, stock_item_nutrition, user_branch_access,
-user_role. Besin değeri güncellemesinde fark yalnız değişen alanı taşıdığı
-için ürün bilgisi de yoktu — defterde "biri bir şeyin yağ oranını 10'dan
-12'ye çekti" yazıyordu.
+-- OLCUM (Supabase'in kendi belgesi, 30.10.2026) ---------------------------
+* FREE planda OTOMATIK YEDEK YOK: "Automatic backups - Not included in free".
+  Zamanda geri alma (PITR) da yok.
+* Supabase'in tavsiyesi: free projeler `supabase db dump` ile duzenli olarak
+  SAHA DISINA yedek alsin.
+* Pro $25/ay -> gunluk yedek, 7 gun saklaniyor.
+* "Free projects are paused after 1 week of inactivity."
 
-Onarım dört tabloyu yamamak DEĞİL: defteri yazan fonksiyon düzeltildi.
-`id` yoksa BİRİNCİL ANAHTARDAN kimlik üretiliyor
-(`app.denetim_satir_kimligi`, kataloğu okuyor, hiçbir tablo adı tanımıyor).
-Beşinci tablo eklendiğinde de çalışır.
-⚠️ Gövde canlı tanımdan okundu, hatırlanarak yazılmadı (tuzak 127).
-⚠️ Dört tabloya `id` kolonu EKLENMEDİ: yazıcı düzeltildiği için gerek yok.
+KARAR (Emrah, 30.10.2026): Pro ILK MUSTERIDEN SONRA.
+  "pro icin erken, ilk musteri ile anlasalim o zaman yedekler konusunda
+   bakariz. 25 dolar az degil simdi.. bizde asgari ucretli adamiz, yatirim
+   icin once alici bulmak, pazari bilmek gerek."
 
-── MIYOP-085 · aynı göç · "Son kayıt" istemciden gelemez ─────────────────
-`company.updated_at` artık `before update` tetiğiyle sunucuda yazılıyor,
-`created_at` korunuyor. Firma Profili ekranı o tarihi yazıyor; istemciden
-gelen bir tarihle yazılan söz yalan olurdu.
-⚠️ `updated_by` bilerek eklenmedi — "kim" sorusunun yeri `audit_log`.
-⚠️ Tetikleyicinin "ilk before tetiği olması" şartını yazmıştım; kendi
-doğrulamam onu öldürdü (ölçülen sıra ikinci) ve şart zaten gereksizdi.
+-- YAPILAN ---------------------------------------------------------------
+araclar/yedek-al.ps1  . UC dokumu birlikte alir: sema, VERI, roller.
+docs/YEDEKLEME.md     . eksikti; kod UC YERDEN ona atifta bulunuyordu ve
+                        dosya YOKTU (Settings.tsx, tenant-export.ts x2).
 
-── MIYOP-084 · müdürün açamadığı ekranın salt okunur modu ────────────────
-İşletme Ayarları ekranı "müdür görebilmeli, değiştiremez" diye yazılmıştı.
-Ama açılma kapısı `settings.manage` istiyordu ve o izin müdürde YOK
-(canlı ölçüm: yalnız admin, isletme_sahibi, super_admin). Yazdığım salt
-okunur mod ölü koddu.
-Açılma izni `company.read` oldu. Yazma kapısı DEĞİŞMEDİ ve üç yerde
-duruyor: ekran düğmeyi gizliyor, depo `settings.manage` istiyor,
-veritabanı `izin_tenant_settings` tetiğiyle reddediyor. Kapı genişlemedi,
-pencere açıldı.
-⚠️ Asıl delik: `rol-ekran-matrisi.test.ts` 13 rolü sınadığını söylüyordu,
-tabloda 10 rol vardı — `isletme_muduru` HİÇ sınanmıyordu. Eklendi (29 izin,
-canlıdan okundu) + dört yeni sınama. izleyici 17→18, muhasebe 8→9 (ikisinde
-`company.read` var, `settings.manage` yok). ⚠️ Bu iki sayı ÖLÇÜM DEĞİL
-ÖNGÖRÜ; başka bir rolün sayısı da değiştiyse izin geri alınacak, sayı
-güncellenmeyecek.
+-- TUZAK 157 . BU BETIGIN VAROLUS SEBEBI ---------------------------------
+`supabase db dump` VARSAYILAN HALIYLE VERIYI ALMAZ. Belgenin cumlesi:
+"The default dump does not contain any data or custom roles."
+Tek komutla alinan bir "yedek" tablo TANIMLARINDAN ibaret olurdu; dosya
+olustugu icin de her sey yolunda gorunurdu. Bu, 13.09.2026'da menuden
+kaldirilan eski "Yedekleme" dugmesinin yaptigi seyin aynisi: o da tarayici
+hafizasini yedekliyordu, is verisini degil.
 
-── KENDİ BULGUM · denetim tarayıcısı ON TABLOYU görmüyordu (tuzak 154) ───
-`denetimIzlenenTablolar()` göçlerde tek söz dizimi arıyordu. Canlıda
-`app.denetim_yaz`a bağlı 29 tetikleyici var; tarayıcı 19 görüyordu.
-Görmediği on tablo: app_user, branch, company, user_role,
-user_branch_access, tenant_license, license_extension_request,
-tenant_settings, witness_sample, witness_sample_event.
-Yani personel ve firma değişiklikleri Değişiklik Kaydı ekranında HAM
-İNGİLİZCE adıyla görünüyordu ve hiçbir test bunu söylemedi.
-Tarayıcı üç biçimi birlikte okuyor + sonuç `create table` gövdeleriyle
-süzülüyor. On etiket eklendi (19 → 29).
+Bu yuzden betik KENDI CIKTISINI DENETLIYOR: veri dosyasinda en az bir
+COPY/INSERT INTO satiri yoksa "alindi" DEMIYOR; audit_log'u arayip dokumun
+kapsamini da olcuyor.
 
-── KAPSAM YEŞİLDİ, ANLAM KIRMIZIYDI (tuzak 155) ──────────────────────────
-Yeni dosya: src/audit/denetim-satir-kimligi.arch.test.ts
-Defterin yazdığı kimliğin anlamlı olduğunu, '?'nin SON ÇARE olduğunu,
-kimlik üreticisinin tablo adı tanımadığını ve her denetimli tablonun
-kimlik üretebildiğini ölçüyor. Okuyucu kendi doğruluğunu da sınıyor:
-okuduğu ifadenin yorum satırı OLMADIĞINI ölçüyor (0104 eski ifadeyi
-yorumda saklıyor).
+-- DURUSTCE YAZILAN EKSIKLER ---------------------------------------------
+* auth.users (giris hesaplari) dokumde YOK - "ignored schemas include auth,
+  storage". Geri yuklemede is verisi doner, kullanicilar yeniden acilir.
+* Storage nesneleri YOK.
+* GERI YUKLEME HIC DENENMEDI. Denenmemis bir plan, plan degil niyettir.
+* Alma OTOMATIK DEGIL; elle calistiriliyor.
+Hepsi YEDEKLEME.md 7. bolumde borc olarak listeli.
 
-── ÖLÇÜM ─────────────────────────────────────────────────────────────────
-db/prova/prova-0104.sql       → 5 bölüm, hepsi yeşil
-db/prova/prova-0104-ters.sql  → 0104 geri alınınca '?' GERİ GELİYOR:
-  dört tablonun dördü de kör, company 2020 tarihini kabul ediyor.
-Ters prova olmadan "düzelttim" demek ölçüm değil iddiadır.
+-- TUZAK 156 . BENIM HATAM -----------------------------------------------
+Sunucudaki yedek sayisini uc'ten yediye cikarmayi onerirken maliyetini
+"birkac yuz MB" diye yazdim. MB para birimi degil ve sayiyi OLCMEDIM;
+gercegi ayni aksamin derleme ciktisinda yaziyordu: 8.51 MB. ~30 kat yanlis.
+Emrah yakaladi. Bu donemin ALTINCI olcmeden konusma hatasi.
 
-Tuzaklar 153 (Türkçe `lower()` konumu kaydırıyor — bu dönemin beşinci
-ölçüm aracı hatası), 154, 155 ve kontrol listesi 73-76 yazıldı.
+-- SURUM DEFTERI ---------------------------------------------------------
+21-30 Ekim arasi YEDI yayin toplu yazildi (v0.3.0 - v0.4.2). Tarih ve
+commit'ler git gecmisinden, gocler HEDEFLER.md'den olculdu. 25/27/28 Ekim'in
+test sayilari KAYDEDILMEDIGI icin bos birakildi - uydurulmadi.
+v0.4.2 YAYINDA: index-COlU8vfq.js, 4/4 dogrulandi.
 
 Co-Authored-By: Claude Opus 5 <noreply@anthropic.com>
 Claude-Session: https://claude.ai/code/session_019BwYM3mAXZUhp4YGj7tp2y

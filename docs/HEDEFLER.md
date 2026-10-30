@@ -107,6 +107,34 @@ EVREN360'ın kilitli menüleri. Hepsi hedefte duruyor, sırası sonra.
     **geri geliyor** (dört tablonun dördü de kör, `company` 2020 tarihini
     kabul ediyor). Ters prova olmadan "düzelttim" demek iddiadır.
   - ⬜ **0104 canlıya uygulanacak** (`araclar/goc-bekleyen.sql`).
+- ✅ **0.15** **v0.4.2 YAYINDA (30.10)** · göç 0104 canlıda, arayüz 4/4
+  doğrulandı · `index-COlU8vfq.js` · yedek `/var/www/miyop.yedek-20261030-195859`
+  · 1667 test yeşil · derleme 31 dosya / **8.51 MB**.
+- 🔄 **0.16** ⚠️ **VERİTABANININ HİÇ YEDEĞİ YOKMUŞ (30.10) · ölçüldü**
+  Emrah sunucudaki yedek klasörlerini sorunca ortaya çıktı: o klasörler
+  sitenin **derlenmiş hâli**, içlerinde **tek satır iş verisi yok**. İş
+  verisi Supabase'deki Postgres'te ve ölçüm şu (Supabase'in kendi belgesi,
+  30.10.2026):
+  - FREE planda **otomatik yedek YOK**: *"Automatic backups — Not included
+    in free"*; zamanda geri alma (PITR) de yok.
+  - Supabase'in tavsiyesi: free projeler `supabase db dump` ile düzenli
+    olarak **saha dışına** yedek alsın.
+  - **Pro $25/ay** → günlük yedek, 7 gün saklanıyor.
+  - ⚠️ *"Free projects are **paused after 1 week of inactivity**."*
+  - **KARAR (Emrah, 30.10):** Pro **ilk müşteriden sonra.** *"pro için erken,
+    ilk müşteri ile anlaşalım... 25 dolar az değil şimdi.. bizde asgari
+    ücretli adamız, yatırım için önce alıcı bulmak, pazarı bilmek gerek."*
+  - ✅ **Yapıldı:** `araclar/yedek-al.ps1` (üç dökümü birlikte alır: şema,
+    **veri**, roller) + eksik olan `docs/YEDEKLEME.md` yazıldı.
+    ⚠️ `supabase db dump` **varsayılan hâliyle veriyi almaz** — tek komutla
+    alınan "yedek" tablo tanımlarından ibaret olurdu (tuzak 157). Betik
+    kendi çıktısını denetliyor: veri dosyasında `COPY`/`INSERT` satırı yoksa
+    "alındı" demiyor.
+    ⚠️ **Kapsamadıkları yazılı:** `auth.users` (giriş hesapları) ve Storage
+    dökümde YOK; geri yükleme **hiç denenmedi**; alma **otomatik değil**.
+  - ⬜ Kalan: boş bir projede **geri yükleme provası**, otomatik zamanlama.
+  ⚠️ `docs/YEDEKLEME.md` kod içinde **üç yerden** atıf alıyordu ve dosya
+  YOKTU. Kodun "orada yazıyor" dediği şey yazmıyordu.
 - ⬜ **0.10** Dağıtım · 0090 uygulandıktan ve MIYOP-043 bittikten sonra
   tek seferde (arayüzde zil yönlendirmesi de bu dağıtımla gider)
 - ✅ **0.12** **Göç 0092 · SKT kapısı · CANLIDA** (25.10)

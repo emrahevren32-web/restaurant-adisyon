@@ -984,6 +984,30 @@ göreceği hata mesajları** da (`'Çok fazla deneme yapıldı'`) bozuluyordu.
 ⚠️ Ve komut kendi çıktısını **ölçmeli**: panoda `ş` var mı, bozuk `Ã` var
 mı. "Kopyaladım" demek yetmez; kopyanın sağlam olduğu gösterilir.
 
+**157 · YEDEĞİN VARLIĞI, İÇİNDE VERİ OLDUĞU ANLAMINA GELMEZ.** (30.10)
+Supabase'in `db dump` komutu **varsayılan hâliyle veriyi almaz** — belgenin
+kendi cümlesi: *"The default dump does not contain any data or custom roles."*
+Yani "yedek al" diye tek komut yazsaydık, elimizde tablo tanımları olur,
+içlerinde **tek satır veri olmazdı**. Ve dosya oluştuğu için her şey yolunda
+görünürdü.
+⚠️ Bu, 13.09.2026'da menüden kaldırılan eski "Yedekleme" düğmesinin yaptığı
+şeyin ta kendisi: o da tarayıcı hafızasını yedekliyordu, iş verisini değil.
+Aynı hata iki yıl arayla iki farklı yerden geliyor, çünkü ortak kök şu:
+**yedeğin başarısı dosyanın varlığıyla değil, İÇİNDEKİYLE ölçülür.**
+`araclar/yedek-al.ps1` bu yüzden kendi çıktısını denetliyor: veri dosyasında
+en az bir `COPY`/`INSERT INTO` satırı yoksa "alındı" DEMİYOR.
+
+**156 · "BİRKAÇ YÜZ MB" DEDİM, ÖLÇMEDEN.** (30.10) Emrah'a sunucudaki yedek
+sayısını üçten yediye çıkarmayı önerirken maliyetini *"birkaç yüz MB"* diye
+yazdım. İki hata birden: (a) MB bir para birimi değil, "maliyet" demek
+yanlıştı; (b) **sayıyı ölçmedim.** Gerçek, aynı akşamın derleme çıktısında
+yazıyordu: **31 dosya, 8.51 MB.** Yani tahminim ~30 kat yüksekti.
+⚠️ Emrah yakaladı: *"disk maliyeti nasıl birkaç yüz MB olabilir? MB ile
+maliyet ne alaka?"* Bu dönemin **altıncı** ölçmeden konuşma hatası
+(147, 150, 151, Hetzner IP iddiası, 153, bu). Desen hep aynı: **küçük,
+önemsiz görünen bir sayıyı ölçmeye değmez sanmak.** Ölçmeye değmeyen sayı
+yoksa, söylemeye değmeyen sayı da yoktur — bilmiyorsam "ölçmedim" denir.
+
 **155 · KAPSAM ÖLÇEN TEST, ANLAMI ÖLÇMEZ.** (30.10) `audit-coverage.arch.test.ts`
 bir aydır yeşildi ve şunu ölçüyordu: hangi tablolar denetleniyor, her birinin
 Türkçe etiketi var mı, yedekle tutarlı mı. Hepsi doğruydu. Ama defterin
@@ -1304,6 +1328,12 @@ Son söz onun çıktısındadır.
 64. Bir **rozet** ya gerçek bir sorgudan ölçülür ya da hiç konmaz
     (MIYOP-065). "Tamamlandı" yazan bir rozet, tamamlandığını KANITLAYAN
     bir şeyden beslenmiyorsa *mış gibi*dir.
+77. Bir yedeğin başarısı **dosyanın varlığıyla değil, İÇİNDEKİYLE** ölçülür
+    (tuzak 157). Yedek alan betik kendi çıktısını denetler; denetlemiyorsa
+    "yedeğim var" sanmanın aracıdır.
+78. Küçük görünen bir sayıyı da **ölçmeden söyleme** (tuzak 156). "Birkaç
+    yüz MB", "birkaç saniye", "iki üç dosya" — hepsi iddiadır. Bilmiyorsan
+    "ölçmedim" de.
 73. Bir kaydın **varlığını** ölçen testin yanına, o kaydın **anlamlı**
     olduğunu ölçen bir test koy (tuzak 155). "Denetleniyor mu" ile "ne
     yazdığı okunuyor mu" ayrı iki sorudur.

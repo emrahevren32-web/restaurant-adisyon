@@ -1,449 +1,170 @@
-# MİYOP · Yedekleme ve Geri Yükleme
+# MİYOP · YEDEKLEME
 
-> **Bu belge ne işe yarar:** "Sunucu yandı, ne yapacağım" sorusunun cevabı.
-> Sadece okunmak için değil, **provası yapılmak** için yazıldı.
->
-> Son güncelleme: 2026-09-13
-
----
-
-## 0. Önce acı gerçek
-
-**Supabase ÜCRETSİZ planında otomatik yedek YOKTUR.** Supabase'in kendi
-belgesi ücretsiz projelere şunu söylüyor: düzenli olarak kendiniz
-`db dump` alın ve dışarıda saklayın.
-
-| Plan | Ne var |
-|---|---|
-| **Free** *(şu anki plan)* | **Hiçbir otomatik yedek yok** |
-| Pro | Günlük otomatik yedek, son 7 gün |
-| Pro + PITR (ek ücret) | Dakika hassasiyetinde geri dönüş |
-
-Yani bugün itibarıyla **MİYOP veritabanının yedeği yok.** Bu belgedeki
-adımlar yapılana kadar durum böyle kalır.
-
-**Ve bu, plan yükseltmekle de tam çözülmez:** A5'te Hetzner'e taşınıyoruz
-(ADR-006). Orada Supabase'in yedek düğmesi diye bir şey olmayacak. Yedeği
-kendimiz alabiliyor olmak, taşınmanın önkoşulu.
+> ⚠️ Bu dosya **30.10.2026'da yazıldı** ve yazılma sebebi bir eksikti:
+> kod üç ayrı yerden (`src/pages/Settings.tsx`, `src/tenant-export/tenant-export.ts`
+> iki yerde) *"ayrıntısı `docs/YEDEKLEME.md`'de"* diyordu — **ve o dosya yoktu.**
+> Kodun "orada yazıyor" dediği şey yazmıyordu.
 
 ---
 
-## 1. Üç ayrı yedek, üç ayrı soru
+## 1 · Üç ayrı şey var, üçü karıştırılmasın
 
-Bunlar birbirinin yerine geçmez. Karıştırmak, yedeği olduğunu sanıp
-olmamak demektir.
-
-| | Neyi kurtarır | Nasıl |
-|---|---|---|
-| **A · Uygulama içi dışa aktarma** | Bir işletmenin iş verisi | Stok → İşlem Geçmişi → **Yedeği İndir** |
-| **B · Veritabanı dökümü** | **Her şey**: şema, veri, tetikleyiciler, RLS | `pg_dump` (aşağıda) |
-| **C · Kod** | Uygulamanın kendisi | `git push` + `F:\MIYOP_BACKUP` |
-
-**A**, müşteri "verimi ver" dediğinde ve bir kiracıyı başka kuruluma
-taşırken kullanılır. Auth hesaplarını ve şemayı içermez.
-
-**B**, felaket senaryosunun cevabıdır. Asıl yedek budur.
-
-**C** zaten yapılıyor ama ⚠️ **kod haftalardır commit edilmedi.**
-
----
-
-## 2. B · Veritabanı dökümü — kurulum
-
-### 2.1 Gerekenler (bir kez)
-
-PostgreSQL istemci araçları. **Bu makinede zaten kurulu:**
-
-```
-C:\Program Files\PostgreSQL\18\bin\pg_dump.exe
-```
-
-Ama `pg_dump --version` "tanınmıyor" diyor — çünkü klasör **PATH'te
-değil.** Yani araç var, Windows nereye bakacağını bilmiyor.
-
-**Kalıcı çözüm** (bir kez, PowerShell'i **yönetici olarak** aç):
-
-```powershell
-$yeni = "C:\Program Files\PostgreSQL\18\bin"
-$mevcut = [Environment]::GetEnvironmentVariable("Path", "Machine")
-if($mevcut -notlike "*$yeni*"){
-  [Environment]::SetEnvironmentVariable("Path", "$mevcut;$yeni", "Machine")
-  Write-Host "PATH'e eklendi. YENİ bir PowerShell penceresi aç."
-} else {
-  Write-Host "Zaten ekliymiş."
-}
-```
-
-Sonra **yeni bir PowerShell penceresi** aç ve doğrula:
-
-```powershell
-pg_dump --version
-```
-
-Beklenen: `pg_dump (PostgreSQL) 18.x`
-
-> Yönetici PowerShell istemiyorsan komutlarda tam yolu yazabilirsin:
-> `& "C:\Program Files\PostgreSQL\18\bin\pg_dump.exe" --version`
-> Ama PATH'e eklemek daha rahat; aşağıdaki bütün komutlar kısa hâli
-> kullanıyor.
-
-⚠️ **Sürüm uyumu:** `pg_dump` 18, Supabase'in Postgres 15/16/17
-sunucusundan yedek alabilir (yeni istemci eski sunucuyu okur). Tersi
-çalışmaz. Sorun çıkarsa `pg_dump --version` çıktısını bana ilet.
-
-### 2.2 Hazır betik
-
-Elle komut yazmana gerek yok. Depoda hazır duruyor:
-
-```
-C:\Users\90544\Documents\restaurant-adisyon\scripts\yedek-al.ps1
-```
-
-Betik şunları yapıyor: dökümü alır · dosyanın gerçekten oluştuğunu ve
-boş olmadığını doğrular · 7 günden eski yedekleri siler ama **her ayın
-1'ini saklar** · her çalışmayı `yedek-gunlugu.txt`'ye yazar.
-
-### 2.3 Kurulum — üç adım
-
-**Adım 1 · Betiği yedek klasörüne kopyala**
-
-```powershell
-New-Item -ItemType Directory -Force -Path "F:\MIYOP_BACKUP" | Out-Null
-Copy-Item "C:\Users\90544\Documents\restaurant-adisyon\scripts\yedek-al.ps1" `
-  -Destination "F:\MIYOP_BACKUP\" -Force
-Write-Host "Kopyalandi."
-```
-
-**Adım 2 · Bağlantı adresini kendi elinle yaz**
-
-Supabase panelinde: **Project Settings → Database → Connection string →
-URI**. Kopyala, sonra:
-
-```powershell
-notepad F:\MIYOP_BACKUP\baglanti.txt
-```
-
-Açılan boş dosyaya adresi **tek satır** yapıştır ve kaydet. Şuna benzer:
-
-```
-postgresql://postgres.xxxxx:PAROLA@aws-0-eu-central-1.pooler.supabase.com:5432/postgres
-```
-
-⚠️ **Bu dosya parola içerir.** F:\ sürücüsünde durur, git deposuna asla
-girmez, kimseye gönderilmez — bana da. Yedek klasörünü buluta yüklerken
-bu dosyayı hariç tut.
-
-**Adım 3 · Önce ELLE dene, sonra zamanla**
-
-```powershell
-powershell -NoProfile -ExecutionPolicy Bypass -File "F:\MIYOP_BACKUP\yedek-al.ps1"
-```
-
-Beklenen çıktı:
-
-```
-2026-09-13 14:20:01  Yedek basliyor -> F:\MIYOP_BACKUP\miyop-2026-09-13-1420.dump
-2026-09-13 14:20:14  Tamam. 3,2 MB
-2026-09-13 14:20:14  Bitti.
-```
-
-**Çalıştığını gördükten sonra** her gece 03:00'e kur:
-
-```powershell
-$eylem = New-ScheduledTaskAction -Execute "powershell.exe" `
-  -Argument '-NoProfile -ExecutionPolicy Bypass -File "F:\MIYOP_BACKUP\yedek-al.ps1"'
-$zaman = New-ScheduledTaskTrigger -Daily -At 03:00
-$ayar  = New-ScheduledTaskSettingsSet -StartWhenAvailable -WakeToRun
-Register-ScheduledTask -TaskName "MIYOP gunluk yedek" `
-  -Action $eylem -Trigger $zaman -Settings $ayar -Description "MIYOP veritabani gunluk dokumu"
-```
-
-`-StartWhenAvailable`: bilgisayar 03:00'te kapalıysa, açılınca kaçırılan
-yedeği alır. Yoksa kapalı geçen her gece sessizce yedeksiz kalırdı.
-
-**Kurulduğunu doğrula:**
-
-```powershell
-Get-ScheduledTask -TaskName "MIYOP gunluk yedek" | Select-Object TaskName, State
-Get-ScheduledTaskInfo -TaskName "MIYOP gunluk yedek" | Select-Object LastRunTime, NextRunTime, LastTaskResult
-```
-
-`LastTaskResult` **0** olmalı. Başka bir sayı hatadır;
-`F:\MIYOP_BACKUP\yedek-gunlugu.txt` sebebini yazar.
-
-⚠️ **Bilgisayar tamamen kapalıysa yedek alınmaz.** Kalıcı çözüm A5'te:
-Hetzner sunucusunda `cron`. Bu adım o güne kadarki köprüdür.
-
-### 2.4 Kaç yedek saklanmalı
-
-Betik bunu **kendisi yapıyor**: 7 günden eski yedekleri siler ama her
-ayın 1'ini bırakır. Sebebi şu: bozulmayı aynı gün fark etmezsin. Bir hafta
-önce silinen bir kayıt, üç gün saklanan yedekle geri gelmez.
-
-⚠️ **Yedek aynı diskte olmazsa yedek değildir.** `F:` sürücüsü aynı
-bilgisayardaysa, o bilgisayar giderse ikisi birden gider. Aylık kopyayı
-harici diske ya da buluta al.
-
----
-
-## 3. Geri yükleme provası — ASIL İŞ BU
-
-> **Denenmemiş yedek, yedek değildir.** Bunu yılda en az iki kez, ve her
-> büyük göç sonrası bir kez yap.
-
-### 3.1 Neden ayrı bir proje
-
-Provayı **canlı veritabanında yapmıyoruz.** Supabase'de ücretsiz ikinci
-bir proje aç (`miyop-prova`), provayı orada yap, bitince sil.
-
-### 3.2 Adımlar — `scripts\yedek-geri-yukle-provasi.ps1`
-
-Provanın tamamı tek betikte. Elle `pg_restore` yazmıyoruz; çünkü provanın
-asıl işi yüklemek değil, **yüklenenin doğru olduğunu kanıtlamak.**
-
-**Kurulum (bir kez):**
-
-1. Supabase'de **ikinci** bir ücretsiz proje aç. Adı: `miyop-prova`.
-2. O projenin **Session pooler** adresini al (üstteki **Connect** düğmesi).
-3. `F:\MIYOP_BACKUP\` altına iki dosya:
-   - `prova-baglanti.txt` → prova projesinin adresi, **parolasız**
-   - `prova-parola.txt` → prova projesinin parolası, tek satır
-4. Betiği yanına kopyala: `scripts\yedek-geri-yukle-provasi.ps1` →
-   `F:\MIYOP_BACKUP\`
-
-**Çalıştırma:**
-
-```powershell
-powershell -ExecutionPolicy Bypass -File "F:\MIYOP_BACKUP\yedek-geri-yukle-provasi.ps1"
-```
-
-Betik en son `.dump` dosyasını kendisi bulur, prova projesine yükler ve
-§3.3'teki **altı** kontrolü çalıştırıp **TAMAM / KALDI** olarak raporlar.
-
-⚠️ **GÜVENLİK KİLİDİ.** Betik `--clean` kullanır — yani yüklemeden önce
-var olanı siler. Bu, yanlış adrese çalıştırıldığında canlı veriyi silebilir.
-Bu yüzden betik ilk iş olarak prova adresinin proje kimliğini canlı
-`baglanti.txt`'teki kimlikle karşılaştırır. **Aynıysa hiçbir şey yapmadan
-durur.** Kilit çalışmadıysa (kimlik okunamadıysa) da durur — sessizce
-devam etmez.
-
-⚠️ Yalnız **`public` ve `app`** şemaları yüklenir. `auth`, `storage`,
-`realtime` Supabase'in kendi şemalarıdır; prova projesinde zaten varlar,
-üzerlerine yazmayız.
-
-⚠️⚠️ **`app` ŞEMASI ELLE YARATILIR — bu tuzağa bir kez düştük.**
-`pg_restore --schema=app` dendiğinde, şemanın **kendisini yaratan** satır o
-seçime **girmez** (`pg_dump` o satırın şemasını boş bırakır). Yaratmazsak
-`app` içindeki 18 fonksiyon ve onlara dayanan **43 tetikleyicinin tamamı**
-"böyle bir şema yok" diyerek düşer. Betik bu yüzden `pg_restore`'dan önce
-`create schema if not exists app` çalıştırıyor ve başarısız olursa durur.
-
-Bu tuzağın kötü tarafı: **veri sorunsuz gelir.** Tabloları açar, satırları
-sayar, "yedek çalışıyor" dersin. Oysa geri kurduğun veritabanında sayım
-kilidi yok, denetim kaydı yok. İlk provada tam olarak bu oldu:
-veri TAMAM, tetikleyici **0**.
-
-⚠️ **`--no-privileges` KULLANILMAZ — İKİ TARAFTA DA.** GRANT'lar da
-yedeğin parçası. RLS ve GRANT ayrı kapılardır (bkz. §1).
-
-**2026-09-19'da bulunan hata:** bu satır yalnızca `pg_restore` için
-yazılmıştı. `pg_dump` tarafında (`yedek-al.ps1`) bayrak duruyordu. Yani
-yetki satırları dökümün İÇİNE HİÇ GİRMİYORDU; geri yüklerken kaldırılacak
-bir şey de yoktu.
-
-Görünmemesinin sebebi tehlikeli: Supabase yeni tablolara `anon` ve
-`authenticated` için varsayılan yetkiyi kendi verir. Geri yüklenen kopyada
-GRANT'lar "vardı" — ama bizim yazdıklarımız değil, Supabase'in
-varsayılanları. Bizim 0007'de `anon`dan **aldığımız** yetkiler geri
-gelmiyordu. Sonuç: yedekten dönülen bir veritabanında anonim kullanıcı
-müşteri tablolarını okuyabilirdi.
-
-Bayrak `yedek-al.ps1`den kaldırıldı ve prova 7. kontrolü kazandı: sayı
-saymak yerine **yanlış olanı arıyor** (bkz. §3.3).
-
-**Prova bitince prova projesini Supabase panelinden sil.** Yedek dosyası
-işletmenin tüm verisidir; ortada duran ikinci bir kopya risktir.
-
-### 3.3 Prova başarılı sayılır Kİ
-
-Betik bu yedi kontrolü kendisi yapar ve hepsi geçmeden "başarılı" demez:
-
-| # | Kontrol | Eşik | Neden |
+| Ne | Nerede | Kim alır | Ne işe yarar |
 |---|---|---|---|
-| 1 | Sekiz tablonun satır sayısı | hiçbiri 0 | Veri geldi mi |
-| 2 | `public` tetikleyicileri | ≥ 10 | Sayım kilidi + denetim kaydı |
-| 3 | RLS açık kritik tablo | 4/4 | Kiracı izolasyonu |
-| 4 | `public` yetki politikası | ≥ 20 | İzolasyonun kuralları |
-| 5 | `anon`/`authenticated`/`service_role` GRANT'ı | ≥ 20 | Kapı açık mı |
-| 6 | `app` şemasındaki fonksiyon | ≥ 10 | Tetikleyicilerin dayandığı kod |
-| 7 | **`anon`ın okumaması gereken tabloda SELECT'i** | **= 0** | Kapı kapalı mı |
+| **Veritabanı yedeği** | Supabase (Postgres) → senin diskine | `araclar\yedek-al.ps1` | İş verisinin tek gerçek yedeği |
+| **Arayüz yedeği** | Sunucuda `/var/www/miyop.yedek-*` | `miyop-yukle.ps1` kendisi | Kötü dağıtımdan **hızlı** dönüş |
+| **Müşterinin kendi dışa aktarımı** | Ayarlar → Veri ve Yedekleme | Müşteri | Müşteri kendi verisini Excel olarak indirir |
 
-5 ile 7 aynı şeyi ölçmez ve ikisi de gerekli. 5 "yetkiler geldi mi" der,
-7 "gelmemesi gereken yetki var mı" der. Eşiği en az değil **en fazla**
-olan tek kontrol 7'dir.
+Üçü **birbirinin yerine geçmez.** Sunucudaki klasörlerde tek satır iş verisi
+yoktur; müşterinin Excel dosyası da geri yüklenebilir bir yedek değildir.
 
-**2026-09-17 provası (miyop-2026-09-14-0300.dump):** çıkış kodu 0, hata
-satırı 0 · veri TAMAM · tetikleyici 31 · RLS 4 · politika **41 (canlıyla
-birebir)** · GRANT 840 · `app` fonksiyonu 18. **BAŞARILI.**
+---
 
-⚠️ **O provanın GRANT satırı yanlış güven veriyordu** (2026-09-19'da
-anlaşıldı, bkz. §3.2): 840 sayısı Supabase'in varsayılan yetkilerinden
-geliyordu, dökümden değil. Veri, tetikleyici, RLS ve politika sonuçları
-geçerliliğini koruyor. Yetki tarafı, `--no-privileges` kaldırıldıktan
-sonra alınan ilk yedekle **yeniden prova edilecek**; o prova yapılana
-kadar "yedekten dönme yetkileriyle birlikte kanıtlandı" DENMEZ.
+## 2 · ⚠️ Supabase FREE planında otomatik yedek YOK
 
-Elle bakmak istersen prova projesinin SQL Editor'ünde şunu çalıştır:
+Ölçüldü (30.10.2026, Supabase'in kendi belgesi):
 
-```sql
--- Beklenen: her satırda gerçek bir sayı, hiçbiri 0 değil
-select 'stok kalemi' as ne, count(*) from stock_item
-union all select 'lot',        count(*) from stock_lot
-union all select 'hareket',    count(*) from stock_movement
-union all select 'sayım',      count(*) from stock_count
-union all select 'sevkiyat',   count(*) from shipment
-union all select 'HACCP ölçüm',count(*) from haccp_measurement
-union all select 'denetim',    count(*) from audit_log;
+- *"Automatic backups — **Not included in free**"* · zamanda geri alma (PITR) de yok.
+- Supabase'in tavsiyesi: *"We recommend that free tier plan projects regularly
+  export their data using the Supabase CLI `db dump` command and maintain
+  **off-site** backups."*
+- **Pro: $25/ay** → günlük yedek, 7 gün saklanır.
+- Ve: *"Free projects are **paused after 1 week of inactivity**."*
 
--- Beklenen: 10 satır. Tetikleyiciler de geri gelmiş mi?
-select event_object_table, trigger_name
-from information_schema.triggers
-where trigger_name like 'denetim\_%' or trigger_name like '%count_lock%'
-order by 1;
+**Karar (Emrah, 30.10.2026):** Pro **ilk müşteriden sonra.**
+> *"pro için erken, ilk müşteri ile anlaşalım o zaman yedekler konusunda
+> bakarız. 25 dolar az değil şimdi.. bizde asgari ücretli adamız, yatırım
+> için önce alıcı bulmak, pazarı bilmek gerek."*
 
--- Beklenen: her tabloda rowsecurity = true. RLS geri gelmiş mi?
-select tablename, rowsecurity
-from pg_tables
-where schemaname = 'public' and tablename in
-  ('stock_movement','stock_item','audit_log','stock_count')
-order by 1;
+Bu karar **yedeksiz kalmak demek değil** — `yedek-al.ps1` o yüzden var.
+Ama ücretli planın verdiği iki şeyi vermiyor: **otomatik** olması ve
+**duraklamama** garantisi. İkisi de yazılı borçtur.
+
+---
+
+## 3 · Yedek nasıl alınır
+
+Bir kerelik kurulum:
+
+```powershell
+npm install supabase --save-dev
+npx supabase login
+npx supabase link --project-ref <proje-referansı>
 ```
 
-**Üçü de geçmeden prova başarılı sayılmaz.** Veri geri gelip de
-tetikleyiciler gelmediyse, sayım kilidi ve denetim kaydı çalışmayan bir
-sistem geri kurmuşsun demektir — ve bunu ancak aylar sonra fark edersin.
+⚠️ `link` komutu **veritabanı parolasını sorar.** Parolayı **sen** yazarsın.
+Ne bu doküman, ne `yedek-al.ps1`, ne de başka bir betik parolayı ister,
+yazar veya saklar.
 
-### 3.4 Provada görülmesi gerekenler
+Sonra her seferinde:
 
-| Kontrol | Neden |
-|---|---|
-| Satır sayıları canlıyla yakın | Veri geldi mi |
-| `denetim_*` tetikleyicileri var | Denetim kaydı çalışacak mı |
-| `stock_movement_count_lock` var | Sayım kilidi çalışacak mı |
-| `rowsecurity = true` | Kiracı izolasyonu duruyor mu |
-| Uygulamayı prova adresine bağla, giriş yap | Auth ayrı — hesaplar gelmez, bu **beklenen** |
+```powershell
+cd C:\Users\90544\Documents\restaurant-adisyon
+.\araclar\yedek-al.ps1
+```
 
-⚠️ **Auth hesapları `pg_dump` ile gelmez.** `auth` şeması Supabase'in
-yönetiminde. Yeni kuruluma taşınırken kullanıcılar yeniden davet edilir.
-A4D'de kurulacak davet akışı bunun da cevabı olacak.
+Dosyalar `F:\MIYOP_BACKUP\veritabani\<tarih-saat>\` altına yazılır
+(F: yoksa `%USERPROFILE%\MIYOP-Yedek\`).
 
----
+### Neden ÜÇ dosya
 
-## 4. Ne zaman ne yapılır
+`supabase db dump` **varsayılan hâliyle veriyi almaz.** Belgenin kendi
+cümlesi: *"The default dump does not contain any data or custom roles."*
 
-| Durum | Yapılacak |
-|---|---|
-| Her gece 03:00 | Otomatik `pg_dump` (§2.3) |
-| Her göç (`0029`, `0030`…) öncesi | Elle bir yedek al |
-| Ayda bir | Harici diske kopya |
-| 6 ayda bir | **Geri yükleme provası** (3) |
-| Müşteri "verimi ver" derse | Uygulama içi dışa aktarma (A) |
-| Bir kaydı yanlışlıkla sildim | Yedekten TEK TABLO geri al: `pg_restore --table=...` |
-
----
-
-## 4.5 "Yedek müşterinin sorumluluğu mu?"
-
-Kısmen. Sorumluluk **paylaşılır** ve sınırı net olmalı — sözleşmede de
-böyle yazmalı:
-
-| Kim | Neyin yedeğinden sorumlu |
-|---|---|
-| **MİYOP (sen)** | Sunucu ve veritabanı. Müşteri "verim gitti" derse muhatap sensin. |
-| **Müşteri** | Kendi kopyası. İstediği an indirir; bu onun güvencesi, senin değil. |
-
-Bunu tersine çevirmek satılabilir bir ürün bırakmaz: hiçbir fabrika
-"verinizi siz yedekleyin, biz karışmayız" diyen bir ERP'yi almaz.
-
-**Uygulama içi dışa aktarma müşterinin hakkı, senin yedeğin değil.**
-Senin yedeğin §2'deki `pg_dump`.
-
-### "Otomatik indirsin" fikri neden olmuyor
-
-Tarayıcı zamanlanmış iş çalıştıramaz. Sekme kapalıyken hiçbir şey
-çalışmaz; açıkken bile bilgisayar uykuya geçince durur. "Her gece
-otomatik indirir" diyen bir düğme koymak, çalışmayan bir güvence
-satmaktır.
-
-**Yapılan şey:** her yedek alma günlüğe yazılıyor (`0029`), ve
-7 günden eskiyse ekran uyarıyor: *"Son yedek 23 gün önce alındı."*
-
-**Gerçek otomatiği A5'te geliyor:** Hetzner sunucusunda `cron` +
-`pg_dump`. Orada tarayıcı yok, makine hep açık — ve o yedek zaten
-senin sorumluluğundaki yedek.
-
----
-
-## 4.6 Geri dönüş kimin işi — ve ücretli mi
-
-**Karar (Emrah, 2026-09-13): geri yükleme müşteri tarafından YAPILMAZ.
-Talep gelir, MİYOP yapar.**
-
-Doğru karar, ve sebebi teknik: geri yükleme yanlış yapıldığında veri
-kaybından **daha kötü** bir sonuç üretir — iki dönemin verisi birbirine
-karışır ve hangisinin doğru olduğu bir daha bilinemez. Bu yüzden
-uygulamada "İçeri Al" düğmesi **yok** ve olmayacak.
-
-### Ücretlendirme — ikiye ayır
-
-Bu ayrım sözleşmede net yazmalı, yoksa ilk olayda tartışma çıkar:
-
-| Sebep | Ücret | Neden |
+| Dosya | Komut | İçinde |
 |---|---|---|
-| **Sunucu arızası, göç hatası, MİYOP kaynaklı bir hata** | **Ücretsiz** | Kendi hatanı onarmak için para istemek satılabilir bir ilişki bırakmaz. Sözleşmede taahhüt edilmiş hizmetin parçası. |
-| **Müşteri kaynaklı** — yanlış silme, "geçen haftaya dönelim", yanlış toplu içe aktarma | **Ücretli** | Gerçek bir uzman işi: veri kurtarma. Piyasada da böyle fiyatlanır. |
+| `sema.sql` | `db dump --linked` | Tablolar, kısıtlar, tetikleyiciler, fonksiyonlar |
+| `veri.sql` | `--data-only --use-copy` | **Stok, sipariş, HACCP, denetim defteri** |
+| `roller.sql` | `--role-only` | Veritabanı rolleri |
 
-Sınırdaki durumlarda **müşteri lehine** karar ver. Bir geri yükleme
-ücretinden kazanacağın para, kaybedeceğin güvenden azdır.
+⚠️ Yalnız birincisi alınsaydı elimizde **tablo tanımları olur, içlerinde tek
+satır veri olmazdı.** O dosyaya bakıp "yedeğim var" demek, 13.09.2026'da
+menüden kaldırılan eski "Yedekleme" düğmesinin yaptığı şeyin aynısıdır:
+o da tarayıcı hafızasını yedekliyordu, iş verisini değil.
 
-### Geri yükleme yapılırken uyulacaklar
+### Betik kendi çıktısını DENETLER
 
-1. **Yazılı talep.** Kim istedi, hangi tarihe dönülecek, neden. Sözlü
-   talebe geri yükleme yapılmaz — sonradan "ben öyle demedim" denir.
-2. **Önce mevcut durumun yedeği.** Geri yüklemeden ÖNCE `pg_dump` al.
-   Dönülen nokta yanlışsa geri dönecek bir yer kalsın.
-3. **Kiracı kimliği doğrulanır.** Dosyanın hangi işletmeye ait olduğu
-   künyede yazar; uygulamadaki **Yedeği Doğrula** bunu tek bakışta
-   söyler. Yanlış işletmenin dosyası ASLA yüklenmez.
-4. **Kayıt tut.** Ne zaman, kim istedi, hangi dosyadan dönüldü, kaç satır.
-   Denetimde ilk sorulacak budur.
+Dosyanın oluşması, içinde veri olduğu anlamına gelmez. `yedek-al.ps1`
+bitmeden önce şunları ölçer ve **geçmezse "alındı" DEMEZ**:
 
-### "İki müşteri birbirinin yedeğini çaldı" — cevap
-
-Emrah'ın sorusu. Bugün ve yarın için cevap:
-
-- **Bugün:** geri yükleme diye bir şey yok. Dosya bir çıktı, giriş kapısı
-  değil. Çalınan dosyayla yapılabilecek tek şey onu okumaktır.
-- **İçeri alma yazılırsa** (bugünkü karara göre yazılmayacak, ama
-  yazılırsa): RLS `with check (tenant_id = app.current_tenant_id())`
-  başka kiracının kimliğiyle satır yazılmasını **veritabanı seviyesinde**
-  reddeder. Dosyadaki kimlikler kullanılmaz; satırlar oturumun kiracısına
-  yazılır. Yani çalınan dosya, çalanın kendi verisine dönüşür — kurbanın
-  verisine açılan bir pencere olmaz.
-- **Asıl risk geri yükleme değil, dosyanın kendisi.** Sızarsa Not
-  Defteri'yle okunur. Onun için dosya sunucuya hiç uğramıyor, yalnızca
-  yetkili kullanıcı üretebiliyor, ve her üretim günlüğe yazılıyor (0029):
-  kim, ne zaman, kaç satır.
+- Şema dosyası var ve beklenenden küçük değil
+- Veri dosyasında **en az bir `COPY` / `INSERT INTO` satırı** var
+- Denetim defteri (`audit_log`) dökümde görünüyor
 
 ---
 
-## 5. Bu belgenin dürüst sınırı
+## 4 · ⚠️ Bu yedeğin KAPSAMADIKLARI
 
-Buradaki hiçbir adım **henüz yapılmadı**. Belge, yapılacakların
-tarifidir; kutucuk ancak şu ikisi gerçekten olunca işaretlenir:
+### 4.1 Giriş hesapları YOK
+Supabase belgesi: *"The ignored schemas include `auth`, `storage`, and those
+created by extensions."* Yani `auth.users` — kimin hangi e-posta/kullanıcı
+adıyla girdiği — **bu dosyalarda değil.** Geri yüklemede iş verisi döner,
+**kullanıcıların yeniden açılması/davet edilmesi gerekir.**
+`public.app_user` satırları döner ama onların bağlı olduğu Auth kayıtları dönmez.
 
-- [ ] Günlük yedek görevi kuruldu ve **en az bir dosya üretti**
-- [ ] Geri yükleme provası yapıldı ve **§3.3'teki üç sorgu da geçti**
+### 4.2 Yüklenen dosyalar (Storage) YOK
+Veritabanı dökümü Storage nesnelerini içermez, yalnız üstverisini içerir.
 
-"Yedek alıyoruz" demek yetmez; **dosyanın var olduğunu ve geri
-döndüğünü** görmek gerekir.
+### 4.3 Sunucu yapılandırması YOK
+nginx, sertifika, Edge Function'lar bu dökümde değil. Edge Function'ların
+kaynağı **git'te** (`supabase/functions/`), panele elle dağıtılıyor.
+
+### 4.4 Bu bir felaket kurtarma planı DEĞİL
+Dışarı alınmış bir kopyadır. Kaç saatlik veri kaybını göze aldığımız
+(RPO) yazılı bir karar değil — **yedek ne sıklıkta alınırsa o kadar.**
+
+---
+
+## 5 · Ne sıklıkta
+
+| Ne zaman | Neden |
+|---|---|
+| **Her göç öncesi** | Göç veriyi dönüştürüyorsa geri dönülecek nokta |
+| **Demodan önce** | Demo verisi hazırlandıktan sonra |
+| **İlk müşteri girdikten sonra: haftada bir** | Asgari |
+
+⚠️ Şu an **otomatik değil**: elle çalıştırılır. Unutulursa yedek yoktur.
+Otomatik hâle getirmek (Görev Zamanlayıcı) yazılı bir borçtur.
+
+---
+
+## 6 · Geri yükleme
+
+### 6.1 Arayüz (hızlı, risksiz)
+`miyop-yukle.ps1` her dağıtımın sonunda tek satırlık dönüş komutunu yazar:
+
+```
+rm -rf /var/www/miyop && mv /var/www/miyop.yedek-<damga> /var/www/miyop && systemctl reload nginx
+```
+
+⚠️ Sunucu **son üç** sürümü tutar (`miyop-yukle.ps1` satır 97); bir sürüm
+**8.5 MB** (30.10.2026 derlemesi: 31 dosya, 8.51 MB).
+
+### 6.2 Veritabanı (elle ve kayıt altında)
+**Karar (Emrah, 13.09.2026): ekrana geri yükleme düğmesi KONULMAYACAK.**
+> *Yanlış yapılmış bir geri yükleme veri kaybından kötüdür.*
+
+Talep MİYOP'a gelir, elle ve kayıt altında yapılır. Kaba sıra:
+
+1. **Önce bugünün yedeğini al** — geri yükleme de bir değişikliktir.
+2. Hangi ana dönüleceğine karar ver, o klasörü seç.
+3. `psql` ile sırayla: `roller.sql` → `sema.sql` → `veri.sql`.
+4. Sonra **doğrula**: kiracı sayısı, stok kartı sayısı, `audit_log`'un son
+   kaydının tarihi.
+5. Kullanıcıların Auth kayıtlarını yeniden aç (§4.1).
+
+⚠️ Bu adımlar **canlıda hiç denenmedi.** Denenmemiş bir geri yükleme planı
+bir plan değil, bir niyettir. Demo sonrası boş bir Supabase projesinde
+prova edilecek — o provaya kadar bu bölüm **test edilmemiş** sayılır.
+
+---
+
+## 7 · Açık borçlar
+
+| # | Borç |
+|---|---|
+| 1 | Yedek alma **otomatik değil** (elle çalıştırılıyor) |
+| 2 | **Geri yükleme hiç denenmedi** (§6.2) |
+| 3 | `auth.users` yedekte yok (§4.1) |
+| 4 | Supabase **Pro** alınmadı: otomatik yedek ve duraklamama yok (§2) |
+| 5 | Sunucu **üç** sürüm tutuyor; yediye çıkarmak ~35 MB (ikinci derece) |

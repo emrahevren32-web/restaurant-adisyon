@@ -1,4 +1,5 @@
-﻿2026-10-30 | c418768 | denetim defteri do─şru sat─▒r─▒ yaz─▒yor + m├╝d├╝r ayarlar─▒ g├Ârebiliyor (0104, MIYOP-083/084/085)
+﻿2026-10-30 | 9d777a9 | denetim defteri do─şru sat─▒r─▒ yaz─▒yor + m├╝d├╝r ayarlar─▒ g├Ârebiliyor (0104, MIYOP-083/084/085)
+2026-10-30 | c418768 | denetim defteri do─şru sat─▒r─▒ yaz─▒yor + m├╝d├╝r ayarlar─▒ g├Ârebiliyor (0104, MIYOP-083/084/085)
 2026-10-30 | c4ff2b5 | A1 BITTI ┬À Isletme Ayarlari da veritabaninda ┬À cicir 6 -> 0
 2026-10-29 | 3df7c28 | A1 ┬À Firma Profili + Karsilama veritabaninda ┬À goc 0103 kiraci ayarlari
 2026-10-29 | 67cd546 | A6 BITTI ┬À MIYOP-043 kapandi ┬À giris sunucuda, yedek yol SILINDI
@@ -67,4 +68,6 @@
 2026-10-04 | b28fcfc | 0064 arac ve sofor kartlari: sevkiyata ve irsaliyeye baglandi
 2026-10-04 | 02a7ae8 | 0063 portaldan siparis guncelleme; current_revision artik tetikle ilerliyor
 2026-10-04 | 1d9b89f | 0062 sevk durumunda urun adi; kalem adi bulunamazsa uuid yerine aciklama
-2026-10-04 | 07c568d | Irsaliye yazdirmayi siparise bagladi: siparis kartinda Irsaliyeler tablosu
+/var/www/miyop.yedek-20261030-182911
+/var/www/miyop.yedek-20261029-023800
+/var/www/miyop.yedek-20261029-013518
