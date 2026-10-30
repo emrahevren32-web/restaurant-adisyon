@@ -29,7 +29,7 @@ neyin neden yapıldığı kaybolmasın.
 
 | # | İş | Neden demo öncesi |
 |---|---|---|
-| **A1** | ✅ **BİTTİ (29.10)** · **B başlığı · yarım ekranlar** · 4/4 | Kaydet'e basınca veri tarayıcıda kalıyor. Demoda ilk fark edilecek şey bu. **Sıra: ~~Profilim~~ ✅ (20.10) → ~~Firma Profili~~ ✅ (29.10) → ~~Karşılama~~ ✅ (29.10) → ~~İşletme Ayarları~~ ✅ (29.10, göç 0103)**. ⚠️ Açık kiracı ekranlarının hiçbiri artık kullanıcının girdiği veriyi tarayıcıya yazmıyor: `kiraci-ekrani-veri-kaynagi.arch.test.ts` çıcırı **6 → 0**. ⚠️ **25.10:** Şubeler ve Şube Yetkileri **kapsam dışına çıktı** (tek merkez kararı), düzeltilmedi — 5'ten 3'e indi. |
+| **A1** | ✅ **BİTTİ (29.10)** · **B başlığı · yarım ekranlar** · 4/4 | Kaydet'e basınca veri tarayıcıda kalıyor. Demoda ilk fark edilecek şey bu. **Sıra: ~~Profilim~~ ✅ (20.10) → ~~Firma Profili~~ ✅ (29.10) → ~~Karşılama~~ ✅ (29.10) → ~~İşletme Ayarları~~ ✅ (29.10, göç 0103)**. ⚠️ **İDDİA DÜZELTİLDİ (30.10, Codex):** doğru cümle şu — *açık kiracı ekranlarının iş verisinin kalıcı kaynağı veritabanıdır; veritabanından üretilen oturum ve görünüm önbellekleri bunun dışındadır.* Eski cümlem (*"hiçbiri tarayıcıya yazmıyor"*) fazla genişti: Profilim kaydı `onProfileChange` → `App.tsx` → `storage.ts` yoluyla `ra_auth` oturum önbelleğini hâlâ tazeliyor. O bir **önbellek**, kaynak değil — ama "hiçbiri yazmıyor" demek yanlıştı. `kiraci-ekrani-veri-kaynagi.arch.test.ts` çıcırı **6 → 0**. ⚠️ **25.10:** Şubeler ve Şube Yetkileri **kapsam dışına çıktı** (tek merkez kararı), düzeltilmedi — 5'ten 3'e indi. |
 | **A2** | **MIYOP-008** · şube bağlamı kesin değil · **küçüldü** | Tek merkez kararıyla "yanlış şubeye yazma" riski pratikte kalktı. ⚠️ Kapanmadı: kod hâlâ "tercih yoksa ilk şube" diyor — tek şubede doğru sonucu **tesadüfen** veriyor. Başlıktaki şube seçici kaldırılacak, liste sorgularına şube kapsamı yazılacak. |
 | **A3** | **MIYOP-010** · etiket ekranında ürünler karışıyor · **MIYOP-064 ile birlikte 6 ekran** | Etiket, demonun en gösterişli parçası; yanlış ürünün alerjeni basılırsa itibar biter. ⚠️ Codex 21.10'da aynı kusuru Depo, Siparişler, Müşteriler, İş Emirleri ve Sevkiyatlar'da da buldu — tek ekrana yama atmak aileyi kapatmıyor (3.7). |
 | **A4** | **Sahte veri üreticileri** (3.8, 3.10) · **4 tanesi P0** | Önce `kaldirilan-moduller.md`, sonra silme. ⚠️ İş büyüdü: mesele dosya adı `*.mock.ts` olanlar değil, **27 `createDemo*` üreticisi.** Dördü açık ekrana, biri **müşterinin gördüğü portala** ulaşıyor (MIYOP-058/059/060/061). |
@@ -62,6 +62,51 @@ EVREN360'ın kilitli menüleri. Hepsi hedefte duruyor, sırası sonra.
   Edge Function yazıldı → **canlıya alındı ve POST 200 ile doğrulandı** →
   göç **0102** `giris_adresi_bul`un `anon`/`authenticated` haklarını aldı →
   tarayıcıdaki geçici yedek yol **silindi**. Ayrıntı 1.8'de.
+- 🔄 **0.14** **Codex denetimi (30.10) · ÜÇ BULGU · göç 0104 + MIYOP-084**
+  - ✅ **MIYOP-083 · denetim defteri HANGİ SATIR olduğunu yazamıyordu.**
+    `app.denetim_yaz()` satır kimliğini `coalesce(new->>'id', old->>'id', '?')`
+    ile üretiyordu; `id` kolonu olmayan **dört** tabloda `row_id` alanına
+    `'?'` düşüyordu (`stock_item_allergen`, `stock_item_nutrition`,
+    `user_branch_access`, `user_role`). Besin değerinde fark yalnız değişen
+    alanı taşıdığı için ürün bilgisi de yoktu: defterde *"biri bir şeyin yağ
+    oranını 10'dan 12'ye çekti"* yazıyordu.
+    ⚠️ Onarım **dört tabloyu yamamak değil**, defteri YAZAN fonksiyonu
+    düzeltmek: `id` yoksa birincil anahtardan kimlik üretiliyor
+    (`app.denetim_satir_kimligi`, kataloğu okuyor, tablo adı tanımıyor).
+    Beşinci tablo eklendiğinde de çalışır. Göç **0104**.
+  - ✅ **MIYOP-085 · `company.updated_at` istemciden geliyordu.** Firma
+    Profili ekranı *"Son kayıt: ..."* yazıyor ve o tarihi yazan taraf
+    gönderiyordu. Artık `before update` tetiğiyle sunucuda yazılıyor,
+    `created_at` korunuyor. Aynı göç.
+    ⚠️ `updated_by` BİLEREK eklenmedi: "kim" sorusunun yeri `audit_log`.
+  - ✅ **MIYOP-084 · müdürün açamadığı ekranın salt okunur modunu yazmıştım.**
+    İşletme Ayarları ekranı *"Müdür ayarları GÖREBİLMELİ, yalnız
+    değiştiremez"* diye yazılmıştı — ama ekranın açılma kapısı
+    `settings.manage` istiyordu ve **o izin müdürde yok** (canlı ölçüm: üç
+    rolde var — admin, isletme_sahibi, super_admin). Yazdığım salt okunur
+    mod **ölü koddu**. Açılma izni `company.read` oldu; yazma kapısı
+    DEĞİŞMEDİ (ekran + depo + veritabanı tetiği, üçü de yerinde).
+    ⚠️ **Asıl delik:** `rol-ekran-matrisi.test.ts` 13 rolü sınadığını
+    söylüyor ama tabloda **10 rol** vardı — `isletme_muduru` hiç
+    sınanmıyordu. Eklendi (29 izin, canlıdan okundu) + dört yeni sınama:
+    müdür `settings`i açabiliyor, menüde görüyor, `veri-yedegi`yi
+    açamıyor, menüsü sahibininkinin **alt kümesi ve ondan küçük**.
+  - ✅ **KENDİ BULDUĞUM DÖRDÜNCÜ BULGU · denetim tarayıcısı on tabloyu
+    görmüyordu.** `denetimIzlenenTablolar()` göçlerde tek söz dizimi
+    arıyordu; canlıda **29** denetim tetikleyicisi varken **19** görüyordu.
+    Görmediği on tablo arasında `app_user`, `company`, `branch`, `user_role`
+    da vardı ve bunlar Değişiklik Kaydı ekranında **ham İngilizce adıyla**
+    görünüyordu. Tarayıcı üç biçimi birlikte okuyor artık; **on etiket**
+    eklendi (19 → 29). Tuzak 154.
+  - ✅ **`audit-coverage.arch.test.ts` kapsamı ölçüyordu, ANLAMI ölçmüyordu.**
+    Yeni dosya: `src/audit/denetim-satir-kimligi.arch.test.ts` — defterin
+    yazdığı kimliğin anlamlı olduğunu, `'?'`nin son çare olduğunu ve her
+    denetimli tablonun kimlik üretebildiğini ölçüyor. Tuzak 155.
+  - ✅ **Prova + TERS PROVA.** `db/prova/prova-0104.sql` (5 bölüm yeşil) ve
+    `db/prova/prova-0104-ters.sql`: 0104 metinden geri alınınca `'?'`
+    **geri geliyor** (dört tablonun dördü de kör, `company` 2020 tarihini
+    kabul ediyor). Ters prova olmadan "düzelttim" demek iddiadır.
+  - ⬜ **0104 canlıya uygulanacak** (`araclar/goc-bekleyen.sql`).
 - ⬜ **0.10** Dağıtım · 0090 uygulandıktan ve MIYOP-043 bittikten sonra
   tek seferde (arayüzde zil yönlendirmesi de bu dağıtımla gider)
 - ✅ **0.12** **Göç 0092 · SKT kapısı · CANLIDA** (25.10)

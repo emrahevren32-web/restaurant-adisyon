@@ -44,6 +44,29 @@ export const TABLO_ETIKETLERI: Record<string, string> = {
   portal_user: 'Portal kullanıcısı',
   stock_item_allergen: 'Alerjen beyanı',
   stock_item_nutrition: 'Besin değeri',
+  // ── ⚠️ ON ETİKET · 30.10.2026 ──────────────────────────────────────────
+  // Bu on tablo BİR AYDIR denetleniyordu ve Değişiklik Kaydı ekranında ham
+  // İngilizce adlarıyla görünüyordu ("app_user", "user_role", "company").
+  // Sözlüğe eklenmemişlerdi ve hiçbir test bunu söylemedi, çünkü göç
+  // tarayıcısı o on tabloyu hiç görmüyordu (gerekçe:
+  // src/core/test-support/goc-tarama.ts → `denetimIzlenenTablolar`).
+  //
+  // Etiketler kullanıcının kelimeleriyle: "kullanıcı" değil PERSONEL,
+  // "tenant_settings" değil İŞLETME AYARI.
+  app_user: 'Personel kaydı',
+  user_role: 'Personel ek rolü',
+  user_branch_access: 'Personel şube yetkisi',
+  company: 'Firma profili',
+  branch: 'Şube kaydı',
+  tenant_settings: 'İşletme ayarı',
+  witness_sample: 'Şahit numune',
+  witness_sample_event: 'Şahit numune hareketi',
+  // ⚠️ Lisans ikilisi MİYOP ile aradaki TİCARİ ilişkidir, işletmenin iş
+  // verisi değil — ve bu yüzden yedeğin DIŞINDA (gerekçe:
+  // src/tenant-export/tenant-export.ts → `YEDEK_DISI_TABLOLAR`). Ama
+  // DENETLENİYOR: lisansı kim ne zaman uzattı sorusunun cevabı burada.
+  tenant_license: 'Lisans',
+  license_extension_request: 'Lisans süre talebi',
 }
 
 export const tabloAdi = (tablo: string) => TABLO_ETIKETLERI[tablo] ?? tablo

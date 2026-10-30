@@ -118,26 +118,59 @@ export const rlsAcikTablolar = (sql = gocMetni()): Set<string> => {
 }
 
 /**
- * Denetim kaydı tetikleyicisinin izlediği tablolar (0027).
+ * Denetim kaydı tetikleyicisinin izlediği tablolar.
  *
  * Gerçeğin kaynağı göçtür, koddaki bir liste değil: tetikleyici orada
  * kuruluyor.
+ *
+ * ── ⚠️ 30.10.2026 · BU TARAYICI ON TABLOYU GÖRMÜYORDU ───────────────────
+ * Eski hâli yalnız BİR söz dizimini arıyordu: `izlenecek text[] := array[...]`.
+ * Oysa denetim tetikleyicisi göçlerde ÜÇ ayrı biçimde kuruluyor:
+ *
+ *   1. `izlenecek text[] := array[...]` döngüsü      (0027, 0047, …)
+ *   2. başka adlı bir dizi değişkeniyle döngü        (0091: `v_tablolar`)
+ *   3. düpedüz `create trigger … app.denetim_yaz()`  (0042, 0093, 0103)
+ *
+ * Ölçüm (prova veritabanı, 105 göç uygulanmış, 30.10.2026): canlıda
+ * `app.denetim_yaz`a bağlı **29** tetikleyici var; bu tarayıcı **19**
+ * görüyordu. Görmediği on tablo:
+ *
+ *   app_user · branch · company · user_role · user_branch_access
+ *   tenant_license · license_extension_request · tenant_settings
+ *   witness_sample · witness_sample_event
+ *
+ * Yani `audit-coverage.arch.test.ts` bir aydır denetim yüzeyinin üçte
+ * ikisini ölçüyordu ve yeşildi. "Her izlenen tablonun Türkçe etiketi var"
+ * sınaması, etiketi olmayan on tabloyu hiç sormadı — Değişiklik Kaydı
+ * ekranı o satırlarda ham İngilizce tablo adı gösteriyordu.
+ *
+ * ⚠️ Ders: SÖZ DİZİMİ ARAYAN TARAYICI, SÖZ DİZİMİ DEĞİŞİNCE SESSİZCE
+ * ZAYIFLAR. Bu yüzden artık üç biçim birlikte okunuyor ve sonuç
+ * `create table` gövdeleriyle süzülüyor (bir kolon adı tablo sayılmasın:
+ * döngü taraması `tenant_id`yi de getiriyordu).
  */
 export const denetimIzlenenTablolar = (sql = gocMetni()): string[] => {
-  // ⚠️ 2026-09-27 DÜZELTME: eskiden `exec` ile YALNIZCA İLK blok okunuyordu.
-  // 0027 tek listeyken doğruydu; 0047 kendi listesini ekleyince ilk blok
-  // hâlâ bulunuyor, ikincisi görünmüyordu. Sonuç: yeni tablolar denetime
-  // giriyor ama testin gözünde girmiyor — etiketleri zorunlu olmuyor ve
-  // yazılan etiketler "fazla" sayılıyordu. Testin kendisi yanlış tarafa
-  // kırmızı veriyordu. Artık BÜTÜN göçlerdeki bütün bloklar okunuyor.
-  const bloklar = [...sql.matchAll(/izlenecek text\[\] := array\[([\s\S]*?)\]/g)]
-  if(bloklar.length === 0) throw new Error(
-    'Göçlerde izlenen tablo listesi bulunamadı. ' +
-    'Liste taşındıysa bu tarayıcı da güncellenmeli — yoksa test sessizce zayıflar.',
+  const bulunan = new Set<string>()
+
+  // (1) + (2) · gövdesinde `app.denetim_yaz` geçen DO bloklarındaki diziler.
+  // Dizi değişkeninin ADINA bakmıyoruz: ad değişse de tarama ayakta kalır.
+  for(const t of dongudeGecenler(sql, /app\.denetim_yaz/)) bulunan.add(t)
+
+  // (3) · düz `create trigger … on <tablo> … app.denetim_yaz()`.
+  // `drop trigger` satırları eşleşmez: kalıp `app.denetim_yaz()` istiyor.
+  const duz = /create trigger\s+[a-z_]+\s+(?:after|before)[\s\S]{0,200}?\son\s+(?:public\.)?([a-z_]+)[\s\S]{0,200}?app\.denetim_yaz\s*\(\)/gi
+  let m: RegExpExecArray | null
+  while((m = duz.exec(sql)) !== null) bulunan.add(m[1])
+
+  if(bulunan.size === 0) throw new Error(
+    'Göçlerde denetim tetikleyicisi bulunamadı. Kurulum biçimi değiştiyse ' +
+    'bu tarayıcı da güncellenmeli — yoksa test sessizce zayıflar.',
   )
-  const tablolar = bloklar.flatMap(b => (b[1].match(/'([a-z_]+)'/g) ?? [])
-    .map(s => s.replace(/'/g, '')))
-  return [...new Set(tablolar)].sort()
+
+  // ⚠️ Süzgeç: yalnız GERÇEKTEN TABLO olanlar. Döngü taraması aynı blokta
+  // duran kolon adı dizilerini de getiriyor (`tenant_id`).
+  const tablolar = new Set(tabloGovdeleri(sql).keys())
+  return [...bulunan].filter(t => tablolar.has(t)).sort()
 }
 
 /**

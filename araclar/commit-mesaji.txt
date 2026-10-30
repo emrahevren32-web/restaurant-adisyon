@@ -1,152 +1,75 @@
-A1 BITTI · Isletme Ayarlari da veritabaninda · cicir 6 -> 0
+denetim defteri doğru satırı yazıyor + müdür ayarları görebiliyor (0104, MIYOP-083/084/085)
 
-Goc 0103 canliya uygulandi ("Success. No rows returned."), ardindan ekran
-yazildi. Boylece ACIK KIRACI EKRANLARININ HICBIRI artik kullanicinin
-girdigi veriyi tarayiciya yazmiyor.
+Codex'in 30.10 denetimi üç bulgu verdi; üçü de kapandı, biri de kendi
+tarayıcımızdaki bir körlüğü ortaya çıkardı.
 
-── ISLETME AYARLARI (3.4) · MIYOP-060b ──────────────────────────────────
+── MIYOP-083 · göç 0104 · defter HANGİ SATIR olduğunu yazamıyordu ────────
+`app.denetim_yaz()` satır kimliğini
+    coalesce(v_yeni ->> 'id', v_eski ->> 'id', '?')
+ile üretiyordu. `id` kolonu olmayan DÖRT tabloda `row_id` alanına '?'
+düşüyordu: stock_item_allergen, stock_item_nutrition, user_branch_access,
+user_role. Besin değeri güncellemesinde fark yalnız değişen alanı taşıdığı
+için ürün bilgisi de yoktu — defterde "biri bir şeyin yağ oranını 10'dan
+12'ye çekti" yazıyordu.
 
-src/workspace/isletme-ayarlari.repository.ts · public.tenant_settings.
+Onarım dört tabloyu yamamak DEĞİL: defteri yazan fonksiyon düzeltildi.
+`id` yoksa BİRİNCİL ANAHTARDAN kimlik üretiliyor
+(`app.denetim_satir_kimligi`, kataloğu okuyor, hiçbir tablo adı tanımıyor).
+Beşinci tablo eklendiğinde de çalışır.
+⚠️ Gövde canlı tanımdan okundu, hatırlanarak yazılmadı (tuzak 127).
+⚠️ Dört tabloya `id` kolonu EKLENMEDİ: yazıcı düzeltildiği için gerek yok.
 
-!! `DEFAULT_SETTINGS.vatRate = 10` SILINDI, ve `SystemSettings` tipinden
-`vatRate` ile `currency` KALDIRILDI. Olculdu: ikisini de o tipten BASKA
-okuyan yoktu -- stok kartinin para birimi ayri bir alan
-(stock_item.currency), siparis satirinin vergisi ayri (vat_rate). Ucu
-karistirilmasin; "isletmenin KDV'si" diye gosterilen sey aslinda son
-satirin vergisi olsaydi, bunu kimse fark etmezdi.
+── MIYOP-085 · aynı göç · "Son kayıt" istemciden gelemez ─────────────────
+`company.updated_at` artık `before update` tetiğiyle sunucuda yazılıyor,
+`created_at` korunuyor. Firma Profili ekranı o tarihi yazıyor; istemciden
+gelen bir tarihle yazılan söz yalan olurdu.
+⚠️ `updated_by` bilerek eklenmedi — "kim" sorusunun yeri `audit_log`.
+⚠️ Tetikleyicinin "ilk before tetiği olması" şartını yazmıştım; kendi
+doğrulamam onu öldürdü (ölçülen sıra ikinci) ve şart zaten gereksizdi.
 
-!! BELIRLENMEMIS KDV BOS GORUNUYOR ve `null` KALIYOR -- `0`a DONMUYOR.
-Test bunu ayrica olcuyor, cunku `Number(null)` SIFIRDIR ve kusur sessizce
-geri gelebilir: kaldirdigimiz yalanin aynisi olurdu, sadece 10 yerine 0.
-Gercek %0 ile "belirlenmemis" AYRI iki sey ve ikisi de ayri olculuyor.
+── MIYOP-084 · müdürün açamadığı ekranın salt okunur modu ────────────────
+İşletme Ayarları ekranı "müdür görebilmeli, değiştiremez" diye yazılmıştı.
+Ama açılma kapısı `settings.manage` istiyordu ve o izin müdürde YOK
+(canlı ölçüm: yalnız admin, isletme_sahibi, super_admin). Yazdığım salt
+okunur mod ölü koddu.
+Açılma izni `company.read` oldu. Yazma kapısı DEĞİŞMEDİ ve üç yerde
+duruyor: ekran düğmeyi gizliyor, depo `settings.manage` istiyor,
+veritabanı `izin_tenant_settings` tetiğiyle reddediyor. Kapı genişlemedi,
+pencere açıldı.
+⚠️ Asıl delik: `rol-ekran-matrisi.test.ts` 13 rolü sınadığını söylüyordu,
+tabloda 10 rol vardı — `isletme_muduru` HİÇ sınanmıyordu. Eklendi (29 izin,
+canlıdan okundu) + dört yeni sınama. izleyici 17→18, muhasebe 8→9 (ikisinde
+`company.read` var, `settings.manage` yok). ⚠️ Bu iki sayı ÖLÇÜM DEĞİL
+ÖNGÖRÜ; başka bir rolün sayısı da değiştiyse izin geri alınacak, sayı
+güncellenmeyecek.
 
-!! KDV kutusu `type="number"` DEGIL ve bu bilincli: sayi kutusu bos degeri
-bazi tarayicilarda 0'a ceviriyor. Bos birakmak gecerli bir cevap
-("henuz secmedim") ve ekran "MIYOP sizin adiniza bir oran varsaymaz" diyor.
+── KENDİ BULGUM · denetim tarayıcısı ON TABLOYU görmüyordu (tuzak 154) ───
+`denetimIzlenenTablolar()` göçlerde tek söz dizimi arıyordu. Canlıda
+`app.denetim_yaz`a bağlı 29 tetikleyici var; tarayıcı 19 görüyordu.
+Görmediği on tablo: app_user, branch, company, user_role,
+user_branch_access, tenant_license, license_extension_request,
+tenant_settings, witness_sample, witness_sample_event.
+Yani personel ve firma değişiklikleri Değişiklik Kaydı ekranında HAM
+İNGİLİZCE adıyla görünüyordu ve hiçbir test bunu söylemedi.
+Tarayıcı üç biçimi birlikte okuyor + sonuç `create table` gövdeleriyle
+süzülüyor. On etiket eklendi (19 → 29).
 
-!! YAZILAN KOLON KUMESI DONDURULDU: yalniz currency_code ve vat_rate.
-`updated_at`/`updated_by` BURAYA KONMAZ -- onlari sunucu yazar (0103).
-Konmasi, ekranin zamani ve aktoru belirledigi yanilsamasi dogururdu.
+── KAPSAM YEŞİLDİ, ANLAM KIRMIZIYDI (tuzak 155) ──────────────────────────
+Yeni dosya: src/audit/denetim-satir-kimligi.arch.test.ts
+Defterin yazdığı kimliğin anlamlı olduğunu, '?'nin SON ÇARE olduğunu,
+kimlik üreticisinin tablo adı tanımadığını ve her denetimli tablonun
+kimlik üretebildiğini ölçüyor. Okuyucu kendi doğruluğunu da sınıyor:
+okuduğu ifadenin yorum satırı OLMADIĞINI ölçüyor (0104 eski ifadeyi
+yorumda saklıyor).
 
-!! FIRMA ADI VE LOGO ARTIK BURADAN DEGISMIYOR, salt okunur gosteriliyor.
-Ikisi de `company` tablosunda ve sahibi Firma Profili ekrani. Iki ekranin
-ayni kolona yazmasi "orada degistirdim burada degisti" karisikliginin ta
-kendisi -- ustelik kapilari farkli: company.manage vs settings.manage.
+── ÖLÇÜM ─────────────────────────────────────────────────────────────────
+db/prova/prova-0104.sql       → 5 bölüm, hepsi yeşil
+db/prova/prova-0104-ters.sql  → 0104 geri alınınca '?' GERİ GELİYOR:
+  dört tablonun dördü de kör, company 2020 tarihini kabul ediyor.
+Ters prova olmadan "düzelttim" demek ölçüm değil iddiadır.
 
-!! "Yetkisiz Erisim" ekrani KALDIRILDI. Eski hali `role === 'Admin'`
-degilse HICBIR SEY gostermiyordu. Mudur ayarlari GOREBILMELI, yalniz
-degistiremez; gormeyi engellemek ona isletmenin para biriminin ne oldugunu
-da soylememek demekti.
-
-── CICIR 6 -> 0 ─────────────────────────────────────────────────────────
-
-kiraci-ekrani-veri-kaynagi.arch.test.ts: 6 -> 5 -> 3 -> 1 -> 0.
-!! 5 -> 3 bir DUZELTME degildi (sube ekranlari kapsam disina cikti).
-3 -> 0 duzeltmedir. Ikisi karistirilmasin.
-
-!! LISTE BOSALDI AMA TEST KALDI, ve asil isi simdi basliyor: bundan sonra
-storage.ts'e baglanan HER YENI acik ekran kirmizi verecek. Bir cicirin
-degeri, sifira indikten sonra da orada durmasindadir.
-
-── TESTLER ──────────────────────────────────────────────────────────────
-
-isletme-ayarlari.repository.test.ts (17). Onemlileri: belirlenmemis KDV'nin
-`null` kaldigini ve gercek %0'dan AYRI oldugunu olcen testler, ve yazilan
-kolon kumesini donduran test.
-
-── TIP DENETIMI IKI SEY DAHA YAKALADI ───────────────────────────────────
-
-!! TUZAK 150 · OLCUMU `head` ILE KESIP "HEPSI BU" DEMEK.
-`SystemSettings`ten vatRate/currency'yi kaldirmadan once "kim okuyor" diye
-taradim ve "baska okuyan yok" dedim. Tarama `| head -20` ile bitiyordu ve
-eslesmeler yirmiden fazlaydi. billing.ts ile onboarding.service.ts o
-kesilen kuyrukta kaldi.
-!! Tuzak 147'nin kardesi: orada YANLIS KOPYADAN olcmustum, burada EKSIK
-olctum. Ikisinde de olcum YAPILDI ve "olctum" diye guven verdi.
-!! Ikinci yarisi: duzeltirken bu sefer `grep | wc -l` ile SAYIYA baktim,
-"3 dosya billing'i ice aktariyor" sandim ve DOGRU olan bir karari
-neredeyse geri aliyordum. Ucu de 'billing' KELIMESININ metin icinde gectigi
-satirlardi (etiket, odak adi, ikon deseni). Bir sayi olcum degildir;
-SATIRLAR olcumdur.
-
-!! TUZAK 151 · AYNA DEPO DEGILDIR -- UCUNCU KEZ.
-src/billing.ts'i "hicbir yerden ice aktarilmiyor" diye SILDIM. Tip denetimi
-38 DOSYADA 45 HATA verdi: dosya adisyon, masa, kasa, QR menu, cari,
-personel ve eski raporlardan cagriliyormus. Dosya GERI ALINDI.
-!! Taramayi kendi calisma alanimdaki kopyada yaptim. Orada deponun yalniz
-benim o oturumda aldigim dosyalari var; RecipeForm.tsx, TableManagement.tsx
-ve otekiler orada HIC YOKTU. `grep -r src/` bir depoya benziyor ve
-"eslesme yok" diye KENDINDEN EMIN cevap veriyor.
-!! Ayni kok ucuncu kez: 147 (yanlis kopyadan olctum), 150 (olcumu head ile
-kestim), 151 (ayna eksik). Uyari yazmak ise yaramiyor; ucunu de yazdim.
-MEKANIZMA: bir dosyayi ya da export'u kaldirmak IKI ADIMDIR -- (1) kaldir,
-TIP DENETIMINI KOSTUR, listeyi oku; (2) karari O LISTEDEN ver. "Kimse
-kullanmiyor" cumlesi 1. adimdan ONCE kurulmaz. `tsc`, bu kod tabaninin
-elimdeki tek EKSIKSIZ dizinidir.
-
-billing.ts'te yapilan TEK degisiklik: `loadSettings().currency` okumasi
-kaldirildi (o alan SystemSettings'ten cikti), yerine sabit 'TRY' kondu --
-eski varsayilanin aynisi, yani DAVRANIS DEGISMEDI.
-!! Bu bir COZUM degil, yazili bir borc: HEDEFLER 3.4.6. Musteri EUR
-secerse o dosyadan gecen ekranlar yine TL basar. O 38 ekranin hangisinin
-bugun ACIK rota oldugunu OLCMEDIM; olcmeden "kimse gormuyor" demem.
-
-onboarding.service.ts: `saveSettings`ten `currency` kaldirildi.
-!! ACIK MADDE (HEDEFLER 3.4.5): ilk giris sihirbazi HALA localStorage'a bir
-para birimi yaziyor (saveTenantSettings, ~365) ve FirstLoginWizard onu
-okuyor -- yani 0103'ten sonra IKINCI BIR KAYNAK. Cicir testi bunu
-yakalamiyor cunku `first-login` acik bir kiraci rotasi degil. Test yesil,
-kusur duruyor; o yuzden madde yazildi.
-
-── TUZAK 152 · KIRMIZI VEREN HAT, KODU DEGIL KENDINI GOSTERIYORDU ───────
-
-Testler uc kez ust uste kirmizi verdi (23, 28, 28 paket "dustu"). Bir gun
-kaybettik ve KODDA HICBIR SEY YOKTU.
-
-Ayirt eden iki olcum:
-  1. TEK BIR IDDIA HATASI YOKTU. Hicbir yerde "beklenen X, gelen Y"
-     yazmiyordu; hepsi [vitest-worker]: Timeout calling "fetch" idi -- yani
-     vitest'in KENDI dosya okumasi zaman asimina ugruyordu. Dusen paketler
-     (0) test topluyordu: hic baslamamislardi.
-  2. DUSEN DOSYALAR HER KOSUDA DEGISIYORDU. Bir kosuda gecen dosya otekinde
-     dusuyordu. Gercek bir hata HEP AYNI YERDEN cikar.
-
-Once kendi supheme baktim: 29.10'da giris-sunucuda.arch.test.ts'e butun src
-agacini okuyan bir blok koymustum ve iki kirmizi kosuda o dosya "basladi,
-bitmedi" isaretiyle duruyordu. Tek basina olctum: 1.08 sn, 15/15. Suclu
-benim testim degilmis.
-
-Olcum (ayni kod, ayni makine, arka arkaya):
-  · paralel havuz -> 429 sn, 28 paket hic baslamadan dustu, 0 iddia hatasi
-  · tek isci      ->   8 sn, 95 paketin 95'i, 1643 testin 1643'u YESIL
-53 KAT. Her isci kendi Vite donusturme hattini ve kendi jsdom ortamini
-kuruyor; 95 dosya x N isci bu makinede diski kilitliyor.
-
-vitest.config.ts: poolOptions.threads.singleThread = true.
-!! BU KAPIYI GEVSETMEK DEGILDIR: hangi testin kostugu, neyi olctugu ve kac
-tane oldugu BIREBIR AYNI; degisen tek sey siraya dizilisleri.
-!! ASIL DERS: bir kapinin HIZI, guvenilirliginin parcasidir. 429 saniye
-suren ve rastgele kirmizi veren bir kapi er gec atlanir ("yine takildi
-herhalde"). 8 saniyelik kapi her seferinde kosturulur.
-!! BEDELI YAZILI: tek surecte butun dosyalar global durumu paylasir. Bugun
-sizinti yok (1643/1643 tek surecte gecti), ama bir gun bir test TEK BASINA
-gecip BUTUN takimda duserse ilk supheli odur.
-
-derleme-kapisi.arch.test.ts ayari donduruyor: hem singleThread'in kendisini,
-hem GEREKCESININ, hem de BEDELININ dosyada yazili oldugunu olcuyor. Ayar
-dusse o gun geri gelir ve yarim gun daha yanlis yerde hata aranir.
-
-!! O TESTIN ILK HALI KIRMIZI VERDI VE HAKLIYDI -- ama kendi yuzunden:
-aradigi cumle vitest.config.ts'te "ayni global" + "durumu paylasir" diye IKI
-SATIRA bolunmustu, araya da yorum yildizi giriyordu. Yani kendi yazdigim
-metni satir duzeni yuzunden bulamadim. Tuzak 133'un aynisi ve bu dosyanin
-basinda bir kez daha yasanmisti (orada PowerShell yorumlariydi).
-Arama artik satir sonlarini ve yorum yildizlarini duzlestiriyor: bir metinde
-aranan sey KELIMELERDIR, satir duzeni degil.
-
-docs: HEDEFLER A1 ✅ 4/4, 3.4 kapandi, 3.4.5 acildi;
-kararlar-ve-tuzaklar tuzak 150 + kontrol listesi 68;
-kaldirilan-moduller §7 (billing.ts).
+Tuzaklar 153 (Türkçe `lower()` konumu kaydırıyor — bu dönemin beşinci
+ölçüm aracı hatası), 154, 155 ve kontrol listesi 73-76 yazıldı.
 
 Co-Authored-By: Claude Opus 5 <noreply@anthropic.com>
 Claude-Session: https://claude.ai/code/session_019BwYM3mAXZUhp4YGj7tp2y

@@ -58,6 +58,32 @@ const ROL_IZINLERI: Record<string, string[]> = {
     'recipe.write', 'roles.manage', 'settings.manage', 'stock.read',
     'stock.write', 'users.manage', 'users.read',
   ],
+  // ⚠️ `isletme_muduru` 30.10.2026'da EKLENDİ — ve eklenme sebebi bir
+  // DELİKTİ, bir istek değil.
+  //
+  // Bu dosya 13 roldeki yetki çerçevesini sınadığını söylüyordu ama tabloda
+  // 10 rol vardı. Eksik üçü: `super_admin`, `admin` (ikisi platform tarafı,
+  // 35 izinle neredeyse her şeyi görüyor) ve `isletme_muduru` — ki o
+  // MÜŞTERİNİN ROLÜ ve menüsü `isletme_sahibi`nden FARKLI.
+  //
+  // MIYOP-084'ü de tam burada kaçırdık: müdürün açamadığı bir ekranın
+  // salt okunur modunu yazdım, hiçbir sınama bunu söylemedi çünkü müdür
+  // hiç sınanmıyordu.
+  //
+  // İzinler canlı `role_permission` tablosundan okundu (30.10.2026, 29 satır).
+  // Sahibinde olup müdürde OLMAYAN dördü: `company.manage`, `roles.manage`,
+  // `settings.manage`, `users.manage` — yani müdür işletmeyi İŞLETİR,
+  // kurallarını DEĞİŞTİRMEZ.
+  isletme_muduru: [
+    'audit.read', 'branch.manage', 'branch.read', 'company.read',
+    'dashboard.read', 'finance.read', 'finance.write', 'logistics.read',
+    'logistics.write', 'operations.approve', 'operations.read',
+    'operations.write', 'personnel.manage', 'personnel.read',
+    'production.read', 'production.write', 'products.read', 'products.write',
+    'purchase.read', 'purchase.write', 'quality.declaration', 'quality.read',
+    'quality.record.manage', 'quality.write', 'recipe.read', 'recipe.write',
+    'stock.read', 'stock.write', 'users.read',
+  ],
   depo_sorumlusu: [
     'branch.read', 'dashboard.read', 'logistics.read', 'logistics.write',
     'production.read', 'products.read', 'purchase.read', 'quality.read',
@@ -140,6 +166,23 @@ const ROL_IZINLERI: Record<string, string[]> = {
  * YAZAMIYOR — yazma kapısı `quality.record.manage` veya `production.write`
  * ve ikisinde de yok (`src/quality/numune-kapisi.arch.test.ts`).
  */
+/**
+ * ── 30.10.2026 · İKİ SAYI BİRER ARTTI · MIYOP-084 ───────────────────────
+ * "Şirket Ayarları" ögesinin açılma izni `settings.manage`ten
+ * `company.read`e indi (gerekçe: business-workspace.registry.ts, ögenin
+ * başındaki not). Yazma izni DEĞİŞMEDİ.
+ *
+ * ⚠️ BU SAYILAR ÖLÇÜM DEĞİL, ÖNGÖRÜ — ve bilerek öyle bırakıldı.
+ * Burada `vitest` koşturamadığım bir ortamda yazıldılar. Öngörünün mantığı:
+ * `company.read` ALTI rolde var (admin, isletme_muduru, isletme_sahibi,
+ * izleyici, muhasebe, super_admin); bunlardan `settings.manage`i OLMAYAN
+ * iki tanesi tabloda — `izleyici` ve `muhasebe` — yani yalnız o ikisi +1
+ * almalı. `isletme_sahibi` ikisine de sahip, DEĞİŞMEMELİ (20 kalmalı).
+ *
+ * Testin işi öngörüyü onaylamak değil, YANLIŞSA SÖYLEMEK. Başka bir rolün
+ * sayısı da değiştiyse kapı düşündüğümden geniş açılmış demektir ve
+ * yapılacak şey sayıyı güncellemek DEĞİL, izni geri almaktır (tuzak 114).
+ */
 const BEKLENEN_EKRAN_SAYISI: Record<string, number> = {
   isletme_sahibi: 20,      // 19 + Şahit Numune
   depo_sorumlusu: 13,      // 12 + Şahit Numune
@@ -147,9 +190,9 @@ const BEKLENEN_EKRAN_SAYISI: Record<string, number> = {
   uretim_sorumlusu: 10,    // 9 + Şahit Numune
   kalite_sorumlusu: 12,    // 11 + Şahit Numune
   sevkiyat_sorumlusu: 9,   // 8 + Şahit Numune
-  muhasebe: 8,             // değişmedi: quality.read yok
+  muhasebe: 9,             // ⚠️ 8 + Şirket Ayarları (MIYOP-084, aşağıya bak)
   personel: 6,             // değişmedi: quality.read yok
-  izleyici: 17,            // 16 + Şahit Numune
+  izleyici: 18,            // ⚠️ 17 + Şirket Ayarları (MIYOP-084, aşağıya bak)
   gida_muhendisi: 12,      // 11 + Şahit Numune
 }
 
@@ -303,6 +346,54 @@ describe('Her rol: menüde görünen her ekran AÇILABİLİYOR', () => {
   })
 })
 
+// ── 1.A · MIYOP-084 · MÜDÜR AYARLARI GÖRÜR, DEĞİŞTİREMEZ ─────────────────
+// ⚠️ Bu dört sınama bir ÖLÜ KODUN mezar taşıdır.
+//
+// `src/pages/Settings.tsx` müdür için salt okunur çalışacak biçimde yazıldı
+// ("Müdür ayarları GÖREBİLMELİ, yalnız değiştiremez"). Ama ekranın kapısı
+// `settings.manage` istiyordu ve müdürde o izin YOK — yani yazdığım salt
+// okunur mod hiç çalışmıyordu, kimse de fark etmemişti.
+//
+// Sayı tablosu bunu yakalayamazdı: müdür o tabloda hiç yoktu. Bu yüzden
+// ölçü sayı değil, KİMLİK: hangi rota açılıyor, hangisi açılmıyor.
+describe('⚠️ MIYOP-084 · müdür Şirket Ayarları ekranını AÇABİLİYOR', () => {
+  const MUDUR = ROL_IZINLERI.isletme_muduru
+
+  it('müdür `settings` rotasını açabiliyor', () => {
+    expect(
+      isWorkspaceRouteAllowed('settings' as never, MUDUR),
+      'müdür ayarları açamıyor — ekranın salt okunur modu yine ölü kod',
+    ).toBe(true)
+  })
+
+  it('müdür menüsünde Şirket Ayarları GÖRÜNÜYOR', () => {
+    // Rota açık olup menüde görünmemesi de bir kopukluktur: kişi ekranın
+    // varlığını bilmez.
+    expect(menuEkranlari(MUDUR)).toContain('Şirket Ayarları')
+  })
+
+  it('⚠️ müdür `veri-yedegi` rotasını AÇAMIYOR — kapı genişlemedi', () => {
+    // Olumsuz kontrol. `company.read`i açarken bütün Yönetim bölümünü
+    // açmadığımızın kanıtı: veri ihracı `company.manage` istiyor ve
+    // müdürde o izin yok.
+    expect(
+      isWorkspaceRouteAllowed('veri-yedegi' as never, MUDUR),
+      'müdür tüm veritabanını indirebiliyor — kapı gevşemiş',
+    ).toBe(false)
+  })
+
+  it('⚠️ müdürün menüsü sahibinin menüsünün ALT KÜMESİ ve ondan KÜÇÜK', () => {
+    // Bu sınamanın sayı tablosuna ihtiyacı yok: iki menüyü birbirine
+    // ölçüyor. Müdüre sahipte olmayan bir ekran açılırsa kırmızı verir.
+    const sahip = new Set(menuEkranlari(ROL_IZINLERI.isletme_sahibi))
+    const mudur = menuEkranlari(MUDUR)
+    expect(mudur.filter(e => !sahip.has(e)), 'müdür sahibin görmediği ekranı görüyor')
+      .toEqual([])
+    expect(mudur.length, 'müdürün menüsü sahibinkiyle aynı — dört eksik izin işlemiyor')
+      .toBeLessThan(sahip.size)
+  })
+})
+
 // ── 2 · HER ROL KENDİ ALANINI GÖRÜYOR ────────────────────────────────────
 describe('Her rol kendi alanını görüyor', () => {
   const gorur = (rol: string, ekran: string) =>
@@ -417,7 +508,9 @@ describe('⚠️ Her rol BAŞKASININ alanını görmüyor', () => {
 
 // ── 4 · PARASAL BİLGİ ────────────────────────────────────────────────────
 describe('⚠️ Parasal bilgi — ekranda yazan söz', () => {
-  const GORUR = ['isletme_sahibi', 'satinalma_sorumlusu', 'muhasebe']
+  // ⚠️ `isletme_muduru` 30.10.2026'da eklendi: `finance.read` izni VAR
+  // (canlı ölçüm), yani maliyeti görmesi gerekiyor.
+  const GORUR = ['isletme_sahibi', 'isletme_muduru', 'satinalma_sorumlusu', 'muhasebe']
   const GORMEZ = ['depo_sorumlusu', 'uretim_sorumlusu', 'kalite_sorumlusu',
     'sevkiyat_sorumlusu', 'personel', 'gida_muhendisi']
 

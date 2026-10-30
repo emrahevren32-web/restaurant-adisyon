@@ -1,8 +1,8 @@
 # Codex denetim brifi · MİYOP
 
 > Bu dosya Codex'e yapıştırılmak üzere yazıldı. Her denetim turunda
-> güncellenir. Son güncelleme: 20.10.2026, **B başlığı turu**.
-> Dal: `production-foundation`
+> güncellenir. Son güncelleme: **30.10.2026 · A1 + göç turu**.
+> Dal: `production-foundation` · son commit: `c4ff2b5`
 
 ---
 
@@ -18,8 +18,11 @@ Dışarıdan gelen biri bu gerekçeyi görmeden "hata" diyebilir. Bir şeyi
 hata saymadan önce gerekçesini ara. Okuma sırası:
 
 1. `docs/kararlar/kararlar-ve-tuzaklar.md` — **en önemlisi.** Değişmez
-   kurallar, veri tasarımı kararları ve numaralı tuzak listesi (38–**104**).
+   kurallar, veri tasarımı kararları ve numaralı tuzak listesi (38–**152**).
    Her tuzak gerçekten düşülmüş bir hatadır.
+   ⚠️ **147, 150, 151, 152'yi mutlaka oku** — dördü de son iki günde
+   Claude'un kendi ÖLÇÜM hatalarıdır ve bu turda bakacağın kodun üretildiği
+   günlere aittir.
 2. `docs/kararlar/codex-denetimi-ekim-2026.md` — senin önceki denetiminin
    özeti, hangi bulgular kapandı, hangileri açık
 3. `docs/kararlar/calisma-duzeni.md` — sen ve Claude nasıl sırayla çalışır
@@ -64,96 +67,126 @@ Bunlar bilinçli kararlar. "Hata" diye raporlama:
 - Emin olmadığın şeyi "doğrulanmadı" diye işaretle. Uydurma kanıt üretme.
 - Türkçe yaz.
 
-## 4 · BU TURDA BAKILACAK · **GÜVENLİK DEĞİL, YARIM EKRANLAR**
+## 4 · BU TURDA BAKILACAK · **İKİ GÖÇ, ÜÇ DEPO, BİR İDDİA**
 
-Üç turdur giriş yüzeyindeydik ve her turda haklı çıktın: MIYOP-044, 046,
-048, 051, 052, 053, 054, 055, 056 kapandı; 049/050 bilerek açık ve
-gerekçesi yazılı. Bu turda **yön değişiyor.**
+Önceki tur (20.10) yarım ekranlardı ve o iş **bitti**: A1'in dört ekranı da
+veritabanına bağlandı. Bu turda bakacağın şey **o işin kendisi.**
 
-Emrah'ın iki cümlesi bu turun çerçevesi:
+⚠️ **Bu turun en önemli sorusu bir iddiadır** ve iddiayı ben kurdum:
 
-> *"Yarım ekranlar bariz itibar düşürücü.. katiyyen olmasın."*
-> *"Yarım kalan iş kalmayacak, hepsi; sitedeki mock veri kalmayacak,
-> mış gibi olmayacağız!"*
+> *"Açık kiracı ekranlarının hiçbiri artık kullanıcının girdiği veriyi
+> tarayıcıya yazmıyor."*
 
-İki hafta içinde demo var. Benim sıram: **Profilim → Firma Profili →
-Şubeler → Şube Yetkileri → İşletme Ayarları**, sonra mock temizliği.
-Senden istediğim, ben yazmadan önce bu altı ekranın **gerçekte ne
-yaptığını** ölçmen.
+Bu iddiayı ölçen test de benim yazdığım test
+(`src/modules/kiraci-ekrani-veri-kaynagi.arch.test.ts`, liste **6 → 0**).
+⚠️ **Son iki günde kendi ölçümümle ÜÇ KEZ yanıldım** (tuzak 147, 150, 151).
+O yüzden bu iddiaya dışarıdan bakılmasını istiyorum: **testin geçmesi,
+iddianın doğru olduğunu kanıtlamıyor.**
 
-### 4.1 · ALTI EKRAN · her biri için ayrı ayrı
+### 4.1 · GÖÇ 0102 · giriş adresi kapısı (P0 ailesi · MIYOP-043)
 
-Rotalar: `my-profile`, `company-profile`, `branches`,
-`branch-permissions`, `settings` (ve varsa altıncısı — listeyi sen
-doğrula; `src/modules/kiraci-ekrani-veri-kaynagi.arch.test.ts` dondurulmuş
-listeyi taşıyor).
+Senin bulgundu. `public.giris_adresi_bul`un `anon` **ve** `authenticated`
+hakkı alındı, `giris-yap` Edge Function canlıya alındı, tarayıcıdaki yedek
+yol **silindi** (`src/auth/giris-adresi.ts` kaldırıldı).
 
-**Her ekran için şu beş soruyu ayrı ayrı cevapla:**
+**Sorular:**
+1. Fonksiyon **silinmedi**, yalnız kapısı kapandı — çünkü Edge Function onu
+   `service_role` ile çağırıyor. Bu doğru karar mı, yoksa fonksiyonun
+   **içine** kiracı kapısı da mı konmalı? (İçinde yok; `service_role`
+   çağırdığı için bugün sorun değil. Yarın başka bir şey onu çağırırsa?)
+2. `public.personel_giris_adresi` bilerek **dokunulmadı** (`authenticated`
+   hakkı duruyor, yoksa personel açmak kırılır). Bu yüzeyden benzer bir
+   sızıntı var mı? Cevabın biçimi "bu kullanıcı var mı" sorusunu
+   cevaplıyor mu?
+3. Yedek yol silinince `ulasilamadi` dalı *"giriş olmadı"* demek oldu.
+   **Fonksiyon bir gün düşerse herkes kapıda kalır.** Bunu kabul ettim ama
+   senin görüşünü istiyorum: ölçülebilir bir risk mi, yoksa bir
+   dayanıklılık yolu mu gerekiyor?
+4. **MIYOP-049 (zamanlama) ve MIYOP-050 (istek sınırı) hâlâ açık.** Yedek
+   yol silinince bunların yüzeyi **değişti mi**? Artık her giriş denemesi
+   Edge Function'dan geçiyor.
 
-1. **Hangi veriyi nereden OKUYOR?** `storage.ts` mi, Supabase mi, karışık
-   mı? Karışıksa hangi alan nereden?
-2. **Kaydet'e basınca ne oluyor?** Hangi fonksiyon çağrılıyor, veri nereye
-   yazılıyor, kullanıcıya ne deniyor? **"Kaydedildi" diyip tarayıcıda
-   bırakan tam olarak hangi satır?**
-3. **Veritabanında karşılığı VAR MI?** Tablo ve kolonlar mevcut mu, yoksa
-   bu ekran için yeni göç mü gerekecek? (Bu, işin boyutunu belirliyor.)
-4. **Sayfa yenilenince veri kayboluyor mu, kalıyor mu?** Kalıyorsa nerede
-   kalıyor — ve o yer başka bir tarayıcıda/cihazda yok, değil mi?
-5. **Bu ekran kiracı sınırını koruyor mu?** `storage.ts` üzerinden giden
-   bir yazım RLS'i hiç görmüyor; bir kiracının verisi başka kiracıda
-   görünebilir mi?
+### 4.2 · GÖÇ 0103 · `tenant_settings` (YENİ TABLO)
 
-⚠️ **`my-profile` özel:** bugün *"Kullanıcı kaydı bulunamadı"* diyor ve
-HİÇ çalışmıyor. Neden? `app_user` sorgusu mu düşüyor, kullanıcı kimliği mi
-yanlış eşleşiyor, yoksa ekran localStorage'da olmayan bir kaydı mı arıyor?
-**Bu ekrana ilk ben gireceğim; kök nedeni bilmek istiyorum.**
+Emrah'ın kararı: *"Herkes kendi KDV oranını ve para birimini kendi seçsin."*
+Prova: `db/prova/prova-0103.sql`, 30 ölçüm, yerelde yeşil.
 
-### 4.2 · MOCK VE "MIŞ GİBİ" TARAMASI · asıl istediğim bu
+**Sorular:**
+1. **Kapılar:** RLS (force) + `izin_tenant_settings` → `settings.manage` +
+   `denetim_tenant_settings` + `tenant_settings_imza` (sunucu `updated_at`
+   ve `updated_by` yazıyor). **Eksik bir kapı var mı?** Özellikle: `insert`
+   hakkı `authenticated`'a verildi (satırı tetik açıyor ama hak duruyor) —
+   bu gereksiz bir yüzey mi?
+2. **`vat_rate`in varsayılanı BİLEREK YOK** (`null` = "işletme seçmedi") ve
+   göç bunu kendi doğrulamasında ölçüyor. Bu kararın **yan etkisi** var mı
+   — `null` KDV'yi okuyup `0` gibi davranan bir yer kalmış mı?
+3. ⚠️ **Tuzak 149 burada çıktı:** tablonun ilk hâlinde `id` kolonu yoktu ve
+   `app.denetim_yaz()` satır kimliğini `new ->> 'id'` ile okuduğu için
+   denetim defterine `'?'` yazıyordu. **Aynı kusur başka tablolarda var mı?**
+   `audit-coverage.arch.test.ts` kapsamı ölçüyor ama **`row_id`in anlamlı
+   olduğunu ölçmüyor.** Bu benim kör noktam olabilir.
+4. Tablo yedeğe eklendi (`tenant-export.ts`, `app_user`dan sonra). Sıra
+   doğru mu — `updated_by` ona atıf yapıyor.
 
-36 dosyanın adı `.mock.ts` ve bir mimari test açık kiracı rotalarından
-erişilemediklerini kanıtlıyor. **Ama benim taramam AD DESENİNE bakıyor** ve
-`storage.ts` bize şunu öğretti: asıl tehlike **adı mock olmayanlar**
-(tuzak 86).
+### 4.3 · ÜÇ YENİ DEPO DOSYASI · kullanıcı verisi yazan yeni kod
 
-**Soru:** depoda uydurma/sahte veri üreten ya da gerçekmiş gibi gösteren
-**başka ne var?** Özellikle ara:
+- `src/companies/firma-profili.repository.ts` → `company` (17 alan)
+- `src/workspace/isletme-ayarlari.repository.ts` → `tenant_settings`
+- `src/workspace/karsilama.repository.ts` → salt okuma (sayım)
 
-- Sabit (hardcoded) diziler ve nesneler: örnek müşteri, örnek ürün, örnek
-  sipariş, örnek kullanıcı — ekranda gerçek veri yerine geçenler.
-- `Math.random()`, `faker`, `örnek`, `demo`, `test`, `sample`, `dummy`,
-  `placeholder` gibi adlar taşıyan veri üreticileri.
-- **Hesaplanmış gibi görünen ama sabit olan sayılar** — bir göstergenin
-  yanında duran `%12` gibi.
-- Boş sonuç geldiğinde **uydurma bir şey gösteren** ekranlar: "veri yok"
-  demek yerine örnek satır basan yerler.
-- `foundationScope: 'frozen'` ile kapatılmış modüllerin rotalarının
-  GERÇEKTEN kesildiği yer — bir tanesi bile render ediliyorsa söyle.
+**Her biri için:**
+1. **Yazılan kolon kümesi dondurulmuş** (test). Küme doğru mu — yazılmaması
+   gereken bir şey var mı, ya da yazılması gereken bir şey eksik mi?
+2. **Hata mesajları:** `42501`/`MI403` → *"yetkiniz yok"*, gerisi genel.
+   Ham veritabanı metni sızıyor mu? Mesaj hesap/veri hakkında bir şey
+   söylüyor mu?
+3. **Yazımdan sonra geri okuma** yapılıyor (ekranda gösterilen şey,
+   kaydedilmiş olan şey). Geri okuma düşerse *"kaydedildi"* **denmiyor**.
+   Bu dalda bir tutarsızlık var mı?
+4. `permissions === undefined` iken form **açık bırakılıyor** ve kararı
+   veritabanı veriyor. Bu doğru mu, yoksa kapalı mı başlamalı?
 
-Her bulgu için: **dosya + satır**, ne gösteriyor, kullanıcı bunu nerede
-görebilir, ve **silinebilir mi yoksa gerçek veriye mi bağlanmalı**.
+### 4.4 · ⚠️ TEK İŞÇİ · TESTLERİN KENDİSİNE BAK (yeni ve riskli)
 
-### 4.3 · MIYOP-008 ve MIYOP-010 · demo öncesi listede
+30.10'da `vitest.config.ts`e `poolOptions.threads.singleThread` kondu.
+Gerekçe ölçüldü ve dosyada yazılı: paralel havuz bu makinede **429 sn + 28
+sahte kırmızı** veriyordu, tek işçi **8 sn + 1644 yeşil**. Hangi testin
+koştuğu değişmedi.
 
-Bu ikisini önceki turda kabul kriterleriyle genişletmiştin; şimdi
-yazacağım. **Eklemen gereken bir şey kaldı mı?**
+⚠️ **Ama bedeli şu:** artık **bütün test dosyaları tek süreçte** koşuyor ve
+global durumu paylaşıyor. Senden istediğim:
 
-- **MIYOP-008** · başlıkta seçilen şube gerçek sorgulara aktarılmıyor.
-  Senin notun: `warehouse.context.ts:131` geçersiz tercihte merkezi
-  seçiyor. **Soru:** şube seçimi kaç ayrı yerden okunuyor ve hepsi aynı
-  kaynağa mı bakıyor? Yazım yolunda `branch_id` nereden geliyor?
-- **MIYOP-010** · etiket ekranında ürünler arası veri karışması.
-  Senin notun: `Etiketler.tsx:163` ürünü hemen değiştiriyor, yedi ayrıntı
-  isteğinden biri düşerse öncekinin verisi kalıyor. **Soru:** aynı desen
-  başka ekranlarda da var mı? (Seçim değişince eski verinin kalması.)
+**Bir test, BAŞKA bir dosyanın bıraktığı durum yüzünden geçiyor olabilir mi?**
 
-### 4.4 · Hâlâ açık, tekrar raporlamana gerek yok
+- Modül seviyesinde durum tutan (`let`, singleton, `localStorage`, modül
+  önbelleği) ve testler arasında sızabilecek yerleri ara.
+- `vi.mock` ile değiştirilen modüllerin **dosya sınırını aşıp aşmadığına** bak.
+- `clearMocks`/`restoreMocks` açık ama bunlar **modül durumunu** temizlemez.
+- Özellikle `src/storage.ts` (tek büyük modül, `localStorage` yazıyor) ve
+  Supabase istemcisi (tek süreçte `Multiple GoTrueClient instances` uyarısı
+  çıkıyor — uyarı hata değil ama **paylaşım kanıtı**).
 
-**MIYOP-003** · **004** · **005** · **006** · **017** · **018** ·
-**040** · **043** (0091 bekliyor) · **045** · **047** · **049** · **050** ·
-bayat prova listesi (11) · kör prova listesi (13).
+**Bulgun varsa kabul kriteri:** o test tek başına ve takım içinde AYNI
+sonucu vermeli. Aksini gösterebiliyorsan bu P1'dir — yeşil ama yanlış
+sebeple geçen bir test, hiç olmayan testten kötüdür.
 
-⚠️ Bu turda **giriş yüzeyine bakma** — oraya yeni kod gelmedi ve
-dağıtımdan sonra ayrıca denetleteceğim.
+### 4.5 · BİLEREK AÇIK · tekrar raporlamana gerek yok
+
+Bunlar yazılı borçlardır, gerekçeleri HEDEFLER'de:
+
+- **3.4.5** · ilk giriş sihirbazı hâlâ `localStorage`a para birimi yazıyor
+  (`onboarding.service.ts` ~365) → 0103'ten sonra ikinci kaynak. Çıcır
+  testi yakalamıyor çünkü `first-login` açık bir kiracı rotası değil.
+- **3.4.6** · `src/billing.ts` para birimini sabit `'TRY'` okuyor (eski
+  varsayılanın aynısı, davranış değişmedi). O dosyayı **38 ekran**
+  kullanıyor; hangilerinin bugün AÇIK rota olduğu **ölçülmedi.**
+  ⚠️ **Bunu ölçmeni istiyorum** — "kimse görmüyor" diyemiyorum.
+- **MIYOP-049, 050** · bkz. 4.1.
+- **MIYOP-003, 004, 005, 006, 017, 018, 040, 045, 047**
+- **A2 (MIYOP-008 · şube bağlamı)** ve **A4 (sahte veri üreticileri)** —
+  sıradaki işler, henüz yazılmadı.
+- Şube ekranları (`branches`, `branch-permissions`) **kapsam dışı**, tek
+  merkez kararı. Düzeltilmediler, kapsamdan çıktılar — ayrım önemli.
 
 ## 5 · ÇIKTI BİÇİMİ
 
@@ -161,20 +194,30 @@ dağıtımdan sonra ayrıca denetleteceğim.
 ## Özet
 <üç cümle: durum ne, en kritik ne, bir önceki denetime göre ne değişti>
 
-## 4.1 · Altı ekran
-<her ekran için beş sorunun cevabı; tablo hâlinde. "Kaydedildi" diyip
- tarayıcıda bırakan SATIR numarasıyla>
+## 4.0 · İDDİA DOĞRU MU
+<"açık kiracı ekranlarının hiçbiri tarayıcıya yazmıyor" — doğruladın mı,
+ yoksa testin kaçırdığı bir yol mu buldun? Testin GEÇMESİ kanıt değildir.>
 
-## 4.2 · Mock ve "mış gibi" taraması (EN ÖNEMLİ BÖLÜM)
-<her bulgu: dosya + satır, ne gösteriyor, kullanıcı nerede görür,
- SİLİNEBİLİR mi yoksa GERÇEK VERİYE BAĞLANMALI mı>
-
-## 4.3 · MIYOP-008 / MIYOP-010
-<eklenecek kabul kriterleri>
+## 4.1 · Göç 0102
+## 4.2 · Göç 0103
+## 4.3 · Üç depo dosyası
+## 4.4 · Tek işçi · testler arası durum sızıntısı (EN RİSKLİ BÖLÜM)
+<bir test başka dosyanın durumu yüzünden mi geçiyor? Kanıtı nasıl
+ gösterdin — tek başına vs takım içinde?>
+## 4.5 · 3.4.6 ölçümü
+<billing.ts'i kullanan 38 ekranın hangileri bugün AÇIK rota?>
 
 ## Yeni bulgular
-<MIYOP-031'den devam numaralandır>
+<MIYOP-068'den devam numaralandır>
 
 ## Kapandığını doğruladığım eski bulgular
 <numara + kanıt>
 ```
+
+⚠️ **Son bir şey.** Bu turda bakacağın kod, Claude'un kendi ölçümüyle üç kez
+yanıldığı iki gün içinde yazıldı (tuzak 147: yanlış kopyadan ölçtü;
+150: ölçümü `head` ile kesti; 151: eksik aynada "yok" gördü). Üçünü de tip
+denetimi kapısı yakaladı, canlıya hiçbiri gitmedi. **Ama aynı kör noktanın
+bir dördüncüsü bu kodda duruyor olabilir ve onu ancak dışarıdan biri görür.**
+Bir şeyin "ölçüldü" diye yazılmış olması, doğru ölçüldüğü anlamına gelmez —
+ölçümün kendisine de bak.

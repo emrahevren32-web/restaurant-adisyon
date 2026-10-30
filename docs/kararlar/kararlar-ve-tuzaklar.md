@@ -984,6 +984,44 @@ göreceği hata mesajları** da (`'Çok fazla deneme yapıldı'`) bozuluyordu.
 ⚠️ Ve komut kendi çıktısını **ölçmeli**: panoda `ş` var mı, bozuk `Ã` var
 mı. "Kopyaladım" demek yetmez; kopyanın sağlam olduğu gösterilir.
 
+**155 · KAPSAM ÖLÇEN TEST, ANLAMI ÖLÇMEZ.** (30.10) `audit-coverage.arch.test.ts`
+bir aydır yeşildi ve şunu ölçüyordu: hangi tablolar denetleniyor, her birinin
+Türkçe etiketi var mı, yedekle tutarlı mı. Hepsi doğruydu. Ama defterin
+dört tablodaki satırları **okunamıyordu**: `row_id` alanına `'?'` düşüyordu
+(tuzak 149'un aynısı, bu kez dört tabloda birden). Kapsam testi *"bu tablo
+denetleniyor mu"* diye sorar; kimse *"yazdığı şey bir şey anlatıyor mu"*
+diye sormuyordu.
+⚠️ Ders: bir kaydın VARLIĞINI ölçen testin yanına, o kaydın **İŞE YARAR
+OLDUĞUNU** ölçen bir test gerekir. Yeni dosya:
+`src/audit/denetim-satir-kimligi.arch.test.ts`.
+
+**154 · SÖZ DİZİMİ ARAYAN TARAYICI, SÖZ DİZİMİ DEĞİŞİNCE SESSİZCE ZAYIFLAR.**
+(30.10) `denetimIzlenenTablolar()` göçlerde yalnız **bir** kalıbı arıyordu:
+`izlenecek text[] := array[...]`. Oysa denetim tetikleyicisi göçlerde üç
+biçimde kuruluyor (başka adlı dizi değişkeniyle döngü — 0091'de
+`v_tablolar`; ve düpedüz `create trigger` — 0042, 0093, 0103).
+**Ölçüm:** canlıda `app.denetim_yaz`a bağlı **29** tetikleyici var, tarayıcı
+**19** görüyordu. Görmediği on tablo arasında `app_user`, `company`,
+`branch`, `user_role` da vardı — yani personel ve firma değişiklikleri
+Değişiklik Kaydı ekranında **ham İngilizce adıyla** görünüyordu ve hiçbir
+test bunu söylemedi, çünkü testin gözünde o tablolar denetlenmiyordu.
+⚠️ Ders: bir tarayıcı **kalıp** değil **sonuç** aramalı; aradığı şeyin
+kaç tanesini bulduğu da sınanmalı. Üç biçimin üçü için birer tanık sınama
+eklendi, böylece aynı körlük sessizce geri gelemez.
+
+**153 · TÜRKÇE METNİ KÜÇÜK HARFE ÇEVİRMEK DİZGİNİN UZUNLUĞUNU DEĞİŞTİRİR.**
+(30.10) 0104'ün doğrulamalarını ölçerken `metin.lower().find(...)` ile
+konum arayıp o konumdan dilim aldım ve "fonksiyon `now()` yazmıyor" sonucuna
+vardım. Yazıyordu. Sebep: `'İ'.lower()` **iki** kod birimi üretir (i + birleşen
+nokta), yani küçültülen metnin konumları orijinalinden **kayar**.
+Yanlış konumdan alınan dilim, doğru olan bir şeyi bozuk gösterdi.
+⚠️ Ders: bu dönemin beşinci **ölçüm aracı hatası** (147, 150, 151, Hetzner
+IP iddiası, bu). Arama büyük/küçük harf duyarsız **kalıpla** yapılır
+(`re.I`, `/.../i`), metni dönüştürüp konum alınmaz. Testin içindeki okuyucu
+kendi doğruluğunu da sınıyor artık ("Sağlama" bölümü): okuduğu ifadenin
+**yorum satırı olmadığını** ölçüyor — çünkü 0104 eski ifadeyi yorumda
+saklıyor ve yorumları atmayan okuyucu düzeltilmiş kodu bozuk gösteriyordu.
+
 **152 · KIRMIZI VEREN HAT, KODU DEĞİL KENDİNİ GÖSTERİYORDU.**
 (29–30.10) Testler üç kez üst üste kırmızı verdi: 23, sonra 28, sonra yine 28
 paket "düştü". Bir gün kaybettik ve **kodda hiçbir şey yoktu.**
@@ -1266,6 +1304,17 @@ Son söz onun çıktısındadır.
 64. Bir **rozet** ya gerçek bir sorgudan ölçülür ya da hiç konmaz
     (MIYOP-065). "Tamamlandı" yazan bir rozet, tamamlandığını KANITLAYAN
     bir şeyden beslenmiyorsa *mış gibi*dir.
+73. Bir kaydın **varlığını** ölçen testin yanına, o kaydın **anlamlı**
+    olduğunu ölçen bir test koy (tuzak 155). "Denetleniyor mu" ile "ne
+    yazdığı okunuyor mu" ayrı iki sorudur.
+74. Göç tarayıcısı **kalıp** değil **sonuç** arar ve **kaç tane bulduğunu**
+    da sınar (tuzak 154). Tek söz dizimine bağlı tarayıcı, ikinci bir
+    biçim ortaya çıktığı gün sessizce yarısını ölçmeye başlar.
+75. Türkçe metinde arama **büyük/küçük harf duyarsız kalıpla** yapılır;
+    metni `lower()` ile dönüştürüp **konum alınmaz** (tuzak 153).
+76. Bir göç dosyasını okuyan test, önce **`--` yorumlarını atar**
+    (tuzak 153). Göçler eski kararı yorumda saklar; yorumu okuyan ölçüm,
+    düzeltilmiş kodu bozuk gösterir.
 71. Bir kırmızıyı koda yormadan önce **iki şeyi ölç** (tuzak 152):
     (a) tek bir **iddia hatası** var mı — yoksa hata koddan gelmiyor olabilir;
     (b) düşen dosyalar koşudan koşuya **değişiyor mu** — değişiyorsa hattan

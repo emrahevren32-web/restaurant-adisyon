@@ -683,7 +683,35 @@ export const BUSINESS_WORKSPACE_MODULE_REGISTRY: BusinessWorkspaceModule[] = def
     pricing: includedPricing,
     marketplace: coreSystemMarketplace,
     menuItems: [
-      menuItem({ key: 'settings', label: 'Şirket Ayarları', route: 'settings', icon: 'SA', adminOnly: true, displayOrder: 100 }),
+      // ⚠️ `requiredPermission: 'company.read'` · 30.10.2026 · MIYOP-084
+      //
+      // ── NE BOZUKTU ────────────────────────────────────────────────────
+      // Bu öge kendi iznini söylemiyordu, yani modülün ilkini devralıyordu:
+      // `settings.manage`. Ölçüm (canlı `role_permission`, 30.10.2026):
+      // o izin YALNIZ üç rolde var — admin, isletme_sahibi, super_admin.
+      // `isletme_muduru`nun 29 izni arasında YOK.
+      //
+      // Oysa ekranın kendisi (src/pages/Settings.tsx) müdür için SALT OKUNUR
+      // çalışacak biçimde yazıldı: "Müdür ayarları GÖREBİLMELİ, yalnız
+      // değiştiremez." O salt okunur mod ÖLÜ KODDU — müdür ekrana hiç
+      // gelemiyordu, çünkü hem menü hem rota aynı `settings.manage` kapısını
+      // soruyordu (menü: workspace-navigation.registry.ts:96, rota:
+      // authorization/route-permission.ts:63 — ikisi AYNI ifade).
+      //
+      // ── OKUMA KAPISI AYRI, YAZMA KAPISI AYNI ──────────────────────────
+      // Açılma izni `company.read` oldu; yazma izni DEĞİŞMEDİ ve üç yerde
+      // duruyor: ekran düğmeyi gizliyor, depo `settings.manage` istiyor,
+      // veritabanı `izin_tenant_settings` tetiğiyle reddediyor (göç 0103,
+      // provada MI403 ile ölçüldü). Yani kapı genişlemedi, PENCERE açıldı.
+      //
+      // ⚠️ `company.read` ALTI ROLDE var: admin, isletme_muduru,
+      // isletme_sahibi, izleyici, muhasebe, super_admin. Yani muhasebeci ve
+      // görüntüleyici de bu ekranı GÖRECEK (değiştiremeyecek). Ekranda ne
+      // var: firma adı + logo (salt okunur), para birimi, KDV oranı, lisans
+      // kartı, son kayıt tarihi. Veri ihracı BU EKRANDA DEĞİL — o ayrı
+      // rotada ve `company.manage` istiyor (aşağıdaki `veri-yedegi`).
+      // KDV oranını ve para birimini muhasebecinin görmesi işin gereğidir.
+      menuItem({ key: 'settings', label: 'Şirket Ayarları', route: 'settings', icon: 'SA', requiredPermission: 'company.read', adminOnly: true, displayOrder: 100 }),
       // Veri yedeği burada. Dördüncü ve son yeri.
       //
       // Denenen ve yanlış çıkan yerler:
