@@ -1,0 +1,70 @@
+﻿2026-10-30 | c418768 | denetim defteri do─şru sat─▒r─▒ yaz─▒yor + m├╝d├╝r ayarlar─▒ g├Ârebiliyor (0104, MIYOP-083/084/085)
+2026-10-30 | c4ff2b5 | A1 BITTI ┬À Isletme Ayarlari da veritabaninda ┬À cicir 6 -> 0
+2026-10-29 | 3df7c28 | A1 ┬À Firma Profili + Karsilama veritabaninda ┬À goc 0103 kiraci ayarlari
+2026-10-29 | 67cd546 | A6 BITTI ┬À MIYOP-043 kapandi ┬À giris sunucuda, yedek yol SILINDI
+2026-10-29 | b8ab19d | A3 BITTI ┬À ayrinti kapisi YEDI EKRANIN YEDISINDE de takili (7/7)
+2026-10-29 | d5a509f | A3 ┬À Siparisler ekranina da ayrinti kapisi (3/7)
+2026-10-29 | d7b922f | A3 ┬À Depo ekranina da ayrinti kapisi (2/7) + Etiketler'de sebep gorunur yere
+2026-10-28 | 8e7d171 | A3 basladi: ayrinti kapisi kuruldu + Etiketler ekranina takildi (1/7)
+2026-10-28 | 76aaf42 | CANLIDA COKEN EKRAN + tip denetimi hatta eklendi
+2026-10-28 | 26de4dc | karsilama turu Turkcelestirildi + davet e-postasi denemesinin bulgulari
+2026-10-28 | c9a487e | dagitim dogrulamasi: yanlis alarm giderildi + "bu dagitim yayinda" kontrolu
+2026-10-27 | bf0bb7a | 3.9.3: etiket saklama kosulunu urun kartindan okuyor
+2026-10-27 | 13892ca | goc 0101: fire dokumu finans kapisi geri konuyor (canlida YOKTU)
+2026-10-27 | bc2e64a | Ayni hatayi UC KEZ yaptim: goc dogrulamasi gecmisi yargiliyordu (tuzak 133)
+2026-10-27 | 72fb952 | Dagitim dogrulamasi yalan soyluyormus + paket bozuk durumdan sinaniyor
+2026-10-27 | 6712595 | Pano metni bozuyormus (MIYOP-079 kok sebep) + 0099 P0'i rehin almis
+2026-10-27 | 878a3b3 | Codex 078-082: canlida acik bir P0 kapandi (goc 0099 + 0100)
+2026-10-27 | b5edfc3 | Sahit Numune: hicbir parti secilemiyorsa SEBEBI yaziyor (tuzak 126)
+2026-10-26 | 3629c72 | Sahit Numune tam bitti: ekran + goc 0094/0095/0096/0097
+2026-10-25 | ff4cd88 | SKT kapisi EKRANDA gorunur oldu: Depo'da kullanilabilir/suresi gecmis
+2026-10-25 | a4d0372 | MIYOP-074: planlama ekranlari da suresi gecmisi sayiyordu + yedek defteri
+2026-10-25 | 032bee4 | SKT kapisinin dort yan etkisi onarildi: 20 kirmizi test, yanlis hata mesaji, demo kalintisi ve cicir testinin kor noktasi
+2026-10-25 | 1930323 | Mock kaynagi temizlendi: 4 uretici + 117 satirlik createDemoData silindi
+2026-10-25 | 56ad91f | Tek merkez karari + 059/061 kapandi + giris vitrini dogru soyluyor
+2026-10-25 | 513bc93 | MIYOP-066 tam kapandi + MIYOP-068 kapandi (gec gelen cevap kapisi)
+2026-10-22 | 39503e7 | Parti karekodu karari yazildi (Emrah'in fikri) + SKT kapisi bulgusu
+2026-10-22 | 947ab2b | MIYOP-066 + MIYOP-067 kapandi, B1 karari, Codex 21.10 dogrulandi
+2026-10-21 | bfd8d98 | Profilim gercek veriye baglandi (HEDEFLER 3.2 bitti) - cicir 6 -> 5
+2026-10-21 | bdaa5a8 | 0091: yetki tablolari denetime girdi + MIYOP-057 duzeltildi
+2026-10-21 | cc37e8f | Ismet'e sorulacaklar tek listede + Codex brifi B basligina cevrildi
+2026-10-20 | 2fc2487 | MIYOP-056 kapandi + sahit numune tasarim karari yazildi
+2026-10-20 | a440192 | MIYOP-051 ekrana kadar tasindi + MIYOP-055 (cikis kapsami)
+2026-10-20 | d5b5dfe | Codex MIYOP-051/052/053/054 kapandi, 0091 kapsami duzeltildi
+2026-10-20 | f265e92 | Surum defteri guncellendi + kaydet.ps1 ASCII'ye cevrildi (tuzak 99)
+2026-10-20 | c36eb55 | MIYOP-043 1. adim: giris sunucuya tasindi (giris-yap Edge Function)
+2026-10-18 | 6c873ba | 0090: 0089'un fazla acttigi dokuz kapi daraltildi + MIYOP-044/046/048
+2026-10-18 | 2c51d3e | 0089 ve 0084 tekrar calistirilabilir yapildi (tuzak 95)
+2026-10-18 | bd963ad | 0089: MIYOP-038 ve MIYOP-039 - 0088'in kirdigi iki akis onarildi
+2026-10-18 | 1958fef | Provalar depoya girdi: 36 dosya + kosturma betikleri
+2026-10-18 | 40e2b7f | Codex brifi 0086/0087/0088 turu + bitmis urun teknik eksik listesi
+2026-10-17 | fc342a2 | 0088: MIYOP-001'in kalani kapandi - 27 tabloya is izni kapisi
+2026-10-16 | a75a0bf | 0081/0082 yetki kapilari, fail-closed ekranlar, dagitim betikleri
+2026-10-15 | bb87500 | 0082: faaliyet kapisinin dort deligi kapandi, ACL kontrolu duzeltildi
+2026-10-15 | e20dca8 | 0081: yazma kapilari veritabaninda + quality.write ikiye ayrildi
+2026-10-14 | 905b426 | Yazma yetkisi kapilari + acik rota mock sizintisi kapatildi
+2026-10-11 | 4545753 | kullanicilar ekranindan personel hesabi acilabiliyor
+2026-10-11 | 76cb213 | 0076 personel hesabi isletmeden aciliyor, ilk kurulum kontrol listesi
+2026-10-11 | 9a1d3fe | 0075 fiyati bilinmeyen mal zarar olarak raporlanmiyor, yol haritasi guncellendi
+2026-10-11 | 4d94134 | 0074 satis ve karlilik analizi, fire orani metni duzeltildi
+2026-10-11 | 51ac394 | modul magazasi menuden kaldirildi, analiz menuye acildi, kalite grubu duzeldi
+2026-10-11 | 1fa1079 | 0073 etiket beyani yetkisi, gida muhendisi rolu, rol aciklamalari
+2026-10-10 | 4862926 | alerjen beyani atomik (0072), dikkat tablosunda scroll duzeltmesi
+2026-10-10 | 569ed9b | tekerlek zinciri, tiklanabilir panel kutuculari, 0071 yeniden calistirilabilir
+2026-10-10 | 77ed7ad | 0070 eksik fonksiyon yuzunden dusmuyor
+2026-10-10 | ded0c18 | codex ikinci inceleme: panel cokmesi, yanlis sevkiyat sicakligi, iptal alis fiyati, analiz yetkisi sunucuda
+2026-10-09 | 0dddac6 | portal siparisi panelde (A4C-14); tablo ustunde scroll takilmasi duzeldi
+2026-10-08 | 811ada2 | haccp ve izlenebilirlik uretim menusune tasindi
+2026-10-08 | 9ce563d | yukleme sicakligi irsaliyede; etiket ekrani menuye eklendi; olcumu olcen girsin
+2026-10-08 | 4ec1b2e | yukleme sicakligi sevkiyata baglaniyor ve irsaliyeye basiliyor (A4B-3, A4B-4)
+2026-10-08 | 4fe0b59 | etiketteki parti uretilen partiden seciliyor: zincirin son metresi de kayitta
+2026-10-08 | 878a0ed | verilerimi excel olarak indir: tum is verisi tek dosyada, MIYOP olmadan acilir
+2026-10-08 | d363c7e | kesilmis irsaliyenin plakasi ve soforu sevk aninda donuyor
+2026-10-07 | ecdfa17 | analiz ekrani gercek defterden: isletme gostergeleri ve fire dokumu
+2026-10-07 | d377758 | bakiye veritabaninda toplaniyor ve defter sayfalaniyor; iptal edilen hareket ters kaydiyla birlikte maliyetten dusuyor
+2026-10-07 | a82e801 | irsaliye tasiyan basligi arac/nakliyeci ayrimi; islemi yapan kullanici oturumdan cozuluyor
+2026-10-07 | 84ab60c | 0064 arac ve sofor kartlari: sevkiyata ve irsaliyeye baglandi
+2026-10-04 | b28fcfc | 0064 arac ve sofor kartlari: sevkiyata ve irsaliyeye baglandi
+2026-10-04 | 02a7ae8 | 0063 portaldan siparis guncelleme; current_revision artik tetikle ilerliyor
+2026-10-04 | 1d9b89f | 0062 sevk durumunda urun adi; kalem adi bulunamazsa uuid yerine aciklama
+2026-10-04 | 07c568d | Irsaliye yazdirmayi siparise bagladi: siparis kartinda Irsaliyeler tablosu
