@@ -14,6 +14,7 @@
 | **Veritabanı yedeği** | Supabase (Postgres) → senin diskine | `araclar\yedek-al.ps1` | İş verisinin tek gerçek yedeği |
 | **Arayüz yedeği** | Sunucuda `/var/www/miyop.yedek-*` | `miyop-yukle.ps1` kendisi | Kötü dağıtımdan **hızlı** dönüş |
 | **Müşterinin kendi dışa aktarımı** | Ayarlar → Veri ve Yedekleme | Müşteri | Müşteri kendi verisini Excel olarak indirir |
+| **Tam proje yedeği** | Harici disk (`F:\MIYOP_BACKUP`) | `araclar\tam-yedek.ps1` | Kod + **bütün git geçmişi** + dokümanlar |
 
 Üçü **birbirinin yerine geçmez.** Sunucudaki klasörlerde tek satır iş verisi
 yoktur; müşterinin Excel dosyası da geri yüklenebilir bir yedek değildir.
@@ -66,6 +67,38 @@ cd C:\Users\90544\Documents\restaurant-adisyon
 Dosyalar `F:\MIYOP_BACKUP\veritabani\<tarih-saat>\` altına yazılır
 (F: yoksa `%USERPROFILE%\MIYOP-Yedek\`).
 
+### ⚠️ 30.10.2026 · İLK DENEME DOCKER'DA TAKILDI
+
+`supabase db dump` `pg_dump`'ı **kapsayıcı içinde** çalıştırıyor — belgenin
+kendi cümlesi: *"Runs `pg_dump` in a container with additional flags to
+exclude Supabase managed schemas."* Emrah'ın makinesinde Docker yok, komut
+şunu verdi:
+
+```
+docker: command not found (podman also not found)
+```
+
+⚠️ **Bu cümleyi belgede okumuştum ve söylemedim.** Betik artık önce ölçüyor
+ve iki yoldan hangisi varsa onu kullanıyor:
+
+| Yol | Gereken | Not |
+|---|---|---|
+| **A · `pg_dump`** | PostgreSQL **17+** istemci araçları | Docker gerekmez · **önerilen** |
+| **B · supabase CLI** | Docker Desktop ya da Podman | `pg_dump`'ı kapsayıcıda çalıştırır |
+
+⚠️ **Sürüm şartı ölçüldü:** sunucu **PostgreSQL 17.6** (`supabase link`'in
+diske yazdığı `supabase/.temp/postgres-version` dosyasından okundu, tahmin
+edilmedi). Eski bir `pg_dump` yeni sunucudan **dökum alamaz**, hata verir.
+Betik bunu da kontrol ediyor.
+
+A yolunda yalnız **`public` ve `app`** şemaları alınıyor. Ölçüldü: göçler
+`app` dışında şema yaratmıyor (`create schema if not exists app`), yani
+Supabase'in kendi şemaları zaten dışarıda kalıyor.
+
+⚠️ **Arada ne yapılır:** araç kurulana kadar uygulamadaki
+**Ayarlar → Veri ve Yedekleme** ekranı iş verisini Excel olarak indiriyor.
+O **geri yüklenebilir bir yedek DEĞİLDİR** ama veriyi dışarı alır.
+
 ### Neden ÜÇ dosya
 
 `supabase db dump` **varsayılan hâliyle veriyi almaz.** Belgenin kendi
@@ -90,6 +123,42 @@ bitmeden önce şunları ölçer ve **geçmezse "alındı" DEMEZ**:
 - Şema dosyası var ve beklenenden küçük değil
 - Veri dosyasında **en az bir `COPY` / `INSERT INTO` satırı** var
 - Denetim defteri (`audit_log`) dökümde görünüyor
+
+---
+
+## 3.B · Tam proje yedeği (kod + geçmiş)
+
+```powershell
+.\araclar\tam-yedek.ps1
+.\araclar\tam-yedek.ps1 -IkinciHedef 'G:\'
+```
+
+`F:\MIYOP_BACKUP\miyop-<tarih-saat>\` altına üç şey yazar:
+
+| Ne | İçinde |
+|---|---|
+| `depo\` | Çalışma kopyasının tamamı (kaynak, göçler, provalar, dokümanlar, Edge Function'lar) |
+| `miyop.gitbundle` | **Bütün git geçmişi tek dosyada** |
+| `SURUM.txt` | Tarih, commit, dosya sayısı, boyut, commit edilmemiş değişiklikler |
+
+⚠️ `miyop.gitbundle` bir kopya değil, **klonlanabilir bir depodur**:
+
+```
+git clone miyop.gitbundle miyop-geri
+```
+
+Yani yalnız bugünkü hâli değil, **her commit** geri gelir. Betik `git bundle
+verify` ile dosyayı gerçekten açıp doğruluyor — oluşması yetmez (tuzak 157).
+
+**Kapsamadıkları:** `node_modules` ve `dist` bilerek yok (ikisi de üretilen
+şeyler; `npm install` + `npm run build` geri üretir). **Veritabanı da yok** —
+o §3'teki yedek.
+
+⚠️ `.env.local` bu yedeğin **içindedir** (uygulamanın çalışması için gerekli).
+İçinde Supabase proje adresi ve **anon** anahtarı var; anon anahtarı gizli
+değildir (tarayıcıya gitmek üzere tasarlanmıştır, koruma RLS'ten gelir).
+`service_role` anahtarı bu projede hiçbir yerde yazılı değil. Yine de yedek
+diskini **fiziksel olarak** güvende tut.
 
 ---
 
@@ -168,3 +237,5 @@ prova edilecek — o provaya kadar bu bölüm **test edilmemiş** sayılır.
 | 3 | `auth.users` yedekte yok (§4.1) |
 | 4 | Supabase **Pro** alınmadı: otomatik yedek ve duraklamama yok (§2) |
 | 5 | Sunucu **üç** sürüm tutuyor; yediye çıkarmak ~35 MB (ikinci derece) |
+| 6 | `pg_dump 17+` ya da Docker **henüz kurulu değil** → veri yedeği hâlâ ALINAMADI |
+| 7 | Tam proje yedeği **otomatik değil**, elle çalıştırılıyor |

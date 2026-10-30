@@ -7,49 +7,58 @@
 # ---------------------------------------------------------------------------
 # NEDEN BU BETIK VAR
 # ---------------------------------------------------------------------------
-# Supabase FREE planinda OTOMATIK VERITABANI YEDEGI YOKTUR. Supabase'in kendi
-# belgesi aynen soyle diyor:
+# Supabase FREE planinda OTOMATIK VERITABANI YEDEGI YOKTUR:
 #   "Automatic backups - Not included in free"
 #   "We recommend that free tier plan projects regularly export their data
 #    using the Supabase CLI db dump command and maintain off-site backups."
 # Kaynak: https://supabase.com/docs/guides/platform/backups  (30.10.2026)
 #
 # Karar (Emrah, 30.10.2026): Pro plan ($25/ay) ILK MUSTERIDEN SONRA.
-#   "pro icin erken, ilk musteri ile anlasalim o zaman yedekler konusunda
-#    bakariz. 25 dolar az degil simdi."
-# Yani bu betik gecici bir cozum degil, SU ANKI TEK yedegimizdir.
+# Yani bu betik gecici bir cozum degil, SU ANKI TEK veri yedegimizdir.
 #
 # ---------------------------------------------------------------------------
 # !! UC AYRI DOSYA ALINIYOR VE SEBEBI SUDUR
 # ---------------------------------------------------------------------------
-# `supabase db dump` VARSAYILAN HALIYLE VERIYI ALMAZ. Belgenin kendi cumlesi:
+# `supabase db dump` VARSAYILAN HALIYLE VERIYI ALMAZ. Belgenin cumlesi:
 #   "The default dump does not contain any data or custom roles."
-# Yani tek basina calistirilsaydi elimizde SEMA dosyasi olurdu: tablolarin
-# tanimi, ama iclerinde TEK SATIR VERI OLMADAN. O dosyaya bakip "yedegim var"
-# demek, tam olarak 13.09.2026'da menuden kaldirilan eski "Yedekleme"
-# dugmesinin yaptigi seydir (tarayici hafizasini yedekliyordu, is verisini
-# degil). Yedegi oldugunu sanip olmamak, hic yedek almamaktan tehlikelidir.
+# Tek basina calistirilsaydi elimizde SEMA dosyasi olurdu: tablolarin tanimi,
+# iclerinde TEK SATIR VERI OLMADAN. O dosyaya bakip "yedegim var" demek,
+# 13.09.2026'da menuden kaldirilan eski "Yedekleme" dugmesinin yaptigi seyin
+# aynisidir (tarayici hafizasini yedekliyordu, is verisini degil).
 #
 #   1. sema   : tablolar, kisitlar, tetikleyiciler, fonksiyonlar
-#   2. VERI   : --data-only . stok, siparis, HACCP, denetim defteri
-#   3. roller : --role-only . veritabani rolleri
+#   2. VERI   : stok, siparis, HACCP, denetim defteri
+#   3. roller : veritabani rolleri (yalniz CLI yolunda)
+#
+# ---------------------------------------------------------------------------
+# IKI YOL VAR . betik hangisi varsa onu kullanir
+# ---------------------------------------------------------------------------
+#   A) pg_dump (yerel)  . Docker GEREKMEZ. Sunucu PostgreSQL 17.6 oldugu icin
+#                         pg_dump da 17 ya da ustu olmali (eski pg_dump yeni
+#                         sunucudan dokum ALMAZ, hata verir).
+#   B) supabase CLI     . pg_dump'i KAPSAYICI icinde calistirir, yani
+#                         Docker Desktop ya da Podman ister.
+#
+# !! 30.10.2026 . ilk denemede B yolu "docker: command not found" verdi.
+#    Belge bunu zaten yaziyordu ("Runs pg_dump in a container") ama ben
+#    okudugum halde Emrah'a soylemedim. Betik artik ONCE olcuyor.
 #
 # ---------------------------------------------------------------------------
 # !! BU YEDEGIN KAPSAMADIGI SEYLER . OKUMADAN GECME
 # ---------------------------------------------------------------------------
-# * GIRIS HESAPLARI YOK. Supabase belgesi: "The ignored schemas include auth,
-#   storage, and those created by extensions." Yani `auth.users` tablosu, yani
-#   kimin hangi e-posta/sifreyle girdigi BU DOSYALARDA DEGIL. Geri yuklemede
-#   is verisi doner, kullanicilarin yeniden davet edilmesi gerekir.
-# * DOSYALAR (Storage) YOK. Belge: veritabani yedegi Storage nesnelerini
-#   icermez, yalniz ustverisini icerir.
+# * GIRIS HESAPLARI YOK. `auth` semasi dokume girmez: kimin hangi
+#   e-posta/sifreyle girdigi BU DOSYALARDA DEGIL. Geri yuklemede is verisi
+#   doner, kullanicilarin yeniden acilmasi gerekir.
+# * DOSYALAR (Storage) YOK.
 # * Bu bir FELAKET KURTARMA plani degildir; disari alinmis bir kopyadir.
 #   Geri yukleme ELLE ve KAYIT ALTINDA yapilir (docs/YEDEKLEME.md).
 # ===========================================================================
 
 param(
   [string]$Klasor   = '',
-  [string]$ProjeRef = ''
+  [string]$ProjeRef = '',
+  [ValidateSet('otomatik','pgdump','cli')]
+  [string]$Yol      = 'otomatik'
 )
 
 $ErrorActionPreference = 'Stop'
@@ -58,77 +67,118 @@ function Bilgi($m){ Write-Host ""; Write-Host "> $m" -ForegroundColor Cyan }
 function Tamam($m){ Write-Host "  [OK] $m" -ForegroundColor Green }
 function Uyari($m){ Write-Host "  [!]  $m" -ForegroundColor Yellow }
 function Hata($m){ Write-Host ""; Write-Host "  [X]  $m" -ForegroundColor Red; Write-Host ""; exit 1 }
+function Var($ad){ return [bool](Get-Command $ad -ErrorAction SilentlyContinue) }
+
+# Sunucunun surumu . `supabase link` bunu diske yaziyor, tahmin etmiyoruz.
+$SUNUCU_SURUM = ''
+if(Test-Path 'supabase\.temp\postgres-version'){
+  $SUNUCU_SURUM = (Get-Content 'supabase\.temp\postgres-version' -Raw).Trim()
+}
 
 # -- 0 . On kontroller ------------------------------------------------------
-Bilgi '0/5 - On kontroller'
+Bilgi '0/6 - On kontroller'
 
 if(-not (Test-Path 'package.json')){
   Hata 'Proje klasorunde degilsin. Once: cd C:\Users\90544\Documents\restaurant-adisyon'
 }
 Tamam 'Proje klasorundeyiz'
 
-# Node 20+ sarti Supabase CLI'nin kendi belgesinde yaziyor.
-try { $nodeSurum = (node --version) } catch { $nodeSurum = '' }
-if(-not $nodeSurum){ Hata 'node bulunamadi.' }
-$nodeBuyuk = [int]($nodeSurum -replace '^v(\d+)\..*$','$1')
-if($nodeBuyuk -lt 20){
-  Hata "Supabase CLI Node 20 veya ustunu istiyor; sende $nodeSurum var."
-}
-Tamam "node $nodeSurum"
-
-# -- 1 . CLI var mi ---------------------------------------------------------
-Bilgi '1/5 - Supabase CLI'
-
-$cliSurum = ''
-try { $cliSurum = (npx --no-install supabase --version 2>$null) } catch { $cliSurum = '' }
-
-if(-not $cliSurum){
-  Write-Host ""
-  Write-Host "  Supabase CLI bu projede kurulu degil." -ForegroundColor Yellow
-  Write-Host "  Resmi yol (belgenin kendi komutu, projeye ozel kurulum):" -ForegroundColor Gray
-  Write-Host ""
-  Write-Host "      npm install supabase --save-dev" -ForegroundColor White
-  Write-Host ""
-  Write-Host "  Sonra bu betigi tekrar calistir." -ForegroundColor Gray
-  Hata 'CLI yok; yedek ALINAMADI.'
-}
-Tamam "supabase CLI $cliSurum"
-
-# -- 2 . Proje baglantisi ---------------------------------------------------
-Bilgi '2/5 - Proje baglantisi'
-
 if(-not $ProjeRef){
-  if(Test-Path '.env.local'){
-    # !! YALNIZ URL satiri okunuyor. Anon anahtar OKUNMUYOR, YAZILMIYOR.
-    $satir = Select-String -Path '.env.local' -Pattern '^\s*VITE_SUPABASE_URL\s*=' |
-             Select-Object -First 1
-    if($satir){
-      $deger = ($satir.Line -split '=',2)[1].Trim()
-      if($deger -match 'https://([a-z0-9]+)\.supabase\.co'){ $ProjeRef = $Matches[1] }
-    }
+  if(Test-Path 'supabase\.temp\project-ref'){
+    $ProjeRef = (Get-Content 'supabase\.temp\project-ref' -Raw).Trim()
   }
 }
-if(-not $ProjeRef){
-  Hata 'Proje referansi bulunamadi. .env.local icinde VITE_SUPABASE_URL yok. Elle ver: .\araclar\yedek-al.ps1 -ProjeRef xxxx'
+if(-not $ProjeRef -and (Test-Path '.env.local')){
+  # !! YALNIZ URL satiri okunuyor. Anon anahtar OKUNMUYOR, YAZILMIYOR.
+  $satir = Select-String -Path '.env.local' -Pattern '^\s*VITE_SUPABASE_URL\s*=' | Select-Object -First 1
+  if($satir){
+    $deger = ($satir.Line -split '=',2)[1].Trim()
+    if($deger -match 'https://([a-z0-9]+)\.supabase\.co'){ $ProjeRef = $Matches[1] }
+  }
 }
+if(-not $ProjeRef){ Hata 'Proje referansi bulunamadi. Elle ver: -ProjeRef xxxx' }
 Tamam "proje referansi: $ProjeRef"
+if($SUNUCU_SURUM){ Tamam "sunucu PostgreSQL $SUNUCU_SURUM" }
 
-if(-not (Test-Path 'supabase\.temp\project-ref')){
-  Write-Host ""
-  Write-Host "  Proje HENUZ BAGLANMAMIS. Bunlar BIR KEZ calistirilir:" -ForegroundColor Yellow
-  Write-Host ""
-  Write-Host "      npx supabase login" -ForegroundColor White
-  Write-Host "      npx supabase link --project-ref $ProjeRef" -ForegroundColor White
-  Write-Host ""
-  Write-Host "  !! `link` veritabani parolasini SORAR. Parolayi sen yazarsin;" -ForegroundColor Gray
-  Write-Host "     bu betik parolayi ne ister ne saklar." -ForegroundColor Gray
-  Write-Host ""
-  Hata 'Baglanti yok; yedek ALINAMADI.'
+# -- 1 . Hangi yol -----------------------------------------------------------
+Bilgi '1/6 - Hangi yolla dokum alinacak'
+
+$pgVar = Var 'pg_dump'
+$pgBuyuk = 0
+if($pgVar){
+  $pgSurum = (pg_dump --version) 2>$null
+  if($pgSurum -match '(\d+)\.'){ $pgBuyuk = [int]$Matches[1] }
+  Tamam "pg_dump bulundu: $pgSurum"
+} else {
+  Write-Host "  pg_dump yok" -ForegroundColor DarkGray
 }
-Tamam 'proje bagli'
+
+$dockerVar = (Var 'docker') -or (Var 'podman')
+if($dockerVar){ Tamam 'docker/podman bulundu' } else { Write-Host "  docker/podman yok" -ForegroundColor DarkGray }
+
+# Sunucu 17 ise pg_dump da 17+ olmali.
+$sunucuBuyuk = 0
+if($SUNUCU_SURUM -match '^(\d+)\.'){ $sunucuBuyuk = [int]$Matches[1] }
+$pgUygun = ($pgBuyuk -gt 0 -and $pgBuyuk -ge $sunucuBuyuk)
+if($pgVar -and -not $pgUygun){
+  Uyari "pg_dump $pgBuyuk, sunucu $sunucuBuyuk . ESKI pg_dump yeni sunucudan dokum ALAMAZ."
+}
+
+$secilen = ''
+switch($Yol){
+  'pgdump' { $secilen = 'pgdump' }
+  'cli'    { $secilen = 'cli' }
+  default  {
+    if($pgUygun){ $secilen = 'pgdump' }
+    elseif($dockerVar){ $secilen = 'cli' }
+  }
+}
+
+if(-not $secilen){
+  Write-Host ""
+  Write-Host "  YEDEK ALINAMIYOR . iki yoldan biri gerekli:" -ForegroundColor Yellow
+  Write-Host ""
+  Write-Host "  A) pg_dump $sunucuBuyuk ya da ustu (Docker GEREKMEZ, onerilen)" -ForegroundColor White
+  Write-Host "     PostgreSQL $sunucuBuyuk istemci araclarini kur ve pg_dump'i PATH'e ekle." -ForegroundColor Gray
+  Write-Host "     Yukleyicide yalniz 'Command Line Tools' secilmesi yeter;" -ForegroundColor Gray
+  Write-Host "     sunucu kurmaya gerek yok." -ForegroundColor Gray
+  Write-Host ""
+  Write-Host "  B) Docker Desktop ya da Podman" -ForegroundColor White
+  Write-Host "     supabase CLI pg_dump'i kapsayici icinde calistiriyor." -ForegroundColor Gray
+  Write-Host ""
+  Write-Host "  !! ARADA NE YAPILIR: uygulamadaki Ayarlar > Veri ve Yedekleme" -ForegroundColor Yellow
+  Write-Host "     ekrani is verisini Excel olarak indiriyor. O bir GERI" -ForegroundColor Gray
+  Write-Host "     YUKLENEBILIR yedek DEGILDIR ama veriyi disari alir." -ForegroundColor Gray
+  Write-Host ""
+  Hata 'Arac yok; yedek ALINAMADI.'
+}
+Tamam "secilen yol: $secilen"
+
+# -- 2 . CLI yolu icin baglanti ----------------------------------------------
+if($secilen -eq 'cli'){
+  Bilgi '2/6 - Proje baglantisi (CLI yolu)'
+  $cliSurum = ''
+  try { $cliSurum = (npx --no-install supabase --version 2>$null) } catch { $cliSurum = '' }
+  if(-not $cliSurum){
+    Hata 'supabase CLI bu projede kurulu degil. Once: npm install supabase --save-dev'
+  }
+  Tamam "supabase CLI $cliSurum"
+  if(-not (Test-Path 'supabase\.temp\project-ref')){
+    Write-Host ""
+    Write-Host "  Proje HENUZ BAGLANMAMIS. Bunlar BIR KEZ calistirilir:" -ForegroundColor Yellow
+    Write-Host "      npx supabase login" -ForegroundColor White
+    Write-Host "      npx supabase link --project-ref $ProjeRef" -ForegroundColor White
+    Write-Host ""
+    Hata 'Baglanti yok; yedek ALINAMADI.'
+  }
+  Tamam 'proje bagli'
+} else {
+  Bilgi '2/6 - Baglanti bilgisi (pg_dump yolu)'
+  Tamam 'pg_dump dogrudan baglanacak . parolayi SEN yazacaksin'
+}
 
 # -- 3 . Hedef klasor -------------------------------------------------------
-Bilgi '3/5 - Hedef klasor'
+Bilgi '3/6 - Hedef klasor'
 
 if(-not $Klasor){
   if(Test-Path 'F:\'){ $Klasor = 'F:\MIYOP_BACKUP\veritabani' }
@@ -140,55 +190,78 @@ if($Klasor.StartsWith($tam, [StringComparison]::OrdinalIgnoreCase)){
   Hata "Hedef klasor proje klasorunun ICINDE ($Klasor). Yedek dosyasinda musteri verisi var; depoya girmemeli."
 }
 New-Item -ItemType Directory -Force -Path $Klasor | Out-Null
-$damga  = Get-Date -Format 'yyyyMMdd-HHmmss'
-$kok    = Join-Path $Klasor $damga
+$damga = Get-Date -Format 'yyyyMMdd-HHmmss'
+$kok   = Join-Path $Klasor $damga
 New-Item -ItemType Directory -Force -Path $kok | Out-Null
 Tamam "hedef: $kok"
 
-# -- 4 . Uc dokum -----------------------------------------------------------
-Bilgi '4/5 - Dokum aliniyor (parola SORULABILIR; onu sen yazarsin)'
+$semaDosya = Join-Path $kok 'sema.sql'
+$veriDosya = Join-Path $kok 'veri.sql'
+$rolDosya  = Join-Path $kok 'roller.sql'
 
-$semaDosya  = Join-Path $kok 'sema.sql'
-$veriDosya  = Join-Path $kok 'veri.sql'
-$rolDosya   = Join-Path $kok 'roller.sql'
+# -- 4 . Dokum --------------------------------------------------------------
+Bilgi '4/6 - Dokum aliniyor (PAROLA SORULACAK; onu sen yazarsin)'
 
-Write-Host "  1/3 sema..." -ForegroundColor Gray
-npx supabase db dump --linked -f "$semaDosya"
-if($LASTEXITCODE -ne 0){ Hata 'Sema dokumu basarisiz. Yedek ALINAMADI.' }
+if($secilen -eq 'pgdump'){
+  # Havuz (pooler) uzerinden baglanti. Kullanici adi havuzda
+  # `postgres.<proje-ref>` bicimindedir.
+  $sunucu = 'aws-0-eu-central-1.pooler.supabase.com'
+  if(Test-Path 'supabase\.temp\pooler-url'){
+    $ham = (Get-Content 'supabase\.temp\pooler-url' -Raw)
+    if($ham -match '@([a-z0-9.\-]+):\d+'){ $sunucu = $Matches[1] }
+  }
+  $kullanici = "postgres.$ProjeRef"
+  Write-Host "  sunucu: $sunucu . kullanici: $kullanici" -ForegroundColor DarkGray
+  Write-Host "  !! Parola istenecek. Betik parolayi ne saklar ne gosterir." -ForegroundColor DarkGray
 
-Write-Host "  2/3 VERI..." -ForegroundColor Gray
-npx supabase db dump --linked --data-only --use-copy -f "$veriDosya"
-if($LASTEXITCODE -ne 0){ Hata 'VERI dokumu basarisiz. Yedek ALINAMADI (sema tek basina yedek degildir).' }
+  # Yalniz BIZIM semalarimiz: public + app. Supabase'in kendi semalari
+  # (auth, storage, extensions...) zaten disarida kaliyor.
+  # Olculdu: gocler `app` disinda sema yaratmiyor.
+  Write-Host "  1/2 sema..." -ForegroundColor Gray
+  pg_dump -h $sunucu -p 5432 -U $kullanici -d postgres --schema-only --no-owner --no-privileges --schema=public --schema=app -f "$semaDosya"
+  if($LASTEXITCODE -ne 0){ Hata 'Sema dokumu basarisiz. Yedek ALINAMADI.' }
 
-Write-Host "  3/3 roller..." -ForegroundColor Gray
-npx supabase db dump --linked --role-only -f "$rolDosya"
-if($LASTEXITCODE -ne 0){ Uyari 'Rol dokumu basarisiz. Sema ve veri alindi; roller EKSIK.' }
+  Write-Host "  2/2 VERI..." -ForegroundColor Gray
+  pg_dump -h $sunucu -p 5432 -U $kullanici -d postgres --data-only --no-owner --no-privileges --schema=public --schema=app -f "$veriDosya"
+  if($LASTEXITCODE -ne 0){ Hata 'VERI dokumu basarisiz. Yedek ALINAMADI (sema tek basina yedek degildir).' }
+
+  Uyari 'Roller bu yolda alinmiyor (pg_dumpall gerekir). Roller gocler icinde yazili.'
+} else {
+  Write-Host "  1/3 sema..." -ForegroundColor Gray
+  npx supabase db dump --linked -f "$semaDosya"
+  if($LASTEXITCODE -ne 0){ Hata 'Sema dokumu basarisiz. Yedek ALINAMADI.' }
+
+  Write-Host "  2/3 VERI..." -ForegroundColor Gray
+  npx supabase db dump --linked --data-only --use-copy -f "$veriDosya"
+  if($LASTEXITCODE -ne 0){ Hata 'VERI dokumu basarisiz. Yedek ALINAMADI (sema tek basina yedek degildir).' }
+
+  Write-Host "  3/3 roller..." -ForegroundColor Gray
+  npx supabase db dump --linked --role-only -f "$rolDosya"
+  if($LASTEXITCODE -ne 0){ Uyari 'Rol dokumu basarisiz. Sema ve veri alindi; roller EKSIK.' }
+}
 
 # -- 5 . Dogrulama . "aldim" demeden ONCE olcuyoruz -------------------------
-Bilgi '5/5 - Dogrulama'
+Bilgi '5/6 - Dogrulama'
 
-# !! BU BOLUM BETIGIN EN ONEMLI KISMI.
-# Dosyanin olusmasi, icinde veri oldugu anlamina gelmez. Bos ya da yalniz
-# baslik satirlari tasiyan bir "veri.sql", yedegi oldugunu sanmanin ta
-# kendisidir. Bu yuzden dosyanin ICINE bakiyoruz.
+# !! BU BOLUM BETIGIN EN ONEMLI KISMI (tuzak 157).
+# Dosyanin olusmasi, icinde veri oldugu anlamina gelmez.
 function Olc($yol, $ad){
-  if(-not (Test-Path $yol)){ return $null }
+  if(-not (Test-Path $yol)){ return 0 }
   $b = (Get-Item $yol).Length
-  Write-Host ("  {0,-8} {1,10:N0} bayt" -f $ad, $b)
+  Write-Host ("  {0,-8} {1,12:N0} bayt" -f $ad, $b)
   return $b
 }
 $semaBayt = Olc $semaDosya 'sema'
 $veriBayt = Olc $veriDosya 'veri'
 $rolBayt  = Olc $rolDosya  'roller'
 
-if(-not $semaBayt -or $semaBayt -lt 1000){
+if($semaBayt -lt 1000){
   Hata 'Sema dosyasi yok ya da sasirtici kadar kucuk. BU BIR YEDEK DEGILDIR.'
 }
 
 $veriSatir = 0
-if($veriBayt){
-  $veriSatir = (Select-String -Path $veriDosya -Pattern '^(COPY |INSERT INTO )' -AllMatches |
-                Measure-Object).Count
+if($veriBayt -gt 0){
+  $veriSatir = (Select-String -Path $veriDosya -Pattern '^(COPY |INSERT INTO )' -AllMatches | Measure-Object).Count
 }
 Write-Host "  veri dosyasindaki COPY/INSERT satiri: $veriSatir" -ForegroundColor Gray
 
@@ -200,11 +273,40 @@ if($veriSatir -lt 1){
   Hata 'Dogrulama gecmedi.'
 }
 
-# Denetim defteri burada mi? Canliya cikmis bir sistemde orasi hep doludur;
-# yoksa dokum yanlis semayi almistir.
-$denetimVar = (Select-String -Path $veriDosya -Pattern 'audit_log' -List) -ne $null
-if($denetimVar){ Tamam 'denetim defteri (audit_log) dokumde gorunuyor' }
-else { Uyari 'audit_log dokumde GORUNMUYOR . dokumun kapsamini kontrol et' }
+if(Select-String -Path $veriDosya -Pattern 'audit_log' -List){
+  Tamam 'denetim defteri (audit_log) dokumde gorunuyor'
+} else {
+  Uyari 'audit_log dokumde GORUNMUYOR . dokumun kapsamini kontrol et'
+}
+if(Select-String -Path $semaDosya -Pattern 'stock_movement' -List){
+  Tamam 'stok defteri (stock_movement) semada gorunuyor'
+} else {
+  Uyari 'stock_movement semada GORUNMUYOR . kapsami kontrol et'
+}
+
+# -- 6 . Not ----------------------------------------------------------------
+Bilgi '6/6 - YEDEK-NOTU.txt'
+@"
+MIYOP . VERITABANI YEDEGI
+=========================
+Alindi    : $(Get-Date -Format 'dd.MM.yyyy HH:mm:ss')
+Proje     : $ProjeRef
+Sunucu    : PostgreSQL $SUNUCU_SURUM
+Yol       : $secilen
+Semalar   : public, app
+
+Dosyalar  : sema.sql $('{0:N0}' -f $semaBayt) bayt
+            veri.sql $('{0:N0}' -f $veriBayt) bayt ($veriSatir COPY/INSERT satiri)
+            roller.sql $('{0:N0}' -f $rolBayt) bayt
+
+!! ICINDE OLMAYANLAR (bilerek)
+   * giris hesaplari (auth semasi dokume girmez)
+   * yuklenen dosyalar (Storage)
+   * sunucu yapilandirmasi
+
+Geri yukleme: docs/YEDEKLEME.md . CANLIDA HENUZ DENENMEDI.
+"@ | Out-File -Encoding UTF8 (Join-Path $kok 'YEDEK-NOTU.txt')
+Tamam 'not yazildi'
 
 Write-Host ""
 Write-Host "===========================================================" -ForegroundColor Green

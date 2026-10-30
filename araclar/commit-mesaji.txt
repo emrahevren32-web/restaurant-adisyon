@@ -1,58 +1,62 @@
-veritabaninin hic yedegi yokmus: yedek-al.ps1 + YEDEKLEME.md (tuzak 156, 157)
+tam proje yedegi + veri yedegi Docker'siz da calisiyor (sunucu PG 17.6 olculdu)
 
-Emrah sunucudaki yedek klasorlerini sorunca ortaya cikti: o klasorler sitenin
-DERLENMIS hali (31 dosya, 8.51 MB) ve iclerinde TEK SATIR IS VERISI YOK.
-Is verisi Supabase'deki Postgres'te.
+-- NE OLDU ----------------------------------------------------------------
+`yedek-al.ps1`in ilk denemesi "docker: command not found" ile dustu.
+Sebep: `supabase db dump` pg_dump'i KAPSAYICI ICINDE calistiriyor.
+Belgenin cumlesi: "Runs pg_dump in a container with additional flags to
+exclude Supabase managed schemas."
 
--- OLCUM (Supabase'in kendi belgesi, 30.10.2026) ---------------------------
-* FREE planda OTOMATIK YEDEK YOK: "Automatic backups - Not included in free".
-  Zamanda geri alma (PITR) da yok.
-* Supabase'in tavsiyesi: free projeler `supabase db dump` ile duzenli olarak
-  SAHA DISINA yedek alsin.
-* Pro $25/ay -> gunluk yedek, 7 gun saklaniyor.
-* "Free projects are paused after 1 week of inactivity."
+!! BU CUMLEYI BELGEDE OKUDUM VE EMRAH'A SOYLEMEDIM. Betigi yazarken
+   gereksinimi es gectim; Emrah dort adim bosa ugrasti (npm install,
+   login, link, sonra duvar). Betik artik ONCE olcuyor, sonra basliyor.
 
-KARAR (Emrah, 30.10.2026): Pro ILK MUSTERIDEN SONRA.
-  "pro icin erken, ilk musteri ile anlasalim o zaman yedekler konusunda
-   bakariz. 25 dolar az degil simdi.. bizde asgari ucretli adamiz, yatirim
-   icin once alici bulmak, pazari bilmek gerek."
+-- YEDEK-AL.PS1 . IKI YOL ------------------------------------------------
+A) pg_dump (yerel)  . Docker GEREKMEZ, onerilen
+B) supabase CLI     . Docker Desktop / Podman ister
 
--- YAPILAN ---------------------------------------------------------------
-araclar/yedek-al.ps1  . UC dokumu birlikte alir: sema, VERI, roller.
-docs/YEDEKLEME.md     . eksikti; kod UC YERDEN ona atifta bulunuyordu ve
-                        dosya YOKTU (Settings.tsx, tenant-export.ts x2).
+Betik ikisini de arar ve varsa A'yi secer. Hicbiri yoksa ikisini de
+aciklayip duruyor; "yedek aldim" demiyor.
 
--- TUZAK 157 . BU BETIGIN VAROLUS SEBEBI ---------------------------------
-`supabase db dump` VARSAYILAN HALIYLE VERIYI ALMAZ. Belgenin cumlesi:
-"The default dump does not contain any data or custom roles."
-Tek komutla alinan bir "yedek" tablo TANIMLARINDAN ibaret olurdu; dosya
-olustugu icin de her sey yolunda gorunurdu. Bu, 13.09.2026'da menuden
-kaldirilan eski "Yedekleme" dugmesinin yaptigi seyin aynisi: o da tarayici
-hafizasini yedekliyordu, is verisini degil.
+!! SURUM SARTI OLCULDU, TAHMIN EDILMEDI: sunucu PostgreSQL 17.6
+   (`supabase link`in diske yazdigi supabase/.temp/postgres-version'dan
+   okundu). Eski bir pg_dump yeni sunucudan dokum ALAMAZ; betik
+   pg_dump'in ana surumunu sunucununkiyle karsilastiriyor.
 
-Bu yuzden betik KENDI CIKTISINI DENETLIYOR: veri dosyasinda en az bir
-COPY/INSERT INTO satiri yoksa "alindi" DEMIYOR; audit_log'u arayip dokumun
-kapsamini da olcuyor.
+A yolunda yalniz `public` ve `app` semalari aliniyor. Olculdu: gocler
+`app` disinda sema yaratmiyor, yani Supabase'in kendi semalari zaten
+disarida kaliyor.
 
--- DURUSTCE YAZILAN EKSIKLER ---------------------------------------------
-* auth.users (giris hesaplari) dokumde YOK - "ignored schemas include auth,
-  storage". Geri yuklemede is verisi doner, kullanicilar yeniden acilir.
-* Storage nesneleri YOK.
-* GERI YUKLEME HIC DENENMEDI. Denenmemis bir plan, plan degil niyettir.
-* Alma OTOMATIK DEGIL; elle calistiriliyor.
-Hepsi YEDEKLEME.md 7. bolumde borc olarak listeli.
+-- YENI: TAM-YEDEK.PS1 ---------------------------------------------------
+Emrah istedi: "F:\MIYOP_BACKUP yoluna MIYOP'u tum hersseyiyle bi
+yedekler misin? sistemi birde offline-harici bir usb diske yedeklemis
+olalim."
 
--- TUZAK 156 . BENIM HATAM -----------------------------------------------
-Sunucudaki yedek sayisini uc'ten yediye cikarmayi onerirken maliyetini
-"birkac yuz MB" diye yazdim. MB para birimi degil ve sayiyi OLCMEDIM;
-gercegi ayni aksamin derleme ciktisinda yaziyordu: 8.51 MB. ~30 kat yanlis.
-Emrah yakaladi. Bu donemin ALTINCI olcmeden konusma hatasi.
+F:\MIYOP_BACKUP\miyop-<damga>\ altina:
+  depo\            . calisma kopyasinin tamami
+  miyop.gitbundle  . BUTUN GIT GECMISI tek dosyada (klonlanabilir)
+  SURUM.txt        . tarih, commit, dosya sayisi, boyut, kirli dosyalar
 
--- SURUM DEFTERI ---------------------------------------------------------
-21-30 Ekim arasi YEDI yayin toplu yazildi (v0.3.0 - v0.4.2). Tarih ve
-commit'ler git gecmisinden, gocler HEDEFLER.md'den olculdu. 25/27/28 Ekim'in
-test sayilari KAYDEDILMEDIGI icin bos birakildi - uydurulmadi.
-v0.4.2 YAYINDA: index-COlU8vfq.js, 4/4 dogrulandi.
+`git bundle verify` ile dosya GERCEKTEN acilip dogrulaniyor; olusmasi
+yetmez (tuzak 157). Dosya sayisi 200'un altindaysa yedek SUPHELI sayilip
+durduruluyor.
+
+!! robocopy'nin cikis kodu 0-7 arasi BASARIDIR; `-ne 0` yazmak
+   "dosya kopyalandi" durumunu hata sanirdi. Betik `-ge 8` bakiyor.
+
+node_modules ve dist BILEREK yok: ikisi de uretilen seyler.
+.env.local yedege GIRER (uygulamanin calismasi icin gerekli); icindeki
+anon anahtari gizli degildir ama disk fiziksel olarak guvende tutulmali.
+
+-- .GITIGNORE ------------------------------------------------------------
+supabase/.temp/ eklendi. `supabase link` bu dosyalari uretti ve 2e84115'te
+yanlislikla commit edildiler. Takipten cikarmak icin:
+    git rm -r --cached supabase/.temp
+
+-- HALA ALINAMADI --------------------------------------------------------
+Veri yedegi icin pg_dump 17+ ya da Docker gerekiyor; ikisi de kurulu degil.
+docs/YEDEKLEME.md 7. bolumde borc olarak yazili (madde 6).
+Arada: uygulamadaki Ayarlar > Veri ve Yedekleme ekrani veriyi Excel olarak
+indiriyor . geri yuklenebilir bir yedek DEGIL ama veriyi disari alir.
 
 Co-Authored-By: Claude Opus 5 <noreply@anthropic.com>
 Claude-Session: https://claude.ai/code/session_019BwYM3mAXZUhp4YGj7tp2y
