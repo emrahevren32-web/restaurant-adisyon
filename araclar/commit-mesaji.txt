@@ -1,47 +1,80 @@
-ilk veri yedegi alindi . ama geri yuklenemeyecekti (tuzak 160)
+A4 basladi: on uc sahte veri ureticisi + "depo bossa uydur" mekanizmasi SILINDI
 
--- ILK GERCEK VERI YEDEGI (31.10.2026) ----------------------------------
-F:\MIYOP_BACKUP\veritabani\20261031-214449
-  sema.sql  500.236 bayt
-  veri.sql  322.544 bayt  (66 COPY satiri)
-audit_log ve stock_movement dokumde gorunuyor.
+408 satir uydurma veri gitti. storage.ts'teki uretici sayisi 23 -> 10.
 
-Tam proje yedegi de alindi:
-F:\MIYOP_BACKUP\miyop-20261031-214433 . 1.546 dosya / 68,9 MB,
-git paketi 37,5 MB, 378 commit, `git bundle verify` gecti.
+-- NE SILINDI -----------------------------------------------------------
+personel : createDemoEmployees, createDemoShifts, createDemoAttendances,
+           createDemoEmployeePerformances, createDemoEmployeeBonuses,
+           createDemoEmployeeAudits
+finans   : createDemoCurrentAccounts, createDemoCreditTransactions,
+           createDemoSupplierDebts, createDemoSupplierPayments,
+           createDemoCollectionTransactions, createDemoCashTransfers,
+           createDemoIncomeExpenses
+MEKANIZMA: loadBranchScopedItemsWithDemo, loadAllBranchScopedItemsWithDemo
 
--- TUZAK 160 . BETIGIN DOGRULAMASI YESILDI, YEDEK YINE DE SAKATTI -------
-pg_dump su uyariyi verdi:
-  "DIKKAT: Bu tablolar arasinda DAIRESEL foreign-key kisitlamalari
-   bulunmaktadir: company, branch ... stock_movement.
-   --disable-triggers kullanmadan ... yedegi geri YUKLEYEMEYEBILIRSINIZ.
-   Bu sorunla karsilasmamak icin --data-only yerine TAM YEDEK alin."
+-- ASIL IS URETICILERI SILMEK DEGIL, MEKANIZMAYI KALDIRMAKTI ------------
+Iki yukleyicinin de kalbi su satirdi:
+    localStorage.getItem(key) === null ? createDemoItems() : readJson(...)
+"Depo bossa uydur". Yeni kurulmus bir isletmede - anahtar henuz yokken -
+uydurma personel, cari hesap, kasa hareketi uretiliyordu.
 
-`company` ile `branch` birbirine bakiyor; --data-only bir dokumde hangisi
-once yazilirsa oteki kisiti patlatir.
+Yukleyici dururken uretici silmek yarim is olurdu: yarin yeni bir
+ureticiyle geri gelirdi. Goc 0104'te de ayni karari vermistik - dort
+tabloyu tek tek yamamak yerine defteri YAZAN fonksiyonu duzeltmek.
 
-!! Yani dogrulamam ICERIGI olcuyordu, GERI YUKLENEBILIRLIGI degil.
-   Tuzak 157'nin bir ust kati: orada "dosya var != veri var" idi,
-   burada "veri var != veri geri gelir".
+Cagrilar ayni dosyada zaten duran demo uretmeyen ikizlere cevrildi:
+loadBranchScopedItems / loadAllBranchScopedItems. Yeni isletme BOS liste
+gorur. Bos liste durusttur; uydurma kayit degildir.
 
--- COZUM . pg_dump'in kendi tavsiyesi -----------------------------------
-Ucuncu bir dosya: tam.dump (ozel bicim, -Fc). pg_restore siralamayi kendi
-cozer. sema.sql ve veri.sql OKUNABILIRLIK icin kaliyor; GERI YUKLEME
-tam.dump'tan yapilir:
-    pg_restore --no-owner --no-privileges -d <hedef> tam.dump
+-- !! BU BIR YANGIN SONDURME DEGIL, MAYIN TEMIZLIGIYDI ------------------
+Olculdu: bu on ucun HICBIRI o gun acik bir kiracı ekranina ulasmiyordu.
+business-personnel, business-current, business-credit, business-finance -
+dordu de foundationScope: 'frozen'. Dondurulmus bir kapi bir gun
+acildiginda uydurma veri sessizce geri gelecekti; personel modulu 29.08'de
+bir kez acilmis, 14.10'da yeniden dondurulmustu.
 
-!! --disable-triggers cozum DEGIL: superuser ister, Supabase'de yok.
+-- !! BENIM OLCUM HATAM (ayni ailenin uculuncusu) -----------------------
+Modullerin kapsamini tararken `business-personnel` icin 'core' okudum ve
+"sekiz acik ekran uydurma personel gosteriyor" dedim. YANLISTI: o 'core'
+kelimesi bir YORUM satirindaydi ("foundationScope: 'core' oldugu icin
+sekiz rotasi ACIKTI" - modulun neden yeniden donduruldugunu anlatan not).
+Gercek deger 'frozen'.
+Tuzak 153'u DUN yazdim: "bir goc dosyasini okuyan test once -- yorumlarini
+atar". Ayni hatayi 24 saat icinde kodda tekrarladim. Tarama artik yorumlari
+atiyor.
 
-Betik artik tam.dump'i `pg_restore --list` ile ACIP icindeki nesneleri
-SAYIYOR. Dosyanin olusmasi yetmez; bozuk ya da yarim dokum orada belli olur.
-50'den az nesne cikarsa "BU BIR YEDEK DEGILDIR" deyip duruyor.
+-- CICIR SIKILASTIRILDI -------------------------------------------------
+sahte-veri-ureticisi.arch.test.ts:
+  * ust sinir 23 -> 10
+  * silinen 16 adin tamami yasakli listede
+  * MEKANIZMA da yasak: iki yukleyici adi + desenin kendisi
+    (getItem(...) === null ? createDemo...) araniyor, adi degistirilmis
+    bir kopyasi da yakalansin diye
+  * !! tenant.ts artik taramaya DAHIL: `createDemoTenants` bir aydir hic
+    sayilmiyordu - cicirin kor noktasiydi (tuzak 154 ailesi)
 
--- OLCULEN BASKA SEYLER -------------------------------------------------
-* pg_dump 18.6 bulundu: C:\Program Files\PostgreSQL\18\bin (PATH'te degildi,
-  betigin ikinci arama yeri ise yaradi).
-* Sunucu PostgreSQL 17.6.1.155; 18 > 17 dogru yon.
-* Parola UC KEZ soruluyor (her pg_dump cagrisinda bir). Betik parolayi
-  saklamiyor; uc kez yazmak, parolanin ortam degiskeninde dolasmasindan iyi.
+-- !! YENI SINAMAM KIRMIZI VERDI VE DOGRU VERDI --------------------------
+"Desen geri gelmemis" sinamasini ilk yazista "sifir olmali" diye yazdim ve
+kirmizi verdi. Desen GITMEMISTI, YER DEGISTIRMISTI: kiraci tarafindan
+kalkti ama PLATFORM (EVREN360) tarafinda SEKIZ tane duruyor:
+
+  applicationNotes · businessRegistrations · companySetups · licenseModules
+  companyLicenses · companyUsers · userSubscriptions · platformSupportTickets
+
+Yani Emrah kendi panelinde uydurma basvuru, uydurma lisans ve uydurma
+destek talebi goruyor. Musteri gormuyor - ama *mis gibi*ligin musteriye
+gorunmeyeni de *mis gibi*dir.
+
+Sinama bir CICIRA cevrildi: sayi 8'de donduruldu, yalniz asagi gidebilir.
+Sifira indirmek A4'un IKINCI YARISI ve ayri bir karar istiyor: o ekranlarin
+veritabani karsiligi var mi, yoksa ekranlar bos mu kalacak? OLCULMEDEN
+SILINMEZ.
+
+-- SONRADAN YAPILACAK ---------------------------------------------------
+Bu moduller gercekten acilirsa verileri VERITABANINDAN gelmeli. Bugun o
+tablolar YOK: employee, shift, attendance, current_account, cash_transaction
+hicbiri goclerde tanimli degil. Yani bu modulleri acmak "dondurulmayi
+kaldirmak" degil, SIFIRDAN YAZMAKTIR. kaldirilan-moduller.md 8. bolumde.
 
 Co-Authored-By: Claude Opus 5 <noreply@anthropic.com>
 Claude-Session: https://claude.ai/code/session_019BwYM3mAXZUhp4YGj7tp2y

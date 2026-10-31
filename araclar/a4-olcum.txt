@@ -1,0 +1,99 @@
+﻿== TANIMLAR (storage.ts) ==
+  1209  const createDemoEmployees = (now = new Date().toISOString()): Employee[] => [
+  1254  const createDemoShifts = (now = new Date().toISOString()): Shift[] => {
+  1297  const createDemoAttendances = (now = new Date().toISOString()): Attendance[] => {
+  1343  const createDemoEmployeePerformances = (now = new Date().toISOString()): EmployeePerformance[] => {
+  1374  const createDemoEmployeeBonuses = (now = new Date().toISOString()): EmployeeBonus[] => {
+  1403  const createDemoEmployeeAudits = (now = new Date().toISOString()): EmployeeAudit[] => {
+  1446  const createDemoCurrentAccounts = (now = new Date().toISOString()): CurrentAccount[] => [
+  1497  const createDemoCreditTransactions = (now = new Date().toISOString()): CreditTransaction[] => [
+  1520  const createDemoSupplierDebts = (now = new Date().toISOString()): SupplierDebt[] => [
+  1534  const createDemoSupplierPayments = (now = new Date().toISOString()): SupplierPayment[] => [
+  1547  const createDemoCollectionTransactions = (now = new Date().toISOString()): CollectionTransaction[] => [
+  1616  const createDemoCashTransfers = (now = new Date().toISOString()): CashTransfer[] => [
+  2560  const createDemoBusinessApplications = (now = new Date().toISOString()): BusinessApplication[] => {
+  2621  const createDemoApplicationNotes = (now = new Date().toISOString()): ApplicationNote[] => [
+  2685  const createDemoBusinessRegistrations = (now = new Date().toISOString()): BusinessRegistration[] => {
+  2890  const createDemoCompanySetups = (now = new Date().toISOString()): CompanySetup[] => [
+  3016  const createDemoCompanyUsers = (now = new Date().toISOString()): CompanyUser[] => {
+  3360  const createDemoLicensePackages = (now = new Date().toISOString()): LicensePackage[] => {
+  3378  const createDemoLicenseModules = (packages = createDemoLicensePackages(), now = new Date().toISOString()): LicenseModule[] => {
+  3397  const createDemoCompanyLicenses = (now = new Date().toISOString()): CompanyLicense[] => {
+  3456  const createDemoUserSubscriptions = (
+  3573  const createDemoPlatformSupportTickets = (now = new Date().toISOString()): PlatformSupportTicket[] => {
+
+== HER GECEN YER (tum src) ==
+src\companies\company-bridge.ts:75  * Üreticileri sildik (`createDemoBranches`, `createDemoCompanies`) ama bu
+src\companies\company-bridge.ts:150  // karşılığı olmayan yerel şubeler — yani `createDemoBranches()`ın
+src\modules\sahte-veri-ureticisi.arch.test.ts:30  * dosyada duruyor ve o yorumlar `createDemoBranches` gibi adları
+src\modules\sahte-veri-ureticisi.arch.test.ts:41  * · `createDemoAnnouncements` — portaldaki uydurma bakım/lisans duyurusu
+src\modules\sahte-veri-ureticisi.arch.test.ts:42  * · `createDemoBranches` — dört uydurma şube (Merkez/İstanbul/Ankara/İzmir)
+src\modules\sahte-veri-ureticisi.arch.test.ts:43  * · `createDemoCompanies` — üç uydurma firma (ABC Cafe, Örnek İşletme…)
+src\modules\sahte-veri-ureticisi.arch.test.ts:44  * · `createDemoData` — 117 satırlık tohumlama; Adana Kebap, Kola, altı masa
+src\modules\sahte-veri-ureticisi.arch.test.ts:46  * (`createDemoAnnouncements` bu dosyada değildi, `notification.service`
+src\modules\sahte-veri-ureticisi.arch.test.ts:54  // üretici ise `export const createDemoData = () => {` biçimindeydi —
+src\modules\sahte-veri-ureticisi.arch.test.ts:81  for(const silinen of ['createDemoBranches', 'createDemoCompanies', 'createDemoData']){
+src\notifications\notification.service.ts:153  // ⚠️ 25.10.2026 · `createDemoAnnouncements` SİLİNDİ (MIYOP-059).
+src\pages\giris-vitrini-dogru-soyler.arch.test.ts:10  //     yenileme hatırlatması". Kayıt yokken `createDemoAnnouncements()`
+src\pages\Login.tsx:466  `createDemoAnnouncements()` üretiyordu ve tarihler her açılışta
+src\storage.ts:479  // Burada `if(stored === null) return createDemoBranches()` vardı ve dört
+src\storage.ts:1000  // ⚠️ 25.10.2026 · `createDemoBranches` SİLİNDİ (MIYOP-058).
+src\storage.ts:1209  const createDemoEmployees = (now = new Date().toISOString()): Employee[] => [
+src\storage.ts:1254  const createDemoShifts = (now = new Date().toISOString()): Shift[] => {
+src\storage.ts:1297  const createDemoAttendances = (now = new Date().toISOString()): Attendance[] => {
+src\storage.ts:1343  const createDemoEmployeePerformances = (now = new Date().toISOString()): EmployeePerformance[] => {
+src\storage.ts:1374  const createDemoEmployeeBonuses = (now = new Date().toISOString()): EmployeeBonus[] => {
+src\storage.ts:1403  const createDemoEmployeeAudits = (now = new Date().toISOString()): EmployeeAudit[] => {
+src\storage.ts:1446  const createDemoCurrentAccounts = (now = new Date().toISOString()): CurrentAccount[] => [
+src\storage.ts:1497  const createDemoCreditTransactions = (now = new Date().toISOString()): CreditTransaction[] => [
+src\storage.ts:1520  const createDemoSupplierDebts = (now = new Date().toISOString()): SupplierDebt[] => [
+src\storage.ts:1534  const createDemoSupplierPayments = (now = new Date().toISOString()): SupplierPayment[] => [
+src\storage.ts:1547  const createDemoCollectionTransactions = (now = new Date().toISOString()): CollectionTransaction[] => [
+src\storage.ts:1616  const createDemoCashTransfers = (now = new Date().toISOString()): CashTransfer[] => [
+src\storage.ts:2560  const createDemoBusinessApplications = (now = new Date().toISOString()): BusinessApplication[] => {
+src\storage.ts:2621  const createDemoApplicationNotes = (now = new Date().toISOString()): ApplicationNote[] => [
+src\storage.ts:2685  const createDemoBusinessRegistrations = (now = new Date().toISOString()): BusinessRegistration[] => {
+src\storage.ts:2885  // ⚠️ 25.10.2026 · `createDemoCompanies` SİLİNDİ (MIYOP-058 ailesi).
+src\storage.ts:2890  const createDemoCompanySetups = (now = new Date().toISOString()): CompanySetup[] => [
+src\storage.ts:3016  const createDemoCompanyUsers = (now = new Date().toISOString()): CompanyUser[] => {
+src\storage.ts:3360  const createDemoLicensePackages = (now = new Date().toISOString()): LicensePackage[] => {
+src\storage.ts:3378  const createDemoLicenseModules = (packages = createDemoLicensePackages(), now = new Date().toISOString()): LicenseModule[] => {
+src\storage.ts:3397  const createDemoCompanyLicenses = (now = new Date().toISOString()): CompanyLicense[] => {
+src\storage.ts:3456  const createDemoUserSubscriptions = (
+src\storage.ts:3457  companyLicenses = createDemoCompanyLicenses(),
+src\storage.ts:3573  const createDemoPlatformSupportTickets = (now = new Date().toISOString()): PlatformSupportTicket[] => {
+src\storage.ts:3787  return loadBranchScopedItemsWithDemo(KEY_CURRENT_ACCOUNTS, createDemoCurrentAccounts, normalizeCurrentAccount)
+src\storage.ts:3795  return loadBranchScopedItemsWithDemo(KEY_CREDIT_TRANSACTIONS, createDemoCreditTransactions, normalizeCreditTransaction)
+src\storage.ts:3803  return loadBranchScopedItemsWithDemo(KEY_SUPPLIER_DEBTS, createDemoSupplierDebts, normalizeSupplierDebt)
+src\storage.ts:3811  return loadBranchScopedItemsWithDemo(KEY_SUPPLIER_PAYMENTS, createDemoSupplierPayments, normalizeSupplierPayment)
+src\storage.ts:3843  return loadBranchScopedItemsWithDemo(KEY_CASH_TRANSFERS, createDemoCashTransfers, normalizeCashTransfer)
+src\storage.ts:3851  return loadBranchScopedItemsWithDemo(KEY_COLLECTION_TRANSACTIONS, createDemoCollectionTransactions, normalizeCollectionTransaction)
+src\storage.ts:4280  ? createDemoBusinessApplications()
+src\storage.ts:4299  ? createDemoApplicationNotes()
+src\storage.ts:4309  ? createDemoBusinessRegistrations()
+src\storage.ts:4383  ? createDemoCompanySetups()
+src\storage.ts:4412  const defaultPackages = createDemoLicensePackages()
+src\storage.ts:4432  ? createDemoLicenseModules(packages)
+src\storage.ts:4465  ? createDemoCompanyLicenses().map(normalizeCompanyLicenseWithRuntimeStatus)
+src\storage.ts:4479  ? createDemoCompanyUsers()
+src\storage.ts:4493  ? createDemoUserSubscriptions(loadCompanyLicenses())
+src\storage.ts:4524  ? createDemoPlatformSupportTickets()
+src\storage.ts:4920  return loadBranchScopedItemsWithDemo(KEY_EMPLOYEES, createDemoEmployees, normalizeEmployee)
+src\storage.ts:4928  return loadBranchScopedItemsWithDemo(KEY_SHIFTS, createDemoShifts, normalizeShift)
+src\storage.ts:4936  return loadBranchScopedItemsWithDemo(KEY_ATTENDANCES, createDemoAttendances, normalizeAttendance)
+src\storage.ts:4944  return loadBranchScopedItemsWithDemo(KEY_EMPLOYEE_PERFORMANCES, createDemoEmployeePerformances, normalizeEmployeePerformance)
+src\storage.ts:4952  return loadBranchScopedItemsWithDemo(KEY_EMPLOYEE_BONUSES, createDemoEmployeeBonuses, normalizeEmployeeBonus)
+src\storage.ts:4960  return loadBranchScopedItemsWithDemo(KEY_EMPLOYEE_AUDITS, createDemoEmployeeAudits, normalizeEmployeeAudit)
+src\storage.ts:4986  currentAccounts: loadAllBranchScopedItemsWithDemo<CurrentAccount>(KEY_CURRENT_ACCOUNTS, createDemoCurrentAccounts, normalizeCurrentAccount),
+src\storage.ts:4987  creditTransactions: loadAllBranchScopedItemsWithDemo<CreditTransaction>(KEY_CREDIT_TRANSACTIONS, createDemoCreditTransactions, normalizeCreditTransaction),
+src\storage.ts:4988  collectionTransactions: loadAllBranchScopedItemsWithDemo<CollectionTransaction>(KEY_COLLECTION_TRANSACTIONS, createDemoCollectionTransactions, normalizeCollectionTransaction),
+src\storage.ts:4989  supplierDebts: loadAllBranchScopedItemsWithDemo<SupplierDebt>(KEY_SUPPLIER_DEBTS, createDemoSupplierDebts, normalizeSupplierDebt),
+src\storage.ts:4990  supplierPayments: loadAllBranchScopedItemsWithDemo<SupplierPayment>(KEY_SUPPLIER_PAYMENTS, createDemoSupplierPayments, normalizeSupplierPayment),
+src\storage.ts:4993  employees: loadAllBranchScopedItemsWithDemo<Employee>(KEY_EMPLOYEES, createDemoEmployees, normalizeEmployee),
+src\storage.ts:4994  attendances: loadAllBranchScopedItemsWithDemo<Attendance>(KEY_ATTENDANCES, createDemoAttendances, normalizeAttendance),
+src\storage.ts:4995  employeePerformances: loadAllBranchScopedItemsWithDemo<EmployeePerformance>(KEY_EMPLOYEE_PERFORMANCES, createDemoEmployeePerformances, normalizeEmployeePerformance),
+src\storage.ts:4996  employeeBonuses: loadAllBranchScopedItemsWithDemo<EmployeeBonus>(KEY_EMPLOYEE_BONUSES, createDemoEmployeeBonuses, normalizeEmployeeBonus),
+src\storage.ts:4997  employeeAudits: loadAllBranchScopedItemsWithDemo<EmployeeAudit>(KEY_EMPLOYEE_AUDITS, createDemoEmployeeAudits, normalizeEmployeeAudit),
+src\storage.ts:5042  { type: 'Customers', records: loadAllBranchScopedItemsWithDemo<CurrentAccount>(KEY_CURRENT_ACCOUNTS, createDemoCurrentAccounts, normalizeCurrentAccount) },
+src\storage.ts:8124  // ⚠️ 25.10.2026 · `createDemoData` SİLİNDİ · 117 satır.
+src\tenant.ts:170  export const createDemoTenants = (now = new Date().toISOString()) => {

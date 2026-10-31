@@ -37,6 +37,23 @@ const yorumsuz = (metin: string) => metin
   .replace(/^\s*\/\/.*$/gm, ' ')
 
 /**
+ * ⚠️ 31.10.2026 · 23 → **10** (A4 · on üç üretici silindi, 408 satır).
+ * Silinenler: personel altısı (employees, shifts, attendances, performances,
+ * bonuses, audits) ve finans yedisi (currentAccounts, creditTransactions,
+ * supplierDebts, supplierPayments, collectionTransactions, cashTransfers,
+ * incomeExpenses).
+ *
+ * ⚠️ ASIL İŞ ÜRETİCİLERİ SİLMEK DEĞİL, MEKANİZMAYI KALDIRMAKTI:
+ * `loadBranchScopedItemsWithDemo` ve `loadAllBranchScopedItemsWithDemo`
+ * da silindi. O ikisinin kalbi `localStorage.getItem(key) === null ?
+ * createDemoItems() : ...` idi — "depo boşsa uydur". Yükleyici dururken
+ * üreticiyi silmek, yarın yeni bir üreticiyle geri gelmesine izin verirdi.
+ *
+ * ⚠️ Silinen on üçün hiçbiri o gün AÇIK bir ekrana ulaşmıyordu (dört modül
+ * de `frozen`). Yani yangın söndürme değil, mayın temizliğiydi: dondurulmuş
+ * bir kapı açıldığında uydurma veri sessizce geri gelecekti. Personel modülü
+ * 29.08'de bir kez açılmış, 14.10'da yeniden dondurulmuştu.
+ *
  * ⚠️ 25.10.2026'da 27'den 23'e indi:
  * · `createDemoAnnouncements` — portaldaki uydurma bakım/lisans duyurusu
  * · `createDemoBranches` — dört uydurma şube (Merkez/İstanbul/Ankara/İzmir)
@@ -46,7 +63,7 @@ const yorumsuz = (metin: string) => metin
  * (`createDemoAnnouncements` bu dosyada değildi, `notification.service`
  *  içindeydi; sayım yalnız `storage.ts`i kapsıyor.)
  */
-const UST_SINIR = 23
+const UST_SINIR = 10
 
 describe('sahte veri üreticisi çıcırı', () => {
   // ⚠️ MIYOP-073 (Codex, 25.10) · `export const` KAÇIYORDU.
@@ -78,12 +95,78 @@ describe('sahte veri üreticisi çıcırı', () => {
     // Eskiden öyleydi; sayım bir biçimi kaçırırsa yasak ad kontrolü de
     // sessizce kaçırıyordu. İki ölçüm birbirine dayanırsa, birinin kör
     // noktası ötekinin de kör noktası olur.
-    for(const silinen of ['createDemoBranches', 'createDemoCompanies', 'createDemoData']){
+    const SILINENLER = [
+      // 25.10.2026
+      'createDemoBranches', 'createDemoCompanies', 'createDemoData',
+      // 31.10.2026 · personel
+      'createDemoEmployees', 'createDemoShifts', 'createDemoAttendances',
+      'createDemoEmployeePerformances', 'createDemoEmployeeBonuses',
+      'createDemoEmployeeAudits',
+      // 31.10.2026 · finans
+      'createDemoCurrentAccounts', 'createDemoCreditTransactions',
+      'createDemoSupplierDebts', 'createDemoSupplierPayments',
+      'createDemoCollectionTransactions', 'createDemoCashTransfers',
+      'createDemoIncomeExpenses',
+    ]
+    for(const silinen of SILINENLER){
       expect(
         new RegExp(`(?:export\\s+)?const ${silinen}\\s*=`).test(yorumsuz(DEPO)),
         `${silinen} geri gelmiş. Gerekçesi docs/kararlar/kaldirilan-moduller.md'de.`
       ).toBe(false)
     }
+  })
+
+  it('⚠️ "depo boşsa uydur" MEKANİZMASI geri gelmemiş', () => {
+    // 31.10.2026 · Asıl düzeltme buydu. Üreticiyi silmek yetmez; onu çağıran
+    // yükleyici dururken yarın yeni bir üreticiyle geri gelir.
+    for(const yasak of ['loadBranchScopedItemsWithDemo', 'loadAllBranchScopedItemsWithDemo']){
+      expect(
+        new RegExp(`\\b${yasak}\\b`).test(yorumsuz(DEPO)),
+        `${yasak} geri gelmiş. "Depo boşsa uydur" deseni budur.`,
+      ).toBe(false)
+    }
+  })
+
+  it('⚠️ "anahtar yoksa demo üret" deseni yalnız AZALABİLİR · bugün 8', () => {
+    // ⚠️ BU SINAMA İLK YAZIŞIMDA "sıfır olmalı" DİYORDU VE KIRMIZI VERDİ —
+    // doğru verdi. Desen gitmemişti, YER DEĞİŞTİRMİŞTİ: kiracı tarafından
+    // kalktı ama PLATFORM (EVREN360) tarafında sekiz tane duruyor:
+    //
+    //   applicationNotes · businessRegistrations · companySetups ·
+    //   licenseModules · companyLicenses · companyUsers ·
+    //   userSubscriptions · platformSupportTickets
+    //
+    // Yani Emrah panelinde uydurma başvuru, uydurma lisans ve uydurma
+    // destek talebi görüyor. Müşteri görmüyor — ama *mış gibi*liğin
+    // müşteriye görünmeyeni de *mış gibi*dir.
+    //
+    // Sıfıra indirmek A4'ün İKİNCİ YARISI ve ayrı bir karar gerektiriyor:
+    // o ekranların veritabanı karşılığı var mı, yoksa ekranlar boş mu
+    // kalacak? Ölçülmeden silinmez.
+    //
+    // Bu yüzden sınama bir ÇIÇIR: sayı dondurulmuş, yalnız aşağı gidebilir.
+    // Sıfıra inince bu blok `toBe(0)`a çevrilir ve çıcır kapanır.
+    const DESEN = /getItem\([^)]*\)\s*===\s*null\s*\?\s*createDemo[A-Za-z]+/g
+    const kalan = [...yorumsuz(DEPO).matchAll(DESEN)].map(m => m[0].replace(/\s+/g, ' '))
+    expect(
+      kalan.length,
+      `"anahtar yoksa demo üret" deseni ${kalan.length} yerde. Sınır 8 ve `
+      + `yalnız AZALABİLİR:\n${kalan.join('\n')}`,
+    ).toBeLessThanOrEqual(8)
+  })
+
+  it('⚠️ storage.ts DIŞINDAKİ üreticiler de sayılıyor', () => {
+    // ⚠️ 31.10.2026 · BU TEST BİR AYDIR YALNIZ `storage.ts`e BAKIYORDU.
+    // `tenant.ts` içindeki `createDemoTenants` hiç sayılmamıştı — yani
+    // çıcırın kör noktasıydı. Aynı aile: denetim tarayıcısı da on tabloyu
+    // görmüyordu (tuzak 154).
+    const KIRACI = readFileSync(join(SRC, 'tenant.ts'), 'utf8') as string
+    const disaridakiler = [...yorumsuz(KIRACI)
+      .matchAll(/^\s*(?:export\s+)?const (createDemo[A-Za-z]+)\s*=/gm)].map(m => m[1])
+    expect(
+      disaridakiler,
+      'tenant.ts içindeki üretici listesi değişti — bilerek mi?',
+    ).toEqual(['createDemoTenants'])
   })
 
   it('şube ve firma okuyucuları demo üretimine DÜŞMÜYOR', () => {

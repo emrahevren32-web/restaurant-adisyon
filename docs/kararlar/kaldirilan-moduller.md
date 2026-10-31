@@ -195,3 +195,61 @@ kaldırıldı (o alan `SystemSettings`ten çıktı, MIYOP-060b); yerine sabit
 `'TRY'` kondu — eski varsayılanın aynısı, yani **davranış değişmedi**.
 ⚠️ Bu bir ÇÖZÜM değil, yazılı bir borç: modüller geri gelirse
 biçimlendirme `tenant_settings`i okumak zorunda (HEDEFLER 3.4.6).
+
+---
+
+## 8 · ON ÜÇ SAHTE VERİ ÜRETİCİSİ + "DEPO BOŞSA UYDUR" MEKANİZMASI
+### 31.10.2026 · A4 · 408 satır
+
+**Silinenler (`src/storage.ts`):**
+
+| Aile | Üreticiler |
+|---|---|
+| Personel | `createDemoEmployees`, `createDemoShifts`, `createDemoAttendances`, `createDemoEmployeePerformances`, `createDemoEmployeeBonuses`, `createDemoEmployeeAudits` |
+| Finans | `createDemoCurrentAccounts`, `createDemoCreditTransactions`, `createDemoSupplierDebts`, `createDemoSupplierPayments`, `createDemoCollectionTransactions`, `createDemoCashTransfers`, `createDemoIncomeExpenses` |
+| **Mekanizma** | `loadBranchScopedItemsWithDemo`, `loadAllBranchScopedItemsWithDemo` |
+
+### Ne işe yarıyorlardı
+
+Uydurma personel kartı, vardiya, puantaj, performans, prim, disiplin kaydı;
+uydurma cari hesap, veresiye, tedarikçi borcu/ödemesi, tahsilat, kasa
+transferi, gelir-gider. Hepsi şu yükleyiciden geçiyordu:
+
+```ts
+localStorage.getItem(key) === null ? createDemoItems() : readJson(key, [])
+```
+
+Yani **yeni kurulmuş bir işletmede** — anahtar henüz yokken — uydurma veri
+üretiliyordu. Emrah'ın değişmez kuralı: *"Mock veri asla ama asla olmayacak."*
+
+### ⚠️ Neden acil DEĞİLDİ ama yine de yapıldı
+
+Ölçüldü (31.10.2026): bu on üçün **hiçbiri o gün açık bir kiracı ekranına
+ulaşmıyordu.** `business-personnel`, `business-current`, `business-credit`,
+`business-finance` — dördü de `foundationScope: 'frozen'`.
+
+Yani yangın söndürme değil, **mayın temizliği**: dondurulmuş bir kapı bir gün
+açıldığında uydurma veri sessizce geri gelecekti. Personel modülü 29.08'de
+bir kez açılmış, 14.10'da yeniden dondurulmuştu — yani o kapı daha önce
+gerçekten açılmıştı.
+
+### Yerine ne kondu
+
+Hiçbir şey — ve doğrusu bu. Çağrılar aynı dosyada zaten duran demo üretmeyen
+ikizlere çevrildi: `loadBranchScopedItems`, `loadAllBranchScopedItems`.
+Yeni işletme artık **boş liste** görür. **Boş liste dürüsttür; uydurma kayıt
+değildir.**
+
+### Sonradan yapılacak (unutulmasın)
+
+Bu modüller gerçekten açılırsa ekranların verisi **veritabanından** gelmeli.
+Bugün o tablolar yok: `employee`, `shift`, `attendance`, `current_account`,
+`cash_transaction`… hiçbiri göçlerde tanımlı değil. Yani bu modülleri açmak
+"dondurulmayı kaldırmak" değil, **sıfırdan yazmaktır.**
+
+### Çıcır
+
+`sahte-veri-ureticisi.arch.test.ts`: üst sınır **23 → 10**, silinen 16 adın
+tamamı yasaklı listede, mekanizmanın kendisi de yasak (adı değiştirilmiş bir
+kopyası da aranıyor), ve `tenant.ts` artık taramaya dahil — bir aydır
+`createDemoTenants` hiç sayılmıyordu.

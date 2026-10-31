@@ -665,22 +665,6 @@ const loadBranchScopedItems = <T extends BranchScopedRecord>(
     .filter(item => item.branchId === activeBranchId)
 }
 
-const loadBranchScopedItemsWithDemo = <T extends BranchScopedRecord>(
-  key: string,
-  createDemoItems: () => T[],
-  normalizer: (item: Partial<T>) => T,
-  predicate?: (item: T) => boolean
-) => {
-  const activeBranchId = getActiveBranchId()
-  if(!canUseBranch(activeBranchId, 'canView')) return []
-
-  const sourceItems = localStorage.getItem(key) === null
-    ? createDemoItems()
-    : readJson<Partial<T>[]>(key, [])
-
-  return filterTenantScope(normalizeBranchScopedItems(sourceItems, normalizer, DEFAULT_BRANCH_ID, predicate))
-    .filter(item => item.branchId === activeBranchId)
-}
 
 const loadAllBranchScopedItems = <T extends BranchScopedRecord>(
   key: string,
@@ -690,18 +674,21 @@ const loadAllBranchScopedItems = <T extends BranchScopedRecord>(
   return filterTenantScope(normalizeBranchScopedItems(readJson<Partial<T>[]>(key, []), normalizer, DEFAULT_BRANCH_ID, predicate))
 }
 
-const loadAllBranchScopedItemsWithDemo = <T extends BranchScopedRecord>(
-  key: string,
-  createDemoItems: () => T[],
-  normalizer: (item: Partial<T>) => T,
-  predicate?: (item: T) => boolean
-) => {
-  const sourceItems = localStorage.getItem(key) === null
-    ? createDemoItems()
-    : readJson<Partial<T>[]>(key, [])
 
-  return filterTenantScope(normalizeBranchScopedItems(sourceItems, normalizer, DEFAULT_BRANCH_ID, predicate))
-}
+// ⚠️ `loadBranchScopedItemsWithDemo` ve `loadAllBranchScopedItemsWithDemo`
+// BURADAYDI · 31.10.2026 · SİLİNDİ.
+//
+// İkisinin de kalbi şu satırdı:
+//     localStorage.getItem(key) === null ? createDemoItems() : readJson(...)
+// Yani "depo boşsa uydur". On üç üreticiyi besleyen MEKANİZMA buydu.
+//
+// ⚠️ Üreticileri silip bu ikisini bırakmak, işin yarısını yapmak olurdu:
+// duran bir yükleyici bir gün yeni bir üreticiyle yeniden kullanılır.
+// Göç 0104'te de aynı kararı vermiştik: dört tabloyu tek tek yamamak yerine
+// defteri YAZAN fonksiyonu düzeltmek. Burada da yazan taraf kaldırıldı.
+//
+// Yerlerine `loadBranchScopedItems` ve `loadAllBranchScopedItems` kullanılıyor
+// (hemen yukarıda); ikisi de boş depoda BOŞ liste döndürür.
 
 const saveBranchScopedItems = <T extends BranchScopedRecord>(
   key: string,
@@ -1206,426 +1193,18 @@ const normalizeCashTransfer = (item: Partial<CashTransfer>): CashTransfer => {
   }
 }
 
-const createDemoEmployees = (now = new Date().toISOString()): Employee[] => [
-  normalizeEmployee({
-    id: 'employee_ahmet_kaya',
-    code: 'PER-001',
-    fullName: 'Ahmet Kaya',
-    position: 'Operasyon Uzmanı',
-    phone: '0532 111 22 33',
-    email: 'ahmet.kaya@example.com',
-    startDate: new Date().toLocaleDateString('sv-SE'),
-    salary: 30000,
-    isActive: true,
-    note: 'Demo operasyon personeli kaydı.',
-    createdAt: now,
-    updatedAt: now
-  }),
-  normalizeEmployee({
-    id: 'employee_mehmet_demir',
-    code: 'PER-002',
-    fullName: 'Mehmet Demir',
-    position: 'Destek Uzmanı',
-    phone: '0532 222 33 44',
-    email: 'mehmet.demir@example.com',
-    startDate: new Date().toLocaleDateString('sv-SE'),
-    salary: 32000,
-    isActive: true,
-    note: 'Demo destek personeli kaydı.',
-    createdAt: now,
-    updatedAt: now
-  }),
-  normalizeEmployee({
-    id: 'employee_ayse_yilmaz',
-    code: 'PER-003',
-    fullName: 'Ayşe Yılmaz',
-    position: 'Yönetici',
-    phone: '0532 333 44 55',
-    email: 'ayse.yilmaz@example.com',
-    startDate: new Date().toLocaleDateString('sv-SE'),
-    salary: 45000,
-    isActive: true,
-    note: 'Demo yönetici personel kaydı.',
-    createdAt: now,
-    updatedAt: now
-  })
-]
 
-const createDemoShifts = (now = new Date().toISOString()): Shift[] => {
-  const today = new Date().toLocaleDateString('sv-SE')
 
-  return [
-    normalizeShift({
-      id: 'shift_ahmet_kaya_sabah_demo',
-      employeeId: 'employee_ahmet_kaya',
-      shiftName: 'Sabah',
-      workDate: today,
-      startTime: '08:00',
-      endTime: '16:00',
-      status: 'Planlandı',
-      note: 'Demo sabah vardiyası.',
-      createdAt: now,
-      updatedAt: now
-    }),
-    normalizeShift({
-      id: 'shift_mehmet_demir_aksam_demo',
-      employeeId: 'employee_mehmet_demir',
-      shiftName: 'Akşam',
-      workDate: today,
-      startTime: '16:00',
-      endTime: '00:00',
-      status: 'Planlandı',
-      note: 'Demo akşam vardiyası.',
-      createdAt: now,
-      updatedAt: now
-    }),
-    normalizeShift({
-      id: 'shift_ayse_yilmaz_tam_gun_demo',
-      employeeId: 'employee_ayse_yilmaz',
-      shiftName: 'Tam Gün',
-      workDate: today,
-      startTime: '09:00',
-      endTime: '18:00',
-      status: 'Planlandı',
-      note: 'Demo tam gün vardiyası.',
-      createdAt: now,
-      updatedAt: now
-    })
-  ]
-}
 
-const createDemoAttendances = (now = new Date().toISOString()): Attendance[] => {
-  const today = new Date().toLocaleDateString('sv-SE')
 
-  return [
-    normalizeAttendance({
-      id: 'attendance_ahmet_kaya_demo',
-      employeeId: 'employee_ahmet_kaya',
-      workDate: today,
-      checkInTime: '08:00',
-      checkOutTime: '17:30',
-      workedMinutes: 570,
-      overtimeMinutes: 90,
-      status: 'Fazla Mesai',
-      note: 'Demo fazla mesai kaydı.',
-      createdAt: now,
-      updatedAt: now
-    }),
-    normalizeAttendance({
-      id: 'attendance_mehmet_demir_demo',
-      employeeId: 'employee_mehmet_demir',
-      workDate: today,
-      checkInTime: '16:00',
-      checkOutTime: '00:00',
-      workedMinutes: 480,
-      overtimeMinutes: 0,
-      status: 'Normal',
-      note: 'Demo akşam vardiyası puantaj kaydı.',
-      createdAt: now,
-      updatedAt: now
-    }),
-    normalizeAttendance({
-      id: 'attendance_ayse_yilmaz_demo',
-      employeeId: 'employee_ayse_yilmaz',
-      workDate: today,
-      checkInTime: '09:00',
-      checkOutTime: '18:00',
-      workedMinutes: 540,
-      overtimeMinutes: 0,
-      status: 'Normal',
-      note: 'Demo tam gün puantaj kaydı.',
-      createdAt: now,
-      updatedAt: now
-    })
-  ]
-}
 
-const createDemoEmployeePerformances = (now = new Date().toISOString()): EmployeePerformance[] => {
-  const today = new Date().toLocaleDateString('sv-SE')
 
-  return [
-    normalizeEmployeePerformance({
-      id: 'employee_performance_ahmet_kaya_demo',
-      employeeId: 'employee_ahmet_kaya',
-      workDate: today,
-      servedTableCount: 18,
-      approvedOrderCount: 42,
-      qrOrderCount: 11,
-      customerCallCount: 9,
-      note: 'Demo yüksek performans kaydı.',
-      createdAt: now,
-      updatedAt: now
-    }),
-    normalizeEmployeePerformance({
-      id: 'employee_performance_mehmet_demir_demo',
-      employeeId: 'employee_mehmet_demir',
-      workDate: today,
-      servedTableCount: 12,
-      approvedOrderCount: 31,
-      qrOrderCount: 4,
-      customerCallCount: 5,
-      note: 'Demo destek performans kaydı.',
-      createdAt: now,
-      updatedAt: now
-    })
-  ]
-}
 
-const createDemoEmployeeBonuses = (now = new Date().toISOString()): EmployeeBonus[] => {
-  const period = new Date().toLocaleDateString('sv-SE').slice(0, 7)
 
-  return [
-    normalizeEmployeeBonus({
-      id: 'employee_bonus_ahmet_kaya_demo',
-      employeeId: 'employee_ahmet_kaya',
-      period,
-      performanceScore: 80,
-      bonusRate: 5,
-      status: 'Hesaplandı',
-      note: 'Demo prim kaydı.',
-      createdAt: now,
-      updatedAt: now
-    }),
-    normalizeEmployeeBonus({
-      id: 'employee_bonus_mehmet_demir_demo',
-      employeeId: 'employee_mehmet_demir',
-      period,
-      performanceScore: 52,
-      bonusRate: 5,
-      status: 'Hesaplandı',
-      note: 'Demo prim kaydı.',
-      createdAt: now,
-      updatedAt: now
-    })
-  ]
-}
 
-const createDemoEmployeeAudits = (now = new Date().toISOString()): EmployeeAudit[] => {
-  const today = new Date().toLocaleDateString('sv-SE')
 
-  return [
-    normalizeEmployeeAudit({
-      id: 'employee_audit_ahmet_kaya_demo',
-      employeeId: 'employee_ahmet_kaya',
-      date: today,
-      recordType: 'Ödül',
-      severity: 'Orta',
-      title: 'Ayın Personeli',
-      description: 'Müşteri memnuniyeti ve servis hızı yüksek olduğu için ödül kaydı oluşturuldu.',
-      createdBy: 'Yönetici',
-      createdAt: now,
-      updatedAt: now
-    }),
-    normalizeEmployeeAudit({
-      id: 'employee_audit_mehmet_demir_demo',
-      employeeId: 'employee_mehmet_demir',
-      date: today,
-      recordType: 'Uyarı',
-      severity: 'Düşük',
-      title: 'Geç Kalma',
-      description: 'Vardiya başlangıcına geç kalma nedeniyle sözlü uyarı kaydı oluşturuldu.',
-      createdBy: 'Yönetici',
-      createdAt: now,
-      updatedAt: now
-    }),
-    normalizeEmployeeAudit({
-      id: 'employee_audit_ayse_yilmaz_demo',
-      employeeId: 'employee_ayse_yilmaz',
-      date: today,
-      recordType: 'Denetim Notu',
-      severity: 'Yüksek',
-      title: 'Vardiya Yönetimi Başarılı',
-      description: 'Vardiya planlama ve ekip koordinasyonu başarılı bulundu.',
-      createdBy: 'Yönetici',
-      createdAt: now,
-      updatedAt: now
-    })
-  ]
-}
 
-const createDemoCurrentAccounts = (now = new Date().toISOString()): CurrentAccount[] => [
-  {
-    id: 'cari_ali_veli',
-    branchId: DEFAULT_BRANCH_ID,
-    code: 'CARI-001',
-    name: 'Ali Veli',
-    type: 'Müşteri',
-    phone: '05xx xxx xx xx',
-    email: 'ali.veli@example.com',
-    taxNumber: '',
-    authorizedPerson: 'Ali Veli',
-    address: 'Merkez Mahallesi',
-    note: 'Demo müşteri cari kartı.',
-    isActive: true,
-    createdAt: now,
-    updatedAt: now
-  },
-  {
-    id: 'cari_abc_gida',
-    branchId: DEFAULT_BRANCH_ID,
-    code: 'CARI-002',
-    name: 'ABC Gıda',
-    type: 'Tedarikçi',
-    phone: '0212 000 00 00',
-    email: 'tedarik@abcgida.com',
-    taxNumber: '1234567890',
-    authorizedPerson: 'Ayşe Demir',
-    address: 'Gıda Toptancılar Sitesi',
-    note: 'Demo tedarikçi cari kartı.',
-    isActive: true,
-    createdAt: now,
-    updatedAt: now
-  },
-  {
-    id: 'cari_can_ciger',
-    branchId: DEFAULT_BRANCH_ID,
-    code: 'CARI-003',
-    name: 'Can Ciğer Ltd.',
-    type: 'Firma',
-    phone: '0216 000 00 00',
-    email: 'info@canciger.com',
-    taxNumber: '9876543210',
-    authorizedPerson: 'Can Yılmaz',
-    address: 'Sanayi Caddesi No: 12',
-    note: 'Demo firma cari kartı.',
-    isActive: true,
-    createdAt: now,
-    updatedAt: now
-  }
-]
 
-const createDemoCreditTransactions = (now = new Date().toISOString()): CreditTransaction[] => [
-  normalizeCreditTransaction({
-    id: 'veresiye_ali_veli_demo',
-    currentAccountId: 'cari_ali_veli',
-    date: new Date().toLocaleDateString('sv-SE'),
-    amount: 2500,
-    paidAmount: 500,
-    note: 'Demo veresiye kaydı.',
-    createdAt: now,
-    updatedAt: now
-  }),
-  normalizeCreditTransaction({
-    id: 'veresiye_can_ciger_demo',
-    currentAccountId: 'cari_can_ciger',
-    date: new Date().toLocaleDateString('sv-SE'),
-    amount: 12000,
-    paidAmount: 0,
-    note: 'Demo firma veresiye kaydı.',
-    createdAt: now,
-    updatedAt: now
-  })
-]
-
-const createDemoSupplierDebts = (now = new Date().toISOString()): SupplierDebt[] => [
-  normalizeSupplierDebt({
-    id: 'supplier_debt_abc_gida_demo',
-    currentAccountId: 'cari_abc_gida',
-    date: new Date().toLocaleDateString('sv-SE'),
-    invoiceNumber: 'ABC-2026-001',
-    amount: 15000,
-    paidAmount: 3000,
-    note: 'Demo tedarikçi borcu.',
-    createdAt: now,
-    updatedAt: now
-  })
-]
-
-const createDemoSupplierPayments = (now = new Date().toISOString()): SupplierPayment[] => [
-  normalizeSupplierPayment({
-    id: 'supplier_payment_abc_gida_demo',
-    supplierDebtId: 'supplier_debt_abc_gida_demo',
-    currentAccountId: 'cari_abc_gida',
-    date: new Date().toLocaleDateString('sv-SE'),
-    amount: 3000,
-    paymentMethod: 'Havale/EFT',
-    note: 'Demo tedarikçi ödeme kaydı.',
-    createdAt: now
-  })
-]
-
-const createDemoCollectionTransactions = (now = new Date().toISOString()): CollectionTransaction[] => [
-  normalizeCollectionTransaction({
-    id: 'tahsilat_ali_veli_demo',
-    currentAccountId: 'cari_ali_veli',
-    date: new Date().toLocaleDateString('sv-SE'),
-    amount: 1000,
-    paymentMethod: 'Nakit',
-    note: 'Demo tahsilat kaydı.',
-    createdAt: now,
-    updatedAt: now
-  }),
-  normalizeCollectionTransaction({
-    id: 'tahsilat_can_ciger_demo',
-    currentAccountId: 'cari_can_ciger',
-    date: new Date().toLocaleDateString('sv-SE'),
-    amount: 5000,
-    paymentMethod: 'Havale/EFT',
-    note: 'Demo firma tahsilatı.',
-    createdAt: now,
-    updatedAt: now
-  }),
-  normalizeCollectionTransaction({
-    id: 'tahsilat_abc_gida_demo',
-    currentAccountId: 'cari_abc_gida',
-    date: new Date().toLocaleDateString('sv-SE'),
-    amount: 2500,
-    paymentMethod: 'Kart',
-    note: 'Demo tedarikçi tahsilatı.',
-    createdAt: now,
-    updatedAt: now
-  })
-]
-
-const createDemoIncomeExpenses = (now = new Date().toISOString()): IncomeExpense[] => [
-  normalizeIncomeExpense({
-    id: 'income_expense_urun_satisi_demo',
-    date: new Date().toLocaleDateString('sv-SE'),
-    type: 'Gelir',
-    category: 'Ürün Satışı',
-    amount: 12500,
-    paymentMethod: 'Kart',
-    description: 'Demo ürün satışı geliri.',
-    createdAt: now,
-    updatedAt: now
-  }),
-  normalizeIncomeExpense({
-    id: 'income_expense_kira_demo',
-    date: new Date().toLocaleDateString('sv-SE'),
-    type: 'Gider',
-    category: 'Kira',
-    amount: 5000,
-    paymentMethod: 'Havale/EFT',
-    description: 'Demo kira gideri.',
-    createdAt: now,
-    updatedAt: now
-  }),
-  normalizeIncomeExpense({
-    id: 'income_expense_elektrik_demo',
-    date: new Date().toLocaleDateString('sv-SE'),
-    type: 'Gider',
-    category: 'Elektrik',
-    amount: 1200,
-    paymentMethod: 'Havale/EFT',
-    description: 'Demo elektrik gideri.',
-    createdAt: now,
-    updatedAt: now
-  })
-]
-
-const createDemoCashTransfers = (now = new Date().toISOString()): CashTransfer[] => [
-  normalizeCashTransfer({
-    id: 'cash_transfer_devir_0001_demo',
-    date: new Date().toLocaleDateString('sv-SE'),
-    transferNo: 'DEVIR-0001',
-    fromUser: 'Yönetici',
-    toUser: 'Finans Sorumlusu',
-    openingBalance: 0,
-    transferredAmount: 5000,
-    note: 'Sabah vardiyası devir işlemi.',
-    createdAt: now
-  })
-]
 
 const normalizeStockUnit = (value: unknown): StockUnit => {
   return STOCK_UNITS.includes(value as StockUnit) ? value as StockUnit : 'adet'
@@ -2556,6 +2135,41 @@ const normalizeApplicationNote = (item: Partial<ApplicationNote>): ApplicationNo
   createdBy: String(item.createdBy || 'Sistem').trim() || 'Sistem',
   createdAt: item.createdAt || new Date().toISOString()
 })
+
+// ═══════════════════════════════════════════════════════════════════════════
+// ⚠️ ON ÜÇ SAHTE VERİ ÜRETİCİSİ BURADAYDI · 31.10.2026 · SİLİNDİ (A4)
+//
+// Silinenler:
+//   personel  : createDemoEmployees, createDemoShifts, createDemoAttendances,
+//               createDemoEmployeePerformances, createDemoEmployeeBonuses,
+//               createDemoEmployeeAudits
+//   finans    : createDemoCurrentAccounts, createDemoCreditTransactions,
+//               createDemoSupplierDebts, createDemoSupplierPayments,
+//               createDemoCollectionTransactions, createDemoCashTransfers,
+//               createDemoIncomeExpenses
+//
+// ── NEDEN ─────────────────────────────────────────────────────────────────
+// Emrah'ın değişmez kuralı: *"Mock veri asla ama asla olmayacak."*
+// Bu on üçü `loadBranchScopedItemsWithDemo` ile çağrılıyordu ve o yükleyicinin
+// kalbi şuydu:
+//     localStorage.getItem(key) === null ? createDemoItems() : readJson(...)
+// Yani ANAHTAR YOKSA — yani YENİ KURULMUŞ BİR İŞLETMEDE — uydurma personel,
+// uydurma cari hesap, uydurma kasa hareketi üretiliyordu.
+//
+// ⚠️ ÖLÇÜLDÜ (31.10.2026): bu on üçün HİÇBİRİ bugün açık bir kiracı ekranına
+// ulaşmıyordu. `business-personnel`, `business-current`, `business-credit`
+// ve `business-finance` modüllerinin dördü de `foundationScope: 'frozen'`.
+// Yani bu bir YANGIN SÖNDÜRME değil, MAYIN TEMİZLİĞİYDİ: dondurulmuş bir
+// kapı bir gün açıldığında (personel modülü 29.08'de bir kez açılmış,
+// 14.10'da yeniden dondurulmuştu) uydurma veri sessizce geri gelecekti.
+//
+// ── YERİNE NE KONDU ───────────────────────────────────────────────────────
+// Çağrılar `loadBranchScopedItems` / `loadAllBranchScopedItems`e çevrildi —
+// aynı dosyada zaten duran, demo üretmeyen ikizlerine. Yeni işletme artık
+// BOŞ liste görür. Boş liste dürüsttür; uydurma kayıt değildir.
+//
+// Geri yazmak isteyen için: gerekçe docs/kararlar/kaldirilan-moduller.md'de.
+// ═══════════════════════════════════════════════════════════════════════════
 
 const createDemoBusinessApplications = (now = new Date().toISOString()): BusinessApplication[] => {
   const approvedDate = new Date(now)
@@ -3784,7 +3398,7 @@ export const saveProducts = (items: Product[]) => {
 }
 
 export const loadCurrentAccounts = (): CurrentAccount[] => {
-  return loadBranchScopedItemsWithDemo(KEY_CURRENT_ACCOUNTS, createDemoCurrentAccounts, normalizeCurrentAccount)
+  return loadBranchScopedItems(KEY_CURRENT_ACCOUNTS, normalizeCurrentAccount)
 }
 
 export const saveCurrentAccounts = (items: CurrentAccount[]) => {
@@ -3792,7 +3406,7 @@ export const saveCurrentAccounts = (items: CurrentAccount[]) => {
 }
 
 export const loadCreditTransactions = (): CreditTransaction[] => {
-  return loadBranchScopedItemsWithDemo(KEY_CREDIT_TRANSACTIONS, createDemoCreditTransactions, normalizeCreditTransaction)
+  return loadBranchScopedItems(KEY_CREDIT_TRANSACTIONS, normalizeCreditTransaction)
 }
 
 export const saveCreditTransactions = (items: CreditTransaction[]) => {
@@ -3800,7 +3414,7 @@ export const saveCreditTransactions = (items: CreditTransaction[]) => {
 }
 
 export const loadSupplierDebts = (): SupplierDebt[] => {
-  return loadBranchScopedItemsWithDemo(KEY_SUPPLIER_DEBTS, createDemoSupplierDebts, normalizeSupplierDebt)
+  return loadBranchScopedItems(KEY_SUPPLIER_DEBTS, normalizeSupplierDebt)
 }
 
 export const saveSupplierDebts = (items: SupplierDebt[]) => {
@@ -3808,7 +3422,7 @@ export const saveSupplierDebts = (items: SupplierDebt[]) => {
 }
 
 export const loadSupplierPayments = (): SupplierPayment[] => {
-  return loadBranchScopedItemsWithDemo(KEY_SUPPLIER_PAYMENTS, createDemoSupplierPayments, normalizeSupplierPayment)
+  return loadBranchScopedItems(KEY_SUPPLIER_PAYMENTS, normalizeSupplierPayment)
 }
 
 export const saveSupplierPayments = (items: SupplierPayment[]) => {
@@ -3824,7 +3438,7 @@ export const saveCashTransactions = (items: CashTransaction[]) => {
 }
 
 export const loadIncomeExpenses = (): IncomeExpense[] => {
-  return loadBranchScopedItemsWithDemo(KEY_INCOME_EXPENSES, createDemoIncomeExpenses, normalizeIncomeExpense)
+  return loadBranchScopedItems(KEY_INCOME_EXPENSES, normalizeIncomeExpense)
 }
 
 export const saveIncomeExpenses = (items: IncomeExpense[]) => {
@@ -3840,7 +3454,7 @@ export const saveCashClosings = (items: CashClosing[]) => {
 }
 
 export const loadCashTransfers = (): CashTransfer[] => {
-  return loadBranchScopedItemsWithDemo(KEY_CASH_TRANSFERS, createDemoCashTransfers, normalizeCashTransfer)
+  return loadBranchScopedItems(KEY_CASH_TRANSFERS, normalizeCashTransfer)
 }
 
 export const saveCashTransfers = (items: CashTransfer[]) => {
@@ -3848,7 +3462,7 @@ export const saveCashTransfers = (items: CashTransfer[]) => {
 }
 
 export const loadCollectionTransactions = (): CollectionTransaction[] => {
-  return loadBranchScopedItemsWithDemo(KEY_COLLECTION_TRANSACTIONS, createDemoCollectionTransactions, normalizeCollectionTransaction)
+  return loadBranchScopedItems(KEY_COLLECTION_TRANSACTIONS, normalizeCollectionTransaction)
 }
 
 export const saveCollectionTransactions = (items: CollectionTransaction[]) => {
@@ -4917,7 +4531,7 @@ export const getCompanyLicenseWarnings = (referenceDate = new Date()): LicenseWa
 }
 
 export const loadEmployees = (): Employee[] => {
-  return loadBranchScopedItemsWithDemo(KEY_EMPLOYEES, createDemoEmployees, normalizeEmployee)
+  return loadBranchScopedItems(KEY_EMPLOYEES, normalizeEmployee)
 }
 
 export const saveEmployees = (items: Employee[]) => {
@@ -4925,7 +4539,7 @@ export const saveEmployees = (items: Employee[]) => {
 }
 
 export const loadShifts = (): Shift[] => {
-  return loadBranchScopedItemsWithDemo(KEY_SHIFTS, createDemoShifts, normalizeShift)
+  return loadBranchScopedItems(KEY_SHIFTS, normalizeShift)
 }
 
 export const saveShifts = (items: Shift[]) => {
@@ -4933,7 +4547,7 @@ export const saveShifts = (items: Shift[]) => {
 }
 
 export const loadAttendances = (): Attendance[] => {
-  return loadBranchScopedItemsWithDemo(KEY_ATTENDANCES, createDemoAttendances, normalizeAttendance)
+  return loadBranchScopedItems(KEY_ATTENDANCES, normalizeAttendance)
 }
 
 export const saveAttendances = (items: Attendance[]) => {
@@ -4941,7 +4555,7 @@ export const saveAttendances = (items: Attendance[]) => {
 }
 
 export const loadEmployeePerformances = (): EmployeePerformance[] => {
-  return loadBranchScopedItemsWithDemo(KEY_EMPLOYEE_PERFORMANCES, createDemoEmployeePerformances, normalizeEmployeePerformance)
+  return loadBranchScopedItems(KEY_EMPLOYEE_PERFORMANCES, normalizeEmployeePerformance)
 }
 
 export const saveEmployeePerformances = (items: EmployeePerformance[]) => {
@@ -4949,7 +4563,7 @@ export const saveEmployeePerformances = (items: EmployeePerformance[]) => {
 }
 
 export const loadEmployeeBonuses = (): EmployeeBonus[] => {
-  return loadBranchScopedItemsWithDemo(KEY_EMPLOYEE_BONUSES, createDemoEmployeeBonuses, normalizeEmployeeBonus)
+  return loadBranchScopedItems(KEY_EMPLOYEE_BONUSES, normalizeEmployeeBonus)
 }
 
 export const saveEmployeeBonuses = (items: EmployeeBonus[]) => {
@@ -4957,7 +4571,7 @@ export const saveEmployeeBonuses = (items: EmployeeBonus[]) => {
 }
 
 export const loadEmployeeAudits = (): EmployeeAudit[] => {
-  return loadBranchScopedItemsWithDemo(KEY_EMPLOYEE_AUDITS, createDemoEmployeeAudits, normalizeEmployeeAudit)
+  return loadBranchScopedItems(KEY_EMPLOYEE_AUDITS, normalizeEmployeeAudit)
 }
 
 export const saveEmployeeAudits = (items: EmployeeAudit[]) => {
@@ -4983,18 +4597,18 @@ export const loadBranchReportingData = () => {
     stockItems: loadAllBranchScopedItems<StockItem>(KEY_STOCK_ITEMS, item => normalizeStockItem(item, fallbackStockCategoryId)),
     stockExpiryLots: loadAllBranchScopedItems<StockExpiryLot>(KEY_STOCK_EXPIRY_LOTS, normalizeStockExpiryLot, lot => Boolean(lot.stockItemId)),
     stockWasteRecords: loadAllBranchScopedItems<StockWasteRecord>(KEY_STOCK_WASTE_RECORDS, normalizeStockWasteRecord, record => Boolean(record.stockItemId && record.stockMovementId)),
-    currentAccounts: loadAllBranchScopedItemsWithDemo<CurrentAccount>(KEY_CURRENT_ACCOUNTS, createDemoCurrentAccounts, normalizeCurrentAccount),
-    creditTransactions: loadAllBranchScopedItemsWithDemo<CreditTransaction>(KEY_CREDIT_TRANSACTIONS, createDemoCreditTransactions, normalizeCreditTransaction),
-    collectionTransactions: loadAllBranchScopedItemsWithDemo<CollectionTransaction>(KEY_COLLECTION_TRANSACTIONS, createDemoCollectionTransactions, normalizeCollectionTransaction),
-    supplierDebts: loadAllBranchScopedItemsWithDemo<SupplierDebt>(KEY_SUPPLIER_DEBTS, createDemoSupplierDebts, normalizeSupplierDebt),
-    supplierPayments: loadAllBranchScopedItemsWithDemo<SupplierPayment>(KEY_SUPPLIER_PAYMENTS, createDemoSupplierPayments, normalizeSupplierPayment),
+    currentAccounts: loadAllBranchScopedItems<CurrentAccount>(KEY_CURRENT_ACCOUNTS, normalizeCurrentAccount),
+    creditTransactions: loadAllBranchScopedItems<CreditTransaction>(KEY_CREDIT_TRANSACTIONS, normalizeCreditTransaction),
+    collectionTransactions: loadAllBranchScopedItems<CollectionTransaction>(KEY_COLLECTION_TRANSACTIONS, normalizeCollectionTransaction),
+    supplierDebts: loadAllBranchScopedItems<SupplierDebt>(KEY_SUPPLIER_DEBTS, normalizeSupplierDebt),
+    supplierPayments: loadAllBranchScopedItems<SupplierPayment>(KEY_SUPPLIER_PAYMENTS, normalizeSupplierPayment),
     cashTransactions: loadAllBranchScopedItems<CashTransaction>(KEY_CASH_TRANSACTIONS, normalizeCashTransaction),
     cashClosings: loadAllBranchScopedItems<CashClosing>(KEY_CASH_CLOSINGS, normalizeCashClosing),
-    employees: loadAllBranchScopedItemsWithDemo<Employee>(KEY_EMPLOYEES, createDemoEmployees, normalizeEmployee),
-    attendances: loadAllBranchScopedItemsWithDemo<Attendance>(KEY_ATTENDANCES, createDemoAttendances, normalizeAttendance),
-    employeePerformances: loadAllBranchScopedItemsWithDemo<EmployeePerformance>(KEY_EMPLOYEE_PERFORMANCES, createDemoEmployeePerformances, normalizeEmployeePerformance),
-    employeeBonuses: loadAllBranchScopedItemsWithDemo<EmployeeBonus>(KEY_EMPLOYEE_BONUSES, createDemoEmployeeBonuses, normalizeEmployeeBonus),
-    employeeAudits: loadAllBranchScopedItemsWithDemo<EmployeeAudit>(KEY_EMPLOYEE_AUDITS, createDemoEmployeeAudits, normalizeEmployeeAudit),
+    employees: loadAllBranchScopedItems<Employee>(KEY_EMPLOYEES, normalizeEmployee),
+    attendances: loadAllBranchScopedItems<Attendance>(KEY_ATTENDANCES, normalizeAttendance),
+    employeePerformances: loadAllBranchScopedItems<EmployeePerformance>(KEY_EMPLOYEE_PERFORMANCES, normalizeEmployeePerformance),
+    employeeBonuses: loadAllBranchScopedItems<EmployeeBonus>(KEY_EMPLOYEE_BONUSES, normalizeEmployeeBonus),
+    employeeAudits: loadAllBranchScopedItems<EmployeeAudit>(KEY_EMPLOYEE_AUDITS, normalizeEmployeeAudit),
     branchStockTransfers: loadBranchStockTransfers(),
     branchPermissions: loadBranchPermissions()
   }
@@ -5039,7 +4653,7 @@ export const runTenantIsolationTest = ({
     { type: 'Categories', records: categories },
     { type: 'Stocks', records: loadAllBranchScopedItems<StockItem>(KEY_STOCK_ITEMS, item => normalizeStockItem(item, fallbackStockCategoryId)) },
     { type: 'Recipes', records: loadAllBranchScopedItems<Recipe>(KEY_RECIPES, normalizeRecipe) },
-    { type: 'Customers', records: loadAllBranchScopedItemsWithDemo<CurrentAccount>(KEY_CURRENT_ACCOUNTS, createDemoCurrentAccounts, normalizeCurrentAccount) },
+    { type: 'Customers', records: loadAllBranchScopedItems<CurrentAccount>(KEY_CURRENT_ACCOUNTS, normalizeCurrentAccount) },
     { type: 'CashMovements', records: loadAllBranchScopedItems<CashTransaction>(KEY_CASH_TRANSACTIONS, normalizeCashTransaction) },
     { type: 'ActionHistory', records: loadActionLogs() }
   ]
