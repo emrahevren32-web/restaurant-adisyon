@@ -2171,90 +2171,7 @@ const normalizeApplicationNote = (item: Partial<ApplicationNote>): ApplicationNo
 // Geri yazmak isteyen için: gerekçe docs/kararlar/kaldirilan-moduller.md'de.
 // ═══════════════════════════════════════════════════════════════════════════
 
-const createDemoBusinessApplications = (now = new Date().toISOString()): BusinessApplication[] => {
-  const approvedDate = new Date(now)
-  approvedDate.setDate(approvedDate.getDate() - 8)
-  const rejectedDate = new Date(now)
-  rejectedDate.setDate(rejectedDate.getDate() - 2)
 
-  return [
-    normalizeBusinessApplication({
-      id: 'business_application_abc_cafe_demo',
-      primarySectorId: createSectorId(SECTOR_CODES.CAFE),
-      companyName: 'ABC Cafe',
-      ownerName: 'Ahmet Kaya',
-      phone: '0532 000 00 01',
-      email: 'basvuru@abccafe.com',
-      taxNumber: '1234567890',
-      taxOffice: 'Kadıköy',
-      city: 'İstanbul',
-      district: 'Kadıköy',
-      address: 'Caferağa Mahallesi No: 12',
-      status: 'Beklemede',
-      approvalNote: '',
-      createdAt: now,
-      updatedAt: now
-    }),
-    normalizeBusinessApplication({
-      id: 'business_application_ornek_isletme_demo',
-      primarySectorId: DEFAULT_SECTOR_ID,
-      companyName: 'Örnek İşletme',
-      ownerName: 'Mehmet Demir',
-      phone: '0532 000 00 02',
-      email: 'yonetim@ornekisletme.com',
-      taxNumber: '2345678901',
-      taxOffice: 'Çankaya',
-      city: 'Ankara',
-      district: 'Çankaya',
-      address: 'Kavaklıdere Cad. No: 8',
-      status: 'Onaylandı',
-      approvalNote: 'Demo onaylı başvuru.',
-      createdAt: approvedDate.toISOString(),
-      updatedAt: approvedDate.toISOString()
-    }),
-    normalizeBusinessApplication({
-      id: 'business_application_kahve_duragi_demo',
-      primarySectorId: createSectorId(SECTOR_CODES.CAFE),
-      companyName: 'Kahve Durağı',
-      ownerName: 'Ayşe Yılmaz',
-      phone: '0532 000 00 03',
-      email: 'info@kahveduragi.com',
-      taxNumber: '3456789012',
-      taxOffice: 'Konak',
-      city: 'İzmir',
-      district: 'Konak',
-      address: 'Alsancak Mahallesi No: 4',
-      status: 'Reddedildi',
-      approvalNote: 'Vergi bilgileri eksik.',
-      createdAt: rejectedDate.toISOString(),
-      updatedAt: rejectedDate.toISOString()
-    })
-  ]
-}
-
-const createDemoApplicationNotes = (now = new Date().toISOString()): ApplicationNote[] => [
-  normalizeApplicationNote({
-    id: 'application_note_abc_demo',
-    applicationId: 'business_application_abc_cafe_demo',
-    note: 'Demo bekleyen başvuru.',
-    createdBy: 'Sistem',
-    createdAt: now
-  }),
-  normalizeApplicationNote({
-    id: 'application_note_lezzet_demo',
-    applicationId: 'business_application_ornek_isletme_demo',
-    note: 'Onay sonrası demo firma kayıtları hazır.',
-    createdBy: 'Demo Admin',
-    createdAt: now
-  }),
-  normalizeApplicationNote({
-    id: 'application_note_kahve_demo',
-    applicationId: 'business_application_kahve_duragi_demo',
-    note: 'Red sebebi: Vergi bilgileri eksik.',
-    createdBy: 'Demo Admin',
-    createdAt: now
-  })
-]
 
 const normalizeBusinessRegistrationStatus = (value: unknown): BusinessRegistrationStatus => {
   return BUSINESS_REGISTRATION_STATUSES.includes(value as BusinessRegistrationStatus)
@@ -2296,74 +2213,6 @@ const normalizeBusinessRegistration = (item: Partial<BusinessRegistration>): Bus
   }
 }
 
-const createDemoBusinessRegistrations = (now = new Date().toISOString()): BusinessRegistration[] => {
-  const lastWeek = new Date()
-  lastWeek.setDate(lastWeek.getDate() - 7)
-  const yesterday = new Date()
-  yesterday.setDate(yesterday.getDate() - 1)
-
-  return [
-    normalizeBusinessRegistration({
-      id: 'business_registration_abc_cafe_demo',
-      businessName: 'ABC Cafe',
-      ownerName: 'Ahmet Kaya',
-      phone: '0532 000 00 01',
-      email: 'basvuru@abccafe.com',
-      city: 'İstanbul',
-      district: 'Kadıköy',
-      taxNumber: '1234567890',
-      taxOffice: 'Kadıköy',
-      address: 'Caferağa Mahallesi No: 12',
-      branchCount: 1,
-      requestedPackage: 'Başlangıç',
-      status: 'Onaylandı',
-      notes: 'Demo kurulum bekleyen onaylı başvuru.',
-      approvedBy: 'Demo Admin',
-      approvedAt: yesterday.toISOString(),
-      createdAt: yesterday.toISOString(),
-      updatedAt: yesterday.toISOString()
-    }),
-    normalizeBusinessRegistration({
-      id: 'business_registration_ornek_isletme_demo',
-      businessName: 'Örnek İşletme',
-      ownerName: 'Mehmet Demir',
-      phone: '0532 000 00 02',
-      email: 'yonetim@ornekisletme.com',
-      city: 'Ankara',
-      district: 'Çankaya',
-      taxNumber: '2345678901',
-      taxOffice: 'Çankaya',
-      address: 'Kavaklıdere Cad. No: 8',
-      branchCount: 2,
-      requestedPackage: 'Pro',
-      status: 'Onaylandı',
-      notes: 'Demo onaylı başvuru.',
-      approvedBy: 'Demo Admin',
-      approvedAt: lastWeek.toISOString(),
-      createdAt: lastWeek.toISOString(),
-      updatedAt: lastWeek.toISOString()
-    }),
-    normalizeBusinessRegistration({
-      id: 'business_registration_kahve_duragi_demo',
-      businessName: 'Kahve Durağı',
-      ownerName: 'Ayşe Yılmaz',
-      phone: '0532 000 00 03',
-      email: 'info@kahveduragi.com',
-      city: 'İzmir',
-      district: 'Konak',
-      taxNumber: '3456789012',
-      taxOffice: 'Konak',
-      address: 'Alsancak Mahallesi No: 4',
-      branchCount: 1,
-      requestedPackage: 'Premium',
-      status: 'Reddedildi',
-      notes: 'Demo reddedilen başvuru.',
-      rejectedReason: 'Vergi bilgileri eksik.',
-      createdAt: now,
-      updatedAt: now
-    })
-  ]
-}
 
 const normalizeCompanyStatus = (value: unknown): CompanyStatus => {
   return COMPANY_STATUSES.includes(value as CompanyStatus)
@@ -2501,47 +2350,6 @@ const normalizeCompanySetup = (item: Partial<CompanySetup>): CompanySetup => {
 // "Kahve Durağı" — uydurma vergi numarası, vergi dairesi ve adresle.
 // Firma Profili ekranı ve EVREN360 müşteri listesi bunları okuyordu.
 
-const createDemoCompanySetups = (now = new Date().toISOString()): CompanySetup[] => [
-  normalizeCompanySetup({
-    id: 'company_setup_abc_cafe_demo',
-    registrationId: 'business_registration_abc_cafe_demo',
-    companyId: 'company_abc_cafe_demo',
-    branchId: 'branch_merkez',
-    adminUserId: 'user_abc_cafe_admin_demo',
-    temporaryPassword: 'MIYOP-1024',
-    setupCompleted: true,
-    installationCompleted: true,
-    completedAt: now,
-    createdAt: now,
-    updatedAt: now
-  }),
-  normalizeCompanySetup({
-    id: 'company_setup_ornek_isletme_demo',
-    registrationId: 'business_registration_ornek_isletme_demo',
-    companyId: 'company_ornek_isletme_demo',
-    branchId: 'branch_ornek_isletme_merkez_demo',
-    adminUserId: 'user_ornek_isletme_admin_demo',
-    temporaryPassword: 'MIYOP-4837',
-    setupCompleted: true,
-    installationCompleted: true,
-    completedAt: now,
-    createdAt: now,
-    updatedAt: now
-  }),
-  normalizeCompanySetup({
-    id: 'company_setup_kahve_duragi_demo',
-    registrationId: 'business_registration_kahve_duragi_demo',
-    companyId: 'company_kahve_duragi_demo',
-    branchId: 'branch_izmir',
-    adminUserId: 'user_kahve_duragi_admin_demo',
-    temporaryPassword: 'MIYOP-9142',
-    setupCompleted: true,
-    installationCompleted: true,
-    completedAt: now,
-    createdAt: now,
-    updatedAt: now
-  })
-]
 
 const normalizeSaasDateKey = (value: unknown, fallbackDate = new Date()) => {
   const raw = String(value || '').trim()
@@ -2627,109 +2435,6 @@ const normalizeUserSubscription = (item: Partial<UserSubscription>): UserSubscri
   }
 }
 
-const createDemoCompanyUsers = (now = new Date().toISOString()): CompanyUser[] => {
-  const today = new Date(now)
-  const yesterday = new Date(now)
-  yesterday.setDate(yesterday.getDate() - 1)
-  const lastWeek = new Date(now)
-  lastWeek.setDate(lastWeek.getDate() - 7)
-  const lastMonth = new Date(now)
-  lastMonth.setDate(lastMonth.getDate() - 31)
-
-  return [
-    normalizeCompanyUser({
-      id: 'company_user_abc_admin_demo',
-      companyId: 'company_abc_cafe_demo',
-      fullName: 'ABC Admin',
-      username: 'abc.admin',
-      email: 'admin@abccafe.com',
-      phone: '0532 100 00 01',
-      role: 'Admin',
-      status: 'Aktif',
-      lastLogin: today.toLocaleDateString('sv-SE'),
-      createdAt: now,
-      updatedAt: now
-    }),
-    normalizeCompanyUser({
-      id: 'company_user_abc_personel_1_demo',
-      companyId: 'company_abc_cafe_demo',
-      fullName: 'Personel 1',
-      username: 'abc.personel1',
-      email: 'personel1@abccafe.com',
-      phone: '0532 100 00 02',
-      role: 'Personel',
-      status: 'Aktif',
-      lastLogin: yesterday.toLocaleDateString('sv-SE'),
-      createdAt: now,
-      updatedAt: now
-    }),
-    normalizeCompanyUser({
-      id: 'company_user_abc_personel_2_demo',
-      companyId: 'company_abc_cafe_demo',
-      fullName: 'Personel 2',
-      username: 'abc.personel2',
-      email: 'personel2@abccafe.com',
-      phone: '0532 100 00 03',
-      role: 'Personel',
-      status: 'Aktif',
-      lastLogin: lastWeek.toLocaleDateString('sv-SE'),
-      createdAt: now,
-      updatedAt: now
-    }),
-    normalizeCompanyUser({
-      id: 'company_user_abc_operasyon_demo',
-      companyId: 'company_abc_cafe_demo',
-      fullName: 'Operasyon',
-      username: 'abc.operasyon',
-      email: 'operasyon@abccafe.com',
-      phone: '0532 100 00 04',
-      role: 'Operasyon',
-      status: 'Aktif',
-      lastLogin: '',
-      createdAt: now,
-      updatedAt: now
-    }),
-    normalizeCompanyUser({
-      id: 'company_user_lezzet_owner_demo',
-      companyId: 'company_ornek_isletme_demo',
-      fullName: 'Firma Sahibi',
-      username: 'lezzet.sahip',
-      email: 'sahip@ornekisletme.com',
-      phone: '0532 200 00 01',
-      role: 'Firma Sahibi',
-      status: 'Aktif',
-      lastLogin: today.toLocaleDateString('sv-SE'),
-      createdAt: now,
-      updatedAt: now
-    }),
-    normalizeCompanyUser({
-      id: 'company_user_lezzet_yonetici_demo',
-      companyId: 'company_ornek_isletme_demo',
-      fullName: 'Yönetici',
-      username: 'lezzet.yonetici',
-      email: 'yonetici@ornekisletme.com',
-      phone: '0532 200 00 02',
-      role: 'Yönetici',
-      status: 'Aktif',
-      lastLogin: yesterday.toLocaleDateString('sv-SE'),
-      createdAt: now,
-      updatedAt: now
-    }),
-    normalizeCompanyUser({
-      id: 'company_user_lezzet_muhasebe_demo',
-      companyId: 'company_ornek_isletme_demo',
-      fullName: 'Muhasebe',
-      username: 'lezzet.muhasebe',
-      email: 'muhasebe@ornekisletme.com',
-      phone: '0532 200 00 03',
-      role: 'Muhasebe',
-      status: 'Aktif',
-      lastLogin: lastMonth.toLocaleDateString('sv-SE'),
-      createdAt: now,
-      updatedAt: now
-    })
-  ]
-}
 
 const normalizeLicenseModuleKey = (value: unknown): LicenseModuleKey => {
   const key = String(value || '').trim() as LicenseModuleKey
@@ -2971,7 +2676,7 @@ const defaultPackageSpecs: Array<{
   }
 ]
 
-const createDemoLicensePackages = (now = new Date().toISOString()): LicensePackage[] => {
+const varsayilanLisansPaketleri = (now = new Date().toISOString()): LicensePackage[] => {
   return defaultPackageSpecs.map(spec => normalizeLicensePackage({
     id: spec.id,
     name: spec.name,
@@ -2989,7 +2694,7 @@ const createDemoLicensePackages = (now = new Date().toISOString()): LicensePacka
   }))
 }
 
-const createDemoLicenseModules = (packages = createDemoLicensePackages(), now = new Date().toISOString()): LicenseModule[] => {
+const varsayilanLisansModulleri = (packages = varsayilanLisansPaketleri(), now = new Date().toISOString()): LicenseModule[] => {
   const specMap = new Map(defaultPackageSpecs.map(spec => [spec.id, spec]))
 
   return packages.flatMap(packageItem => {
@@ -3008,126 +2713,7 @@ const createDemoLicenseModules = (packages = createDemoLicensePackages(), now = 
   })
 }
 
-const createDemoCompanyLicenses = (now = new Date().toISOString()): CompanyLicense[] => {
-  const paidStartDate = new Date(now)
-  paidStartDate.setDate(paidStartDate.getDate() - 30)
-  const paidEndDate = new Date(paidStartDate)
-  paidEndDate.setFullYear(paidEndDate.getFullYear() + 1)
-  const trialStartDate = new Date(now)
-  trialStartDate.setDate(trialStartDate.getDate() - 3)
-  const trialEndDate = new Date(trialStartDate)
-  trialEndDate.setDate(trialEndDate.getDate() + 14)
 
-  return [
-    normalizeCompanyLicense({
-      id: 'company_license_abc_cafe_demo',
-      companyId: 'company_abc_cafe_demo',
-      packageId: 'license_package_baslangic',
-      licenseKey: 'RA-ABCCFE-BASL-DEMO01',
-      startDate: paidStartDate.toLocaleDateString('sv-SE'),
-      endDate: paidEndDate.toLocaleDateString('sv-SE'),
-      status: 'Aktif',
-      isTrial: false,
-      trialEndDate: '',
-      lastRenewalDate: paidStartDate.toLocaleDateString('sv-SE'),
-      nextRenewalDate: paidEndDate.toLocaleDateString('sv-SE'),
-      createdAt: now,
-      updatedAt: now
-    }),
-    normalizeCompanyLicense({
-      id: 'company_license_ornek_isletme_demo',
-      companyId: 'company_ornek_isletme_demo',
-      packageId: 'license_package_pro',
-      licenseKey: 'RA-LEZZET-PRO-DEMO02',
-      startDate: paidStartDate.toLocaleDateString('sv-SE'),
-      endDate: paidEndDate.toLocaleDateString('sv-SE'),
-      status: 'Aktif',
-      isTrial: false,
-      trialEndDate: '',
-      lastRenewalDate: paidStartDate.toLocaleDateString('sv-SE'),
-      nextRenewalDate: paidEndDate.toLocaleDateString('sv-SE'),
-      createdAt: now,
-      updatedAt: now
-    }),
-    normalizeCompanyLicense({
-      id: 'company_license_kahve_duragi_demo',
-      companyId: 'company_kahve_duragi_demo',
-      packageId: 'license_package_premium',
-      licenseKey: 'RA-KAHVE-PREM-DEMO03',
-      startDate: trialStartDate.toLocaleDateString('sv-SE'),
-      endDate: trialEndDate.toLocaleDateString('sv-SE'),
-      status: 'Deneme',
-      isTrial: true,
-      trialEndDate: trialEndDate.toLocaleDateString('sv-SE'),
-      lastRenewalDate: '',
-      nextRenewalDate: trialEndDate.toLocaleDateString('sv-SE'),
-      createdAt: now,
-      updatedAt: now
-    })
-  ]
-}
-
-const createDemoUserSubscriptions = (
-  companyLicenses = createDemoCompanyLicenses(),
-  now = new Date().toISOString()
-): UserSubscription[] => {
-  const licenseMap = new Map(companyLicenses.map(license => [license.id, license]))
-  const subscriptionRows: Array<Partial<UserSubscription>> = [
-    {
-      id: 'user_subscription_abc_admin_demo',
-      userId: 'company_user_abc_admin_demo',
-      companyLicenseId: 'company_license_abc_cafe_demo',
-      status: 'Aktif'
-    },
-    {
-      id: 'user_subscription_abc_personel_1_demo',
-      userId: 'company_user_abc_personel_1_demo',
-      companyLicenseId: 'company_license_abc_cafe_demo',
-      status: 'Aktif'
-    },
-    {
-      id: 'user_subscription_abc_personel_2_demo',
-      userId: 'company_user_abc_personel_2_demo',
-      companyLicenseId: 'company_license_abc_cafe_demo',
-      status: 'Aktif'
-    },
-    {
-      id: 'user_subscription_abc_operasyon_demo',
-      userId: 'company_user_abc_operasyon_demo',
-      companyLicenseId: 'company_license_abc_cafe_demo',
-      status: 'Beklemede'
-    },
-    {
-      id: 'user_subscription_lezzet_owner_demo',
-      userId: 'company_user_lezzet_owner_demo',
-      companyLicenseId: 'company_license_ornek_isletme_demo',
-      status: 'Aktif'
-    },
-    {
-      id: 'user_subscription_lezzet_yonetici_demo',
-      userId: 'company_user_lezzet_yonetici_demo',
-      companyLicenseId: 'company_license_ornek_isletme_demo',
-      status: 'Aktif'
-    },
-    {
-      id: 'user_subscription_lezzet_muhasebe_demo',
-      userId: 'company_user_lezzet_muhasebe_demo',
-      companyLicenseId: 'company_license_ornek_isletme_demo',
-      status: 'Aktif'
-    }
-  ]
-
-  return subscriptionRows.map(row => {
-    const license = row.companyLicenseId ? licenseMap.get(row.companyLicenseId) : undefined
-    return normalizeUserSubscription({
-      ...row,
-      assignedAt: license?.startDate || new Date(now).toLocaleDateString('sv-SE'),
-      expiresAt: license ? getLicenseDeadline(license) : '',
-      createdAt: now,
-      updatedAt: now
-    })
-  })
-}
 
 const normalizePlatformModuleStatus = (item: Partial<PlatformModuleStatus>): PlatformModuleStatus => {
   const timestamp = item.createdAt || new Date().toISOString()
@@ -3184,35 +2770,6 @@ const normalizePlatformSupportTicket = (item: Partial<PlatformSupportTicket>): P
   }
 }
 
-const createDemoPlatformSupportTickets = (now = new Date().toISOString()): PlatformSupportTicket[] => {
-  const firstDate = new Date(now)
-  firstDate.setDate(firstDate.getDate() - 2)
-  const secondDate = new Date(now)
-  secondDate.setDate(secondDate.getDate() - 5)
-
-  return [
-    normalizePlatformSupportTicket({
-      id: 'platform_support_ticket_abc_demo',
-      companyId: 'company_abc_cafe_demo',
-      subject: 'QR menü güncelleme kontrolü',
-      message: 'ABC Cafe menü görsellerinin mobilde daha hızlı açılması için destek istiyor.',
-      status: 'Açık',
-      priority: 'Orta',
-      createdAt: firstDate.toISOString(),
-      updatedAt: firstDate.toISOString()
-    }),
-    normalizePlatformSupportTicket({
-      id: 'platform_support_ticket_lezzet_demo',
-      companyId: 'company_ornek_isletme_demo',
-      subject: 'Çoklu şube raporu',
-      message: 'Örnek İşletme şube raporunda tarih filtresi doğrulaması istedi.',
-      status: 'İnceleniyor',
-      priority: 'Yüksek',
-      createdAt: secondDate.toISOString(),
-      updatedAt: secondDate.toISOString()
-    })
-  ]
-}
 
 const normalizePlatformSettings = (item: Partial<PlatformSettings>): PlatformSettings => {
   const timestamp = item.createdAt || new Date().toISOString()
@@ -3888,11 +3445,39 @@ export const saveBranchStockTransfers = (items: BranchStockTransfer[]) => {
   localStorage.setItem(KEY_BRANCH_STOCK_TRANSFERS, JSON.stringify(normalizedItems))
 }
 
+// ═══════════════════════════════════════════════════════════════════════════
+// ⚠️ SEKİZ PLATFORM ÜRETİCİSİ BURADAYDI · 31.10.2026 · SİLİNDİ (A4 · 2. yarı)
+//
+// createDemoBusinessApplications · createDemoApplicationNotes ·
+// createDemoBusinessRegistrations · createDemoCompanySetups ·
+// createDemoCompanyLicenses · createDemoCompanyUsers ·
+// createDemoUserSubscriptions · createDemoPlatformSupportTickets
+//
+// ── NEDEN ─────────────────────────────────────────────────────────────────
+// EVREN360 panelinde uydurma başvuru, uydurma firma kurulumu, uydurma lisans,
+// uydurma panel kullanıcısı, uydurma abonelik ve uydurma destek talebi
+// gösteriyorlardı. Müşteri görmüyordu — ama *mış gibi*liğin müşteriye
+// görünmeyeni de *mış gibi*dir. Karar (Emrah, 31.10.2026):
+// *"Boşalt, gerçeğe bağlanana kadar boş kalsın — panel bugün yalan söylemez
+//  ama birkaç ekran boş görünür."*
+//
+// Çağrılar artık doğrudan `readJson(KEY, [])` okuyor: kayıt yoksa BOŞ liste.
+//
+// ⚠️ İKİ FONKSİYON BİLEREK KALDI ve ADLARI DEĞİŞTİ:
+//   createDemoLicensePackages → varsayilanLisansPaketleri
+//   createDemoLicenseModules  → varsayilanLisansModulleri
+// Sebep: bu ikisi UYDURMA KAYIT DEĞİL, ÜRÜN KATALOĞU. `defaultPackageSpecs`
+// sabitinden türüyorlar — MİYOP'un gerçekten sattığı planlar ve her planın
+// hangi modülleri içerdiği. Silmek, lisans ekranlarını plansız bırakırdı;
+// kazanç yok, kayıp var. Adları yanıltıcıydı: "demo" değiller, varsayılan.
+// ⚠️ Sayımdan ad değiştirerek çıkmak SAKLAMAK olurdu — bu yüzden çıcıra
+// ayrı bir sınama eklendi: bu iki adın `createDemo` önekiyle geri gelmesi
+// yasak, ve gerekçe burada yazılı.
+// ═══════════════════════════════════════════════════════════════════════════
+
 export const loadBusinessApplications = (): BusinessApplication[] => {
   const storedApplications = localStorage.getItem(KEY_BUSINESS_APPLICATIONS)
-  const applications = storedApplications === null
-    ? createDemoBusinessApplications()
-    : readJson<Partial<BusinessApplication>[]>(KEY_BUSINESS_APPLICATIONS, []).map(normalizeBusinessApplication)
+  const applications = readJson<Partial<BusinessApplication>[]>(KEY_BUSINESS_APPLICATIONS, []).map(normalizeBusinessApplication)
 
   if(storedApplications !== null){
     const migratedPayload = JSON.stringify(applications)
@@ -3909,9 +3494,7 @@ export const saveBusinessApplications = (items: BusinessApplication[]) => {
 }
 
 export const loadApplicationNotes = (): ApplicationNote[] => {
-  return localStorage.getItem(KEY_APPLICATION_NOTES) === null
-    ? createDemoApplicationNotes()
-    : readJson<Partial<ApplicationNote>[]>(KEY_APPLICATION_NOTES, []).map(normalizeApplicationNote).filter(note => note.applicationId)
+  return readJson<Partial<ApplicationNote>[]>(KEY_APPLICATION_NOTES, []).map(normalizeApplicationNote).filter(note => note.applicationId)
 }
 
 export const saveApplicationNotes = (items: ApplicationNote[]) => {
@@ -3919,9 +3502,7 @@ export const saveApplicationNotes = (items: ApplicationNote[]) => {
 }
 
 export const loadBusinessRegistrations = (): BusinessRegistration[] => {
-  const registrations = localStorage.getItem(KEY_BUSINESS_REGISTRATIONS) === null
-    ? createDemoBusinessRegistrations()
-    : readJson<Partial<BusinessRegistration>[]>(KEY_BUSINESS_REGISTRATIONS, []).map(normalizeBusinessRegistration)
+  const registrations = readJson<Partial<BusinessRegistration>[]>(KEY_BUSINESS_REGISTRATIONS, []).map(normalizeBusinessRegistration)
   const currentUser = getCurrentUser()
   return currentUser ? filterTenantScope(registrations, currentUser) : registrations
 }
@@ -3993,9 +3574,7 @@ export const saveCompanies = (items: Company[]) => {
 }
 
 export const loadCompanySetups = (options: { allTenants?: boolean } = {}): CompanySetup[] => {
-  const setups = localStorage.getItem(KEY_COMPANY_SETUPS) === null
-    ? createDemoCompanySetups()
-    : readJson<Partial<CompanySetup>[]>(KEY_COMPANY_SETUPS, []).map(normalizeCompanySetup)
+  const setups = readJson<Partial<CompanySetup>[]>(KEY_COMPANY_SETUPS, []).map(normalizeCompanySetup)
   if(options.allTenants) return setups
 
   const currentUser = getCurrentUser()
@@ -4023,7 +3602,7 @@ export const saveTenantSettings = (items: TenantSettings[]) => {
 }
 
 export const loadLicensePackages = (): LicensePackage[] => {
-  const defaultPackages = createDemoLicensePackages()
+  const defaultPackages = varsayilanLisansPaketleri()
   const sourceItems = localStorage.getItem(KEY_LICENSE_PACKAGES) === null
     ? defaultPackages
     : readJson<Partial<LicensePackage>[]>(KEY_LICENSE_PACKAGES, []).map(normalizeLicensePackage)
@@ -4043,7 +3622,7 @@ export const saveLicensePackages = (items: LicensePackage[]) => {
 export const loadLicenseModules = (): LicenseModule[] => {
   const packages = loadLicensePackages()
   const sourceModules = localStorage.getItem(KEY_LICENSE_MODULES) === null
-    ? createDemoLicenseModules(packages)
+    ? varsayilanLisansModulleri(packages)
     : readJson<Partial<LicenseModule>[]>(KEY_LICENSE_MODULES, []).map(normalizeLicenseModule)
   const moduleMap = new Map(sourceModules.map(module => [`${module.packageId}:${module.moduleKey}`, module]))
   const specMap = new Map(defaultPackageSpecs.map(spec => [spec.id, spec]))
@@ -4075,9 +3654,7 @@ export const saveLicenseModules = (items: LicenseModule[]) => {
 }
 
 export const loadCompanyLicenses = (options: { allTenants?: boolean } = {}): CompanyLicense[] => {
-  const licenses = localStorage.getItem(KEY_COMPANY_LICENSES) === null
-    ? createDemoCompanyLicenses().map(normalizeCompanyLicenseWithRuntimeStatus)
-    : readJson<Partial<CompanyLicense>[]>(KEY_COMPANY_LICENSES, []).map(normalizeCompanyLicenseWithRuntimeStatus)
+  const licenses = readJson<Partial<CompanyLicense>[]>(KEY_COMPANY_LICENSES, []).map(normalizeCompanyLicenseWithRuntimeStatus)
   if(options.allTenants) return licenses
 
   const currentUser = getCurrentUser()
@@ -4089,9 +3666,7 @@ export const saveCompanyLicenses = (items: CompanyLicense[]) => {
 }
 
 export const loadCompanyUsers = (options: { allTenants?: boolean } = {}): CompanyUser[] => {
-  const users = localStorage.getItem(KEY_COMPANY_USERS) === null
-    ? createDemoCompanyUsers()
-    : readJson<Partial<CompanyUser>[]>(KEY_COMPANY_USERS, []).map(normalizeCompanyUser)
+  const users = readJson<Partial<CompanyUser>[]>(KEY_COMPANY_USERS, []).map(normalizeCompanyUser)
   if(options.allTenants) return users
 
   const currentUser = getCurrentUser()
@@ -4103,9 +3678,7 @@ export const saveCompanyUsers = (items: CompanyUser[]) => {
 }
 
 export const loadUserSubscriptions = (): UserSubscription[] => {
-  const subscriptions = localStorage.getItem(KEY_USER_SUBSCRIPTIONS) === null
-    ? createDemoUserSubscriptions(loadCompanyLicenses())
-    : readJson<Partial<UserSubscription>[]>(KEY_USER_SUBSCRIPTIONS, []).map(normalizeUserSubscription)
+  const subscriptions = readJson<Partial<UserSubscription>[]>(KEY_USER_SUBSCRIPTIONS, []).map(normalizeUserSubscription)
   const currentUser = getCurrentUser()
   return currentUser ? filterTenantScope(subscriptions, currentUser) : subscriptions
 }
@@ -4134,9 +3707,7 @@ export const savePlatformModules = (items: PlatformModuleStatus[]) => {
 }
 
 export const loadPlatformSupportTickets = (): PlatformSupportTicket[] => {
-  const tickets = localStorage.getItem(KEY_PLATFORM_SUPPORT_TICKETS) === null
-    ? createDemoPlatformSupportTickets()
-    : readJson<Partial<PlatformSupportTicket>[]>(KEY_PLATFORM_SUPPORT_TICKETS, []).map(normalizePlatformSupportTicket)
+  const tickets = readJson<Partial<PlatformSupportTicket>[]>(KEY_PLATFORM_SUPPORT_TICKETS, []).map(normalizePlatformSupportTicket)
   const currentUser = getCurrentUser()
   return currentUser ? filterTenantScope(tickets, currentUser) : tickets
 }

@@ -37,7 +37,19 @@ const yorumsuz = (metin: string) => metin
   .replace(/^\s*\/\/.*$/gm, ' ')
 
 /**
- * ⚠️ 31.10.2026 · 23 → **10** (A4 · on üç üretici silindi, 408 satır).
+ * ⚠️ 31.10.2026 · 23 → **0**. A4 bitti; `storage.ts` içinde tek bir
+ * `createDemo*` kalmadı. Toplam **851 satır** uydurma veri silindi.
+ *
+ * İki turda yapıldı:
+ *   1. kiracı tarafı · 13 üretici + mekanizma (408 satır)
+ *   2. platform (EVREN360) · 8 üretici (443 satır)
+ *
+ * ⚠️ İKİ FONKSİYON SİLİNMEDİ, ADI DEĞİŞTİ: `varsayilanLisansPaketleri` ve
+ * `varsayilanLisansModulleri`. Uydurma kayıt değil, ÜRÜN KATALOĞU
+ * (`defaultPackageSpecs`ten türüyorlar). Ad değiştirip sayımdan çıkmak
+ * saklamak olurdu; aşağıda ayrı bir sınama onu dürüst tutuyor.
+ *
+ * ⚠️ 31.10.2026 · birinci tur: 23 → **10** (on üç üretici, 408 satır).
  * Silinenler: personel altısı (employees, shifts, attendances, performances,
  * bonuses, audits) ve finans yedisi (currentAccounts, creditTransactions,
  * supplierDebts, supplierPayments, collectionTransactions, cashTransfers,
@@ -63,7 +75,7 @@ const yorumsuz = (metin: string) => metin
  * (`createDemoAnnouncements` bu dosyada değildi, `notification.service`
  *  içindeydi; sayım yalnız `storage.ts`i kapsıyor.)
  */
-const UST_SINIR = 10
+const UST_SINIR = 0
 
 describe('sahte veri üreticisi çıcırı', () => {
   // ⚠️ MIYOP-073 (Codex, 25.10) · `export const` KAÇIYORDU.
@@ -76,9 +88,19 @@ describe('sahte veri üreticisi çıcırı', () => {
   const ureticiler = [...yorumsuz(DEPO).matchAll(/^\s*(?:export\s+)?const (createDemo[A-Za-z]+)\s*=/gm)]
     .map(m => m[1] as string)
 
-  it('sağlama: ölçüm gerçekten bir şey buldu', () => {
-    // ⚠️ "Hiç üretici bulamadım" deyip yeşil geçmek en kötü sonuç (tuzak 58).
-    expect(ureticiler.length).toBeGreaterThan(0)
+  // ⚠️ 31.10.2026 · BU SAĞLAMA YENİDEN YAZILDI VE SEBEBİ ÖNEMLİ.
+  // Eskiden "en az bir üretici bulmalıyım" diyordu, çünkü o gün sıfır
+  // bulmak ancak ölçümün bozulmasıyla mümkündü (tuzak 58).
+  // Bugün sıfır DOĞRU CEVAP: hepsi silindi. O hâlde sağlamanın işi değişti —
+  // artık "ölçüm aracı hâlâ çalışıyor mu" sorusunu sormalı, "sonuç dolu mu"
+  // değil. Yoksa dosya bir gün boşalsa ya da desen bozulsa test yine yeşil
+  // kalır ve çıcır sessizce ölür.
+  it('sağlama: dosya okundu ve ARAÇ hâlâ çalışıyor', () => {
+    expect(DEPO.length, 'storage.ts okunamadı ya da sasirtici kadar kucuk')
+      .toBeGreaterThan(100000)
+    const ornek = 'const createDemoSeyler = () => []\nexport const createDemoBaska = () => []'
+    const bulunan = [...ornek.matchAll(/^\s*(?:export\s+)?const (createDemo[A-Za-z]+)\s*=/gm)]
+    expect(bulunan.length, 'tarama deseni bozulmuş — artık hiçbir şey bulamaz').toBe(2)
   })
 
   it('üretici sayısı yalnız AZALABİLİR', () => {
@@ -90,7 +112,7 @@ describe('sahte veri üreticisi çıcırı', () => {
     ).toBeLessThanOrEqual(UST_SINIR)
   })
 
-  it('silinen üçü geri gelmemiş · sayımdan BAĞIMSIZ ölçüm', () => {
+  it('silinen ON DOKUZU geri gelmemiş · sayımdan BAĞIMSIZ ölçüm', () => {
     // ⚠️ Bu kontrol artık `ureticiler` listesine BAĞLI DEĞİL (MIYOP-073).
     // Eskiden öyleydi; sayım bir biçimi kaçırırsa yasak ad kontrolü de
     // sessizce kaçırıyordu. İki ölçüm birbirine dayanırsa, birinin kör
@@ -107,6 +129,11 @@ describe('sahte veri üreticisi çıcırı', () => {
       'createDemoSupplierDebts', 'createDemoSupplierPayments',
       'createDemoCollectionTransactions', 'createDemoCashTransfers',
       'createDemoIncomeExpenses',
+      // 31.10.2026 · platform (EVREN360)
+      'createDemoBusinessApplications', 'createDemoApplicationNotes',
+      'createDemoBusinessRegistrations', 'createDemoCompanySetups',
+      'createDemoCompanyLicenses', 'createDemoCompanyUsers',
+      'createDemoUserSubscriptions', 'createDemoPlatformSupportTickets',
     ]
     for(const silinen of SILINENLER){
       expect(
@@ -127,33 +154,38 @@ describe('sahte veri üreticisi çıcırı', () => {
     }
   })
 
-  it('⚠️ "anahtar yoksa demo üret" deseni yalnız AZALABİLİR · bugün 8', () => {
-    // ⚠️ BU SINAMA İLK YAZIŞIMDA "sıfır olmalı" DİYORDU VE KIRMIZI VERDİ —
-    // doğru verdi. Desen gitmemişti, YER DEĞİŞTİRMİŞTİ: kiracı tarafından
-    // kalktı ama PLATFORM (EVREN360) tarafında sekiz tane duruyor:
-    //
-    //   applicationNotes · businessRegistrations · companySetups ·
-    //   licenseModules · companyLicenses · companyUsers ·
-    //   userSubscriptions · platformSupportTickets
-    //
-    // Yani Emrah panelinde uydurma başvuru, uydurma lisans ve uydurma
-    // destek talebi görüyor. Müşteri görmüyor — ama *mış gibi*liğin
-    // müşteriye görünmeyeni de *mış gibi*dir.
-    //
-    // Sıfıra indirmek A4'ün İKİNCİ YARISI ve ayrı bir karar gerektiriyor:
-    // o ekranların veritabanı karşılığı var mı, yoksa ekranlar boş mu
-    // kalacak? Ölçülmeden silinmez.
-    //
-    // Bu yüzden sınama bir ÇIÇIR: sayı dondurulmuş, yalnız aşağı gidebilir.
-    // Sıfıra inince bu blok `toBe(0)`a çevrilir ve çıcır kapanır.
+  it('⚠️ "anahtar yoksa demo üret" deseni HİÇ KALMADI · çıcır kapandı', () => {
+    // ⚠️ BU SINAMA 31.10'da ÜÇ HÂL DEĞİŞTİRDİ ve üçü de kayıtlı:
+    //   1. "sıfır olmalı" diye yazıldı → KIRMIZI verdi, doğru verdi:
+    //      desen gitmemiş, kiracı tarafından PLATFORM tarafına taşınmıştı.
+    //   2. sekizde dondurulmuş bir ÇIÇIRA çevrildi (borç yazılı dursun).
+    //   3. Emrah'ın kararıyla sekizi de boşaltıldı → çıcır KAPANDI.
+    // Karar (31.10): "Boşalt, gerçeğe bağlanana kadar boş kalsın."
     const DESEN = /getItem\([^)]*\)\s*===\s*null\s*\?\s*createDemo[A-Za-z]+/g
     const kalan = [...yorumsuz(DEPO).matchAll(DESEN)].map(m => m[0].replace(/\s+/g, ' '))
-    expect(
-      kalan.length,
-      `"anahtar yoksa demo üret" deseni ${kalan.length} yerde. Sınır 8 ve `
-      + `yalnız AZALABİLİR:\n${kalan.join('\n')}`,
-    ).toBeLessThanOrEqual(8)
+    expect(kalan, `"anahtar yoksa demo üret" geri gelmiş:\n${kalan.join('\n')}`)
+      .toEqual([])
   })
+
+  it('⚠️ lisans KATALOĞU ad değiştirerek sayımdan kaçmadı', () => {
+    // ⚠️ İki fonksiyon silinmedi, ADI DEĞİŞTİ:
+    //   createDemoLicensePackages → varsayilanLisansPaketleri
+    //   createDemoLicenseModules  → varsayilanLisansModulleri
+    // Sebep: ikisi de uydurma KAYIT değil, ÜRÜN KATALOĞU — `defaultPackageSpecs`
+    // sabitinden türüyorlar, yani MİYOP'un gerçekten sattığı planlar.
+    //
+    // ⚠️ Ama ad değiştirip sayımdan çıkmak, SAKLAMAK olabilirdi. Bu sınama
+    // onu dürüst tutuyor: ikisi hâlâ DURMALI (silinmediler) ve `createDemo`
+    // önekiyle GERİ GELMEMELİ (sayımdan kaçan üçüncü bir üretici olmasın).
+    const kod = yorumsuz(DEPO)
+    for(const ad of ['varsayilanLisansPaketleri', 'varsayilanLisansModulleri']){
+      expect(new RegExp(`const ${ad}\\s*=`).test(kod), `${ad} kaybolmuş`).toBe(true)
+    }
+    for(const yasak of ['createDemoLicensePackages', 'createDemoLicenseModules']){
+      expect(new RegExp(`const ${yasak}\\s*=`).test(kod), `${yasak} geri gelmiş`).toBe(false)
+    }
+  })
+
 
   it('⚠️ storage.ts DIŞINDAKİ üreticiler de sayılıyor', () => {
     // ⚠️ 31.10.2026 · BU TEST BİR AYDIR YALNIZ `storage.ts`e BAKIYORDU.

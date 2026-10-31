@@ -1,80 +1,61 @@
-A4 basladi: on uc sahte veri ureticisi + "depo bossa uydur" mekanizmasi SILINDI
+A4 BITTI: storage.ts'te tek bir createDemo* kalmadi (851 satir)
 
-408 satir uydurma veri gitti. storage.ts'teki uretici sayisi 23 -> 10.
+Emrah'in karari (31.10): "Bosalt, gercege baglanana kadar bos kalsin -
+panel bugun yalan soylemez ama birkac ekran bos gorunur."
 
--- NE SILINDI -----------------------------------------------------------
-personel : createDemoEmployees, createDemoShifts, createDemoAttendances,
-           createDemoEmployeePerformances, createDemoEmployeeBonuses,
-           createDemoEmployeeAudits
-finans   : createDemoCurrentAccounts, createDemoCreditTransactions,
-           createDemoSupplierDebts, createDemoSupplierPayments,
-           createDemoCollectionTransactions, createDemoCashTransfers,
-           createDemoIncomeExpenses
-MEKANIZMA: loadBranchScopedItemsWithDemo, loadAllBranchScopedItemsWithDemo
+-- BU TURDA: PLATFORM (EVREN360) · SEKIZ URETICI · 443 SATIR -----------
+createDemoBusinessApplications · createDemoApplicationNotes ·
+createDemoBusinessRegistrations · createDemoCompanySetups ·
+createDemoCompanyLicenses · createDemoCompanyUsers ·
+createDemoUserSubscriptions · createDemoPlatformSupportTickets
 
--- ASIL IS URETICILERI SILMEK DEGIL, MEKANIZMAYI KALDIRMAKTI ------------
-Iki yukleyicinin de kalbi su satirdi:
-    localStorage.getItem(key) === null ? createDemoItems() : readJson(...)
-"Depo bossa uydur". Yeni kurulmus bir isletmede - anahtar henuz yokken -
-uydurma personel, cari hesap, kasa hareketi uretiliyordu.
+Panelde uydurma basvuru, uydurma firma kurulumu, uydurma lisans, uydurma
+panel kullanicisi, uydurma abonelik ve uydurma destek talebi
+gosteriyorlardi. Musteri gormuyordu - ama *mis gibi*ligin musteriye
+gorunmeyeni de *mis gibi*dir. Panelde "3 bekleyen basvuru" yazmasi,
+Emrah'in kendi sistemine guvenini yanlis yere oturtur.
 
-Yukleyici dururken uretici silmek yarim is olurdu: yarin yeni bir
-ureticiyle geri gelirdi. Goc 0104'te de ayni karari vermistik - dort
-tabloyu tek tek yamamak yerine defteri YAZAN fonksiyonu duzeltmek.
+Cagrilar artik dogrudan readJson(KEY, []) okuyor: kayit yoksa BOS liste.
 
-Cagrilar ayni dosyada zaten duran demo uretmeyen ikizlere cevrildi:
-loadBranchScopedItems / loadAllBranchScopedItems. Yeni isletme BOS liste
-gorur. Bos liste durusttur; uydurma kayit degildir.
+-- !! IKI FONKSIYON SILINMEDI, ADI DEGISTI -----------------------------
+createDemoLicensePackages -> varsayilanLisansPaketleri
+createDemoLicenseModules  -> varsayilanLisansModulleri
 
--- !! BU BIR YANGIN SONDURME DEGIL, MAYIN TEMIZLIGIYDI ------------------
-Olculdu: bu on ucun HICBIRI o gun acik bir kiracı ekranina ulasmiyordu.
-business-personnel, business-current, business-credit, business-finance -
-dordu de foundationScope: 'frozen'. Dondurulmus bir kapi bir gun
-acildiginda uydurma veri sessizce geri gelecekti; personel modulu 29.08'de
-bir kez acilmis, 14.10'da yeniden dondurulmustu.
+Bu ikisi uydurma KAYIT degil, URUN KATALOGU: defaultPackageSpecs
+sabitinden turuyorlar, yani MIYOP'un gercekten sattigi planlar ve her
+planin hangi modulleri icerdigi. Silmek lisans ekranlarini PLANSIZ
+birakirdi; kazanc yok, kayip var. Adlari yanilticiydi: "demo" degiller,
+VARSAYILAN.
 
--- !! BENIM OLCUM HATAM (ayni ailenin uculuncusu) -----------------------
-Modullerin kapsamini tararken `business-personnel` icin 'core' okudum ve
-"sekiz acik ekran uydurma personel gosteriyor" dedim. YANLISTI: o 'core'
-kelimesi bir YORUM satirindaydi ("foundationScope: 'core' oldugu icin
-sekiz rotasi ACIKTI" - modulun neden yeniden donduruldugunu anlatan not).
-Gercek deger 'frozen'.
-Tuzak 153'u DUN yazdim: "bir goc dosyasini okuyan test once -- yorumlarini
-atar". Ayni hatayi 24 saat icinde kodda tekrarladim. Tarama artik yorumlari
-atiyor.
+!! Ad degistirip sayimdan cikmak SAKLAMAK olabilirdi. Cicira ayri bir
+sinama eklendi: ikisi hala DURMALI ve createDemo onekiyle GERI GELMEMELI.
 
--- CICIR SIKILASTIRILDI -------------------------------------------------
+-- CICIR KAPANDI -------------------------------------------------------
 sahte-veri-ureticisi.arch.test.ts:
-  * ust sinir 23 -> 10
-  * silinen 16 adin tamami yasakli listede
-  * MEKANIZMA da yasak: iki yukleyici adi + desenin kendisi
-    (getItem(...) === null ? createDemo...) araniyor, adi degistirilmis
-    bir kopyasi da yakalansin diye
-  * !! tenant.ts artik taramaya DAHIL: `createDemoTenants` bir aydir hic
-    sayilmiyordu - cicirin kor noktasiydi (tuzak 154 ailesi)
+  * ust sinir 10 -> 0
+  * storage.ts icinde tek bir createDemo* yok
+  * "anahtar yoksa demo uret" deseni 8 -> 0 (cicir toBe(0)'a cevrildi)
+  * silinen 19 adin tamami yasakli listede
+  * katalog yeniden adlandirmasi icin ayri sinama
 
--- !! YENI SINAMAM KIRMIZI VERDI VE DOGRU VERDI --------------------------
-"Desen geri gelmemis" sinamasini ilk yazista "sifir olmali" diye yazdim ve
-kirmizi verdi. Desen GITMEMISTI, YER DEGISTIRMISTI: kiraci tarafindan
-kalkti ama PLATFORM (EVREN360) tarafinda SEKIZ tane duruyor:
+!! SAGLAMA SINAMASI YENIDEN YAZILDI VE SEBEBI ONEMLI.
+Eskiden "en az bir uretici bulmaliyim" diyordu, cunku o gun sifir bulmak
+ancak olcumun bozulmasiyla mumkundu (tuzak 58). Bugun sifir DOGRU CEVAP.
+O halde saglamanin isi degisti: artik "olcum araci hala calisiyor mu"
+soruyor - dosya boyutu + desenin bir ornek metinde calistigi. Yoksa dosya
+bir gun bosalsa ya da desen bozulsa test yine yesil kalir ve cicir
+sessizce olurdu.
 
-  applicationNotes · businessRegistrations · companySetups · licenseModules
-  companyLicenses · companyUsers · userSubscriptions · platformSupportTickets
+-- A4'UN TOPLAMI -------------------------------------------------------
+  1. tur: kiraci tarafi · 13 uretici + "depo bossa uydur" mekanizmasi (408)
+  2. tur: platform       ·  8 uretici                                 (443)
+  toplam: 21 uretici, 851 satir, 23 -> 0
 
-Yani Emrah kendi panelinde uydurma basvuru, uydurma lisans ve uydurma
-destek talebi goruyor. Musteri gormuyor - ama *mis gibi*ligin musteriye
-gorunmeyeni de *mis gibi*dir.
-
-Sinama bir CICIRA cevrildi: sayi 8'de donduruldu, yalniz asagi gidebilir.
-Sifira indirmek A4'un IKINCI YARISI ve ayri bir karar istiyor: o ekranlarin
-veritabani karsiligi var mi, yoksa ekranlar bos mu kalacak? OLCULMEDEN
-SILINMEZ.
-
--- SONRADAN YAPILACAK ---------------------------------------------------
-Bu moduller gercekten acilirsa verileri VERITABANINDAN gelmeli. Bugun o
-tablolar YOK: employee, shift, attendance, current_account, cash_transaction
-hicbiri goclerde tanimli degil. Yani bu modulleri acmak "dondurulmayi
-kaldirmak" degil, SIFIRDAN YAZMAKTIR. kaldirilan-moduller.md 8. bolumde.
+-- SONRADAN YAPILACAK --------------------------------------------------
+Panel listelerinin gercek karsiligi kismen veritabaninda VAR
+(business_application, tenant_license, license_event), kismen HIC YOK
+(destek talebi, abonelik tablolari yazilmamis). Ekranlari gercege baglamak
+ayri bir is. kaldirilan-moduller.md 9. bolumde.
 
 Co-Authored-By: Claude Opus 5 <noreply@anthropic.com>
 Claude-Session: https://claude.ai/code/session_019BwYM3mAXZUhp4YGj7tp2y

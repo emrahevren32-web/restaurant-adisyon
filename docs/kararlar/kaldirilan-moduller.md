@@ -253,3 +253,71 @@ Bugün o tablolar yok: `employee`, `shift`, `attendance`, `current_account`,
 tamamı yasaklı listede, mekanizmanın kendisi de yasak (adı değiştirilmiş bir
 kopyası da aranıyor), ve `tenant.ts` artık taramaya dahil — bir aydır
 `createDemoTenants` hiç sayılmıyordu.
+
+---
+
+## 9 · SEKİZ PLATFORM ÜRETİCİSİ · EVREN360 PANELİ
+### 31.10.2026 · A4'ün ikinci yarısı · 443 satır
+
+**Karar (Emrah, 31.10.2026):**
+> *"Boşalt, gerçeğe bağlanana kadar boş kalsın — panel bugün yalan söylemez
+> ama birkaç ekran boş görünür."*
+
+**Silinenler (`src/storage.ts`):** `createDemoBusinessApplications`,
+`createDemoApplicationNotes`, `createDemoBusinessRegistrations`,
+`createDemoCompanySetups`, `createDemoCompanyLicenses`,
+`createDemoCompanyUsers`, `createDemoUserSubscriptions`,
+`createDemoPlatformSupportTickets`.
+
+### Ne işe yarıyorlardı
+
+EVREN360 panelinde **uydurma başvuru, uydurma firma kurulumu, uydurma firma
+lisansı, uydurma panel kullanıcısı, uydurma abonelik ve uydurma destek
+talebi** gösteriyorlardı. Hepsi aynı desenden geçiyordu:
+`localStorage.getItem(KEY) === null ? createDemoX() : readJson(...)`.
+
+Müşteri bunları görmüyordu — ama *mış gibi*liğin müşteriye görünmeyeni de
+*mış gibi*dir. Panelde "3 bekleyen başvuru" yazması, Emrah'ın kendi
+sistemine güvenini yanlış yere oturtur.
+
+### Yerine ne kondu
+
+Doğrudan `readJson(KEY, [])`. Kayıt yoksa **boş liste**. Birkaç panel
+ekranı artık boş görünecek — ve bu doğrudur: gerçekten kayıt yok.
+
+### ⚠️ İKİ FONKSİYON SİLİNMEDİ, ADI DEĞİŞTİ
+
+| Eski ad | Yeni ad |
+|---|---|
+| `createDemoLicensePackages` | `varsayilanLisansPaketleri` |
+| `createDemoLicenseModules` | `varsayilanLisansModulleri` |
+
+Bu ikisi **uydurma kayıt değil, ürün kataloğu**: `defaultPackageSpecs`
+sabitinden türüyorlar — MİYOP'un gerçekten sattığı planlar ve her planın
+hangi modülleri içerdiği. Silmek lisans ekranlarını **plansız** bırakırdı;
+kazanç yok, kayıp var. Adları yanıltıcıydı: "demo" değiller, **varsayılan**.
+
+⚠️ Ad değiştirip sayımdan çıkmak **saklamak** olabilirdi. Çıcıra ayrı bir
+sınama eklendi: ikisi hâlâ durmalı **ve** `createDemo` önekiyle geri
+gelmemeli.
+
+### Sonradan yapılacak
+
+Bu listelerin gerçek karşılığı kısmen veritabanında **var**
+(`business_application`, `tenant_license`, `license_event` — göçlerde
+tanımlı), kısmen **hiç yok** (destek talebi, abonelik tabloları
+yazılmamış). Panel ekranlarını gerçeğe bağlamak ayrı bir iş ve
+HEDEFLER'de duruyor.
+
+### Çıcır kapandı
+
+`sahte-veri-ureticisi.arch.test.ts`: üst sınır **0**, `storage.ts` içinde
+tek bir `createDemo*` yok, desen hiç kalmadı, silinen **19 adın** tamamı
+yasaklı listede.
+
+⚠️ Sağlama sınaması da **yeniden yazıldı**: eskiden *"en az bir üretici
+bulmalıyım"* diyordu, çünkü o gün sıfır bulmak ancak ölçümün bozulmasıyla
+mümkündü. Bugün sıfır **doğru cevap**. O hâlde sağlamanın işi değişti:
+artık *"ölçüm aracı hâlâ çalışıyor mu"* diye soruyor (dosya boyutu +
+desenin bir örnek metinde çalıştığı). Yoksa dosya bir gün boşalsa test yine
+yeşil kalır ve çıcır sessizce ölürdü.
