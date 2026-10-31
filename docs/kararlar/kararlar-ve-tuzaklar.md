@@ -984,6 +984,29 @@ göreceği hata mesajları** da (`'Çok fazla deneme yapıldı'`) bozuluyordu.
 ⚠️ Ve komut kendi çıktısını **ölçmeli**: panoda `ş` var mı, bozuk `Ã` var
 mı. "Kopyaladım" demek yetmez; kopyanın sağlam olduğu gösterilir.
 
+**163 · "7 OLMALI" DEDİM, 4 ÇIKTI — VE 4 DOĞRUYDU.** (01.11) Sunucudaki
+yedek sayısını üçten yediye çıkardım ve ölçerken *"7 olmalı"* diye yazdım.
+Sayım **4** döndü. Bir an "satır çalışmamış" sandım; sonra hesapladım:
+yedek sayısı **dağıtım başına BİR artar**. Önce 3 vardı; günün ilk
+dağıtımı ESKİ betikle koştu (hâlâ 3 tutuyor), ikincisi yeni betikle
+(4'e çıktı ve budamadı). Yani 4, yeni ayarın **çalıştığının** kanıtı.
+⚠️ Ders: bir ayarın etkisi **birikimlidir**; beklenen değeri yazarken
+"hangi gün hangi betikle koştu" hesaba katılır. Yoksa doğru çalışan bir
+şeyi bozuk sanıp "düzeltmeye" girişilir — ve o düzeltme gerçek bir hatayı
+doğurur. (Tuzak 156'nın kardeşi: orada ölçmeden sayı söyledim, burada
+ölçtüm ama **beklentiyi** düşünmeden yazdım.)
+
+**163b · TEK SÜREÇTE GLOBAL DURUM: BEDELİ YAZMAK YETMEZ, ÖDEMEK GEREKİR.**
+(01.11) `derleme-kapisi.arch.test.ts` 30.10'da şunu donduruyordu: tek işçi
+ayarının **bedeli** (*"tek süreçte global durumu paylaşıyor"*) dosyada
+yazılı olsun. Yazılıydı. Ve **aynı hafta** `billing.ts` modül düzeyinde
+durum tutmaya başladı — yazılı uyarı, uyarmadı (tuzak 130'un dersi).
+Ölçtük: `billing`i içeri alan **tek** test dosyası var ve o kendi
+`afterEach`'iyle temizliyor, yani bugün sızıntı yok. Ama fiyat
+biçimlendirmesini 38 ekran kullanıyor; ikinci test dosyası gelecek.
+Çözüm: merkezî sıfırlama (`vitest.config.ts` → `setupFiles`) ve onu
+donduran yeni bir sınama. **Bugünkü hatayı değil, yarınkini kapatıyor.**
+
 **162 · YOL HARİTASININ ÜST TABLOSU, AYRINTI BÖLÜMÜNDEN ÜÇ GÜN GERİDEYDİ.**
 (01.11) HEDEFLER'in demo tablosunda **A3** hâlâ açık görünüyordu; aşağıda
 **3.7** *"KAPANDI (29.10) · 7/7 ekran"* diyordu. Aynı dosyada iki cevap.
@@ -1399,6 +1422,12 @@ Son söz onun çıktısındadır.
 64. Bir **rozet** ya gerçek bir sorgudan ölçülür ya da hiç konmaz
     (MIYOP-065). "Tamamlandı" yazan bir rozet, tamamlandığını KANITLAYAN
     bir şeyden beslenmiyorsa *mış gibi*dir.
+85. Tek süreçte koşan testlerde **modül düzeyindeki durum merkezden
+    sıfırlanır** (tuzak 163b). "Her dosya kendi temizliğini yapsın"
+    kuralı, ikinci dosya geldiğinde sessizce bozulur.
+86. Bir ayarın etkisi **birikimliyse**, beklenen değeri yazarken
+    birikimi hesaba kat (tuzak 163). Doğru çalışan bir şeyi bozuk
+    sanmak, gerçek bir hata doğurur.
 84. Bir iş bitince **özet tabloyu da** güncelle (tuzak 162). Ayrıntı
     bölümü "kapandı" derken üstteki liste "yapılacak" diyorsa, liste
     yalan söylüyordur — ve o yalan sıradaki işi seçtirir.

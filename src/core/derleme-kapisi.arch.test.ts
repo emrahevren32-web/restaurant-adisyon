@@ -137,6 +137,30 @@ describe('derleme kapısı · tip denetimi hattın içinde', () => {
     ).toMatch(/global durumu payla/)
   })
 
+  // ⚠️ 01.11.2026 · BEDELİ YAZMAK YETMEZ, ÖDEMEK GEREKİR.
+  // Üstteki sınama "tek süreçte global durum paylaşılıyor" cümlesinin
+  // dosyada YAZILI olmasını istiyordu. Yazılıydı — ve aynı gün `billing.ts`
+  // modül düzeyinde durum tutmaya başladı (HEDEFLER 3.4.6).
+  // Yazılı bir uyarı, uygulanmadığı yerde uyarmaz (tuzak 130'un dersi).
+  // Bu yüzden artık MERKEZÎ SIFIRLAMA da donduruluyor.
+  it('⚠️ testler arası durum MERKEZÎ olarak sıfırlanıyor', () => {
+    expect(
+      VITEST,
+      'vitest.config.ts bir kurulum dosyası tanımlamıyor — modül düzeyindeki '
+      + 'durum test dosyaları arasında sızar ve testin yeşilliği SIRAYA bağlanır.',
+    ).toMatch(/setupFiles:\s*\[/)
+
+    const KURULUM = oku('src/core/test-support/vitest-kurulum.ts')
+    expect(
+      KURULUM,
+      'kurulum dosyası para birimini sıfırlamıyor',
+    ).toMatch(/paraBirimiAyarla\(null\)/)
+    expect(
+      duz(KURULUM),
+      'kurulum dosyası NEDEN var, yazılı değil',
+    ).toMatch(/tek s[üu]re[çc]te/i)
+  })
+
   it('tip denetimi TESTLERDEN ÖNCE koşuyor (hızlı geri bildirim)', () => {
     // ⚠️ Sıra önemli: tip hatası saniyeler içinde bulunur, testler dakikalar
     // sürüyor. Önce ucuz olan koşar.

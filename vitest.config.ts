@@ -51,6 +51,10 @@ export default defineConfig({
     exclude: ['**/node_modules/**', 'src/**/*.live.test.ts'],
     clearMocks: true,
     restoreMocks: true,
+    // ⚠️ TEK SÜREÇTE koştuğumuz için modül düzeyindeki durum test
+    // dosyaları arasında PAYLAŞILIYOR. Bu dosya onu her testten sonra
+    // sıfırlıyor. Gerekçesi: src/core/test-support/vitest-kurulum.ts
+    setupFiles: ['./src/core/test-support/vitest-kurulum.ts'],
     // ⚠️ Bkz. dosya başı "TEK İŞÇİ": 429 sn + 28 sahte kırmızı → 8 sn + 0.
     poolOptions: { threads: { singleThread: true } }
   }

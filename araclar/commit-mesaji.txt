@@ -1,41 +1,54 @@
-v0.5.1 yayinda + Codex brifi yeni tur icin yenilendi
+testler arasi durum MERKEZDEN sifirlaniyor (tuzak 163b) + yedek sayisi olculdu
 
--- YAYIN ---------------------------------------------------------------
-v0.5.1 · index-CCbKo7YK.js · 4/4 dogrulandi · 1679 test yesil
-Donus noktasi: /var/www/miyop.yedek-20261031-224004
-Goc YOK: yalniz arayuz. Sunucu bu dagitimdan itibaren YEDI surum tutuyor.
+-- OLCUM 1 · billing'i ice aktaran test dosyasi: BIR TANE -------------
+Brifte Codex'e "modul duzeyinde degisken durum, tek surecte sizar" diye
+kendi suphemmi yazmistim. Olctuk:
+  * `billing`i ice aktaran test dosyasi SADECE src/billing.para-birimi.test.ts
+  * o dosya tek basina kosturuldu: 8/8 yesil (takim icinde de 8/8)
+Yani BUGUN sizinti YOK. Supphe olculdu, dogrulanmadi.
 
-Surum defterinde v0.5.0 arsive, v0.5.1 YAYINDA'ya cevrildi.
+-- AMA YAZILI UYARI, UYARMIYOR ----------------------------------------
+`derleme-kapisi.arch.test.ts` 30.10'da su cumlenin dosyada YAZILI
+olmasini donduruyordu: "tek surecte global durumu paylasiyor".
+Yaziliydi. Ve AYNI HAFTA billing.ts modul duzeyinde durum tutmaya
+basladi. Tuzak 130'un dersi: yazili bir uyari, uygulanmadigi yerde
+uyarmaz.
 
--- CODEX BRIFI (docs/codex-brifi.md) -----------------------------------
-Yeni tur icin bastan yazildi. Bakilacaklar:
+Fiyat bicimlendirmesini 38 ekran kullaniyor; ikinci test dosyasi
+gelecek. O gun sizinti SESSIZCE baslardi ve testin yesilligi CALISMA
+SIRASINA baglanirdi . en kotu cinsten bir kirilma: tek basina yesil,
+takim icinde kirmizi.
 
-  4.1  Goc 0104 . denetim defteri satir kimligi (canlida)
-  4.2  MIYOP-084 . kapi genisledi: Isletme Ayarlari artik ALTI rolde
-  4.3  A4 . 851 satir silme · EN RISKLI: 21 cagri yeri artik BOS DIZI
-       donebiliyor, hangi ekran bunu kaldiramiyor?
-  4.4  Para birimi zinciri . MODUL DUZEYINDE DEGISKEN DURUM
-  4.5  Denetim tarayicisi 19 -> 29
-  4.6  Yedekleme betiklerinin dogrulamasi gercek mi
+-- YAPILAN · MERKEZI SIFIRLAMA ----------------------------------------
+  vitest.config.ts  -> setupFiles eklendi
+  src/core/test-support/vitest-kurulum.ts  (yeni)
+      her testten sonra paraBirimiAyarla(null)
+  derleme-kapisi.arch.test.ts  -> yeni sinama bunu donduruyor:
+      setupFiles var mi, sifirlama var mi, GEREKCESI yazili mi
 
-!! 4.4'u kendi supphem olarak yazdim ve ozellikle bakmasini istedim:
-`billing.ts` artik modul duzeyinde `let aktifParaBirimi` tutuyor ve
-testler TEK ISCIDE, TEK SURECTE kosuyor (tuzak 152). Modul duzeyinde bir
-degisken test dosyalari arasinda SIZAR. Kendi testim afterEach ile
-sifirliyor ama baska bir dosya bunu bilmiyor. Bir testin yesilligi baska
-dosyanin biraktigi duruma bagli olabilir.
+!! Bu BUGUNKU bir hatayi duzeltmiyor; YARINKINI engelliyor.
 
-!! Brife su da yazildi: bu turda bakacagi kod, Claude'un kendi olcumuyle
-YEDI KEZ yanildigi 48 saat icinde yazildi (tuzaklar 153, 156, 157, 158,
-159, 161, 162). Hepsini bir kapi yakaladi, canliya hicbiri gitmedi. Ama
-sekizincisi duruyor olabilir ve onu ancak disaridan biri gorur.
+!! Kurulum dosyasinin basina su da yazildi: buraya yeni bir sifirlama
+eklemeden once dusun. Modul duzeyinde durum tutmak son caredir;
+gerekcesi olmayan bir global, buraya satir eklenerek mesrulastirilmaz,
+KALDIRILIR.
 
--- SIRADA BEKLEYEN -----------------------------------------------------
-* Davet e-postasi denemesi: test icin Outlook adresi kalmadi.
-  Sebep BULUNDU (SPF -all GoDaddy disini yasakliyor, Supabase SMTP
-  GoDaddy'ye baglandi). Dogrulama olcutu yazili: spf=pass VE dkim=pass.
-* 3.4.7 karari: isletme geneli KDV orani ya bir ise yarasin ya kalksin.
-* Geri yukleme provasi (tam.dump bos bir projeye).
+-- OLCUM 2 · TUZAK 163 · "7 OLMALI" DEDIM, 4 CIKTI --------------------
+Sunucudaki yedek sayisini 3'ten 7'ye cikardim ve olcerken "7 olmali"
+diye yazdim. Sayim 4 dondu. Bir an "satir calismamis" sandim; sonra
+hesapladim:
+
+  yedek sayisi DAGITIM BASINA BIR ARTAR.
+  Once 3 vardi. Gunun ilk dagitimi ESKI betikle kostu (3'te tuttu),
+  ikincisi yeni betikle (4'e cikti ve budamadi).
+
+Yani 4, yeni ayarin CALISTIGININ kaniti. Yedi dagitimda 7'ye ulasacak.
+Sunucudaki canli dizin 8.6M . bir surumun 8.49 MB olcumuyle tutarli.
+
+!! Ders: bir ayarin etkisi BIRIKIMLIDIR; beklenen degeri yazarken
+"hangi gun hangi betikle kostu" hesaba katilir. Yoksa dogru calisan bir
+seyi bozuk sanip "duzeltmeye" girisilir ve o duzeltme gercek bir hata
+dogurur. (Tuzak 156'nin kardesi.)
 
 Co-Authored-By: Claude Opus 5 <noreply@anthropic.com>
 Claude-Session: https://claude.ai/code/session_019BwYM3mAXZUhp4YGj7tp2y
