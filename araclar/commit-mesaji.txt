@@ -1,47 +1,33 @@
-3.4.6 kapandi: fiyat bicimlendirmesi para birimini ISLETMEDEN aliyor
+3.4.7 yazildi: isletme geneli KDV orani HICBIR YERDE kullanilmiyor
 
--- ONCESI --------------------------------------------------------------
-`billing.ts` icinde `const PARA_BIRIMI = 'TRY'` yaziliydi ve bu dosyayi
-38 EKRAN kullaniyor: adisyon, masa, kasa, QR menu, cari, personel, eski
-raporlar. Musteri Isletme Ayarlari'ndan EUR secse bile hepsi . basiyordu.
+-- OLCUM (01.11.2026) --------------------------------------------------
+`tenant_settings.vat_rate` yalniz Isletme Ayarlari ekrani tarafindan
+yazilip okunuyor. Baska HICBIR kod yolu onu okumuyor.
 
--- !! DOGRUDAN VERITABANI OKUMASI EKLENMEDI, EKLENEMEZDI ---------------
-`formatCurrency` ESZAMANLI ve CIZIM SIRASINDA cagriliyor. Icine sorgu
-koymak, her fiyat yaziminda ag istegi demekti. Dosyanin kendi notu da
-bunu yaziyordu.
+Urun kartlarinin KDV'si ayri bir alandan geliyor (`stock_item.vat_rate`)
+ve dogrusu da budur . ikisi farkli seyler, types.ts bunu zaten yaziyor.
 
--- COZUM: TEK BESLEME NOKTASI -----------------------------------------
-Deger bir kez okunur, bicimlendiriciye verilir.
+-- SORUN: YALAN DEGIL AMA VERILMEMIS BIR SOZUN BEKLENTISI -------------
+Kullanici buraya %20 yazip "artik her yerde 20 olur" sanabilir. Ekran
+yalan soylemiyor (yazdigini sakliyor ve geri gosteriyor) ama bir etki
+vaat ediyormus gibi duruyor.
 
-Besleme `isletme-ayarlari.repository > isletmeAyarlariniOku` icinde,
-cunku para biriminin veritabanindan okundugu TEK YER orasi: hem giris
-sonrasi okuma hem kaydetme sonrasi geri okuma oradan geciyor. Boylece
-"kaydettim ama ekranda eski para birimi duruyor" hali olusmuyor.
+-- BUGUN YAPILAN ------------------------------------------------------
+Ekrana bir cumle eklendi:
+  "Bu oran su an yalnizca burada saklaniyor. Urun kartlarinin KDV orani
+   urunun kendi kartindan gelir; bu alan onlari degistirmez."
 
--- !! "OKUNMADI" ILE "TRY" AYRI IKI DURUM ------------------------------
-Icerideki deger `null` basliyor; o sirada . basiliyor cunku goc 0103'un
-tetigi her kiraciyi zaten TRY ile aciyor, yani en olasi dogru cevap o.
-Uydurma varsayilan degil. Ama ikisi KARISTIRILMIYOR: null iken gelen bir
-besleme ekrani yeniden cizdiriyor.
+Sessiz kalmak, ekranin veremedigi bir sozu vermesi olurdu.
 
--- !! DINLEYICI OLMASA COZUM YARIM OLURDU -----------------------------
-Deger giris SONRASI geliyor; o ana kadar cizilmis fiyatlar eski kalirdi.
-`paraBirimiDegisinceBildir` ile App yeniden ciziliyor.
+-- YAPILACAK (karar gerektiriyor) -------------------------------------
+Oran ya bir ise yarasin (yeni urun kartinda varsayilan KDV, fatura
+hesabi) ya da alan kaldirilsin. Ucuncu secenek yok: "saklanan ama
+kullanilmayan ayar" kalici olmamali. HEDEFLER 3.4.7.
 
--- !! CIKISTA SIFIRLANIYOR --------------------------------------------
-Ayni tarayicida baska bir isletmeye giris yapilirsa oncekinin para birimi
-ekranda kalirdi. App.tsx cikista `paraBirimiAyarla(null)` cagiriyor.
-
--- YAN KAZANC (olculdu) -----------------------------------------------
-`formatCurrency` HER CAGRIDA yeni bir Intl.NumberFormat kuruyordu . bir
-listede yuzlerce fiyat varsa yuzlerce kez. Bicimlendirici artik
-onbellekli; para birimi degisince dusuyor.
-
--- SINAMA -------------------------------------------------------------
-src/billing.para-birimi.test.ts . 8 sinama. Davranis olculuyor, yazim
-degil: . mi . mu basiyor, besleme gelince haber veriyor mu, ayni deger
-tekrar beslenirse gereksiz cizim yapiyor mu, cikista sifirlaniyor mu,
-gecersiz kod ekrani cokertiyor mu (dusuyor ama SESSIZ kalmiyor).
+-- SURUM DEFTERI ------------------------------------------------------
+v0.5.1 satiri eklendi (dagitim bekliyor): para birimi borcu tamamen
+kapandi, bos kabuk uretici silindi, sunucu yedegi 3->7, bayat yol
+haritasi kutulari duzeltildi.
 
 Co-Authored-By: Claude Opus 5 <noreply@anthropic.com>
 Claude-Session: https://claude.ai/code/session_019BwYM3mAXZUhp4YGj7tp2y

@@ -220,6 +220,20 @@ export default function Settings({ currentUser }: Props){
                         + 'adınıza bir oran varsaymaz.'
                       : 'Boşaltırsanız "belirlenmedi" durumuna döner.'}
                   </p>
+                  {/* ⚠️ 01.11.2026 · BU CÜMLE BİR ÖLÇÜMÜN SONUCU.
+                      Ölçtük: `tenant_settings.vat_rate` bugün YALNIZ bu
+                      ekran tarafından yazılıp okunuyor; başka hiçbir yer
+                      kullanmıyor. Ürün kartlarındaki KDV ayrı bir alan
+                      (`stock_item.vat_rate`) ve oradan geliyor.
+                      Kullanıcı buraya %20 yazıp "artık her yerde 20 olur"
+                      sanabilir. Sanmasın diye yazıyoruz. Sessiz kalmak,
+                      ekranın veremediği bir sözü vermesi olurdu. */}
+                  <p className="muted small-text">
+                    <strong>Bu oran şu an yalnızca burada saklanıyor.</strong>{' '}
+                    Ürün kartlarının KDV oranı ürünün kendi kartından gelir;
+                    bu alan onları değiştirmez. İşletme geneli oranın
+                    kullanılacağı yerler sonra eklenecek.
+                  </p>
                 </div>
               </div>
 

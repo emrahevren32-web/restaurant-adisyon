@@ -824,6 +824,20 @@ Emrah'ın onayladığı sıra:
     ⚠️ *"Yetkisiz Erişim"* ekranı kaldırıldı: eski hâli `role === 'Admin'`
     değilse hiçbir şey göstermiyordu. **Müdür ayarları görebilmeli**, yalnız
     değiştiremez.
+  - ⬜ **3.4.7** ⚠️ **İŞLETME GENELİ KDV ORANI HİÇBİR YERDE KULLANILMIYOR.**
+    Ölçüldü (01.11.2026): `tenant_settings.vat_rate` yalnız **İşletme
+    Ayarları** ekranı tarafından yazılıp okunuyor. Başka hiçbir kod yolu
+    onu okumuyor. Ürün kartlarının KDV'si ayrı bir alandan geliyor
+    (`stock_item.vat_rate`) ve doğrusu da budur — ikisi farklı şeyler.
+    ⚠️ Kullanıcı buraya %20 yazıp *"artık her yerde 20 olur"* sanabilir.
+    Bu bir **yalan değil ama verilmemiş bir sözün beklentisi**.
+    **Bugün yapılan:** ekrana bir cümle eklendi — *"Bu oran şu an yalnızca
+    burada saklanıyor."* Sessiz kalmak, ekranın veremediği bir sözü
+    vermesi olurdu.
+    **Yapılacak (karar gerektiriyor):** oran ya bir işe yarasın (ör. yeni
+    ürün kartında varsayılan KDV olarak gelsin, fatura/irsaliye
+    hesabında kullanılsın) ya da alan kaldırılsın. Üçüncü bir seçenek
+    yok: "saklanan ama kullanılmayan ayar" kalıcı olmamalı.
   - ✅ **3.4.6** **KAPANDI (01.11)** · Fiyat biçimlendirmesi artık para
     birimini işletmeden alıyor.
     `billing.ts` içinde `const PARA_BIRIMI = 'TRY'` yazıyordu ve bu dosyayı
