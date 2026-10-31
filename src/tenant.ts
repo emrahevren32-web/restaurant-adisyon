@@ -167,10 +167,12 @@ export const normalizeTenant = (item: Partial<Tenant>): Tenant => {
   }
 }
 
-export const createDemoTenants = (now = new Date().toISOString()) => {
-  void now
-  return []
-}
+// ⚠️ `createDemoTenants` BURADAYDI · 31.10.2026 · SİLİNDİ (A4 kalıntısı).
+// Gövdesi zaten `return []` idi: biri içini daha önce boşaltmış ama kabuğu
+// bırakmıştı. İçi boş bir "demo üretici", adıyla bir şey vaat edip hiçbir
+// şey yapmaz — ve bir gün biri içini yeniden doldurabilir.
+// ⚠️ Bu fonksiyon çıcırın da KÖR NOKTASIYDI: sayım yalnız `storage.ts`e
+// bakıyordu, `tenant.ts` hiç taranmıyordu (31.10'da düzeltildi).
 
 const createTenantFromCompany = (
   company: CompanyMigrationRecord,

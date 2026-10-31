@@ -93,8 +93,13 @@ find "${Kok}" -type d -exec chmod 755 {} +
 find "${Kok}" -type f -exec chmod 644 {} +
 nginx -t >/dev/null && systemctl reload nginx
 echo "YEDEK=`$YEDEK"
-# En eski yedekleri temizle, son uc tanesi kalsin.
-ls -1dt ${Kok}.yedek-* 2>/dev/null | tail -n +4 | xargs -r rm -rf
+# En eski yedekleri temizle, son YEDI tanesi kalsin.
+# !! 31.10.2026 · UC'TEN YEDIYE CIKARILDI. Sebep: uc donus noktasinin ikisi
+# ayni gune aitti; kotu bir dagitim bir gun sonra fark edilirse donulecek
+# saglam surum kalmiyordu. Maliyeti OLCULDU: bir surum 8.49 MB (31 dosya),
+# yani dort fazladan yedek ~34 MB. (Once "birkac yuz MB" demistim, olcmeden:
+# tuzak 156.)
+ls -1dt ${Kok}.yedek-* 2>/dev/null | tail -n +8 | xargs -r rm -rf
 "@
 
 $Cikti = ssh -i $Anahtar $Hedef $Komut

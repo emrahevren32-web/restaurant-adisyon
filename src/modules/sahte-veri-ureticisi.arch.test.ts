@@ -195,10 +195,14 @@ describe('sahte veri üreticisi çıcırı', () => {
     const KIRACI = readFileSync(join(SRC, 'tenant.ts'), 'utf8') as string
     const disaridakiler = [...yorumsuz(KIRACI)
       .matchAll(/^\s*(?:export\s+)?const (createDemo[A-Za-z]+)\s*=/gm)].map(m => m[1])
+    // ⚠️ 31.10.2026 · `createDemoTenants` de SİLİNDİ. Gövdesi zaten
+    // `return []` idi — içi boşaltılmış ama kabuğu bırakılmış bir üretici.
+    // Adıyla bir şey vaat edip hiçbir şey yapmak da bir tür *mış gibi*dir,
+    // ve bir gün biri içini yeniden doldurabilirdi.
     expect(
       disaridakiler,
-      'tenant.ts içindeki üretici listesi değişti — bilerek mi?',
-    ).toEqual(['createDemoTenants'])
+      'tenant.ts içinde yeniden bir sahte veri üreticisi var',
+    ).toEqual([])
   })
 
   it('şube ve firma okuyucuları demo üretimine DÜŞMÜYOR', () => {

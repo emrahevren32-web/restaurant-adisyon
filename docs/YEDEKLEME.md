@@ -250,8 +250,10 @@ Otomatik hâle getirmek (Görev Zamanlayıcı) yazılı bir borçtur.
 rm -rf /var/www/miyop && mv /var/www/miyop.yedek-<damga> /var/www/miyop && systemctl reload nginx
 ```
 
-⚠️ Sunucu **son üç** sürümü tutar (`miyop-yukle.ps1` satır 97); bir sürüm
-**8.5 MB** (30.10.2026 derlemesi: 31 dosya, 8.51 MB).
+⚠️ Sunucu **son yedi** sürümü tutar (31.10'da üçten yediye çıkarıldı).
+Bir sürüm **8.49 MB** (31.10 derlemesi: 31 dosya), yani yedi sürüm ~59 MB.
+Sebep: üç dönüş noktasının ikisi aynı güne aitti; kötü bir dağıtım ertesi
+gün fark edilirse dönülecek sağlam sürüm kalmıyordu.
 
 ### 6.2 Veritabanı (elle ve kayıt altında)
 **Karar (Emrah, 13.09.2026): ekrana geri yükleme düğmesi KONULMAYACAK.**
@@ -280,6 +282,6 @@ prova edilecek — o provaya kadar bu bölüm **test edilmemiş** sayılır.
 | 2 | **Geri yükleme hiç denenmedi** (§6.2) |
 | 3 | `auth.users` yedekte yok (§4.1) |
 | 4 | Supabase **Pro** alınmadı: otomatik yedek ve duraklamama yok (§2) |
-| 5 | Sunucu **üç** sürüm tutuyor; yediye çıkarmak ~35 MB (ikinci derece) |
-| 6 | `pg_dump 17+` ya da Docker **henüz kurulu değil** → veri yedeği hâlâ ALINAMADI |
+| ~~5~~ | ✅ **Kapandı (31.10):** sunucu artık **yedi** sürüm tutuyor (~59 MB) |
+| ~~6~~ | ✅ **Kapandı (31.10):** PostgreSQL 18.6 istemci araçları kuruldu; ilk veri yedeği alındı |
 | 7 | Tam proje yedeği **otomatik değil**, elle çalıştırılıyor |

@@ -1,61 +1,26 @@
-A4 BITTI: storage.ts'te tek bir createDemo* kalmadi (851 satir)
+ufak isler: bos kabuk uretici silindi, sunucu yedegi 3 -> 7
 
-Emrah'in karari (31.10): "Bosalt, gercege baglanana kadar bos kalsin -
-panel bugun yalan soylemez ama birkac ekran bos gorunur."
+-- 1 · createDemoTenants SILINDI (tenant.ts) ----------------------------
+Govdesi zaten `return []` idi: biri icini daha once bosaltmis ama kabugu
+birakmisti. Adiyla bir sey vaat edip hicbir sey yapmak da bir tur
+*mis gibi*dir, ve bir gun biri icini yeniden doldurabilirdi.
 
--- BU TURDA: PLATFORM (EVREN360) · SEKIZ URETICI · 443 SATIR -----------
-createDemoBusinessApplications · createDemoApplicationNotes ·
-createDemoBusinessRegistrations · createDemoCompanySetups ·
-createDemoCompanyLicenses · createDemoCompanyUsers ·
-createDemoUserSubscriptions · createDemoPlatformSupportTickets
+!! Bu fonksiyon cicirin KOR NOKTASIYDI: sayim yalniz storage.ts'e
+bakiyordu, tenant.ts hic taranmiyordu (31.10'da taramaya alindi).
+Cicir sinamasi guncellendi: tenant.ts artik BOS olmali.
 
-Panelde uydurma basvuru, uydurma firma kurulumu, uydurma lisans, uydurma
-panel kullanicisi, uydurma abonelik ve uydurma destek talebi
-gosteriyorlardi. Musteri gormuyordu - ama *mis gibi*ligin musteriye
-gorunmeyeni de *mis gibi*dir. Panelde "3 bekleyen basvuru" yazmasi,
-Emrah'in kendi sistemine guvenini yanlis yere oturtur.
+Boylece A4'un muhasebesi tamamlandi: projede hicbir yerde
+`const createDemo*` kalmadi.
 
-Cagrilar artik dogrudan readJson(KEY, []) okuyor: kayit yoksa BOS liste.
+-- 2 · Sunucuda tutulan yedek sayisi 3 -> 7 -----------------------------
+Uc donus noktasinin ikisi ayni gune aitti; kotu bir dagitim ertesi gun
+fark edilirse donulecek saglam surum kalmiyordu.
 
--- !! IKI FONKSIYON SILINMEDI, ADI DEGISTI -----------------------------
-createDemoLicensePackages -> varsayilanLisansPaketleri
-createDemoLicenseModules  -> varsayilanLisansModulleri
+Maliyet OLCULDU: bir surum 8.49 MB (31 dosya), dort fazladan yedek ~34 MB,
+toplam ~59 MB. (Once "birkac yuz MB" demistim, olcmeden: tuzak 156.)
 
-Bu ikisi uydurma KAYIT degil, URUN KATALOGU: defaultPackageSpecs
-sabitinden turuyorlar, yani MIYOP'un gercekten sattigi planlar ve her
-planin hangi modulleri icerdigi. Silmek lisans ekranlarini PLANSIZ
-birakirdi; kazanc yok, kayip var. Adlari yanilticiydi: "demo" degiller,
-VARSAYILAN.
-
-!! Ad degistirip sayimdan cikmak SAKLAMAK olabilirdi. Cicira ayri bir
-sinama eklendi: ikisi hala DURMALI ve createDemo onekiyle GERI GELMEMELI.
-
--- CICIR KAPANDI -------------------------------------------------------
-sahte-veri-ureticisi.arch.test.ts:
-  * ust sinir 10 -> 0
-  * storage.ts icinde tek bir createDemo* yok
-  * "anahtar yoksa demo uret" deseni 8 -> 0 (cicir toBe(0)'a cevrildi)
-  * silinen 19 adin tamami yasakli listede
-  * katalog yeniden adlandirmasi icin ayri sinama
-
-!! SAGLAMA SINAMASI YENIDEN YAZILDI VE SEBEBI ONEMLI.
-Eskiden "en az bir uretici bulmaliyim" diyordu, cunku o gun sifir bulmak
-ancak olcumun bozulmasiyla mumkundu (tuzak 58). Bugun sifir DOGRU CEVAP.
-O halde saglamanin isi degisti: artik "olcum araci hala calisiyor mu"
-soruyor - dosya boyutu + desenin bir ornek metinde calistigi. Yoksa dosya
-bir gun bosalsa ya da desen bozulsa test yine yesil kalir ve cicir
-sessizce olurdu.
-
--- A4'UN TOPLAMI -------------------------------------------------------
-  1. tur: kiraci tarafi · 13 uretici + "depo bossa uydur" mekanizmasi (408)
-  2. tur: platform       ·  8 uretici                                 (443)
-  toplam: 21 uretici, 851 satir, 23 -> 0
-
--- SONRADAN YAPILACAK --------------------------------------------------
-Panel listelerinin gercek karsiligi kismen veritabaninda VAR
-(business_application, tenant_license, license_event), kismen HIC YOK
-(destek talebi, abonelik tablolari yazilmamis). Ekranlari gercege baglamak
-ayri bir is. kaldirilan-moduller.md 9. bolumde.
+docs/YEDEKLEME.md 7. bolumunde 5. ve 6. borclar KAPANDI olarak isaretlendi
+(yedek sayisi + pg_dump kurulumu).
 
 Co-Authored-By: Claude Opus 5 <noreply@anthropic.com>
 Claude-Session: https://claude.ai/code/session_019BwYM3mAXZUhp4YGj7tp2y
