@@ -984,6 +984,35 @@ göreceği hata mesajları** da (`'Çok fazla deneme yapıldı'`) bozuluyordu.
 ⚠️ Ve komut kendi çıktısını **ölçmeli**: panoda `ş` var mı, bozuk `Ã` var
 mı. "Kopyaladım" demek yetmez; kopyanın sağlam olduğu gösterilir.
 
+**162 · YOL HARİTASININ ÜST TABLOSU, AYRINTI BÖLÜMÜNDEN ÜÇ GÜN GERİDEYDİ.**
+(01.11) HEDEFLER'in demo tablosunda **A3** hâlâ açık görünüyordu; aşağıda
+**3.7** *"KAPANDI (29.10) · 7/7 ekran"* diyordu. Aynı dosyada iki cevap.
+Alt maddeler 3.7.1 ve 3.7.2 de ⬜ duruyordu, oysa 3.7.3 ikisini de
+adlarıyla bitirdiğini yazıyordu. 3.4.1/3.4.2/3.4.3 de aynı durumdaydı:
+göç 0103 ile 29.10'da kapanmışlar, kutuları işaretlenmemişti.
+⚠️ Bedeli somut: Emrah'a *"sıradaki iş A3"* diyecektim — **bitmiş bir işi
+yapmaya başlıyorduk.** Bayat bir liste yalan söyler, ve en pahalı yalanı
+"yapılacak" sütununda söyler.
+⚠️ Ders: bir iş bitince **iki yer** güncellenir — ayrıntı bölümü ve onu
+özetleyen tablo. Özet, ayrıntıdan türemiyorsa ayrışır. Aynı aile:
+tuzak 146 (borcu donduran test borç kapanınca tersine çevrilir),
+tuzak 155 (kapsam ölçen test anlamı ölçmez).
+
+**161 · "KAYIT YOKSA" DİYE YAZDIM, KAYIT VARDI — VE SORUNUN SEBEBİYDİ.**
+(01.11) Davet e-postası Outlook'ta çöp kutusuna düşüyordu. 28.10'da sebebi
+*"`emrahevren.com` için SPF / DKIM / DMARC kayıtları **yoksa** Outlook
+mektubu doğrulayamaz"* diye yazdım. Ölçmedim, varsaydım.
+Ölçünce tersi çıktı: `v=spf1 include:secureserver.net **-all**`.
+Kayıt **var** ve `-all` ile *"GoDaddy dışında kimse bu alan adı adına
+gönderemez"* diyor. Supabase'in sunucusu o listede değil → **sert
+başarısızlık**. Yani kayıt eksikliği değil, kaydın **kendisi** sebepti.
+⚠️ Ders: *"X yoksa"* bir TEŞHİS DEĞİL, bir VARSAYIMDIR — hele düzeltmesi
+bir satır DNS ekiyse. "Ekleyelim" demeden önce **oku**: eklenecek şey
+zaten orada olabilir ve tam tersini söylüyor olabilir.
+⚠️ İkinci ders: bu yüzden çözüm de değişti. "SPF ekle" işe yaramazdı;
+ya GoDaddy'nin SMTP'sinden gönderilecek ya da bir posta servisinin
+include+DKIM kayıtları eklenecek.
+
 **160 · "VERİ VAR" İLE "VERİ GERİ GELİR" AYRI İKİ İDDİADIR.** (31.10)
 İlk gerçek veri yedeği alındı ve betiğin doğrulaması yeşil verdi: şema
 500 KB, veri 322 KB, 66 `COPY` satırı, `audit_log` ve `stock_movement`
@@ -1370,6 +1399,12 @@ Son söz onun çıktısındadır.
 64. Bir **rozet** ya gerçek bir sorgudan ölçülür ya da hiç konmaz
     (MIYOP-065). "Tamamlandı" yazan bir rozet, tamamlandığını KANITLAYAN
     bir şeyden beslenmiyorsa *mış gibi*dir.
+84. Bir iş bitince **özet tabloyu da** güncelle (tuzak 162). Ayrıntı
+    bölümü "kapandı" derken üstteki liste "yapılacak" diyorsa, liste
+    yalan söylüyordur — ve o yalan sıradaki işi seçtirir.
+83. *"X yoksa"* bir teşhis değil **varsayımdır** (tuzak 161). Bir kaydın,
+    ayarın ya da dosyanın yokluğunu sebep göstermeden önce **oku**:
+    orada olabilir ve tam tersini söylüyor olabilir.
 81. Bir yedeğin ölçüsü **içeriği değil, GERİ YÜKLENEBİLİRLİĞİDİR**
     (tuzak 160). Dairesel yabancı anahtar varsa `--data-only` dökümü geri
     yüklenmeyebilir; geri yükleme dosyası ayrı tutulur ve açılıp okunur.

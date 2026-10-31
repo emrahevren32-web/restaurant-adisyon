@@ -1,26 +1,94 @@
-ufak isler: bos kabuk uretici silindi, sunucu yedegi 3 -> 7
+3.4.5 kapandi: sihirbaz para birimini VERITABANINA yaziyor + bayat kutular
 
--- 1 · createDemoTenants SILINDI (tenant.ts) ----------------------------
-Govdesi zaten `return []` idi: biri icini daha once bosaltmis ama kabugu
-birakmisti. Adiyla bir sey vaat edip hicbir sey yapmak da bir tur
-*mis gibi*dir, ve bir gun biri icini yeniden doldurabilirdi.
+-- 1 · HEDEFLER 3.4.5 ---------------------------------------------------
+Ilk giris sihirbazi secilen para birimini `saveTenantSettings` ile
+TARAYICIYA yaziyordu. Goc 0103'ten sonra bu IKINCI BIR KAYNAKTI: sihirbazda
+secilen para birimi ile Isletme Ayarlari'nda gorunen AYRISABILIYORDU ve
+hangisinin dogru oldugunu soyleyecek bir sey yoktu.
 
-!! Bu fonksiyon cicirin KOR NOKTASIYDI: sayim yalniz storage.ts'e
-bakiyordu, tenant.ts hic taranmiyordu (31.10'da taramaya alindi).
-Cicir sinamasi guncellendi: tenant.ts artik BOS olmali.
+!! Cicir testi bunu yakalayamiyordu: `first-login` acik bir kiraci rotasi
+degil, giris akisinin icinde. Yani test yesildi, kusur duruyordu.
+Olcunun goremedigi yer de bir yerdir.
 
-Boylece A4'un muhasebesi tamamlandi: projede hicbir yerde
-`const createDemo*` kalmadi.
+Yapilan:
+  * FirstLoginWizard > finishSetup artik async ve isletmeAyarlariniYaz ile
+    VERITABANINA yaziyor. Satir zaten var: goc 0103 her yeni kiraci icin
+    tenant_settings satirini tetikle aciyor.
+  * onboarding.service icindeki tarayici yaziminda `currency` KALKTI.
+    workspaceCurrency degiskeni de olu kaldigi icin silindi.
 
--- 2 · Sunucuda tutulan yedek sayisi 3 -> 7 -----------------------------
-Uc donus noktasinin ikisi ayni gune aitti; kotu bir dagitim ertesi gun
-fark edilirse donulecek saglam surum kalmiyordu.
+!! YAZIM DUSERSE KURULUM DURDURULMUYOR ve bu bilincli: isletme o noktada
+ZATEN ACILDI, kullanici sifresini belirledi. Geri donusu olmayan bir
+akisin sonunda "olmadi" deyip kullaniciyi ortada birakmak, para biriminin
+yanlis kalmasindan kotudur. Sebep yaziliyor ve nereden duzeltecegi
+soyleniyor.
 
-Maliyet OLCULDU: bir surum 8.49 MB (31 dosya), dort fazladan yedek ~34 MB,
-toplam ~59 MB. (Once "birkac yuz MB" demistim, olcmeden: tuzak 156.)
+!! IKINCI BIR AYRISMA DAHA KAPANDI: sihirbazin para birimi listesi elle
+['TRY','USD','EUR'] yaziliydi, Isletme Ayarlari'ninkinde GBP DE VARDI.
+Sihirbazda secilemeyen bir para birimi ayarlarda secilebiliyordu.
+Liste artik tek kaynaktan: PARA_BIRIMLERI.
 
-docs/YEDEKLEME.md 7. bolumunde 5. ve 6. borclar KAPANDI olarak isaretlendi
-(yedek sayisi + pg_dump kurulumu).
+!! timezone, language, dateFormat, theme HALA tarayicida . onlarin
+veritabaninda karsiligi YOK. Yazili borc, saklanmis degil.
+
+-- !! TIP DENETIMI ZINCIRI ACTI . IYI KI -------------------------------
+Ilk denemede tek satir kirmizi verdi:
+  "Property 'currency' is missing ... but required in type 'TenantSettings'"
+
+Yani cagriyi temizlemek yetmiyordu: ALAN TIPTE DURUYORDU. Alani tipte
+birakmak, tarayicidaki kopyayi "gercek" gibi gostermeye devam ederdi ve
+yarin biri onu yeniden doldururdu.
+
+Zincir sonuna kadar takip edildi:
+  types.ts            TenantSettings.currency        KALKTI
+  tenant.ts           normalizeTenantSettings        KALKTI
+  tenant.ts           DEFAULT_TENANT_SETTINGS.currency KALKTI
+  FirstLoginWizard    baslangic degeri 'TRY'
+
+!! 'TRY' uydurma bir varsayilan DEGIL: goc 0103'un tetigi her yeni kiraci
+icin tenant_settings.currency_code = 'TRY' yaziyor. Yani ekranda gorunen,
+veritabaninda o an gercekten yazan deger. Iki yerde varsayilan tutmak,
+ikisinin bir gun ayrismasi demekti.
+
+-- !! ZINCIR IKINCI KEZ ACILDI . DORT KOPYA BULUNDU ---------------------
+Tipi temizleyince 9 hata daha cikti ve ikisi YENI YER gosterdi:
+
+  TenantManagement.tsx (EVREN360 paneli) . "Para Birimi" alani
+    !! Buradan secilen deger TARAYICIYA yaziliyordu, isletmenin
+       veritabanindaki satirina DEGIL. Yani platform admini bir sey
+       seciyor, isletme onu HIC GORMUYORDU. Ucuncu kaynak, ve hicbir
+       yere ulasmayan bir kaynak. Alan kaldirildi.
+    !! Listesi de elle yaziliydi (TRY/USD/EUR/GBP) . ucuncu kopya.
+
+  workspace-provisioning.service.ts . kurulum bildirgesindeki
+    "Para Birimi" satiri. Degeri tarayicidaki kopyadan okuyordu.
+    Bir bildirge yanlis soyleyecekse hic sylemesin: satir kaldirildi.
+
+  DEFAULT_WORKSPACE_SETTINGS.currency . dorduncu varsayilan kopyasi.
+
+Yani para birimi DORT yerde birden tutuluyordu: TenantSettings tipi,
+DEFAULT_TENANT_SETTINGS, DEFAULT_WORKSPACE_SETTINGS ve iki ayri elle
+yazilmis <select> listesi. Hicbiri veritabanina bagli degildi.
+
+!! Iki adimli silme kurali tam bunun icin var: ilk tip denetimi bir
+hata gosterdi, ikincisi dokuz. "Bir cagriyi temizledim, bitti" deseydim
+uc kopya daha sessizce duruyor olacakti.
+
+!! theme/language/dateFormat/timezone KALDI ve bu bilincli: onlarin
+veritabaninda karsiligi YOK. Yazili borc, saklanmis degil.
+
+-- 2 · TUZAK 162 · BAYAT KUTULAR ---------------------------------------
+HEDEFLER'in demo tablosunda A3 hala ACIK gorunuyordu; asagida 3.7
+"KAPANDI (29.10) · 7/7 ekran" diyordu. Ayni dosyada iki cevap.
+3.7.1 ve 3.7.2 de bos kutuyla duruyordu, oysa 3.7.3 ikisini de adlariyla
+bitirdigini yaziyordu. 3.4.1/3.4.2/3.4.3 de ayni: goc 0103 ile 29.10'da
+kapanmislar, kutulari isaretlenmemisti.
+
+!! Bedeli somut: Emrah'a "siradaki is A3" diyecektim . BITMIS BIR ISI
+yapmaya basliyorduk. Bayat bir liste yalan soyler ve en pahali yalanini
+"yapilacak" sutununda soyler.
+
+Alti kutu duzeltildi, gerekceleri yazildi.
 
 Co-Authored-By: Claude Opus 5 <noreply@anthropic.com>
 Claude-Session: https://claude.ai/code/session_019BwYM3mAXZUhp4YGj7tp2y

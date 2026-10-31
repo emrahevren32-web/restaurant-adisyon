@@ -21,7 +21,15 @@ export type TenantSettings = {
   id: string
   tenantId: string
   timezone: string
-  currency: string
+  // ⚠️ `currency` BURADAN KALDIRILDI · 01.11.2026 · HEDEFLER 3.4.5.
+  // Para biriminin tek kaynağı `public.tenant_settings.currency_code`
+  // (göç 0103); okuyan/yazan yer
+  // `src/workspace/isletme-ayarlari.repository.ts`.
+  // Alanı tipte bırakmak, tarayıcıdaki kopyayı "gerçek" gibi gösterirdi —
+  // ve tip denetimi onu doldurmayan her yeri kırmızı yapar, yani kimse
+  // "boş geçeyim" diyemez. Alanın kendisi kalkınca ikinci kaynak da kalkar.
+  // ⚠️ `timezone`, `language`, `dateFormat`, `theme` KALDI: onların
+  // veritabanında karşılığı YOK. Yazılı borç, saklanmış değil.
   language: string
   dateFormat: string
   theme: string

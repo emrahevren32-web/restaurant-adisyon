@@ -21,23 +21,56 @@ sağlam.
 
 Demoyu durdurabilir: müşteri e-postayı bulamazsa giriş yapamaz.
 
-Sebep tek bir şey değil, ama bilinen sebepler şunlar ve **sırayla
-ölçülmeli**:
+#### ⚠️ ÖLÇÜLDÜ · 01.11.2026 · sebep tahmin değil artık
 
-- **Gönderici alan adı doğrulanmamış.** `emrah@emrahevren.com` adresinden
-  gönderiliyor ama `emrahevren.com` için **SPF / DKIM / DMARC** kayıtları
-  yoksa Outlook mektubu doğrulayamaz ve çöp kutusuna atar. Kayıtlar
-  GoDaddy'deki DNS'e yazılır.
-- **Supabase'in varsayılan SMTP'si kullanılıyorsa** gönderen sunucu
-  Supabase'indir, adres ise `@emrahevren.com`'dur — bu ikisi
-  uyuşmadığı için mektup *"adına konuşuyor"* görünür. Varsayılan SMTP
-  zaten "yalnız geliştirme için" diye işaretlidir ve günlük sınırı vardır.
-- **Düzeltme yolu:** kendi SMTP'ni tanımla (Resend, Brevo, Postmark gibi),
-  o servisin verdiği SPF/DKIM kayıtlarını GoDaddy'ye gir, DMARC ekle.
-  Sonra aynı denemeyi tekrarla ve e-postanın **gelen kutusuna** düştüğünü
-  gör. ⚠️ Doğrulamadan "düzeldi" denmez.
+28.10'da bu bölüme *"SPF / DKIM / DMARC kayıtları **yoksa** Outlook
+mektubu doğrulayamaz"* diye yazmıştım. **Ölçmedim, varsaydım.** Ölçünce
+tersi çıktı — kayıtlar **var**, ve durum "yok"tan **daha kötü**:
 
-⚠️ Bu madde **kod işi değil**, kurulum işi. Ama demo kapsamındadır.
+```
+emrahevren.com        TXT   v=spf1 include:secureserver.net -all
+_dmarc.emrahevren.com TXT   v=DMARC1; p=none; rua=mailto:postmaster@emrahevren.com
+emrahevren.com        MX    smtp.secureserver.net (0), mailstore1.secureserver.net (10)
+```
+
+**`-all` ne demek:** *"`@emrahevren.com` adına yalnız GoDaddy'nin
+(`secureserver.net`) sunucuları mektup gönderebilir; başka hiç kimse
+gönderemez — gelen mektubu REDDEDİN."*
+
+Supabase'in SMTP sunucuları o listede **değil**. Yani davet mektubu
+`emrah@emrahevren.com` adresinden görünüyor ama GoDaddy dışı bir
+sunucudan çıkıyor → Outlook SPF'i **sert başarısızlıkla** (hard fail)
+işaretliyor. Çöp kutusu bunun doğal sonucu.
+
+⚠️ **Bu yüzden "SPF kaydı ekleyelim" ÇÖZÜM DEĞİL.** Kayıt zaten var ve
+göndericiyi bilerek yasaklıyor. İki gerçek yol var:
+
+| Yol | Ne yapılır | Artı / eksi |
+|---|---|---|
+| **A · GoDaddy SMTP'siyle gönder** | Supabase → Authentication → SMTP Settings'e GoDaddy posta kutusunun SMTP bilgileri girilir | DNS'e **dokunulmaz**, SPF kendiliğinden geçer. Yeni hesap gerekmez. Günlük gönderim sınırı var. |
+| **B · Posta servisi kullan** (Resend, Brevo, Postmark…) | Servisin verdiği **SPF include** ve **DKIM** kayıtları GoDaddy DNS'ine eklenir | DKIM de kazanılır (daha sağlam), ama yeni hesap + DNS işi |
+
+**Önerilen: A.** Demo öncesi en kısa yol ve DNS'e dokunmuyor.
+⚠️ SMTP sunucu adı ve portu GoDaddy panelinden **okunacak**, tahmin
+edilmeyecek — MX kaydı eski "Workspace Email" ürününü gösteriyor
+(`secureserver.net`), Microsoft 365'i değil; ikisinin SMTP adresi farklı.
+
+⚠️ **Parola Supabase paneline SEN gireceksin.** Bu dokümanda, hiçbir
+betikte ve hiçbir konuşmada parola yazılı değildir.
+
+#### DKIM
+
+Ölçülemedi: DKIM kaydı **seçiciye** (selector) bağlıdır ve seçiciyi
+gönderen servis belirler; hangi seçiciyi arayacağımızı bilmeden "yok"
+diyemeyiz. B yolu seçilirse servis kendi seçicisini verir. A yolunda
+GoDaddy Workspace Email DKIM sunmayabilir — o zaman DMARC, SPF
+hizalanmasıyla geçer (`p=none` zaten zorlamıyor).
+
+#### ⚠️ DOĞRULAMADAN "DÜZELDİ" DENMEZ
+
+Ayar yapıldıktan sonra aynı deneme tekrarlanacak ve mektubun **gelen
+kutusuna** düştüğü görülecek. Mektubun kaynağındaki
+`Authentication-Results` satırında `spf=pass` yazmalı.
 
 ### 2 · E-posta İNGİLİZCE ve MİYOP'a ait değil
 

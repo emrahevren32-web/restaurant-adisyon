@@ -283,7 +283,9 @@ export const completeFirstLoginOnboarding = ({
   const address = businessInfo.address.trim() || state.company.address
   const branchName = businessInfo.branchName.trim() || state.branch?.name || 'Merkez Şube'
   const workspaceLogoUrl = ''
-  const workspaceCurrency = businessInfo.currency.trim().toLocaleUpperCase('tr-TR') || DEFAULT_WORKSPACE_CURRENCY
+  // ⚠️ `workspaceCurrency` BURADAYDI · 01.11.2026 · artık kullanılmıyor.
+  // Sihirbazın seçtiği para birimi doğrudan veritabanına yazılıyor
+  // (FirstLoginWizard → finishSetup → isletmeAyarlariniYaz).
   const workspaceLanguage = businessInfo.language.trim() || DEFAULT_WORKSPACE_LANGUAGE
   const workspaceTimezone = businessInfo.timezone.trim() || DEFAULT_WORKSPACE_TIMEZONE
 
@@ -362,7 +364,15 @@ export const completeFirstLoginOnboarding = ({
       id: existingTenantSettings?.id || `tenant_settings_${tenantId}`,
       tenantId,
       timezone: workspaceTimezone,
-      currency: workspaceCurrency,
+      // ⚠️ `currency` BURADAN DA KALDIRILDI · 01.11.2026 · HEDEFLER 3.4.5.
+      // Para biriminin tek kaynağı `public.tenant_settings` (göç 0103).
+      // Burada tutmak İKİNCİ BİR KAYNAK demekti: sihirbazda seçilen değer
+      // ile İşletme Ayarları'nda görünen ayrışabiliyordu ve hangisinin
+      // doğru olduğunu söyleyecek bir şey yoktu.
+      // Sihirbaz artık seçimi veritabanına yazıyor
+      // (`FirstLoginWizard.tsx` → `finishSetup`).
+      // ⚠️ `timezone`, `language`, `dateFormat`, `theme` KALDI: onların
+      // veritabanında karşılığı YOK. Yazılı borç, saklanmış değil.
       language: workspaceLanguage,
       dateFormat: existingTenantSettings?.dateFormat || 'DD.MM.YYYY',
       theme: existingTenantSettings?.theme || 'Varsayılan',
@@ -385,9 +395,9 @@ export const completeFirstLoginOnboarding = ({
     // artık `public.tenant_settings` tablosunda (göç 0103) ve onu okuyup
     // yazan yer `src/workspace/isletme-ayarlari.repository.ts`. Burada da
     // tutmak, hangisinin doğru olduğunu bilemediğimiz İKİ KAYNAK demekti.
-    // ⚠️ Aşağıdaki `saveTenantSettings` çağrısı HÂLÂ tarayıcıya bir para
-    // birimi yazıyor (satır ~365). O da kalkmalı; ilk giriş sihirbazı
-    // `tenant_settings`e yazacak. HEDEFLER 3.4.5'te açık madde.
+    // ✅ 01.11.2026 · `saveTenantSettings` çağrısındaki `currency` de
+    // KALKTI. İlk giriş sihirbazı artık `tenant_settings`e yazıyor.
+    // HEDEFLER 3.4.5 kapandı.
   })
   saveBranches(existingBranch
     ? allBranches.map(item => item.id === existingBranch.id ? updatedBranch : item)

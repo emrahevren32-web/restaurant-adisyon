@@ -31,7 +31,7 @@ neyin neden yapıldığı kaybolmasın.
 |---|---|---|
 | **A1** | ✅ **BİTTİ (29.10)** · **B başlığı · yarım ekranlar** · 4/4 | Kaydet'e basınca veri tarayıcıda kalıyor. Demoda ilk fark edilecek şey bu. **Sıra: ~~Profilim~~ ✅ (20.10) → ~~Firma Profili~~ ✅ (29.10) → ~~Karşılama~~ ✅ (29.10) → ~~İşletme Ayarları~~ ✅ (29.10, göç 0103)**. ⚠️ **İDDİA DÜZELTİLDİ (30.10, Codex):** doğru cümle şu — *açık kiracı ekranlarının iş verisinin kalıcı kaynağı veritabanıdır; veritabanından üretilen oturum ve görünüm önbellekleri bunun dışındadır.* Eski cümlem (*"hiçbiri tarayıcıya yazmıyor"*) fazla genişti: Profilim kaydı `onProfileChange` → `App.tsx` → `storage.ts` yoluyla `ra_auth` oturum önbelleğini hâlâ tazeliyor. O bir **önbellek**, kaynak değil — ama "hiçbiri yazmıyor" demek yanlıştı. `kiraci-ekrani-veri-kaynagi.arch.test.ts` çıcırı **6 → 0**. ⚠️ **25.10:** Şubeler ve Şube Yetkileri **kapsam dışına çıktı** (tek merkez kararı), düzeltilmedi — 5'ten 3'e indi. |
 | **A2** | ⛔ **KAPSAM DIŞI (Emrah, 31.10)** · MIYOP-008 · şube bağlamı | ⛔ **KARAR (Emrah, 31.10.2026):** *"Şube olayına şimdi girmeyeceğiz hatta demodan sonra da girmeyebiliriz."* Yani bu madde ertelenmedi, **kapsam dışına çıktı** — demo öncesi listesinden düşürüldü. ⚠️ **Bilinen durum yazılı kalsın:** kod hâlâ *"tercih yoksa ilk şube"* diyor ve tek şubede doğru sonucu **tesadüfen** veriyor. İkinci bir şube açıldığı gün bu bir hataya döner. Tek merkez kararı (25.10) o günü uzaklaştırdı ama ortadan kaldırmadı. Şube gerçekten gündeme gelirse yapılacaklar: başlıktaki şube seçici kalkar, liste sorgularına şube kapsamı yazılır. |
-| **A3** | **MIYOP-010** · etiket ekranında ürünler karışıyor · **MIYOP-064 ile birlikte 6 ekran** | Etiket, demonun en gösterişli parçası; yanlış ürünün alerjeni basılırsa itibar biter. ⚠️ Codex 21.10'da aynı kusuru Depo, Siparişler, Müşteriler, İş Emirleri ve Sevkiyatlar'da da buldu — tek ekrana yama atmak aileyi kapatmıyor (3.7). |
+| **A3** | ✅ **BİTTİ (29.10)** · MIYOP-010 + MIYOP-064 · **7/7 ekran** | Ortak çözüm `src/core/secim/ayrinti-kapisi.ts`: React'sız, isteksiz, **saf** bir karar birimi; kimlik sürüm numarası sayılıyor. Yedi ekranın yedisinde de takılı ve her birinde ÜÇ yere birden: düğme kapalı, eylemin **gövdesinde** erken dönüş, ve ekranda **sebep yazılı**. Ayrıntı 3.7'de. ⚠️ **BU SATIR 01.11'E KADAR AÇIK GÖRÜNÜYORDU** — iş 29.10'da bitmiş, üstteki tablo güncellenmemişti. Bayat bir liste yalan söyler: üç gün boyunca demo listesinde bitmiş bir iş duruyordu. |
 | **A4** | ✅ **BİTTİ (31.10)** · sahte veri üreticileri · **23 → 0** | `storage.ts` içinde tek bir `createDemo*` kalmadı; **851 satır** uydurma veri silindi. İki turda: (1) kiracı tarafı 13 üretici + **"depo boşsa uydur" mekanizmasının kendisi** (`loadBranchScopedItemsWithDemo` ve ikizi) — 408 satır; (2) platform/EVREN360 8 üretici — 443 satır. ⚠️ **Ölçüldü:** silinen 13'ün hiçbiri o gün açık bir kiracı ekranına ulaşmıyordu (dört modül de `frozen`) — yangın söndürme değil **mayın temizliği**: dondurulmuş bir kapı açıldığında uydurma veri sessizce geri gelecekti. ⚠️ **İki fonksiyon silinmedi, ADI DEĞİŞTİ:** `varsayilanLisansPaketleri` ve `varsayilanLisansModulleri` — uydurma kayıt değil **ürün kataloğu** (`defaultPackageSpecs`ten türüyorlar). Ad değiştirip sayımdan çıkmak saklamak olurdu; çıcıra ayrı sınama kondu. ⚠️ **Karar (Emrah, 31.10):** *"Boşalt, gerçeğe bağlanana kadar boş kalsın — panel bugün yalan söylemez ama birkaç ekran boş görünür."* Çıcır **kapandı** (üst sınır 0) ve sağlama sınaması yeniden yazıldı: artık "sonuç dolu mu" değil "ölçüm aracı hâlâ çalışıyor mu" diye soruyor. Ayrıntı: `docs/kararlar/kaldirilan-moduller.md` §8 ve §9. |
 | **A5** | **Şahit numune** 🔄 ⚠️ **28.10'da YENİDEN AÇILDI** | Göç **0093** defteri kurdu, **0094** Codex'in bulduğu P0'ı ve iki P1'i kapattı, **0096** saklama koşulunu kalite departmanının da yazabileceği beyan alanı yaptı, **0097** Emrah'ın imha onayı kararını zorladı. Ekran **Kalite → Şahit Numune**. Prova: 21+18+9+13 = **61 sınama yeşil**. ✅ **27.10:** etiket saklama koşulunu artık ürün kartından okuyor (3.9.3). ⚠️ **28.10 · EKRAN CANLIDA HİÇ AÇILMAMIŞ.** Emrah sıfırdan açılan bir kiracıda denedi: *"Bu ekran açılamadı"*. `client_error` kaydı sebebi yazdı — `ReferenceError: NUMUNE_SAYFA is not defined`: sabit kullanılmış, import edilmemiş. **26.10'da "bitti, canlıda" dedim; yalnız yerelde görmüştüm.** Düzeltildi; asıl kusur hatta tip denetiminin hiç koşmamasıydı (tuzak 141). Kalan: sayfalama borcu (3.9.9) + boş kiracıda canlı doğrulama. |
 | **A6** | ✅ **BİTTİ (29.10)** · MIYOP-043 · Edge Function canlıda + göç 0102 + yedek yol silindi | Güvenlik borcu kapandı. |
@@ -834,7 +834,7 @@ Emrah'ın onayladığı sıra:
     **ölçmedim**; ölçmeden "kimse görmüyor" demem.
     Yapılacak: biçimlendirme kiracının para birimini okuyacak (tek yerden),
     ya da o ekranların durumu 3.8'de netleşince birlikte karara bağlanacak.
-  - ⬜ **3.4.5** **İlk giriş sihirbazı hâlâ tarayıcıya para birimi yazıyor.**
+  - ✅ **3.4.5** **KAPANDI (01.11)** · İlk giriş sihirbazı artık veritabanına yazıyor.
     `onboarding.service.ts` (~365) `saveTenantSettings` ile `localStorage`a
     bir `currency` koyuyor ve `FirstLoginWizard` onu okuyor. Göç 0103'ten
     sonra bu **ikinci bir kaynak**: sihirbazda seçilen para birimi ile
@@ -842,19 +842,31 @@ Emrah'ın onayladığı sıra:
     ⚠️ Çıcır testi bunu YAKALAMIYOR çünkü `first-login` açık bir kiracı
     rotası değil (sihirbaz giriş akışının içinde). Yani test yeşil, kusur
     duruyor — bu yüzden madde buraya yazıldı.
-    Yapılacak: sihirbaz `tenant_settings`e yazacak ya da para birimi
-    sorusu sihirbazdan kalkacak (işletme ayarlardan seçsin).
-  - ⬜ **3.4.1** **MIYOP-060b · sorulmamış soruya cevap.**
+    **Yapıldı (01.11):** `FirstLoginWizard → finishSetup` artık
+    `isletmeAyarlariniYaz` ile **veritabanına** yazıyor; `onboarding.service`
+    içindeki tarayıcı yazımından `currency` kalktı.
+    ⚠️ **Yazım düşerse kurulum DURDURULMUYOR** ve bu bilinçli: işletme o
+    noktada zaten açıldı, kullanıcı şifresini belirledi. Geri dönüşü olmayan
+    bir akışın sonunda "olmadı" deyip kullanıcıyı ortada bırakmak, para
+    biriminin yanlış kalmasından kötüdür. Sebep yazılıyor ve nereden
+    düzelteceği söyleniyor.
+    ⚠️ **İkinci bir ayrışma daha kapandı:** sihirbazın para birimi listesi
+    elle `['TRY','USD','EUR']` yazılıydı, İşletme Ayarları'nınkinde **GBP de
+    vardı**. Sihirbazda seçilemeyen bir para birimi ayarlarda seçilebiliyordu.
+    Liste artık tek kaynaktan: `PARA_BIRIMLERI`.
+    ⚠️ `timezone`, `language`, `dateFormat`, `theme` hâlâ tarayıcıda — onların
+    veritabanında karşılığı YOK. Yazılı borç, saklanmış değil.
+  - ✅ **3.4.1** **KAPANDI (29.10)** · MIYOP-060b · sorulmamış soruya cevap.
     `DEFAULT_SETTINGS` (storage.ts:306) `vatRate: 10` yazıyor ve form bunu
     **işletmenin KDV oranı** gibi gösteriyor. Kimse %10 demedi.
     Belirlenmemiş değer boş görünmeli ya da alan kaldırılmalı.
-  - ⬜ **3.4.2** **Karşılığı olmayan alan.** Ad/logo için
+  - ✅ **3.4.2** **KAPANDI (29.10, göç 0103)** · Karşılığı olmayan alan. Ad/logo için
     `company.company_name` / `logo_url` var; **kiracı genelinde para birimi
     ve KDV** için göçlerde karşılık YOK. (Sipariş/stok satırındaki
     `vat_rate` işletme ayarı değil, satırın vergisi.) Bu iki ayar
     korunacaksa **yeni şema** ister; korunmayacaksa alan kaldırılır.
     ⚠️ Karar verilmeden ekran taşınmayacak.
-  - ⬜ **3.4.3** KDV ve para birimi ayrıca **ortak** `ra_settings` içine
+  - ✅ **3.4.3** **KAPANDI (29.10)** · KDV ve para birimi ayrıca **ortak** `ra_settings` içine
     yazılıyor; bir kiracının değeri diğerinin varsayılanına taşınabiliyor.
     3.4.2 kararıyla birlikte kapanır.
 - ⏸️ **3.5** Şubeler (`branches`) — **KAPSAM DIŞI (25.10)**
@@ -1543,7 +1555,7 @@ Emrah'ın onayladığı sıra:
     ⚠️ Kapının **saf kaldığı** da ölçülüyor: içine React ya da istek sızarsa
     test kırmızı verir — karar yedi ekranın ortak malı, biri onu kendi
     içinde yeniden yorumlayamaz.
-  - ⬜ **3.7.1** **MIYOP-064 · aynı kusur beş ekran daha** (Codex, 21.10):
+  - ✅ **3.7.1** **KAPANDI (29.10, 3.7.3 ile birlikte)** · MIYOP-064 · beş ekran daha (Codex, 21.10):
     Depo, Siparişler, Müşteriler, İş Emirleri, Sevkiyatlar. Desen aynı:
     seçim **hemen** değişiyor, ayrıntılar isteklerin tamamı dönünce
     yazılıyor, istek düşerse **eski kaydın ayrıntısı ekranda kalıyor** ve
@@ -1552,8 +1564,9 @@ Emrah'ın onayladığı sıra:
     kardeşi). Çözüm ortak: ayrıntıyı **seçili kayıt kimliği + istek
     sürümü** ile tut, seçimde eskisini temizle, ayrıntı hazır olmadan
     yazma/yazdırma düğmelerini kapat.
-  - ⬜ **3.7.2** `Traceability.tsx:153–193` eski ayrıntıyı temizliyor ama
-    **geç gelen cevap** koruması yok. Hızlı A→B seçimi sınanacak.
+  - ✅ **3.7.2** **KAPANDI (29.10)** · `Traceability.tsx` eski ayrıntıyı zaten
+    temizliyordu ama **geç gelen cevap** koruması yoktu; ayrıntı kapısı ona da
+    takıldı (3.7.3'teki yedinci ekran). ⚠️ Bu madde 01.11'e kadar ⬜ duruyordu.
 
 ---
 

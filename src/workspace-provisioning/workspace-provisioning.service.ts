@@ -62,7 +62,9 @@ export const WORKSPACE_PROVISIONING_EVENT = 'miyop-workspace-provisioning-update
 const DEFAULT_WORKSPACE_SETTINGS = {
   theme: 'Varsayılan',
   language: 'tr-TR',
-  currency: 'TRY',
+  // ⚠️ `currency: 'TRY'` BURADAYDI · 01.11.2026 · KALDIRILDI.
+  // Dördüncü varsayılan kopyasıydı. Tek kaynak: göç 0103'ün tetiği
+  // (`tenant_settings.currency_code`).
   timezone: 'Europe/Istanbul',
   dateFormat: 'DD.MM.YYYY'
 } as const
@@ -177,12 +179,14 @@ const createProvisionSettings = (company: Company): ProvisionManifestSetting[] =
       value: tenantSettings?.language || DEFAULT_WORKSPACE_SETTINGS.language,
       scope: 'workspace'
     },
-    {
-      key: 'currency',
-      label: 'Para Birimi',
-      value: tenantSettings?.currency || DEFAULT_WORKSPACE_SETTINGS.currency,
-      scope: 'workspace'
-    },
+    // ⚠️ 'currency' SATIRI BURADAYDI · 01.11.2026 · KALDIRILDI.
+    // Kurulum bildirgesi (manifest) işletmeye "para biriminiz şu" diye bir
+    // satır gösteriyordu ve o değeri TARAYICIDAKİ kopyadan okuyordu.
+    // Para biriminin tek kaynağı artık `public.tenant_settings.currency_code`
+    // (göç 0103) ve işletme onu İşletme Ayarları'ndan kendi seçiyor.
+    // Bildirgede göstermek, okunduğu yer yanlış olduğu için yanlış değer
+    // gösterme riskiydi — ve bir bildirge yanlış söylerse hiç söylemesin.
+    // ⚠️ theme/language/timezone KALDI: onların veritabanında karşılığı yok.
     {
       key: 'timezone',
       label: 'Saat Dilimi',

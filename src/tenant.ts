@@ -15,7 +15,10 @@ export const TENANT_STATUSES: TenantStatus[] = ['Aktif', 'Pasif', 'Askıda', 'Ar
 
 export const DEFAULT_TENANT_SETTINGS = {
   timezone: 'Europe/Istanbul',
-  currency: 'TRY',
+  // ⚠️ `currency: 'TRY'` BURADAYDI · 01.11.2026 · KALDIRILDI.
+  // Para biriminin varsayılanı artık VERİTABANINDA: göç 0103'ün tetiği
+  // her yeni kiracı için `tenant_settings.currency_code = 'TRY'` yazıyor.
+  // İki yerde varsayılan tutmak, ikisinin bir gün ayrışması demekti.
   language: 'tr-TR',
   dateFormat: 'DD.MM.YYYY',
   theme: 'Varsayılan'
@@ -263,7 +266,8 @@ export const normalizeTenantSettings = (item: Partial<TenantSettings>): TenantSe
     id: String(item.id || `tenant_settings_${tenantId || Date.now()}`),
     tenantId,
     timezone: String(item.timezone || DEFAULT_TENANT_SETTINGS.timezone).trim() || DEFAULT_TENANT_SETTINGS.timezone,
-    currency: String(item.currency || DEFAULT_TENANT_SETTINGS.currency).trim().toLocaleUpperCase('tr-TR') || DEFAULT_TENANT_SETTINGS.currency,
+    // ⚠️ `currency` BURADAN KALDIRILDI · 01.11.2026 · HEDEFLER 3.4.5.
+    // Tek kaynak `public.tenant_settings.currency_code` (göç 0103).
     language: String(item.language || DEFAULT_TENANT_SETTINGS.language).trim() || DEFAULT_TENANT_SETTINGS.language,
     dateFormat: String(item.dateFormat || DEFAULT_TENANT_SETTINGS.dateFormat).trim() || DEFAULT_TENANT_SETTINGS.dateFormat,
     theme: String(item.theme || DEFAULT_TENANT_SETTINGS.theme).trim() || DEFAULT_TENANT_SETTINGS.theme,

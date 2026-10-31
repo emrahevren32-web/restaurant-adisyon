@@ -8,6 +8,11 @@ import {
 } from '../onboarding/business-setup-wizard.service'
 import { completeFirstLoginOnboarding } from '../onboarding/onboarding.service'
 import {
+  PARA_BIRIMLERI,
+  isletmeAyarlariniOku,
+  isletmeAyarlariniYaz,
+} from '../workspace/isletme-ayarlari.repository'
+import {
   FirstLoginBusinessInfoForm,
   FirstLoginOnboardingState,
   FirstLoginPasswordForm
@@ -43,7 +48,12 @@ const wizardSteps: WizardStep[] = [
   { title: 'Kurulum Tamamlandı', description: 'Kontrol paneli' }
 ]
 
-const currencyOptions = ['TRY', 'USD', 'EUR']
+// ⚠️ 01.11.2026 · Liste BURADA TUTULMUYOR ARTIK.
+// Önce `['TRY', 'USD', 'EUR']` diye elle yazılıydı; İşletme Ayarları
+// ekranının listesinde ise GBP de vardı. İki liste, iki gerçek: sihirbazda
+// seçilemeyen bir para birimi ayarlarda seçilebiliyordu. Tek kaynak:
+// `isletme-ayarlari.repository`.
+const currencyOptions = PARA_BIRIMLERI
 const languageOptions = [
   { value: 'tr-TR', label: 'Türkçe' },
   { value: 'en-US', label: 'English' }
@@ -64,7 +74,16 @@ const createBusinessInfoForm = (state: FirstLoginOnboardingState): FirstLoginBus
   branchName: state.branch?.name || 'Merkez Şube',
   phone: state.branch?.phone || state.company?.phone || '',
   address: state.branch?.address || state.company?.address || '',
-  currency: state.tenantSettings?.currency || 'TRY',
+  // ⚠️ Başlangıç değeri 'TRY' · 01.11.2026.
+  // Eskiden `state.tenantSettings?.currency` okunuyordu; o alan tarayıcıdaki
+  // İKİNCİ KAYNAKTI ve kaldırıldı (types.ts → TenantSettings).
+  // 'TRY' uydurma bir varsayılan DEĞİL: göç 0103'ün tetiği her yeni kiracı
+  // için `tenant_settings` satırını `currency_code = 'TRY'` ile açıyor.
+  // Yani ekranda görünen, veritabanında o an gerçekten yazan değerdir.
+  // ⚠️ Sihirbaz İLK GİRİŞTE çalışır; o ana kadar kimsenin Ayarlar'dan
+  // para birimini değiştirmiş olması beklenmez. Değiştirmişse sihirbazın
+  // seçimi onu ezer — bilinen ve kabul edilen davranış.
+  currency: 'TRY',
   language: state.tenantSettings?.language || 'tr-TR',
   timezone: state.tenantSettings?.timezone || 'Europe/Istanbul'
 })
@@ -276,7 +295,29 @@ export default function FirstLoginWizard({ currentUser, onboardingState, onCompl
     return ''
   }
 
-  const finishSetup = () => {
+  /**
+   * ⚠️ 01.11.2026 · HEDEFLER 3.4.5 · İKİNCİ KAYNAK KAPANDI.
+   *
+   * Sihirbaz seçilen para birimini `saveTenantSettings` ile TARAYICIYA
+   * yazıyordu. Göç 0103'ten sonra bu ikinci bir kaynaktı: sihirbazda
+   * seçilen para birimi ile İşletme Ayarları'nda görünen AYRIŞABİLİYORDU
+   * ve hangisinin doğru olduğunu söyleyecek bir şey yoktu.
+   *
+   * ⚠️ Çıcır testi bunu yakalayamıyordu: `first-login` açık bir kiracı
+   * rotası değil, giriş akışının içinde. Yani test yeşildi, kusur
+   * duruyordu — ölçünün göremediği yer de bir yerdir.
+   *
+   * Artık veritabanına yazılıyor. Satır zaten var: göç 0103 her yeni
+   * kiracı için `tenant_settings` satırını tetikle açıyor (varsayılan
+   * `TRY`, KDV `null`). Burada yapılan o satırı GÜNCELLEMEK.
+   *
+   * ⚠️ YAZIM DÜŞERSE KURULUM DURDURULMUYOR ve bu bilinçli: işletme bu
+   * noktada ZATEN AÇILDI, kullanıcı şifresini belirledi. Geri dönüşü
+   * olmayan bir akışın sonunda "olmadı" deyip kullanıcıyı ortada bırakmak,
+   * para biriminin yanlış kalmasından kötüdür. Onun yerine SEBEP yazılıyor
+   * ve nereden düzelteceği söyleniyor.
+   */
+  const finishSetup = async () => {
     setError('')
     try {
       completeFirstLoginOnboarding({
@@ -286,11 +327,38 @@ export default function FirstLoginWizard({ currentUser, onboardingState, onCompl
         selectedRecommendedModuleCodes,
         selectedOptionalModuleCodes
       })
-      setCompleted(true)
-      setStepIndex(6)
     } catch(setupError){
       setError(setupError instanceof Error ? setupError.message : 'Kurulum tamamlanamadı.')
+      return
     }
+
+    const secilenParaBirimi = businessInfo.currency.trim().toUpperCase()
+    try {
+      const ayarlar = await isletmeAyarlariniOku()
+      if(!ayarlar){
+        setError('İşletmeniz açıldı. Para birimi kaydedilemedi (ayar kaydı okunamadı); '
+          + 'Ayarlar → Şirket Ayarları ekranından seçebilirsiniz.')
+      } else if(ayarlar.paraBirimi !== secilenParaBirimi){
+        const sonuc = await isletmeAyarlariniYaz(ayarlar.id, {
+          paraBirimi: secilenParaBirimi,
+          // ⚠️ KDV'ye DOKUNULMUYOR: sihirbaz KDV sormuyor ve "belirlenmedi"
+          // geçerli bir cevap. Boş metin, olanı boşaltmaz çünkü mevcut
+          // değer geri yazılıyor.
+          kdvOrani: ayarlar.kdvOrani === null ? '' : String(ayarlar.kdvOrani),
+        })
+        if(sonuc.durum === 'hata'){
+          setError(`İşletmeniz açıldı. Para birimi kaydedilemedi: ${sonuc.mesaj} `
+            + 'Ayarlar → Şirket Ayarları ekranından seçebilirsiniz.')
+        }
+      }
+    } catch(ayarHatasi){
+      void ayarHatasi
+      setError('İşletmeniz açıldı. Para birimi kaydedilemedi; '
+        + 'Ayarlar → Şirket Ayarları ekranından seçebilirsiniz.')
+    }
+
+    setCompleted(true)
+    setStepIndex(6)
   }
 
   const goNext = () => {
@@ -302,7 +370,7 @@ export default function FirstLoginWizard({ currentUser, onboardingState, onCompl
 
     setError('')
     if(stepIndex === 5){
-      finishSetup()
+      void finishSetup()
       return
     }
     setStepIndex(current => Math.min(current + 1, wizardSteps.length - 1))
@@ -413,7 +481,7 @@ export default function FirstLoginWizard({ currentUser, onboardingState, onCompl
               <label>
                 <span>Para Birimi</span>
                 <select value={businessInfo.currency} onChange={event => updateBusinessInfo('currency', event.target.value)}>
-                  {currencyOptions.map(currency => <option key={currency} value={currency}>{currency}</option>)}
+                  {currencyOptions.map(p => <option key={p.kod} value={p.kod}>{p.ad}</option>)}
                 </select>
               </label>
               <label>

@@ -38,11 +38,15 @@ type TenantFormValues = {
   status: TenantStatus
 }
 
-type SettingsFormValues = Pick<TenantSettings, 'timezone' | 'currency' | 'language' | 'dateFormat' | 'theme'>
+// ⚠️ `'currency'` BU LİSTEDEN ÇIKTI · 01.11.2026 · HEDEFLER 3.4.5.
+// Para biriminin tek kaynağı `public.tenant_settings.currency_code`
+// (göç 0103) ve onu işletmenin KENDİSİ seçiyor (İşletme Ayarları).
+// Bu ekran platform tarafı: buradan yazılan değer TARAYICIYA gidiyordu,
+// veritabanına değil. Yani ÜÇÜNCÜ bir kaynaktı ve hiçbir yere ulaşmıyordu.
+type SettingsFormValues = Pick<TenantSettings, 'timezone' | 'language' | 'dateFormat' | 'theme'>
 
 const emptySettings: SettingsFormValues = {
   timezone: DEFAULT_TENANT_SETTINGS.timezone,
-  currency: DEFAULT_TENANT_SETTINGS.currency,
   language: DEFAULT_TENANT_SETTINGS.language,
   dateFormat: DEFAULT_TENANT_SETTINGS.dateFormat,
   theme: DEFAULT_TENANT_SETTINGS.theme
@@ -117,7 +121,6 @@ const createTenantForm = (companies: Company[], tenants: Tenant[], tenant?: Tena
 
 const toSettingsForm = (settings?: TenantSettings): SettingsFormValues => ({
   timezone: settings?.timezone || emptySettings.timezone,
-  currency: settings?.currency || emptySettings.currency,
   language: settings?.language || emptySettings.language,
   dateFormat: settings?.dateFormat || emptySettings.dateFormat,
   theme: settings?.theme || emptySettings.theme
@@ -336,7 +339,6 @@ export default function TenantManagement({ currentUser }: Props){
       id: existingSettings?.id || `tenant_settings_${selectedTenant.id}`,
       tenantId: selectedTenant.id,
       timezone: settingsForm.timezone.trim() || DEFAULT_TENANT_SETTINGS.timezone,
-      currency: settingsForm.currency.trim().toLocaleUpperCase('tr-TR') || DEFAULT_TENANT_SETTINGS.currency,
       language: settingsForm.language.trim() || DEFAULT_TENANT_SETTINGS.language,
       dateFormat: settingsForm.dateFormat.trim() || DEFAULT_TENANT_SETTINGS.dateFormat,
       theme: settingsForm.theme.trim() || DEFAULT_TENANT_SETTINGS.theme,
@@ -358,7 +360,7 @@ export default function TenantManagement({ currentUser }: Props){
       tenantId: selectedTenant.id,
       tableId: selectedTenant.id,
       tableName: selectedTenant.tenantName || selectedTenant.companyName,
-      description: `${selectedTenant.tenantName || selectedTenant.companyName} tenant ayarları güncellendi. Saat dilimi: ${nextSettingsItem.timezone}, para birimi: ${nextSettingsItem.currency}.`
+      description: `${selectedTenant.tenantName || selectedTenant.companyName} tenant ayarları güncellendi. Saat dilimi: ${nextSettingsItem.timezone}, dil: ${nextSettingsItem.language}.`
     })
   }
 
@@ -573,15 +575,18 @@ export default function TenantManagement({ currentUser }: Props){
                   <option value="UTC">UTC</option>
                 </select>
               </div>
-              <div className="form-field">
-                <label>Para Birimi</label>
-                <select value={settingsForm.currency} onChange={event => updateSettingsForm('currency', event.target.value)}>
-                  <option value="TRY">TRY</option>
-                  <option value="USD">USD</option>
-                  <option value="EUR">EUR</option>
-                  <option value="GBP">GBP</option>
-                </select>
-              </div>
+              {/* ⚠️ "Para Birimi" ALANI BURADAYDI · 01.11.2026 · KALDIRILDI.
+                  Üç sebep:
+                  1. Buradan seçilen değer TARAYICIYA yazılıyordu, işletmenin
+                     veritabanındaki `tenant_settings.currency_code` satırına
+                     DEĞİL. Yani platform admini bir şey seçiyor, işletme onu
+                     hiç görmüyordu.
+                  2. Para birimi işletmenin kendi kararı; onu İşletme Ayarları
+                     ekranından kendisi seçiyor (göç 0103).
+                  3. Liste burada da elle yazılıydı (TRY/USD/EUR/GBP) — üçüncü
+                     bir kopya. Tek kaynak: `PARA_BIRIMLERI`.
+                  ⚠️ Saat dilimi, dil, tarih biçimi ve tema KALDI: onların
+                  veritabanında karşılığı yok, hâlâ tarayıcıda. Yazılı borç. */}
               <div className="form-field">
                 <label>Dil</label>
                 <select value={settingsForm.language} onChange={event => updateSettingsForm('language', event.target.value)}>
