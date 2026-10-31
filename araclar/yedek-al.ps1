@@ -103,15 +103,34 @@ if($SUNUCU_SURUM){ Tamam "sunucu PostgreSQL $SUNUCU_SURUM" }
 # -- 1 . Hangi yol -----------------------------------------------------------
 Bilgi '1/6 - Hangi yolla dokum alinacak'
 
-$pgVar = Var 'pg_dump'
+# !! pg_dump YALNIZ PATH'TE ARANMAZ.
+# PostgreSQL'in Windows yukleyicisi `bin` klasorunu PATH'e EKLEMEYEBILIR.
+# "kurdum ama betik bulmuyor" tam bu yuzden olur. Once PATH, sonra
+# standart kurulum yeri; birden fazla surum varsa EN YENISI secilir.
+$pgYol   = ''
 $pgBuyuk = 0
-if($pgVar){
-  $pgSurum = (pg_dump --version) 2>$null
+$pgSurum = ''
+
+$bulunan = Get-Command 'pg_dump' -ErrorAction SilentlyContinue
+if($bulunan){ $pgYol = $bulunan.Source }
+
+if(-not $pgYol){
+  $adaylar = Get-ChildItem 'C:\Program Files\PostgreSQL\*\bin\pg_dump.exe' -ErrorAction SilentlyContinue
+  if($adaylar){
+    $pgYol = ($adaylar | Sort-Object { [int]($_.Directory.Parent.Name) } -Descending |
+              Select-Object -First 1).FullName
+  }
+}
+
+if($pgYol){
+  $pgSurum = (& $pgYol --version) 2>$null
   if($pgSurum -match '(\d+)\.'){ $pgBuyuk = [int]$Matches[1] }
   Tamam "pg_dump bulundu: $pgSurum"
+  Write-Host "  ($pgYol)" -ForegroundColor DarkGray
 } else {
-  Write-Host "  pg_dump yok" -ForegroundColor DarkGray
+  Write-Host "  pg_dump yok (PATH'te de, C:\Program Files\PostgreSQL altinda da)" -ForegroundColor DarkGray
 }
+$pgVar = [bool]$pgYol
 
 $dockerVar = (Var 'docker') -or (Var 'podman')
 if($dockerVar){ Tamam 'docker/podman bulundu' } else { Write-Host "  docker/podman yok" -ForegroundColor DarkGray }
@@ -139,9 +158,12 @@ if(-not $secilen){
   Write-Host "  YEDEK ALINAMIYOR . iki yoldan biri gerekli:" -ForegroundColor Yellow
   Write-Host ""
   Write-Host "  A) pg_dump $sunucuBuyuk ya da ustu (Docker GEREKMEZ, onerilen)" -ForegroundColor White
-  Write-Host "     PostgreSQL $sunucuBuyuk istemci araclarini kur ve pg_dump'i PATH'e ekle." -ForegroundColor Gray
-  Write-Host "     Yukleyicide yalniz 'Command Line Tools' secilmesi yeter;" -ForegroundColor Gray
-  Write-Host "     sunucu kurmaya gerek yok." -ForegroundColor Gray
+  Write-Host "     https://www.postgresql.org/download/windows/ . yukleyiciyi indir." -ForegroundColor Gray
+  Write-Host "     Bilesen ekraninda YALNIZ 'Command Line Tools' isaretli kalsin:" -ForegroundColor Gray
+  Write-Host "     PostgreSQL Server, pgAdmin ve Stack Builder'in isaretini KALDIR." -ForegroundColor Gray
+  Write-Host "     Sunucu kurmuyoruz; yalniz dokum araci lazim." -ForegroundColor Gray
+  Write-Host "     PATH'e eklemesen de olur: betik C:\Program Files\PostgreSQL" -ForegroundColor Gray
+  Write-Host "     altina da bakiyor." -ForegroundColor Gray
   Write-Host ""
   Write-Host "  B) Docker Desktop ya da Podman" -ForegroundColor White
   Write-Host "     supabase CLI pg_dump'i kapsayici icinde calistiriyor." -ForegroundColor Gray
@@ -218,11 +240,11 @@ if($secilen -eq 'pgdump'){
   # (auth, storage, extensions...) zaten disarida kaliyor.
   # Olculdu: gocler `app` disinda sema yaratmiyor.
   Write-Host "  1/2 sema..." -ForegroundColor Gray
-  pg_dump -h $sunucu -p 5432 -U $kullanici -d postgres --schema-only --no-owner --no-privileges --schema=public --schema=app -f "$semaDosya"
+  & $pgYol -h $sunucu -p 5432 -U $kullanici -d postgres --schema-only --no-owner --no-privileges --schema=public --schema=app -f "$semaDosya"
   if($LASTEXITCODE -ne 0){ Hata 'Sema dokumu basarisiz. Yedek ALINAMADI.' }
 
   Write-Host "  2/2 VERI..." -ForegroundColor Gray
-  pg_dump -h $sunucu -p 5432 -U $kullanici -d postgres --data-only --no-owner --no-privileges --schema=public --schema=app -f "$veriDosya"
+  & $pgYol -h $sunucu -p 5432 -U $kullanici -d postgres --data-only --no-owner --no-privileges --schema=public --schema=app -f "$veriDosya"
   if($LASTEXITCODE -ne 0){ Hata 'VERI dokumu basarisiz. Yedek ALINAMADI (sema tek basina yedek degildir).' }
 
   Uyari 'Roller bu yolda alinmiyor (pg_dumpall gerekir). Roller gocler icinde yazili.'

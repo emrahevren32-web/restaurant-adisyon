@@ -1,62 +1,41 @@
-tam proje yedegi + veri yedegi Docker'siz da calisiyor (sunucu PG 17.6 olculdu)
+yedek betikleri: basariyi basarisizlik sanan iki kapi kapandi (tuzak 158, 159)
 
--- NE OLDU ----------------------------------------------------------------
-`yedek-al.ps1`in ilk denemesi "docker: command not found" ile dustu.
-Sebep: `supabase db dump` pg_dump'i KAPSAYICI ICINDE calistiriyor.
-Belgenin cumlesi: "Runs pg_dump in a container with additional flags to
-exclude Supabase managed schemas."
+-- TUZAK 158 . `git bundle verify` BASARIYI stderr'E YAZIYOR -------------
+tam-yedek.ps1 ilk kosusunda isini YAPTI: 1.537 dosya / 68,8 MB kopyalandi,
+git paketi uretildi, `git bundle verify` "is okay" dedi . ve betik tam o
+anda patladi.
 
-!! BU CUMLEYI BELGEDE OKUDUM VE EMRAH'A SOYLEMEDIM. Betigi yazarken
-   gereksinimi es gectim; Emrah dort adim bosa ugrasti (npm install,
-   login, link, sonra duvar). Betik artik ONCE olcuyor, sonra basliyor.
+Sebep: `$ErrorActionPreference = 'Stop'` acikken PowerShell, yerel bir
+komutun stderr'e yazdigi HER SATIRI NativeCommandError'a ceviriyor. git
+basari mesajini da stderr'e yaziyor. Yani basarili bir dogrulama,
+basarisizlik gibi gorundu.
 
--- YEDEK-AL.PS1 . IKI YOL ------------------------------------------------
-A) pg_dump (yerel)  . Docker GEREKMEZ, onerilen
-B) supabase CLI     . Docker Desktop / Podman ister
+Cozum: `GitCalistir` yardimcisi. stderr'i metne ceviriyor, karari
+$LASTEXITCODE veriyor. Butun git cagrilari oradan geciyor.
 
-Betik ikisini de arar ve varsa A'yi secer. Hicbiri yoksa ikisini de
-aciklayip duruyor; "yedek aldim" demiyor.
+Ayni aileden ikinci bir tuzak ayni betikte zaten yakalanmisti:
+robocopy'nin cikis kodu 0-7 arasi BASARIDIR (bit maskesi); `-ne 0` yazmak
+"dosya kopyalandi"yi hata sayardi.
 
-!! SURUM SARTI OLCULDU, TAHMIN EDILMEDI: sunucu PostgreSQL 17.6
-   (`supabase link`in diske yazdigi supabase/.temp/postgres-version'dan
-   okundu). Eski bir pg_dump yeni sunucudan dokum ALAMAZ; betik
-   pg_dump'in ana surumunu sunucununkiyle karsilastiriyor.
+-- TUZAK 159 . GEREKSINIMI BELGEDE OKUYUP SOYLEMEMEK ---------------------
+yedek-al.ps1'i yazarken Supabase belgesindeki su cumleyi okudum:
+"Runs pg_dump IN A CONTAINER with additional flags..." ve Emrah'a
+soylemedim. O da dort adim atti (npm install, login, link, kos) ve
+"docker: command not found" duvarina carpti. Bilgi elimdeydi, aktarmadim.
 
-A yolunda yalniz `public` ve `app` semalari aliniyor. Olculdu: gocler
-`app` disinda sema yaratmiyor, yani Supabase'in kendi semalari zaten
-disarida kaliyor.
+Betik artik pg_dump ve docker'i ONCE olcuyor; hangisi varsa onu kullaniyor,
+hicbiri yoksa ikisini de aciklayip duruyor.
 
--- YENI: TAM-YEDEK.PS1 ---------------------------------------------------
-Emrah istedi: "F:\MIYOP_BACKUP yoluna MIYOP'u tum hersseyiyle bi
-yedekler misin? sistemi birde offline-harici bir usb diske yedeklemis
-olalim."
+-- pg_dump PATH'TE OLMAYABILIR ------------------------------------------
+PostgreSQL'in Windows yukleyicisi `bin` klasorunu PATH'e EKLEMEYEBILIR;
+"kurdum ama betik bulmuyor" tam bu yuzden olur. Betik artik once PATH'e,
+sonra C:\Program Files\PostgreSQL\*\bin altina bakiyor ve birden fazla
+surum varsa EN YENISINI seciyor (sunucu 17.6 oldugu icin pg_dump 17+ sart).
 
-F:\MIYOP_BACKUP\miyop-<damga>\ altina:
-  depo\            . calisma kopyasinin tamami
-  miyop.gitbundle  . BUTUN GIT GECMISI tek dosyada (klonlanabilir)
-  SURUM.txt        . tarih, commit, dosya sayisi, boyut, kirli dosyalar
-
-`git bundle verify` ile dosya GERCEKTEN acilip dogrulaniyor; olusmasi
-yetmez (tuzak 157). Dosya sayisi 200'un altindaysa yedek SUPHELI sayilip
-durduruluyor.
-
-!! robocopy'nin cikis kodu 0-7 arasi BASARIDIR; `-ne 0` yazmak
-   "dosya kopyalandi" durumunu hata sanirdi. Betik `-ge 8` bakiyor.
-
-node_modules ve dist BILEREK yok: ikisi de uretilen seyler.
-.env.local yedege GIRER (uygulamanin calismasi icin gerekli); icindeki
-anon anahtari gizli degildir ama disk fiziksel olarak guvende tutulmali.
-
--- .GITIGNORE ------------------------------------------------------------
-supabase/.temp/ eklendi. `supabase link` bu dosyalari uretti ve 2e84115'te
-yanlislikla commit edildiler. Takipten cikarmak icin:
-    git rm -r --cached supabase/.temp
-
--- HALA ALINAMADI --------------------------------------------------------
-Veri yedegi icin pg_dump 17+ ya da Docker gerekiyor; ikisi de kurulu degil.
-docs/YEDEKLEME.md 7. bolumde borc olarak yazili (madde 6).
-Arada: uygulamadaki Ayarlar > Veri ve Yedekleme ekrani veriyi Excel olarak
-indiriyor . geri yuklenebilir bir yedek DEGIL ama veriyi disari alir.
+-- SECIM (Emrah: "neyi uygun goruyorsan") -------------------------------
+A yolu: PostgreSQL istemci araclari. Docker Desktop kurulmayacak . WSL2
+yuku gelmez ve makineyi surekli mesgul etmez. Yukleyicide yalniz
+"Command Line Tools" birakilir; sunucu kurulmaz.
 
 Co-Authored-By: Claude Opus 5 <noreply@anthropic.com>
 Claude-Session: https://claude.ai/code/session_019BwYM3mAXZUhp4YGj7tp2y

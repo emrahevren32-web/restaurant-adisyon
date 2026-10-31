@@ -46,6 +46,23 @@ function Tamam($m){ Write-Host "  [OK] $m" -ForegroundColor Green }
 function Uyari($m){ Write-Host "  [!]  $m" -ForegroundColor Yellow }
 function Hata($m){ Write-Host ""; Write-Host "  [X]  $m" -ForegroundColor Red; Write-Host ""; exit 1 }
 
+# !! 30.10.2026 . BU YARDIMCI BIR HATANIN BEDELI.
+# `git bundle verify` BASARI mesajini bile stderr'e yaziyor
+# ("... is okay"). `$ErrorActionPreference = 'Stop'` acikken, yerel bir
+# komutun stderr'e yazdigi HER SATIR olumcul hataya cevriliyor. Sonuc:
+# yedek alinmis, paket dogrulanmis, betik yine de patlamisti.
+# Ders: yerel komutun stderr'i HATA DEMEK DEGILDIR; karar CIKIS KODUNA gore
+# verilir. (Tuzak 158)
+$script:GitKod = 0
+function GitCalistir([string[]]$Argumanlar){
+  $eski = $ErrorActionPreference
+  $ErrorActionPreference = 'Continue'
+  $cikti = & git @Argumanlar 2>&1 | Out-String
+  $script:GitKod = $LASTEXITCODE
+  $ErrorActionPreference = $eski
+  return $cikti
+}
+
 # -- 0 . On kontroller ------------------------------------------------------
 Bilgi '0/5 - On kontroller'
 
@@ -79,7 +96,10 @@ Bilgi '2/5 - Dosyalar kopyalaniyor'
 #    2=fazlalik, 4=uyumsuz). 8 ve ustu gercek hatadir. `-ne 0` yazmak
 #    "dosya kopyalandi" durumunu HATA sanirdi.
 $harici = @('node_modules','dist','build','.tmp')
-robocopy "." "$depo" /MIR /XD @harici "$Hedef" /XF '*.log' /R:1 /W:1 /NFL /NDL /NJH /NP | Out-Null
+# !! `@harici` DEGIL `$harici`: @ isareti cmdlet'lere parametre dagitmak
+#    icindir; yerel komutlarda dizi `$harici` ile zaten ayri argumanlara
+#    acilir. @ ile yazmak sessizce yanlis arguman uretebilirdi.
+robocopy "." "$depo" /MIR /XD $harici "$Hedef" /XF "*.log" /R:1 /W:1 /NFL /NDL /NJH /NP | Out-Null
 $rc = $LASTEXITCODE
 if($rc -ge 8){ Hata "Kopyalama basarisiz (robocopy kodu $rc)." }
 
@@ -95,24 +115,24 @@ if($dosyaSayisi -lt 200){
 Bilgi '3/5 - Git gecmisi (bundle)'
 
 $bundle = Join-Path $kok 'miyop.gitbundle'
-git bundle create "$bundle" --all 2>&1 | Out-Null
-if($LASTEXITCODE -ne 0 -or -not (Test-Path $bundle)){
-  Hata 'git bundle olusturulamadi . gecmis yedeklenemedi.'
+$ciktiCreate = GitCalistir @('bundle','create',"$bundle",'--all')
+if($script:GitKod -ne 0 -or -not (Test-Path $bundle)){
+  Hata "git bundle olusturulamadi . gecmis yedeklenemedi.`n$ciktiCreate"
 }
 
 # !! Dosyanin olusmasi, icinde gecmis oldugu anlamina gelmez (tuzak 157).
 #    `git bundle verify` dosyayi GERCEKTEN acip kontrol eder.
-$dogrulama = git bundle verify "$bundle" 2>&1
-if($LASTEXITCODE -ne 0){
+$dogrulama = GitCalistir @('bundle','verify',"$bundle")
+if($script:GitKod -ne 0){
   Hata "git bundle DOGRULANAMADI:`n$dogrulama"
 }
 $bundleBayt = (Get-Item $bundle).Length
 Tamam ("gecmis dogrulandi . {0:N1} MB" -f ($bundleBayt/1MB))
 
-$commit = (git rev-parse HEAD).Trim()
-$dal    = (git rev-parse --abbrev-ref HEAD).Trim()
-$sayi   = (git rev-list --count HEAD).Trim()
-$kirli  = (git status --porcelain)
+$commit = (GitCalistir @('rev-parse','HEAD')).Trim()
+$dal    = (GitCalistir @('rev-parse','--abbrev-ref','HEAD')).Trim()
+$sayi   = (GitCalistir @('rev-list','--count','HEAD')).Trim()
+$kirli  = (GitCalistir @('status','--porcelain')).Trim()
 Tamam "dal: $dal . commit: $($commit.Substring(0,7)) . toplam $sayi commit"
 if($kirli){ Uyari 'Calisma kopyasinda COMMIT EDILMEMIS degisiklik var (SURUM.txt icine yazildi).' }
 

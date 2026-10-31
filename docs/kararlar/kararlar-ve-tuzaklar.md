@@ -984,6 +984,32 @@ göreceği hata mesajları** da (`'Çok fazla deneme yapıldı'`) bozuluyordu.
 ⚠️ Ve komut kendi çıktısını **ölçmeli**: panoda `ş` var mı, bozuk `Ã` var
 mı. "Kopyaladım" demek yetmez; kopyanın sağlam olduğu gösterilir.
 
+**159 · BİR ARACIN GEREKSİNİMİNİ BELGEDE OKUYUP SÖYLEMEMEK.** (30.10)
+`yedek-al.ps1`i yazarken Supabase belgesindeki şu cümleyi okudum:
+*"Runs `pg_dump` **in a container** with additional flags..."* — ve Emrah'a
+söylemedim. O da dört adım attı (`npm install` → `login` → `link` → koş) ve
+*"docker: command not found"* duvarına çarptı. Bilgi elimdeydi, aktarmadım.
+⚠️ Ders: bir aracı **önermeden önce** çalışma şartlarını say. Betik artık
+`pg_dump` ve `docker`ı **önce ölçüyor**, hangisi varsa onu kullanıyor,
+hiçbiri yoksa ikisini de açıklayıp duruyor.
+⚠️ İkinci ders aynı aileden: kurulum **PATH'e eklemeyebilir**. "Kurdum ama
+bulmuyor" demesin diye betik `C:\Program Files\PostgreSQL\*\bin` altına
+da bakıyor ve birden fazla sürüm varsa en yenisini seçiyor.
+
+**158 · YEREL KOMUTUN `stderr`'İ HATA DEMEK DEĞİLDİR.** (30.10)
+`tam-yedek.ps1` yedeği aldı (1.537 dosya, 68,8 MB), git paketini üretti,
+`git bundle verify` **"is okay"** dedi — ve betik tam o anda patladı.
+Sebep: `git bundle verify` **başarı** mesajını bile `stderr`'e yazıyor, ve
+`$ErrorActionPreference = 'Stop'` açıkken PowerShell yerel bir komutun
+`stderr`'e yazdığı her satırı `NativeCommandError`a çeviriyor.
+⚠️ Yani başarılı bir doğrulama, başarısızlık gibi göründü. Karar **çıkış
+koduna** göre verilir, çıktının hangi akıştan geldiğine göre değil.
+`GitCalistir` yardımcısı bunu tek yerde çözüyor: `stderr`'i metne çeviriyor,
+kararı `$LASTEXITCODE` veriyor.
+⚠️ Aynı aileden bir başkası da aynı betikte vardı ve yakalandı:
+**robocopy'nin çıkış kodu 0-7 arası BAŞARIDIR** (bit maskesi). `-ne 0`
+yazmak "dosya kopyalandı"yı hata sayardı.
+
 **157 · YEDEĞİN VARLIĞI, İÇİNDE VERİ OLDUĞU ANLAMINA GELMEZ.** (30.10)
 Supabase'in `db dump` komutu **varsayılan hâliyle veriyi almaz** — belgenin
 kendi cümlesi: *"The default dump does not contain any data or custom roles."*
@@ -1328,6 +1354,11 @@ Son söz onun çıktısındadır.
 64. Bir **rozet** ya gerçek bir sorgudan ölçülür ya da hiç konmaz
     (MIYOP-065). "Tamamlandı" yazan bir rozet, tamamlandığını KANITLAYAN
     bir şeyden beslenmiyorsa *mış gibi*dir.
+79. Yerel bir komutun başarısına **çıkış koduyla** karar ver, çıktısının
+    hangi akıştan geldiğine göre değil (tuzak 158). `git` ve `robocopy`
+    başarıyı da `stderr`'e yazar; robocopy'de 0-7 arası başarıdır.
+80. Bir aracı önermeden önce **çalışma şartlarını say** (tuzak 159):
+    kapsayıcı mı istiyor, hangi sürüm, PATH'e ekleniyor mu.
 77. Bir yedeğin başarısı **dosyanın varlığıyla değil, İÇİNDEKİYLE** ölçülür
     (tuzak 157). Yedek alan betik kendi çıktısını denetler; denetlemiyorsa
     "yedeğim var" sanmanın aracıdır.
