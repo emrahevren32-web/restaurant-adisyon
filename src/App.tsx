@@ -92,6 +92,8 @@ import {
   getPlatformRoutes,
   platformRotasiHazir
 } from './platform/platform.registry'
+import { isletmeAyarlariniOku } from './workspace/isletme-ayarlari.repository'
+import { paraBirimiAyarla, paraBirimiDegisinceBildir } from './billing'
 import { syncWorkspaceCompanyFromDatabase } from './companies/company-bridge'
 import { getDefaultModules } from './sector/sector-template.service'
 import { getBusinessMenuEmptyState, getWorkspaceTemplateViewForUser } from './workspace-template/workspace-template.service'
@@ -623,6 +625,39 @@ export default function App(){
   //
   // Köprü yazma yapmadıysa gereksiz yere yeniden çizmiyoruz: `sektor` yalnızca
   // gerçekten bir firma aynalandığında dolu döner.
+  // ── PARA BİRİMİ · HEDEFLER 3.4.6 · 01.11.2026 ─────────────────────────
+  // `billing.ts` eskiden sabit 'TRY' yazıyordu; bu dosyadan geçen 38 ekran
+  // müşteri EUR seçse bile ₺ basıyordu. Değer artık BURADAN besleniyor.
+  //
+  // ⚠️ `formatCurrency` eşzamanlı ve çizim sırasında çağrılıyor; içine
+  // veritabanı okuması konamaz. Bu yüzden okuma BİR KEZ burada yapılıp
+  // biçimlendiriciye veriliyor.
+  //
+  // ⚠️ ÇIKIŞTA SIFIRLANIYOR. Aynı tarayıcıda başka bir işletmeye giriş
+  // yapılırsa öncekinin para birimi ekranda kalırdı.
+  //
+  // ⚠️ OKUMA DÜŞERSE EKRAN BOZULMUYOR: biçimlendirici ₺'de kalır — göç
+  // 0103'ün tetiği zaten her kiracıyı 'TRY' ile açıyor, yani en olası
+  // doğru cevap o. Sessiz bir yanlış değil, bilinen bir varsayılan.
+  React.useEffect(() => {
+    if(!currentUser){
+      paraBirimiAyarla(null)
+      return
+    }
+    let iptal = false
+    void isletmeAyarlariniOku()
+      .then(ayarlar => { if(!iptal && ayarlar) paraBirimiAyarla(ayarlar.paraBirimi) })
+      .catch(() => { /* ₺'de kalır; yukarıdaki nota bakın */ })
+    return () => { iptal = true }
+  }, [currentUser])
+
+  // Para birimi giriş SONRASI geliyor; o ana kadar çizilmiş fiyatlar ₺
+  // kalırdı. Bu abonelik, değer gelince ekranı yeniden çizdiriyor.
+  const [, paraBirimiTazele] = React.useState(0)
+  React.useEffect(() => paraBirimiDegisinceBildir(() => {
+    paraBirimiTazele(sayac => sayac + 1)
+  }), [])
+
   React.useEffect(() => {
     if(!currentUser) return
     let iptal = false

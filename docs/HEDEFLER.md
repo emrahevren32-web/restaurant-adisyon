@@ -824,16 +824,31 @@ Emrah'ın onayladığı sıra:
     ⚠️ *"Yetkisiz Erişim"* ekranı kaldırıldı: eski hâli `role === 'Admin'`
     değilse hiçbir şey göstermiyordu. **Müdür ayarları görebilmeli**, yalnız
     değiştiremez.
-  - ⬜ **3.4.6** **Fiyat biçimlendirmesi para birimini `tenant_settings`ten
-    okumuyor.** `src/billing.ts` eskiden `loadSettings().currency` okuyordu;
-    o alan kaldırılınca yerine sabit `'TRY'` kondu — eski varsayılanın
-    aynısı, yani davranış değişmedi. Ama bu bir **borç**: müşteri EUR
-    seçerse o dosyadan geçen ekranlar yine `₺` basar.
-    ⚠️ O dosyayı **38 ekran** kullanıyor (adisyon, masa, kasa, QR menü,
-    cari, personel, eski raporlar). Hangilerinin bugün AÇIK rota olduğunu
-    **ölçmedim**; ölçmeden "kimse görmüyor" demem.
-    Yapılacak: biçimlendirme kiracının para birimini okuyacak (tek yerden),
-    ya da o ekranların durumu 3.8'de netleşince birlikte karara bağlanacak.
+  - ✅ **3.4.6** **KAPANDI (01.11)** · Fiyat biçimlendirmesi artık para
+    birimini işletmeden alıyor.
+    `billing.ts` içinde `const PARA_BIRIMI = 'TRY'` yazıyordu ve bu dosyayı
+    **38 ekran** kullanıyor: müşteri EUR seçse bile hepsi ₺ basıyordu.
+    ⚠️ **Doğrudan veritabanı okuması EKLENMEDİ** ve eklenemezdi:
+    `formatCurrency` eşzamanlı ve **çizim sırasında** çağrılıyor — içine
+    sorgu koymak her fiyat yazımında ağ isteği demekti.
+    **Çözüm tek besleme noktası:** değer bir kez okunur, biçimlendiriciye
+    verilir. Besleme `isletme-ayarlari.repository → isletmeAyarlariniOku`
+    içinde, çünkü para biriminin veritabanından okunduğu **tek yer** orası:
+    hem giriş sonrası okuma hem kaydetme sonrası geri okuma oradan geçiyor.
+    Yani *"kaydettim ama ekranda eski para birimi duruyor"* hâli oluşmuyor.
+    ⚠️ **"Okunmadı" ile "TRY" ayrı iki durum.** İçerideki değer `null`
+    başlıyor; o sırada ₺ basılıyor çünkü 0103'ün tetiği her kiracıyı zaten
+    `TRY` ile açıyor — yani en olası doğru cevap o. Uydurma varsayılan değil.
+    ⚠️ **Değer giriş SONRASI geliyor**, o ana kadar çizilmiş fiyatlar eski
+    kalırdı; bu yüzden bir **dinleyici** var ve değer gelince ekran yeniden
+    çiziliyor. Onsuz çözüm yarım olurdu.
+    ⚠️ **Çıkışta sıfırlanıyor** (`App.tsx`): aynı tarayıcıda başka bir
+    işletmeye giriş yapılırsa öncekinin para birimi ekranda kalırdı.
+    ⚠️ Yan kazanç ölçüldü: `formatCurrency` **her çağrıda** yeni bir
+    `Intl.NumberFormat` kuruyordu — bir listede yüzlerce fiyat varsa
+    yüzlerce kez. Biçimlendirici artık önbellekli, para birimi değişince
+    düşüyor.
+    Sınama: `src/billing.para-birimi.test.ts` (8 sınama).
   - ✅ **3.4.5** **KAPANDI (01.11)** · İlk giriş sihirbazı artık veritabanına yazıyor.
     `onboarding.service.ts` (~365) `saveTenantSettings` ile `localStorage`a
     bir `currency` koyuyor ve `FirstLoginWizard` onu okuyor. Göç 0103'ten

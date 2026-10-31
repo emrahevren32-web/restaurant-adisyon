@@ -1,41 +1,78 @@
 import { ClosedBill, Discount, Order, PaymentPart, Product } from './types'
 
 // ═══════════════════════════════════════════════════════════════════════
-// ⚠️ 29.10.2026 · BURASI `loadSettings().currency` OKUYORDU.
-// O alan `SystemSettings` tipinden KALDIRILDI (MIYOP-060b): kiracının para
-// birimi artık `public.tenant_settings` tablosunda (göç 0103) ve onu okuyup
-// yazan yer `src/workspace/isletme-ayarlari.repository.ts`.
+// PARA BİRİMİ · TEK BESLEME NOKTASI · 01.11.2026 · HEDEFLER 3.4.6
 //
-// ⚠️ SABİT 'TRY' BİR ÇÖZÜM DEĞİL, YAZILI BİR BORÇTUR (HEDEFLER 3.4.6).
-// Eski `DEFAULT_SETTINGS.currency` de 'TRY' idi ve eski ekran onu yalnız
-// tarayıcıya yazdığı için hiçbir kiracıda değişmemişti — yani bu satır
-// DAVRANIŞI DEĞİŞTİRMİYOR. Ama müşteri EUR seçerse buradan geçen ekranlar
-// yine ₺ basar.
+// ── ÖNCESİ ──────────────────────────────────────────────────────────────
+// Burada `const PARA_BIRIMI = 'TRY'` yazıyordu ve bu **yazılı bir borçtu**.
+// Müşteri İşletme Ayarları'ndan EUR seçse bile bu dosyadan geçen ekranlar
+// yine ₺ basıyordu. Bu dosyayı **38 ekran** kullanıyor.
 //
-// ⚠️ Bu dosyayı **38 ekran** kullanıyor (adisyon, masa, kasa, QR menü, cari,
-// personel, eski raporlar). Hangilerinin bugün AÇIK rota olduğu ÖLÇÜLMEDİ;
-// ölçülmeden "kimse görmüyor" denmeyecek.
+// ── NEDEN DOĞRUDAN VERİTABANI OKUNMUYOR ─────────────────────────────────
+// `formatCurrency` EŞZAMANLI ve ÇİZİM SIRASINDA çağrılıyor. İçine bir
+// veritabanı okuması koymak, her fiyat yazdırmada ağ isteği demekti.
+// Çözüm: değer DIŞARIDAN BİR KEZ beslenir, burası onu okur.
 //
-// ⚠️ Buraya `tenant_settings` okuması EKLENMEZ: bu fonksiyon eşzamanlı
-// (sync) ve çizim sırasında çağrılıyor. Doğru çözüm, para birimini tek bir
-// yerden besleyip bu dosyanın oradan okumasıdır — 3.4.6'nın işi.
+// ── "HENÜZ OKUNMADI" İLE "TRY" AYRI İKİ DURUM ───────────────────────────
+// `null` = işletmenin seçimi daha okunmadı. O sırada ₺ basılıyor — çünkü
+// göç 0103'ün tetiği her yeni kiracıyı zaten `TRY` ile açıyor, yani en
+// olası doğru cevap bu. Ama ikisi KARIŞTIRILMIYOR: `null`ken gelen bir
+// besleme, ekranı yeniden çizdiriyor (aşağıdaki dinleyici).
+//
+// ⚠️ ÇIKIŞTA SIFIRLANMALI. Aynı tarayıcıda başka bir işletmeye giriş
+// yapılırsa, öncekinin para birimi ekranda kalırdı. `paraBirimiAyarla(null)`
+// çıkışta çağrılıyor (App.tsx).
 // ═══════════════════════════════════════════════════════════════════════
-const PARA_BIRIMI = 'TRY'
+
+/** `null` = işletmenin seçimi HENÜZ OKUNMADI. 'TRY' ile aynı şey değildir. */
+let aktifParaBirimi: string | null = null
+
+type Dinleyici = () => void
+const dinleyiciler = new Set<Dinleyici>()
+
+/**
+ * Para birimi değişince haber ver.
+ *
+ * ⚠️ Bu olmadan yarım bir çözüm olurdu: değer giriş sonrası GELİYOR ama
+ * ekranda zaten ₺ yazılmış oluyordu. Dinleyici, gelen değerle ekranın
+ * yeniden çizilmesini sağlıyor.
+ */
+export const paraBirimiDegisinceBildir = (dinleyici: Dinleyici) => {
+  dinleyiciler.add(dinleyici)
+  return () => { dinleyiciler.delete(dinleyici) }
+}
+
+/** İşletmenin para birimini besler. `null` → "okunmadı"ya döndürür (çıkış). */
+export const paraBirimiAyarla = (kod: string | null) => {
+  const yeni = (kod || '').trim().toUpperCase() || null
+  if(yeni === aktifParaBirimi) return
+  aktifParaBirimi = yeni
+  bicimlendirici = null
+  dinleyiciler.forEach(dinleyici => dinleyici())
+}
+
+/** Bugün kullanılan kod. Okunmadıysa 'TRY' (0103'ün tetiğinin varsayılanı). */
+export const aktifParaBirimiKodu = () => aktifParaBirimi ?? 'TRY'
+
+// ⚠️ Biçimlendirici ÖNBELLEKLENİYOR. Eskiden `formatCurrency` HER ÇAĞRIDA
+// yeni bir `Intl.NumberFormat` kuruyordu; bir listede yüzlerce fiyat varsa
+// yüzlerce kez. Para birimi değişince önbellek düşürülüyor (yukarıda).
+let bicimlendirici: Intl.NumberFormat | null = null
 
 const createCurrencyFormatter = () => {
-  const currency = PARA_BIRIMI
+  if(bicimlendirici) return bicimlendirici
+  const currency = aktifParaBirimiKodu()
 
   try {
-    return new Intl.NumberFormat('tr-TR', {
-      style: 'currency',
-      currency
-    })
+    bicimlendirici = new Intl.NumberFormat('tr-TR', { style: 'currency', currency })
   } catch {
-    return new Intl.NumberFormat('tr-TR', {
-      style: 'currency',
-      currency: 'TRY'
-    })
+    // Geçersiz kod geldiyse ₺'ye düşülüyor — ama SESSİZCE değil:
+    // kod zaten `PARA_BIRIMLERI` listesinden geçerek geliyor, buraya
+    // düşmek bir hatadır ve konsola yazılıyor.
+    console.warn(`[MİYOP] Geçersiz para birimi kodu: ${currency}. ₺ kullanılıyor.`)
+    bicimlendirici = new Intl.NumberFormat('tr-TR', { style: 'currency', currency: 'TRY' })
   }
+  return bicimlendirici
 }
 
 export const formatCurrency = (value: number) => createCurrencyFormatter().format(value)

@@ -33,6 +33,7 @@
 // ═══════════════════════════════════════════════════════════════════════════
 
 import { getSupabase, isSupabaseConfigured } from '../core/supabase'
+import { paraBirimiAyarla } from '../billing'
 
 /** Ekranın sunduğu seçenekler. ⚠️ Veritabanı biçimi `^[A-Z]{3}$` (0103). */
 export const PARA_BIRIMLERI = [
@@ -101,7 +102,17 @@ export const isletmeAyarlariniOku = async (): Promise<IsletmeAyarlari | null> =>
   // rastgele birini seçmesi onu gizler.
   if(satirlar.length !== 1) return null
 
-  return ayaraCevir(satirlar[0])
+  const ayarlar = ayaraCevir(satirlar[0])
+
+  // ⚠️ TEK YERDEN BESLEME · 01.11.2026 · HEDEFLER 3.4.6.
+  // `billing.ts` içindeki `formatCurrency` eşzamanlı çalışıyor ve
+  // veritabanını okuyamaz; değeri DIŞARIDAN almak zorunda. Besleme burada
+  // yapılıyor çünkü burası para biriminin veritabanından okunduğu TEK yer:
+  // hem girişteki okuma hem de kaydetme sonrası geri okuma buradan geçiyor.
+  // Böylece "kaydettim ama ekranda eski para birimi duruyor" hâli oluşmuyor.
+  paraBirimiAyarla(ayarlar.paraBirimi)
+
+  return ayarlar
 }
 
 /** KDV girdisinin denetimi. Boş SERBEST: "seçmedim" geçerli bir cevap. */

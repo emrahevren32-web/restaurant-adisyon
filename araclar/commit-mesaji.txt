@@ -1,94 +1,47 @@
-3.4.5 kapandi: sihirbaz para birimini VERITABANINA yaziyor + bayat kutular
+3.4.6 kapandi: fiyat bicimlendirmesi para birimini ISLETMEDEN aliyor
 
--- 1 · HEDEFLER 3.4.5 ---------------------------------------------------
-Ilk giris sihirbazi secilen para birimini `saveTenantSettings` ile
-TARAYICIYA yaziyordu. Goc 0103'ten sonra bu IKINCI BIR KAYNAKTI: sihirbazda
-secilen para birimi ile Isletme Ayarlari'nda gorunen AYRISABILIYORDU ve
-hangisinin dogru oldugunu soyleyecek bir sey yoktu.
+-- ONCESI --------------------------------------------------------------
+`billing.ts` icinde `const PARA_BIRIMI = 'TRY'` yaziliydi ve bu dosyayi
+38 EKRAN kullaniyor: adisyon, masa, kasa, QR menu, cari, personel, eski
+raporlar. Musteri Isletme Ayarlari'ndan EUR secse bile hepsi . basiyordu.
 
-!! Cicir testi bunu yakalayamiyordu: `first-login` acik bir kiraci rotasi
-degil, giris akisinin icinde. Yani test yesildi, kusur duruyordu.
-Olcunun goremedigi yer de bir yerdir.
+-- !! DOGRUDAN VERITABANI OKUMASI EKLENMEDI, EKLENEMEZDI ---------------
+`formatCurrency` ESZAMANLI ve CIZIM SIRASINDA cagriliyor. Icine sorgu
+koymak, her fiyat yaziminda ag istegi demekti. Dosyanin kendi notu da
+bunu yaziyordu.
 
-Yapilan:
-  * FirstLoginWizard > finishSetup artik async ve isletmeAyarlariniYaz ile
-    VERITABANINA yaziyor. Satir zaten var: goc 0103 her yeni kiraci icin
-    tenant_settings satirini tetikle aciyor.
-  * onboarding.service icindeki tarayici yaziminda `currency` KALKTI.
-    workspaceCurrency degiskeni de olu kaldigi icin silindi.
+-- COZUM: TEK BESLEME NOKTASI -----------------------------------------
+Deger bir kez okunur, bicimlendiriciye verilir.
 
-!! YAZIM DUSERSE KURULUM DURDURULMUYOR ve bu bilincli: isletme o noktada
-ZATEN ACILDI, kullanici sifresini belirledi. Geri donusu olmayan bir
-akisin sonunda "olmadi" deyip kullaniciyi ortada birakmak, para biriminin
-yanlis kalmasindan kotudur. Sebep yaziliyor ve nereden duzeltecegi
-soyleniyor.
+Besleme `isletme-ayarlari.repository > isletmeAyarlariniOku` icinde,
+cunku para biriminin veritabanindan okundugu TEK YER orasi: hem giris
+sonrasi okuma hem kaydetme sonrasi geri okuma oradan geciyor. Boylece
+"kaydettim ama ekranda eski para birimi duruyor" hali olusmuyor.
 
-!! IKINCI BIR AYRISMA DAHA KAPANDI: sihirbazin para birimi listesi elle
-['TRY','USD','EUR'] yaziliydi, Isletme Ayarlari'ninkinde GBP DE VARDI.
-Sihirbazda secilemeyen bir para birimi ayarlarda secilebiliyordu.
-Liste artik tek kaynaktan: PARA_BIRIMLERI.
+-- !! "OKUNMADI" ILE "TRY" AYRI IKI DURUM ------------------------------
+Icerideki deger `null` basliyor; o sirada . basiliyor cunku goc 0103'un
+tetigi her kiraciyi zaten TRY ile aciyor, yani en olasi dogru cevap o.
+Uydurma varsayilan degil. Ama ikisi KARISTIRILMIYOR: null iken gelen bir
+besleme ekrani yeniden cizdiriyor.
 
-!! timezone, language, dateFormat, theme HALA tarayicida . onlarin
-veritabaninda karsiligi YOK. Yazili borc, saklanmis degil.
+-- !! DINLEYICI OLMASA COZUM YARIM OLURDU -----------------------------
+Deger giris SONRASI geliyor; o ana kadar cizilmis fiyatlar eski kalirdi.
+`paraBirimiDegisinceBildir` ile App yeniden ciziliyor.
 
--- !! TIP DENETIMI ZINCIRI ACTI . IYI KI -------------------------------
-Ilk denemede tek satir kirmizi verdi:
-  "Property 'currency' is missing ... but required in type 'TenantSettings'"
+-- !! CIKISTA SIFIRLANIYOR --------------------------------------------
+Ayni tarayicida baska bir isletmeye giris yapilirsa oncekinin para birimi
+ekranda kalirdi. App.tsx cikista `paraBirimiAyarla(null)` cagiriyor.
 
-Yani cagriyi temizlemek yetmiyordu: ALAN TIPTE DURUYORDU. Alani tipte
-birakmak, tarayicidaki kopyayi "gercek" gibi gostermeye devam ederdi ve
-yarin biri onu yeniden doldururdu.
+-- YAN KAZANC (olculdu) -----------------------------------------------
+`formatCurrency` HER CAGRIDA yeni bir Intl.NumberFormat kuruyordu . bir
+listede yuzlerce fiyat varsa yuzlerce kez. Bicimlendirici artik
+onbellekli; para birimi degisince dusuyor.
 
-Zincir sonuna kadar takip edildi:
-  types.ts            TenantSettings.currency        KALKTI
-  tenant.ts           normalizeTenantSettings        KALKTI
-  tenant.ts           DEFAULT_TENANT_SETTINGS.currency KALKTI
-  FirstLoginWizard    baslangic degeri 'TRY'
-
-!! 'TRY' uydurma bir varsayilan DEGIL: goc 0103'un tetigi her yeni kiraci
-icin tenant_settings.currency_code = 'TRY' yaziyor. Yani ekranda gorunen,
-veritabaninda o an gercekten yazan deger. Iki yerde varsayilan tutmak,
-ikisinin bir gun ayrismasi demekti.
-
--- !! ZINCIR IKINCI KEZ ACILDI . DORT KOPYA BULUNDU ---------------------
-Tipi temizleyince 9 hata daha cikti ve ikisi YENI YER gosterdi:
-
-  TenantManagement.tsx (EVREN360 paneli) . "Para Birimi" alani
-    !! Buradan secilen deger TARAYICIYA yaziliyordu, isletmenin
-       veritabanindaki satirina DEGIL. Yani platform admini bir sey
-       seciyor, isletme onu HIC GORMUYORDU. Ucuncu kaynak, ve hicbir
-       yere ulasmayan bir kaynak. Alan kaldirildi.
-    !! Listesi de elle yaziliydi (TRY/USD/EUR/GBP) . ucuncu kopya.
-
-  workspace-provisioning.service.ts . kurulum bildirgesindeki
-    "Para Birimi" satiri. Degeri tarayicidaki kopyadan okuyordu.
-    Bir bildirge yanlis soyleyecekse hic sylemesin: satir kaldirildi.
-
-  DEFAULT_WORKSPACE_SETTINGS.currency . dorduncu varsayilan kopyasi.
-
-Yani para birimi DORT yerde birden tutuluyordu: TenantSettings tipi,
-DEFAULT_TENANT_SETTINGS, DEFAULT_WORKSPACE_SETTINGS ve iki ayri elle
-yazilmis <select> listesi. Hicbiri veritabanina bagli degildi.
-
-!! Iki adimli silme kurali tam bunun icin var: ilk tip denetimi bir
-hata gosterdi, ikincisi dokuz. "Bir cagriyi temizledim, bitti" deseydim
-uc kopya daha sessizce duruyor olacakti.
-
-!! theme/language/dateFormat/timezone KALDI ve bu bilincli: onlarin
-veritabaninda karsiligi YOK. Yazili borc, saklanmis degil.
-
--- 2 · TUZAK 162 · BAYAT KUTULAR ---------------------------------------
-HEDEFLER'in demo tablosunda A3 hala ACIK gorunuyordu; asagida 3.7
-"KAPANDI (29.10) · 7/7 ekran" diyordu. Ayni dosyada iki cevap.
-3.7.1 ve 3.7.2 de bos kutuyla duruyordu, oysa 3.7.3 ikisini de adlariyla
-bitirdigini yaziyordu. 3.4.1/3.4.2/3.4.3 de ayni: goc 0103 ile 29.10'da
-kapanmislar, kutulari isaretlenmemisti.
-
-!! Bedeli somut: Emrah'a "siradaki is A3" diyecektim . BITMIS BIR ISI
-yapmaya basliyorduk. Bayat bir liste yalan soyler ve en pahali yalanini
-"yapilacak" sutununda soyler.
-
-Alti kutu duzeltildi, gerekceleri yazildi.
+-- SINAMA -------------------------------------------------------------
+src/billing.para-birimi.test.ts . 8 sinama. Davranis olculuyor, yazim
+degil: . mi . mu basiyor, besleme gelince haber veriyor mu, ayni deger
+tekrar beslenirse gereksiz cizim yapiyor mu, cikista sifirlaniyor mu,
+gecersiz kod ekrani cokertiyor mu (dusuyor ama SESSIZ kalmiyor).
 
 Co-Authored-By: Claude Opus 5 <noreply@anthropic.com>
 Claude-Session: https://claude.ai/code/session_019BwYM3mAXZUhp4YGj7tp2y
