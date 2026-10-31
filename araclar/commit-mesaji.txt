@@ -1,33 +1,41 @@
-3.4.7 yazildi: isletme geneli KDV orani HICBIR YERDE kullanilmiyor
+v0.5.1 yayinda + Codex brifi yeni tur icin yenilendi
 
--- OLCUM (01.11.2026) --------------------------------------------------
-`tenant_settings.vat_rate` yalniz Isletme Ayarlari ekrani tarafindan
-yazilip okunuyor. Baska HICBIR kod yolu onu okumuyor.
+-- YAYIN ---------------------------------------------------------------
+v0.5.1 · index-CCbKo7YK.js · 4/4 dogrulandi · 1679 test yesil
+Donus noktasi: /var/www/miyop.yedek-20261031-224004
+Goc YOK: yalniz arayuz. Sunucu bu dagitimdan itibaren YEDI surum tutuyor.
 
-Urun kartlarinin KDV'si ayri bir alandan geliyor (`stock_item.vat_rate`)
-ve dogrusu da budur . ikisi farkli seyler, types.ts bunu zaten yaziyor.
+Surum defterinde v0.5.0 arsive, v0.5.1 YAYINDA'ya cevrildi.
 
--- SORUN: YALAN DEGIL AMA VERILMEMIS BIR SOZUN BEKLENTISI -------------
-Kullanici buraya %20 yazip "artik her yerde 20 olur" sanabilir. Ekran
-yalan soylemiyor (yazdigini sakliyor ve geri gosteriyor) ama bir etki
-vaat ediyormus gibi duruyor.
+-- CODEX BRIFI (docs/codex-brifi.md) -----------------------------------
+Yeni tur icin bastan yazildi. Bakilacaklar:
 
--- BUGUN YAPILAN ------------------------------------------------------
-Ekrana bir cumle eklendi:
-  "Bu oran su an yalnizca burada saklaniyor. Urun kartlarinin KDV orani
-   urunun kendi kartindan gelir; bu alan onlari degistirmez."
+  4.1  Goc 0104 . denetim defteri satir kimligi (canlida)
+  4.2  MIYOP-084 . kapi genisledi: Isletme Ayarlari artik ALTI rolde
+  4.3  A4 . 851 satir silme · EN RISKLI: 21 cagri yeri artik BOS DIZI
+       donebiliyor, hangi ekran bunu kaldiramiyor?
+  4.4  Para birimi zinciri . MODUL DUZEYINDE DEGISKEN DURUM
+  4.5  Denetim tarayicisi 19 -> 29
+  4.6  Yedekleme betiklerinin dogrulamasi gercek mi
 
-Sessiz kalmak, ekranin veremedigi bir sozu vermesi olurdu.
+!! 4.4'u kendi supphem olarak yazdim ve ozellikle bakmasini istedim:
+`billing.ts` artik modul duzeyinde `let aktifParaBirimi` tutuyor ve
+testler TEK ISCIDE, TEK SURECTE kosuyor (tuzak 152). Modul duzeyinde bir
+degisken test dosyalari arasinda SIZAR. Kendi testim afterEach ile
+sifirliyor ama baska bir dosya bunu bilmiyor. Bir testin yesilligi baska
+dosyanin biraktigi duruma bagli olabilir.
 
--- YAPILACAK (karar gerektiriyor) -------------------------------------
-Oran ya bir ise yarasin (yeni urun kartinda varsayilan KDV, fatura
-hesabi) ya da alan kaldirilsin. Ucuncu secenek yok: "saklanan ama
-kullanilmayan ayar" kalici olmamali. HEDEFLER 3.4.7.
+!! Brife su da yazildi: bu turda bakacagi kod, Claude'un kendi olcumuyle
+YEDI KEZ yanildigi 48 saat icinde yazildi (tuzaklar 153, 156, 157, 158,
+159, 161, 162). Hepsini bir kapi yakaladi, canliya hicbiri gitmedi. Ama
+sekizincisi duruyor olabilir ve onu ancak disaridan biri gorur.
 
--- SURUM DEFTERI ------------------------------------------------------
-v0.5.1 satiri eklendi (dagitim bekliyor): para birimi borcu tamamen
-kapandi, bos kabuk uretici silindi, sunucu yedegi 3->7, bayat yol
-haritasi kutulari duzeltildi.
+-- SIRADA BEKLEYEN -----------------------------------------------------
+* Davet e-postasi denemesi: test icin Outlook adresi kalmadi.
+  Sebep BULUNDU (SPF -all GoDaddy disini yasakliyor, Supabase SMTP
+  GoDaddy'ye baglandi). Dogrulama olcutu yazili: spf=pass VE dkim=pass.
+* 3.4.7 karari: isletme geneli KDV orani ya bir ise yarasin ya kalksin.
+* Geri yukleme provasi (tam.dump bos bir projeye).
 
 Co-Authored-By: Claude Opus 5 <noreply@anthropic.com>
 Claude-Session: https://claude.ai/code/session_019BwYM3mAXZUhp4YGj7tp2y
