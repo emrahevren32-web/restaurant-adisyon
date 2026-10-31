@@ -139,8 +139,14 @@ if($dockerVar){ Tamam 'docker/podman bulundu' } else { Write-Host "  docker/podm
 $sunucuBuyuk = 0
 if($SUNUCU_SURUM -match '^(\d+)\.'){ $sunucuBuyuk = [int]$Matches[1] }
 $pgUygun = ($pgBuyuk -gt 0 -and $pgBuyuk -ge $sunucuBuyuk)
+# !! YON ONEMLI, OLCULDU (PostgreSQL 18 belgesi, app-pgdump):
+#   "pg_dump can also dump from PostgreSQL servers older than its own
+#    version. (Currently, servers back to version 9.2 are supported.)
+#    However, pg_dump cannot dump from PostgreSQL servers newer than its
+#    own major version; it will refuse to even try."
+# Yani pg_dump SUNUCUDAN YENI olabilir (18 > 17 sorun degil), ESKI olamaz.
 if($pgVar -and -not $pgUygun){
-  Uyari "pg_dump $pgBuyuk, sunucu $sunucuBuyuk . ESKI pg_dump yeni sunucudan dokum ALAMAZ."
+  Uyari "pg_dump $pgBuyuk, sunucu $sunucuBuyuk . ESKI pg_dump YENI sunucudan dokum ALAMAZ (denemeyi bile reddeder)."
 }
 
 $secilen = ''
@@ -220,6 +226,7 @@ Tamam "hedef: $kok"
 $semaDosya = Join-Path $kok 'sema.sql'
 $veriDosya = Join-Path $kok 'veri.sql'
 $rolDosya  = Join-Path $kok 'roller.sql'
+$tamDosya  = Join-Path $kok 'tam.dump'
 
 # -- 4 . Dokum --------------------------------------------------------------
 Bilgi '4/6 - Dokum aliniyor (PAROLA SORULACAK; onu sen yazarsin)'
@@ -239,12 +246,39 @@ if($secilen -eq 'pgdump'){
   # Yalniz BIZIM semalarimiz: public + app. Supabase'in kendi semalari
   # (auth, storage, extensions...) zaten disarida kaliyor.
   # Olculdu: gocler `app` disinda sema yaratmiyor.
-  Write-Host "  1/2 sema..." -ForegroundColor Gray
-  & $pgYol -h $sunucu -p 5432 -U $kullanici -d postgres --schema-only --no-owner --no-privileges --schema=public --schema=app -f "$semaDosya"
+  # !! `--quote-all-identifiers` . PostgreSQL belgesinin kendi tavsiyesi:
+  # "This option is recommended when dumping a database from a server whose
+  #  PostgreSQL major version is different from pg_dump's."
+  # Bizde tam o durum var: sunucu 17, elimizdeki pg_dump 18. Surumler arasi
+  # ayrilmis kelime listeleri farkli; tirnaksiz bir tablo adi bir surumde
+  # gecerliyken otekinde ayrilmis kelime olabilir.
+  # ── !! GERI YUKLENECEK DOSYA BU: tam.dump ────────────────────────────
+  # 31.10.2026 . ilk gercek yedekte pg_dump SU UYARIYI verdi:
+  #   "DIKKAT: Bu tablolar arasinda dairesel (circular) foreign-key
+  #    kisitlamalari bulunmaktadir: company, branch ... stock_movement.
+  #    --disable-triggers kullanmadan ... yedegi geri YUKLEYEMEYEBILIRSINIZ.
+  #    Bu sorunla karsilasmamak icin --data-only yedek yerine TAM YEDEK
+  #    almayi dusunun."
+  #
+  # Yani elimizdeki sema.sql + veri.sql ikilisi, veriyi TASIYOR ama geri
+  # YUKLENEBILIR olmayabilir: `company` ile `branch` birbirine bakiyor,
+  # hangisini once yazarsan oteki kisiti patlatir.
+  # `--disable-triggers` cozum degil: superuser ister, Supabase'de yok.
+  #
+  # Cozum pg_dump'in kendi tavsiyesi: ozel bicimde (-Fc) TEK dosyalik tam
+  # dokum. `pg_restore` siralama sorununu kendisi cozer.
+  # sema.sql ve veri.sql OKUNABILIRLIK icin kaliyor (insan gozuyle bakmak,
+  # metinde aramak icin); GERI YUKLEME tam.dump'tan yapilir.
+  Write-Host "  1/3 TAM DOKUM (geri yuklenecek dosya)..." -ForegroundColor Gray
+  & $pgYol -h $sunucu -p 5432 -U $kullanici -d postgres -Fc --no-owner --no-privileges --quote-all-identifiers --schema=public --schema=app -f "$tamDosya"
+  if($LASTEXITCODE -ne 0){ Hata 'TAM dokum basarisiz. Yedek ALINAMADI.' }
+
+  Write-Host "  2/3 sema (okunabilir)..." -ForegroundColor Gray
+  & $pgYol -h $sunucu -p 5432 -U $kullanici -d postgres --schema-only --no-owner --no-privileges --quote-all-identifiers --schema=public --schema=app -f "$semaDosya"
   if($LASTEXITCODE -ne 0){ Hata 'Sema dokumu basarisiz. Yedek ALINAMADI.' }
 
-  Write-Host "  2/2 VERI..." -ForegroundColor Gray
-  & $pgYol -h $sunucu -p 5432 -U $kullanici -d postgres --data-only --no-owner --no-privileges --schema=public --schema=app -f "$veriDosya"
+  Write-Host "  3/3 VERI (okunabilir)..." -ForegroundColor Gray
+  & $pgYol -h $sunucu -p 5432 -U $kullanici -d postgres --data-only --no-owner --no-privileges --quote-all-identifiers --schema=public --schema=app -f "$veriDosya"
   if($LASTEXITCODE -ne 0){ Hata 'VERI dokumu basarisiz. Yedek ALINAMADI (sema tek basina yedek degildir).' }
 
   Uyari 'Roller bu yolda alinmiyor (pg_dumpall gerekir). Roller gocler icinde yazili.'
@@ -306,6 +340,29 @@ if(Select-String -Path $semaDosya -Pattern 'stock_movement' -List){
   Uyari 'stock_movement semada GORUNMUYOR . kapsami kontrol et'
 }
 
+# !! TAM DOKUMUN ICI OKUNUYOR (tuzak 160).
+# "Veri dosyasinda satir var" demek "geri yuklenebilir" demek DEGIL.
+# `pg_restore --list` dosyayi gercekten acip icindekileri sayiyor;
+# bozuk ya da yarim bir dosya burada belli olur.
+if($secilen -eq 'pgdump'){
+  $tamBayt = Olc $tamDosya 'tam.dump'
+  if($tamBayt -lt 10000){ Hata 'tam.dump yok ya da sasirtici kadar kucuk. GERI YUKLENECEK DOSYA YOK.' }
+  $pgRestore = Join-Path (Split-Path $pgYol) 'pg_restore.exe'
+  if(Test-Path $pgRestore){
+    $eskiEAP = $ErrorActionPreference; $ErrorActionPreference = 'Continue'
+    $liste = & $pgRestore --list "$tamDosya" 2>&1 | Out-String
+    $kod = $LASTEXITCODE
+    $ErrorActionPreference = $eskiEAP
+    if($kod -ne 0){ Hata "tam.dump OKUNAMADI . pg_restore reddetti:`n$liste" }
+    $girdi = ([regex]::Matches($liste, '(?m)^\d+;')).Count
+    Write-Host "  tam.dump icindeki nesne sayisi: $girdi" -ForegroundColor Gray
+    if($girdi -lt 50){ Hata "tam.dump icinde yalniz $girdi nesne var . BU BIR YEDEK DEGILDIR." }
+    Tamam 'tam.dump pg_restore ile okundu ve dolu'
+  } else {
+    Uyari 'pg_restore bulunamadi . tam.dump OKUNMADAN birakildi.'
+  }
+}
+
 # -- 6 . Not ----------------------------------------------------------------
 Bilgi '6/6 - YEDEK-NOTU.txt'
 @"
@@ -316,6 +373,11 @@ Proje     : $ProjeRef
 Sunucu    : PostgreSQL $SUNUCU_SURUM
 Yol       : $secilen
 Semalar   : public, app
+
+!! GERI YUKLENECEK DOSYA: tam.dump (ozel bicim). sema.sql ve veri.sql
+   okunabilirlik icindir; semada DAIRESEL foreign key var (company<->branch,
+   stock_movement) ve o ikisiyle geri yukleme siralama yuzunden patlayabilir.
+   Dogru komut:  pg_restore --no-owner --no-privileges -d <hedef> tam.dump
 
 Dosyalar  : sema.sql $('{0:N0}' -f $semaBayt) bayt
             veri.sql $('{0:N0}' -f $veriBayt) bayt ($veriSatir COPY/INSERT satiri)

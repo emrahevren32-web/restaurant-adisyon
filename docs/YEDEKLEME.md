@@ -115,6 +115,50 @@ satır veri olmazdı.** O dosyaya bakıp "yedeğim var" demek, 13.09.2026'da
 menüden kaldırılan eski "Yedekleme" düğmesinin yaptığı şeyin aynısıdır:
 o da tarayıcı hafızasını yedekliyordu, iş verisini değil.
 
+### ⚠️ 31.10.2026 · İLK GERÇEK YEDEK ALINDI — ve bir şey öğretti
+
+```
+sema.sql  500.236 bayt
+veri.sql  322.544 bayt   (66 COPY satırı)
+tam.dump  (özel biçim)
+```
+
+`audit_log` ve `stock_movement` dökümde görünüyor. Ama pg_dump şunu uyardı:
+
+> *"DİKKAT: Bu tablolar arasında **dairesel foreign-key** kısıtlamaları
+> bulunmaktadır: `company`, `branch` … `stock_movement`. `--disable-triggers`
+> kullanmadan … yedeği geri **yükleyemeyebilirsiniz**. Bu sorunla
+> karşılaşmamak için `--data-only` yedek yerine **tam yedek** almayı
+> düşünün."*
+
+⚠️ **Bu, "veri var" ile "veri geri gelir" arasındaki farktır.** `company`
+ile `branch` birbirine bakıyor; hangisini önce yazarsan öteki kısıtı
+patlatır. `--disable-triggers` çözüm değil: superuser ister, Supabase'de
+bizde yok.
+
+Çözüm pg_dump'ın kendi tavsiyesi: **özel biçimde tek dosyalık tam döküm**
+(`-Fc` → `tam.dump`). `pg_restore` sıralamayı kendisi çözer.
+
+| Dosya | Ne işe yarar |
+|---|---|
+| **`tam.dump`** | ⬅ **GERİ YÜKLENECEK DOSYA** |
+| `sema.sql` | Okunabilirlik: göz atmak, metinde aramak |
+| `veri.sql` | Okunabilirlik: hangi tabloda ne var |
+
+Doğru geri yükleme komutu:
+
+```
+pg_restore --no-owner --no-privileges -d <hedef-veritabani> tam.dump
+```
+
+⚠️ Betik `tam.dump`'ı **`pg_restore --list` ile açıp içindeki nesneleri
+sayıyor**. Dosyanın oluşması yetmez; bozuk ya da yarım bir döküm burada
+belli olur.
+
+⚠️ **Parola üç kez sorulur** (her `pg_dump` çağrısında bir kez). Betik
+parolayı saklamıyor — üç kez yazmak, parolanın bir ortam değişkeninde
+dolaşmasından iyidir.
+
 ### Betik kendi çıktısını DENETLER
 
 Dosyanın oluşması, içinde veri olduğu anlamına gelmez. `yedek-al.ps1`

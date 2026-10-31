@@ -984,6 +984,22 @@ göreceği hata mesajları** da (`'Çok fazla deneme yapıldı'`) bozuluyordu.
 ⚠️ Ve komut kendi çıktısını **ölçmeli**: panoda `ş` var mı, bozuk `Ã` var
 mı. "Kopyaladım" demek yetmez; kopyanın sağlam olduğu gösterilir.
 
+**160 · "VERİ VAR" İLE "VERİ GERİ GELİR" AYRI İKİ İDDİADIR.** (31.10)
+İlk gerçek veri yedeği alındı ve betiğin doğrulaması yeşil verdi: şema
+500 KB, veri 322 KB, 66 `COPY` satırı, `audit_log` ve `stock_movement`
+dökümde. Hepsi doğruydu. Ama pg_dump'ın **kendi uyarısı** şunu diyordu:
+*"dairesel foreign-key kısıtlamaları bulunmaktadır: company, branch …
+`--disable-triggers` kullanmadan yedeği geri yükleyemeyebilirsiniz."*
+`company` ile `branch` birbirine bakıyor; `--data-only` bir dökümde hangisi
+önce yazılırsa öteki kısıtı patlatır.
+⚠️ Yani doğrulamam **içeriği** ölçüyordu, **geri yüklenebilirliği** değil.
+Tuzak 157'nin bir üst katı: orada "dosya var ≠ veri var" idi, burada
+"veri var ≠ veri geri gelir".
+Çözüm pg_dump'ın kendi tavsiyesi: özel biçimde (`-Fc`) tek dosyalık tam
+döküm (`tam.dump`); `pg_restore` sıralamayı kendi çözer. Betik artık o
+dosyayı `pg_restore --list` ile **açıp içindeki nesneleri sayıyor**.
+⚠️ `--disable-triggers` çözüm DEĞİL: superuser ister, Supabase'de yok.
+
 **159 · BİR ARACIN GEREKSİNİMİNİ BELGEDE OKUYUP SÖYLEMEMEK.** (30.10)
 `yedek-al.ps1`i yazarken Supabase belgesindeki şu cümleyi okudum:
 *"Runs `pg_dump` **in a container** with additional flags..."* — ve Emrah'a
@@ -1354,6 +1370,11 @@ Son söz onun çıktısındadır.
 64. Bir **rozet** ya gerçek bir sorgudan ölçülür ya da hiç konmaz
     (MIYOP-065). "Tamamlandı" yazan bir rozet, tamamlandığını KANITLAYAN
     bir şeyden beslenmiyorsa *mış gibi*dir.
+81. Bir yedeğin ölçüsü **içeriği değil, GERİ YÜKLENEBİLİRLİĞİDİR**
+    (tuzak 160). Dairesel yabancı anahtar varsa `--data-only` dökümü geri
+    yüklenmeyebilir; geri yükleme dosyası ayrı tutulur ve açılıp okunur.
+82. Bir aracın **kendi uyarılarını** oku. pg_dump sorunu da çözümü de
+    yazmıştı; yeşil doğrulamaya bakıp geçmek, uyarıyı yok saymaktı.
 79. Yerel bir komutun başarısına **çıkış koduyla** karar ver, çıktısının
     hangi akıştan geldiğine göre değil (tuzak 158). `git` ve `robocopy`
     başarıyı da `stderr`'e yazar; robocopy'de 0-7 arası başarıdır.
