@@ -1073,10 +1073,18 @@ function YeniKalemFormu({ birimler, onKaydet, onIptal }: {
           placeholder="boş = belirlenmedi"
           onChange={e => setKdv(e.target.value)}
         />
+        {/* ⚠️ 02.11.2026 · göç 0105. Alan boş bırakılırsa oran İŞLETME
+            AYARLARINDAN kopyalanıyor. Kuralı ekran UYGULAMIYOR, yalnız
+            ANLATIYOR: kopyalama veritabanı tetiğinde, çünkü ürün Excel'den
+            toplu da yüklenebiliyor (MIYOP-081: "gerekçe ekran kuralı değil
+            servis kuralıdır"). Burada önceden doldurmak, kuralı iki yere
+            yazmak olurdu. */}
         <small className="muted">
           Temel gıda %1, yeme-içme hizmeti %10. Emin değilseniz boş bırakın —
-          yanlış bir oran, boş bir alandan tehlikelidir. Sipariş yazılırken
-          bu oran satıra kopyalanır ve orada donar.
+          yanlış bir oran, boş bir alandan tehlikelidir.{' '}
+          <strong>Boş bırakırsanız İşletme Ayarları'ndaki oran kullanılır</strong>
+          {' '}(orası da boşsa alan boş kalır). Sipariş yazılırken bu oran
+          satıra kopyalanır ve orada donar.
         </small>
       </div>
       <div className="form-field"><label>Saklama koşulu</label>

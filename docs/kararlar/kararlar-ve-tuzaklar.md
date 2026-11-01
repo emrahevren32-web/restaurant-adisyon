@@ -1318,6 +1318,18 @@ kendi doğruluğunu da sınıyor artık ("Sağlama" bölümü): okuduğu ifadeni
 saklıyor ve yorumları atmayan okuyucu düzeltilmiş kodu bozuk gösteriyordu.
 
 **152 · KIRMIZI VEREN HAT, KODU DEĞİL KENDİNİ GÖSTERİYORDU.**
+⚠️ **02.11.2026 · YİNE OLDU ve bu kez teşhis 10 dakikada kondu.** Dağıtım
+koşusu `permission-enforcement.test.ts` dosyasında kırmızı verdi. Ölçülen
+üç şey: (1) **tek bir iddia hatası yok** — iki hata da
+`Timeout calling "fetch"` / `"resolveSnapshotPath"`, yani vitest'in işçi
+süreçle konuşamaması; (2) dosya **`(0)` sınamayla** düştü, hiç yüklenemedi;
+(3) `transform` **227,67 saniye** sürdü — son beş koşuda bu değer
+**1,2–1,5 saniyeydi** (~190 kat). 99 dosyanın yalnız 31'ine ulaşılabilmişti.
+Koda dokunulmadı, aynı commit yeniden koşturuldu: **29,96 s, 1698/1698
+yeşil.** İki koşu arasında hiçbir şey değişmediği için bu temiz bir deney.
+➜ Kontrol listesi 71 işe yaradı: "düzeltmeye" girişilseydi gerçek bir hata
+doğacaktı.
+
 (29–30.10) Testler üç kez üst üste kırmızı verdi: 23, sonra 28, sonra yine 28
 paket "düştü". Bir gün kaybettik ve **kodda hiçbir şey yoktu.**
 

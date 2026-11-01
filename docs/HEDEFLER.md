@@ -824,20 +824,40 @@ Emrah'ın onayladığı sıra:
     ⚠️ *"Yetkisiz Erişim"* ekranı kaldırıldı: eski hâli `role === 'Admin'`
     değilse hiçbir şey göstermiyordu. **Müdür ayarları görebilmeli**, yalnız
     değiştiremez.
-  - ⬜ **3.4.7** ⚠️ **İŞLETME GENELİ KDV ORANI HİÇBİR YERDE KULLANILMIYOR.**
-    Ölçüldü (01.11.2026): `tenant_settings.vat_rate` yalnız **İşletme
-    Ayarları** ekranı tarafından yazılıp okunuyor. Başka hiçbir kod yolu
-    onu okumuyor. Ürün kartlarının KDV'si ayrı bir alandan geliyor
-    (`stock_item.vat_rate`) ve doğrusu da budur — ikisi farklı şeyler.
-    ⚠️ Kullanıcı buraya %20 yazıp *"artık her yerde 20 olur"* sanabilir.
-    Bu bir **yalan değil ama verilmemiş bir sözün beklentisi**.
-    **Bugün yapılan:** ekrana bir cümle eklendi — *"Bu oran şu an yalnızca
-    burada saklanıyor."* Sessiz kalmak, ekranın veremediği bir sözü
-    vermesi olurdu.
-    **Yapılacak (karar gerektiriyor):** oran ya bir işe yarasın (ör. yeni
-    ürün kartında varsayılan KDV olarak gelsin, fatura/irsaliye
-    hesabında kullanılsın) ya da alan kaldırılsın. Üçüncü bir seçenek
-    yok: "saklanan ama kullanılmayan ayar" kalıcı olmamalı.
+  - ✅ **3.4.7** **KAPANDI (02.11)** · göç **0105** · İşletme geneli KDV
+    oranı artık yeni ürün kartına varsayılan olarak geçiyor.
+    Ölçülmüştü (01.11): `tenant_settings.vat_rate` yalnız **İşletme
+    Ayarları** ekranınca yazılıp okunuyordu, başka hiçbir kod yolu onu
+    okumuyordu. Ekran yalan söylemiyordu ama **verilmemiş bir sözün
+    beklentisini** doğuruyordu: kullanıcı oran giriyor, hiçbir şey olmuyor.
+    **Karar (Emrah, 01.11):** *"KDV oranını firmanın şirket profili içinde
+    kullanıcının belirlemesini isteyelim."* Alan zaten oradaydı; eksik olan
+    **kullanılmasıydı**.
+    **Yapılan:** `stock_item.vat_rate` boş bırakılırsa, kayıt yazılırken
+    işletme oranı KOPYALANIR.
+    ⚠️ **Kopyadır, bağ değildir:** işletme oranı sonradan değişirse eski
+    ürünler DEĞİŞMEZ. Bir ürünün vergisi kaydedildiği günün cevabıdır;
+    geçmişe dönük oran değişimi faturayı bozar. Ekran bu sınırı da yazıyor.
+    ⚠️ **Zincirin üçüncü halkası.** 0052 zaten *sipariş satırı ← ürün kartı*
+    kopyalamasını yapıyordu; başına *ürün kartı ← işletme ayarı* eklendi.
+    Kural yeni değil, zincir tamamlandı.
+    ⚠️ **Ekranda değil veritabanında**, çünkü ürün Excel'den toplu da
+    yükleniyor ve ileride API'den de yazılabilir (MIYOP-081: *"gerekçe ekran
+    kuralı değil servis kuralıdır"*). Ekranın işi kuralı uygulamak değil
+    **açıklamak**.
+    ⚠️ **Uydurma varsayılan değil** (MIYOP-060b): kopyalanan değer
+    kullanıcının kendi girdiği oran. İşletme oranı boşsa ürünün oranı da
+    **boş kalır** — `0` ya da `10` yazmak *mış gibi* olurdu.
+    ⚠️ **Yalnız INSERT.** Kullanıcı var olan bir ürünün oranını bilerek
+    silebilir; UPDATE'te de doldursaydık o silmeyi sessizce geri alırdık.
+    ⚠️ **`security definer` ve sebebi:** tetik `tenant_settings`i okuyor ve
+    o tablo RLS altında. `company.read` izni olmayan bir depo sorumlusu ürün
+    eklediğinde tetik onun haklarıyla koşsaydı satırı göremez, oran
+    **sessizce boş kalırdı** — kural bazı rollerde çalışır bazılarında
+    çalışmazdı. Sessiz kısmî kural, kuralsızlıktan kötüdür.
+    **Prova:** `prova-0105.sql` **13 ölçüm** (dört olumsuz kontrol dâhil) ve
+    `prova-0105-ters.sql` — tetik kaldırılınca dördü de kırılıyor. Göç iki
+    kez çalıştırıldı. Çıcır: `isletme-kdv-orani.arch.test.ts`.
   - ✅ **3.4.6** **KAPANDI (01.11)** · Fiyat biçimlendirmesi artık para
     birimini işletmeden alıyor.
     `billing.ts` içinde `const PARA_BIRIMI = 'TRY'` yazıyordu ve bu dosyayı

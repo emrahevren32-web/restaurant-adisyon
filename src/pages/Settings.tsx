@@ -220,19 +220,28 @@ export default function Settings({ currentUser }: Props){
                         + 'adınıza bir oran varsaymaz.'
                       : 'Boşaltırsanız "belirlenmedi" durumuna döner.'}
                   </p>
-                  {/* ⚠️ 01.11.2026 · BU CÜMLE BİR ÖLÇÜMÜN SONUCU.
-                      Ölçtük: `tenant_settings.vat_rate` bugün YALNIZ bu
-                      ekran tarafından yazılıp okunuyor; başka hiçbir yer
-                      kullanmıyor. Ürün kartlarındaki KDV ayrı bir alan
-                      (`stock_item.vat_rate`) ve oradan geliyor.
-                      Kullanıcı buraya %20 yazıp "artık her yerde 20 olur"
-                      sanabilir. Sanmasın diye yazıyoruz. Sessiz kalmak,
-                      ekranın veremediği bir sözü vermesi olurdu. */}
+                  {/* ⚠️ 01.11.2026'da burada bir BORÇ İTİRAFI duruyordu:
+                      oranın yalnızca bu ekranda saklandığını söyleyen bir
+                      cümle. Doğruydu — ölçülmüştü, değer hiçbir yerde
+                      kullanılmıyordu.
+                      ⚠️ O cümlenin BİREBİR METNİ buraya yazılmıyor:
+                      `isletme-kdv-orani.arch.test.ts` onun dosyada
+                      GEÇMEDİĞİNİ ölçüyor ve bir yorumda tutmak ölçümü kendi
+                      metnime takardı (tuzak 133).
+                      ⚠️ 02.11 · GÖÇ 0105 O BORCU KAPATTI. Cümle artık
+                      ekranın ne YAPTIĞINI anlatıyor. Ve iki sınırı birlikte
+                      söylüyor: YENİ kartlara geçer, ESKİLERİNİ değiştirmez.
+                      İkincisini yazmazsak kullanıcı oranı değiştirip bütün
+                      ürünlerin değiştiğini sanır — verilmemiş bir söz. */}
                   <p className="muted small-text">
-                    <strong>Bu oran şu an yalnızca burada saklanıyor.</strong>{' '}
-                    Ürün kartlarının KDV oranı ürünün kendi kartından gelir;
-                    bu alan onları değiştirmez. İşletme geneli oranın
-                    kullanılacağı yerler sonra eklenecek.
+                    <strong>Bu oran yeni ürün kartlarına varsayılan olarak
+                    geçer.</strong>{' '}
+                    Ürün kartında KDV alanı boş bırakılırsa buradaki oran
+                    kopyalanır; kartta ayrı bir oran yazılmışsa ona
+                    dokunulmaz. <strong>Mevcut ürünler değişmez</strong> —
+                    bir ürünün vergisi kaydedildiği günün cevabıdır.
+                    Burayı boş bırakırsanız ürün kartları da boş kalır;
+                    MİYOP sizin adınıza bir oran varsaymaz.
                   </p>
                 </div>
               </div>

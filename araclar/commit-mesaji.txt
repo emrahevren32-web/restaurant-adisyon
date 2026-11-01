@@ -1,1 +1,1 @@
-yedek dogrulamasi gercekten dogruluyor (MIYOP-087, 088, 092)
+HEDEFLER 3.4.7 kapandi: goc 0105 - isletme KDV orani yeni urun kartina geciyor
