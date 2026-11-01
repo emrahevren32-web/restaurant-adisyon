@@ -93,7 +93,7 @@ import {
   platformRotasiHazir
 } from './platform/platform.registry'
 import { isletmeAyarlariniOku } from './workspace/isletme-ayarlari.repository'
-import { paraBirimiAyarla, paraBirimiDegisinceBildir } from './billing'
+import { paraBirimiAyarla, paraBirimiDegisinceBildir, paraBirimiOturumuTazele } from './billing'
 import { syncWorkspaceCompanyFromDatabase } from './companies/company-bridge'
 import { getDefaultModules } from './sector/sector-template.service'
 import { getBusinessMenuEmptyState, getWorkspaceTemplateViewForUser } from './workspace-template/workspace-template.service'
@@ -640,16 +640,23 @@ export default function App(){
   // ⚠️ OKUMA DÜŞERSE EKRAN BOZULMUYOR: biçimlendirici ₺'de kalır — göç
   // 0103'ün tetiği zaten her kiracıyı 'TRY' ile açıyor, yani en olası
   // doğru cevap o. Sessiz bir yanlış değil, bilinen bir varsayılan.
+  //
+  // ⚠️ MIYOP-086 · BURADAKİ `iptal` BAYRAĞI YETMİYORDU ve Codex ölçtü:
+  // besleme çağrısı okuyucunun İÇİNDE (tek besleme noktası kararı), bayrak
+  // ise `then` içindeydi — yan etki bayrağa hiç uğramadan oluyordu. Sonuç:
+  // A çıkıp B girdikten sonra A'nın iptal edilmiş okuması dönerse ekranda
+  // A'nın para birimi kalıyordu. Çağıranda tutulan bir bayrak, yan etki
+  // daha derindeyse koruma sağlamaz.
+  // Artık sayaç `billing.ts`te: burada bir kez artırılıyor, uçuştaki bütün
+  // okumalar o anda geçersizleşiyor.
   React.useEffect(() => {
+    paraBirimiOturumuTazele()
     if(!currentUser){
       paraBirimiAyarla(null)
       return
     }
-    let iptal = false
     void isletmeAyarlariniOku()
-      .then(ayarlar => { if(!iptal && ayarlar) paraBirimiAyarla(ayarlar.paraBirimi) })
       .catch(() => { /* ₺'de kalır; yukarıdaki nota bakın */ })
-    return () => { iptal = true }
   }, [currentUser])
 
   // Para birimi giriş SONRASI geliyor; o ana kadar çizilmiş fiyatlar ₺

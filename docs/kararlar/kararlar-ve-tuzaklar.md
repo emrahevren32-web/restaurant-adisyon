@@ -984,6 +984,64 @@ göreceği hata mesajları** da (`'Çok fazla deneme yapıldı'`) bozuluyordu.
 ⚠️ Ve komut kendi çıktısını **ölçmeli**: panoda `ş` var mı, bozuk `Ã` var
 mı. "Kopyaladım" demek yetmez; kopyanın sağlam olduğu gösterilir.
 
+**172 · CODEX ÜÇ İDDİAMI DÜZELTTİ — ÜÇÜ DE BENİM YAZDIĞIM CÜMLEYDİ.** (01.11)
+Düzeltilenler, bulduğu kusurlardan daha öğretici:
+· **"Tek işçi, dolayısıyla modüller dosyalar arasında paylaşılır."** FAZLA
+  GENİŞ. Kurulu Vitest 1.6.1 varsayılan yalıtımda **dosya başına modül
+  önbelleğini temizliyor**. Yani 163b'de korktuğum sızıntı o biçimde yok.
+  Merkezî sıfırlama zararsız ve hâlâ faydalı, ama **gerekçesi yanlıştı** —
+  bir koruma koyarken neden koyduğumu da ölçmeliydim.
+· **"21 çağrı yeri."** Gerçek sayı **32** (24 kiracı + 8 platform); 21
+  ÜRETİCİ sayısıydı. İki farklı şeyi aynı sayıyla andım.
+· **"`varsayilanLisansPaketleri` gerçekten satılan ürün kataloğudur."**
+  Tutmuyor: `storage.ts`teki fiyat ve kullanıcı sınırları, `0042`deki
+  sıfır fiyatlı/sınırsız başlangıç paketleriyle uyuşmuyor. Ekran kapalı
+  olduğu için bugün bir zararı yok, ama **o ekran açılmadan önce gerçek
+  katalogdan beslenmeli.** Yani ad değiştirme kararı, verdiğim gerekçeyle
+  değil, başka bir gerekçeyle doğru olabilir.
+⚠️ Ders: bir dış denetimin en değerli çıktısı bulduğu hata değil,
+**düzelttiği cümle** olabiliyor. Üçü de ölçmeden yazdığım cümlelerdi.
+
+**171 · BEKÇİ, KORUDUĞU SATIRI HİÇ GÖRMÜYORDU.** (01.11 · MIYOP-091)
+168'i donduran sınama `menusuzRotaAc`ın **adını** ve **çağrılarını**
+arıyordu. Codex ölçtü: gövdedeki `setActiveNavKey(hedef)` satırı
+silindiğinde **altı sınamanın altısı da yeşil kaldı.** Yani koruduğunu
+sandığım satır bekçinin görüş alanında hiç değildi.
+⚠️ Kalıp tanıdık: bir şeyin VARLIĞINI ölçmek, ANLAMLI olduğunu ölçmez
+(tuzak 155, kontrol listesi 73). Burada "yardımcı var mı" ölçülüyordu,
+"yardımcı işini yapıyor mu" değil.
+➜ Sınama artık yardımcının **gövdesini** kesip iki çağrıyı da orada
+arıyor.
+
+**170 · SAĞLAMA, ÖLÇÜM ARACININ İKİZİNİ SINIYORDU.** (01.11 · MIYOP-089)
+`sahte-veri-ureticisi.arch.test.ts`in sağlaması *"tarama deseni hâlâ
+çalışıyor mu"* diye soruyordu — ama deseni **ikinci kez, elle** yazarak.
+Codex ölçtü: gerçek taramayı eşleşemez hâle getirip kopyayı bırakınca test
+**yanlış yeşil** verdi; üstelik eklenen yeni bir üretici de yakalanmadı.
+⚠️ 31.10'da bu sağlamayı *"araç çalışıyor mu diye sorsun"* diye bilerek
+yeniden yazmıştım. Doğru fikirdi, **yanlış uygulandı**: aracın kendisini
+değil ikizini sınadım. Bir ölçümün sağlaması, ölçümle AYNI nesneyi
+kullanmazsa sağlama değildir.
+➜ Desen tek bir fonksiyonda; üç çağrı yeri de ondan geçiyor. (`g` bayrağı
+`lastIndex` tuttuğu için sabit değil fonksiyon.)
+
+**169 · TEK BESLEME NOKTASININ BEDELİ: YAN ETKİ, ÇAĞIRANIN BAYRAĞINDAN
+DERİNDEYDİ.** (01.11 · MIYOP-086 · P1)
+Para birimini `isletmeAyarlariniOku()` besliyordu — bilinçli bir karar
+("tek besleme noktası", yeni bir çağrı yeri unutulamasın diye).
+`App.tsx` de uçuştaki okumayı `let iptal` bayrağıyla koruyordu.
+Codex ölçtü ve bayrak **işe yaramıyordu**: besleme okuyucunun İÇİNDE,
+bayrak ise `then` içindeydi. Sıra şu: A çıkar → B girer, cevabı USD →
+**A'nın iptal edilmiş okuması EUR ile döner** → ekranda EUR kalır.
+Yani B'nin tutarları A'nın para birimiyle gösterilebiliyordu.
+⚠️ Genel kural: **çağıranda tutulan bir iptal bayrağı, yan etki daha
+derindeyse koruma sağlamaz.** Bayrak yalnız kendi `then`ini korur.
+➜ `billing.ts`te bir oturum sayacı: kullanıcı değişince artıyor, her okuma
+kendi başlama sürümünü taşıyor, sürümü eskiyen cevap sessizce atılıyor.
+Tek besleme noktası korundu, bayat cevap içeri giremiyor. Çıkış
+sıfırlaması **sürümsüz** çağrılıyor — sürüm taşısaydı kendi kendini
+geçersiz kılardı.
+
 **168b · FONKSİYONU ADIYLA KULLANDIM, DAVRANIŞIYLA DEĞİL.** (01.11)
 168'i donduran sınamada *"bu adlar menüdeki bir rotayı ezmesin"* kontrolünü
 `getCoreWorkspaceRoutes()` ile yazdım. Ad öyle duruyordu: *menünün core
@@ -1532,6 +1590,13 @@ Son söz onun çıktısındadır.
 89. Bir **yer tutucuyu tanıyan kural**, yer tutucunun YAZILI olduğu dosyayı
     okuyarak sınanır (tuzak 166). Şablonu teste elle kopyalamak, iki metnin
     yeniden ayrılmasına davetiyedir.
+93. Bir **iptal bayrağı**, yan etkinin olduğu yerde durmalı (tuzak 169).
+    Çağıranda tutulan bayrak, yan etki daha derin bir katmandaysa hiçbir
+    şey korumaz; orada sürüm/kimlik taşımak gerekir.
+94. Bir ölçümün **sağlaması, ölçümle AYNI nesneyi** kullanır (tuzak 170).
+    Deseni ikinci kez elle yazan sağlama, bozulan asıl ölçümü yakalamaz.
+95. Bir bekçi yazarken **koruduğun satırı silip kırmızıyı gör** (tuzak
+    171). Adı ve çağrıları ölçen bir sınama, gövdeyi hiç görmüyor olabilir.
 92. Bir yardımcı fonksiyonu **adına güvenerek** kullanma (tuzak 168b);
     ölçüm yazmadan önce GÖVDESİNİ oku. "core rotalar" diyen fonksiyon
     "izin verilen rotalar" döndürüyordu ve kontrol tersine döndü.

@@ -33,7 +33,7 @@
 // ═══════════════════════════════════════════════════════════════════════════
 
 import { getSupabase, isSupabaseConfigured } from '../core/supabase'
-import { paraBirimiAyarla } from '../billing'
+import { paraBirimiAyarla, paraBirimiOturumSurumu } from '../billing'
 
 /** Ekranın sunduğu seçenekler. ⚠️ Veritabanı biçimi `^[A-Z]{3}$` (0103). */
 export const PARA_BIRIMLERI = [
@@ -90,6 +90,12 @@ const ayaraCevir = (satir: AyarSatiri): IsletmeAyarlari => {
 export const isletmeAyarlariniOku = async (): Promise<IsletmeAyarlari | null> => {
   if(!isSupabaseConfigured()) return null
 
+  // ⚠️ SÜRÜM BEKLEMEDEN ÖNCE ALINIR (MIYOP-086). Cevap döndüğünde kullanıcı
+  // değişmiş olabilir; o zaman bu okuma BAŞKA BİR İŞLETMEYE aitti ve
+  // beslemesi uygulanmamalı. Sürümü `await`ten sonra almak hiçbir şey
+  // ölçmezdi — ikisi de o anki sürüm olurdu.
+  const surum = paraBirimiOturumSurumu()
+
   const { data, error } = await getSupabase().from('tenant_settings').select(SUTUNLAR)
   if(error || !data){
     if(error) console.warn('[MİYOP] İşletme ayarları okunamadı:', error.message)
@@ -110,7 +116,7 @@ export const isletmeAyarlariniOku = async (): Promise<IsletmeAyarlari | null> =>
   // yapılıyor çünkü burası para biriminin veritabanından okunduğu TEK yer:
   // hem girişteki okuma hem de kaydetme sonrası geri okuma buradan geçiyor.
   // Böylece "kaydettim ama ekranda eski para birimi duruyor" hâli oluşmuyor.
-  paraBirimiAyarla(ayarlar.paraBirimi)
+  paraBirimiAyarla(ayarlar.paraBirimi, surum)
 
   return ayarlar
 }

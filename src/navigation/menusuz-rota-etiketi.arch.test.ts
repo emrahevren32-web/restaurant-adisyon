@@ -114,6 +114,23 @@ describe('Menüsüz rotaların ekran adı', () => {
     expect(APP).toMatch(/menusuzRotaAc\('my-profile'\)/)
   })
 
+  it('⚠️ yardımcının GÖVDESİ iki durumu da değiştiriyor', () => {
+    // ⚠️ MIYOP-091 · Codex ölçtü: üstteki sınama yardımcının ADINI ve
+    // ÇAĞRILARINI arıyordu, GÖVDESİNİ değil. `setActiveNavKey(hedef)`
+    // satırı silindiğinde altı sınamanın altısı da yeşil kalıyordu —
+    // yani bekçi, koruduğunu sandığı satırı hiç görmüyordu.
+    // (Tuzak 168b'nin kardeşi: ölçüm aracının kendisi ölçülmemişti.)
+    const bas = APP.indexOf('const menusuzRotaAc = ')
+    expect(bas, 'menusuzRotaAc bulunamadı').toBeGreaterThan(-1)
+    const govde = APP.slice(bas, APP.indexOf('\n  }', bas))
+    expect(govde, 'yardımcı rotayı değiştirmiyor').toMatch(/setRoute\(hedef\)/)
+    expect(
+      govde,
+      'yardımcı nav anahtarını değiştirmiyor: yan menüde ESKİ ekran seçili '
+      + 'kalır ve başlık yine yalan söyler (MIYOP-091).'
+    ).toMatch(/setActiveNavKey\(hedef\)/)
+  })
+
   it('⚠️ menüsüz anahtar hiçbir menü ögesiyle çakışmıyor', () => {
     // `menusuzRotaAc` nav anahtarını rotanın kendisi yapıyor; aynı anahtara
     // sahip bir menü ögesi olsaydı vurgu kalkmaz, yanlış öge seçili kalırdı.

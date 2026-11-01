@@ -42,8 +42,41 @@ export const paraBirimiDegisinceBildir = (dinleyici: Dinleyici) => {
   return () => { dinleyiciler.delete(dinleyici) }
 }
 
-/** İşletmenin para birimini besler. `null` → "okunmadı"ya döndürür (çıkış). */
-export const paraBirimiAyarla = (kod: string | null) => {
+// ── OTURUM SÜRÜMÜ · MIYOP-086 · 01.11.2026 ─────────────────────────────
+// ⚠️ GERÇEK BİR KUSURUN ONARIMI, ihtiyat değil. Codex ölçtü:
+//     A çıkar → B girer, cevabı USD → A'nın İPTAL EDİLMİŞ okuması EUR ile
+//     döner → ekranda EUR kalır.
+// Yani B'nin tutarları A'nın para birimiyle gösterilebiliyordu.
+//
+// ⚠️ Neden `App.tsx`teki `iptal` bayrağı yetmedi: besleme çağrısı okuyucunun
+// İÇİNDEydi (tek besleme noktası kararı). Bayrak `then` içinde bakıyordu,
+// ama yan etki ondan ÖNCE, okuyucunun derininde olup bitiyordu. Çağıranda
+// bayrak tutmak, yan etki daha derindeyse koruma sağlamaz.
+//
+// Çözüm: bir sayaç. Kullanıcı değişince sayaç artar; uçuştaki her okuma
+// kendi başlama sürümünü taşır ve sürümü eskiyen cevap SESSİZCE ATILIR.
+// Böylece tek besleme noktası korunuyor (yeni bir çağrı yeri unutulamaz)
+// ama bayat cevap içeri giremiyor.
+let oturumSurumu = 0
+
+/** Kullanıcı değişti: uçuştaki bütün okumaları geçersiz kıl. */
+export const paraBirimiOturumuTazele = (): number => {
+  oturumSurumu += 1
+  return oturumSurumu
+}
+
+/** Okuyucu, BEKLEMEYE GİRMEDEN ÖNCE bunu alır ve cevabıyla birlikte verir. */
+export const paraBirimiOturumSurumu = (): number => oturumSurumu
+
+/**
+ * İşletmenin para birimini besler. `null` → "okunmadı"ya döndürür (çıkış).
+ *
+ * @param surum Okumanın BAŞLADIĞI andaki oturum sürümü. Verilirse ve
+ *              bugünkü sürümle tutmuyorsa cevap bayattır, uygulanmaz.
+ *              Çıkışta sıfırlama sürümsüz çağrılır: o her zaman geçerlidir.
+ */
+export const paraBirimiAyarla = (kod: string | null, surum?: number) => {
+  if(surum !== undefined && surum !== oturumSurumu) return
   const yeni = (kod || '').trim().toUpperCase() || null
   if(yeni === aktifParaBirimi) return
   aktifParaBirimi = yeni

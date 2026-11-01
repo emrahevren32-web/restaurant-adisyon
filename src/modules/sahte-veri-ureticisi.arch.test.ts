@@ -77,6 +77,20 @@ const yorumsuz = (metin: string) => metin
  */
 const UST_SINIR = 0
 
+/**
+ * Üretici adlarını bulan desen — **TEK KOPYA** (MIYOP-089, Codex 01.11).
+ *
+ * ⚠️ Bu desen iki yerde AYRI AYRI yazılıydı: biri gerçek taramada, biri
+ * sağlamanın örneğinde. Codex ölçtü: gerçek taramayı eşleşemez hâle
+ * getirip sağlamadaki kopyayı olduğu gibi bırakınca test **yanlış yeşil**
+ * verdi. Yani "ölçüm aracı çalışıyor mu" diye soran sağlama, ölçüm
+ * aracının KENDİSİNİ değil ikizini sınıyordu.
+ *
+ * ⚠️ Sabit değil FONKSİYON: `g` bayraklı bir `RegExp` `lastIndex` tutar;
+ * aynı nesneyi iki `matchAll`da paylaşmak sinsi bir hata kaynağıdır.
+ */
+const ureticiDeseni = () => /^\s*(?:export\s+)?const (createDemo[A-Za-z]+)\s*=/gm
+
 describe('sahte veri üreticisi çıcırı', () => {
   // ⚠️ MIYOP-073 (Codex, 25.10) · `export const` KAÇIYORDU.
   // İlk sürüm yalnız `^const createDemo…` arıyordu. Silinen en büyük
@@ -85,7 +99,7 @@ describe('sahte veri üreticisi çıcırı', () => {
   // fonksiyonu yakalayamazdı. Desen artık `export` önekini de kapsıyor.
   // ⚠️ Yorumlar çıkarılıyor: silinen üreticilerin gerekçesi yorum olarak
   // dosyada duruyor ve o yorumlar adları içeriyor.
-  const ureticiler = [...yorumsuz(DEPO).matchAll(/^\s*(?:export\s+)?const (createDemo[A-Za-z]+)\s*=/gm)]
+  const ureticiler = [...yorumsuz(DEPO).matchAll(ureticiDeseni())]
     .map(m => m[1] as string)
 
   // ⚠️ 31.10.2026 · BU SAĞLAMA YENİDEN YAZILDI VE SEBEBİ ÖNEMLİ.
@@ -99,7 +113,8 @@ describe('sahte veri üreticisi çıcırı', () => {
     expect(DEPO.length, 'storage.ts okunamadı ya da sasirtici kadar kucuk')
       .toBeGreaterThan(100000)
     const ornek = 'const createDemoSeyler = () => []\nexport const createDemoBaska = () => []'
-    const bulunan = [...ornek.matchAll(/^\s*(?:export\s+)?const (createDemo[A-Za-z]+)\s*=/gm)]
+    // ⚠️ GERÇEK TARAMANIN DESENİ kullanılıyor, kopyası değil (MIYOP-089).
+    const bulunan = [...ornek.matchAll(ureticiDeseni())]
     expect(bulunan.length, 'tarama deseni bozulmuş — artık hiçbir şey bulamaz').toBe(2)
   })
 
@@ -193,8 +208,7 @@ describe('sahte veri üreticisi çıcırı', () => {
     // çıcırın kör noktasıydı. Aynı aile: denetim tarayıcısı da on tabloyu
     // görmüyordu (tuzak 154).
     const KIRACI = readFileSync(join(SRC, 'tenant.ts'), 'utf8') as string
-    const disaridakiler = [...yorumsuz(KIRACI)
-      .matchAll(/^\s*(?:export\s+)?const (createDemo[A-Za-z]+)\s*=/gm)].map(m => m[1])
+    const disaridakiler = [...yorumsuz(KIRACI).matchAll(ureticiDeseni())].map(m => m[1])
     // ⚠️ 31.10.2026 · `createDemoTenants` de SİLİNDİ. Gövdesi zaten
     // `return []` idi — içi boşaltılmış ama kabuğu bırakılmış bir üretici.
     // Adıyla bir şey vaat edip hiçbir şey yapmak da bir tür *mış gibi*dir,
