@@ -1,9 +1,13 @@
 # Codex denetim brifi · MİYOP
 
 > Bu dosya Codex'e yapıştırılmak üzere yazıldı. Her denetim turunda
-> güncellenir. Son güncelleme: **01.11.2026 · göç 0104 + A4 + para birimi turu**.
-> Dal: `production-foundation` · son commit: `d70e00c`
+> güncellenir. Son güncelleme: **01.11.2026 akşam · göç 0104 + A4 + para
+> birimi + iki bekçi onarımı**.
+> Dal: `production-foundation` · son commit: **`2812c51`** · 1693 sınama yeşil
 > Canlı: **v0.5.1** (`index-CCbKo7YK.js`) · veritabanı **göç 0104**
+> ⚠️ **4.8 ve 4.9'daki değişiklikler CANLIDA DEĞİL** — commit'li, dağıtım
+> bu denetimden sonra yapılacak. Yani orada bulacağın bir kusur müşteriye
+> henüz ulaşmadı; en ucuz an şimdi.
 
 ---
 
@@ -19,7 +23,8 @@ Dışarıdan gelen biri bu gerekçeyi görmeden "hata" diyebilir. Bir şeyi
 hata saymadan önce gerekçesini ara. Okuma sırası:
 
 1. `docs/kararlar/kararlar-ve-tuzaklar.md` — **en önemlisi.** Değişmez
-   kurallar, veri tasarımı kararları ve numaralı tuzak listesi (38–**162**).
+   kurallar, veri tasarımı kararları ve numaralı tuzak listesi
+   (38–**168b**).
    Her tuzak gerçekten düşülmüş bir hatadır.
    ⚠️ **153–162'yi mutlaka oku.** Onu da geçip şunu bil: bu on tuzağın
    **yedisi** Claude'un kendi ÖLÇÜM hatasıdır ve hepsi bu turda bakacağın
@@ -35,6 +40,16 @@ hata saymadan önce gerekçesini ara. Okuma sırası:
    değerini bir YORUM satırından okudu, `core` sandı, gerçek değer
    `frozen`'dı. O yanlış ölçümle "sekiz açık ekran uydurma personel
    gösteriyor" diyecekti.
+   ⚠️ **163–168b de aynı aileden ve hepsi 01.11'de eklendi:**
+   · 163 beklenen değeri **birikimi** hesaba katmadan yazdı (7 dedi, 4 doğruydu)
+   · 163b tek süreçte paylaşılan durumun bedelini YAZDI, sonra kendisi üretti
+   · 164 **verilmiş bir kararı** yeniden "yapılacak iş" diye önerdi
+   · 165 depo kopyası `src`in **%11'iydi**; orada "bulunamadı" ölçüm değildi
+   · 166 bekçi beklediği yer tutucuyu tanımıyordu (`BURAYA` ≠ `buraya`)
+   · 167 `.gitignore`'a yazmak takibi durdurmaz — deponun %54'ü çöptü
+   · 168 ekran, hangi ekran olduğu konusunda yalan söylüyordu
+   · **168b** bir fonksiyonu **adıyla** kullandı, gövdesini okumadan —
+     yazdığı sınama ölçmek istediğinin tersini ölçtü
 2. `docs/kararlar/codex-denetimi-ekim-2026.md` — senin önceki denetiminin
    özeti, hangi bulgular kapandı, hangileri açık
 3. `docs/kararlar/calisma-duzeni.md` — sen ve Claude nasıl sırayla çalışır
@@ -175,14 +190,79 @@ mı soruyor? (Tuzak 157 ve 160 tam bu yüzden yazıldı.) `tam.dump`
 
 ### 4.7 · Açık bıraktıklarımız (bunları bulgu sayma, ama yorumunu yaz)
 
-- **3.4.7** · işletme geneli KDV oranı hiçbir yerde kullanılmıyor; ekrana
-  bunu söyleyen bir cümle kondu, kalıcı karar bekliyor.
+- **3.4.7** · işletme geneli KDV oranı hiçbir yerde kullanılmıyor.
+  ⚠️ **Karar 01.11'de VERİLDİ** (Emrah): oran şirket profilinde
+  kullanıcı tarafından belirlenecek ve **yeni ürün kartında varsayılan**
+  olacak. Henüz yapılmadı; bu turda bulgu sayma.
 - **A2 / MIYOP-008** · şube bağlamı **kapsam dışı** (Emrah, 31.10).
   Kod hâlâ "tercih yoksa ilk şube" diyor ve tek şubede doğru sonucu
   **tesadüfen** veriyor. Bilerek açık.
 - **Geri yükleme hiç denenmedi.**
 - `timezone`/`language`/`dateFormat`/`theme` hâlâ tarayıcıda — veritabanı
   karşılıkları yok.
+
+### 4.8 · **Yer tutucu bekçisi** (yeni · tuzak 166)
+
+`src/core/supabase-yapilandirma.ts` (yeni) · `src/core/supabase.ts` ·
+`src/core/supabase-yapilandirma.test.ts` (yeni)
+
+`supabase.ts` *"şablon hâlâ doldurulmamış mı"* sorusunu
+`!anonKey.startsWith('BURAYA')` ile soruyordu — BÜYÜK harfle. `.env.example`
+yer tutucuyu KÜÇÜK yazıyor (`buraya_anon_public_anahtari`). Yani şablonu
+doldurmayı unutan için bekçi hiç ötmüyordu; uygulama "yapılandırıldım"
+deyip uyduruk anahtarla istemci kuruyordu.
+
+Kural saf bir dosyaya çıkarıldı; sınaması **`.env.example`'ı okuyup**
+oradaki değerlerin reddedildiğini ölçüyor.
+
+**Bak:**
+- Kural **fazla dar mı, fazla geniş mi?** Gerçek bir `anon` anahtarını
+  (JWT, `eyJ` ile başlar) yanlışlıkla reddedebilir mi? Yanlış
+  *"yapılandırılmamış"* cevabı uygulamayı HİÇ açmaz — daha kötüsüdür.
+- `/^https:\/\/x+\.supabase\.co\/?$/i` deseni gerçek bir proje adresini
+  tutabilir mi?
+- Sınama `.env.example`'ı okuyor: dosya yoksa ya da satır biçimi değişirse
+  sınama ne yapar — yanıltıcı yeşil mi verir, kırmızı mı?
+
+### 4.9 · **Ekran adı zinciri** (yeni · tuzak 168 ve 168b) · CANLIDA DEĞİL
+
+`src/modules/business-workspace.registry.ts` (`MENUSUZ_ROTA_ETIKETLERI`) ·
+`src/App.tsx` (`menusuzRotaAc`, `activeNavLabel`) ·
+`src/navigation/menusuz-rota-etiketi.arch.test.ts` (yeni)
+
+Emrah'ın ekran görüntüsünde başlık **"Değişiklik Kaydı"** diyor, altında
+**Firma Bilgileri formu** duruyordu. Başlık, kırıntı yolu ve menü vurgusu
+üçü de `activeNavKey`ten türüyor; profil menüsünden açılan ekranlar yalnız
+`setRoute(...)` çağırıyordu.
+
+⚠️ Aynı değer `RouteErrorBoundary`ye `routeLabel` olarak gidiyor: çökme
+kaydına YANLIŞ ekran adı yazılacaktı.
+
+**Bak:**
+- `activeNavLabel` artık önce `MENUSUZ_ROTA_ETIKETLERI[route]`e bakıyor.
+  Bu harita bir gün menüdeki bir rotayı kapsarsa o menü ögesinin etiketini
+  **susturur**. Sınama bunu ölçüyor — **ölçüm doğru mu?**
+- `menusuzRotaAc` nav anahtarını rotanın kendisi yapıyor
+  (`company-profile`, `my-profile`). Bu anahtarlarla eşleşen bir menü
+  ögesi doğarsa ne olur?
+- ⚠️ **Bu sınamanın ilk hâli kırmızı verdi ve hata sınamadaydı** (168b):
+  menü yüzeyini `getCoreWorkspaceRoutes()` ile ölçmüştüm; o fonksiyon
+  adına rağmen sonuna `NON_NAV_CORE_ROUTES`u da ekliyor, yani "izin
+  verilen rotalar" döndürüyor. **Düzeltilmiş hâli gerçekten menü
+  yüzeyini mi ölçüyor?** Donmuş ögeleri atlama kararı doğru mu?
+- `workspace-welcome` ve `integration-center` haritada var çünkü
+  modülleri `frozen`. Modül bir gün `core` olursa sınama bunu yakalar mı?
+
+### 4.10 · **Ayna paketi** (yeni araç · tuzak 165)
+
+`araclar/ayna-al.ps1` — `git ls-files`'ın verdiği bütün takip edilen
+dosyaları tek zip'te toplar, künye yazar, `.env`/`*.pem` görürse paket
+üretmez. Ayrıca **`.tmp/` takipten çıkarıldı**: 1.529 dosya, 82 MB, beş
+atılmış Chrome profili (`Cookies`/`Login Data` tabloları boş çıktı,
+ölçüldü). `.gitignore`'da zaten yazıyordu ama takip durmamıştı.
+
+**Bak:** betiğin gizli dosya kapısı yeterli mi? `*.example` serbest
+bırakılıyor — başka hangi ad kalıbı gerçek anahtar taşıyabilir?
 
 ## 5 · ÇIKTI BİÇİMİ
 
@@ -198,6 +278,9 @@ mı soruyor? (Tuzak 157 ve 160 tam bu yüzden yazıldı.) `tam.dump`
 <testler arası sızıntı var mı? Tek başına vs takım içinde koşturup göster.>
 ## 4.5 · Denetim tarayıcısı 19 → 29
 ## 4.6 · Yedekleme betiklerinin doğrulaması gerçek mi
+## 4.8 · Yer tutucu bekçisi — dar mı, geniş mi
+## 4.9 · Ekran adı zinciri — sınama gerçekten doğru şeyi mi ölçüyor
+## 4.10 · Ayna betiğinin gizli dosya kapısı
 
 ## Yeni bulgular
 <MIYOP-086'dan devam numaralandır>

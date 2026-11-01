@@ -1,1 +1,1 @@
-ekran basligi yalan soyluyordu (tuzak 168) + sinamanin kendi hatasi (168b)
+codex brifi 01.11 turu icin yenilendi (4.8-4.10 + tuzak 163-168b)
