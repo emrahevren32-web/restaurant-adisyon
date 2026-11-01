@@ -1,1 +1,1 @@
-yer tutucu bekcisi sablonu tanimiyordu (.env.example) + ayna paketi araci
+deponun yarisi .tmp copuydu: takipten cikarildi + tuzak 164-167

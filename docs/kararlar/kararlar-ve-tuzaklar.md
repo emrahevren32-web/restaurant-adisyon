@@ -984,6 +984,65 @@ göreceği hata mesajları** da (`'Çok fazla deneme yapıldı'`) bozuluyordu.
 ⚠️ Ve komut kendi çıktısını **ölçmeli**: panoda `ş` var mı, bozuk `Ã` var
 mı. "Kopyaladım" demek yetmez; kopyanın sağlam olduğu gösterilir.
 
+**167 · `.gitignore`'A EKLEMEK TAKİBİ DURDURMAZ — DEPONUN YARISI ÇÖPTÜ.**
+(01.11) Tam ayna paketi ilk kez üretilince künye şunu yazdı: **2.826 takip
+edilen dosyanın 1.529'u `.tmp/` altında** — yani deponun **%54'ü**, 82 MB,
+beş adet atılmış **Chrome profili** (`cdp-smoke-…`, `chrome-responsive-…`).
+`.gitignore` içinde `.tmp/` **zaten yazıyordu**; ama `.gitignore` yalnızca
+HENÜZ TAKİP EDİLMEYEN dosyaya bakar. Bir kez `git add` edilmiş dosya,
+kural sonradan yazıldığında sessizce takipte kalır.
+⚠️ Ölçüldü, varsayılmadı: profillerin `Cookies`, `Login Data`, `Web Data`
+tabloları **boş** (yalnız `meta` satırları). Yani bu sefer depoya bir
+kimlik bilgisi sızmamış. **Asıl risk bu seferki değil:** bir tarayıcı
+profilinin düştüğü yer, bir dahaki sefere oturum jetonuyla birlikte düşer.
+⚠️ Bedeli bugün de ödeniyordu: proje yedeği `tam-yedek.ps1` dosya
+kopyasında `.tmp`'yi **hariç tutuyor**, ama yanındaki `git bundle` bütün
+geçmişi taşıdığı için **geri yüklemede .tmp geri geliyordu**. Yani yedek
+kendi içinde tutarsızdı.
+➜ `git rm -r --cached .tmp` (diskten SİLMEZ, takipten çıkarır).
+
+**166 · BEKÇİ, BEKLEDİĞİ ŞEYİ TANIMIYORDU.** (01.11) `src/core/supabase.ts`
+*"şablon hâlâ doldurulmamış mı"* sorusunu `!anonKey.startsWith('BURAYA')`
+ile soruyordu — **büyük** harfle. `.env.example` ise yer tutucuyu **küçük**
+yazıyor: `buraya_anon_public_anahtari`. Yani şablonu kopyalayıp doldurmayı
+unutan biri için bekçi **hiç ötmüyordu**: 25 karakter > 20 ve
+`'buraya…'.startsWith('BURAYA')` yanlış. Uygulama *"yapılandırıldım"* deyip
+uyduruk anahtarla istemci kuruyor, ekranlar anlaşılmaz ağ hatalarıyla
+doluyordu — oysa tam bu durum için yazılmış, nereye ne yazılacağını
+anlatan bir mesaj duruyordu ve hiç görünmüyordu.
+⚠️ Kusur yazım hatası DEĞİL **yerleşimdi**: yer tutucu bir dosyada, onu
+tanıyan kural başka dosyada; ikisi zamanla ayrıldı ve kimse fark etmedi.
+➜ Kural saf bir dosyaya çıktı (`supabase-yapilandirma.ts`) ve sınaması
+**`.env.example`'ı okuyarak** ölçüyor. Şablonu teste elle kopyalasaydım
+aynı ayrılma yeniden olurdu.
+⚠️ Kural bilerek **dar** tutuldu: yanlış *"yapılandırılmamış"* cevabı,
+yanlış *"yapılandırıldı"* cevabından daha kötüdür — uygulama hiç açılmaz.
+
+**165 · EKSİK BİR KOPYADA ARAMA YAPMAK, ÖLÇÜM DEĞİL TAHMİNDİR.** (01.11)
+Depoyu kendi tarafıma dosya dosya alarak okuyorum. Sayıldı: `src/` gerçekte
+**913 dosya**, bendeki kopya **104** — yani **%11**. `docs/` 62 dosyaydı,
+bende 7.
+⚠️ Tehlikesi şu: *"src içinde hiçbir yerde X yok"* cümlesi, dosyanın %89'u
+orada olmadığı için **kendiliğinden doğru çıkar**. Boş dönen arama "temiz"
+sanılır. Tuzak 147, 151, 153 ve 162 bu sınıftandı; kontrol listesi 70 bunu
+**uyarı olarak** zaten yazıyordu ve uyarı işe yaramadı (tuzak 130).
+➜ Çözüm "daha dikkatli ol" değil **aracı değiştirmek**: `araclar/ayna-al.ps1`
+`git ls-files`'ın verdiği **bütün takip edilen dosyaları** tek pakette
+üretir. Listeyi ben değil **git** belirler; pakette künye vardır (HEAD, dal,
+dosya sayısı, commit'siz değişiklik sayısı); `.env`/`*.pem` görürse paket
+**hiç üretilmez**. İlk üretimde kapı yanlış yerde kapandı — `.env.example`
+de yakalandı — ve doğru kuralın *"adında .env geçen"* değil *"gerçek değer
+taşıyan"* olduğu orada öğrenildi.
+
+**164 · VERİLMİŞ BİR KARARI YENİDEN "YAPILACAK İŞ" DİYE ÖNERMEK.** (01.11)
+A5'in **sayfalama borcunu** sıradaki ana hedef diye önerdim. HEDEFLER aynı
+maddede şunu yazıyor: *"Bugünkü dürüst davranış kesildiğini söylemek;
+**sayfalama demo sonrası**."* Karar **verilmişti**.
+⚠️ Tuzak 162'den farkı önemli: orada **bitmiş** bir işi açık sandım, burada
+**ertelenmiş** bir işi sıraya aldım. Kaynak ikisinde de aynı: listeyi
+kararın kendisinden değil, **özetinden** okumak. Özet "kalan: sayfalama
+borcu" diyordu; kararın gerekçesi üç paragraf aşağıdaydı.
+
 **163 · "7 OLMALI" DEDİM, 4 ÇIKTI — VE 4 DOĞRUYDU.** (01.11) Sunucudaki
 yedek sayısını üçten yediye çıkardım ve ölçerken *"7 olmalı"* diye yazdım.
 Sayım **4** döndü. Bir an "satır çalışmamış" sandım; sonra hesapladım:
@@ -1428,6 +1487,17 @@ Son söz onun çıktısındadır.
 86. Bir ayarın etkisi **birikimliyse**, beklenen değeri yazarken
     birikimi hesaba kat (tuzak 163). Doğru çalışan bir şeyi bozuk
     sanmak, gerçek bir hata doğurur.
+87. Bir işi sıraya almadan önce **kararın kendisini** oku, özetini değil
+    (tuzak 164). Özet "kalan" der; gerekçe "ertelendi" diyordur.
+88. Depo kopyasında arama yapmadan önce **künyeyi oku** (tuzak 165):
+    `araclar/ayna-al.ps1` ile üretilen pakette `AYNA.txt` HEAD'i ve dosya
+    sayısını yazar. Künyesiz bir kopyada "bulunamadı" sonucu ölçüm değildir.
+89. Bir **yer tutucuyu tanıyan kural**, yer tutucunun YAZILI olduğu dosyayı
+    okuyarak sınanır (tuzak 166). Şablonu teste elle kopyalamak, iki metnin
+    yeniden ayrılmasına davetiyedir.
+90. `.gitignore`'a yazmak **takibi durdurmaz** (tuzak 167). Bir klasörü
+    gerçekten çıkarmak `git rm -r --cached` ister; kuralı yazıp bitti
+    sanmak, deponun yarısının çöp olmasıyla sonuçlanabilir.
 84. Bir iş bitince **özet tabloyu da** güncelle (tuzak 162). Ayrıntı
     bölümü "kapandı" derken üstteki liste "yapılacak" diyorsa, liste
     yalan söylüyordur — ve o yalan sıradaki işi seçtirir.
