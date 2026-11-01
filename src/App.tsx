@@ -101,6 +101,7 @@ import { WORKSPACE_MODULE_CODES } from './modules/module-code.registry'
 import {
   DECISION_SUPPORT_WORKSPACE_MODULE_CODE,
   KPI_REPORTING_MODULE_CODE,
+  MENUSUZ_ROTA_ETIKETLERI,
   getBusinessWorkspaceModuleByCode,
   getBusinessWorkspaceModuleByLicenseKey,
   getCoreWorkspaceRoutes,
@@ -1067,9 +1068,16 @@ export default function App(){
       })
     }))
   }, [currentUser, isPlatformAdmin, moduleInstallRefreshKey, onboardingRefreshKey])
-  const activeNavLabel = navGroupsForCurrentUser
-    .flatMap(group => flattenAppNavItems(group.items))
-    .find(item => item.key === activeNavKey)?.label || 'Kontrol Paneli'
+  // ⚠️ Menüde olmayan rota ÖNCE sorulur (tuzak 168). Profil menüsünden
+  // açılan ekranlar menü ağacında yok; etiketi `activeNavKey`ten aramak
+  // bir ÖNCEKİ ekranın adını verir ve başlık yalan söyler. Bu değer hem
+  // üst başlığa hem de `RouteErrorBoundary`nin `routeLabel`ine gidiyor,
+  // yani yanlış ad çökme kaydına da yazılır.
+  const activeNavLabel = MENUSUZ_ROTA_ETIKETLERI[route]
+    || navGroupsForCurrentUser
+      .flatMap(group => flattenAppNavItems(group.items))
+      .find(item => item.key === activeNavKey)?.label
+    || 'Kontrol Paneli'
   const activeRouteModule = licensedNavModules[activeNavKey] || licensedRouteModules[route]
   const activeRouteLicenseDenied = Boolean(
     currentUser
@@ -1105,6 +1113,20 @@ export default function App(){
     (platformRouteSet.has(route) || Boolean(evren360View))
     && !platformRotasiHazir(route)
   )
+
+  /**
+   * Profil menüsünden açılan, menü ağacında KARŞILIĞI OLMAYAN ekranlar.
+   *
+   * ⚠️ `setRoute` TEK BAŞINA YETMİYOR (tuzak 168): `activeNavKey` bir önceki
+   * ekranda kalıyor ve yan menüde o ekran seçili görünmeye devam ediyor.
+   * Buradaki anahtar hiçbir menü ögesiyle eşleşmediği için vurgu kalkar;
+   * başlığı `MENUSUZ_ROTA_ETIKETLERI` veriyor.
+   */
+  const menusuzRotaAc = (hedef: 'my-profile' | 'company-profile') => {
+    setLicenseAccessError('')
+    setRoute(hedef)
+    setActiveNavKey(hedef)
+  }
 
   const openNavItem = (item: NavItem) => {
     if(!item.route) return
@@ -1273,8 +1295,8 @@ export default function App(){
       onToggleGroup={toggleNavGroup}
       onOpenNavItem={openNavItem}
       onOpenNotification={openEvren360NotificationTarget}
-      onOpenMyProfile={!isPlatformAdmin ? () => setRoute('my-profile') : undefined}
-      onOpenCompanyProfile={!isPlatformAdmin ? () => setRoute('company-profile') : undefined}
+      onOpenMyProfile={!isPlatformAdmin ? () => menusuzRotaAc('my-profile') : undefined}
+      onOpenCompanyProfile={!isPlatformAdmin ? () => menusuzRotaAc('company-profile') : undefined}
       onStartOnboarding={!isPlatformAdmin && workspaceSetupCompleted ? startOnboardingExperience : undefined}
       onActiveBranchChange={changeActiveBranch}
       onLogout={logout}

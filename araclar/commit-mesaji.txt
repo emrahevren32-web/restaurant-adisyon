@@ -1,1 +1,1 @@
-deponun yarisi .tmp copuydu: takipten cikarildi + tuzak 164-167
+ekran basligi yalan soyluyordu (tuzak 168) + sinamanin kendi hatasi (168b)

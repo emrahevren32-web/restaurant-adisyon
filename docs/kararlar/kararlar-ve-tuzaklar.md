@@ -984,6 +984,43 @@ göreceği hata mesajları** da (`'Çok fazla deneme yapıldı'`) bozuluyordu.
 ⚠️ Ve komut kendi çıktısını **ölçmeli**: panoda `ş` var mı, bozuk `Ã` var
 mı. "Kopyaladım" demek yetmez; kopyanın sağlam olduğu gösterilir.
 
+**168b · FONKSİYONU ADIYLA KULLANDIM, DAVRANIŞIYLA DEĞİL.** (01.11)
+168'i donduran sınamada *"bu adlar menüdeki bir rotayı ezmesin"* kontrolünü
+`getCoreWorkspaceRoutes()` ile yazdım. Ad öyle duruyordu: *menünün core
+rotaları.* Gövdesi başka şey yapıyor — menü ögelerini gezdikten **sonra**
+`NON_NAV_CORE_ROUTES`u da kümeye ekliyor, yani *"açık olmasına İZİN
+VERİLEN rotalar"* döndürüyor. Menüsüz rotalar tanımı gereği o listede
+olduğu için sınama **dördünü birden** "menüde var" saydı ve kırmızı verdi.
+⚠️ Yani kontrol, ölçmek istediğinin **tam tersini** ölçüyordu — ve bunu
+koda bakmadan, adından çıkararak yazmıştım. Tuzak 153/162'nin kardeşi:
+orada yorumdan ve özetten okumuştum, burada **fonksiyon adından**.
+⚠️ İyi haber: hatayı Emrah'ın ekranı değil, **kendi sınamam** buldu.
+Yanlış sınama sessizce yeşil verseydi, koruma diye bir şey koymuş
+olurduk ve korumuyor olurdu.
+➜ Menü yüzeyi artık menü ögelerinden okunuyor (donmuş ögeler atlanarak),
+ve sebep sınamanın içine yazıldı ki bir dahaki sefere aynı ad aynı
+çağrışımı yapmasın.
+
+**168 · EKRAN, HANGİ EKRAN OLDUĞU KONUSUNDA YALAN SÖYLÜYORDU.** (01.11)
+Emrah'ın ekran görüntüsü: üst başlık ve kırıntı yolu **"Değişiklik Kaydı"**
+diyor, altında **Firma Bilgileri formu** duruyor, yan menüde hâlâ
+"Değişiklik Kaydı" seçili.
+Sebep: başlık, kırıntı yolu ve menü vurgusunun üçü de tek bir değerden
+(`activeNavKey`) türüyor. Profil menüsünden açılan iki ekran
+(`company-profile`, `my-profile`) ise yalnız `setRoute(...)` çağırıyordu —
+`activeNavKey` BİR ÖNCEKİ ekranda kalıyordu.
+⚠️ **Görünürden daha kötü yanı:** aynı değer `RouteErrorBoundary`ye
+`routeLabel` olarak gidiyor. Firma Profili çökseydi `client_error` kaydına
+*"ekran: Değişiklik Kaydı"* yazılacaktı. 28.10'da canlıda çöken ekranı bize
+bu kayıt buldurmuştu; **kaydın doğruluğu teşhisin tamamıdır.**
+⚠️ Kusurun cinsi tanıdık: bir ekranın adı iki ayrı yoldan belirleniyor ve
+yollardan biri ötekini güncellemiyor (tuzak 103 — zincirin dördüncü
+halkası yok). Üç yüzeyi tek tek yamamak yerine **adı üreten yer** onarıldı.
+➜ `MENUSUZ_ROTA_ETIKETLERI` (registry) + `menusuzRotaAc` (App) +
+`menusuz-rota-etiketi.arch.test.ts`: menüsüz her rotanın adı var mı, adlar
+menüdeki rotaları eziyor mu, App adı önce haritadan soruyor mu, ve çıplak
+`setRoute('company-profile')` geri geldi mi — dördü de donduruldu.
+
 **167 · `.gitignore`'A EKLEMEK TAKİBİ DURDURMAZ — DEPONUN YARISI ÇÖPTÜ.**
 (01.11) Tam ayna paketi ilk kez üretilince künye şunu yazdı: **2.826 takip
 edilen dosyanın 1.529'u `.tmp/` altında** — yani deponun **%54'ü**, 82 MB,
@@ -1495,6 +1532,13 @@ Son söz onun çıktısındadır.
 89. Bir **yer tutucuyu tanıyan kural**, yer tutucunun YAZILI olduğu dosyayı
     okuyarak sınanır (tuzak 166). Şablonu teste elle kopyalamak, iki metnin
     yeniden ayrılmasına davetiyedir.
+92. Bir yardımcı fonksiyonu **adına güvenerek** kullanma (tuzak 168b);
+    ölçüm yazmadan önce GÖVDESİNİ oku. "core rotalar" diyen fonksiyon
+    "izin verilen rotalar" döndürüyordu ve kontrol tersine döndü.
+91. Bir ekranın **adı tek yerden** üretilir (tuzak 168). Başlık, kırıntı
+    yolu, menü vurgusu ve çökme kaydındaki `routeLabel` aynı değerden
+    gelir; o değeri güncellemeyen bir geçiş, dört yüzeyi birden yalancı
+    yapar.
 90. `.gitignore`'a yazmak **takibi durdurmaz** (tuzak 167). Bir klasörü
     gerçekten çıkarmak `git rm -r --cached` ister; kuralı yazıp bitti
     sanmak, deponun yarısının çöp olmasıyla sonuçlanabilir.

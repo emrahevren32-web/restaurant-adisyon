@@ -2968,6 +2968,38 @@ export const NON_NAV_CORE_ROUTES: BusinessWorkspaceRoute[] = [
 ]
 
 /**
+ * Menüde yer almayan rotaların EKRAN ADI.
+ *
+ * ── NEDEN VAR (01.11.2026 · tuzak 168) ───────────────────────────────────
+ * Üst başlık, kırıntı yolu (breadcrumb) ve yan menüdeki vurgu, hepsi
+ * `activeNavKey`ten türüyor. Profil menüsünden açılan ekranlar
+ * (`company-profile`, `my-profile`) ise yalnız `route`u değiştiriyordu —
+ * `activeNavKey` BİR ÖNCEKİ ekranda kalıyordu.
+ *
+ * Sonuç Emrah'ın ekran görüntüsünde görüldü: başlık **"Değişiklik Kaydı"**
+ * diyor, altında **Firma Bilgileri formu** duruyor, yan menüde hâlâ
+ * "Değişiklik Kaydı" seçili. Yani ekran, hangi ekran olduğu konusunda
+ * yalan söylüyordu.
+ *
+ * ⚠️ Görünürden daha kötü bir yanı var: `RouteErrorBoundary`ye giden
+ * `routeLabel` de aynı değer. Firma Profili çökseydi `client_error`
+ * kaydına **"ekran: Değişiklik Kaydı"** yazılacaktı — yanlış ekranı
+ * ayıklamaya oturacaktık. (28.10'da canlıda çöken ekranı bize bu kayıt
+ * bulmuştu; kaydın doğruluğu teşhisin tamamıdır.)
+ *
+ * ⚠️ Bu harita menüdeki hiçbir rotayı KAPSAMAZ; kapsarsa menü etiketini
+ * ezerdi. `menusuz-rota-etiketi.arch.test.ts` ikisini de ölçüyor:
+ * NON_NAV_CORE_ROUTES'taki her rotanın adı var mı, ve haritadaki hiçbir
+ * rota bir menü ögesinin hedefi değil.
+ */
+export const MENUSUZ_ROTA_ETIKETLERI: Readonly<Record<string, string>> = {
+  'workspace-welcome': 'Karşılama',
+  'my-profile': 'Profilim',
+  'company-profile': 'Firma Profili',
+  'integration-center': 'Entegrasyon Merkezi'
+}
+
+/**
  * ADR-002 · Production Foundation kapsamındaki rotalar.
  *
  * Beyaz liste mantığı: bir rota, ona işaret eden en az bir `core` menü ögesi varsa

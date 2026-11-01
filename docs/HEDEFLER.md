@@ -1890,6 +1890,35 @@ bölüm 1. sıraya çıkar.
 - ⏸️ **8.2.5** Üretim planlamayı gerçek deftere bağla (servisler var,
   veri bağı zayıf)
 
+### 8.3 · EVREN360 · kullanım istatistikleri (Emrah, 01.11.2026)
+
+> *"Kendi yönetim panelimden hangi firma günde hangi saat giriş yapmış,
+> hangi saatte kullanım bırakılmış, en aktif saatler hangi saatler, hangi
+> rolün en çok kullandığı gibi soruları bilmek iyi olabilir. Demo
+> sonrasında en son bunu yapabiliriz."*
+
+- ⏸️ **8.3.1** Oturum olayları: giriş saati, son etkinlik, oturum süresi.
+- ⏸️ **8.3.2** Kiracı × saat yoğunluk tablosu — "en aktif saatler".
+- ⏸️ **8.3.3** Rol kırılımı: hangi rol kaç oturum, kaç ekran açılışı.
+- ⏸️ **8.3.4** EVREN360 panelinde tek ekran; kiracı seçilebilir.
+
+⚠️ **SINIR ÇİZİLİ: ÜSTVERİ EVET, İÇERİK HAYIR.** Bu başlık *ne zaman ve ne
+kadar kullanıldığını* ölçer; **ne yazıldığını, hangi kaydın ne olduğunu
+DEĞİL.** Firmanın iş verisi (stok, reçete, HACCP, denetim defteri) bu
+ekrana girmez — girerse aşağıdaki kararla çelişir ve müşteriye verdiğimiz
+sözü bozar.
+
+⚠️ **Sözleşmede ve aydınlatma metninde YAZILI olacak.** Ölçtüğümüzü
+söylemeden ölçmek, "görünür olmak" ilkesinin tam tersidir. Satış tarafında
+zaten bir faydası var: *"hizmeti ne kadar kullandığınızı biz de görüyoruz,
+destek ve kapasite buna göre planlanıyor."*
+
+⚠️ **Teknik not:** `audit_log` BU İŞ İÇİN KULLANILMAZ. O defter kiracının
+kendi verisidir ve RLS ile kiracıya kapalıdır; platform tarafından
+okunması tam da kaçındığımız şeydir. Oturum üstverisi **ayrı** bir
+platform tablosuna yazılır (kiracı kimliği, rol kodu, zaman — kayıt
+içeriği yok).
+
 ---
 
 ## Güncel dokümanlar · nereye bakılır
