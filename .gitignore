@@ -36,3 +36,9 @@ Claude outputs/
 # ⚠️ 2e84115'te yanlislikla commit edildiler; takipten cikarmak icin:
 #     git rm -r --cached supabase/.temp
 supabase/.temp/
+
+# Claude icin uretilen ayna paketi (01.11.2026)
+# `araclar\ayna-al.ps1` burada bir zip uretir: depoda takip edilen butun
+# dosyalarin tek paketteki kopyasi. Kaynak degil TUREV; her calistirmada
+# yeniden uretiliyor. Depoya girmesi depoyu kendi icine koymak olurdu.
+araclar/ayna/

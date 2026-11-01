@@ -1,4 +1,5 @@
 import { createClient, type SupabaseClient } from '@supabase/supabase-js'
+import { yapilandirmaGecerli } from './supabase-yapilandirma'
 
 /**
  * Supabase istemcisi — uygulamanın sunucuyla konuştuğu tek nokta.
@@ -11,16 +12,17 @@ import { createClient, type SupabaseClient } from '@supabase/supabase-js'
  * Yapılandırma yoksa uygulama ÇALIŞMAYA DEVAM EDER; henüz localStorage
  * katmanındayız ve geçiş dilim dilim yapılıyor. Bu yüzden istemci null
  * olabilir ve çağıranlar `isSupabaseConfigured()` ile kontrol eder.
+ *
+ * ⚠️ "Şablon mu, gerçek mi" kuralı burada DEĞİL `supabase-yapilandirma.ts`te:
+ * bu dosya yüklenirken `createClient` çağırıyor, yani kuralı sınamak için
+ * modülü almak yan etki olarak bir istemci kurmak demekti. Sebebi orada
+ * yazılı (01.11.2026 · bekçi beklediği şeyi tanımıyordu).
  */
 
 const url = import.meta.env.VITE_SUPABASE_URL?.trim() || ''
 const anonKey = import.meta.env.VITE_SUPABASE_ANON_KEY?.trim() || ''
 
-const looksConfigured = (
-  url.startsWith('https://')
-  && anonKey.length > 20
-  && !anonKey.startsWith('BURAYA')
-)
+const looksConfigured = yapilandirmaGecerli(url, anonKey)
 
 const client: SupabaseClient | null = looksConfigured
   ? createClient(url, anonKey, {
