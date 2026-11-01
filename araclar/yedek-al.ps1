@@ -315,11 +315,29 @@ if($semaBayt -lt 1000){
   Hata 'Sema dosyasi yok ya da sasirtici kadar kucuk. BU BIR YEDEK DEGILDIR.'
 }
 
-$veriSatir = 0
-if($veriBayt -gt 0){
-  $veriSatir = (Select-String -Path $veriDosya -Pattern '^(COPY |INSERT INTO )' -AllMatches | Measure-Object).Count
+# !! 01.11.2026 . MIYOP-088 (Codex) . COPY BASLIGI SAYMAK VERI SAYMAK DEGIL.
+# Eski olcum `^COPY |^INSERT INTO` satirlarini sayiyordu. Bos bir tablo da
+# COPY basligi tasir: yirmi bos tablo "20 satir veri" gibi gorunuyordu.
+# Artik COPY blogunun ICINDEKI satirlar sayiliyor.
+function VeriSatiriSay($yol){
+  if(-not (Test-Path $yol)){ return 0 }
+  $icinde = $false
+  $say = 0
+  foreach($satir in [IO.File]::ReadLines($yol)){
+    if($icinde){
+      if($satir -eq '\.'){ $icinde = $false; continue }
+      $say++
+      continue
+    }
+    if($satir -match '^COPY .* FROM stdin;'){ $icinde = $true; continue }
+    if($satir -match '^INSERT INTO '){ $say++ }
+  }
+  return $say
 }
-Write-Host "  veri dosyasindaki COPY/INSERT satiri: $veriSatir" -ForegroundColor Gray
+
+$veriSatir = 0
+if($veriBayt -gt 0){ $veriSatir = VeriSatiriSay $veriDosya }
+Write-Host "  veri dosyasindaki GERCEK kayit satiri: $veriSatir" -ForegroundColor Gray
 
 if($veriSatir -lt 1){
   Write-Host ""
@@ -340,31 +358,85 @@ if(Select-String -Path $semaDosya -Pattern 'stock_movement' -List){
   Uyari 'stock_movement semada GORUNMUYOR . kapsami kontrol et'
 }
 
-# !! TAM DOKUMUN ICI OKUNUYOR (tuzak 160).
-# "Veri dosyasinda satir var" demek "geri yuklenebilir" demek DEGIL.
-# `pg_restore --list` dosyayi gercekten acip icindekileri sayiyor;
-# bozuk ya da yarim bir dosya burada belli olur.
+# !! TAM DOKUMUN ICI OKUNUYOR (tuzak 160 ve MIYOP-088).
+#
+# !! 01.11.2026 . `pg_restore --list` YETMIYOR. Codex olctu: 50 girdili bir
+# arsivin saglam surumu 16.912, VERI BLOKLARI KESILMIS surumu 15.971 bayt
+# idi. Ikisi de `--list` ile cikis kodu 0 ve 50 girdi verdi; SQL'e acmada
+# saglam surum gecti, kesilmis surum `could not find block ID 1` ile dustu.
+# Yani icerik LISTESI, veri bloklarinin saglamligi DEGILDIR . tam da tuzak
+# 157'nin ("dosya var" = "veri var" degil) bir ust katmani.
+#
+# Artik arsiv BASTAN SONA SQL'e cevriliyor: bu, her veri blogunu gercekten
+# okutur. Cevrilen dosya gecici; olculduktan sonra siliniyor.
+$tamSatir = 0
 if($secilen -eq 'pgdump'){
   $tamBayt = Olc $tamDosya 'tam.dump'
   if($tamBayt -lt 10000){ Hata 'tam.dump yok ya da sasirtici kadar kucuk. GERI YUKLENECEK DOSYA YOK.' }
   $pgRestore = Join-Path (Split-Path $pgYol) 'pg_restore.exe'
-  if(Test-Path $pgRestore){
-    $eskiEAP = $ErrorActionPreference; $ErrorActionPreference = 'Continue'
-    $liste = & $pgRestore --list "$tamDosya" 2>&1 | Out-String
-    $kod = $LASTEXITCODE
-    $ErrorActionPreference = $eskiEAP
-    if($kod -ne 0){ Hata "tam.dump OKUNAMADI . pg_restore reddetti:`n$liste" }
-    $girdi = ([regex]::Matches($liste, '(?m)^\d+;')).Count
-    Write-Host "  tam.dump icindeki nesne sayisi: $girdi" -ForegroundColor Gray
-    if($girdi -lt 50){ Hata "tam.dump icinde yalniz $girdi nesne var . BU BIR YEDEK DEGILDIR." }
-    Tamam 'tam.dump pg_restore ile okundu ve dolu'
-  } else {
-    Uyari 'pg_restore bulunamadi . tam.dump OKUNMADAN birakildi.'
+  if(-not (Test-Path $pgRestore)){
+    Hata 'pg_restore bulunamadi . tam.dump OKUNAMADI, yani GERI GELECEGI KANITLANAMADI.'
   }
+
+  $eskiEAP = $ErrorActionPreference; $ErrorActionPreference = 'Continue'
+  $liste = & $pgRestore --list "$tamDosya" 2>&1 | Out-String
+  $kod = $LASTEXITCODE
+  $ErrorActionPreference = $eskiEAP
+  if($kod -ne 0){ Hata "tam.dump OKUNAMADI . pg_restore reddetti:`n$liste" }
+  $girdi = ([regex]::Matches($liste, '(?m)^\d+;')).Count
+  Write-Host "  tam.dump icindeki nesne sayisi: $girdi" -ForegroundColor Gray
+  if($girdi -lt 50){ Hata "tam.dump icinde yalniz $girdi nesne var . BU BIR YEDEK DEGILDIR." }
+
+  $gecici = Join-Path $env:TEMP ('miyop-dogrulama-' + [guid]::NewGuid().ToString('N') + '.sql')
+  $eskiEAP = $ErrorActionPreference; $ErrorActionPreference = 'Continue'
+  $cevirme = & $pgRestore --no-owner --no-privileges -f "$gecici" "$tamDosya" 2>&1 | Out-String
+  $kod = $LASTEXITCODE
+  $ErrorActionPreference = $eskiEAP
+  if($kod -ne 0){
+    Remove-Item $gecici -Force -ErrorAction SilentlyContinue
+    Hata ("tam.dump BASTAN SONA OKUNAMADI . arsiv bozuk ya da yarim:`n" + $cevirme)
+  }
+  $tamSatir = VeriSatiriSay $gecici
+  Remove-Item $gecici -Force -ErrorAction SilentlyContinue
+  Write-Host "  tam.dump icinden cikan GERCEK kayit satiri: $tamSatir" -ForegroundColor Gray
+  if($tamSatir -lt 1){
+    Hata 'tam.dump acildi ama icinden TEK BIR KAYIT SATIRI cikmadi. BU BIR YEDEK DEGILDIR.'
+  }
+  Tamam 'tam.dump bastan sona SQL e cevrildi (her veri blogu okundu) ve dolu'
+} else {
+  # !! 01.11.2026 . MIYOP-087 (Codex) . BU YOLDA `tam.dump` URETILMIYOR.
+  # Eskiden notta ve ekranda yine "geri yuklenecek dosya tam.dump" yaziyordu;
+  # yani kullanici OLMAYAN bir dosyaya yonlendiriliyordu. Dairesel foreign
+  # key icin yapilan onarim da bu yolda YOK.
+  Uyari 'CLI yolu . tam.dump URETILMEDI. Geri yukleme sema+veri ile ELLE yapilir.'
+  Uyari 'Dairesel foreign key (company<->branch, stock_movement) bu yolda SORUN CIKARABILIR.'
 }
 
 # -- 6 . Not ----------------------------------------------------------------
 Bilgi '6/6 - YEDEK-NOTU.txt'
+
+# !! NOT YOLA GORE DEGISIR (MIYOP-087). Iki yol ayni dosyalari uretmiyor;
+# tek bir metin yazmak, CLI yolunda OLMAYAN bir dosyaya yonlendirmekti.
+if($secilen -eq 'pgdump'){
+  $geriYuklemeNotu = @"
+!! GERI YUKLENECEK DOSYA: tam.dump (ozel bicim). sema.sql ve veri.sql
+   okunabilirlik icindir; semada DAIRESEL foreign key var (company<->branch,
+   stock_movement) ve o ikisiyle sirali geri yukleme patlayabilir.
+   Dogru komut:  pg_restore --no-owner --no-privileges -d <hedef> tam.dump
+   Dogrulama   : arsiv bastan sona SQL e cevrildi, $tamSatir kayit satiri okundu.
+"@
+} else {
+  $geriYuklemeNotu = @"
+!! BU YEDEKTE tam.dump YOK. CLI yolu ozel bicim uretmiyor; elde yalniz
+   sema.sql, veri.sql ve roller.sql var.
+   Geri yukleme ELLE ve SIRALI yapilir:  roller.sql -> sema.sql -> veri.sql
+!! DIKKAT: semada DAIRESEL foreign key var (company<->branch,
+   stock_movement). Sirali yukleme bu yuzden PATLAYABILIR; kisitlari
+   gecici olarak ertelemek gerekebilir. Bu yol DAHA ZAYIFTIR.
+   Guclu yol icin PostgreSQL istemci araclarini kur ve betigi yeniden
+   calistir (pg_dump yolu tam.dump uretir).
+"@
+}
 @"
 MIYOP . VERITABANI YEDEGI
 =========================
@@ -374,13 +446,10 @@ Sunucu    : PostgreSQL $SUNUCU_SURUM
 Yol       : $secilen
 Semalar   : public, app
 
-!! GERI YUKLENECEK DOSYA: tam.dump (ozel bicim). sema.sql ve veri.sql
-   okunabilirlik icindir; semada DAIRESEL foreign key var (company<->branch,
-   stock_movement) ve o ikisiyle geri yukleme siralama yuzunden patlayabilir.
-   Dogru komut:  pg_restore --no-owner --no-privileges -d <hedef> tam.dump
+$geriYuklemeNotu
 
 Dosyalar  : sema.sql $('{0:N0}' -f $semaBayt) bayt
-            veri.sql $('{0:N0}' -f $veriBayt) bayt ($veriSatir COPY/INSERT satiri)
+            veri.sql $('{0:N0}' -f $veriBayt) bayt ($veriSatir kayit satiri)
             roller.sql $('{0:N0}' -f $rolBayt) bayt
 
 !! ICINDE OLMAYANLAR (bilerek)
@@ -393,12 +462,18 @@ Geri yukleme: docs/YEDEKLEME.md . CANLIDA HENUZ DENENMEDI.
 Tamam 'not yazildi'
 
 Write-Host ""
-Write-Host "===========================================================" -ForegroundColor Green
-Write-Host " YEDEK ALINDI ve DOGRULANDI" -ForegroundColor Green
+$afisRenk = if($secilen -eq 'pgdump'){ 'Green' } else { 'Yellow' }
+$afisMetin = if($secilen -eq 'pgdump'){
+  ' YEDEK ALINDI ve GERI GELECEGI OLCULDU'
+} else {
+  ' SINIRLI YEDEK ALINDI . tam.dump YOK, geri yukleme DENENMEDI'
+}
+Write-Host "===========================================================" -ForegroundColor $afisRenk
+Write-Host $afisMetin -ForegroundColor $afisRenk
 Write-Host " $kok"
 Write-Host ""
 Write-Host " ICINDE OLMAYANLAR (bilerek):" -ForegroundColor Yellow
 Write-Host "   - giris hesaplari (auth semasi dokume girmez)"
 Write-Host "   - yuklenen dosyalar (Storage)"
 Write-Host " Geri yukleme: docs/YEDEKLEME.md" -ForegroundColor Gray
-Write-Host "===========================================================" -ForegroundColor Green
+Write-Host "===========================================================" -ForegroundColor $afisRenk

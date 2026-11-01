@@ -984,6 +984,29 @@ göreceği hata mesajları** da (`'Çok fazla deneme yapıldı'`) bozuluyordu.
 ⚠️ Ve komut kendi çıktısını **ölçmeli**: panoda `ş` var mı, bozuk `Ã` var
 mı. "Kopyaladım" demek yetmez; kopyanın sağlam olduğu gösterilir.
 
+**173 · "DOSYA VAR" → "VERİ VAR" → "GERİ GELİR": ÜÇ AYRI İDDİA.** (01.11 ·
+MIYOP-087 ve MIYOP-088 · Codex) Tuzak 157 birinciden ikinciye geçmeyi
+öğretmişti; Codex üçüncüsünü gösterdi.
+· **`pg_restore --list` sağlamlık kanıtı DEĞİL.** Ölçüldü: 50 girdili bir
+  arşivin sağlam sürümü 16.912, **veri blokları kesilmiş** sürümü 15.971
+  bayt. İkisi de `--list` ile **çıkış kodu 0 ve aynı 50 girdi** verdi;
+  SQL'e açmada kesilmiş sürüm `could not find block ID 1` ile düştü.
+  İçerik listesi yalnız **başlığı** okur. ➜ Arşiv artık baştan sona SQL'e
+  çevriliyor: bu her veri bloğunu gerçekten okutur.
+· **`COPY` başlığı saymak, kayıt saymak değil.** Boş bir tablo da `COPY`
+  başlığı taşır; yirmi boş tablo *"20 satır veri"* gibi görünüyordu.
+  ➜ Artık `COPY` bloğunun **içindeki** satırlar sayılıyor.
+· **İki yol aynı dosyaları üretmiyordu ve not bunu bilmiyordu.** CLI yolu
+  `tam.dump` üretmiyor; buna rağmen hem `YEDEK-NOTU.txt` hem ekran
+  *"geri yüklenecek dosya: tam.dump"* diyordu — **olmayan bir dosyaya
+  yönlendirme.** Üstelik dairesel foreign key için yapılan onarım da o
+  yolda yoktu. ➜ Not ve afiş yola göre değişiyor; CLI yolu artık
+  *"doğrulandı"* demiyor, **SINIRLI YEDEK** diyor.
+⚠️ Ortak ders: bir doğrulama, iddianın **hangi katmanını** kanıtladığını
+söylemeli. "Doğrulandı" tek kelimesi üç ayrı iddiayı birbirine karıştırır.
+⚠️ Hâlâ kanıtlanmamış dördüncü katman duruyor: **boş bir veritabanına
+gerçekten geri yükleme.** Bu betik onu ölçmez ve ölçtüğünü de söylemez.
+
 **172 · CODEX ÜÇ İDDİAMI DÜZELTTİ — ÜÇÜ DE BENİM YAZDIĞIM CÜMLEYDİ.** (01.11)
 Düzeltilenler, bulduğu kusurlardan daha öğretici:
 · **"Tek işçi, dolayısıyla modüller dosyalar arasında paylaşılır."** FAZLA
@@ -1595,6 +1618,9 @@ Son söz onun çıktısındadır.
     şey korumaz; orada sürüm/kimlik taşımak gerekir.
 94. Bir ölçümün **sağlaması, ölçümle AYNI nesneyi** kullanır (tuzak 170).
     Deseni ikinci kez elle yazan sağlama, bozulan asıl ölçümü yakalamaz.
+96. Bir doğrulama, iddianın **hangi katmanını** kanıtladığını yazsın
+    (tuzak 173). "Dosya var" / "içinde veri var" / "geri gelir" üç ayrı
+    iddiadır; üçünü tek "doğrulandı" kelimesine sığdırmak yalandır.
 95. Bir bekçi yazarken **koruduğun satırı silip kırmızıyı gör** (tuzak
     171). Adı ve çağrıları ölçen bir sınama, gövdeyi hiç görmüyor olabilir.
 92. Bir yardımcı fonksiyonu **adına güvenerek** kullanma (tuzak 168b);

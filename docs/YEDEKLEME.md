@@ -151,9 +151,15 @@ Doğru geri yükleme komutu:
 pg_restore --no-owner --no-privileges -d <hedef-veritabani> tam.dump
 ```
 
-⚠️ Betik `tam.dump`'ı **`pg_restore --list` ile açıp içindeki nesneleri
-sayıyor**. Dosyanın oluşması yetmez; bozuk ya da yarım bir döküm burada
-belli olur.
+⚠️ Betik `tam.dump`'ı **baştan sona SQL'e çeviriyor** ve çıkan metindeki
+gerçek kayıt satırlarını sayıyor.
+
+⚠️ **Neden `--list` yetmiyor (MIYOP-088, Codex · 01.11.2026):** Codex ölçtü —
+50 girdili bir arşivin sağlam sürümü 16.912, **veri blokları kesilmiş**
+sürümü 15.971 bayttı. İkisi de `pg_restore --list` ile **çıkış kodu 0 ve
+aynı 50 girdi** verdi; SQL'e açmada sağlam sürüm geçti, kesilmiş sürüm
+`could not find block ID 1` ile düştü. Yani **içerik listesi, veri
+bloklarının sağlamlığı değildir.** Çevirme ise her bloğu gerçekten okutur.
 
 ⚠️ **Parola üç kez sorulur** (her `pg_dump` çağrısında bir kez). Betik
 parolayı saklamıyor — üç kez yazmak, parolanın bir ortam değişkeninde
@@ -165,8 +171,17 @@ Dosyanın oluşması, içinde veri olduğu anlamına gelmez. `yedek-al.ps1`
 bitmeden önce şunları ölçer ve **geçmezse "alındı" DEMEZ**:
 
 - Şema dosyası var ve beklenenden küçük değil
-- Veri dosyasında **en az bir `COPY` / `INSERT INTO` satırı** var
+- Veri dosyasında **en az bir gerçek kayıt satırı** var
+  ⚠️ 01.11'e kadar `COPY` **başlıkları** sayılıyordu. Boş bir tablo da
+  `COPY` başlığı taşır: yirmi boş tablo *"20 satır veri"* gibi görünürdü.
+  Artık `COPY` bloğunun **içindeki** satırlar sayılıyor (MIYOP-088).
 - Denetim defteri (`audit_log`) dökümde görünüyor
+- `tam.dump` **baştan sona SQL'e çevriliyor** ve içinden en az bir kayıt
+  satırı çıkıyor — bozuk veya yarım arşiv burada düşer
+- ⚠️ **CLI yolunda `tam.dump` ÜRETİLMEZ** (MIYOP-087). O yol artık
+  *"alındı ve doğrulandı"* demiyor: ekranda **SINIRLI YEDEK** yazıyor ve
+  not, olmayan bir dosyaya değil elle sıralı yükleme yöntemine
+  yönlendiriyor.
 
 ---
 
@@ -263,7 +278,16 @@ Talep MİYOP'a gelir, elle ve kayıt altında yapılır. Kaba sıra:
 
 1. **Önce bugünün yedeğini al** — geri yükleme de bir değişikliktir.
 2. Hangi ana dönüleceğine karar ver, o klasörü seç.
-3. `psql` ile sırayla: `roller.sql` → `sema.sql` → `veri.sql`.
+3. **Hangi yolla alındığına bak** — `YEDEK-NOTU.txt` içindeki `Yol` satırı
+   söylüyor. İki yol aynı dosyaları üretmez (MIYOP-087):
+   - **`pgdump` yolu** → elde `tam.dump` var, **tek doğru komut budur**:
+     `pg_restore --no-owner --no-privileges -d <hedef> tam.dump`
+     `pg_restore` sıralamayı kendisi çözer; dairesel foreign key sorun olmaz.
+   - **`cli` yolu** → `tam.dump` **yoktur**. `psql` ile sırayla
+     `roller.sql` → `sema.sql` → `veri.sql`.
+     ⚠️ Dairesel foreign key (`company`↔`branch`, `stock_movement`) bu
+     sırada **patlayabilir**; kısıtları geçici ertelemek gerekebilir.
+     **Bu yol daha zayıftır** — mümkünse `pg_dump` ile yeniden yedek al.
 4. Sonra **doğrula**: kiracı sayısı, stok kartı sayısı, `audit_log`'un son
    kaydının tarihi.
 5. Kullanıcıların Auth kayıtlarını yeniden aç (§4.1).

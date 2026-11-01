@@ -1,1 +1,1 @@
-MIYOP-086 bayat cevap yeni oturumu bozuyordu (P1) + 089 ve 091 bekcileri
+yedek dogrulamasi gercekten dogruluyor (MIYOP-087, 088, 092)
