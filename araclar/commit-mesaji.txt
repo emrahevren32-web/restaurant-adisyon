@@ -1,1 +1,1 @@
-HEDEFLER 3.4.7 kapandi: goc 0105 - isletme KDV orani yeni urun kartina geciyor
+v0.5.3 yayinda: goc 0105 canlida, surum defterine islendi
