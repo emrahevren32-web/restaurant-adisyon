@@ -107,6 +107,44 @@ $ErrorActionPreference = $eski
 if($kod -ne 0){ Hata "Gecici veritabani ACILAMADI. Yerel PostgreSQL sunucusu calisiyor mu?" }
 Tamam 'acildi'
 
+# --- 4b . SUPABASE ROLLERI . 02.11.2026'da OLCULDU --------------------------
+# !! ILK PROVADA 78 RLS kuralindan 2'si GELMEDI (76 cikti) ve sebebi suydu:
+#       ERROR: role "supabase_auth_admin" does not exist
+#    Goc `g7_1_sema.sql` giris kancasini YALNIZ Supabase'in kendi auth
+#    sunucusuna aciyor; o role bagli IKI politika var. Supabase'de bu rol
+#    vardir, senin yerel PostgreSQL'inde yoktur . yani eksiklik YEDEKTE
+#    DEGIL, PROVA ORTAMINDA.
+#    Prova ortamini gercege benzetmek icin roller aciliyor (nologin: hicbir
+#    sey yapamazlar, yalniz politikalarin isaret edecegi bir ad olurlar).
+# !! Roller KUME duzeyindedir, yani gecici veritabani silinince kalirlar.
+#    Zararsiz ve bilerek: her provada yeniden yaratilmasinlar diye.
+Bilgi '2b/4 - Supabase rolleri (prova ortamini gercege benzetmek icin)'
+# !! TEK TIRNAKLI here-string (@' ... '@): PowerShell icinde HICBIR
+# genisletme yapmaz. Cift tirnakli olsaydi `$$` PowerShell'in kendi
+# otomatik degiskeni sanilirdi ve SQL bozulurdu.
+$rolSql = @'
+do $$
+begin
+  if not exists (select 1 from pg_roles where rolname='anon') then create role anon nologin noinherit; end if;
+  if not exists (select 1 from pg_roles where rolname='authenticated') then create role authenticated nologin noinherit; end if;
+  if not exists (select 1 from pg_roles where rolname='service_role') then create role service_role nologin noinherit bypassrls; end if;
+  if not exists (select 1 from pg_roles where rolname='supabase_auth_admin') then create role supabase_auth_admin nologin noinherit; end if;
+end
+$$;
+'@
+$rolDosya = Join-Path $env:TEMP ('miyop-roller-' + [guid]::NewGuid().ToString('N') + '.sql')
+[System.IO.File]::WriteAllText($rolDosya, $rolSql, (New-Object System.Text.UTF8Encoding $false))
+$eski = $ErrorActionPreference; $ErrorActionPreference = 'Continue'
+& $psql -U postgres -d $Veritabani -v ON_ERROR_STOP=1 -f "$rolDosya" 2>&1 | Out-Null
+$rolKod = $LASTEXITCODE
+$ErrorActionPreference = $eski
+Remove-Item $rolDosya -Force -ErrorAction SilentlyContinue
+if($rolKod -ne 0){
+  Uyari 'Roller acilamadi . supabase_auth_admin''e bagli IKI politika gelmeyebilir (RLS 78 yerine 76).'
+} else {
+  Tamam 'anon / authenticated / service_role / supabase_auth_admin hazir'
+}
+
 # --- 5 . GERI YUKLE ----------------------------------------------------------
 Bilgi '3/4 - Geri yukleniyor'
 $eski = $ErrorActionPreference; $ErrorActionPreference = 'Continue'
@@ -174,6 +212,9 @@ Write-Host " GERI YUKLEME PROVASI BITTI" -ForegroundColor Green
 Write-Host "===========================================================" -ForegroundColor Green
 Write-Host " Dokum : $Dosya"
 Write-Host " Nesne : $nesne"
+Write-Host ""
+Write-Host " !! RLS kurali 76 cikarsa: supabase_auth_admin rolune bagli IKI" -ForegroundColor Yellow
+Write-Host "    politika gelmemis demektir (yedek kusuru DEGIL, rol eksikligi)."
 Write-Host ""
 Write-Host " SIRADAKI ADIM: yukaridaki sayilari CANLI ile karsilastir." -ForegroundColor Yellow
 Write-Host " Supabase SQL Editor'e ayni sorguyu yapistir; sayilar tutmali."

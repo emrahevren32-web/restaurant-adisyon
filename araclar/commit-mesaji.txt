@@ -1,1 +1,1 @@
-geri yukleme provasi tek komuta indi (araclar/geri-yukle-provasi.ps1)
+GERCEK yedek geri geldi (8 kiraci, 123 denetim) + eksik 2 RLS kuralinin sebebi olculdu

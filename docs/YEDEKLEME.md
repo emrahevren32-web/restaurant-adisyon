@@ -349,6 +349,50 @@ veritabanıyla yapıldı.** Kanıtlanan şey **yöntem**; Emrah'ın
 `F:\MIYOP_BACKUP` altındaki dosyasının geri geleceği hâlâ ayrıca
 ölçülmeli. Ama yöntem artık tahmin değil.
 
+## 6.2.3 · ✅ GERÇEK YEDEK GERİ GELDİ · 02.11.2026 · İLK KEZ
+
+`F:\MIYOP_BACKUP\veritabani\20261031-215057\tam.dump` (744,8 KB · 1.246
+nesne) Emrah'ın bilgisayarındaki PostgreSQL 18'e geri yüklendi.
+
+| Ölçüm | Geri gelen | Beklenen | |
+|---|---|---|---|
+| tablo | 66 | 66 | ✅ |
+| `app` fonksiyonu | 146 | 146 | ✅ |
+| tetik | 203 | 203 | ✅ |
+| RLS kuralı | 76 | 78 | ⚠️ **2 eksik** |
+| kiracı | **8** | — | ✅ |
+| firma | **8** | — | ✅ |
+| stok kartı | 4 · stok hareketi 34 · sipariş 2 | — | ✅ |
+| denetim kaydı | **123** | — | ✅ |
+
+⚠️ **146/203 bir kayıp DEĞİL:** döküm 31.10'da, yani **göç 0105'ten önce**
+alındı. 0105 bir fonksiyon ve bir tetik ekliyor; 146+1 = 147, 203+1 = 204.
+Sayılar birebir tutuyor.
+
+### ⚠️ Eksik çıkan 2 RLS kuralı — sebebi ÖLÇÜLDÜ
+
+`pg_restore` iki kez şunu dedi:
+`ERROR: role "supabase_auth_admin" does not exist`.
+
+Ölçüldü: prova veritabanında `public` şemasındaki **tam 2** politika bu
+role bağlı. Sebebi `g7_1_sema.sql`te yazılı — giriş kancası **yalnız
+Supabase'in kendi auth sunucusuna** açılıyor.
+
+➜ Yani eksiklik **yedekte değil, prova ortamında**: o rol Supabase'de
+vardır, yalın bir yerel PostgreSQL'de yoktur.
+➜ `geri-yukle-provasi.ps1` artık geri yüklemeden önce `anon`,
+`authenticated`, `service_role` ve `supabase_auth_admin` rollerini açıyor
+(hepsi `nologin` — yalnızca politikaların işaret edeceği bir ad).
+Bir sonraki provada **78** beklenir.
+
+⚠️ **Hâlâ kanıtlanmamış olan:** bu iki politikanın **gerçek bir Supabase
+projesine** geri yüklendiği. Rol orada var, yani çok olası — ama *olası*
+ile *ölçüldü* aynı şey değil.
+
+⚠️ **Dökümde olmayanlar (bilerek):** giriş hesapları (`auth` şeması) ve
+yüklenen dosyalar (Storage). Geri yüklemede iş verisi döner,
+**kullanıcıların yeniden açılması gerekir** (§4.1).
+
 ## 6.2.2 · Provayı KENDİ dosyanla koştur · tek komut
 
 ```powershell
@@ -377,7 +421,7 @@ sayılar **daha büyük** olabilir — **daha küçük olmamalı.**
 | # | Borç |
 |---|---|
 | 1 | Yedek alma **otomatik değil** (elle çalıştırılıyor) |
-| 2 | 🔄 **Yöntem denendi (02.11), GERÇEK DÖKÜM denenmedi** (§6.2.1) |
+| 2 | ✅ **Kapandı (02.11):** gerçek döküm geri yüklendi, iş verisi geldi (§6.2.3). ⬜ Kalan: boş bir **Supabase** projesine geri yükleme |
 | 3 | `auth.users` yedekte yok (§4.1) |
 | 4 | Supabase **Pro** alınmadı: otomatik yedek ve duraklamama yok (§2) |
 | ~~5~~ | ✅ **Kapandı (31.10):** sunucu artık **yedi** sürüm tutuyor (~59 MB) |
