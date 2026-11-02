@@ -984,6 +984,36 @@ göreceği hata mesajları** da (`'Çok fazla deneme yapıldı'`) bozuluyordu.
 ⚠️ Ve komut kendi çıktısını **ölçmeli**: panoda `ş` var mı, bozuk `Ã` var
 mı. "Kopyaladım" demek yetmez; kopyanın sağlam olduğu gösterilir.
 
+**175 · BİR ÇIÇIR, AD DEĞİŞİKLİĞİYLE DELİNDİ — VE DELEN BENDİM.** (02.11)
+31.10'da *"anahtar yoksa demo üret"* mekanizmasının **sıfırlandığını**
+yazdım. Deseni `createDemo[A-Za-z]+` arıyordu. ÖLÇÜLDÜ (02.11): mekanizma
+`storage.ts`te **DÖRT yerde** duruyor ve dördü de `createDemo` yazmadığı
+için sayımdan kaçıyordu —
+`defaultPackages` · `varsayilanLisansModulleri(packages)` · `defaults` ·
+`createDefaultPlatformSettings()`.
+⚠️ **İkisini ben adlandırdım.** Aynı gün `createDemoLicensePackages`ı
+`varsayilanLisansPaketleri` yaptım ve *"ad değiştirip sayımdan çıkmak
+saklamak olurdu"* diye bir sınama bile yazdım — ama o sınama **adı**
+koruyordu, **mekanizmayı** değil. Yani deliği gördüm, yanlış yerini
+yamadım.
+⚠️ **Gerekçem de yanlışmış** (Codex, 01.11): *"uydurma kayıt değil, MİYOP'un
+gerçekten sattığı planlar"* demiştim. Ölçüldü — koddaki katalog
+**eski adisyon ürününün** kataloğu: `maxTables` (masa sayısı), `adisyon`,
+`qr-menu` modülleri, 999–4999 ₺. Canlı veritabanındaki (0042) iki paket ise
+fiyatsız, sınırsız ve endüstriyel mutfağa ait. **Endüstriyel mutfakta masa
+yoktur;** `maxTables` tek başına kanıt.
+⚠️ **Yangın değil mayın:** ölçüldü, `PLATFORM_HAZIR_ROTALAR` yalnız dört
+rota içeriyor ve `SaasManagementCenter`ı açan rotaların **hiçbiri** orada
+değil — yani bu dördü bugün hiçbir açık ekrana ulaşmıyor. Ama o ekran
+açıldığı gün müşteriye masa sayısı ve adisyon paketi gösterecekti.
+➜ Desen artık **ada değil mekanizmaya** bakıyor: `getItem(...) === null ?`
+dalını okuyup boş liste/nesne/null dışındaki her cevabı sayıyor. Üst sınır
+**4** ve yalnız azalabilir. (Masum dal geçiyor: *"anahtar yoksa boş"* demek
+uydurmak değildir.)
+⚠️ Ders tuzak 170'in kardeşi: **bir ölçüm aracı, ölçtüğü şeyin kılık
+değiştirmesine dayanıklı olmalı.** Ada bağlanan her çıcır, bir yeniden
+adlandırma kadar uzaktadır.
+
 **174 · APPEND-ONLY BİR DEFTERE BAKAN İDDİA, ZAMAN PENCERESİYLE SINIRLANIR.**
 (02.11 · MIYOP-090 · Codex) `prova-0104.sql` şunu soruyordu:
 *"defterde HİÇBİR `'?'` satırı kalmadı."* Soru yanlıştı. `audit_log`
@@ -1656,6 +1686,9 @@ Son söz onun çıktısındadır.
     şey korumaz; orada sürüm/kimlik taşımak gerekir.
 94. Bir ölçümün **sağlaması, ölçümle AYNI nesneyi** kullanır (tuzak 170).
     Deseni ikinci kez elle yazan sağlama, bozulan asıl ölçümü yakalamaz.
+98. Bir çıcırı **ada değil MEKANİZMAYA** bağla (tuzak 175). `createDemo*`
+    arayan bir sayım, bir yeniden adlandırmayla sıfır gösterir; aranan şey
+    *"anahtar yoksa uydur"* davranışının kendisidir.
 97. Append-only bir deftere bakan iddia **zaman penceresiyle** sınırlanır
     (tuzak 174). Provanın başında `max(id)` alınır; iddialar yalnız ondan
     sonraki satırlara bakar. *"Hiç yok"* sorusu, geçmişi biriken bir

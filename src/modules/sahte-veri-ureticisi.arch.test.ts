@@ -169,25 +169,72 @@ describe('sahte veri üreticisi çıcırı', () => {
     }
   })
 
-  it('⚠️ "anahtar yoksa demo üret" deseni HİÇ KALMADI · çıcır kapandı', () => {
-    // ⚠️ BU SINAMA 31.10'da ÜÇ HÂL DEĞİŞTİRDİ ve üçü de kayıtlı:
-    //   1. "sıfır olmalı" diye yazıldı → KIRMIZI verdi, doğru verdi:
-    //      desen gitmemiş, kiracı tarafından PLATFORM tarafına taşınmıştı.
-    //   2. sekizde dondurulmuş bir ÇIÇIRA çevrildi (borç yazılı dursun).
-    //   3. Emrah'ın kararıyla sekizi de boşaltıldı → çıcır KAPANDI.
-    // Karar (31.10): "Boşalt, gerçeğe bağlanana kadar boş kalsın."
-    const DESEN = /getItem\([^)]*\)\s*===\s*null\s*\?\s*createDemo[A-Za-z]+/g
-    const kalan = [...yorumsuz(DEPO).matchAll(DESEN)].map(m => m[0].replace(/\s+/g, ' '))
-    expect(kalan, `"anahtar yoksa demo üret" geri gelmiş:\n${kalan.join('\n')}`)
-      .toEqual([])
+  // ⚠️ 02.11.2026 · BU ÇIÇIR BİR AD DEĞİŞİKLİĞİYLE DELİNMİŞTİ.
+  // 31.10'da desen `createDemo[A-Za-z]+` arıyordu ve "çıcır kapandı, sıfır"
+  // diyordu. ÖLÇÜLDÜ (02.11): mekanizma `storage.ts`te **DÖRT yerde** hâlâ
+  // duruyor; dördü de `createDemo` yazmadığı için sayımdan kaçıyordu:
+  //     defaultPackages · varsayilanLisansModulleri(packages)
+  //     defaults        · createDefaultPlatformSettings()
+  // Yani ölçüm sıfır gösteriyordu, gerçek dört.
+  //
+  // ⚠️ Kusur deseni dar yazmak değil, deseni BİR ADA bağlamaktı. Mekanizma
+  // "anahtar yoksa UYDUR"dur; uyduranın adı ne olursa olsun aynı şeydir.
+  // (Tuzak 170'in kardeşi: ölçüm aracı, ölçtüğü şeyin kılık değiştirmesine
+  // dayanıklı olmalı.)
+  //
+  // ⚠️ MASUM DAL VAR: `getItem(k) === null ? [] : ...` uydurmuyor, "boş"
+  // diyor. O yüzden desen dalı okuyor ve boş liste/nesne/null'ı geçiyor.
+  const MEKANIZMA = /getItem\([^)]*\)\s*===\s*null\s*\?\s*([^\s:][^:]{0,60}?)\s*:/g
+  const MASUM = new Set(['[]', '{}', 'null', 'undefined', "''", '""'])
+  const uyduranDallar = (kod: string) => (
+    [...kod.matchAll(MEKANIZMA)]
+      .map(m => m[1].replace(/\s+/g, ' ').trim())
+      .filter(dal => !MASUM.has(dal))
+  )
+
+  /**
+   * ⚠️ ÜST SINIR 4 · ÇIÇIR, SIFIR DEĞİL.
+   * Dördünü bugün silmek, beş dondurulmuş platform ekranının `import`unu
+   * kırmak demekti. Ölçüldü (02.11): o ekranların HİÇBİRİ açılamıyor —
+   * `PLATFORM_HAZIR_ROTALAR` yalnız dört rota içeriyor ve `SaasManagementCenter`'ı
+   * açan rotaların hiçbiri orada yok. Yani bu dördü **yangın değil mayın**.
+   * Sayı yalnız AZALABİLİR; artarsa yeni bir mayın döşenmiş demektir.
+   */
+  const MEKANIZMA_UST_SINIR = 4
+
+  it('⚠️ "anahtar yoksa UYDUR" mekanizması · sayı yalnız AZALABİLİR', () => {
+    const kalan = uyduranDallar(yorumsuz(DEPO))
+    expect(
+      kalan.length,
+      `"anahtar yoksa uydur" ${kalan.length} yerde (sınır ${MEKANIZMA_UST_SINIR}):\n`
+      + kalan.join('\n')
+    ).toBeLessThanOrEqual(MEKANIZMA_UST_SINIR)
+  })
+
+  it('⚠️ eski DAR desen artık sıfır — ama bu "mekanizma yok" demek DEĞİL', () => {
+    // Bu satır tarih için duruyor: `createDemo` yazımı gerçekten kalmadı.
+    // Üstteki sınama ise mekanizmanın kendisini sayıyor. İkisini ayrı
+    // tutmak şart — 31.10'da bu ikisi karıştırıldığı için "kapandı" dendi.
+    const DAR = /getItem\([^)]*\)\s*===\s*null\s*\?\s*createDemo[A-Za-z]+/g
+    expect([...yorumsuz(DEPO).matchAll(DAR)].map(m => m[0])).toEqual([])
   })
 
   it('⚠️ lisans KATALOĞU ad değiştirerek sayımdan kaçmadı', () => {
     // ⚠️ İki fonksiyon silinmedi, ADI DEĞİŞTİ:
     //   createDemoLicensePackages → varsayilanLisansPaketleri
     //   createDemoLicenseModules  → varsayilanLisansModulleri
-    // Sebep: ikisi de uydurma KAYIT değil, ÜRÜN KATALOĞU — `defaultPackageSpecs`
-    // sabitinden türüyorlar, yani MİYOP'un gerçekten sattığı planlar.
+    //
+    // ⚠️ 31.10'DA YAZILAN GEREKÇE YANLIŞTI ve Codex düzeltti (01.11).
+    // Gerekçe şuydu: *"uydurma KAYIT değil ÜRÜN KATALOĞU — MİYOP'un
+    // gerçekten sattığı planlar."* ÖLÇÜLDÜ (02.11) ve tutmuyor:
+    //   kodda  : Ücretsiz/Başlangıç/Pro/Premium/Kurumsal · 999–4999 ₺ ·
+    //            maxTables (MASA SAYISI) · modüller 'adisyon', 'qr-menu'
+    //   0042'de: iki paket · fiyat 0 · kullanıcı/şube sınırı null (sınırsız) ·
+    //            'endustriyel-mutfak-baslangic', 'genel-baslangic'
+    // Yani koddaki katalog ESKİ ADİSYON ÜRÜNÜNÜN kataloğu. Endüstriyel
+    // mutfakta masa yoktur; `maxTables` tek başına kanıt.
+    // ➜ Bunlar MİYOP'un sattığı planlar DEĞİL. Ekran açılmadan önce gerçek
+    // katalogdan (veritabanı) beslenmeli ya da silinmeli.
     //
     // ⚠️ Ama ad değiştirip sayımdan çıkmak, SAKLAMAK olabilirdi. Bu sınama
     // onu dürüst tutuyor: ikisi hâlâ DURMALI (silinmediler) ve `createDemo`

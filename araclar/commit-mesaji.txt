@@ -1,1 +1,1 @@
-bekleyen goc yok: pano bitmis isi bekliyor gibi gostermesin (tuzak 162)
+cicir ada degil mekanizmaya bagli: gercek sayi 0 degil 4 (tuzak 175)
