@@ -984,6 +984,31 @@ göreceği hata mesajları** da (`'Çok fazla deneme yapıldı'`) bozuluyordu.
 ⚠️ Ve komut kendi çıktısını **ölçmeli**: panoda `ş` var mı, bozuk `Ã` var
 mı. "Kopyaladım" demek yetmez; kopyanın sağlam olduğu gösterilir.
 
+**176 · İKİ GERİ YÜKLEME YOLU DA YALAN SÖYLÜYOR — TERS YÖNLERE.** (02.11)
+Geri yükleme yöntemi ilk kez gerçekten koşturuldu (PostgreSQL 16.15, 106
+göçlük şema, boş veritabanı):
+· **`pg_restore` + `tam.dump`** → **çıkış kodu 1** verdi. Tek "hata":
+  `schema "public" already exists`. Oysa sonuç **kusursuz**: 66 tablo,
+  147 `app` fonksiyonu, 204 tetik, 78 RLS kuralı, bütün satırlar —
+  kaynakla **birebir**.
+· **`psql` + `sema.sql` → `veri.sql`** → **çıkış kodu 0** verdi.
+  Ama içeride **11 foreign key hatası** vardı ve `psql` onları atlayıp
+  başarıyla çıktı. Sonuç: **kiracı 0, denetim defteri 0.** İş verisi
+  gelmedi.
+⚠️ Yani biri *"başarısız"* deyip mükemmel çalışıyor, öteki *"başarılı"*
+deyip **her şeyi kaybediyor** — ve ikincisi felaket kurtarmanın tam
+ortasında olacak bir şey.
+⚠️ **Önceki yazdığım yanlıştı:** 02.11 sabahı MIYOP-087'yi kapatırken bu
+yol için *"daha zayıf, patlayabilir"* demiştim. Patlamıyor. **Sessizce
+kaybediyor.** "Patlar" demek, en azından fark edileceğini ima eder —
+ölçmeden yazılmış bir iyimserlik.
+➜ `sema.sql`/`veri.sql` **okumak içindir**. `tam.dump` üretmeyen bir yedek,
+geri yüklenebilir bir yedek değildir.
+➜ Doğrulama **çıkış koduyla değil SAYARAK** yapılır; `docs/YEDEKLEME.md`
+§6.2'ye sorgu kondu.
+⚠️ Tuzak 158'in kardeşi: orada `stderr` başarısızlık sanılmıştı, burada
+**çıkış kodunun kendisi** iki yönde birden yanıltıyor.
+
 **175 · BİR ÇIÇIR, AD DEĞİŞİKLİĞİYLE DELİNDİ — VE DELEN BENDİM.** (02.11)
 31.10'da *"anahtar yoksa demo üret"* mekanizmasının **sıfırlandığını**
 yazdım. Deseni `createDemo[A-Za-z]+` arıyordu. ÖLÇÜLDÜ (02.11): mekanizma
@@ -1686,6 +1711,9 @@ Son söz onun çıktısındadır.
     şey korumaz; orada sürüm/kimlik taşımak gerekir.
 94. Bir ölçümün **sağlaması, ölçümle AYNI nesneyi** kullanır (tuzak 170).
     Deseni ikinci kez elle yazan sağlama, bozulan asıl ölçümü yakalamaz.
+99. Geri yüklemeyi **sayarak** doğrula, çıkış koduyla değil (tuzak 176).
+    `pg_restore` sağlam bir geri yüklemede 1 döner; `psql` her şeyi
+    kaybettiğinde 0 döner.
 98. Bir çıcırı **ada değil MEKANİZMAYA** bağla (tuzak 175). `createDemo*`
     arayan bir sayım, bir yeniden adlandırmayla sıfır gösterir; aranan şey
     *"anahtar yoksa uydur"* davranışının kendisidir.

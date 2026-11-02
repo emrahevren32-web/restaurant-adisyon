@@ -278,23 +278,76 @@ Talep MİYOP'a gelir, elle ve kayıt altında yapılır. Kaba sıra:
 
 1. **Önce bugünün yedeğini al** — geri yükleme de bir değişikliktir.
 2. Hangi ana dönüleceğine karar ver, o klasörü seç.
-3. **Hangi yolla alındığına bak** — `YEDEK-NOTU.txt` içindeki `Yol` satırı
-   söylüyor. İki yol aynı dosyaları üretmez (MIYOP-087):
-   - **`pgdump` yolu** → elde `tam.dump` var, **tek doğru komut budur**:
-     `pg_restore --no-owner --no-privileges -d <hedef> tam.dump`
-     `pg_restore` sıralamayı kendisi çözer; dairesel foreign key sorun olmaz.
-   - **`cli` yolu** → `tam.dump` **yoktur**. `psql` ile sırayla
-     `roller.sql` → `sema.sql` → `veri.sql`.
-     ⚠️ Dairesel foreign key (`company`↔`branch`, `stock_movement`) bu
-     sırada **patlayabilir**; kısıtları geçici ertelemek gerekebilir.
-     **Bu yol daha zayıftır** — mümkünse `pg_dump` ile yeniden yedek al.
-4. Sonra **doğrula**: kiracı sayısı, stok kartı sayısı, `audit_log`'un son
-   kaydının tarihi.
+3. **`tam.dump` ile geri yükle. Tek yol budur.**
+
+   ```
+   pg_restore --no-owner --no-privileges -d <hedef> tam.dump
+   ```
+
+   ⚠️ **ÇIKIŞ KODU 1 GELECEK VE BU BAŞARISIZLIK DEĞİL.** Ölçüldü
+   (02.11.2026): boş bir veritabanına yapılan **kusursuz** bir geri yükleme
+   şu tek hatayı veriyor —
+   `ERROR: schema "public" already exists` — çünkü PostgreSQL yeni
+   veritabanını zaten `public` şemasıyla açıyor, döküm ise onu yaratmaya
+   çalışıyor. `pg_restore` bu yüzden **1** dönüyor.
+   ➜ **Çıkış koduna bakıp "olmadı" deme.** Doğruluk 4. adımda SAYARAK
+   ölçülür.
+
+4. **SAYARAK doğrula** — çıkış koduyla değil:
+
+   ```sql
+   select 'tablo',    count(*) from information_schema.tables
+     where table_schema='public' and table_type='BASE TABLE'
+   union all select 'app fonksiyonu', count(*) from pg_proc p
+     join pg_namespace n on n.oid=p.pronamespace where n.nspname='app'
+   union all select 'tetik',     count(*) from pg_trigger where not tgisinternal
+   union all select 'RLS kuralı', count(*) from pg_policies where schemaname='public'
+   union all select 'kiracı',    count(*) from public.tenant
+   union all select 'stok kartı',count(*) from public.stock_item
+   union all select 'denetim',   count(*) from public.audit_log;
+   ```
+
+   Sayılar kaynakla **birebir** tutmalı. (02.11 provasında tuttu:
+   66 tablo · 147 fonksiyon · 204 tetik · 78 RLS kuralı · bütün satırlar.)
+
 5. Kullanıcıların Auth kayıtlarını yeniden aç (§4.1).
 
-⚠️ Bu adımlar **canlıda hiç denenmedi.** Denenmemiş bir geri yükleme planı
-bir plan değil, bir niyettir. Demo sonrası boş bir Supabase projesinde
-prova edilecek — o provaya kadar bu bölüm **test edilmemiş** sayılır.
+## ⚠️ 6.2.1 · `sema.sql` + `veri.sql` ile geri yükleme ÇALIŞMIYOR
+
+**Ölçüldü (02.11.2026 · PostgreSQL 16.15 · 106 göçlük gerçek şema.)**
+Daha önce bu yol için *"daha zayıf, patlayabilir"* yazıyordu. Ölçüm daha
+kötüsünü gösterdi: **patlamıyor — sessizce kaybediyor.**
+
+| | `pg_restore` + `tam.dump` | `psql` + `sema.sql` → `veri.sql` |
+|---|---|---|
+| Çıkış kodu | **1** (zararsız hata) | **0** |
+| Gelen veri | **birebir tam** | ⚠️ **kiracı 0 · denetim 0** |
+| Hata | 1 (public şeması) | **11 foreign key hatası, akışı durdurmadan** |
+
+`psql`, `ON_ERROR_STOP` verilmediğinde hatalı satırı atlayıp **0 ile
+çıkıyor**. Yani ekranda başarısızlık görünmüyor, felaket kurtarmanın tam
+ortasında *"geri yükledim"* sanılıyor ve iş verisi gelmemiş oluyor.
+
+⚠️ İkisi de yalan söylüyor ama **ters yönlere**: `pg_restore` *"başarısız"*
+diyor ve mükemmel çalışıyor; `psql` *"başarılı"* diyor ve her şeyi
+kaybediyor. Bu yüzden doğrulama **sayarak** yapılır.
+
+Sebep dairesel yabancı anahtar: `company` ↔ `branch` (ve
+`order_approval_step`, `app_user`, `audit_log` zinciri). Düz SQL sırayla
+yüklüyor; `pg_dump` dökümü alırken bunu zaten uyarıyor:
+*"You might not be able to restore the dump without using
+--disable-triggers or temporarily dropping the constraints."*
+
+➜ `--disable-triggers` **superuser ister**; Supabase'de `postgres` rolü
+gerçek superuser değil. Yani o çıkış yolu da kapalı.
+➜ **Kural:** `sema.sql` ve `veri.sql` **okumak içindir**, geri yüklemek
+için değil. `tam.dump` üretmeyen bir yedek, geri yüklenebilir bir yedek
+değildir.
+
+⚠️ **Bu prova GERÇEK CANLI DÖKÜMLE değil, aynı şemaya sahip bir prova
+veritabanıyla yapıldı.** Kanıtlanan şey **yöntem**; Emrah'ın
+`F:\MIYOP_BACKUP` altındaki dosyasının geri geleceği hâlâ ayrıca
+ölçülmeli. Ama yöntem artık tahmin değil.
 
 ---
 
@@ -303,7 +356,7 @@ prova edilecek — o provaya kadar bu bölüm **test edilmemiş** sayılır.
 | # | Borç |
 |---|---|
 | 1 | Yedek alma **otomatik değil** (elle çalıştırılıyor) |
-| 2 | **Geri yükleme hiç denenmedi** (§6.2) |
+| 2 | 🔄 **Yöntem denendi (02.11), GERÇEK DÖKÜM denenmedi** (§6.2.1) |
 | 3 | `auth.users` yedekte yok (§4.1) |
 | 4 | Supabase **Pro** alınmadı: otomatik yedek ve duraklamama yok (§2) |
 | ~~5~~ | ✅ **Kapandı (31.10):** sunucu artık **yedi** sürüm tutuyor (~59 MB) |

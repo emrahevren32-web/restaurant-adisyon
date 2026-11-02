@@ -1,1 +1,1 @@
-cicir ada degil mekanizmaya bagli: gercek sayi 0 degil 4 (tuzak 175)
+geri yukleme yontemi ILK KEZ kosturuldu: duz SQL yolu sessizce veri kaybediyor (tuzak 176)
