@@ -1,1 +1,1 @@
-geri yukleme yontemi ILK KEZ kosturuldu: duz SQL yolu sessizce veri kaybediyor (tuzak 176)
+geri yukleme provasi tek komuta indi (araclar/geri-yukle-provasi.ps1)

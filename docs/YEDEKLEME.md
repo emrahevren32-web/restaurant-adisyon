@@ -349,6 +349,27 @@ veritabanıyla yapıldı.** Kanıtlanan şey **yöntem**; Emrah'ın
 `F:\MIYOP_BACKUP` altındaki dosyasının geri geleceği hâlâ ayrıca
 ölçülmeli. Ama yöntem artık tahmin değil.
 
+## 6.2.2 · Provayı KENDİ dosyanla koştur · tek komut
+
+```powershell
+.\araclar\geri-yukle-provasi.ps1
+```
+
+`F:\MIYOP_BACKUP` altındaki **en yeni** `tam.dump`'ı bulur, **kendi
+bilgisayarındaki** PostgreSQL'de geçici bir veritabanı açar, oraya geri
+yükler, **sayar** ve veritabanını siler.
+
+- ⚠️ **Supabase'e hiç bağlanmaz.** Canlıya giden tek satır yok.
+- ⚠️ **Çıkış koduna bakmaz** (tuzak 176); yargıyı satır sayıları verir.
+  `kiracı = 0` görürse açıkça *"bu yedek güvenilmez"* der.
+- Yerel PostgreSQL parolasını **sen** yazarsın; betik saklamaz.
+- Başka bir dosyayı denemek için: `-Dosya "F:\...\tam.dump"`.
+  Veritabanını incelemek için bırakmak: `-Birak`.
+
+Çıktıdaki sayıları **canlıyla karşılaştır**: aynı sorguyu Supabase SQL
+Editor'e yapıştır. Döküm alındıktan sonra yazılan kayıtlar yüzünden canlı
+sayılar **daha büyük** olabilir — **daha küçük olmamalı.**
+
 ---
 
 ## 7 · Açık borçlar
