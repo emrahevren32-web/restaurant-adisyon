@@ -359,7 +359,7 @@ nesne) Emrah'ın bilgisayarındaki PostgreSQL 18'e geri yüklendi.
 | tablo | 66 | 66 | ✅ |
 | `app` fonksiyonu | 146 | 146 | ✅ |
 | tetik | 203 | 203 | ✅ |
-| RLS kuralı | 76 | 78 | ⚠️ **2 eksik** |
+| RLS kuralı | 76 → **78** | 78 | ✅ *(teşhis doğrulandı, aşağıda)* |
 | kiracı | **8** | — | ✅ |
 | firma | **8** | — | ✅ |
 | stok kartı | 4 · stok hareketi 34 · sipariş 2 | — | ✅ |
@@ -383,11 +383,24 @@ vardır, yalın bir yerel PostgreSQL'de yoktur.
 ➜ `geri-yukle-provasi.ps1` artık geri yüklemeden önce `anon`,
 `authenticated`, `service_role` ve `supabase_auth_admin` rollerini açıyor
 (hepsi `nologin` — yalnızca politikaların işaret edeceği bir ad).
-Bir sonraki provada **78** beklenir.
 
-⚠️ **Hâlâ kanıtlanmamış olan:** bu iki politikanın **gerçek bir Supabase
-projesine** geri yüklendiği. Rol orada var, yani çok olası — ama *olası*
-ile *ölçüldü* aynı şey değil.
+### ✅ TEŞHİS DOĞRULANDI · aynı gece, ikinci koşu
+
+Roller açıldıktan sonra **aynı döküm** yeniden yüklendi:
+
+- hata sayısı **3 → 1** (kalan tek hata yine zararsız `public` şeması)
+- **RLS kuralı 78** — iki politika da geldi
+- geri kalan bütün sayılar aynı
+
+⚠️ Bu, teşhisin **tahmin değil ölçüm** olduğunu gösteriyor: sebep olarak
+gösterilen şey kaldırıldı ve sonuç değişti. Yalnız *"78 çıktı"* demek
+yeterli olmazdı; **önce 76 çıktığı için** bu bir kanıt.
+
+⚠️ **Geriye kalan tek kanıtlanmamış katman:** dökümün **gerçek bir
+Supabase projesine** yüklenmesi. Artık bilinen tek fark rollerin kim
+tarafından sağlandığı ve Supabase onları zaten sağlıyor — ama *olası* ile
+*ölçüldü* aynı şey değil. Bu, demoyu engelleyen bir madde değil; ilk
+müşteriden önce bir kez yapılmalı.
 
 ⚠️ **Dökümde olmayanlar (bilerek):** giriş hesapları (`auth` şeması) ve
 yüklenen dosyalar (Storage). Geri yüklemede iş verisi döner,
