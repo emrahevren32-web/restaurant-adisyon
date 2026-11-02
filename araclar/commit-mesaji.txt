@@ -1,1 +1,1 @@
-v0.5.3 yayinda: goc 0105 canlida, surum defterine islendi
+MIYOP-090 kapandi: defter iddialari zaman penceresiyle sinirlandi (tuzak 174)

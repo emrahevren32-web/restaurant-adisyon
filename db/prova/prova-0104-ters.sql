@@ -60,6 +60,12 @@ declare
   v_urun uuid := gen_random_uuid();
   v_auth uuid := gen_random_uuid(); v_app uuid := gen_random_uuid();
 begin
+  -- ⚠️ MIYOP-090 · SU SEVİYESİ. Defter append-only; bu provanın iddiaları
+  -- yalnız BURADAN SONRA yazılan satırlara bakmalı (sebebi aşağıda, 3.
+  -- bölümdeki sayımın yanında).
+  perform set_config('prova.denetim_basi',
+    coalesce((select max(id) from public.audit_log), 0)::text, false);
+
   select t.id into v_t from public.tenant t limit 1;
   select c.id into v_f from public.company c where c.tenant_id = v_t limit 1;
 
@@ -117,14 +123,25 @@ begin
   -- ⚠️ ÖLÇÜLDÜ · 30.10.2026 — burada önce "DÖRT satır" yazmıştım, yanlıştı:
   -- besin değeri tablosuna hem INSERT hem UPDATE düşüyor, yani satır sayısı
   -- BEŞ. Doğru ölçü satır değil TABLO sayısı: dört tablonun hepsi kör.
+  --
+  -- ⚠️ MIYOP-090 (Codex) · VE BURASI DAHA SİNSİYDİ. Sayım kiracının BÜTÜN
+  -- geçmişine bakıyordu. Gerçek bir veritabanında 0104 öncesinden kalma
+  -- '?' satırları duruyor ve ÖLÇÜLDÜ (02.11): dört eski satır eklendiğinde
+  -- `count(distinct table_name)` daha prova hiçbir şey yazmadan **4**
+  -- oluyor. Yani ters prova, 0104'ün geri alınması hiçbir şey yazmasa bile
+  -- YANLIŞ YEŞİL verebilirdi — ileri provanın anlamlı olduğunu kanıtlaması
+  -- gereken dosya, kendisi kanıtsız kalıyordu.
   select count(*), count(distinct table_name) into v_soru, v_tablo
-    from public.audit_log where tenant_id = v_t and row_id = '?';
+    from public.audit_log
+   where tenant_id = v_t and row_id = '?'
+     and id > current_setting('prova.denetim_basi')::bigint;
 
   perform prova_bak('⚠️ ''?'' satırı yazan tablo sayısı DÖRT (satır: ' || v_soru
     || ' · tablo: ' || v_tablo || ')', v_tablo = 4);
   perform prova_bak('⚠️ dört tablonun HEPSİ kör — ikisi üçü değil',
     (select count(distinct table_name) from public.audit_log
       where tenant_id = v_t and row_id = '?'
+        and id > current_setting('prova.denetim_basi')::bigint
         and table_name in ('stock_item_nutrition', 'stock_item_allergen',
                            'user_branch_access', 'user_role')) = 4);
 end $$;

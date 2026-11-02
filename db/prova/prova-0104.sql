@@ -28,6 +28,20 @@ declare
   v_urun uuid := gen_random_uuid();
   v_auth uuid := gen_random_uuid(); v_app uuid := gen_random_uuid();
 begin
+  -- ⚠️ MIYOP-090 (Codex, 01.11) · DENETİM DEFTERİ APPEND-ONLY'DİR.
+  -- Buradaki iddialar `audit_log`un TAMAMINA bakıyordu. Gerçek bir
+  -- veritabanında 0104 ÖNCESİNDEN kalma `row_id = '?'` satırları DURUYOR ve
+  -- hiçbir zaman silinmeyecek — o yüzden *"hiçbir '?' kalmadı"* iddiası,
+  -- onarım mükemmel çalışsa bile kırmızı verir. ÖLÇÜLDÜ (02.11): dört eski
+  -- '?' satırı eklenince prova, önceki yedi ölçümün hepsi yeşilken bu
+  -- satırda kırıldı.
+  -- Çözüm: provanın BAŞLADIĞI andaki en büyük `id` bir su seviyesi olarak
+  -- saklanıyor; bütün defter iddiaları yalnız ONDAN SONRAKİ satırlara
+  -- bakıyor. Yani "bu prova sırasında yazılanlar" ölçülüyor, "tarihin
+  -- tamamı" değil.
+  perform set_config('prova.denetim_basi',
+    coalesce((select max(id) from public.audit_log), 0)::text, false);
+
   select t.id into v_t from public.tenant t limit 1;
   select c.id into v_f from public.company c where c.tenant_id = v_t limit 1;
 
@@ -95,6 +109,7 @@ begin
 
   select row_id, changes into v_satir, v_fark from public.audit_log
    where table_name = 'stock_item_nutrition' and action = 'UPDATE'
+     and id > current_setting('prova.denetim_basi')::bigint
    order by id desc limit 1;
 
   perform prova_bak('güncelleme denetime düştü', v_satir is not null);
@@ -122,26 +137,37 @@ begin
   insert into public.stock_item_allergen (tenant_id, stock_item_id, allergen_code)
   values (v_t, v_urun, 'GLUTEN');
   select row_id into v_satir from public.audit_log
-   where table_name = 'stock_item_allergen' order by id desc limit 1;
+   where table_name = 'stock_item_allergen'
+     and id > current_setting('prova.denetim_basi')::bigint
+   order by id desc limit 1;
   perform prova_bak('alerjen: kimlik ürün + alerjen taşıyor (' || coalesce(v_satir,'null') || ')',
     v_satir like '%stock_item_id=%' and v_satir like '%allergen_code=GLUTEN%');
 
   insert into public.user_branch_access (tenant_id, user_id, branch_id)
   values (v_t, v_app, v_b);
   select row_id into v_satir from public.audit_log
-   where table_name = 'user_branch_access' order by id desc limit 1;
+   where table_name = 'user_branch_access'
+     and id > current_setting('prova.denetim_basi')::bigint
+   order by id desc limit 1;
   perform prova_bak('şube erişimi: kimlik kullanıcı + şube taşıyor',
     v_satir like '%user_id=%' and v_satir like '%branch_id=%');
 
   insert into public.user_role (tenant_id, user_id, role_code)
   values (v_t, v_app, 'depo_sorumlusu');
   select row_id into v_satir from public.audit_log
-   where table_name = 'user_role' order by id desc limit 1;
+   where table_name = 'user_role'
+     and id > current_setting('prova.denetim_basi')::bigint
+   order by id desc limit 1;
   perform prova_bak('ek rol: kimlik kullanıcı + rol taşıyor',
     v_satir like '%user_id=%' and v_satir like '%role_code=depo_sorumlusu%');
 
-  perform prova_bak('⚠️ defterde HİÇBİR ''?'' satırı kalmadı',
-    not exists (select 1 from public.audit_log where row_id = '?'));
+  -- ⚠️ YALNIZ BU PROVA SIRASINDA yazılanlara bakılıyor (MIYOP-090).
+  -- Defter append-only: 0104 öncesinden kalma '?' satırları silinmez ve
+  -- onları saymak, onarımı bozuk göstermekten başka işe yaramaz.
+  perform prova_bak('⚠️ bu prova sırasında HİÇBİR ''?'' satırı yazılmadı',
+    not exists (select 1 from public.audit_log
+                 where row_id = '?'
+                   and id > current_setting('prova.denetim_basi')::bigint));
 end $$;
 
 -- ── 4 · GERİLEME YOK · `id` olan tablo ESKİSİ GİBİ ────────────────────────
@@ -155,6 +181,7 @@ begin
   update public.stock_item set name = 'Prova Ürünü 2' where id = v_urun;
   select row_id into v_satir from public.audit_log
    where table_name = 'stock_item' and action = 'UPDATE'
+     and id > current_setting('prova.denetim_basi')::bigint
    order by id desc limit 1;
   perform prova_bak('`id` olan tabloda kimlik hâlâ ''id''nin kendisi',
     v_satir = v_urun::text);

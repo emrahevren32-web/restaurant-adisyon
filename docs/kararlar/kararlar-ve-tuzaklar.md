@@ -984,6 +984,32 @@ göreceği hata mesajları** da (`'Çok fazla deneme yapıldı'`) bozuluyordu.
 ⚠️ Ve komut kendi çıktısını **ölçmeli**: panoda `ş` var mı, bozuk `Ã` var
 mı. "Kopyaladım" demek yetmez; kopyanın sağlam olduğu gösterilir.
 
+**174 · APPEND-ONLY BİR DEFTERE BAKAN İDDİA, ZAMAN PENCERESİYLE SINIRLANIR.**
+(02.11 · MIYOP-090 · Codex) `prova-0104.sql` şunu soruyordu:
+*"defterde HİÇBİR `'?'` satırı kalmadı."* Soru yanlıştı. `audit_log`
+**append-only**: 0104 öncesinden kalma `'?'` satırları orada DURUYOR ve
+hiçbir zaman silinmeyecek. Yani iddia, onarım kusursuz çalışsa bile gerçek
+bir veritabanında **kırmızı** verir.
+⚠️ **ÖLÇÜLDÜ (02.11):** prova veritabanına dört eski `'?'` satırı eklendi;
+ileri prova, kendinden önceki **yedi ölçümün hepsi yeşilken** tam o satırda
+kırıldı. Yani çalışan bir onarımı bozuk gösterdi.
+⚠️ **Ters provadaki hâli DAHA SİNSİYDİ:** sayım kiracının bütün geçmişine
+bakıyordu ve `count(distinct table_name)` daha prova **hiçbir şey
+yazmadan 4** oluyordu. Yani *"0104 geri alınınca dört tablo da körleşiyor"*
+iddiası, geri alma hiçbir şey yazmasa bile **yanlış yeşil** verebilirdi —
+ileri provanın anlamlı olduğunu kanıtlaması gereken dosya kendisi
+kanıtsızdı.
+➜ Her iki dosya da başta bir **su seviyesi** alıyor
+(`max(id)`), bütün defter iddiaları yalnız ondan sonraki satırlara bakıyor:
+*"bu prova sırasında yazılanlar"*, *"tarihin tamamı"* değil.
+⚠️ **Ve düzeltmenin kendisi ölçüldü** (tuzak 170'in dersi): su seviyesi
+iddiayı etkisizleştirmiş olabilirdi. İki olumsuz kontrol koşturuldu —
+(a) 0104 geri alınınca prova kırmızı veriyor, (b) **yapı kontrolü geçsin
+diye** `denetim_satir_kimligi` yerinde bırakılıp `null` döndürülünce de
+kırmızı veriyor. Yani kapı hâlâ kapanıyor.
+⚠️ Kalıp: *"hiç yok"* iddiası, geçmişi biriken bir defterde **asla**
+doğrulanamaz. Doğru soru *"bundan sonra oldu mu"*dur.
+
 **173 · "DOSYA VAR" → "VERİ VAR" → "GERİ GELİR": ÜÇ AYRI İDDİA.** (01.11 ·
 MIYOP-087 ve MIYOP-088 · Codex) Tuzak 157 birinciden ikinciye geçmeyi
 öğretmişti; Codex üçüncüsünü gösterdi.
@@ -1630,6 +1656,10 @@ Son söz onun çıktısındadır.
     şey korumaz; orada sürüm/kimlik taşımak gerekir.
 94. Bir ölçümün **sağlaması, ölçümle AYNI nesneyi** kullanır (tuzak 170).
     Deseni ikinci kez elle yazan sağlama, bozulan asıl ölçümü yakalamaz.
+97. Append-only bir deftere bakan iddia **zaman penceresiyle** sınırlanır
+    (tuzak 174). Provanın başında `max(id)` alınır; iddialar yalnız ondan
+    sonraki satırlara bakar. *"Hiç yok"* sorusu, geçmişi biriken bir
+    defterde asla doğrulanamaz — doğru soru *"bundan sonra oldu mu"*dur.
 96. Bir doğrulama, iddianın **hangi katmanını** kanıtladığını yazsın
     (tuzak 173). "Dosya var" / "içinde veri var" / "geri gelir" üç ayrı
     iddiadır; üçünü tek "doğrulandı" kelimesine sığdırmak yalandır.
