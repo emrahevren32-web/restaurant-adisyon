@@ -1,1 +1,1 @@
-geri yukleme provasi 78/78: teshis dogrulandi (roller acilinca iki politika da geldi)
+codex brifi yeni tur icin yazildi (0105, MIYOP-086 onarimi, iki cicir, geri yukleme)

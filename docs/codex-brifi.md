@@ -1,13 +1,15 @@
 # Codex denetim brifi · MİYOP
 
 > Bu dosya Codex'e yapıştırılmak üzere yazıldı. Her denetim turunda
-> güncellenir. Son güncelleme: **01.11.2026 akşam · göç 0104 + A4 + para
-> birimi + iki bekçi onarımı**.
-> Dal: `production-foundation` · son commit: **`2812c51`** · 1693 sınama yeşil
-> Canlı: **v0.5.1** (`index-CCbKo7YK.js`) · veritabanı **göç 0104**
-> ⚠️ **4.8 ve 4.9'daki değişiklikler CANLIDA DEĞİL** — commit'li, dağıtım
-> bu denetimden sonra yapılacak. Yani orada bulacağın bir kusur müşteriye
-> henüz ulaşmadı; en ucuz an şimdi.
+> güncellenir. Son güncelleme: **04.11.2026 · göç 0105 + MIYOP-086 onarımı
+> + iki çıcır + geri yükleme provası**.
+> Dal: `production-foundation` · son commit: **`1919609`** · 1706 sınama yeşil
+> Canlı: **v0.5.3** (`index-KITpW4gQ.js`) · veritabanı **göç 0105**
+>
+> ⚠️ **Bir önceki turun yedi bulgusunun yedisi de kapandı** (MIYOP-086…092).
+> Bu tur, o kapatmaların KENDİSİNİ ve üstüne gelen yeni işi denetliyor.
+> Kapatan kişi ile kapatmayı doğrulayan kişi aynı olmamalı — bu turun asıl
+> sebebi bu.
 
 ---
 
@@ -24,7 +26,7 @@ hata saymadan önce gerekçesini ara. Okuma sırası:
 
 1. `docs/kararlar/kararlar-ve-tuzaklar.md` — **en önemlisi.** Değişmez
    kurallar, veri tasarımı kararları ve numaralı tuzak listesi
-   (38–**168b**).
+   (38–**176**) ve kontrol listesi (1–**99**).
    Her tuzak gerçekten düşülmüş bir hatadır.
    ⚠️ **153–162'yi mutlaka oku.** Onu da geçip şunu bil: bu on tuzağın
    **yedisi** Claude'un kendi ÖLÇÜM hatasıdır ve hepsi bu turda bakacağın
@@ -50,6 +52,13 @@ hata saymadan önce gerekçesini ara. Okuma sırası:
    · 168 ekran, hangi ekran olduğu konusunda yalan söylüyordu
    · **168b** bir fonksiyonu **adıyla** kullandı, gövdesini okumadan —
      yazdığı sınama ölçmek istediğinin tersini ölçtü
+   ⚠️ **Ve 02.11'de üç tane daha:**
+   · **174** append-only bir deftere *"hiç yok"* diye sordu; o soru gerçek
+     bir veritabanında asla doğrulanamaz
+   · **175** bir çıcırı **ada** bağladı; iki yeniden adlandırma onu
+     delince sayım 4 yerine **0** gösterdi
+   · **176** *"daha zayıf, patlayabilir"* dedi; ölçüm gösterdi ki
+     **patlamıyor, sessizce kaybediyor**
 2. `docs/kararlar/codex-denetimi-ekim-2026.md` — senin önceki denetiminin
    özeti, hangi bulgular kapandı, hangileri açık
 3. `docs/kararlar/calisma-duzeni.md` — sen ve Claude nasıl sırayla çalışır
@@ -94,205 +103,175 @@ Bunlar bilinçli kararlar. "Hata" diye raporlama:
 - Emin olmadığın şeyi "doğrulanmadı" diye işaretle. Uydurma kanıt üretme.
 - Türkçe yaz.
 
-## 4 · BU TURDA BAKILACAK · **BİR GÖÇ, 851 SİLİNEN SATIR, BİR ZİNCİR**
+## 4 · BU TURDA BAKILACAK
 
-Üç gün çalışıldı. Sırayla:
+Önceki turda sen yedi bulgu getirdin, yedisi de kapandı. **Bu tur
+kapatmaları denetliyor.** Sırayla:
 
-### 4.1 · Göç **0104** — denetim defteri doğru satırı yazıyor (CANLIDA)
+### 4.1 · Göç **0105** — işletme KDV oranı ürün kartına geçiyor (CANLIDA)
 
-`db/migrations/0104_denetim_satir_kimligi.sql` · `db/prova/prova-0104.sql`
-ve **`db/prova/prova-0104-ters.sql`**
+`db/migrations/0105_urun_kdv_isletmeden.sql` · `db/prova/prova-0105.sql`
+(13 ölçüm) · `db/prova/prova-0105-ters.sql` (4 ölçüm)
 
-Kusur (senin bulgun MIYOP-083): `app.denetim_yaz()` satır kimliğini
-`coalesce(new->>'id', old->>'id', '?')` ile üretiyordu; `id` kolonu olmayan
-dört tabloda `row_id` alanına `'?'` düşüyordu.
-
-Onarım dört tabloyu yamamak değil, **defteri yazan fonksiyonu** düzeltmek:
-`id` yoksa birincil anahtardan kimlik üretiliyor.
+`stock_item.vat_rate` boş bırakılırsa `tenant_settings.vat_rate`
+kopyalanıyor. BEFORE INSERT, UPDATE kapsam dışı, `security definer`.
 
 **Bak:**
-- Gövde canlı tanımdan mı alınmış, yoksa "hatırlanarak" mı yazılmış?
-  (0028'in kararlarından biri sessizce silinmiş olabilir.)
-- `app.denetim_satir_kimligi` `security definer` ve `search_path = ''`.
-  Bu kapıdan bir şey sızıyor mu?
-- Ters prova dürüst mü? Gerçekten 0104'ü geri alıp mı ölçüyor, yoksa
-  ölçtüğünü sandığı şeyi mi ölçüyor?
-- `company_zaman_damgasi` BEFORE UPDATE tetiği: `created_at`i koruyor,
-  `updated_at`i `now()` yapıyor. Başka bir tetiğin yazdığını eziyor mu?
+- ⚠️ **`security definer` + `search_path = ''` güvenli mi?** Fonksiyon
+  `public.tenant_settings`i `new.tenant_id` ile süzüyor. Başka bir kiracının
+  satırını okumanın bir yolu var mı? `new.tenant_id`ye güvenmek doğru mu —
+  `stock_item`in kendi RLS'i onu gerçekten sınırlıyor mu, yoksa
+  `service_role` ile yazarken sınırsız mı?
+- Neden `security definer` seçildiğinin gerekçesi göç başlığında yazılı
+  (izinsiz rolde sessizce boş kalmasın). **Gerekçe doğru mu, yoksa daha dar
+  bir çözüm mü vardı** (ör. `tenant_settings`e okuma politikası)?
+- `stock_item` üzerinde başka BEFORE tetikleri var
+  (`izin_stock_item`, `trg_lisans_kilidi_stock_item`,
+  `stock_item_alerjen_damgasi`). Sıra alfabetik. **Bu sıra bir sorun
+  üretiyor mu?** Lisans kilidi reddettiğinde KDV kopyalanmış olur mu ve
+  bunun bir önemi var mı?
+- Prova **13 ölçüm** diyor, dördü olumsuz kontrol. **Olumsuz kontroller
+  gerçekten olumsuz mu** — tetik kaldırılınca hepsi kırılıyor mu?
 
-### 4.2 · **MIYOP-084** — kapı GENİŞLEDİ, doğru mu genişledi
+### 4.2 · **MIYOP-086 onarımı** — oturum sürümü sayacı (CANLIDA) · EN RİSKLİ
 
-İşletme Ayarları ekranının açılma izni `settings.manage` → **`company.read`**.
-Yazma kapısı değişmedi (ekran + depo + veritabanı tetiği).
+`src/billing.ts` (`paraBirimiOturumuTazele`, `paraBirimiOturumSurumu`,
+`paraBirimiAyarla(kod, surum?)`) · `src/workspace/isletme-ayarlari.repository.ts`
+· `src/App.tsx`
 
-⚠️ **Sonuç: ekranı artık ALTI rol görüyor** — admin, isletme_muduru,
-isletme_sahibi, **izleyici**, **muhasebe**, super_admin.
+Senin bulduğun kusur: A çıkıp B girdikten sonra A'nın iptal edilmiş okuması
+B'nin para birimini eziyordu. Çözüm bir sayaç: kullanıcı değişince artıyor,
+okuma kendi başlama sürümünü taşıyor, sürümü eskiyen cevap atılıyor.
 
-**Bak:** o ekranda bu altı rolün görmemesi gereken bir şey var mı? Lisans
-kartı orada duruyor (plan + bitiş). Veri ihracı orada DEĞİL (`company.manage`,
-ayrı rota) — bunu doğrula, iddiaya güvenme.
+**Bak — ve bu turun en riskli yeri burası:**
+- ⚠️ **Ters yönde bir hata üretildi mi?** Yani sayaç yüzünden MEŞRU bir
+  cevabın atıldığı bir yol var mı? O zaman para birimi hiç yüklenmez ve
+  ekran sessizce ₺'de kalır — eski hatanın aynadaki görüntüsü.
+- `paraBirimiOturumuTazele()` `App.tsx`te `[currentUser]` etkisinin İLK
+  satırında. `currentUser` kimliği ne sıklıkla değişiyor? (Ben ölçtüm:
+  yalnız giriş, izin tamamlama ve profil kaydında; profil kaydı değişiklik
+  yoksa `onceki`yi döndürüyor. **Ama benim ölçümüme güvenme.**)
+- React 18 `StrictMode` etkiyi iki kez koşturuyor mu, koşturuyorsa ilk
+  okumanın cevabı atılıp ikincisi mi dolduruyor?
+- Çıkış sıfırlaması **sürümsüz** çağrılıyor (`paraBirimiAyarla(null)`).
+  Sürümsüz çağrı her zaman geçerli. **Bu kapı fazla açık mı** — başka bir
+  yerden sürümsüz çağrı gelirse bayat değer girebilir mi?
+- `isletmeAyarlariniOku` sürümü `await`ten ÖNCE alıyor. Başka bir okuma
+  yolu (kaydet-sonra-oku) sürümü yanlış anda alıyor olabilir mi?
 
-### 4.3 · **A4** — 851 satır silindi, 21 üretici gitti
+### 4.3 · **İki çıcırın kendisi** — ölçüm araçları ölçülüyor mu
 
-İki turda: kiracı tarafı 13 üretici + **"depo boşsa uydur" mekanizmasının
-kendisi** (`loadBranchScopedItemsWithDemo` ve ikizi); platform 8 üretici.
+`src/modules/sahte-veri-ureticisi.arch.test.ts` ·
+`src/navigation/menusuz-rota-etiketi.arch.test.ts`
 
-**Bak — ve burası bu turun EN RİSKLİ yeri:**
-- O yükleyicileri kullanan **21 çağrı yeri** artık `readJson(key, [])`
-  okuyor, yani **boş dizi** dönebiliyor. Hangi ekran boş diziyi
-  kaldıramıyor? Çöken, `[0]` okuyan, `length` varsayan bir yer var mı?
-- `varsayilanLisansPaketleri` / `varsayilanLisansModulleri` **silinmedi,
-  adı değişti** — gerekçe "ürün kataloğu, uydurma kayıt değil". Bu gerekçe
-  doğru mu, yoksa sayımdan kaçmanın kibar yolu mu?
-- Çıcır testi (`sahte-veri-ureticisi.arch.test.ts`) üst sınırı **0** yaptı
-  ve sağlama sınaması yeniden yazıldı ("sonuç dolu mu" yerine "araç
-  çalışıyor mu"). Bu sağlama gerçekten araç bozulursa kırılıyor mu?
-
-### 4.4 · **PARA BİRİMİ ZİNCİRİ** — modül düzeyinde DEĞİŞKEN DURUM
-
-`billing.ts` içinde `const PARA_BIRIMI = 'TRY'` vardı. Artık:
-- `let aktifParaBirimi: string | null` — **modül düzeyinde değişken**
-- `paraBirimiAyarla()` besliyor, `paraBirimiDegisinceBildir()` haber veriyor
-- `App.tsx` girişte okuyup besliyor, çıkışta `null`a çekiyor
-- `isletmeAyarlariniOku()` her okumada besliyor
-
-⚠️ **Bunu ben kendim şüpheli buluyorum ve senden bakmanı istiyorum:**
-1. **Testler tek işçide, TEK SÜREÇTE koşuyor** (`vitest.config.ts`,
-   `singleThread: true` — tuzak 152). Modül düzeyinde bir değişken,
-   test dosyaları arasında SIZAR. `billing.para-birimi.test.ts`
-   `afterEach` ile sıfırlıyor ama **başka bir test dosyası** bunu
-   bilmiyor. Bir testin yeşilliği başka dosyanın bıraktığı duruma mı
-   bağlı?
-2. Dinleyici kümesi (`Set<Dinleyici>`) sızdırıyor mu? `App.tsx` aboneliği
-   bırakıyor mu?
-3. Çıkışta `null`a çekiliyor — ama kullanıcı değişip çıkış YAPILMADAN
-   başka kiracıya geçilebilen bir yol var mı?
-4. `formatCurrency` artık biçimlendiriciyi **önbellekliyor**. Önbellek
-   para birimi değişince düşüyor; başka bir şey değişince düşmesi gereken
-   bir durum var mı (dil, yerel ayar)?
-
-### 4.5 · Denetim tarayıcısı **19 → 29**
-
-`denetimIzlenenTablolar()` tek söz dizimi arıyordu; canlıda 29 denetim
-tetikleyicisi varken 19 görüyordu. Üç biçim birlikte okunuyor artık ve
-sonuç `create table` gövdeleriyle süzülüyor.
-
-**Bak:** süzgeç fazla mı eliyor? Bir denetimli tablo `create table`
-dışında bir yolla yaratılmışsa (ör. `create table as`) listeden düşer mi?
-
-### 4.6 · Yedekleme betikleri (yeni)
-
-`araclar/yedek-al.ps1`, `araclar/tam-yedek.ps1`, `docs/YEDEKLEME.md`.
-
-**Bak:** doğrulama adımları gerçekten doğruluyor mu, yoksa "dosya var mı"
-mı soruyor? (Tuzak 157 ve 160 tam bu yüzden yazıldı.) `tam.dump`
-`pg_restore --list` ile açılıyor — bu yeterli bir kanıt mı?
-
-### 4.7 · Açık bıraktıklarımız (bunları bulgu sayma, ama yorumunu yaz)
-
-- **3.4.7** · işletme geneli KDV oranı hiçbir yerde kullanılmıyor.
-  ⚠️ **Karar 01.11'de VERİLDİ** (Emrah): oran şirket profilinde
-  kullanıcı tarafından belirlenecek ve **yeni ürün kartında varsayılan**
-  olacak. Henüz yapılmadı; bu turda bulgu sayma.
-- **A2 / MIYOP-008** · şube bağlamı **kapsam dışı** (Emrah, 31.10).
-  Kod hâlâ "tercih yoksa ilk şube" diyor ve tek şubede doğru sonucu
-  **tesadüfen** veriyor. Bilerek açık.
-- **Geri yükleme hiç denenmedi.**
-- `timezone`/`language`/`dateFormat`/`theme` hâlâ tarayıcıda — veritabanı
-  karşılıkları yok.
-
-### 4.8 · **Yer tutucu bekçisi** (yeni · tuzak 166)
-
-`src/core/supabase-yapilandirma.ts` (yeni) · `src/core/supabase.ts` ·
-`src/core/supabase-yapilandirma.test.ts` (yeni)
-
-`supabase.ts` *"şablon hâlâ doldurulmamış mı"* sorusunu
-`!anonKey.startsWith('BURAYA')` ile soruyordu — BÜYÜK harfle. `.env.example`
-yer tutucuyu KÜÇÜK yazıyor (`buraya_anon_public_anahtari`). Yani şablonu
-doldurmayı unutan için bekçi hiç ötmüyordu; uygulama "yapılandırıldım"
-deyip uyduruk anahtarla istemci kuruyordu.
-
-Kural saf bir dosyaya çıkarıldı; sınaması **`.env.example`'ı okuyup**
-oradaki değerlerin reddedildiğini ölçüyor.
+Senin MIYOP-089 ve -091 bulguların kapandı. Üstüne 02.11'de **üçüncü bir
+delik** bulundu (tuzak 175): *"anahtar yoksa demo üret"* çıcırı
+`createDemo*` ADINA bağlıydı; iki fonksiyon yeniden adlandırılınca sayım
+**4 yerine 0** gösteriyordu. Desen artık ada değil **mekanizmaya** bakıyor,
+üst sınır **4**.
 
 **Bak:**
-- Kural **fazla dar mı, fazla geniş mi?** Gerçek bir `anon` anahtarını
-  (JWT, `eyJ` ile başlar) yanlışlıkla reddedebilir mi? Yanlış
-  *"yapılandırılmamış"* cevabı uygulamayı HİÇ açmaz — daha kötüsüdür.
-- `/^https:\/\/x+\.supabase\.co\/?$/i` deseni gerçek bir proje adresini
-  tutabilir mi?
-- Sınama `.env.example`'ı okuyor: dosya yoksa ya da satır biçimi değişirse
-  sınama ne yapar — yanıltıcı yeşil mi verir, kırmızı mı?
+- Yeni desen `getItem(...) === null ? <dal> :` okuyup boş liste/nesne/null
+  dışındaki her cevabı sayıyor. **Fazla mı eliyor, az mı?** Mekanizmanın
+  bu dosyada YAKALANMAYAN başka bir yazımı var mı (ör. `??`, `if` ile
+  yazılmış hâli, `readJson(k, createX())`)?
+- Üst sınır 4'ün gerekçesi: o dördü silmek beş dondurulmuş platform
+  ekranının `import`unu kırardı ve ölçüldü ki o ekranların hiçbiri
+  açılamıyor (`PLATFORM_HAZIR_ROTALAR` dört rota içeriyor,
+  `SaasManagementCenter`ı açan rotaların hiçbiri orada değil).
+  **Bu ölçümü doğrula.** Gerçekten ulaşılamıyorlar mı?
+- `menusuz-rota-etiketi.arch.test.ts` artık yardımcının GÖVDESİNİ kesip
+  `setActiveNavKey(hedef)` arıyor. **Bu kesme sağlam mı** — gövde biçimi
+  değişirse (ör. tek satıra inerse) sınama sessizce hiçbir şey ölçmez hâle
+  gelir mi?
 
-### 4.9 · **Ekran adı zinciri** (yeni · tuzak 168 ve 168b) · CANLIDA DEĞİL
+### 4.4 · **Lisans kataloğu** — senin düzelttiğin iddia
 
-`src/modules/business-workspace.registry.ts` (`MENUSUZ_ROTA_ETIKETLERI`) ·
-`src/App.tsx` (`menusuzRotaAc`, `activeNavLabel`) ·
-`src/navigation/menusuz-rota-etiketi.arch.test.ts` (yeni)
+Sen 01.11'de şunu söylemiştin: koddaki `defaultPackageSpecs`
+*"MİYOP'un gerçekten sattığı planlar"* değil. 02.11'de ölçüldü ve
+haklıydın: kodda `maxTables` (masa sayısı), `adisyon`/`qr-menu` modülleri,
+999–4999 ₺; canlı `0042`de iki paket, fiyat 0, sınır `null`, endüstriyel
+mutfak. **Endüstriyel mutfakta masa yok.**
 
-Emrah'ın ekran görüntüsünde başlık **"Değişiklik Kaydı"** diyor, altında
-**Firma Bilgileri formu** duruyordu. Başlık, kırıntı yolu ve menü vurgusu
-üçü de `activeNavKey`ten türüyor; profil menüsünden açılan ekranlar yalnız
-`setRoute(...)` çağırıyordu.
+**Bak:** bu borcun kapanma yolu ne olmalı — silmek mi, veritabanından
+beslemek mi? Ekran açılmadan önce yapılacaklar listesi ne?
 
-⚠️ Aynı değer `RouteErrorBoundary`ye `routeLabel` olarak gidiyor: çökme
-kaydına YANLIŞ ekran adı yazılacaktı.
+### 4.5 · **Yedekleme ve geri yükleme** — ikisi de yeniden yazıldı
+
+`araclar/yedek-al.ps1` (doğrulama) · `araclar/geri-yukle-provasi.ps1`
+(YENİ) · `docs/YEDEKLEME.md` §6.2, §6.2.1, §6.2.2, §6.2.3
+
+Senin MIYOP-087 ve -088 bulguların kapandı. Üstüne geri yükleme **ilk kez
+gerçekten koşturuldu** ve iki şey ölçüldü (tuzak 176):
+- `pg_restore` + `tam.dump` → **çıkış kodu 1**, sonuç **kusursuz**
+- `psql` + `sema.sql` → `veri.sql` → **çıkış kodu 0**, **kiracı 0,
+  denetim 0** (11 FK hatası atlanmış)
+
+Sonra gerçek döküm Emrah'ın PostgreSQL 18'ine yüklendi: 66 tablo ·
+146 fonksiyon · 203 tetik · **78 RLS kuralı** · 8 kiracı · 123 denetim
+kaydı. (146/203, dökümün 0105 öncesi olmasından; 78'e ilk koşuda 76'dan
+çıkıldı — `supabase_auth_admin` rolü yerelde yoktu.)
 
 **Bak:**
-- `activeNavLabel` artık önce `MENUSUZ_ROTA_ETIKETLERI[route]`e bakıyor.
-  Bu harita bir gün menüdeki bir rotayı kapsarsa o menü ögesinin etiketini
-  **susturur**. Sınama bunu ölçüyor — **ölçüm doğru mu?**
-- `menusuzRotaAc` nav anahtarını rotanın kendisi yapıyor
-  (`company-profile`, `my-profile`). Bu anahtarlarla eşleşen bir menü
-  ögesi doğarsa ne olur?
-- ⚠️ **Bu sınamanın ilk hâli kırmızı verdi ve hata sınamadaydı** (168b):
-  menü yüzeyini `getCoreWorkspaceRoutes()` ile ölçmüştüm; o fonksiyon
-  adına rağmen sonuna `NON_NAV_CORE_ROUTES`u da ekliyor, yani "izin
-  verilen rotalar" döndürüyor. **Düzeltilmiş hâli gerçekten menü
-  yüzeyini mi ölçüyor?** Donmuş ögeleri atlama kararı doğru mu?
-- `workspace-welcome` ve `integration-center` haritada var çünkü
-  modülleri `frozen`. Modül bir gün `core` olursa sınama bunu yakalar mı?
+- ⚠️ `geri-yukle-provasi.ps1` **rolleri açıyor** (`anon`, `authenticated`,
+  `service_role`, `supabase_auth_admin`). Bu, prova ortamını gerçeğe
+  benzetmek için — **yoksa provayı kolaylaştırıp gerçeği gizliyor mu?**
+  Supabase'de bu roller gerçekten bu adlarla ve bu özelliklerle mi var?
+- Betik **çıkış koduna bakmıyor**, sayılara bakıyor. **Sayım sorgusu
+  yeterli mi?** Hangi tablo sayılmıyor ve sayılmadığı için bir kayıp
+  görünmez kalır?
+- `kiracı = 0` tek kırmızı ölçüt. **Daha iyi bir ölçüt var mı?**
+- `yedek-al.ps1` artık arşivi baştan sona SQL'e çeviriyor. Büyük bir
+  veritabanında bu ne kadar sürer, bir sınır koymalı mı?
 
-### 4.10 · **Ayna paketi** (yeni araç · tuzak 165)
+### 4.6 · **MIYOP-090 onarımı** — prova iddiaları zaman penceresinde
 
-`araclar/ayna-al.ps1` — `git ls-files`'ın verdiği bütün takip edilen
-dosyaları tek zip'te toplar, künye yazar, `.env`/`*.pem` görürse paket
-üretmez. Ayrıca **`.tmp/` takipten çıkarıldı**: 1.529 dosya, 82 MB, beş
-atılmış Chrome profili (`Cookies`/`Login Data` tabloları boş çıktı,
-ölçüldü). `.gitignore`'da zaten yazıyordu ama takip durmamıştı.
+`db/prova/prova-0104.sql` · `db/prova/prova-0104-ters.sql`
 
-**Bak:** betiğin gizli dosya kapısı yeterli mi? `*.example` serbest
-bırakılıyor — başka hangi ad kalıbı gerçek anahtar taşıyabilir?
+Senin bulgun kapandı: her iki prova başta `max(id)` alıyor, defter
+iddiaları yalnız ondan sonraki satırlara bakıyor.
+
+**Bak:** su seviyesi iddiayı **etkisizleştirmiş** olabilir mi? (İki olumsuz
+kontrol koşturuldu: 0104 geri alınınca kırmızı; yapı kontrolü geçsin diye
+`denetim_satir_kimligi` `null` döndürülünce de kırmızı. **Bunları
+doğrula.**)
+
+### 4.7 · Açık bıraktıklarımız (bulgu sayma, yorumunu yaz)
+
+- **A5 · Şahit Numune** boş bir kiracıda canlı olarak **henüz
+  doğrulanmadı**. 28.10'da orada çökmüştü.
+- **A5'in sayfalama borcu** · demo sonrasına karar verildi.
+- **A2 / MIYOP-008 · şube** kapsam dışı (Emrah, 31.10).
+- **Davet e-postası** denemesi yapılmadı. Ölçüldü: uygulamada davet
+  bağlantısını ekranda gösteren düğme **yok**.
+- Dökümün **gerçek bir Supabase projesine** yüklenmesi denenmedi.
+- `timezone`/`language`/`dateFormat`/`theme` hâlâ tarayıcıda.
+- `@media 980px` altındaki üç `.side-nav` bloğunun `position/transform/width`
+  kuralları hiçbir genişlikte uygulanmıyor (ölü CSS) · demo sonrası.
 
 ## 5 · ÇIKTI BİÇİMİ
 
 ```
 ## Özet
-<üç cümle: durum ne, en kritik ne, bir önceki denetime göre ne değişti>
+<üç cümle: durum ne, en kritik ne, önceki tura göre ne değişti>
 
-## 4.1 · Göç 0104
-## 4.2 · MIYOP-084 · genişleyen kapı
-## 4.3 · A4 · 851 satır silme — BOŞ DİZİ KALDIRILABİLİYOR MU (en riskli)
-<hangi ekran boş listeyi kaldıramıyor? Kanıtı nasıl gösterdin?>
-## 4.4 · Para birimi · modül düzeyinde değişken durum
-<testler arası sızıntı var mı? Tek başına vs takım içinde koşturup göster.>
-## 4.5 · Denetim tarayıcısı 19 → 29
-## 4.6 · Yedekleme betiklerinin doğrulaması gerçek mi
-## 4.8 · Yer tutucu bekçisi — dar mı, geniş mi
-## 4.9 · Ekran adı zinciri — sınama gerçekten doğru şeyi mi ölçüyor
-## 4.10 · Ayna betiğinin gizli dosya kapısı
+## 4.1 · Göç 0105 · security definer gerçekten dar mı
+## 4.2 · MIYOP-086 onarımı · TERS yönde hata üretildi mi (en riskli)
+## 4.3 · İki çıcırın kendisi · ölçüm araçları ölçülüyor mu
+## 4.4 · Lisans kataloğu · kapanma yolu ne olmalı
+## 4.5 · Yedekleme/geri yükleme · prova gerçeği gizliyor mu
+## 4.6 · MIYOP-090 onarımı · su seviyesi iddiayı etkisizleştirdi mi
 
 ## Yeni bulgular
-<MIYOP-086'dan devam numaralandır>
+<MIYOP-093'ten devam numaralandır>
 
 ## Kapandığını doğruladığım eski bulgular
-<numara + kanıt. MIYOP-083, -084, -085 bu turda kapandı iddiasındayız.>
+<MIYOP-086…092 · numara + kanıt>
 ```
 
-⚠️ **Son bir şey.** Bu turda bakacağın kod, Claude'un kendi ölçümüyle
-**yedi kez** yanıldığı 48 saat içinde yazıldı (tuzaklar 153, 156, 157, 158,
-159, 161, 162). Hepsini bir kapı yakaladı — tip denetimi, test, ya da
-Emrah'ın kendisi; canlıya hiçbiri gitmedi. **Ama aynı kör noktanın bir
-sekizincisi bu kodda duruyor olabilir ve onu ancak dışarıdan biri görür.**
-Bir şeyin "ölçüldü" diye yazılmış olması, doğru ölçüldüğü anlamına gelmez —
-**ölçümün kendisine de bak.**
+⚠️ **Son bir şey.** Geçen turda en değerli çıktın bulduğun hatalar değil,
+**düzelttiğin üç cümleydi** — "tek işçi, modüller paylaşılır" fazla
+genişti, "21 çağrı yeri" 32'ydi, "gerçekten sattığı planlar" tutmuyordu.
+Üçü de ölçmeden yazılmış cümlelerdi. **Bu turda da cümlelere bak:** bu
+brifte ve kodun yorumlarında ölçülmeden yazılmış bir iddia varsa, onu
+bulman bir kusur bulmak kadar değerli.
