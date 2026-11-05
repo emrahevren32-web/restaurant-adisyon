@@ -47,15 +47,32 @@
 -- geri alırdık — kullanıcının kararını ezmek olurdu. 0052'nin tetiği de
 -- yalnız INSERT'tir; aynı karar.
 --
--- ── ⚠️ `security definer` ve SEBEBİ ───────────────────────────────────────
--- Tetik `tenant_settings`i OKUYOR ve o tablo RLS altında. Depo sorumlusu
--- gibi `company.read` izni olmayan biri ürün eklediğinde, tetik onun
--- haklarıyla koşsaydı satırı GÖREMEZ ve oran SESSİZCE boş kalırdı — yani
--- kural bazı rollerde çalışır, bazılarında çalışmazdı. Sessiz bir kısmî
--- kural, kuralsızlıktan kötüdür.
--- Kapı kapatılmıyor: fonksiyon yalnız `new.tenant_id`nin satırını okuyor,
--- yani yazılmakta olan kaydın kendi kiracısını. Başka kiracıya erişmesi
--- mümkün değil ve zaten `stock_item`ın kendi RLS'i o kiracıyı sınırlıyor.
+-- ── ⚠️ `security definer` ve SEBEBİ · 05.11.2026'da DÜZELTİLDİ ──────────
+-- !! BURADA ÖNCE YANLIŞ BİR GEREKÇE YAZIYORDU (Codex buldu, ölçtüm):
+-- *"`company.read` izni olmayan bir depo sorumlusu satırı GÖREMEZ"* deniyordu.
+-- Tutmuyor. 0103 ölçüldü:
+--     grant select, insert, update on public.tenant_settings to authenticated;
+--     create policy tenant_settings_tenant_isolation on public.tenant_settings
+--       using (tenant_id = app.current_tenant_id());
+-- Yani hak `authenticated` rolünün TAMAMINA verilmiş ve politika yalnız
+-- KİRACI EŞİTLİĞİNE bakıyor; hiçbir izin adı sorulmuyor. Depo sorumlusu
+-- kendi kiracısının ayar satırını okuyabilir. Demek ki `security definer`
+-- bu sebeple GEREKLİ DEĞİL.
+--
+-- Peki neden duruyor? Bugünkü hakka DEĞİL, yarınki daralmaya karşı:
+-- `tenant_settings` üzerindeki grant ya da politika bir gün daraltılırsa
+-- (ör. ayarları yalnız yöneticiye açmak), bu tetik SESSİZCE oranı boş
+-- bırakmaya başlardı — kural bazı rollerde çalışır, bazılarında çalışmaz
+-- olurdu. Sessiz bir kısmî kural, kuralsızlıktan kötüdür. `definer`
+-- kuralı o değişiklikten bağımsız kılıyor.
+-- Kapı genişletilmiyor: fonksiyon yalnız `new.tenant_id`nin satırını
+-- OKUYOR, hiçbir şey yazmıyor, dışarıya veri döndürmüyor. Başka bir
+-- kiracının satırını okutmak mümkün değil; `stock_item`ın kendi RLS'i
+-- zaten o kiracıyı sınırlıyor.
+--
+-- ⚠️ Ders (tuzak 185): bir gerekçe, ÖLÇÜLMEDEN yazılırsa belge olmaz.
+-- "RLS altında" demek "izin adı sorulur" demek değildir; politikanın
+-- metnine bakılır.
 -- ═══════════════════════════════════════════════════════════════════════════
 
 -- ── 1 · TETİK FONKSİYONU ──────────────────────────────────────────────────
@@ -121,7 +138,7 @@ begin
   if not exists (select 1 from pg_proc p join pg_namespace n on n.oid = p.pronamespace
        where n.nspname = 'app' and p.proname = 'urun_kdv_isletmeden'
          and p.prosecdef) then
-    raise exception '0105: fonksiyon security definer değil; izinsiz rolde sessizce boş kalır.';
+    raise exception '0105: fonksiyon security definer değil; tenant_settings hakkı bir gün daraltılırsa oran sessizce boş kalır.';
   end if;
 
   raise notice '✅ 0105: yeni ürün kartı KDV oranını işletme ayarlarından alıyor.';

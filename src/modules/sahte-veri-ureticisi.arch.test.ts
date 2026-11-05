@@ -212,8 +212,13 @@ describe('sahte veri üreticisi çıcırı', () => {
 
   /**
    * ⚠️ ÜST SINIR 4 · ÇIÇIR, SIFIR DEĞİL.
-   * Dördünü bugün silmek, beş dondurulmuş platform ekranının `import`unu
-   * kırmak demekti. Ölçüldü (02.11): o ekranların HİÇBİRİ açılamıyor —
+   * Dördünü bugün silmek, onları çağıran **8 sayfa dosyasının** `import`unu
+   * kırmak demekti. ⚠️ Burada önce *"beş ekran"* yazıyordu; Codex sordu,
+   * 05.11'de SAYILDI: BillingManagement, CompanyManagement,
+   * CustomerStatistics, ModuleActivationSystem, PackageLicenseManagement,
+   * SaasManagementCenter, SystemAnnouncements, UserSubscriptionManagement.
+   * (`Login.tsx` yalnız bir YORUMDA anıyor, çağırmıyor — sayıma girmedi.)
+   * Ölçüldü (02.11): o ekranların HİÇBİRİ açılamıyor —
    * `PLATFORM_HAZIR_ROTALAR` yalnız dört rota içeriyor ve `SaasManagementCenter`'ı
    * açan rotaların hiçbiri orada yok. Yani bu dördü **yangın değil mayın**.
    * Sayı yalnız AZALABİLİR; artarsa yeni bir mayın döşenmiş demektir.

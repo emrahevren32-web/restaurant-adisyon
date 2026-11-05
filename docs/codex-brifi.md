@@ -175,9 +175,9 @@ delik** bulundu (tuzak 175): *"anahtar yoksa demo üret"* çıcırı
   dışındaki her cevabı sayıyor. **Fazla mı eliyor, az mı?** Mekanizmanın
   bu dosyada YAKALANMAYAN başka bir yazımı var mı (ör. `??`, `if` ile
   yazılmış hâli, `readJson(k, createX())`)?
-- Üst sınır 4'ün gerekçesi: o dördü silmek beş dondurulmuş platform
-  ekranının `import`unu kırardı ve ölçüldü ki o ekranların hiçbiri
-  açılamıyor (`PLATFORM_HAZIR_ROTALAR` dört rota içeriyor,
+- Üst sınır 4'ün gerekçesi: o dördü silmek onları çağıran **8 sayfa
+  dosyasının** `import`unu kırardı (önce "beş" yazıyordu, 05.11'de sayıldı)
+  ve ölçüldü ki o ekranların hiçbiri açılamıyor (`PLATFORM_HAZIR_ROTALAR` dört rota içeriyor,
   `SaasManagementCenter`ı açan rotaların hiçbiri orada değil).
   **Bu ölçümü doğrula.** Gerçekten ulaşılamıyorlar mı?
 - `menusuz-rota-etiketi.arch.test.ts` artık yardımcının GÖVDESİNİ kesip

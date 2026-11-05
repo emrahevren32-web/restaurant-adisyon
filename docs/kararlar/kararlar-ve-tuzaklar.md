@@ -984,6 +984,39 @@ göreceği hata mesajları** da (`'Çok fazla deneme yapıldı'`) bozuluyordu.
 ⚠️ Ve komut kendi çıktısını **ölçmeli**: panoda `ş` var mı, bozuk `Ã` var
 mı. "Kopyaladım" demek yetmez; kopyanın sağlam olduğu gösterilir.
 
+**185 · ÖLÇÜLMEDEN YAZILAN GEREKÇE BELGE DEĞİL — ÜÇ CÜMLE, ÜÇÜ DE
+YANLIŞ.** (05.11.2026 · Codex) 0105'in belgelerinde üç iddia vardı; üçü de
+belgenin geri kalanıyla aynı kendinden emin tonla yazılmıştı ve **hiçbiri
+sayılmamıştı**:
+
+· **"`company.read` izni olmayan bir depo sorumlusu `tenant_settings`
+  satırını göremez, o yüzden `security definer` gerekli."** 0103 okundu:
+  `grant select, insert, update on public.tenant_settings to authenticated`
+  ve politika yalnız `tenant_id = app.current_tenant_id()`. Hak
+  `authenticated` rolünün TAMAMINDA ve **hiçbir izin adı sorulmuyor**.
+  Yani gerekçe yanlış; `definer` o sebeple gerekli değil. (Duruyor, ama
+  artık doğru sebeple: grant/politika bir gün daraltılırsa kural sessizce
+  yarım çalışmaya başlardı.)
+· **"Ters prova: tetik kaldırılınca dördü de kırılıyor."** Sayıldı: ters
+  provada **4 iddia** var ama **ikisi** tetiğin kaldırılmasıyla kırılan
+  davranışı gösteriyor; biri tetik DURURKEN doğruluyor, biri de tetikten
+  bağımsız olanı ölçüyor. "Dördü de" cümlesi, provanın gücünü iki katına
+  çıkarıp gösteriyordu.
+· **"O dördünü silmek beş dondurulmuş platform ekranını kırardı."**
+  Sayıldı: `loadLicensePackages` / `loadLicenseModules` /
+  `loadPlatformModules` / `loadPlatformSettings` çağrıları **8 sayfa
+  dosyasında**. (`Login.tsx` yalnız bir yorumda anıyor, çağırmıyor.)
+
+⚠️ Üçünün ortak şekli: **içinde bir sayı ya da bir sebep geçen cümle,
+sayılmadan yazılmış.** Bu depoda zaten yazılı bir kural var (1.3.12):
+*"yanlış belge, olmayan belgeden kötüdür."* Çünkü yanlış belge okunur,
+güvenilir ve bir sonraki kararın dayanağı olur — olmayan belge en azından
+soru sordurur.
+⚠️ **"RLS altında" demek "izin adı sorulur" demek DEĞİLDİR.** Politikanın
+metnine bakılır; bu üç yanlıştan en pahalısı tam bu varsayımdan çıktı.
+⚠️ Düzeltirken **eski cümle de yazılıyor** ("önce şöyle diyordu, yanlıştı,
+ölçüm şu"). Yoksa aynı yanlış, aynı sezgiyle bir yıl sonra geri gelir.
+
 **184 · AYNI SAYAÇ HEM AZ HEM ÇOK ARTIYORDU.** (05.11.2026 · MIYOP-094 ·
 MIYOP-096 · Codex) MIYOP-086'da para birimi için bir sürüm sayacı koyduk:
 uçuştaki her okuma başlama sürümünü taşıyor, sürümü eskiyen cevap atılıyor.
@@ -1891,6 +1924,13 @@ Son söz onun çıktısındadır.
     şey korumaz; orada sürüm/kimlik taşımak gerekir.
 94. Bir ölçümün **sağlaması, ölçümle AYNI nesneyi** kullanır (tuzak 170).
     Deseni ikinci kez elle yazan sağlama, bozulan asıl ölçümü yakalamaz.
+113. İçinde **sayı ya da sebep** geçen bir cümleyi yazmadan önce ÖLÇ
+     (tuzak 185). "Beş ekran", "dördü de kırılıyor", "izni olmayan göremez"
+     — üçü de sayılmadan yazılmıştı, üçü de yanlıştı.
+114. **"RLS altında" ≠ "izin adı sorulur"** (tuzak 185). Politikanın metni
+     okunur; tablo RLS'li diye kapının ne sorduğu varsayılmaz.
+115. Yanlış bir cümleyi düzeltirken **eski hâlini de yaz** (tuzak 185).
+     Sessiz düzeltme, aynı yanlışın aynı sezgiyle geri gelmesini engellemez.
 110. Bir sürüm sayacında asıl soru "sayaç var mı" değil **"kim artırır"**
      (tuzak 184). Artıran olaylar tek tek yazılır ve her biri "bu gerçekten
      yeni bir gerçeklik mi" diye sınanır.

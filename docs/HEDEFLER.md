@@ -850,14 +850,22 @@ Emrah'ın onayladığı sıra:
     **boş kalır** — `0` ya da `10` yazmak *mış gibi* olurdu.
     ⚠️ **Yalnız INSERT.** Kullanıcı var olan bir ürünün oranını bilerek
     silebilir; UPDATE'te de doldursaydık o silmeyi sessizce geri alırdık.
-    ⚠️ **`security definer` ve sebebi:** tetik `tenant_settings`i okuyor ve
-    o tablo RLS altında. `company.read` izni olmayan bir depo sorumlusu ürün
-    eklediğinde tetik onun haklarıyla koşsaydı satırı göremez, oran
-    **sessizce boş kalırdı** — kural bazı rollerde çalışır bazılarında
-    çalışmazdı. Sessiz kısmî kural, kuralsızlıktan kötüdür.
-    **Prova:** `prova-0105.sql` **13 ölçüm** (dört olumsuz kontrol dâhil) ve
-    `prova-0105-ters.sql` — tetik kaldırılınca dördü de kırılıyor. Göç iki
-    kez çalıştırıldı. Çıcır: `isletme-kdv-orani.arch.test.ts`.
+    ⚠️ **`security definer` ve sebebi — 05.11'de DÜZELTİLDİ (Codex).**
+    Burada önce *"`company.read` izni olmayan bir depo sorumlusu satırı
+    göremez"* yazıyordu. **Yanlıştı**; 0103 ölçüldü:
+    `grant select … on public.tenant_settings to authenticated` ve politika
+    yalnız `tenant_id = app.current_tenant_id()`. Yani hak `authenticated`
+    rolünün tamamında ve hiçbir izin adı sorulmuyor — depo sorumlusu kendi
+    kiracısının ayar satırını okuyabilir. `definer` bu sebeple **gerekli
+    değil**; duruyor çünkü o grant/politika bir gün daraltılırsa tetik
+    sessizce oranı boş bırakmaya başlardı. Sessiz kısmî kural,
+    kuralsızlıktan kötüdür. (tuzak 185)
+    **Prova:** `prova-0105.sql` **13 ölçüm** ve `prova-0105-ters.sql`
+    **4 ölçüm** — biri tetik dururken doğruluyor, **ikisi** tetik
+    kaldırılınca kırılan davranışı gösteriyor (ürün oranı boş kalıyor,
+    zincir kopuyor), biri de tetikten bağımsız olanı. ⚠️ Burada önce
+    *"dördü de kırılıyor"* yazıyordu; sayıldı, öyle değil.
+    Göç iki kez çalıştırıldı. Çıcır: `isletme-kdv-orani.arch.test.ts`.
   - ✅ **3.4.6** **KAPANDI (01.11)** · Fiyat biçimlendirmesi artık para
     birimini işletmeden alıyor.
     `billing.ts` içinde `const PARA_BIRIMI = 'TRY'` yazıyordu ve bu dosyayı
