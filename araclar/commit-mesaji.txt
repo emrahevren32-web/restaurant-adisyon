@@ -1,89 +1,49 @@
-Prova betigi onarildi (tuzak 180) + MIYOP-097 ve MIYOP-098 kapandi
+MIYOP-094 ve MIYOP-096 kapandi - para birimi sayacini KIM artirir
 
-TUZAK 180 - ONCEKI COMMIT'TEKI BETIK HIC CALISMADI.
-geri-yukle-provasi.ps1'e tirnakli tablo adi yazmak icin `\"` kullandim.
-PowerShell'de cift tirnak icinde kacis karakteri TERS TIRNAKTIR, ters bolu
-degil. Betik ayristirilamadi; Emrah'in terminalinde iki ParserError cikti.
-Yani "P0 kapandi" dedigim betik ayaga bile kalkmamisti.
-Tirnak artik birlestirmeyle konuyor:  $tirnakli = '"' + $ad + '"'
+MIYOP-086'da konan surum sayaci dogruydu; onu ARTIRAN TEK YERIN secimi
+yanlisti. Iki yonden birden.
 
-Asil mesele: bu ortamda PowerShell YOK, yani yazdigim .ps1'in sozdizimini
-kosturarak sinayamiyorum. O olcumun masrafini Emrah'in terminali oduyor.
-Bu sinir artik yazili (kontrol listesi 107) ve boslugu kismen kapatan bir
-sinama var: src/core/powershell-kacis.arch.test.ts butun .ps1 dosyalarinda
-(a) ters bolu ile tirnak kacisi olmadigini, (b) kume/parantez dengesini
-olcuyor; iki dedektorun de bozuk bir ornegi yakaladigi ayrica siniyor.
-Bir PowerShell ayristiricisi DEGIL - bu sinir da testin icinde yazili.
+MIYOP-094 (P1) - AZ ARTIYORDU. Sayaci yalniz kullanici degisimi artiriyordu,
+yani ayni oturumda hic degismiyordu. Sira su: giris anindaki okuma (cevabi
+TRY) ucarken kullanici EUR kaydeder; kaydetme sonrasi geri okuma EUR'yu
+besler; SONRA ilk okuma TRY ile doner ve surumu hala gecerli oldugu icin
+TRY KAZANIR. Kullanicinin gordugu cumle: "kaydettim ama para birimi
+degismedi."
+  Cozum: yazma da sayaci artiriyor (geri okumadan ONCE). Yazmadan once
+  baslamis her okuma tanim geregi bayattir.
+  OLCULDU: ayni sira iki kez kuruldu; eski mekanizmada TRY, yenisinde EUR
+  kaldi. Depo testinde yaris GERCEKTEN kuruluyor - ilk okuma elle askida
+  tutulup yazma bittikten sonra birakiliyor.
 
-MIYOP-098 (P2) - menusuz-rota-etiketi.arch.test.ts bekciligi sadece satirin
-SILINMESINI goruyordu. `setActiveNavKey(hedef)` satirinin basina // koymak
-yedi sinamanin yedisini de YESIL birakiyordu. OLCULDU: ham metinde
-yakalanmiyor, yorumlar soyulunca yakalaniyor. Iddialar artik yorumsuz
-metinden kuruluyor; negatif denetim ayri bir sinama olarak duruyor.
+MIYOP-096 (P2) - COK ARTIYORDU. App.tsx'teki etki `currentUser` NESNESINE
+bagliydi. Kisi kendi adini degistirince yeni nesne doguyor, etki kosuyor,
+sayac artiyordu - ve o sirada ucan MESRU para birimi okumasi sessizce
+atiliyor, ekran TL'de kaliyordu.
+  Cozum iki bagimsiz kapi: (1) React bagimliligi artik nesne degil KIMLIK
+  metni (kullanici + firma), yani ad degisince etki hic kosmuyor;
+  (2) paraBirimiKimligiKur ayni kimlikte hicbir sey yapmiyor.
 
-MIYOP-097 (P2) - mekanizma sayacinin SAGLAMASI yoktu; deseni eslesemez hale
-getirince on sinamanin onu da yesil kaliyordu. Saglama eklendi: suclu bir
-ornekte iki dal buluyor, masum ornekte hicbir sey bulmuyor, ve GERCEK
-deseni kullaniyor (MIYOP-089'un dersi).
-Codex'in bildirdigi kacis yollari olculdu:
-  - readJson(key, X): storage.ts'te tek cagri, yedegi null. Yol bos ama
-    sekil gercek -> ayri dedektor eklendi, SIFIR olarak donduruldu.
-  - ?? X: yedi kullanim, hepsi gercek nesnelerin alan yedegi. Uydurma degil.
-  - || createX(): butun src tarandi, 119 yer, hepsi mesru kimlik/kod
-    uretici. Sinyal degil gurultu; olcume katmak cicirli kullanilamaz
-    hale getirirdi. Kapsanmayanin gerekcesi teste yazildi.
+Yeni API (billing.ts):
+  paraBirimiKimligiKur(kimlik)  - kimlik DEGISTIYSE artirir, aynisinda hayir
+  paraBirimiYazimiBitti()       - yazma bitti, ucustaki her okuma bayat
+  paraBirimiOturumSurumu()      - okuyucu beklemeye girmeden once alir
+Kosulsuz artiran eski `paraBirimiOturumuTazele` kaldirildi; src altinda
+hicbir yerde kalmadigi taranarak dondu ruldu (920 dosya).
 
-storage.ts yorumu duzeltildi: lisans katalogu icin "MIYOP'un gercekten
-sattigi planlar" diyordu. Olculdu, tutmuyor: koddaki katalog eski adisyon
-urunune ait (maxTables, adisyon/qr-menu, 999-4999 TL); 0042'deki iki paket
-fiyatsiz ve endustriyel mutfak. Yorum artik olculeni yaziyor.
+Testler:
+  billing.para-birimi.test.ts  12 -> 17 (MIYOP-094 ve -096 icin negatif
+    denetimler dahil: yazma sayaci artirmasaydi bayat okumanin KAZANDIGI
+    ayrica olculuyor)
+  isletme-ayarlari.repository.test.ts  + gercek yaris sinamasi ve saglamasi
+  src/billing/para-birimi-kimligi.arch.test.ts (yeni) - KABLOLAMAYI
+    donduruyor: davranis dogru olsa bile yanlis kablolama onu yarin geri
+    getirir.
 
-Belgeler: tuzak 180-182, kontrol listesi 104-107.
+src/core/test-support/kaynak-soyma.ts (yeni) - yorum soyucu artik TEK KOPYA.
+MIYOP-089'un dersi: ikiz bir olcum araci, asil olcum bozuldugunda sessizce
+yesil verir. menusuz-rota-etiketi.arch.test.ts de buradan aliyor.
 
-araclar/teshis-baglanti.ps1 eklendi. Sebep: 05.11 kirmizisinda yaptigim iki
-olcum de soruyu cevaplamiyordu (site HTTP 200 derlenmis statik sayfaydi;
-/auth/v1/health yalniz gecidin ayakta oldugunu soyluyordu). Betik .env.local
-ve .env.test.local'i AYRI AYRI okuyor, hangisinin hangi projeye isaret
-ettigini yaziyor ve rest/v1'e tek istek atip durum kodunu ve suresini
-raporluyor. Anahtarin degeri hicbir yere yazilmaz; yalniz _URL ile biten
-degiskenlerin degeri gosterilir, otekilerin karakter sayisi.
-  !! Onemli: Vite ortam dosyalarini kipe gore yukler ve vitest kipi testtir,
-  yani .env.test.local .env.local'i EZER. npm test sirasinda baglanilan
-  proje, npm run dev sirasinda baglanilandan FARKLI olabilir. Bu betik o
-  ayrimi olcuyor.
-
-araclar/tam-yedek.ps1 duzeltildi: yedek notunda ters tirnakla suslenmis bir
-komut adi vardi. Ters tirnak + g gecerli bir kacis olmadigi icin PowerShell
-ters tirnaklari SESSIZCE YUTUYORDU. Tek tirnaga cevrildi.
-
-src/core/powershell-kacis.arch.test.ts genisletildi: gecersiz ters tirnak
-kacislari da olculuyor (cift tirnakli here-string govdeleri dahil . tek
-gercek kusur tam oradaydi). Dedektorun YAKALAMADIGI sey de teste yazili:
-gecerli bir kacisin sus olarak yazilmasi (benim kendi hatam) statik olarak
-ayirt edilemez.
-
-URETIM KESINTISI (tuzak 183) - 05.11, yaklasik bir saat. npm test icindeki
-supabase.connection.test.ts iki kosuda da 20 saniyede dustu ve commit'i
-kilitledi. Sebep PostgREST'ti: veritabanindan baglanti alamiyor, sema
-onbellegini yukleyemiyor, her rest/v1 istegi 504 donuyordu.
-  PGRST003 - Timed out acquiring connection from connection pool
-  Failed to load the schema cache ...
-  Attempting to reconnect to the database in 32 seconds...
-Postgres saglamdi (auth/v1 ayni veritabanina baglanip 200 veriyordu) ve
-db/migrations altinda authenticator / alter role / connection limit gecen
-tek satir yok - bizden kaynaklanmiyordu. Cozum: Supabase panelinden
-Restart project. Sonrasinda uom okumasi 0.7 saniyede HTTP 200.
-
-Teshiste once UC YANLIS OLCUM yaptim ve ucu de soruyu cevaplamiyordu
-(site 200 = statik sayfa; auth/v1 cevabi = yalniz gecit; panelde Healthy =
-yalniz "duraklatilmamis"). Ustune durum kodunu okumadan "anahtar kapatilmis
-olabilir" dedim; hatalar 401 degil 504'tu. Dersler tuzak 183'te yazili,
-kontrol listesi 108-109.
-
-ACIK KARAR: npm test uretim Supabase'ine bagli (.env.test.local yalniz
-VITE_TEST_* tanimliyor, VITE_SUPABASE_*'i ezmiyor - olculdu). Uretim bir
-saat dustugunde hicbir commit atilamadi. Bu kapinin neyi olcmesi gerektigi
-karara baglanacak.
+Belgeler: tuzak 184, kontrol listesi 110-112.
 
 Co-Authored-By: Claude Opus 5 <noreply@anthropic.com>
 Claude-Session: https://claude.ai/code/session_019BwYM3mAXZUhp4YGj7tp2y

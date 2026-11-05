@@ -29,6 +29,8 @@ import { describe, expect, it } from 'vitest'
 import { readFileSync } from 'node:fs'
 import { join } from 'node:path'
 import { projeKokunuBul } from '../core/test-support/goc-tarama'
+// ⚠️ Soyucu TEK KOPYA (MIYOP-089): ikizi yazılmaz, buradan alınır.
+import { yorumsuzKod } from '../core/test-support/kaynak-soyma'
 import {
   MENUSUZ_ROTA_ETIKETLERI,
   NON_NAV_CORE_ROUTES,
@@ -37,26 +39,6 @@ import {
 
 const KOK = projeKokunuBul()
 const APP = readFileSync(join(KOK, 'src/App.tsx'), 'utf8') as string
-
-/**
- * Yorumları atar — satır içi (iki eğik çizgi) ve blok yorumlar.
- *
- * ⚠️ MIYOP-098 (Codex, 04.11) · NEDEN ZORUNLU. Aşağıdaki iddialar düz
- * metne bakıyordu. `setActiveNavKey(hedef)` satırının başına `//` koymak
- * yedi sınamanın yedisini de YEŞİL bırakıyordu: regex yoruma alınmış
- * satırı da görüyordu. Yani MIYOP-091 için konulan bekçi, satır silinince
- * uyarıyor ama satır **susturulunca** susuyordu.
- * ÖLÇÜLDÜ (05.11): satır yoruma alındığında ham metinde yakalanmıyor,
- * soyulmuş metinde yakalanıyor. Negatif denetim aşağıda ayrı bir sınama.
- *
- * ⚠️ `https://` gibi dizgeler bozulmasın diye `//` yalnız iki nokta
- * üst üste gelmiyorsa atılıyor.
- */
-export const yorumsuzKod = (metin: string): string => metin
-  .replace(/\/\*[\s\S]*?\*\//g, '')
-  .split('\n')
-  .map(satir => satir.replace(/(^|[^:])\/\/.*$/, '$1'))
-  .join('\n')
 
 const KOD = yorumsuzKod(APP)
 

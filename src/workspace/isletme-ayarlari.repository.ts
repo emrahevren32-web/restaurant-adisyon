@@ -33,7 +33,7 @@
 // ═══════════════════════════════════════════════════════════════════════════
 
 import { getSupabase, isSupabaseConfigured } from '../core/supabase'
-import { paraBirimiAyarla, paraBirimiOturumSurumu } from '../billing'
+import { paraBirimiAyarla, paraBirimiOturumSurumu, paraBirimiYazimiBitti } from '../billing'
 
 /** Ekranın sunduğu seçenekler. ⚠️ Veritabanı biçimi `^[A-Z]{3}$` (0103). */
 export const PARA_BIRIMLERI = [
@@ -169,6 +169,15 @@ export const isletmeAyarlariniYaz = async (
         : 'Ayarlar kaydedilemedi. Bağlantınızı kontrol edip tekrar deneyin.',
     }
   }
+
+  // ⚠️ MIYOP-094 (Codex, 04.11) · GERİ OKUMADAN ÖNCE SAYAÇ ARTIYOR.
+  // Sebep ölçüldü: giriş anındaki okuma (cevabı TRY) hâlâ uçarken burada
+  // EUR kaydedilirse, aşağıdaki geri okuma EUR'yu besler ama SONRA o ilk
+  // okuma TRY ile döner ve sürümü geçerli olduğu için TRY kazanırdı.
+  // Ekranda kaydedilmemiş bir para birimi kalır — "kaydettim, değişmedi".
+  // Yazmadan ÖNCE başlamış her okuma tanım gereği bayattır; sayaç bunu
+  // söylüyor. Geri okuma sayaç arttıktan SONRA başladığı için etkilenmez.
+  paraBirimiYazimiBitti()
 
   // ⚠️ Geri okunuyor: ekranda görünen şey, kaydedilmiş olan şey.
   const ayarlar = await isletmeAyarlariniOku()

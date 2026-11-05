@@ -984,6 +984,41 @@ göreceği hata mesajları** da (`'Çok fazla deneme yapıldı'`) bozuluyordu.
 ⚠️ Ve komut kendi çıktısını **ölçmeli**: panoda `ş` var mı, bozuk `Ã` var
 mı. "Kopyaladım" demek yetmez; kopyanın sağlam olduğu gösterilir.
 
+**184 · AYNI SAYAÇ HEM AZ HEM ÇOK ARTIYORDU.** (05.11.2026 · MIYOP-094 ·
+MIYOP-096 · Codex) MIYOP-086'da para birimi için bir sürüm sayacı koyduk:
+uçuştaki her okuma başlama sürümünü taşıyor, sürümü eskiyen cevap atılıyor.
+Mekanizma doğruydu; **onu artıran tek yerin seçimi** yanlıştı. İki yönden:
+
+· **AZ ARTIYORDU (MIYOP-094).** Sayacı yalnız kullanıcı değişimi
+  artırıyordu, yani aynı oturumda hiç değişmiyordu. Sıra şu: giriş anındaki
+  okuma (cevabı TRY) uçarken kullanıcı EUR kaydeder → kaydetme sonrası geri
+  okuma EUR'yu besler → **sonra** ilk okuma TRY ile döner ve sürümü hâlâ
+  geçerli olduğu için **TRY kazanır**. Kullanıcının gördüğü cümle:
+  *"kaydettim ama para birimi değişmedi."*
+  **Ölçüldü:** aynı sıra iki kez kuruldu; eski mekanizmada TRY, yeni
+  mekanizmada EUR kaldı. Depo testinde yarış gerçekten kuruluyor — ilk
+  okuma elle askıda tutulup yazmadan sonra bırakılıyor.
+
+· **ÇOK ARTIYORDU (MIYOP-096).** `App.tsx`teki etki `currentUser`
+  **NESNESİNE** bağlıydı. Kişi kendi adını değiştirince yeni bir nesne
+  doğuyor, etki yeniden koşuyor, sayaç artıyordu — ve o sırada uçan
+  **meşru** para birimi okuması sessizce atılıyor, ekran ₺'de kalıyordu.
+
+⚠️ **Ders:** bir sürüm sayacında asıl soru *"sayaç var mı"* değil,
+**"kim artırır"**dır. Artıran olaylar tek tek yazılır ve her biri için
+"bu gerçekten yeni bir gerçeklik mi" diye sorulur:
+  · kimlik değişimi → evet, ama **kimlik** değişimi; nesnenin yeniden
+    doğması değil. O yüzden kurucu **idempotent**: aynı kimlikte hiçbir
+    şey yapmıyor.
+  · yazma → evet: yazmadan önce başlamış her okuma **tanım gereği**
+    bayattır.
+⚠️ **İki bağımsız kapı** kuruldu (bu depodaki alışkanlık): (1) React
+bağımlılığı artık nesne değil **kimlik metni**, yani ad değişince etki hiç
+koşmuyor; (2) kurucu aynı kimlikte hiçbir şey yapmıyor. Biri delinse öteki
+tutar. Kablolama `src/billing/para-birimi-kimligi.arch.test.ts` ile
+donduruldu — davranış doğru olsa bile yanlış kablolama onu yarın geri
+getirir.
+
 **183 · "CANLI CEVAP VERMİYOR" — ÜÇ YANLIŞ ÖLÇÜM, SONRA DOĞRU SORU.**
 (05.11.2026 · üretim kesintisi, ~1 saat) `npm test` içindeki
 `supabase.connection.test.ts` iki koşuda da 20 saniyede düştü ve commit'i
@@ -1856,6 +1891,13 @@ Son söz onun çıktısındadır.
     şey korumaz; orada sürüm/kimlik taşımak gerekir.
 94. Bir ölçümün **sağlaması, ölçümle AYNI nesneyi** kullanır (tuzak 170).
     Deseni ikinci kez elle yazan sağlama, bozulan asıl ölçümü yakalamaz.
+110. Bir sürüm sayacında asıl soru "sayaç var mı" değil **"kim artırır"**
+     (tuzak 184). Artıran olaylar tek tek yazılır ve her biri "bu gerçekten
+     yeni bir gerçeklik mi" diye sınanır.
+111. React bağımlılığı **nesne değil kimlik** olsun (tuzak 184). Nesne her
+     çizimde yeniden doğabilir ve yan etkiyi haksız yere tetikler.
+112. Bir **yazma**, kendisinden önce başlamış okumaları bayat sayar
+     (tuzak 184). Yoksa geç gelen eski okuma, kaydedileni ezer.
 108. Katmanlı bir sistemde soru **"çalışıyor mu" değil "hangi katman"**
      (tuzak 183). Her ölçümün neyi kanıtladığı önce söylenir: statik sayfa
      web sunucusunu, `auth/v1` geçidi, `rest/v1` veri yolunu kanıtlar.

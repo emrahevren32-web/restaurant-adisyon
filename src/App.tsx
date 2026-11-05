@@ -93,7 +93,7 @@ import {
   platformRotasiHazir
 } from './platform/platform.registry'
 import { isletmeAyarlariniOku } from './workspace/isletme-ayarlari.repository'
-import { paraBirimiAyarla, paraBirimiDegisinceBildir, paraBirimiOturumuTazele } from './billing'
+import { paraBirimiAyarla, paraBirimiDegisinceBildir, paraBirimiKimligiKur } from './billing'
 import { syncWorkspaceCompanyFromDatabase } from './companies/company-bridge'
 import { getDefaultModules } from './sector/sector-template.service'
 import { getBusinessMenuEmptyState, getWorkspaceTemplateViewForUser } from './workspace-template/workspace-template.service'
@@ -649,15 +649,31 @@ export default function App(){
   // daha derindeyse koruma sağlamaz.
   // Artık sayaç `billing.ts`te: burada bir kez artırılıyor, uçuştaki bütün
   // okumalar o anda geçersizleşiyor.
+  //
+  // ⚠️ MIYOP-096 · BU ETKİ ÇOK SIK KOŞUYORDU ve Codex ölçtü: bağımlılık
+  // `currentUser` NESNESİYDİ. Kişi kendi adını değiştirdiğinde yeni bir
+  // nesne doğuyor, etki yeniden koşuyor ve sayaç artıyordu — o sırada uçan
+  // MEŞRU para birimi okuması sessizce atılıyor, ekran ₺'de kalıyordu.
+  // "Kullanıcı değişti" ile "kullanıcı nesnesi yeniden doğdu" aynı şey
+  // değil. Artık bağımlılık KİMLİK (metin): ad değişince aynı kalır.
+  //
+  // ⚠️ İKİ BAĞIMSIZ KAPI: (1) etki artık kimliğe bağlı, yani ad değişince
+  // hiç koşmuyor; (2) `paraBirimiKimligiKur` aynı kimlikte hiçbir şey
+  // yapmıyor. Biri delinse öteki tutar.
+  const paraBirimiKimligi = React.useMemo(() => {
+    if(!currentUser) return null
+    return `${currentUser.id}|${getCompanyIdForUser(currentUser) ?? ''}`
+  }, [currentUser])
+
   React.useEffect(() => {
-    paraBirimiOturumuTazele()
-    if(!currentUser){
+    paraBirimiKimligiKur(paraBirimiKimligi)
+    if(!paraBirimiKimligi){
       paraBirimiAyarla(null)
       return
     }
     void isletmeAyarlariniOku()
       .catch(() => { /* ₺'de kalır; yukarıdaki nota bakın */ })
-  }, [currentUser])
+  }, [paraBirimiKimligi])
 
   // Para birimi giriş SONRASI geliyor; o ana kadar çizilmiş fiyatlar ₺
   // kalırdı. Bu abonelik, değer gelince ekranı yeniden çizdiriyor.

@@ -53,30 +53,74 @@ export const paraBirimiDegisinceBildir = (dinleyici: Dinleyici) => {
 // ama yan etki ondan ÖNCE, okuyucunun derininde olup bitiyordu. Çağıranda
 // bayrak tutmak, yan etki daha derindeyse koruma sağlamaz.
 //
-// Çözüm: bir sayaç. Kullanıcı değişince sayaç artar; uçuştaki her okuma
-// kendi başlama sürümünü taşır ve sürümü eskiyen cevap SESSİZCE ATILIR.
-// Böylece tek besleme noktası korunuyor (yeni bir çağrı yeri unutulamaz)
-// ama bayat cevap içeri giremiyor.
-let oturumSurumu = 0
+// Çözüm: bir sayaç. Sayaç artınca uçuştaki her okuma geçersizleşir; her
+// okuma kendi başlama sürümünü taşır ve sürümü eskiyen cevap SESSİZCE
+// ATILIR. Böylece tek besleme noktası korunuyor (yeni bir çağrı yeri
+// unutulamaz) ama bayat cevap içeri giremiyor.
+//
+// ── SAYACI KİM ARTIRIR · MIYOP-094 ve MIYOP-096 · 05.11.2026 ───────────
+// İlk sürümde sayacı YALNIZ `App.tsx`teki etki artırıyordu ve bu iki
+// yönden de yanlıştı. Codex ikisini de ölçtü:
+//
+// ⚠️ MIYOP-094 · AZ ARTIYORDU. Aynı oturumda sayaç hiç değişmiyor. Giriş
+//    anındaki okuma (cevabı TRY) uçarken kullanıcı EUR kaydederse,
+//    kaydetme sonrası geri okuma EUR'yu besler, SONRA ilk okuma TRY ile
+//    döner ve sürümü hâlâ geçerli olduğu için TRY KAZANIR. Ekranda
+//    kaydedilmemiş bir para birimi kalır — "kaydettim ama değişmedi".
+//    ➜ Artık YAZMA da sayacı artırıyor: yazmadan önce başlamış her okuma
+//      tanım gereği bayattır.
+//
+// ⚠️ MIYOP-096 · ÇOK ARTIYORDU. Etki `currentUser` NESNESİNE bağlıydı;
+//    kişi kendi adını değiştirince yeni bir nesne doğuyor, etki yeniden
+//    koşuyor ve sayaç artıyordu. O sırada uçan MEŞRU para birimi okuması
+//    sessizce atılıyor, ekran ₺'de kalıyordu.
+//    ➜ Artık sayaç NESNEYE değil KİMLİĞE bakıyor: aynı kimlikle yapılan
+//      çağrı hiçbir şey yapmıyor.
+let surum = 0
 
-/** Kullanıcı değişti: uçuştaki bütün okumaları geçersiz kıl. */
-export const paraBirimiOturumuTazele = (): number => {
-  oturumSurumu += 1
-  return oturumSurumu
+/**
+ * En son kurulmuş oturum kimliği (kullanıcı + firma).
+ * `null` = kimse girmemiş.
+ */
+let beslenenKimlik: string | null = null
+
+/**
+ * Oturum kimliğini kurar. Kimlik DEĞİŞTİYSE sayaç artar ve uçuştaki bütün
+ * okumalar geçersizleşir; AYNI kimlikle çağrılmak HİÇBİR ŞEY yapmaz.
+ *
+ * ⚠️ MIYOP-096: burası eskiden koşulsuz artıyordu. "Kullanıcı değişti" ile
+ * "kullanıcı nesnesi yeniden doğdu" aynı şey değildir.
+ */
+export const paraBirimiKimligiKur = (kimlik: string | null): number => {
+  if(kimlik === beslenenKimlik) return surum
+  beslenenKimlik = kimlik
+  surum += 1
+  return surum
+}
+
+/**
+ * Yazma başarıyla bitti: bu andan ÖNCE başlamış her okuma bayattır.
+ *
+ * ⚠️ MIYOP-094: yazma sayacı artırmasaydı, giriş anındaki okuma geç gelip
+ * az önce kaydedilen değeri ezerdi.
+ */
+export const paraBirimiYazimiBitti = (): number => {
+  surum += 1
+  return surum
 }
 
 /** Okuyucu, BEKLEMEYE GİRMEDEN ÖNCE bunu alır ve cevabıyla birlikte verir. */
-export const paraBirimiOturumSurumu = (): number => oturumSurumu
+export const paraBirimiOturumSurumu = (): number => surum
 
 /**
  * İşletmenin para birimini besler. `null` → "okunmadı"ya döndürür (çıkış).
  *
- * @param surum Okumanın BAŞLADIĞI andaki oturum sürümü. Verilirse ve
+ * @param okumaSurumu Okumanın BAŞLADIĞI andaki sürüm. Verilirse ve
  *              bugünkü sürümle tutmuyorsa cevap bayattır, uygulanmaz.
  *              Çıkışta sıfırlama sürümsüz çağrılır: o her zaman geçerlidir.
  */
-export const paraBirimiAyarla = (kod: string | null, surum?: number) => {
-  if(surum !== undefined && surum !== oturumSurumu) return
+export const paraBirimiAyarla = (kod: string | null, okumaSurumu?: number) => {
+  if(okumaSurumu !== undefined && okumaSurumu !== surum) return
   const yeni = (kod || '').trim().toUpperCase() || null
   if(yeni === aktifParaBirimi) return
   aktifParaBirimi = yeni

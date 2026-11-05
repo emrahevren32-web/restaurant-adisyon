@@ -38,6 +38,10 @@ vi.mock('../core/supabase', () => ({
 const { isletmeAyarlariniOku, isletmeAyarlariniYaz, kdvOraniniDenetle } =
   await import('./isletme-ayarlari.repository')
 
+// ⚠️ `billing` TAKLİT EDİLMİYOR: MIYOP-094'ün yarışı tam orada çözülüyor,
+// taklit edilirse sınama kendi kurgusunu ölçerdi.
+const { aktifParaBirimiKodu, paraBirimiKimligiKur } = await import('../billing')
+
 /** Yeni açılmış işletme: para birimi TRY, KDV BELİRLENMEMİŞ. */
 const YENI = {
   id: 'ayar-1',
@@ -182,5 +186,68 @@ describe('isletmeAyarlariniYaz', () => {
 
     expect(sonuc.durum === 'hata' && sonuc.mesaj).toContain('işletme sahibi')
     expect(JSON.stringify(sonuc)).not.toContain('permission denied')
+  })
+})
+
+// ═══════════════════════════════════════════════════════════════════════════
+// MIYOP-094 · BAYAT GİRİŞ OKUMASI (Codex, 04.11)
+//
+// Sıra şuydu ve ölçülmemişti:
+//   1. giriş anında `isletmeAyarlariniOku()` başlar, cevabı TRY olacak;
+//   2. cevap GELMEDEN kullanıcı EUR kaydeder;
+//   3. kaydetme sonrası geri okuma EUR'yu besler, ekran EUR olur;
+//   4. ŞİMDİ 1'deki okuma TRY ile döner — ve sürümü hâlâ geçerli olduğu
+//      için TRY KAZANIR.
+// Kullanıcının gördüğü: "kaydettim ama para birimi değişmedi."
+//
+// Burada o sıra GERÇEKTEN kuruluyor: ilk okuma elle askıda tutuluyor,
+// yazma tamamlanıyor, sonra askıdaki okuma bırakılıyor.
+// ═══════════════════════════════════════════════════════════════════════════
+describe('MIYOP-094 · uçuştaki giriş okuması ile kaydetme yarışı', () => {
+  beforeEach(() => {
+    vi.clearAllMocks()
+    eqGuncelle.mockResolvedValue({ error: null })
+    paraBirimiKimligiKur('yaris-' + Math.random())
+  })
+
+  it('⚠️ giriş okuması GEÇ gelse de KAYDEDİLEN para birimi kalıyor', async () => {
+    // 1) giriş okuması başlasın ve ASILI KALSIN
+    const askidakiler: Array<() => void> = []
+    secimCevap.mockImplementationOnce(() => new Promise(coz => {
+      askidakiler.push(() => coz({
+        data: [{ ...YENI, currency_code: 'TRY' }], error: null,
+      }))
+    }))
+    const ucanOkuma = isletmeAyarlariniOku()
+
+    // 2) kullanıcı EUR kaydetsin (geri okuma EUR döndürsün)
+    secimCevap.mockResolvedValue({
+      data: [{ ...YENI, currency_code: 'EUR' }], error: null,
+    })
+    const sonuc = await isletmeAyarlariniYaz('ayar-1', { paraBirimi: 'EUR', kdvOrani: '' })
+    expect(sonuc.durum).toBe('oldu')
+    expect(aktifParaBirimiKodu(), 'kaydetme sonrası besleme çalışmadı').toBe('EUR')
+
+    // 3) ŞİMDİ askıdaki giriş okuması TRY ile dönsün
+    expect(askidakiler, 'askıdaki okuma kurulamadı — sınama anlamsız').toHaveLength(1)
+    askidakiler[0]()
+    await ucanOkuma
+
+    expect(
+      aktifParaBirimiKodu(),
+      'bayat giriş okuması kaydedilen para birimini EZDİ (MIYOP-094)',
+    ).toBe('EUR')
+  })
+
+  it('sağlama · askıdaki okuma YARIŞ OLMADAN uygulanıyor', () => {
+    // Yukarıdaki sınamanın bir şey ölçtüğünü gösteren kontrol: aynı okuma,
+    // araya yazma girmeden, beslemeyi GERÇEKTEN yapıyor. Yoksa "EUR kaldı"
+    // sonucu, okumanın hiç beslemediği anlamına da gelebilirdi.
+    secimCevap.mockResolvedValue({
+      data: [{ ...YENI, currency_code: 'GBP' }], error: null,
+    })
+    return isletmeAyarlariniOku().then(() => {
+      expect(aktifParaBirimiKodu(), 'okuma hiç beslemiyor').toBe('GBP')
+    })
   })
 })
