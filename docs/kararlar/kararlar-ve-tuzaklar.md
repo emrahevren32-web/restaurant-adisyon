@@ -984,6 +984,37 @@ göreceği hata mesajları** da (`'Çok fazla deneme yapıldı'`) bozuluyordu.
 ⚠️ Ve komut kendi çıktısını **ölçmeli**: panoda `ş` var mı, bozuk `Ã` var
 mı. "Kopyaladım" demek yetmez; kopyanın sağlam olduğu gösterilir.
 
+**186 · İNSANA YAZILAN BİR BETİK DE BİR İDDİADIR — ÜÇ MENÜ YOLU YANLIŞTI.**
+(05.11.2026) Demo senaryosunu (18 adım) ben yazmıştım ve içindeki her
+"X → Y" yolunu **kayıt defteriyle karşılaştırdım**. Üçü tutmuyordu:
+
+· **"Müşteriler" / "Siparişler" / "Sevkiyatlar"** ayrı bir başlıkmış gibi
+  yazılmıştı. Gerçekte üçü de **ÜRETİM modülünün altında**
+  (`business-production-work-orders`). Sebebi kayıtlı: Lojistik modülü bu
+  kurulumda kapalı, oraya konan öge menüde hiç görünmüyor. Yani demo günü
+  Emrah menüde "Müşteriler" başlığı arayacaktı.
+· **"Mal Kabul"** menüde ayrı bir öge sanılmıştı. Değil: `Satın Alma
+  Siparişleri` ekranının **dört sekmesinden biri** (Talepler · Siparişler ·
+  Mal Kabul · İadeler). Menüdeki "Mal Kabul" ögesi **dondurulmuş**.
+· **Sevkiyat düğmesinin adı** *"Sevkiyata çıkar"* yazılmıştı; gerçek metin
+  **"Kalanı sevkiyata çıkar"**.
+
+⚠️ Ölçüm iki yanlış alarmı da eledi — ve bu kısmı önemli: önce *"Gıda
+Mühendisi rolü yok"* sandım, çünkü 0015'in rol listesine baktım. Rol **var**,
+0073'te ekleniyor. Yani düzeltmeye kalksam DOĞRU olanı bozacaktım.
+**Düzeltmeden önce de ölçülür** (tuzak 185'in simetrisi).
+
+⚠️ İlk ayıklama betiğim de yanlıştı: `menuItem({...})` blokları çok satıra
+yayılıyor, tek satırlık desenim onları kaçırdı ve "Müşteriler menüde yok"
+dedi. Desen düzeltilince göründüler. **Ölçüm aracının kendisi ölçülür**
+(tuzak 170 ailesi) — bu kez beni kendi aracım yanılttı.
+
+⚠️ **Ders:** bir insana "şuraya tıkla" diyen her belge, kod kadar
+iddialıdır ve kod gibi doğrulanır. Farkı şu: kod yanlışsa test kırılır,
+betik yanlışsa **müşterinin önünde sen takılırsın**. Senaryoya ölçülmüş bir
+**menü haritası** (1.7) ve **rol → ne görür tablosu** (1.8) eklendi; ikisi
+de göçlerden ve kayıt defterinden sayıldı.
+
 **185 · ÖLÇÜLMEDEN YAZILAN GEREKÇE BELGE DEĞİL — ÜÇ CÜMLE, ÜÇÜ DE
 YANLIŞ.** (05.11.2026 · Codex) 0105'in belgelerinde üç iddia vardı; üçü de
 belgenin geri kalanıyla aynı kendinden emin tonla yazılmıştı ve **hiçbiri
@@ -1924,6 +1955,11 @@ Son söz onun çıktısındadır.
     şey korumaz; orada sürüm/kimlik taşımak gerekir.
 94. Bir ölçümün **sağlaması, ölçümle AYNI nesneyi** kullanır (tuzak 170).
     Deseni ikinci kez elle yazan sağlama, bozulan asıl ölçümü yakalamaz.
+116. İnsana "şuraya tıkla" diyen belge **kod kadar iddialıdır** (tuzak 186).
+     Menü yolu, sekme adı, düğme metni — üçü de kaynaktan doğrulanır.
+     Kod yanlışsa test kırılır; betik yanlışsa müşterinin önünde takılırsın.
+117. **Düzeltmeden önce de ölç** (tuzak 186). "Yanlış" sandığın şey doğru
+     olabilir; yanlış bir düzeltme, yanlış bir iddiadan daha pahalıdır.
 113. İçinde **sayı ya da sebep** geçen bir cümleyi yazmadan önce ÖLÇ
      (tuzak 185). "Beş ekran", "dördü de kırılıyor", "izni olmayan göremez"
      — üçü de sayılmadan yazılmıştı, üçü de yanlıştı.

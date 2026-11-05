@@ -1,46 +1,41 @@
-0105 belgelerindeki uc yanlis cumle duzeltildi (tuzak 185)
+Demo senaryosundaki menu yollari koddan dogrulandi (tuzak 186)
 
-Codex'in son uc bulgusu belge kusuruydu. Ucunu de ayri ayri OLCTUM; ucu de
-sayilmadan yazilmisti ve ucu de yanlisti.
+Demo senaryosunu (18 adim) ben yazmistim. Icindeki her "X -> Y" yolunu
+kayit defteriyle karsilastirdim; UCU TUTMUYORDU:
 
-1) "company.read izni olmayan bir depo sorumlusu tenant_settings satirini
-   goremez, o yuzden security definer gerekli."
-   OLCULDU - 0103:
-     grant select, insert, update on public.tenant_settings to authenticated;
-     create policy tenant_settings_tenant_isolation on public.tenant_settings
-       using (tenant_id = app.current_tenant_id());
-   Hak `authenticated` rolunun TAMAMINDA ve politika yalniz kiraci
-   esitligine bakiyor; hicbir izin adi sorulmuyor. Depo sorumlusu kendi
-   kiracisinin ayar satirini okuyabilir. Yani gerekce yanlis.
-   security definer DURUYOR ama artik dogru sebeple yazili: o grant ya da
-   politika bir gun daraltilirsa tetik sessizce orani bos birakmaya
-   baslardi. Sessiz kismi kural, kuralsizliktan kotudur.
-   Gocun dogrulama blogundaki hata mesaji da ayni yanlisi tekrarliyordu;
-   o da duzeltildi.
+1) "Musteriler" / "Siparisler" / "Sevkiyatlar" ayri bir baslikmis gibi
+   yazilmisti. Gercekte ucu de URETIM modulunun altinda
+   (business-production-work-orders). Sebebi kayitli: Lojistik modulu bu
+   kurulumda kapali, oraya konan oge menude hic gorunmuyor. Demo gunu
+   menude "Musteriler" basligi aranacakti.
 
-2) "Ters prova: tetik kaldirilinca dordu de kiriliyor."
-   SAYILDI - ters provada 4 iddia var ama IKISI tetigin kaldirilmasiyla
-   kirilan davranisi gosteriyor (urun orani bos kaliyor, zincir kopuyor);
-   biri tetik DURURKEN dogruluyor, biri de tetikten bagimsiz olani olcuyor.
-   "Dordu de" cumlesi provanin gucunu iki katina cikarip gosteriyordu.
+2) "Mal Kabul" menude ayri bir oge saniliyordu. Degil: "Satin Alma
+   Siparisleri" ekraninin dort sekmesinden biri (Talepler, Siparisler,
+   Mal Kabul, Iadeler). Menudeki "Mal Kabul" ogesi DONDURULMUS.
 
-3) "O dordunu silmek bes dondurulmus platform ekranini kirardi."
-   SAYILDI - loadLicensePackages / loadLicenseModules / loadPlatformModules
-   / loadPlatformSettings cagrilari 8 SAYFA DOSYASINDA: BillingManagement,
-   CompanyManagement, CustomerStatistics, ModuleActivationSystem,
-   PackageLicenseManagement, SaasManagementCenter, SystemAnnouncements,
-   UserSubscriptionManagement. (Login.tsx yalniz bir yorumda aniyor,
-   cagirmiyor - sayima girmedi.)
+3) Sevkiyat dugmesinin adi "Sevkiyata cikar" yazilmisti; gercek metin
+   "Kalani sevkiyata cikar".
 
-Her uc duzeltmede ESKI CUMLE de yazili: "once soyle diyordu, yanlisti,
-olcum su". Sessiz duzeltme, ayni yanlisin ayni seziyle geri gelmesini
-engellemez.
+Olcum iki yanlis alarmi da eledi:
+  - Once "Gida Muhendisi rolu yok" sandim cunku 0015'in listesine baktim.
+    Rol VAR, 0073'te ekleniyor. Duzeltmeye kalksam DOGRU olani bozacaktim.
+  - Ilk ayiklama betigim menuItem({...}) bloklarini tek satir saniyordu ve
+    "Musteriler menude yok" dedi. Desen duzeltilince gorundu.
 
-Olcum: goc 0105 yerel PostgreSQL 16.15'te IKI KEZ kosturuldu (yorum
-degisikligi sonrasi da gecerli), ileri prova 13/13 yesil, ters prova 4/4
-yesil. Gocun calisan SQL'i degismedi; yalniz yorumlar ve bir hata mesaji.
+Dogrulanan iddialar (degismedi): Sahit Numune liste siniri 500
+(NUMUNE_SAYFA), parasal sutunlarda gosterilen metin "yetki yok"
+(MALIYET_GIZLI), Depo Sorumlusu'nda finance.read YOK.
 
-Belgeler: tuzak 185, kontrol listesi 113-115.
+Proje belgesine iki olculmus bolum eklendi:
+  claude/demo-senaryosu.md 1.7 - menu haritasi (yoneticinin gordugu gercek
+    menu, kayit defterinden)
+  claude/demo-senaryosu.md 1.8 - rol -> ne gorur tablosu (Gida Muhendisi,
+    Operasyon Personeli, Depo Sorumlusu izin kumeleri goclerden sayildi)
+Onemli sonuc: Musteriler, Siparisler ve Analiz'i bu uc rolun hicbiri
+gormuyor. Demo akisinin tamami YONETICI hesabiyla yapilir; rol hesaplari
+Adim 18'de "menunun kendisi kisaliyor" gosterisi icin kullanilir.
+
+Belgeler: tuzak 186, kontrol listesi 116-117.
 
 Co-Authored-By: Claude Opus 5 <noreply@anthropic.com>
 Claude-Session: https://claude.ai/code/session_019BwYM3mAXZUhp4YGj7tp2y
