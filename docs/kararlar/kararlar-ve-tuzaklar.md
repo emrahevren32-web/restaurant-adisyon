@@ -984,6 +984,46 @@ göreceği hata mesajları** da (`'Çok fazla deneme yapıldı'`) bozuluyordu.
 ⚠️ Ve komut kendi çıktısını **ölçmeli**: panoda `ş` var mı, bozuk `Ã` var
 mı. "Kopyaladım" demek yetmez; kopyanın sağlam olduğu gösterilir.
 
+**187 · ÜRÜNÜN KENDİ KARARINI UYGULAMAYAN EKRAN — VE BENİ DURDURAN ÖLÇÜM.**
+(05.11.2026) Emrah iki açık maddeden birinde *"(a) şıkkı olsun ama bir
+sakıncası var mı?"* diye sordu: Operasyon Personeli'ne `purchase.read`
+eklensin mi. Uygulamadan **önce ölçtüm** ve göç **0080**'i buldum (30.10):
+o karar zaten verilmişti, üstelik **tam (a) reddedilerek**:
+> *"İki çıkış vardı: (a) izni eklemek, (b) cümleyi düzeltmek. (b) SEÇİLDİ,
+> çünkü (a) aynı açıklamanın İKİNCİ yarısıyla çelişiyor: 'tedarikçi GÖRMEZ'
+> diyor; `purchase.read` eklersek Tedarikçiler ekranı da açılır."*
+⚠️ Yani uygulasaydım, **bir ay önce gerekçesiyle alınmış bir kararı
+sessizce geri alıyordum.** Beni durduran şey, değiştirmeden önce ölçmekti
+(tuzak 186'nın ikinci dersi).
+
+⚠️ Aynı ölçüm, proje belgesinin **beş açık maddesinin beşinin de**
+kapanmış olduğunu gösterdi — üçü bir göçün kapıyı daraltmasıyla, ikisi
+0080 ile. Belge bir aydır Emrah'a olmayan beş karar sunuyordu.
+
+**Ve asıl kusur tam oradan çıktı.** 0080 *"MAL KABUL DEPO SORUMLUSUNUN
+İŞİDİR"* diyordu. Depo sorumlusu o işi **yapamıyordu**:
+· 0080  → mal kabul depo sorumlusunun işi,
+· 0088  → `goods_receipt` ve `supplier_return` için
+  `["purchase.write","stock.write"]` — veritabanı izin veriyor,
+· ekran → `PurchaseFlow`un BÜTÜN yazma yüzeyi `purchase.write`, ve depo
+  sorumlusunda o izin **yok**.
+Üç kaynaktan ikisi aynı şeyi söylüyordu; ekran tek başına ayrı düşmüş ve
+rolün **asıl işini** yaptırmıyordu. "Mal Kabul Yap" düğmesi ona hiç
+görünmüyordu.
+
+➜ Ekran veritabanının kararına bağlandı (`MAL_KABUL_IZINLERI`), çıcır
+`src/purchasing/mal-kabul-kapisi.arch.test.ts` ile kuruldu — beklenen liste
+göçten AYRIŞTIRILIYOR, elle kopyalanmıyor.
+⚠️ **Yeni yetki verilmedi:** `stock.write` zaten vardı. Talep ve sipariş
+açma hâlâ yalnız `purchase.write`; test onu da ayrıca ölçüyor, çünkü
+"kapıyı hizala" diye mutfak personeline sipariş açtırmak mümkündü.
+
+⚠️ **Ders:** bir ürün kararı üç yerde yaşar — göç, veritabanı kapısı,
+ekran. İkisi anlaşıp üçüncüsü ayrı düşerse ortaya **hata mesajı değil
+SESSİZ BİR EKSİKLİK** çıkar: kimse hata görmez, iş yapılamaz. Rol
+açıklaması bir işi "yapar" diyorsa, o işin düğmesinin o role göründüğü
+ÖLÇÜLÜR.
+
 **186 · İNSANA YAZILAN BİR BETİK DE BİR İDDİADIR — ÜÇ MENÜ YOLU YANLIŞTI.**
 (05.11.2026) Demo senaryosunu (18 adım) ben yazmıştım ve içindeki her
 "X → Y" yolunu **kayıt defteriyle karşılaştırdım**. Üçü tutmuyordu:
@@ -1955,6 +1995,11 @@ Son söz onun çıktısındadır.
     şey korumaz; orada sürüm/kimlik taşımak gerekir.
 94. Bir ölçümün **sağlaması, ölçümle AYNI nesneyi** kullanır (tuzak 170).
     Deseni ikinci kez elle yazan sağlama, bozulan asıl ölçümü yakalamaz.
+118. Bir ürün kararı **üç yerde** yaşar: göç, veritabanı kapısı, ekran
+     (tuzak 187). İkisi anlaşıp üçüncüsü ayrı düşerse hata mesajı değil
+     **sessiz bir eksiklik** çıkar — kimse hata görmez, iş yapılamaz.
+119. Rol açıklaması bir işi "yapar" diyorsa, o işin **düğmesinin o role
+     göründüğü ölçülür** (tuzak 187). Açıklama ile kapı ayrı iki yerdedir.
 116. İnsana "şuraya tıkla" diyen belge **kod kadar iddialıdır** (tuzak 186).
      Menü yolu, sekme adı, düğme metni — üçü de kaynaktan doğrulanır.
      Kod yanlışsa test kırılır; betik yanlışsa müşterinin önünde takılırsın.

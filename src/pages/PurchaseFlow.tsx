@@ -16,7 +16,9 @@
 // ═══════════════════════════════════════════════════════════════════════════
 
 import React from 'react'
-import { yazabilirMi } from '../authorization/yazma-yetkisi'
+import {
+  herhangiBiriyleYazabilir, MAL_KABUL_IZINLERI, yazabilirMi,
+} from '../authorization/yazma-yetkisi'
 import type { User } from '../types'
 import { getSupabase, isSupabaseConfigured } from '../core/supabase'
 import { resolveStockRepositoryMode } from '../core/stock/index'
@@ -127,6 +129,11 @@ export default function PurchaseFlow({ currentUser }: Props){
   // (tuzak 71): liste kaybolunca kapı açılıyordu. Kapının bilmediği
   // durumda AÇIK kalması, kapı olmaması demektir.
   const yazabilir = yazabilirMi(currentUser, 'purchase.write')
+  // ⚠️ MAL KABUL AYRI BİR KAPI (05.11.2026). Göç 0088 bu yazımı
+  // `["purchase.write","stock.write"]` olarak karara bağlamıştı; ekran ise
+  // hepsini `purchase.write`e bağlayıp depocuyu dışarıda bırakıyordu.
+  // Belgeyi satın almacı açar, MALI DEPOCU ALIR.
+  const malKabulYapabilir = herhangiBiriyleYazabilir(currentUser, MAL_KABUL_IZINLERI)
 
   const [sekme, setSekme] = React.useState<Sekme>('talepler')
   const [baglam, setBaglam] = React.useState<DepoBaglami | null>(null)
@@ -530,6 +537,7 @@ export default function PurchaseFlow({ currentUser }: Props){
               siparis={seciliSiparis}
               durumlar={siparisDurumu(seciliSiparis, kabuller)}
               yazabilir={yazabilir}
+              malKabulYapabilir={malKabulYapabilir}
               paraGorur={paraGorur}
               onDurum={durum => { void siparisDurum(seciliSiparis, durum) }}
               onMalKabul={() => { setYeniForm('mal-kabul'); setHata(''); setBilgi('') }}
@@ -554,7 +562,7 @@ export default function PurchaseFlow({ currentUser }: Props){
             <KabulDetayi
               kabul={seciliKabul}
               iadeDurumlari={kabulIadeDurumu(seciliKabul, iadeler)}
-              yazabilir={yazabilir}
+              yazabilir={malKabulYapabilir}
               onTekrarDene={() => { void kabulTekrarDene(seciliKabul) }}
               onIade={() => { setYeniForm('iade'); setHata(''); setBilgi('') }}
             />
@@ -776,11 +784,13 @@ function TalepDetayi({
 }
 
 function SiparisDetayi({
-  siparis, durumlar, yazabilir, paraGorur, onDurum, onMalKabul,
+  siparis, durumlar, yazabilir, malKabulYapabilir, paraGorur, onDurum, onMalKabul,
 }: {
   siparis: Siparis
   durumlar: SiparisSatirDurumu[]
   yazabilir: boolean
+  /** Mal kabul AYRI kapı: `purchase.write` VEYA `stock.write` (göç 0088). */
+  malKabulYapabilir: boolean
   /** Alış fiyatı ve tutar görünsün mü? `finance.read` istiyor. */
   paraGorur: boolean
   onDurum: (durum: SiparisDurumu) => void
@@ -866,9 +876,10 @@ function SiparisDetayi({
         </p>
       )}
 
-      {yazabilir && (malBekleniyor || SIPARIS_GECISLERI[siparis.durum].length > 0) && (
+      {((malKabulYapabilir && malBekleniyor)
+        || (yazabilir && SIPARIS_GECISLERI[siparis.durum].length > 0)) && (
         <div className="form-actions wrap">
-          {yazabilir && malBekleniyor && (
+          {malKabulYapabilir && malBekleniyor && (
             <button type="button" className="btn primary" onClick={onMalKabul}>
               Mal Kabul Yap
             </button>

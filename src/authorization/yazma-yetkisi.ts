@@ -109,6 +109,61 @@ export const KAPATMA_YETKISI_YOK =
  */
 export const NUMUNE_IZINLERI = ['quality.record.manage', 'production.write'] as const
 
+/**
+ * MAL KABUL — EKRAN, VERİTABANININ ZATEN VERDİĞİ KARARA UYUYOR (05.11.2026).
+ *
+ * ── NE BOZUKTU ───────────────────────────────────────────────────────────
+ * `PurchaseFlow` ekranının BÜTÜN yazma yüzeyi — "Yeni Talep", "Yeni
+ * Sipariş", durum geçişleri ve **"Mal Kabul Yap"** — tek bir izne
+ * bağlıydı: `purchase.write`. Oysa göç **0088** mal kabulü başka türlü
+ * karara bağlamıştı:
+ *
+ *     'goods_receipt',         '["purchase.write","stock.write"]'
+ *     'goods_receipt_line',    '["purchase.write","stock.write"]'
+ *     'supplier_return',       '["purchase.write","stock.write"]'
+ *     'supplier_return_line',  '["purchase.write","stock.write"]'
+ *
+ * (İade de aynı kuralda: mal zaten depoya girmişti, geri çıkışı da depo
+ * yazıyor. Dördü tek karardır, ekran da dördünü tek kapıya bağlıyor.)
+ *
+ * Yani VERİTABANI "depocu da mal kabul edebilir" diyordu, EKRAN hayır
+ * diyordu. Gerekçesi 0085/0086'da yazılı ve hâlâ geçerli: *belgeyi satın
+ * almacı açar, malı depocu alır.* Bir akışın izni tek tabloya bakılarak
+ * belirlenemez (tuzak 88).
+ *
+ * ⚠️ KURBAN **DEPO SORUMLUSU** ve bu, ürünün kendi kararıyla çelişiyordu.
+ * Göç **0080** (30.10) müşteriye gösterilen rol açıklamalarını düzeltirken
+ * şunu yazmıştı: *"MAL KABUL DEPO SORUMLUSUNUN İŞİDİR. O rolde
+ * `purchase.read` zaten var ve mal kabulü o yapıyor."* Ama depo
+ * sorumlusunda `purchase.write` **YOK** (izinleri: stok, lojistik, üretim
+ * okuma, kalite okuma, `purchase.read`). Yani:
+ *   · 0080 diyor ki mal kabulü depo sorumlusu yapar,
+ *   · 0088 diyor ki veritabanı `stock.write` ile buna izin verir,
+ *   · ekran diyor ki `purchase.write` yoksa düğme yok.
+ * Üç yerden ikisi aynı şeyi söylüyordu; ekran tek başına ayrı düşmüştü ve
+ * rolün ASIL İŞİNİ yaptırmıyordu.
+ *
+ * ⚠️ Bu kapı **yeni bir yetki vermiyor**: `stock.write` zaten vardı ve
+ * veritabanı zaten kabul ediyordu. Değişen tek şey, ekranın aynı cevabı
+ * vermesi.
+ *
+ * ── NE DEĞİŞMEDİ ─────────────────────────────────────────────────────────
+ * Talep açma, sipariş açma ve sipariş durumunu ilerletme hâlâ YALNIZ
+ * `purchase.write`. Mal kabul etmek ile tedarikçiye sipariş geçmek ayrı
+ * iki yetkidir; bu ayrım bilerek korunuyor.
+ *
+ * ⚠️ GERÇEK SINIR VERİTABANINDA. Buradaki liste onun ekrandaki yüzü;
+ * ikisinin aynı kaldığını `src/purchasing/mal-kabul-kapisi.arch.test.ts`
+ * ÖLÇÜYOR (`numune-kapisi.arch.test.ts` ile aynı kalıp).
+ */
+export const MAL_KABUL_IZINLERI = ['purchase.write', 'stock.write'] as const
+
+/** Listedeki izinlerden EN AZ BİRİ yeterli. */
+export const herhangiBiriyleYazabilir = (
+  user: User | null | undefined,
+  izinler: readonly string[],
+): boolean => izinler.some(izin => yazabilirMi(user, izin))
+
 export const numuneYazabilirMi = (user: User | null | undefined): boolean =>
   NUMUNE_IZINLERI.some(izin => yazabilirMi(user, izin))
 

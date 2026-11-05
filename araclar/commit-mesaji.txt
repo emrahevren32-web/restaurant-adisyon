@@ -1,41 +1,49 @@
-Demo senaryosundaki menu yollari koddan dogrulandi (tuzak 186)
+Mal kabul kapisi: ekran veritabaninin kararina baglandi (tuzak 187)
 
-Demo senaryosunu (18 adim) ben yazmistim. Icindeki her "X -> Y" yolunu
-kayit defteriyle karsilastirdim; UCU TUTMUYORDU:
+ONCE OLCTUM, SONRA DEGISTIRDIM - ve olcum beni yanlis bir degisiklikten
+dondurdu.
 
-1) "Musteriler" / "Siparisler" / "Sevkiyatlar" ayri bir baslikmis gibi
-   yazilmisti. Gercekte ucu de URETIM modulunun altinda
-   (business-production-work-orders). Sebebi kayitli: Lojistik modulu bu
-   kurulumda kapali, oraya konan oge menude hic gorunmuyor. Demo gunu
-   menude "Musteriler" basligi aranacakti.
+Emrah "Operasyon Personeli'ne purchase.read eklensin mi" diye sordu.
+Uygulamadan once goc 0080'i (30.10) buldum: o karar zaten verilmisti ve
+TAM BU SECENEK gerekceyle reddedilmisti - "purchase.read eklersek
+Tedarikciler ekrani da acilir, oysa ayni aciklama 'tedarikci GORMEZ'
+diyor". Uygulasaydim bir ay once alinmis bir karari sessizce geri
+aliyordum. Izin eklenmedi, aciklama degistirilmedi.
 
-2) "Mal Kabul" menude ayri bir oge saniliyordu. Degil: "Satin Alma
-   Siparisleri" ekraninin dort sekmesinden biri (Talepler, Siparisler,
-   Mal Kabul, Iadeler). Menudeki "Mal Kabul" ogesi DONDURULMUS.
+Ayni olcum proje belgesindeki BES acik maddenin BESININ DE kapanmis
+oldugunu gosterdi (ucu bir gocun kapiyi daraltmasiyla, ikisi 0080 ile).
+Belge bir aydir olmayan bes karar sunuyordu; duzeltildi.
 
-3) Sevkiyat dugmesinin adi "Sevkiyata cikar" yazilmisti; gercek metin
-   "Kalani sevkiyata cikar".
+ASIL KUSUR TAM ORADAN CIKTI. 0080 "MAL KABUL DEPO SORUMLUSUNUN ISIDIR"
+diyor. Depo sorumlusu o isi YAPAMIYORDU:
+  - goc 0080  : mal kabul depo sorumlusunun isi
+  - goc 0088  : goods_receipt / goods_receipt_line / supplier_return /
+                supplier_return_line -> ["purchase.write","stock.write"]
+                yani veritabani izin veriyor
+  - ekran     : PurchaseFlow'un BUTUN yazma yuzeyi purchase.write ve depo
+                sorumlusunda o izin YOK (purchase.read var, write yok)
+Uc kaynaktan ikisi ayni seyi soyluyordu; ekran tek basina ayri dusmustu ve
+rolun ASIL ISINI yaptirmiyordu. "Mal Kabul Yap" dugmesi ona hic
+gorunmuyordu. Hata mesaji yok, sessiz bir eksiklik.
 
-Olcum iki yanlis alarmi da eledi:
-  - Once "Gida Muhendisi rolu yok" sandim cunku 0015'in listesine baktim.
-    Rol VAR, 0073'te ekleniyor. Duzeltmeye kalksam DOGRU olani bozacaktim.
-  - Ilk ayiklama betigim menuItem({...}) bloklarini tek satir saniyordu ve
-    "Musteriler menude yok" dedi. Desen duzeltilince gorundu.
+Yapilan:
+  - MAL_KABUL_IZINLERI = ['purchase.write','stock.write'] (yazma-yetkisi.ts)
+  - herhangiBiriyleYazabilir() yardimcisi
+  - PurchaseFlow: "Mal Kabul Yap", iade ve tekrar deneme bu kapiya bagli;
+    talep/siparis ACMA ve siparis durum gecisleri HALA yalniz purchase.write
+  - src/purchasing/mal-kabul-kapisi.arch.test.ts (yeni, 5 sinama):
+    beklenen liste GOCTEN AYRISTIRILIYOR, elle kopyalanmiyor
+    (numune-kapisi.arch.test.ts ile ayni kalip); ayristiricinin gercekten
+    liste cikardigi ayrica siniyor; talep/siparis kapisinin kaymadigi da
+    olculuyor.
 
-Dogrulanan iddialar (degismedi): Sahit Numune liste siniri 500
-(NUMUNE_SAYFA), parasal sutunlarda gosterilen metin "yetki yok"
-(MALIYET_GIZLI), Depo Sorumlusu'nda finance.read YOK.
+!! YENI YETKI VERILMEDI. stock.write zaten vardi, veritabani zaten kabul
+ediyordu. Degisen tek sey ekranin ayni cevabi vermesi. Goc YOK, veritabani
+degisikligi YOK.
 
-Proje belgesine iki olculmus bolum eklendi:
-  claude/demo-senaryosu.md 1.7 - menu haritasi (yoneticinin gordugu gercek
-    menu, kayit defterinden)
-  claude/demo-senaryosu.md 1.8 - rol -> ne gorur tablosu (Gida Muhendisi,
-    Operasyon Personeli, Depo Sorumlusu izin kumeleri goclerden sayildi)
-Onemli sonuc: Musteriler, Siparisler ve Analiz'i bu uc rolun hicbiri
-gormuyor. Demo akisinin tamami YONETICI hesabiyla yapilir; rol hesaplari
-Adim 18'de "menunun kendisi kisaliyor" gosterisi icin kullanilir.
-
-Belgeler: tuzak 186, kontrol listesi 116-117.
+Belgeler: tuzak 187, kontrol listesi 118-119.
+Proje: claude/rol-ekran-matrisi.md yeniden olculdu (bes sayi bayatti:
+Isletme Sahibi 20, Goruntuleyici 18, Depo 13, Uretim 10, Sevkiyat 9).
 
 Co-Authored-By: Claude Opus 5 <noreply@anthropic.com>
 Claude-Session: https://claude.ai/code/session_019BwYM3mAXZUhp4YGj7tp2y
