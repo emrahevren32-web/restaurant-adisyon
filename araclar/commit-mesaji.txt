@@ -1,49 +1,50 @@
-Mal kabul kapisi: ekran veritabaninin kararina baglandi (tuzak 187)
+Menunun gorunmez kapisi bulundu ve donduruldu (tuzak 188)
 
-ONCE OLCTUM, SONRA DEGISTIRDIM - ve olcum beni yanlis bir degisiklikten
-dondurdu.
+Kirmizi turu isini gordu: turetmem yanlisti, test gercegi soyledi.
 
-Emrah "Operasyon Personeli'ne purchase.read eklensin mi" diye sordu.
-Uygulamadan once goc 0080'i (30.10) buldum: o karar zaten verilmisti ve
-TAM BU SECENEK gerekceyle reddedilmisti - "purchase.read eklersek
-Tedarikciler ekrani da acilir, oysa ayni aciklama 'tedarikci GORMEZ'
-diyor". Uygulasaydim bir ay once alinmis bir karari sessizce geri
-aliyordum. Izin eklenmedi, aciklama degistirilmedi.
+NE OLDU
+isletme_muduru icin beklenen ekran sayisini 19 diye TURETTIM. Gerekce:
+mudurun izinleri sahibin tam alt kumesi (olculdu), eksik dort izinden
+yalniz company.manage bir menu ogesine requiredPermission olarak bagli,
+yani fark tek oge olmali. Test 18 dedi ve farkin
+['Kullanicilar', 'Veri ve Yedekleme'] oldugunu yazdi.
 
-Ayni olcum proje belgesindeki BES acik maddenin BESININ DE kapanmis
-oldugunu gosterdi (ucu bir gocun kapiyi daraltmasiyla, ikisi 0080 ile).
-Belge bir aydir olmayan bes karar sunuyordu; duzeltildi.
+EKSIK VARSAYIM - workspace-navigation.registry.ts icinde TEK SATIR:
+  const requiredPermission = item.requiredPermission ?? module.permissions[0]
+Kendi izni olmayan menu ogesi, MODULUNUN ILK IZNINI devraliyor.
+"Kullanicilar" ogesinin yaninda hicbir izin yazmaz; kapisi
+system-users.permissions[0] yani users.manage. Mudurde o izin yok, oge hic
+uretilmiyor. Ben yalniz ogelerin KENDI izinlerine bakmistim.
 
-ASIL KUSUR TAM ORADAN CIKTI. 0080 "MAL KABUL DEPO SORUMLUSUNUN ISIDIR"
-diyor. Depo sorumlusu o isi YAPAMIYORDU:
-  - goc 0080  : mal kabul depo sorumlusunun isi
-  - goc 0088  : goods_receipt / goods_receipt_line / supplier_return /
-                supplier_return_line -> ["purchase.write","stock.write"]
-                yani veritabani izin veriyor
-  - ekran     : PurchaseFlow'un BUTUN yazma yuzeyi purchase.write ve depo
-                sorumlusunda o izin YOK (purchase.read var, write yok)
-Uc kaynaktan ikisi ayni seyi soyluyordu; ekran tek basina ayri dusmustu ve
-rolun ASIL ISINI yaptirmiyordu. "Mal Kabul Yap" dugmesi ona hic
-gorunmuyordu. Hata mesaji yok, sessiz bir eksiklik.
+Ayni satir gunlerdir cozemedigim bir bulmacayi da acikladi: Kalite
+Sorumlusu neden "Tedarikciler"i gormuyor? Cunku
+business-purchase.permissions[0] purchase.read ve onda o izin yok.
 
-Yapilan:
-  - MAL_KABUL_IZINLERI = ['purchase.write','stock.write'] (yazma-yetkisi.ts)
-  - herhangiBiriyleYazabilir() yardimcisi
-  - PurchaseFlow: "Mal Kabul Yap", iade ve tekrar deneme bu kapiya bagli;
-    talep/siparis ACMA ve siparis durum gecisleri HALA yalniz purchase.write
-  - src/purchasing/mal-kabul-kapisi.arch.test.ts (yeni, 5 sinama):
-    beklenen liste GOCTEN AYRISTIRILIYOR, elle kopyalanmiyor
-    (numune-kapisi.arch.test.ts ile ayni kalip); ayristiricinin gercekten
-    liste cikardigi ayrica siniyor; talep/siparis kapisinin kaymadigi da
-    olculuyor.
+ASIL TEHLIKE
+Olculdu: 25 MODULUN canli menu ogeleri bu devralmayla kapili. Yani bir
+modulun permissions dizisini YENIDEN SIRALAMAK - tek bir izin satiri
+degismeden - kimin hangi ekrani gordugunu degistirir.
+system-users.permissions bir gun ['users.read','users.manage',...] olsaydi
+ISLETME MUDURU YETKI DAGITIMI EKRANINI GORMEYE BASLARDI ve hicbir kod
+incelemesi bunu "izin degisikligi" diye gostermezdi.
 
-!! YENI YETKI VERILMEDI. stock.write zaten vardi, veritabani zaten kabul
-ediyordu. Degisen tek sey ekranin ayni cevabi vermesi. Goc YOK, veritabani
-degisikligi YOK.
+EKLENEN CICIR - src/navigation/devralinan-izin.arch.test.ts (6 sinama)
+  - 25 modulun permissions[0]'i donduruldu
+  - devralma satirinin yerinde durdugu ayrica olculuyor (satir giderse
+    donma anlamsizlasir)
+  - devralmaya yeni baslayan modul tabloda yoksa KIRMIZI
+  - tabloda olup artik devralmayan modul kalmamasi da olculuyor
+  - saglama: kayitta gercekten devralan oge var mi (yoksa bos kumeyi
+    olcup yesil kalirdi)
+Tablo iki bagimsiz ayristiriciyla uretildi ve ikisi ayni 25 modulu verdi.
 
-Belgeler: tuzak 187, kontrol listesi 118-119.
-Proje: claude/rol-ekran-matrisi.md yeniden olculdu (bes sayi bayatti:
-Isletme Sahibi 20, Goruntuleyici 18, Depo 13, Uretim 10, Sevkiyat 9).
+DUZELTILEN
+  isletme_muduru: 18 (sahibi - Kullanicilar - Veri ve Yedekleme)
+  kimlik olcumu artik ['Kullanicilar','Veri ve Yedekleme'] bekliyor
+  yanlis turetmenin kendisi ve NEDEN coktugu teste yazili - sayiyi
+  degistirip gecmek, ogrenilen seyi atmak olurdu.
+
+Belgeler: tuzak 188, kontrol listesi 120-121.
 
 Co-Authored-By: Claude Opus 5 <noreply@anthropic.com>
 Claude-Session: https://claude.ai/code/session_019BwYM3mAXZUhp4YGj7tp2y

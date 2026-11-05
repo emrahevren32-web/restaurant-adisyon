@@ -183,8 +183,53 @@ const ROL_IZINLERI: Record<string, string[]> = {
  * sayısı da değiştiyse kapı düşündüğümden geniş açılmış demektir ve
  * yapılacak şey sayıyı güncellemek DEĞİL, izni geri almaktır (tuzak 114).
  */
+/**
+ * ── 05.11.2026 · `isletme_muduru` SAYISI EKLENDİ · boşluk kapandı ────────
+ *
+ * ⚠️ BU ROL BİR AYDIR TABLODA YOKTU ve bu, en kötü yerdeki boşluktu:
+ * `isletme_muduru` **müşterinin kendi rolü**. İzin listesi 30.10'da
+ * eklenmişti (yukarıdaki nota bakın) ama sayı tablosuna yazılmadı — yani
+ * müdürün menüsü donmuş değildi, sessizce büyüyüp küçülebilirdi.
+ * Aşağıdaki yapısal sınama bu boşluğun bir daha açılmasını engelliyor.
+ *
+ * ⚠️ İLK TÜRETMEM YANLIŞTI VE TEST SÖYLEDİ — bu not o yüzden duruyor.
+ *
+ * **19** yazmıştım. Gerekçem şuydu: müdürün izinleri sahibin tam alt
+ * kümesi (ölçüldü: müdürde olup sahipte olmayan tek izin yok; sahipte olup
+ * müdürde olmayan dördü `company.manage`, `roles.manage`,
+ * `settings.manage`, `users.manage`), ve kayıt defterinde o dörtten yalnız
+ * `company.manage` bir ögeye `requiredPermission` olarak bağlı →
+ * **Veri ve Yedekleme**. Yani fark bir öge olmalıydı.
+ *
+ * Test **18** dedi ve farkın `['Kullanıcılar', 'Veri ve Yedekleme']`
+ * olduğunu yazdı. Eksik varsayım şuydu:
+ *
+ *     workspace-navigation.registry.ts:96
+ *     const requiredPermission = item.requiredPermission ?? module.permissions[0]
+ *
+ * **Kendi izni olmayan bir menü ögesi, modülünün İLK iznini devralıyor.**
+ * `Kullanıcılar` ögesinin `requiredPermission`ı yok; `system-users`
+ * modülünün `permissions[0]`ı ise `users.manage` — müdürde o izin yok,
+ * dolayısıyla öge hiç üretilmiyor. Ben yalnız ögelerin KENDİ izinlerine
+ * bakmıştım.
+ *
+ * ⚠️ Aynı satır başka bir bulmacayı da çözdü: Kalite Sorumlusu neden
+ * "Tedarikçiler"i görmüyor? Çünkü `business-purchase.permissions[0]`
+ * `purchase.read` ve onda o izin yok. Devralma mekanizması
+ * `src/navigation/devralinan-izin.arch.test.ts` ile donduruldu — bir
+ * modülün izin dizisini yeniden sıralamak, kimin ne gördüğünü sessizce
+ * değiştirir.
+ *
+ * ➜ Doğru türetme: müdür = sahibi − {Kullanıcılar (`users.manage`),
+ *   Veri ve Yedekleme (`company.manage`)} = 20 − 2 = **18**.
+ *
+ * ⚠️ Testin işi türetmeyi onaylamak değil, YANLIŞSA SÖYLEMEK — ve tam
+ * bunu yaptı. Sayı tutmazsa yapılacak şey sayıyı değiştirmek değil,
+ * türetmedeki hangi varsayımın çöktüğünü bulmaktır (tuzak 114).
+ */
 const BEKLENEN_EKRAN_SAYISI: Record<string, number> = {
   isletme_sahibi: 20,      // 19 + Şahit Numune
+  isletme_muduru: 18,      // ⚠️ sahibi − Kullanıcılar − Veri ve Yedekleme
   depo_sorumlusu: 13,      // 12 + Şahit Numune
   satinalma_sorumlusu: 7,  // değişmedi: quality.read yok
   uretim_sorumlusu: 10,    // 9 + Şahit Numune
@@ -332,6 +377,73 @@ describe('⚠️ İzin listeleri canlı veritabanıyla aynı menüyü üretiyor'
       expect(menuEkranlari(ROL_IZINLERI[rol]),
         'izin listesi veritabanından sapmış olabilir').toHaveLength(sayi)
     })
+  })
+})
+
+// ── 0.B · HER ROLÜN SAYISI DONMUŞ MU · YAPISAL BEKÇİ (05.11) ────────────
+// ⚠️ `isletme_muduru` bir ay boyunca izin listesinde VARDI ama sayı
+// tablosunda YOKTU. Sonuç: müşterinin kendi rolünün menüsü donmamıştı ve
+// kimse fark etmedi — çünkü eksikliği söyleyen bir sınama yoktu.
+// Bu bekçi, iki tablonun aynı rolleri taşıdığını ölçüyor. Yeni bir rol
+// eklendiğinde sayısını yazmayı unutmak artık KIRMIZI verir.
+describe('⚠️ iki tablo da aynı rolleri taşıyor', () => {
+  it('izin listesi olan her rolün BEKLENEN ekran sayısı da var', () => {
+    const sayisiz = Object.keys(ROL_IZINLERI)
+      .filter(rol => !(rol in BEKLENEN_EKRAN_SAYISI))
+    expect(
+      sayisiz,
+      'Bu rollerin izin listesi donmuş ama menüsü donmamış: sessizce '
+      + 'büyüyüp küçülebilirler.',
+    ).toEqual([])
+  })
+
+  it('beklenen sayısı olan her rolün izin listesi de var', () => {
+    const izinsiz = Object.keys(BEKLENEN_EKRAN_SAYISI)
+      .filter(rol => !(rol in ROL_IZINLERI))
+    expect(izinsiz, 'sayısı var ama izin listesi yok — ölçüm boşa koşuyor')
+      .toEqual([])
+  })
+
+  it('sağlama · bekçi eksikliği GERÇEKTEN görüyor', () => {
+    const eksik = { a: ['x'], b: ['y'] }
+    const sayilar: Record<string, number> = { a: 1 }
+    expect(Object.keys(eksik).filter(r => !(r in sayilar))).toEqual(['b'])
+  })
+})
+
+// ── 0.C · MÜDÜR SAHİPTEN TAM OLARAK BİR EKRANDA AYRILIYOR (05.11) ───────
+// ⚠️ Sayı doğru kalıp YANLIŞ ekranın eksilmesi mümkün. Bu yüzden ölçü
+// yalnız sayı değil KİMLİK: aradaki tek fark "Veri ve Yedekleme" olmalı.
+// Türetmenin dayanağı da bu: müdürün izinleri sahibin alt kümesi ve eksik
+// dört izinden yalnız `company.manage` bir menü ögesinin kapısı.
+describe('⚠️ İşletme Müdürü · sahipten TAM OLARAK iki ekran eksik', () => {
+  const SAHIBI = menuEkranlari(ROL_IZINLERI.isletme_sahibi)
+  const MUDUR = menuEkranlari(ROL_IZINLERI.isletme_muduru)
+
+  it('müdürün görmediği iki ekran: Kullanıcılar ve Veri ve Yedekleme', () => {
+    // ⚠️ İkisinin kapısı FARKLI yerlerde yazılı ve bu bilerek ölçülüyor:
+    //   · Veri ve Yedekleme → ögenin KENDİ `requiredPermission`ı
+    //     (`company.manage`),
+    //   · Kullanıcılar      → ögenin izni YOK, modülünün `permissions[0]`ını
+    //     DEVRALIYOR (`system-users` → `users.manage`).
+    // İkincisi görünmez bir kapıdır; ilk türetmemi tam o yanılttı.
+    const eksik = SAHIBI.filter(ekran => !MUDUR.includes(ekran))
+    expect(
+      eksik,
+      'Müdür ile sahip arasındaki fark değişmiş. Beklenen: Kullanıcılar '
+      + '(`users.manage`, devralınan) ve Veri ve Yedekleme (`company.manage`).',
+    ).toEqual(['Kullanıcılar', 'Veri ve Yedekleme'])
+  })
+
+  it('müdürde fazladan ekran YOK · izinleri sahibin alt kümesi', () => {
+    const fazla = MUDUR.filter(ekran => !SAHIBI.includes(ekran))
+    expect(fazla, 'müdür sahibin görmediği bir ekranı görüyor').toEqual([])
+  })
+
+  it('⚠️ müdür Şirket Ayarları ekranını GÖRÜYOR (MIYOP-084)', () => {
+    // 30.10'da kapı `settings.manage`ten `company.read`e indi. Müdürde
+    // `company.read` var; yani bu ögenin müdürde GÖRÜNMESİ doğru davranış.
+    expect(MUDUR).toContain('Şirket Ayarları')
   })
 })
 

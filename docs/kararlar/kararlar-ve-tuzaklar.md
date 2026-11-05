@@ -984,6 +984,46 @@ göreceği hata mesajları** da (`'Çok fazla deneme yapıldı'`) bozuluyordu.
 ⚠️ Ve komut kendi çıktısını **ölçmeli**: panoda `ş` var mı, bozuk `Ã` var
 mı. "Kopyaladım" demek yetmez; kopyanın sağlam olduğu gösterilir.
 
+**188 · MENÜNÜN YARISININ KAPISI, BAŞKA BİR DOSYADAKİ DİZİNİN SIRASI.**
+(05.11.2026) `isletme_muduru` rolünün beklenen ekran sayısını **türettim**
+ve yanlış çıktı. Türetme şuydu: müdürün izinleri sahibin tam alt kümesi
+(ölçüldü), eksik dört izinden yalnız `company.manage` bir menü ögesine
+`requiredPermission` olarak bağlı → fark bir öge olmalı → 19.
+Test **18** dedi ve farkın `['Kullanıcılar', 'Veri ve Yedekleme']`
+olduğunu yazdı.
+
+Eksik varsayım, `workspace-navigation.registry.ts` içinde **tek bir
+satırdı**:
+
+    const requiredPermission = item.requiredPermission ?? module.permissions[0]
+
+**Kendi izni olmayan menü ögesi, modülünün İLK iznini devralıyor.**
+"Kullanıcılar" ögesinin yanında hiçbir izin yazmaz; kapısı
+`system-users.permissions[0]` yani `users.manage`. Müdürde o izin yok,
+öge hiç üretilmiyor. Ben yalnız ögelerin **kendi** izinlerine bakmıştım.
+
+⚠️ Aynı satır, günlerdir çözemediğim bir bulmacayı da açıkladı: Kalite
+Sorumlusu neden "Tedarikçiler"i görmüyor? Çünkü
+`business-purchase.permissions[0]` `purchase.read` ve onda o izin yok.
+
+⚠️ **ASIL TEHLİKE ŞU:** ölçüldü, **25 modülün** canlı menü ögeleri bu
+devralmayla kapılı. Yani bir modülün `permissions` dizisini **yeniden
+sıralamak** — tek bir izin satırı değişmeden — kimin hangi ekranı
+gördüğünü değiştirir. `system-users.permissions` bir gün
+`['users.read', 'users.manage', …]` olsaydı **İşletme Müdürü yetki
+dağıtımı ekranını görmeye başlardı** ve hiçbir kod incelemesi bunu
+"izin değişikliği" diye göstermezdi.
+➜ `src/navigation/devralinan-izin.arch.test.ts`: 25 modülün
+`permissions[0]`ı donduruldu, devralma satırının yerinde durduğu ayrıca
+ölçülüyor (satır giderse donma anlamsızlaşır), ve devralmaya yeni başlayan
+bir modül tabloda yoksa kırmızı veriyor.
+
+⚠️ **Ders:** bir ekranın kapısı, ekranın yanında yazmıyor olabilir.
+"İzni yok" demeden önce **devralma zinciri** sorulur. Ve bir türetme,
+sistemin tek bir satırını kaçırdığı için çökebilir — o yüzden türetme
+teste yazılır, teste **onaylatılır**; test "yanlışsa söyle" diye vardır
+ve bu kez tam onu yaptı.
+
 **187 · ÜRÜNÜN KENDİ KARARINI UYGULAMAYAN EKRAN — VE BENİ DURDURAN ÖLÇÜM.**
 (05.11.2026) Emrah iki açık maddeden birinde *"(a) şıkkı olsun ama bir
 sakıncası var mı?"* diye sordu: Operasyon Personeli'ne `purchase.read`
@@ -1995,6 +2035,11 @@ Son söz onun çıktısındadır.
     şey korumaz; orada sürüm/kimlik taşımak gerekir.
 94. Bir ölçümün **sağlaması, ölçümle AYNI nesneyi** kullanır (tuzak 170).
     Deseni ikinci kez elle yazan sağlama, bozulan asıl ölçümü yakalamaz.
+120. Bir ekranın kapısı **ekranın yanında yazmıyor olabilir** (tuzak 188).
+     Menü ögesi kendi iznini söylemezse modülünün İLK iznini devralır;
+     "izni yok" demeden önce devralma zinciri sorulur.
+121. Bir dizinin **sırası** kapı ise, o sıra **dondurulur** (tuzak 188).
+     Yeniden sıralamak, hiçbir izin satırı değişmeden yetki genişletir.
 118. Bir ürün kararı **üç yerde** yaşar: göç, veritabanı kapısı, ekran
      (tuzak 187). İkisi anlaşıp üçüncüsü ayrı düşerse hata mesajı değil
      **sessiz bir eksiklik** çıkar — kimse hata görmez, iş yapılamaz.
