@@ -184,12 +184,30 @@ describe('sahte veri üreticisi çıcırı', () => {
   //
   // ⚠️ MASUM DAL VAR: `getItem(k) === null ? [] : ...` uydurmuyor, "boş"
   // diyor. O yüzden desen dalı okuyor ve boş liste/nesne/null'ı geçiyor.
-  const MEKANIZMA = /getItem\([^)]*\)\s*===\s*null\s*\?\s*([^\s:][^:]{0,60}?)\s*:/g
+  // ⚠️ SABİT DEĞİL FONKSİYON · MIYOP-089'un dersi. `g` bayraklı bir
+  // `RegExp` `lastIndex` tutar; aynı nesneyi paylaşmak sinsi hata kaynağı.
+  // Ve aşağıdaki sağlama GERÇEK deseni kullanıyor, kopyasını değil.
+  const mekanizmaDeseni = () => /getItem\([^)]*\)\s*===\s*null\s*\?\s*([^\s:][^:]{0,60}?)\s*:/g
   const MASUM = new Set(['[]', '{}', 'null', 'undefined', "''", '""'])
   const uyduranDallar = (kod: string) => (
-    [...kod.matchAll(MEKANIZMA)]
+    [...kod.matchAll(mekanizmaDeseni())]
       .map(m => m[1].replace(/\s+/g, ' ').trim())
       .filter(dal => !MASUM.has(dal))
+  )
+
+  /**
+   * ⚠️ MIYOP-097 (Codex, 04.11) · İKİNCİ KAÇIŞ YOLU: `readJson(key, X)`.
+   * `readJson` boş depoda `X`i döndürüyor — yani `X` uydurma bir şeyse
+   * mekanizma `getItem` yazmadan aynı işi yapar ve üstteki desen görmez.
+   * ÖLÇÜLDÜ (05.11): `storage.ts`te tek bir `readJson` çağrısı var ve
+   * yedeği `null`. Yani bu yol bugün BOŞ — o yüzden çıcır değil, SIFIR.
+   */
+  const readJsonDeseni = () =>
+    /readJson\s*(?:<[^>]*>)?\s*\(\s*[^,()]{1,80},\s*([^()]{1,80}|[A-Za-z_$][\w$]*\([^)]*\))\s*\)/g
+  const readJsonUydurmalari = (kod: string) => (
+    [...kod.matchAll(readJsonDeseni())]
+      .map(m => m[1].replace(/\s+/g, ' ').trim())
+      .filter(yedek => !MASUM.has(yedek))
   )
 
   /**
@@ -201,6 +219,44 @@ describe('sahte veri üreticisi çıcırı', () => {
    * Sayı yalnız AZALABİLİR; artarsa yeni bir mayın döşenmiş demektir.
    */
   const MEKANIZMA_UST_SINIR = 4
+
+  // ⚠️ MIYOP-097 (Codex, 04.11) · BU SAĞLAMA YOKTU VE YOKLUĞU ÖLÇÜLDÜ:
+  // mekanizma desenini eşleşemez hâle getirince on sınamanın onu da YEŞİL
+  // kalıyordu. Yani "mekanizma dört yerde" diyen çıcırın, hâlâ sayabildiğini
+  // söyleyen kimse yoktu. Üretici sayımının sağlaması vardı, bunun yoktu.
+  it('sağlama · MEKANİZMA dedektörü hâlâ görüyor (suçlu) ve ayırt ediyor (masum)', () => {
+    const SUCLU = [
+      'const a = localStorage.getItem(K) === null ? createDemoSeyler() : oku(K)',
+      'const b = localStorage.getItem(K2) === null ? varsayilanPaketler : oku(K2)'
+    ].join('\n')
+    const MASUM_ORNEK = [
+      'const c = localStorage.getItem(K3) === null ? [] : oku(K3)',
+      'const d = localStorage.getItem(K4) === null ? null : oku(K4)',
+      'const e = localStorage.getItem(K5) === null ? {} : oku(K5)'
+    ].join('\n')
+    expect(uyduranDallar(SUCLU), 'dedektör uyduran dalı GÖRMÜYOR').toHaveLength(2)
+    expect(uyduranDallar(MASUM_ORNEK), 'dedektör masum dalı suçlu sayıyor').toEqual([])
+  })
+
+  it('⚠️ MIYOP-097 · readJson yedeği uydurma DEĞİL (bugün sıfır)', () => {
+    expect(
+      readJsonUydurmalari(yorumsuz(DEPO)),
+      'readJson bir uydurucuyu yedek olarak veriyor — boş depoda uydurma '
+      + 'veri döner ve getItem desenine YAKALANMAZ.'
+    ).toEqual([])
+    // negatif denetim: dedektör o şekli gerçekten görüyor
+    expect(readJsonUydurmalari('const x = readJson(KEY_X, createDemoSeyler())')).toHaveLength(1)
+    expect(readJsonUydurmalari('const y = readJson<User | null>(KEY_AUTH, null)')).toEqual([])
+  })
+
+  // ⚠️ ÖLÇÜLDÜ VE KULLANILMADI (05.11): Codex `|| createX()` ve `?? X`
+  // yazımlarını da kaçış yolu olarak saydı. `src` taranınca `|| create…`
+  // deseni **119 yerde** çıktı ve hepsi meşruydu (`createId('shipment')`,
+  // `createCompanyCode(...)` gibi kimlik/kod üreticileri). `??` yazımları da
+  // gerçek nesnelerin alan yedekleriydi (`legacyItem.priceMonthly`).
+  // Yani bu iki yazım **ölçüm olarak kullanılamaz**; sinyal değil gürültü.
+  // Bunu yazmak, bir gün "neden onlar kapsanmadı" diye sorulduğunda
+  // cevabın ölçüm olmasını sağlıyor.
 
   it('⚠️ "anahtar yoksa UYDUR" mekanizması · sayı yalnız AZALABİLİR', () => {
     const kalan = uyduranDallar(yorumsuz(DEPO))

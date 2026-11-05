@@ -984,6 +984,151 @@ göreceği hata mesajları** da (`'Çok fazla deneme yapıldı'`) bozuluyordu.
 ⚠️ Ve komut kendi çıktısını **ölçmeli**: panoda `ş` var mı, bozuk `Ã` var
 mı. "Kopyaladım" demek yetmez; kopyanın sağlam olduğu gösterilir.
 
+**183 · "CANLI CEVAP VERMİYOR" — ÜÇ YANLIŞ ÖLÇÜM, SONRA DOĞRU SORU.**
+(05.11.2026 · üretim kesintisi, ~1 saat) `npm test` içindeki
+`supabase.connection.test.ts` iki koşuda da 20 saniyede düştü ve commit'i
+kilitledi. Sebebi bulana kadar **üç ölçüm yaptım ve üçü de soruyu
+cevaplamıyordu**:
+· *site HTTP 200* → yalnız DERLENMİŞ statik sayfa. Supabase'e komut
+  satırından hiç dokunulmadı. Hiçbir şey kanıtlamıyor.
+· *`/auth/v1/health` cevap verdi* → yalnız GEÇİT (Kong) ayakta demek.
+  Veri API'si hakkında tek kelime söylemiyor.
+· *panelde `STATUS: Healthy`* → proje duraklatılmamış demek. Doğru ama
+  yetersiz: "proje ayakta" ile "veri API'si çalışıyor" ayrı iki şey.
+⚠️ Üstüne bir de **log okumadan tahmin yürüttüm**: "legacy anahtar
+kapatılmış olabilir" dedim. Hatalar 401 değil **504**'tü; anahtar sapasağlam
+duruyordu. Durum kodunu okumadan kurulan hipotez bir tur yedi.
+
+**Cevabı veren iki ölçüm şunlardı:**
+1. Panelin kendi sayaçları: **API Gateway 175 istek / 145 hata**, ama
+   **Postgres yalnız 4 istek** görmüş. Yani istekler veritabanına
+   ULAŞMIYORDU — demek ki sorun veritabanında değil, önündeki katmanda.
+2. Geçit günlüğünde `GET /rest-admin/v1/ready → **503**` (Supabase'in
+   KENDİ sağlık yoklaması) ve PostgREST günlüğünde, her 30-40 saniyede
+   tekrarlayan:
+   `PGRST003 · Timed out acquiring connection from connection pool`
+   `Failed to load the schema cache ...`
+   `Attempting to reconnect to the database in 32 seconds...`
+
+**Teşhis:** PostgREST veritabanından bağlantı alamıyor, şema önbelleğini
+yükleyemiyor, hazır olamıyor; geçit bekliyor ve her `rest/v1` isteği **504**
+dönüyor. Postgres'in kendisi sağlamdı — `auth/v1` aynı veritabanına bağlanıp
+200 veriyordu. `db/migrations` altında `authenticator`, `alter role` ya da
+`connection limit` geçen tek satır yok: bizden kaynaklanmıyordu.
+**Çözüm:** Supabase panelinden **Restart project**. Sonrasında `uom`
+okuması **0,7 saniyede HTTP 200**.
+
+⚠️ **Ders (katmanlı sistemde teşhis):** sistem tek parça değil; arıza BİR
+katmanda olur. Soru "çalışıyor mu" değil, **"hangi katman"**dır. Ve her
+ölçümün önce *neyi kanıtladığı* söylenir: statik sayfa web sunucusunu,
+`auth/v1` geçidi, `rest/v1` veri yolunu kanıtlar. Yanlış katmanı ölçüp
+"ulaşamıyoruz" demek, teşhis değil gürültüdür.
+⚠️ **İkinci ders:** `npm test` üretim Supabase'ine bağlı (`.env.test.local`
+yalnız `VITE_TEST_*` tanımlıyor, `VITE_SUPABASE_*`'ı ezmiyor — ÖLÇÜLDÜ).
+Yani üretim bir saat düştüğünde **hiçbir commit atılamadı**. Kapının neyi
+ölçtüğü karar gerektiriyor; açık madde.
+
+**182 · ÖLÇMEDEN KAPSAMA ÇIKARMA: "KAÇIŞ YOLU" SANILAN İKİ YAZIM, 119
+MEŞRU ÇAĞRIYDI.** (05.11 · MIYOP-097) Codex, "anahtar yoksa uydur"
+tarayıcısının `readJson` yedeklerini, `??` ve `||` yazımlarını kaçırdığını
+söyledi. Üçünü de **ölçtüm**:
+· `readJson(key, X)` — `storage.ts`te tek çağrı, yedeği `null`. Yol **boş**,
+  ama şekil gerçek: bir gün `readJson(KEY, createDemoX())` yazılabilir.
+  O yüzden ayrı bir dedektör eklendi ve **sıfır** olarak donduruldu.
+· `?? X` — yedi kullanım, hepsi gerçek nesnelerin alan yedeği
+  (`legacyItem.priceMonthly`). Uydurma değil.
+· `|| createX()` — bütün `src` tarandı: **119 yer**, hepsi meşru kimlik/kod
+  üreticisi (`createId('shipment')`, `createCompanyCode(...)`).
+⚠️ Ders iki yönlü. (a) Bir kaçış yolunun **şekli** varsa, bugün boş olsa da
+bekçisi konur — sıfır olarak. (b) Ama bir yazımı kapsama almadan önce
+**kaç tane var** diye bakılır: `|| createX()` sinyal değil gürültüydü ve
+onu ölçüme katmak çıcırı kullanılamaz hâle getirirdi. Kapsamayı ölçüm
+belirler, sezgi değil — ve kapsanmayanın **gerekçesi yazılır**.
+
+**181 · İKİ BEKÇİ, KORUDUKLARI SATIR *SUSTURULUNCA* SUSUYORDU.**
+(05.11 · MIYOP-097 · MIYOP-098 · Codex)
+· `menusuz-rota-etiketi.arch.test.ts`: `setActiveNavKey(hedef)` satırının
+  başına `//` koymak yedi sınamanın yedisini de **yeşil** bırakıyordu.
+  Bekçi satırın SİLİNMESİNİ görüyor, **yoruma alınmasını** görmüyordu.
+  ÖLÇÜLDÜ: ham metinde yakalanmıyor, yorumlar soyulunca yakalanıyor.
+· `sahte-veri-ureticisi.arch.test.ts`: mekanizma sayacının **sağlaması
+  yoktu**. Deseni eşleşemez hâle getirince on sınamanın onu da yeşil
+  kalıyordu — üretici sayımının sağlaması vardı, mekanizma sayımının yoktu.
+⚠️ Ders: bir bekçinin iki ayrı sağlaması olur. (1) **Hâlâ görüyor mu** —
+suçlu bir örnekte bulduğu, masum bir örnekte bulmadığı iddia edilir
+(tuzak 170: ölçümün kendisiyle, ikiziyle değil). (2) **Susturmaya
+dayanıklı mı** — kodu okuyan her ölçüm önce yorumları soyar. Bu depoda
+aynı ders dördüncü kez çıktı (tuzak 153, 170, 171, 181).
+
+**180 · POWERSHELL'DE TIRNAK KAÇIŞI TERS BÖLÜ DEĞİL — VE BUNU ÖLÇEMEDİM.**
+(05.11) Geri yükleme provasına tırnaklı tablo adı yazdım:
+`"... from \"$($parca[0])\"..."`. PowerShell'de çift tırnak içinde kaçış
+karakteri **ters tırnaktır**, ters bölü değil. Betik **ayrıştırılamadı**:
+Emrah komutu çalıştırdı ve karşısına iki `ParserError` çıktı. Yani P0'ı
+kapattığını söylediğim betik **hiç çalışmadı**.
+⚠️ Asıl mesele şu: bu ortamda PowerShell **yok**. Yazdığım `.ps1`in
+sözdizimini koşturarak sınayamıyorum, yani o ölçümün masrafını Emrah'ın
+terminali ödüyor. Bu bir sınır ve **yazılı** olması gerekiyordu.
+➜ Boşluğu kısmen kapatan bir sınama eklendi
+(`src/core/powershell-kacis.arch.test.ts`): bütün `.ps1` dosyalarında
+(a) `\"` yok, (b) küme/parantez dengesi tutuyor — ve iki dedektörün de
+bozuk bir örneği yakaladığı ayrıca ölçülüyor. Bir ayrıştırıcı DEĞİL;
+bu sınır da testin içinde yazılı.
+⚠️ Çözüm kaçışsızdır: `$tirnakli = '"' + $ad + '"'`.
+
+**179 · "KİRACI SIFIR DEĞİL" KAPISI, 243 SATIR EKSİK BİR GERİ YÜKLEMEYİ
+YEŞİL GEÇİRDİ.** (05.11 · MIYOP-095 · Codex) Geri yükleme provasının yeşil
+ölçüsü tek bir cümleydi: *kiracı sayısı sıfır olmasın.* Codex "kısmi geri
+yükleme bu kapıdan geçer" dedi; **ölçtüm** (PostgreSQL 16.15, gerçek
+`-Fc` döküm, 106 göçlük şema):
+· dökümde 20 dolu tablo · 351 satır vardı;
+· `pg_restore -L` ile iki tablonun verisi (`role_permission` 223,
+  `uom_conversion` 20 satır) bilerek dışarıda bırakıldı;
+· **eski kapı:** kiracı = 1 → **YEŞİL derdi**;
+· **yeni kapı:** `role_permission 223 → 0`, `uom_conversion 20 → 0` →
+  **KIRMIZI**.
+⚠️ Ders: "yeşil"in ölçüsü **elle yazılmış bir alt sınır** olamaz. Doğru
+ölçü karşılaştırmadır: dökümün kendi COPY blokları tablo tablo sayılır,
+arşivin kendi içerik listesindeki TABLE / FUNCTION / TRIGGER / POLICY
+kayıtları sayılır, ikisi de geri yüklenen veritabanıyla karşılaştırılır.
+Eksik tek bir kalem provayı kırar. Alt sınır yazmazsan yanılamazsın.
+
+**178 · DÖKÜM TIRNAKLI YAZIYOR; AYRIŞTIRICIM TIRNAKSIZ BEKLİYORDU.**
+(05.11) 179'un ölçümünü kurarken ayrıştırıcıyı `^COPY\s+([^\s(]+)` diye
+yazdım — yani `COPY public.tenant (...)` bekliyordu. **Gerçek dökümü
+ürettim ve baktım:** `yedek-al.ps1` dökümü `--quote-all-identifiers` ile
+alıyor, satır şöyle geliyor:
+`COPY "public"."allergen" ("code", ...) FROM stdin;`
+Yani ayrıştırıcı **hiçbir tabloyu tanımayacaktı** ve prova "dökümde hiç
+veri yok" diye **yanlış kırmızı** verecekti — üstelik bu, yeni eklediğim
+koruma yüzünden olacaktı.
+⚠️ Ders: bir biçimi ayrıştıran kodu, **o biçimin gerçek bir örneğiyle**
+koştur. Döküm komutunun kendi bayrakları (burada tek bir
+`--quote-all-identifiers`) ayrıştırıcının girdisini değiştirir.
+
+**177 · "BU BETİK CANLI VERİTABANINA DOKUNMAZ" BİR YORUMDU, KORUMA DEĞİL.**
+(05.11 · MIYOP-093 · Codex) `geri-yukle-provasi.ps1` başında büyük harfle
+*"!! BU BETİK CANLI VERİTABANINA DOKUNMAZ"* yazıyordu. Kodda ise:
+· veritabanı adı **serbest bir parametreydi** (`-Veritabani`),
+· betiğin **ilk işi** o adı `dropdb --if-exists` ile **silmekti**,
+· hiçbir komutta sunucu belirtilmemişti, yani `PGHOST` / `PGHOSTADDR` /
+  `PGSERVICE` hedefi **uzak** bir sunucuya çevirebilirdi.
+Yani var olan bir veritabanının adı verilse prova başlamadan o veritabanı
+gidiyordu — ve betiği **ben** yazmıştım.
+⚠️ Ders: bir betiğin başındaki büyük harfli güvence, o betiğin ne yaptığına
+dair bir **iddiadır**; korumayı kod kurar. Şimdi: ad her koşuda üretiliyor,
+var olana denk gelirse **dokunmadan duruyor**, bağlantı ortam değişkenleri
+temizleniyor, her komut aynı hedefe açıkça bağlanıyor, hedefin yerelliği
+`inet_server_addr()` ile **sunucuya sorulyor**, ve yalnız bu koşunun açtığı
+veritabanı siliniyor. Şekil `src/backup/geri-yukleme-provasi.arch.test.ts`
+ile donduruldu — testin kendi dedektörleri eski kötü şeklin bir örneğine de
+uygulanıyor, yani **ölçtüğü kanıtlanıyor** (tuzak 170'in dersi).
+⚠️ Yan onarım (MIYOP-099): `yedek-al.ps1`in CLI yolundaki not hâlâ
+`roller.sql → sema.sql → veri.sql` sırasını **yapılabilir bir yol** gibi
+anlatıyordu. Tuzak 176'da ölçülmüştü: o sıra **çıkış kodu 0** verip bütün
+iş verisini kaybediyor. Not artık "bu yedek geri yüklenebilir sayılmaz"
+diyor ve doğru yolu gösteriyor.
+
 **176 · İKİ GERİ YÜKLEME YOLU DA YALAN SÖYLÜYOR — TERS YÖNLERE.** (02.11)
 Geri yükleme yöntemi ilk kez gerçekten koşturuldu (PostgreSQL 16.15, 106
 göçlük şema, boş veritabanı):
@@ -1711,6 +1856,34 @@ Son söz onun çıktısındadır.
     şey korumaz; orada sürüm/kimlik taşımak gerekir.
 94. Bir ölçümün **sağlaması, ölçümle AYNI nesneyi** kullanır (tuzak 170).
     Deseni ikinci kez elle yazan sağlama, bozulan asıl ölçümü yakalamaz.
+108. Katmanlı bir sistemde soru **"çalışıyor mu" değil "hangi katman"**
+     (tuzak 183). Her ölçümün neyi kanıtladığı önce söylenir: statik sayfa
+     web sunucusunu, `auth/v1` geçidi, `rest/v1` veri yolunu kanıtlar.
+109. Bir hatanın **durum kodunu okumadan** sebep hipotezi kurma (tuzak 183).
+     504 ile 401 bambaşka iki dünyadır; biri bekleme, öteki ret.
+104. Kodu okuyan her ölçüm **önce yorumları soyar** (tuzak 181). Satırın
+     silinmesini gören bekçi, satır yoruma alınınca susar.
+105. Her bekçinin **iki** sağlaması olur (tuzak 181): suçlu bir örnekte
+     bulduğu, masum bir örnekte bulmadığı. Ve sağlama ölçümün KENDİSİNİ
+     kullanır, ikizini değil (tuzak 170).
+106. Bir yazımı kapsama almadan önce **kaç tane var** diye bak (tuzak 182).
+     `|| createX()` 119 meşru çağrıydı; ölçüme katmak çıcırı öldürürdü.
+     Kapsanmayanın gerekçesi **yazılır**.
+107. ⚠️ **Bu ortamda PowerShell YOK** (tuzak 180). Yazılan `.ps1`in
+     sözdizimi burada koşturulamaz; o ölçümün masrafını Emrah'ın terminali
+     öder. PowerShell'de çift tırnak içinde kaçış **ters tırnaktır**;
+     tırnak gerekiyorsa birleştirme kullan: `'"' + $ad + '"'`.
+102. **Silen bir komut, adını kendi üretmedi ise silmez** (tuzak 177).
+     Serbest parametreyle gelen bir ad `dropdb`e verilmez; ad üretilir,
+     var olana denk gelirse **dokunmadan durulur**, ve yalnız o koşunun
+     açtığı şey temizlenir.
+103. Veritabanına bağlanan her komut hedefi **açıkça** taşır (tuzak 177):
+     `-h` / `-p` verilmezse `PGHOST`, `PGHOSTADDR`, `PGSERVICE` devralınır.
+     Yerel olduğu da varsayılmaz, `inet_server_addr()` ile **sorulur**.
+100. "Yeşil"in ölçüsü **elle yazılmış bir alt sınır olamaz** (tuzak 179).
+     Döküm/arşiv **kendisiyle** karşılaştırılır; eksik tek kalem kırar.
+101. Bir biçimi ayrıştıran kodu, o biçimin **gerçek bir örneğiyle** koştur
+     (tuzak 178). Döküm komutunun bayrakları girdiyi değiştirir.
 99. Geri yüklemeyi **sayarak** doğrula, çıkış koduyla değil (tuzak 176).
     `pg_restore` sağlam bir geri yüklemede 1 döner; `psql` her şeyi
     kaybettiğinde 0 döner.

@@ -3466,10 +3466,22 @@ export const saveBranchStockTransfers = (items: BranchStockTransfer[]) => {
 // ⚠️ İKİ FONKSİYON BİLEREK KALDI ve ADLARI DEĞİŞTİ:
 //   createDemoLicensePackages → varsayilanLisansPaketleri
 //   createDemoLicenseModules  → varsayilanLisansModulleri
-// Sebep: bu ikisi UYDURMA KAYIT DEĞİL, ÜRÜN KATALOĞU. `defaultPackageSpecs`
-// sabitinden türüyorlar — MİYOP'un gerçekten sattığı planlar ve her planın
-// hangi modülleri içerdiği. Silmek, lisans ekranlarını plansız bırakırdı;
-// kazanç yok, kayıp var. Adları yanıltıcıydı: "demo" değiller, varsayılan.
+// Sebep: bu ikisi uydurma KAYIT değil, bir KATALOG — `defaultPackageSpecs`
+// sabitinden türüyorlar.
+//
+// ⚠️ 02.11.2026 · YUKARIDAKİ GEREKÇE İLK YAZILDIĞINDA *"MİYOP'un gerçekten
+// sattığı planlar"* diyordu. Codex sordu, ÖLÇÜLDÜ, TUTMUYOR:
+//   kodda  : Ücretsiz/Başlangıç/Pro/Premium/Kurumsal · 999–4999 ₺ ·
+//            `maxTables` (MASA SAYISI) · modüller 'adisyon', 'qr-menu'
+//   0042'de: iki paket · fiyat 0 · kullanıcı/şube sınırı null ·
+//            'endustriyel-mutfak-baslangic', 'genel-baslangic'
+// Yani buradaki katalog ESKİ ADİSYON ÜRÜNÜNÜN kataloğu. Endüstriyel
+// mutfakta masa yoktur; `maxTables` tek başına kanıt.
+// ➜ Bunlar MİYOP'un sattığı planlar DEĞİL. Lisans ekranları açılmadan önce
+//   gerçek katalogdan (veritabanı) beslenmeli ya da bu ikisi silinmeli.
+//   Bugün zararsız olmasının tek sebebi o ekranların KAPALI olması
+//   (`PLATFORM_HAZIR_ROTALAR` dört rota içeriyor, bunlar orada değil).
+// Adları yine de yanıltıcıydı: "demo" değiller, varsayılan.
 // ⚠️ Sayımdan ad değiştirerek çıkmak SAKLAMAK olurdu — bu yüzden çıcıra
 // ayrı bir sınama eklendi: bu iki adın `createDemo` önekiyle geri gelmesi
 // yasak, ve gerekçe burada yazılı.

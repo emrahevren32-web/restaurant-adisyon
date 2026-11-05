@@ -417,15 +417,58 @@ bilgisayarındaki** PostgreSQL'de geçici bir veritabanı açar, oraya geri
 yükler, **sayar** ve veritabanını siler.
 
 - ⚠️ **Supabase'e hiç bağlanmaz.** Canlıya giden tek satır yok.
-- ⚠️ **Çıkış koduna bakmaz** (tuzak 176); yargıyı satır sayıları verir.
-  `kiracı = 0` görürse açıkça *"bu yedek güvenilmez"* der.
+- ⚠️ **Çıkış koduna bakmaz** (tuzak 176); yargıyı sayılar verir.
 - Yerel PostgreSQL parolasını **sen** yazarsın; betik saklamaz.
 - Başka bir dosyayı denemek için: `-Dosya "F:\...\tam.dump"`.
   Veritabanını incelemek için bırakmak: `-Birak`.
+  Başka bir yerel sunucu/port: `-Sunucu` / `-Kapi`.
 
 Çıktıdaki sayıları **canlıyla karşılaştır**: aynı sorguyu Supabase SQL
 Editor'e yapıştır. Döküm alındıktan sonra yazılan kayıtlar yüzünden canlı
 sayılar **daha büyük** olabilir — **daha küçük olmamalı.**
+
+### ⚠️ 6.2.2.a · 05.11.2026 · BETİK İKİ YERDEN DÜZELTİLDİ (Codex)
+
+**1) Prova var olan bir veritabanını silebiliyordu (MIYOP-093 · P0).**
+Betiğin başında *"BU BETİK CANLI VERİTABANINA DOKUNMAZ"* yazıyordu, ama
+veritabanı adı **serbest bir parametreydi** (`-Veritabani`) ve betiğin
+**ilk işi** o adı `dropdb --if-exists` ile silmekti. Üstüne hiçbir komutta
+sunucu belirtilmediği için `PGHOST`, `PGHOSTADDR` ya da `PGSERVICE`
+hedefi **uzak** bir sunucuya çevirebilirdi.
+
+Şimdi:
+- `-Veritabani` parametresi **kaldırıldı**; ad her koşuda üretiliyor
+  (`miyop_prova_<tarih>_<rastgele>`),
+- o ad veritabanında zaten varsa betik **dokunmadan duruyor**,
+- devralınan bağlantı değişkenleri (`PGHOST`, `PGHOSTADDR`, `PGSERVICE`,
+  `PGSERVICEFILE`, `PGDATABASE`, `PGPORT`, `PGOPTIONS`) temizleniyor,
+- her komut `-h`/`-p` ile **aynı** hedefe bağlanıyor,
+- hedefin yerel olduğu `inet_server_addr()` ile **sunucuya soruluyor**;
+  loopback değilse betik hiçbir şey yapmadan duruyor,
+- yalnız **o koşunun açtığı** veritabanı siliniyor (yarıda kalsa bile).
+
+Şekil `src/backup/geri-yukleme-provasi.arch.test.ts` ile donduruldu.
+
+**2) "Kiracı sıfır değil" kapısı kısmi geri yüklemeyi geçiriyordu
+(MIYOP-095 · P1).** Eski yeşil ölçüsü tek cümleydi. **Ölçüldü** (gerçek
+`-Fc` döküm, 106 göçlük şema, PostgreSQL 16.15): iki tablonun verisi
+bilerek dışarıda bırakıldığında (`role_permission` 223 satır,
+`uom_conversion` 20 satır) eski kapı **yeşil** diyordu.
+
+Yeni ölçü **karşılaştırma**:
+- döküm duz SQL'e çevrilir, **her tablonun** COPY bloğundaki gerçek satır
+  sayısı sayılır, geri yüklenen veritabanıyla karşılaştırılır;
+- arşivin kendi içerik listesindeki **TABLE / FUNCTION / TRIGGER /
+  POLICY** kayıtları sayılır, veritabanındaki sayımla karşılaştırılır;
+- **eksik tek bir kalem** provayı kırar ve hangi tablo/kaç satır eksik
+  olduğu yazılır.
+
+Elle yazılmış bir alt sınır yok — ölçü dökümün kendisi.
+
+⚠️ **Yan not (tuzak 178):** döküm `--quote-all-identifiers` ile alınıyor,
+yani COPY satırı `COPY "public"."allergen" (...)` biçiminde geliyor.
+Ayrıştırıcının tırnakları soyması **zorunlu**; soymazsa prova "dökümde hiç
+veri yok" diye yanlış kırmızı verir.
 
 ---
 

@@ -252,7 +252,7 @@ if($secilen -eq 'pgdump'){
   # Bizde tam o durum var: sunucu 17, elimizdeki pg_dump 18. Surumler arasi
   # ayrilmis kelime listeleri farkli; tirnaksiz bir tablo adi bir surumde
   # gecerliyken otekinde ayrilmis kelime olabilir.
-  # ── !! GERI YUKLENECEK DOSYA BU: tam.dump ────────────────────────────
+  # -- !! GERI YUKLENECEK DOSYA BU: tam.dump ---------------------------
   # 31.10.2026 . ilk gercek yedekte pg_dump SU UYARIYI verdi:
   #   "DIKKAT: Bu tablolar arasinda dairesel (circular) foreign-key
   #    kisitlamalari bulunmaktadir: company, branch ... stock_movement.
@@ -429,12 +429,17 @@ if($secilen -eq 'pgdump'){
   $geriYuklemeNotu = @"
 !! BU YEDEKTE tam.dump YOK. CLI yolu ozel bicim uretmiyor; elde yalniz
    sema.sql, veri.sql ve roller.sql var.
-   Geri yukleme ELLE ve SIRALI yapilir:  roller.sql -> sema.sql -> veri.sql
-!! DIKKAT: semada DAIRESEL foreign key var (company<->branch,
-   stock_movement). Sirali yukleme bu yuzden PATLAYABILIR; kisitlari
-   gecici olarak ertelemek gerekebilir. Bu yol DAHA ZAYIFTIR.
-   Guclu yol icin PostgreSQL istemci araclarini kur ve betigi yeniden
-   calistir (pg_dump yolu tam.dump uretir).
+!! BU YEDEK GERI YUKLENEBILIR SAYILMAZ. Olculdu (02.11.2026, tuzak 176):
+   roller.sql -> sema.sql -> veri.sql sirasiyla psql'e verildiginde komut
+   0 ILE CIKTI, yani "basarili" gorundu; ama semadaki DAIRESEL foreign
+   key (company<->branch, stock_movement) yuzunden veri yuklemesi atlandi
+   ve BUTUN IS VERISI KAYBOLDU (kiraci 0, denetim defteri 0).
+   Yani bu sira size yanlis bir "oldu" cevabi verir.
+   DOGRU YOL: PostgreSQL istemci araclarini kur ve betigi yeniden calistir;
+   pg_dump yolu tam.dump uretir ve geri yukleme sudur:
+       pg_restore --no-owner --no-privileges -d <hedef> tam.dump
+   Sonra .\araclar\geri-yukle-provasi.ps1 ile SAYARAK dogrula.
+   Bu dosyalar o zamana kadar yalniz OKUMAK icindir.
 "@
 }
 @"

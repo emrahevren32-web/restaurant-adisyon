@@ -103,8 +103,14 @@ begin
   values (v_t, v_urun, 10);
   update public.stock_item_nutrition set fat = 12 where stock_item_id = v_urun;
 
+  -- ⚠️ MIYOP-090 (Codex, 04.11.2026) · BU SELECT DE KAPSAMSIZDI. Defter
+  -- append-only ve kiracılar aynı tabloyu paylaşıyor; su seviyesi ve kiracı
+  -- süzgeci olmadan bu sorgu BAŞKA bir kiracının ya da 0104 öncesinden
+  -- kalma bir satırını okuyup iddiayı onun üstüne kurabilirdi.
   select row_id, changes into v_satir, v_fark from public.audit_log
-   where table_name = 'stock_item_nutrition' and action = 'UPDATE'
+   where tenant_id = v_t
+     and id > current_setting('prova.denetim_basi')::bigint
+     and table_name = 'stock_item_nutrition' and action = 'UPDATE'
    order by id desc limit 1;
 
   perform prova_bak('güncelleme denetime düştü (defter çalışıyordu)', v_satir is not null);

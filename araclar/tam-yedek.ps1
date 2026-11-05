@@ -153,7 +153,7 @@ GIT
 Dal         : $dal
 Commit      : $commit
 Toplam      : $sayi commit
-Bundle      : miyop.gitbundle ($([math]::Round($bundleBayt/1MB,1)) MB) . `git bundle verify` GECTI
+Bundle      : miyop.gitbundle ($([math]::Round($bundleBayt/1MB,1)) MB) . 'git bundle verify' GECTI
 
 Commit edilmemis degisiklik:
 $(if($kirli){ $kirli } else { '  (yok . calisma kopyasi temiz)' })

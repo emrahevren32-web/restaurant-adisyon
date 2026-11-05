@@ -38,6 +38,35 @@ import {
 const KOK = projeKokunuBul()
 const APP = readFileSync(join(KOK, 'src/App.tsx'), 'utf8') as string
 
+/**
+ * Yorumları atar — satır içi (iki eğik çizgi) ve blok yorumlar.
+ *
+ * ⚠️ MIYOP-098 (Codex, 04.11) · NEDEN ZORUNLU. Aşağıdaki iddialar düz
+ * metne bakıyordu. `setActiveNavKey(hedef)` satırının başına `//` koymak
+ * yedi sınamanın yedisini de YEŞİL bırakıyordu: regex yoruma alınmış
+ * satırı da görüyordu. Yani MIYOP-091 için konulan bekçi, satır silinince
+ * uyarıyor ama satır **susturulunca** susuyordu.
+ * ÖLÇÜLDÜ (05.11): satır yoruma alındığında ham metinde yakalanmıyor,
+ * soyulmuş metinde yakalanıyor. Negatif denetim aşağıda ayrı bir sınama.
+ *
+ * ⚠️ `https://` gibi dizgeler bozulmasın diye `//` yalnız iki nokta
+ * üst üste gelmiyorsa atılıyor.
+ */
+export const yorumsuzKod = (metin: string): string => metin
+  .replace(/\/\*[\s\S]*?\*\//g, '')
+  .split('\n')
+  .map(satir => satir.replace(/(^|[^:])\/\/.*$/, '$1'))
+  .join('\n')
+
+const KOD = yorumsuzKod(APP)
+
+/** `menusuzRotaAc` yardımcısının gövdesi (yorumsuz metinden). */
+const yardimciGovdesi = (kaynak: string): string => {
+  const bas = kaynak.indexOf('const menusuzRotaAc = ')
+  if(bas < 0) return ''
+  return kaynak.slice(bas, kaynak.indexOf('\n  }', bas))
+}
+
 type Oge = { key: string; route?: string; foundationScope?: string; children?: Oge[] }
 
 /**
@@ -98,7 +127,7 @@ describe('Menüsüz rotaların ekran adı', () => {
 
   it('App.tsx ekran adını ÖNCE menüsüz haritadan soruyor', () => {
     expect(
-      APP,
+      KOD,
       'activeNavLabel menüsüz haritayı sormuyorsa profil ekranlarının '
       + 'başlığı yine bir önceki ekranın adı olur.'
     ).toMatch(/const activeNavLabel = MENUSUZ_ROTA_ETIKETLERI\[route\]/)
@@ -107,11 +136,11 @@ describe('Menüsüz rotaların ekran adı', () => {
   it('⚠️ profil menüsü bağlantıları activeNavKey\'e de dokunuyor', () => {
     // Çıplak `setRoute('company-profile')` yan menüdeki vurguyu eski ekranda
     // bırakıyordu. Bu iki kalıbın GERİ GELMEMESİ ölçülüyor.
-    expect(APP).not.toMatch(/\(\)\s*=>\s*setRoute\('company-profile'\)/)
-    expect(APP).not.toMatch(/\(\)\s*=>\s*setRoute\('my-profile'\)/)
-    expect(APP, 'menusuzRotaAc yardımcısı yok').toMatch(/const menusuzRotaAc = /)
-    expect(APP).toMatch(/menusuzRotaAc\('company-profile'\)/)
-    expect(APP).toMatch(/menusuzRotaAc\('my-profile'\)/)
+    expect(KOD).not.toMatch(/\(\)\s*=>\s*setRoute\('company-profile'\)/)
+    expect(KOD).not.toMatch(/\(\)\s*=>\s*setRoute\('my-profile'\)/)
+    expect(KOD, 'menusuzRotaAc yardımcısı yok').toMatch(/const menusuzRotaAc = /)
+    expect(KOD).toMatch(/menusuzRotaAc\('company-profile'\)/)
+    expect(KOD).toMatch(/menusuzRotaAc\('my-profile'\)/)
   })
 
   it('⚠️ yardımcının GÖVDESİ iki durumu da değiştiriyor', () => {
@@ -120,15 +149,36 @@ describe('Menüsüz rotaların ekran adı', () => {
     // satırı silindiğinde altı sınamanın altısı da yeşil kalıyordu —
     // yani bekçi, koruduğunu sandığı satırı hiç görmüyordu.
     // (Tuzak 168b'nin kardeşi: ölçüm aracının kendisi ölçülmemişti.)
-    const bas = APP.indexOf('const menusuzRotaAc = ')
-    expect(bas, 'menusuzRotaAc bulunamadı').toBeGreaterThan(-1)
-    const govde = APP.slice(bas, APP.indexOf('\n  }', bas))
+    // ⚠️ MIYOP-098: gövde YORUMSUZ metinden alınıyor. Ham metinde
+    // `// setActiveNavKey(hedef)` de bu iddiayı geçiriyordu.
+    const govde = yardimciGovdesi(KOD)
+    expect(govde, 'menusuzRotaAc bulunamadı').not.toEqual('')
     expect(govde, 'yardımcı rotayı değiştirmiyor').toMatch(/setRoute\(hedef\)/)
     expect(
       govde,
       'yardımcı nav anahtarını değiştirmiyor: yan menüde ESKİ ekran seçili '
       + 'kalır ve başlık yine yalan söyler (MIYOP-091).'
     ).toMatch(/setActiveNavKey\(hedef\)/)
+  })
+
+  it('⚠️ MIYOP-098 · satır YORUMA ALINSA bekçi uyanıyor (negatif denetim)', () => {
+    // Bekçinin ölçtüğünü kanıtlayan sınama. `App.tsx`in gerçek metninde
+    // satır yoruma alınır ve iddianın KIRILDIĞI gösterilir.
+    const bozuk = APP.replace('    setActiveNavKey(hedef)', '    // setActiveNavKey(hedef)')
+    expect(bozuk, 'satır bulunamadı — negatif denetim anlamsız').not.toEqual(APP)
+
+    // ham metin: yoruma alınmış satırı GÖRÜYOR (eski kusur)
+    expect(yardimciGovdesi(bozuk)).toMatch(/setActiveNavKey\(hedef\)/)
+    // yorumsuz metin: GÖRMÜYOR, yani bekçi artık uyarır
+    expect(yardimciGovdesi(yorumsuzKod(bozuk))).not.toMatch(/setActiveNavKey\(hedef\)/)
+  })
+
+  it('yorum soyma gerçekten iş yapıyor ve kodu silmiyor (sağlama)', () => {
+    expect(APP.length).toBeGreaterThan(KOD.length)
+    expect(KOD).toContain('const menusuzRotaAc = ')
+    expect(KOD).toContain('setActiveNavKey')
+    // `https://` türü dizgeler soyulmadı
+    if(APP.includes('https://')) expect(KOD).toContain('https://')
   })
 
   it('⚠️ menüsüz anahtar hiçbir menü ögesiyle çakışmıyor', () => {
