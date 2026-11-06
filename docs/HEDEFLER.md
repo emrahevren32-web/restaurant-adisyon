@@ -1850,6 +1850,18 @@ büyütür, değeri büyütmez.
   Ayrıntı: `claude/codex-ile-calisma-duzeni.md`
 - ✅ **7.2** Codex brifi hazır · `docs/codex-brifi.md`
   Karar dosyalarını okutuyor ki bilinçli kararları "hata" sanmasın.
+- ⬜ **7.8** **SÜRÜM DEFTERİ BOZUK VE GERİDE** (06.11.2026 · yükleme
+  hazırlığında çıktı). `araclar/surum-gecmisi.txt` iki ayrı sorun taşıyor:
+  - **Metin bozulmuş.** Satırlar `do─şru sat─▒r─▒` gibi okunuyor; dosya
+    UTF-8 metni yanlış kod sayfasıyla yazılmış (tuzak 99 / MIYOP-079'un
+    aynı ailesi — bu depoda ÜÇÜNCÜ kez).
+  - **Altı commit eksik.** Son satır **30.10**; 01.11–06.11 arasındaki
+    commit'ler (`854efed`, `b3a81f2` dahil) hiç yazılmamış.
+  ⚠️ Dosyanın biçimi zaten `tarih | kısa-hash | başlık`, yani
+  `git log --date=short --pretty` çıktısının birebir aynısı. Elle
+  sürdürülen bir kopyanın bayatlaması kaçınılmazdı; **doğrusu dosyayı
+  git'ten ÜRETMEK.** Tek satırlık bir komutla yeniden yazılabilir ve bir
+  daha geride kalmaz. Emrah'ın onayı bekleniyor (06.11).
 - ✅ **7.7** **İsmet'e sorulacaklar tek listede** (Emrah, 20.10:
   *"ben sana İsmet'leyim dediğimde sen hepsini tek tek getir benim
   önüme."*) → `docs/kararlar/ismete-sorulacaklar.md`.

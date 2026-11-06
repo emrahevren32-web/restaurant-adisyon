@@ -1,95 +1,30 @@
-Ana ekrana geri arama formu (goc 0106)
+Goc 0106 uygulandi: bekleyen goc kutusu bosaltildi
 
-Emrah'in istegi (06.11.2026): "Bilgi isteyenleri arayabileceginiz bir form
-doldursunlar." Ana ekranda tek kapi vardi: Isletme Basvurusu - 14 alan ve
-anlami "almaya karar verdim". Ilk temas ise "bu ne, kaca, bize uyar mi"
-diye baslar; o kisi 14 alan doldurmaz. Yeni form bes alan.
+Goc 0106 (geri arama talebi) canli veritabanina uygulandi. Ozet tablosunun
+yedi satiri da beklenen degeri verdi:
+    callback_request satiri                              -> 0
+    anon/authenticated tablo yetkisi (0 olmali)          -> 0
+    anon geri_arama_gonder cagirabiliyor                 -> evet
+    anon geri_arama_listesi cagirabiliyor (HAYIR olmali) -> hayir
+    ana ekran telefonu                                   -> (bos)
+    kvkk metin surumu                                    -> 2026-11-06-7b40ca4d
+    dogrulama                                            -> gecti
 
-NE EKLENDI
-- Goc 0106: callback_request + platform_contact tablolari, bes security
-  definer fonksiyon, okunabilir numara (GER-XXXXX), telefon sadelestirme.
-- Ana ekran: src/pages/GeriAramaFormu.tsx, Login.tsx icine #geri-arama
-  bolumu olarak. Ust menu ve kahraman dugmesi oraya kaydiriyor.
-- EVREN360 paneli: src/pages/GeriAramaTalepleri.tsx (Musteriler grubu).
-  Bekleyen talepler en ustte; "Aradim / Kapat / Kaydi sil (KVKK)".
-- Ana ekranda gorunecek telefon ayni ekrandan yaziliyor (platform_contact).
-  BAYRAK DEGIL VERI: alan bossa ana ekranda hicbir sey gorunmez.
-  Emrah'in karari: simdilik bos birakildi.
+NE DEGISTI
+- araclar/goc-bekleyen.sql BOSALTILDI. kaydet.ps1 o dosyayi her kosuda
+  panoya kopyaliyor; icinde uygulanmis bir goc kalirsa pano
+  "yapistirilacak is var" der ve bir gun biri onu yeniden yapistirir
+  (tuzak 162).
+  !! Bu uyari dosyanin ICINDE 02.11'den beri yaziliydi ve bugun yine az
+  kalsin atlaniyordu. Yazili bir uyari, bir ADIMA baglanmadigi surece
+  hatirlatmaz -> kontrol listesi 130.
 
-KAPILAR
-- Tabloya anon/authenticated DML yetkisi YOK, RLS acik ve hic politika yok.
-  Tek yol fonksiyon (0033'un dersi). Yazilmamasi gereken alan parametre
-  olarak BILE yok.
-- Okuma ve yazma platform.manage soruyor; okuma kapisi govdenin ilk
-  satirinda (0083'un dersi).
-- Imzayi sunucu atiyor: "kim aradi" parametresi yok (0087). Ilk aramanin
-  imzasi bir daha degismiyor. Not birikiyor, uzerine yazilmiyor.
-- Kapatmak gerekce istiyor.
-
-KVKK
-- Onay bir kutu degil bir kolon: consent_at NOT NULL. Onaysiz kayit
-  fiziken olusamiyor. Onay, fonksiyonun ILK kontrolu.
-- Metin TASLAK, hukukcuya gosterilecek.
-- Metin saklama suresi vaat ETMIYOR: kendiliginden silen is yok. Vaat
-  ettigi silme hakkinin karsiligi var (geri_arama_sil + ekrandaki dugme).
-- Onay surumu metnin md5 ozetine bagli; metin degisip surum degismezse
-  arch testi kiriliyor ve yeni surumu adiyla soyluyor.
-
-SPAM
-- Ayni numaradan acik talep varsa ikincisi red (MI409), 24 saatte en cok
-  uc talep (MI429). Telefon veritabaninda sadelesiyor - yoksa ayni
-  numaranin uc yazimi uc ayri numara sayilir ve kapi kagit ustunde kalir.
-- IP siniri YOK ve bu yazili: x-forwarded-for sahtedir, ona guvenmek
-  koruma SANILIRDI.
-
-KANIT
-- db/prova/prova-0106.sql - gercek PostgreSQL 16, "set local role anon" ve
-  "set local role authenticated" takilarak 69 dogrulama, hepsi yesil.
-- src/onboarding/geri-arama.test.ts - kurallar ve bellek defteri.
-- src/onboarding/geri-arama-kapisi.arch.test.ts - goc metni ile kod
-  sabitleri ayrismiyor.
-- giris-vitrini-dogru-soyler.arch.test.ts kapsami GENISLETILDI: vitrin
-  artik iki dosya, kural ikisini de okuyor.
-
-TUZAK 189 (bu turda dogdu)
-Prova ilk halinde iki yerde kirmizi verdi ve kirmizi, kapinin CALISTIGINI
-gosteriyordu: iddialar bilerek kapali bir fonksiyonu ve tabloyu, istemci
-rolunu takmisken okuyordu. "Provayi yesile cevirmek" icin yapilacak en
-kolay sey, tam da korumaya calisilan yetkiyi acmakti. Kapilara
-dokunulmadi; iddialar rolun disina tasindi.
-
-TESTIN KENDI HATASI (ilk kosuda uc kirmizi)
-Uc kirmizinin ucu de benim arch testimin hatasiydi, kodun degil:
-- `.from('callback_request')` ve `localStorage` kelimeleri, yasagi ANLATAN
-  yorum satirlarinda geciyordu; test ham metne bakip kendi aciklamama
-  takildi. Artik yorumsuz metne bakiyor (kaynak-soyma.ts, MIYOP-089 /
-  tuzak 181). Soyucunun is yaptigi ayrica olculuyor.
-- `slice(0, 600)` bir sonraki bloga tasiyordu; o blokta
-  geri_arama_listesi MESRU olarak geciyor. Sabit uzunluk bir kesim degil
-  TAHMINdir; artik iki capa ARASI kesiliyor.
-
-BAYAT PROVALAR ONARILDI (olcum sirasinda cikti, 0106 ile ilgisiz)
-- prova-0077: iki iddia eski kurali savunuyordu. 0078 boslugu NOKTAYA
-  ceviriyor; 0102 anon kapisini kapatti. Ikinci iddia tersine cevrildi,
-  service_role ile davranis olcumu ve anon icin olumsuz kontrol eklendi.
-  27 dogrulama yesil.
-- prova-0093: kirmizisi "X <NULL>" diyordu - hangi iddia oldugunu
-  soylemiyordu. prova_bak artik coalesce ile bunu soyluyor. Uc iddia eski
-  kurali savunuyordu: 0094 anahtari BUYUK HARFE ceviriyor, 0097 imhayi
-  onay isine cevirdi. Imha iddiasi silinmedi, OLUMSUZ KONTROLE cevrildi.
-  22 dogrulama yesil.
-- Yerel takimdaki dokuz provanin dokuzu yesil. UYARI: calisma kopyasinda
-  ~57 prova dosyasinin yalniz 9'u vardi; kalan ~48 bu oturumda
-  KOSULMADI (HEDEFLER 4.11.5).
-- Kontrol listesi 127-129: bir provanin kirmizisi kuralin SONRADAN
-  degistigini gosteriyor olabilir.
-
-BILINEN EKSIKLER (yazili, gizli degil)
-- Yeni talep gelince zil/bildirim yok (HEDEFLER 4.11.1).
-- Otomatik KVKK silme yok; metin bu yuzden sure vaat etmiyor (4.11.2).
-- "24 saat icinde ararız" sozu YOK: tutacak bir duzen yok.
-- Yeni CSS yazilmadi; form var olan siniflari kullaniyor (styles.css
-  1,4 MB - ayri turda rotus).
+- HEDEFLER 7.8: SURUM DEFTERI BOZUK VE GERIDE (yukleme hazirliginda
+  cikti). araclar/surum-gecmisi.txt satirlari "do─şru sat─▒r─▒" gibi
+  okunuyor (yanlis kod sayfasi; tuzak 99 / MIYOP-079 ailesi, bu depoda
+  UCUNCU kez) ve son satiri 30.10 - alti commit eksik. Dosyanin bicimi
+  zaten git log ciktisinin aynisi; dogrusu onu git'ten URETMEK.
+  Emrah'in onayi bekleniyor, bu turda DOKUNULMADI.
 
 Co-Authored-By: Claude Opus 5 <noreply@anthropic.com>
 Claude-Session: https://claude.ai/code/session_019BwYM3mAXZUhp4YGj7tp2y

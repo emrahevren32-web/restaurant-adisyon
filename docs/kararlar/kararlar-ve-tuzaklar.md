@@ -2078,6 +2078,13 @@ Son söz onun çıktısındadır.
      vermez** (0106). "N ay sonra silinir" demek için kendiliğinden silen
      bir iş gerekir; yoksa metin süre yazmaz, **tutulan** sözü yazar — ve
      o sözün karşılığı (silme fonksiyonu + düğmesi) aynı turda yazılır.
+130. **Bir göç uygulandıktan sonra `araclar/goc-bekleyen.sql` BOŞALTILIR.**
+     Göçün son adımı budur, "Run" tuşu değil. `kaydet.ps1` o dosyayı her
+     koşuda panoya kopyalıyor; içinde uygulanmış bir göç kalırsa pano
+     "yapıştırılacak iş var" der ve bir gün biri onu yeniden yapıştırır
+     (tuzak 162). ⚠️ Bu uyarı dosyanın İÇİNDE 02.11'den beri yazılıydı ve
+     06.11'de yine az kalsın atlanıyordu: **yazılı bir uyarı, bir adıma
+     bağlanmadığı sürece hatırlatmaz.**
 127. **Bir provanın kırmızısı, kuralın SONRADAN DEĞİŞTİĞİNİ gösteriyor
      olabilir** (06.11.2026 · 0077 ve 0093). İlk soru *"kod mu bozuldu"*
      değil, *"bu iddia hangi göçün hâlini savunuyor"* olmalı. Üç kırmızının
