@@ -527,6 +527,8 @@ export default function App(){
   const [storageRecoveryMessage, setStorageRecoveryMessage] = React.useState('')
   const [selectedCustomerId, setSelectedCustomerId] = React.useState('')
   const [selectedPendingApplicationId, setSelectedPendingApplicationId] = React.useState('')
+  /** Zilden gelen geri arama numarası; ekranda arama kutusunu dolduruyor (0106). */
+  const [secilenGeriAramaReferansi, setSecilenGeriAramaReferansi] = React.useState('')
   const [onboardingRefreshKey, setOnboardingRefreshKey] = React.useState(0)
   const [moduleInstallRefreshKey, setModuleInstallRefreshKey] = React.useState(0)
   const [onboardingExperienceStartSignal, setOnboardingExperienceStartSignal] = React.useState(0)
@@ -883,6 +885,17 @@ export default function App(){
       setRoute('evren360-pending-applications')
       setActiveNavKey('evren360-pending-applications')
       setOpenGroupKey(platformGrupAnahtari('evren360-pending-applications') as NavGroupKey)
+      return
+    }
+
+    if(notification.type === 'callback_request'){
+      // ⚠️ `targetId` = GER-XXXXX numarası, kayıt kimliği DEĞİL. Ekran
+      // numarayla arıyor; iç kimlik hiçbir yerde gösterilmediği için
+      // tıklanan satırı bulmaya yaramazdı (0106).
+      setSecilenGeriAramaReferansi(notification.targetId)
+      setRoute('evren360-callback-requests')
+      setActiveNavKey('evren360-callback-requests')
+      setOpenGroupKey(platformGrupAnahtari('evren360-callback-requests') as NavGroupKey)
       return
     }
 
@@ -1389,7 +1402,9 @@ export default function App(){
       {/* 0106 · Ana ekrandaki "Sizi arayalım" formunun karşılığı. Üç kapı
           aynı şeyi söylüyor: menü kilidi, bu blok ve rota hazırlık kapısı. */}
       {route === 'evren360-callback-requests' && currentUser.role === 'Admin' && !platformEkraniHazirDegil && (
-        isPlatformAdmin ? <GeriAramaTalepleri /> : <PlatformAccessDenied />
+        isPlatformAdmin
+          ? <GeriAramaTalepleri initialReferans={secilenGeriAramaReferansi} />
+          : <PlatformAccessDenied />
       )}
       {route === 'evren360-license-management' && currentUser.role === 'Admin' && !platformEkraniHazirDegil && (
         isPlatformAdmin ? <LisansYonetimi /> : <PlatformAccessDenied />

@@ -65,12 +65,24 @@ const tamTarih = (iso: string | null): string => {
   return Number.isNaN(t.getTime()) ? '' : t.toLocaleString('tr-TR')
 }
 
-export default function GeriAramaTalepleri(){
+type Props = {
+  /**
+   * Zilden gelen talep numarası (GER-XXXXX).
+   *
+   * ⚠️ Arama kutusunu DOLDURUYOR, satırı seçmiyor. Sebep: zilden tıklayan
+   * kişi o talebi arayacak, ama listenin geri kalanını da görmek ister
+   * ("başka bekleyen var mı"). Kutuyu silmek tek tıklama; kaybolan listeyi
+   * geri getirmek değil.
+   */
+  initialReferans?: string
+}
+
+export default function GeriAramaTalepleri({ initialReferans = '' }: Props){
   const [satirlar, setSatirlar] = React.useState<GeriAramaSatiri[]>([])
   const [yukleniyor, setYukleniyor] = React.useState(true)
   const [hata, setHata] = React.useState('')
   const [suzgec, setSuzgec] = React.useState<Suzgec>('hepsi')
-  const [arama, setArama] = React.useState('')
+  const [arama, setArama] = React.useState(initialReferans)
   const [acikSatir, setAcikSatir] = React.useState('')
   const [notMetni, setNotMetni] = React.useState('')
   const [islemde, setIslemde] = React.useState('')
@@ -109,6 +121,14 @@ export default function GeriAramaTalepleri(){
   }, [defter])
 
   React.useEffect(() => { void yenile() }, [yenile])
+
+  // ⚠️ Zilden İKİNCİ kez tıklandığında ekran zaten açıktır; `useState`in
+  // başlangıç değeri bir daha okunmaz ve arama kutusu ESKİ numarada
+  // kalırdı — yani zil "seni oraya götürdüm" derken yanlış satırı
+  // gösterirdi. Numara değiştikçe kutu da değişiyor.
+  React.useEffect(() => {
+    if(initialReferans) setArama(initialReferans)
+  }, [initialReferans])
 
   const durumYaz = async (referans: string, durum: GeriAramaDurumu) => {
     if(!defter) return

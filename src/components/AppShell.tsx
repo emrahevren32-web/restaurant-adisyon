@@ -21,7 +21,9 @@ import {
   subscribeEvren360Notifications
 } from '../notifications/evren360-notification.service'
 import { basvuruBildirimleriniYukle } from '../notifications/basvuru-bildirimleri'
+import { PostgresGeriAramaDefteri } from '../onboarding/geri-arama.repository'
 import { lisansBildirimleriniYukle } from '../notifications/lisans-bildirimleri'
+import { geriAramaBildirimleriniYukle } from '../notifications/geri-arama-bildirimleri'
 import { PostgresBasvuruDefteri } from '../onboarding/application.repository'
 import { getSupabase, isSupabaseConfigured } from '../core/supabase'
 
@@ -320,6 +322,18 @@ export default function AppShell<
     isSupabaseConfigured() ? new PostgresBasvuruDefteri(getSupabase()) : null
   ), [])
 
+  /**
+   * Geri arama defteri — zilin ÜÇÜNCÜ kaynağı (0106).
+   *
+   * ⚠️ 06.11: form canlıya çıktı, talep panelde göründü, zil sustu.
+   * Panelde görünüp zilde görünmemek, Emrah ekranı açmadıkça talebin
+   * HİÇ duyulmaması demekti — ve geri arama talebi, bir müşteri adayının
+   * telefonunu bırakıp beklediği andır.
+   */
+  const geriAramaDefteri = React.useMemo(() => (
+    isSupabaseConfigured() ? new PostgresGeriAramaDefteri(getSupabase()) : null
+  ), [])
+
   const refreshNotifications = React.useCallback(async () => {
     if(!isPlatformAdmin){
       setNotifications([])
@@ -333,11 +347,12 @@ export default function AppShell<
     const okunanlar = loadOkunanBildirimler()
     // İki kaynak, tek zil: başvurular ve lisans (ek süre talebi + biten süre).
     // İkisi de DEFTERDEN türetiliyor, hiçbiri saklanmıyor.
-    const [basvurular, lisanslar] = await Promise.all([
+    const [basvurular, lisanslar, geriAramalar] = await Promise.all([
       bildirimDefteri ? basvuruBildirimleriniYukle(bildirimDefteri, okunanlar) : [],
       isSupabaseConfigured() ? lisansBildirimleriniYukle(getSupabase(), okunanlar) : [],
+      geriAramaDefteri ? geriAramaBildirimleriniYukle(geriAramaDefteri, okunanlar) : [],
     ])
-    const turetilen = [...basvurular, ...lisanslar]
+    const turetilen = [...basvurular, ...lisanslar, ...geriAramalar]
       .sort((a, b) => b.createdAt.localeCompare(a.createdAt))
 
     // ⚠️ SAKLANAN ESKİ BİLDİRİMLER ARTIK GÖSTERİLMİYOR.
@@ -348,7 +363,7 @@ export default function AppShell<
     //
     // Tek gerçek defterdir. Zil defteri gösterir, başka bir şeyi değil.
     setNotifications(turetilen)
-  }, [isPlatformAdmin, bildirimDefteri])
+  }, [isPlatformAdmin, bildirimDefteri, geriAramaDefteri])
 
   React.useEffect(() => {
     void refreshNotifications()

@@ -1,57 +1,52 @@
-Surum defteri uretecisi + ana ekran tema bulgusu yazildi
+Zil geri arama taleplerini de goruyor (HEDEFLER 4.11.7)
 
-1 - SURUM DEFTERI URETECISI (HEDEFLER 7.8, Emrah onayladi)
-araclar/surum-defteri-uret.ps1 yazildi. araclar/surum-gecmisi.txt artik
-elle surdurulmeyecek, git log'dan URETILECEK.
+Emrah 06.11'de formu doldurdu, GER-5XPUW numarasini aldi, talep panelde
+gorundu - ama zil calmadi. Bu bir hata degildi, yazili bir eksikti
+(4.11.1). Emrah: "bildirim zili kurulsun simdi, sonradan ugrasmayalim."
 
-Dosya iki yonden bozuktu: satirlar yanlis kod sayfasiyla yazildigi icin
-okunamiyordu (bu depoda UCUNCU kez, tuzak 99 / MIYOP-079) ve son satiri
-30.10 idi - alti commit eksikti.
+NE EKLENDI
+- src/notifications/geri-arama-bildirimleri.ts - zilin UCUNCU kaynagi
+  (basvurular, lisans, geri arama).
+- AppShell ucuncu kaynagi da okuyor; App.tsx zildeki satiri Geri Arama
+  Talepleri ekranina goturuyor ve arama kutusunu numarayla dolduruyor.
+- Evren360NotificationType'a 'callback_request' eklendi.
 
-!! Bozulma YAZARKEN degil OKURKEN oluyormus: PowerShell 5.1 harici
-program ciktisini konsol kod sayfasiyla cozuyor. Betik git log'u okumadan
-once [Console]::OutputEncoding'i UTF-8 yapiyor, sonra geri koyuyor.
-Yazma da .NET ile (Out-File/Set-Content degil): sorunu yaratan sey
-PowerShell'in varsayilan kodlamasiydi, ayni araci ayni varsayilanla
-kullanmak hatayi geri getirirdi.
+TASARIM
+- Bildirim SAKLANMIYOR, TURETILIYOR. Basvurudaki desenin aynisi ve ayni
+  gerekce: saklasaydik iki gercek olurdu (talebin durumu ve bildirimin
+  durumu) ve kacinilmaz olarak ayrisirlardi. Liste neyse zil odur.
+- !! YALNIZ BEKLEYEN talep zile dusuyor. Arandi/kapandi olan bir talep is
+  degil kayittir; zilde durursa asil bekleyeni gizler.
+- !! Uyari esigi 4 SAAT - basvurudaki 3 gunun aksine. Basvuru yapan karar
+  vermistir, bekleyebilir; bilgi isteyen beklemez. BU BIR TAAHHUT DEGIL,
+  yalniz zilin rengi; ekranda hicbir yerde "4 saatte ararız" yazmiyor.
+- Zildeki satir NUMARAYI (GER-XXXXX) tasiyor, ic kimligi degil: ekran
+  numarayla ariyor, uuid'yi hicbir yerde gostermiyor.
+- Satirda uygun arama saati de var: "simdi mi arayayim, aksam mi"
+  sorusunun cevabi ekrani acmadan gorunsun diye.
+- Kimlik durumu iceriyor (geri_arama_<numara>_<durum>): durum degisince
+  YENI ve okunmamis bir bildirim olur.
 
-!! Betik kendi ciktisini OLCUYOR: satir sayisi git'inkiyle ayni mi,
-U+FFFD var mi, eski bozulmanin kutu cizgisi deseni geri gelmis mi.
-Dogrulamasiz bir uretici, duzelttigi bozuklugu sessizce geri getirirdi.
+OLCULDU
+- 22 davranis sinamasi. !! Saat PARAMETRE: "4 saatte uyariya doner"
+  kurali, icerde new Date() cagiran bir fonksiyonda ancak gercek zamani
+  bekleyerek sinanabilirdi - yani hic sinanmazdi.
+- zil-yonlendirme.arch.test.ts'e uc sinama eklendi; o dosyanin donmus
+  TURLER listesine callback_request girdi.
+- Okuma duserse bos dizi donuyor, hata yukari firlamiyor: zil
+  uygulamanin cercevesinde duruyor, orada patlayan hata butun ekrani
+  goturur.
 
-!! Bozulma deseni ASCII olarak yaziliyor ([char] kod noktasi ve
-0x2500-0x259F araligi): bozuk karakterleri ornek diye betigin ICINE
-koymak, betigi ASCII olmaktan cikarirdi - yani kontrolun kendisi,
-kontrol ettigi hatayi tasirdi.
+ACIK BIRAKILAN (yazili)
+- 4.11.8: zil kendiliginden CALMIYOR. Bildirimler sayfa tazelendiginde ya
+  da panel acildiginda okunuyor. "Zil var" demek "aninda haber veriyor"
+  demek DEGIL; ikisi karistirilmasin diye yazildi.
 
-!! Ilk yazimda "ters tirnak + u" soz dizimi kullanmistim; o PowerShell 6
-ile geldi, 5.1'de gecerli bir kacis DEGIL ve kontrol sessizce hic
-calismazdi. Calismayan bir kontrol, olmayan bir kontrolden kotudur:
-yesil gorunur. (powershell-kacis.arch.test.ts bunu zaten yakalardi.)
-
-2 - ANA EKRAN BAKANA GORE DEGISIYOR (HEDEFLER 4.11.6, ACIK)
-Emrah'in ekran goruntuleri: ayni kod, iki farkli goruntu. localhost'ta
-form kutulari beyaz ve dugme mavi; prod'da kutular koyu, etiketler sonuk,
-dugme turkuaz. Okunabilirlik bozuluyor.
-
-Mekanizma bulundu (src/components/ThemeProvider.tsx): tema localStorage'da
-saklaniyor ve <html> uzerine HER SAYFADA yaziliyor - giris vitrini dahil.
-Depo her alan adi icin ayri; prod'da kayitli bir tema var, localhost'ta
-yok.
-
-!! AMA PROD GORUNTUSU BIREBIR TEKRAR URETILEMEDI. Gercek styles.css ile
-dort ayar (data-theme, data-theme-engine, data-theme-accent,
-color-scheme) kurulup Playwright'la olculdu; kutular yine BEYAZ cikti.
-Canli siteye bu ortamdan erisim kapali (egress 403). Bu yuzden
-KORLEMESINE DUZELTME YAZILMADI - hangi degerin etkili oldugu olculecek.
-
-!! Bu kusur geri arama formuyla GELMEDI: ayni tema ustteki Giris Merkezi
-kutusunu da boyuyor. Yeni form onu yalnizca gorunur kildi.
-
-3 - BILDIRIM (HEDEFLER 4.11.7)
-Emrah formu doldurdu, GER-5XPUW alindi, zil calmadi. Bu bir hata degil,
-yazili bir eksik: 4.11.1 bastan beri "zil/bildirim yok" diyor.
-basvuru_bildirimi deseni var; ayni kurulabilir. Karar bekleniyor.
+ONCEKI TURUN SONUCU
+- Surum defteri uretildi: 413 satir, en eski 2026-05-31, Turkce harfler
+  saglam.
+- 4.11.6a kapandi: gizli pencerede form kutulari BEYAZ ve dugme MAVI -
+  yani prod'daki koyu goruntunun sebebi kayitli tema, dagitim degil.
 
 Co-Authored-By: Claude Opus 5 <noreply@anthropic.com>
 Claude-Session: https://claude.ai/code/session_019BwYM3mAXZUhp4YGj7tp2y

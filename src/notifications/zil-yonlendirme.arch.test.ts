@@ -30,6 +30,7 @@ const APP = oku('src', 'App.tsx')
 const TURLER: Array<{ tur: string; hedef: 'var' | 'gerekce' }> = [
   { tur: 'business_application', hedef: 'var' },     // Bekleyen Başvurular
   { tur: 'license_expiry',       hedef: 'var' },     // Müşteri Detayı
+  { tur: 'callback_request',     hedef: 'var' },     // Geri Arama Talepleri (0106)
   { tur: 'support_request',      hedef: 'gerekce' }  // ekran henüz yok
 ]
 
@@ -73,6 +74,27 @@ describe('zil yönlendirmesi', () => {
     // "burada bir hata var mı" sorusuyla baş başa bırakır.
     expect(g).toContain('support_request')
     expect(g).toMatch(/HENÜZ YOK|henüz yok/)
+  })
+
+  it('geri arama satırı Geri Arama Talepleri ekranına gidiyor (0106)', () => {
+    const g = govde()
+    expect(g).toContain("notification.type === 'callback_request'")
+    expect(g).toContain("setRoute('evren360-callback-requests')")
+  })
+
+  it('⚠️ geri arama bildirimi NUMARA taşıyor, iç kimlik değil', () => {
+    // Ekran numarayla (GER-XXXXX) arıyor; `id` (uuid) hiçbir yerde
+    // gösterilmiyor, dolayısıyla tıklanan satırı bulmaya yaramaz.
+    const modul = oku('src', 'notifications', 'geri-arama-bildirimleri.ts')
+    expect(modul).toContain('targetId: satir.referans')
+    expect(modul).toContain("type: 'callback_request'")
+  })
+
+  it('⚠️ zile YALNIZ bekleyen talep düşüyor', () => {
+    // Arandı/kapandı olan bir talep iş değil kayıttır; zilde durursa
+    // asıl bekleyeni gizler.
+    const modul = oku('src', 'notifications', 'geri-arama-bildirimleri.ts')
+    expect(modul).toContain("if(satir.durum !== 'NEW') continue")
   })
 
   it('lisans bildirimi kiracı kimliğini taşımaya devam ediyor', () => {

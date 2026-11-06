@@ -1729,8 +1729,11 @@ Emrah'ın onayladığı sıra:
     ibaret değil. Canlı siteye bu ortamdan erişim kapalı (egress 403),
     bu yüzden **körlemesine düzeltme yazılmadı** — hangi değerin etkili
     olduğu Emrah'tan ölçülecek.
-    - ⬜ **4.11.6a** Ölçüm: prod gizli pencerede açılacak. Oradaki görüntü
-      localhost gibiyse sebep **kayıtlı tema**dır, dağıtım değil.
+    - ✅ **4.11.6a** Ölçüldü (Emrah, 06.11): **gizli pencerede kutular
+      BEYAZ, düğme MAVİ** — yani localhost'la aynı. Sebep kesinleşti:
+      **tarayıcıda kayıtlı tema**, dağıtım değil. Ziyaretçi doğru
+      görüntüyü görüyor; bozuk görüntüyü yalnız daha önce giriş yapmış
+      olan (Emrah) görüyor.
     - ⬜ **4.11.6b** Asıl karar: **giriş vitrini kimin baktığına göre
       değişmemeli.** Ziyaretçinin kayıtlı teması yok; sayfanın kimliği
       bakana göre değişiyorsa "müşterinin gördüğü ilk ekran" diye bir şey
@@ -1738,11 +1741,35 @@ Emrah'ın onayladığı sıra:
     - ⬜ **4.11.6c** ⚠️ Bu kusur **geri arama formuyla gelmedi**: aynı
       tema, üstteki **Giriş Merkezi** kutusunu da boyuyor. Yeni form onu
       yalnız görünür kıldı. Düzeltme ikisini de kapsamalı.
-  - ⬜ **4.11.7** **Yeni talep gelince bildirim gelmiyor** (Emrah ölçtü,
-    06.11: form dolduruldu, `GER-5XPUW` alındı, zil çalmadı — Ctrl+Shift+R
-    ile de gelmedi). ⚠️ Bu bir hata değil, **yazılı bir eksik**: 4.11.1
-    baştan beri "zil/bildirim yok" diyor. `basvuru_bildirimi` deseni var;
-    aynısı buraya da kurulabilir. Emrah'ın kararı bekleniyor.
+  - ✅ **4.11.7** **ZİL KURULDU.** (Emrah 06.11: *"bildirim zili kurulsun
+    şimdi, sonradan uğraşmayalım."*) Zilin **üçüncü kaynağı** eklendi:
+    başvurular, lisans, **geri arama**.
+    - **Bildirim saklanmıyor, TÜRETİLİYOR** — başvurudaki desenin aynısı
+      ve aynı gerekçe: saklasaydık iki gerçek olurdu (talebin durumu ve
+      bildirimin durumu) ve ayrışırlardı. Liste neyse zil odur.
+    - ⚠️ **Yalnız BEKLEYEN talep zile düşüyor.** Arandı/kapandı olan bir
+      talep iş değil kayıttır; zilde durursa asıl bekleyeni gizler.
+    - ⚠️ **Uyarı eşiği 4 saat** — başvurudaki 3 günün aksine. Başvuru
+      yapan karar vermiştir, bekleyebilir; bilgi isteyen beklemez.
+      **Bu bir taahhüt DEĞİL**, yalnız zilin rengi; ekranda hiçbir yerde
+      "4 saatte ararız" yazmıyor.
+    - Zildeki satır **numarayı** (GER-XXXXX) taşıyor ve tıklanınca Geri
+      Arama Talepleri ekranını açıp arama kutusunu o numarayla dolduruyor.
+      ⚠️ İç kimlik (uuid) taşınmadı: ekran onu hiçbir yerde göstermiyor,
+      yani tıklanan satırı bulmaya yaramazdı.
+    - Satırda **uygun arama saati** de yazıyor: *"şimdi mi arayayım, akşam
+      mı"* sorusunun cevabı ekranı açmadan görünsün diye.
+    - Çıtır: `src/notifications/geri-arama-bildirimleri.test.ts` (22) ve
+      `zil-yonlendirme.arch.test.ts` (yeni üç sınama).
+    - ⚠️ **Zil kendiliğinden ÇALMIYOR**, sayfa tazelendiğinde/panel
+      açıldığında okunuyor. Anlık itme (push/realtime) yok ve yazılı.
+      → 4.11.8
+  - ⬜ **4.11.8** **Zil kendiliğinden çalmıyor.** Bildirimler sayfa
+    tazelendiğinde ya da panel açıldığında okunuyor; Emrah ekranı açık
+    bırakırsa yeni talep oracıkta belirmiyor. Supabase realtime ya da
+    bir yoklama (polling) gerekiyor. ⚠️ Bugün için kabul edilebilir —
+    ama "zil var" demek "anında haber veriyor" demek DEĞİL; ikisi
+    karıştırılmasın diye buraya yazıldı.
 - ✅ **4.12** **Ana ekranda görünecek telefon** · aynı ekrandan yazılıyor
   (`platform_contact`, göç 0106). ⚠️ Bayrak değil veri: alan boşsa ana
   ekranda **hiçbir şey görünmez**; yazıldığı an görünür.

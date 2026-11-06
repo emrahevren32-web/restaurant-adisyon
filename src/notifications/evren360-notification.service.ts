@@ -22,6 +22,10 @@ export type Evren360NotificationType =
   | 'business_application'
   | 'support_request'
   | 'license_expiry'
+  // 0106 · ana ekrandaki "Sizi arayalım" formundan gelen bilgi talebi.
+  // ⚠️ Başvurudan AYRI bir tür: başvuru "karar verdim", geri arama
+  // "henüz soruyorum" demek ve ikisi farklı ekrana gidiyor.
+  | 'callback_request'
 
 export type Evren360NotificationSeverity = 'info' | 'success' | 'warning'
 
@@ -90,7 +94,8 @@ const normalizeNotification = (item: Partial<Evren360Notification>): Evren360Not
 }
 
 const normalizeNotificationType = (value: unknown): Evren360NotificationType => {
-  if(value === 'support_request' || value === 'license_expiry' || value === 'business_application') return value
+  if(value === 'support_request' || value === 'license_expiry'
+     || value === 'business_application' || value === 'callback_request') return value
   return 'business_application'
 }
 
