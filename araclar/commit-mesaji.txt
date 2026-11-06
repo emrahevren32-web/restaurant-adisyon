@@ -1,52 +1,58 @@
-Zil geri arama taleplerini de goruyor (HEDEFLER 4.11.7)
+Giris vitrini temadan bagimsiz (HEDEFLER 4.11.6b/c)
 
-Emrah 06.11'de formu doldurdu, GER-5XPUW numarasini aldi, talep panelde
-gorundu - ama zil calmadi. Bu bir hata degildi, yazili bir eksikti
-(4.11.1). Emrah: "bildirim zili kurulsun simdi, sonradan ugrasmayalim."
+Emrah ayni sayfanin iki goruntusunu gonderdi: localhost'ta form kutulari
+beyaz ve dugme mavi, prod'da kutular koyu ve etiketler okunmuyor. Ayni
+kod, ayni CSS.
 
-NE EKLENDI
-- src/notifications/geri-arama-bildirimleri.ts - zilin UCUNCU kaynagi
-  (basvurular, lisans, geri arama).
-- AppShell ucuncu kaynagi da okuyor; App.tsx zildeki satiri Geri Arama
-  Talepleri ekranina goturuyor ve arama kutusunu numarayla dolduruyor.
-- Evren360NotificationType'a 'callback_request' eklendi.
+SEBEP OLCULDU
+ThemeProvider kayitli temayi <html> uzerine HER SAYFADA uyguluyor - giris
+vitrini dahil. Depo alan adi basina ayri; prod'da bir tema kayitli,
+localhost'ta yok. Gizli pencere testi (Emrah, 06.11) sebebi
+kesinlestirdi: orada kutular BEYAZ ve dugme MAVI, yani ziyaretci dogru
+goruntuyu goruyor; bozugu yalniz daha once giris yapmis olan goruyor.
 
-TASARIM
-- Bildirim SAKLANMIYOR, TURETILIYOR. Basvurudaki desenin aynisi ve ayni
-  gerekce: saklasaydik iki gercek olurdu (talebin durumu ve bildirimin
-  durumu) ve kacinilmaz olarak ayrisirlardi. Liste neyse zil odur.
-- !! YALNIZ BEKLEYEN talep zile dusuyor. Arandi/kapandi olan bir talep is
-  degil kayittir; zilde durursa asil bekleyeni gizler.
-- !! Uyari esigi 4 SAAT - basvurudaki 3 gunun aksine. Basvuru yapan karar
-  vermistir, bekleyebilir; bilgi isteyen beklemez. BU BIR TAAHHUT DEGIL,
-  yalniz zilin rengi; ekranda hicbir yerde "4 saatte ararız" yazmiyor.
-- Zildeki satir NUMARAYI (GER-XXXXX) tasiyor, ic kimligi degil: ekran
-  numarayla ariyor, uuid'yi hicbir yerde gostermiyor.
-- Satirda uygun arama saati de var: "simdi mi arayayim, aksam mi"
-  sorusunun cevabi ekrani acmadan gorunsun diye.
-- Kimlik durumu iceriyor (geri_arama_<numara>_<durum>): durum degisince
-  YENI ve okunmamis bir bildirim olur.
+KARAR
+Giris vitrini ve herkese acik basvuru sayfasi tek goruntuye sabitlendi.
+!! Tema motoru DEGISTIRILMEDI; uygulamanin geri kalani temayi aynen
+kullaniyor. Yapilan, iki herkese acik sayfayi onun DISINA almak.
 
-OLCULDU
-- 22 davranis sinamasi. !! Saat PARAMETRE: "4 saatte uyariya doner"
-  kurali, icerde new Date() cagiran bir fonksiyonda ancak gercek zamani
-  bekleyerek sinanabilirdi - yani hic sinanmazdi.
-- zil-yonlendirme.arch.test.ts'e uc sinama eklendi; o dosyanin donmus
-  TURLER listesine callback_request girdi.
-- Okuma duserse bos dizi donuyor, hata yukari firlamiyor: zil
-  uygulamanin cercevesinde duruyor, orada patlayan hata butun ekrani
-  goturur.
+!! HEDEF RENKLER UYDURULMADI, BUGUNKU ZIYARETCI GORUNUMUNDEN OLCULDU.
+Ilk yazimda kendi sectigim renkleri koydum; olcum varsayilan temadaki
+yedi alanin ALTISININ degistigini gosterdi - yani bozuk hali duzeltirken
+saglam hali de degistiriyordum. Degerler bugunku gorunumden alindi.
 
-ACIK BIRAKILAN (yazili)
-- 4.11.8: zil kendiliginden CALMIYOR. Bildirimler sayfa tazelendiginde ya
-  da panel acildiginda okunuyor. "Zil var" demek "aninda haber veriyor"
-  demek DEGIL; ikisi karistirilmasin diye yazildi.
+!! Sinif adi seciciye IKI KEZ yazildi. Tek yazimla ozgulluk tema
+kuraliyla berabere kaliyor ve yalnizca dosya sirasi sayesinde
+kazaniyordu; siraya dayanan kural bir sonraki eklemede sessizce kaybeder.
 
-ONCEKI TURUN SONUCU
-- Surum defteri uretildi: 413 satir, en eski 2026-05-31, Turkce harfler
-  saglam.
-- 4.11.6a kapandi: gizli pencerede form kutulari BEYAZ ve dugme MAVI -
-  yani prod'daki koyu goruntunun sebebi kayitli tema, dagitim degil.
+!! color-scheme: light en onemli satir. Onsuz onay kutusu, acilir liste
+oku ve kaydirma cubugu tarayicinin KOYU paletiyle cizilir - beyaz kartin
+icinde.
+
+OLCUM
+Playwright, gercek styles.css, YEDI tema/vurgu birlesimi: hesaplanan
+renkler birebir ayni. Varsayilan gorunum eski CSS ile karsilastirildi:
+degisen tek alan birincil dugmenin YAZI rengi (mavi zemin uzerinde koyu
+yazi okunabilirlik sinirindaydi, beyaza sabitlendi).
+!! Olcum RENKLERI karsilastiriyor, sayfanin yerlesimini degil. Emrah'in
+gozuyle dogrulanacak.
+
+Donduran sinama: src/pages/vitrin-temadan-bagimsiz.arch.test.ts
+!! O sinama ilk yazimda KENDI aciklama yorumuna takildi (bu depoda
+ucuncu kez, tuzak 181): yorumda ornek olarak gecen secici, gercek bir
+secici sanildi. Artik yorumsuz metne bakiyor - ve blok kesimi yorumun
+BASINDAN basliyor, yoksa acilis isareti disarida kalip soyma calismiyor.
+
+GERI ACILAN MADDE
+!! 4.11.7 (zil) bir tur once BITTI diye isaretlenmisti ve YANLISTI.
+Yayina cikti, Emrah bakti: zilde rozet YOK, panelde "3 talep bekliyor".
+Kod yazildi, 1863 sinama yesil, urun calismiyor. Madde 🔴 olarak geri
+acildi; ilk bakilacak yer yazildi (zil onceden 6 rozet gosteriyordu,
+simdi 0 - yani yalniz yeni kaynak degil zilin tamami susmus olabilir).
+Emrah: "bildirimi bosver sonrasi icin notunu al."
+
+claude/nerede-kaldik.md bastan yazildi: bir gun bayatlamisti ve her
+sayisi yanlisti.
 
 Co-Authored-By: Claude Opus 5 <noreply@anthropic.com>
 Claude-Session: https://claude.ai/code/session_019BwYM3mAXZUhp4YGj7tp2y

@@ -1734,14 +1734,38 @@ Emrah'ın onayladığı sıra:
       **tarayıcıda kayıtlı tema**, dağıtım değil. Ziyaretçi doğru
       görüntüyü görüyor; bozuk görüntüyü yalnız daha önce giriş yapmış
       olan (Emrah) görüyor.
-    - ⬜ **4.11.6b** Asıl karar: **giriş vitrini kimin baktığına göre
-      değişmemeli.** Ziyaretçinin kayıtlı teması yok; sayfanın kimliği
-      bakana göre değişiyorsa "müşterinin gördüğü ilk ekran" diye bir şey
-      kalmaz. Düzeltme vitrini temadan bağımsız kılmak olacak.
-    - ⬜ **4.11.6c** ⚠️ Bu kusur **geri arama formuyla gelmedi**: aynı
-      tema, üstteki **Giriş Merkezi** kutusunu da boyuyor. Yeni form onu
-      yalnız görünür kıldı. Düzeltme ikisini de kapsamalı.
-  - ✅ **4.11.7** **ZİL KURULDU.** (Emrah 06.11: *"bildirim zili kurulsun
+    - ✅ **4.11.6b/c** **VİTRİN TEMADAN BAĞIMSIZ** (06.11). Giriş vitrini
+      ve herkese açık başvuru sayfası artık tek görünüme sabit.
+      ⚠️ Tema motoru DEĞİŞTİRİLMEDİ; uygulamanın geri kalanı temayı aynen
+      kullanıyor. Yapılan, iki herkese açık sayfayı onun dışına almak.
+      ⚠️ Hedef renkler **uydurulmadı, bugünkü ziyaretçi görünümünden
+      ölçüldü**. İlk yazımda kendi seçtiğim renkleri koydum; ölçüm
+      varsayılan temadaki yedi alanın altısının değiştiğini gösterdi —
+      yani bozuk hâli düzeltirken sağlam hâli de değiştiriyordum.
+      ⚠️ Ölçüm: Playwright, gerçek `styles.css`, **yedi tema/vurgu
+      birleşimi → hesaplanan renkler birebir aynı**; varsayılan temada
+      değişen tek alan birincil düğmenin YAZI rengi (mavi zemin üzerinde
+      koyu yazı okunabilirlik sınırındaydı, beyaza sabitlendi).
+      ⚠️ Sınıf adı seçicide **iki kez** yazılı: tek yazımla özgüllük tema
+      kuralıyla berabere kalıyor ve yalnızca dosya sırası sayesinde
+      kazanıyordu — sıraya dayanan kural bir sonraki eklemede sessizce
+      kaybeder.
+      Donduran sınama: `src/pages/vitrin-temadan-bagimsiz.arch.test.ts`.
+      ⬜ **Emrah'ın gözüyle doğrulanacak:** ölçüm hesaplanan RENKLERİ
+      karşılaştırıyor, sayfanın yerleşimini değil.
+  - 🔴 **4.11.7** **ZİL KURULDU AMA ÇALIŞMIYOR — ÖLÇÜLDÜ, AÇIK.**
+    ⚠️ 06.11 akşamı yayına çıktı ve Emrah baktı: **zilde rozet yok**,
+    panelde ise *"3 talep bekliyor"* yazıyor. Yani bu madde bir tur önce
+    ✅ işaretlenmişti ve **yanlıştı**: kod yazıldı, sınamalar yeşil, ama
+    ürün çalışmıyor. ⚠️ 1863 yeşil sınama "çalışıyor" demek değilmiş —
+    bu turda ikinci kez öğrenildi.
+    Emrah: *"bildirimi boşver sonrası için notunu al."* → sıraya alındı,
+    kapatılmadı.
+    **İlk bakılacak yer** (ölçülmedi, tahmin): zil daha önce 6 rozet
+    gösteriyordu, şimdi 0 — yani yalnız yeni kaynak değil, **zilin
+    tamamı** susmuş olabilir. Önce tarayıcı konsolunda hata var mı, sonra
+    `refreshNotifications` gerçekten koşuyor mu.
+    Aşağıdaki tasarım notları duruyor (kod yazıldı, davranış açık): (Emrah 06.11: *"bildirim zili kurulsun
     şimdi, sonradan uğraşmayalım."*) Zilin **üçüncü kaynağı** eklendi:
     başvurular, lisans, **geri arama**.
     - **Bildirim saklanmıyor, TÜRETİLİYOR** — başvurudaki desenin aynısı

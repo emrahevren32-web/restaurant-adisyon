@@ -29728,3 +29728,126 @@ html[data-theme-engine] :is(.table-wrap, .table-scroll, .data-table-wrap, .premi
 .unified-login-hint-panel p { margin:0; line-height:1.5 }
 .unified-login-hint-panel code { font-family:ui-monospace, monospace;
   background:var(--surface); padding:1px 5px; border-radius:4px }
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   GİRİŞ VİTRİNİ TEMADAN BAĞIMSIZ (06.11.2026 · HEDEFLER 4.11.6b/c)
+
+   ── NEDEN ────────────────────────────────────────────────────────────────
+   Emrah aynı sayfanın iki farklı görüntüsünü gönderdi: `localhost`ta form
+   kutuları beyaz ve düğme mavi, `miyop.emrahevren.com`da kutular koyu,
+   etiketler sönük. Aynı kod, aynı CSS.
+
+   Sebep ölçüldü: `ThemeProvider` temayı `localStorage`a yazıyor ve
+   `<html>` üzerine HER SAYFADA uyguluyor — giriş vitrini dahil. Depo her
+   alan adı için ayrı; Emrah prod'da uygulamayı kullandığı için orada bir
+   tema kayıtlı, localhost'ta yok. Gizli pencerede açıldığında (06.11)
+   sayfa DOĞRU görünüyor — yani ziyaretçi doğru görüntüyü görüyor, bozuk
+   görüntüyü yalnız daha önce giriş yapmış olan görüyor.
+
+   ── KARAR ────────────────────────────────────────────────────────────────
+   ⚠️ GİRİŞ VİTRİNİ KİMİN BAKTIĞINA GÖRE DEĞİŞMEMELİ. Ziyaretçinin kayıtlı
+   teması yok; sayfanın kimliği bakana göre değişiyorsa "müşterinin gördüğü
+   ilk ekran" diye bir şey kalmaz. Vitrin ve herkese açık başvuru sayfası
+   bundan sonra TEK görünüme sabit.
+
+   ⚠️ TEMA MOTORU DEĞİŞTİRİLMEDİ. Uygulamanın geri kalanı temayı aynen
+   kullanmaya devam ediyor; burada yapılan, iki herkese açık sayfayı onun
+   DIŞINA almak. Motoru kapatmak, kimsenin istemediği bir şeyi bozardı.
+
+   ⚠️ HEDEF RENKLER UYDURULMADI, BUGÜNKÜ ZİYARETÇİ GÖRÜNÜMÜNDEN ÖLÇÜLDÜ.
+   İlk yazımda kendi seçtiğim renkleri koydum ve ölçüm şunu gösterdi:
+   varsayılan temadaki yedi alanın ALTISI değişmiş. Yani bozuk hâli
+   düzeltirken sağlam hâli de değiştiriyordum. Değerler bugünkü varsayılan
+   görünümden alındı; `select`/`textarea`nın yarı saydam zemini ve
+   çerçevesizliği de öyle. Tek bilinçli DEĞİŞİKLİK birincil düğmenin yazı
+   rengi (aşağıda).
+
+   ⚠️ SINIF ADI İKİ KEZ YAZILDI (`.unified-login-portal.unified-login-portal`)
+   ve bu bir süs değil, ölçümün sonucu. Tek yazımla özgüllük (0,2,1)'de
+   kalıyordu ve AÇIK temada iki metin rengi hâlâ başka bir kurala
+   kaybediyordu. İki yazım (0,3,1) yapıyor ve fark kapanıyor.
+
+   ⚠️ `:where()` İLE YAZILMADI: `:where()` özgüllüğe hiçbir şey katmıyor,
+   yani kural tema kuralıyla berabere kalır ve yalnızca dosyada daha sonra
+   geldiği için kazanırdı. Sıraya dayanan kural, bir sonraki eklemede
+   sessizce kaybeder.
+
+   ⚠️ `color-scheme: light` EN ÖNEMLİ SATIR. Onsuz onay kutusu, açılır
+   liste oku ve kaydırma çubuğu tarayıcının KOYU paletiyle çizilir —
+   beyaz kartın içinde. Rengi biz vermesek de tarayıcı veriyor.
+
+   ── ÖLÇÜM ────────────────────────────────────────────────────────────────
+   Playwright, gerçek `styles.css` ile, YEDİ tema/vurgu birleşiminde:
+   hesaplanan renkler birebir aynı. Ayrıca varsayılan tema eski CSS ile
+   karşılaştırıldı: değişen tek alan birincil düğmenin yazı rengi.
+   Donduran sınama: `src/pages/vitrin-temadan-bagimsiz.arch.test.ts`.
+   ═══════════════════════════════════════════════════════════════════════════ */
+
+html[data-theme-engine="premium"] .unified-login-portal.unified-login-portal,
+html[data-theme-engine="premium"] .public-application-page.public-application-page {
+  color-scheme: light;
+}
+
+html[data-theme-engine="premium"] .unified-login-portal.unified-login-portal input,
+html[data-theme-engine="premium"] .public-application-page.public-application-page input {
+  background: #ffffff;
+  color: #1f2937;
+  border: 1px solid #d8dee6;
+  box-shadow: none;
+}
+
+/* ⚠️ `select` ve `textarea` BİLEREK farklı: bugünkü ziyaretçi görünümünde
+   zeminleri yarı saydam ve çerçeveleri yok. Hepsini beyaza çekmek sağlam
+   hâli "düzeltmek" olurdu. */
+html[data-theme-engine="premium"] .unified-login-portal.unified-login-portal :where(select, textarea),
+html[data-theme-engine="premium"] .public-application-page.public-application-page :where(select, textarea) {
+  background: color(srgb 0.968627 0.976471 0.984314 / 0.74);
+  color: #1f2937;
+  border-color: transparent;
+  box-shadow: none;
+}
+
+html[data-theme-engine="premium"] .unified-login-portal.unified-login-portal :where(input, select, textarea):focus,
+html[data-theme-engine="premium"] .public-application-page.public-application-page :where(input, select, textarea):focus {
+  border-color: #2563eb;
+  box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.18);
+  outline: none;
+}
+
+html[data-theme-engine="premium"] .unified-login-portal.unified-login-portal :where(input, textarea)::placeholder,
+html[data-theme-engine="premium"] .public-application-page.public-application-page :where(input, textarea)::placeholder {
+  color: #94a3b8;
+}
+
+/* Etiketler ve açıklama satırları: koyu temada beyaz kartın üstünde sönük
+   griye düşüyor ve okunmuyordu. */
+html[data-theme-engine="premium"] .unified-login-portal.unified-login-portal :where(label, .muted, .checkbox-row span),
+html[data-theme-engine="premium"] .public-application-page.public-application-page :where(label, .muted, .checkbox-row span) {
+  color: #374151;
+}
+
+/* Onay kutusu: `accent-color` olmadan tarayıcı tema rengini kullanır ve
+   kutu vitrinde başka, uygulamada başka görünür. */
+html[data-theme-engine="premium"] .unified-login-portal.unified-login-portal input[type="checkbox"],
+html[data-theme-engine="premium"] .public-application-page.public-application-page input[type="checkbox"] {
+  /* ⚠️ Yukarıdaki genel `input` kuralı buraya da düşüyordu ve onay
+     kutusuna BEYAZ zemin veriyordu; bugünkü görünümde zemin saydam.
+     Ölçüm yakaladı — kutu, metin kutusu değildir. */
+  background: transparent;
+  border: 0;
+  box-shadow: none;
+  accent-color: #2563eb;
+  width: 16px;
+  height: 16px;
+}
+
+/* ⚠️ BİLİNÇLİ TEK DEĞİŞİKLİK: birincil düğmenin YAZI rengi beyaza
+   sabitlendi. Ölçümde bugünkü değer mavi zemin üzerinde KOYU yazı çıktı
+   (rgb(15,23,42)) — okunabilirlik sınırında bir birleşim. Zemin rengine
+   dokunulmadı. */
+html[data-theme-engine="premium"] .unified-login-portal.unified-login-portal .btn.primary,
+html[data-theme-engine="premium"] .public-application-page.public-application-page .btn.primary {
+  background: #2563eb;
+  border-color: #2563eb;
+  color: #ffffff;
+}
