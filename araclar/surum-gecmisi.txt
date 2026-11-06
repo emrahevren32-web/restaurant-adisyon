@@ -1,11 +1,51 @@
-﻿2026-10-30 | 9d777a9 | denetim defteri do─şru sat─▒r─▒ yaz─▒yor + m├╝d├╝r ayarlar─▒ g├Ârebiliyor (0104, MIYOP-083/084/085)
-2026-10-30 | c418768 | denetim defteri do─şru sat─▒r─▒ yaz─▒yor + m├╝d├╝r ayarlar─▒ g├Ârebiliyor (0104, MIYOP-083/084/085)
-2026-10-30 | c4ff2b5 | A1 BITTI ┬À Isletme Ayarlari da veritabaninda ┬À cicir 6 -> 0
-2026-10-29 | 3df7c28 | A1 ┬À Firma Profili + Karsilama veritabaninda ┬À goc 0103 kiraci ayarlari
-2026-10-29 | 67cd546 | A6 BITTI ┬À MIYOP-043 kapandi ┬À giris sunucuda, yedek yol SILINDI
-2026-10-29 | b8ab19d | A3 BITTI ┬À ayrinti kapisi YEDI EKRANIN YEDISINDE de takili (7/7)
-2026-10-29 | d5a509f | A3 ┬À Siparisler ekranina da ayrinti kapisi (3/7)
-2026-10-29 | d7b922f | A3 ┬À Depo ekranina da ayrinti kapisi (2/7) + Etiketler'de sebep gorunur yere
+2026-11-06 | e54345a | Goc 0106 uygulandi: bekleyen goc kutusu bosaltildi
+2026-11-06 | b3a81f2 | Ana ekrana geri arama formu (goc 0106)
+2026-11-06 | 854efed | Menunun gorunmez kapisi bulundu ve donduruldu (tuzak 188)
+2026-11-05 | 6df6df7 | Mal kabul kapisi: ekran veritabaninin kararina baglandi (tuzak 187)
+2026-11-05 | 8d955d7 | Demo senaryosundaki menu yollari koddan dogrulandi (tuzak 186)
+2026-11-05 | 0ac73ca | 0105 belgelerindeki uc yanlis cumle duzeltildi (tuzak 185)
+2026-11-05 | f8b8ec3 | MIYOP-094 ve MIYOP-096 kapandi - para birimi sayacini KIM artirir
+2026-11-05 | 520cbab | Prova betigi onarildi (tuzak 180) + MIYOP-097 ve MIYOP-098 kapandi
+2026-11-04 | e2b25bc | codex brifi yeni tur icin yazildi (0105, MIYOP-086 onarimi, iki cicir, geri yukleme)
+2026-11-03 | 1919609 | geri yukleme provasi 78/78: teshis dogrulandi (roller acilinca iki politika da geldi)
+2026-11-03 | de65bfd | GERCEK yedek geri geldi (8 kiraci, 123 denetim) + eksik 2 RLS kuralinin sebebi olculdu
+2026-11-02 | bb4dc39 | geri yukleme provasi tek komuta indi (araclar/geri-yukle-provasi.ps1)
+2026-11-02 | 216945f | geri yukleme yontemi ILK KEZ kosturuldu: duz SQL yolu sessizce veri kaybediyor (tuzak 176)
+2026-11-02 | c495df7 | cicir ada degil mekanizmaya bagli: gercek sayi 0 degil 4 (tuzak 175)
+2026-11-02 | 499cbb6 | bekleyen goc yok: pano bitmis isi bekliyor gibi gostermesin (tuzak 162)
+2026-11-02 | edcbd7b | MIYOP-090 kapandi: defter iddialari zaman penceresiyle sinirlandi (tuzak 174)
+2026-11-02 | 2cb61a3 | v0.5.3 yayinda: goc 0105 canlida, surum defterine islendi
+2026-11-02 | 54a1d9b | HEDEFLER 3.4.7 kapandi: goc 0105 - isletme KDV orani yeni urun kartina geciyor
+2026-11-01 | 067b2c6 | yedek dogrulamasi gercekten dogruluyor (MIYOP-087, 088, 092)
+2026-11-01 | 6ad3d45 | MIYOP-086 bayat cevap yeni oturumu bozuyordu (P1) + 089 ve 091 bekcileri
+2026-11-01 | 29a630d | codex brifi 01.11 turu icin yenilendi (4.8-4.10 + tuzak 163-168b)
+2026-11-01 | 2812c51 | ekran basligi yalan soyluyordu (tuzak 168) + sinamanin kendi hatasi (168b)
+2026-11-01 | acc4ae1 | deponun yarisi .tmp copuydu: takipten cikarildi + tuzak 164-167
+2026-11-01 | a6b2f34 | deponun yarisi .tmp copuydu: takipten cikarildi
+2026-11-01 | a31cd56 | yer tutucu bekcisi sablonu tanimiyordu (.env.example) + ayna paketi araci
+2026-11-01 | 6bf7d52 | testler arasi durum MERKEZDEN sifirlaniyor (tuzak 163b) + yedek sayisi olculdu
+2026-11-01 | bdf25c2 | v0.5.1 yayinda + Codex brifi yeni tur icin yenilendi
+2026-11-01 | d70e00c | 3.4.7 yazildi: isletme geneli KDV orani HICBIR YERDE kullanilmiyor
+2026-11-01 | 42435ca | 3.4.6 kapandi: fiyat bicimlendirmesi para birimini ISLETMEDEN aliyor
+2026-11-01 | 6cfd4e3 | 3.4.5 kapandi: sihirbaz para birimini VERITABANINA yaziyor + bayat kutular
+2026-11-01 | f15558b | ufak isler: bos kabuk uretici silindi, sunucu yedegi 3 -> 7
+2026-10-31 | 5eb8b51 | A4 BITTI: storage.ts'te tek bir createDemo* kalmadi (851 satir)
+2026-10-31 | 1d6e7a9 | A4 BITTI: storage.ts'te tek bir createDemo* kalmadi (851 satir)
+2026-10-31 | 4dea94a | A4 basladi: on uc sahte veri ureticisi + "depo bossa uydur" mekanizmasi SILINDI
+2026-10-31 | 9ec15c4 | ilk veri yedegi alindi . ama geri yuklenemeyecekti (tuzak 160)
+2026-10-31 | 8d81720 | yedek betikleri: basariyi basarisizlik sanan iki kapi kapandi (tuzak 158, 159)
+2026-10-30 | 1d629af | tam proje yedegi + veri yedegi Docker'siz da calisiyor (sunucu PG 17.6 olculdu)
+2026-10-30 | 2e84115 | veritabaninin hic yedegi yokmus: yedek-al.ps1 + YEDEKLEME.md (tuzak 156, 157)
+2026-10-30 | 0c112f1 | veritabaninin hic yedegi yokmus: yedek-al.ps1 + YEDEKLEME.md (tuzak 156, 157)
+2026-10-30 | 940f291 | veritabaninin hic yedegi yokmus: yedek-al.ps1 + YEDEKLEME.md (tuzak 156, 157)
+2026-10-30 | 9d777a9 | denetim defteri doğru satırı yazıyor + müdür ayarları görebiliyor (0104, MIYOP-083/084/085)
+2026-10-30 | c418768 | denetim defteri doğru satırı yazıyor + müdür ayarları görebiliyor (0104, MIYOP-083/084/085)
+2026-10-30 | c4ff2b5 | A1 BITTI · Isletme Ayarlari da veritabaninda · cicir 6 -> 0
+2026-10-29 | 3df7c28 | A1 · Firma Profili + Karsilama veritabaninda · goc 0103 kiraci ayarlari
+2026-10-29 | 67cd546 | A6 BITTI · MIYOP-043 kapandi · giris sunucuda, yedek yol SILINDI
+2026-10-29 | b8ab19d | A3 BITTI · ayrinti kapisi YEDI EKRANIN YEDISINDE de takili (7/7)
+2026-10-29 | d5a509f | A3 · Siparisler ekranina da ayrinti kapisi (3/7)
+2026-10-29 | d7b922f | A3 · Depo ekranina da ayrinti kapisi (2/7) + Etiketler'de sebep gorunur yere
 2026-10-28 | 8e7d171 | A3 basladi: ayrinti kapisi kuruldu + Etiketler ekranina takildi (1/7)
 2026-10-28 | 76aaf42 | CANLIDA COKEN EKRAN + tip denetimi hatta eklendi
 2026-10-28 | 26de4dc | karsilama turu Turkcelestirildi + davet e-postasi denemesinin bulgulari
@@ -68,6 +108,306 @@
 2026-10-04 | b28fcfc | 0064 arac ve sofor kartlari: sevkiyata ve irsaliyeye baglandi
 2026-10-04 | 02a7ae8 | 0063 portaldan siparis guncelleme; current_revision artik tetikle ilerliyor
 2026-10-04 | 1d9b89f | 0062 sevk durumunda urun adi; kalem adi bulunamazsa uuid yerine aciklama
-/var/www/miyop.yedek-20261030-182911
-/var/www/miyop.yedek-20261029-023800
-/var/www/miyop.yedek-20261029-013518
+2026-10-04 | 07c568d | Irsaliye yazdirmayi siparise bagladi: siparis kartinda Irsaliyeler tablosu
+2026-10-04 | bb54a86 | Yetki ekrani rol once: rol karti + uyelik; 0060 ana gorev degistirme, 0061 siparis onay izni ayrildi
+2026-10-04 | bbefd86 | Yetki ekrani tumdengelim: rol -> alan -> tek tek yetki; menu YONETIM'e tasindi
+2026-10-03 | 076c2e6 | Kod uretimi, koddan arama ve ust panel saati
+2026-10-03 | dc1e2ad | 0059 ambalaj birimleri + birim listesi, sayi bicimi ve bos liste aciklamalari
+2026-10-03 | 0df30ef | Bellek deposuna teslimFarki eklendi: port degisince uygulayanlarin hepsi degisir
+2026-10-03 | 23b5579 | 0058 siparis-teslim farki raporu: ne istendi, ne hazirlandi, ne gitti
+2026-10-03 | 46078c5 | Giris e-postasi User nesnesine tasindi ve profilde ayri alan oldu
+2026-10-03 | c8882e8 | Tek tip kutu yaricapi (4px) ve profil menusunde giris adi
+2026-10-03 | feb2f47 | Keskin kose: tum dortgen yuzeylerde border-radius sifirlandi
+2026-09-29 | 4f36f44 | A4C2: siparisten sevkiyat turetme (0051)
+2026-09-29 | e695f89 | A4C2 ekran: Siparisler (liste, kart, degisiklik gecmisi, fark kaydi)
+2026-09-28 | d6248fa | A4C2 TS katmani: siparis defteri deposu, servisi, 26 test
+2026-09-28 | bbfc376 | 0050: siparis defteri (A4C2 veritabani)
+2026-09-28 | 38f9d4f | A4C1 tamam: sevkiyat musteri kartindan seciliyor
+2026-09-27 | e1ea048 | A4C1 ekran: Musteriler (kart, teslim noktalari, fiyat defteri)
+2026-09-27 | 15bb3ce | 0047: musteri karti, teslim noktasi, fiyat defteri (A4C1 veritabani)
+2026-09-27 | 49e1467 | 0046: lisans bitince yazma kilidi · A4D 12/12 kapandi
+2026-09-27 | cfcac7d | Menu duz: akordiyon kaldirildi, grup basligi etiket oldu
+2026-09-27 | 6cc70f2 | Arayuz: onaylanan maketin uygulanmasi (koyu menu, siki aralik, onem rozetleri)
+2026-09-26 | 3df4ce8 | 0044 dogrulamasi: ucretsiz uzatma durumu degistirmez
+2026-09-26 | 16c6e02 | 0044: defter guncellenmiyor; typecheck duzeltmesi; provaya dolu-veritabani adimi
+2026-09-24 | 68b4d5b | CI: license_event muafiyeti; lisansta ucretli/ucretsiz ayrimi ve gecmis
+2026-09-24 | 2169e21 | Lisans defteri, platform muafiyeti, Lisans Yonetimi ekrani ve zil
+2026-09-23 | 795d455 | Lisans: veritabani, uzatma ve ek sure talebi; pgcrypto tuzagi kapatildi
+2026-09-23 | 8472cc4 | Lisans veritabanina tasindi; Ayarlar ekraninda lisans karti
+2026-09-22 | 3a52dc3 | Adisyon ve dijital katalog masa servisi sektorlerine baglandi
+2026-09-22 | 037c24d | Giris ekrani ham e-posta hatasini musteriye gostermiyor
+2026-09-21 | 5d50e2d | Rehber hedefi bekliyor, buyuk alani kaydiriyor, tekerlek calisiyor
+2026-09-21 | 89f7890 | Rehber karti genisligi kutusuna sabitlendi; 0041 sektor kimligi tek yazim
+2026-09-21 | 6589a8b | Rehber karti sabit sag alt kosede; sifre uyarisi canli; sektor suzmesi iki yazimi da kabul ediyor
+2026-09-20 | 9ae9b30 | Auth'ta zaten kayitli e-posta icin sifre belirleme yolu
+2026-09-20 | 82bf84d | permission denied hatasi oturum dusmesi olarak aciklaniyor
+2026-09-20 | 7acc27a | Zil yalnizca deftere bakiyor; bildirim satirlari duzeldi
+2026-09-19 | b6d9366 | Zil bildirimleri basvuru defterinden okunuyor; sahte bildirimler silindi
+2026-09-19 | 64ffc83 | 0039: onaylanan isletmeye giris hesabi + karar penceresi yukseklik duzeltmesi
+2026-09-19 | 2023e4a | Vergi bilgisi eksikligi ekranda gorunur, form cumlesi yumusatildi
+2026-09-19 | 11ec793 | 0037 + 0038: karar yazimi, dogrulama copu ve basvuru formu kapsami
+2026-09-19 | cc73461 | A4D: bos liste duzeltmesi (0036) + yedekte yetki acigi kapatildi
+2026-09-17 | 00001a8 | A4 testleri: yedek ve denetim kapsami goc dosyalarindan denetleniyor - A4 BITTI 10/10
+2026-09-17 | 9202ec4 | A4: hata takibi - client_error + React sinir + pencere olaylari
+2026-09-17 | 952dec2 | A4: geri yukleme provasi (alti kontrol) - canli kanitlandi
+2026-09-14 | f270d22 | A4: gunluk veritabani yedegi + menu bilgi mimarisi (ADR-009)
+2026-09-14 | e147410 | ADR-009: menu bilgi mimarisi ve adlandirma standardi
+2026-09-13 | f298ed7 | A4: gorunurluk kurali tek kaynaga cikti, Ayarlar menude, Cari donduruldu
+2026-09-13 | 318b1fd | A4: Ayarlar menuye geldi, veri yedegi oraya tasindi, sahte yedek kaldirildi
+2026-09-13 | d6d011e | A4: veri yedegi profil menusune tasindi, gecmis tablosu, geri donus politikasi
+2026-09-13 | 05e4f93 | A4: veri yedegi sayfasi, yedek dogrulama, tekerlek duzeltmesi
+2026-09-13 | 264f05c | A4: sayim, fire/zayi, denetim kaydi, veri disa aktarma
+2026-09-12 | 90b5ede | Asama 3 tamamlandi: uretim, sevkiyat, izlenebilirlik, HACCP, kontrol paneli
+2026-08-25 | 7922d31 | db: yetkiler, gorunum guvenligi, anon kisitlamasi
+2026-08-25 | 1d6c1d9 | db: cekirdek sema, stok hareket defteri, RLS
+2026-08-25 | 741302f | fix: Codex incelemesi bulgulari - rota sizintisi, katalog suzgeci, NFC, tanimlayici karsilastirmalari
+2026-08-25 | 56cc3e7 | fix: sube kodu ve kullanici adi karsilastirmasinda Turkce i hatasi
+2026-08-25 | e4ae107 | ci: build, typecheck ve test kontrolu
+2026-08-25 | eba7c78 | Dilim 0: kapsam daraltma, test altyapisi, ADR 001-005
+2026-08-25 | c335097 | docs: Production Foundation plani ve ADR 001-005
+2026-08-19 | 6868bae | Faz 35.12.17 Enterprise Design QA Release Candidate tamamlandi
+2026-08-18 | b737fa9 | Faz 35.12.16 Enterprise Visual Cleanup tamamlandi
+2026-08-18 | 1ea9265 | Faz 35.12.15 Accessibility Polish tamamlandi
+2026-08-18 | c61cef6 | Faz 35.12.14 Responsive Experience tamamlandi
+2026-08-18 | 1aa6703 | Faz 35.12.13 Empty States and Product Tour Polish tamamlandi
+2026-08-18 | 2aa08a0 | Faz 35.12.12 Dialog Modal and Drawer Experience tamamlandi
+2026-08-18 | 1c60cc9 | Faz 35.12.11 Motion and Micro Interactions tamamlandi
+2026-08-17 | b02083b | Faz 35.12.10 Theme and Accent Engine tamamlandi
+2026-08-17 | 309cc5c | Faz 35.12.9 Typography System tamamlandi
+2026-08-17 | e7c5cfe | Faz 35.12.8 Forms Experience tamamlandi
+2026-08-17 | 8ef92b0 | Faz 35.12.7 Data Table Experience tamamlandi
+2026-08-17 | 38d3bd9 | Faz 35.12.6 Card and Surface System tamamlandi
+2026-08-17 | 7ea904a | Faz 35.12.5 Workspace Header Experience tamamlandi
+2026-08-17 | 0b0921e | Faz 35.12.4 Topbar Experience tamamlandi
+2026-08-17 | 6d213f5 | Faz 35.12.3 Sidebar Experience tamamlandi
+2026-08-17 | 75c1674 | Faz 35.12.2 Enterprise Layout System tamamlandi
+2026-08-17 | e7cba37 | Enterprise Workspace UI Redesign tamamlandi
+2026-08-16 | 6abc672 | Premium UI Polish and Visual Refinement tamamlandi
+2026-08-16 | f500874 | Faz 35.12 UI Polish and Visual Consistency tamamlandi
+2026-08-16 | 629c27c | Faz 35.11 Responsive Experience tamamlandi
+2026-08-16 | 2fa36fd | Faz 35.10 Premium Theme Engine tamamlandi
+2026-08-16 | 4092907 | Faz 35.9 Onboarding Empty States and Product Tour tamamlandi
+2026-08-16 | bfc08cd | Faz 35.8 Loading Skeleton and Progress tamamlandi
+2026-08-10 | 3590931 | Faz 35.7 Motion and Animations tamamlandi
+2026-08-10 | 73ebf03 | Faz 35.6 Premium Cards and Widgets tamamlandi
+2026-08-09 | b114e2d | Faz 35.5 Premium Forms and Inputs tamamlandi
+2026-08-09 | e0eacc6 | Faz 35.4 Premium Data Tables tamamlandi
+2026-08-09 | fcbd4d9 | Faz 35.3 Dashboard Experience tamamlandi
+2026-08-09 | 9729225 | Faz 35.2.7 Layout Polish tamamlandi
+2026-08-09 | 9701081 | Faz 35.2.6 Responsive Navigation tamamlandi
+2026-08-09 | 004b061 | Faz 35.2.5 Navigation Experience tamamlandi
+2026-08-09 | 8bfbb9c | Faz 35.2.4 Workspace Layout tamamlandi
+2026-08-09 | a429469 | Faz 35.2.3 Topbar Experience tamamlandi
+2026-08-09 | 1e9f5cc | Faz 35.2.2 Sidebar Experience tamamlandi
+2026-08-09 | 2767048 | Faz 35.2.1 Global Application Shell Refactor tamamlandi
+2026-08-09 | f980251 | Faz 35.1.6 Border Radius System tamamlandi
+2026-08-09 | aeffefc | Faz 35.1.5 Shadow System tamamlandi
+2026-08-09 | 30d8a83 | Faz 35.1.4 Spacing System tamamlandi
+2026-08-09 | f3fc0ee | Faz 35.1.3 Iconography System tamamlandi
+2026-08-09 | 87e163b | Faz 35.1.2 Color Palette System tamamlandi
+2026-08-09 | 255bee2 | Faz 35.1.1 Typography System tamamlandi
+2026-08-09 | 49c9863 | Faz 34.15 Notification & Alert Engine tamamlandi
+2026-08-09 | 1a0f60a | Faz 34.14.12 Mobile Integration Layer tamamlandi
+2026-08-09 | 271f77f | Faz 34.14.11 QR Integration Engine tamamlandi
+2026-08-09 | a479d4c | Faz 34.14.4 Print Integration Engine tamamlandi
+2026-08-09 | 93e25f9 | Faz 34.14.3 Barcode Integration Engine tamamlandi
+2026-08-09 | 60f35fd | Faz 34.14.2 Excel Integration Engine tamamlandi
+2026-08-08 | 41ae1a9 | Faz 34.5.1.2 Approved Alternative Materials tamamlandi
+2026-08-08 | 053b438 | Faz 34.4.5.3 Recipe Cost Simulation tamamlandi
+2026-08-08 | e78780d | Faz 34.4.5.2 Historical Cost Snapshot tamamlandi
+2026-08-08 | 33320b7 | Faz 34.4 Recipe Versioning ve Snapshot Engine tamamlandi
+2026-08-06 | bf6ca01 | feat(industry): complete Recall Management and Reporting Dashboard (34.7.4, 34.8.1-34.8.3)
+2026-08-01 | d3ca429 | 34.13.4.2 Storage Migration Fix tamamlandi
+2026-08-01 | b8d7706 | 34.13.4.2 Karar Destek Performans Depolama UX Optimizasyonu tamamlandi
+2026-08-01 | fa2bcdb | 34.13.4.1 AI Destekli Analiz Onarım tamamlandi
+2026-08-01 | 017bd68 | 34.13 Karar Destek Workspace Integration tamamlandi
+2026-07-31 | 36e0de5 | 34.13.6 Purchase Recommendation Engine tamamlandi
+2026-07-31 | 4b5b76e | 34.13.5.1 Runtime stabilization tamamlandi
+2026-07-31 | 4c168c4 | 34.13.5 Cost Optimization Engine tamamlandi
+2026-07-31 | 82d29c7 | 34.13.4 AI Analysis Engine tamamlandi
+2026-07-31 | 201a30a | 34.13.3 Recommendation Engine tamamlandi
+2026-07-30 | 8b88ec1 | 34.13.2 Forecasting Engine tamamlandi
+2026-07-30 | 4fc0854 | 34.13.1 Critical Alert Engine tamamlandi
+2026-07-30 | b484da3 | 34.12.6 Continuous Improvement tamamlandi
+2026-07-30 | 9559e12 | 34.12.5 Bottleneck Analysis tamamlandi
+2026-07-30 | eaec466 | 34.12.4 Workforce Planning tamamlandi
+2026-07-29 | e6c8fa3 | 34.12.3 Machine Scheduling tamamlandi
+2026-07-28 | e3fad9c | 34.12.2 Capacity Planning tamamlandi
+2026-07-28 | 160b407 | 34.12.1 Production Planning tamamlandi
+2026-07-28 | 4f6206b | 34.11.8 Operations Checklists tamamlandi
+2026-07-28 | 344caff | 34.11.7 Shipment Forms tamamlandi
+2026-07-28 | d4e0c08 | 34.11.6 Quality Forms tamamlandi
+2026-07-28 | cf1e0ce | 34.11.5 Waste Management tamamlandi
+2026-07-27 | 5d6703a | 34.11.4 Goods Receipt Management tamamlandi
+2026-07-27 | 786c1d3 | 34.11.3 Label Management tamamlandi
+2026-07-27 | 65e83c0 | 34.11.2 Delivery Note Management tamamlandi
+2026-07-27 | f22ced0 | 34.11.1 Excel Import Export Engine tamamlandi
+2026-07-26 | f20797d | 34.4 Cost Engine Analysis tamamlandi
+2026-07-26 | d705a38 | 34.5.2 Purchase Request tamamlandi
+2026-07-26 | 2041677 | 34.5.1 Supplier Management tamamlandi
+2026-07-26 | 8fed393 | 34.4.4 Fire Impact Analysis tamamlandi
+2026-07-26 | ee07097 | 34.13 Decision Support System tamamlandi
+2026-07-25 | d655f29 | 34.8 KPI & Reporting Engine tamamlandi
+2026-07-25 | 5320717 | 34.7.6 HACCP Management tamamlandi
+2026-07-25 | a39233f | 34.7.5 Product History tamamlandi
+2026-07-25 | 6474b5b | 34.7.3 Witness Sample ve 34.7.4 Recall Management tamamlandi
+2026-07-24 | a1685b8 | 34.7.2 Sample Tracking tamamlandi
+2026-07-24 | 05eb651 | 34.7.1 Lot Management tamamlandi
+2026-07-23 | 3a35f39 | 34.6.8 Waybill Process tamamlandi
+2026-07-23 | a24b82a | 34.6.7 Return Process tamamlandi
+2026-07-23 | 1a5dfbe | 34.6.5 Shipment Plan tamamlandi
+2026-07-22 | daae7bc | 34.6.4 Vehicle Planning tamamlandi
+2026-07-22 | c9b8aa4 | 34.6.3 Shipment Palletization tamamlandi
+2026-07-22 | b22dfb9 | 34.6.2 Shipment Work Order tamamlandi
+2026-07-22 | bf0f5be | 34.6.2 Transfer Receipt tamamlandi
+2026-07-21 | ab303fc | 34.6.1 Shipment Execution tamamlandi
+2026-07-21 | 7d95aaa | 34.6 Shipment Model tamamlandi
+2026-07-20 | abcb748 | 34.5.8 Procurement Analytics tamamlandi
+2026-07-20 | ad1d8d2 | 34.5.7 Supplier Performance tamamlandi
+2026-07-20 | dff26a6 | 34.5.6 Chemical Process tamamlandi
+2026-07-20 | 9898755 | 34.5.5.1 Supplier Return tamamlandi
+2026-07-19 | fe49dc1 | 34.5.4 Quality Control tamamlandi
+2026-07-19 | b29c226 | 34.5.3.1 Inventory Lot Traceability tamamlandi
+2026-07-19 | 4bce85a | 34.5.3 Goods Receipt tamamlandi
+2026-07-19 | 06c18c7 | 34.5.2.3 Purchase Order tamamlandi
+2026-07-19 | 096c375 | 34.5.2.2 Purchase Approval tamamlandi
+2026-07-19 | ee3c62f | 34.5.2.1 RFQ Management tamamlandi
+2026-07-19 | 7af4b97 | 34.5 Procurement Foundation tamamlandi
+2026-07-18 | 2d3a386 | 34.5.1.1 Supplier Product Mapping tamamlandi
+2026-07-17 | 5a0b223 | Faz 34.4.2 Alternative Recipe Navigation tamamlandi
+2026-07-17 | de9567f | Faz 34.4.5 Recipe Cost Engine ve Cost Visibility Improvements tamamlandi
+2026-07-16 | e53c830 | Faz 34.4.6 Unit Conversion Engine tamamlandi
+2026-07-16 | 7b87570 | Faz 34.4.3 Recipe Quantity Management tamamlandi
+2026-07-15 | 2423b91 | Faz 34.4.1 Recipe Management tamamlandi
+2026-07-15 | 0e36d1e | Faz 34.3.8 Dispatch Processes tamamlandi
+2026-07-15 | d130e5c | Faz 34.3.7 Labeling Processes tamamlandi
+2026-07-15 | c1ed2ca | Faz 34.3.6 Packaging Processes tamamlandi
+2026-07-15 | 4ef3ea4 | Faz 34.3.5 Blast Chiller Processes tamamlandi
+2026-07-15 | 5eb81df | Faz 34.3.4 Final Products tamamlandi
+2026-07-15 | 6c97267 | Faz 34.3.3 Intermediate Products tamamlandi
+2026-07-15 | 4e355c0 | Faz 34.3.2 Production Lines tamamlandi
+2026-07-15 | 12fcb57 | Faz 34.3.1 Production Work Orders tamamlandi
+2026-07-11 | 944214e | Faz 20.14.6 - Onboarding Experience tamamlandi
+2026-07-11 | 84e5218 | Faz 20.14.5 - Business Setup Wizard Refactor tamamlandi
+2026-07-11 | dec2cd2 | Faz 20.14.4 - Module Dependency Planner tamamlandi
+2026-07-11 | 01ea6bd | Faz 20.14.3 - Module Recommendation Planner tamamlandi
+2026-07-11 | fbc5755 | Faz 20.14.2 - Sector Templates tamamlandi
+2026-07-11 | bb2deb7 | Faz 20.14.1 - Sector Engine tamamlandi
+2026-07-05 | abcbbd9 | Faz 20.13.8.5 Domain Neutralization tamamlandi
+2026-07-05 | 46136c1 | Faz 20.13.8.1 Dynamic Navigation Tree tamamlandi
+2026-07-04 | cb6e003 | Faz 21.1 Company Model tamamlandi
+2026-07-03 | 179687e | Faz 20.13.5 tamamlandi
+2026-07-03 | 106e671 | Faz 20.13.4 tamamlandi
+2026-07-03 | 7da4069 | Faz 20.13.1 tamamlandi
+2026-07-02 | 9d08e28 | Faz 20.12 tamamlandi
+2026-07-01 | 2b7ba96 | Faz 20.11 tamamlandi
+2026-06-28 | 001991c | Faz 20.7.7 tamamlandi
+2026-06-28 | 4ace44f | Faz 20.7.6 tamamlandi
+2026-06-28 | 60a8a74 | Faz 20.7.5 tamamlandi
+2026-06-28 | 581bdaf | Faz 20.7.4 tamamlandi
+2026-06-28 | bf72ebf | Faz 20.7.3 tamamlandi
+2026-06-28 | 6d20f75 | Faz 20.7.2 tamamlandi
+2026-06-28 | 3fde4b4 | Faz 20.7.1 tamamlandi
+2026-06-28 | 4a34123 | Faz 20.10.5 tamamlandi
+2026-06-28 | 394f76c | Faz 20.10.4 tamamlandi
+2026-06-28 | b87687f | Faz 20.10.3 tamamlandi
+2026-06-27 | 5e76870 | Faz 20.10.2 tamamlandi
+2026-06-27 | 57201ac | Faz 20.10.1 tamamlandi
+2026-06-27 | 9fbb1b8 | Faz 20.9.5 tamamlandi
+2026-06-27 | fea82b3 | Faz 20.9.4 tamamlandi
+2026-06-27 | d2fa2b6 | Faz 20.9.3 tamamlandi
+2026-06-27 | a7d8f60 | Faz 20.9.2 tamamlandi
+2026-06-27 | 8fc60cb | Faz 20.9.1 tamamlandi
+2026-06-27 | 526a554 | Faz 20.8 tamamlandi
+2026-06-27 | d566d24 | Faz 20.7 tamamlandi
+2026-06-25 | 17b1f8e | Faz 20.5 tamamlandi - modul aktivasyon sistemi
+2026-06-25 | 3b2f24c | Faz 20.4 tamamlandi - kullanici ve abonelik yonetimi
+2026-06-25 | d81ccba | Faz 20.3 tamamlandi - paket ve lisans yonetimi
+2026-06-21 | 5f0a332 | Faz 20.2 tamamlandi - firma olusturma sihirbazi
+2026-06-21 | 274a0ee | Faz 20.1 tamamlandi - isletme kayit sistemi
+2026-06-21 | 455e4d1 | Faz 19.7 tamamlandi - sistem sagligi ve telemetri
+2026-06-21 | 06237ae | Faz 19.6 tamamlandi - analitik dashboard
+2026-06-21 | 09da221 | Faz 19.5 tamamlandi - performans ve yogunluk analizleri
+2026-06-21 | 6541c92 | Faz 19.4 tamamlandi - isletme kullanim istatistikleri
+2026-06-20 | f2444a0 | Faz 19.3 tamamlandi - modul kullanim analizleri
+2026-06-20 | bcb35e3 | Faz 19.2 tamamlandi - kullanici aktivite takibi
+2026-06-20 | 5604cd8 | Faz 19.1 tamamlandi - sistem kullanim loglari
+2026-06-20 | b4f6468 | Faz 18.6 tamamlandi - merkez ofis yonetimi
+2026-06-20 | 93f99b6 | Faz 18.5 tamamlandi - sube yetkilendirme sistemi
+2026-06-20 | 2bcb27b | Faz 18.4 tamamlandi - subeler arasi stok transferi
+2026-06-20 | 43d607f | Faz 18.3 tamamlandi - subeler arasi raporlama
+2026-06-20 | 8ec65b9 | Faz 18.2 tamamlandi - sube bazli veri ayrimi
+2026-06-19 | c32747f | Faz 18.1 tamamlandi - sube yonetimi
+2026-06-19 | c51c7ec | Faz 17.6 ve 17.7 tamamlandi - patron dashboard tamamlandi
+2026-06-19 | 1e8d7a3 | Faz 17.5 tamamlandi - cari ve finans merkezi
+2026-06-19 | 8360fa8 | Faz 17.4 tamamlandi - stok ve risk merkezi
+2026-06-18 | 633783f | Faz 17.2 ve 17.3 tamamlandi - patron dashboard analizleri
+2026-06-18 | f05a492 | Faz 17.1 tamamlandi - genel isletme ozeti
+2026-06-18 | 67e73f3 | Faz 15.7 tamamlandi - personel raporlari
+2026-06-14 | 2bc571a | Faz 15.5 tamamlandi - prim sistemi
+2026-06-14 | f16de19 | Faz 15.4 tamamlandi - personel performans takibi
+2026-06-14 | e036a05 | Faz 15.3 tamamlandi - puantaj ve mesai takibi
+2026-06-14 | a770449 | Faz 15.2 tamamlandi - vardiya yonetimi
+2026-06-14 | 5d277a3 | Faz 15.1 tamamlandi - personel kartlari
+2026-06-13 | 469debf | Faz 14.7 tamamlandi - kasa devir islemleri
+2026-06-13 | 0d14dcb | Faz 14.6 tamamlandi - finans raporlari
+2026-06-13 | 465c7e6 | Faz 14.5 tamamlandi - gun sonu kasa kapatma
+2026-06-13 | c3bd64c | Faz 14.4 tamamlandi - gelir gider yonetimi
+2026-06-13 | b4ef66d | Faz 14.3 tamamlandi - kasa hareketleri
+2026-06-13 | 7001aee | Faz 14.2 tamamlandi - tedarikci odeme islemleri
+2026-06-13 | ca26534 | Faz 14.1 tamamlandi - tedarikci borclari
+2026-06-13 | d94650e | Faz 13.6 tamamlandi - riskli cari
+2026-06-13 | 5dbb51e | Faz 13.5 tamamlandi - cari raporu
+2026-06-13 | 9bae594 | Faz 13.4 tamamlandi - cari hareketleri
+2026-06-13 | 3a8463c | Faz 13.3 tamamlandi - tahsilat islemleri
+2026-06-13 | 1bb8e57 | Faz 13.2 tamamlandi - veresiye islemleri
+2026-06-13 | c3a1844 | Faz 13.1 tamamlandi - cari kartlari
+2026-06-12 | 561e31b | Faz 12.11 tamamlandi - navigasyon ve stok yonetimi revizyonlari
+2026-06-12 | b692d2e | Faz 12.10.11.1 tamamlandi - Menu Ok Ikonlari
+2026-06-12 | 8ef3504 | Faz 12.10.5 tamamlandi - Tema Sistemi
+2026-06-12 | 3c9e733 | Faz 12.10.4 tamamlandi - Tablo Sistemi Revizyonu
+2026-06-12 | c51fb2a | WIP - Faz 12.10.4 Tablo Sistemi Revizyonu
+2026-06-12 | 5eb2361 | Faz 12.10.3 tamamlandi - Rapor Merkezi Revizyonu
+2026-06-12 | 8b084e9 | Faz 12.10.2 tamamlandi - Dashboard Revizyonu
+2026-06-12 | 3818111 | Faz 12.10.11 tamamlandi - Shell Duzeltmeleri
+2026-06-09 | b5759b9 | Faz 12.8.14 tamamlandi - Yonetici Ozeti Dashboard
+2026-06-09 | 2f502ef | Faz 12.8.15 tamamlandi - Satis Trendleri ve Zaman Analizi Raporu
+2026-06-09 | cd64495 | Faz 12.8.13 tamamlandi - En Az Satan Urunler Raporu
+2026-06-09 | 9449abc | Faz 12.8.12 tamamlandi - En Cok Satan Urunler Raporu
+2026-06-08 | 241a278 | Faz 12.8.11 tamamlandi - Stok Devir Hizi Raporu
+2026-06-08 | 53bd368 | Faz 12.8.10 tamamlandi - Satis ve Ciro Raporu
+2026-06-08 | 2061ca1 | Faz 12.8.9 tamamlandi - Urun Karlilik Raporu
+2026-06-07 | db0a52a | Faz 12.8.8 tamamlandi - Recete Tuketim ve Maliyet Raporu
+2026-06-07 | c14e4cf | Faz 12.8.7 tamamlandi - Fire ve Kayip Maliyet Raporu
+2026-06-07 | 8dde844 | Faz 12.8.6 tamamlandi - SKT Gecmis Urunler Raporu
+2026-06-07 | 7bef9ed | Faz 12.8.5 tamamlandi - SKT Yaklasan Urunler Raporu
+2026-06-07 | 8901c24 | Faz 12.8.4 tamamlandi - Kritik Stok Raporu
+2026-06-07 | 4306c6f | Faz 12.8.3 tamamlandi - Stok Hareketleri Raporu
+2026-06-07 | 4bdf73e | Faz 12.2.1 tamamlandi - Stok Maliyet Altyapisi
+2026-06-07 | 1a8d968 | Faz 12.8.2 stok maliyet altyapısı
+2026-06-07 | 9ab3137 | Faz 12.8.1 tamamlandi - Rapor Merkezi Altyapisi
+2026-06-07 | 5e59d29 | Faz 12.7 tamamlandi - Fire Yonetimi
+2026-06-07 | 55e8428 | Faz 12.6 tamamlandi - SKT ve lot sistemi
+2026-06-06 | f2dfa8a | Faz 12.5 tamamlandi - kritik stok
+2026-06-06 | 3505b59 | Faz 12.5 tamamlandi - kritik stok
+2026-06-04 | e26b808 | Faz 12.4 tamamlandi - otomatik stok dusumu
+2026-06-04 | 731e4a6 | Faz 12.3 tamamlandi - recete yonetimi
+2026-06-04 | b3f0fd6 | Faz 12.2 tamamlandi - stok hareketleri
+2026-06-04 | dce3e16 | Faz 9.4 tamamlandi - QR siparis denetimi ve loglama
+2026-06-01 | d7ddc3c | Faz 9.2 tamamlandi
+2026-06-01 | d16cd17 | Faz 9.1 tamamlandi
+2026-06-01 | f5309f7 | Faz 10.2 tamamlandi
+2026-06-01 | c2e621e | Faz 9 tamamlandi
+2026-06-01 | 2d9536d | Faz 8.1 tamamlandi
+2026-06-01 | 0b0b0fa | Faz 8 tamamlandi
+2026-06-01 | 5e95473 | Faz 7.2 tamamlandi
+2026-05-31 | 98e609e | Faz 7.1 tamamlandi
+2026-05-31 | dc1ed34 | Faz 6 tamamlandi
+2026-05-31 | 328992f | Faz 5.5 tamamlandi
+2026-05-31 | fba01b9 | Faz 5 tamamlandi
+2026-05-31 | fa92db8 | Faz 4.5 tamamlandi
+2026-05-31 | 1e7de6c | Faz 4 tamamlandi
+2026-05-31 | 656c27e | Faz 3 tamamlandi
+2026-05-31 | d00c4bc | Faz 2 tamamlandi
+2026-05-31 | 73058b8 | feat: add .gitignore for dependencies, build, and environment files
+2026-05-31 | 61184f8 | Faz 1 tamamlandi

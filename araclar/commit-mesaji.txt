@@ -1,30 +1,57 @@
-Goc 0106 uygulandi: bekleyen goc kutusu bosaltildi
+Surum defteri uretecisi + ana ekran tema bulgusu yazildi
 
-Goc 0106 (geri arama talebi) canli veritabanina uygulandi. Ozet tablosunun
-yedi satiri da beklenen degeri verdi:
-    callback_request satiri                              -> 0
-    anon/authenticated tablo yetkisi (0 olmali)          -> 0
-    anon geri_arama_gonder cagirabiliyor                 -> evet
-    anon geri_arama_listesi cagirabiliyor (HAYIR olmali) -> hayir
-    ana ekran telefonu                                   -> (bos)
-    kvkk metin surumu                                    -> 2026-11-06-7b40ca4d
-    dogrulama                                            -> gecti
+1 - SURUM DEFTERI URETECISI (HEDEFLER 7.8, Emrah onayladi)
+araclar/surum-defteri-uret.ps1 yazildi. araclar/surum-gecmisi.txt artik
+elle surdurulmeyecek, git log'dan URETILECEK.
 
-NE DEGISTI
-- araclar/goc-bekleyen.sql BOSALTILDI. kaydet.ps1 o dosyayi her kosuda
-  panoya kopyaliyor; icinde uygulanmis bir goc kalirsa pano
-  "yapistirilacak is var" der ve bir gun biri onu yeniden yapistirir
-  (tuzak 162).
-  !! Bu uyari dosyanin ICINDE 02.11'den beri yaziliydi ve bugun yine az
-  kalsin atlaniyordu. Yazili bir uyari, bir ADIMA baglanmadigi surece
-  hatirlatmaz -> kontrol listesi 130.
+Dosya iki yonden bozuktu: satirlar yanlis kod sayfasiyla yazildigi icin
+okunamiyordu (bu depoda UCUNCU kez, tuzak 99 / MIYOP-079) ve son satiri
+30.10 idi - alti commit eksikti.
 
-- HEDEFLER 7.8: SURUM DEFTERI BOZUK VE GERIDE (yukleme hazirliginda
-  cikti). araclar/surum-gecmisi.txt satirlari "do─şru sat─▒r─▒" gibi
-  okunuyor (yanlis kod sayfasi; tuzak 99 / MIYOP-079 ailesi, bu depoda
-  UCUNCU kez) ve son satiri 30.10 - alti commit eksik. Dosyanin bicimi
-  zaten git log ciktisinin aynisi; dogrusu onu git'ten URETMEK.
-  Emrah'in onayi bekleniyor, bu turda DOKUNULMADI.
+!! Bozulma YAZARKEN degil OKURKEN oluyormus: PowerShell 5.1 harici
+program ciktisini konsol kod sayfasiyla cozuyor. Betik git log'u okumadan
+once [Console]::OutputEncoding'i UTF-8 yapiyor, sonra geri koyuyor.
+Yazma da .NET ile (Out-File/Set-Content degil): sorunu yaratan sey
+PowerShell'in varsayilan kodlamasiydi, ayni araci ayni varsayilanla
+kullanmak hatayi geri getirirdi.
+
+!! Betik kendi ciktisini OLCUYOR: satir sayisi git'inkiyle ayni mi,
+U+FFFD var mi, eski bozulmanin kutu cizgisi deseni geri gelmis mi.
+Dogrulamasiz bir uretici, duzelttigi bozuklugu sessizce geri getirirdi.
+
+!! Bozulma deseni ASCII olarak yaziliyor ([char] kod noktasi ve
+0x2500-0x259F araligi): bozuk karakterleri ornek diye betigin ICINE
+koymak, betigi ASCII olmaktan cikarirdi - yani kontrolun kendisi,
+kontrol ettigi hatayi tasirdi.
+
+!! Ilk yazimda "ters tirnak + u" soz dizimi kullanmistim; o PowerShell 6
+ile geldi, 5.1'de gecerli bir kacis DEGIL ve kontrol sessizce hic
+calismazdi. Calismayan bir kontrol, olmayan bir kontrolden kotudur:
+yesil gorunur. (powershell-kacis.arch.test.ts bunu zaten yakalardi.)
+
+2 - ANA EKRAN BAKANA GORE DEGISIYOR (HEDEFLER 4.11.6, ACIK)
+Emrah'in ekran goruntuleri: ayni kod, iki farkli goruntu. localhost'ta
+form kutulari beyaz ve dugme mavi; prod'da kutular koyu, etiketler sonuk,
+dugme turkuaz. Okunabilirlik bozuluyor.
+
+Mekanizma bulundu (src/components/ThemeProvider.tsx): tema localStorage'da
+saklaniyor ve <html> uzerine HER SAYFADA yaziliyor - giris vitrini dahil.
+Depo her alan adi icin ayri; prod'da kayitli bir tema var, localhost'ta
+yok.
+
+!! AMA PROD GORUNTUSU BIREBIR TEKRAR URETILEMEDI. Gercek styles.css ile
+dort ayar (data-theme, data-theme-engine, data-theme-accent,
+color-scheme) kurulup Playwright'la olculdu; kutular yine BEYAZ cikti.
+Canli siteye bu ortamdan erisim kapali (egress 403). Bu yuzden
+KORLEMESINE DUZELTME YAZILMADI - hangi degerin etkili oldugu olculecek.
+
+!! Bu kusur geri arama formuyla GELMEDI: ayni tema ustteki Giris Merkezi
+kutusunu da boyuyor. Yeni form onu yalnizca gorunur kildi.
+
+3 - BILDIRIM (HEDEFLER 4.11.7)
+Emrah formu doldurdu, GER-5XPUW alindi, zil calmadi. Bu bir hata degil,
+yazili bir eksik: 4.11.1 bastan beri "zil/bildirim yok" diyor.
+basvuru_bildirimi deseni var; ayni kurulabilir. Karar bekleniyor.
 
 Co-Authored-By: Claude Opus 5 <noreply@anthropic.com>
 Claude-Session: https://claude.ai/code/session_019BwYM3mAXZUhp4YGj7tp2y

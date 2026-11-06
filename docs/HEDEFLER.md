@@ -1711,6 +1711,38 @@ Emrah'ın onayladığı sıra:
     çalışma alanındaki depo kopyası eksiktir). Dokuzu yeşil. Kalan ~48
     dosyada aynı bayatlama olabilir — biri kırmızı verdiğinde ilk soru
     *"kural sonradan mı değişti"* olmalı, *"kod mu bozuldu"* değil.
+  - 🔄 **4.11.6** **ANA EKRAN, BAKANA GÖRE DEĞİŞİYOR** (06.11, Emrah'ın
+    ekran görüntüleri). Aynı kod, iki farklı görüntü: `localhost`'ta form
+    kutuları beyaz ve düğme mavi; `miyop.emrahevren.com`'da kutular koyu,
+    etiketler sönük, düğme turkuaz. **Okunabilirlik bozuluyor.**
+    ⚠️ **Mekanizma bulundu** (`src/components/ThemeProvider.tsx`): tema
+    `localStorage`'da saklanıyor (`miyop-theme`, `miyop-theme-accent`) ve
+    `<html>` üzerine HER SAYFADA yazılıyor — **giriş vitrini dahil**.
+    Depo her alan adı için ayrı; Emrah prod'da uygulamayı kullandığı için
+    orada bir tema kayıtlı, localhost'ta yok. Varsayılan `light` +
+    `miyopBlue`; prod'daki turkuaz düğme başka bir vurgu renginin seçili
+    olduğunu söylüyor.
+    ⚠️ **AMA PROD GÖRÜNTÜSÜ BİREBİR TEKRAR ÜRETİLEMEDİ.** Gerçek
+    `styles.css` ile, `data-theme=dark` + `data-theme-engine=premium` +
+    `data-theme-accent` + `color-scheme:dark` kurulup Playwright'la
+    ölçüldü: kutular yine **beyaz** çıktı. Yani sebep bu dörtlüden
+    ibaret değil. Canlı siteye bu ortamdan erişim kapalı (egress 403),
+    bu yüzden **körlemesine düzeltme yazılmadı** — hangi değerin etkili
+    olduğu Emrah'tan ölçülecek.
+    - ⬜ **4.11.6a** Ölçüm: prod gizli pencerede açılacak. Oradaki görüntü
+      localhost gibiyse sebep **kayıtlı tema**dır, dağıtım değil.
+    - ⬜ **4.11.6b** Asıl karar: **giriş vitrini kimin baktığına göre
+      değişmemeli.** Ziyaretçinin kayıtlı teması yok; sayfanın kimliği
+      bakana göre değişiyorsa "müşterinin gördüğü ilk ekran" diye bir şey
+      kalmaz. Düzeltme vitrini temadan bağımsız kılmak olacak.
+    - ⬜ **4.11.6c** ⚠️ Bu kusur **geri arama formuyla gelmedi**: aynı
+      tema, üstteki **Giriş Merkezi** kutusunu da boyuyor. Yeni form onu
+      yalnız görünür kıldı. Düzeltme ikisini de kapsamalı.
+  - ⬜ **4.11.7** **Yeni talep gelince bildirim gelmiyor** (Emrah ölçtü,
+    06.11: form dolduruldu, `GER-5XPUW` alındı, zil çalmadı — Ctrl+Shift+R
+    ile de gelmedi). ⚠️ Bu bir hata değil, **yazılı bir eksik**: 4.11.1
+    baştan beri "zil/bildirim yok" diyor. `basvuru_bildirimi` deseni var;
+    aynısı buraya da kurulabilir. Emrah'ın kararı bekleniyor.
 - ✅ **4.12** **Ana ekranda görünecek telefon** · aynı ekrandan yazılıyor
   (`platform_contact`, göç 0106). ⚠️ Bayrak değil veri: alan boşsa ana
   ekranda **hiçbir şey görünmez**; yazıldığı an görünür.
@@ -1860,8 +1892,17 @@ büyütür, değeri büyütmez.
   ⚠️ Dosyanın biçimi zaten `tarih | kısa-hash | başlık`, yani
   `git log --date=short --pretty` çıktısının birebir aynısı. Elle
   sürdürülen bir kopyanın bayatlaması kaçınılmazdı; **doğrusu dosyayı
-  git'ten ÜRETMEK.** Tek satırlık bir komutla yeniden yazılabilir ve bir
-  daha geride kalmaz. Emrah'ın onayı bekleniyor (06.11).
+  git'ten ÜRETMEK.**
+  ✅ Emrah onayladı (06.11) → `araclar/surum-defteri-uret.ps1` yazıldı.
+  ⚠️ Betik kendi çıktısını **ölçüyor**: satır sayısı git'inkiyle aynı mı,
+  içinde çözülemeyen karakter (U+FFFD) var mı, eski bozulmanın kutu
+  çizgisi deseni geri gelmiş mi. Doğrulamasız bir üretici, düzelttiği
+  bozukluğu sessizce geri getirebilirdi.
+  ⚠️ Bozulma **yazarken değil OKURKEN** oluyordu: PowerShell 5.1 harici
+  program çıktısını konsol kod sayfasıyla çözüyor. Betik `git log`u
+  okumadan önce `[Console]::OutputEncoding`i UTF-8 yapıyor, sonra geri
+  koyuyor.
+  ⬜ Betik henüz **koşulmadı** — bir sonraki turda.
 - ✅ **7.7** **İsmet'e sorulacaklar tek listede** (Emrah, 20.10:
   *"ben sana İsmet'leyim dediğimde sen hepsini tek tek getir benim
   önüme."*) → `docs/kararlar/ismete-sorulacaklar.md`.
