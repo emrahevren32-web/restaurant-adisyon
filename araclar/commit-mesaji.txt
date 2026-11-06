@@ -1,50 +1,95 @@
-Menunun gorunmez kapisi bulundu ve donduruldu (tuzak 188)
+Ana ekrana geri arama formu (goc 0106)
 
-Kirmizi turu isini gordu: turetmem yanlisti, test gercegi soyledi.
+Emrah'in istegi (06.11.2026): "Bilgi isteyenleri arayabileceginiz bir form
+doldursunlar." Ana ekranda tek kapi vardi: Isletme Basvurusu - 14 alan ve
+anlami "almaya karar verdim". Ilk temas ise "bu ne, kaca, bize uyar mi"
+diye baslar; o kisi 14 alan doldurmaz. Yeni form bes alan.
 
-NE OLDU
-isletme_muduru icin beklenen ekran sayisini 19 diye TURETTIM. Gerekce:
-mudurun izinleri sahibin tam alt kumesi (olculdu), eksik dort izinden
-yalniz company.manage bir menu ogesine requiredPermission olarak bagli,
-yani fark tek oge olmali. Test 18 dedi ve farkin
-['Kullanicilar', 'Veri ve Yedekleme'] oldugunu yazdi.
+NE EKLENDI
+- Goc 0106: callback_request + platform_contact tablolari, bes security
+  definer fonksiyon, okunabilir numara (GER-XXXXX), telefon sadelestirme.
+- Ana ekran: src/pages/GeriAramaFormu.tsx, Login.tsx icine #geri-arama
+  bolumu olarak. Ust menu ve kahraman dugmesi oraya kaydiriyor.
+- EVREN360 paneli: src/pages/GeriAramaTalepleri.tsx (Musteriler grubu).
+  Bekleyen talepler en ustte; "Aradim / Kapat / Kaydi sil (KVKK)".
+- Ana ekranda gorunecek telefon ayni ekrandan yaziliyor (platform_contact).
+  BAYRAK DEGIL VERI: alan bossa ana ekranda hicbir sey gorunmez.
+  Emrah'in karari: simdilik bos birakildi.
 
-EKSIK VARSAYIM - workspace-navigation.registry.ts icinde TEK SATIR:
-  const requiredPermission = item.requiredPermission ?? module.permissions[0]
-Kendi izni olmayan menu ogesi, MODULUNUN ILK IZNINI devraliyor.
-"Kullanicilar" ogesinin yaninda hicbir izin yazmaz; kapisi
-system-users.permissions[0] yani users.manage. Mudurde o izin yok, oge hic
-uretilmiyor. Ben yalniz ogelerin KENDI izinlerine bakmistim.
+KAPILAR
+- Tabloya anon/authenticated DML yetkisi YOK, RLS acik ve hic politika yok.
+  Tek yol fonksiyon (0033'un dersi). Yazilmamasi gereken alan parametre
+  olarak BILE yok.
+- Okuma ve yazma platform.manage soruyor; okuma kapisi govdenin ilk
+  satirinda (0083'un dersi).
+- Imzayi sunucu atiyor: "kim aradi" parametresi yok (0087). Ilk aramanin
+  imzasi bir daha degismiyor. Not birikiyor, uzerine yazilmiyor.
+- Kapatmak gerekce istiyor.
 
-Ayni satir gunlerdir cozemedigim bir bulmacayi da acikladi: Kalite
-Sorumlusu neden "Tedarikciler"i gormuyor? Cunku
-business-purchase.permissions[0] purchase.read ve onda o izin yok.
+KVKK
+- Onay bir kutu degil bir kolon: consent_at NOT NULL. Onaysiz kayit
+  fiziken olusamiyor. Onay, fonksiyonun ILK kontrolu.
+- Metin TASLAK, hukukcuya gosterilecek.
+- Metin saklama suresi vaat ETMIYOR: kendiliginden silen is yok. Vaat
+  ettigi silme hakkinin karsiligi var (geri_arama_sil + ekrandaki dugme).
+- Onay surumu metnin md5 ozetine bagli; metin degisip surum degismezse
+  arch testi kiriliyor ve yeni surumu adiyla soyluyor.
 
-ASIL TEHLIKE
-Olculdu: 25 MODULUN canli menu ogeleri bu devralmayla kapili. Yani bir
-modulun permissions dizisini YENIDEN SIRALAMAK - tek bir izin satiri
-degismeden - kimin hangi ekrani gordugunu degistirir.
-system-users.permissions bir gun ['users.read','users.manage',...] olsaydi
-ISLETME MUDURU YETKI DAGITIMI EKRANINI GORMEYE BASLARDI ve hicbir kod
-incelemesi bunu "izin degisikligi" diye gostermezdi.
+SPAM
+- Ayni numaradan acik talep varsa ikincisi red (MI409), 24 saatte en cok
+  uc talep (MI429). Telefon veritabaninda sadelesiyor - yoksa ayni
+  numaranin uc yazimi uc ayri numara sayilir ve kapi kagit ustunde kalir.
+- IP siniri YOK ve bu yazili: x-forwarded-for sahtedir, ona guvenmek
+  koruma SANILIRDI.
 
-EKLENEN CICIR - src/navigation/devralinan-izin.arch.test.ts (6 sinama)
-  - 25 modulun permissions[0]'i donduruldu
-  - devralma satirinin yerinde durdugu ayrica olculuyor (satir giderse
-    donma anlamsizlasir)
-  - devralmaya yeni baslayan modul tabloda yoksa KIRMIZI
-  - tabloda olup artik devralmayan modul kalmamasi da olculuyor
-  - saglama: kayitta gercekten devralan oge var mi (yoksa bos kumeyi
-    olcup yesil kalirdi)
-Tablo iki bagimsiz ayristiriciyla uretildi ve ikisi ayni 25 modulu verdi.
+KANIT
+- db/prova/prova-0106.sql - gercek PostgreSQL 16, "set local role anon" ve
+  "set local role authenticated" takilarak 69 dogrulama, hepsi yesil.
+- src/onboarding/geri-arama.test.ts - kurallar ve bellek defteri.
+- src/onboarding/geri-arama-kapisi.arch.test.ts - goc metni ile kod
+  sabitleri ayrismiyor.
+- giris-vitrini-dogru-soyler.arch.test.ts kapsami GENISLETILDI: vitrin
+  artik iki dosya, kural ikisini de okuyor.
 
-DUZELTILEN
-  isletme_muduru: 18 (sahibi - Kullanicilar - Veri ve Yedekleme)
-  kimlik olcumu artik ['Kullanicilar','Veri ve Yedekleme'] bekliyor
-  yanlis turetmenin kendisi ve NEDEN coktugu teste yazili - sayiyi
-  degistirip gecmek, ogrenilen seyi atmak olurdu.
+TUZAK 189 (bu turda dogdu)
+Prova ilk halinde iki yerde kirmizi verdi ve kirmizi, kapinin CALISTIGINI
+gosteriyordu: iddialar bilerek kapali bir fonksiyonu ve tabloyu, istemci
+rolunu takmisken okuyordu. "Provayi yesile cevirmek" icin yapilacak en
+kolay sey, tam da korumaya calisilan yetkiyi acmakti. Kapilara
+dokunulmadi; iddialar rolun disina tasindi.
 
-Belgeler: tuzak 188, kontrol listesi 120-121.
+TESTIN KENDI HATASI (ilk kosuda uc kirmizi)
+Uc kirmizinin ucu de benim arch testimin hatasiydi, kodun degil:
+- `.from('callback_request')` ve `localStorage` kelimeleri, yasagi ANLATAN
+  yorum satirlarinda geciyordu; test ham metne bakip kendi aciklamama
+  takildi. Artik yorumsuz metne bakiyor (kaynak-soyma.ts, MIYOP-089 /
+  tuzak 181). Soyucunun is yaptigi ayrica olculuyor.
+- `slice(0, 600)` bir sonraki bloga tasiyordu; o blokta
+  geri_arama_listesi MESRU olarak geciyor. Sabit uzunluk bir kesim degil
+  TAHMINdir; artik iki capa ARASI kesiliyor.
+
+BAYAT PROVALAR ONARILDI (olcum sirasinda cikti, 0106 ile ilgisiz)
+- prova-0077: iki iddia eski kurali savunuyordu. 0078 boslugu NOKTAYA
+  ceviriyor; 0102 anon kapisini kapatti. Ikinci iddia tersine cevrildi,
+  service_role ile davranis olcumu ve anon icin olumsuz kontrol eklendi.
+  27 dogrulama yesil.
+- prova-0093: kirmizisi "X <NULL>" diyordu - hangi iddia oldugunu
+  soylemiyordu. prova_bak artik coalesce ile bunu soyluyor. Uc iddia eski
+  kurali savunuyordu: 0094 anahtari BUYUK HARFE ceviriyor, 0097 imhayi
+  onay isine cevirdi. Imha iddiasi silinmedi, OLUMSUZ KONTROLE cevrildi.
+  22 dogrulama yesil.
+- Yerel takimdaki dokuz provanin dokuzu yesil. UYARI: calisma kopyasinda
+  ~57 prova dosyasinin yalniz 9'u vardi; kalan ~48 bu oturumda
+  KOSULMADI (HEDEFLER 4.11.5).
+- Kontrol listesi 127-129: bir provanin kirmizisi kuralin SONRADAN
+  degistigini gosteriyor olabilir.
+
+BILINEN EKSIKLER (yazili, gizli degil)
+- Yeni talep gelince zil/bildirim yok (HEDEFLER 4.11.1).
+- Otomatik KVKK silme yok; metin bu yuzden sure vaat etmiyor (4.11.2).
+- "24 saat icinde ararız" sozu YOK: tutacak bir duzen yok.
+- Yeni CSS yazilmadi; form var olan siniflari kullaniyor (styles.css
+  1,4 MB - ayri turda rotus).
 
 Co-Authored-By: Claude Opus 5 <noreply@anthropic.com>
 Claude-Session: https://claude.ai/code/session_019BwYM3mAXZUhp4YGj7tp2y

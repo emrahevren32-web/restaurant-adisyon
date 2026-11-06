@@ -2,6 +2,7 @@ import React from 'react'
 import { authenticateCredentials, AuthenticationState } from '../auth/authentication.service'
 import { getSupabase, isSupabaseConfigured } from '../core/supabase'
 import { kesinEpostaMi } from '../auth/giris-adi-bicimi'
+import GeriAramaFormu from './GeriAramaFormu'
 
 type Props = { onLogin: (state: AuthenticationState) => void }
 
@@ -219,6 +220,19 @@ export default function Login({ onLogin }: Props){
   }
 
   /**
+   * "Sizi Arayalım" formuna kaydır.
+   *
+   * ⚠️ AYRI SAYFAYA GİTMİYOR — ve bu bilinçli. Başvuru `/apply`e gidiyor
+   * çünkü orada 14 alan var; geri arama formu beş alan ve aynı sayfada
+   * duruyor. Bilgi isteyen birini, en kararsız anında, bir tıklama daha
+   * uzağa göndermek o kişiyi kaybetmektir.
+   */
+  const scrollToCallback = () => {
+    document.getElementById('geri-arama')
+      ?.scrollIntoView({ behavior: 'smooth', block: 'start' })
+  }
+
+  /**
    * Şifremi unuttum.
    *
    * ── NEDEN ŞİMDİ BAĞLANDI ────────────────────────────────────────────────
@@ -310,6 +324,7 @@ export default function Login({ onLogin }: Props){
         <nav className="unified-login-nav" aria-label="Portal">
           <a href="#updates">Güncellemeler</a>
           <a href="#why-miyop">Neden MIYOP?</a>
+          <a href="#geri-arama">Sizi Arayalım</a>
         </nav>
         <button className="btn unified-login-header-action" type="button" onClick={openApplication}>İşletme Başvurusu</button>
       </header>
@@ -329,6 +344,7 @@ export default function Login({ onLogin }: Props){
               </p>
               <div className="unified-login-hero-actions">
                 <button className="btn primary" type="button" onClick={scrollToLogin}>Hemen Giriş Yap</button>
+                <button className="btn" type="button" onClick={scrollToCallback}>Sizi Arayalım</button>
                 <button className="btn" type="button" onClick={openApplication}>İşletme Başvurusu</button>
               </div>
             </div>
@@ -491,6 +507,18 @@ export default function Login({ onLogin }: Props){
             ))}
           </div>
         </section>
+        {/*
+          ⚠️ 06.11.2026 · "SİZİ ARAYALIM" FORMU · Emrah'ın isteği.
+          Ana ekranda tek kapı vardı: İşletme Başvurusu. O form 14 alan
+          istiyor ve anlamı "almaya karar verdim"dir. İlk temas ise çoğu
+          zaman "bu ne, kaça, bize uyar mı" diye başlar — o kişi 14 alan
+          doldurmaz, kapatır gider.
+
+          Formun BU KONUMDA olması bir karar: "Neden MIYOP?" bölümünden
+          SONRA, yani kişi okuduktan sonra. Hemen soracak olan için üstteki
+          menüde ve kahramandaki düğme zaten buraya kaydırıyor.
+        */}
+        <GeriAramaFormu />
       </main>
 
       <footer className="unified-login-footer">

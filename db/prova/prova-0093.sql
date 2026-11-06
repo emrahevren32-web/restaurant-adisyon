@@ -21,18 +21,29 @@ begin;
 --  14 · Açılış durumu ACILDI yapıyor mu?                 → EVET
 --  15 · Olay kaydı değiştirilebiliyor mu?                → DEĞİŞTİRİLEMEMELİ
 --  16 · İmha durumu IMHA yapıyor mu?                     → EVET
---       ⚠️ 0097'den sonra imhayı ONAYLAYABİLEN rol yazar (bkz. prova-0097)
 --  17 · İmhadan sonra yeni olay yazılabiliyor mu?        → YAZILAMAMALI
 --  18 · Aynı partide ikinci AÇIK numune?                 → AÇILAMAMALI
 --  19 · İmhadan sonra yeniden numune alınabiliyor mu?    → ALINABİLMELİ
 --  20 · Numune denetim kaydına düşüyor mu?               → DÜŞMELİ
 -- ═══════════════════════════════════════════════════════════════════════════
 
+-- ⚠️ 06.11.2026 · `coalesce` EKLENDİ VE SEBEBİ ŞU:
+-- Bu dosya kırmızı verdiğinde ekrana sadece şu düşüyordu:
+--     ✗ <NULL>
+-- Yani HANGİ iddianın düştüğü söylenmiyordu. Sebep: iddia metinleri
+-- ölçülen değeri içine katıyor ('... (gelen: '||v_kosul||')') ve o değer
+-- NULL olunca METNİN TAMAMI NULL oluyor. Yani ölçümün başarısızlığı,
+-- ölçümün ADINI da siliyordu.
+-- ⚠️ Bir ölçüm aracının kırmızısı okunamıyorsa, o araca bakılmaz olur.
+-- Ad üretilemediğinde bunu AÇIKÇA söylüyoruz; NULL'u sessizce boş metne
+-- çevirmek de aynı bilgiyi gizlerdi.
 create or replace function prova_bak(p_ad text, p_kosul boolean) returns void
 language plpgsql as $$
+declare v_ad text := coalesce(p_ad,
+  '(iddia metni NULL uretti - olculen deger NULL demektir)');
 begin
-  if p_kosul then raise notice '  ✓ %', p_ad;
-  else raise exception '  ✗ %', p_ad; end if;
+  if p_kosul then raise notice '  ✓ %', v_ad;
+  else raise exception '  ✗ %', v_ad; end if;
 end; $$;
 
 create or replace function prova_oturum(p_auth uuid) returns void
@@ -167,16 +178,19 @@ begin
   raise notice '── TÜRETME: EKRANIN YAZDIĞI DEĞİL, KAYNAĞIN SÖYLEDİĞİ';
   perform prova_oturum(current_setting('prova.auth.uretim_sorumlusu')::uuid);
 
+  -- ⚠️ 06.11.2026 · ARAMA ANAHTARI DÜZELTİLDİ.
+  -- Eskisi `sample_code_key = 'num-1'` diyordu ve HİÇ SATIR BULMUYORDU.
+  -- Sebep: **0094** anahtarı artık ekranın gönderdiğinden değil
+  -- `app.kimlik_anahtari()`den türetiyor ve o fonksiyon BÜYÜK HARFE
+  -- çeviriyor (`num-1` → `NUM-1`), böylece `num-1` ile `NUM-1` aynı
+  -- numune sayılıyor — tekillik kuralının tam olarak istediği şey.
+  -- ⚠️ Yani kırmızı, 0094'ün ÇALIŞTIĞINI gösteriyordu; prova 0093'ün
+  -- hâlini savunuyordu. Anahtar artık sabit yazılmıyor, FONKSİYONDAN
+  -- alınıyor — kural bir daha değişirse prova kendiliğinden uyar.
   select id, storage_condition, keep_until, taken_by
     into v_id, v_kosul, v_sonu, v_imza
-    -- ⚠️ 26.10.2026 · BURADA `sample_code_key = 'num-1'` YAZIYORDU ve göç
-    -- 0094'ten sonra HİÇBİR SATIR BULMADI. Sebep gevşeme değil SIKILAŞMA:
-    -- 0094 tekillik anahtarını SUNUCUDA türetiyor (istemcinin gönderdiği
-    -- anahtar yok sayılıyor), kural `normalizeIdentifier()` ile aynı olduğu
-    -- için anahtar artık 'NUM-1'. Bu prova eski kuralı — "anahtarı ekran
-    -- yazar" — kodlamıştı. Gevşetilmedi: arama insanın gördüğü KODA çevrildi,
-    -- anahtarın kendisi 0094'ün provasında ayrıca ölçülüyor (sınama 15/16).
-    from public.witness_sample where sample_code = 'NUM-1';
+    from public.witness_sample
+   where sample_code_key = app.kimlik_anahtari('NUM-1');
 
   -- 4-5 · koşul ürün kartından geldi, ekranınki yok sayıldı
   perform prova_bak('4 · saklama kosulu URUN KARTINDAN geldi (gelen: '||v_kosul||')',
@@ -279,28 +293,34 @@ begin
                and g.tgname = 'numune_olayi_degismez' and not g.tgisinternal));
 
   -- 16 · imha
-  -- ⚠️ 26.10.2026 · BURADA OTURUM ÜRETİM SORUMLUSUNDAYDI ve göç 0097'den
-  -- sonra MI403 ile kırmızı döndü. Gevşeme değil SIKILAŞMA: Emrah'ın
-  -- kararıyla (*"müdür onaylar ama müdür yoksa gıda mühendisi veya
-  -- kalitecide onaylayabilir"*) imha bir ONAY işi oldu ve üretim sorumlusu
-  -- artık imha yazamıyor.
-  -- ⚠️ Prova GEVŞETİLMEDİ: sınama kuralın yeni hâlini ölçüyor, oturum
-  -- onaylayabilen bir role geçiyor. Üretimin imha YAZAMADIĞI ayrıca
-  -- `prova-0097.sql` sınama 3'te ölçülüyor — yani eski davranışın gittiği
-  -- de kayıtlı, sessizce değişmedi.
+  -- ⚠️ 06.11.2026 · BU BÖLÜM 0097'DEN SONRA DÜZELTİLDİ.
+  -- Eskiden imhayı ÜRETİM SORUMLUSU yazıyordu ve prova geçiyordu.
+  -- **0097 (numune imhasi onaydir)** o kapıyı bilerek daralttı: imhayı
+  -- işletme müdürü onaylar, müdür yoksa gıda mühendisi ya da kalite
+  -- sorumlusu. Prova eski hâli savunduğu için kırmızı veriyordu — yani
+  -- kırmızı, 0097'nin ÇALIŞTIĞINI gösteriyordu.
+  --
+  -- ⚠️ Eski iddia silinmedi, OLUMSUZ KONTROLE çevrildi: imhayı yazamayan
+  -- rolün yazamadığını görmek, kuralın yarısı değil tamamıdır.
+  begin
+    insert into public.witness_sample_event (tenant_id, sample_id, event_type, reason)
+    values (v_t, v_id, 'IMHA', 'uretim sorumlusu imha yazmayi deniyor');
+    v_kod := '00000';
+  exception when others then v_kod := sqlstate;
+  end;
+  perform prova_bak('16a · ⚠️ URETIM sorumlusu IMHA YAZAMIYOR (0097) (gelen: '
+    ||v_kod||')', v_kod <> '00000');
+
+  -- Onaylayabilen role geçiliyor.
   perform prova_oturum(current_setting('prova.auth.kalite_sorumlusu')::uuid);
+
   insert into public.witness_sample_event (tenant_id, sample_id, event_type, reason)
   values (v_t, v_id, 'IMHA', 'SKT doldu, imha edildi');
   select status into v_durum from public.witness_sample where id = v_id;
-  perform prova_bak('16 · imha durumu IMHA yapti (gelen: '||v_durum||')',
-    v_durum = 'IMHA');
+  perform prova_bak('16b · KALITE sorumlusu imhayi ONAYLADI, durum IMHA (gelen: '
+    ||v_durum||')', v_durum = 'IMHA');
 
   -- 17 · imhadan sonra yeni olay
-  -- ⚠️ Oturum ÜRETİME geri alınıyor: bu sınama "imha edilmiş defter kapandı"
-  -- kuralını ölçüyor, izin kuralını değil. Açılış yazmak üretimin hakkı;
-  -- reddedilmesinin sebebi MI409 (defter kapalı) olmalı, MI403 (izin yok)
-  -- değil. Rolü kalitede bırakmak, yanlış sebeple yeşil olmak olurdu.
-  perform prova_oturum(current_setting('prova.auth.uretim_sorumlusu')::uuid);
   begin
     insert into public.witness_sample_event (tenant_id, sample_id, event_type, reason)
     values (v_t, v_id, 'ACILDI', 'tekrar acalim');

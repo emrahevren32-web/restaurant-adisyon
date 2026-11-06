@@ -1656,6 +1656,66 @@ Emrah'ın onayladığı sıra:
   - ⬜ **4.8.7** `support_request` satırının gideceği ekran (Destek
     Talepleri) hâlâ kilitli. Uydurma rota KOYMADIM; ekran açılınca
     yönlendirme de eklenecek.
+- ✅ **4.11** **GERİ ARAMA TALEPLERİ** · ana ekrandaki "Sizi arayalım"
+  formunun karşılığı (göç 0106, 06.11.2026).
+  Emrah: *"Bilgi isteyenleri arayabileceğimiz bir form doldursunlar."*
+  - Ana ekranda tek kapı vardı: **İşletme Başvurusu** — 14 alan ve anlamı
+    *"almaya karar verdim"*. İlk temas ise *"bu ne, kaça, bize uyar mı"*
+    diye başlar; o kişi 14 alan doldurmaz. Yeni form **beş alan**.
+  - ⚠️ Tarayıcı hafızasına düşen yol **YOK**: bağlantı yoksa form
+    "kaydettim" demiyor, açıkça söylüyor. (Başvuru formunun eski
+    `localStorage` yolu var; burada uydurulmadı.)
+  - ⚠️ KVKK onayı **kutu değil kolon**: `consent_at` NOT NULL, onaysız
+    kayıt fiziken oluşamıyor. Aydınlatma metni **taslak** — hukukçuya
+    gösterilecek. Metin saklama süresi vaat etmiyor (kendiliğinden silen
+    iş yok); vaat ettiği silme hakkının karşılığı var (`geri_arama_sil`
+    + ekrandaki düğme).
+  - ⚠️ Spam kapısı sunucuda: aynı numaradan açık talep varsa ikincisi
+    reddediliyor, 24 saatte en çok üç talep. **IP sınırı yok** ve bu
+    yazılı — söylenmeyen sınır, yanlış sanılan sınırdan iyidir.
+  - Kanıt: `db/prova/prova-0106.sql` · **69 doğrulama**, gerçek
+    PostgreSQL, `anon` ve `authenticated` rollerine girilerek.
+  - ⬜ **4.11.1** Yeni talep gelince **zil/bildirim yok.** Panelde
+    görünüyor, ama Emrah ekranı açmadıkça haberi olmuyor.
+    `basvuru_bildirimi` deseni var; aynısı buraya da kurulabilir.
+  - ⬜ **4.11.2** **Otomatik saklama süresi (KVKK) yok.** Kapanmış bir
+    talep elle silinene kadar duruyor. Aydınlatma metni bu yüzden süre
+    vaat etmiyor; süre vaat edecekse önce silen iş kurulur.
+  - ✅ **4.11.3** **ÖLÇÜM SIRASINDA ÇIKTI · `prova-0077` bayatlamış.**
+    0106'nın provasını koştururken yerel takımda iki dosya kırmızıydı ve
+    **ikisi de 0106'dan önce de kırmızıydı** — ben bozmadım. 0077'de iki
+    iddia eski kuralı savunuyordu:
+    · `'  Depo Cu  '` için `depocu` bekliyordu; **0078** boşluğu bilerek
+      NOKTAYA çeviriyor (`Alaattin Kocatepe` → `alaattin.kocatepe`), yani
+      doğru cevap `depo.cu@bulunamadi.miyop.local`.
+    · *"anon sarmalayıcıyı çağırabiliyor"* diyordu; **0102** o kapıyı
+      bilerek kapattı. ⚠️ Yani kırmızı, kapının ÇALIŞTIĞINI gösteriyordu
+      ve "düzeltmenin" en kolay yolu geri alınmış bir kararı geri
+      getirmekti. Bölüm tersine çevrildi + `service_role` ile davranış
+      ölçümü ve `anon` için olumsuz kontrol eklendi. **27 doğrulama yeşil.**
+  - ✅ **4.11.4** **ÖLÇÜM SIRASINDA ÇIKTI · `prova-0093` bayatlamış.**
+    Kırmızısı `✗ <NULL>` diyordu — hangi iddia olduğunu söylemiyordu.
+    Sebep: iddia metni ölçülen değeri içine katıyor, değer NULL olunca
+    metnin tamamı NULL oluyordu. ⚠️ Ölçümün başarısızlığı, ölçümün ADINI
+    da siliyordu; `prova_bak` artık `coalesce` ile bunu söylüyor.
+    Altındaki üç iddia da eski kuralı savunuyordu:
+    · `sample_code_key = 'num-1'` arıyordu; **0094** anahtarı
+      `app.kimlik_anahtari()`den türetiyor ve BÜYÜK HARFE çeviriyor
+      (`num-1` ile `NUM-1` aynı numune — tekilliğin istediği şey). Arama
+      artık sabit yazılmıyor, fonksiyondan alınıyor.
+    · İmhayı ÜRETİM sorumlusu yazıyordu; **0097** imhayı onay işine
+      çevirdi (müdür, gıda mühendisi ya da kalite). Eski iddia silinmedi,
+      **olumsuz kontrole** çevrildi. **22 doğrulama yeşil.**
+  - ⬜ **4.11.5** **KALAN PROVALAR BU OTURUMDA KOŞULMADI.** Çalışma
+    kopyasında ~57 prova dosyasının yalnız **9'u** vardı (tuzak 147/151:
+    çalışma alanındaki depo kopyası eksiktir). Dokuzu yeşil. Kalan ~48
+    dosyada aynı bayatlama olabilir — biri kırmızı verdiğinde ilk soru
+    *"kural sonradan mı değişti"* olmalı, *"kod mu bozuldu"* değil.
+- ✅ **4.12** **Ana ekranda görünecek telefon** · aynı ekrandan yazılıyor
+  (`platform_contact`, göç 0106). ⚠️ Bayrak değil veri: alan boşsa ana
+  ekranda **hiçbir şey görünmez**; yazıldığı an görünür.
+  Emrah'ın kararı (06.11): *"şimdilik yazmasın ama admin panelimde orası
+  için telefon numarası girebileceğim yer olsun."* → alan **boş** bırakıldı.
 - ⬜ **4.9** Kontrol Paneli gerçek sayaçlarla
 - ⬜ **4.10** **MIYOP-028** · Pasif lisansın gerçek durumu görünmüyor
   `lisansiOku` yalnız Deneme/Aktif getiriyor; Süresi Doldu/Askıda/İptal

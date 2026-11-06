@@ -12,6 +12,7 @@ import SaasManagementCenter, { SaasManagementView } from './pages/SaasManagement
 import CustomerList from './pages/CustomerList'
 import CustomerDetail from './pages/CustomerDetail'
 import PendingApplications from './pages/PendingApplications'
+import GeriAramaTalepleri from './pages/GeriAramaTalepleri'
 import LisansYonetimi from './pages/LisansYonetimi'
 import SystemAnnouncements from './pages/SystemAnnouncements'
 import CustomerStatistics from './pages/CustomerStatistics'
@@ -1384,6 +1385,11 @@ export default function App(){
       )}
       {route === 'evren360-pending-applications' && currentUser.role === 'Admin' && !platformEkraniHazirDegil && (
         isPlatformAdmin ? <PendingApplications currentUser={currentUser} initialApplicationId={selectedPendingApplicationId} /> : <PlatformAccessDenied />
+      )}
+      {/* 0106 · Ana ekrandaki "Sizi arayalım" formunun karşılığı. Üç kapı
+          aynı şeyi söylüyor: menü kilidi, bu blok ve rota hazırlık kapısı. */}
+      {route === 'evren360-callback-requests' && currentUser.role === 'Admin' && !platformEkraniHazirDegil && (
+        isPlatformAdmin ? <GeriAramaTalepleri /> : <PlatformAccessDenied />
       )}
       {route === 'evren360-license-management' && currentUser.role === 'Admin' && !platformEkraniHazirDegil && (
         isPlatformAdmin ? <LisansYonetimi /> : <PlatformAccessDenied />

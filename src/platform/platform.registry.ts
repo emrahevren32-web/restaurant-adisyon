@@ -88,6 +88,30 @@ export const PLATFORM_MODULE_REGISTRY: PlatformRegistryItem[] = [
     tags: ['platform', 'applications']
   },
   {
+    // 0106 · Ana ekrandaki "Sizi arayalım" formunun karşılığı.
+    //
+    // ⚠️ `displayOrder` 15, yani "Onay Bekleyen İşletmeler"in (10) HEMEN
+    // ARDINDA. 5 yazmak daha doğru görünüyordu (geri arama başvurudan önce
+    // gelir) ama yan etkisi vardı: `getIlkHazirPlatformRotasi()` hazır
+    // ekranların İLKİNİ açıyor, yani panele girince karşılayan ekran
+    // değişirdi. Emrah böyle bir şey istemedi; istenmeyen bir yan etki,
+    // istenen bir iyileştirmeden daha pahalıdır.
+    id: 'platform-callback-requests',
+    code: 'platform-callback-requests',
+    name: 'Geri Arama Talepleri',
+    description: 'Ana ekrandan bilgi isteyenlerin geri arama talepleri.',
+    icon: 'GA',
+    route: 'evren360-callback-requests',
+    navKey: 'evren360-callback-requests',
+    groupKey: 'evren360-musteriler',
+    scope: MODULE_SCOPES.PLATFORM,
+    displayOrder: 15,
+    // 0106 · `public.geri_arama_listesi` + `public.platform_iletisim_*`
+    veriKaynagi: 'veritabani',
+    kaynakDosya: 'pages/GeriAramaTalepleri.tsx',
+    tags: ['platform', 'callback', 'satis']
+  },
+  {
     id: 'platform-customers',
     code: 'platform-customers',
     name: 'Müşteri Listesi',

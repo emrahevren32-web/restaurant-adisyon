@@ -60,8 +60,31 @@ begin
     auth.uid() is null);
   perform prova_bak('"depocu" + işletme kodu → gerçek giriş adresi',
     app.giris_adresi_bul('depocu', 'ABCGIDA') = 'depocu@abcgida.miyop.local');
-  perform prova_bak('yazım farkı (büyük harf/boşluk) giriş adresini bozmuyor',
-    app.giris_adresi_bul('  Depo Cu  ', 'ABCGIDA') = 'depocu@abcgida.miyop.local');
+  -- ⚠️ 06.11.2026 · BU İDDİA BAYATLAMIŞTI VE DÜZELTİLDİ.
+  -- Eskisi şuydu:
+  --     app.giris_adresi_bul('  Depo Cu  ', 'ABCGIDA')
+  --       = 'depocu@abcgida.miyop.local'
+  -- yani İÇİNDEKİ boşluğun da yok sayılmasını bekliyordu. **0078 kuralı
+  -- bilerek değiştirdi:** boşluk ve alt çizgi artık NOKTAYA dönüyor, ki
+  -- yönetici "Alaattin Kocatepe" yazdığında "alaattin.kocatepe" elde etsin
+  -- — "alaattinkocatepe" değil. Ölçüldü (06.11):
+  --     '  Depo Cu  '       → 'depo.cu'
+  --     '  DEPOCU  '        → 'depocu'
+  --     'Alaattin Kocatepe' → 'alaattin.kocatepe'
+  -- Yani `depo.cu` ile `depocu` AYRI iki kullanıcı adıdır ve öyle olmalı.
+  -- Prova aylarca 0078 ÖNCESİNİN kuralını savundu; kırmızısı ürünü değil
+  -- kendisini gösteriyordu (tuzak 186'nın prova tarafı).
+  --
+  -- Yerine kuralın BUGÜNKÜ hâli ölçülüyor — ve iki yönüyle:
+  perform prova_bak('BAŞTAKİ/SONDAKİ boşluk ve büyük harf adresi bozmuyor',
+    app.giris_adresi_bul('  DEPOCU  ', 'ABCGIDA') = 'depocu@abcgida.miyop.local');
+  -- ⚠️ `null` DÖNMÜYOR ve bu da bilinçli: bulunamayan ad için de GEÇERLİ
+  -- BİÇİMDE sahte bir adres dönüyor, yoksa cevabın biçimi "bu kullanıcı
+  -- var mı" sorusunu parola bilmeden cevaplardı. ⚠️ Bu satırı da ilk
+  -- yazışımda `is null` diye yazdım ve kırmızı aldım — fonksiyonun gövdesi
+  -- okunmadan yazılan ikinci tahmin.
+  perform prova_bak('⚠️ İÇİNDEKİ boşluk AYRI bir kullanıcı adıdır (0078: boşluk → nokta)',
+    app.giris_adresi_bul('  Depo Cu  ', 'ABCGIDA') = 'depo.cu@bulunamadi.miyop.local');
   perform prova_bak('işletme kodundaki tire/boşluk önemsiz',
     app.giris_adresi_bul('depocu', 'abc-gida') = 'depocu@abcgida.miyop.local');
 end; $$;
@@ -119,26 +142,59 @@ begin
     app.giris_adresi_bul('eskici', 'ABCGIDA') = 'eskici@abcgida.miyop.local');
 end; $$;
 
--- ── 6 · GİRİŞ EKRANININ KAPISI: anon ÇAĞIRABİLİYOR ───────────────────────
+-- ── 6 · GİRİŞ EKRANININ KAPISI · 0102'DEN SONRA ──────────────────────────
+-- ⚠️ 06.11.2026 · BU BÖLÜM TERSİNE ÇEVRİLDİ VE SEBEBİ ŞU:
+-- Eskisi *"anon public sarmalayıcıyı çağırabiliyor"* diye ölçüyordu ve
+-- 0077 yazıldığında DOĞRUYDU — giriş ekranı adresi tarayıcıdan çeviriyordu.
+-- **0102 (18–20.10) o kapıyı bilerek kapattı:** cevabın BİÇİMİ "bu kullanıcı
+-- var mı" sorusunu parola bilmeden cevaplıyordu (Codex denetimi), ve yalnız
+-- `anon`dan almak yarım onarım olduğu için `authenticated` hakkı da alındı.
+-- Adres çevirisi artık `giris-yap` Edge Function'ının içinde, `service_role`
+-- ile yapılıyor.
+--
+-- Yani provanın kırmızısı ürünü değil KENDİSİNİ gösteriyordu: üç hafta
+-- boyunca **kapatılmış bir kapının açık olmasını** savundu. Bir prova da
+-- kod gibi bayatlar; bayat prova, geri alınmış bir kararı geri getirmeye
+-- çağıran bir kırmızı üretir.
 do $$
 begin
-  perform prova_bak('anon public sarmalayıcıyı çağırabiliyor',
-    has_function_privilege('anon', 'public.giris_adresi_bul(text, text)', 'execute'));
+  perform prova_bak('⚠️ anon public sarmalayıcıyı ÇAĞIRAMIYOR (0102)',
+    not has_function_privilege('anon', 'public.giris_adresi_bul(text, text)', 'execute'));
+  perform prova_bak('⚠️ authenticated de ÇAĞIRAMIYOR (0102 kapsam düzeltmesi)',
+    not has_function_privilege('authenticated', 'public.giris_adresi_bul(text, text)', 'execute'));
+  perform prova_bak('service_role ÇAĞIRABİLİYOR — giriş bu yoldan işliyor',
+    has_function_privilege('service_role', 'public.giris_adresi_bul(text, text)', 'execute'));
   perform prova_bak('app şemasındaki asıl fonksiyon anon''a açık DEĞİL',
     not has_function_privilege('anon', 'app.giris_adresi_bul(text, text)', 'execute'));
 end; $$;
 
--- Gerçekten çağırıyor mu: rolü değiştirip deniyoruz.
-set role anon;
-select set_config('prova.anon_sonuc',
+-- Gerçekten çalışıyor mu: Edge Function'ın rolüne girip deniyoruz.
+-- ⚠️ Yetki tablosuna bakmak yetmez (tuzak 139): rol takılıp çağrılıyor.
+set role service_role;
+select set_config('prova.sr_sonuc',
   public.giris_adresi_bul('depocu', 'ABCGIDA'), false);
 reset role;
 
 do $$
+declare v_kod text;
 begin
-  perform prova_bak('⚠️ anon ROLÜYLE gerçekten çağrıldı ve doğru adres döndü',
-    current_setting('prova.anon_sonuc') = 'depocu@abcgida.miyop.local');
+  perform prova_bak('⚠️ service_role ROLÜYLE gerçekten çağrıldı ve doğru adres döndü',
+    current_setting('prova.sr_sonuc') = 'depocu@abcgida.miyop.local');
 end; $$;
+
+-- Olumsuz kontrol: anon gerçekten reddediliyor mu (kapının kendisi).
+set role anon;
+do $$
+declare v_kod text;
+begin
+  begin
+    perform public.giris_adresi_bul('depocu', 'ABCGIDA');
+    v_kod := '00000';
+  exception when others then v_kod := sqlstate;
+  end;
+  perform prova_bak('⚠️ anon ROLÜYLE çağrı REDDEDİLDİ ('||v_kod||')', v_kod = '42501');
+end; $$;
+reset role;
 
 -- ── 7 · FONKSİYON ŞİFREYE DOKUNMUYOR ─────────────────────────────────────
 do $$

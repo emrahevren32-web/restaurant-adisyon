@@ -984,6 +984,34 @@ göreceği hata mesajları** da (`'Çok fazla deneme yapıldı'`) bozuluyordu.
 ⚠️ Ve komut kendi çıktısını **ölçmeli**: panoda `ş` var mı, bozuk `Ã` var
 mı. "Kopyaladım" demek yetmez; kopyanın sağlam olduğu gösterilir.
 
+**189 · PROVA, ÖLÇTÜĞÜ KAPININ İÇİNDEN BAKIYORDU — VE KIRMIZI, KAPININ
+ÇALIŞTIĞI ANLAMINA GELİYORDU.**
+(06.11.2026) `prova-0106.sql` yazıldı: geri arama formunun kapılarını
+gerçek PostgreSQL üzerinde, `set local role anon` ve `set local role
+authenticated` takarak ölçüyor — tuzak 139/MIYOP-042'nin dersi, doğru
+yapıldı. Ama prova **iki yerde kırmızı verdi**:
+
+    ERROR: permission denied for function kvkk_metin_surumu
+    ERROR: permission denied for table platform_contact
+
+İlk tepki yanlış olandı ve tehlikeli olanıydı: *"demek ki `authenticated`a
+bu yetkiyi vermem lazım."* Oysa iddiaların kendisi yanlış yerden
+bakıyordu. O fonksiyon ve o tablo **bilerek kapalı**; prova onları
+istemci rolünü takmışken okumaya çalışıyordu. Yani:
+
+> **Kırmızı, kapının BOZUK olduğunu değil, ÇALIŞTIĞINI gösteriyordu.**
+
+Doğru düzeltme ikisini de rolün dışına taşımak oldu: beklenen değeri
+kurulumda (sahip olarak) okuyup bir ayara koymak, imza kontrolünü
+`reset role` sonrası bloğa almak. Kapılara dokunulmadı.
+
+⚠️ **Ders:** bir prova, kapının İÇİNDE koşmak zorundadır (yoksa her yazımı
+sessizce geçirir) — **ama kapalı bir yüzeyi okuyan bir İDDİA, kapının
+dışına çıkar.** İkisi karıştırılırsa "provayı yeşile çevirmek" için
+yapılacak en kolay şey, tam da korumaya çalıştığın yetkiyi açmaktır.
+⚠️ İkinci ders: bir ölçüm aracının kırmızısı okunurken **ne ölçtüğü**
+sorulur. "Yetki yok" diyen bir hata, bazen cevabın kendisidir.
+
 **188 · MENÜNÜN YARISININ KAPISI, BAŞKA BİR DOSYADAKİ DİZİNİN SIRASI.**
 (05.11.2026) `isletme_muduru` rolünün beklenen ekran sayısını **türettim**
 ve yanlış çıktı. Türetme şuydu: müdürün izinleri sahibin tam alt kümesi
@@ -2035,6 +2063,39 @@ Son söz onun çıktısındadır.
     şey korumaz; orada sürüm/kimlik taşımak gerekir.
 94. Bir ölçümün **sağlaması, ölçümle AYNI nesneyi** kullanır (tuzak 170).
     Deseni ikinci kez elle yazan sağlama, bozulan asıl ölçümü yakalamaz.
+122. Bir provanın kırmızısını koda yormadan önce **iddianın hangi rolden
+     baktığı** sorulur (tuzak 189). Kapalı bir yüzeyi okuyan iddia, kapı
+     çalıştığı için kırmızı verir; "yeşile çevirmek" için yetki açmak
+     korumayı kaldırmaktır.
+123. Oturumsuz (`anon`) bir yazma kapısı açarken **tabloya hiç yetki
+     verilmez**: tek yol `security definer` fonksiyon olur (0033'ün dersi,
+     0106'da tekrar). Fonksiyon, yazılmaması gereken alanı **parametre
+     olarak bile** almaz.
+124. Bir onay (KVKK) **kutu değil, kolon** olarak kurulur. `consent_at`
+     NOT NULL ise onaysız kayıt fiziken oluşamaz; ekrandaki kutu
+     atlanabilir, kolon atlanamaz (0106).
+125. Bir aydınlatma/onay metni **arkasında çalışan şey olmayan söz
+     vermez** (0106). "N ay sonra silinir" demek için kendiliğinden silen
+     bir iş gerekir; yoksa metin süre yazmaz, **tutulan** sözü yazar — ve
+     o sözün karşılığı (silme fonksiyonu + düğmesi) aynı turda yazılır.
+127. **Bir provanın kırmızısı, kuralın SONRADAN DEĞİŞTİĞİNİ gösteriyor
+     olabilir** (06.11.2026 · 0077 ve 0093). İlk soru *"kod mu bozuldu"*
+     değil, *"bu iddia hangi göçün hâlini savunuyor"* olmalı. Üç kırmızının
+     üçü de aradan geçen bir göcün (0078, 0094, 0097, 0102) bilerek
+     değiştirdiği kuralı savunuyordu; "yeşile çevirmenin" en kolay yolu
+     geri alınmış bir kararı geri getirmekti. ⚠️ Prova da belge gibi
+     bayatlar (tuzak 186'nın prova tarafı).
+128. Düzeltilen bir iddia **silinmez, OLUMSUZ KONTROLE çevrilir**
+     (0093'ün imha bölümü). "Üretim sorumlusu imhayı yazıyor" yanlış hâle
+     geldiğinde doğrusu "yazamıyor"dur; iddiayı atmak kuralın yarısını
+     ölçülmemiş bırakır.
+129. Bir iddianın metni **ölçülen değeri içine katıyorsa**, değer NULL
+     olduğunda metin de NULL olur ve kırmızı `✗ <NULL>` der — yani
+     başarısızlık, iddianın ADINI da siler (0093). İddia üreten yardımcı
+     `coalesce` ile kendini korur.
+126. Onay verilen metnin **sürümü metne bağlanır** (0106): sürümün sonuna
+     metnin özeti konur ve test ikisini kıyaslar. Yoksa kayıt, kişinin
+     hiç görmediği bir metne onay verdiğini söyleyebilir.
 120. Bir ekranın kapısı **ekranın yanında yazmıyor olabilir** (tuzak 188).
      Menü ögesi kendi iznini söylemezse modülünün İLK iznini devralır;
      "izni yok" demeden önce devralma zinciri sorulur.

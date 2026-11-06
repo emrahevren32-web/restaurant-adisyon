@@ -34,7 +34,28 @@ import { projeKokunuBul } from '../core/test-support/goc-tarama'
 import { BUSINESS_WORKSPACE_MODULE_REGISTRY } from '../modules/business-workspace.registry'
 
 const SRC = join(projeKokunuBul(), 'src')
-const HAM = readFileSync(join(SRC, 'pages/Login.tsx'), 'utf8') as string
+
+/**
+ * ⚠️ VİTRİN ARTIK İKİ DOSYA (06.11.2026).
+ *
+ * "Sizi Arayalım" formu `GeriAramaFormu.tsx` içine ayrıldı; müşterinin
+ * gördüğü metnin bir kısmı artık orada. Bu dosyanın kapsamı Login.tsx'te
+ * kalsaydı, aynı kural korumak istediği yüzeyin yarısını görmez olurdu —
+ * `rpc.arch.test.ts` içinde yazılı olan ders bu:
+ *
+ *   "Bir kuralın kapsamı, korumak istediği YERLERİN tamamı olmalı."
+ *
+ * Yeni bir bölüm ayrı bir dosyaya çıkarıldığında bu listeye eklenmesi
+ * gerekiyor; eklenmezse kural sessizce küçülür.
+ */
+const VITRIN_DOSYALARI = [
+  'pages/Login.tsx',
+  'pages/GeriAramaFormu.tsx',
+] as const
+
+const oku = (yol: string) => readFileSync(join(SRC, yol), 'utf8') as string
+
+const HAM = VITRIN_DOSYALARI.map(oku).join('\n')
 
 /**
  * ⚠️ Yorumlar ÇIKARILIYOR. Kaldırılan yalanların GEREKÇESİ yorum olarak
@@ -98,11 +119,31 @@ describe('giriş vitrini · yalnız olanı söyler', () => {
   it('giriş ekranı tarayıcı deposuna HİÇ dokunmuyor', () => {
     // ⚠️ `../storage` içindeki okuyucular depo boşken demo satır üretiyor.
     // Giriş ekranının tek veri kaynağı Supabase oturumu olmalı.
-    expect(
-      HAM,
-      'Login.tsx yeniden `../storage` okuyor — o dosyadaki okuyucular depo '
-      + 'boşken demo firma/paket/şube üretiyor (HEDEFLER 3.10)'
-    ).not.toMatch(/from '\.\.\/storage'/)
+    for(const yol of VITRIN_DOSYALARI){
+      expect(
+        oku(yol),
+        `${yol} \`../storage\` okuyor — o dosyadaki okuyucular depo boşken `
+        + 'demo firma/paket/şube üretiyor (HEDEFLER 3.10)'
+      ).not.toMatch(/from '\.\.?\/storage'/)
+    }
+  })
+
+  it('sağlama: vitrin dosyalarının hepsi diskte ve okundu', () => {
+    // ⚠️ Tuzak 58 · "hiç dosya bulamadım" deyip yeşil geçmek en kötü sonuç.
+    expect(VITRIN_DOSYALARI.length).toBeGreaterThanOrEqual(2)
+    for(const yol of VITRIN_DOSYALARI){
+      expect(oku(yol).length, `${yol} boş`).toBeGreaterThan(500)
+    }
+  })
+
+  it('⚠️ "Sizi Arayalım" formu vitrine BAĞLI (bölüm kaybolmasın)', () => {
+    // Form ayrı dosyada; Login.tsx onu çizmiyorsa müşteri hiç görmez ve
+    // kimse fark etmez — ekran yine açılır, yine düzgün görünür.
+    const giris = oku('pages/Login.tsx')
+    expect(giris).toContain('<GeriAramaFormu />')
+    expect(oku('pages/GeriAramaFormu.tsx')).toContain('id="geri-arama"')
+    // Üstteki menüdeki bağlantının gideceği yer gerçekten var mı.
+    expect(giris).toContain('href="#geri-arama"')
   })
 
   it('"Security Gateway" gibi var olmayan bileşen adı yok', () => {
