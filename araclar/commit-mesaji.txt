@@ -1,54 +1,40 @@
-Zil calisiyor: 4.11.7 canlida olculdu, kusur kodda degildi
+Zil tazeleniyor ama sessiz: 4.11.8 olculdu ve BASTAN YAZILDI
 
-Emrah 06.11'de "bildirim yok" dedi ve madde 4.11.7 KIRMIZI acilmisti.
-Bu tur canli site Emrah'in kendi Chrome'unda acildi ve zil OLCULDU.
+4.11.8 soyle yaziliyordu: "Bildirimler sayfa tazelendiginde ya da panel
+acildiginda okunuyor... bir yoklama (polling) gerekiyor."
 
-OLCUM (canli, index-BQ8FN3LM.js, 07.11 10:59)
-  . Zil paneli SEKIZ satir gosteriyor; ikisi geri arama talebi
-    (GER-2R432, GER-5XPUW), ucu lisans, ucu "giris hesabi acilmadi".
-  . Hepsinin sinifi `notification-item warning READ`. Rozet yok cunku
-    rozet yalniz OKUNMAMISLARI sayiyor.
-  . localStorage -> evren360_bildirim_okundu sebebi saniyesine kadar
-    verdi:
-        geri_arama_GER-35G7T_NEW : 2026-11-06T19:38:06Z
-        geri_arama_GER-2R432_NEW : 2026-11-06T19:38:34Z
-        geri_arama_GER-5XPUW_NEW : 2026-11-06T19:38:49Z
-    Bu kimlikleri YALNIZ yeni kod uretir ve bu damgalar ancak zildeki
-    satir TIKLANINCA duser. Yani zil calismis, uc talebi gostermis,
-    Emrah ucunu de 28 ve 15 saniye arayla tek tek tiklamis (toplu
-    "okundu yap" olsaydi damgalar ayni salise olurdu). Alti eski
-    basvuru/lisans satiri da ayni yoldan okunmus (17 Eki - 1 Kas):
-    "6 rozet -> 0"in sebebi bu.
-  . Zil ile panel BIREBIR TUTARLI: panel "2 talep bekliyor . Hepsi (3) .
-    Bekliyor (2) . Arandi (1)" diyor, zil tam o iki bekleyeni
-    gosteriyor. Ucuncusu arandi, zilden dogru sekilde dustu.
+OLCULDU VE YANLISTI. Yoklama ZATEN VARDI.
 
-KARAR (Emrah, 07.11)
-"zil okunmamislari saysin, okununca bir daha bildirim vermesin ama
-okunan bildirim yine ayni yerde dursun."
--> BUGUNKU DAVRANIS TAM OLARAK BUDUR. KOD DEGISMEDI.
+OLCUM (07.11, canli site, Emrah'in Chrome'u, ag istegi kaydi)
+Sekme 75 saniye acik birakildi. Uc bildirim kaynaginin ucu de IKI KEZ
+okundu, hepsi 200:
+    rpc/sure_talepleri . rpc/lisans_ozeti . rpc/geri_arama_listesi
+    rpc/sure_talepleri . rpc/lisans_ozeti . rpc/geri_arama_listesi
+Yayindaki paket (index-BQ8FN3LM.js) icinde 60 saniyelik yoklama ve
+sekmeye donunce tazeleme var. Yani zil kendi kendine tazeleniyor; yeni
+bir talep en gec BIR DAKIKA icinde zile dusuyor.
 
-!! ASIL BULGU: AYNI MADDEYI HEM "BITTI" HEM "BOZUK" ISARETLEDIM VE
-IKISINDE DE URUNE BAKMAMISTIM.
-06.11 aksami madde YESIL isaretlendi - kod yazilmisti, 1863 sinama yesildi,
-urune bakilmamisti. Emrah bakti, madde KIRMIZI yapildi - yine urun olculmeden,
-sebep TAHMIN edilerek ("zilin tamami susmus olabilir"). Iki isaret de
-yanlisti ve ikisinde de eksik olan ayni adimdi: calisan urune bakmak.
-"Bitti" demeden once urune bakmak zaten kuraldi; bu tur "BOZUK" demeden
-once de bakmak gerektigini gosterdi. Bir ariza raporu da bir iddiadir;
-olculmemis bir ariza, yanlis yere bakilan bir gun demektir.
-O tahminin "olculmedi, tahmin" diye isaretlenmis olmasi isi kurtardi:
-etiket olmasaydi bir sonraki oturum onu bulgu sanip zili sokmeye
-baslardi.
+GERCEK EKSIK: ZIL SESSIZ
+Ayni pakette ses YOK, masaustu bildirimi YOK (Notification API hic
+kullanilmiyor), sekme basliginda sayi YOK. Rozet sessizce beliriyor;
+Emrah zil ikonuna bakmiyorsa fark etmiyor. 06.11'de yasanan tam olarak
+buydu.
 
-OLCUM ARACI BULUNDU
-Emrah'in Chrome'u bu oturuma baglanabiliyor: canli sitede DOM,
-localStorage ve konsol dogrudan okunuyor. "Urun calisiyor mu" sorusu
-bundan sonra tahmin degil OLCUM.
+SIRADAKI SECENEKLER (karar Emrah'in, yapilmadi)
+  . Sekme basliginda sayi - "(2) EVREN360". Izin istemez, arka plandaki
+    sekmede de gorunur, sunucu tarafi degismez. En ucuzu ve en cok ise
+    yarayani.
+  . Masaustu bildirimi - tarayici izni ister; tarayici kapaliyken yine
+    calismaz.
+  . Anlik itme (realtime) - !! callback_request uzerinde authenticated
+    icin HIC okuma yetkisi yok (0106: RLS acik, politika yok).
+    postgres_changes aboneligi satiri okuyabilmeyi gerektirir; acmak
+    0106'nin kapisini delmek olur. Yolu "veritabanindan broadcast"
+    (realtime.send()) olurdu - ayri ve buyuk bir is.
 
-YAZILANLAR
-  tuzak 191 + kontrol listesi 137-139
-  HEDEFLER 4.11.7 KIRMIZI -> YESIL (olcumle, iddiayla degil)
+!! AYNI GUN UCUNCU KEZ (tuzak 191'e eklendi)
+"Bitti" olcmeden yazildi (06.11), "bozuk" olcmeden yazildi (06.11) ve
+simdi "eksik" de olcmeden yazilmis. Ucu de ayni gunu yakiyor.
 
 Co-Authored-By: Claude Opus 5 <noreply@anthropic.com>
 Claude-Session: https://claude.ai/code/session_019BwYM3mAXZUhp4YGj7tp2y

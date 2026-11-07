@@ -1846,12 +1846,41 @@ Emrah'ın onayladığı sıra:
     - ⚠️ **Zil kendiliğinden ÇALMIYOR**, sayfa tazelendiğinde/panel
       açıldığında okunuyor. Anlık itme (push/realtime) yok ve yazılı.
       → 4.11.8
-  - ⬜ **4.11.8** **Zil kendiliğinden çalmıyor.** Bildirimler sayfa
-    tazelendiğinde ya da panel açıldığında okunuyor; Emrah ekranı açık
-    bırakırsa yeni talep oracıkta belirmiyor. Supabase realtime ya da
-    bir yoklama (polling) gerekiyor. ⚠️ Bugün için kabul edilebilir —
-    ama "zil var" demek "anında haber veriyor" demek DEĞİL; ikisi
-    karıştırılmasın diye buraya yazıldı.
+  - ⬜ **4.11.8** **Zil TAZELENİYOR ama SESSİZ.**
+    ⚠️ **BU MADDENİN İLK YAZIMI YANLIŞTI.** *"Bildirimler sayfa
+    tazelendiğinde ya da panel açıldığında okunuyor… bir yoklama
+    (polling) gerekiyor"* diyordu. Yoklama **zaten vardı** ve canlıda
+    çalışıyor — madde ölçülmeden yazılmış. (tuzak 191'in aynısı, üçüncü
+    kez: bir eksiği de ölçmeden yazmışım.)
+
+    **ÖLÇÜM** (07.11, canlı site, Emrah'ın Chrome'u, ağ isteği kaydı):
+    sekme 75 saniye açık bırakıldı; üç kaynağın üçü de **iki kez**
+    okundu, hepsi `200`:
+
+        rpc/sure_talepleri      · rpc/lisans_ozeti · rpc/geri_arama_listesi
+        rpc/sure_talepleri      · rpc/lisans_ozeti · rpc/geri_arama_listesi
+
+    Yayındaki paket (`index-BQ8FN3LM.js`) içinde **60 saniyelik yoklama**
+    ve **sekmeye dönünce tazeleme** var. Yani zil kendi kendine
+    tazeleniyor; yeni bir talep en geç **bir dakika** içinde zile düşüyor.
+
+    **GERÇEK EKSİK — zil SESSİZ:** aynı pakette **ses yok**, **masaüstü
+    bildirimi yok** (`Notification` API hiç kullanılmıyor), **sekme
+    başlığında sayı yok**. Rozet sessizce beliriyor; Emrah zil ikonuna
+    bakmıyorsa fark etmiyor. Tam olarak 06.11'de yaşanan şey bu.
+
+    **SIRADAKİ SEÇENEKLER** (karar Emrah'ın, yapılmadı):
+    - **Sekme başlığında sayı** — `(2) EVREN360`. İzin istemez, arka
+      plandaki sekmede de görünür, sunucu tarafı değişmez. **En ucuzu ve
+      en çok işe yarayanı.**
+    - **Masaüstü bildirimi** — tarayıcı izni ister; tarayıcı kapalıyken
+      yine çalışmaz.
+    - **Anlık itme (realtime)** — ⚠️ `callback_request` üzerinde
+      `authenticated` için **hiç okuma yetkisi yok** (0106 kararı:
+      RLS açık, politika yok). Supabase'in `postgres_changes` aboneliği
+      satırı okuyabilmeyi gerektirir; yani bunu açmak 0106'nın kapısını
+      delmek olur. Yolu "veritabanından broadcast" (`realtime.send()`)
+      olurdu — ayrı ve büyük bir iş.
   - ⬜ **4.11.9** **PROVALARIN BİR ARADA KOŞMASI BİR ADIMA BAĞLI DEĞİL.**
     07.11'de ortaya çıktı (4.11.5): 54 provanın 13'ü aylardır kırmızıydı
     ve kimse bilmiyordu, çünkü hepsini koşturmak **kimsenin görevi

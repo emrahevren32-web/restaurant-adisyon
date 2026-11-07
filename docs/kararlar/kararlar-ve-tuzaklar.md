@@ -1020,6 +1020,17 @@ raporu, yanlış yere bakılan bir gün demektir.
 etiket olmasaydı bir sonraki oturum o tahmini bulgu sanıp zilin tamamını
 sökmeye başlardı.
 
+⚠️ **Ders dört — AYNI GÜN ÜÇÜNCÜ KEZ (4.11.8).** Zilin yanındaki
+"eksik" maddesi şöyle yazılmıştı: *"Bildirimler sayfa tazelendiğinde ya
+da panel açıldığında okunuyor… bir yoklama (polling) gerekiyor."*
+Ölçüldü: **yoklama zaten vardı.** Sekme 75 saniye açık bırakıldı ve üç
+bildirim kaynağının üçü de iki kez okundu (`rpc/sure_talepleri`,
+`rpc/lisans_ozeti`, `rpc/geri_arama_listesi`, hepsi 200). Yayındaki
+pakette 60 saniyelik yoklama ve sekmeye dönünce tazeleme var.
+**Gerçek eksik başkaymış:** zil **sessiz** — ses yok, masaüstü bildirimi
+yok, sekme başlığında sayı yok. Yani "bitti", "bozuk" ve **"eksik"**;
+üçü de ölçülmeden yazılabiliyor ve üçü de aynı günü yakıyor.
+
 ⚠️ **Ders üç — ölçüm aracı bulundu:** Emrah'ın Chrome'u bu oturuma
 bağlanabiliyor. Canlı sitede DOM, `localStorage` ve konsol doğrudan
 okunabiliyor. Bundan sonra "ürün çalışıyor mu" sorusunun cevabı tahmin
