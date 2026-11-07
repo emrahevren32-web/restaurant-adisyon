@@ -1823,6 +1823,18 @@ Emrah'ın onayladığı sıra:
     → **Bugünkü davranış tam olarak budur; kod değişmedi.** Rozet
     okunmamışı sayar; okunan satır listede aynı yerinde, "Okundu"
     etiketiyle durur.
+
+    ⚠️ **ZİLDEKİ ALTI "ESKİ" SATIR GERÇEK MÜŞTERİ DEĞİL** (Emrah, 07.11).
+    Ölçüm sırasında zilde 3 "Lisans süresi doldu" ve 3 "Giriş hesabı
+    açılmadı" satırı görüldü ve *"bu müşteriler giremiyor"* diye
+    soruldu. Emrah'ın cevabı: canlıdaki **8 kiracının yalnız ikisi
+    gerçek denemedir** — `ABCGIDA` (Emrah'ın kendi denemesi) ve
+    `BRC001 · BRCD Gıda` (İsmet'in denemesi). Kalan altısı **elle
+    girilmiş deneme kayıtları.** *"Ama silme kalsınlar."*
+    → Kimse mağdur değil; o satırlar **sahte veri değil, elle girilmiş
+    gerçek satırlar** (uygulama hiçbir şey uydurmuyor, "mock veri asla"
+    kuralı ihlal edilmiyor). ⚠️ Ama **ilk gerçek müşteriden önce**
+    ayıklanmalı: bugün panel 8 işletme gösteriyor ve altısı bize ait.
     Aşağıdaki tasarım notları duruyor (kod yazıldı, davranış açık): (Emrah 06.11: *"bildirim zili kurulsun
     şimdi, sonradan uğraşmayalım."*) Zilin **üçüncü kaynağı** eklendi:
     başvurular, lisans, **geri arama**.
@@ -1869,10 +1881,24 @@ Emrah'ın onayladığı sıra:
     başlığında sayı yok**. Rozet sessizce beliriyor; Emrah zil ikonuna
     bakmıyorsa fark etmiyor. Tam olarak 06.11'de yaşanan şey bu.
 
-    **SIRADAKİ SEÇENEKLER** (karar Emrah'ın, yapılmadı):
-    - **Sekme başlığında sayı** — `(2) EVREN360`. İzin istemez, arka
-      plandaki sekmede de görünür, sunucu tarafı değişmez. **En ucuzu ve
-      en çok işe yarayanı.**
+    **YAPILAN (Emrah kararı 07.11: *"yap bunu tamam"*):**
+    - ✅ **Sekme başlığında sayı** — `(2) EVREN360`. İzin istemez, arka
+      plandaki sekmede de görünür, sunucu tarafı değişmez.
+      `src/notifications/sekme-basligi.ts`, saf fonksiyon.
+      ⚠️ **Rozetle AYNI sayı** (okunmamış): iki yerde iki farklı sayı,
+      ikisine de güveni bitirir.
+      ⚠️ **`document.title`ın TEK YAZARI `App.tsx`.** Sayıyı AppShell
+      hesaplıyor (zil orada) ve `onUnreadNotificationCountChange` ile
+      yukarı bildiriyor. İki yazar olsaydı biri diğerinin önekini
+      sessizce ezerdi: sayı "bazen görünür bazen görünmez" olurdu ve
+      sebebi bulunamazdı. Donduran sınama: `sekme-basligi.arch.test.ts`
+      — bütün `src` ağacını tarıyor ve **yorumsuz metne** bakıyor
+      (tuzak 181, bu depoda üçüncü kez).
+      ⚠️ Savunmalı: `NaN`, `undefined`, eksi ve küsuratlı sayı başlığı
+      bozmuyor; başlık boşsa önek tek başına yazılmıyor ("(3)" diye bir
+      sekme adı neyin üç tane olduğunu söylemez).
+
+    **YAPILMAYANLAR** (karar Emrah'ın):
     - **Masaüstü bildirimi** — tarayıcı izni ister; tarayıcı kapalıyken
       yine çalışmaz.
     - **Anlık itme (realtime)** — ⚠️ `callback_request` üzerinde

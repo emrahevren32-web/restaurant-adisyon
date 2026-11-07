@@ -1,40 +1,50 @@
-Zil tazeleniyor ama sessiz: 4.11.8 olculdu ve BASTAN YAZILDI
+Sekme basliginda okunmamis sayisi: zilin sessizligi kalkti (4.11.8)
 
-4.11.8 soyle yaziliyordu: "Bildirimler sayfa tazelendiginde ya da panel
-acildiginda okunuyor... bir yoklama (polling) gerekiyor."
+Emrah: "yap bunu tamam." Olcum (07.11) zilin CALISTIGINI gostermisti -
+60 saniyede bir tazeleniyor, rozet dogru sayiyor. Eksik olan sey zilin
+SESSIZ olmasiydi: baska bir sekmedeyken zil ikonu gorunmuyor bile.
+06.11'de uc geri arama talebinin kacirilmasinin sebebi buydu.
 
-OLCULDU VE YANLISTI. Yoklama ZATEN VARDI.
+NE YAPILDI
+src/notifications/sekme-basligi.ts - saf fonksiyon:
+    sekmeBasligi('EVREN360', 2) -> '(2) EVREN360'
+Izin istemez, arka plandaki sekmede de gorunur, sunucu tarafi degismez.
 
-OLCUM (07.11, canli site, Emrah'in Chrome'u, ag istegi kaydi)
-Sekme 75 saniye acik birakildi. Uc bildirim kaynaginin ucu de IKI KEZ
-okundu, hepsi 200:
-    rpc/sure_talepleri . rpc/lisans_ozeti . rpc/geri_arama_listesi
-    rpc/sure_talepleri . rpc/lisans_ozeti . rpc/geri_arama_listesi
-Yayindaki paket (index-BQ8FN3LM.js) icinde 60 saniyelik yoklama ve
-sekmeye donunce tazeleme var. Yani zil kendi kendine tazeleniyor; yeni
-bir talep en gec BIR DAKIKA icinde zile dusuyor.
+!! ROZETLE AYNI SAYI (okunmamis). Iki yerde iki farkli sayi, ikisine de
+guveni bitirir. Emrah'in kurali aynen korundu: "zil okunmamislari
+saysin, okununca bir daha bildirim vermesin ama okunan bildirim yine
+ayni yerde dursun."
 
-GERCEK EKSIK: ZIL SESSIZ
-Ayni pakette ses YOK, masaustu bildirimi YOK (Notification API hic
-kullanilmiyor), sekme basliginda sayi YOK. Rozet sessizce beliriyor;
-Emrah zil ikonuna bakmiyorsa fark etmiyor. 06.11'de yasanan tam olarak
-buydu.
+!! `document.title`IN TEK YAZARI App.tsx.
+Sayiyi AppShell hesapliyor (zil orada) ve onUnreadNotificationCountChange
+ile yukari bildiriyor; basligi App yaziyor. Iki yazar olsaydi biri
+digerinin onekini sessizce ezerdi - sayi "bazen gorunur bazen gorunmez"
+olurdu ve sebebi bulunamazdi. Bulunmasi en pahali hata turu budur.
+Donduran sinama: sekme-basligi.arch.test.ts, butun src agacini tarayip
+document.title'a yazan dosyalarin listesini ['App.tsx']e esitliyor.
+!! O tarama YORUMSUZ METNE bakiyor (tuzak 181, bu depoda ucuncu kez):
+kendi aciklama yorumunda gecen `document.title`i ikinci yazar sanardi.
 
-SIRADAKI SECENEKLER (karar Emrah'in, yapilmadi)
-  . Sekme basliginda sayi - "(2) EVREN360". Izin istemez, arka plandaki
-    sekmede de gorunur, sunucu tarafi degismez. En ucuzu ve en cok ise
-    yarayani.
-  . Masaustu bildirimi - tarayici izni ister; tarayici kapaliyken yine
+!! SAVUNMALI. Sayi bir sayactan geliyor; NaN, undefined, Infinity, eksi
+ve kusuratli deger basligi BOZMUYOR - "(NaN) EVREN360" yazan bir sekme
+olmayan bir hatayi varmis gibi gosterir. Baslik bossa onek TEK BASINA
+yazilmiyor: "(3)" diye bir sekme adi neyin uc tane oldugunu soylemez.
+
+YAPILMAYANLAR (karar Emrah'in, gerekceleri HEDEFLER'de)
+  . Masaustu bildirimi - tarayici izni ister, tarayici kapaliyken yine
     calismaz.
-  . Anlik itme (realtime) - !! callback_request uzerinde authenticated
-    icin HIC okuma yetkisi yok (0106: RLS acik, politika yok).
-    postgres_changes aboneligi satiri okuyabilmeyi gerektirir; acmak
-    0106'nin kapisini delmek olur. Yolu "veritabanindan broadcast"
-    (realtime.send()) olurdu - ayri ve buyuk bir is.
+  . Anlik itme (realtime) - callback_request uzerinde authenticated icin
+    hic okuma yetkisi yok (0106: RLS acik, politika yok). Acmak o kapiyi
+    delmek olur.
 
-!! AYNI GUN UCUNCU KEZ (tuzak 191'e eklendi)
-"Bitti" olcmeden yazildi (06.11), "bozuk" olcmeden yazildi (06.11) ve
-simdi "eksik" de olcmeden yazilmis. Ucu de ayni gunu yakiyor.
+AYRICA YAZILDI: ZILDEKI ALTI "ESKI" SATIR GERCEK MUSTERI DEGIL
+Olcum sirasinda zilde 3 "Lisans suresi doldu" ve 3 "Giris hesabi
+acilmadi" gorulup "bu musteriler giremiyor" diye soruldu. Emrah: canli
+sistemdeki 8 kiracinin yalniz ikisi gercek deneme - ABCGIDA (Emrah) ve
+BRC001 BRCD Gida (Ismet); kalan alti elle girilmis deneme kaydi, "ama
+silme kalsinlar". Kimse magdur degil. Uygulama hicbir sey uydurmuyor,
+"mock veri asla" kurali ihlal edilmiyor - ama ILK GERCEK MUSTERIDEN
+ONCE ayiklanmali: panel bugun 8 isletme gosteriyor ve altisi bize ait.
 
 Co-Authored-By: Claude Opus 5 <noreply@anthropic.com>
 Claude-Session: https://claude.ai/code/session_019BwYM3mAXZUhp4YGj7tp2y

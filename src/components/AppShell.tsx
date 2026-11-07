@@ -79,6 +79,15 @@ type AppShellProps<
   onToggleGroup: (groupKey: GroupKey) => void
   onOpenNavItem: (item: ShellNavItem<Route, NavKey>) => void
   onOpenNotification?: (notification: Evren360Notification) => void
+  /**
+   * Okunmamış bildirim sayısı değiştiğinde haber verir.
+   *
+   * ⚠️ Sayı BURADA hesaplanıyor (zil burada) ama sekme başlığını
+   * `App.tsx` yazıyor: `document.title`ın tek yazarı orasıdır. İki
+   * yazar olsaydı biri diğerinin önekini sessizce ezerdi.
+   * Donduran sınama: `notifications/sekme-basligi.arch.test.ts`.
+   */
+  onUnreadNotificationCountChange?: (sayi: number) => void
   onOpenMyProfile?: () => void
   onOpenCompanyProfile?: () => void
   onStartOnboarding?: () => void
@@ -250,6 +259,7 @@ export default function AppShell<
   isPlatformAdmin = false,
   onOpenNavItem,
   onOpenNotification,
+  onUnreadNotificationCountChange,
   onOpenMyProfile,
   onOpenCompanyProfile,
   onStartOnboarding,
@@ -310,6 +320,22 @@ export default function AppShell<
     notifications.filter(notification => !notification.readAt)
   ), [notifications])
   const unreadNotificationCount = unreadNotifications.length
+
+  /**
+   * Sekme başlığındaki sayı.
+   *
+   * ⚠️ Emrah 06.11'de üç geri arama talebini kaçırdı. Ölçüm (07.11, canlı)
+   * zilin çalıştığını gösterdi — 60 saniyede bir tazeleniyor, rozet doğru
+   * sayıyor. Eksik olan şuydu: **zil sessiz.** Başka bir sekmedeyken zil
+   * ikonu görünmüyor bile. Sayı sekme başlığına çıkıyor: izin istemez,
+   * arka plandaki sekmede de görünür, sunucu değişmez.
+   *
+   * ⚠️ Rozetle AYNI sayı veriliyor (okunmamış). İki yerde iki farklı sayı,
+   * ikisine de güveni bitirir.
+   */
+  React.useEffect(() => {
+    onUnreadNotificationCountChange?.(unreadNotificationCount)
+  }, [unreadNotificationCount, onUnreadNotificationCountChange])
 
   /**
    * Başvuru defteri — zilin asıl kaynağı.

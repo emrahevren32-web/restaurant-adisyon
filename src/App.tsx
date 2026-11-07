@@ -85,6 +85,7 @@ import {
 import type { WorkspaceModuleLifecycleResult } from './workspace/workspace-module-lifecycle.service'
 import { WORKSPACE_PROVISIONING_EVENT } from './workspace-provisioning/workspace-provisioning.service'
 import type { Evren360Notification } from './notifications/evren360-notification.service'
+import { sekmeBasligi } from './notifications/sekme-basligi'
 import { hasConnectedWorkspaceIntegrationsForUser } from './integrations/workspace-integration.service'
 import {
   createPlatformNavGroups,
@@ -532,6 +533,13 @@ export default function App(){
   const [onboardingRefreshKey, setOnboardingRefreshKey] = React.useState(0)
   const [moduleInstallRefreshKey, setModuleInstallRefreshKey] = React.useState(0)
   const [onboardingExperienceStartSignal, setOnboardingExperienceStartSignal] = React.useState(0)
+  /**
+   * Zildeki okunmamış sayısı — sekme başlığına yazmak için.
+   *
+   * ⚠️ Sayıyı AppShell hesaplıyor (zil orada) ve geri bildiriyor; başlığı
+   * burası yazıyor. Sebep: `document.title`ın tek yazarı olmalı.
+   */
+  const [okunmamisBildirimSayisi, setOkunmamisBildirimSayisi] = React.useState(0)
   const isPlatformAdmin = isPlatformAdminUser(currentUser)
   const evren360View = evren360RouteViews[route]
   const workspaceChrome = React.useMemo(() => {
@@ -588,9 +596,16 @@ export default function App(){
     setBranches(getVisibleBranchesForUser(currentUser))
     setActiveBranchState(getActiveBranchId())
   }, [currentUser, runBranchScopedMigration])
+  /**
+   * ⚠️ `document.title`ın TEK YAZARI burasıdır ve yazdığı değeri
+   * `sekmeBasligi()` üretir. İkinci bir yazar, zilin okunmamış önekini
+   * sessizce ezerdi: sayı "bazen görünür bazen görünmez" olurdu ve
+   * sebebi bulunamazdı. Donduran sınama:
+   * `src/notifications/sekme-basligi.arch.test.ts`.
+   */
   React.useEffect(() => {
-    document.title = workspaceChrome.name
-  }, [workspaceChrome.name])
+    document.title = sekmeBasligi(workspaceChrome.name, okunmamisBildirimSayisi)
+  }, [workspaceChrome.name, okunmamisBildirimSayisi])
   // Geniş tablonun üstünde fare tekerleği sayfayı kaydırsın (Emrah, 10.10).
   // Gerekçe ve ölçüm sonuçları: src/components/tekerlek-zinciri.ts
   React.useEffect(() => tekerlegiZincirle(), [])
@@ -1332,6 +1347,7 @@ export default function App(){
       onToggleGroup={toggleNavGroup}
       onOpenNavItem={openNavItem}
       onOpenNotification={openEvren360NotificationTarget}
+      onUnreadNotificationCountChange={setOkunmamisBildirimSayisi}
       onOpenMyProfile={!isPlatformAdmin ? () => menusuzRotaAc('my-profile') : undefined}
       onOpenCompanyProfile={!isPlatformAdmin ? () => menusuzRotaAc('company-profile') : undefined}
       onStartOnboarding={!isPlatformAdmin && workspaceSetupCompleted ? startOnboardingExperience : undefined}
