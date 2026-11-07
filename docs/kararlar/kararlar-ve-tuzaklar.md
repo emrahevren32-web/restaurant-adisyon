@@ -984,6 +984,47 @@ göreceği hata mesajları** da (`'Çok fazla deneme yapıldı'`) bozuluyordu.
 ⚠️ Ve komut kendi çıktısını **ölçmeli**: panoda `ş` var mı, bozuk `Ã` var
 mı. "Kopyaladım" demek yetmez; kopyanın sağlam olduğu gösterilir.
 
+**191 · AYNI MADDEYİ HEM "BİTTİ" HEM "BOZUK" İŞARETLEDİM; İKİSİNDE DE
+ÜRÜNE BAKMAMIŞTIM.**
+(07.11.2026 · zil, HEDEFLER 4.11.7)
+
+06.11 akşamı madde **✅** işaretlendi: kod yazılmıştı, 1863 sınama
+yeşildi. Ürüne bakılmamıştı. Emrah baktı ve *"bildirim yok"* dedi; madde
+**🔴** yapıldı ve "ilk bakılacak yer" diye bir **tahmin** yazıldı:
+*"zilin tamamı susmuş olabilir."*
+
+Ertesi gün canlı site Emrah'ın kendi tarayıcısında açıldı. Zil paneli
+**sekiz satır** gösteriyordu, ikisi geri arama talebi. Hepsi `read`
+sınıfındaydı. `localStorage`daki okundu defteri sebebi saniyesine kadar
+veriyordu:
+
+    geri_arama_GER-35G7T_NEW : 2026-11-06T19:38:06Z
+    geri_arama_GER-2R432_NEW : 2026-11-06T19:38:34Z
+    geri_arama_GER-5XPUW_NEW : 2026-11-06T19:38:49Z
+
+Bu kimlikleri yalnız yeni kod üretir ve bu damgalar ancak **zildeki
+satır tıklanınca** düşer. Yani zil çalışmıştı, üç talebi göstermişti,
+Emrah üçünü de tek tek tıklamıştı (28 ve 15 saniye arayla — toplu
+"okundu yap" olsaydı damgalar aynı salise olurdu), rozet doğru şekilde
+sıfırlanmıştı. İki saat sonra zile bakınca rozetsiz bir ikon gördü.
+
+> **Kod bozuk değildi. İki işaret de ölçümsüzdü.**
+
+⚠️ **Ders bir:** "bitti" demeden önce ürüne bakmak zaten kuraldı
+(06.11'de yazıldı). Bu tur gösterdi ki **"bozuk" demeden önce de** ürüne
+bakmak gerekiyor. Bir arıza raporu da bir iddiadır; ölçülmemiş bir arıza
+raporu, yanlış yere bakılan bir gün demektir.
+
+⚠️ **Ders iki:** 🔴 maddenin altına yazılan "ilk bakılacak yer" bir
+**tahmindi** ve "ölçülmedi, tahmin" diye işaretlenmişti — iyi ki. O
+etiket olmasaydı bir sonraki oturum o tahmini bulgu sanıp zilin tamamını
+sökmeye başlardı.
+
+⚠️ **Ders üç — ölçüm aracı bulundu:** Emrah'ın Chrome'u bu oturuma
+bağlanabiliyor. Canlı sitede DOM, `localStorage` ve konsol doğrudan
+okunabiliyor. Bundan sonra "ürün çalışıyor mu" sorusunun cevabı tahmin
+değil **ölçüm**: zil, rozet ve okundu defteri üç çağrıda görülüyor.
+
 **190 · 54 PROVANIN 13'Ü KIRMIZIYDI VE KİMSE BİLMİYORDU — ÇÜNKÜ HEPSİ
 BİR ARADA HİÇ KOŞMAMIŞTI.**
 (07.11.2026) Emrah *"kesin koştur"* dedi. Temiz bir PostgreSQL 16'ya 107
@@ -2161,6 +2202,17 @@ Son söz onun çıktısındadır.
      vermez** (0106). "N ay sonra silinir" demek için kendiliğinden silen
      bir iş gerekir; yoksa metin süre yazmaz, **tutulan** sözü yazar — ve
      o sözün karşılığı (silme fonksiyonu + düğmesi) aynı turda yazılır.
+137. **"Bozuk" da bir iddiadır; ölçülmeden yazılmaz** (tuzak 191).
+     "Bitti" demeden önce ürüne bakmak kuraldı; aynısı arıza raporu için
+     de geçerli. Ölçülmemiş bir arıza, yanlış yere bakılan bir gündür.
+138. **Canlı ürün ölçülebilir: Emrah'ın Chrome'u bu oturuma bağlanıyor.**
+     DOM, `localStorage` ve konsol doğrudan okunuyor. "Ekranda ne
+     görünüyor" sorusu artık tahmin edilmez, **bakılır.**
+139. Bir rozet **neyi saydığını** söylemeli. "Okunmamış" sayan bir rozet,
+     bakılınca sıfırlanır — iş hâlâ dururken. Bu bilinçli bir karardır
+     (Emrah, 07.11: *"zil okunmamışları saysın, okununca bir daha
+     bildirim vermesin ama okunan bildirim yine aynı yerde dursun"*) ve
+     **yazılı olduğu için** bir dahaki sefere "arıza" sanılmayacak.
 135. **Provayı onarırken başka bir provanın kuralını çiğneyebilirsin**
      (tuzak 190). Bir provaya oturum (JWT) eklemek, ona **rolü de
      takmak** demektir: `set local role authenticated` yoksa prova

@@ -1788,18 +1788,41 @@ Emrah'ın onayladığı sıra:
       Donduran sınama: `src/pages/vitrin-temadan-bagimsiz.arch.test.ts`.
       ⬜ **Emrah'ın gözüyle doğrulanacak:** ölçüm hesaplanan RENKLERİ
       karşılaştırıyor, sayfanın yerleşimini değil.
-  - 🔴 **4.11.7** **ZİL KURULDU AMA ÇALIŞMIYOR — ÖLÇÜLDÜ, AÇIK.**
-    ⚠️ 06.11 akşamı yayına çıktı ve Emrah baktı: **zilde rozet yok**,
-    panelde ise *"3 talep bekliyor"* yazıyor. Yani bu madde bir tur önce
-    ✅ işaretlenmişti ve **yanlıştı**: kod yazıldı, sınamalar yeşil, ama
-    ürün çalışmıyor. ⚠️ 1863 yeşil sınama "çalışıyor" demek değilmiş —
-    bu turda ikinci kez öğrenildi.
-    Emrah: *"bildirimi boşver sonrası için notunu al."* → sıraya alındı,
-    kapatılmadı.
-    **İlk bakılacak yer** (ölçülmedi, tahmin): zil daha önce 6 rozet
-    gösteriyordu, şimdi 0 — yani yalnız yeni kaynak değil, **zilin
-    tamamı** susmuş olabilir. Önce tarayıcı konsolunda hata var mı, sonra
-    `refreshNotifications` gerçekten koşuyor mu.
+  - ✅ **4.11.7** **ZİL ÇALIŞIYOR — CANLIDA, EMRAH'IN TARAYICISINDA
+    ÖLÇÜLDÜ** (07.11, 10:59). Kusur **kodda değildi.**
+
+    ⚠️ **ÖNCE NE OLMUŞTU:** 06.11 akşamı madde ✅ işaretlendi — **ürüne
+    bakılmadan.** Emrah baktı, "rozet yok" dedi; madde 🔴 yapıldı — yine
+    **ürün ölçülmeden**, sebep tahmin edilerek ("zilin tamamı susmuş
+    olabilir"). İki işaret de yanlıştı ve ikisinde de eksik olan aynı
+    adımdı: **çalışan ürüne bakmak.** → tuzak 191
+
+    **ÖLÇÜM** (canlı site, Emrah'ın Chrome'u, `index-BQ8FN3LM.js`):
+    - Zil paneli **8 satır** gösteriyor; ikisi geri arama talebi
+      (`GER-2R432`, `GER-5XPUW`), üçü lisans, üçü "giriş hesabı açılmadı".
+    - Satırların hepsinin sınıfı `notification-item warning **read**`.
+      Rozet yok çünkü **rozet yalnız OKUNMAMIŞLARI sayıyor.**
+    - `localStorage` → `evren360_bildirim_okundu` sebebi kesinleştirdi:
+
+          geri_arama_GER-35G7T_NEW : 2026-11-06T19:38:06Z
+          geri_arama_GER-2R432_NEW : 2026-11-06T19:38:34Z
+          geri_arama_GER-5XPUW_NEW : 2026-11-06T19:38:49Z
+
+      Bu kimlikleri **yalnız yeni kod üretir** ve bu damgalar ancak
+      zildeki satır **tıklanınca** düşer. Yani üç talep zilde göründü ve
+      Emrah üçünü de 28 ve 15 saniye arayla tek tek tıkladı (toplu
+      "okundu yap" olsa damgalar aynı salise olurdu). Altı eski
+      başvuru/lisans satırı da aynı yoldan okunmuş (17 Eki – 1 Kas) —
+      **"6 rozet → 0"ın sebebi budur.**
+    - Zil ile panel **birebir tutarlı**: panel *"2 talep bekliyor ·
+      Hepsi (3) · Bekliyor (2) · Arandı (1)"* diyor, zil tam o iki
+      bekleyeni gösteriyor. Üçüncüsü arandı, zilden doğru şekilde düştü.
+
+    **KARAR (Emrah, 07.11):** *"zil okunmamışları saysın, okununca bir
+    daha bildirim vermesin ama okunan bildirim yine aynı yerde dursun."*
+    → **Bugünkü davranış tam olarak budur; kod değişmedi.** Rozet
+    okunmamışı sayar; okunan satır listede aynı yerinde, "Okundu"
+    etiketiyle durur.
     Aşağıdaki tasarım notları duruyor (kod yazıldı, davranış açık): (Emrah 06.11: *"bildirim zili kurulsun
     şimdi, sonradan uğraşmayalım."*) Zilin **üçüncü kaynağı** eklendi:
     başvurular, lisans, **geri arama**.
