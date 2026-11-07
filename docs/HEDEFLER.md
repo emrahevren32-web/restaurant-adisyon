@@ -1706,11 +1706,46 @@ Emrah'ın onayladığı sıra:
     · İmhayı ÜRETİM sorumlusu yazıyordu; **0097** imhayı onay işine
       çevirdi (müdür, gıda mühendisi ya da kalite). Eski iddia silinmedi,
       **olumsuz kontrole** çevrildi. **22 doğrulama yeşil.**
-  - ⬜ **4.11.5** **KALAN PROVALAR BU OTURUMDA KOŞULMADI.** Çalışma
-    kopyasında ~57 prova dosyasının yalnız **9'u** vardı (tuzak 147/151:
-    çalışma alanındaki depo kopyası eksiktir). Dokuzu yeşil. Kalan ~48
-    dosyada aynı bayatlama olabilir — biri kırmızı verdiğinde ilk soru
-    *"kural sonradan mı değişti"* olmalı, *"kod mu bozuldu"* değil.
+  - ✅ **4.11.5** **BÜTÜN PROVALAR KOŞTURULDU — 13'Ü KIRMIZIYDI, HEPSİ
+    ONARILDI** (07.11, Emrah: *"kesin koştur"*). Temiz PostgreSQL 16'ya
+    **107 göçün hepsi** uygulandı, `db/prova` altındaki **54 dosyanın
+    tamamı** koşturuldu. İlk ölçüm: **41 yeşil, 13 kırmızı.**
+    ⚠️ Kırmızıların **hiçbiri** o günün kodundan gelmiyordu; on üçü de
+    bayatlamıştı — her biri bir zamanlar doğru olan bir cümleyi
+    savunuyordu (tam tablo: tuzak 190).
+    - `0051` ← 0061 araya "Onay Bekliyor" + zorunlu onay adımı koydu
+    - `0056`, `0057` ← `ABC` kiracısı temiz kurulumda yok (0058 bu
+      onarımı almıştı, bu ikisi unutulmuştu)
+    - `0057` ← 0072 alerjen damgasını elden aldı
+    - `0065`, `0070` ← 0071 `finance.read` kapısını koydu
+    - `0065` ← 0092 SKT kapısını koydu
+    - `0071b` ← 0074 ve 0085 iki `_ham` fonksiyon daha ekledi
+    - `0071c` ← **başka makinenin mutlak yolunu** çağırıyordu ve **hiç
+      doğrulama basmıyordu**; `\ir` ile ve altı `prova_bak` ile yeniden
+      yazıldı
+    - `0073` ← 0081 `quality.record.manage` iznini ekledi (34 → 35)
+    - `0076` ← 0078 boşluğu noktaya çevirdi (`depocu` → `depo.cu`)
+    - `0078` ← 0102 `anon`un giriş-adı çevirme hakkını kapattı
+    - `0083` ← 0084 `platform_populer_urunler`i bilerek düşürdü; ayrıca
+      "09:00 diliminde 5 işlem" iddiası **saate bağlıydı** ve 06:xx
+      UTC'de koşunca sahte kırmızı veriyordu
+    - `0088` ← 0093 `witness_sample`ı kapıya aldı (27 → 28)
+    - `0090` ← 0093 `app.numune_olayi`yı getirdi (6 → 7)
+    ⚠️ **Hiçbir kapı gevşetilmedi:** eksik oturum kuruldu, eksik onay
+    verildi, damga gerçek yoldan attırıldı; düşürülmüş fonksiyonun
+    iddiası silinmedi, **tersine çevrildi**. Son ölçüm: **54 yeşil,
+    0 kırmızı**, üst üste üç koşuda aynı.
+    ⚠️ **Asıl bulgu:** bu provalar tek tek koşturuluyordu. Bir arada
+    koşmak bir adıma bağlı değildi — yani kimsenin görevi değildi.
+    → kontrol listesi 131
+    ⚠️ **ONARIMIN KENDİSİ DÖRT KÖR PROVA ÜRETTİ ve bunu bir test
+    yakaladı.** `0057`, `0065`, `0070`, `0071c`ye JWT kondu ama
+    `set local role authenticated` konmadı — yani kapının **dışında**
+    koşuyorlardı (MIYOP-042). `yazma-kapilari-tamam.arch.test.ts`
+    kırmızı yandı. Donmuş listeye ad **eklenmedi** (eklemek, listenin
+    koruduğu şeyi kaldırmaktı); dördünde de rol **takıldı**: okumalar
+    `prova_gosterge()`/`prova_fire()` sarmalayıcısına, beyan çağrıları
+    rolün içine alındı. → kontrol listesi 135, 136
   - 🔄 **4.11.6** **ANA EKRAN, BAKANA GÖRE DEĞİŞİYOR** (06.11, Emrah'ın
     ekran görüntüleri). Aynı kod, iki farklı görüntü: `localhost`'ta form
     kutuları beyaz ve düğme mavi; `miyop.emrahevren.com`'da kutular koyu,
@@ -1794,6 +1829,16 @@ Emrah'ın onayladığı sıra:
     bir yoklama (polling) gerekiyor. ⚠️ Bugün için kabul edilebilir —
     ama "zil var" demek "anında haber veriyor" demek DEĞİL; ikisi
     karıştırılmasın diye buraya yazıldı.
+  - ⬜ **4.11.9** **PROVALARIN BİR ARADA KOŞMASI BİR ADIMA BAĞLI DEĞİL.**
+    07.11'de ortaya çıktı (4.11.5): 54 provanın 13'ü aylardır kırmızıydı
+    ve kimse bilmiyordu, çünkü hepsini koşturmak **kimsenin görevi
+    değildi**. ⚠️ `kaydet.ps1`e eklenemez: provalar yerel bir
+    **PostgreSQL 16** istiyor, Emrah'ın makinesinde yok ve kurulması
+    istenmiyor. Yani bu adım Claude'un tarafında: **her göç turunun
+    sonunda** bütün provalar temiz bir veritabanına kurulup koşturulur ve
+    sonucu commit mesajına yazılır. Yazılı bir uyarı, bir adıma
+    bağlanmadığı sürece hatırlatmaz (kontrol listesi 130'un aynısı,
+    bu sefer prova tarafı).
 - ✅ **4.12** **Ana ekranda görünecek telefon** · aynı ekrandan yazılıyor
   (`platform_contact`, göç 0106). ⚠️ Bayrak değil veri: alan boşsa ana
   ekranda **hiçbir şey görünmez**; yazıldığı an görünür.

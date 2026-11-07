@@ -43,6 +43,19 @@ begin
   end;
 
   -- Siparişi Hazır'a getir
+  -- !! 0061 ARAYA BİR DURAK KOYDU: Taslak artık doğrudan Onaylandı'ya
+  -- geçmiyor, önce 'Onay Bekliyor' oluyor. Bu prova 0061'den ÖNCE yazıldığı
+  -- için doğrudan geçiyordu ve o gün doğruydu. Kural değişti, ölçüm değişti.
+  update sales_order set status = 'Onay Bekliyor' where id = v_sip;
+  -- !! 0061 AYNI ZAMANDA ONAY ADIMI ZORUNLU KILDI: zorunlu adımın olumlu
+  -- kararı yoksa `Onaylandı` MI429 ile reddediliyor. Onay burada VERİLİYOR,
+  -- kapı gevşetilmiyor: gevşetmek, korunan şeyi ölçmeyi bırakmak olurdu.
+  insert into order_approval (tenant_id, order_id, revision_no, step_code, decision)
+    select v_t, v_sip, so.current_revision, s.code, 'Olumlu'
+      from sales_order so
+      join order_approval_step s
+        on s.tenant_id = v_t and s.is_active and s.required
+     where so.id = v_sip;
   update sales_order set status = 'Onaylandı'    where id = v_sip;
   update sales_order set status = 'Hazırlanıyor' where id = v_sip;
 

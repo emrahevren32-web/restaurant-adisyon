@@ -233,8 +233,19 @@ end; $$;
 -- ── 9 · KAPILAR ──────────────────────────────────────────────────────────
 do $$
 begin
-  perform prova_bak('anon giriş adını çevirebiliyor',
-    has_function_privilege('anon', 'public.giris_adresi_bul(text, text)', 'execute'));
+  -- !! BU SATIR BİR ZAMANLAR OLUMLU BİR KONTROLDÜ ve o gün doğruydu:
+  -- 0078 `giris_adresi_bul`u anon'a AÇMIŞTI, çünkü giriş ekranı oturumsuzken
+  -- adres çevirmek zorundaydı. 0102 onu KAPATTI (Codex denetimi: cevabın
+  -- biçimi "bu kullanıcı var mı" sorusunu parola bilmeden cevaplıyordu);
+  -- çeviriyi artık `giris-yap` Edge Function'ı service_role ile yapıyor.
+  -- Kontrol silinmedi, TERSİNE çevrildi: kapanan bir kapının tekrar
+  -- açılması da ölçülmeli. (Aynı aile prova-0093'te de düzeltildi.)
+  perform prova_bak('⚠️ anon giriş adını ÇEVİREMİYOR (0102 kapattı)',
+    not has_function_privilege('anon', 'public.giris_adresi_bul(text, text)', 'execute'));
+  perform prova_bak('⚠️ oturum açmış kullanıcı da çeviremiyor (0102 kapsam düzeltmesi)',
+    not has_function_privilege('authenticated', 'public.giris_adresi_bul(text, text)', 'execute'));
+  perform prova_bak('çeviri service_role''de DURUYOR — giriş kırılmadı',
+    has_function_privilege('service_role', 'public.giris_adresi_bul(text, text)', 'execute'));
   perform prova_bak('⚠️ anon kullanıcı listesine ULAŞAMIYOR',
     not has_function_privilege('anon', 'public.giris_adlari()', 'execute'));
   perform prova_bak('⚠️ anon kullanıcı adı DEĞİŞTİREMİYOR',

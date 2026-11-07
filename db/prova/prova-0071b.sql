@@ -24,10 +24,21 @@ select prova_bak('kapılar security INVOKER (definer kiracı duvarını delerdi)
     where n.nspname='app' and p.proname in ('isletme_gostergeleri','fire_dokumu')
       and p.prosecdef));
 
-select prova_bak('ham hesaplar sql/plpgsql gövdesini koruyor (kapıya dönüşmemiş)',
+-- !! SAYI DEĞİL KURAL ÖLÇÜLÜYOR. İlk hâli "= 2" yazıyordu; o gün `_ham`
+-- biten iki fonksiyon vardı. 0074 `satis_karliligi_ham`, 0085
+-- `stok_devri_ham` ekleyince sayı 4 oldu ve prova, KORUDUĞU KURAL
+-- bozulmadığı hâlde kırmızı yandı. Sabit sayı, doğru davranışı da
+-- cezalandırır. Artık kural yazılı: HİÇBİR `_ham` kapıya dönüşmemeli.
+select prova_bak('hiçbir ham hesap kapıya dönüşmemiş (yetkim_var taşımıyor)',
+  not exists (select 1 from pg_proc p join pg_namespace n on n.oid=p.pronamespace
+    where n.nspname='app' and p.proname like '%\_ham'
+      and pg_get_functiondef(p.oid) like '%yetkim_var%'));
+
+-- !! Yukarıdaki kontrol HİÇ `_ham` yokken de geçerdi. Boşlukta yeşil
+-- yanan bir kontrol, olmayan bir kontroldür.
+select prova_bak('en az iki ham hesap var (kontrol boşlukta yeşil yanmıyor)',
   (select count(*) from pg_proc p join pg_namespace n on n.oid=p.pronamespace
-    where n.nspname='app' and p.proname like '%_ham'
-      and pg_get_functiondef(p.oid) not like '%yetkim_var%') = 2);
+    where n.nspname='app' and p.proname like '%\_ham') >= 2);
 
 -- ── 2 · DAVRANIŞ ──────────────────────────────────────────────────────────
 -- Kiracı + iki kullanıcı: biri finance.read'li (isletme_sahibi), biri değil.

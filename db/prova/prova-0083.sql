@@ -207,12 +207,13 @@ begin
     perform prova_bak('müşteri kullanıcısı detayda da MI403 alıyor', true);
   end;
 
-  begin
-    perform * from app.platform_populer_urunler(current_setting('prova.must')::uuid);
-    perform prova_bak('müşteri kullanıcısı ürünlerini platform fonksiyonuyla görememeli', false);
-  exception when sqlstate 'MI403' then
-    perform prova_bak('ürün fonksiyonu da MI403 atıyor', true);
-  end;
+  -- !! `platform_populer_urunler` ARTIK YOK. 0084 onu BİLEREK düşürdü:
+  -- Emrah kararı (16.10.2026) ekrana koymamaktı ve "çağrılmayan bir okuma
+  -- kapısı açık kapıdır". Kontrol silinmiyor, TERSİNE çevriliyor —
+  -- düşürülmüş bir okuma kapısının geri gelmesi de ölçülecek bir şeydir.
+  perform prova_bak('⚠️ platform_populer_urunler GERİ GELMEMİŞ (0084 düşürdü)',
+    to_regprocedure('app.platform_populer_urunler(uuid, integer, integer)') is null
+    and to_regprocedure('public.platform_populer_urunler(uuid, integer, integer)') is null);
 
   -- ⚠️ EN ÖNEMLİSİ: HİÇ SATIR OLMAYAN durumda da kapı çalışmalı.
   -- Kapı WHERE içinde olsaydı burada sessizce boş liste dönerdi.
@@ -341,12 +342,29 @@ begin
     from app.platform_kullanim_saatleri(current_setting('prova.must')::uuid, 30);
   perform prova_bak('saat dağılımı dolu', v_adet >= 2);
 
-  perform prova_bak('09:00 diliminde 5 işlem',
+  -- !! SAYI "EN AZ" OLDU, SAATİN KENDİSİ DEĞİL. Sebep ölçüldü (07.11.2026):
+  -- kurulum sırasında SİSTEMİN kendi yazdığı denetim kayıtları `now()`
+  -- anına düşüyor ve o an İstanbul saatiyle hangi dilime denk gelirse o
+  -- dilimin sayısını şişiriyor. Prova 06:xx UTC'de koştu — yani 09:xx
+  -- İstanbul — ve "09:00 diliminde 5 işlem" kuralla ilgisi olmayan bir
+  -- sebeple kırmızı yandı. Saatte bir saat kırmızı yanan bir prova,
+  -- insanın bakmayı bıraktığı provadır.
+  -- Ölçülen kural değişmedi: kayıt UTC saklanıyor, İSTANBUL saatine göre
+  -- gruplanıyor; 09:30'daki beş kayıt 9 diliminde, 14:30'daki iki kayıt
+  -- 14 diliminde. (4.1'deki "en az 7 işlem" kontrolü de aynı sebeple
+  -- baştan "en az" yazılmıştı.)
+  perform prova_bak('09:00 diliminde en az 5 işlem',
     (select s.islem_sayisi from app.platform_kullanim_saatleri(
-       current_setting('prova.must')::uuid, 30) s where s.saat = 9) = 5);
-  perform prova_bak('14:00 diliminde 2 işlem',
+       current_setting('prova.must')::uuid, 30) s where s.saat = 9) >= 5);
+  perform prova_bak('14:00 diliminde en az 2 işlem',
     (select s.islem_sayisi from app.platform_kullanim_saatleri(
-       current_setting('prova.must')::uuid, 30) s where s.saat = 14) = 2);
+       current_setting('prova.must')::uuid, 30) s where s.saat = 14) >= 2);
+  -- ⚠️ "En az"ın boşluğunu kapatan kontrol: 09:30 ve 14:30 kayıtları AYRI
+  -- dilimlere düşmeli. Hepsi tek dilime düşseydi yukarıdaki ikisi de
+  -- geçerdi ve saat dönüşümü hiç ölçülmemiş olurdu.
+  perform prova_bak('9 ve 14 AYRI dilimler (saat dönüşümü gerçekten yapılıyor)',
+    (select count(*) from app.platform_kullanim_saatleri(
+       current_setting('prova.must')::uuid, 30) s where s.saat in (9, 14)) = 2);
   -- 200 gün önceki satır 30 günlük pencerede YOK, 365 günlükte VAR.
   perform prova_bak('200 gün öncesi 30 günlük pencerede yok',
     (select coalesce(sum(s.islem_sayisi), 0) from app.platform_kullanim_saatleri(
@@ -355,18 +373,9 @@ begin
     (select coalesce(sum(s.islem_sayisi), 0) from app.platform_kullanim_saatleri(
        current_setting('prova.must')::uuid, 365) s));
 
-  -- Ürünler
-  select u.toplam into v_t from app.platform_populer_urunler(
-    current_setting('prova.must')::uuid) u where u.tur = 'uretim';
-  perform prova_bak('en çok üretilen 120 kg', v_t = 120);
-
-  select u.toplam into v_t from app.platform_populer_urunler(
-    current_setting('prova.must')::uuid) u where u.tur = 'sevkiyat';
-  perform prova_bak('en çok sevk edilen 80 kg', v_t = 80);
-
-  perform prova_bak('ürün adı dönüyor',
-    exists (select 1 from app.platform_populer_urunler(
-              current_setting('prova.must')::uuid) u where u.urun = 'Hazır Köfte'));
+  -- Ürünler · ÖLÇÜM KALDIRILDI, SEBEBİ YAZILI: 0084 fonksiyonu düşürdü
+  -- (müşterinin "en çok neyi ürettiği" MİYOP'un bakacağı bir bilgi değil).
+  -- Yerine konan kontrol yukarıda, 1. bölümde: fonksiyon GERİ GELMEMELİ.
 end; $$;
 
 
@@ -383,12 +392,10 @@ begin
     'app.platform_musteri_detayi(uuid)',
     'app.platform_musteri_kullanicilari(uuid)',
     'app.platform_kullanim_saatleri(uuid, integer)',
-    'app.platform_populer_urunler(uuid, integer, integer)',
     'public.platform_musteri_listesi()',
     'public.platform_musteri_detayi(uuid)',
     'public.platform_musteri_kullanicilari(uuid)',
-    'public.platform_kullanim_saatleri(uuid, integer)',
-    'public.platform_populer_urunler(uuid, integer, integer)'
+    'public.platform_kullanim_saatleri(uuid, integer)'
   ] loop
     perform prova_bak(v_ad || ' var', to_regprocedure(v_ad) is not null);
 

@@ -3,13 +3,26 @@ set client_min_messages = notice;
 begin;
 do $$
 declare
-  v_t uuid; v_b uuid; v_m uuid; v_u uuid;
+  v_t uuid; v_b uuid; v_c uuid; v_m uuid; v_u uuid;
   v_corba uuid; v_pilav uuid; v_tatli uuid;
   v_sip uuid; v_sip2 uuid; v_rev uuid; v_rec uuid;
   r record;
 begin
+  -- !! PROVA KENDİ KİRACISINI KURUYOR. Temiz veritabanında yalnız MİYOP
+  -- var; `ABC` bir zamanlar elle açılmış bir kiracıydı ve o kayıt artık
+  -- yok. Var sayan prova, veritabanı temizlendiği gün sessizce KIRILIR.
+  -- (0058 bu onarımı almıştı, 0056/0057 unutulmuştu.)
   select id into v_t from tenant where code='ABC';
+  if v_t is null then
+    insert into tenant (code,name) values ('ABC','ABC Endüstriyel Mutfak') returning id into v_t;
+  end if;
   select id into v_b from branch where tenant_id=v_t limit 1;
+  if v_b is null then
+    insert into company (tenant_id,company_code,company_name)
+      values (v_t,'ABC','ABC Endüstriyel Mutfak A.Ş.') returning id into v_c;
+    insert into branch (tenant_id,company_id,code,name,branch_type,is_head_office)
+      values (v_t,v_c,'MRK','Merkez Depo','merkez',true) returning id into v_b;
+  end if;
   insert into app_user (tenant_id, username, username_key, full_name, role_code)
     values (v_t, 'prova56', 'prova56', 'Prova Kullanıcısı',
             (select role_code from app_user where role_code is not null limit 1))

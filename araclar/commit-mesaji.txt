@@ -1,58 +1,82 @@
-Giris vitrini temadan bagimsiz (HEDEFLER 4.11.6b/c)
+54 provanin hepsi kosturuldu; 13 bayat prova onarildi (HEDEFLER 4.11.5)
 
-Emrah ayni sayfanin iki goruntusunu gonderdi: localhost'ta form kutulari
-beyaz ve dugme mavi, prod'da kutular koyu ve etiketler okunmuyor. Ayni
-kod, ayni CSS.
+Emrah: "kesin kostur." Temiz bir PostgreSQL 16'ya 107 gocun hepsi
+uygulandi, db/prova altindaki 54 dosyanin TAMAMI arka arkaya kosturuldu.
 
-SEBEP OLCULDU
-ThemeProvider kayitli temayi <html> uzerine HER SAYFADA uyguluyor - giris
-vitrini dahil. Depo alan adi basina ayri; prod'da bir tema kayitli,
-localhost'ta yok. Gizli pencere testi (Emrah, 06.11) sebebi
-kesinlestirdi: orada kutular BEYAZ ve dugme MAVI, yani ziyaretci dogru
-goruntuyu goruyor; bozugu yalniz daha once giris yapmis olan goruyor.
+ILK OLCUM: 41 yesil, 13 KIRMIZI.
 
-KARAR
-Giris vitrini ve herkese acik basvuru sayfasi tek goruntuye sabitlendi.
-!! Tema motoru DEGISTIRILMEDI; uygulamanin geri kalani temayi aynen
-kullaniyor. Yapilan, iki herkese acik sayfayi onun DISINA almak.
+!! KIRMIZILARIN HICBIRI BUGUNUN KODUNDAN GELMIYORDU. On ucu de
+bayatlamisti: her biri bir zamanlar DOGRU olan bir cumleyi savunuyordu.
+Ilk soru "kod mu bozuldu" degil "bu iddia hangi gocun halini savunuyor"
+oldu (kontrol listesi 127).
 
-!! HEDEF RENKLER UYDURULMADI, BUGUNKU ZIYARETCI GORUNUMUNDEN OLCULDU.
-Ilk yazimda kendi sectigim renkleri koydum; olcum varsayilan temadaki
-yedi alanin ALTISININ degistigini gosterdi - yani bozuk hali duzeltirken
-saglam hali de degistiriyordum. Degerler bugunku gorunumden alindi.
+  0051        <- 0061 araya "Onay Bekliyor" + zorunlu onay adimi koydu
+  0056, 0057  <- ABC kiracisi temiz kurulumda yok (0058 bu onarimi
+                 almisti, bu ikisi unutulmustu)
+  0057        <- 0072 alerjen damgasini elden aldi
+  0065, 0070  <- 0071 finance.read kapisini koydu
+  0065        <- 0092 SKT kapisini koydu
+  0071b       <- 0074 ve 0085 iki _ham fonksiyon daha ekledi
+  0071c       <- BASKA MAKINENIN MUTLAK YOLUNU cagiriyordu ve HIC
+                 dogrulama basmiyordu
+  0073        <- 0081 quality.record.manage iznini ekledi (34 -> 35)
+  0076        <- 0078 boslugu noktaya cevirdi (depocu -> depo.cu)
+  0078        <- 0102 anon'un giris-adi cevirme hakkini kapatti
+  0083        <- 0084 platform_populer_urunler'i bilerek dusurdu
+  0088        <- 0093 witness_sample'i kapiya aldi (27 -> 28)
+  0090        <- 0093 app.numune_olayi'yi getirdi (6 -> 7)
 
-!! Sinif adi seciciye IKI KEZ yazildi. Tek yazimla ozgulluk tema
-kuraliyla berabere kaliyor ve yalnizca dosya sirasi sayesinde
-kazaniyordu; siraya dayanan kural bir sonraki eklemede sessizce kaybeder.
+!! HICBIR KAPI GEVSETILMEDI. Eksik oturum KURULDU (_ham cagirip kapiyi
+atlamak yerine), eksik onay VERILDI (zorunlu adim kaldirilmak yerine),
+damga GERCEK YOLDAN attirildi. Dusurulmus fonksiyonun iddiasi silinmedi,
+TERSINE cevrildi: "geri gelmemis" (kontrol listesi 128).
 
-!! color-scheme: light en onemli satir. Onsuz onay kutusu, acilir liste
-oku ve kaydirma cubugu tarayicinin KOYU paletiyle cizilir - beyaz kartin
-icinde.
+!! VE ONARIMIN KENDISI DORT KOR PROVA URETTI - BUNU BIR TEST YAKALADI.
+0057, 0065, 0070 ve 0071c'ye JWT kondu ama `set local role
+authenticated` KONMADI; yani kapinin DISINDA, super kullanici olarak
+kosuyorlardi (MIYOP-042) ve her yazim sessizce gececekti.
+yazma-kapilari-tamam.arch.test.ts kirmizi yandi:
 
-OLCUM
-Playwright, gercek styles.css, YEDI tema/vurgu birlesimi: hesaplanan
-renkler birebir ayni. Varsayilan gorunum eski CSS ile karsilastirildi:
-degisen tek alan birincil dugmenin YAZI rengi (mavi zemin uzerinde koyu
-yazi okunabilirlik sinirindaydi, beyaza sabitlendi).
-!! Olcum RENKLERI karsilastiriyor, sayfanin yerlesimini degil. Emrah'in
-gozuyle dogrulanacak.
+  YENI kor prova: prova-0057.sql, prova-0065.sql, prova-0070.sql,
+                  prova-0071c.sql
 
-Donduran sinama: src/pages/vitrin-temadan-bagimsiz.arch.test.ts
-!! O sinama ilk yazimda KENDI aciklama yorumuna takildi (bu depoda
-ucuncu kez, tuzak 181): yorumda ornek olarak gecen secici, gercek bir
-secici sanildi. Artik yorumsuz metne bakiyor - ve blok kesimi yorumun
-BASINDAN basliyor, yoksa acilis isareti disarida kalip soyma calismiyor.
+O testteki liste DONDURULMUS: yalniz KISALABILIR. Listeye ad eklemek
+"yeni bir kor prova yazmak" demek - ve tam da yapilmak istenen oydu.
+Dogrusu rolu takmakti:
+  . 0065/0070 okumalari prova_gosterge()/prova_fire() sarmalayicisindan
+    geciyor; sarmalayici rolu takiyor, okuyor, reset role yapiyor -
+    HATA YOLUNDA DA. Kurulum yazimlari super kullanicida kaldi.
+  . 0057'de alerjen_beyani_yaz cagrilari rolun icine alindi; boylece
+    quality.declaration kapisi da gercekten sinaniyor.
+  . 0071c'de onarilan kapinin MI403 verdigi authenticated olarak
+    olculuyor.
+Asil ders: bir provayi onarirken BASKA bir provanin kuralini
+cigneyebilirsin. Yakalayan sey insan dikkati degil, donmus bir liste ve
+onu bekleyen bir testti.
 
-GERI ACILAN MADDE
-!! 4.11.7 (zil) bir tur once BITTI diye isaretlenmisti ve YANLISTI.
-Yayina cikti, Emrah bakti: zilde rozet YOK, panelde "3 talep bekliyor".
-Kod yazildi, 1863 sinama yesil, urun calismiyor. Madde 🔴 olarak geri
-acildi; ilk bakilacak yer yazildi (zil onceden 6 rozet gosteriyordu,
-simdi 0 - yani yalniz yeni kaynak degil zilin tamami susmus olabilir).
-Emrah: "bildirimi bosver sonrasi icin notunu al."
+!! prova-0071c IKI KAT KIRIKTI. `\i /home/claude/is/prova/0071_...sql`
+yaziyordu - baska bir makinenin mutlak yolu. Dosya `ON_ERROR_STOP off`
+ile basladigi icin "dosya yok" bir hata bile sayilmiyordu ve icinde TEK
+BIR dogrulama cumlesi yoktu. Yeniden yazildi: `\ir` ve alti prova_bak.
 
-claude/nerede-kaldik.md bastan yazildi: bir gun bayatlamisti ve her
-sayisi yanlisti.
+!! prova-0083 SAATE BAGLIYDI. "09:00 diliminde 5 islem" diyordu;
+kurulumun kendi denetim kayitlari now() anina dusuyor ve prova 06:xx
+UTC'de (= 09:xx Istanbul) kosunca o dilimi sisiriyordu. Sayi "en az"a
+cevrildi; boslugunu kapatan ikinci kontrol eklendi (9 ve 14 AYRI
+dilimler olmali).
+
+SON OLCUM: 54 yesil, 0 kirmizi. Temiz veritabaninda, ust uste iki kosu.
+
+ASIL BULGU SAYI DEGIL SEBEP
+Bu provalar tek tek kosturuluyordu. hepsini-kosturt.sh vardi ama bir
+arada kosmak BIR ADIMA BAGLI DEGILDI - yani kimsenin gorevi degildi.
+Yeni madde: 4.11.9. kaydet.ps1'e eklenemez (provalar yerel PostgreSQL 16
+istiyor, Emrah'in makinesinde yok); adim Claude'un tarafinda.
+
+YAZILANLAR
+  tuzak 190 + kontrol listesi 131-136
+  HEDEFLER 4.11.5 kapandi, 4.11.9 acildi
+  docs/kararlar/codex-denetimi-kasim-2026.md (Codex genel tarama brifi)
 
 Co-Authored-By: Claude Opus 5 <noreply@anthropic.com>
 Claude-Session: https://claude.ai/code/session_019BwYM3mAXZUhp4YGj7tp2y

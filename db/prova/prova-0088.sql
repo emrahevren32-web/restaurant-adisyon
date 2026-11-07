@@ -338,7 +338,11 @@ begin
 
   select count(*) into v_adet from pg_trigger t
    where not t.tgisinternal and t.tgfoid = to_regprocedure('app.izin_gerek_coklu()');
-  perform prova_bak('27 coklu kapi tetigi yerinde (sayilan: '||v_adet||')', v_adet = 27);
+  -- !! 27 DEGIL 28: 0093 `witness_sample` tablosunu da ayni cokli kapinin
+  -- arkasina aldi (sahit numune). Sayi BILEREK sabit tutuluyor - bir
+  -- tablonun kapidan SESSIZCE cikmasi tam da burada yakalanacak sey.
+  perform prova_bak('28 coklu kapi tetigi yerinde (0088''de 27 idi, 0093 witness_sample''i ekledi; sayilan: '
+    ||v_adet||')', v_adet = 28);
 
   perform prova_bak('argumansiz kurulmus coklu kapi tetigi yok',
     not exists (select 1 from pg_trigger t

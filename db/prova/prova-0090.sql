@@ -273,8 +273,34 @@ begin
        on p.prosrc ~* ('(insert into|update|delete from)[[:space:]]+(public\.)?'
                        || k.relname || '[[:space:](]')
      where p.prosecdef and n.nspname in ('app','public')) s;
-  perform prova_bak('gevsek kapinin ardinda 6 rutin kaldi (0089''da 11 idi; sayilan: '
-    ||v_say||')', v_say = 6);
+  perform prova_bak('gevsek kapinin ardinda 7 rutin kaldi (0089''da 11 idi; sayilan: '
+    ||v_say||')', v_say = 7);
+
+  -- !! SAYI TEK BASINA YETMIYOR. 6'dan 7'ye cikisi 0093 getirdi:
+  -- `app.numune_olayi`, `witness_sample`a yazan tetik govdesi - kendi
+  -- kiraci kapisi ve MI403'u var, gevsemenin bir ornegi degil. Ama "7"
+  -- yazmak, yarin BASKA bir rutin cikip bir digeri girerse sessiz kalirdi:
+  -- sayi tutar, kume degisir. O yuzden KUMENIN KENDISI yaziliyor.
+  perform prova_bak('gevsek kapinin ardindaki rutinler TAM OLARAK bunlar',
+    (select array_agg(s.ad order by s.ad) from (
+      select distinct n.nspname||'.'||p.proname as ad
+        from pg_proc p
+        join pg_namespace n on n.oid = p.pronamespace
+        join (select distinct c.relname from pg_trigger t join pg_class c on c.oid = t.tgrelid
+               where not t.tgisinternal
+                 and t.tgfoid = to_regprocedure('app.izin_gerek_coklu()')) k
+          on p.prosrc ~* ('(insert into|update|delete from)[[:space:]]+(public\.)?'
+                          || k.relname || '[[:space:](]')
+       where p.prosecdef and n.nspname in ('app','public')) s)
+    = array[
+      'app.kiraci_haccp_plani_kur',
+      'app.numune_olayi',
+      'app.revizyon_guncel_numara',
+      'app.revizyon_onayi_dusurur',
+      'app.sevkiyat_siparisi_ilerlet',
+      'public.portal_siparis_guncelle',
+      'public.portal_siparis_ver'
+    ]);
 end $$;
 
 rollback;

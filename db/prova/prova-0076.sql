@@ -53,10 +53,13 @@ begin
   select * into r from app.personel_hesabi_ac(
     v_auth, 'Depo Cu', 'Ahmet Yılmaz', 'depo_sorumlusu');
 
-  perform prova_bak('kullanıcı adı normalleşti (Depo Cu → depocu)',
-    r.kullanici_adi = 'depocu');
+  -- !! 0078 BOŞLUĞU SİLMEKTEN NOKTAYA ÇEVİRDİ: "Depo Cu" artık `depocu`
+  -- değil `depo.cu` oluyor. Bu prova 0078'den ÖNCE yazıldı; ölçtüğü şey
+  -- bozulmadı, KURAL değişti. (Aynı aile prova-0077'de de düzeltildi.)
+  perform prova_bak('kullanıcı adı normalleşti (Depo Cu → depo.cu)',
+    r.kullanici_adi = 'depo.cu');
   perform prova_bak('giriş adresi üretildi ve .miyop.local ile bitiyor',
-    r.giris_adresi like 'depocu@%.miyop.local');
+    r.giris_adresi like 'depo.cu@%.miyop.local');
 
   select * into v_u from public.app_user where id = r.kullanici_id;
   perform prova_bak('hesap doğru kiracıda',
@@ -119,7 +122,12 @@ begin
                        current_setting('prova.t')::uuid);
 
   begin
-    perform * from app.personel_hesabi_ac(gen_random_uuid(), 'depocu', 'İkinci Depocu', 'personel');
+    -- !! ÇAKIŞACAK AD, 1. bölümde açılan hesabın adıyla AYNI olmalı.
+    -- 0078'den sonra o ad `depocu` değil `depo.cu`. Eskisi yazılı
+    -- kalsaydı çakışma olmaz, kapı sınanmadan "geçti" sayılırdı.
+    -- Normalleşmeden GEÇEN hâli yazılıyor: benzersizlik kontrolünün
+    -- ham metne değil normalleşmiş ada bakması da böyle ölçülüyor.
+    perform * from app.personel_hesabi_ac(gen_random_uuid(), 'Depo Cu', 'İkinci Depocu', 'personel');
     raise exception 'KAPI GEÇİLDİ — aynı kullanıcı adı iki kez';
   exception when sqlstate 'MI409' then v_h := 'ok'; end;
   perform prova_bak('aynı kullanıcı adı ikinci kez açılamıyor (MI409)', v_h = 'ok');

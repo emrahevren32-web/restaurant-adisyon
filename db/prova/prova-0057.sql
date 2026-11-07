@@ -3,14 +3,27 @@ set client_min_messages = notice;
 begin;
 do $$
 declare
-  v_t uuid; v_b uuid;
+  v_t uuid; v_b uuid; v_c uuid; v_auth uuid := gen_random_uuid();
   v_un uuid; v_sut uuid; v_su uuid; v_tuz uuid;
   v_sos uuid; v_corba uuid;
   v_r_sos uuid; v_r_corba uuid;
   v_say int; r record;
 begin
+  -- !! PROVA KENDİ KİRACISINI KURUYOR. Temiz veritabanında yalnız MİYOP
+  -- var; `ABC` bir zamanlar elle açılmış bir kiracıydı ve o kayıt artık
+  -- yok. Var sayan prova, veritabanı temizlendiği gün sessizce KIRILIR.
+  -- (0058 bu onarımı almıştı, 0056/0057 unutulmuştu.)
   select id into v_t from tenant where code='ABC';
+  if v_t is null then
+    insert into tenant (code,name) values ('ABC','ABC Endüstriyel Mutfak') returning id into v_t;
+  end if;
   select id into v_b from branch where tenant_id=v_t limit 1;
+  if v_b is null then
+    insert into company (tenant_id,company_code,company_name)
+      values (v_t,'ABC','ABC Endüstriyel Mutfak A.Ş.') returning id into v_c;
+    insert into branch (tenant_id,company_id,code,name,branch_type,is_head_office)
+      values (v_t,v_c,'MRK','Merkez Depo','merkez',true) returning id into v_b;
+  end if;
 
   -- Malzemeler
   insert into stock_item (tenant_id,branch_id,code,code_key,name,base_uom)
@@ -30,8 +43,46 @@ begin
   -- Alerjen beyanı: un GLUTEN, süt tozu SÜT. Su ve tuz incelendi, alerjensiz.
   insert into stock_item_allergen (tenant_id,stock_item_id,allergen_code)
     values (v_t,v_un,'GLUTEN'), (v_t,v_sut,'SUT');
-  update stock_item set allergen_reviewed_at = now()
-   where id in (v_un, v_sut, v_su, v_tuz);
+  -- !! 0072 "incelendi" DAMGASINI ELDEN ALDI: damga artık yalnız
+  -- `alerjen_beyani_yaz` içinde atılıyor, elle `update` MI-hatası veriyor.
+  -- Bu prova 0072'den ÖNCE yazılmıştı. Damga kapısı GEVŞETİLMİYOR; beyan
+  -- gerçek yoldan yazılıyor — kapıyı delmek, koruduğu şeyi ölçmeyi
+  -- bırakmak olurdu.
+  insert into app_user (tenant_id, auth_user_id, username, username_key,
+                        full_name, role_code, is_active)
+    values (v_t, v_auth, 'prv57_kalite', 'prv57.kalite',
+            'Prova 57 Kalite', 'kalite_sorumlusu', true);
+  perform set_config('request.jwt.claim.sub', v_auth::text, false);
+  perform set_config('request.jwt.claims',
+    json_build_object('sub', v_auth, 'tenant_id', v_t)::text, false);
+  perform set_config('app.tenant_id', v_t::text, false);
+
+  -- !! BEYAN `authenticated` ROLÜ TAKILARAK YAZILIYOR (MIYOP-042). JWT
+  -- koymak yetmez: rolü takmayan bir çağrı kapının DIŞINDA, süper
+  -- kullanıcı olarak koşar ve `quality.declaration` kapısı hiç
+  -- sınanmamış olur. Kurulum yazımları süper kullanıcıda kalıyor;
+  -- kapıdan geçmesi gereken çağrı rolün içinde.
+  execute 'set local role authenticated';
+  begin
+    perform public.alerjen_beyani_yaz(v_un,  '[{"kod":"GLUTEN"}]'::jsonb);
+    perform public.alerjen_beyani_yaz(v_sut, '[{"kod":"SUT"}]'::jsonb);
+    -- Boş beyan da bir beyandır: "baktım, yok" (0072'nin kuralı).
+    perform public.alerjen_beyani_yaz(v_su,  '[]'::jsonb);
+    perform public.alerjen_beyani_yaz(v_tuz, '[]'::jsonb);
+  exception when others then
+    execute 'reset role';
+    raise;
+  end;
+  -- ⚠️ `reset role` hata yolunda da çalışıyor: yarıda kalan bir rol,
+  -- provanın geri kalanını sessizce başka bir kimlikle ölçerdi.
+  execute 'reset role';
+
+  -- !! OTURUM GERİ KAPANIYOR: provanın geri kalanı oturumsuz ölçüyordu ve
+  -- öyle kalmalı; açık bırakılmış bir oturum sonraki ölçümleri sessizce
+  -- değiştirir.
+  perform set_config('request.jwt.claim.sub', '', false);
+  perform set_config('request.jwt.claims', '{}', false);
+  perform set_config('app.tenant_id', '', false);
 
   -- Besin değerleri (100 g)
   insert into stock_item_nutrition (stock_item_id,tenant_id,energy_kj,energy_kcal,fat,saturated_fat,carbohydrate,sugars,protein,salt,source)

@@ -2,14 +2,65 @@
 \set ON_ERROR_STOP on
 set client_min_messages = notice;
 begin;
+-- ═══════════════════════════════════════════════════════════════════════
+-- !! GÖSTERGE OKUMALARI `authenticated` ROLÜ TAKILARAK YAPILIYOR (MIYOP-042).
+-- JWT koymak YETMEZ: rolü takmayan bir prova kapının DIŞINDA, süper
+-- kullanıcı olarak koşar ve her yazım sessizce geçer — prova yeşil
+-- görünür, hiçbir şey ölçmez. prova-0081/0082 tam böyle körleşmişti.
+-- Kurulum yazımları süper kullanıcı olarak kalıyor (sahne kurmak ölçüm
+-- değildir); ÖLÇÜLEN okuma rolün içinde yapılıyor.
+-- ⚠️ `reset role` hata yolunda da çalışıyor: yarıda kalan bir rol,
+-- provanın geri kalanını sessizce başka bir kimlikle ölçerdi.
+-- ═══════════════════════════════════════════════════════════════════════
+create or replace function prova_gosterge(p_sube uuid, p_bas date, p_bit date)
+returns table (anahtar text, deger numeric, ek numeric)
+language plpgsql as $prova$
+begin
+  execute 'set local role authenticated';
+  begin
+    return query select * from app.isletme_gostergeleri(p_sube, p_bas, p_bit);
+  exception when others then
+    execute 'reset role';
+    raise;
+  end;
+  execute 'reset role';
+end; $prova$;
+
+create or replace function prova_fire(p_sube uuid, p_bas date, p_bit date)
+returns table (neden text, kalem_id uuid, kalem_adi text, miktar numeric,
+               birim text, tutar numeric, fiyatsiz boolean)
+language plpgsql as $prova$
+begin
+  execute 'set local role authenticated';
+  begin
+    return query select * from app.fire_dokumu(p_sube, p_bas, p_bit);
+  exception when others then
+    execute 'reset role';
+    raise;
+  end;
+  execute 'reset role';
+end; $prova$;
+
 do $$
 declare
-  v_t uuid; v_b uuid; v_k uuid; v_pahali uuid;
+  v_t uuid; v_b uuid; v_auth uuid := gen_random_uuid(); v_k uuid; v_pahali uuid;
   d numeric;
   v_gecen int := 0; v_kalan int := 0;
 begin
   select id into v_t from tenant where code='MIYOP';
   select id into v_b from branch where tenant_id=v_t limit 1;
+
+  -- !! 0071 BU RAPORLARIN ÖNÜNE `finance.read` KAPISI KOYDU. Bu prova
+  -- 0071'den ÖNCE yazıldı ve oturumsuz çağırıyordu; o gün doğruydu.
+  -- Kapı GEVŞETİLMİYOR, prova yetkili bir kullanıcıyla ölçüyor — `_ham`
+  -- fonksiyonu çağırmak kapıyı atlamak, yani gerçek yolu ölçmemek olurdu.
+  insert into app_user (tenant_id, auth_user_id, username, username_key,
+                        full_name, role_code, is_active)
+    values (v_t, v_auth, 'prv70.patron', 'prv70.patron', 'Prova Patron', 'isletme_sahibi', true);
+  perform set_config('request.jwt.claim.sub', v_auth::text, false);
+  perform set_config('request.jwt.claims',
+    json_build_object('sub', v_auth, 'tenant_id', v_t)::text, false);
+  perform set_config('app.tenant_id', v_t::text, false);
   insert into stock_item (tenant_id,branch_id,code,code_key,name,base_uom)
     values (v_t,v_b,'D70','d70','Un','kg') returning id into v_k;
 
@@ -44,7 +95,7 @@ begin
     values (v_t,v_b,v_k,-2,-2,'kg','WASTE','manual','Küflendi','d70-f1',
             now()-interval '5 days');
 
-  select deger into d from app.isletme_gostergeleri(v_b, current_date-30, current_date)
+  select deger into d from prova_gosterge(v_b, current_date-30, current_date)
    where anahtar = 'fire_tutari';
   if d = 20 then v_gecen := v_gecen+1;
   else v_kalan := v_kalan+1;

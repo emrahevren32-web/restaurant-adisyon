@@ -144,7 +144,12 @@ do $$
 declare v_say int;
 begin
   select count(*) into v_say from permission;
-  perform prova_bak('izin kataloğu 34 izin (33 + quality.declaration)', v_say = 34);
+  -- !! SAYI 34'TEN 35'E ÇIKTI ve bu doğruydu: 0081 `quality.record.manage`
+  -- iznini ekledi. Sabit sayı BİLEREK duruyor — katalogun sessizce
+  -- büyümemesi bu provanın ölçtüğü şeyin ta kendisi. Sayı değişince
+  -- prova kırmızı yanar, biri bakar, ya sayıyı düzeltir ya izni geri alır.
+  perform prova_bak('izin kataloğu 35 izin (33 + quality.declaration + 0081''in quality.record.manage''i)',
+    v_say = 35);
 
   select count(*) into v_say from role where coalesce(btrim(description), '') = '';
   perform prova_bak('açıklaması boş rol yok', v_say = 0);

@@ -984,6 +984,89 @@ göreceği hata mesajları** da (`'Çok fazla deneme yapıldı'`) bozuluyordu.
 ⚠️ Ve komut kendi çıktısını **ölçmeli**: panoda `ş` var mı, bozuk `Ã` var
 mı. "Kopyaladım" demek yetmez; kopyanın sağlam olduğu gösterilir.
 
+**190 · 54 PROVANIN 13'Ü KIRMIZIYDI VE KİMSE BİLMİYORDU — ÇÜNKÜ HEPSİ
+BİR ARADA HİÇ KOŞMAMIŞTI.**
+(07.11.2026) Emrah *"kesin koştur"* dedi. Temiz bir PostgreSQL 16'ya 107
+göçün hepsi uygulandı, `db/prova` altındaki **54 dosyanın tamamı** ardı
+ardına koşturuldu. Sonuç: **41 yeşil, 13 KIRMIZI.**
+
+Kırmızıların **hiçbiri** o gün yazılan koddan gelmiyordu. Hepsi
+**bayatlamıştı** — ve her biri, bir zamanlar DOĞRU olan bir cümleyi
+savunuyordu:
+
+| Prova | İddia neyi savunuyordu | Kuralı değiştiren göç |
+|---|---|---|
+| 0051 | Taslak → Onaylandı doğrudan geçer | 0061 (araya "Onay Bekliyor" + zorunlu onay adımı) |
+| 0056, 0057 | `ABC` kiracısı veritabanında vardır | — (elle açılmış kiracı; temiz kurulumda yok) |
+| 0057 | `allergen_reviewed_at` elle yazılır | 0072 (damgayı beyan fonksiyonu atar) |
+| 0065, 0070 | Göstergeler oturumsuz okunur | 0071 (`finance.read` kapısı) |
+| 0065 | SKT'si geçmiş partiden sevk yazılır | 0092 (SKT kapısı) |
+| 0071b | `_ham` biten iki fonksiyon var | 0074, 0085 (iki tane daha) |
+| 0071c | *(hiç ölçmüyordu — aşağıda)* | — |
+| 0073 | Katalogda 34 izin var | 0081 (`quality.record.manage`) |
+| 0076 | "Depo Cu" → `depocu` | 0078 (boşluk siline**mez**, noktaya döner) |
+| 0078 | `anon` giriş adını çevirebilir | 0102 (kapı dışarı kapandı) |
+| 0083 | `platform_populer_urunler` çağrılabilir | 0084 (bilerek düşürüldü) |
+| 0088 | 27 çoklu kapı tetiği | 0093 (`witness_sample` eklendi) |
+| 0090 | Gevşek kapının ardında 6 rutin | 0093 (`app.numune_olayi`) |
+
+⚠️ **Asıl bulgu sayı değil, SEBEP:** bu provalar tek tek koşturuluyordu.
+`hepsini-kosturt.sh` vardı ama **bir arada koşmak bir adıma bağlı
+değildi** — yani kimsenin görevi değildi. Göçler yazıldıkça provalar
+sessizce yanlışa düştü. Bir güvenlik ağının delikleri, ağa kimse
+basmadığı sürece görünmez.
+
+⚠️ **İkinci bulgu — `prova-0071c` iki kat kırıktı:**
+`\i /home/claude/is/prova/0071_...sql` yazıyordu: **başka bir makinenin
+mutlak yolu.** Dosya bulunamıyordu; ama dosya `ON_ERROR_STOP off` ile
+başladığı için bu bir hata bile sayılmıyordu ve içinde **tek bir
+doğrulama cümlesi yoktu.** Yani iki yıl boyunca hiçbir şey ölçmeden
+"var" olarak duruyordu. Doğrusu `\ir` (yolu dosyanın kendi klasörüne
+göre çözer) ve her adımda `prova_bak`.
+
+⚠️ **Üçüncü bulgu — saate bağlı sahte kırmızı:** `prova-0083` "09:00
+diliminde 5 işlem" diyordu. Kurulumun kendi denetim kayıtları `now()`
+anına düşüyor; prova 06:xx UTC'de (= 09:xx İstanbul) koşunca o dilim
+şişiyor ve prova, kuralla ilgisi olmayan bir sebeple kırmızı yanıyordu.
+Günün bir saatinde kırmızı yanan prova, insanın bakmayı bıraktığı
+provadır. Sayı "en az"a çevrildi; boşluğu kapatan ikinci bir kontrol
+(9 ve 14 AYRI dilimler) eklendi.
+
+⚠️ **Hiçbir kapı gevşetilmedi.** Onüç onarımın hepsinde ölçüm, kuralın
+bugünkü hâline getirildi: eksik oturum **kuruldu** (`_ham` çağırıp kapıyı
+atlamak yerine), onay **verildi** (zorunlu adım kaldırılmak yerine),
+damga **gerçek yoldan** atıldı. Düşürülmüş fonksiyonun iddiası silinmedi,
+**tersine çevrildi** (kontrol listesi 128).
+
+⚠️ **VE ONARIMIN KENDİSİ DÖRT KÖR PROVA ÜRETTİ — BUNU BİR TEST YAKALADI.**
+Onarımlarda `0057`, `0065`, `0070` ve `0071c`ye **JWT kondu** (oturum
+kuruldu) ama **`set local role authenticated` KONMADI.** `kaydet.ps1`
+kırmızı yandı:
+
+    YENİ kör prova: prova-0057.sql, prova-0065.sql, prova-0070.sql,
+                    prova-0071c.sql
+
+`yazma-kapilari-tamam.arch.test.ts` içindeki **MIYOP-042 listesi
+dondurulmuştur: yalnız KISALABİLİR.** Listeye ad eklemek "yeni bir kör
+prova yazmak" demek — ve tam da yapılmak istenen oydu. Doğrusu rolü
+takmaktı:
+
+- `0065`/`0070`: okumalar `prova_gosterge()` / `prova_fire()` sarmalayıcıları
+  üzerinden yapılıyor; sarmalayıcı `set local role authenticated` takıyor,
+  okuyor, `reset role` yapıyor — **hata yolunda da.** Kurulum yazımları
+  süper kullanıcıda kaldı: sahne kurmak ölçüm değildir, **ölçülen okuma**
+  rolün içinde.
+- `0057`: `alerjen_beyani_yaz` çağrıları rolün içine alındı — böylece
+  `quality.declaration` kapısı da gerçekten sınanıyor.
+- `0071c`: onarılan kapının MI403 verdiği `authenticated` olarak ölçülüyor;
+  süper kullanıcı olarak alınan cevap kapının çalıştığını göstermez.
+
+⚠️ **Asıl ders:** bir provayı onarırken **başka bir provanın kuralını
+çiğneyebilirsin.** Bu turda yakalayan şey insan dikkati değil, **donmuş
+bir liste ve onu bekleyen bir test**ti. Bir kuralı dondurmanın bedeli
+bir satır, karşılığı budur.
+
+
 **189 · PROVA, ÖLÇTÜĞÜ KAPININ İÇİNDEN BAKIYORDU — VE KIRMIZI, KAPININ
 ÇALIŞTIĞI ANLAMINA GELİYORDU.**
 (06.11.2026) `prova-0106.sql` yazıldı: geri arama formunun kapılarını
@@ -2078,6 +2161,38 @@ Son söz onun çıktısındadır.
      vermez** (0106). "N ay sonra silinir" demek için kendiliğinden silen
      bir iş gerekir; yoksa metin süre yazmaz, **tutulan** sözü yazar — ve
      o sözün karşılığı (silme fonksiyonu + düğmesi) aynı turda yazılır.
+135. **Provayı onarırken başka bir provanın kuralını çiğneyebilirsin**
+     (tuzak 190). Bir provaya oturum (JWT) eklemek, ona **rolü de
+     takmak** demektir: `set local role authenticated` yoksa prova
+     kapının DIŞINDA, süper kullanıcı olarak koşar ve her yazım sessizce
+     geçer (MIYOP-042). Rol, **ölçülen çağrının** etrafına takılır;
+     kurulum yazımları süper kullanıcıda kalır. `reset role` **hata
+     yolunda da** çalışmalı — yarıda kalan bir rol, provanın geri
+     kalanını sessizce başka bir kimlikle ölçer.
+136. **Donmuş bir liste, ancak onu bekleyen bir test varsa kuraldır.**
+     07.11'de dört kör provayı yakalayan şey insan dikkati değil,
+     `ROL_TAKMAYAN_PROVALAR` listesi ve "yalnız kısalır" testiydi.
+     Listeye **ad eklemek**, listenin koruduğu şeyi kaldırmaktır —
+     kırmızıyı susturmanın en kolay ve en pahalı yolu.
+131. **Provaların hepsi bir arada koşmazsa, hiçbiri koşmuyor demektir**
+     (tuzak 190). Tek tek koşan provalar göçler biriktikçe sessizce
+     bayatlar; 07.11'de 54 provanın 13'ü kırmızıydı ve hiçbirinin sebebi
+     o günün kodu değildi. Bir arada koşmak **bir adıma bağlanır**,
+     niyete değil.
+132. Bayatlamış bir provayı onarırken **kapı gevşetilmez, sahne kurulur**
+     (tuzak 190). Eksik olan oturumsa oturum açılır, eksik olan onaysa
+     onay verilir, eksik olan damgaysa damga gerçek yoldan attırılır.
+     `_ham` fonksiyonu çağırıp kapıyı atlamak, ölçmeyi bırakmaktır.
+133. **Sabit sayı yazan bir iddia, neyi koruduğunu da yazar** (tuzak 190).
+     "27 tetik", "34 izin", "6 rutin" — bunlar bilerek sabittir, çünkü
+     sessiz büyüme/küçülme tam da yakalanacak şeydir. Ama sayının yanına
+     **kümenin kendisi** yazılırsa, "biri çıkıp biri girdi" hâli de
+     yakalanır: sayı tutar, küme tutmaz.
+134. **Saate, güne ya da makineye bağlı bir iddia kurma** (tuzak 190).
+     `now()` anına düşen kayıtlar bir dilimi şişirir; mutlak yol bir
+     makineye çivilenir. Prova dosyası başka bir dosyayı çağıracaksa
+     `\i` değil **`\ir`** kullanır — yol, dosyanın kendi klasörüne göre
+     çözülür.
 130. **Bir göç uygulandıktan sonra `araclar/goc-bekleyen.sql` BOŞALTILIR.**
      Göçün son adımı budur, "Run" tuşu değil. `kaydet.ps1` o dosyayı her
      koşuda panoya kopyalıyor; içinde uygulanmış bir göç kalırsa pano
