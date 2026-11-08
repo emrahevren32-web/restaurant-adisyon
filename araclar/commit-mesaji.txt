@@ -1,95 +1,80 @@
-Vitrin onarimi iki yeri bozmustu: olculdu, onarildi (4.11.6d) + 4.11.9
+Goc 0107: sahit numune OKUMA kapisi (MIYOP-100) + tuzak 192 duzeltildi
 
-Emrah canli urunde iki kusur gordu ve ikisi de 4.11.6'nin ILK YAZIMINDAN
-geliyordu. Ucuncu bir sikayet (sekme basligi) olculdu: kusur yok.
+Emrah: "okuyamasin, once onu duzelt."
 
-== 1 . BASVURU EKRANINDA YAZILAR OKUNMUYORDU ==
-Emrah: "isletme basvuru ekrani bozulmus, yazilar okunmuyor... siyahlasmis
-onceki gibi beyaz degil."
+== MIYOP-100 . OLCULDU, DOGRULANDI, KAPATILDI ==
+Codex'in iddiasi gercek PostgreSQL uzerinde olculdu:
 
-!! HATA: IKI SAYFANIN DA BEYAZ KART TASIDIGINI VARSAYDIM.
-Olcum (canli site, Emrah'in Chrome'u) tam tersini soyledi. `<html>`
-uzerindeki data-theme, data-theme-engine ve data-theme-accent
-niteliklerinin UCU DE KALDIRILDIGINDA bile:
+    witness_sample       -> authenticated SELECT = t
+    witness_sample_event -> authenticated SELECT = t
+    RLS politikasi       -> yalniz (tenant_id = app.current_tenant_id())
 
-    .public-application-shell -> oklab(0.324 ...)   KOYU
-    h1                        -> rgb(243,245,247)   beyaz
-    p                         -> rgb(199,206,216)   acik gri
-    label (benim kuralim)     -> rgb(55,65,81)      KOYU GRI
+Menu ve rota `quality.read` istiyordu, veritabani istemiyordu. UC KAPI
+AYRISMISTI. Ekranini acamayan bir kullanici -- ayni isletmede, oturumu
+acik, deposunda calisan biri -- API'den butun sahit numuneleri, acilis
+gerekcelerini ve sonuclarini okuyabiliyordu.
 
-Yani basvuru sayfasi TEMADAN DEGIL KENDI TASARIMINDAN koyu ve ben oraya
-koyu gri yazi koydum. Kendi yorumum bile "beyaz kartin ustunde" diyordu;
-o cumle giris vitrini icin dogruydu, basvuru sayfasi icin HIC
-OLCULMEMISTI.
+GOC 0107: tek `for all` politikasi komut basina politikalara ayrildi.
+    SELECT -> tenant AND app.yetkim_var('quality.read')
+    INSERT/UPDATE/DELETE -> tenant
 
-Kural silinmedi, KAPSAMI DARALTILDI: etiket rengi artik yalniz giris
-vitrinine uygulaniyor. Basvuru sayfasi kendi acik rengini miras aliyor
-(ata rgb(243,245,247)) ve o renk de temadan bagimsiz.
+!! POLITIKA EKLENMEDI, DEGISTIRILDI. PostgreSQL izin veren politikalari
+VEYA ile birlestirir: mevcut `for all` politikasinin yanina ikinci bir
+SELECT politikasi koymak kapiyi DARALTMAZ, GENISLETIRDI.
 
-== 2 . FARE USTUNE GELINCE KUTU KOYUYA DONUYORDU ==
-Emrah: "mouse ile uzerine geldigimde textboxlar beyazdan siyaha
-donuyor."
+!! YAZMA KAPISINA DOKUNULMADI. Yazma zaten iki tetikle korunuyor
+(izin_gerek_coklu + numune_olayi_izni). Ayni kurali bir de RLS'e yazmak
+iki gercek uretir ve bir gun ayrisirlar.
 
-Sebep yayindaki CSS'ten OKUNDU, tahmin edilmedi:
+!! `insert/update ... returning` SELECT politikasini DA uygular; yani
+quality.read'siz bir yazar satiri geri okuyamaz. Bu kabul edilen
+sonuctur ve goc basliginda yazili.
 
-    input:hover:not(:disabled):not([type=checkbox]):not([type=radio])
-      { background: var(--surface-raised) }        ozgulluk (0,4,1)
+KANIT
+  prova-0107.sql       16 dogrulama, `set local role authenticated`
+                       takarak (MIYOP-042). Izinsiz kullanici HIC satir
+                       gormuyor (hata almiyor, SUZULUYOR); izinli
+                       goruyor; kiraci duvari duruyor; oturumsuz hicbir
+                       sey gormuyor; yazma akisi ve olay tetigi calisiyor.
+  prova-0107-ters.sql  Kapiyi kaldirip eski hali kuruyor ve izinsiz
+                       kullanicinin numuneleri GERCEKTEN gordugunu
+                       gosteriyor -- yani prova bosslukta yesil yanmiyor
+                       ve kusur gercekti.
 
-Taban kuralimiz (0,4,2) ile onu yeniyordu AMA `:hover` halini hic
-karsilamiyordu; fare gelince tema kurali tek basina kaliyordu. Aynisi
-`:focus` icin de gecerliydi (background: var(--theme-surface-1)) -- eski
-odak kuralimiz yalniz cerceve ve halka veriyor, ZEMIN vermiyordu.
-`:hover` ve `:focus` kurallari yazildi; `:hover` eklenince b=5 oldugu
-icin (0,5,2) kesin yeniyor.
-!! `:where()` ile yazilmadi: ozgulluge sifir katar, kural berabere kalir
-ve yalnizca dosya sirasi sayesinde kazanirdi.
+Goc iki kez kosturuldu (idempotent). Temiz veritabani: 108 goc, 56
+prova, 56 YESIL / 0 kirmizi. son-kosu.json kendiliginde guncellendi --
+4.11.9'un kapisi calisiyor.
 
-== 3 . UC KONTROL TURU AYNI GORUNTUYE ALINDI ==
-select/textarea yari saydam birakilmisti ("bugunku ziyaretci gorunumu
-oyleydi"). Beyaz kartta gorunmeyen bu fark, KOYU basvuru kartinda beyaz
-input'larin yaninda GRI kutular demekti. Ucu de beyaz.
+!! ACIK URUN SORUSU: production.write tasiyip quality.read tasimayan tek
+rol `personel`. Bu goctten sonra numune yazabilir ama okuyamaz. Yeni bir
+tutarsizlik DEGIL (bugun de ekrani acamiyor) ama cozulmeli:
+(a) personel'e quality.read verilsin, ya da (b) yazma kapisindan
+production.write cikarilsin. Emrah'a soruldu.
 
-== 4 . SEKME BASLIGI: KUSUR YOK, OLCULDU ==
-Emrah "gorunmedi" dedi. Canli olcum: document.title = "(1) EVREN360".
-Acik duran sekmeler YUKLEME ONCESINDEN kalmaydi; eski paket onek
-yazmiyor. Yeni acilan sekmede dogru.
+== TUZAK 192'NIN GEREKCESI YANLISTI . DUZELTILDI ==
+Dun soyle yazmistim: "basvuru sayfasi temadan degil kendi tasarimindan
+koyu; tema nitelikleri kaldirildiginda bile koyu."
 
-== 5 . HEDEFLER 4.11.9 KAPANDI . PROVA KOSUSU BIR ADIMA BAGLANDI ==
-`kaydet.ps1`e eklenemiyordu (yerel PostgreSQL 16 yok). Bag TERSINDEN
-kuruldu:
-  1. hepsini-kosturt.sh YESIL bitince db/prova/son-kosu.json yaziyor:
-     tarih, EN YENI GOC dosyasinin adi, goc sayisi, prova sayisi,
-     yesil/kirmizi. KIRMIZI bitince kaydi SILIYOR.
-  2. src/core/prova-kosuldu.arch.test.ts o kaydi db/migrations ile
-     karsilastiriyor; kayitta olmayan bir goc varsa npm test KIRMIZI.
+YANLIS. Emrah: "bu dediklerim localde oyle degil ama" -- ekran
+goruntusu: localhost:5173/apply BEMBEYAZ.
 
-KAPININ CALISTIGI OLCULDU (iddia degil):
-  . Sahte bir 0107 gocu konuldu -> en_yeni_goc VE goc_sayisi kontrolleri
-    ikisi de kirmizi.
-  . Kasten kirmizi bir prova konuldu -> "Son kosu kaydi SILINDI" ve dosya
-    gercekten yok.
-Ikisi de temizlendi; kayit temiz bir YESIL kosudan uretildi
-(107 goc . 54 prova . 0 kirmizi).
-!! Bu bir guvenlik denetimi degil HATIRLATICIDIR: dosya elle de
-yazilabilir. Amac kotu niyeti degil UNUTMAYI durdurmak.
+Sayfa varsayilanda ACIK; prod'da koyu olmasinin sebebi Emrah'in kayitli
+`dark` temasi. "Nitelikleri kaldirdim, degismedi" olcumu guvenilir
+degildi ve ben o guvenilmez olcumun ustune bir SONUC cumlesi kurdum.
 
-== 6 . CODEX DENETIMI YAZILDI (HEDEFLER 4.13) ==
-3 P1 + 5 P2, yeni P0 yok. MIYOP-100..107 numaralandi.
-!! Hicbiri henuz Claude tarafindan olculmedi; her biri bir IDDIADIR ve
-duzeltmeden once tek tek olculecek (kontrol listesi 137).
-Codex'in kendi durustlugu not edildi: provalari yeniden kosturmadigini
-ve onceki olcumu yeni olcum gibi sunmadigini yazmis.
+GERCEK KUSUR: on plani (yazi) sabitledim, YUZEYI (kart ve sayfa zemini)
+temaya biraktim. 4.11.6'nin karari "tek gorunume sabit"ti; ilk yazim o
+kararin yarisini yapmisti.
 
-== DONDURAN SINAMALAR ==
-vitrin-temadan-bagimsiz.arch.test.ts'e BES yeni kontrol:
-  . etiket kurali basvuru sayfasini kapsamiyor
-  . hover zemin veriyor
-  . focus zemin veriyor
-  . durum secicileri :where() kullanmiyor
-  . uc kontrol turu ayni zemini aliyor
-+ src/core/prova-kosuldu.arch.test.ts (yeni, 7 kontrol)
+-> HEDEFLER 4.11.6e ACILDI: is BITMEDI. Hover/odak onarimi dogru ve
+yerinde duruyor, ama yuzeyler hala temaya bagli. Yapilacak: iki herkese
+acik sayfanin yuzey renkleri de ziyaretci gorunumune sabitlenecek.
+Degerler UYDURULMAYACAK, localhost'ta (kayitli tema yokken) olculecek.
 
-tuzak 192 + kontrol listesi 140-142
+-> kontrol listesi 143: GOZLEM ile SONUC ayri seylerdir. "Nitelikleri
+kaldirdim, deger degismedi" bir gozlemdir; "demek ki tema etkisiz" bir
+sonuctur ve arada dogrulanmamis bir varsayim vardir. Bir olcum
+bekledigini gostermiyorsa once OLCUMDEN suphelen.
 
 Co-Authored-By: Claude Opus 5 <noreply@anthropic.com>
 Claude-Session: https://claude.ai/code/session_019BwYM3mAXZUhp4YGj7tp2y

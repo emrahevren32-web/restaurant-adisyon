@@ -1001,22 +1001,43 @@ sayfası için **hiç ölçülmemişti.**
 Emrah canlıda gördü: *"işletme başvuru ekranı bozulmuş, yazılar
 okunmuyor... siyahlaşmış önceki gibi beyaz değil."*
 
-Ölçüm (canlı site, `<html>` üzerindeki ÜÇ tema niteliği de kaldırılarak):
+Ölçüm (canlı site):
 
     .public-application-shell → oklab(0.324 …)   KOYU
     h1                        → rgb(243,245,247) beyaz
     p                         → rgb(199,206,216) açık gri
     label (benim kuralım)     → rgb(55,65,81)    KOYU GRİ
 
-Yani başvuru sayfası **temadan değil kendi tasarımından koyu** — tema
-tamamen kapalıyken bile. Ben koyu kartın üstüne koyu gri yazı koydum.
+⚠️ **VE BURADA İKİNCİ BİR HATA YAPTIM — ÖLÇÜMÜ YANLIŞ OKUDUM.**
+`<html>` üzerindeki üç tema niteliğini kaldırıp yeniden ölçtüm, değerler
+değişmedi ve *"demek ki sayfa temadan değil kendi tasarımından koyu"*
+diye yazdım. **Yanlıştı.** Emrah ertesi gün şunu söyledi: *"bu dediklerim
+localde öyle değil ama"* — ve ekran görüntüsünü gönderdi:
+`localhost:5173/apply` **bembeyaz**, etiketler okunuyor.
+
+Yani sayfa **varsayılanda açık**; prod'da koyu olmasının sebebi
+Emrah'ın kayıtlı `dark` teması. Nitelikleri kaldırma ölçümü güvenilir
+değildi (uygulama onları geri yazmış ya da tema değişkenleri satır içi
+kalmış olabilir) ve ben o güvenilmez ölçümün üstüne bir SONUÇ cümlesi
+kurdum.
+
+> Gerçek kusur: **ön planı (yazı) sabitledim, yüzeyi (kart ve sayfa
+> zemini) temaya bıraktım.** Koyu temada yüzey koyuya gidiyor, yazı
+> sabit kalıyor ve ikisi birbirini yiyor.
+
+⚠️ **Bir ölçümün kendisi de ölçülür.** "Nitelikleri kaldırdım, değişmedi"
+bir gözlemdir; "demek ki tema etkisiz" bir SONUÇTUR ve arada doğrulanmamış
+bir varsayım vardır. Kullanıcının tek cümlesi ("localde öyle değil") o
+sonucu bir anda çürüttü.
 
 > **Ön planı sabitleyip zemini olduğu gibi bırakmak, iki yüzeyden
 > birinde mutlaka okunmaz bir birleşim üretir.**
 
-⚠️ **Ders bir:** bir rengi sabitlerken **altındaki yüzeyi de ölç.** "İki
-sayfa da aynı" demeden önce ikisini de ölç; benzer isimli iki sayfanın
-tasarımı zıt olabilir.
+⚠️ **Ders bir:** bir rengi sabitlerken **altındaki yüzeyi de sabitle.**
+Yazıyı sabitleyip zemini temaya bırakmak, temalardan birinde mutlaka
+okunmaz bir birleşim üretir. Doğru onarım, iki herkese açık sayfanın
+**yüzeylerini de** ziyaretçi görünümüne sabitlemektir — 4.11.6'nın kararı
+zaten buydu ("tek görünüme sabit"), ilk yazım o kararın yarısını yapmıştı.
 
 ⚠️ **Ders iki — ölçümün kapsamı da ölçülür.** O gün "yedi tema/vurgu
 birleşiminde hesaplanan renkler birebir aynı" diye bir ölçüm yapmıştım
@@ -2266,10 +2287,15 @@ Son söz onun çıktısındadır.
      vermez** (0106). "N ay sonra silinir" demek için kendiliğinden silen
      bir iş gerekir; yoksa metin süre yazmaz, **tutulan** sözü yazar — ve
      o sözün karşılığı (silme fonksiyonu + düğmesi) aynı turda yazılır.
-140. **Bir rengi sabitlerken ALTINDAKİ YÜZEYİ de ölç** (tuzak 192).
-     Ön planı sabitleyip zemini olduğu gibi bırakmak, iki yüzeyden
-     birinde mutlaka okunmaz bir birleşim üretir. "İki sayfa da aynı"
-     demeden önce ikisini de ölç.
+140. **Bir rengi sabitlerken ALTINDAKİ YÜZEYİ de SABİTLE** (tuzak 192).
+     Yazıyı sabitleyip zemini temaya bırakmak, temalardan birinde
+     mutlaka okunmaz bir birleşim üretir. "Temadan bağımsız" demek,
+     ön plan VE yüzey demektir.
+143. **Gözlem ile SONUÇ ayrı şeylerdir** (tuzak 192). "Nitelikleri
+     kaldırdım, değer değişmedi" bir gözlemdir; "demek ki tema etkisiz"
+     bir sonuçtur ve arada doğrulanmamış bir varsayım vardır. Bir ölçüm
+     beklediğini göstermiyorsa, önce ÖLÇÜMDEN şüphelen — 07.11'de
+     kullanıcının tek cümlesi ("localde öyle değil") o sonucu çürüttü.
 141. **Bir ölçümün SINIRI da yazılır** (tuzak 192). "Yedi temada renkler
      aynı" doğruydu ama o ölçüm rengin hangi zemine düştüğünü
      söylemiyordu. Yazılmayan sınır, garanti edilmiş gibi okunur.

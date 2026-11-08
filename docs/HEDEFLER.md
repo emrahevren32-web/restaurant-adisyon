@@ -1776,7 +1776,20 @@ Emrah'ın onayladığı sıra:
       **1 · Başvuru ekranında yazılar okunmuyordu.** Emrah: *"işletme
       başvuru ekranı bozulmuş, yazılar okunmuyor... siyahlaşmış önceki
       gibi beyaz değil."*
-      ⚠️ Hata şuydu: **iki sayfanın da beyaz kart taşıdığını VARSAYDIM.**
+      ⚠️ **08.11 DÜZELTMESİ — AŞAĞIDAKİ TEŞHİS YANLIŞTI.** Emrah:
+      *"bu dediklerim localde öyle değil ama"* ve ekran görüntüsü:
+      `localhost:5173/apply` **bembeyaz.** Yani sayfa varsayılanda AÇIK;
+      prod'da koyu olmasının sebebi Emrah'ın kayıtlı `dark` teması.
+      "Nitelikleri kaldırdım, değişmedi" ölçümü güvenilir değildi ve ben
+      o güvenilmez ölçümün üstüne bir sonuç cümlesi kurdum (tuzak 192,
+      kontrol listesi 143).
+      **GERÇEK KUSUR:** ön planı (yazı) sabitledim, **yüzeyi** (kart ve
+      sayfa zemini) temaya bıraktım. 4.11.6'nın kararı "tek görünüme
+      sabit"ti; ilk yazım o kararın yarısını yapmıştı.
+      → **4.11.6e açıldı, iş BİTMEDİ.**
+
+      ⚠️ İlk (yanlış) teşhis şuydu: **iki sayfanın da beyaz kart
+      taşıdığını VARSAYDIM.**
       Ölçüm (canlı site, Emrah'ın Chrome'u) tam tersini söyledi —
       `<html>` üzerindeki `data-theme`, `data-theme-engine` ve
       `data-theme-accent` niteliklerinin **üçü de kaldırıldığında bile**:
@@ -1820,6 +1833,20 @@ Emrah'ın onayladığı sıra:
       yeni kontrol (etiket kuralı başvuru sayfasını kapsamıyor · hover
       zemin veriyor · focus zemin veriyor · durum seçicileri `:where()`
       kullanmıyor · üç kontrol aynı zemini alıyor).
+    - 🔴 **4.11.6e** **YÜZEYLER HÂLÂ TEMAYA BAĞLI — İŞ YARIM** (08.11).
+      Hover ve odak onarımı doğru ve yerinde. Ama asıl eksik duruyor:
+      `.public-application-shell`, `.public-application-form` ve sayfa
+      zemini **hâlâ tema değişkenlerinden** besleniyor. Sonuç: aynı sayfa
+      `localhost`ta beyaz, prod'da koyu — yani **hâlâ bakana göre
+      değişiyor**, ki 4.11.6'nın tek amacı buydu.
+      ⚠️ Yapılacak: iki herkese açık sayfanın **yüzey renkleri de**
+      ziyaretçi görünümüne sabitlenecek (sayfa zemini, kabuk, form kartı,
+      başlık ve açıklama renkleri). Değerler **uydurulmayacak**,
+      `localhost`ta (kayıtlı tema yokken) ölçülecek — oradaki görüntü
+      Emrah'ın "önceki gibi" dediği görüntüdür.
+      ⚠️ Yüzey sabitlenince etiket rengi de geri gelecek: beyaz kartın
+      üstünde `#374151` doğru renktir. Bu turda kapsamdan çıkarılması
+      **geçici bir yama**, kalıcı çözüm değil.
     - ✅ **4.11.6b/c** **VİTRİN TEMADAN BAĞIMSIZ** (06.11). Giriş vitrini
       ve herkese açık başvuru sayfası artık tek görünüme sabit.
       ⚠️ Tema motoru DEĞİŞTİRİLMEDİ; uygulamanın geri kalanı temayı aynen
@@ -2004,11 +2031,30 @@ Emrah'ın onayladığı sıra:
   ⚠️ Aşağıdakilerin **hiçbiri henüz Claude tarafından ölçülmedi.** Her
   biri bir İDDİADIR; düzeltmeden önce tek tek ölçülecek (kontrol listesi
   137: "bozuk da bir iddiadır").
-  - 🔴 **MIYOP-100 · P1** Şahit numunede DB okuma kapısı ekran iznini
-    denetlemiyor. `0093_sahit_numune.sql:124/156/305`. `witness_sample`
-    ve `witness_sample_event` üzerinde `authenticated` için SELECT açık;
-    RLS yalnız kiracıyı denetliyor, `quality.read` denetimi yok. Ekranı
-    açamayan aynı işletmedeki kullanıcı API'den numuneleri okuyabilir.
+  - ✅ **MIYOP-100 · P1 · GÖÇ 0107 İLE KAPANDI** (08.11).
+    **ÖLÇÜLDÜ, doğrulandı:** `witness_sample` ve `witness_sample_event`
+    üzerinde `authenticated` için SELECT açıktı ve RLS yalnız
+    `tenant_id = app.current_tenant_id()` diyordu. Menü ve rota
+    `quality.read` istiyordu, veritabanı istemiyordu — **üç kapı
+    ayrışmıştı.** Ekranı açamayan bir kullanıcı API'den bütün numuneleri,
+    açılış gerekçelerini ve sonuçlarını okuyabiliyordu.
+    **Göç 0107:** tek `for all` politikası komut başına politikalara
+    ayrıldı; SELECT artık `tenant AND app.yetkim_var('quality.read')`.
+    ⚠️ Yazma kapısına DOKUNULMADI: zaten `izin_gerek_coklu` tetiğinde.
+    Aynı kuralı RLS'e kopyalamak iki gerçek üretirdi.
+    ⚠️ Politika **eklenmedi, değiştirildi**: PostgreSQL izin veren
+    politikaları VEYA ile birleştirir — yanına ikinci bir SELECT
+    politikası koymak kapıyı daraltmaz, **genişletirdi**.
+    **Kanıt:** `prova-0107.sql` (16 doğrulama, `set local role
+    authenticated` takarak) ve **`prova-0107-ters.sql`** — kapı
+    kaldırılınca izinsiz kullanıcının numuneleri GERÇEKTEN gördüğünü
+    gösteriyor, yani prova boşlukta yeşil yanmıyor.
+    ⚠️ **AÇIK ÜRÜN SORUSU:** `production.write` taşıyıp `quality.read`
+    taşımayan tek rol **`personel`**. Bu göçten sonra `personel` numune
+    yazabilir ama okuyamaz. Yeni bir tutarsızlık değil — `personel`
+    bugün de ekranı açamıyor — ama çözülmeli: (a) `personel`e
+    `quality.read` verilsin, ya da (b) yazma kapısından
+    `production.write` çıkarılsın. **Emrah'a soruldu.**
   - 🔴 **MIYOP-101 · P1** İstemcinin gönderdiği `occurred_at`, saklama
     kuralını etkisizleştirebiliyor. `0094_numune_kiraci_siniri.sql:214/242`.
     Tetik `least(s.keep_until, v_an::date + v_acik)` hesaplıyor; gelecek
