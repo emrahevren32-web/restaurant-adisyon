@@ -1,80 +1,59 @@
-Goc 0107: sahit numune OKUMA kapisi (MIYOP-100) + tuzak 192 duzeltildi
+Tip hatasi giderildi + rol/yetki/istisna matrisi (olcumle uretildi)
 
-Emrah: "okuyamasin, once onu duzelt."
+== 1 . TIP HATASI ==
+Onceki turda `gocIzinleri` yardimcisini kaldirdim ama bir kullanimi
+kaldi (numune-kapisi.arch.test.ts:203) ve tsc kirmizi verdi.
+!! Benim yerel taramam bunu YAKALAYAMADI: bu ortamda node_modules yok,
+yani `tsc --noEmit` kosamiyor. Sadece soz dizimi bakilabiliyor.
 
-== MIYOP-100 . OLCULDU, DOGRULANDI, KAPATILDI ==
-Codex'in iddiasi gercek PostgreSQL uzerinde olculdu:
+O satirdaki sinama zaten BAYATLAMISTI: "numune ALMA kapisi 0093'te
+DEGISMEDEN duruyor" diyordu, oysa 0108 kapiyi degistirdi. Yerine iki
+sinama yazildi:
+  . "0093'te acildi, 0108'de DARALDI" -- ETKIN tanima bakiyor ve hangi
+    goce baktigini iddianin icinde yaziyor.
+  . "production.write numune kapisindan CIKTI" -- hem ekran listesinde
+    hem veritabani kapisinda yoklugunu olcuyor.
 
-    witness_sample       -> authenticated SELECT = t
-    witness_sample_event -> authenticated SELECT = t
-    RLS politikasi       -> yalniz (tenant_id = app.current_tenant_id())
+== 2 . SEVKIYAT SORUMLUSU KARARI YAZILDI ==
+Emrah: "evet. Normalde is onun olmaz ama alabilsin."
+0108'in yan etkisi artik bir ISTISNA olarak kayitli, kaza degil.
 
-Menu ve rota `quality.read` istiyordu, veritabani istemiyordu. UC KAPI
-AYRISMISTI. Ekranini acamayan bir kullanici -- ayni isletmede, oturumu
-acik, deposunda calisan biri -- API'den butun sahit numuneleri, acilis
-gerekcelerini ve sonuclarini okuyabiliyordu.
+== 3 . ROL/YETKI/ISTISNA MATRISI ==
+Emrah: "yarin birgun ben sana kimin ne tur gorevleri ve yetkileri ve
+istisnai yetkileri var dersem bana dokuman verebilecek durumda ol."
 
-GOC 0107: tek `for all` politikasi komut basina politikalara ayrildi.
-    SELECT -> tenant AND app.yetkim_var('quality.read')
-    INSERT/UPDATE/DELETE -> tenant
+Iki parca halinde yazildi:
 
-!! POLITIKA EKLENMEDI, DEGISTIRILDI. PostgreSQL izin veren politikalari
-VEYA ile birlestirir: mevcut `for all` politikasinin yanina ikinci bir
-SELECT politikasi koymak kapiyi DARALTMAZ, GENISLETIRDI.
+  db/prova/rol-yetki-raporu.sql
+    Salt okunur rapor. 13 rol, 35 izin, 28 yazma kapisi, okuma kapilari
+    ve "yazabilip okuyamayan rol var mi" kontrolu. Canli semanin aynisi
+    olan prova veritabanindan OLCUYOR.
 
-!! YAZMA KAPISINA DOKUNULMADI. Yazma zaten iki tetikle korunuyor
-(izin_gerek_coklu + numune_olayi_izni). Ayni kurali bir de RLS'e yazmak
-iki gercek uretir ve bir gun ayrisirlar.
+  docs/kararlar/rol-yetki-matrisi.md
+    O raporun ciktisindan uretilmis belge. Uc kapi kurali, rol basina
+    izinler, izin katalogu, tablo basina yazma kapilari, okuma kapisi
+    olan tablolar -- ve en onemlisi ISTISNALAR bolumu:
+      . sahit numune: gormek / almak / imha etmek ucu ayri izin
+      . depo sorumlusu gorur ama yazamaz (kontrol fiziksel sorumluluk)
+      . imha dar kapida (0097 karari)
+      . personel cikarildi (0108), sevkiyat ISTISNA olarak girdi
+      . gida muhendisi recipe.write TASIMIYOR -- beyan kendi kendini
+        dogrulamasin diye
+      . kalite sorumlusu uretimi/stogu yalniz GORUR
+      . finance.read raporlarin da onunde (0071)
+      . siparis ACMAK ile ONAYLAMAK ayri hak (0061)
+      . mal kabul personelde degil
+      . platform.manage yalniz bizde; musteri sahibine admin VERILMEZ
+      . mudur kullanici acamaz, rol dagitamaz
+      . izleyici fiyat dahil her seyi gorur, hicbir seyi degistiremez
 
-!! `insert/update ... returning` SELECT politikasini DA uygular; yani
-quality.read'siz bir yazar satiri geri okuyamaz. Bu kabul edilen
-sonuctur ve goc basliginda yazili.
+!! BELGE ELLE YAZILMADI, OLCULDU. Elle surdurulen bir yetki matrisi bir
+hafta icinde bayatlar ve bayat bir yetki belgesi, OLMAYAN bir guvenlik
+duygusu verir (tuzak 186). Belgenin basinda yeniden uretme komutu var.
 
-KANIT
-  prova-0107.sql       16 dogrulama, `set local role authenticated`
-                       takarak (MIYOP-042). Izinsiz kullanici HIC satir
-                       gormuyor (hata almiyor, SUZULUYOR); izinli
-                       goruyor; kiraci duvari duruyor; oturumsuz hicbir
-                       sey gormuyor; yazma akisi ve olay tetigi calisiyor.
-  prova-0107-ters.sql  Kapiyi kaldirip eski hali kuruyor ve izinsiz
-                       kullanicinin numuneleri GERCEKTEN gordugunu
-                       gosteriyor -- yani prova bosslukta yesil yanmiyor
-                       ve kusur gercekti.
-
-Goc iki kez kosturuldu (idempotent). Temiz veritabani: 108 goc, 56
-prova, 56 YESIL / 0 kirmizi. son-kosu.json kendiliginde guncellendi --
-4.11.9'un kapisi calisiyor.
-
-!! ACIK URUN SORUSU: production.write tasiyip quality.read tasimayan tek
-rol `personel`. Bu goctten sonra numune yazabilir ama okuyamaz. Yeni bir
-tutarsizlik DEGIL (bugun de ekrani acamiyor) ama cozulmeli:
-(a) personel'e quality.read verilsin, ya da (b) yazma kapisindan
-production.write cikarilsin. Emrah'a soruldu.
-
-== TUZAK 192'NIN GEREKCESI YANLISTI . DUZELTILDI ==
-Dun soyle yazmistim: "basvuru sayfasi temadan degil kendi tasarimindan
-koyu; tema nitelikleri kaldirildiginda bile koyu."
-
-YANLIS. Emrah: "bu dediklerim localde oyle degil ama" -- ekran
-goruntusu: localhost:5173/apply BEMBEYAZ.
-
-Sayfa varsayilanda ACIK; prod'da koyu olmasinin sebebi Emrah'in kayitli
-`dark` temasi. "Nitelikleri kaldirdim, degismedi" olcumu guvenilir
-degildi ve ben o guvenilmez olcumun ustune bir SONUC cumlesi kurdum.
-
-GERCEK KUSUR: on plani (yazi) sabitledim, YUZEYI (kart ve sayfa zemini)
-temaya biraktim. 4.11.6'nin karari "tek gorunume sabit"ti; ilk yazim o
-kararin yarisini yapmisti.
-
--> HEDEFLER 4.11.6e ACILDI: is BITMEDI. Hover/odak onarimi dogru ve
-yerinde duruyor, ama yuzeyler hala temaya bagli. Yapilacak: iki herkese
-acik sayfanin yuzey renkleri de ziyaretci gorunumune sabitlenecek.
-Degerler UYDURULMAYACAK, localhost'ta (kayitli tema yokken) olculecek.
-
--> kontrol listesi 143: GOZLEM ile SONUC ayri seylerdir. "Nitelikleri
-kaldirdim, deger degismedi" bir gozlemdir; "demek ki tema etkisiz" bir
-sonuctur ve arada dogrulanmamis bir varsayim vardir. Bir olcum
-bekledigini gostermiyorsa once OLCUMDEN suphelen.
+!! Belgeyi zorlayan bir sinama YOK ve bu bilerek: kapi makine icin,
+belge insan icin. Kapinin dogrulugu provalarla olculuyor; belgenin
+guncelligi insanin sorumlulugunda ve bu da belgede yazili.
 
 Co-Authored-By: Claude Opus 5 <noreply@anthropic.com>
 Claude-Session: https://claude.ai/code/session_019BwYM3mAXZUhp4YGj7tp2y

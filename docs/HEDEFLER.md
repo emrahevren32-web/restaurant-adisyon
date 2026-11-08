@@ -1833,7 +1833,23 @@ Emrah'ın onayladığı sıra:
       yeni kontrol (etiket kuralı başvuru sayfasını kapsamıyor · hover
       zemin veriyor · focus zemin veriyor · durum seçicileri `:where()`
       kullanmıyor · üç kontrol aynı zemini alıyor).
-    - 🔴 **4.11.6e** **YÜZEYLER HÂLÂ TEMAYA BAĞLI — İŞ YARIM** (08.11).
+    - ✅ **4.11.6e** **YÜZEYLER DE SABİTLENDİ — İŞ BİTTİ** (08.11).
+      Değerler **uydurulmadı**, `localhost:5173/apply` üzerinde ölçüldü
+      (kayıtlı tema `light` — ziyaretçinin gördüğü görünüm):
+      sayfa `#eef1f4` · kabuk `srgb(0.992 0.993412 0.994824)` · form
+      `#ffffff` · başlık/gövde `#1f2937` · açıklama `#4b5563` · etiket
+      `#374151`. Etiket kuralı **başvuru sayfasını yeniden kapsıyor**:
+      yüzey beyaz olduğu için `#374151` orada da doğru renk — 07.11'deki
+      daraltma yanlış teşhisin geçici yamasıydı.
+      ⚠️ **Giriş vitrininin yüzeyine DOKUNULMADI**: Emrah'ın prod ve
+      localhost ekran görüntüleri o sayfanın iki yerde de aynı olduğunu
+      gösteriyor — zaten temadan bağımsız. Sağlam olanı "düzeltmek" bu
+      bloğun baştan beri kaçındığı hata.
+      Donduran sınama iki yeni kontrolle güncellendi; **yanlış kuralı
+      donduran eski kontrol kaldırıldı** (yanlışı donduran bir test,
+      yanlışı korur).
+
+    - ~~🔴 **4.11.6e** (eski hâli)~~
       Hover ve odak onarımı doğru ve yerinde. Ama asıl eksik duruyor:
       `.public-application-shell`, `.public-application-form` ve sayfa
       zemini **hâlâ tema değişkenlerinden** besleniyor. Sonuç: aynı sayfa
@@ -2065,6 +2081,26 @@ Emrah'ın onayladığı sıra:
     `EXISTS` → `COUNT` → `INSERT` sırası var ama telefon başına kilit ya
     da açık talep için tekil indeks yok; paralel çağrılar ikisini de
     geçebilir. ⚠️ Bu **benim yazdığım göç** (06.11).
+  - ✅ **`personel` ROLÜ KARARI · GÖÇ 0108** (08.11, Emrah: *"b olsun"*).
+    MIYOP-100'ün açık bıraktığı ürün sorusu kapandı: şahit numune yazma
+    kapısından `production.write` ÇIKTI, yerine `quality.write` geldi.
+    ⚠️ Doğrudan silinmedi çünkü **üretim sorumlusunu da dışarıda
+    bırakırdı** — İsmet'in akışında numuneyi üretim alıyor ve
+    `prova-0093` bunu bir kural olarak sınıyor. Ölçüm: `quality.write`
+    üretimi İÇERİYOR, personeli içermiyor.
+    ⚠️ **Tek yan etki, gizlenmiyor:** `sevkiyat_sorumlusu` artık numune
+    yazabilecek. Şahit numune çoğu işletmede sevk anında alınıyor ve o
+    rol `quality.read` taşıdığı için ekranı zaten görebiliyordu —
+    **Emrah'a soruldu**, istemezse tek satırla geri alınır.
+    ✅ **ÜÇ KAPI ARTIK TAM EŞİT:** numuneye yazabilen her rol, numuneyi
+    okuyabiliyor da. Göç bunu ölçüyor ve sağlamazsa DURUYOR.
+    Kanıt: `prova-0108.sql` (10 doğrulama, rol takarak) — personel
+    yazamıyor, üretim ve kalite yazabiliyor, depo yazamıyor (değişmedi),
+    imha hâlâ dar kapıda.
+    ⚠️ `numune-kapisi.arch.test.ts` artık **tek bir göç dosyasına
+    bakmıyor**: bütün göçleri sırayla tarayıp SON tanımı alıyor. Eski
+    hâli 0093'e bakıyordu ve 0108'den sonra geçersiz bir göcün hâlini
+    savunmaya başlayacaktı (tuzak 190).
   - ⬜ **MIYOP-103 · P2** Kaydedilen firma adı/logo uygulama kabuğuna
     ulaşmıyor; "Kaydedildi" sonrası yan menü ve sekme adı eski kalıyor.
   - ⬜ **MIYOP-104 · P2** Eski ağ yanıtı okunmuş bildirimi yeniden

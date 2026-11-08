@@ -103,11 +103,20 @@ export const KAPATMA_YETKISI_YOK =
  * depocunun kendi başına numune kaydı AÇMASI demek olurdu.
  *
  * ⚠️ GERÇEK SINIR VERİTABANINDA: `izin_witness_sample` tetiği
- * `app.izin_gerek_coklu('quality.record.manage', 'production.write')`.
+ * `app.izin_gerek_coklu('quality.record.manage', 'quality.write')`.
  * Buradaki liste onun ekrandaki yüzü — ikisinin aynı kaldığını
- * `src/quality/numune-kapisi.arch.test.ts` ÖLÇÜYOR.
+ * `src/quality/numune-kapisi.arch.test.ts` ÖLÇÜYOR. O ölçüm artık TEK bir
+ * göç dosyasına değil, bütün göçleri sırayla tarayıp SONUNCU tanıma
+ * bakıyor; kapı hangi göçte değişirse değişsin bulur.
+ *
+ * ⚠️ 08.11.2026 · `production.write` ÇIKTI, `quality.write` GİRDİ (göç
+ * 0108, Emrah kararı). Sebep: 0107 okuma kapısını ekranla eşitleyince
+ * `production.write` taşıyıp `quality.read` taşımayan tek rolün
+ * `personel` olduğu ölçüldü — yazabiliyor ama yazdığını göremiyordu.
+ * `quality.write` üretim sorumlusunu İÇERİYOR, personeli içermiyor.
+ * Artık numuneye yazabilen HER rol numuneyi okuyabiliyor da.
  */
-export const NUMUNE_IZINLERI = ['quality.record.manage', 'production.write'] as const
+export const NUMUNE_IZINLERI = ['quality.record.manage', 'quality.write'] as const
 
 /**
  * MAL KABUL — EKRAN, VERİTABANININ ZATEN VERDİĞİ KARARA UYUYOR (05.11.2026).

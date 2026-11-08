@@ -29856,29 +29856,64 @@ html[data-theme-engine="premium"] .public-application-page.public-application-pa
   color: #94a3b8;
 }
 
-/* ── ETİKETLER · YALNIZ GİRİŞ VİTRİNİ ────────────────────────────────────
-   ⚠️ BU KURAL BAŞVURU SAYFASINI DA KAPSIYORDU VE ORAYI BOZDU (07.11,
-   Emrah: *"işletme başvuru ekranı bozulmuş, yazılar okunmuyor"*).
+/* ── BAŞVURU SAYFASININ YÜZEYLERİ DE SABİT (4.11.6e · 08.11.2026) ────────
+   ⚠️ BU BLOĞUN İLK İKİ YAZIMI DA EKSİKTİ; ÜÇÜNCÜSÜ BU.
 
-   Hata şuydu: iki sayfanın beyaz kart taşıdığını VARSAYDIM. Ölçüm tam
-   tersini söylüyor — başvuru sayfası KENDİ TASARIMIYLA KOYU ve bu
-   temadan gelmiyor. `<html>` üzerindeki `data-theme`, `data-theme-engine`
-   ve `data-theme-accent` niteliklerinin ÜÇÜ DE KALDIRILDIĞINDA bile
-   ölçülen değerler aynı kalıyor:
+   1. yazım (06.11): yazı renkleri sabitlendi, YÜZEY temaya bırakıldı.
+      Emrah'ın koyu teması yüzeyi koyuya çekti, yazı sabit kaldı ve
+      başvuru ekranındaki etiketler OKUNMAZ oldu.
+   2. yazım (07.11): teşhisi yanlış koydum. "Nitelikleri kaldırdım,
+      değişmedi, demek ki sayfa kendi tasarımından koyu" dedim ve etiket
+      kuralının kapsamını daralttım. Emrah düzeltti: *"bu dediklerim
+      localde öyle değil ama"* — `localhost:5173/apply` BEMBEYAZ.
+      Gözlem doğruydu, SONUÇ yanlıştı (kontrol listesi 143).
+   3. yazım (bu): **yüzey de sabitleniyor.** 4.11.6'nın kararı zaten
+      "tek görünüme sabit"ti; ilk iki yazım o kararın yarısını yapmıştı.
 
-       .public-application-shell  → oklab(0.324 …)   (koyu)
-       h1                         → rgb(243,245,247) (beyaz)
-       p                          → rgb(199,206,216) (açık gri)
+   ⚠️ DEĞERLER UYDURULMADI, `localhost:5173/apply` ÜZERİNDE ÖLÇÜLDÜ
+   (08.11, kayıtlı tema `light` — yani ziyaretçinin gördüğü görünüm):
 
-   Yani `#374151` koyu grisi, KOYU kartın üstüne yazıldı ve etiketler
-   görünmez oldu. Kural kaldırılmadı, KAPSAMI DARALTILDI: başvuru
-   sayfasının etiketleri kendi açık renklerini miras alıyor (ata
-   `rgb(243,245,247)`), ki o renk de temadan bağımsız.
+       .public-application-page   → #eef1f4
+       .public-application-shell  → srgb(0.992 0.993412 0.994824)
+       .public-application-form   → #ffffff
+       h1 / gövde yazısı          → #1f2937
+       p                          → #4b5563
+       label                      → #374151
+       input / select             → #ffffff · #1f2937 · kenar #d8dee6
 
-   ⚠️ DERS: bir rengi sabitlerken ALTINDAKİ YÜZEYİ de ölç. Ön planı
-   sabitleyip zemini temaya bırakmak, iki sayfadan birinde mutlaka
-   okunmaz bir birleşim üretir. */
-html[data-theme-engine="premium"] .unified-login-portal.unified-login-portal :where(label, .muted, .checkbox-row span) {
+   ⚠️ GİRİŞ VİTRİNİNİN YÜZEYİNE DOKUNULMUYOR. Ölçüm (Emrah'ın ekran
+   görüntüleri, prod ve localhost): o sayfa iki yerde de AYNI — koyu
+   lacivert zemin, beyaz kart. Yani zaten temadan bağımsız. Sağlam olanı
+   "düzeltmek", bu bloğun baştan beri kaçındığı hata. */
+html[data-theme-engine="premium"] .public-application-page.public-application-page {
+  background: #eef1f4;
+  color: #1f2937;
+}
+
+html[data-theme-engine="premium"] .public-application-page.public-application-page .public-application-shell {
+  background: color(srgb 0.992 0.993412 0.994824);
+  color: #1f2937;
+}
+
+html[data-theme-engine="premium"] .public-application-page.public-application-page .public-application-form {
+  background: #ffffff;
+  color: #1f2937;
+}
+
+html[data-theme-engine="premium"] .public-application-page.public-application-page h1 {
+  color: #1f2937;
+}
+
+html[data-theme-engine="premium"] .public-application-page.public-application-page p {
+  color: #4b5563;
+}
+
+/* ── ETİKETLER ───────────────────────────────────────────────────────────
+   ⚠️ Başvuru sayfası KAPSAMA GERİ ALINDI. Yüzey artık beyaz olduğu için
+   `#374151` orada da doğru renktir — 07.11'de kapsamdan çıkarılması
+   geçici bir yamaydı, yanlış teşhisin sonucuydu. */
+html[data-theme-engine="premium"] .unified-login-portal.unified-login-portal :where(label, .muted, .checkbox-row span),
+html[data-theme-engine="premium"] .public-application-page.public-application-page :where(label, .muted, .checkbox-row span) {
   color: #374151;
 }
 

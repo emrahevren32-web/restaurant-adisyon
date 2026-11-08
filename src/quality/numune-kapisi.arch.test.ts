@@ -21,7 +21,7 @@
 // ═══════════════════════════════════════════════════════════════════════════
 
 import { describe, expect, it } from 'vitest'
-import { readFileSync } from 'node:fs'
+import { readdirSync, readFileSync } from 'node:fs'
 import { join } from 'node:path'
 import { projeKokunuBul } from '../core/test-support/goc-tarama'
 import { NUMUNE_IZINLERI } from '../authorization/yazma-yetkisi'
@@ -35,13 +35,42 @@ const GOC_0094 = readFileSync(
 const GOC_0097 = readFileSync(
   join(KOK, 'db/migrations/0097_numune_imhasi_onaydir.sql'), 'utf8') as string
 
-/** Göçteki `izin_gerek_coklu('a', 'b')` çağrılarından izin adlarını çıkarır. */
-const gocIzinleri = (sql: string, tablo: string): string[] => {
-  const yer = sql.indexOf(`izin_${tablo} on public.${tablo}`)
-  if(yer < 0) return []
-  const parca = sql.slice(yer, yer + 600)
-  const cagri = /izin_gerek_coklu\(([^)]*)\)/.exec(parca)?.[1] ?? ''
-  return [...cagri.matchAll(/'([a-z_.]+)'/g)].map(m => m[1] as string).sort()
+// ═══════════════════════════════════════════════════════════════════════════
+// ⚠️ 08.11.2026 · ÖLÇÜM TEK BİR GÖÇ DOSYASINA BAKMIYOR ARTIK.
+// İlk hâli `GOC_0093`e bakıyordu. 0108 kapıyı değiştirince o ölçüm, ARTIK
+// GEÇERLİ OLMAYAN bir göçün hâlini savunmaya başlardı — tuzak 190'ın ta
+// kendisi (54 provanın 13'ü tam böyle bayatlamıştı). Artık bütün göçler
+// SIRAYLA taranıyor ve SONUNCU tanım alınıyor: kapı hangi göçte
+// değişirse değişsin, ölçüm onu bulur.
+// ═══════════════════════════════════════════════════════════════════════════
+const GOC_KLASORU = join(KOK, 'db/migrations')
+
+const gocDosyalari = (): string[] =>
+  readdirSync(GOC_KLASORU).filter(a => /^[0-9]{4}_.+\.sql$/.test(a)).sort()
+
+/** Bir tetiğin EN SON kurulduğu göçteki `izin_gerek_coklu` izinleri. */
+const etkinTetikIzinleri = (tablo: string): { izinler: string[]; goc: string } => {
+  let sonuc = { izinler: [] as string[], goc: '' }
+  for(const ad of gocDosyalari()){
+    const sql = readFileSync(join(GOC_KLASORU, ad), 'utf8') as string
+    const yer = sql.indexOf(`create trigger izin_${tablo}`)
+    if(yer < 0) continue
+    const parca = sql.slice(yer, yer + 600)
+    const cagri = /izin_gerek_coklu\(([^)]*)\)/.exec(parca)?.[1] ?? ''
+    const izinler = [...cagri.matchAll(/'([a-z_.]+)'/g)].map(m => m[1] as string).sort()
+    if(izinler.length > 0) sonuc = { izinler, goc: ad }
+  }
+  return sonuc
+}
+
+/** Bir `app` fonksiyonunun EN SON yazıldığı göç dosyasının metni. */
+const etkinFonksiyon = (ad: string): { metin: string; goc: string } => {
+  let sonuc = { metin: '', goc: '' }
+  for(const dosya of gocDosyalari()){
+    const sql = readFileSync(join(GOC_KLASORU, dosya), 'utf8') as string
+    if(sql.includes(`create or replace function app.${ad}()`)) sonuc = { metin: sql, goc: dosya }
+  }
+  return sonuc
 }
 
 // ═══════════════════════════════════════════════════════════════════════════
@@ -90,9 +119,22 @@ describe('numune kapısı · göç ile ekran aynı izinleri istiyor', () => {
     expect(GOC_0097.length).toBeGreaterThan(1000)
   })
 
-  it('numune tablosunun kapısı ekrandaki listeyle aynı', () => {
-    const gocteki = gocIzinleri(GOC_0093, 'witness_sample')
-    expect(gocteki, 'göçte izin_witness_sample tetiği bulunamadı').not.toEqual([])
+  it('sağlama: ETKİN tanım gerçekten bulunuyor (ölçüm boşlukta yeşil yanmıyor)', () => {
+    const tetik = etkinTetikIzinleri('witness_sample')
+    expect(tetik.izinler.length, 'etkin tetik izinleri boş').toBeGreaterThan(0)
+    const fn = etkinFonksiyon('numune_olayi_izni')
+    expect(fn.metin.length, 'etkin olay kapısı bulunamadı').toBeGreaterThan(1000)
+    // ⚠️ Etkin tanım 0093/0097'den SONRAKİ bir göçte olabilir; olması da
+    // gerekir çünkü kapı 0108'de değişti. Ölçümün hangi göçe baktığı
+    // kırmızıda görünsün diye adı da iddiada.
+    expect(tetik.goc >= '0093', `tetik etkin göcü: ${tetik.goc}`).toBe(true)
+    expect(fn.goc >= '0097', `olay kapısı etkin göcü: ${fn.goc}`).toBe(true)
+  })
+
+  it('numune tablosunun kapısı ekrandaki listeyle aynı (ETKİN göçten)', () => {
+    const { izinler: gocteki, goc } = etkinTetikIzinleri('witness_sample')
+    expect(gocteki, 'hiçbir göçte izin_witness_sample tetiği bulunamadı').not.toEqual([])
+    expect(goc, 'etkin göç adı okunamadı').toMatch(/^[0-9]{4}_/)
     expect(
       gocteki,
       'Göç ile ekran farklı izin listesi taşıyor.\n'
@@ -125,11 +167,12 @@ describe('numune kapısı · göç ile ekran aynı izinleri istiyor', () => {
     // `if ... then return new; end if;` yüzünden lazy bir eşleşme dalın
     // yalnız ilk satırını yakalar; sıralama değişse fark edilmezdi
     // (tuzak 80: bulamadığı için sessiz kalan kontrol).
-    const imhaBasi = GOC_0097.indexOf("if new.event_type = 'IMHA' then")
-    const ortakIs = GOC_0097.indexOf('ALINDI ve ACILDI · ORTAK İŞ')
-    expect(imhaBasi, "0097'de imha dalı bulunamadı").toBeGreaterThan(-1)
-    expect(ortakIs, "0097'de ortak iş bloğu bulunamadı").toBeGreaterThan(imhaBasi)
-    const imhaBlogu = GOC_0097.slice(imhaBasi, ortakIs)
+    const ETKIN = etkinFonksiyon('numune_olayi_izni').metin
+    const imhaBasi = ETKIN.indexOf("if new.event_type = 'IMHA' then")
+    const ortakIs = ETKIN.indexOf('ALINDI ve ACILDI · ORTAK İŞ')
+    expect(imhaBasi, 'etkin göçte imha dalı bulunamadı').toBeGreaterThan(-1)
+    expect(ortakIs, 'etkin göçte ortak iş bloğu bulunamadı').toBeGreaterThan(imhaBasi)
+    const imhaBlogu = ETKIN.slice(imhaBasi, ortakIs)
     expect(imhaBlogu, 'imha kapısı quality.record.manage istemiyor')
       .toMatch(/quality\.record\.manage/)
     expect(
@@ -145,19 +188,42 @@ describe('numune kapısı · göç ile ekran aynı izinleri istiyor', () => {
     // Dar kapıdan SONRAKİ blok iki izni de taşımalı.
     // ⚠️ Başlık yorumunda da "ALINDI ve ACILDI" geçiyor; ölçüm GÖVDEDEKİ
     // bloğa bakmalı, yorumun kendisine değil.
-    const ortakIs = GOC_0097.indexOf('ALINDI ve ACILDI · ORTAK İŞ')
+    const ETKIN = etkinFonksiyon('numune_olayi_izni').metin
+    const ortakIs = ETKIN.indexOf('ALINDI ve ACILDI · ORTAK İŞ')
     expect(ortakIs, 'ortak iş bloğu bulunamadı').toBeGreaterThan(-1)
-    const sonrasi = GOC_0097.slice(ortakIs, GOC_0097.indexOf('revoke all on function'))
+    const sonrasi = ETKIN.slice(ortakIs, ETKIN.indexOf('revoke all on function'))
     for(const izin of NUMUNE_IZINLERI){
       expect(sonrasi, `${izin} ortak iş kapısında yok`).toContain(izin)
     }
   })
 
-  it("numune ALMA kapısı 0093'te DEĞİŞMEDEN duruyor", () => {
-    // Numune almak hâlâ ortak iş: `witness_sample` tablosunun tetiği
-    // 0097'de ele alınmadı ve alınmaması doğru.
-    expect(gocIzinleri(GOC_0093, 'witness_sample'))
-      .toEqual([...NUMUNE_IZINLERI].sort())
+  it("numune ALMA kapısı 0093'te açıldı, 0108'de DARALDI", () => {
+    // ⚠️ 08.11 · BU SINAMA "0093'te DEĞİŞMEDEN duruyor" DİYORDU ve artık
+    // doğru değil: 0108 `production.write`ı çıkarıp `quality.write`
+    // koydu (Emrah kararı · `personel` numuneye karışmasın).
+    // Bir sınama, geçersiz bir göcün hâlini savunmaya başladığı anda
+    // ölçüm olmaktan çıkar (tuzak 190).
+    //
+    // Ölçüm artık ETKİN tanıma bakıyor: 0093 kapıyı AÇTI, 0108 DARALTTI.
+    const { izinler, goc } = etkinTetikIzinleri('witness_sample')
+    expect(izinler, `etkin göç: ${goc}`).toEqual([...NUMUNE_IZINLERI].sort())
+    expect(GOC_0093, "0093 kapıyı ilk kuran göç olmalı")
+      .toMatch(/create trigger izin_witness_sample/)
+  })
+
+  it("⚠️ `production.write` numune kapısından ÇIKTI (0108 · Emrah kararı)", () => {
+    // Gerekçe: 0107 okuma kapısını ekranla eşitleyince `production.write`
+    // taşıyıp `quality.read` taşımayan tek rolün `personel` olduğu
+    // ölçüldü — yazabiliyor ama yazdığını göremiyordu.
+    // ⚠️ Doğrudan silinmedi: silmek üretim sorumlusunu da dışarıda
+    // bırakırdı. `quality.write` üretimi içeriyor, personeli içermiyor.
+    expect([...NUMUNE_IZINLERI], 'ekran listesinde production.write kalmış')
+      .not.toContain('production.write')
+    expect([...NUMUNE_IZINLERI], 'ekran listesinde quality.write yok')
+      .toContain('quality.write')
+    const { izinler } = etkinTetikIzinleri('witness_sample')
+    expect(izinler, 'veritabanı kapısında production.write kalmış')
+      .not.toContain('production.write')
   })
 
   it('depocu bu listede YOK', () => {

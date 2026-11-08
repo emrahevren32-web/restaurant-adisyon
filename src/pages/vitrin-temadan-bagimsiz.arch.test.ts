@@ -140,18 +140,46 @@ describe('vitrin temadan bağımsız', () => {
   // donduruyor — aynı hata iki kez yapılmasın diye.
   // ═══════════════════════════════════════════════════════════════════════
 
-  it('⚠️ ETİKET RENGİ BAŞVURU SAYFASINA UYGULANMIYOR (kart orada KOYU)', () => {
-    // Ölçüldü (07.11): `<html>` üzerindeki üç tema niteliği de
-    // kaldırıldığında bile başvuru kartı koyu, başlığı beyaz, açıklaması
-    // açık gri. Yani o sayfa temadan değil KENDİ TASARIMINDAN koyu.
-    // `#374151` koyu grisini oraya yazmak etiketleri görünmez yapmıştı.
+  // ⚠️ 08.11 · BU SINAMANIN BİR ÖNCEKİ HÂLİ YANLIŞ BİR KURALI DONDURUYORDU.
+  // "Etiket rengi başvuru sayfasına UYGULANMAMALI" diyordu; gerekçesi
+  // yanlış bir ölçüm okumasıydı. Doğrusu: yüzey de sabitlenir, etiket de
+  // sabit kalır. Yanlış bir kuralı donduran test, yanlışı korur.
+  it('⚠️ BAŞVURU SAYFASININ YÜZEYİ DE SABİT (yazıyla birlikte)', () => {
+    // 4.11.6'nın kararı "tek görünüme sabit"ti. Yazıyı sabitleyip zemini
+    // temaya bırakmak, koyu temada okunmaz bir birleşim üretiyordu.
+    const kod = seciciler()
+    // ⚠️ "İLK eşleşmeye bak" YETMEZ: aynı seçici blokta birden çok kez
+    // geçiyor (`color-scheme` kuralı da onu kullanıyor) ve ilk eşleşmenin
+    // ardında aradığımız renk yok. İlk denemede tam bu yüzden kırmızı
+    // yandı — kontrol doğruydu, ölçüm yanlış yere bakıyordu.
+    const kuralTasiyorMu = (oge: string, renk: string): boolean => {
+      let yer = kod.indexOf(oge)
+      while(yer > -1){
+        if(kod.slice(yer, yer + 220).includes(renk)) return true
+        yer = kod.indexOf(oge, yer + 1)
+      }
+      return false
+    }
+    for(const [oge, renk] of [
+      ['.public-application-page.public-application-page {', '#eef1f4'],
+      ['.public-application-form', '#ffffff'],
+    ] as const){
+      expect(kuralTasiyorMu(oge, renk), `${oge} zemini ${renk} olarak sabitlenmemiş`).toBe(true)
+    }
+    expect(kod, 'kabuk yüzeyi sabitlenmemiş')
+      .toContain('.public-application-page.public-application-page .public-application-shell')
+  })
+
+  it('⚠️ etiket rengi İKİ sayfada da sabit', () => {
     const etiketSatirlari = seciciler()
       .split('\n')
       .filter(satir => /label\s*,\s*\.muted/.test(satir))
     expect(etiketSatirlari.length, 'etiket kuralı hiç yok').toBeGreaterThan(0)
-    for(const satir of etiketSatirlari){
-      expect(satir, `etiket rengi başvuru sayfasına uygulanmış: ${satir}`)
-        .not.toContain('public-application-page')
+    for(const sayfa of SAYFALAR){
+      expect(
+        etiketSatirlari.some(satir => satir.includes(`.${sayfa}.${sayfa}`)),
+        `${sayfa} etiket kuralının dışında`,
+      ).toBe(true)
     }
   })
 
