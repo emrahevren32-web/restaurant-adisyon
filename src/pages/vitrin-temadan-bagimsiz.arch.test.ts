@@ -132,6 +132,75 @@ describe('vitrin temadan bağımsız', () => {
     expect(tema).toContain('root.dataset.theme = themeMode')
   })
 
+  // ═══════════════════════════════════════════════════════════════════════
+  // 07.11.2026 · İKİ GERÇEK KUSURDAN SONRA EKLENDİ
+  // Emrah canlıda gördü: (1) başvuru ekranında yazılar okunmuyordu,
+  // (2) fare kutunun üstüne gelince kutu beyazdan koyuya dönüyordu.
+  // İkisi de bu bloğun ilk yazımından geliyordu. Aşağıdakiler onları
+  // donduruyor — aynı hata iki kez yapılmasın diye.
+  // ═══════════════════════════════════════════════════════════════════════
+
+  it('⚠️ ETİKET RENGİ BAŞVURU SAYFASINA UYGULANMIYOR (kart orada KOYU)', () => {
+    // Ölçüldü (07.11): `<html>` üzerindeki üç tema niteliği de
+    // kaldırıldığında bile başvuru kartı koyu, başlığı beyaz, açıklaması
+    // açık gri. Yani o sayfa temadan değil KENDİ TASARIMINDAN koyu.
+    // `#374151` koyu grisini oraya yazmak etiketleri görünmez yapmıştı.
+    const etiketSatirlari = seciciler()
+      .split('\n')
+      .filter(satir => /label\s*,\s*\.muted/.test(satir))
+    expect(etiketSatirlari.length, 'etiket kuralı hiç yok').toBeGreaterThan(0)
+    for(const satir of etiketSatirlari){
+      expect(satir, `etiket rengi başvuru sayfasına uygulanmış: ${satir}`)
+        .not.toContain('public-application-page')
+    }
+  })
+
+  it('⚠️ FARE ÜSTÜNE GELİNCE zemin yeniden veriliyor', () => {
+    // Tema motorunda `input:hover:not(:disabled):not([type=checkbox])
+    // :not([type=radio]) { background: var(--surface-raised) }` var ve
+    // özgüllüğü (0,4,1). Taban kuralımız `:hover` hâlini karşılamazsa
+    // fare gelince o kural tek başına kalır ve kutu koyuya döner.
+    const kod = seciciler()
+    expect(kod, 'hover kuralı yok').toMatch(/\.unified-login-portal\.unified-login-portal input[^,{]*:hover/)
+    expect(kod, 'hover kuralı başvuru sayfasını kapsamıyor')
+      .toMatch(/\.public-application-page\.public-application-page input[^,{]*:hover/)
+  })
+
+  it('⚠️ ODAKLANINCA da zemin veriliyor (yalnız çerçeve yetmez)', () => {
+    // Eski odak kuralı yalnız `border-color` ve halka veriyordu; zemini
+    // tema kuralı (`background: var(--theme-surface-1)`) dolduruyordu.
+    const kod = seciciler()
+    const odakBloklari = kod.split('}').filter(b => /:focus\s*\{/.test(b + '}') || /:focus[^{]*\{/.test(b))
+    const zeminVeren = odakBloklari.filter(b => /background:\s*#ffffff/i.test(b))
+    expect(zeminVeren.length, 'odak kuralı zemin vermiyor').toBeGreaterThan(0)
+  })
+
+  it('⚠️ hover/focus seçicileri `:where()` ile YAZILMAMIŞ (özgüllük)', () => {
+    // `:where()` özgüllüğe sıfır katar; kural tema kuralıyla berabere
+    // kalır ve yalnızca dosya sırası sayesinde kazanır.
+    const durumSatirlari = seciciler()
+      .split('\n')
+      .filter(satir => /:hover|:focus/.test(satir) && satir.includes('unified-login-portal'))
+    expect(durumSatirlari.length).toBeGreaterThan(0)
+    for(const satir of durumSatirlari){
+      expect(satir, `:where() ile yazılmış durum seçicisi: ${satir}`).not.toContain(':where(')
+    }
+  })
+
+  it('üç kontrol türünün üçü de aynı zemini alıyor (formda tek görüntü)', () => {
+    // Başvuru kartı koyu; orada yarı saydam bir `select`, beyaz bir
+    // `input`un yanında GRİ görünüyordu. Aynı formda iki farklı kontrol
+    // görüntüsü olmamalı.
+    const kod = seciciler()
+    for(const sayfa of SAYFALAR){
+      for(const oge of ['select', 'textarea']){
+        expect(kod, `${sayfa} · ${oge} kapsam dışı`)
+          .toContain(`.${sayfa}.${sayfa} ${oge}`)
+      }
+    }
+    expect(kod).not.toContain('color(srgb 0.968627')
+  })
+
   it('gerekçe yazılı — bir sonraki kişi "bu ne" diye sormasın', () => {
     const b = blok()
     expect(b).toMatch(/KİMİN BAKTIĞINA GÖRE DEĞİŞMEMELİ/)

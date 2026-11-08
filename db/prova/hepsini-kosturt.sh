@@ -59,5 +59,51 @@ done
 echo ""
 echo "YEŞİL: $YESIL   KIRMIZI: $KIRMIZI   (toplam $((YESIL+KIRMIZI)) dosya)"
 [ -n "$KIRIKLAR" ] && echo "Kırık:$KIRIKLAR"
-[ $KIRMIZI -gt 0 ] && exit 1
+
+# ═══════════════════════════════════════════════════════════════════════════
+# SON KOŞU KAYDI · HEDEFLER 4.11.9
+#
+# ⚠️ NEDEN VAR: 07.11.2026'da 54 provanın 13'ü aylardır kırmızıydı ve kimse
+# bilmiyordu — çünkü hepsini bir arada koşturmak BİR ADIMA BAĞLI DEĞİLDİ,
+# yani kimsenin görevi değildi. Göçler yazıldıkça provalar sessizce yanlışa
+# düştü (tuzak 190).
+#
+# `kaydet.ps1`e eklenemez: provalar yerel bir PostgreSQL 16 istiyor,
+# Emrah'ın makinesinde yok. O yüzden bağ TERSİNDEN kuruluyor: bu betik
+# yeşil bitince son koşuyu kaydediyor, `src/core/prova-kosuldu.arch.test.ts`
+# ise kaydı depodaki göçlerle karşılaştırıyor. Kayıtta olmayan bir göç
+# varsa `npm test` KIRMIZI yanıyor ve commit atılamıyor.
+#
+# ⚠️ KIRMIZI KOŞU KAYIT BIRAKMAZ, VARSA SİLER. "Koştum" demek yetmez;
+# yeşil koştuğunu göstermek gerekir. Kayıt yoksa mimari sınama da kırmızı
+# yanar — yani sessiz kalmak bir çıkış yolu değil.
+#
+# ⚠️ BU BİR GÜVENLİK DENETİMİ DEĞİL, BİR HATIRLATICIDIR. Dosya elle de
+# yazılabilir; amaç kötü niyeti durdurmak değil, UNUTMAYI durdurmak.
+# ═══════════════════════════════════════════════════════════════════════════
+KAYIT="$PROVA/son-kosu.json"
+GOCLER="$(cd "$PROVA/../migrations" && pwd)"
+EN_YENI=$(basename "$(ls "$GOCLER"/[0-9][0-9][0-9][0-9]_*.sql | sort | tail -1)")
+GOC_SAYISI=$(ls "$GOCLER"/[0-9][0-9][0-9][0-9]_*.sql | wc -l | tr -d ' ')
+PROVA_SAYISI=$(ls "$PROVA"/prova-*.sql | wc -l | tr -d ' ')
+
+if [ $KIRMIZI -gt 0 ]; then
+  rm -f "$KAYIT"
+  echo "Son koşu kaydı SİLİNDİ: kırmızı koşu kayıt bırakmaz."
+  exit 1
+fi
+
+cat > "$KAYIT" <<KAYITSONU
+{
+  "aciklama": "Butun provalarin temiz bir veritabaninda kostugu SON tam kosu. Bu dosyayi hepsini-kosturt.sh yazar; elle duzenlenmez. Karsilastiran sinama: src/core/prova-kosuldu.arch.test.ts (HEDEFLER 4.11.9).",
+  "tarih": "$(date -u +%Y-%m-%d)",
+  "en_yeni_goc": "$EN_YENI",
+  "goc_sayisi": $GOC_SAYISI,
+  "prova_sayisi": $PROVA_SAYISI,
+  "yesil": $YESIL,
+  "kirmizi": $KIRMIZI,
+  "ortam": "PostgreSQL 16 - temiz veritabani - kur.sh + hepsini-kosturt.sh"
+}
+KAYITSONU
+echo "Son koşu kaydedildi: $KAYIT ($EN_YENI, $GOC_SAYISI göç, $PROVA_SAYISI prova)"
 exit 0

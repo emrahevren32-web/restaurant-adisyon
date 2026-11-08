@@ -1,50 +1,95 @@
-Sekme basliginda okunmamis sayisi: zilin sessizligi kalkti (4.11.8)
+Vitrin onarimi iki yeri bozmustu: olculdu, onarildi (4.11.6d) + 4.11.9
 
-Emrah: "yap bunu tamam." Olcum (07.11) zilin CALISTIGINI gostermisti -
-60 saniyede bir tazeleniyor, rozet dogru sayiyor. Eksik olan sey zilin
-SESSIZ olmasiydi: baska bir sekmedeyken zil ikonu gorunmuyor bile.
-06.11'de uc geri arama talebinin kacirilmasinin sebebi buydu.
+Emrah canli urunde iki kusur gordu ve ikisi de 4.11.6'nin ILK YAZIMINDAN
+geliyordu. Ucuncu bir sikayet (sekme basligi) olculdu: kusur yok.
 
-NE YAPILDI
-src/notifications/sekme-basligi.ts - saf fonksiyon:
-    sekmeBasligi('EVREN360', 2) -> '(2) EVREN360'
-Izin istemez, arka plandaki sekmede de gorunur, sunucu tarafi degismez.
+== 1 . BASVURU EKRANINDA YAZILAR OKUNMUYORDU ==
+Emrah: "isletme basvuru ekrani bozulmus, yazilar okunmuyor... siyahlasmis
+onceki gibi beyaz degil."
 
-!! ROZETLE AYNI SAYI (okunmamis). Iki yerde iki farkli sayi, ikisine de
-guveni bitirir. Emrah'in kurali aynen korundu: "zil okunmamislari
-saysin, okununca bir daha bildirim vermesin ama okunan bildirim yine
-ayni yerde dursun."
+!! HATA: IKI SAYFANIN DA BEYAZ KART TASIDIGINI VARSAYDIM.
+Olcum (canli site, Emrah'in Chrome'u) tam tersini soyledi. `<html>`
+uzerindeki data-theme, data-theme-engine ve data-theme-accent
+niteliklerinin UCU DE KALDIRILDIGINDA bile:
 
-!! `document.title`IN TEK YAZARI App.tsx.
-Sayiyi AppShell hesapliyor (zil orada) ve onUnreadNotificationCountChange
-ile yukari bildiriyor; basligi App yaziyor. Iki yazar olsaydi biri
-digerinin onekini sessizce ezerdi - sayi "bazen gorunur bazen gorunmez"
-olurdu ve sebebi bulunamazdi. Bulunmasi en pahali hata turu budur.
-Donduran sinama: sekme-basligi.arch.test.ts, butun src agacini tarayip
-document.title'a yazan dosyalarin listesini ['App.tsx']e esitliyor.
-!! O tarama YORUMSUZ METNE bakiyor (tuzak 181, bu depoda ucuncu kez):
-kendi aciklama yorumunda gecen `document.title`i ikinci yazar sanardi.
+    .public-application-shell -> oklab(0.324 ...)   KOYU
+    h1                        -> rgb(243,245,247)   beyaz
+    p                         -> rgb(199,206,216)   acik gri
+    label (benim kuralim)     -> rgb(55,65,81)      KOYU GRI
 
-!! SAVUNMALI. Sayi bir sayactan geliyor; NaN, undefined, Infinity, eksi
-ve kusuratli deger basligi BOZMUYOR - "(NaN) EVREN360" yazan bir sekme
-olmayan bir hatayi varmis gibi gosterir. Baslik bossa onek TEK BASINA
-yazilmiyor: "(3)" diye bir sekme adi neyin uc tane oldugunu soylemez.
+Yani basvuru sayfasi TEMADAN DEGIL KENDI TASARIMINDAN koyu ve ben oraya
+koyu gri yazi koydum. Kendi yorumum bile "beyaz kartin ustunde" diyordu;
+o cumle giris vitrini icin dogruydu, basvuru sayfasi icin HIC
+OLCULMEMISTI.
 
-YAPILMAYANLAR (karar Emrah'in, gerekceleri HEDEFLER'de)
-  . Masaustu bildirimi - tarayici izni ister, tarayici kapaliyken yine
-    calismaz.
-  . Anlik itme (realtime) - callback_request uzerinde authenticated icin
-    hic okuma yetkisi yok (0106: RLS acik, politika yok). Acmak o kapiyi
-    delmek olur.
+Kural silinmedi, KAPSAMI DARALTILDI: etiket rengi artik yalniz giris
+vitrinine uygulaniyor. Basvuru sayfasi kendi acik rengini miras aliyor
+(ata rgb(243,245,247)) ve o renk de temadan bagimsiz.
 
-AYRICA YAZILDI: ZILDEKI ALTI "ESKI" SATIR GERCEK MUSTERI DEGIL
-Olcum sirasinda zilde 3 "Lisans suresi doldu" ve 3 "Giris hesabi
-acilmadi" gorulup "bu musteriler giremiyor" diye soruldu. Emrah: canli
-sistemdeki 8 kiracinin yalniz ikisi gercek deneme - ABCGIDA (Emrah) ve
-BRC001 BRCD Gida (Ismet); kalan alti elle girilmis deneme kaydi, "ama
-silme kalsinlar". Kimse magdur degil. Uygulama hicbir sey uydurmuyor,
-"mock veri asla" kurali ihlal edilmiyor - ama ILK GERCEK MUSTERIDEN
-ONCE ayiklanmali: panel bugun 8 isletme gosteriyor ve altisi bize ait.
+== 2 . FARE USTUNE GELINCE KUTU KOYUYA DONUYORDU ==
+Emrah: "mouse ile uzerine geldigimde textboxlar beyazdan siyaha
+donuyor."
+
+Sebep yayindaki CSS'ten OKUNDU, tahmin edilmedi:
+
+    input:hover:not(:disabled):not([type=checkbox]):not([type=radio])
+      { background: var(--surface-raised) }        ozgulluk (0,4,1)
+
+Taban kuralimiz (0,4,2) ile onu yeniyordu AMA `:hover` halini hic
+karsilamiyordu; fare gelince tema kurali tek basina kaliyordu. Aynisi
+`:focus` icin de gecerliydi (background: var(--theme-surface-1)) -- eski
+odak kuralimiz yalniz cerceve ve halka veriyor, ZEMIN vermiyordu.
+`:hover` ve `:focus` kurallari yazildi; `:hover` eklenince b=5 oldugu
+icin (0,5,2) kesin yeniyor.
+!! `:where()` ile yazilmadi: ozgulluge sifir katar, kural berabere kalir
+ve yalnizca dosya sirasi sayesinde kazanirdi.
+
+== 3 . UC KONTROL TURU AYNI GORUNTUYE ALINDI ==
+select/textarea yari saydam birakilmisti ("bugunku ziyaretci gorunumu
+oyleydi"). Beyaz kartta gorunmeyen bu fark, KOYU basvuru kartinda beyaz
+input'larin yaninda GRI kutular demekti. Ucu de beyaz.
+
+== 4 . SEKME BASLIGI: KUSUR YOK, OLCULDU ==
+Emrah "gorunmedi" dedi. Canli olcum: document.title = "(1) EVREN360".
+Acik duran sekmeler YUKLEME ONCESINDEN kalmaydi; eski paket onek
+yazmiyor. Yeni acilan sekmede dogru.
+
+== 5 . HEDEFLER 4.11.9 KAPANDI . PROVA KOSUSU BIR ADIMA BAGLANDI ==
+`kaydet.ps1`e eklenemiyordu (yerel PostgreSQL 16 yok). Bag TERSINDEN
+kuruldu:
+  1. hepsini-kosturt.sh YESIL bitince db/prova/son-kosu.json yaziyor:
+     tarih, EN YENI GOC dosyasinin adi, goc sayisi, prova sayisi,
+     yesil/kirmizi. KIRMIZI bitince kaydi SILIYOR.
+  2. src/core/prova-kosuldu.arch.test.ts o kaydi db/migrations ile
+     karsilastiriyor; kayitta olmayan bir goc varsa npm test KIRMIZI.
+
+KAPININ CALISTIGI OLCULDU (iddia degil):
+  . Sahte bir 0107 gocu konuldu -> en_yeni_goc VE goc_sayisi kontrolleri
+    ikisi de kirmizi.
+  . Kasten kirmizi bir prova konuldu -> "Son kosu kaydi SILINDI" ve dosya
+    gercekten yok.
+Ikisi de temizlendi; kayit temiz bir YESIL kosudan uretildi
+(107 goc . 54 prova . 0 kirmizi).
+!! Bu bir guvenlik denetimi degil HATIRLATICIDIR: dosya elle de
+yazilabilir. Amac kotu niyeti degil UNUTMAYI durdurmak.
+
+== 6 . CODEX DENETIMI YAZILDI (HEDEFLER 4.13) ==
+3 P1 + 5 P2, yeni P0 yok. MIYOP-100..107 numaralandi.
+!! Hicbiri henuz Claude tarafindan olculmedi; her biri bir IDDIADIR ve
+duzeltmeden once tek tek olculecek (kontrol listesi 137).
+Codex'in kendi durustlugu not edildi: provalari yeniden kosturmadigini
+ve onceki olcumu yeni olcum gibi sunmadigini yazmis.
+
+== DONDURAN SINAMALAR ==
+vitrin-temadan-bagimsiz.arch.test.ts'e BES yeni kontrol:
+  . etiket kurali basvuru sayfasini kapsamiyor
+  . hover zemin veriyor
+  . focus zemin veriyor
+  . durum secicileri :where() kullanmiyor
+  . uc kontrol turu ayni zemini aliyor
++ src/core/prova-kosuldu.arch.test.ts (yeni, 7 kontrol)
+
+tuzak 192 + kontrol listesi 140-142
 
 Co-Authored-By: Claude Opus 5 <noreply@anthropic.com>
 Claude-Session: https://claude.ai/code/session_019BwYM3mAXZUhp4YGj7tp2y

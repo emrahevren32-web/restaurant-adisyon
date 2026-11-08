@@ -1769,6 +1769,57 @@ Emrah'ın onayladığı sıra:
       **tarayıcıda kayıtlı tema**, dağıtım değil. Ziyaretçi doğru
       görüntüyü görüyor; bozuk görüntüyü yalnız daha önce giriş yapmış
       olan (Emrah) görüyor.
+    - 🔴 **4.11.6d** **VİTRİN ONARIMI İKİ YERİ BOZDU — ONARILDI** (07.11,
+      Emrah canlıda gördü). İki ayrı kusur, ikisi de 4.11.6b/c'nin ilk
+      yazımından:
+
+      **1 · Başvuru ekranında yazılar okunmuyordu.** Emrah: *"işletme
+      başvuru ekranı bozulmuş, yazılar okunmuyor... siyahlaşmış önceki
+      gibi beyaz değil."*
+      ⚠️ Hata şuydu: **iki sayfanın da beyaz kart taşıdığını VARSAYDIM.**
+      Ölçüm (canlı site, Emrah'ın Chrome'u) tam tersini söyledi —
+      `<html>` üzerindeki `data-theme`, `data-theme-engine` ve
+      `data-theme-accent` niteliklerinin **üçü de kaldırıldığında bile**:
+
+          .public-application-shell → oklab(0.324 …)   (KOYU)
+          h1                        → rgb(243,245,247) (beyaz)
+          p                         → rgb(199,206,216) (açık gri)
+          etiket (benim kuralım)    → rgb(55,65,81)    (KOYU GRİ)
+
+      Yani başvuru sayfası **temadan değil kendi tasarımından koyu** ve
+      ben oraya koyu gri yazı koydum. Kural silinmedi, **kapsamı
+      daraltıldı**: etiket rengi artık yalnız giriş vitrinine (beyaz
+      kart) uygulanıyor; başvuru sayfası kendi açık rengini miras
+      alıyor — o renk de temadan bağımsız.
+      ⚠️ **Ders:** bir rengi sabitlerken **altındaki yüzeyi de ölç.**
+      Ön planı sabitleyip zemini temaya bırakmak, iki sayfadan birinde
+      mutlaka okunmaz bir birleşim üretir. → tuzak 192
+
+      **2 · Fare kutunun üstüne gelince kutu koyuya dönüyordu.** Emrah:
+      *"mouse ile üzerine geldiğimde textboxlar beyazdan siyaha
+      dönüyor."* Sebep yayındaki CSS'ten okundu:
+
+          input:hover:not(:disabled):not([type=checkbox]):not([type=radio])
+            { background: var(--surface-raised) }      → özgüllük (0,4,1)
+
+      Taban kuralımız (0,4,2) ile onu yeniyordu **ama `:hover` hâlini
+      hiç karşılamıyordu**; fare gelince tema kuralı tek başına kalıyordu.
+      Aynısı `:focus` için de geçerliydi (`background: var(--theme-surface-1)`);
+      eski odak kuralımız yalnız çerçeve ve halka veriyordu, **zemin
+      vermiyordu**. `:hover` ve `:focus` kuralları yazıldı; `:hover`
+      eklenince b=5 olduğu için (0,5,2) kesin yeniyor.
+      ⚠️ `:where()` ile yazılmadı: özgüllüğe sıfır katar, kural berabere
+      kalır ve yalnızca dosya sırası sayesinde kazanırdı.
+
+      **3 · Üç kontrol türü aynı görüntüye alındı.** `select`/`textarea`
+      yarı saydam bırakılmıştı ("bugünkü ziyaretçi görünümü öyleydi");
+      beyaz kartta görünmeyen bu fark, **koyu başvuru kartında** beyaz
+      `input`ların yanında gri kutular demekti. Üçü de beyaz.
+
+      Donduran sınamalar: `vitrin-temadan-bagimsiz.arch.test.ts`e beş
+      yeni kontrol (etiket kuralı başvuru sayfasını kapsamıyor · hover
+      zemin veriyor · focus zemin veriyor · durum seçicileri `:where()`
+      kullanmıyor · üç kontrol aynı zemini alıyor).
     - ✅ **4.11.6b/c** **VİTRİN TEMADAN BAĞIMSIZ** (06.11). Giriş vitrini
       ve herkese açık başvuru sayfası artık tek görünüme sabit.
       ⚠️ Tema motoru DEĞİŞTİRİLMEDİ; uygulamanın geri kalanı temayı aynen
@@ -1897,6 +1948,11 @@ Emrah'ın onayladığı sıra:
       ⚠️ Savunmalı: `NaN`, `undefined`, eksi ve küsuratlı sayı başlığı
       bozmuyor; başlık boşsa önek tek başına yazılmıyor ("(3)" diye bir
       sekme adı neyin üç tane olduğunu söylemez).
+      ✅ **CANLIDA ÖLÇÜLDÜ** (07.11, yükleme sonrası): bir okunmamış
+      bildirim varken `document.title` = **`(1) EVREN360`**.
+      ⚠️ Emrah ilk bakışta göremedi çünkü **açık duran sekmeler yükleme
+      ÖNCESİNDEN kalmaydı** — eski paket önek yazmıyor. Yeni açılan
+      sekmede ölçüm doğru çıktı.
 
     **YAPILMAYANLAR** (karar Emrah'ın):
     - **Masaüstü bildirimi** — tarayıcı izni ister; tarayıcı kapalıyken
@@ -1907,21 +1963,92 @@ Emrah'ın onayladığı sıra:
       satırı okuyabilmeyi gerektirir; yani bunu açmak 0106'nın kapısını
       delmek olur. Yolu "veritabanından broadcast" (`realtime.send()`)
       olurdu — ayrı ve büyük bir iş.
-  - ⬜ **4.11.9** **PROVALARIN BİR ARADA KOŞMASI BİR ADIMA BAĞLI DEĞİL.**
+  - ✅ **4.11.9** **PROVALARIN BİR ARADA KOŞMASI ARTIK BİR ADIMA BAĞLI** (07.11).
     07.11'de ortaya çıktı (4.11.5): 54 provanın 13'ü aylardır kırmızıydı
     ve kimse bilmiyordu, çünkü hepsini koşturmak **kimsenin görevi
     değildi**. ⚠️ `kaydet.ps1`e eklenemez: provalar yerel bir
     **PostgreSQL 16** istiyor, Emrah'ın makinesinde yok ve kurulması
     istenmiyor. Yani bu adım Claude'un tarafında: **her göç turunun
-    sonunda** bütün provalar temiz bir veritabanına kurulup koşturulur ve
-    sonucu commit mesajına yazılır. Yazılı bir uyarı, bir adıma
-    bağlanmadığı sürece hatırlatmaz (kontrol listesi 130'un aynısı,
-    bu sefer prova tarafı).
+    sonunda** bütün provalar temiz bir veritabanına kurulup koşturulur.
+
+    **ÇÖZÜM — bağ TERSİNDEN kuruldu:**
+    1. `hepsini-kosturt.sh` **yeşil bitince** `db/prova/son-kosu.json`
+       yazıyor: tarih, **en yeni göç dosyasının adı**, göç sayısı, prova
+       sayısı, yeşil/kırmızı. **Kırmızı bitince kaydı SİLİYOR** — "koştum"
+       demek yetmez, yeşil koştuğunu göstermek gerekir.
+    2. `src/core/prova-kosuldu.arch.test.ts` o kaydı `db/migrations`
+       ile karşılaştırıyor. Kayıtta olmayan bir göç varsa `npm test`
+       **kırmızı** yanıyor ve `kaydet.ps1` commit atmıyor.
+
+    **KAPININ ÇALIŞTIĞI ÖLÇÜLDÜ** (iddia değil):
+    - Sahte bir `0107` göçü konuldu → `en_yeni_goc` ve `goc_sayisi`
+      kontrollerinin **ikisi de kırmızı**.
+    - Kasten kırmızı bir prova konuldu → `Son koşu kaydı SİLİNDİ` ve
+      dosya gerçekten yok.
+    İkisi de temizlendi; kayıt temiz bir yeşil koşudan üretildi
+    (107 göç · 54 prova · 0 kırmızı).
+
+    ⚠️ **Bu bir güvenlik denetimi değil, HATIRLATICIDIR.** `son-kosu.json`
+    elle de yazılabilir; amaç kötü niyeti durdurmak değil, **unutmayı**
+    durdurmak — 07.11'de kaybedilen tam olarak oydu.
 - ✅ **4.12** **Ana ekranda görünecek telefon** · aynı ekrandan yazılıyor
   (`platform_contact`, göç 0106). ⚠️ Bayrak değil veri: alan boşsa ana
   ekranda **hiçbir şey görünmez**; yazıldığı an görünür.
   Emrah'ın kararı (06.11): *"şimdilik yazmasın ama admin panelimde orası
   için telefon numarası girebileceğim yer olsun."* → alan **boş** bırakıldı.
+- 🔴 **4.13** **CODEX DENETİMİ · 07.11.2026 · 3 P1 + 5 P2**
+  Denetlenen HEAD `8657fbc`. **Yeni P0 yok.** Codex zil maddesinin
+  kapandığını doğruladı. ⚠️ Codex provaları ve testleri yeniden
+  koşturmadı; *"önceki 54 yeşil ölçümünü yeni ölçüm gibi sunmuyorum"*
+  dedi — bu dürüstlük, bulguların kanıt değerini artırıyor.
+  ⚠️ Aşağıdakilerin **hiçbiri henüz Claude tarafından ölçülmedi.** Her
+  biri bir İDDİADIR; düzeltmeden önce tek tek ölçülecek (kontrol listesi
+  137: "bozuk da bir iddiadır").
+  - 🔴 **MIYOP-100 · P1** Şahit numunede DB okuma kapısı ekran iznini
+    denetlemiyor. `0093_sahit_numune.sql:124/156/305`. `witness_sample`
+    ve `witness_sample_event` üzerinde `authenticated` için SELECT açık;
+    RLS yalnız kiracıyı denetliyor, `quality.read` denetimi yok. Ekranı
+    açamayan aynı işletmedeki kullanıcı API'den numuneleri okuyabilir.
+  - 🔴 **MIYOP-101 · P1** İstemcinin gönderdiği `occurred_at`, saklama
+    kuralını etkisizleştirebiliyor. `0094_numune_kiraci_siniri.sql:214/242`.
+    Tetik `least(s.keep_until, v_an::date + v_acik)` hesaplıyor; gelecek
+    tarih gönderilirse saklama sonu yanlış kalıyor. **0087 kuralının
+    ihlali: "kim/ne zaman" sunucunun damgasıdır, parametre değil.**
+  - 🔴 **MIYOP-102 · P1** Geri aramanın iki spam sınırı eşzamanlı
+    isteklerde aşılabiliyor. `0106_geri_arama_talebi.sql:325/334/345`.
+    `EXISTS` → `COUNT` → `INSERT` sırası var ama telefon başına kilit ya
+    da açık talep için tekil indeks yok; paralel çağrılar ikisini de
+    geçebilir. ⚠️ Bu **benim yazdığım göç** (06.11).
+  - ⬜ **MIYOP-103 · P2** Kaydedilen firma adı/logo uygulama kabuğuna
+    ulaşmıyor; "Kaydedildi" sonrası yan menü ve sekme adı eski kalıyor.
+  - ⬜ **MIYOP-104 · P2** Eski ağ yanıtı okunmuş bildirimi yeniden
+    okunmamış gösterebiliyor (`AppShell.tsx:373/393/398`). Tazelemeler
+    paralel koşabiliyor ve eski yanıtı engelleyen kontrol yok.
+    ⚠️ Bu artık **sekme başlığını da** etkiler.
+  - ⬜ **MIYOP-105 · P2** Şahit numunede metin eşikleri ekranla DB'de
+    farklı (ekran 2–3 karakter, DB yalnız "boş olmasın").
+  - ⬜ **MIYOP-106 · P2** Büyük harfli e-posta uzantısı formda yanlış
+    reddediliyor: ekran `[a-z]{2,}` uyguluyor, DB önce `lower()` yapıyor.
+    `audit@example.COM` ekranda ret, DB'de kabul.
+  - ⬜ **MIYOP-107 · P2** Kaldırılmış giriş duyurularının CSS'i
+    dağıtılmaya devam ediyor (`styles.css:238/3708`).
+  - 📋 **Kapsam notları** (bulgu değil): lisans kataloğu `storage.ts:2613`
+    hâlâ adisyon paketlerini taşıyor ama sekiz tüketici sayfanın hiçbiri
+    açık rotadan açılmıyor → **P2 borç olarak kalıyor**. Geri arama üç
+    kapısı uyumlu. Yeni kiracıda mock dosya erişimi **0**, `createDemo*`
+    bildirimi **0**. `personel` rolü `production.write` ile DB'de numune
+    açabiliyor ama `quality.read` olmadığı için ekranı göremiyor — üç
+    kapı eşitlenmeli.
+  - 📋 **`anon` envanteri:** public RPC yalnız üç tane
+    (`basvuru_gonder`, `geri_arama_gonder`, `platform_iletisim_oku`),
+    üçünün de yazılı gerekçesi var. `giris_adresi_bul` 0102 ile kapalı.
+    Referans tablolarında (`uom`, `permission`, `role`, `allergen`…)
+    SELECT **bilerek** açık. ⚠️ Ama `app` şemasında **varsayılan PUBLIC
+    EXECUTE mirası** duruyor: ~50 normal fonksiyon ve ~50 tetik
+    fonksiyonu. Gövdeler ayrıca izin denetleyebilir; yine de her biri
+    için yazılı gerekçe YOK. → mevcut **1.9 PUBLIC EXECUTE temizliği**
+    borcuyla aynı yer.
+
 - ⬜ **4.9** Kontrol Paneli gerçek sayaçlarla
 - ⬜ **4.10** **MIYOP-028** · Pasif lisansın gerçek durumu görünmüyor
   `lisansiOku` yalnız Deneme/Aktif getiriyor; Süresi Doldu/Askıda/İptal

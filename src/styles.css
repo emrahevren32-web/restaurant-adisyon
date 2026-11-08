@@ -29788,27 +29788,64 @@ html[data-theme-engine="premium"] .public-application-page.public-application-pa
   color-scheme: light;
 }
 
-html[data-theme-engine="premium"] .unified-login-portal.unified-login-portal input,
-html[data-theme-engine="premium"] .public-application-page.public-application-page input {
+/* ── FORM KONTROLLERİ · ÜÇÜ DE BEYAZ ─────────────────────────────────────
+   ⚠️ İLK YAZIMDA `select`/`textarea` YARI SAYDAM BIRAKILMIŞTI ("bugünkü
+   ziyaretçi görünümü öyleydi"). Ölçüm (07.11) gösterdi ki bu, KOYU
+   başvuru kartının üstünde beyaz `input`ların yanında GRİ kutular
+   demek — aynı formda iki farklı kontrol görüntüsü. Yarı saydamlık
+   beyaz kartta görünmez, koyu kartta görünür. Üçü de beyaza alındı.
+   ⚠️ Giriş vitrininde bu bir DEĞİŞİKLİKTİR ve bilerek yapıldı:
+   #f7f9fb'nin %74'ü beyaz kartta zaten ~#f9fbfc'ye düşüyordu. */
+html[data-theme-engine="premium"] .unified-login-portal.unified-login-portal input:not([type="checkbox"]),
+html[data-theme-engine="premium"] .unified-login-portal.unified-login-portal select,
+html[data-theme-engine="premium"] .unified-login-portal.unified-login-portal textarea,
+html[data-theme-engine="premium"] .public-application-page.public-application-page input:not([type="checkbox"]),
+html[data-theme-engine="premium"] .public-application-page.public-application-page select,
+html[data-theme-engine="premium"] .public-application-page.public-application-page textarea {
   background: #ffffff;
   color: #1f2937;
   border: 1px solid #d8dee6;
   box-shadow: none;
 }
 
-/* ⚠️ `select` ve `textarea` BİLEREK farklı: bugünkü ziyaretçi görünümünde
-   zeminleri yarı saydam ve çerçeveleri yok. Hepsini beyaza çekmek sağlam
-   hâli "düzeltmek" olurdu. */
-html[data-theme-engine="premium"] .unified-login-portal.unified-login-portal :where(select, textarea),
-html[data-theme-engine="premium"] .public-application-page.public-application-page :where(select, textarea) {
-  background: color(srgb 0.968627 0.976471 0.984314 / 0.74);
+/* ── FARE ÜSTÜNE GELİNCE VE ODAKLANINCA ──────────────────────────────────
+   ⚠️ EMRAH'IN BULDUĞU KUSUR (07.11): *"mouse ile üzerine geldiğimde
+   textboxlar beyazdan siyaha dönüyor."* Sebep ÖLÇÜLDÜ, tahmin edilmedi.
+   Tema motorunda şu kural var:
+
+       input:hover:not(:disabled):not([type=checkbox]):not([type=radio])
+         { background: var(--surface-raised) }
+
+   Özgüllüğü (0,4,1). Yukarıdaki taban kuralımız (0,4,2) ile onu zaten
+   yeniyor — AMA taban kuralı `:hover` hâlini hiç karşılamıyordu, yani
+   fare gelince tema kuralı tek başına kalıyor ve zemini koyuya çekiyordu.
+   Aynısı `:focus` için de geçerliydi (`background: var(--theme-surface-1)`);
+   eski odak kuralımız yalnız çerçeve ve halka veriyor, ZEMİN vermiyordu.
+
+   ⚠️ ÖZGÜLLÜK HESABI, SIRA DEĞİL. `:hover` eklenince b=5 oluyor ve
+   (0,5,2) ile (0,4,1) kesin yeniliyor. `:where()` ile yazılsaydı b hiç
+   artmaz, kural berabere kalır ve yalnızca dosya sırası sayesinde
+   kazanırdı — sıraya dayanan kural bir sonraki eklemede sessizce
+   kaybeder (bu bloğun baştan beri yazılı kuralı). */
+html[data-theme-engine="premium"] .unified-login-portal.unified-login-portal input:not([type="checkbox"]):hover,
+html[data-theme-engine="premium"] .unified-login-portal.unified-login-portal select:hover,
+html[data-theme-engine="premium"] .unified-login-portal.unified-login-portal textarea:hover,
+html[data-theme-engine="premium"] .public-application-page.public-application-page input:not([type="checkbox"]):hover,
+html[data-theme-engine="premium"] .public-application-page.public-application-page select:hover,
+html[data-theme-engine="premium"] .public-application-page.public-application-page textarea:hover {
+  background: #ffffff;
   color: #1f2937;
-  border-color: transparent;
-  box-shadow: none;
+  border-color: #b9c2cf;
 }
 
-html[data-theme-engine="premium"] .unified-login-portal.unified-login-portal :where(input, select, textarea):focus,
-html[data-theme-engine="premium"] .public-application-page.public-application-page :where(input, select, textarea):focus {
+html[data-theme-engine="premium"] .unified-login-portal.unified-login-portal input:not([type="checkbox"]):focus,
+html[data-theme-engine="premium"] .unified-login-portal.unified-login-portal select:focus,
+html[data-theme-engine="premium"] .unified-login-portal.unified-login-portal textarea:focus,
+html[data-theme-engine="premium"] .public-application-page.public-application-page input:not([type="checkbox"]):focus,
+html[data-theme-engine="premium"] .public-application-page.public-application-page select:focus,
+html[data-theme-engine="premium"] .public-application-page.public-application-page textarea:focus {
+  background: #ffffff;
+  color: #1f2937;
   border-color: #2563eb;
   box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.18);
   outline: none;
@@ -29819,10 +29856,29 @@ html[data-theme-engine="premium"] .public-application-page.public-application-pa
   color: #94a3b8;
 }
 
-/* Etiketler ve açıklama satırları: koyu temada beyaz kartın üstünde sönük
-   griye düşüyor ve okunmuyordu. */
-html[data-theme-engine="premium"] .unified-login-portal.unified-login-portal :where(label, .muted, .checkbox-row span),
-html[data-theme-engine="premium"] .public-application-page.public-application-page :where(label, .muted, .checkbox-row span) {
+/* ── ETİKETLER · YALNIZ GİRİŞ VİTRİNİ ────────────────────────────────────
+   ⚠️ BU KURAL BAŞVURU SAYFASINI DA KAPSIYORDU VE ORAYI BOZDU (07.11,
+   Emrah: *"işletme başvuru ekranı bozulmuş, yazılar okunmuyor"*).
+
+   Hata şuydu: iki sayfanın beyaz kart taşıdığını VARSAYDIM. Ölçüm tam
+   tersini söylüyor — başvuru sayfası KENDİ TASARIMIYLA KOYU ve bu
+   temadan gelmiyor. `<html>` üzerindeki `data-theme`, `data-theme-engine`
+   ve `data-theme-accent` niteliklerinin ÜÇÜ DE KALDIRILDIĞINDA bile
+   ölçülen değerler aynı kalıyor:
+
+       .public-application-shell  → oklab(0.324 …)   (koyu)
+       h1                         → rgb(243,245,247) (beyaz)
+       p                          → rgb(199,206,216) (açık gri)
+
+   Yani `#374151` koyu grisi, KOYU kartın üstüne yazıldı ve etiketler
+   görünmez oldu. Kural kaldırılmadı, KAPSAMI DARALTILDI: başvuru
+   sayfasının etiketleri kendi açık renklerini miras alıyor (ata
+   `rgb(243,245,247)`), ki o renk de temadan bağımsız.
+
+   ⚠️ DERS: bir rengi sabitlerken ALTINDAKİ YÜZEYİ de ölç. Ön planı
+   sabitleyip zemini temaya bırakmak, iki sayfadan birinde mutlaka
+   okunmaz bir birleşim üretir. */
+html[data-theme-engine="premium"] .unified-login-portal.unified-login-portal :where(label, .muted, .checkbox-row span) {
   color: #374151;
 }
 

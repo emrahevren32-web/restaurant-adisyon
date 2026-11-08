@@ -984,6 +984,59 @@ göreceği hata mesajları** da (`'Çok fazla deneme yapıldı'`) bozuluyordu.
 ⚠️ Ve komut kendi çıktısını **ölçmeli**: panoda `ş` var mı, bozuk `Ã` var
 mı. "Kopyaladım" demek yetmez; kopyanın sağlam olduğu gösterilir.
 
+**192 · ÖN PLANI SABİTLEDİM, ALTINDAKİ YÜZEYİ ÖLÇMEDİM — VE İKİ
+SAYFADAN BİRİNİ OKUNMAZ YAPTIM.**
+(07.11.2026 · HEDEFLER 4.11.6d)
+
+4.11.6 "vitrin temadan bağımsız olsun" işiydi ve **iki** herkese açık
+sayfayı kapsıyordu: giriş vitrini ve işletme başvuru sayfası. İkisine de
+aynı kuralı yazdım, içinde şu satır vardı:
+
+    :where(label, .muted, .checkbox-row span) { color: #374151; }
+
+Yorumunu da kendim yazmıştım: *"koyu temada **beyaz kartın** üstünde
+sönük griye düşüyor."* O cümle giriş vitrini için doğruydu. Başvuru
+sayfası için **hiç ölçülmemişti.**
+
+Emrah canlıda gördü: *"işletme başvuru ekranı bozulmuş, yazılar
+okunmuyor... siyahlaşmış önceki gibi beyaz değil."*
+
+Ölçüm (canlı site, `<html>` üzerindeki ÜÇ tema niteliği de kaldırılarak):
+
+    .public-application-shell → oklab(0.324 …)   KOYU
+    h1                        → rgb(243,245,247) beyaz
+    p                         → rgb(199,206,216) açık gri
+    label (benim kuralım)     → rgb(55,65,81)    KOYU GRİ
+
+Yani başvuru sayfası **temadan değil kendi tasarımından koyu** — tema
+tamamen kapalıyken bile. Ben koyu kartın üstüne koyu gri yazı koydum.
+
+> **Ön planı sabitleyip zemini olduğu gibi bırakmak, iki yüzeyden
+> birinde mutlaka okunmaz bir birleşim üretir.**
+
+⚠️ **Ders bir:** bir rengi sabitlerken **altındaki yüzeyi de ölç.** "İki
+sayfa da aynı" demeden önce ikisini de ölç; benzer isimli iki sayfanın
+tasarımı zıt olabilir.
+
+⚠️ **Ders iki — ölçümün kapsamı da ölçülür.** O gün "yedi tema/vurgu
+birleşiminde hesaplanan renkler birebir aynı" diye bir ölçüm yapmıştım
+ve doğruydu: **renkler** her temada aynıydı. Ölçmediğim şey, o aynı
+rengin **hangi zeminin üstüne** düştüğüydü. Bir ölçüm, ölçmediği şeyi
+garanti ediyormuş gibi okunabilir — o yüzden ölçümün SINIRI da yazılır.
+
+⚠️ **Ders üç — DURUM (`:hover`, `:focus`) AYRI BİR KURALDIR.** Aynı
+turda ikinci kusur: fare kutunun üstüne gelince kutu beyazdan koyuya
+dönüyordu. Tema motorunda
+
+    input:hover:not(:disabled):not([type=checkbox]):not([type=radio])
+      { background: var(--surface-raised) }
+
+kuralı var ve özgüllüğü **(0,4,1)**. Taban kuralımız (0,4,2) ile onu
+yeniyordu, **ama `:hover` hâlini hiç karşılamıyordu** — fare gelince
+tema kuralı tek başına kalıyordu. Bir kontrolün zeminini sabitlemek,
+`:hover` ve `:focus` zeminlerini de sabitlemek demektir; yoksa sabitleme
+yalnız "eli değmemiş" hâl için geçerlidir.
+
 **191 · AYNI MADDEYİ HEM "BİTTİ" HEM "BOZUK" İŞARETLEDİM; İKİSİNDE DE
 ÜRÜNE BAKMAMIŞTIM.**
 (07.11.2026 · zil, HEDEFLER 4.11.7)
@@ -2213,6 +2266,18 @@ Son söz onun çıktısındadır.
      vermez** (0106). "N ay sonra silinir" demek için kendiliğinden silen
      bir iş gerekir; yoksa metin süre yazmaz, **tutulan** sözü yazar — ve
      o sözün karşılığı (silme fonksiyonu + düğmesi) aynı turda yazılır.
+140. **Bir rengi sabitlerken ALTINDAKİ YÜZEYİ de ölç** (tuzak 192).
+     Ön planı sabitleyip zemini olduğu gibi bırakmak, iki yüzeyden
+     birinde mutlaka okunmaz bir birleşim üretir. "İki sayfa da aynı"
+     demeden önce ikisini de ölç.
+141. **Bir ölçümün SINIRI da yazılır** (tuzak 192). "Yedi temada renkler
+     aynı" doğruydu ama o ölçüm rengin hangi zemine düştüğünü
+     söylemiyordu. Yazılmayan sınır, garanti edilmiş gibi okunur.
+142. **`:hover` ve `:focus` AYRI KURALLARDIR** (tuzak 192). Bir
+     kontrolün zeminini sabitliyorsan durum hâllerinin zeminini de
+     sabitle; yoksa sabitleme yalnız eli değmemiş hâl için geçerlidir.
+     Durum seçicileri `:where()` ile yazılmaz: özgüllüğe sıfır katar ve
+     kural yalnız dosya sırası sayesinde kazanır.
 137. **"Bozuk" da bir iddiadır; ölçülmeden yazılmaz** (tuzak 191).
      "Bitti" demeden önce ürüne bakmak kuraldı; aynısı arıza raporu için
      de geçerli. Ölçülmemiş bir arıza, yanlış yere bakılan bir gündür.
