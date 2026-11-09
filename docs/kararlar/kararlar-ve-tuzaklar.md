@@ -984,6 +984,62 @@ göreceği hata mesajları** da (`'Çok fazla deneme yapıldı'`) bozuluyordu.
 ⚠️ Ve komut kendi çıktısını **ölçmeli**: panoda `ş` var mı, bozuk `Ã` var
 mı. "Kopyaladım" demek yetmez; kopyanın sağlam olduğu gösterilir.
 
+**198 · "YAZILDI" CEVABI, YAZILDIĞI ANLAMINA GELMEDİ — VE BEN
+"DÜZELTTİM" DEDİM.**
+(09.11.2026 · tuzak 49/78'in köprüdeki yüzü)
+
+Tuzak 197'yi onardım: `prova-0113-ters.sql`e rol taktım, prova
+veritabanında koşturdum (6 yeşil), nöbetçi kuralını yerel olarak simüle
+ettim (yeni kör prova yok), dosyayı Emrah'ın makinesine yazdım, araç
+**`written` döndü**. Emrah `kaydet.ps1` koştu: **aynı test, aynı
+kırmızı.**
+
+Ölçtüm: makinedeki dosya hâlâ **eski** hâliydi — 7.217 bayt, içinde
+`set local role authenticated` SIFIR kez. Benim elimdeki doğru hâl
+8.177 bayt, iki kez. Yani araç başarı dedi, dosya değişmedi. Aynı
+turda yazdığım `kararlar-ve-tuzaklar.md` de ulaşmamıştı (170.031 vs
+171.688 bayt); `son-kosu.json` ulaşmıştı. Yani **sessizce ve seçici**
+olarak düşüyor.
+
+⚠️ Sebebini bilmiyorum ve uydurmuyorum. Bildiğim şu: **dönen "yazıldı"
+cevabı bir ölçüm değil.** Bu tam olarak bu defterdeki **tuzak 49/78**:
+*"Yazdığını 'written' diye kabul etme, İÇERİĞİNDEN doğrula."* O tuzak
+dosya yazma aracı için yazılmıştı; köprü için de geçerliymiş.
+
+⚠️ Asıl hatam araçta değil **cümlemde**: Emrah'a *"düzelttim, bu sefer
+yeşil geçmeli"* dedim. Dosyanın oraya ULAŞTIĞINI ölçmeden. Onun turu
+boşa gitti.
+
+⚠️ Doğrusu: makineye yazılan her dosya **geri okunup karşılaştırılır**.
+Tek tek değil, turun sonunda hepsi birden — yedi dosyanın yedisi de
+`diff` ile sınandı ve ikisinin ulaşmadığı böyle çıktı.
+
+**197 · TERS PROVANIN SAHNESİ DE KAPININ İÇİNDE KURULUR.**
+(09.11.2026 · prova-0113-ters · MIYOP-042'nin bir alt kolu)
+
+`prova-0113-ters.sql`in işi şunu göstermekti: vitrin süzgeci kaldırılınca
+onaylanmamış bir TASLAK satır herkese açık ekrana sızıyor. Sahneyi
+kurarken iki satırı fikstür bloğunun içinde yazdım:
+
+    perform prova_oturum(v_auth, v_pt);          -- JWT kondu
+    perform public.mevzuat_yaz(... 'TASLAK');    -- ama rol TAKILMADI
+
+JWT vardı, `set local role authenticated` YOKTU. Yani o iki yazım
+**süper kullanıcı olarak** koştu ve `app.platform_kapisi()` hiç
+çalışmadı. Prova yeşil yanıyordu.
+
+⚠️ Asıl zarar sızıntı ölçümünde değil, **cümlenin kendisinde**:
+"kapı kaldırılınca sızdı" demek, sahnenin zaten kapısız kurulduğu bir
+dünyada söylenmiş olurdu. Ters prova "kapı var / kapı yok" farkını
+ölçer; sahne kapısız kurulduysa o fark hiç kurulmamış demektir.
+
+⚠️ **BUNU BEN YAKALAMADIM, DEPO YAKALADI.**
+`yazma-kapilari-tamam.arch.test.ts` "YENİ kör prova" deyip kırmızı yandı
+ve `kaydet.ps1` commit atmadı. Donmuş `ROL_TAKMAYAN_PROVALAR` listesine
+ad eklemek çözüm DEĞİLDİ (liste yalnız kısalır); sahne rol takılarak
+yeniden kuruldu ve bir sağlama da eklendi: *"sahneyi kuran kullanıcının
+`platform.manage` izni VAR"*.
+
 **196 · YİRMİ PARALEL SÜREÇ BAŞLATMAK EŞZAMANLILIK ÖLÇMEZ.**
 (08-09.11.2026 · MIYOP-102)
 
@@ -2399,6 +2455,16 @@ Son söz onun çıktısındadır.
      vermez** (0106). "N ay sonra silinir" demek için kendiliğinden silen
      bir iş gerekir; yoksa metin süre yazmaz, **tutulan** sözü yazar — ve
      o sözün karşılığı (silme fonksiyonu + düğmesi) aynı turda yazılır.
+151. **Emrah'ın makinesine yazılan her dosya GERİ OKUNUR ve
+     karşılaştırılır** (tuzak 198). Aracın "yazıldı" cevabı bir ölçüm
+     değildir; sessizce ve seçici olarak düşebiliyor. Karşılaştırma
+     turun sonunda, yazılan dosyaların HEPSİ için yapılır — ve
+     "düzelttim" cümlesi ancak ondan sonra kurulur.
+150. **Ters provanın SAHNESİ de kapının içinde kurulur** (tuzak 197).
+     Oturum açmak yetmez, rol de takılır — yoksa "kapı kaldırılınca
+     sızdı" cümlesi, sahnenin zaten kapısız kurulduğu bir dünyada
+     söylenmiş olur. Sahneyi kuran kullanıcının izni olduğu AYRICA
+     sağlanır.
 144. **Bir kusur provası, ölçmeden önce KENDİ FİKSTÜRÜNÜ ölçer**
      (tuzak 193). "Beklediğim sonucu gördüm" ile "kusuru ölçtüm" ayrı
      iki şey: fikstür eksikse sonuç doğru çıkar, sebep yanlış olur.

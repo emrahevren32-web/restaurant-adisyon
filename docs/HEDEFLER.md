@@ -35,6 +35,7 @@ neyin neden yapıldığı kaybolmasın.
 | **A4** | ✅ **BİTTİ (31.10)** · sahte veri üreticileri · **23 → 0** | `storage.ts` içinde tek bir `createDemo*` kalmadı; **851 satır** uydurma veri silindi. İki turda: (1) kiracı tarafı 13 üretici + **"depo boşsa uydur" mekanizmasının kendisi** (`loadBranchScopedItemsWithDemo` ve ikizi) — 408 satır; (2) platform/EVREN360 8 üretici — 443 satır. ⚠️ **Ölçüldü:** silinen 13'ün hiçbiri o gün açık bir kiracı ekranına ulaşmıyordu (dört modül de `frozen`) — yangın söndürme değil **mayın temizliği**: dondurulmuş bir kapı açıldığında uydurma veri sessizce geri gelecekti. ⚠️ **İki fonksiyon silinmedi, ADI DEĞİŞTİ:** `varsayilanLisansPaketleri` ve `varsayilanLisansModulleri` — uydurma kayıt değil **ürün kataloğu** (`defaultPackageSpecs`ten türüyorlar). Ad değiştirip sayımdan çıkmak saklamak olurdu; çıcıra ayrı sınama kondu. ⚠️ **Karar (Emrah, 31.10):** *"Boşalt, gerçeğe bağlanana kadar boş kalsın — panel bugün yalan söylemez ama birkaç ekran boş görünür."* Çıcır **kapandı** (üst sınır 0) ve sağlama sınaması yeniden yazıldı: artık "sonuç dolu mu" değil "ölçüm aracı hâlâ çalışıyor mu" diye soruyor. Ayrıntı: `docs/kararlar/kaldirilan-moduller.md` §8 ve §9. |
 | **A5** | **Şahit numune** 🔄 ⚠️ **28.10'da YENİDEN AÇILDI** | Göç **0093** defteri kurdu, **0094** Codex'in bulduğu P0'ı ve iki P1'i kapattı, **0096** saklama koşulunu kalite departmanının da yazabileceği beyan alanı yaptı, **0097** Emrah'ın imha onayı kararını zorladı. Ekran **Kalite → Şahit Numune**. Prova: 21+18+9+13 = **61 sınama yeşil**. ✅ **27.10:** etiket saklama koşulunu artık ürün kartından okuyor (3.9.3). ⚠️ **28.10 · EKRAN CANLIDA HİÇ AÇILMAMIŞ.** Emrah sıfırdan açılan bir kiracıda denedi: *"Bu ekran açılamadı"*. `client_error` kaydı sebebi yazdı — `ReferenceError: NUMUNE_SAYFA is not defined`: sabit kullanılmış, import edilmemiş. **26.10'da "bitti, canlıda" dedim; yalnız yerelde görmüştüm.** Düzeltildi; asıl kusur hatta tip denetiminin hiç koşmamasıydı (tuzak 141). Kalan: sayfalama borcu (3.9.9) + boş kiracıda canlı doğrulama. |
 | **A6** | ✅ **BİTTİ (29.10)** · MIYOP-043 · Edge Function canlıda + göç 0102 + yedek yol silindi | Güvenlik borcu kapandı. |
+| **A7** | 🔄 **MEVZUAT AKIŞI** (Emrah, 09.11) · giriş vitrininde kaynaklı bilgi kutusu + EVREN360'da yönetimi | Emrah: *"gıda yönetmeliklerinde yapılan son haberler, kanunlar, bildirimler vs kaynak gösterilerek akış halinde yer alsın."* Satışta somut bir cümle: MİYOP'u açan kişi mevzuatı da oradan takip ediyor. ⚠️ **BU KÖŞEDE DAHA ÖNCE UYDURMA DUYURU VARDI (MIYOP-059)** ve kaldırıldı; 09.11'de ölü CSS'i de silindi (MIYOP-107). İkinci kez konan kutunun farkı tek cümleyle: **her satır gerçek, kaynak bağlantılı ve elle yazılmış; kayıt yoksa kutu HİÇ çizilmiyor.** ⚠️ **Otomatik çekme YOK** (Resmî Gazete ayrıştırma): FREE planda zamanlanmış iş yok, ayrıştırıcı sessizce bozulur, ve yanlış özetlenmiş bir mevzuat maddesi müşteriye iş yaptırır. Arada **insan** var: Emrah okur, özetler, kaynağı ekler, yayına alır. Tablo baştan `TASLAK/YAYINDA/ARSIV` ile kuruluyor ki otomatik besleme eklendiğinde taslak olarak düşsün. Tasarım: `docs/kararlar/mevzuat-akisi-tasarim.md`. |
 
 ⚠️ **Bu listede OLMAYANLAR demo öncesi YAPILMAYACAK:** MIYOP-049/050
 (zamanlama, istek sınırı), MIYOP-003/004/005/006, prestij başlığı,
@@ -2423,6 +2424,27 @@ Satılabildiğini görürsek yaparız."*
 ⚠️ Bu başlık **ertelendi, iptal edilmedi.** `BITMIS-URUN-EKSIKLERI.md`
 C.1 ve C.2'nin tamamı buradadır. Bir müşteri anlaşması olduğu gün bu
 bölüm 1. sıraya çıkar.
+
+### 8.0 · HİJYEN, HAŞERE, İLAÇLAMA VE BAKIM TAKİBİ (Emrah, 09.11)
+
+- ⬜ **8.0.1** **Tek panelde dört defter:** rutin temizlik/hijyen planı,
+  haşere izleme, ilaçlama (dış firma + ruhsat/sertifika), fabrika ve
+  ekipman bakımı. Emrah: *"müşteriler kendi rutin temizlik ve hijyen
+  günlerini takip edebilsinler… böylece proaktif bir davranış olmuş
+  olur."*
+  ⚠️ **Bu dördü denetimde SORULAN şeylerdir.** Müşteri "yaptım" yazdığında
+  o kayıt bir gün müfettişin önüne çıkabilir — yani şahit numune
+  defteriyle **aynı sınıf**: imza sunucuda, defter append-only, geçmişe
+  tarih atılamaz, silme yok.
+  ⚠️ **BAŞLAMADAN ÖNCE ÖLÇÜLECEK:** bunun yarısı zaten var olabilir —
+  HACCP (`0024`) kontrol noktalarını ve ölçümlerini, `operation-checklists`
+  rutin kontrol listelerini tutuyor. Yeni tablo açmadan önce "bu dördü
+  var olanın içine oturur mu" sorusu **kod okunarak** cevaplanacak. Aynı
+  işi ikinci kez yazmak iki ayrı gerçek üretir.
+  ⚠️ İsmet'e beş soru sorulmadan ekran yazılmayacak (bugün neyle takip
+  ediliyor, ilaçlamayı kim yapıyor, istasyon var mı, bakım planı var mı,
+  denetimde hangi belge istendi).
+  Ayrıntı: `docs/kararlar/hijyen-hasere-bakim-paneli.md`.
 
 ### 8.1 · Para tarafı (C.1) — en büyük boşluk
 
