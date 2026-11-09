@@ -3,6 +3,7 @@ import { authenticateCredentials, AuthenticationState } from '../auth/authentica
 import { getSupabase, isSupabaseConfigured } from '../core/supabase'
 import { kesinEpostaMi } from '../auth/giris-adi-bicimi'
 import GeriAramaFormu from './GeriAramaFormu'
+import MevzuatVitrin from './MevzuatVitrin'
 
 type Props = { onLogin: (state: AuthenticationState) => void }
 
@@ -518,6 +519,11 @@ export default function Login({ onLogin }: Props){
           SONRA, yani kişi okuduktan sonra. Hemen soracak olan için üstteki
           menüde ve kahramandaki düğme zaten buraya kaydırıyor.
         */}
+        {/* 0113 · Mevzuat akışı. ⚠️ Kayıt yoksa bu bileşen `null`
+            döndürüyor, yani bölüm HİÇ çizilmiyor — aynı köşede duran
+            uydurma duyuruların (MIYOP-059) dersi. */}
+        <MevzuatVitrin />
+
         <GeriAramaFormu />
       </main>
 

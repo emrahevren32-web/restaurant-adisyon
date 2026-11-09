@@ -112,6 +112,30 @@ export const PLATFORM_MODULE_REGISTRY: PlatformRegistryItem[] = [
     tags: ['platform', 'callback', 'satis']
   },
   {
+    // 0113 · Giriş vitrinindeki mevzuat kutusunun yönetimi.
+    //
+    // ⚠️ `displayOrder` 16, yani "Geri Arama Talepleri"nin (15) HEMEN
+    // ARDINDA. Daha küçük bir sayı yazmak `getIlkHazirPlatformRotasi()`in
+    // açtığı ekranı değiştirirdi: panele girince karşılayan ekran
+    // "Onay Bekleyen İşletmeler" olmaktan çıkardı. Emrah böyle bir şey
+    // istemedi; istenmeyen bir yan etki, istenen bir iyileştirmeden
+    // daha pahalıdır (0106'da aynı karar verilmişti).
+    id: 'platform-mevzuat',
+    code: 'platform-mevzuat',
+    name: 'Mevzuat Akışı',
+    description: 'Giriş ekranında görünen gıda mevzuatı haberleri.',
+    icon: 'MV',
+    route: 'evren360-mevzuat',
+    navKey: 'evren360-mevzuat',
+    groupKey: 'evren360-musteriler',
+    scope: MODULE_SCOPES.PLATFORM,
+    displayOrder: 16,
+    // 0113 · `public.mevzuat_listesi` + `public.mevzuat_yaz` + `mevzuat_sil`
+    veriKaynagi: 'veritabani',
+    kaynakDosya: 'pages/MevzuatAkisi.tsx',
+    tags: ['platform', 'mevzuat', 'vitrin']
+  },
+  {
     id: 'platform-customers',
     code: 'platform-customers',
     name: 'Müşteri Listesi',

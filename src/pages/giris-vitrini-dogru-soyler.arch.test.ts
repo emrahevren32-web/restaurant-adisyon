@@ -51,6 +51,10 @@ const SRC = join(projeKokunuBul(), 'src')
 const VITRIN_DOSYALARI = [
   'pages/Login.tsx',
   'pages/GeriAramaFormu.tsx',
+  // 0113 · Mevzuat akışı kutusu. ⚠️ Vitrinin parçası olan her dosya bu
+  // listeye girer; girmezse "vitrin yalnız olanı söyler" ölçümü o dosyayı
+  // HİÇ görmez ve sessizce zayıflar (tuzak 90 · yüzeyi ölç).
+  'pages/MevzuatVitrin.tsx',
 ] as const
 
 const oku = (yol: string) => readFileSync(join(SRC, yol), 'utf8') as string

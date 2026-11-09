@@ -13,6 +13,7 @@ import CustomerList from './pages/CustomerList'
 import CustomerDetail from './pages/CustomerDetail'
 import PendingApplications from './pages/PendingApplications'
 import GeriAramaTalepleri from './pages/GeriAramaTalepleri'
+import MevzuatAkisi from './pages/MevzuatAkisi'
 import LisansYonetimi from './pages/LisansYonetimi'
 import SystemAnnouncements from './pages/SystemAnnouncements'
 import CustomerStatistics from './pages/CustomerStatistics'
@@ -1473,6 +1474,11 @@ export default function App(){
         isPlatformAdmin
           ? <GeriAramaTalepleri initialReferans={secilenGeriAramaReferansi} />
           : <PlatformAccessDenied />
+      )}
+      {/* 0113 · Giriş vitrinindeki mevzuat kutusunun yönetimi. Üç kapı
+          aynı şeyi söylüyor: menü kaydı, bu blok ve rota hazırlık kapısı. */}
+      {route === 'evren360-mevzuat' && currentUser.role === 'Admin' && !platformEkraniHazirDegil && (
+        isPlatformAdmin ? <MevzuatAkisi /> : <PlatformAccessDenied />
       )}
       {route === 'evren360-license-management' && currentUser.role === 'Admin' && !platformEkraniHazirDegil && (
         isPlatformAdmin ? <LisansYonetimi /> : <PlatformAccessDenied />
