@@ -152,3 +152,36 @@ describe('giriş vitrini · yalnız olanı söyler', () => {
     }
   })
 })
+
+// ═══════════════════════════════════════════════════════════════════════════
+// MIYOP-107 · KALDIRILAN BÖLÜMÜN CSS'İ DE KALDIRILDI
+//
+// Uydurma duyurular (MIYOP-059) ekrandan kaldırılmıştı ama CSS'i
+// `styles.css`te kalmıştı: `.unified-login-announcement`, `...-list`,
+// `.unified-login-announcement time` ve üç grup kuralındaki payı.
+//
+// ⚠️ ÖLÜ KURAL ZARARSIZ GÖRÜNÜR. Gerçek bedeli şu: dosyayı okuyan kişiye
+// "böyle bir bölüm var" der. Bir sonraki kişi onu geri yazmaya çalışır —
+// yani kaldırılmış bir YALANIN iskeleti ayakta kalır.
+// ═══════════════════════════════════════════════════════════════════════════
+describe('giriş vitrini · kaldırılan duyuruların CSS izi de yok (MIYOP-107)', () => {
+  const CSS = oku('styles.css')
+
+  it('sağlama · styles.css okundu', () => {
+    // ⚠️ Tuzak 58 · boş dosya okuyup yeşil geçmek en kötü sonuç.
+    expect(CSS.length).toBeGreaterThan(100000)
+    // Vitrin CSS'i gerçekten bu dosyada mı? Yoksa aşağıdaki "yok" iddiası
+    // hiçbir şey ölçmez.
+    expect(CSS).toContain('.unified-login-card {')
+  })
+
+  it('⚠️ `.unified-login-announcement` seçicisi KALMADI', () => {
+    // Yorum satırı sayılmasın: CSS yorumları önce silinecek.
+    const kod = CSS.replace(/\/\*[\s\S]*?\*\//g, ' ')
+    expect(kod).not.toContain('unified-login-announcement')
+  })
+
+  it('duyuru bölümünü çizen bir ekran da yok', () => {
+    expect(VITRIN).not.toContain('unified-login-announcement')
+  })
+})

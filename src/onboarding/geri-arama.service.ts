@@ -107,9 +107,23 @@ export const telefonuGoster = (sade: string | null | undefined): string => {
   return `0${sade.slice(0, 3)} ${sade.slice(3, 6)} ${sade.slice(6, 8)} ${sade.slice(8)}`
 }
 
-/** E-posta YAZILDIYSA e-postaya benzemek zorunda. Kural sunucudakiyle aynı. */
+/**
+ * E-posta YAZILDIYSA e-postaya benzemek zorunda.
+ *
+ * ⚠️ MIYOP-106: bu kuralın sunucudakiyle AYNI olduğu yazılıydı ama
+ * değildi. Sunucu (`app.geri_arama_gonder`, 0106) adresi ÖNCE `lower()`
+ * ile küçültüp sonra `[a-z]{2,}` ile bakıyor; ekran küçültmeden bakıyordu.
+ * Sonuç: `audit@example.COM` ekranda "eksik görünüyor" diye REDDEDİLİYOR,
+ * aynı adres sunucuda kabul ediliyordu. Yani ekran sunucudan KATI ve
+ * yanlış taraftaydı — kullanıcı var olan adresini yazamıyordu.
+ *
+ * ⚠️ `toLowerCase()`, `toLocaleLowerCase()` DEĞİL. Türkçe yerel ayarda
+ * 'I' harfi 'ı'ya döner: `.INFO` → `.ınfo` olur ve 'ı' `[a-z]` içinde
+ * olmadığı için adres yine reddedilirdi. 0017'nin dersi: kimlik ve biçim
+ * kurallarında yerel ayarla küçültme kullanılmaz.
+ */
 const epostaBenziyorMu = (eposta: string): boolean =>
-  /^[^@\s]+@[^@\s]+\.[a-z]{2,}$/.test(eposta)
+  /^[^@\s]+@[^@\s]+\.[a-z]{2,}$/.test(eposta.toLowerCase())
 
 /**
  * Formdaki bütün eksikleri TEK LİSTEDE döndürür.

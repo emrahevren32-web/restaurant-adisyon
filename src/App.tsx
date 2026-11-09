@@ -86,6 +86,8 @@ import type { WorkspaceModuleLifecycleResult } from './workspace/workspace-modul
 import { WORKSPACE_PROVISIONING_EVENT } from './workspace-provisioning/workspace-provisioning.service'
 import type { Evren360Notification } from './notifications/evren360-notification.service'
 import { sekmeBasligi } from './notifications/sekme-basligi'
+import { firmaVitriniOku, subscribeFirmaVitrini } from './companies/firma-vitrini'
+import type { FirmaVitrini } from './companies/firma-vitrini'
 import { hasConnectedWorkspaceIntegrationsForUser } from './integrations/workspace-integration.service'
 import {
   createPlatformNavGroups,
@@ -540,6 +542,16 @@ export default function App(){
    * burası yazıyor. Sebep: `document.title`ın tek yazarı olmalı.
    */
   const [okunmamisBildirimSayisi, setOkunmamisBildirimSayisi] = React.useState(0)
+  /**
+   * İşletmenin DEFTERDEKİ adı ve logosu — MIYOP-103.
+   *
+   * ⚠️ Kabuk bu ikisini eskiden yalnız `loadCompanies()` ile tarayıcı
+   * deposundan okuyordu. "Firma Profili" ekranı ise veritabanına yazıyor.
+   * Sonuç: kullanıcı adı kaydediyor, kenar çubuğu ve sekme başlığı eski
+   * adı göstermeye devam ediyordu — yani iş yapıldı, ekran yapılmamış
+   * dedi. `null` iken eski kaynağa düşülüyor (bkz. `workspaceChrome`).
+   */
+  const [firmaVitrini, setFirmaVitrini] = React.useState<FirmaVitrini | null>(null)
   const isPlatformAdmin = isPlatformAdminUser(currentUser)
   const evren360View = evren360RouteViews[route]
   const workspaceChrome = React.useMemo(() => {
@@ -555,11 +567,51 @@ export default function App(){
       ? loadCompanies({ allTenants: true }).find(item => item.id === companyId) || null
       : null
 
+    // ⚠️ SIRA ÖNEMLİ (MIYOP-103): önce DEFTER, sonra tarayıcı deposu,
+    // en son yerel ayarlar. Defterdeki ad boşsa `firmaVitrini` null
+    // gelir ve eski kaynaklar devreye girer; boş bir ada düşülmez.
     return {
-      name: company?.companyName || settings.restaurantName,
-      logoUrl: company?.logoUrl || settings.logoUrl
+      name: firmaVitrini?.ad || company?.companyName || settings.restaurantName,
+      logoUrl: firmaVitrini?.logoAdresi || company?.logoUrl || settings.logoUrl
     }
-  }, [currentUser, isPlatformAdmin, settings.logoUrl, settings.restaurantName, onboardingRefreshKey])
+  }, [currentUser, isPlatformAdmin, settings.logoUrl, settings.restaurantName,
+      onboardingRefreshKey, firmaVitrini])
+  /**
+   * İşletmenin adını ve logosunu DEFTERDEN oku, "kaydettim" haberinde
+   * yeniden oku (MIYOP-103).
+   *
+   * ⚠️ `iptal` bayrağı: kullanıcı değişip bu etki yeniden kurulduğunda,
+   * havada kalmış eski bir okuma dönüp YENİ kullanıcının vitrinini
+   * ezebilirdi. MIYOP-104 ile aynı sınıf hata — oradaki ders burada
+   * baştan uygulanıyor.
+   *
+   * ⚠️ Platform yöneticisi için vitrin YOK: o `EVREN360` görür, bir
+   * işletmenin adını değil.
+   */
+  React.useEffect(() => {
+    if(!currentUser || isPlatformAdmin){
+      setFirmaVitrini(null)
+      return undefined
+    }
+
+    const firmaId = getCompanyIdForUser(currentUser)
+    let iptal = false
+
+    const yukle = async () => {
+      const vitrin = await firmaVitriniOku(firmaId)
+      if(iptal) return
+      setFirmaVitrini(vitrin)
+    }
+
+    void yukle()
+    const birak = subscribeFirmaVitrini(() => { void yukle() })
+
+    return () => {
+      iptal = true
+      birak()
+    }
+  }, [currentUser, isPlatformAdmin, onboardingRefreshKey])
+
   const firstLoginOnboardingState = React.useMemo(() => {
     if(!currentUser || isPlatformAdmin) return null
     return getFirstLoginOnboardingState(currentUser)

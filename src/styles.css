@@ -217,27 +217,27 @@ body.mobile-navigation-open { overflow:hidden; overscroll-behavior:contain }
 .unified-login-platform-grid article,
 .unified-login-card,
 .unified-login-reference,
-.unified-login-why-card,
-.unified-login-announcement { min-width:0; border:1px solid rgba(255, 255, 255, 0.08); border-radius:var(--radius-card); background:rgba(255, 255, 255, 0.04); box-shadow:var(--shadow-xs) }
+.unified-login-why-card { min-width:0; border:1px solid rgba(255, 255, 255, 0.08); border-radius:var(--radius-card); background:rgba(255, 255, 255, 0.04); box-shadow:var(--shadow-xs) }
 .unified-login-platform-grid article { padding:var(--space-16) }
 .unified-login-platform-grid strong,
 .unified-login-platform-grid span { display:block; line-height:var(--line-height-1-25) }
 .unified-login-platform-grid strong { color:#ffffff; font-size:var(--font-size-17); font-weight:var(--font-weight-700) }
 .unified-login-platform-grid span { margin-top:var(--space-4); color:#94a3b8; font-size:var(--font-size-13); font-weight:var(--font-weight-400) }
 .unified-login-card { padding:var(--space-16) }
-.unified-login-card span,
-.unified-login-announcement span { display:inline-flex; align-items:center; min-height:22px; border-radius:var(--radius-full); padding:var(--space-2) var(--space-8); background:rgba(45, 212, 191, 0.12); color:#2dd4bf; font-size:var(--font-size-11); font-weight:var(--font-weight-600); line-height:var(--line-height-1-1) }
+.unified-login-card span { display:inline-flex; align-items:center; min-height:22px; border-radius:var(--radius-full); padding:var(--space-2) var(--space-8); background:rgba(45, 212, 191, 0.12); color:#2dd4bf; font-size:var(--font-size-11); font-weight:var(--font-weight-600); line-height:var(--line-height-1-1) }
 .unified-login-card h3,
-.unified-login-announcement h3,
 .unified-login-reference h3,
 .unified-login-why-card h3 { margin:var(--space-10) 0 0; color:#ffffff; font-size:var(--font-size-16); line-height:var(--line-height-1-25); font-weight:var(--font-weight-700) }
 .unified-login-card p,
-.unified-login-announcement p,
 .unified-login-reference p,
 .unified-login-why-card p { margin:var(--space-6) 0 0; color:#cbd5e1; font-size:var(--font-size-13); line-height:var(--line-height-1-5); font-weight:var(--font-weight-400) }
-.unified-login-announcement-list { display:flex; flex-direction:column; gap:var(--space-12) }
-.unified-login-announcement { display:flex; justify-content:space-between; gap:var(--space-16); padding:var(--space-16) }
-.unified-login-announcement time { flex:0 0 auto; color:#94a3b8; font-size:var(--font-size-12); font-weight:var(--font-weight-500); white-space:nowrap }
+/* MIYOP-107 · Giris vitrinindeki DUYURULAR bolumu kaldirilmisti, CSS'i
+   kalmisti: `.unified-login-announcement`, `...-list`, `...-announcement time`
+   ve grup kurallarindaki payi. Hicbir ekran bu siniflari kullanmiyordu
+   (olculdu: Login, GeriAramaFormu, BusinessApplicationPublicForm, Portal,
+   SifreBelirle ve vitrin mimari testleri -- hepsinde 0 kullanim).
+   Olu kural zararsiz gorunur ama okuyana "boyle bir bolum var" der; bir
+   sonraki kisi onu geri yazmaya calisir. 08.11.2026 */
 .unified-login-reference { display:flex; align-items:center; gap:var(--space-12); padding:var(--space-16) }
 .unified-login-reference > span { display:inline-flex; align-items:center; justify-content:center; flex:0 0 42px; width:42px; height:42px; border-radius:var(--radius-md); background:#0d9488; color:#ffffff; font-weight:var(--font-weight-700) }
 .unified-login-reference h3 { margin-top:0 }
@@ -3705,7 +3705,6 @@ body.mobile-navigation-open { overflow:hidden; overscroll-behavior:contain }
   .unified-login-section h2 { font-size:var(--font-size-26)}
   .unified-login-card-grid,
   .unified-login-why-grid { grid-template-columns:1fr }
-  .unified-login-announcement { align-items:flex-start; flex-direction:column }
   .unified-login-footer { align-items:flex-start; flex-direction:column; padding:var(--space-20) var(--space-12) }
   .app-brand h1 { font-size:var(--font-size-24)}
   .app-brand img { width:38px; height:38px }

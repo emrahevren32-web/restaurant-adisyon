@@ -24,6 +24,7 @@ import { basvuruBildirimleriniYukle } from '../notifications/basvuru-bildirimler
 import { PostgresGeriAramaDefteri } from '../onboarding/geri-arama.repository'
 import { lisansBildirimleriniYukle } from '../notifications/lisans-bildirimleri'
 import { geriAramaBildirimleriniYukle } from '../notifications/geri-arama-bildirimleri'
+import { sonTazelemeMi, yeniTazeleme } from '../notifications/tazeleme-sirasi'
 import { PostgresBasvuruDefteri } from '../onboarding/application.repository'
 import { getSupabase, isSupabaseConfigured } from '../core/supabase'
 
@@ -282,6 +283,18 @@ export default function AppShell<
   const hasSelectableBranch = selectableBranches.length > 0
   const [notificationPanelOpen, setNotificationPanelOpen] = React.useState(false)
   const [notifications, setNotifications] = React.useState<Evren360Notification[]>([])
+  /**
+   * Tazeleme sıra sayacı · MIYOP-104.
+   *
+   * ⚠️ Zil DÖRT tetikleyiciyle tazeliyor (dakikalık yoklama, sekmeye
+   * dönüş, panelin açılması, "okundu" olayı). Aynı anda birden fazla
+   * istek havada olabiliyor ve cevaplar gönderildikleri sırayla DÖNMEK
+   * ZORUNDA DEĞİL. Eski bir cevap sonradan yazıldığında okunmuş bir
+   * bildirim yeniden okunmamış görünüyordu — rozet ve sekme başlığı
+   * dahil. Kural `notifications/tazeleme-sirasi.ts` içinde ve orada
+   * ölçülüyor.
+   */
+  const tazelemeSayaci = React.useRef(0)
   const [sidebarPinned, setSidebarPinned] = React.useState(readSidebarPinned)
   const [sidebarPeeked, setSidebarPeeked] = React.useState(false)
   // The rail reserves its narrow column whenever unpinned; a peek overlays the
@@ -361,6 +374,10 @@ export default function AppShell<
   ), [])
 
   const refreshNotifications = React.useCallback(async () => {
+    // ⚠️ SIRA NUMARASI EN BAŞTA ALINIYOR: bu çağrıdan sonra başlayan her
+    // tazeleme sayacı artırır ve aşağıdaki yazım hakkını bizden alır.
+    const sira = yeniTazeleme(tazelemeSayaci)
+
     if(!isPlatformAdmin){
       setNotifications([])
       return
@@ -388,6 +405,13 @@ export default function AppShell<
     // karşılıkları YOK. Tıklayınca hiçbir yere gitmiyorlar.
     //
     // Tek gerçek defterdir. Zil defteri gösterir, başka bir şeyi değil.
+    // ⚠️ MIYOP-104 · YAZMADAN ÖNCE "HÂLÂ EN YENİ MİYİM" SORUSU.
+    // Bu satır olmadan, bizden sonra başlamış ve çoktan yazmış bir
+    // tazelemenin üstüne ESKİ anlık görüntü biniyordu: okunan bildirim
+    // yeniden okunmamış sayılıyordu. Cevap atılıyor, hata basılmıyor —
+    // bu bir arıza değil, beklenen bir yarış.
+    if(!sonTazelemeMi(tazelemeSayaci, sira)) return
+
     setNotifications(turetilen)
   }, [isPlatformAdmin, bildirimDefteri, geriAramaDefteri])
 

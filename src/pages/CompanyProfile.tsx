@@ -5,6 +5,7 @@ import {
   type FirmaProfili,
   type FirmaProfiliYazimi,
 } from '../companies/firma-profili.repository'
+import { firmaVitriniDegisti } from '../companies/firma-vitrini'
 import type { User } from '../types'
 
 // ═══════════════════════════════════════════════════════════════════════════
@@ -132,6 +133,14 @@ export default function CompanyProfile({ currentUser }: Props){
     // ⚠️ Ekranda gösterilen şey, VERİTABANINDAN GERİ OKUNAN şey.
     setProfil(sonuc.profil)
     setValues(formaCevir(sonuc.profil))
+
+    // ⚠️ MIYOP-103 · KABUĞA HABER VER. Bu satır olmadan ad ve logo
+    // veritabanına yazılıyor ama kenar çubuğu, üst bant ve sekme başlığı
+    // eski adı göstermeye devam ediyordu: kullanıcı için "kaydetmedi"
+    // demekti. Araya prop yolu kurmak üç dosyayı değiştirmek olurdu;
+    // zilin yıllardır kullandığı olay deseni tekrarlanıyor.
+    firmaVitriniDegisti()
+
     setBilgi('Firma bilgileri kaydedildi.')
     setKaydediliyor(false)
   }

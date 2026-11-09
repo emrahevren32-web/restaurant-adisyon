@@ -444,3 +444,94 @@ describe('prova · kapının içinde koşuyor', () => {
     expect(metin.trimEnd().endsWith('rollback;')).toBe(true)
   })
 })
+
+// ═══════════════════════════════════════════════════════════════════════════
+// 0110 · MIYOP-102 · SPAM KAPISI EŞZAMANLI YAZIMA KARŞI
+//
+// ⚠️ Bu blok DAVRANIŞ ÖLÇMÜYOR, metin ölçüyor: göçte kilidin ve indeksin
+// yazılı olduğunu söylüyor. Kilidin gerçekten beklettiğini iki oturumla
+// yapılan ölçüm gösterdi (çıktısı 0110'un başlığında); indeksin gerçekten
+// reddettiğini `db/prova/prova-0110.sql` gösteriyor. Hiçbiri ötekinin
+// yerine geçmiyor.
+// ═══════════════════════════════════════════════════════════════════════════
+describe('0110 · spam kapısı eşzamanlı yazıma kapalı (MIYOP-102)', () => {
+  const GOC = 'db/migrations/0110_geri_arama_es_zaman_kapisi.sql'
+
+  /**
+   * SQL'in YORUMSUZ hâli.
+   *
+   * ⚠️ TUZAK 181 (bu depoda beşinci kez): bu dosyadaki ölçümler göç
+   * metnine bakıyor ve göçler kaldırılan kodu bilerek kelime kelime
+   * alıntılıyor. 0110'un başlığında `coalesce`lı eski hâl ve kilidin
+   * ADI yorum olarak geçiyor; ham metne bakan bir iddia kendi
+   * açıklamasına takılır.
+   */
+  const sqlKod = (metin: string): string => metin.replace(/--[^\n]*/g, '')
+
+  it('göç dosyası var', () => {
+    expect(existsSync(join(KOK, GOC))).toBe(true)
+  })
+
+  it('⚠️ telefon başına işlem kilidi var', () => {
+    // Kilit olmadan iki kapı da etkisiz: eşzamanlı iki çağrı birbirinin
+    // henüz COMMIT edilmemiş satırını görmez, ikisi de "yok" okur.
+    expect(sqlKod(dosya(GOC))).toContain('pg_advisory_xact_lock')
+  })
+
+  it('⚠️ kilit kapı okumasından ÖNCE alınıyor', () => {
+    // Sonra alınan kilit hiçbir şey korumaz: okuma zaten yapılmış olur.
+    const k = sqlKod(dosya(GOC))
+    const kilit = k.indexOf('pg_advisory_xact_lock')
+    const okuma = k.indexOf("and status = 'NEW'")
+    expect(kilit).toBeGreaterThan(-1)
+    expect(okuma).toBeGreaterThan(-1)
+    expect(kilit).toBeLessThan(okuma)
+  })
+
+  it('kısmi tekillik indeksi kuruluyor (fiziksel emniyet)', () => {
+    const k = sqlKod(dosya(GOC))
+    expect(k).toContain('callback_request_acik_talep_tekil')
+    expect(k).toMatch(/create unique index[\s\S]*?callback_request[\s\S]*?where status = 'NEW'/)
+  })
+
+  it('⚠️ çakışan kısıt ayırt ediliyor — kullanıcı yanlış sebep görmüyor', () => {
+    // 0106'nın döngüsü her `unique_violation`ı "numara çakıştı" sanıp beş
+    // kez deniyor, sonra "Talep numarası üretilemedi" diyordu. Yeni indeks
+    // devreye girdiğinde kullanıcı o YANLIŞ sebebi görürdü.
+    const k = sqlKod(dosya(GOC))
+    expect(k).toContain('constraint_name')
+    expect(k).toContain('MI409')
+  })
+
+  it('⚠️ var olan kayıtlar SİLİNMİYOR, kapatılıyor', () => {
+    // İndeks çift açık talep varken oluşamaz. Çözüm kaydı silmek olsaydı
+    // gerçek bir müşteri talebi yok edilirdi.
+    const k = sqlKod(dosya(GOC))
+    expect(k).toContain("set status       = 'CLOSED'")
+    expect(k).not.toMatch(/delete\s+from\s+public\.callback_request/i)
+  })
+
+  it('24 saat sınırı hâlâ gövdede (indeks onu kapsamıyor)', () => {
+    // Sayma kuralını hiçbir tekillik indeksi ifade edemez; onu eşzamanlı
+    // yazıma karşı koruyan tek şey kilit.
+    const k = sqlKod(dosya(GOC))
+    expect(k).toContain("interval '24 hours'")
+    expect(k).toContain('MI429')
+  })
+
+  it('prova dosyaları var, rol takıyor ve veritabanını kirletmiyor', () => {
+    for(const p of ['db/prova/prova-0110.sql', 'db/prova/prova-0110-ters.sql']){
+      expect(existsSync(join(KOK, p)), `${p} yok`).toBe(true)
+      const metin = dosya(p)
+      expect(metin.trimEnd().endsWith('rollback;'), `${p} rollback ile bitmiyor`).toBe(true)
+    }
+    // ⚠️ MIYOP-042: rol takmayan prova kapının DIŞINDA koşar.
+    expect(dosya('db/prova/prova-0110.sql')).toContain('set local role anon')
+  })
+
+  it('⚠️ ters prova var: emniyet kaldırılınca kusur geri geliyor', () => {
+    // Emniyet olmasaydı da yeşil yanan bir prova hiçbir şey ölçmüyordur.
+    const ters = dosya('db/prova/prova-0110-ters.sql')
+    expect(ters).toContain('drop index if exists public.callback_request_acik_talep_tekil')
+  })
+})

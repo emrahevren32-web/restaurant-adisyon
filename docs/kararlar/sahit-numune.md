@@ -310,3 +310,74 @@ nereyi düzelteceğini de.
 `select` listesinde olmamasıydı ve sahte depolu bir davranış testi gerçek
 sorguyu hiç görmez. Kuralı 0093'ün sütun yorumuna yazmak **uyarmadı**
 (tuzak 139: yorum hatırlatır, test engeller).
+
+---
+
+## Alınma zamanı · damga kararı (09.11.2026 · göç 0112)
+
+**Soru:** `witness_sample.taken_at` istemciden gelebilir mi?
+**Karar:** **Hayır. Sunucu damgalar.** Geriye tarih atma yolu AÇILMIYOR.
+
+Emrah'a soruldu, *"bunu bilemedim sen karar ver"* dedi; karar yazılı
+olarak burada duruyor.
+
+### Kusur neydi
+
+`app.numune_turet()` imzanın **"KİM"** tarafını damgalıyordu
+(`new.taken_by := app.aktif_kullanici_id()`), **"NE ZAMAN"** tarafını
+istemciye bırakıyordu. Kolonun `default now()` değeri vardı ama
+varsayılan **yalnız istemci bir şey göndermediğinde** devreye girer;
+gönderirse onun değeri yazılır.
+
+⚠️ **Bu, 0109'un kapattığı kusurla aynı önemde DEĞİL ve öyle yazılmıyor.**
+`occurred_at` saklama sonunu hesaplayan kuralın GİRDİSİYDİ; onu kaydırmak
+kuralı etkisiz bırakıyordu. `taken_at` hiçbir kuralın girdisi değil
+(ölçüldü: göçlerde yalnız 0093'ün tablo tanımında ve bir indekste
+geçiyor; `keep_until` partinin SKT'sinden geliyor). Yani kaydırılan bir
+`taken_at` bir **kapı açmıyor** — bozduğu şey defterin kendi doğruluğu.
+
+### Kararın dört gerekçesi
+
+**1 · Bugün böyle bir ihtiyaç ürünün kendisinde yok.** Numune alma
+ekranında tarih alanı hiç yok; `witness-sample.repository.ts > numuneAl()`
+`taken_at` göndermiyor (ölçüldü). Damga var olan hiçbir akışı
+engellemiyor — bu yüzden 0112 bir davranış değişikliği değil, yazılı
+olmayan bir kuralın kurala dönüşmesi.
+
+**2 · Defterin tek işi sonradan şekillendirilememek.** Şahit numune bir
+tartışmada konuşuyor: *"bu partiden numune var, şu kişi aldı, şu
+tarihte."* Tarihi serbest bırakmak tam o cümleyi tartışmaya açar.
+"Kim"i sunucuya damgalayıp "ne zaman"ı istemciye bırakmak, aynı satırın
+yarısına güvenip yarısına güvenmemektir.
+
+**3 · Gerçek ihtiyaç çıkarsa doğru çözüm damgayı KALDIRMAK DEĞİL.**
+O zaman **iki ayrı kolon** gerekir:
+- `taken_at` — sunucu damgası, "kayda geçtiği an" (değişmez),
+- *(yeni)* fiilen alındığı **beyan edilen** zaman — kullanıcı beyanı,
+  kimin beyan ettiği yazılı, **yetkiye bağlı** ve denetim kaydına düşer.
+
+Tek bir kolonu herkese açmak, iki farklı gerçeği (kayıt anı / fiilî an)
+aynı kutuya koymak olur; o kutuya bakan kimse hangisini okuduğunu bilemez.
+Bu, 0087'nin deseninin aynısı: imza istemciden gelmez, beyan ise beyan
+olduğu söylenerek gelir.
+
+**4 · O kolonu ŞİMDİ EKLEMİYORUM — ve bu bilinçli.** 0093
+`opened_shelf_life_days` kolonunu yarattı, hiçbir yer okumadı; o tam
+olarak **MIYOP-076** kusuru oldu — ekranda bir alan vardı, hiçbir şey
+yapmıyordu. Kimsenin istemediği bir alanı "ileride gerekebilir" diye
+eklemek aynı hatayı tekrar etmektir (tuzak: *mış gibi yapmak*).
+
+### Bunu neyle açacağız
+
+İsmet'e sorulacak (`claude/ismete-sorulacaklar.md`): **gerçek bir
+mutfakta numune aynı vardiyada mı sisteme giriliyor, yoksa ertesi sabah
+mı?** Cevap "ertesi sabah" ise yukarıdaki iki kolonlu yol yazılır —
+**ölçülmüş bir ihtiyaçla**, varsayımla değil.
+
+### Kanıt
+
+`db/prova/prova-0112.sql` · 11 iddia, `set local role authenticated`
+takarak: gelecek tarih yok sayılıyor, geçmiş tarih yok sayılıyor,
+hiç gönderilmeyince de sunucu anı yazılıyor, imzanın "kim" tarafı
+yerinde, ve 0093/0094'ün kuralları (SKT'den saklama sonu, karttan
+saklama koşulu ve açık raf ömrü, sunucuda kimlik anahtarı) düşmemiş.

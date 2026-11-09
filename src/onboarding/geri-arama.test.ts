@@ -99,6 +99,23 @@ describe('geriAramaDogrula', () => {
     expect(geriAramaDogrula({ ...gecerli(), eposta: 'ahmet@firma.com' })).toEqual([])
   })
 
+  it('⚠️ MIYOP-106 · BÜYÜK harfli uzantı kabul ediliyor (sunucu da kabul ediyor)', () => {
+    // Sunucu adresi önce `lower()` ile küçültüp bakıyor (0106). Ekran
+    // küçültmeden bakınca aynı adres ekranda reddediliyor, sunucuda
+    // geçiyordu: ekran sunucudan KATI ve yanlış taraftaydı.
+    expect(geriAramaDogrula({ ...gecerli(), eposta: 'audit@example.COM' })).toEqual([])
+    expect(geriAramaDogrula({ ...gecerli(), eposta: 'AHMET@FIRMA.COM' })).toEqual([])
+    expect(geriAramaDogrula({ ...gecerli(), eposta: 'ahmet@firma.INFO' })).toEqual([])
+  })
+
+  it('⚠️ büyük harfli uzantı kabulü, yarım adresi kabul etmeye dönüşmüyor', () => {
+    // Küçültme "her şeyi kabul et" demek değil: eksik adres hâlâ eksik.
+    expect(geriAramaDogrula({ ...gecerli(), eposta: 'AHMET@FIRMA' }))
+      .toContain('E-posta adresi eksik görünüyor. Düzeltin ya da boş bırakın.')
+    expect(geriAramaDogrula({ ...gecerli(), eposta: 'AHMET@' }))
+      .toContain('E-posta adresi eksik görünüyor. Düzeltin ya da boş bırakın.')
+  })
+
   it('uzunluk sınırları veritabanındaki kısıtlarla aynı', () => {
     expect(geriAramaDogrula({ ...gecerli(), adSoyad: 'a'.repeat(121) }))
       .toContain('Ad soyad çok uzun (en çok 120 karakter).')

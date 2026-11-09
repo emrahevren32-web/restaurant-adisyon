@@ -272,3 +272,92 @@ diğerinin verisini hiçbir koşulda göremez). Aşağıdakilerde okuma ayrıca
 > Hepsi her sürümde yeniden koşuyor."*
 
 ⚠️ **Söylenmeyecek:** "yapay zeka". Teknik başlık **kural motoru**.
+
+---
+
+# Müşteri şunu sorarsa
+
+Her cevabın altında **neden böyle** yazıyor; satışta asıl ikna eden o.
+
+### "Personelim her şeyi görsün istiyorum, kapatabilir misiniz?"
+**Evet, açabiliriz — ama önce şunu konuşalım.** Roller sabit değil;
+izinler tablodan yönetiliyor ve bir role izin eklemek bir satırlık iş.
+Ancak iki şeyi bilerek kapattık: **maliyet/fiyat** ve **kullanıcı
+yönetimi**. Birincisi personelin işine yaramıyor ama ayrıldığında
+rakibinize gidiyor; ikincisi de kendine yetki verebilmesi demek.
+*"Hangi ekranı göremiyor?"* diye soralım — çoğu zaman tek bir ekran
+isteniyor ve onu açmak dakikalar sürüyor.
+
+### "Benim işletmemde depocu da numune alıyor, sizde alamıyor."
+**Alabilir, tek satır.** Bu bizim uydurduğumuz bir kural değil,
+İsmet'in anlattığı akıştan geldi: numuneyi üretim alıyor, depo
+kontrolünde tutuyor. Sizde farklıysa rolün izni değişir.
+⚠️ Aynı şeyi **sevkiyat sorumlusu** için zaten yaptık: normalde onun
+işi değil ama sevk anında numune alındığı için açtık.
+
+### "Yetkiler gerçekten çalışıyor mu, yoksa sadece menü mü gizleniyor?"
+**İşte asıl fark burada.** Çoğu sistemde menü gizlenir, ama adresi
+elle yazan ya da sisteme doğrudan istek gönderen geçer. Bizde kapı
+**veritabanında**: yetkisi olmayan bir istek, ekran ne derse desin
+reddedilir.
+Kanıtı: **57 ayrı prova** gerçek bir veritabanında o rolün kimliğine
+girerek *"bunu yapabiliyor mu"* diye soruyor ve her sürümde yeniden
+koşuyor.
+
+### "Bir müşterinin verisini diğeri görebilir mi?"
+**Hayır, ve bu bir ayar değil.** Her tablo satır bazında işletmeye
+bağlı; başka işletmenin satırı sorguya **hiç gelmiyor**. Yetkili bir
+kullanıcı bile başka işletmenin verisini göremiyor — bu da provalarla
+ölçülüyor.
+
+### "Biri bir şeyi sildi/değiştirdi, kim yaptı görebilir miyim?"
+**Evet.** Değişiklik Kaydı ekranı var: ne değişti, kim yaptı, ne zaman.
+⚠️ **İmza sunucuda atılıyor**, ekranın gönderdiği bilgiyle değil. Yani
+"ben yapmadım" diyen biri, kaydı değiştiremez.
+
+### "Şahit numuneyi yanlışlıkla silerse ne olur?"
+**Silinemez.** Numune defteri yalnızca eklenebilir; satır silmek ya da
+geçmişi değiştirmek kapalı. İmha bile bir **kayıt** olarak yazılıyor ve
+imhayı yalnız kalite/müdür onaylayabiliyor — numuneyi alan kişi kendi
+numunesini yok edemiyor.
+
+### "Müdürüm kullanıcı açabilsin istiyorum."
+**Açılabilir ama düşünün.** Bugün yetki dağıtımı işletme sahibinde;
+müdür operasyonun tamamını yürütüyor ama "kim neye yetkili" kararını
+veremiyor. Bu, müdür değiştiğinde yetkilerin kontrolsüz dağılmasını
+önlüyor. İsterseniz açarız.
+
+### "Mali müşavirim/denetçim girsin ama hiçbir şeyi bozmasın."
+**Tam olarak bunun için bir rol var: Görüntüleyici.** 18 ekranı görür,
+maliyet ve fiyat dahil her şeyi okur, **hiçbir şeyi değiştiremez** —
+15 iznin tamamı okuma.
+
+### "Kaç kullanıcı açabilirim?"
+Teknik bir sınır yok; **lisans planı** belirliyor. Rol sayısında sınır
+yok — bir kişiye birden fazla rol de verilebilir, yetkiler **birleşir**.
+
+### "Özel bir rol istiyorum, bizim işimize özel."
+Roller ve izinler tabloda duruyor; yeni rol tanımlamak mümkün.
+⚠️ Bizim önerimiz **önce var olan 13 rolden birini denemek**: çoğu
+işletme ihtiyacını bunlarla karşılıyor ve her yeni rol, bakımı gereken
+yeni bir kapı demek.
+
+### "Yetkiyi değiştirince ne kadar sürede etkili olur?"
+Kullanıcı bir sonraki girişinde. ⚠️ Açık oturum **anında kapanmıyor** —
+kritik bir durumda kullanıcıyı pasife almak gerekir.
+
+### "Bir şeyi yapmaya çalışınca ne görüyor?"
+**Sebebini söyleyen bir mesaj**, "yetkiniz yok" değil. Örnek:
+*"Şahit numune imhası bir ONAY işidir. İşletme müdürü onaylar; müdür
+yoksa gıda mühendisi ya da kalite sorumlusu onaylayabilir."*
+⚠️ Bu bir tercih: hangi yetkinin eksik olduğunu söylemeyen bir mesaj,
+kullanıcıyı da yöneticiyi de çaresiz bırakır.
+
+---
+
+⚠️ **Satışta söylenmeyecek:** "yapay zeka". Teknik başlık **kural
+motoru**.
+
+⚠️ **Söz verilmeyecek:** bu belgede olmayan bir yetki davranışı.
+Emin değilsen *"bakıp kesin cevabı vereyim"* de — yanlış söz, sonradan
+özür gerektirir.

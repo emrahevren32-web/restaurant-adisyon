@@ -2039,14 +2039,29 @@ Emrah'ın onayladığı sıra:
   ekranda **hiçbir şey görünmez**; yazıldığı an görünür.
   Emrah'ın kararı (06.11): *"şimdilik yazmasın ama admin panelimde orası
   için telefon numarası girebileceğim yer olsun."* → alan **boş** bırakıldı.
-- 🔴 **4.13** **CODEX DENETİMİ · 07.11.2026 · 3 P1 + 5 P2**
+- ✅ **4.13** **CODEX DENETİMİ · 07.11.2026 · 3 P1 + 5 P2 — SEKİZİ DE KAPANDI**
   Denetlenen HEAD `8657fbc`. **Yeni P0 yok.** Codex zil maddesinin
   kapandığını doğruladı. ⚠️ Codex provaları ve testleri yeniden
   koşturmadı; *"önceki 54 yeşil ölçümünü yeni ölçüm gibi sunmuyorum"*
   dedi — bu dürüstlük, bulguların kanıt değerini artırıyor.
-  ⚠️ Aşağıdakilerin **hiçbiri henüz Claude tarafından ölçülmedi.** Her
-  biri bir İDDİADIR; düzeltmeden önce tek tek ölçülecek (kontrol listesi
-  137: "bozuk da bir iddiadır").
+  ⚠️ **09.11 GECE TURU · SEKİZ BULGUNUN SEKİZİ DE ÖLÇÜLDÜ VE KAPANDI.**
+  Her birinin ne olduğu, nasıl ölçüldüğü ve neyle kapandığı ayrı bir
+  dosyada: **`docs/kararlar/codex-bulgulari-kasim-2026-3tur.md`**.
+  Prova durumu: temiz veritabanı, **113 göç · 63 prova · 0 kırmızı**
+  (`db/prova/son-kosu.json`).
+  ⚠️ **Göç 0112 bir Codex bulgusu DEĞİL:** 0109'u yazarken görülen komşu
+  kusur. `app.numune_turet()` imzanın "KİM" tarafını damgalıyor
+  (`taken_by`), "NE ZAMAN" tarafını (`taken_at`) istemciye bırakıyordu.
+  ⚠️ **0109'unki kadar ciddi değil ve öyle yazılmıyor:** `taken_at`
+  hiçbir kuralın girdisi değil, kaydırılması bir kapı açmıyor; bozduğu
+  şey defterin kendi doğruluğu. Ekran bu alanı hiç göndermiyor.
+  Kanıt: `prova-0112.sql` (11 iddia).
+  ⚠️ Gece turunda `tsc` ve `npm test` ÇALIŞMA ORTAMINDA KOŞMADI
+  (`node_modules` yok); TypeScript tarafı yalnız sözdizimi açısından
+  denetlenmişti. **Emrah 09.11 sabahı kendi makinesinde koşturdu:**
+  `tsc --noEmit` temiz, **114 dosya / 1938 sınama yeşil**. Yani kontrol
+  listesi 141'in istediği ikinci iddia da ölçüldü — "testler yeşil" ile
+  "kod derleniyor" ayrı ayrı doğrulandı.
   - ✅ **MIYOP-100 · P1 · GÖÇ 0107 İLE KAPANDI** (08.11).
     **ÖLÇÜLDÜ, doğrulandı:** `witness_sample` ve `witness_sample_event`
     üzerinde `authenticated` için SELECT açıktı ve RLS yalnız
@@ -2071,16 +2086,39 @@ Emrah'ın onayladığı sıra:
     bugün de ekranı açamıyor — ama çözülmeli: (a) `personel`e
     `quality.read` verilsin, ya da (b) yazma kapısından
     `production.write` çıkarılsın. **Emrah'a soruldu.**
-  - 🔴 **MIYOP-101 · P1** İstemcinin gönderdiği `occurred_at`, saklama
-    kuralını etkisizleştirebiliyor. `0094_numune_kiraci_siniri.sql:214/242`.
-    Tetik `least(s.keep_until, v_an::date + v_acik)` hesaplıyor; gelecek
-    tarih gönderilirse saklama sonu yanlış kalıyor. **0087 kuralının
-    ihlali: "kim/ne zaman" sunucunun damgasıdır, parametre değil.**
-  - 🔴 **MIYOP-102 · P1** Geri aramanın iki spam sınırı eşzamanlı
-    isteklerde aşılabiliyor. `0106_geri_arama_talebi.sql:325/334/345`.
-    `EXISTS` → `COUNT` → `INSERT` sırası var ama telefon başına kilit ya
-    da açık talep için tekil indeks yok; paralel çağrılar ikisini de
-    geçebilir. ⚠️ Bu **benim yazdığım göç** (06.11).
+  - ✅ **MIYOP-101 · P1 · GÖÇ 0109 İLE KAPANDI** (09.11).
+    **ÖLÇÜLDÜ:** açık raf ömrü 2 gün, parti SKT'si 20 gün olan iki
+    numuneyle: `occurred_at` gönderilmeyince saklama sonu bugün+2'ye
+    **kısaldı**; `occurred_at` otuz gün ileri gönderilince **hiç
+    kısalmadı** (SKT'de kaldı) — açılmış numune 18 gün fazla mühürlü
+    sayılıyordu. Göç 0109 `new.occurred_at := now()` ile **koşulsuz
+    sunucu damgası** koyuyor; `coalesce` yetmezdi, çünkü kolon NOT NULL
+    olduğu için istemcinin değerini SEÇİYORDU.
+    ⚠️ **İLK ÖLÇÜM YANILTICIYDI** (tuzak 193): fikstürde ürün kartına
+    açık raf ömrü yazılmamıştı, `keep_until` gelecek tarih yüzünden
+    değil **kural hiç çalışmadığı için** sabit kalmıştı. Prova artık
+    ölçmeden önce kendi fikstürünü ölçüyor.
+    Kanıt: `prova-0109.sql` (12 iddia) + `prova-0109-ters.sql`.
+  - ✅ **MIYOP-102 · P1 · GÖÇ 0110 İLE KAPANDI** (09.11).
+    ⚠️ Bu **benim yazdığım göçün** kusuruydu (06.11).
+    **ÖLÇÜLDÜ:** fonksiyonun kendi sırası iki oturumda araklandı —
+    iki kapı okuması da 0 gördü, **2 NEW satır** oluştu.
+    ⚠️ Önce 20 paralel gerçek çağrı denendi ve **yarış hiç oluşmadı**
+    (1 yazım, 19 ret): süreç başlatma gecikmesi çağrıları sıraya dizdi.
+    "Paralel koşturdum, geçti" demek onarımı gereksiz gösteren bir
+    yanlış yeşil olurdu (tuzak 196).
+    **Onarım iki kat:** telefon başına `pg_advisory_xact_lock` (asıl
+    kapı; 24 saat / 3 talep gibi bir SAYMA kuralını hiçbir indeks ifade
+    edemez) **ve** `unique (phone) where status = 'NEW'` kısmi indeksi
+    (kilidi almayan bir yol açılırsa fiziksel emniyet). Yazma döngüsü
+    artık hangi kısıtın çakıştığını ayırt ediyor; yoksa kullanıcı
+    "Talep numarası üretilemedi" gibi **yanlış bir sebep** görürdü.
+    ⚠️ Göç var olan kayıtları **silmiyor**: aynı numaranın en eski açık
+    talebi NEW kalıyor, sonrakiler CLOSED'a çekiliyor ve notuna sebebi
+    yazılıyor.
+    Onarımdan sonra aynı ölçüm: B kilitte **bekledi**, MI409 aldı,
+    1 NEW satır. Kanıt: `prova-0110.sql` + `prova-0110-ters.sql` +
+    `geri-arama-kapisi.arch.test.ts` (9 yeni iddia).
   - ✅ **`personel` ROLÜ KARARI · GÖÇ 0108** (08.11, Emrah: *"b olsun"*).
     MIYOP-100'ün açık bıraktığı ürün sorusu kapandı: şahit numune yazma
     kapısından `production.write` ÇIKTI, yerine `quality.write` geldi.
@@ -2101,19 +2139,71 @@ Emrah'ın onayladığı sıra:
     bakmıyor**: bütün göçleri sırayla tarayıp SON tanımı alıyor. Eski
     hâli 0093'e bakıyordu ve 0108'den sonra geçersiz bir göcün hâlini
     savunmaya başlayacaktı (tuzak 190).
-  - ⬜ **MIYOP-103 · P2** Kaydedilen firma adı/logo uygulama kabuğuna
-    ulaşmıyor; "Kaydedildi" sonrası yan menü ve sekme adı eski kalıyor.
-  - ⬜ **MIYOP-104 · P2** Eski ağ yanıtı okunmuş bildirimi yeniden
-    okunmamış gösterebiliyor (`AppShell.tsx:373/393/398`). Tazelemeler
-    paralel koşabiliyor ve eski yanıtı engelleyen kontrol yok.
-    ⚠️ Bu artık **sekme başlığını da** etkiler.
-  - ⬜ **MIYOP-105 · P2** Şahit numunede metin eşikleri ekranla DB'de
-    farklı (ekran 2–3 karakter, DB yalnız "boş olmasın").
-  - ⬜ **MIYOP-106 · P2** Büyük harfli e-posta uzantısı formda yanlış
-    reddediliyor: ekran `[a-z]{2,}` uyguluyor, DB önce `lower()` yapıyor.
-    `audit@example.COM` ekranda ret, DB'de kabul.
-  - ⬜ **MIYOP-107 · P2** Kaldırılmış giriş duyurularının CSS'i
-    dağıtılmaya devam ediyor (`styles.css:238/3708`).
+  - ✅ **MIYOP-103 · P2 · KAPANDI** (09.11). Profil ekranı adı ve logoyu
+    **veritabanına** yazıyordu; kabuk (`App.tsx > workspaceChrome`)
+    **tarayıcı deposundan** okuyordu. En kötü hata sınıfı: iş yapıldı,
+    ekran yapılmamış dedi. Artık kabuk **defterden** okuyor; tarayıcı
+    deposu yalnız defter boşken geriye düşülen yer.
+    `src/companies/firma-vitrini.ts` (+ 6 sınama). Profil ekranı
+    kaydettikten sonra bir tarayıcı olayı yayımlıyor (zilin yıllardır
+    kullandığı desen) — araya prop yolu kurmak üç dosyayı değiştirmek
+    olurdu.
+  - ✅ **MIYOP-104 · P2 · KAPANDI** (09.11). Zil dört tetikleyiciyle
+    tazeliyor ve cevaplar gönderildikleri sırayla dönmek zorunda değil;
+    eski bir cevap sonradan yazıldığında okunan bildirim yeniden
+    okunmamış görünüyordu — **rozet ve sekme başlığı dahil**.
+    Kural: **son istek kazanır** (`src/notifications/tazeleme-sirasi.ts`,
+    saf fonksiyon, 5 sınama).
+    ⚠️ `AbortController` değil, bilerek: sorun ağ değil **yazma sırası**;
+    üç kaynak `Promise.all` ile okunuyor ve iptal edilse bile yarısı
+    dönmüş olabilir.
+  - ✅ **MIYOP-105 · P2 · GÖÇ 0111 İLE KAPANDI** (09.11). Ekran numune
+    kodunu 2, gerekçeyi ve açılış sonucunu 3 karakterden kısa kabul
+    etmiyor ve bunu **gerçekten uyguluyor**; veritabanı yalnız "boş
+    olmasın" diyordu. API'den yazan biri gerekçe yerine `.` koyup
+    geçebiliyordu. Muafiyetler korundu: `ALINDI` gerekçe istemiyor,
+    `IMHA` sonuç istemiyor.
+    ⚠️ Göç **önce eski kayıtları ölçüyor**: ihlal varsa kısıt eklenmiyor
+    ve sayısını söylüyor (0100'ün deseni).
+    ⚠️ Mimari test eşik sayısını **elle yazmıyor** — ekranın kendi
+    fonksiyonundan davranışla ölçüp göçteki kısıt tanımıyla
+    karşılaştırıyor. Biri değişip diğeri kalırsa kırmızı yanar.
+    Kanıt: `prova-0111.sql` (7 iddia, hepsi canlı yazımla).
+  - ✅ **MIYOP-106 · P2 · KAPANDI** (09.11). Ekran adresi küçültmeden
+    `[a-z]{2,}` ile sınıyordu; sunucu önce `lower()` yapıyor. Yani ekran
+    sunucudan **katı ve yanlış taraftaydı**: kullanıcı var olan adresini
+    yazamıyordu. Artık `.test(eposta.toLowerCase())`.
+    ⚠️ `toLocaleLowerCase()` DEĞİL: Türkçe yerel ayarda `.INFO` → `.ınfo`
+    olur ve 'ı' `[a-z]` içinde olmadığı için adres yine reddedilirdi
+    (0017'nin dersi). Üç yeni sınama kabul edilen hâlleri, iki yenisi de
+    **yarım adresin hâlâ reddedildiğini** ölçüyor.
+  - ✅ **GÖÇ 0112 · NUMUNE ALINMA ZAMANI DA DAMGALANIYOR** (09.11).
+    Codex bulgusu değil; 0109'u yazarken görülen komşu kusur.
+    `app.numune_turet()` imzanın "KİM" tarafını damgalıyordu (`taken_by`),
+    "NE ZAMAN" tarafını (`taken_at`) istemciye bırakıyordu.
+    ⚠️ **0109'unki kadar ciddi değil:** `taken_at` hiçbir kuralın girdisi
+    değil, kaydırılması bir kapı açmıyor; bozduğu şey defterin kendi
+    doğruluğu.
+    **KARAR (Emrah 09.11: *"bunu bilemedim sen karar ver"*):** damga
+    kalıyor, **geriye tarih atma yolu açılmıyor.** Dört gerekçe yazılı:
+    `docs/kararlar/sahit-numune.md` → "Alınma zamanı · damga kararı".
+    ⚠️ **Beyan kolonu ŞİMDİ EKLENMİYOR** — kimsenin istemediği bir alan
+    eklemek 0093'teki `opened_shelf_life_days` hatasının (MIYOP-076:
+    ekranda alan var, hiçbir şey yapmıyor) tekrarı olurdu. Gerçek ihtiyaç
+    İsmet'ten ölçülecek (`claude/ismete-sorulacaklar.md` · **A6**); cevap
+    "ertesi sabah" ise damga kaldırılmaz, **ikinci (beyan) kolon** eklenir.
+    Kanıt: `prova-0112.sql` (11 iddia).
+  - ✅ **MIYOP-107 · P2 · KAPANDI** (09.11). Uydurma duyurular
+    (MIYOP-059) ekrandan kaldırılmıştı, CSS'i kalmıştı. Ölü kural
+    zararsız görünür; gerçek bedeli okuyana "böyle bir bölüm var"
+    demesidir. Ölçüm: beş herkese açık sayfa + iki vitrin mimari
+    testi — **0 kullanım**. Silindi;
+    `giris-vitrini-dogru-soyler.arch.test.ts` sınıfın **geri
+    gelmediğini** ölçüyor.
+    ⚠️ **AÇIK:** yanındaki `.unified-login-reference*` kuralları da
+    kullanılmış görünmüyor ama bu yalnız beş sayfada ölçüldü, depo
+    genelinde aranamadı. **Silinmedi.** Sabah tek komut:
+    `Select-String -Path src\*.tsx,src\**\*.tsx -Pattern "unified-login-reference"`
   - 📋 **Kapsam notları** (bulgu değil): lisans kataloğu `storage.ts:2613`
     hâlâ adisyon paketlerini taşıyor ama sekiz tüketici sayfanın hiçbiri
     açık rotadan açılmıyor → **P2 borç olarak kalıyor**. Geri arama üç

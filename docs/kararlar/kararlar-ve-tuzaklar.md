@@ -984,6 +984,118 @@ göreceği hata mesajları** da (`'Çok fazla deneme yapıldı'`) bozuluyordu.
 ⚠️ Ve komut kendi çıktısını **ölçmeli**: panoda `ş` var mı, bozuk `Ã` var
 mı. "Kopyaladım" demek yetmez; kopyanın sağlam olduğu gösterilir.
 
+**196 · YİRMİ PARALEL SÜREÇ BAŞLATMAK EŞZAMANLILIK ÖLÇMEZ.**
+(08-09.11.2026 · MIYOP-102)
+
+Geri arama formunun iki spam kapısı da "oku, sonra yaz" desenindeydi:
+eşzamanlı iki çağrı birbirinin henüz COMMIT edilmemiş satırını görmez,
+ikisi de "açık talep yok" okur ve ikisi de yazar.
+
+Kusuru göstermek için **aynı telefondan 20 paralel gerçek çağrı**
+başlattım. Sonuç: **1 yazım, 19 ret.** Kapı tutmuş görünüyordu.
+⚠️ Ama yarış HİÇ OLUŞMAMIŞTI: her çağrı ayrı bir `psql` süreci olarak
+başlıyordu ve süreç başlatma gecikmesi (~50 ms) fonksiyonun kendi
+süresinden (~1 ms) kat kat uzun olduğu için çağrılar fiilen sıraya
+diziliyordu. "Paralel koşturdum, geçti" demek tam bir **yanlış yeşil**
+olurdu — hem de onarımı GEREKSİZ gösteren cinsten.
+
+Doğru ölçüm, fonksiyonun **kendi sırasını iki oturumda bilerek
+araklamak** oldu:
+
+    A: begin → kapı okuması: 0 → (bekle 2sn) → insert → commit
+    B:        → kapı okuması: 0 → (bekle)    → insert → commit
+    sonuç: 2 NEW satır (aynı telefon)
+
+⚠️ Ders: **eşzamanlılık, "aynı anda çalıştırmayı denemek" ile
+ölçülmez.** Yarış penceresini sen açarsın: iki oturum, araya konan
+bekleme, ve kapının okuduğu değerin ekrana basılması. Rastlantıya
+bırakılan bir yarış, oluşmadığında kusuru YOK gösterir.
+
+⚠️ Onarım da iki katlı yazıldı: telefon başına `pg_advisory_xact_lock`
+(asıl kapı; 24 saat / 3 talep gibi bir SAYMA kuralını hiçbir indeks
+ifade edemez) **ve** `unique (phone) where status = 'NEW'` kısmi indeksi
+(kilidi almayan bir yol açılırsa fiziksel emniyet). İkisi birbirinin
+yerine değil, yanına.
+
+**195 · ÇAPASI YANLIŞ SEÇİLEN KESİM, YEŞİL YANAN BİR BOŞLUKTUR.**
+(09.11.2026 · MIYOP-101)
+
+"Depo olay yazarken `occurred_at` göndermiyor" iddiasını şöyle yazdım:
+
+    const yer = depo.indexOf('olayYaz')
+    expect(depo.slice(yer, yer + 900)).not.toContain('occurred_at')
+
+Yeşil yandı. Sonra ölçtüm: `indexOf('olayYaz')` **arayüz bildirimini**
+buluyordu (satır 160); gerçek `insert` satır 421'deydi. 900 karakter
+oraya **hiç ulaşmıyordu.** Yani test, boş bir metin parçasında yasaklı
+kelimeyi aramıyordu — hiçbir şey ölçmüyordu.
+
+⚠️ Doğrusu iki şey: çapayı **tekil** seç (`async olayYaz`) **ve kesimin
+doğru yeri kestiğini SAĞLAMAYA bağla** (`expect(govde).toContain('.insert(')`).
+Bir kesim, kapsadığını kendisi söylemek zorunda.
+
+⚠️ Bu tuzak 58'in ("yanlış yeşil, kırmızıdan kötüdür") ve bu dosyadaki
+`arasi()` dersinin ("sabit uzunluk bir kesim değil, bir TAHMİNDİR")
+üçüncü tekrarı. Sabit karakter sayısıyla kesim yapan her iddia bir
+sağlama ister.
+
+**194 · YASAĞI ANLATAN BİR DİZE DE YASAĞIN İHLALİ SAYILIR.**
+(09.11.2026 · MIYOP-101 · tuzak 181'in kardeşi)
+
+0109, `coalesce(new.occurred_at, now())` satırını kaldırıp yerine
+koşulsuz sunucu damgası koyuyor. Mimari test de bunu ölçüyor:
+"gövdede `coalesce(new.occurred_at` KALMADI".
+
+Yorumları sildim (tuzak 181) ve test **yine kırmızı** yandı. Sebep:
+göçün kendi DOĞRULAMA bloğundaki **hata mesajı**, yasaklı metni
+kelimesi kelimesine içeriyordu:
+
+    raise exception '0109 DOGRULAMA: coalesce(new.occurred_at, ...) hala duruyor;'
+
+Yani yasağı ANLATAN bir dize, yasağın ihlali sayıldı. Yorum soymak
+yetmiyor: bir göç dosyası, yasakladığı metni hem yorumda hem hata
+mesajında taşır.
+
+⚠️ Doğrusu: ölçüm **sınırını daraltır** — bütün göç dosyasına değil,
+yalnız fonksiyonun GÖVDESİNE bakar (`create or replace function ...`
+ile `end $$;` arası). Veritabanı tarafındaki ölçüm bunu zaten doğru
+yapıyordu (`pg_get_functiondef` yalnız gövdeyi döndürür); yanlış olan
+dosya metnine bakan taraftı.
+
+**193 · "KUSURU DOĞRULADIM" DEMEK, ÖLÇÜMÜN O KUSURU ÖLÇTÜĞÜNÜ
+GÖSTERMEZ.**
+(08-09.11.2026 · MIYOP-101)
+
+MIYOP-101'i (istemcinin gönderdiği `occurred_at` saklama kuralını
+etkisiz bırakıyor) prova veritabanında "canlandırdım" ve çıktı şunu
+dedi:
+
+    acilmadan once keep_until = 2026-11-28
+    acildiktan sonra keep_until = 2026-11-28   ← kısalmadı
+    SONUC: MIYOP-101 DOGRULANDI
+
+⚠️ **Ölçüm yanıltıcıydı.** Fikstürde ürün kartına açık raf ömrü
+yazılmamıştı; numuneye kopyalanan değer `null` oldu ve 0094'ün kuralı
+`case when v_acik is null then s.keep_until` dalına girdi. Yani
+`keep_until` gelecek tarih yüzünden değil, **kural hiç çalışmadığı
+için** sabit kalmıştı. Doğru sonuç yanlış sebebe bağlanmıştı.
+
+Kontrollü ölçüm (ürün kartında açık raf ömrü = 2 gün, iki ayrı numune)
+kusuru gerçekten gösterdi:
+
+    A · occurred_at gönderilmedi → keep_until bugün+2  (kısaldı)
+    B · occurred_at = +30 gün    → keep_until SKT       (kısalmadı)
+
+⚠️ Ders: bir kusur provası, ölçmeden önce **kendi fikstürünü ölçmek**
+zorunda. `prova-0109.sql` artık ilk iki iddiasında bunu yapıyor:
+"açık raf ömrü numuneye kopyalandı mı", "mühürlü numunenin saklama
+sonu partinin SKT'si mi". O ikisi kırmızı yanarsa geri kalan ölçüm
+anlamsızdır — ve sessizce "doğrulandı" demek yerine patlar.
+
+⚠️ Bunun kardeşi tuzak 191 ("bozuk da bir iddiadır") ve 143 ("gözlem
+ile sonuç ayrı şeylerdir"). Üçü aynı yere bakıyor: **beklediğini
+gösteren bir ölçüm, doğru ölçtüğünü göstermez.**
+
 **192 · ÖN PLANI SABİTLEDİM, ALTINDAKİ YÜZEYİ ÖLÇMEDİM — VE İKİ
 SAYFADAN BİRİNİ OKUNMAZ YAPTIM.**
 (07.11.2026 · HEDEFLER 4.11.6d)
@@ -2287,6 +2399,33 @@ Son söz onun çıktısındadır.
      vermez** (0106). "N ay sonra silinir" demek için kendiliğinden silen
      bir iş gerekir; yoksa metin süre yazmaz, **tutulan** sözü yazar — ve
      o sözün karşılığı (silme fonksiyonu + düğmesi) aynı turda yazılır.
+144. **Bir kusur provası, ölçmeden önce KENDİ FİKSTÜRÜNÜ ölçer**
+     (tuzak 193). "Beklediğim sonucu gördüm" ile "kusuru ölçtüm" ayrı
+     iki şey: fikstür eksikse sonuç doğru çıkar, sebep yanlış olur.
+     Fikstür sağlaması provanın İLK iddiası olur ve kırmızı yanınca
+     geri kalanı koşturmaz.
+145. **Eşzamanlılık, "aynı anda çalıştırmayı denemek" ile ölçülmez**
+     (tuzak 196). Yarış penceresi ELLE açılır: iki oturum, araya konan
+     bekleme, ve kapının okuduğu değerin basılması. Rastlantıya
+     bırakılan bir yarış oluşmadığında kusuru YOK gösterir.
+146. **"Oku, sonra yaz" deseni bir kapı değildir** (MIYOP-102). Sayma
+     kuralı (24 saatte 3) için **işlem kilidi**, tekillik kuralı için
+     **kısmi tekillik indeksi** gerekir; ikisi birbirinin yerine değil
+     yanına konur. Kilit, okumadan ÖNCE alınır — sonra alınan kilit
+     hiçbir şey korumaz ve bu da ölçülür.
+147. **Yeni bir tekillik indeksi eklerken, yazma döngüsünün hangi
+     kısıtın çakıştığını AYIRT ETMESİ gerekir** (0110). `unique_violation`ı
+     tek sebebe yoran bir döngü, kullanıcıya yanlış sebebi gösterir
+     ("Talep numarası üretilemedi" oysa "zaten açık talep var").
+148. **Sabit karakter sayısıyla yapılan her kesim bir SAĞLAMA ister**
+     (tuzak 195). Çapa tekil seçilir (`async olayYaz`, `olayYaz` değil)
+     ve kesimin doğru yeri kapsadığı iddia edilir
+     (`expect(govde).toContain('.insert(')`). Çapası kaçan kesim,
+     yeşil yanan bir boşluktur.
+149. **Bir göç dosyasının metnini ölçen iddia, SINIRINI daraltır**
+     (tuzak 194). Yorumları silmek yetmez: göç, yasakladığı metni hata
+     MESAJINDA da taşır. Ölçüm fonksiyonun gövdesine bakar, dosyanın
+     tamamına değil.
 140. **Bir rengi sabitlerken ALTINDAKİ YÜZEYİ de SABİTLE** (tuzak 192).
      Yazıyı sabitleyip zemini temaya bırakmak, temalardan birinde
      mutlaka okunmaz bir birleşim üretir. "Temadan bağımsız" demek,

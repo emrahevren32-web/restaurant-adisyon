@@ -25,6 +25,7 @@ import { readdirSync, readFileSync } from 'node:fs'
 import { join } from 'node:path'
 import { projeKokunuBul } from '../core/test-support/goc-tarama'
 import { NUMUNE_IZINLERI } from '../authorization/yazma-yetkisi'
+import { gerekceYeterliMi, numuneKoduYeterliMi } from './witness-sample.service'
 import { readFileSync as oku } from 'node:fs'
 
 const KOK = projeKokunuBul()
@@ -243,5 +244,179 @@ describe('numune kapısı · göç ile ekran aynı izinleri istiyor', () => {
       .toMatch(/v_lot_kiraci is distinct from v_kiraci/)
     expect(GOC_0094, 'açılışta saklama sonu least() ile kısaltılmıyor')
       .toMatch(/least\(s\.keep_until/)
+  })
+})
+
+// ═══════════════════════════════════════════════════════════════════════════
+// ⚠️ SQL YORUMLARI ÖLÇÜMDEN ÖNCE SİLİNİYOR (TUZAK 181 · bu depoda 5. kez).
+// Göçler kaldırılan kodu bilerek kelime kelime alıntılıyor: 0109'un
+// başlığında eski `coalesce(new.occurred_at, now())` satırı YORUM olarak
+// duruyor. Ham metne bakan bir iddia kendi açıklamasına takılır.
+// ═══════════════════════════════════════════════════════════════════════════
+const sqlKod = (metin: string): string => metin.replace(/--[^\n]*/g, '')
+
+/**
+ * Bir `app` fonksiyonunun YALNIZ GÖVDESİ, göç dosyasının geri kalanı değil.
+ *
+ * ⚠️ BU SATIR BİR HATANIN BEDELİ (08.11.2026). İlk hâlinde bu blok göç
+ * dosyasının TAMAMINA bakıyordu ve "`coalesce(new.occurred_at …)` kalmadı"
+ * iddiası KIRMIZI yanıyordu — çünkü 0109'un kendi DOĞRULAMA bloğundaki
+ * HATA MESAJI o metni kelimesi kelimesine içeriyor:
+ *     '0109 DOGRULAMA: coalesce(new.occurred_at, ...) hala duruyor; …'
+ * Yorumları silmek yetmiyor: yasağı ANLATAN bir dize de yasağın ihlali
+ * sayılıyordu. Tuzak 181'in kardeşi — ölçüm, ölçtüğü SINIRI kendisi
+ * söylemek zorunda.
+ */
+const etkinFonksiyonGovdesi = (ad: string): { govde: string; goc: string } => {
+  const f = etkinFonksiyon(ad)
+  if(f.metin === '') return { govde: '', goc: '' }
+  const bas = f.metin.lastIndexOf(`create or replace function app.${ad}()`)
+  const son = f.metin.indexOf('end $$;', bas)
+  if(bas < 0 || son < 0) return { govde: '', goc: f.goc }
+  return { govde: sqlKod(f.metin.slice(bas, son + 'end $$;'.length)), goc: f.goc }
+}
+
+/**
+ * Bir kısıtın EN SON yazıldığı tanım metni.
+ *
+ * ⚠️ Tek göçe bakmak tuzak 190: kısıt 0093'te doğdu, 0100 ve 0111 onu
+ * yeniden yazdı. Ölçüm son tanımı bulmak zorunda; yoksa artık geçerli
+ * olmayan bir hâli savunur.
+ */
+const etkinKisit = (ad: string): { tanim: string; goc: string } => {
+  let sonuc = { tanim: '', goc: '' }
+  for(const dosya of gocDosyalari()){
+    const sql = sqlKod(readFileSync(join(GOC_KLASORU, dosya), 'utf8') as string)
+    const re = new RegExp(`add constraint ${ad} check \\(([\\s\\S]*?)\\);`, 'g')
+    let m: RegExpExecArray | null
+    let son = ''
+    while((m = re.exec(sql)) !== null) son = m[1] as string
+    if(son !== '') sonuc = { tanim: son, goc: dosya }
+  }
+  return sonuc
+}
+
+// ═══════════════════════════════════════════════════════════════════════════
+// MIYOP-101 · OLAY ZAMANI İSTEMCİDEN GELMEZ
+//
+// 0094 saklama sonunu `coalesce(new.occurred_at, now())` ile hesaplıyordu.
+// `occurred_at` istemciden yazılabilen bir kolon olduğu için gelecek bir
+// tarih gönderen istemci için `least()` eski değeri seçiyor ve açılmış
+// numunenin saklama sonu HİÇ KISALMIYORDU (0109 ile onarıldı; ölçüm
+// çıktısı o göçün başlığında).
+// ═══════════════════════════════════════════════════════════════════════════
+describe('numune olay zamanı · sunucu damgası (MIYOP-101)', () => {
+  const OLAY = etkinFonksiyonGovdesi('numune_olayi')
+
+  it('sağlama · ölçüm gerçekten bir göç ve bir gövde buldu', () => {
+    expect(OLAY.goc, 'app.numune_olayi() hiçbir göçte bulunamadı').not.toBe('')
+    expect(OLAY.govde.length, 'gövde kesilemedi').toBeGreaterThan(200)
+    // Kesimin doğru yeri: gövde kendi `create` satırıyla başlıyor.
+    expect(OLAY.govde.startsWith('create or replace function app.numune_olayi()')).toBe(true)
+  })
+
+  it('⚠️ olay zamanı KOŞULSUZ damgalanıyor', () => {
+    expect(OLAY.govde).toMatch(/new\.occurred_at\s*:=\s*now\(\)/)
+  })
+
+  it('⚠️ `coalesce(new.occurred_at, …)` kalmadı — kusurun ta kendisi', () => {
+    // Kolon NOT NULL olduğu için `coalesce` istemcinin gönderdiği değeri
+    // SEÇER. Yani yazılmış ama çalışmayan bir korumaydı.
+    expect(OLAY.govde).not.toMatch(/coalesce\s*\(\s*new\.occurred_at/)
+  })
+
+  it('0094’ün kapıları hâlâ yerinde (onarırken düşmemiş)', () => {
+    const k = OLAY.govde
+    expect(k, 'kiracı sınırı düştü (MIYOP-075)').toContain('app.current_tenant_id()')
+    expect(k, 'satır kilidi düştü (MIYOP-077)').toMatch(/for\s+update/i)
+    expect(k, 'least() düştü · saklama sonu uzayabilir').toContain('least')
+    expect(k, 'açık raf ömrü okunmuyor (MIYOP-076)').toContain('opened_shelf_life_days')
+  })
+
+  it('⚠️ depo olay yazarken `occurred_at` GÖNDERMİYOR', () => {
+    // Sunucu damgası bir alanı yok sayıyorsa, o alanı gönderen kod
+    // okuyucuyu yanıltır: gönderildiği sanılır.
+    //
+    // ⚠️ ÇAPA `async olayYaz`, sadece `olayYaz` DEĞİL. İlk hâli
+    // `indexOf('olayYaz')` ile ARAYÜZ BİLDİRİMİNİ buluyordu (satır 160)
+    // ve oradan 900 karakter, gerçek `insert`e (satır 421) HİÇ ulaşmıyordu:
+    // test yeşil yanıyor ama hiçbir şey ölçmüyordu. Yanlış yeşil, yanlış
+    // kırmızı kadar zarar verir.
+    const depo = oku(join(KOK, 'src/quality/witness-sample.repository.ts'), 'utf8') as string
+    const yer = depo.indexOf('async olayYaz')
+    expect(yer, 'olayYaz gerçekleştirimi bulunamadı').toBeGreaterThan(-1)
+    const govde = depo.slice(yer, yer + 900)
+    // Sağlama: kesim gerçekten yazma çağrısını kapsıyor.
+    expect(govde, 'kesim insert çağrısını kapsamıyor').toContain('.insert(')
+    expect(govde).not.toContain('occurred_at')
+  })
+
+  it('prova ve ters prova var, rol takıyor, veritabanını kirletmiyor', () => {
+    for(const p of ['db/prova/prova-0109.sql', 'db/prova/prova-0109-ters.sql']){
+      const metin = oku(join(KOK, p), 'utf8') as string
+      expect(metin, `${p} rol takmıyor (MIYOP-042)`).toContain('set local role authenticated')
+      expect(metin.trimEnd().endsWith('rollback;'), `${p} rollback ile bitmiyor`).toBe(true)
+    }
+  })
+})
+
+// ═══════════════════════════════════════════════════════════════════════════
+// MIYOP-105 · METİN EŞİKLERİ EKRAN İLE VERİTABANINDA AYNI OLMALI
+//
+// Ekran gerekçeyi 3, numune kodunu 2 karakterden kısa kabul etmiyor ve bu
+// kuralı gerçekten uyguluyor (`SahitNumune.tsx`). Veritabanı ise yalnız
+// "boş olmasın" diyordu: API'den yazan biri gerekçe yerine `.` koyup
+// geçebiliyordu. 0111 iki tarafı eşitledi.
+//
+// ⚠️ EŞİK SAYISI ELLE YAZILMIYOR: ekranın kendi fonksiyonundan ÖLÇÜLÜYOR.
+// Elle yazılan bir beklenti, ölçtüğünü sandığı şeyi değil kendisini ölçer.
+// ═══════════════════════════════════════════════════════════════════════════
+describe('numune metin eşikleri · ekran ile veritabanı aynı (MIYOP-105)', () => {
+  /** Fonksiyonun kabul ettiği EN KISA uzunluk — davranışla ölçülüyor. */
+  const enKisaKabul = (yeterliMi: (m: string | undefined) => boolean): number => {
+    for(let n = 1; n <= 10; n++){
+      if(yeterliMi('a'.repeat(n))) return n
+    }
+    return 0
+  }
+
+  const KOD_ESIGI = enKisaKabul(numuneKoduYeterliMi)
+  const GEREKCE_ESIGI = enKisaKabul(gerekceYeterliMi)
+
+  it('sağlama · eşikler gerçekten ölçüldü', () => {
+    expect(KOD_ESIGI, 'numune kodu eşiği ölçülemedi').toBeGreaterThan(0)
+    expect(GEREKCE_ESIGI, 'gerekçe eşiği ölçülemedi').toBeGreaterThan(0)
+    // Boşluk eşiği geçmemeli: `trim` olmadan ölçüm anlamsız olurdu.
+    expect(numuneKoduYeterliMi('  ')).toBe(false)
+    expect(gerekceYeterliMi('   ')).toBe(false)
+  })
+
+  it('⚠️ numune kodu kısıtı ekranın eşiğiyle aynı', () => {
+    const k = etkinKisit('witness_sample_code_not_blank')
+    expect(k.goc, 'kısıt hiçbir göçte bulunamadı').not.toBe('')
+    expect(k.tanim).toContain(`>= ${KOD_ESIGI}`)
+  })
+
+  it('⚠️ gerekçe kısıtı ekranın eşiğiyle aynı', () => {
+    const k = etkinKisit('witness_sample_event_reason_required')
+    expect(k.goc, 'kısıt hiçbir göçte bulunamadı').not.toBe('')
+    expect(k.tanim).toContain(`>= ${GEREKCE_ESIGI}`)
+    // `ALINDI` muafiyeti: numune almanın gerekçesi yoktur.
+    expect(k.tanim).toContain('ALINDI')
+  })
+
+  it('⚠️ açılış sonucu kısıtı ekranın eşiğiyle aynı', () => {
+    // Ekran sonuç için de `gerekceYeterliMi` kullanıyor (SahitNumune.tsx).
+    const k = etkinKisit('witness_sample_event_result_required')
+    expect(k.goc, 'kısıt hiçbir göçte bulunamadı').not.toBe('')
+    expect(k.tanim).toContain(`>= ${GEREKCE_ESIGI}`)
+    // Yalnız `ACILDI` için: `IMHA`nın sonucu gerekçesinin içinde.
+    expect(k.tanim).toContain('ACILDI')
+  })
+
+  it('prova var, rol takıyor, veritabanını kirletmiyor', () => {
+    const metin = oku(join(KOK, 'db/prova/prova-0111.sql'), 'utf8') as string
+    expect(metin).toContain('set local role authenticated')
+    expect(metin.trimEnd().endsWith('rollback;')).toBe(true)
   })
 })
