@@ -142,11 +142,31 @@ burada yeni bir izne gerek yok: bu ekran zaten yalnız platform sahibinin.
 Emrah ilk kaydı girdikten sonra `gidamo.org.tr/mevzuat/ilgili-mevzuat`
 sayfasını gösterdi: *"ben aslında bu adresteki gibi olsun istemiştim."*
 
-**O sayfa ölçüldü (ekran görüntüsü):** bir haber akışı değil. Üç başlık,
-üç bağlantı — *Gıda İle İlgili Kanunlar*, *...Tüm Yönetmelikler*,
-*...Tüm Tebliğler*. Üçü de `mevzuat.gov.tr`deki tam listeye gidiyor. Yani
-kırk maddelik bir katalog değil, **üç kalıcı kapı**: bakımı neredeyse
+**O sayfa ölçüldü:** bir haber akışı değil. Üç başlık, üç bağlantı —
+*Gıda İle İlgili Kanunlar*, *...Tüm Yönetmelikler*, *...Tüm Tebliğler*.
+Yani kırk maddelik bir katalog değil, **üç kalıcı kapı**: bakımı neredeyse
 sıfır, bozulacak ayrıştırıcı yok, içeriğin güncelliği kaynağın işi.
+
+> ⚠️ **DÜZELTME (10.11, sayfa okunarak ölçüldü).** Bu belgenin ilk hâlinde
+> *"üçü de mevzuat.gov.tr'deki tam listeye gidiyor"* yazıyordu — **yanlıştı.**
+> Üç bağlantı da `gidamo.org.tr/icerik/...` sayfalarına gidiyor:
+>
+> | başlık | adres |
+> |---|---|
+> | Gıda İle İlgili Kanunlar | `https://www.gidamo.org.tr/icerik/gida-ile-ilgili-kanunlar-202509051022` |
+> | ...Tüm Yönetmelikler | `https://www.gidamo.org.tr/icerik/gida-ve-gida-ile-temas-eden-maddeler-hakkindaki-tum-yonetmelikler-202509051020` |
+> | ...Tüm Tebliğler | `https://www.gidamo.org.tr/icerik/gida-ve-gida-ile-temas-eden-maddeler-hakkindaki-tum-tebligler-202509051020` |
+>
+> ⚠️ Ve ikinci ölçüm: **`mevzuat.gov.tr`de "tüm yönetmelikler" diye kalıcı
+> bir adres YOK.** Kategoriler (Kanunlar · Yönetmelikler · Tebliğler) ana
+> sayfada açılan **POST ile çalışan arama formları** — `#yonetmelikler`
+> bölümündeki tek `form` `method=post`, içinde liste bağlantısı yok.
+> Verilebilecek kalıcı adres yalnız `https://www.mevzuat.gov.tr/#yonetmelikler`
+> gibi bir çapa; o da hazır liste değil, kategorinin arama panelini açıyor.
+>
+> Yani kütüphaneye ne konacağı bir **karar**: resmî kaynağın çapaları,
+> Gıda Mühendisleri Odası'nın derlediği üç sayfa, ya da tek tek gerçek
+> yönetmelik/tebliğ bağlantıları. Karar Emrah'ın; göç içerik koymuyor.
 
 0113 ise bir haber akışı kurmuştu: tarihli, en yeni üstte. İkisinin
 tutmadığı ilk kayıtta görüldü — Emrah'ın girdiği şey bir mevzuattı

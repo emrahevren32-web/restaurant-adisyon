@@ -5,14 +5,24 @@
 -- Emrah (10.11.2026) `gidamo.org.tr/mevzuat/ilgili-mevzuat` sayfasını
 -- göstererek: *"ben aslında bu adresteki gibi olsun istemiştim."*
 --
--- ⚠️ O SAYFA BİR HABER AKIŞI DEĞİL. Ölçüldü (ekran görüntüsü): üç başlık,
+-- ⚠️ O SAYFA BİR HABER AKIŞI DEĞİL. Ölçüldü (sayfa okundu): üç başlık,
 -- üç bağlantı —
 --     Kanunlar    → "Gıda İle İlgili Kanunlar"
 --     Yönetmelik  → "...Tüm Yönetmelikler"
 --     Tebliğler   → "...Tüm Tebliğler"
--- Üçü de `mevzuat.gov.tr`deki tam listeye gidiyor. Yani kırk maddelik bir
--- katalog değil, **üç kalıcı kapı**: elle bakımı neredeyse sıfır,
--- bozulacak bir ayrıştırıcı yok, içeriğin güncelliği kaynağın kendi işi.
+-- Yani kırk maddelik bir katalog değil, **üç kalıcı kapı**: elle bakımı
+-- neredeyse sıfır, bozulacak bir ayrıştırıcı yok, içeriğin güncelliği
+-- kaynağın kendi işi.
+--
+-- ⚠️ DÜZELTME (10.11, ölçümle): bu açıklamanın ilk hâlinde "üçü de
+-- mevzuat.gov.tr'deki tam listeye gidiyor" yazıyordu. YANLIŞTI. Ölçüldü:
+-- üç bağlantı da `gidamo.org.tr/icerik/...` sayfalarına gidiyor. Ayrıca
+-- `mevzuat.gov.tr`de "tüm yönetmelikler" diye KALICI BİR ADRES YOK:
+-- kategoriler ana sayfada POST ile çalışan arama formları (ölçüldü —
+-- `#yonetmelikler` bölümündeki tek form `method=post`). Oraya verilebilecek
+-- kalıcı adres yalnız `https://www.mevzuat.gov.tr/#yonetmelikler` gibi bir
+-- çapa; o da kategorinin arama panelini açıyor, hazır bir liste değil.
+-- ⚠️ Bu göç bir içerik koymuyor; nereye bağlanacağı Emrah'ın kararı.
 --
 -- 0113 ise bir HABER AKIŞI kurmuştu: tarihli, en yeni üstte. Emrah ilk
 -- kaydı girince ikisinin tutmadığı görüldü — girdiği şey bir mevzuattı
