@@ -22,8 +22,10 @@
 
 import type { SupabaseClient } from '@supabase/supabase-js'
 import {
+  MEVZUAT_TURLERI,
   type MevzuatDurumu,
   type MevzuatGirdisi,
+  type MevzuatTuru,
   VITRIN_SATIR_SINIRI,
 } from './mevzuat.service'
 
@@ -34,6 +36,8 @@ export type MevzuatVitrinSatiri = {
   kaynakAdi: string
   kaynakAdresi: string
   yayimTarihi: string
+  /** Göç 0114: vitrin satırı türüne göre gruplandırıyor. */
+  tur: MevzuatTuru
 }
 
 /** Yönetim ekranının gördüğü satır. */
@@ -67,12 +71,28 @@ const anlasilirHata = (kod: string | undefined, metin: string, varsayilan: strin
   return new Error(`${varsayilan} (${metin})`)
 }
 
+/**
+ * ⚠️ Tanınmayan bir tür `HABER`e düşüyor, ATILMIYOR.
+ *
+ * Satır zaten veritabanının kısıtından geçmiş (0114 · dört değer). Buraya
+ * tanınmayan bir şey gelirse sebebi sunucunun yeni bir tür tanımış, bu
+ * dosyanın henüz tanımamış olmasıdır. O satırı atmak, Emrah'ın panelden
+ * yayına aldığı bir kaydın ekranda SESSİZCE yok olması demek olurdu.
+ */
+const tureCevir = (deger: unknown): MevzuatTuru => {
+  const metin = String(deger ?? '').trim().toUpperCase()
+  return (MEVZUAT_TURLERI as readonly string[]).includes(metin)
+    ? (metin as MevzuatTuru)
+    : 'HABER'
+}
+
 const vitrineCevir = (s: Record<string, unknown>): MevzuatVitrinSatiri => ({
   baslik: String(s.baslik ?? ''),
   ozet: (s.ozet as string | null) ?? null,
   kaynakAdi: String(s.kaynak_adi ?? ''),
   kaynakAdresi: String(s.kaynak_adresi ?? ''),
   yayimTarihi: String(s.yayim_tarihi ?? ''),
+  tur: tureCevir(s.tur),
 })
 
 export class PostgresMevzuatDefteri implements MevzuatDefteri {
@@ -116,6 +136,7 @@ export class PostgresMevzuatDefteri implements MevzuatDefteri {
       p_kaynak_adi: girdi.kaynakAdi.trim(),
       p_kaynak_adres: girdi.kaynakAdresi.trim(),
       p_yayim_tarihi: girdi.yayimTarihi,
+      p_tur: girdi.tur,
       p_durum: girdi.durum,
     })
     if(error){
@@ -148,13 +169,19 @@ export class BellekMevzuatDefteri implements MevzuatDefteri {
   private sayac = 0
 
   async vitriniOku(limit: number = VITRIN_SATIR_SINIRI): Promise<MevzuatVitrinSatiri[]> {
-    const tavan = Math.min(Math.max(Math.floor(limit) || VITRIN_SATIR_SINIRI, 1), 20)
+    const tavan = Math.min(Math.max(Math.floor(limit) || VITRIN_SATIR_SINIRI, 1), 30)
+    // ⚠️ Sunucudaki sıra TAKLİT EDİLİYOR (0114 · kanun → yönetmelik →
+    // tebliğ → haber). Bu bir ikinci gerçek değil: bu sınıf hiçbir ekranda
+    // kullanılmıyor, yalnız sınamalar için var. Taklit etmezse sınamalar
+    // sunucununkinden BAŞKA bir dünyayı ölçer.
+    const turSirasi = (t: MevzuatTuru): number => MEVZUAT_TURLERI.indexOf(t)
     return this.satirlar
       .filter(s => s.durum === 'YAYINDA')
-      .sort((a, b) => b.yayimTarihi.localeCompare(a.yayimTarihi))
+      .sort((a, b) => turSirasi(a.tur) - turSirasi(b.tur)
+        || b.yayimTarihi.localeCompare(a.yayimTarihi))
       .slice(0, tavan)
-      .map(({ baslik, ozet, kaynakAdi, kaynakAdresi, yayimTarihi }) => ({
-        baslik, ozet, kaynakAdi, kaynakAdresi, yayimTarihi,
+      .map(({ baslik, ozet, kaynakAdi, kaynakAdresi, yayimTarihi, tur }) => ({
+        baslik, ozet, kaynakAdi, kaynakAdresi, yayimTarihi, tur,
       }))
   }
 
@@ -162,7 +189,15 @@ export class BellekMevzuatDefteri implements MevzuatDefteri {
     return [...this.satirlar].sort((a, b) => b.yayimTarihi.localeCompare(a.yayimTarihi))
   }
 
+
   async yaz(kimlik: string | null, girdi: MevzuatGirdisi): Promise<string> {
+    // ⚠️ SUNUCUNUN KURALI BURADA DA GEÇERLİ (0114). Bu sınıf yalnız
+    // sınamalar için var; türsüz kaydı kabul etseydi sınamalar sunucunun
+    // REDDETTİĞİ bir dünyayı ölçer ve yeşil yanardı.
+    if(!MEVZUAT_TURLERI.includes(girdi.tur as MevzuatTuru)){
+      throw new Error('Tür seçilmedi (kanun, yönetmelik, tebliğ ya da haber).')
+    }
+    const tur = girdi.tur as MevzuatTuru
     const simdi = new Date().toISOString()
     if(kimlik){
       const satir = this.satirlar.find(s => s.kimlik === kimlik)
@@ -173,6 +208,7 @@ export class BellekMevzuatDefteri implements MevzuatDefteri {
         kaynakAdi: girdi.kaynakAdi.trim(),
         kaynakAdresi: girdi.kaynakAdresi.trim(),
         yayimTarihi: girdi.yayimTarihi,
+        tur,
         durum: girdi.durum,
         sonIslem: simdi,
       })
@@ -186,6 +222,7 @@ export class BellekMevzuatDefteri implements MevzuatDefteri {
       kaynakAdi: girdi.kaynakAdi.trim(),
       kaynakAdresi: girdi.kaynakAdresi.trim(),
       yayimTarihi: girdi.yayimTarihi,
+      tur,
       durum: girdi.durum,
       olusturma: simdi,
       yazan: null,

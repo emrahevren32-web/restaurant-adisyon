@@ -26,12 +26,15 @@ import {
   KAYNAK_EN_COK,
   MEVZUAT_DURUMLARI,
   MEVZUAT_DURUM_ETIKETI,
+  MEVZUAT_TURLERI,
+  MEVZUAT_TUR_ETIKETI,
   OZET_EN_COK,
-  VITRIN_SATIR_SINIRI,
+  VITRIN_HABER_SINIRI,
   mevzuatDogrula,
   tarihiGoster,
   type MevzuatDurumu,
   type MevzuatGirdisi,
+  type MevzuatTuru,
 } from '../platform/mevzuat.service'
 import { PostgresMevzuatDefteri, type MevzuatSatiri } from '../platform/mevzuat.repository'
 
@@ -41,6 +44,10 @@ const bosForm = (): MevzuatGirdisi => ({
   kaynakAdi: '',
   kaynakAdresi: '',
   yayimTarihi: new Date().toISOString().slice(0, 10),
+  // ⚠️ TÜR BOŞ BAŞLIYOR. Varsayılan bir tür konsaydı, Emrah bir kanunu
+  // farkında olmadan haber olarak yayına alabilirdi; haber satırları
+  // vitrinde tarihe göre en alta diziliyor ve kalıcı bağlantı kaybolurdu.
+  tur: '',
   durum: 'TASLAK',
 })
 
@@ -50,6 +57,7 @@ const formaCevir = (satir: MevzuatSatiri): MevzuatGirdisi => ({
   kaynakAdi: satir.kaynakAdi,
   kaynakAdresi: satir.kaynakAdresi,
   yayimTarihi: satir.yayimTarihi.slice(0, 10),
+  tur: satir.tur,
   durum: satir.durum,
 })
 
@@ -173,6 +181,12 @@ export default function MevzuatAkisi(){
             yönetiliyor. Yalnız <strong>yayında</strong> olan kayıtlar
             görünür; hiç yayında kayıt yoksa kutu <strong>hiç çizilmez</strong>.
           </p>
+          <p className="muted small-text">
+            Kutu iki parçadan oluşuyor: <strong>kütüphane</strong> (kanun,
+            yönetmelik, tebliğ — kalıcı bağlantılar) ve{' '}
+            <strong>akış</strong> (tarihli haberler). Sıra sunucuda sabit:
+            kanunlar, yönetmelikler, tebliğler, sonra haberler.
+          </p>
         </div>
       </div>
 
@@ -183,7 +197,7 @@ export default function MevzuatAkisi(){
           <h3>{duzenlenen ? 'Kaydı düzenle' : 'Yeni kayıt'}</h3>
           <span className={`status-pill ${yayindaSayisi > 0 ? 'info-pill' : 'muted-pill'}`}>
             {yayindaSayisi > 0
-              ? `${yayindaSayisi} kayıt yayında · vitrinde en çok ${VITRIN_SATIR_SINIRI} tanesi`
+              ? `${yayindaSayisi} kayıt yayında · haberlerin en çok ${VITRIN_HABER_SINIRI} tanesi`
               : 'Yayında kayıt yok — vitrinde kutu görünmüyor'}
           </span>
         </div>
@@ -259,6 +273,27 @@ export default function MevzuatAkisi(){
           </div>
 
           <div className="form-field">
+            <label htmlFor="mv-tur">Tür</label>
+            <select
+              id="mv-tur"
+              value={form.tur}
+              onChange={e => alanYaz('tur', e.target.value as MevzuatTuru)}
+            >
+              {/* ⚠️ Boş seçenek BİLEREK duruyor; bkz. `bosForm`. */}
+              <option value="">Seçiniz…</option>
+              {MEVZUAT_TURLERI.map(t => (
+                <option key={t} value={t}>{MEVZUAT_TUR_ETIKETI[t]}</option>
+              ))}
+            </select>
+            <span className="muted small-text">
+              <strong>Kanun · Yönetmelik · Tebliğ</strong> kalıcı bağlantıdır;
+              vitrinde kendi başlığı altında, tarih yazmadan görünür.{' '}
+              <strong>Haber</strong> ise tarihlidir ve vitrinde en çok{' '}
+              {VITRIN_HABER_SINIRI} tanesi, en yenisi üstte gösterilir.
+            </span>
+          </div>
+
+          <div className="form-field">
             <label htmlFor="mv-durum">Durum</label>
             <select
               id="mv-durum"
@@ -310,7 +345,8 @@ export default function MevzuatAkisi(){
               </span>
             </div>
             <p className="muted small-text">
-              {tarihiGoster(satir.yayimTarihi)} · {satir.kaynakAdi}
+              {MEVZUAT_TUR_ETIKETI[satir.tur]} · {tarihiGoster(satir.yayimTarihi)}
+              {' · '}{satir.kaynakAdi}
               {satir.yazan ? ` · ekleyen: ${satir.yazan}` : ''}
             </p>
             {satir.ozet && <p>{satir.ozet}</p>}

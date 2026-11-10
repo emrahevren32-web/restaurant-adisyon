@@ -5,10 +5,14 @@ import {
   BASLIK_EN_COK,
   KAYNAK_EN_COK,
   MEVZUAT_DURUM_ETIKETI,
+  MEVZUAT_TUR_BASLIGI,
+  MEVZUAT_TUR_ETIKETI,
   OZET_EN_COK,
+  VITRIN_HABER_SINIRI,
   VITRIN_SATIR_SINIRI,
   adresGecerliMi,
   mevzuatDogrula,
+  mevzuatiGruplara,
   tarihiGoster,
   vitrinGosterilsinMi,
   yayimTarihiGecerliMi,
@@ -24,6 +28,7 @@ const gecerli = (): MevzuatGirdisi => ({
   kaynakAdi: 'Resmî Gazete',
   kaynakAdresi: 'https://www.resmigazete.gov.tr/ornek',
   yayimTarihi: '2026-11-07',
+  tur: 'HABER',
   durum: 'YAYINDA',
 })
 
@@ -112,8 +117,28 @@ describe('mevzuatDogrula', () => {
   it('bütün eksikler TEK listede dönüyor', () => {
     const eksikler = mevzuatDogrula(
       { baslik: '', ozet: '', kaynakAdi: '', kaynakAdresi: 'javascript:x',
-        yayimTarihi: '', durum: 'YAYINDA' }, BUGUN)
-    expect(eksikler.length).toBe(4)
+        yayimTarihi: '', tur: '', durum: 'YAYINDA' }, BUGUN)
+    expect(eksikler.length).toBe(5)
+  })
+
+  // ⚠️ TÜR ZORUNLU (0114). Formun açılış değeri boş; varsayılan geçerli
+  // bir tür konsaydı bu kural hiç çalışmaz ve bir kanun haber olarak
+  // yayına alınabilirdi.
+  it('⚠️ tür SEÇİLMEDEN kayıt geçmiyor', () => {
+    const eksikler = mevzuatDogrula({ ...gecerli(), tur: '' }, BUGUN)
+    expect(eksikler).toEqual(['Tür seçilmedi (kanun, yönetmelik, tebliğ ya da haber).'])
+  })
+
+  it('uydurma tür geçmiyor', () => {
+    const eksikler = mevzuatDogrula(
+      { ...gecerli(), tur: 'DUYURU' as never }, BUGUN)
+    expect(eksikler.length).toBe(1)
+  })
+
+  it('dört türün hepsi geçiyor', () => {
+    for(const tur of ['KANUN', 'YONETMELIK', 'TEBLIG', 'HABER'] as const){
+      expect(mevzuatDogrula({ ...gecerli(), tur }, BUGUN), tur).toEqual([])
+    }
   })
 })
 
@@ -156,6 +181,59 @@ describe('durum etiketleri', () => {
     expect(MEVZUAT_DURUM_ETIKETI.YAYINDA).toBe('Yayında')
     expect(MEVZUAT_DURUM_ETIKETI.ARSIV).toBe('Arşiv')
   })
+
+  it('dört türün de tekil ve çoğul karşılığı var', () => {
+    expect(MEVZUAT_TUR_ETIKETI.KANUN).toBe('Kanun')
+    expect(MEVZUAT_TUR_ETIKETI.YONETMELIK).toBe('Yönetmelik')
+    expect(MEVZUAT_TUR_ETIKETI.TEBLIG).toBe('Tebliğ')
+    expect(MEVZUAT_TUR_ETIKETI.HABER).toBe('Haber')
+    expect(MEVZUAT_TUR_BASLIGI.KANUN).toBe('Kanunlar')
+    expect(MEVZUAT_TUR_BASLIGI.YONETMELIK).toBe('Yönetmelikler')
+    expect(MEVZUAT_TUR_BASLIGI.TEBLIG).toBe('Tebliğler')
+  })
+})
+
+// ═════════════════════════════════════════════════════════════════════════
+// GRUPLAYICI · vitrinin tek biçim kararı
+//
+// ⚠️ SIRALAMA YAPMIYOR, SIRAYI KORUYOR. Sunucu satırları kanun →
+// yönetmelik → tebliğ → haber sırasında veriyor (0114). Buradaki iddialar
+// bunu ölçüyor: gruplayıcıya TERS sırada verilen satırlar TERS sırada
+// gruplanıyor. Eğer bir gün burada kendi sıralaması olsaydı, sunucudaki
+// `case r.kind` ile iki gerçek olurdu.
+// ═════════════════════════════════════════════════════════════════════════
+describe('mevzuatiGruplara', () => {
+  const satir = (tur: string, baslik: string) => ({ tur, baslik })
+
+  it('türe göre grupluyor, başlıkları veriyor', () => {
+    const gruplar = mevzuatiGruplara([
+      satir('KANUN', 'k1'), satir('KANUN', 'k2'),
+      satir('YONETMELIK', 'y1'), satir('HABER', 'h1'),
+    ])
+    expect(gruplar.map(g => g.tur)).toEqual(['KANUN', 'YONETMELIK', 'HABER'])
+    expect(gruplar[0].baslik).toBe('Kanunlar')
+    expect(gruplar[0].satirlar.map(s => s.baslik)).toEqual(['k1', 'k2'])
+  })
+
+  it('⚠️ KENDİ SIRASINI KURMUYOR — gelen sırayı koruyor', () => {
+    const gruplar = mevzuatiGruplara([satir('HABER', 'h1'), satir('KANUN', 'k1')])
+    expect(gruplar.map(g => g.tur)).toEqual(['HABER', 'KANUN'])
+  })
+
+  it('⚠️ yalnız HABER kırpılıyor; kütüphane bağlantıları kırpılmıyor', () => {
+    const cok = [
+      ...Array.from({ length: 9 }, (_, i) => satir('KANUN', `k${i}`)),
+      ...Array.from({ length: 9 }, (_, i) => satir('HABER', `h${i}`)),
+    ]
+    const gruplar = mevzuatiGruplara(cok)
+    expect(gruplar[0].satirlar.length).toBe(9)
+    expect(gruplar[1].satirlar.length).toBe(VITRIN_HABER_SINIRI)
+  })
+
+  it('boş grup dönmüyor, tanınmayan tür atlanıyor', () => {
+    expect(mevzuatiGruplara([])).toEqual([])
+    expect(mevzuatiGruplara([satir('DUYURU', 'x')])).toEqual([])
+  })
 })
 
 describe('defter · bellek', () => {
@@ -182,7 +260,20 @@ describe('defter · bellek', () => {
       await defter.yaz(null, { ...gecerli(), baslik: `Satir ${i}` })
     }
     expect((await defter.vitriniOku()).length).toBe(VITRIN_SATIR_SINIRI)
-    expect((await defter.vitriniOku(1000)).length).toBe(20)
+    // ⚠️ Tavan 0114'te 20'den 30'a çıktı (kütüphane + akış bir arada).
+    expect((await defter.vitriniOku(1000)).length).toBe(30)
+  })
+
+  it('⚠️ vitrin türe göre diziliyor, tarihe göre DEĞİL', async () => {
+    // Emrah'ın 10.11'de ekranda gördüğü kusur: 2011 tarihli bir yönetmelik
+    // bugünkü bir haberin altına düşmüştü.
+    const defter = new BellekMevzuatDefteri()
+    await defter.yaz(null, { ...gecerli(), baslik: 'Haber bugun',
+      tur: 'HABER', yayimTarihi: '2026-11-09' })
+    await defter.yaz(null, { ...gecerli(), baslik: 'Kanun 2011',
+      tur: 'KANUN', yayimTarihi: '2011-12-17' })
+    const vitrin = await defter.vitriniOku()
+    expect(vitrin.map(s => s.baslik)).toEqual(['Kanun 2011', 'Haber bugun'])
   })
 
   it('güncelleme aynı kimliği koruyor; olmayan kayıt hata veriyor', async () => {

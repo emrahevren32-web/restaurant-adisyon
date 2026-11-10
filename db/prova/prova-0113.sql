@@ -17,6 +17,15 @@ begin;
 --  10 · Tavan işliyor mu (1000 istensin, en çok 20 gelsin)? → EVET
 --  11 · Vitrin `status`/imza alanlarını DIŞARI veriyor mu? → HAYIR
 --
+-- ⚠️ 10.11.2026 · ÇAĞRILARA `'HABER'` TÜRÜ EKLENDİ (göç 0114). Tür
+-- zorunlu oldu ve bu prova akışı ölçtüğü için hepsi HABER. Kütüphane
+-- türlerini (KANUN/YONETMELIK/TEBLIG) `prova-0114.sql` ölçüyor.
+-- ⚠️ ESKİ ÇAĞRI SESSİZCE BOZULMADI, PATLADI — ve bu şans eseri:
+-- `p_tur` yeni parametre, varsayılanı olan `p_durum`dan ÖNCE kondu;
+-- yedi argümanlı eski çağrının son argümanı (`'YAYINDA'`) `p_tur`a
+-- düştü ve "Tür seçilmedi" hatası verdi. Uyumlu bir değer olsaydı
+-- çağrı sessizce YANLIŞ ÇALIŞIRDI.
+--
 -- ⚠️ `set local role anon` ve `authenticated` TAKILIYOR (MIYOP-042).
 -- Rol takmayan prova süper kullanıcı olarak koşar ve her şey geçer.
 --
@@ -145,24 +154,24 @@ begin
     'Gıda Hijyeni Yönetmeliğinde değişiklik',
     'Yüzey temizliği kayıtlarının saklama süresi güncellendi.',
     'Resmî Gazete', 'https://www.resmigazete.gov.tr/ornek',
-    current_date - 2, 'YAYINDA');
+    current_date - 2, 'HABER', 'YAYINDA');
   perform prova_bak('platform yöneticisi YAYINDA satır yazabildi', v_id is not null);
   perform set_config('prova.yayinda', v_id::text, false);
 
   v_id := public.mevzuat_yaz(null, 'Henuz yayinlanmamis taslak baslik',
     null, 'Tarim ve Orman Bakanligi', 'https://www.tarimorman.gov.tr/ornek',
-    current_date - 1, 'TASLAK');
+    current_date - 1, 'HABER', 'TASLAK');
   perform prova_bak('TASLAK satır yazabildi', v_id is not null);
 
   v_id := public.mevzuat_yaz(null, 'Arsivlenmis eski bir duyuru',
     null, 'Resmî Gazete', 'https://www.resmigazete.gov.tr/eski',
-    current_date - 400, 'ARSIV');
+    current_date - 400, 'HABER', 'ARSIV');
   perform prova_bak('ARSIV satır yazabildi', v_id is not null);
 
   -- ⚠️ `javascript:` — bu adres vitrinde TIKLANABİLİR çizilecek.
   begin
     perform public.mevzuat_yaz(null, 'Zararli baglanti denemesi', null,
-      'Kaynak', 'javascript:alert(1)', current_date, 'YAYINDA');
+      'Kaynak', 'javascript:alert(1)', current_date, 'HABER', 'YAYINDA');
     v_kod := '00000';
   exception when others then v_kod := sqlstate;
   end;
@@ -170,7 +179,7 @@ begin
 
   begin
     perform public.mevzuat_yaz(null, 'Sifresiz baglanti denemesi', null,
-      'Kaynak', 'http://ornek.gov.tr/x', current_date, 'YAYINDA');
+      'Kaynak', 'http://ornek.gov.tr/x', current_date, 'HABER', 'YAYINDA');
     v_kod := '00000';
   exception when others then v_kod := sqlstate;
   end;
@@ -178,7 +187,7 @@ begin
 
   begin
     perform public.mevzuat_yaz(null, 'Gelecekten gelen haber', null,
-      'Kaynak', 'https://ornek.gov.tr/x', current_date + 30, 'YAYINDA');
+      'Kaynak', 'https://ornek.gov.tr/x', current_date + 30, 'HABER', 'YAYINDA');
     v_kod := '00000';
   exception when others then v_kod := sqlstate;
   end;
@@ -186,7 +195,7 @@ begin
 
   begin
     perform public.mevzuat_yaz(null, 'Kisa', null,
-      'Kaynak', 'https://ornek.gov.tr/x', current_date, 'YAYINDA');
+      'Kaynak', 'https://ornek.gov.tr/x', current_date, 'HABER', 'YAYINDA');
     v_kod := '00000';
   exception when others then v_kod := sqlstate;
   end;
@@ -195,7 +204,7 @@ begin
 
   begin
     perform public.mevzuat_yaz(null, 'Kaynaksiz bir haber basligi', null,
-      '', 'https://ornek.gov.tr/x', current_date, 'YAYINDA');
+      '', 'https://ornek.gov.tr/x', current_date, 'HABER', 'YAYINDA');
     v_kod := '00000';
   exception when others then v_kod := sqlstate;
   end;
@@ -205,10 +214,12 @@ begin
     (select count(*) from public.mevzuat_listesi()) >= 3);
 
   -- Tavan ölçümü için 25 satır daha (hepsi YAYINDA).
-  for v_i in 1..25 loop
+  -- ⚠️ 0114 tavanı 20'den 30'a çıkardı; tavanı ÖLÇEBİLMEK için
+  -- yayındaki satır sayısı tavandan FAZLA olmak zorunda.
+  for v_i in 1..35 loop
     perform public.mevzuat_yaz(null, 'Tavan olcumu satiri '||v_i, null,
       'Resmî Gazete', 'https://www.resmigazete.gov.tr/t'||v_i,
-      current_date - v_i, 'YAYINDA');
+      current_date - v_i, 'HABER', 'YAYINDA');
   end loop;
 end $$;
 
@@ -237,7 +248,7 @@ begin
 
   begin
     perform public.mevzuat_yaz(null, 'Musteri bunu yazamamali', null,
-      'Kaynak', 'https://ornek.gov.tr/x', current_date, 'YAYINDA');
+      'Kaynak', 'https://ornek.gov.tr/x', current_date, 'HABER', 'YAYINDA');
     v_kod := '00000';
   exception when others then v_kod := sqlstate;
   end;
@@ -287,7 +298,7 @@ begin
 
   -- Tavan: 1000 istendi, en çok 20 gelmeli.
   select count(*) into v_say from public.mevzuat_akisi_oku(1000);
-  perform prova_bak('⚠️ TAVAN sunucuda: 1000 istendi, '||v_say||' geldi', v_say = 20);
+  perform prova_bak('⚠️ TAVAN sunucuda: 1000 istendi, '||v_say||' geldi', v_say = 30);
   select count(*) into v_say from public.mevzuat_akisi_oku(0);
   perform prova_bak('sıfır istendi, en az bir geldi ('||v_say||')', v_say = 1);
 
@@ -306,7 +317,7 @@ begin
 
   begin
     perform public.mevzuat_yaz(null, 'Ziyaretci bunu yazamamali', null,
-      'Kaynak', 'https://ornek.gov.tr/x', current_date, 'YAYINDA');
+      'Kaynak', 'https://ornek.gov.tr/x', current_date, 'HABER', 'YAYINDA');
     v_kod := '00000';
   exception when others then v_kod := sqlstate;
   end;
@@ -344,8 +355,11 @@ begin
    where r.routine_schema = 'public' and r.routine_name = 'mevzuat_akisi_oku'
      and p.parameter_mode = 'OUT';
 
+  -- ⚠️ 0114 `tur` alanını EKLEDİ (kütüphane başlıkları için gerekli).
+  -- Beklenen liste elle güncellendi: alan eklemek bilinçli bir karardır,
+  -- sessizce geçmemeli.
   perform prova_bak('vitrin alanları: '||coalesce(v_sutunlar,'(yok)'),
-    v_sutunlar = 'baslik,ozet,kaynak_adi,kaynak_adresi,yayim_tarihi');
+    v_sutunlar = 'baslik,ozet,kaynak_adi,kaynak_adresi,yayim_tarihi,tur');
   perform prova_bak('⚠️ `durum` vitrine ÇIKMIYOR',
     coalesce(v_sutunlar,'') not like '%durum%');
   perform prova_bak('⚠️ imza alanları vitrine ÇIKMIYOR',

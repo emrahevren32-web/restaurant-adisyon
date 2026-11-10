@@ -76,9 +76,9 @@ begin
   perform prova_bak('sağlama: sahneyi kuran kullanıcının platform.manage izni VAR',
     app.yetkim_var('platform.manage'));
   perform public.mevzuat_yaz(null, 'TERS PROVA onaylanmamis taslak', null,
-    'Kaynak', 'https://ornek.gov.tr/taslak', current_date, 'TASLAK');
+    'Kaynak', 'https://ornek.gov.tr/taslak', current_date, 'HABER', 'TASLAK');
   perform public.mevzuat_yaz(null, 'TERS PROVA yayinda olan satir', null,
-    'Kaynak', 'https://ornek.gov.tr/yayin', current_date, 'YAYINDA');
+    'Kaynak', 'https://ornek.gov.tr/yayin', current_date, 'HABER', 'YAYINDA');
 end $$;
 
 reset role;
@@ -98,7 +98,7 @@ begin
 
   begin
     perform public.mevzuat_yaz(null, 'Ziyaretci yazamamali', null,
-      'Kaynak', 'https://ornek.gov.tr/x', current_date, 'YAYINDA');
+      'Kaynak', 'https://ornek.gov.tr/x', current_date, 'HABER', 'YAYINDA');
     v_kod := '00000';
   exception when others then v_kod := sqlstate;
   end;
@@ -109,13 +109,18 @@ end $$;
 reset role;
 
 -- ── KAPI 1 KALDIRILIYOR · vitrin süzgeci düşüyor ─────────────────────────
-create or replace function public.mevzuat_akisi_oku(p_limit integer default 5)
+-- ⚠️ İMZA 0114'TE DEĞİŞTİ: dönen sütunlara `tur` eklendi, varsayılan 12,
+-- tavan 30 oldu. `create or replace` dönüş tipini DEĞİŞTİREMEZ; bu kopya
+-- 0114'teki imzanın aynısı olmazsa prova "cannot change return type" ile
+-- kırmızı yanar — kusuru değil kendi eskimişliğini ölçer (tuzak 190).
+create or replace function public.mevzuat_akisi_oku(p_limit integer default 12)
 returns table (
   baslik        text,
   ozet          text,
   kaynak_adi    text,
   kaynak_adresi text,
-  yayim_tarihi  date
+  yayim_tarihi  date,
+  tur           text
 )
 language plpgsql
 stable
@@ -124,22 +129,28 @@ set search_path = public, app, pg_temp
 as $$
 declare v_adet integer;
 begin
-  v_adet := least(greatest(coalesce(p_limit, 5), 1), 20);
+  v_adet := least(greatest(coalesce(p_limit, 12), 1), 30);
   return query
-  select r.title, r.summary, r.source_name, r.source_url, r.published_on
+  select r.title, r.summary, r.source_name, r.source_url, r.published_on,
+         r.kind
     from public.regulation_news r
    order by r.published_on desc, r.created_at desc
    limit v_adet;
 end $$;
 
 -- ── KAPI 2 KALDIRILIYOR · yazma anon'a açılıyor ──────────────────────────
-grant execute on function public.mevzuat_yaz(uuid, text, text, text, text, date, text)
+-- ⚠️ İMZA 0114'TE DEĞİŞTİ: yedi değil SEKİZ parametre; `p_tur`,
+-- `p_durum`'dan ÖNCE geliyor. Sıra önemli: `p_tur` sonraya konsaydı
+-- buradaki konumlu çağrılar sessizce yanlış yere düşerdi (tuzak 199).
+grant execute on function
+  public.mevzuat_yaz(uuid, text, text, text, text, date, text, text)
   to anon;
 -- ⚠️ Gövdedeki `app.platform_kapisi()` de kaldırılıyor; yoksa ret YETKİ
 -- yüzünden değil İZİN yüzünden gelir ve kırmızının sebebi belirsiz kalır.
 create or replace function app.mevzuat_yaz(
   p_id uuid, p_baslik text, p_ozet text, p_kaynak_adi text,
-  p_kaynak_adres text, p_yayim_tarihi date, p_durum text default 'TASLAK'
+  p_kaynak_adres text, p_yayim_tarihi date, p_tur text,
+  p_durum text default 'TASLAK'
 )
 returns uuid
 language plpgsql
@@ -149,10 +160,10 @@ as $$
 declare v_id uuid;
 begin
   insert into public.regulation_news
-    (title, summary, source_name, source_url, published_on, status)
+    (title, summary, source_name, source_url, published_on, status, kind)
   values (btrim(p_baslik), nullif(btrim(coalesce(p_ozet,'')),''),
           btrim(p_kaynak_adi), btrim(p_kaynak_adres), p_yayim_tarihi,
-          upper(btrim(p_durum)))
+          upper(btrim(p_durum)), upper(btrim(p_tur)))
   returning id into v_id;
   return v_id;
 end $$;
@@ -174,7 +185,7 @@ begin
 
   -- ⚠️ Ve ikinci kapı: kapı yokken oturumsuz biri yazabiliyor.
   v_id := public.mevzuat_yaz(null, 'KAPISIZ ziyaretci yazimi', null,
-    'Kaynak', 'https://ornek.gov.tr/x', current_date, 'YAYINDA');
+    'Kaynak', 'https://ornek.gov.tr/x', current_date, 'HABER', 'YAYINDA');
   perform prova_bak('⚠️ KAPI YOKKEN oturumsuz ziyaretçi YAZDI — kusur gerçekti '
     ||'('||coalesce(v_id::text,'yok')||')', v_id is not null);
 end $$;

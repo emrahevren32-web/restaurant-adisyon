@@ -31,12 +31,15 @@ import {
   BASLIK_EN_COK,
   KAYNAK_EN_AZ,
   KAYNAK_EN_COK,
+  MEVZUAT_TURLERI,
   OZET_EN_COK,
+  VITRIN_HABER_SINIRI,
   VITRIN_SATIR_SINIRI,
 } from './mevzuat.service'
 
 const KOK = projeKokunuBul()
 const GOC_YOLU = 'db/migrations/0113_mevzuat_akisi.sql'
+const GOC_0114_YOLU = 'db/migrations/0114_mevzuat_kutuphanesi.sql'
 
 const dosya = (yol: string): string => readFileSync(join(KOK, yol), 'utf8') as string
 
@@ -54,6 +57,19 @@ const sqlKod = (metin: string): string => metin.replace(/--[^\n]*/g, '')
 const kod = (yol: string): string => yorumsuzKod(dosya(yol))
 
 const GOC = sqlKod(dosya(GOC_YOLU))
+
+/**
+ * ⚠️ İKİ GÖÇ VAR VE AYRIMI ÖNEMLİ.
+ *
+ * `GOC` (0113) tabloyu ve ilk kapıları KURDU. `GOC_0114` okuma ve yazma
+ * fonksiyonlarını DÜŞÜRÜP YENİDEN YAZDI; yani **yürürlükteki** fonksiyon
+ * gövdeleri 0114'tedir.
+ *
+ * ⚠️ TUZAK 190'IN AYNISI BURADA KAPIDA DURUYOR: bu dosyanın 0113'teki
+ * `YAYINDA` süzgecini ölçmesi artık YETMEZ — 0114 o fonksiyonu yeniden
+ * yazdı. Yürürlükteki gövdeye bakan iddialar aşağıda, `GOC_0114` üzerinden.
+ */
+const GOC_0114 = sqlKod(dosya(GOC_0114_YOLU))
 
 describe('sağlama · ölçüm gerçekten çalışıyor', () => {
   it('göç dosyası var ve büyük', () => {
@@ -237,13 +253,144 @@ describe('eşikler ekranla veritabanında aynı (MIYOP-105)', () => {
   })
 
   it('vitrin satır sınırı makul ve sunucu tavanının altında', () => {
+    // ⚠️ Tavan 0114'te 20'den 30'a çıktı (kütüphane + akış bir arada).
     expect(VITRIN_SATIR_SINIRI).toBeGreaterThan(0)
-    expect(VITRIN_SATIR_SINIRI).toBeLessThanOrEqual(20)
+    expect(VITRIN_SATIR_SINIRI).toBeLessThanOrEqual(30)
+    expect(GOC_0114).toContain('least(greatest(coalesce(p_limit, 12), 1), 30)')
+  })
+})
+
+// ═══════════════════════════════════════════════════════════════════════════
+// GÖÇ 0114 · KÜTÜPHANE · YÜRÜRLÜKTEKİ GÖVDELER
+//
+// ⚠️ Yukarıdaki blok 0113'ün KURDUĞU dünyayı okuyor. Fonksiyonların
+// bugünkü hâli 0114'te. Aşağıdaki iddialar oraya bakıyor.
+// ═══════════════════════════════════════════════════════════════════════════
+describe('0114 · kütüphane', () => {
+  it('sağlama · göç dosyası var ve büyük', () => {
+    expect(existsSync(join(KOK, GOC_0114_YOLU))).toBe(true)
+    expect(GOC_0114.length).toBeGreaterThan(5_000)
+    expect(dosya(GOC_0114_YOLU).length).toBeGreaterThan(GOC_0114.length)
+  })
+
+  it('⚠️ FONKSİYONLAR ÖNCE DÜŞÜRÜLÜYOR (yanına ikincisi konmuyor)', () => {
+    // `create or replace` dönüş tipi ya da parametre sayısı değişince
+    // eskisini DEĞİŞTİRMEZ, yanına ikincisini koyar; çağrılar belirsizleşir.
+    expect(GOC_0114).toContain('drop function if exists public.mevzuat_akisi_oku(integer)')
+    expect(GOC_0114).toMatch(
+      /drop function if exists public\.mevzuat_yaz\(uuid, text, text, text, text, date, text\)/)
+    expect(GOC_0114).toMatch(
+      /drop function if exists app\.mevzuat_yaz\(uuid, text, text, text, text, date, text\)/)
+  })
+
+  it('⚠️ YÜRÜRLÜKTEKİ vitrin okuması yalnız `YAYINDA` döndürüyor', () => {
+    const bas = GOC_0114.indexOf('create or replace function public.mevzuat_akisi_oku')
+    expect(bas).toBeGreaterThan(-1)
+    const govde = GOC_0114.slice(bas, GOC_0114.indexOf('end $$;', bas))
+    expect(govde).toContain('from public.regulation_news')
+    expect(govde).toContain("where r.status = 'YAYINDA'")
+  })
+
+  it('⚠️ YÜRÜRLÜKTEKİ vitrin `status` ve imza alanlarını DIŞARI VERMİYOR', () => {
+    const bas = GOC_0114.indexOf('create or replace function public.mevzuat_akisi_oku')
+    const basliklarSonu = GOC_0114.indexOf(')', GOC_0114.indexOf('returns table (', bas))
+    const donenAlanlar = GOC_0114.slice(bas, basliklarSonu)
+    expect(donenAlanlar).toContain('tur')
+    for(const yasak of ['durum', 'created_by', 'updated_by', 'yazan']){
+      expect(donenAlanlar, `${yasak} vitrine çıkıyor`).not.toContain(yasak)
+    }
+  })
+
+  it('⚠️ SIRA SUNUCUDA ve istemcideki tür sırasıyla AYNI', () => {
+    // Emrah'ın 10.11'de ekranda gördüğü kusur buydu: 2011 tarihli bir
+    // yönetmelik bugünkü bir haberin ALTINA düşmüştü. Sıra artık sunucuda
+    // sabit; `mevzuat.service.ts`teki `MEVZUAT_TURLERI` o sıranın kopyası
+    // DEĞİL, aynı sıranın okunduğu yer — bu iddia ikisini bağlıyor.
+    const bas = GOC_0114.indexOf('order by case r.kind')
+    expect(bas).toBeGreaterThan(-1)
+    const blok = GOC_0114.slice(bas, GOC_0114.indexOf('end,', bas))
+    MEVZUAT_TURLERI.slice(0, 3).forEach((tur, i) => {
+      expect(blok, `${tur} sırası ${i + 1} değil`)
+        .toMatch(new RegExp(`when '${tur}'\\s+then ${i + 1}`))
+    })
+    // Son tür (`HABER`) `else` dalında: akış her zaman en altta.
+    expect(MEVZUAT_TURLERI[3]).toBe('HABER')
+    expect(blok).toMatch(/else 4/)
+  })
+
+  it('⚠️ TÜR ZORUNLU — ekranla veritabanı aynı cümleyi söylüyor', () => {
+    const bas = GOC_0114.indexOf('create or replace function app.mevzuat_yaz')
+    expect(bas).toBeGreaterThan(-1)
+    const govde = GOC_0114.slice(bas, GOC_0114.indexOf('end $$;', bas))
+    expect(govde).toContain('app.platform_kapisi()')
+    expect(govde).toContain(
+      'Tür seçilmedi (kanun, yönetmelik, tebliğ ya da haber).')
+    expect(govde).toContain("using errcode = 'MI422'")
+  })
+
+  it('⚠️ istemcideki dört tür, veritabanının kısıtındaki dört tür', () => {
+    const bas = GOC_0114.indexOf('regulation_news_tur_gecerli check')
+    expect(bas).toBeGreaterThan(-1)
+    const kisit = GOC_0114.slice(bas, bas + 200)
+    for(const tur of MEVZUAT_TURLERI){
+      expect(kisit, `${tur} kısıtta yok`).toContain(`'${tur}'`)
+    }
+  })
+
+  it('⚠️ varsayılan HABER (var olan satırın türü sessizce değişmiyor)', () => {
+    expect(GOC_0114).toContain("add column if not exists kind text not null default 'HABER'")
+  })
+
+  it('⚠️ DÜŞEN FONKSİYONLARIN YETKİLERİ GERİ VERİLİYOR (tuzak 67)', () => {
+    // `drop function` GRANT'ları da siler. Verilmezse giriş ekranı
+    // "permission denied" alır ve kutu SESSİZCE boş kalır.
+    expect(GOC_0114).toMatch(
+      /grant execute on function[\s\S]{0,80}public\.mevzuat_akisi_oku\(integer\)[\s\S]{0,40}to anon/)
+    for(const ad of ['mevzuat_listesi', 'mevzuat_yaz', 'mevzuat_sil']){
+      expect(GOC_0114, `${ad} yetkisi geri verilmemiş`).toContain(ad)
+    }
+    // Yönetim kapıları anon'a KAPALI kalıyor.
+    expect(GOC_0114).toMatch(/revoke[\s\S]{0,200}from anon/)
+  })
+
+  it('⚠️ İKİNCİ TABLO AÇILMAMIŞ (iki yerde iki gerçek yok)', () => {
+    expect(GOC_0114).not.toMatch(/create table[\s\S]{0,60}(mevzuat|regulation)/)
+  })
+
+  it('⚠️ ekran kendi SIRASINI kurmuyor, sunucunun sırasını koruyor', () => {
+    const hizmet = kod('src/platform/mevzuat.service.ts')
+    const bas = hizmet.indexOf('export const mevzuatiGruplara')
+    expect(bas).toBeGreaterThan(-1)
+    const govde = hizmet.slice(bas, bas + 1_200)
+    // Gruplayıcıda sıralama YOK: `.sort(` yazılsaydı sunucudaki
+    // `case r.kind` ile ikinci bir gerçek olurdu.
+    expect(govde).not.toContain('.sort(')
+    const vitrin = kod('src/pages/MevzuatVitrin.tsx')
+    expect(vitrin).toContain('mevzuatiGruplara')
+    expect(vitrin).not.toContain('.sort(')
+  })
+
+  it('haber kırpma sınırı makul', () => {
+    expect(VITRIN_HABER_SINIRI).toBeGreaterThan(0)
+    expect(VITRIN_HABER_SINIRI).toBeLessThanOrEqual(VITRIN_SATIR_SINIRI)
+  })
+
+  it('yönetim ekranı tür seçiciyi çiziyor ve boş başlıyor', () => {
+    const ekran = kod('src/pages/MevzuatAkisi.tsx')
+    expect(ekran).toContain('MEVZUAT_TURLERI.map')
+    expect(ekran).toContain('htmlFor="mv-tur"')
+    // ⚠️ Boş seçenek: varsayılan geçerli bir tür konsaydı "tür seçilmedi"
+    // kuralı hiç çalışmaz ve bir kanun haber olarak yayına alınabilirdi.
+    expect(ekran).toContain('<option value="">')
+    expect(ekran).toMatch(/tur: '',/)
   })
 })
 
 describe('prova · kapının içinde koşuyor', () => {
-  const PROVALAR = ['db/prova/prova-0113.sql', 'db/prova/prova-0113-ters.sql']
+  const PROVALAR = [
+    'db/prova/prova-0113.sql', 'db/prova/prova-0113-ters.sql',
+    'db/prova/prova-0114.sql', 'db/prova/prova-0114-ters.sql',
+  ]
 
   it('prova dosyaları var', () => {
     for(const p of PROVALAR) expect(existsSync(join(KOK, p)), `${p} yok`).toBe(true)
@@ -258,6 +405,7 @@ describe('prova · kapının içinde koşuyor', () => {
         .toContain('set local role authenticated')
     }
     expect(dosya('db/prova/prova-0113.sql')).toContain('set local role anon')
+    expect(dosya('db/prova/prova-0114.sql')).toContain('set local role anon')
   })
 
   it('⚠️ prova OLUMSUZ kontroller içeriyor', () => {
@@ -268,6 +416,10 @@ describe('prova · kapının içinde koşuyor', () => {
       expect(metin, `prova ${kodu} durumunu sınamıyor`).toContain(kodu)
     }
     expect(metin).toContain('javascript:')
+    // 0114'ün olumsuzu: tür yazılmadan ve uydurma türle yazım REDDEDİLİYOR.
+    const yeni = dosya('db/prova/prova-0114.sql')
+    expect(yeni).toContain('MI422')
+    expect(yeni).toContain('DUYURU')
   })
 
   it('provalar veritabanını kirletmiyor', () => {

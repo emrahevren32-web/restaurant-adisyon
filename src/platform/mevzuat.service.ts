@@ -29,7 +29,53 @@ export const KAYNAK_EN_COK = 120
 export const ADRES_EN_COK = 500
 
 /** Giriş vitrininde en çok kaç satır gösterilecek. */
-export const VITRIN_SATIR_SINIRI = 5
+export const VITRIN_SATIR_SINIRI = 12
+
+/**
+ * Vitrinde en çok kaç HABER satırı gösterilecek (göç 0114).
+ *
+ * ⚠️ Kütüphane satırları (kanun, yönetmelik, tebliğ) KIRPILMIYOR: onlar
+ * kalıcı bağlantılar, sayıları az ve her biri bir kapı. Kırpılan yalnız
+ * akış; giriş ekranı bir haber sayfası değil.
+ */
+export const VITRIN_HABER_SINIRI = 3
+
+// ═════════════════════════════════════════════════════════════════════════
+// TÜR · göç 0114
+//
+// ⚠️ NEDEN VAR: Emrah 10.11'de `gidamo.org.tr/mevzuat/ilgili-mevzuat`
+// sayfasını gösterdi. O sayfa bir haber akışı değil — üç kalıcı kapı:
+// Kanunlar · Yönetmelikler · Tebliğler. İlk kaydı girdiğinde (17.12.2011
+// tarihli bir yönetmelik) ekran onu tarihe göre dizdi ve yanlış göründü.
+//
+// ⚠️ SIRA BURADA KARARLAŞTIRILMIYOR. Sunucu satırları kanun → yönetmelik
+// → tebliğ → haber sırasında döndürüyor (0114 · `case r.kind`). Buradaki
+// gruplayıcı o sırayı KORUYOR, yeniden kurmuyor; yoksa aynı kural iki
+// yerde iki gerçek olurdu (bu depodaki en pahalı hata sınıfı).
+// ═════════════════════════════════════════════════════════════════════════
+
+export const MEVZUAT_TURLERI = ['KANUN', 'YONETMELIK', 'TEBLIG', 'HABER'] as const
+export type MevzuatTuru = (typeof MEVZUAT_TURLERI)[number]
+
+/** Tek bir kaydın yanında yazan etiket (yönetim ekranı). */
+export const MEVZUAT_TUR_ETIKETI: Record<MevzuatTuru, string> = {
+  KANUN: 'Kanun',
+  YONETMELIK: 'Yönetmelik',
+  TEBLIG: 'Tebliğ',
+  HABER: 'Haber',
+}
+
+/** Vitrindeki grup başlığı (çoğul). */
+export const MEVZUAT_TUR_BASLIGI: Record<MevzuatTuru, string> = {
+  KANUN: 'Kanunlar',
+  YONETMELIK: 'Yönetmelikler',
+  TEBLIG: 'Tebliğler',
+  HABER: 'Son değişiklikler',
+}
+
+/** Kalıcı bağlantı türleri — akış (`HABER`) bunların dışında. */
+export const KUTUPHANE_TURLERI: readonly MevzuatTuru[] =
+  ['KANUN', 'YONETMELIK', 'TEBLIG']
 
 export const MEVZUAT_DURUMLARI = ['TASLAK', 'YAYINDA', 'ARSIV'] as const
 export type MevzuatDurumu = (typeof MEVZUAT_DURUMLARI)[number]
@@ -46,6 +92,15 @@ export type MevzuatGirdisi = {
   kaynakAdi: string
   kaynakAdresi: string
   yayimTarihi: string
+  /**
+   * ⚠️ ZORUNLU (0114): vitrin satırın hangi başlık altına gireceğini
+   * türden okuyor; türsüz bir satırın ekranda yeri yok.
+   *
+   * ⚠️ `''` BİLEREK TİPTE: formun açılış değeri boş. Varsayılan geçerli
+   * bir tür konsaydı "tür seçilmedi" kuralı hiç çalışmaz ve Emrah bir
+   * kanunu yanlışlıkla haber olarak yayına alabilirdi.
+   */
+  tur: MevzuatTuru | ''
   durum: MevzuatDurumu
 }
 
@@ -117,6 +172,12 @@ export const mevzuatDogrula = (
     eksikler.push('Yayım tarihi geçersiz; gelecekte olamaz.')
   }
 
+  // ⚠️ Cümle sunucudakinin AYNISI (0114 · MI422). İki yerde iki farklı
+  // cümle olmasın; buradaki yalnız sebebini ERKEN söylemek için.
+  if(!MEVZUAT_TURLERI.includes(girdi.tur as MevzuatTuru)){
+    eksikler.push('Tür seçilmedi (kanun, yönetmelik, tebliğ ya da haber).')
+  }
+
   if(!MEVZUAT_DURUMLARI.includes(girdi.durum)){
     eksikler.push('Durum seçilmedi.')
   }
@@ -148,3 +209,41 @@ export const tarihiGoster = (isoGun: string | undefined): string => {
  */
 export const vitrinGosterilsinMi = (satirSayisi: number): boolean =>
   Number.isFinite(satirSayisi) && satirSayisi > 0
+
+/** Vitrindeki bir grup: başlık + o türe ait satırlar. */
+export type MevzuatGrubu<T> = {
+  tur: MevzuatTuru
+  baslik: string
+  satirlar: T[]
+}
+
+/**
+ * Sunucudan gelen satırları türlerine göre gruplar.
+ *
+ * ⚠️ SIRALAMA YAPMIYOR. Gruplar, sunucunun verdiği sırada türün İLK
+ * göründüğü yere göre diziliyor; satırların kendi sırası da olduğu gibi
+ * kalıyor. Burada `KANUN önce gelir` diye bir satır olsaydı, 0114'teki
+ * `case r.kind` ile ikinci bir gerçek olurdu ve biri değişip diğeri
+ * kaldığında ekran sessizce yanlış dizilirdi.
+ *
+ * ⚠️ Yalnız HABER kırpılıyor (`VITRIN_HABER_SINIRI`); kütüphane
+ * bağlantıları kalıcı ve sayıları az.
+ */
+export const mevzuatiGruplara = <T extends { tur: string }>(
+  satirlar: readonly T[],
+  haberSiniri: number = VITRIN_HABER_SINIRI,
+): MevzuatGrubu<T>[] => {
+  const gruplar: MevzuatGrubu<T>[] = []
+  for(const satir of satirlar){
+    const tur = satir.tur as MevzuatTuru
+    if(!MEVZUAT_TURLERI.includes(tur)) continue
+    let grup = gruplar.find(g => g.tur === tur)
+    if(!grup){
+      grup = { tur, baslik: MEVZUAT_TUR_BASLIGI[tur], satirlar: [] }
+      gruplar.push(grup)
+    }
+    if(tur === 'HABER' && grup.satirlar.length >= Math.max(haberSiniri, 0)) continue
+    grup.satirlar.push(satir)
+  }
+  return gruplar.filter(g => g.satirlar.length > 0)
+}

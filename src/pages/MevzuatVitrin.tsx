@@ -31,12 +31,34 @@
 // ⚠️ YAYINDA OLMAYAN SATIR BURAYA DÜŞEMEZ ve bu istemcinin kararı değil:
 // sunucu yalnız `YAYINDA` satırları döndürüyor, `status` alanı vitrine
 // hiç ÇIKMIYOR. Yani bir istemci hatası bile taslağı ekrana getiremez.
+//
+// ── 10.11.2026 · AKIŞ DEĞİL KÜTÜPHANE (göç 0114) ─────────────────────────
+// Emrah ilk kaydı girdikten sonra `gidamo.org.tr/mevzuat/ilgili-mevzuat`
+// sayfasını gösterdi: *"ben aslında bu adresteki gibi olsun istemiştim."*
+// O sayfa bir haber akışı değil; üç kalıcı kapı — Kanunlar, Yönetmelikler,
+// Tebliğler. Kutu artık türlere göre gruplanıyor.
+//
+// ⚠️ SIRA BURADA KURULMUYOR. Sunucu satırları kanun → yönetmelik → tebliğ
+// → haber sırasında veriyor (0114); `mevzuatiGruplara` o sırayı yalnız
+// KORUYOR. Burada bir sıralama yazılsaydı aynı kural iki yerde iki gerçek
+// olurdu — ve biri değişip diğeri kaldığında kutu sessizce yanlış dizilirdi.
+//
+// ⚠️ OTOMATİK TOPLAMA YOK ve kutu bunu SÖYLEMİYOR da. Emrah *"sistem kendi
+// bulsun"* dedi; ölçüldü, Resmî Gazete'nin resmî bir RSS/API ucu yok ve
+// HTML ayrıştıran çözümler kaynak değişince sessizce boş döner. Karar:
+// önce kütüphane, toplama demo sonrası. O gün gelene kadar bu ekran
+// "güncel tutuluyor" gibi bir söz VERMİYOR.
 // ═══════════════════════════════════════════════════════════════════════════
 
 import React from 'react'
 import { getSupabase, isSupabaseConfigured } from '../core/supabase'
 import { PostgresMevzuatDefteri, type MevzuatVitrinSatiri } from '../platform/mevzuat.repository'
-import { VITRIN_SATIR_SINIRI, tarihiGoster, vitrinGosterilsinMi } from '../platform/mevzuat.service'
+import {
+  VITRIN_SATIR_SINIRI,
+  mevzuatiGruplara,
+  tarihiGoster,
+  vitrinGosterilsinMi,
+} from '../platform/mevzuat.service'
 
 export default function MevzuatVitrin(){
   const [satirlar, setSatirlar] = React.useState<MevzuatVitrinSatiri[]>([])
@@ -56,35 +78,50 @@ export default function MevzuatVitrin(){
     return () => { iptal = true }
   }, [yapilandirildi])
 
-  if(!vitrinGosterilsinMi(satirlar.length)) return null
+  const gruplar = mevzuatiGruplara(satirlar)
+
+  if(!vitrinGosterilsinMi(gruplar.length)) return null
 
   return (
     <section className="unified-login-section mevzuat-vitrin" id="mevzuat" aria-label="Mevzuat akışı">
       <div className="unified-login-section-heading">
         <span className="unified-login-section-label">Mevzuat</span>
-        <h2>Gıda mevzuatında son durum</h2>
+        <h2>Gıda mevzuatı</h2>
       </div>
 
-      <div className="mevzuat-vitrin-liste">
-        {satirlar.map(satir => (
-          <article className="mevzuat-vitrin-satir" key={`${satir.yayimTarihi}-${satir.baslik}`}>
-            <time dateTime={satir.yayimTarihi.slice(0, 10)}>{tarihiGoster(satir.yayimTarihi)}</time>
-            <div className="mevzuat-vitrin-govde">
-              <h3>{satir.baslik}</h3>
-              {satir.ozet ? <p>{satir.ozet}</p> : null}
-              {/*
-                ⚠️ `rel="noopener noreferrer"` ŞART: `target="_blank"` açılan
-                sayfaya `window.opener` üzerinden bu sekmeye dokunma imkânı
-                verir. Adresin `https://` olması veritabanında zorunlu
-                (0113); bu da ikinci kat.
-              */}
-              <a href={satir.kaynakAdresi} target="_blank" rel="noopener noreferrer">
-                Kaynak: {satir.kaynakAdi}
-              </a>
-            </div>
-          </article>
-        ))}
-      </div>
+      {gruplar.map(grup => (
+        <div className="mevzuat-vitrin-grup" key={grup.tur}>
+          <h3 className="mevzuat-vitrin-grup-basligi">{grup.baslik}</h3>
+          <ul className="mevzuat-vitrin-liste">
+            {grup.satirlar.map(satir => (
+              <li className="mevzuat-vitrin-satir" key={`${satir.tur}-${satir.baslik}`}>
+                {/*
+                  ⚠️ `rel="noopener noreferrer"` ŞART: `target="_blank"` açılan
+                  sayfaya `window.opener` üzerinden bu sekmeye dokunma imkânı
+                  verir. Adresin `https://` olması veritabanında zorunlu
+                  (0113); bu da ikinci kat.
+                */}
+                <a href={satir.kaynakAdresi} target="_blank" rel="noopener noreferrer">
+                  {satir.baslik}
+                </a>
+                {satir.ozet ? <p>{satir.ozet}</p> : null}
+                <span className="muted small-text">
+                  {/*
+                    ⚠️ TARİH YALNIZ HABERDE. Kalıcı bir kanun bağlantısının
+                    yanında tarih yazmak, o bağlantının O GÜN değiştiği
+                    izlenimi verir — Emrah'ın 10.11'de ekranda yanlış bulduğu
+                    şey tam buydu (2011 tarihli bir yönetmelik haber gibi
+                    dizilmişti).
+                  */}
+                  {grup.tur === 'HABER'
+                    ? `${tarihiGoster(satir.yayimTarihi)} · ${satir.kaynakAdi}`
+                    : `Kaynak: ${satir.kaynakAdi}`}
+                </span>
+              </li>
+            ))}
+          </ul>
+        </div>
+      ))}
 
       {/*
         ⚠️ BU CÜMLE BİR SÖZ VERMİYOR. "Her gün güncellenir" ya da "anlık
@@ -93,7 +130,7 @@ export default function MevzuatVitrin(){
         söz yazılmaz). Burada yalnız kaynağın nereden geldiği söyleniyor.
       */}
       <p className="muted small-text">
-        Kayıtlar MİYOP tarafından kaynağından okunup eklenir; her satırın bağlantısı kaynağa gider.
+        Bağlantılar mevzuatın kendi kaynağına gider; MİYOP burada yalnız yolu gösterir.
       </p>
     </section>
   )

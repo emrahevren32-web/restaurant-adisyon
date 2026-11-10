@@ -134,3 +134,100 @@ burada yeni bir izne gerek yok: bu ekran zaten yalnız platform sahibinin.
 - Satır sayısı 5 yeterli mi?
 - Müşteri giriş yaptıktan SONRA da görsün mü (kontrol panelinde),
   yoksa yalnız giriş ekranında mı kalsın?
+
+---
+
+## 10.11.2026 · AKIŞ DEĞİL KÜTÜPHANE (göç 0114)
+
+Emrah ilk kaydı girdikten sonra `gidamo.org.tr/mevzuat/ilgili-mevzuat`
+sayfasını gösterdi: *"ben aslında bu adresteki gibi olsun istemiştim."*
+
+**O sayfa ölçüldü (ekran görüntüsü):** bir haber akışı değil. Üç başlık,
+üç bağlantı — *Gıda İle İlgili Kanunlar*, *...Tüm Yönetmelikler*,
+*...Tüm Tebliğler*. Üçü de `mevzuat.gov.tr`deki tam listeye gidiyor. Yani
+kırk maddelik bir katalog değil, **üç kalıcı kapı**: bakımı neredeyse
+sıfır, bozulacak ayrıştırıcı yok, içeriğin güncelliği kaynağın işi.
+
+0113 ise bir haber akışı kurmuştu: tarihli, en yeni üstte. İkisinin
+tutmadığı ilk kayıtta görüldü — Emrah'ın girdiği şey bir mevzuattı
+(Yönetmelik, 17.12.2011) ve ekran eski bir tarihi öne çıkarıyordu.
+
+### Emrah'ın seçtiği yol
+
+> *"Önce A (mevzuat rehberi · kategorili, sabit, bakımsız) — B'yi demo
+> sonrasına yazıyorum."*
+
+**A** = kategorili kütüphane (bu göç). **B** = otomatik toplama.
+
+### Otomatik toplama neden bugün değil
+
+Emrah *"sistem kendi bulsun haberlerini"* dedi. Ölçüldü: **Resmî
+Gazete'nin resmî bir RSS/JSON/API ucu bulunamadı.** Bunu yapan üçüncü
+taraflar günlük dizin sayfasını HTML ayrıştırarak okuyor; kaynak sitesi
+değiştiğinde **sessizce boş döner** — ve sessizce boş dönen bir besleme,
+giriş ekranında "mevzuat yok" demektir.
+⚠️ Tablo o gün için hazır: toplayıcı eklendiğinde satırlar
+`kind='HABER'` ve `status='TASLAK'` olarak düşecek. Arada insan kalıyor.
+
+### Karar · ikinci tablo açılmadı
+
+`regulation_news`e bir `kind` kolonu eklendi:
+
+| tür | ne demek | vitrinde |
+|---|---|---|
+| `KANUN` | kalıcı bağlantı | *Kanunlar* başlığı altında, **tarihsiz** |
+| `YONETMELIK` | kalıcı bağlantı | *Yönetmelikler*, tarihsiz |
+| `TEBLIG` | kalıcı bağlantı | *Tebliğler*, tarihsiz |
+| `HABER` | tarihli akış | *Son değişiklikler*, en çok 3 satır, en yeni üstte |
+
+⚠️ İkinci bir tablo açmak aynı kapıları (RLS, platform kapısı, `https`
+zorunluluğu, imza damgası) **ikinci kez yazmak** olurdu — iki yerde iki
+gerçek. Tek tablo, tek kapı, iki görünüm.
+
+⚠️ **Varsayılan `HABER` ve bu bilinçli.** 0113'ten gelen satırlar haber
+olarak yazılmıştı; varsayılanı başka bir şey yapmak var olan kaydın türünü
+**sessizce değiştirmek** olurdu. Göçün özeti kaç satırın böyle kaldığını
+söylüyor ki panelden elle düzeltilebilsin.
+
+### Sıra sunucuda, tek yerde
+
+`public.mevzuat_akisi_oku()` satırları `case r.kind` ile kanun →
+yönetmelik → tebliğ → haber sırasında döndürüyor; her grubun içinde tarihe
+göre. Tavan sunucuda: varsayılan 12, en çok 30.
+
+⚠️ **Ekran kendi sırasını KURMUYOR.** `mevzuatiGruplara()` sunucunun
+verdiği sırayı yalnız koruyor (türün ilk göründüğü yere göre gruplar).
+İstemcide bir sıralama olsaydı aynı kural iki yerde iki gerçek olur ve
+biri değişip diğeri kaldığında kutu sessizce yanlış dizilirdi.
+Donduran iddia: `mevzuat-kapisi.arch.test.ts` →
+*"SIRA SUNUCUDA ve istemcideki tür sırasıyla AYNI"* (göçteki `case`
+numaralarını `MEVZUAT_TURLERI` sırasıyla karşılaştırıyor) ve
+*"ekran kendi SIRASINI kurmuyor"* (`.sort(` yasak).
+
+### Tür ZORUNLU
+
+Form boş türle açılıyor (`tur: ''`) ve hem ekran hem veritabanı aynı
+cümleyi söylüyor: *"Tür seçilmedi (kanun, yönetmelik, tebliğ ya da
+haber)."* (`MI422`).
+⚠️ Varsayılan geçerli bir tür konsaydı bu kural hiç çalışmaz ve bir kanun
+yanlışlıkla haber olarak yayına alınabilirdi — haber satırları en altta ve
+kırpılıyor, yani kalıcı bağlantı kaybolurdu.
+
+### İki tuzak, ikisi de yazıldı
+
+- **199** · `p_tur` varsayılanı olan `p_durum`dan ÖNCE konduğu için eski
+  yedi argümanlı çağrıların son argümanı yeni yuvaya kaydı. Şans eseri
+  patladı (`'YAYINDA'` geçerli bir tür değil); uyumlu bir değer olsaydı
+  **sessizce yanlış çalışırdı.** Güncellenen çağrı: 11 + 4.
+- **67** · `drop function` GRANT'ları da siler. 0114 hepsini yeniden
+  veriyor; `prova-0114.sql` verildiğini ölçüyor, `prova-0114-ters.sql`
+  yetki geri verilmeseydi vitrinin "permission denied" alıp **boş
+  kalacağını** gösteriyor.
+
+### Ölçüm
+
+Temiz veritabanı (`kur.sh`) → **115 göç**, `hepsini-kosturt.sh` → **67
+prova · 0 kırmızı**. `prova-0114.sql` 22 iddia, ters prova 4 iddia.
+Saf mantık (gruplayıcı, doğrulama, bellek defteri) node'da koşturuldu:
+**17 iddia yeşil**. ⚠️ `npm test` ve `npm run build` Emrah'ın
+makinesinde; son söz onun çıktısında.

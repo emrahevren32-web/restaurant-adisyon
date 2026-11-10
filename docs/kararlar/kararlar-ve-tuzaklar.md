@@ -984,6 +984,66 @@ göreceği hata mesajları** da (`'Çok fazla deneme yapıldı'`) bozuluyordu.
 ⚠️ Ve komut kendi çıktısını **ölçmeli**: panoda `ş` var mı, bozuk `Ã` var
 mı. "Kopyaladım" demek yetmez; kopyanın sağlam olduğu gösterilir.
 
+**200 · ÇALIŞMA KOPYAMDA BENİM YAZMADIĞIM DOSYALAR VARDI VE PROVA
+VERİTABANINA UYGULANMIŞLARDI.**
+(10.11.2026)
+
+Mevzuat kütüphanesini yazmaya başlarken `db/migrations` klasöründe
+`0114_mevzuat_kutuphanesi.sql` diye bir dosya BULDUM. Bu konuşmada onu ben
+yazmamıştım. Dosyanın kap içindeki tarihi 9 Kasım 22:07'ydi — Emrah'ın
+10.11 mesajından yaklaşık on dakika sonra — ve o mesajı kelime kelime
+alıntılıyordu. Prova veritabanına da UYGULANMIŞTI: `mevzuat_yaz`ın sekiz
+parametreli bir sürümü ve `mevzuat_kutuphanesi_oku()` diye bir fonksiyon
+veritabanında duruyordu. **Emrah'ın makinesinde ise 0114 YOKTU; son göç
+0113'tü.**
+
+Sonra `db/prova/prova-0113-ters.sql`in de değiştirilmiş olduğu çıktı: o
+dosyada sekiz parametreli imzaya atıf yapan, benim yazmadığım satırlar
+vardı — ve parametre sırası benim yazdığım 0114'ten FARKLIYDI (`p_tur`,
+`p_durum`dan SONRA). Yani değişiklikler o bilinmeyen 0114'e aitti.
+
+⚠️ **TEHLİKE, DOSYANIN VARLIĞI DEĞİL; ÖLÇÜMÜN ADRESİ.** O dosyalar
+üzerinde yaptığım her ölçüm, Emrah'ın deposunu değil **başka bir dünyayı**
+tarif ediyordu. Tuzak 190'ın aynı sınıfı: prova yeşil yanar, çünkü var
+olmayan bir kuralı ölçer.
+
+⚠️ Ne yaptım: ikisini de SİLMEDİM, `karantina/` klasörüne taşıdım. Prova
+veritabanını `kur.sh` ile sıfırdan kurdum (114 göç = 0000–0113) ve
+yalnızca 0113'ün imzalarının kaldığını ÖLÇTÜM. `prova-0113-ters.sql`i
+makinedeki işlenmiş sürümden geri aldım, 0114'e kendim uyarladım.
+
+⚠️ **KURAL:** kabın çalışma kopyası **depo değildir.** Depo, Emrah'ın
+makinesindeki işlenmiş hâldir. Bir dosya hakkında "şöyle" demeden önce o
+dosya makineden alınır. Beklemediğim bir dosya bulursam: silmem, karantina
+ederim ve **Emrah'a söylerim** — çünkü ölçümlerimin adresi onu doğrudan
+ilgilendirir.
+
+**199 · PARAMETREYİ VARSAYILANI OLAN BİR PARAMETREDEN ÖNCE EKLEMEK, ESKİ
+ÇAĞRILARI SESSİZCE KAYDIRIR.**
+(10.11.2026)
+
+0114, `mevzuat_yaz`a `p_tur` parametresini ekledi ve **varsayılanı olan
+`p_durum`dan ÖNCE** koydu. `prova-0113.sql`deki yedi argümanlı eski
+çağrıların son argümanı (`'YAYINDA'`) artık `p_tur` yuvasına düştü.
+
+⚠️ **BU SEFER ŞANS ESERİ PATLADI:** `'YAYINDA'` geçerli bir tür değil, o
+yüzden *"Tür seçilmedi"* hatası geldi ve prova kırmızı yandı. Uyumlu bir
+değer olsaydı — mesela `p_tur`un yerine düşen metin `'HABER'` olsaydı —
+çağrı **sessizce yanlış çalışır**, kayıt yanlış durumla açılır ve hiçbir
+ölçüm bunu görmezdi.
+
+⚠️ **Doğrusu iki şeyden biri:** yeni parametreyi **sonuncu** yap (varsayılanı
+olanlardan sonra), ya da bilerek öne koyup **bütün çağrıları tek tek
+güncelle ve her birini ölç**. Burada ikincisi seçildi — çünkü tür
+ZORUNLU olmalıydı ve zorunlu bir parametrenin varsayılanı olan birinden
+sonra gelmesi PostgreSQL'de mümkün değil. Güncellenen çağrı sayısı: 11
+(`prova-0113.sql`) + 4 (`prova-0113-ters.sql`).
+
+⚠️ Yan etki: `drop function` + yeniden yazma, **GRANT'ları da siler**
+(tuzak 67). 0114 hepsini yeniden veriyor ve `prova-0114.sql` verildiğini
+ölçüyor; `prova-0114-ters.sql` ise yetki geri verilmeseydi vitrinin
+"permission denied" alıp **boş kalacağını** gösteriyor.
+
 **198 · "YAZILDI" CEVABI, YAZILDIĞI ANLAMINA GELMEDİ — VE BEN
 "DÜZELTTİM" DEDİM.**
 (09.11.2026 · tuzak 49/78'in köprüdeki yüzü)
@@ -2455,6 +2515,20 @@ Son söz onun çıktısındadır.
      vermez** (0106). "N ay sonra silinir" demek için kendiliğinden silen
      bir iş gerekir; yoksa metin süre yazmaz, **tutulan** sözü yazar — ve
      o sözün karşılığı (silme fonksiyonu + düğmesi) aynı turda yazılır.
+153. **Beklemediğim bir dosya bulursam SİLMEM, karantina eder ve
+     SÖYLERİM** (tuzak 200). Kabın çalışma kopyası depo değildir; depo
+     Emrah'ın makinesindeki işlenmiş hâldir. Bir dosya hakkında bir şey
+     söylemeden önce o dosya MAKİNEDEN alınır. Prova veritabanı
+     şüpheliyse `kur.sh` ile sıfırdan kurulur ve hangi imzaların kaldığı
+     ÖLÇÜLÜR.
+152. **Bir fonksiyona parametre eklerken yeni parametre SONA konur**
+     (tuzak 199). Varsayılanı olan bir parametreden öncesine konursa
+     eski konumlu çağrıların son argümanı yeni yuvaya kayar ve — değer
+     uyumluysa — çağrı SESSİZCE yanlış çalışır. Öne konması
+     zorunluysa (zorunlu parametre, varsayılanlıdan sonra gelemez)
+     bütün çağrılar tek tek güncellenir ve her biri KOŞTURULUR.
+     ⚠️ `drop function` + yeniden yazma GRANT'ları da siler (tuzak 67);
+     göç hepsini yeniden verir, prova verildiğini ÖLÇER.
 151. **Emrah'ın makinesine yazılan her dosya GERİ OKUNUR ve
      karşılaştırılır** (tuzak 198). Aracın "yazıldı" cevabı bir ölçüm
      değildir; sessizce ve seçici olarak düşebiliyor. Karşılaştırma
