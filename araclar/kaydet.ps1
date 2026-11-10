@@ -73,8 +73,28 @@ if ([string]::IsNullOrWhiteSpace($degisiklik)) {
   }
 }
 
+# !! 10.11.2026 - PUSH BURAYA EKLENDI. Oncesinde YOKTU.
+# Iki tur ust uste commit alindi (60e6988, 74bee99) ve IKISI DE yalniz bu
+# makinede kaldi. Betigin adi "kaydet" ama kaydettigi yer tek bir disk idi;
+# o disk giderse is gider. Ayrica Codex depoyu GitHub uzerinden okuyor:
+# push edilmemis bir commit, denetlenemeyen bir commit demek.
+#
+# !! Push basarisiz olursa betik DURMUYOR, sadece soyluyor. Commit zaten
+# alindi; push bir aga bagli ve agin kopmasi commit'i gecersiz kilmaz.
+# Ama SESSIZ gecmiyor - sessiz gecerse yine fark edilmez.
+git push
+if ($LASTEXITCODE -ne 0) {
+  Write-Host ""
+  Write-Host "PUSH BASARISIZ - commit YEREL kaldi." -ForegroundColor Red
+  Write-Host "Sebebi yukarida yaziyor. El ile denemek icin: git push" -ForegroundColor Red
+} else {
+  Write-Host ""
+  Write-Host "Push tamam - is GitHub'da." -ForegroundColor Green
+}
+
 Write-Host ""
 git log --oneline -1
+git status -sb
 
 $panoYolu = Join-Path $PSScriptRoot 'pano.txt'
 if (Test-Path $panoYolu) {

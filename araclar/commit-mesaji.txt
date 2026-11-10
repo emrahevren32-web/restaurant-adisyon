@@ -1,59 +1,37 @@
-Tip hatasi giderildi + rol/yetki/istisna matrisi (olcumle uretildi)
+kaydet.ps1'e push eklendi + onceki iki commit'in mesaji yanlisti
 
-== 1 . TIP HATASI ==
-Onceki turda `gocIzinleri` yardimcisini kaldirdim ama bir kullanimi
-kaldi (numune-kapisi.arch.test.ts:203) ve tsc kirmizi verdi.
-!! Benim yerel taramam bunu YAKALAYAMADI: bu ortamda node_modules yok,
-yani `tsc --noEmit` kosamiyor. Sadece soz dizimi bakilabiliyor.
+== 1 . PUSH YOKTU ==
+Olculdu: kaydet.ps1 icinde `git push` HIC YOKTU. Commit aliyor, log
+basiyor, panoya kopyaliyor - orada bitiyor. Iki tur ust uste commit
+alindi (60e6988, 74bee99) ve ikisi de yalniz Emrah'in diskinde kaldi;
+`git status -sb` "ahead 2" diyordu.
 
-O satirdaki sinama zaten BAYATLAMISTI: "numune ALMA kapisi 0093'te
-DEGISMEDEN duruyor" diyordu, oysa 0108 kapiyi degistirdi. Yerine iki
-sinama yazildi:
-  . "0093'te acildi, 0108'de DARALDI" -- ETKIN tanima bakiyor ve hangi
-    goce baktigini iddianin icinde yaziyor.
-  . "production.write numune kapisindan CIKTI" -- hem ekran listesinde
-    hem veritabani kapisinda yoklugunu olcuyor.
+!! Betigin adi "kaydet" ama kaydettigi yer tek bir disk idi. O disk
+giderse is gider. Ayrica Codex depoyu GitHub uzerinden okuyor: push
+edilmemis bir commit, denetlenemeyen bir commit demek.
 
-== 2 . SEVKIYAT SORUMLUSU KARARI YAZILDI ==
-Emrah: "evet. Normalde is onun olmaz ama alabilsin."
-0108'in yan etkisi artik bir ISTISNA olarak kayitli, kaza degil.
+Eklenen: commit'ten sonra `git push`, ardindan `git log --oneline -1`
+ve `git status -sb`. Push duserse betik DURMUYOR - commit zaten alindi
+ve aga bagli bir adimin kopmasi commit'i gecersiz kilmaz - ama KIRMIZI
+yaziyor. Sessiz gecseydi yine fark edilmezdi.
 
-== 3 . ROL/YETKI/ISTISNA MATRISI ==
-Emrah: "yarin birgun ben sana kimin ne tur gorevleri ve yetkileri ve
-istisnai yetkileri var dersem bana dokuman verebilecek durumda ol."
+== 2 . COMMIT MESAJI BAYATTI, SEBEBI BENDIM ==
+60e6988 ve 74bee99 commit'leri "Tip hatasi giderildi + rol/yetki/istisna
+matrisi" basligini tasiyor. O baslik onceki bir turun isini anlatiyor;
+bu iki commit mevzuat kutuphanesini (goc 0114, 17 dosya) tasiyor.
 
-Iki parca halinde yazildi:
+Sebep: kaydet.ps1 mesaji araclar/commit-mesaji.txt dosyasindan okuyor ve
+betigin kendi yorumu "Claude o dosyayi her turda yeniler" diyor. Ben iki
+turda yenilemedim. Kayit defteri yanlis sey soyluyor.
 
-  db/prova/rol-yetki-raporu.sql
-    Salt okunur rapor. 13 rol, 35 izin, 28 yazma kapisi, okuma kapilari
-    ve "yazabilip okuyamayan rol var mi" kontrolu. Canli semanin aynisi
-    olan prova veritabanindan OLCUYOR.
+!! Gecmis YENIDEN YAZILMADI. Mesaji duzeltmek iki commit'i degistirmek
+demek; is zaten dogru, ne yapildigi docs/ altinda yazili (HEDEFLER A7,
+mevzuat-akisi-tasarim.md, kararlar-ve-tuzaklar tuzak 199/200).
 
-  docs/kararlar/rol-yetki-matrisi.md
-    O raporun ciktisindan uretilmis belge. Uc kapi kurali, rol basina
-    izinler, izin katalogu, tablo basina yazma kapilari, okuma kapisi
-    olan tablolar -- ve en onemlisi ISTISNALAR bolumu:
-      . sahit numune: gormek / almak / imha etmek ucu ayri izin
-      . depo sorumlusu gorur ama yazamaz (kontrol fiziksel sorumluluk)
-      . imha dar kapida (0097 karari)
-      . personel cikarildi (0108), sevkiyat ISTISNA olarak girdi
-      . gida muhendisi recipe.write TASIMIYOR -- beyan kendi kendini
-        dogrulamasin diye
-      . kalite sorumlusu uretimi/stogu yalniz GORUR
-      . finance.read raporlarin da onunde (0071)
-      . siparis ACMAK ile ONAYLAMAK ayri hak (0061)
-      . mal kabul personelde degil
-      . platform.manage yalniz bizde; musteri sahibine admin VERILMEZ
-      . mudur kullanici acamaz, rol dagitamaz
-      . izleyici fiyat dahil her seyi gorur, hicbir seyi degistiremez
+== 3 . MEVZUAT KUTUPHANESI PARK EDILDI ==
+Emrah (10.11): "simdilik bu konuda cok zaman kaybetmeyelim. Bu konuyu
+burada demo sonrasina birak ve diger ana hedeflerimize odaklan."
 
-!! BELGE ELLE YAZILMADI, OLCULDU. Elle surdurulen bir yetki matrisi bir
-hafta icinde bayatlar ve bayat bir yetki belgesi, OLMAYAN bir guvenlik
-duygusu verir (tuzak 186). Belgenin basinda yeniden uretme komutu var.
-
-!! Belgeyi zorlayan bir sinama YOK ve bu bilerek: kapi makine icin,
-belge insan icin. Kapinin dogrulugu provalarla olculuyor; belgenin
-guncelligi insanin sorumlulugunda ve bu da belgede yazili.
-
-Co-Authored-By: Claude Opus 5 <noreply@anthropic.com>
-Claude-Session: https://claude.ai/code/session_019BwYM3mAXZUhp4YGj7tp2y
+Goc 0114 canlida, ekran yayinda, provalar yesil. Kutuphaneye hangi
+baglantilarin konacagi (secenek C: tek tek gercek yonetmelik/teblig
+baglantilari) DEMO SONRASINA birakildi.
