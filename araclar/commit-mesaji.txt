@@ -1,37 +1,39 @@
-kaydet.ps1'e push eklendi + onceki iki commit'in mesaji yanlisti
+Codex 4. tur brifi guncellendi (olculmus sayilarla, mevzuat dahil)
 
-== 1 . PUSH YOKTU ==
-Olculdu: kaydet.ps1 icinde `git push` HIC YOKTU. Commit aliyor, log
-basiyor, panoya kopyaliyor - orada bitiyor. Iki tur ust uste commit
-alindi (60e6988, 74bee99) ve ikisi de yalniz Emrah'in diskinde kaldi;
-`git status -sb` "ahead 2" diyordu.
+docs/kararlar/codex-denetimi-kasim-2026-4tur.md yeniden yazildi.
 
-!! Betigin adi "kaydet" ama kaydettigi yer tek bir disk idi. O disk
-giderse is gider. Ayrica Codex depoyu GitHub uzerinden okuyor: push
-edilmemis bir commit, denetlenemeyen bir commit demek.
+== NEDEN ==
+Brif 09.11'de yazilmisti ve o gunku dunyayi anlatiyordu. Aradan 0113,
+0114 ve iki ekran gecti; brifin sayilari da iddialari da bayatlamisti.
 
-Eklenen: commit'ten sonra `git push`, ardindan `git log --oneline -1`
-ve `git status -sb`. Push duserse betik DURMUYOR - commit zaten alindi
-ve aga bagli bir adimin kopmasi commit'i gecersiz kilmaz - ama KIRMIZI
-yaziyor. Sessiz gecseydi yine fark edilmezdi.
+!! EN ONEMLISI: eski brif "tsc ve npm test KOSTURULAMADI" diyor ve bunu
+turun EN ONEMLI maddesi olarak isaretliyordu. Artik dogru degil - ikisi
+de Emrah'in makinesinde kostu (tsc temiz, 116 dosya / 2017 sinama
+yesil). Yanlis bir brif, Codex'i olmayan bir sorunu aramaya gonderirdi.
+Madde kaldirildi, yerine mevzuat yuzeyi kondu.
 
-== 2 . COMMIT MESAJI BAYATTI, SEBEBI BENDIM ==
-60e6988 ve 74bee99 commit'leri "Tip hatasi giderildi + rol/yetki/istisna
-matrisi" basligini tasiyor. O baslik onceki bir turun isini anlatiyor;
-bu iki commit mevzuat kutuphanesini (goc 0114, 17 dosya) tasiyor.
+== GUNCELLENEN SAYILAR (hepsi olculdu) ==
+. goc 115 (0000-0114), bekleyen goc YOK
+. prova 67 yesil / 0 kirmizi (temiz PostgreSQL 16)
+. sinama 116 dosya / 2017 yesil, tsc --noEmit temiz
+. son commit 31182ac, GitHub'da
+. canli paket index-F-l6yfvy.js
+. tuzak 200, kontrol listesi 153
 
-Sebep: kaydet.ps1 mesaji araclar/commit-mesaji.txt dosyasindan okuyor ve
-betigin kendi yorumu "Claude o dosyayi her turda yeniler" diyor. Ben iki
-turda yenilemedim. Kayit defteri yanlis sey soyluyor.
+== YENI DENETIM MADDELERI ==
+1  Iki goc tek yuzey - hangi dunyayi olcuyoruz (tuzak 190 zemini).
+   0113 tabloyu kurdu, 0114 fonksiyonlari DUSURUP yeniden yazdi;
+   0113'e bakan bir iddia artik olmayan bir kurali olcebilir.
+2  Dusurulen fonksiyonun YETKILERI (tuzak 67 / MIYOP-044'un ayni sinifi).
+   PUBLIC EXECUTE alindi mi, anon yalniz okumaya mi sahip.
+3  Parametre sirasi - p_tur varsayilanli p_durum'dan ONCE kondu ve eski
+   yedi argumanli cagrilar kaydi (tuzak 199). Baska cagiran kaldi mi.
+4  Vitrin sirasi - sunucudaki case ile istemcideki tur listesi arasindaki
+   bagi test gercekten kuruyor mu, yoksa metin esleselmesi mi.
+5  Vitrin ne soyluyor, ne vadediyor (MIYOP-059'un kosesi).
+11 kaydet.ps1'e eklenen push adimi.
 
-!! Gecmis YENIDEN YAZILMADI. Mesaji duzeltmek iki commit'i degistirmek
-demek; is zaten dogru, ne yapildigi docs/ altinda yazili (HEDEFLER A7,
-mevzuat-akisi-tasarim.md, kararlar-ve-tuzaklar tuzak 199/200).
+Eski maddeler (0109, 0110, 0111, olu CSS, mimari testler) duruyor.
 
-== 3 . MEVZUAT KUTUPHANESI PARK EDILDI ==
-Emrah (10.11): "simdilik bu konuda cok zaman kaybetmeyelim. Bu konuyu
-burada demo sonrasina birak ve diger ana hedeflerimize odaklan."
-
-Goc 0114 canlida, ekran yayinda, provalar yesil. Kutuphaneye hangi
-baglantilarin konacagi (secenek C: tek tek gercek yonetmelik/teblig
-baglantilari) DEMO SONRASINA birakildi.
+!! Mevzuat kutuphanesinin ICERIGI bu turun konusu degil - Emrah
+10.11'de demo sonrasina birakti. Kodun dogrulugu denetlenecek.
