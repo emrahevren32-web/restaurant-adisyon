@@ -984,6 +984,47 @@ göreceği hata mesajları** da (`'Çok fazla deneme yapıldı'`) bozuluyordu.
 ⚠️ Ve komut kendi çıktısını **ölçmeli**: panoda `ş` var mı, bozuk `Ã` var
 mı. "Kopyaladım" demek yetmez; kopyanın sağlam olduğu gösterilir.
 
+**202 · BİR EKRANI AÇMAK, O EKRANIN ÇALIŞTIĞINI GÖSTERMEZ.**
+(11.11.2026)
+
+A5 (şahit numune) aylardır *"boş kiracıda açılıyor mu"* diye bekliyordu.
+11.11'de canlıda açtım — açıldı. Orada durup "bitti" diyebilirdim.
+Demedim ve **numune aldım**: parti seçildiğinde ekranın saklama koşulunu
+ürün kartından, saklama sonunu partiden getirdiği ancak o zaman görüldü.
+
+⚠️ Açılan ama veri almamış bir ekran, kapısı denenmemiş bir kapıdır.
+Üç soru ayrıdır: **(1)** ekran açılıyor mu, **(2)** veri yazılıyor mu,
+**(3)** yazılan veri doğru yerden mi geliyor. Üçü de sorulmadan
+"çalışıyor" cümlesi kurulmaz.
+
+⚠️ Aynı tur bunun bedelini de gösterdi: reçete ekranı **açılıyordu** ve
+kayıt da **yazıyordu**, ama reçete `Taslak` kaldığı için iş emri ekranında
+**listede hiç görünmüyordu**. Yalnız açılışa bakan bir ölçüm bunu
+göremezdi; demo günü müşterinin önünde görülürdü.
+
+**201 · GÖRMEDİĞİM BİR ŞEYİ "GÖRDÜM" GİBİ YAZDIM, SONRA ÖLÇMEDEN GERİ
+ALDIM.**
+(11.11.2026)
+
+Canlı provada sayfa yanıt vermeyi kesti. *"Tarayıcı penceresi açıldı"*
+diye yazdım — **görmemiştim, çıkarımdı.** Emrah "o sırada VPN açmıştım"
+deyince bu sefer **yine ölçmeden** *"yanılmışım"* dedim. İkisi de yanlış
+adımdı.
+
+Doğrusu üçüncü turda yapıldı: VPN kapalıyken aynı düğmeye basıldı, sayfa
+yine kilitlendi; sonra **kaynağa bakıldı** ve bulundu —
+`src/pages/Haccp.tsx:235` `window.prompt(...)`. Emrah'ın ekran
+görüntüsüyle de doğrulandı.
+
+⚠️ **İKİ YÖNLÜ KURAL:** ölçmeden bir şeyi **iddia etmek** kadar, ölçmeden
+bir iddiadan **dönmek** de yanlıştır. Birincisi uydurma, ikincisi
+gerçek bir bulguyu çöpe atar. Yeni bir bilgi (VPN) bir iddiayı
+çürütmez — yalnız **yeniden ölçmeyi gerektirir.**
+
+⚠️ Ölçüm buradaydı ve ucuzdu: `grep -rn "window.prompt\|window.confirm"`.
+Tarayıcıda ne olduğunu tartışmak yerine **koda bakmak** on saniye sürdü
+ve sekiz ekranda dokuz çağrı buldu.
+
 **200 · ÇALIŞMA KOPYAMDA BENİM YAZMADIĞIM DOSYALAR VARDI VE PROVA
 VERİTABANINA UYGULANMIŞLARDI.**
 (10.11.2026)
@@ -2515,6 +2556,13 @@ Son söz onun çıktısındadır.
      vermez** (0106). "N ay sonra silinir" demek için kendiliğinden silen
      bir iş gerekir; yoksa metin süre yazmaz, **tutulan** sözü yazar — ve
      o sözün karşılığı (silme fonksiyonu + düğmesi) aynı turda yazılır.
+155. **Bir ekranı AÇMAK yetmez; veri YAZ ve yazılanın nereden
+     geldiğini oku** (tuzak 202). Üç ayrı soru: açılıyor mu · yazıyor mu ·
+     doğru kaynaktan mı. "Ekran açıldı" cümlesi yalnız birincisini
+     cevaplar.
+154. **Ölçmeden bir iddiadan DÖNME** (tuzak 201). Yeni bir bilgi bir
+     iddiayı çürütmez, yeniden ölçmeyi gerektirir. Tarayıcıda olan bir
+     şeyi tartışmadan önce KAYNAĞA bak — `grep` on saniye sürer.
 153. **Beklemediğim bir dosya bulursam SİLMEM, karantina eder ve
      SÖYLERİM** (tuzak 200). Kabın çalışma kopyası depo değildir; depo
      Emrah'ın makinesindeki işlenmiş hâldir. Bir dosya hakkında bir şey

@@ -33,9 +33,91 @@ neyin neden yapıldığı kaybolmasın.
 | **A2** | ⛔ **KAPSAM DIŞI (Emrah, 31.10)** · MIYOP-008 · şube bağlamı | ⛔ **KARAR (Emrah, 31.10.2026):** *"Şube olayına şimdi girmeyeceğiz hatta demodan sonra da girmeyebiliriz."* Yani bu madde ertelenmedi, **kapsam dışına çıktı** — demo öncesi listesinden düşürüldü. ⚠️ **Bilinen durum yazılı kalsın:** kod hâlâ *"tercih yoksa ilk şube"* diyor ve tek şubede doğru sonucu **tesadüfen** veriyor. İkinci bir şube açıldığı gün bu bir hataya döner. Tek merkez kararı (25.10) o günü uzaklaştırdı ama ortadan kaldırmadı. Şube gerçekten gündeme gelirse yapılacaklar: başlıktaki şube seçici kalkar, liste sorgularına şube kapsamı yazılır. |
 | **A3** | ✅ **BİTTİ (29.10)** · MIYOP-010 + MIYOP-064 · **7/7 ekran** | Ortak çözüm `src/core/secim/ayrinti-kapisi.ts`: React'sız, isteksiz, **saf** bir karar birimi; kimlik sürüm numarası sayılıyor. Yedi ekranın yedisinde de takılı ve her birinde ÜÇ yere birden: düğme kapalı, eylemin **gövdesinde** erken dönüş, ve ekranda **sebep yazılı**. Ayrıntı 3.7'de. ⚠️ **BU SATIR 01.11'E KADAR AÇIK GÖRÜNÜYORDU** — iş 29.10'da bitmiş, üstteki tablo güncellenmemişti. Bayat bir liste yalan söyler: üç gün boyunca demo listesinde bitmiş bir iş duruyordu. |
 | **A4** | ✅ **BİTTİ (31.10)** · sahte veri üreticileri · **23 → 0** | `storage.ts` içinde tek bir `createDemo*` kalmadı; **851 satır** uydurma veri silindi. İki turda: (1) kiracı tarafı 13 üretici + **"depo boşsa uydur" mekanizmasının kendisi** (`loadBranchScopedItemsWithDemo` ve ikizi) — 408 satır; (2) platform/EVREN360 8 üretici — 443 satır. ⚠️ **Ölçüldü:** silinen 13'ün hiçbiri o gün açık bir kiracı ekranına ulaşmıyordu (dört modül de `frozen`) — yangın söndürme değil **mayın temizliği**: dondurulmuş bir kapı açıldığında uydurma veri sessizce geri gelecekti. ⚠️ **İki fonksiyon silinmedi, ADI DEĞİŞTİ:** `varsayilanLisansPaketleri` ve `varsayilanLisansModulleri` — uydurma kayıt değil **ürün kataloğu** (`defaultPackageSpecs`ten türüyorlar). Ad değiştirip sayımdan çıkmak saklamak olurdu; çıcıra ayrı sınama kondu. ⚠️ **Karar (Emrah, 31.10):** *"Boşalt, gerçeğe bağlanana kadar boş kalsın — panel bugün yalan söylemez ama birkaç ekran boş görünür."* Çıcır **kapandı** (üst sınır 0) ve sağlama sınaması yeniden yazıldı: artık "sonuç dolu mu" değil "ölçüm aracı hâlâ çalışıyor mu" diye soruyor. Ayrıntı: `docs/kararlar/kaldirilan-moduller.md` §8 ve §9. |
-| **A5** | **Şahit numune** 🔄 ⚠️ **28.10'da YENİDEN AÇILDI** | Göç **0093** defteri kurdu, **0094** Codex'in bulduğu P0'ı ve iki P1'i kapattı, **0096** saklama koşulunu kalite departmanının da yazabileceği beyan alanı yaptı, **0097** Emrah'ın imha onayı kararını zorladı. Ekran **Kalite → Şahit Numune**. Prova: 21+18+9+13 = **61 sınama yeşil**. ✅ **27.10:** etiket saklama koşulunu artık ürün kartından okuyor (3.9.3). ⚠️ **28.10 · EKRAN CANLIDA HİÇ AÇILMAMIŞ.** Emrah sıfırdan açılan bir kiracıda denedi: *"Bu ekran açılamadı"*. `client_error` kaydı sebebi yazdı — `ReferenceError: NUMUNE_SAYFA is not defined`: sabit kullanılmış, import edilmemiş. **26.10'da "bitti, canlıda" dedim; yalnız yerelde görmüştüm.** Düzeltildi; asıl kusur hatta tip denetiminin hiç koşmamasıydı (tuzak 141). Kalan: sayfalama borcu (3.9.9) + boş kiracıda canlı doğrulama. |
+| **A5** | ✅ **BİTTİ (11.11)** · **Şahit numune** · ⚠️ **CANLIDA, BOŞ KİRACIDA, ÖLÇÜLDÜ** | Göç **0093** defteri kurdu, **0094** Codex'in bulduğu P0'ı ve iki P1'i kapattı, **0096** saklama koşulunu kalite departmanının da yazabileceği beyan alanı yaptı, **0097** Emrah'ın imha onayı kararını zorladı. Ekran **Kalite → Şahit Numune**. Prova: 21+18+9+13 = **61 sınama yeşil**. ✅ **27.10:** etiket saklama koşulunu artık ürün kartından okuyor (3.9.3). ⚠️ **28.10 · EKRAN CANLIDA HİÇ AÇILMAMIŞ.** Emrah sıfırdan açılan bir kiracıda denedi: *"Bu ekran açılamadı"*. `client_error` kaydı sebebi yazdı — `ReferenceError: NUMUNE_SAYFA is not defined`: sabit kullanılmış, import edilmemiş. **26.10'da "bitti, canlıda" dedim; yalnız yerelde görmüştüm.** Düzeltildi; asıl kusur hatta tip denetiminin hiç koşmamasıydı (tuzak 141). Kalan: sayfalama borcu (3.9.9) + boş kiracıda canlı doğrulama. ⚠️ **11.11.2026 · DEMO PROVASINDA ÖLÇÜLDÜ** (canlı, boş kiracı `Yamaklar Gıda san.tic.aşe`): ekran **açıldı** ve **numune alındı** (SN-2026-0001). Parti seçilince ekranın kendi yazdığı cümle: *"Saklama koşulu: -18 °C derin dondurucu · saklama sonu partinin SKT'si olacak: 28.02.2027"*; kaydedince: *"Saklama koşulu ürün kartından, saklama sonu partinin son kullanma tarihinden alındı."* Yani 0093'ün türetme kararı ekranda çalışıyor. **Bu madde kapandı; 0.A listesinde kod tarafında açık madde kalmadı.** Ayrıntı: `claude/demo-provasi-sonucu.md`. |
 | **A6** | ✅ **BİTTİ (29.10)** · MIYOP-043 · Edge Function canlıda + göç 0102 + yedek yol silindi | Güvenlik borcu kapandı. |
 | **A7** | 🔄 **MEVZUAT KÜTÜPHANESİ · KOD BİTTİ, GÖÇ + YÜKLEME + GÖZ DOĞRULAMASI BEKLİYOR** (09-10.11) · göç **0113** (akış) + **0114** (kütüphane) + iki ekran. Ölçüldü: temiz veritabanında **115 göç · 67 prova · 0 kırmızı** (prova-0114 22 iddia + ters prova 4 iddia; prova-0113 34 iddia + ters prova). ⚠️ **0114 CANLIDA DEĞİL** — `araclar/goc-bekleyen.sql` içinde, Supabase'e yapıştırılacak. ⚠️ **Emrah 10.11'de düzeltti:** *"ben aslında `gidamo.org.tr/mevzuat/ilgili-mevzuat` adresindeki gibi olsun istemiştim."* O sayfa bir haber akışı değil, üç kalıcı kapı: Kanunlar · Yönetmelikler · Tebliğler. 0114 `kind` kolonunu ekliyor; sıra sunucuda sabit (kanun → yönetmelik → tebliğ → haber) ve kütüphane satırlarında tarih GÖSTERİLMİYOR — 2011 tarihli bir yönetmeliğin haber gibi dizilmesi tam buydu. ⚠️ **Var olan satırlar `HABER` kalıyor** (varsayılanı başka yapmak Emrah'ın girdiği kaydın türünü sessizce değiştirmek olurdu); göç kaç satır kaldığını özetinde söylüyor, türü panelden elle düzeltilecek. ⚠️ **Otomatik toplama hâlâ YOK ve bu ölçülmüş bir karar:** Resmî Gazete'nin resmî RSS/API ucu bulunamadı, HTML ayrıştıranlar kaynak değişince sessizce boş döner. Emrah'ın kararı (10.11): **önce kütüphane, toplama demo sonrası.** ⚠️ **"Bitti" DEMİYORUM:** ekranı canlıda kimse görmedi (tuzak 191 — aynı maddeyi hem bitti hem bozuk işaretlemiştim). Emrah'ın göreceği iki şey: EVREN360 → Mevzuat Akışı ekranı açılıyor mu, ve ilk kaydı yayına alınca giriş ekranında kutu çıkıyor mu. | Emrah: *"gıda yönetmeliklerinde yapılan son haberler, kanunlar, bildirimler vs kaynak gösterilerek akış halinde yer alsın."* Satışta somut bir cümle: MİYOP'u açan kişi mevzuatı da oradan takip ediyor. ⚠️ **BU KÖŞEDE DAHA ÖNCE UYDURMA DUYURU VARDI (MIYOP-059)** ve kaldırıldı; 09.11'de ölü CSS'i de silindi (MIYOP-107). İkinci kez konan kutunun farkı tek cümleyle: **her satır gerçek, kaynak bağlantılı ve elle yazılmış; kayıt yoksa kutu HİÇ çizilmiyor.** ⚠️ **Otomatik çekme YOK** (Resmî Gazete ayrıştırma): FREE planda zamanlanmış iş yok, ayrıştırıcı sessizce bozulur, ve yanlış özetlenmiş bir mevzuat maddesi müşteriye iş yaptırır. Arada **insan** var: Emrah okur, özetler, kaynağı ekler, yayına alır. Tablo baştan `TASLAK/YAYINDA/ARSIV` ile kuruluyor ki otomatik besleme eklendiğinde taslak olarak düşsün. Tasarım: `docs/kararlar/mevzuat-akisi-tasarim.md`. |
+
+## 0.A.1 · DEMO PROVASI BULGULARI · 11.11.2026
+
+Claude, Emrah'ın Chrome'undan **canlıda** boş bir deneme kiracısında
+(`Yamaklar Gıda san.tic.aşe`) senaryonun yazma adımlarını yürüttü.
+**Zincirin tamamı çalıştı** — KDV ayarı → stok kartı → tedarikçi → talep →
+sipariş → mal kabul (lot+SKT) → reçete → iş emri (yeni lot) → şahit numune
+→ müşteri+teslim noktası → sipariş → revizyon → üç adımlı onay → sevkiyat →
+izlenebilirlik (tedarikçiden müşteriye) → alerjen türetme → Analiz
+(ciro ₺3.410 · brüt marj %83,1) → Değişiklik Kaydı (16 satır).
+Tam döküm: `claude/demo-provasi-sonucu.md`.
+
+Çıkan altı iş:
+
+- ⬜ **0.A.1.1 · P1 · SEKİZ EKRAN TARAYICI PENCERESİ AÇIYOR.**
+  Sayıldı: **4 `window.prompt` + 5 `window.confirm`** · `Haccp.tsx` (2),
+  `Sayimlar.tsx` (2), `PurchaseFlow.tsx`, `PendingApplications.tsx`,
+  `SahitNumune.tsx`, `ZayiImha.tsx`, `Sevkiyatlar.tsx`, `WorkOrders.tsx`.
+  Emrah ekran görüntüsüyle doğruladı: kutunun başlığı
+  *"miyop.emrahevren.com web sitesinin mesajı"*.
+  ⚠️ **Depodaki yazılı kararla çelişiyor:** `MevzuatAkisi.tsx`te
+  *"onay penceresi yerine düğmenin kendisi soruyor (tarayıcı penceresi
+  açmıyoruz)"* yazılı. Demo akışının **beş adımı** bu ekranlardan geçiyor.
+  Kabul: dokuz çağrı ekran içi onay/giriş alanına çevrilir.
+
+- ⬜ **0.A.1.2 · P1 · REÇETE `Yürürlüğe Al` ADIMI SENARYODA YOK.**
+  Reçete `Taslak` açılıyor; o hâldeyken **İş Emirleri'nde reçete listesi
+  boş** (yalnız *"Reçetesiz (tek seferlik üretim)"*). Demoda Adım 7'den
+  Adım 11'e geçerken tam burada tıkanılır.
+  Kabul: `claude/demo-senaryosu.md` Adım 7'nin sonuna yazılır.
+
+- ⬜ **0.A.1.3 · P2 · SATIN ALMADA İKİ ADIM EKSİK YAZILMIŞ.**
+  Sipariş oluştuktan sonra **"Tedarikçiye gönder"** demeden Mal Kabul
+  açılmıyor; düğmenin adı *"siparişe çevir"* değil **"Siparişe dönüştür"**.
+
+- ⬜ **0.A.1.4 · P2 · ONAY ZİNCİRİ BİTİNCE SİPARİŞ KENDİLİĞİNDEN
+  ONAYLANMIYOR.** Üç adım da Olumlu olduktan sonra sipariş `Onay Bekliyor`
+  kaldı; ayrıca **"Onaylandı"** düğmesine basmak gerekti. Tasarım buysa
+  senaryoda yazılır; değilse kusurdur.
+
+- ⬜ **0.A.1.5 · P2 · `KULLANILABİLİR` SÜTUNU BOŞ ÇİZGİ GÖSTERİYOR.**
+  Stok Durumu'nda `MIKTAR 200 · KULLANILABİLİR — · MIN 50`; 200 kg var ve
+  SKT 2027, yani hepsi kullanılabilir. Detay panelinde doğru görünüyor.
+  ⚠️ 2.9.8'in dersi burada yarım kalmış: ekran "veri yok" ile
+  "hepsi kullanılabilir"i aynı işaretle gösteriyor.
+
+- ⬜ **0.A.1.6 · P2 · KDV VARSAYILANINI GÖSTERECEK YER YOK.**
+  Senaryo Adım 5 *"kartta KDV'yi boş bırak, oranın geldiğini göster"*
+  diyor; Stok Durumu KDV'yi hiç göstermiyor ve kart düzenleme yolu yok.
+  Ya ekranda görünür, ya o cümle senaryodan çıkar.
+
+### Provada DOĞRULANANLAR (tekrar ölçmeye gerek yok)
+
+Yeni kiracıya **8 kritik kontrol noktası** · **3 adımlı onay zinciri** ·
+**13 rol** · para birimi `TRY` · KDV varsayılansız · §1.7 menü haritası
+birebir · §1.8 rol × ekran matrisi hücre hücre · dört sekmeli Satın Alma ·
+`Kalanı sevkiyata çıkar` · `Mal Kabul Yap` · `yetki yok` metni ·
+davet bağlantısını kopyalama düğmesi.
+
+✅ **3.9.3 kapandı:** etiket ekranı saklama koşulunu ürün kartından
+okuyor — canlıda görüldü: *"Saklama koşulu ürün kartından geliyor:
+-18 °C derin dondurucu."*
+
+✅ **Alerjen türetme çalışıyor:** hammaddeye `gluten · iz` girildi,
+mamulün etiketinde **"Reçeteden türetilen · Gluten içeren tahıllar (iz)
+— Yeşil Mercimek"** çıktı. Besin değeri türetilemediğinde sebebini
+yazıyor, boş basmıyor.
+
+⚠️ **1.10.2'nin somut hâli:** Değişiklik Kaydı'nın tür listesinde
+**sipariş, satın alma siparişi, iş emri, reçete, tedarikçi ve mal kabul
+YOK.** Demoda *"kim neyi değiştirmiş"* cümlesi bu ekranın önünde
+söyleniyor; müşteri siparişini sorarsa cevap orada değil.
+
+### Provada ÖLÇÜLEMEYENLER
+
+| Ne | Neden |
+|---|---|
+| Adım 0–2 (başvuru → onay → davet e-postası) | Emrah'ın oturumu açıktı; vitrini görmek için oturumu kapatmak gerekirdi |
+| **Davet e-postası kaç saniyede geliyor** | ⚠️ Aynı sebep · **demo öncesi tek ölçülmemiş madde** |
+| E1–E4 yetki gösterisi (depo hesabıyla `yetki yok`) | İkinci bir hesapla giriş gerekiyor |
+
+---
 
 ⚠️ **Bu listede OLMAYANLAR demo öncesi YAPILMAYACAK:** MIYOP-049/050
 (zamanlama, istek sınırı), MIYOP-003/004/005/006, prestij başlığı,

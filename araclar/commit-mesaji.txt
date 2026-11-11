@@ -1,39 +1,45 @@
-Codex 4. tur brifi guncellendi (olculmus sayilarla, mevzuat dahil)
+Demo provasi canlida yuruldu: A5 KAPANDI + alti bulgu
 
-docs/kararlar/codex-denetimi-kasim-2026-4tur.md yeniden yazildi.
+== NE YAPILDI ==
+Claude, Emrah'in Chrome'undan CANLIDA bos bir deneme kiracisinda
+(Yamaklar Gida san.tic.ase) demo senaryosunun yazma adimlarini yurudu.
+Emrah'in izniyle; kiraci atilacak.
 
-== NEDEN ==
-Brif 09.11'de yazilmisti ve o gunku dunyayi anlatiyordu. Aradan 0113,
-0114 ve iki ekran gecti; brifin sayilari da iddialari da bayatlamisti.
+Zincirin TAMAMI calisti:
+  KDV ayari -> 3 stok karti -> tedarikci -> talep -> siparis ->
+  mal kabul (lot LOT-MRC-1126 + SKT, 200 kg deftere dustu) ->
+  recete (verim %92) -> is emri (27,174 kg dustu; 98 kg mamul, yeni lot
+  MML-2026-001) -> sahit numune -> musteri + teslim noktasi -> siparis ->
+  revizyon (40->55 kg, gerekcesiyle) -> uc adimli onay zinciri ->
+  sevkiyat -> izlenebilirlik -> alerjen turetme -> Analiz -> denetim
 
-!! EN ONEMLISI: eski brif "tsc ve npm test KOSTURULAMADI" diyor ve bunu
-turun EN ONEMLI maddesi olarak isaretliyordu. Artik dogru degil - ikisi
-de Emrah'in makinesinde kostu (tsc temiz, 116 dosya / 2017 sinama
-yesil). Yanlis bir brif, Codex'i olmayan bir sorunu aramaya gonderirdi.
-Madde kaldirildi, yerine mevzuat yuzeyi kondu.
+== A5 KAPANDI ==
+Sahit Numune bos kiracida ACILDI ve NUMUNE ALINDI (SN-2026-0001).
+28.10'da ayni kosulda "Bu ekran acilamadi" veriyordu.
+Parti secilince ekran: "Saklama kosulu: -18 C derin dondurucu, saklama
+sonu partinin SKT'si olacak: 28.02.2027". Yani 0093'un turetme karari
+ekranda calisiyor. 0.A listesinde KOD tarafinda acik madde kalmadi.
 
-== GUNCELLENEN SAYILAR (hepsi olculdu) ==
-. goc 115 (0000-0114), bekleyen goc YOK
-. prova 67 yesil / 0 kirmizi (temiz PostgreSQL 16)
-. sinama 116 dosya / 2017 yesil, tsc --noEmit temiz
-. son commit 31182ac, GitHub'da
-. canli paket index-F-l6yfvy.js
-. tuzak 200, kontrol listesi 153
+== ALTI BULGU (HEDEFLER 0.A.1) ==
+P1  8 ekran tarayici penceresi aciyor: 4 window.prompt + 5 window.confirm.
+    Depodaki yazili kararla celisiyor (MevzuatAkisi: "tarayici penceresi
+    acmiyoruz"). Demo akisinin BES adimi bu ekranlardan geciyor.
+P1  Recete "Yururluge Al" adimi senaryoda yok; Taslak recete Is
+    Emirleri listesinde HIC gorunmuyor. Demoda Adim 7 -> 11 gecisi tikanir.
+P2  Satin almada "Tedarikciye gonder" adimi eksik yazilmis; dugme adi
+    "Siparise donustur".
+P2  Onay zinciri bitince siparis kendiliginden onaylanmiyor.
+P2  KULLANILABILIR sutunu 200 kg gecerli mal varken "-" gosteriyor.
+P2  KDV varsayilanini gosterecek yer yok.
 
-== YENI DENETIM MADDELERI ==
-1  Iki goc tek yuzey - hangi dunyayi olcuyoruz (tuzak 190 zemini).
-   0113 tabloyu kurdu, 0114 fonksiyonlari DUSURUP yeniden yazdi;
-   0113'e bakan bir iddia artik olmayan bir kurali olcebilir.
-2  Dusurulen fonksiyonun YETKILERI (tuzak 67 / MIYOP-044'un ayni sinifi).
-   PUBLIC EXECUTE alindi mi, anon yalniz okumaya mi sahip.
-3  Parametre sirasi - p_tur varsayilanli p_durum'dan ONCE kondu ve eski
-   yedi argumanli cagrilar kaydi (tuzak 199). Baska cagiran kaldi mi.
-4  Vitrin sirasi - sunucudaki case ile istemcideki tur listesi arasindaki
-   bagi test gercekten kuruyor mu, yoksa metin esleselmesi mi.
-5  Vitrin ne soyluyor, ne vadediyor (MIYOP-059'un kosesi).
-11 kaydet.ps1'e eklenen push adimi.
+== KAPANAN ESKI MADDE ==
+3.9.3 (etiket saklama kosulunu urun kartindan okumali) canlida goruldu.
 
-Eski maddeler (0109, 0110, 0111, olu CSS, mimari testler) duruyor.
+== TUZAK 201 + 202, KONTROL LISTESI 154 + 155 ==
+201 Gormedigim bir seyi "gordum" gibi yazdim, sonra OLCMEDEN geri aldim.
+    Iki yonlu kural: olcmeden iddia etmek kadar, olcmeden iddiadan DONMEK
+    de yanlis. Yeni bilgi bir iddiayi curutmez, yeniden olcmeyi gerektirir.
+202 Bir ekrani ACMAK, o ekranin calistigini gostermez. Uc ayri soru:
+    aciliyor mu, yaziyor mu, yazilan dogru kaynaktan mi geliyor.
 
-!! Mevzuat kutuphanesinin ICERIGI bu turun konusu degil - Emrah
-10.11'de demo sonrasina birakti. Kodun dogrulugu denetlenecek.
+Ayrinti: claude/demo-provasi-sonucu.md
