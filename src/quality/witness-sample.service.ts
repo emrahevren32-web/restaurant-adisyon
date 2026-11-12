@@ -21,13 +21,56 @@
 
 import type { SahitNumune, NumuneAdayi } from './witness-sample.repository'
 
+// ═══════════════════════════════════════════════════════════════════════════
+// METİN SÖZLEŞMESİ · EKRAN İLE VERİTABANI AYNI SORUYA AYNI CEVABI VERİR
+// (MIYOP-105'in eksik kalan yarısı · Codex 4. tur · göç 0115)
+//
+// İlk hâli `metin.trim().length` idi; veritabanı ise `length(btrim(metin))`
+// diyordu. Sayılar aynıydı (2 ve 3) ama SÖZLEŞME aynı değildi:
+//   · `btrim` yalnız boşluğu (U+0020) kırpar; `trim` sekmeyi, satır sonunu
+//     ve bütün Unicode boşluklarını kırpar. Üç sekme ekranda BOŞ,
+//     veritabanında ÜÇ KARAKTER sayılıyordu: API'den yazan geçebiliyordu.
+//   · `.length` UTF-16 birimi sayar; `length()` kod noktası. Tek bir emoji
+//     ekranda 2, veritabanında 1 karakterdi.
+//
+// ⚠️ ŞİMDİ TEK TANIM VAR VE İKİ KATMAN ONU AYNI METİNLE TAŞIYOR:
+//   KIRPMA · aşağıdaki küme (JavaScript `trim` kümesinin AYNISI, açık
+//            yazılmış) metnin başından ve sonundan atılır.
+//   SAYMA  · kalan metnin KOD NOKTASI sayısı.
+//
+// ⚠️ `KIRPILAN_BOSLUKLAR` 0115'in üç kısıt tanımında HARFİ HARFİNE duruyor
+// ve `numune-kapisi.arch.test.ts` onu orada ARIYOR. Kümeyi burada
+// değiştirip göç yazmamak (ya da tersi) testi kırmızı yakar.
+//
+// ⚠️ METİN ASCII KAÇIŞLARIYLA YAZILI, karakterlerin kendisiyle DEĞİL:
+// görünmez bir karakter dosyada fark edilmeden değişebilir ya da panodan
+// geçerken düşebilir (tuzak 203).
+//
+// ⚠️ SINIRI: sıfır genişlikli karakterler (U+200B gibi) boşluk sayılmıyor
+// — `trim` de saymıyor. Sözleşme "iki katman aynı cevabı verir"dir;
+// "anlamsız metin yazılamaz" değildir.
+// ═══════════════════════════════════════════════════════════════════════════
+export const KIRPILAN_BOSLUKLAR =
+  '\\u0009-\\u000D\\u0020\\u00A0\\u1680\\u2000-\\u200A\\u2028\\u2029\\u202F\\u205F\\u3000\\uFEFF'
+
+const KIRPMA_DESENI = new RegExp(
+  `^[${KIRPILAN_BOSLUKLAR}]+|[${KIRPILAN_BOSLUKLAR}]+$`, 'g')
+
+/**
+ * Baştaki ve sondaki boşluklar atıldıktan sonra kalan KOD NOKTASI sayısı.
+ * Veritabanındaki karşılığı:
+ *   length(regexp_replace(metin, '^[küme]+|[küme]+$', '', 'g'))
+ */
+export const anlamliUzunluk = (metin: string | undefined): number =>
+  Array.from((metin ?? '').replace(KIRPMA_DESENI, '')).length
+
 /** Gerekçe "boş sayılır mı" kararı tek yerde (zayi defteriyle aynı eşik). */
 export const gerekceYeterliMi = (metin: string | undefined): boolean =>
-  (metin ?? '').trim().length >= 3
+  anlamliUzunluk(metin) >= 3
 
 /** Numune kodu boş geçilemez; biçimi serbest (işletmenin kendi defteri). */
 export const numuneKoduYeterliMi = (metin: string | undefined): boolean =>
-  (metin ?? '').trim().length >= 2
+  anlamliUzunluk(metin) >= 2
 
 /** Bugünün ISO günü (YYYY-MM-DD) — yerel saate göre, kullanıcının günü. */
 export const bugununGunu = (bugun: Date = new Date()): string => {

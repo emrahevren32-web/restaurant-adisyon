@@ -984,6 +984,85 @@ göreceği hata mesajları** da (`'Çok fazla deneme yapıldı'`) bozuluyordu.
 ⚠️ Ve komut kendi çıktısını **ölçmeli**: panoda `ş` var mı, bozuk `Ã` var
 mı. "Kopyaladım" demek yetmez; kopyanın sağlam olduğu gösterilir.
 
+**205 · "BEŞ ÖĞE AYNI SIRA NUMARASINI TAŞIYOR" DEDİM; TAŞIMIYORDU.**
+(12.11.2026)
+
+11.11 provasının notlarına *"Üretim menüsünde beş öğe `displayOrder: 6`
+taşıyor"* yazmıştım ve bunu yapılacak iş olarak taşıyordum. 12.11'de
+HEDEFLER'e madde olarak yazmadan önce ölçtüm: değerler **6 · 6.2 · 6.4 ·
+6.45 · 6.5**. Beşi de `displayOrder: 6` aramasına takılıyor, çünkü arama
+kelime sınırı taşımıyordu. Ortada kusur yok.
+
+⚠️ `grep "x: 6"` → `x: 6.45`i de bulur. Sayı arayan bir ölçüm sayının
+**bittiği yeri** de söylemek zorunda (`6\b` ya da `6[^.0-9]`).
+⚠️ Bir bulgu, **işe çevrilmeden önce** bir kez daha ölçülür. Notta duran
+cümle ölçüm değildir; ölçümün o günkü özetidir (tuzak 186'nın kardeşi).
+
+**204 · DÜZELTME, KENDİ DÜZELTMESİNİ DURDURUYORDU.**
+(12.11.2026 · MIYOP-110)
+
+`kaydet.ps1`e iki şey ekledim: makineye özel dosyayı takipten çıkaran bir
+satır (`git rm --cached`) ve kayda giren adları yasak listesiyle
+karşılaştıran bir denetim. İkisi ayrı ayrı doğruydu. Birlikte: takipten
+çıkarma git için bir **silme**dir ve silinen dosyanın adı da "kayda giren
+dosyalar" listesinde çıkar. Yasak denetimi o adı gördü ve betiği durdurdu
+— yani dosya bir kez takibe girmişse betik **bir daha hiç commit
+yapamayacaktı.**
+
+Bunu okuyarak görmedim. Aynı git adımlarını geçici bir depoda bash ile
+koşturunca gördüm:
+
+```
+== B · dosya ÖNCEDEN TAKİPTE
+  DURDURULDU: .claude/settings.local.json
+```
+
+Onarım tek kelime: yasak denetimi `--diff-filter=d` ile yalnız eklenen ve
+değişenlere bakıyor. Aynı ölçümün sonrası:
+
+```
+== A · dosya TAKİPSİZ            kayda giren: M .gitignore · M a.txt
+== B · dosya ÖNCEDEN TAKİPTE     kayda giren: D .claude/settings.local.json · M a.txt
+                                 (diskte duruyor)
+== C · başka bir yerel dosya     DURDURULDU: .claude/baska.local.json
+== D · zorla eklenmiş .env.local DURDURULDU: .env.local   (diskte duruyor)
+== E · .env.example              kayda giren: A .env.example
+```
+
+⚠️ İki emniyet birbirini tanımak zorunda. Birini yazarken ötekinin onu
+nasıl GÖRECEĞİ sorulur.
+⚠️ **Sınırı:** ölçülen şey git adımlarıdır, PowerShell betiğinin kendisi
+değil — burada PowerShell yok. Betiğin ilk gerçek koşusu Emrah'ın
+makinesindedir ve o koşu bir ölçümdür.
+
+**203 · KAÇIŞ YAZDIĞIMI SANDIM, DOSYAYA KARAKTERİN KENDİSİ GİRDİ.**
+(12.11.2026 · göç 0115)
+
+0115'in kırpma deseni `\u00A0`, `\u2028` gibi kaçışlarla yazılacaktı.
+Dosyayı üreten komutta kaçışlar tek ters bölüyle duruyordu; komut
+katmanı onları **gerçek karakterlere çevirdi** ve göç dosyasına NBSP,
+U+2028, U+FEFF… **kendileri** yazıldı. Ekranda görünmezler. Prova yeşil
+yandı, çünkü PostgreSQL için iki yazım da aynı kümeyi anlatıyor.
+
+Yakalayan şey `cat -A` oldu: desenin ortasında `M-BM-` baytları.
+
+Neden önemli: bu göç **panodan yapıştırılarak** çalıştırılıyor.
+- U+2028'i bir SQL editörü **satır sonuna** çevirebilir → dize ortadan
+  bölünür, göç sözdizimi hatası verir (iyi ihtimal) ya da başka bir desen
+  kurar (kötü ihtimal).
+- U+FEFF panodan geçerken **düşebilir** → kısıt sessizce bir karakter
+  eksik bir küme taşır ve hiçbir şey kırmızı yanmaz.
+
+Onarım: desen yalnız ASCII kaçışlarıyla yeniden yazıldı; göç kümenin
+**25 üyesini tek tek** bu sunucuda ölçüyor (bir aralık yanlışsa yalnız o
+üye sessizce dışarıda kalırdı); mimari test bütün göçlerde ve
+`goc-bekleyen.sql`de görünmez karakter arıyor.
+
+⚠️ "Dosyaya şunu yazdım" ile "dosyada şu var" ayrı iddialardır. Görünmeyen
+bir şeyi gözle doğrulayamazsın; **baytlara** bakılır.
+⚠️ Özet notumda *"desen `\uXXXX` kaçışlarıyla yazıldı"* cümlesi duruyordu
+ve yanlıştı. Kendi özetim de ölçüm değildir.
+
 **202 · BİR EKRANI AÇMAK, O EKRANIN ÇALIŞTIĞINI GÖSTERMEZ.**
 (11.11.2026)
 
@@ -2556,6 +2635,15 @@ Son söz onun çıktısındadır.
      vermez** (0106). "N ay sonra silinir" demek için kendiliğinden silen
      bir iş gerekir; yoksa metin süre yazmaz, **tutulan** sözü yazar — ve
      o sözün karşılığı (silme fonksiyonu + düğmesi) aynı turda yazılır.
+158. **Bir bulguyu işe çevirmeden önce YENİDEN ölç** (tuzak 205). Sayı
+     arayan aramada sayının bittiği yer de yazılır: `6\b`, `6` değil.
+157. **İki emniyet aynı yere konuyorsa birbirini nasıl GÖRDÜĞÜ ölçülür**
+     (tuzak 204). Git adımları geçici bir depoda koşturulur: takipsiz ·
+     önceden takipte · yalnız takipten çıkarma · zorla eklenmiş.
+156. **Görünmez karakter içerebilecek her dosya BAYTLARIYLA okunur**
+     (tuzak 203): `cat -A` ya da kod noktası taraması. Panodan
+     yapıştırılacak bir göçte ASCII dışı boşluk, satır ayırıcı ya da BOM
+     bulunmaz; desenler `\uXXXX` kaçışıyla yazılır.
 155. **Bir ekranı AÇMAK yetmez; veri YAZ ve yazılanın nereden
      geldiğini oku** (tuzak 202). Üç ayrı soru: açılıyor mu · yazıyor mu ·
      doğru kaynaktan mı. "Ekran açıldı" cümlesi yalnız birincisini

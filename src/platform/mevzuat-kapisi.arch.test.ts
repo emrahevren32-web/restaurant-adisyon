@@ -21,7 +21,7 @@
 // ═══════════════════════════════════════════════════════════════════════════
 
 import { describe, expect, it } from 'vitest'
-import { existsSync, readFileSync } from 'node:fs'
+import { existsSync, readdirSync, readFileSync } from 'node:fs'
 import { join } from 'node:path'
 import { projeKokunuBul } from '../core/test-support/goc-tarama'
 import { yorumsuzKod } from '../core/test-support/kaynak-soyma'
@@ -261,6 +261,182 @@ describe('eşikler ekranla veritabanında aynı (MIYOP-105)', () => {
 })
 
 // ═══════════════════════════════════════════════════════════════════════════
+// MIYOP-108 · YETKİ TABLOSU · FONKSİYON × İMZA × ROL AYRI AYRI ÖLÇÜLÜYOR
+//
+// ── NE YANLIŞTI (Codex 4. tur) ───────────────────────────────────────────
+// İlk hâli "düşen fonksiyonların yetkileri geri veriliyor" diyordu ama
+// ölçtüğü şey şuydu: üç yönetim fonksiyonunun ADI göçte geçiyor mu
+// (`toContain(ad)`) ve göçün HERHANGİ bir yerinde `revoke … from anon` var
+// mı. Fonksiyon adı zaten TANIMINDA geçer: GRANT satırı silinse de test
+// yeşil kalırdı. İddia, ölçtüğünden büyüktü.
+//
+// ── ŞİMDİ NE ÖLÇÜLÜYOR ───────────────────────────────────────────────────
+// 0114'ün yetki cümleleri AYRIŞTIRILIYOR (döngüler açılarak) ve her
+// "fonksiyon(tam imza) → rol" çifti için SON SÖZ çıkarılıyor: grant mı,
+// revoke mu. Beklenen tablo aşağıda AÇIK yazılı; fazlası da eksiği de
+// kırmızı yanar.
+//
+// ⚠️ ÖLÇÜMÜN KENDİSİ DE ÖLÇÜLÜYOR: göç metninden yönetim GRANT satırı
+// çıkarılıp tablo yeniden kuruluyor ve iddianın O ZAMAN bozulduğu
+// gösteriliyor. Emniyet kaldırılınca da yeşil yanan bir test hiçbir şey
+// ölçmüyordur (tuzak 197).
+//
+// ⚠️ SINIRI: bu blok göç METNİNİ okur. Yetkinin veritabanında GERÇEKTEN
+// öyle olduğunu `db/prova/prova-0114.sql` canlı çağrıyla ölçüyor; ikisi
+// birbirinin yerine geçmez.
+// ═══════════════════════════════════════════════════════════════════════════
+type YetkiSozu = 'grant' | 'revoke'
+
+/** Göç metnindeki yetki cümlelerini SIRAYLA işleyip son sözü döndürür. */
+const yetkiTablosu = (sql: string): Map<string, YetkiSozu> => {
+  const tablo = new Map<string, YetkiSozu>()
+  const isle = (ham: string): void => {
+    const cumle = ham.replace(/\s+/g, ' ').trim()
+    const ver = /^grant execute on function (.+?) to (.+)$/.exec(cumle)
+    const al = /^revoke all on function (.+?) from (.+)$/.exec(cumle)
+    const m = ver ?? al
+    if(m === null) return
+    const fonksiyon = (m[1] as string).trim()
+    for(const rol of (m[2] as string).split(',').map(r => r.trim()).filter(r => r !== '')){
+      tablo.set(`${fonksiyon} → ${rol}`, ver !== null ? 'grant' : 'revoke')
+    }
+  }
+  // Üç biçim, METİNDEKİ SIRASIYLA:
+  //   1 · foreach v_ad in array array['f1', 'f2'] loop
+  //         execute format('… %s …', v_ad); … end loop;
+  //   2 · execute '…' '…';            (parçalı düz cümle)
+  //   3 · grant … ; / revoke … ;      (dinamik olmayan düz cümle)
+  const desen = new RegExp(
+    "foreach v_ad in array array\\[([\\s\\S]*?)\\]\\s*loop([\\s\\S]*?)end loop;"
+    + "|execute((?:\\s*'[^']*')+)\\s*;"
+    + "|(?:^|\\n)\\s*((?:grant execute|revoke all) on function [^;]+);", 'g')
+  let m: RegExpExecArray | null
+  while((m = desen.exec(sql)) !== null){
+    if(m[1] !== undefined && m[2] !== undefined){
+      const fonksiyonlar = [...m[1].matchAll(/'([^']+)'/g)].map(x => x[1] as string)
+      const kaliplar = [...m[2].matchAll(/execute format\('([^']+)', v_ad\);/g)]
+        .map(x => x[1] as string)
+      for(const f of fonksiyonlar) for(const k of kaliplar) isle(k.replace('%s', f))
+    } else if(m[3] !== undefined){
+      isle([...m[3].matchAll(/'([^']*)'/g)].map(x => x[1] as string).join(''))
+    } else if(m[4] !== undefined){
+      isle(m[4])
+    }
+  }
+  return tablo
+}
+
+const YAZ_IMZASI = '(uuid, text, text, text, text, date, text, text)'
+
+/** Beklenen tablo: fonksiyon(tam imza) → rol → son söz. ELLE ve AÇIK. */
+const BEKLENEN_YETKI: Record<string, Record<string, YetkiSozu>> = {
+  // Vitrin: giriş ekranı oturumsuz okuyor.
+  'public.mevzuat_akisi_oku(integer)': {
+    public: 'revoke', anon: 'grant', authenticated: 'grant', service_role: 'grant' },
+  // Yönetim kabukları: oturumlu çağırır, içerideki kapı platformu arar.
+  'public.mevzuat_listesi()': {
+    public: 'revoke', anon: 'revoke', authenticated: 'grant', service_role: 'grant' },
+  [`public.mevzuat_yaz${YAZ_IMZASI}`]: {
+    public: 'revoke', anon: 'revoke', authenticated: 'grant', service_role: 'grant' },
+  'public.mevzuat_sil(uuid)': {
+    public: 'revoke', anon: 'revoke', authenticated: 'grant', service_role: 'grant' },
+  // `app` yardımcıları: istemci rollerinin HİÇBİRİNE açık değil.
+  'app.mevzuat_listesi()': {
+    public: 'revoke', anon: 'revoke', authenticated: 'revoke', service_role: 'grant' },
+  [`app.mevzuat_yaz${YAZ_IMZASI}`]: {
+    public: 'revoke', anon: 'revoke', authenticated: 'revoke', service_role: 'grant' },
+  'app.mevzuat_sil(uuid)': {
+    public: 'revoke', anon: 'revoke', authenticated: 'revoke', service_role: 'grant' },
+}
+
+describe('0114 · yetki tablosu · fonksiyon × imza × rol (MIYOP-108)', () => {
+  const TABLO = yetkiTablosu(GOC_0114)
+  const beklenenCiftler = Object.entries(BEKLENEN_YETKI)
+    .flatMap(([f, roller]) => Object.keys(roller).map(rol => `${f} → ${rol}`))
+
+  it('sağlama · ayrıştırıcı gerçekten cümle buldu', () => {
+    expect(TABLO.size, 'yetki cümlesi ayrıştırılamadı').toBeGreaterThan(0)
+    expect(beklenenCiftler).toHaveLength(28)
+  })
+
+  for(const [fonksiyon, roller] of Object.entries(BEKLENEN_YETKI)){
+    it(`⚠️ ${fonksiyon} · her rolün son sözü beklendiği gibi`, () => {
+      for(const [rol, soz] of Object.entries(roller)){
+        expect(
+          TABLO.get(`${fonksiyon} → ${rol}`),
+          `${fonksiyon} için ${rol} rolünün son sözü "${soz}" olmalıydı. `
+          + 'Göçte bu çift için AÇIK bir cümle yoksa `undefined` görünür: '
+          + 'düşürülüp yeniden yazılan fonksiyon varsayılan olarak PUBLIC\'e '
+          + 'açıktır (tuzak 67).',
+        ).toBe(soz)
+      }
+    })
+  }
+
+  it('⚠️ tabloda BEKLENMEYEN çift yok (fazladan açılmış kapı)', () => {
+    expect([...TABLO.keys()].sort()).toEqual([...beklenenCiftler].sort())
+  })
+
+  it('⚠️ yönetim kapılarının HİÇBİRİ anon\'a açık değil', () => {
+    const acik = [...TABLO.entries()]
+      .filter(([cift, soz]) => soz === 'grant' && cift.endsWith('→ anon'))
+      .map(([cift]) => cift)
+    expect(acik).toEqual(['public.mevzuat_akisi_oku(integer) → anon'])
+  })
+
+  it('⚠️ DÜŞÜRÜLEN her fonksiyonun yenisi tabloda (tuzak 67)', () => {
+    // `drop function` GRANT'ları da siler. Düşürülen her adın yürürlükteki
+    // imzası için en az bir AÇIK grant cümlesi olmak zorunda.
+    const dusenler = [...GOC_0114.matchAll(
+      /drop function if exists ((?:public|app)\.[a-z_]+)\(/g)].map(x => x[1] as string)
+    expect(dusenler.length, 'düşürülen fonksiyon bulunamadı').toBeGreaterThanOrEqual(5)
+    for(const ad of new Set(dusenler)){
+      const verilen = [...TABLO.entries()]
+        .filter(([cift, soz]) => soz === 'grant' && cift.startsWith(`${ad}(`))
+      expect(verilen.length, `${ad} düşürüldü ama yetkisi geri verilmedi`)
+        .toBeGreaterThan(0)
+    }
+  })
+
+  it('⚠️ TERS ÖLÇÜM · yönetim GRANT satırı çıkarılınca iddia BOZULUYOR', () => {
+    // Codex'in kabul ölçütü: "Yönetim GRANT'larından biri çıkarıldığında
+    // ilgili iddia başarısız olmalı." Burada göç metni BELLEKTE bozuluyor.
+    const satir = "execute format('grant execute on function %s to authenticated, service_role', v_ad);"
+    expect(GOC_0114, 'yönetim GRANT satırı göçte bulunamadı').toContain(satir)
+    const bozuk = yetkiTablosu(GOC_0114.replace(satir, ''))
+    for(const f of ['public.mevzuat_listesi()', `public.mevzuat_yaz${YAZ_IMZASI}`,
+      'public.mevzuat_sil(uuid)']){
+      expect(TABLO.get(`${f} → authenticated`)).toBe('grant')
+      expect(bozuk.get(`${f} → authenticated`), `${f}: ölçüm eksik GRANT'ı görmüyor`)
+        .not.toBe('grant')
+    }
+    // Tek bir fonksiyon listeden çıkarılınca da görülüyor.
+    const eksik = yetkiTablosu(GOC_0114.replace(
+      `'public.mevzuat_yaz${YAZ_IMZASI}',`, ''))
+    expect(eksik.get(`public.mevzuat_yaz${YAZ_IMZASI} → authenticated`))
+      .toBeUndefined()
+  })
+
+  it('⚠️ 0114\'ten SONRAKİ hiçbir göç bu fonksiyonlara dokunmuyor', () => {
+    // Dokunursa yürürlükteki tanım ve yetkiler ARTIK O GÖÇTEDİR ve bu blok
+    // geçersiz bir göçü savunmaya başlar (tuzak 190). O gün bu blok yeni
+    // göçe TAŞINMALI; test bunu sessizce geçmek yerine burada durduruyor.
+    const klasor = join(KOK, 'db/migrations')
+    const sonrakiler = (readdirSync(klasor) as string[])
+      .filter(ad => /^[0-9]{4}_.+\.sql$/.test(ad) && ad.slice(0, 4) > '0114')
+      .sort()
+    const dokunan = sonrakiler.filter(ad =>
+      /\b(?:public|app)\.mevzuat_(?:akisi_oku|listesi|yaz|sil)\b/
+        .test(sqlKod(readFileSync(join(klasor, ad), 'utf8') as string)))
+    expect(
+      dokunan,
+      'Bu göç(ler) mevzuat fonksiyonlarına dokunuyor; yetki tablosu ve '
+      + 'gövde iddiaları o göçe taşınmalı: ' + dokunan.join(', '),
+    ).toEqual([])
+  })
+})
+
+// ═══════════════════════════════════════════════════════════════════════════
 // GÖÇ 0114 · KÜTÜPHANE · YÜRÜRLÜKTEKİ GÖVDELER
 //
 // ⚠️ Yukarıdaki blok 0113'ün KURDUĞU dünyayı okuyor. Fonksiyonların
@@ -341,16 +517,17 @@ describe('0114 · kütüphane', () => {
     expect(GOC_0114).toContain("add column if not exists kind text not null default 'HABER'")
   })
 
-  it('⚠️ DÜŞEN FONKSİYONLARIN YETKİLERİ GERİ VERİLİYOR (tuzak 67)', () => {
-    // `drop function` GRANT'ları da siler. Verilmezse giriş ekranı
-    // "permission denied" alır ve kutu SESSİZCE boş kalır.
-    expect(GOC_0114).toMatch(
-      /grant execute on function[\s\S]{0,80}public\.mevzuat_akisi_oku\(integer\)[\s\S]{0,40}to anon/)
-    for(const ad of ['mevzuat_listesi', 'mevzuat_yaz', 'mevzuat_sil']){
-      expect(GOC_0114, `${ad} yetkisi geri verilmemiş`).toContain(ad)
-    }
-    // Yönetim kapıları anon'a KAPALI kalıyor.
-    expect(GOC_0114).toMatch(/revoke[\s\S]{0,200}from anon/)
+  it('⚠️ YÜRÜRLÜKTEKİ yönetim listesi de kapının ardında ve türü döndürüyor', () => {
+    // Codex 4. tur: 0113'teki gövde ölçülüyordu; 0114 listeyi DÜŞÜRÜP
+    // yeniden yazdı. Yürürlükteki gövde ayrıca ölçülmezse tuzak 190.
+    const bas = GOC_0114.indexOf('create or replace function app.mevzuat_listesi()')
+    expect(bas, 'yürürlükteki yönetim listesi bulunamadı').toBeGreaterThan(-1)
+    const govde = GOC_0114.slice(bas, GOC_0114.indexOf('end $$;', bas))
+    expect(govde, 'yönetim listesi kapısız').toContain('perform app.platform_kapisi();')
+    // Kapı `return query`den ÖNCE (0083: WHERE içindeki kapı boş listede susar).
+    expect(govde.indexOf('perform app.platform_kapisi();'))
+      .toBeLessThan(govde.indexOf('return query'))
+    expect(govde).toContain('r.kind')
   })
 
   it('⚠️ İKİNCİ TABLO AÇILMAMIŞ (iki yerde iki gerçek yok)', () => {

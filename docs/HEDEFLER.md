@@ -35,7 +35,7 @@ neyin neden yapıldığı kaybolmasın.
 | **A4** | ✅ **BİTTİ (31.10)** · sahte veri üreticileri · **23 → 0** | `storage.ts` içinde tek bir `createDemo*` kalmadı; **851 satır** uydurma veri silindi. İki turda: (1) kiracı tarafı 13 üretici + **"depo boşsa uydur" mekanizmasının kendisi** (`loadBranchScopedItemsWithDemo` ve ikizi) — 408 satır; (2) platform/EVREN360 8 üretici — 443 satır. ⚠️ **Ölçüldü:** silinen 13'ün hiçbiri o gün açık bir kiracı ekranına ulaşmıyordu (dört modül de `frozen`) — yangın söndürme değil **mayın temizliği**: dondurulmuş bir kapı açıldığında uydurma veri sessizce geri gelecekti. ⚠️ **İki fonksiyon silinmedi, ADI DEĞİŞTİ:** `varsayilanLisansPaketleri` ve `varsayilanLisansModulleri` — uydurma kayıt değil **ürün kataloğu** (`defaultPackageSpecs`ten türüyorlar). Ad değiştirip sayımdan çıkmak saklamak olurdu; çıcıra ayrı sınama kondu. ⚠️ **Karar (Emrah, 31.10):** *"Boşalt, gerçeğe bağlanana kadar boş kalsın — panel bugün yalan söylemez ama birkaç ekran boş görünür."* Çıcır **kapandı** (üst sınır 0) ve sağlama sınaması yeniden yazıldı: artık "sonuç dolu mu" değil "ölçüm aracı hâlâ çalışıyor mu" diye soruyor. Ayrıntı: `docs/kararlar/kaldirilan-moduller.md` §8 ve §9. |
 | **A5** | ✅ **BİTTİ (11.11)** · **Şahit numune** · ⚠️ **CANLIDA, BOŞ KİRACIDA, ÖLÇÜLDÜ** | Göç **0093** defteri kurdu, **0094** Codex'in bulduğu P0'ı ve iki P1'i kapattı, **0096** saklama koşulunu kalite departmanının da yazabileceği beyan alanı yaptı, **0097** Emrah'ın imha onayı kararını zorladı. Ekran **Kalite → Şahit Numune**. Prova: 21+18+9+13 = **61 sınama yeşil**. ✅ **27.10:** etiket saklama koşulunu artık ürün kartından okuyor (3.9.3). ⚠️ **28.10 · EKRAN CANLIDA HİÇ AÇILMAMIŞ.** Emrah sıfırdan açılan bir kiracıda denedi: *"Bu ekran açılamadı"*. `client_error` kaydı sebebi yazdı — `ReferenceError: NUMUNE_SAYFA is not defined`: sabit kullanılmış, import edilmemiş. **26.10'da "bitti, canlıda" dedim; yalnız yerelde görmüştüm.** Düzeltildi; asıl kusur hatta tip denetiminin hiç koşmamasıydı (tuzak 141). Kalan: sayfalama borcu (3.9.9) + boş kiracıda canlı doğrulama. ⚠️ **11.11.2026 · DEMO PROVASINDA ÖLÇÜLDÜ** (canlı, boş kiracı `Yamaklar Gıda san.tic.aşe`): ekran **açıldı** ve **numune alındı** (SN-2026-0001). Parti seçilince ekranın kendi yazdığı cümle: *"Saklama koşulu: -18 °C derin dondurucu · saklama sonu partinin SKT'si olacak: 28.02.2027"*; kaydedince: *"Saklama koşulu ürün kartından, saklama sonu partinin son kullanma tarihinden alındı."* Yani 0093'ün türetme kararı ekranda çalışıyor. **Bu madde kapandı; 0.A listesinde kod tarafında açık madde kalmadı.** Ayrıntı: `claude/demo-provasi-sonucu.md`. |
 | **A6** | ✅ **BİTTİ (29.10)** · MIYOP-043 · Edge Function canlıda + göç 0102 + yedek yol silindi | Güvenlik borcu kapandı. |
-| **A7** | 🔄 **MEVZUAT KÜTÜPHANESİ · KOD BİTTİ, GÖÇ + YÜKLEME + GÖZ DOĞRULAMASI BEKLİYOR** (09-10.11) · göç **0113** (akış) + **0114** (kütüphane) + iki ekran. Ölçüldü: temiz veritabanında **115 göç · 67 prova · 0 kırmızı** (prova-0114 22 iddia + ters prova 4 iddia; prova-0113 34 iddia + ters prova). ⚠️ **0114 CANLIDA DEĞİL** — `araclar/goc-bekleyen.sql` içinde, Supabase'e yapıştırılacak. ⚠️ **Emrah 10.11'de düzeltti:** *"ben aslında `gidamo.org.tr/mevzuat/ilgili-mevzuat` adresindeki gibi olsun istemiştim."* O sayfa bir haber akışı değil, üç kalıcı kapı: Kanunlar · Yönetmelikler · Tebliğler. 0114 `kind` kolonunu ekliyor; sıra sunucuda sabit (kanun → yönetmelik → tebliğ → haber) ve kütüphane satırlarında tarih GÖSTERİLMİYOR — 2011 tarihli bir yönetmeliğin haber gibi dizilmesi tam buydu. ⚠️ **Var olan satırlar `HABER` kalıyor** (varsayılanı başka yapmak Emrah'ın girdiği kaydın türünü sessizce değiştirmek olurdu); göç kaç satır kaldığını özetinde söylüyor, türü panelden elle düzeltilecek. ⚠️ **Otomatik toplama hâlâ YOK ve bu ölçülmüş bir karar:** Resmî Gazete'nin resmî RSS/API ucu bulunamadı, HTML ayrıştıranlar kaynak değişince sessizce boş döner. Emrah'ın kararı (10.11): **önce kütüphane, toplama demo sonrası.** ⚠️ **"Bitti" DEMİYORUM:** ekranı canlıda kimse görmedi (tuzak 191 — aynı maddeyi hem bitti hem bozuk işaretlemiştim). Emrah'ın göreceği iki şey: EVREN360 → Mevzuat Akışı ekranı açılıyor mu, ve ilk kaydı yayına alınca giriş ekranında kutu çıkıyor mu. | Emrah: *"gıda yönetmeliklerinde yapılan son haberler, kanunlar, bildirimler vs kaynak gösterilerek akış halinde yer alsın."* Satışta somut bir cümle: MİYOP'u açan kişi mevzuatı da oradan takip ediyor. ⚠️ **BU KÖŞEDE DAHA ÖNCE UYDURMA DUYURU VARDI (MIYOP-059)** ve kaldırıldı; 09.11'de ölü CSS'i de silindi (MIYOP-107). İkinci kez konan kutunun farkı tek cümleyle: **her satır gerçek, kaynak bağlantılı ve elle yazılmış; kayıt yoksa kutu HİÇ çizilmiyor.** ⚠️ **Otomatik çekme YOK** (Resmî Gazete ayrıştırma): FREE planda zamanlanmış iş yok, ayrıştırıcı sessizce bozulur, ve yanlış özetlenmiş bir mevzuat maddesi müşteriye iş yaptırır. Arada **insan** var: Emrah okur, özetler, kaynağı ekler, yayına alır. Tablo baştan `TASLAK/YAYINDA/ARSIV` ile kuruluyor ki otomatik besleme eklendiğinde taslak olarak düşsün. Tasarım: `docs/kararlar/mevzuat-akisi-tasarim.md`. |
+| **A7** | ✅ **MEVZUAT KÜTÜPHANESİ · KOD + GÖÇ + YÜKLEME BİTTİ (10.11)** · ⏸ **İÇERİK VE OTOMATİK TOPLAMA DEMO SONRASI** (Emrah, 10.11: *"şimdilik bu konuda çok zaman kaybetmeyelim. Bu konuyu burada demo sonrasına bırak."*) · ⚠️ **BU SATIRIN BAŞI 12.11'E KADAR BAYATTI:** 0114 10.11'de canlıya alındı (Supabase özeti: `dogrulama | gecti` · toplam kayıt 1 · HABER kalan 1) ve ekran aynı gün yüklendi, ama satır hâlâ "canlıda değil" diyordu. Aşağıdaki metin o günkü hâliyle duruyor; geçerli durum bu cümledir. Açık kalan: tek kaydın türü hâlâ `HABER` (panelden elle düzeltilecek) ve kütüphanenin gerçek içeriği (seçenek c: tek tek gerçek yönetmelik/tebliğ bağlantıları). · (09-10.11) · göç **0113** (akış) + **0114** (kütüphane) + iki ekran. Ölçüldü: temiz veritabanında **115 göç · 67 prova · 0 kırmızı** (prova-0114 22 iddia + ters prova 4 iddia; prova-0113 34 iddia + ters prova). ⚠️ **0114 CANLIDA DEĞİL** — `araclar/goc-bekleyen.sql` içinde, Supabase'e yapıştırılacak. ⚠️ **Emrah 10.11'de düzeltti:** *"ben aslında `gidamo.org.tr/mevzuat/ilgili-mevzuat` adresindeki gibi olsun istemiştim."* O sayfa bir haber akışı değil, üç kalıcı kapı: Kanunlar · Yönetmelikler · Tebliğler. 0114 `kind` kolonunu ekliyor; sıra sunucuda sabit (kanun → yönetmelik → tebliğ → haber) ve kütüphane satırlarında tarih GÖSTERİLMİYOR — 2011 tarihli bir yönetmeliğin haber gibi dizilmesi tam buydu. ⚠️ **Var olan satırlar `HABER` kalıyor** (varsayılanı başka yapmak Emrah'ın girdiği kaydın türünü sessizce değiştirmek olurdu); göç kaç satır kaldığını özetinde söylüyor, türü panelden elle düzeltilecek. ⚠️ **Otomatik toplama hâlâ YOK ve bu ölçülmüş bir karar:** Resmî Gazete'nin resmî RSS/API ucu bulunamadı, HTML ayrıştıranlar kaynak değişince sessizce boş döner. Emrah'ın kararı (10.11): **önce kütüphane, toplama demo sonrası.** ⚠️ **"Bitti" DEMİYORUM:** ekranı canlıda kimse görmedi (tuzak 191 — aynı maddeyi hem bitti hem bozuk işaretlemiştim). Emrah'ın göreceği iki şey: EVREN360 → Mevzuat Akışı ekranı açılıyor mu, ve ilk kaydı yayına alınca giriş ekranında kutu çıkıyor mu. | Emrah: *"gıda yönetmeliklerinde yapılan son haberler, kanunlar, bildirimler vs kaynak gösterilerek akış halinde yer alsın."* Satışta somut bir cümle: MİYOP'u açan kişi mevzuatı da oradan takip ediyor. ⚠️ **BU KÖŞEDE DAHA ÖNCE UYDURMA DUYURU VARDI (MIYOP-059)** ve kaldırıldı; 09.11'de ölü CSS'i de silindi (MIYOP-107). İkinci kez konan kutunun farkı tek cümleyle: **her satır gerçek, kaynak bağlantılı ve elle yazılmış; kayıt yoksa kutu HİÇ çizilmiyor.** ⚠️ **Otomatik çekme YOK** (Resmî Gazete ayrıştırma): FREE planda zamanlanmış iş yok, ayrıştırıcı sessizce bozulur, ve yanlış özetlenmiş bir mevzuat maddesi müşteriye iş yaptırır. Arada **insan** var: Emrah okur, özetler, kaynağı ekler, yayına alır. Tablo baştan `TASLAK/YAYINDA/ARSIV` ile kuruluyor ki otomatik besleme eklendiğinde taslak olarak düşsün. Tasarım: `docs/kararlar/mevzuat-akisi-tasarim.md`. |
 
 ## 0.A.1 · DEMO PROVASI BULGULARI · 11.11.2026
 
@@ -61,20 +61,45 @@ Tam döküm: `claude/demo-provasi-sonucu.md`.
   açmıyoruz)"* yazılı. Demo akışının **beş adımı** bu ekranlardan geçiyor.
   Kabul: dokuz çağrı ekran içi onay/giriş alanına çevrilir.
 
-- ⬜ **0.A.1.2 · P1 · REÇETE `Yürürlüğe Al` ADIMI SENARYODA YOK.**
+- ✅ **0.A.1.2 · P1 · REÇETE `Yürürlüğe Al` ADIMI SENARYODA YOK.** → **SENARYOYA YAZILDI (11.11).**
   Reçete `Taslak` açılıyor; o hâldeyken **İş Emirleri'nde reçete listesi
   boş** (yalnız *"Reçetesiz (tek seferlik üretim)"*). Demoda Adım 7'den
   Adım 11'e geçerken tam burada tıkanılır.
   Kabul: `claude/demo-senaryosu.md` Adım 7'nin sonuna yazılır.
+  ✅ Yazıldı: senaryo Adım 7 artık *"Yürürlüğe Al"* ile bitiyor.
+  ⚠️ Kapanan şey SENARYO; ekran değişmedi. Taslak reçetenin İş
+  Emirleri'nde neden görünmediğini ekran hâlâ söylemiyor — demo sonrası
+  ayrı bir iş (bkz. 0.A.1.7).
 
-- ⬜ **0.A.1.3 · P2 · SATIN ALMADA İKİ ADIM EKSİK YAZILMIŞ.**
+- ✅ **0.A.1.3 · P2 · SATIN ALMADA İKİ ADIM EKSİK YAZILMIŞ.** → **SENARYOYA YAZILDI (11.11).**
   Sipariş oluştuktan sonra **"Tedarikçiye gönder"** demeden Mal Kabul
   açılmıyor; düğmenin adı *"siparişe çevir"* değil **"Siparişe dönüştür"**.
 
-- ⬜ **0.A.1.4 · P2 · ONAY ZİNCİRİ BİTİNCE SİPARİŞ KENDİLİĞİNDEN
+- 🔄 **0.A.1.4 · P2 · ONAY ZİNCİRİ BİTİNCE SİPARİŞ KENDİLİĞİNDEN
   ONAYLANMIYOR.** Üç adım da Olumlu olduktan sonra sipariş `Onay Bekliyor`
-  kaldı; ayrıca **"Onaylandı"** düğmesine basmak gerekti. Tasarım buysa
-  senaryoda yazılır; değilse kusurdur.
+  kaldı; ayrıca **"Onaylandı"** düğmesine basmak gerekti.
+  ⛔ **KARAR (Emrah, 12.11.2026):** *"ne olursa olsun son onayı veren tek
+  bir yetkili olsun."* Yani kendiliğinden onay **YOK**; bu bir kusur
+  değil, tasarım. Senaryoya yazıldı (11.11).
+  ⚠️ **AMA BUGÜNKÜ HÂL KARARI TAM KARŞILAMIYOR — ÖLÇÜLDÜ (12.11):**
+  - **"Onaylandı" düğmesini `operations.write` taşıyan HERKES görüyor**
+    (`Siparisler.tsx` · `yazabilirMi(currentUser, 'operations.write')`).
+    Bu, sipariş AÇMA izninin aynısı: siparişi açan kişi son onayı da
+    verebiliyor. Bugün dört rol taşıyor (0061'in ölçümü: admin ·
+    isletme_muduru · isletme_sahibi · super_admin).
+  - **Veritabanı kapısı KİMİN bastığına bakmıyor.**
+    `app.siparis_onay_kapisi()` (0053) yalnız zincirin tamam olduğunu
+    ölçüyor (`MI429`); basan kişinin iznini ölçmüyor.
+  - `operations.approve` (0061) zincirin ADIMLARI için var; son düğme ona
+    bağlı değil.
+  Yani bugün "son onay" var ama **"tek bir yetkili" yok.**
+  - ⬜ **0.A.1.4.1** Son onayın kime ait olduğu **Emrah'a soruldu**
+    (12.11): işletme sahibi mi, işletme müdürü mü, Yetki ekranından
+    seçilen kişi mi.
+  - ⬜ **0.A.1.4.2** Cevaba göre: son onay ayrı bir izne bağlanır
+    (**üç kapı birden**: düğme · rota · veritabanı tetiği) ve prova +
+    ters prova yazılır. ⚠️ Demo için ENGEL DEĞİL: demoda düğmeye Emrah
+    (işletme sahibi) basıyor.
 
 - ⬜ **0.A.1.5 · P2 · `KULLANILABİLİR` SÜTUNU BOŞ ÇİZGİ GÖSTERİYOR.**
   Stok Durumu'nda `MIKTAR 200 · KULLANILABİLİR — · MIN 50`; 200 kg var ve
@@ -86,6 +111,11 @@ Tam döküm: `claude/demo-provasi-sonucu.md`.
   Senaryo Adım 5 *"kartta KDV'yi boş bırak, oranın geldiğini göster"*
   diyor; Stok Durumu KDV'yi hiç göstermiyor ve kart düzenleme yolu yok.
   Ya ekranda görünür, ya o cümle senaryodan çıkar.
+
+- ⬜ **0.A.1.7 · P2 · TASLAK REÇETE İŞ EMİRLERİNDE NEDEN GÖRÜNMEDİĞİNİ
+  EKRAN SÖYLEMİYOR.** 0.A.1.2 senaryoyu düzeltti; ekran aynı. İş Emirleri
+  reçete listesi boşken *"Yürürlükte reçete yok — Reçeteler ekranında
+  'Yürürlüğe Al' deyin"* demeli. Demo sonrası.
 
 ### Provada DOĞRULANANLAR (tekrar ölçmeye gerek yok)
 
@@ -2240,7 +2270,9 @@ Emrah'ın onayladığı sıra:
     ⚠️ `AbortController` değil, bilerek: sorun ağ değil **yazma sırası**;
     üç kaynak `Promise.all` ile okunuyor ve iptal edilse bile yarısı
     dönmüş olabilir.
-  - ✅ **MIYOP-105 · P2 · GÖÇ 0111 İLE KAPANDI** (09.11). Ekran numune
+  - ⚠️ **MIYOP-105 · P2 · 0111 YARISINI KAPATMIŞTI** (09.11) → **öteki
+    yarısı 12.11'de GÖÇ 0115 ile kapandı; aşağıda "Codex 4. tur".**
+    "Kapandı" demiştim; kapanmamıştı. O günkü metin: Ekran numune
     kodunu 2, gerekçeyi ve açılış sonucunu 3 karakterden kısa kabul
     etmiyor ve bunu **gerçekten uyguluyor**; veritabanı yalnız "boş
     olmasın" diyordu. API'den yazan biri gerekçe yerine `.` koyup
@@ -2287,6 +2319,103 @@ Emrah'ın onayladığı sıra:
     kullanılmış görünmüyor ama bu yalnız beş sayfada ölçüldü, depo
     genelinde aranamadı. **Silinmedi.** Sabah tek komut:
     `Select-String -Path src\*.tsx,src\**\*.tsx -Pattern "unified-login-reference"`
+  - 🧾 **CODEX 4. TUR · 12.11.2026** (`1a40625` üzerinde · üç yeni P2 +
+    MIYOP-105'in eksik kapanışı · yeni P0/P1 YOK). Codex dosya
+    değiştirmedi, test koşturmadı; bulgular kaynak okumasıyla.
+    Brif: `docs/kararlar/codex-denetimi-kasim-2026-4tur.md`.
+    - ✅ **MIYOP-105 · İKİNCİ YARI · GÖÇ 0115.** 0111 eşik SAYILARINI
+      eşitlemişti; **sözleşme ayrıydı**: ekran `trim().length`, veritabanı
+      `length(btrim())`. `btrim` yalnız boşluğu kırpar.
+      **ÖLÇÜLDÜ (PG 16):** `length(btrim(E'\t\t\t'))` = **3**. API'den
+      yazan biri gerekçe yerine üç sekme koyup geçebiliyordu.
+      Ters yönde ikinci ayrışma: ekran UTF-16 birimi, veritabanı kod
+      noktası sayıyordu (tek emoji: ekranda 2, veritabanında 1).
+      **Onarım:** tek sözleşme — JavaScript `trim` kümesi kırpılır, kod
+      noktası sayılır. Küme `witness-sample.service.ts >
+      KIRPILAN_BOSLUKLAR` içinde ve 0115'in üç kısıtında **harfi harfine
+      aynı metinle** duruyor; mimari test onu orada ARIYOR.
+      **Kanıt:** `prova-0115.sql` (10 iddia · canlı yazımla: üç sekme,
+      üç satır sonu, NBSP+tek harf, geniş boşluk, emoji sınırları,
+      `ALINDI`/`IMHA` muafiyetleri) · `prova-0115-ters.sql` (eski `btrim`
+      kısıtıyla sekme gerekçe ve satır sonu sonuç deftere GİRİYOR — kusur
+      gerçekti) · `numune-kapisi.arch.test.ts` +7 iddia (küme ile `trim`
+      65 536 kod biriminde tek tek karşılaştırılıyor).
+      ⚠️ **SINIRI YAZILI:** sıfır genişlikli karakter (U+200B) boşluk
+      sayılmıyor — `trim` de saymıyor. Sözleşme "iki katman aynı cevabı
+      verir"dir; "anlamsız metin yazılamaz" değildir.
+      ⚠️ **KENDİ HATAM, AYNI TURDA (tuzak 203):** 0115'in ilk yazımında
+      kümenin karakterleri dosyaya **kendileri** girmişti (kaçış yerine
+      görünmez karakter). Prova yeşildi; göç panodan yapıştırılırken
+      bozulabilirdi. Yeniden yazıldı, test artık bunu da ölçüyor.
+      - ⬜ **AYNI SINIF BAŞKA TABLOLARDA DA VAR — ÖLÇÜLDÜ, ONARILMADI.**
+        `btrim` ile metin eşiği ölçen kısıt ve fonksiyonlar: zayi
+        gerekçesi (0026 · `length(btrim(note)) >= 3`), başvuru alanları
+        (0032 · 0035 · 0038), geri arama adı/firma (0106), onay zinciri
+        olumsuz notu (0053), ad/kod "boş olmasın" kısıtları (0017, 0023,
+        0024, 0047, 0050, 0064). Zayi ekranı `trim()` kullanıyor
+        (`write-off.service.ts` · ölçüldü): orada aynı ayrışma kesin.
+        Ötekilerin ekran tarafı **tek tek ölçülmedi.** Codex yalnız şahit
+        numuneyi işaret etti; kapsam büyütülmedi. Zayi gerekçesi ve onay
+        notu **defter** olduğu için önce onlar.
+    - ✅ **MIYOP-109 · GÖÇ 0116.** Aynı numaranın eski KAPALI + yeni AÇIK
+      talebi varken "Tekrar beklemeye al" ekrana **ham indeks adı**
+      çıkarıyordu (`callback_request_acik_talep_tekil`). Veri doğruydu,
+      cevap yanlıştı. **Onarım iki kat:** yazmadan önce aynı kilit
+      (0110'un `pg_advisory_xact_lock(110, …)`) altında öteki açık talep
+      aranıyor → `MI409` + **öteki talebin numarası**; UPDATE yine de
+      indekse çarparsa aynı cevaba çevriliyor (yalnız o indeks; başka
+      tekillik hatası yutulmuyor). İmza aynı → yetkiler korundu.
+      **Kanıt:** `prova-0116.sql` (12 iddia · `authenticated` rolüyle,
+      gerçek kabuktan: çakışmada kayıt ve not DEĞİŞMİYOR; başka açık talep
+      yokken yeniden açma çalışıyor) · `prova-0116-ters.sql` (0106'nın
+      gövdesiyle cevap ham `23505`).
+      ⚠️ **Yanında bulunan (tuzak 190 yine):** `geri-arama-kapisi`
+      testinin beş iddiası fonksiyonun **ilk** tanımını (0106) ölçüyordu;
+      0116'dan sonra yeşil kalır ama yürürlükte olmayan gövdeyi savunurdu.
+      Son tanıma çevrildi.
+    - ✅ **MIYOP-108 · mevzuat yetki testi.** "Yetkiler geri veriliyor"
+      diyen test, fonksiyon ADININ göçte geçtiğine bakıyordu; GRANT satırı
+      silinse de yeşil kalırdı. Yeniden yazıldı: göçün yetki cümleleri
+      ayrıştırılıyor (döngüler açılarak) ve **7 fonksiyon × 4 rol = 28
+      çift** için son söz ayrı ayrı ölçülüyor; fazlası da eksiği de kırmızı.
+      **Ters ölçüm testin içinde:** GRANT satırı bellekte silinince iddia
+      bozuluyor. Gerçek dosyadan silince **6 kırmızı** (ölçüldü).
+      0114'ten sonraki bir göç bu fonksiyonlara dokunursa test **durur**
+      ve bloğun o göçe taşınmasını ister.
+      Aynı tablo artık **canlı** da ölçülüyor: `prova-0114.sql` +30 iddia
+      (`app.*` yardımcıları ve `service_role` dahil; PUBLIC, ACL'den).
+    - ✅ **MIYOP-110 · `kaydet.ps1` kayda gireni gösteriyor.**
+      `.claude/settings.local.json` `.gitignore`a eklendi (yalnız o
+      dosya). Betik: önceden takibe girmişse **takipten çıkarıyor**
+      (diskten silmez), kayda girenleri **listeliyor**, makineye özel ya
+      da gizli olabilecek bir ad görürse **commit yapmadan duruyor**.
+      **ÖLÇÜLDÜ (12.11, aynı git adımları bash ile):** eski `.gitignore`
+      ile dosya kayda GİRİYORDU; yenisiyle girmiyor; önceden takipteyse
+      `D` olarak çıkıyor ve diskte kalıyor; zorla eklenmiş `.env.local`
+      durduruluyor. ⚠️ **İlk yazımda betik kendi düzeltmesini
+      durduruyordu** (takipten çıkarma bir "silme" olarak görünüyor,
+      yasak denetimi onu da yakalıyordu) — ölçümde görüldü, düzeltildi
+      (tuzak 204).
+      ⚠️ **ÖLÇÜLEMEYEN:** betiğin KENDİSİ koşturulmadı (burada PowerShell
+      yok). Emrah'ın ilk koşusu ölçümdür: çıktıda *"Kayda giren dosyalar"*
+      listesi görünmeli ve içinde `.claude/` OLMAMALI.
+      ⚠️ **BİLİNMEYEN:** dosya daha önce commit edilip push edildi mi —
+      buradan görülemiyor. Edildiyse geçmişte durur; betik onu silemez.
+      İlk koşunun listesinde `D .claude/settings.local.json` çıkarsa
+      cevap "evet"tir.
+      Ayrıca: `araclar/*.ps1` ve `commit-mesaji.txt` için **ASCII şartı
+      artık ölçülüyor** (`kayit-kapsami.arch.test.ts`) — Codex, var olan
+      PowerShell testinin bunu ölçmediğini göstermişti.
+    - 📋 **Codex'in "bulgu değil" notlarından işe çevrilenler:**
+      canlıda artakalan eski `mevzuat_yaz` imzası var mı → `goc-bekleyen`
+      son tablosunda salt okunur ölçülüyor (beklenen 7 fonksiyon);
+      `claude/` belgeleri depoda yok → bundan sonraki brifler yalnız
+      `docs/` yollarını gösterecek.
+    - 📋 **Açık bırakılanlar (Codex söyledi, dokunulmadı):** bellek
+      mevzuat defteri sıfır limit ve yönetim listesi sırası bakımından SQL
+      ile birebir değil (yalnız testlerde kullanılıyor); yeni bir mevzuat
+      türü eklenirse `HABER` varsayımına düşer; mimari testlerde sabit
+      uzunlukla kesimler duruyor (bugün yanlış kesim doğrulanmadı).
   - 📋 **Kapsam notları** (bulgu değil): lisans kataloğu `storage.ts:2613`
     hâlâ adisyon paketlerini taşıyor ama sekiz tüketici sayfanın hiçbiri
     açık rotadan açılmıyor → **P2 borç olarak kalıyor**. Geri arama üç

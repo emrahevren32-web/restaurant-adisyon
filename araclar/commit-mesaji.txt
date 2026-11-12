@@ -1,45 +1,75 @@
-Demo provasi canlida yuruldu: A5 KAPANDI + alti bulgu
+Codex 4. tur: MIYOP-105 ikinci yari + 108 + 109 + 110 kapandi
 
-== NE YAPILDI ==
-Claude, Emrah'in Chrome'undan CANLIDA bos bir deneme kiracisinda
-(Yamaklar Gida san.tic.ase) demo senaryosunun yazma adimlarini yurudu.
-Emrah'in izniyle; kiraci atilacak.
+Codex 1a40625 uzerinde uc yeni P2 ve MIYOP-105'in eksik kapanisini
+buldu. Yeni P0/P1 yok. Dordu de bu committe.
 
-Zincirin TAMAMI calisti:
-  KDV ayari -> 3 stok karti -> tedarikci -> talep -> siparis ->
-  mal kabul (lot LOT-MRC-1126 + SKT, 200 kg deftere dustu) ->
-  recete (verim %92) -> is emri (27,174 kg dustu; 98 kg mamul, yeni lot
-  MML-2026-001) -> sahit numune -> musteri + teslim noktasi -> siparis ->
-  revizyon (40->55 kg, gerekcesiyle) -> uc adimli onay zinciri ->
-  sevkiyat -> izlenebilirlik -> alerjen turetme -> Analiz -> denetim
+== MIYOP-105 IKINCI YARI . goc 0115 ==
+0111 esik SAYILARINI esitlemisti; sozlesme ayriydi:
+  ekran      -> trim().length
+  veritabani -> length(btrim())
+btrim yalniz boslugu kirpar. Olculdu (PG 16): uc sekme veritabaninda
+3 karakter, ekranda bos. API'den yazan gerekce yerine uc sekme koyup
+gecebiliyordu. Ters yonde: tek emoji ekranda 2, veritabaninda 1.
+Simdi tek sozlesme: JavaScript trim kumesi kirpilir, kod noktasi sayilir.
+Kume witness-sample.service.ts > KIRPILAN_BOSLUKLAR icinde ve 0115'in uc
+kisitinda harfi harfine ayni metinle; mimari test onu orada ariyor ve
+kumeyi trim ile 65536 kod biriminde tek tek karsilastiriyor.
+Kanit: prova-0115 (10 iddia, canli yazim) + prova-0115-ters (eski
+kisitla sekme gerekce deftere GIRIYOR).
+Siniri yazili: sifir genislikli karakter bosluk sayilmiyor (trim de
+saymiyor).
 
-== A5 KAPANDI ==
-Sahit Numune bos kiracida ACILDI ve NUMUNE ALINDI (SN-2026-0001).
-28.10'da ayni kosulda "Bu ekran acilamadi" veriyordu.
-Parti secilince ekran: "Saklama kosulu: -18 C derin dondurucu, saklama
-sonu partinin SKT'si olacak: 28.02.2027". Yani 0093'un turetme karari
-ekranda calisiyor. 0.A listesinde KOD tarafinda acik madde kalmadi.
+== MIYOP-109 . goc 0116 ==
+Ayni numaranin eski KAPALI + yeni ACIK talebi varken "Tekrar beklemeye
+al" ekrana ham indeks adi cikariyordu. Artik MI409 + oteki talebin
+numarasi; kayit ve not degismiyor. Iki kat: yazmadan once 0110 ile ayni
+kilit altinda on kontrol, UPDATE yine carparsa ayni cevap. Imza ayni,
+yetkiler korundu.
+Kanit: prova-0116 (12 iddia, authenticated rolu, gercek kabuk) +
+prova-0116-ters (0106 govdesiyle cevap ham 23505).
+Yaninda: geri-arama-kapisi testinin bes iddiasi fonksiyonun ILK tanimini
+olcuyordu (tuzak 190); son tanima cevrildi.
 
-== ALTI BULGU (HEDEFLER 0.A.1) ==
-P1  8 ekran tarayici penceresi aciyor: 4 window.prompt + 5 window.confirm.
-    Depodaki yazili kararla celisiyor (MevzuatAkisi: "tarayici penceresi
-    acmiyoruz"). Demo akisinin BES adimi bu ekranlardan geciyor.
-P1  Recete "Yururluge Al" adimi senaryoda yok; Taslak recete Is
-    Emirleri listesinde HIC gorunmuyor. Demoda Adim 7 -> 11 gecisi tikanir.
-P2  Satin almada "Tedarikciye gonder" adimi eksik yazilmis; dugme adi
-    "Siparise donustur".
-P2  Onay zinciri bitince siparis kendiliginden onaylanmiyor.
-P2  KULLANILABILIR sutunu 200 kg gecerli mal varken "-" gosteriyor.
-P2  KDV varsayilanini gosterecek yer yok.
+== MIYOP-108 . mevzuat yetki testi ==
+"Yetkiler geri veriliyor" testi fonksiyon ADININ gocte gectigine
+bakiyordu; GRANT satiri silinse de yesil kalirdi. Yeniden yazildi:
+7 fonksiyon x 4 rol = 28 cift, her biri ayri. Ters olcum testin icinde.
+Gercek dosyadan GRANT satiri silinince 6 kirmizi (olculdu). 0114'ten
+sonraki bir goc bu fonksiyonlara dokunursa test durur.
+prova-0114'e ayni tablo CANLI olarak eklendi (+30 iddia; app
+yardimcilari, service_role ve PUBLIC dahil).
 
-== KAPANAN ESKI MADDE ==
-3.9.3 (etiket saklama kosulunu urun kartindan okumali) canlida goruldu.
+== MIYOP-110 . kaydet.ps1 ==
+.claude/settings.local.json .gitignore'a eklendi (yalniz o dosya).
+Betik: dosya onceden takipteyse takipten cikariyor (diskten silmez),
+kayda girenleri LISTELIYOR, makineye ozel ya da gizli olabilecek bir ad
+gorurse commit yapmadan duruyor.
+Olculdu (ayni git adimlari, bash): eski .gitignore ile dosya kayda
+GIRIYORDU; yenisiyle girmiyor.
+OLCULEMEYEN: betigin kendisi (burada PowerShell yok). Bu commit'in
+kosusu olcumdur: "Kayda giren dosyalar" listesinde .claude/ olmamali.
+Yeni test kayit-kapsami.arch.test.ts araclar/*.ps1 ve bu dosya icin
+ASCII sartini da olcuyor (Codex: var olan test olcmuyordu).
 
-== TUZAK 201 + 202, KONTROL LISTESI 154 + 155 ==
-201 Gormedigim bir seyi "gordum" gibi yazdim, sonra OLCMEDEN geri aldim.
-    Iki yonlu kural: olcmeden iddia etmek kadar, olcmeden iddiadan DONMEK
-    de yanlis. Yeni bilgi bir iddiayi curutmez, yeniden olcmeyi gerektirir.
-202 Bir ekrani ACMAK, o ekranin calistigini gostermez. Uc ayri soru:
-    aciliyor mu, yaziyor mu, yazilan dogru kaynaktan mi geliyor.
+== UC KENDI HATAM, AYNI TURDA (tuzak 203, 204, 205) ==
+203 0115'in ilk yaziminda desenin karakterleri dosyaya KENDILERI girdi
+    (kacis yerine gorunmez karakter). Prova yesildi; goc panodan
+    yapistirilirken bozulabilirdi. cat -A ile goruldu, yeniden yazildi.
+204 kaydet.ps1'deki yasak denetimi, takipten cikarmayi da yasak sayip
+    betigi durduruyordu. Git benzetiminde goruldu, duzeltildi.
+205 "Uretim menusunde bes oge ayni sira numarasini tasiyor" notu
+    YANLISTI: degerler 6, 6.2, 6.4, 6.45, 6.5. Ise cevrilmeden once
+    olculdu, madde yazilmadi.
 
-Ayrinti: claude/demo-provasi-sonucu.md
+== KARAR (Emrah, 12.11) ==
+"ne olursa olsun son onayi veren tek bir yetkili olsun."
+Olculdu: bugun "Onaylandi" dugmesini operations.write tasiyan herkes
+goruyor ve veritabani kimin bastigina bakmiyor. HEDEFLER 0.A.1.4'e
+yazildi; kimin o yetkili oldugu Emrah'a soruldu.
+
+== SAYILAR ==
+Temiz veritabani: 117 goc . 71 prova . 0 kirmizi.
+Bekleyen goc: araclar/goc-bekleyen.sql (0115 + 0116). Canli 0114'te.
+
+Co-Authored-By: Claude Fable 5.2 <noreply@anthropic.com>
+Claude-Session: https://claude.ai/code/session_019BwYM3mAXZUhp4YGj7tp2y

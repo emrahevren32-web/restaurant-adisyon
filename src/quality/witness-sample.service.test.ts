@@ -10,7 +10,7 @@
 
 import { describe, expect, it } from 'vitest'
 import {
-  bugununGunu, gerekceYeterliMi, kalanGun, numuneAlinabilir,
+  anlamliUzunluk, bugununGunu, gerekceYeterliMi, kalanGun, numuneAlinabilir,
   numuneAlinamazSebebi, numuneKoduYeterliMi, numuneSirasi, suresiDolduMu,
 } from './witness-sample.service'
 import type { NumuneAdayi, SahitNumune } from './witness-sample.repository'
@@ -47,6 +47,17 @@ describe('gerekçe ve kod', () => {
     expect(numuneKoduYeterliMi('')).toBe(false)
     expect(numuneKoduYeterliMi(' A ')).toBe(false)
     expect(numuneKoduYeterliMi('N-1')).toBe(true)
+  })
+
+  it('sekme ve satır sonu da boşluktur (veritabanıyla aynı sözleşme · 0115)', () => {
+    // ⚠️ Karşılığı `db/prova/prova-0115.sql`: aynı metinleri veritabanı da
+    // reddediyor. İkisi ayrışırsa `numune-kapisi.arch.test.ts` kırmızı yanar.
+    expect(gerekceYeterliMi('\t\t\t')).toBe(false)
+    expect(gerekceYeterliMi('\n\n\n')).toBe(false)
+    expect(gerekceYeterliMi('\tok\n')).toBe(false)
+    expect(gerekceYeterliMi('\tiade\n')).toBe(true)
+    expect(numuneKoduYeterliMi('\tA\n')).toBe(false)
+    expect(anlamliUzunluk(' a b ')).toBe(3)
   })
 })
 

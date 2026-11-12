@@ -42,3 +42,10 @@ supabase/.temp/
 # dosyalarin tek paketteki kopyasi. Kaynak degil TUREV; her calistirmada
 # yeniden uretiliyor. Depoya girmesi depoyu kendi icine koymak olurdu.
 araclar/ayna/
+
+# Claude masaustu uygulamasinin BU MAKINEYE ozel ayarlari (12.11.2026 . MIYOP-110)
+# `araclar\kaydet.ps1` "git add -A" + "git push" calistiriyor: yok sayilmayan
+# her takipsiz dosya GitHub'a gider. Bu dosya makineye ozel; depoda isi yok.
+# !! Yalniz bu dosya: `.claude/` altina bilerek paylasilan bir ayar konursa
+# o takip edilebilsin diye klasorun tamami yok sayilmiyor.
+.claude/settings.local.json

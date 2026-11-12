@@ -25,7 +25,9 @@ import { readdirSync, readFileSync } from 'node:fs'
 import { join } from 'node:path'
 import { projeKokunuBul } from '../core/test-support/goc-tarama'
 import { NUMUNE_IZINLERI } from '../authorization/yazma-yetkisi'
-import { gerekceYeterliMi, numuneKoduYeterliMi } from './witness-sample.service'
+import {
+  KIRPILAN_BOSLUKLAR, anlamliUzunluk, gerekceYeterliMi, numuneKoduYeterliMi,
+} from './witness-sample.service'
 import { readFileSync as oku } from 'node:fs'
 
 const KOK = projeKokunuBul()
@@ -418,5 +420,137 @@ describe('numune metin eşikleri · ekran ile veritabanı aynı (MIYOP-105)', ()
     const metin = oku(join(KOK, 'db/prova/prova-0111.sql'), 'utf8') as string
     expect(metin).toContain('set local role authenticated')
     expect(metin.trimEnd().endsWith('rollback;')).toBe(true)
+  })
+})
+
+// ═══════════════════════════════════════════════════════════════════════════
+// MIYOP-105 · İKİNCİ YARI · KIRPMA VE SAYMA SÖZLEŞMESİ (göç 0115)
+//
+// Yukarıdaki blok eşik SAYILARINI ölçüyor ve yalnız harfle (`'a'.repeat`)
+// ölçüyor. Codex 4. turda gösterdi ki sayılar aynıyken sözleşme ayrıydı:
+// ekran `trim().length`, veritabanı `length(btrim())` diyordu. Üç sekme
+// ekranda BOŞ, veritabanında ÜÇ KARAKTER sayılıyordu.
+//
+// ⚠️ "MIYOP-105 kapandı" demiştim; kapanmamıştı. Ölçüm yalnız harf
+// denediği için yeşil yanıyordu — ölçmediği şeyi savunuyordu.
+//
+// Burada üç şey ölçülüyor:
+//   1 · Ekranın kümesi JavaScript `trim` kümesinin AYNISI (65 536 kod
+//       birimi tek tek).
+//   2 · Veritabanındaki üç kısıt O KÜMEYİ HARFİ HARFİNE taşıyor.
+//   3 · Sınır metinleri (sekme, satır sonu, Unicode boşluk, emoji) ekranda
+//       beklenen cevabı veriyor. Aynı metinlerin VERİTABANINDAKİ cevabını
+//       `db/prova/prova-0115.sql` canlı yazımla ölçüyor.
+// ═══════════════════════════════════════════════════════════════════════════
+describe('numune metin sözleşmesi · kırpma ve sayma iki katmanda aynı (0115)', () => {
+  const KISITLAR = [
+    'witness_sample_code_not_blank',
+    'witness_sample_event_reason_required',
+    'witness_sample_event_result_required',
+  ]
+  const DESEN = `'^[${KIRPILAN_BOSLUKLAR}]+|[${KIRPILAN_BOSLUKLAR}]+$'`
+
+  // ⚠️ Sınır karakterleri KODLA üretiliyor, dosyaya yazılmıyor: görünmez
+  // bir karakter kaynakta fark edilmeden değişebilir (tuzak 203).
+  const SEKME = String.fromCharCode(0x09)
+  const SATIR = String.fromCharCode(0x0A)
+  const BOLUNMEZ = String.fromCharCode(0xA0)
+  const GENIS = String.fromCharCode(0x3000)
+  const BOM = String.fromCharCode(0xFEFF)
+  const SIFIR_GENISLIK = String.fromCharCode(0x200B)
+  const EMOJI = String.fromCodePoint(0x1F600)
+
+  it('sağlama · küme JavaScript `trim` kümesinin AYNISI (65 536 birim tek tek)', () => {
+    const tekKarakter = new RegExp(`^[${KIRPILAN_BOSLUKLAR}]$`)
+    const farkli: string[] = []
+    let kirpilan = 0
+    for(let i = 0; i <= 0xFFFF; i++){
+      const k = String.fromCharCode(i)
+      const trimKirpiyor = k.trim() === ''
+      if(trimKirpiyor) kirpilan += 1
+      if(trimKirpiyor !== tekKarakter.test(k)) farkli.push(`U+${i.toString(16).toUpperCase()}`)
+    }
+    expect(farkli, 'küme ile `trim` ayrışıyor').toEqual([])
+    // Boşlukta yeşil yanmasın: `trim` gerçekten 25 karakter kırpıyor.
+    expect(kirpilan).toBe(25)
+  })
+
+  it('⚠️ üç kısıt da AYNI deseni taşıyor · `btrim` KALMADI', () => {
+    for(const ad of KISITLAR){
+      const k = etkinKisit(ad)
+      expect(k.goc, `${ad} hiçbir göçte bulunamadı`).not.toBe('')
+      expect(k.goc.slice(0, 4) >= '0115', `${ad} etkin göcü: ${k.goc}`).toBe(true)
+      expect(
+        k.tanim,
+        `${ad} ekranın kümesini taşımıyor. Küme iki yerde AYNI METİNLE `
+        + 'durmak zorunda: witness-sample.service.ts > KIRPILAN_BOSLUKLAR.',
+      ).toContain(`${DESEN}, '', 'g')`)
+      expect(k.tanim, `${ad} hâlâ btrim kullanıyor`).not.toContain('btrim')
+      // Sayma: kırpılmış metnin `length()`i — kod noktası.
+      expect(k.tanim).toMatch(/length\(regexp_replace\(/)
+    }
+  })
+
+  it('⚠️ sekme, satır sonu ve Unicode boşlukları ekranda BOŞ', () => {
+    for(const bos of [SEKME.repeat(3), SATIR.repeat(3), BOLUNMEZ + GENIS + BOM,
+      ' ' + SEKME + SATIR + ' ']){
+      expect(anlamliUzunluk(bos)).toBe(0)
+      expect(gerekceYeterliMi(bos)).toBe(false)
+      expect(numuneKoduYeterliMi(bos)).toBe(false)
+    }
+    // Sarılı ama dolu metin geçiyor; yalnız UÇLAR kırpılıyor.
+    expect(anlamliUzunluk(SEKME + 'a b' + SATIR)).toBe(3)
+    expect(gerekceYeterliMi(SATIR + 'iade' + SEKME)).toBe(true)
+    expect(numuneKoduYeterliMi(BOLUNMEZ + 'A')).toBe(false)
+  })
+
+  it('⚠️ sayma KOD NOKTASI · tek emoji BİR karakter', () => {
+    // `.length` olsaydı tek emoji 2 sayılır, numune kodu olarak geçerdi;
+    // veritabanı (`length()`) onu 1 sayıp reddederdi.
+    expect(EMOJI.length, 'sağlama: emoji iki UTF-16 birimi').toBe(2)
+    expect(anlamliUzunluk(EMOJI)).toBe(1)
+    expect(numuneKoduYeterliMi(EMOJI)).toBe(false)
+    expect(numuneKoduYeterliMi(EMOJI + EMOJI)).toBe(true)
+    expect(gerekceYeterliMi(EMOJI + EMOJI)).toBe(false)
+    expect(gerekceYeterliMi(EMOJI + EMOJI + EMOJI)).toBe(true)
+  })
+
+  it('sınır yazılı · sıfır genişlikli karakter boşluk SAYILMIYOR', () => {
+    // `trim` de saymıyor. Sözleşme "iki katman aynı cevabı verir"dir.
+    expect(anlamliUzunluk(SIFIR_GENISLIK.repeat(3))).toBe(3)
+  })
+
+  it('⚠️ göçlerde ve bekleyen göç dosyasında GÖRÜNMEZ KARAKTER yok', () => {
+    // 0115'in ilk yazımında kümenin karakterleri dosyaya KENDİLERİ girmişti.
+    // Göç panodan yapıştırılarak çalıştırılıyor: U+2028'i editör satır
+    // sonuna çevirebilir, U+FEFF panoda düşebilir. Desen `\uXXXX` kaçışıyla
+    // durmak zorunda.
+    const dosyalar = [
+      ...gocDosyalari().map(ad => join(GOC_KLASORU, ad)),
+      join(KOK, 'araclar/goc-bekleyen.sql'),
+    ]
+    expect(dosyalar.length).toBeGreaterThan(100)
+    const bulunan: string[] = []
+    for(const yol of dosyalar){
+      const metin = oku(yol, 'utf8') as string
+      for(const k of metin){
+        const kod = k.codePointAt(0) ?? 0
+        const olagan = kod === 0x20 || kod === 0x0A || kod === 0x0D || kod === 0x09
+        const gorunmez = k.trim() === '' || (kod >= 0x200B && kod <= 0x200F)
+        if(!olagan && gorunmez){
+          bulunan.push(`${yol.slice(KOK.length + 1)} · U+${kod.toString(16).toUpperCase()}`)
+          break
+        }
+      }
+    }
+    expect(bulunan).toEqual([])
+  })
+
+  it('prova ve ters prova var, rol takıyor, veritabanını kirletmiyor', () => {
+    for(const p of ['db/prova/prova-0115.sql', 'db/prova/prova-0115-ters.sql']){
+      const metin = oku(join(KOK, p), 'utf8') as string
+      expect(metin, `${p} rol takmıyor (MIYOP-042)`).toContain('set local role authenticated')
+      expect(metin.trimEnd().endsWith('rollback;'), `${p} rollback ile bitmiyor`).toBe(true)
+    }
   })
 })

@@ -61,11 +61,57 @@ if (-not (Test-Path $mesajYolu)) {
   exit 1
 }
 
+# !! 12.11.2026 - MIYOP-110 (Codex 4. tur) - KAYDA NE GIRDIGI ARTIK GORULUYOR.
+# Bu betik "git add -A" ile HER SEYI aliyor ve 10.11'den beri push da
+# ediyor. Calisma agacinda makineye ozel bir dosya takipsiz duruyordu
+# (.claude/settings.local.json); .gitignore onu kapsamiyordu ve bir sonraki
+# kayitta GitHub'a gidecekti. Kimse kayda neyin girdigine bakmiyordu,
+# cunku betik gostermiyordu.
+#
+# Uc kat:
+#  1. .gitignore artik o dosyayi kapsiyor (asil onlem).
+#  2. Dosya ONCEDEN takibe girmisse takipten cikariliyor. Diskten
+#     SILINMEZ; yalniz depo onu izlemeyi birakir. (--ignore-unmatch:
+#     takipte degilse hicbir sey yapmaz.)
+#  3. Kayda girecek dosyalar LISTELENIYOR; makineye ozel ya da gizli
+#     olabilecek bir ad gorulurse commit YAPILMIYOR.
+#
+# !! SINIRI: 2. adim dosyayi GECMIS commit'lerden silmez. Daha once push
+# edildiyse orada durur; bunu bu betik duzeltemez.
+git rm -r -q --cached --ignore-unmatch -- .claude/settings.local.json
+
 $degisiklik = git status --porcelain
 if ([string]::IsNullOrWhiteSpace($degisiklik)) {
   Write-Host "Kaydedilecek degisiklik yok." -ForegroundColor Yellow
 } else {
   git add -A
+
+  $adaylar = @(git diff --cached --name-only)
+  # !! --diff-filter=d : SILINENLER yasak listesine girmez. Yukaridaki
+  # "git rm --cached" o dosyayi takipten CIKARIYOR ve bu bir silme olarak
+  # gorunur; onu da yasak saysaydik betik kendi duzeltmesini durdururdu
+  # (12.11 olcumunde tam bu oldu).
+  $eklenenler = @(git diff --cached --name-only --diff-filter=d)
+  $yasaklar = @($eklenenler | Where-Object {
+    $_ -match '(^|/)\.claude/.*\.local\.' -or
+    $_ -match '(^|/)\.env$' -or
+    $_ -match '(^|/)\.env\..*local$' -or
+    $_ -match '\.pem$'
+  })
+  if ($yasaklar.Count -gt 0) {
+    # Sahneyi geri al: hicbir sey commit edilmesin. Dosyalara DOKUNMAZ.
+    git reset -q
+    Write-Host ""
+    Write-Host "KAYIT DURDURULDU - makineye ozel ya da gizli olabilecek dosya kayda giriyordu:" -ForegroundColor Red
+    $yasaklar | ForEach-Object { Write-Host "   $_" -ForegroundColor Red }
+    Write-Host "Hicbir sey commit EDILMEDI; dosyalar diskte duruyor." -ForegroundColor Red
+    exit 1
+  }
+
+  Write-Host ""
+  Write-Host ("-- Kayda giren dosyalar (" + $adaylar.Count + "):") -ForegroundColor Cyan
+  git diff --cached --name-status
+
   git commit -F $mesajYolu
   if ($LASTEXITCODE -ne 0) {
     Write-Host "Commit basarisiz." -ForegroundColor Red

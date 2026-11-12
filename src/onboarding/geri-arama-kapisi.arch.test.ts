@@ -251,13 +251,34 @@ describe('kapı · tek yol fonksiyon', () => {
   })
 })
 
+/**
+ * `app.geri_arama_durumu_yaz` fonksiyonunun YÜRÜRLÜKTEKİ (son yazılan) hâli.
+ *
+ * ⚠️ BU SATIR TUZAK 190'IN BEDELİ (12.11.2026). Aşağıdaki iddialar
+ * `SQL.indexOf(...)` ile İLK tanımı (0106) buluyordu. 0116 fonksiyonu
+ * yeniden yazınca testler yeşil kaldı — ama artık YÜRÜRLÜKTE OLMAYAN
+ * gövdeyi ölçüyorlardı: 0116 imzayı ya da not birikimini düşürseydi
+ * kimse fark etmezdi. Ölçüm son tanıma bakmak zorunda.
+ *
+ * ⚠️ Kesim sabit uzunlukla değil ÇAPAYLA: gövde `end $$;` ile biter.
+ */
+const DURUM_YAZ_BASI = 'create or replace function app.geri_arama_durumu_yaz('
+const etkinDurumYaz = (): { imza: string; govde: string } => {
+  const bas = SQL.lastIndexOf(DURUM_YAZ_BASI)
+  const son = SQL.indexOf('end $$;', bas)
+  expect(bas, 'durum yazma fonksiyonu bulunamadı').toBeGreaterThan(-1)
+  expect(son, 'durum yazma gövdesinin sonu bulunamadı').toBeGreaterThan(bas)
+  const govde = SQL.slice(bas, son)
+  const imza = /\(([\s\S]*?)\)\s*\nreturns/.exec(govde)?.[1] ?? ''
+  return { imza, govde }
+}
+
 // ═══════════════════════════════════════════════════════════════════════════
 // 4 · İMZAYI SUNUCU ATIYOR
 // ═══════════════════════════════════════════════════════════════════════════
 describe('imza · "kim aradı" istemciden gelmiyor', () => {
   it('⚠️ durum yazma fonksiyonunda KİŞİ parametresi YOK', () => {
-    const imza = /create or replace function app\.geri_arama_durumu_yaz\(([\s\S]*?)\)\s*\nreturns/
-      .exec(SQL)?.[1] ?? ''
+    const { imza } = etkinDurumYaz()
     expect(imza, 'imza bulunamadı').not.toEqual('')
     expect(
       imza,
@@ -268,22 +289,19 @@ describe('imza · "kim aradı" istemciden gelmiyor', () => {
   })
 
   it('imzayı `app.aktif_kullanici_id()` veriyor', () => {
-    const govde = SQL.slice(SQL.indexOf('create or replace function app.geri_arama_durumu_yaz('))
-      .slice(0, 3000)
+    const { govde } = etkinDurumYaz()
     expect(govde).toContain('app.aktif_kullanici_id()')
     expect(govde).toContain('updated_by   = v_ben')
   })
 
   it('⚠️ ilk aramanın imzası bir daha DEĞİŞMİYOR', () => {
-    const govde = SQL.slice(SQL.indexOf('create or replace function app.geri_arama_durumu_yaz('))
-      .slice(0, 3000)
+    const { govde } = etkinDurumYaz()
     expect(govde).toMatch(/contacted_at = case when contacted_at is null/)
     expect(govde).toMatch(/contacted_by = case when contacted_by is null/)
   })
 
   it('⚠️ not BİRİKİYOR, üstüne yazılmıyor', () => {
-    const govde = SQL.slice(SQL.indexOf('create or replace function app.geri_arama_durumu_yaz('))
-      .slice(0, 3000)
+    const { govde } = etkinDurumYaz()
     expect(
       govde,
       'Not üstüne yazılırsa geçmiş kaybolur ve olay tablosu da yok.',
@@ -291,8 +309,7 @@ describe('imza · "kim aradı" istemciden gelmiyor', () => {
   })
 
   it('kapanış GEREKÇE istiyor', () => {
-    const govde = SQL.slice(SQL.indexOf('create or replace function app.geri_arama_durumu_yaz('))
-      .slice(0, 3000)
+    const { govde } = etkinDurumYaz()
     expect(govde).toMatch(/v_durum = 'CLOSED' and v_not is null/)
   })
 })
@@ -533,5 +550,100 @@ describe('0110 · spam kapısı eşzamanlı yazıma kapalı (MIYOP-102)', () => 
     // Emniyet olmasaydı da yeşil yanan bir prova hiçbir şey ölçmüyordur.
     const ters = dosya('db/prova/prova-0110-ters.sql')
     expect(ters).toContain('drop index if exists public.callback_request_acik_talep_tekil')
+  })
+})
+
+// ═══════════════════════════════════════════════════════════════════════════
+// 0116 · MIYOP-109 · YENİDEN BEKLEMEYE ALMA ÇAKIŞMASI
+//
+// Aynı numaranın eski bir KAPALI talebi ile yeni bir AÇIK talebi varken
+// "Tekrar beklemeye al" eski kaydı NEW yapmaya çalışıyor; 0110'un tekillik
+// indeksi reddediyor. Veri doğruydu, CEVAP yanlıştı: ekrana ham indeks adı
+// (`callback_request_acik_talep_tekil`) çıkıyordu.
+//
+// ⚠️ 0110'un provası indeksi ham INSERT ile ölçüyordu; kullanıcının
+// GERÇEKTEN bastığı yol (durum güncelleme) ölçülmemişti. Davranışı
+// `db/prova/prova-0116.sql` `authenticated` rolüyle, gerçek kabuktan
+// çağırarak ölçüyor; bu blok yalnız metni ölçer.
+// ═══════════════════════════════════════════════════════════════════════════
+describe('0116 · yeniden beklemeye alma çakışması anlaşılır (MIYOP-109)', () => {
+  /** SQL yorumları ölçümden ÖNCE siliniyor (tuzak 181). */
+  const sqlKod = (metin: string): string => metin.replace(/--[^\n]*/g, '')
+
+  it('sağlama · yürürlükteki gövde 0116\'dan geliyor', () => {
+    const goc = dosya('db/migrations/0116_geri_arama_yeniden_acma.sql')
+    expect(goc).toContain(DURUM_YAZ_BASI)
+    // Yürürlükteki gövde, 0116'nın içindeki gövdeyle AYNI metin.
+    const { govde } = etkinDurumYaz()
+    expect(goc).toContain(govde)
+    expect(govde.length).toBeGreaterThan(1_500)
+  })
+
+  it('⚠️ çakışma YAZMADAN ÖNCE aranıyor ve `MI409` veriyor', () => {
+    const { govde } = etkinDurumYaz()
+    const k = sqlKod(govde)
+    const onKontrol = k.indexOf("if v_durum = 'NEW' and v_satir.status <> 'NEW' then")
+    const yazma = k.indexOf('update public.callback_request')
+    expect(onKontrol, 'ön kontrol bulunamadı').toBeGreaterThan(-1)
+    expect(yazma, 'UPDATE bulunamadı').toBeGreaterThan(onKontrol)
+    const blok = k.slice(onKontrol, yazma)
+    expect(blok).toContain("status = 'NEW'")
+    expect(blok).toContain('id <> v_satir.id')
+    expect(blok).toContain("using errcode = 'MI409'")
+  })
+
+  it('⚠️ ön kontrol 0110 ile AYNI kilidi alıyor (iki yeniden açma yarışamaz)', () => {
+    const k = sqlKod(etkinDurumYaz().govde)
+    expect(k).toContain('pg_advisory_xact_lock(110, hashtext(v_satir.phone))')
+    // Kilit, öteki talebi ARAMADAN önce.
+    expect(k.indexOf('pg_advisory_xact_lock(110'))
+      .toBeLessThan(k.indexOf('select reference into v_diger'))
+  })
+
+  it('⚠️ ikinci kat · UPDATE yine de indekse çarparsa aynı cevaba çevriliyor', () => {
+    const k = sqlKod(etkinDurumYaz().govde)
+    const yakala = k.indexOf('exception when unique_violation then')
+    expect(yakala, 'unique_violation yakalanmıyor').toBeGreaterThan(-1)
+    const blok = k.slice(yakala)
+    // ⚠️ YALNIZ bu indeks çevriliyor; başka bir tekillik hatası yutulmuyor.
+    expect(blok).toContain("v_kisit = 'callback_request_acik_talep_tekil'")
+    expect(blok).toContain("using errcode = 'MI409'")
+    expect(blok, 'tanınmayan tekillik hatası yutuluyor').toMatch(/end if;\s*raise;/)
+  })
+
+  it('⚠️ kullanıcıya giden cümlede indeks adı YOK', () => {
+    const k = sqlKod(etkinDurumYaz().govde)
+    const cumleler = [...k.matchAll(/raise exception\s+'([^']*)'/g)].map(m => m[1] as string)
+    expect(cumleler.length).toBeGreaterThan(2)
+    for(const c of cumleler){
+      expect(c).not.toContain('callback_request')
+      expect(c).not.toContain('duplicate key')
+    }
+  })
+
+  it('imza DEĞİŞMEDİ (yetkiler `create or replace` ile korunuyor · tuzak 67)', () => {
+    const goc = sqlKod(dosya('db/migrations/0116_geri_arama_yeniden_acma.sql'))
+    expect(etkinDurumYaz().imza.split(',')).toHaveLength(3)
+    // İmza değişmediği için fonksiyon DÜŞÜRÜLMÜYOR; düşürülseydi GRANT'lar
+    // da giderdi ve göç onları geri vermek zorunda kalırdı.
+    expect(goc).not.toMatch(/drop function/)
+  })
+
+  it('ekran `MI409` cümlesini olduğu gibi gösteriyor', () => {
+    const depo = kod('src/onboarding/geri-arama.repository.ts')
+    expect(depo).toContain("'MI409'")
+  })
+
+  it('prova ve ters prova var, rol takıyor, veritabanını kirletmiyor', () => {
+    for(const p of ['db/prova/prova-0116.sql', 'db/prova/prova-0116-ters.sql']){
+      expect(existsSync(join(KOK, p)), `${p} yok`).toBe(true)
+      const metin = dosya(p)
+      expect(metin, `${p} rol takmıyor (MIYOP-042)`).toContain('set local role authenticated')
+      expect(metin.trimEnd().endsWith('rollback;'), `${p} rollback ile bitmiyor`).toBe(true)
+    }
+    // ⚠️ Ölçülen yol GERÇEK kabuk: ham UPDATE değil.
+    expect(dosya('db/prova/prova-0116.sql')).toContain('public.geri_arama_durumu_yaz(')
+    // Ters prova eski gövdeyi geri koyup ham hatayı gösteriyor.
+    expect(dosya('db/prova/prova-0116-ters.sql')).toContain("v_kod = '23505'")
   })
 })

@@ -322,6 +322,76 @@ begin
     v_say = 1);
 end $$;
 
+-- ═══════════════════════════════════════════════════════════════════════════
+-- 8 · YETKİ TABLOSU · 7 fonksiyon × 4 rol, TEK TEK (MIYOP-108 · 12.11.2026)
+--
+-- Codex 4. tur: bu prova vitrinin ve yönetim kabuklarının yetkisini canlı
+-- çağrıyla ölçüyordu ama `app.*` yardımcılarını ve `service_role` satırını
+-- ÖLÇMÜYORDU. Mimari test (mevzuat-kapisi.arch.test.ts) aynı tabloyu göç
+-- METNİNDEN okuyor; burada VERİTABANININ KENDİSİNE soruluyor. İkisi
+-- birbirinin yerine geçmez.
+--
+-- ⚠️ PUBLIC bir rol değildir; `has_function_privilege('public', …)` diye
+-- sorulamaz. ACL'den okunuyor: `grantee = 0` PUBLIC demektir. ACL NULL ise
+-- fonksiyon hiç kısıtlanmamıştır ve PUBLIC varsayılan olarak ÇAĞIRABİLİR —
+-- o yüzden "satır yok" ile "kapalı" ayrı ölçülüyor.
+-- ═══════════════════════════════════════════════════════════════════════════
+reset role;
+
+do $$
+declare
+  v record;
+  v_public boolean;
+  v_bulunan boolean;
+  v_say int := 0;
+begin
+  raise notice '── 8 · YETKİ TABLOSU';
+
+  for v in
+    select * from (values
+      -- fonksiyon,                                                              public, anon,  authenticated, service_role
+      ('public.mevzuat_akisi_oku(integer)',                                       false,  true,  true,  true),
+      ('public.mevzuat_listesi()',                                                false,  false, true,  true),
+      ('public.mevzuat_yaz(uuid, text, text, text, text, date, text, text)',      false,  false, true,  true),
+      ('public.mevzuat_sil(uuid)',                                                false,  false, true,  true),
+      ('app.mevzuat_listesi()',                                                   false,  false, false, true),
+      ('app.mevzuat_yaz(uuid, text, text, text, text, date, text, text)',         false,  false, false, true),
+      ('app.mevzuat_sil(uuid)',                                                   false,  false, false, true)
+    ) as t(fn, b_public, b_anon, b_auth, b_servis)
+  loop
+    select p.proacl is null
+           or exists (select 1 from aclexplode(p.proacl) a
+                       where a.grantee = 0 and a.privilege_type = 'EXECUTE')
+      into v_public
+      from pg_proc p where p.oid = v.fn::regprocedure;
+    perform prova_bak(v.fn||' · PUBLIC '||case when v.b_public then 'AÇIK' else 'KAPALI' end,
+      v_public = v.b_public);
+
+    v_bulunan := has_function_privilege('anon', v.fn, 'execute');
+    perform prova_bak(v.fn||' · anon '||case when v.b_anon then 'AÇIK' else 'KAPALI' end,
+      v_bulunan = v.b_anon);
+
+    v_bulunan := has_function_privilege('authenticated', v.fn, 'execute');
+    perform prova_bak(v.fn||' · authenticated '||case when v.b_auth then 'AÇIK' else 'KAPALI' end,
+      v_bulunan = v.b_auth);
+
+    v_bulunan := has_function_privilege('service_role', v.fn, 'execute');
+    perform prova_bak(v.fn||' · service_role '||case when v.b_servis then 'AÇIK' else 'KAPALI' end,
+      v_bulunan = v.b_servis);
+    v_say := v_say + 1;
+  end loop;
+
+  perform prova_bak('yedi fonksiyonun yedisi de ölçüldü — bulunan: '||v_say, v_say = 7);
+
+  -- ⚠️ ARTAKALAN İMZA YOK: 0114 yedi parametreli `mevzuat_yaz`ı düşürdü.
+  -- Yanında eski imza kalsaydı çağrılar belirsizleşirdi (tuzak 67).
+  select count(*) into v_say from pg_proc p
+    join pg_namespace n on n.oid = p.pronamespace
+   where n.nspname in ('public', 'app') and p.proname like 'mevzuat%';
+  perform prova_bak('mevzuat fonksiyonu TAM yedi tane (artakalan imza yok) — bulunan: '||v_say,
+    v_say = 7);
+end $$;
+
 do $$ begin raise notice '──── 0114 provası: TAMAM'; end $$;
 
 rollback;
