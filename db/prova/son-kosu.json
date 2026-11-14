@@ -1,10 +1,10 @@
 {
   "aciklama": "Butun provalarin temiz bir veritabaninda kostugu SON tam kosu. Bu dosyayi hepsini-kosturt.sh yazar; elle duzenlenmez. Karsilastiran sinama: src/core/prova-kosuldu.arch.test.ts (HEDEFLER 4.11.9).",
-  "tarih": "2026-11-12",
-  "en_yeni_goc": "0116_geri_arama_yeniden_acma.sql",
-  "goc_sayisi": 117,
-  "prova_sayisi": 71,
-  "yesil": 71,
+  "tarih": "2026-11-14",
+  "en_yeni_goc": "0117_son_onay_tek_yetkili.sql",
+  "goc_sayisi": 118,
+  "prova_sayisi": 73,
+  "yesil": 73,
   "kirmizi": 0,
   "ortam": "PostgreSQL 16 - temiz veritabani - kur.sh + hepsini-kosturt.sh"
 }

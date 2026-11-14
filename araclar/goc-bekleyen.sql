@@ -1,519 +1,395 @@
 -- ═══════════════════════════════════════════════════════════════════════════
--- MİYOP · BEKLEYEN GÖÇ · 0115 + 0116 · 12.11.2026
+-- MİYOP · BEKLEYEN GÖÇ · 0117 · 14.11.2026
 --
--- ⚠️ BU DOSYA SUPABASE'E YAPIŞTIRILACAK. Canlı veritabanı **göç 0114'te**;
--- aşağıdaki iki göç henüz UYGULANMADI. İkisi de Codex 4. tur bulgusu.
+-- ⚠️ BU DOSYA SUPABASE'E YAPIŞTIRILACAK. Canlı veritabanı **göç 0116'da**
+-- (0115 + 0116 12.11 gecesi uygulandı; Supabase özeti: 3 / 3 · tamam ·
+-- tamam · 7 · tamam). Aşağıdaki 0117 henüz UYGULANMADI.
 --
--- 0115 · NUMUNE METİNLERİ (MIYOP-105'in eksik kalan yarısı)
---   Ekran gerekçeyi `trim()` ile, veritabanı `btrim()` ile ölçüyordu.
---   `btrim` yalnız boşluğu kırpar: üç sekme ya da üç satır sonu ekranda BOŞ,
---   veritabanında ÜÇ KARAKTER sayılıyordu. Üç kısıt artık ekranla AYNI
---   kümeyi kırpıyor. Eşikler DEĞİŞMEDİ (kod 2, gerekçe 3, sonuç 3).
---   ⚠️ Göç önce desenin BU SUNUCUDA çalıştığını ölçüyor (25 karakter tek
---   tek), sonra eski kayıtları ölçüyor. İkisinden biri tutmazsa kısıtlara
---   DOKUNMADAN durur ve sebebini söyler.
+-- 0117 · SİPARİŞE SON ONAY · TEK YETKİLİ (Emrah kararı, 12.11)
+--   Bugüne kadar "Onaylandı" düğmesine sipariş açabilen HERKES basabiliyordu
+--   ve veritabanı kimin bastığına bakmıyordu.
+--   Yeni kural: son onayı İŞLETME MÜDÜRÜ verir. İşletmede müdür rolünde
+--   aktif kimse yoksa İŞLETME SAHİBİ verir; müdür atandığı an sahip
+--   devreden çıkar.
+--   Ayrıca: bir siparişi KİMİN onayladığı artık deftere yazılıyor
+--   (bugüne kadar yazılmıyordu).
 --
--- 0116 · GERİ ARAMA (MIYOP-109)
---   Aynı numaranın bekleyen başka bir talebi varken "Tekrar beklemeye al"
---   ekrana ham veritabanı hatası (indeks adı) çıkarıyordu. Artık anlaşılır
---   bir cümle ve öteki talebin numarası çıkıyor; kayıt ve not değişmiyor.
---   Fonksiyonun imzası aynı kaldı, yetkiler korunuyor.
+-- ⚠️ BU GÖÇ UYGULANDIĞI AN KAPI YÜRÜRLÜKTE. Ekran yüklenene kadar
+-- (`miyop-yukle.ps1`) düğme eski hâliyle görünür; yetkisi olmayan biri
+-- basarsa veritabanı reddeder ve sebebini cümleyle söyler. Veri bozulmaz.
 --
--- ⚠️ EKRAN TARAFI DA YÜKLENECEK (`miyop-yukle.ps1`): şahit numune ekranı
--- metni artık aynı sözleşmeyle sayıyor. Yüklenmezse ekran ile veritabanı
--- yalnız TEK bir uç durumda ayrışır (tek emoji ile yazılmış numune kodu:
--- ekran kabul eder, veritabanı reddeder). Kimsenin verisi bozulmaz.
+-- ⚠️ SON TABLODA BAKILACAK İKİ SATIR:
+--   · `dogrulama | gecti`
+--   · `UYARI . onay bekleyen siparisi olup son onay verecek KIMSESI olmayan
+--     isletme` → **0** olmalı. 0 değilse o işletmelerde ne müdür ne sahip
+--     var demektir (eski deneme kayıtları olabilir); bana sayıyı söyle.
 --
--- ⚠️ SON TABLO ÜÇ ŞEYİ BİRDEN GÖSTERİR ve hepsi `tamam` yazmalı:
--- 0115 kısıtları · 0116 fonksiyonu · mevzuat fonksiyon sayısı (Codex'in
--- "canlıda artakalan eski imza var mı" sorusu — salt okunur ölçüm).
---
--- ⚠️ BU DOSYADA GÖRÜNMEZ KARAKTER YOK ve olmamalı: 0115'in deseni `\uXXXX`
--- kaçışlarıyla yazılı. Panodan yapıştırılırken bozulmaması için.
+-- ⚠️ Yeni izin AÇILMIYOR, hiçbir kullanıcının rolü DEĞİŞMİYOR, hiçbir
+-- sipariş satırına DOKUNULMUYOR. Yalnız beş fonksiyon yazılıyor.
 --
 -- ⚠️ Bu dosyayı BOŞALTMAK, göçü uygulamanın SON adımıdır (kontrol
 -- listesi 130). "Run" tuşuna basmak son adım değildir.
 -- ═══════════════════════════════════════════════════════════════════════════
 
 -- ═══════════════════════════════════════════════════════════════════════════
--- MİYOP · 0115 — NUMUNE METİNLERİ · BOŞLUK VE SAYMA SÖZLEŞMESİ
---               (MIYOP-105'in EKSİK KALAN yarısı · Codex 4. tur, 11.11.2026)
+-- MİYOP · 0117 — SON ONAY · TEK YETKİLİ: İŞLETME MÜDÜRÜ
 --
--- ── NE OLDU ──────────────────────────────────────────────────────────────
--- 0111 ekran ile veritabanının EŞİK SAYILARINI eşitledi (kod ≥ 2, gerekçe
--- ve açılış sonucu ≥ 3) ve "MIYOP-105 kapandı" dedim. Codex 4. turda
--- gösterdi ki yalnız SAYI eşitlenmiş, **sözleşme eşitlenmemiş**:
+-- ── KARAR ────────────────────────────────────────────────────────────────
+-- Emrah (12.11.2026): *"ne olursa olsun son onayı veren tek bir yetkili
+-- olsun."* Kim olacağı sorulunca: *"sence kim olsun? … bence işletme sahibi
+-- değil de müdür olsun, çünkü her olan bitenden haberdar olması gerekir
+-- adamın."* ve *"tekrar sormana gerek yok."*
 --
---     ekran       →  `metin.trim().length`
---     veritabanı  →  `length(btrim(metin))`
+-- ── BUGÜNE KADAR NE VARDI (12.11'de ölçüldü) ─────────────────────────────
+-- Onay zinciri (0053) üç adım: depo görüşü · üretim görüşü · satış onayı.
+-- Üçü de olumlu olunca sipariş KENDİLİĞİNDEN onaylanmıyor; biri durumu
+-- "Onaylandı" yapıyor. O "biri":
+--   · ekranda       → `operations.write` taşıyan HERKES (sipariş AÇMA izni)
+--   · veritabanında → `app.siparis_onay_kapisi()` yalnız zincirin tamam
+--     olduğuna bakıyordu; KİMİN bastığına bakmıyordu.
+-- Yani "son onay" vardı ama "tek bir yetkili" yoktu: siparişi açan kişi son
+-- onayı da verebiliyordu.
 --
--- PostgreSQL'in `btrim`i varsayılan olarak YALNIZ BOŞLUK karakterini
--- (U+0020) kırpar. JavaScript'in `trim`i ise sekme, satır sonu ve bütün
--- Unicode boşluklarını kırpar. Yani:
+-- ── KURAL ────────────────────────────────────────────────────────────────
+--   1 · Siparişi "Onaylandı" yapan kişi İŞLETME MÜDÜRÜ rolünde olmalı.
+--   2 · İşletmede müdür rolünde AKTİF kimse YOKSA, son onayı İŞLETME
+--       SAHİBİ verir. Müdür atandığı AN bu yol kendiliğinden kapanır.
 --
---     reason = E'\t\t\t'   →  ekranda BOŞ, veritabanında 3 KARAKTER
---     result = E'\n\n\n'   →  ekranda BOŞ, veritabanında 3 KARAKTER
+-- ⚠️ 2. MADDE BENİM KARARIM VE GEREKÇESİ ŞU (Emrah "sen karar ver" dedi):
+-- Yeni açılan her işletmede tek kullanıcı vardır: işletme sahibi. Kural
+-- yalnız 1. madde olsaydı o işletme İLK SİPARİŞİNDE duvara çarpardı —
+-- önce birine müdür rolü vermesi gerekirdi. Küçük işletmede sahip zaten
+-- müdürdür. Emrah'ın cümlesinin özü korunuyor: müdürü olan işletmede
+-- sahip son onayı VEREMEZ; iş müdürden geçer.
+-- ⚠️ Geri alması tek satır: aşağıdaki `app.son_onay_yetkim_var()` içinde
+-- "müdür yoksa sahip" dalı silinir.
 --
--- ⚠️ ÖLÇÜLDÜ (11.11, PostgreSQL 16):
---     select length(btrim(E'\t\t\t')), length(btrim(E'\n\n\n')), length(btrim('   '));
---     →  3 | 3 | 0
--- API'den yazan biri gerekçe yerine üç sekme koyup geçebiliyordu. 0111'in
--- kapattığını söylediğim delik, başka bir karakterle açık duruyordu.
+-- ⚠️ NEDEN YENİ BİR İZİN DEĞİL DE ROL
+-- İlk taslakta `operations.final_approve` diye bir izin açmıştım. Vazgeçtim:
+--   · Kuralın ikinci maddesi ("müdür yoksa sahip") bir izinle İFADE
+--     EDİLEMEZ; izin ya vardır ya yoktur, "işletmede başka kim var"a bakmaz.
+--     Kural yine role bakmak zorunda kalır ve iki yerde iki gerçek olurdu.
+--   · Karar zaten rol diliyle verildi ("müdür").
+-- Bedeli yazılı: Yetki ekranındaki izin listesinde "son onay" diye bir satır
+-- GÖRÜNMEZ (HEDEFLER 0.A.1.4.3).
 --
--- ⚠️ İKİNCİ AYRIŞMA TERS YÖNDE: ekran `.length` ile UTF-16 BİRİMİ sayıyor,
--- veritabanı `length()` ile KOD NOKTASI. Tek bir emoji ekranda 2, veritabanında
--- 1 karakterdir: ekranın "yeterli" dediği bir metni veritabanı reddedebilirdi.
--- Bu bir delik değil ama aynı sınıftan: iki katman aynı soruya iki cevap
--- veriyordu.
+-- ⚠️ GERİ ALMA (Onaylandı → Onay Bekliyor) ve sonraki adımlar
+-- (Hazırlanıyor, Hazır…) bu göçle DEĞİŞMEDİ; onlar `operations.write`.
 --
--- ── SÖZLEŞME · TEK TANIM, İKİ KATMAN ─────────────────────────────────────
---   KIRPMA: metnin başındaki ve sonundaki şu karakterler atılır —
---     U+0009–U+000D (sekme, satır sonu, dikey sekme, sayfa, satır başı)
---     U+0020 · U+00A0 · U+1680 · U+2000–U+200A · U+2028 · U+2029
---     U+202F · U+205F · U+3000 · U+FEFF
---   Bu, JavaScript `String.prototype.trim` kümesinin AYNISI.
---   SAYMA: kalan metnin KOD NOKTASI sayısı.
+-- ⚠️ KİMİN ONAYLADIĞI BUGÜNE KADAR YAZILMIYORDU. `app.siparis_olayi_yaz()`
+-- (0050) AÇILDI, REVİZYON ve FARK olaylarına imza yazıyor, DURUM olayına
+-- YAZMIYORDU. "Son onayı tek bir yetkili verir" kararının kaydı olmadan
+-- anlamı yok; bu göç DURUM olayına da imzayı ekliyor (sunucudan:
+-- `app.aktif_kullanici_id()`).
+-- ⚠️ GEÇMİŞ OLAYLAR DOLDURULMUYOR: kimin bastığı o gün yazılmadı, bugün
+-- bilinemez. Uydurma bir ad yazmak, boş bırakmaktan kötüdür.
 --
--- Ekran tarafı aynı deseni AYNI METİNLE taşıyor
--- (`witness-sample.service.ts` → `KIRPILAN_BOSLUKLAR`) ve
--- `numune-kapisi.arch.test.ts` o metni bu dosyadaki kısıt tanımlarında
--- ARIYOR. Küme elle iki yere yazılmıyor; biri değişirse test kırmızı yanar.
+-- ⚠️ CEVAP CANLI: ekran yetkiyi girişte değil, ekran açılırken SUNUCUYA
+-- soruyor (`public.son_onay_yetkim_var()`). Müdür atanınca yeniden giriş
+-- gerekmez.
 --
--- ⚠️ SINIRI DA YAZILI: sıfır genişlikli karakterler (U+200B gibi) boşluk
--- SAYILMIYOR — JavaScript de saymıyor. Sözleşme "iki katman aynı cevabı
--- verir"dir; "anlamsız metin yazılamaz" DEĞİLDİR. Üç sıfır genişlikli
--- karakter iki katmandan da geçer. Bunu kapatmak ayrı bir karardır.
---
--- ⚠️ DESEN BU DOSYADA YALNIZ ASCII KAÇIŞLARIYLA DURUYOR (`\u00A0` gibi).
--- İlk yazımda karakterlerin KENDİSİ dosyaya girmişti (12.11): gözle
--- görünmüyor, ama U+2028'i SQL editörü satır sonuna çevirebilir, panodan
--- geçerken U+FEFF düşebilirdi — kısıt sessizce başka bir küme taşırdı.
--- Göç panodan yapıştırılarak çalıştırıldığı için bu dosyada ve
--- `araclar/goc-bekleyen.sql`de görünmez karakter OLMAMALI; mimari test
--- bunu da ölçüyor.
---
--- ── NEDEN FONKSİYON DEĞİL, KISITIN İÇİNDE AÇIK DESEN ─────────────────────
--- Bir `app.*` yardımcı fonksiyon yazmak deseni tek yere indirirdi. Ama
--- kısıtın içindeki fonksiyon, YAZAN ROLÜN yetkisiyle çalışır: `authenticated`
--- rolüne EXECUTE vermek gerekirdi ve bu depoda `app` şemasının PUBLIC/
--- authenticated yüzeyi bilerek dar tutuluyor (tuzak 67, MIYOP-044). Yeni bir
--- yüzey açmak yerine desen üç kısıtta AÇIK yazıldı; aynılığını mimari test
--- ölçüyor.
---
--- ⚠️ ESKİ KAYITLAR ÖNCE ÖLÇÜLÜYOR (0111'in kuralı): yeni sözleşmeyi
--- karşılamayan satır varsa kısıt DEĞİŞTİRİLMİYOR ve sayısı söyleniyor.
--- Olay defteri değişmez; geçmişe uydurma düzeltme yazılmaz.
---
--- Tekrar çalıştırılabilir (idempotent).
+-- Tetik fonksiyonlarının imzası değişmedi → `create or replace` yeterli,
+-- tetikler bağlı kalıyor. Tekrar çalıştırılabilir.
 -- ═══════════════════════════════════════════════════════════════════════════
 
--- ── 0 · BU SUNUCU DESENİ ANLIYOR MU ──────────────────────────────────────
--- ⚠️ Desen `\uXXXX` kaçışları kullanıyor. Bunları düzenli ifade motoru
--- yorumluyor; farklı bir sürümde ya da `standard_conforming_strings`
--- kapalıyken sessizce HİÇBİR ŞEY kırpmayan bir desene dönüşebilirdi.
--- Kısıtı kurmadan önce desenin BU sunucuda çalıştığı ölçülüyor.
-do $$
-declare
-  v_desen constant text :=
-    '^[\u0009-\u000D\u0020\u00A0\u1680\u2000-\u200A\u2028\u2029\u202F\u205F\u3000\uFEFF]+|[\u0009-\u000D\u0020\u00A0\u1680\u2000-\u200A\u2028\u2029\u202F\u205F\u3000\uFEFF]+$';
-  v_kod int;
+-- ── 1 · İŞLETMEMDE MÜDÜR VAR MI ──────────────────────────────────────────
+-- ⚠️ PARAMETRE YOK, bilerek: işletme çağıranın KENDİ kaydından okunuyor.
+-- Parametre alsaydı herhangi bir oturum başka bir işletmenin müdürü olup
+-- olmadığını sorabilirdi.
+-- ⚠️ `security definer`: `app_user` ve `user_role` RLS ardında; çağıran
+-- kendi işletmesindeki öteki kullanıcıların rolünü okuyamayabilir.
+create or replace function app.isletmemde_mudur_var()
+returns boolean
+language plpgsql stable security definer set search_path = '' as $$
+declare v_ben uuid; v_kiraci uuid;
 begin
-  -- ⚠️ KÜMENİN HER ÜYESİ AYRI ÖLÇÜLÜYOR. "Sekme ve satır sonu çalışıyor"
-  -- demek, U+3000'in de çalıştığını göstermez; bir aralık yanlış yazılmışsa
-  -- yalnız o üye sessizce dışarıda kalırdı.
-  foreach v_kod in array array[
-    9, 10, 11, 12, 13, 32, 160, 5760,
-    8192, 8193, 8194, 8195, 8196, 8197, 8198, 8199, 8200, 8201, 8202,
-    8232, 8233, 8239, 8287, 12288, 65279
-  ] loop
-    if length(regexp_replace(repeat(chr(v_kod), 3), v_desen, '', 'g')) <> 0 then
-      raise exception
-        '0115: kirpma deseni BU SUNUCUDA U+% karakterini kirpmiyor. '
-        'Kisitlar DEGISTIRILMEDI.', upper(to_hex(v_kod));
-    end if;
-  end loop;
+  v_ben := app.aktif_kullanici_id();
+  if v_ben is null then return false; end if;
+  select u.tenant_id into v_kiraci from public.app_user u where u.id = v_ben;
 
-  -- ⚠️ TERSİ DE ÖLÇÜLÜYOR: her şeyi silen bir desen yukarıdaki döngüden
-  -- geçerdi. İçteki boşluk kalmalı, harf kalmalı, sıfır genişlikli
-  -- karakter (U+200B · JavaScript de kırpmıyor) kalmalı.
-  if regexp_replace(E' \ta\tb\n ', v_desen, '', 'g') <> E'a\tb'
-     or length(regexp_replace('abc', v_desen, '', 'g')) <> 3
-     or length(regexp_replace(repeat(chr(8203), 3), v_desen, '', 'g')) <> 3 then
-    raise exception
-      '0115: kirpma deseni BU SUNUCUDA beklendigi gibi calismiyor '
-      '(kirpmamasi gerekeni kirpiyor). Kisitlar DEGISTIRILMEDI.';
-  end if;
-  raise notice '0115: kirpma deseni bu sunucuda olculdu (25 karakter tek tek), calisiyor.';
-end $$;
-
-
--- ── 1 · ÖNCE ESKİ KAYITLARI ÖLÇ ──────────────────────────────────────────
-do $$
-declare
-  v_desen constant text :=
-    '^[\u0009-\u000D\u0020\u00A0\u1680\u2000-\u200A\u2028\u2029\u202F\u205F\u3000\uFEFF]+|[\u0009-\u000D\u0020\u00A0\u1680\u2000-\u200A\u2028\u2029\u202F\u205F\u3000\uFEFF]+$';
-  v_kod int; v_ger int; v_son int;
-begin
-  select count(*) into v_kod from public.witness_sample
-   where length(regexp_replace(sample_code, v_desen, '', 'g')) < 2;
-  select count(*) into v_ger from public.witness_sample_event
-   where event_type <> 'ALINDI'
-     and length(regexp_replace(coalesce(reason, ''), v_desen, '', 'g')) < 3;
-  select count(*) into v_son from public.witness_sample_event
-   where event_type = 'ACILDI'
-     and length(regexp_replace(coalesce(result, ''), v_desen, '', 'g')) < 3;
-
-  if v_kod > 0 or v_ger > 0 or v_son > 0 then
-    raise exception
-      '0115: eski kayitlar yeni sozlesmeyi karsilamiyor '
-      '(kod: %, gerekce: %, sonuc: %). Kisitlar DEGISTIRILMEDI. '
-      'Olay defteri degismez; bu kayitlar duzeltilemez. Bu durumda kural '
-      'yalniz YENI kayitlara uygulanir (`not valid`) ve o karar YAZILARAK '
-      'verilir.', v_kod, v_ger, v_son;
-  end if;
-  raise notice '0115: eski kayitlarda ihlal yok; kisitlar degistirilebilir.';
-end $$;
-
-
--- ── 2 · NUMUNE KODU · EN AZ İKİ KARAKTER ─────────────────────────────────
-alter table public.witness_sample
-  drop constraint if exists witness_sample_code_not_blank;
-alter table public.witness_sample
-  add constraint witness_sample_code_not_blank check (
-    length(regexp_replace(sample_code, '^[\u0009-\u000D\u0020\u00A0\u1680\u2000-\u200A\u2028\u2029\u202F\u205F\u3000\uFEFF]+|[\u0009-\u000D\u0020\u00A0\u1680\u2000-\u200A\u2028\u2029\u202F\u205F\u3000\uFEFF]+$', '', 'g')) >= 2
+  return exists (
+    select 1 from public.app_user m
+     where m.tenant_id = v_kiraci
+       and m.is_active
+       and ( m.role_code = 'isletme_muduru'
+             or exists (select 1 from public.user_role ur
+                         where ur.user_id = m.id
+                           and ur.role_code = 'isletme_muduru') )
   );
-
-comment on constraint witness_sample_code_not_blank on public.witness_sample is
-  'Numune kodu en az iki karakter (0111). Kirpma ve sayma EKRANLA AYNI '
-  'sozlesme (0115): JavaScript trim kumesi kirpilir, kod noktasi sayilir. '
-  'Ekrandaki karsiligi: numuneKoduYeterliMi (witness-sample.service.ts).';
-
-
--- ── 3 · GEREKÇE · EN AZ ÜÇ KARAKTER ──────────────────────────────────────
--- ⚠️ `ALINDI` dışarıda: numune almanın gerekçesi yoktur.
-alter table public.witness_sample_event
-  drop constraint if exists witness_sample_event_reason_required;
-alter table public.witness_sample_event
-  add constraint witness_sample_event_reason_required check (
-    event_type = 'ALINDI'
-    or length(regexp_replace(coalesce(reason, ''), '^[\u0009-\u000D\u0020\u00A0\u1680\u2000-\u200A\u2028\u2029\u202F\u205F\u3000\uFEFF]+|[\u0009-\u000D\u0020\u00A0\u1680\u2000-\u200A\u2028\u2029\u202F\u205F\u3000\uFEFF]+$', '', 'g')) >= 3
-  );
-
-comment on constraint witness_sample_event_reason_required
-  on public.witness_sample_event is
-  'Acilis ve imha gerekce ister, en az uc karakter (0093 + 0111). Kirpma '
-  've sayma EKRANLA AYNI sozlesme (0115). Uc sekme ya da uc satir sonu '
-  'gerekce DEGILDIR.';
-
-
--- ── 4 · AÇILIŞ SONUCU · EN AZ ÜÇ KARAKTER ────────────────────────────────
-alter table public.witness_sample_event
-  drop constraint if exists witness_sample_event_result_required;
-alter table public.witness_sample_event
-  add constraint witness_sample_event_result_required check (
-    event_type <> 'ACILDI'
-    or length(regexp_replace(coalesce(result, ''), '^[\u0009-\u000D\u0020\u00A0\u1680\u2000-\u200A\u2028\u2029\u202F\u205F\u3000\uFEFF]+|[\u0009-\u000D\u0020\u00A0\u1680\u2000-\u200A\u2028\u2029\u202F\u205F\u3000\uFEFF]+$', '', 'g')) >= 3
-  );
-
-comment on constraint witness_sample_event_result_required
-  on public.witness_sample_event is
-  'Acilis SONUC ister, en az uc karakter (0100 + 0111). Kirpma ve sayma '
-  'EKRANLA AYNI sozlesme (0115).';
-
-
--- ── DOĞRULAMA ─────────────────────────────────────────────────────────────
--- ⚠️ Kısıtın TANIMININ yürürlükte olduğu ölçülüyor. Kısıtların GERÇEKTEN
--- reddettiğini `db/prova/prova-0115.sql` canlı yazımla sınıyor; bu blok
--- onun yerine geçmez.
-do $$
-declare v_ad text;
-begin
-  foreach v_ad in array array[
-    'witness_sample_code_not_blank',
-    'witness_sample_event_reason_required',
-    'witness_sample_event_result_required'
-  ] loop
-    if not exists (select 1 from pg_constraint
-                    where conname = v_ad
-                      and pg_get_constraintdef(oid) ~ 'regexp_replace') then
-      raise exception '0115 DOGRULAMA: % yeni sozlesmeyi tasimiyor.', v_ad;
-    end if;
-    if exists (select 1 from pg_constraint
-                where conname = v_ad
-                  and pg_get_constraintdef(oid) ~ 'btrim') then
-      raise exception '0115 DOGRULAMA: % hala btrim kullaniyor.', v_ad;
-    end if;
-  end loop;
-  raise notice '0115 TAMAM · numune metinleri ekranla ayni sozlesmeyle olculuyor.';
 end $$;
 
+comment on function app.isletmemde_mudur_var() is
+  'Cagiranin isletmesinde Isletme Muduru rolunde AKTIF en az bir kullanici '
+  'var mi (0117). Parametre almaz: isletme oturumdan okunur.';
 
--- ── ÖZET ──────────────────────────────────────────────────────────────────
-select 'sozlesme' as ne,
-       'JavaScript trim kumesi kirpilir · kod noktasi sayilir' as deger
-union all
-select 'degisen kisit', '3 (numune kodu · gerekce · acilis sonucu)'
-union all
-select 'esikler', 'kod >= 2 · gerekce >= 3 · sonuc >= 3 (DEGISMEDI)'
-union all
-select 'numune sayisi', (select count(*)::text from public.witness_sample)
-union all
-select 'olay sayisi', (select count(*)::text from public.witness_sample_event)
-union all
-select 'dogrulama', 'gecti';
+revoke all     on function app.isletmemde_mudur_var() from public;
+revoke all     on function app.isletmemde_mudur_var() from anon;
+grant  execute on function app.isletmemde_mudur_var() to authenticated, service_role;
 
 
--- ═══════════════════════════════════════════════════════════════════════════
--- MİYOP · 0116 — GERİ ARAMA · YENİDEN BEKLEMEYE ALMA ÇAKIŞMASI
---               (MIYOP-109 · Codex 4. tur, 11.11.2026)
---
--- ── NE OLDU ──────────────────────────────────────────────────────────────
--- 0110 "aynı telefonda tek açık talep" kuralını kısmi tekillik indeksiyle
--- (`callback_request_acik_talep_tekil`) zorladı ve başvuru yolunda
--- (`geri_arama_gonder`) indeks hatasını anlaşılır `MI409`a çevirdi.
--- Ama talebin durumunu değiştiren İKİNCİ yolu (`geri_arama_durumu_yaz`)
--- çevirmedi. Sonuç (Codex kaynaktan gösterdi, burada ölçüldü):
---
---   aynı numaranın eski bir CLOSED talebi + yeni bir NEW talebi varken
---   eski talepte "Tekrar beklemeye al" →
---   `duplicate key value violates unique constraint
---    "callback_request_acik_talep_tekil"`  (23505)
---
--- Veri KORUNUYORDU — indeks işini yapıyor. Bozuk olan şey cümleydi:
--- platform yöneticisi neden yeniden açamadığını ham indeks adından
--- okumak zorundaydı.
---
--- ⚠️ BU, 0110'DA YAZDIĞIM KONTROL LİSTESİ MADDESİNİN (147) İHLALİYDİ:
--- *"Yeni bir tekillik indeksi eklerken, yazma döngüsünün hangi yollardan
--- o indekse çarpabileceği sayılır."* INSERT yolunu saydım, UPDATE yolunu
--- saymadım. Brifte Codex'e sorduğum soru da tam buydu.
---
--- ── NE DEĞİŞİYOR ─────────────────────────────────────────────────────────
--- `app.geri_arama_durumu_yaz` yeniden yazılıyor — İMZA AYNI, o yüzden
--- `create or replace` yerinde değiştiriyor ve YETKİLER KORUNUYOR (düşürme
--- yok; tuzak 67 burada tetiklenmiyor, ama yetkiler yine de ölçülüyor).
---
---   1. ÖN KONTROL: talep yeniden NEW yapılıyorsa, telefon kilidi alınır
---      (0110'la aynı: 110 + telefon) ve o numaranın başka açık talebi
---      varsa `MI409` ile, **öteki talebin numarası söylenerek** durulur.
---   2. İKİNCİ KAT: UPDATE yine de indekse çarparsa aynı `MI409`a çevrilir —
---      ama yalnız O indeks için; başka bir tekillik bu cümleyle örtülmez.
---
--- ⚠️ ÇAKIŞMADA HİÇBİR ŞEY DEĞİŞMİYOR: ne durum, ne not defteri. Reddedilen
--- bir denemenin deftere "NEW" satırı düşürmesi, olmamış bir işi kayda
--- geçirmek olurdu.
---
--- Tekrar çalıştırılabilir (idempotent).
--- ═══════════════════════════════════════════════════════════════════════════
-
--- ── 0 · 0110 YÜRÜRLÜKTE Mİ ───────────────────────────────────────────────
-do $$
+-- ── 2 · SON ONAYI BEN VEREBİLİR MİYİM ────────────────────────────────────
+-- Kuralın TEK yazıldığı yer. Hem veritabanı kapısı hem ekran bunu soruyor.
+create or replace function app.son_onay_yetkim_var()
+returns boolean
+language plpgsql stable security definer set search_path = '' as $$
+declare v_ben uuid; v_mudurum boolean; v_sahibim boolean;
 begin
-  if not exists (select 1 from pg_class where relname = 'callback_request_acik_talep_tekil') then
-    raise exception '0116: GOC 0110 YURURLUKTE DEGIL (tekillik indeksi yok).';
+  v_ben := app.aktif_kullanici_id();
+  if v_ben is null then return false; end if;
+
+  select ( u.role_code = 'isletme_muduru'
+           or exists (select 1 from public.user_role ur
+                       where ur.user_id = u.id and ur.role_code = 'isletme_muduru') ),
+         ( u.role_code = 'isletme_sahibi'
+           or exists (select 1 from public.user_role ur
+                       where ur.user_id = u.id and ur.role_code = 'isletme_sahibi') )
+    into v_mudurum, v_sahibim
+    from public.app_user u
+   where u.id = v_ben;
+
+  -- 1 · Müdür her zaman verir.
+  if coalesce(v_mudurum, false) then return true; end if;
+
+  -- 2 · MÜDÜR YOKSA SAHİP. İşletmede müdür rolünde aktif biri olduğu an
+  --     bu dal yanlış döner; sahip kendiliğinden devreden çıkar.
+  --     ⚠️ Bu dalı silmek kuralı "yalnız müdür"e çevirir (başlıktaki not).
+  if coalesce(v_sahibim, false) and not app.isletmemde_mudur_var() then
+    return true;
   end if;
-  raise notice '0116: 0110 yururlukte, olculdu. Devam.';
+
+  return false;
 end $$;
 
+comment on function app.son_onay_yetkim_var() is
+  'Cagiran siparise SON ONAYI verebilir mi (0117 . Emrah karari 12.11.2026): '
+  'Isletme Muduru verir; isletmede aktif mudur yoksa isletme sahibi verir.';
 
--- ── 1 · DURUM YAZMA · çakışma anlaşılır cevap veriyor ────────────────────
-create or replace function app.geri_arama_durumu_yaz(
-  p_reference text,
-  p_status    text,
-  p_note      text default null
-)
-returns void
+revoke all     on function app.son_onay_yetkim_var() from public;
+revoke all     on function app.son_onay_yetkim_var() from anon;
+grant  execute on function app.son_onay_yetkim_var() to authenticated, service_role;
+
+
+-- ── 3 · EKRANIN SORDUĞU KABUK ────────────────────────────────────────────
+-- Düğme, kuralı kendisi hesaplamıyor; sunucuya soruyor. Ekranda ikinci bir
+-- kural yazılsaydı biri bir gün güncellenmezdi.
+create or replace function public.son_onay_yetkim_var()
+returns boolean
+language sql stable
+set search_path = ''
+as $$ select app.son_onay_yetkim_var(); $$;
+
+revoke all     on function public.son_onay_yetkim_var() from public;
+revoke all     on function public.son_onay_yetkim_var() from anon;
+grant  execute on function public.son_onay_yetkim_var() to authenticated, service_role;
+
+
+-- ── 4 · KAPI ─────────────────────────────────────────────────────────────
+-- ⚠️ Gövde 0053'ten HARFİ HARFİNE alındı; eklenen tek şey en baştaki
+-- yetki bloğu. Zincir kapısı ve söz verilen tarih hesabı aynı.
+create or replace function app.siparis_onay_kapisi()
+returns trigger
 language plpgsql
-security definer
-set search_path = public, app, pg_temp
 as $$
 declare
-  v_ben     uuid;
-  v_ad      text;
-  v_satir   public.callback_request;
-  v_durum   text;
-  v_not     text;
-  v_satirim text;
-  v_diger   text;
-  v_kisit   text;
+  v_eksik text;
+  v_tarih date;
 begin
-  if not app.yetkim_var('platform.manage') then
-    raise exception 'Geri arama talebini yalnızca EVREN360 platform yöneticisi güncelleyebilir.'
-      using errcode = 'MI403';
-  end if;
-
-  -- ⚠️ İMZAYI SUNUCU ATAR. "Kim aradı" istemciden gelmiyor; parametresi
-  -- bile yok (0087'nin kuralı).
-  v_ben := app.aktif_kullanici_id();
-  if v_ben is null then
-    raise exception 'Bu işlem için oturum gerekiyor.' using errcode = 'MI403';
-  end if;
-  select full_name into v_ad from public.app_user where id = v_ben;
-
-  v_durum := upper(btrim(coalesce(p_status, '')));
-  if v_durum not in ('NEW','CONTACTED','CLOSED') then
-    raise exception 'Geçersiz durum: %', p_status using errcode = 'MI422';
-  end if;
-
-  select * into v_satir from public.callback_request where reference = btrim(p_reference);
-  if not found then
-    raise exception 'Geri arama talebi bulunamadı: %', p_reference using errcode = 'MI404';
-  end if;
-
-  v_not := nullif(btrim(coalesce(p_note, '')), '');
-
-  -- Kapatmak bir karardır: gerekçesiz kapanış, kapanmamış bir talepten
-  -- kötüdür — liste temiz görünür, yapılan iş kayıtsız kalır.
-  if v_durum = 'CLOSED' and v_not is null then
-    raise exception 'Talebi kapatırken kısa bir not yazın (ne oldu?).'
-      using errcode = 'MI422';
-  end if;
-
-  -- ⚠️ YENİDEN BEKLEMEYE ALMA ÇAKIŞMASI (MIYOP-109 · 0116).
-  -- 0110 "aynı telefonda tek açık talep" kuralını indeksle zorluyor. Eski
-  -- bir talebi yeniden NEW yapmak, o numaranın BAŞKA bir açık talebi varken
-  -- indekse çarpar — ve bu fonksiyon o hatayı çevirmediği için platform
-  -- yöneticisi ekranda ham indeks adını görüyordu.
-  -- Kilit `geri_arama_gonder` ile AYNI (110 + telefon): yeniden açma ile
-  -- yeni bir başvuru aynı anda gelirse sıraya girerler.
-  if v_durum = 'NEW' and v_satir.status <> 'NEW' then
-    perform pg_advisory_xact_lock(110, hashtext(v_satir.phone));
-    select reference into v_diger
-      from public.callback_request
-     where phone = v_satir.phone and status = 'NEW' and id <> v_satir.id
-     limit 1;
-    if v_diger is not null then
+  if new.status = 'Onaylandı' and old.status is distinct from 'Onaylandı' then
+    -- ── SON ONAY · KİM BASIYOR (0117 · Emrah kararı 12.11.2026) ──────────
+    -- ⚠️ ZİNCİRDEN ÖNCE: yetkisi olmayan biri zincirin hangi adımının eksik
+    -- olduğunu bu kapıdan öğrenmesin; önce "sen değilsin" denir.
+    -- ⚠️ `app.bakim_baglami()`: göç, yedek ve provanın sahne kurulumu
+    -- oturumsuz çalışır; oradaki yazım kullanıcı kapısına takılmaz (0082).
+    if not app.bakim_baglami() and not app.son_onay_yetkim_var() then
+      if app.isletmemde_mudur_var() then
+        raise exception
+          'Bu işletmede siparişe son onayı İşletme Müdürü verir; hesabınızda '
+          'o rol yok. Sipariş onay bekliyor olarak duruyor.'
+          using errcode = 'MI403';
+      end if;
       raise exception
-        'Bu numaranın bekleyen başka bir talebi var (%). Aynı numara için '
-        'iki açık talep olamaz; önce onu sonuçlandırın.', v_diger
-        using errcode = 'MI409';
+        'Siparişe son onayı İşletme Müdürü verir; işletmede müdür rolünde '
+        'kimse yoksa işletme sahibi verir. Hesabınız bu ikisinden biri değil.'
+        using errcode = 'MI403';
+    end if;
+
+    if not app.siparis_onayi_tam(new.id) then
+      select string_agg(s.name, ', ' order by s.sort_order) into v_eksik
+        from public.order_approval_step s
+       where s.tenant_id = new.tenant_id and s.is_active and s.required
+         and coalesce((
+               select a.decision from public.order_approval a
+                where a.order_id = new.id and a.step_code = s.code
+                  and a.revision_no = new.current_revision
+                order by a.decided_at desc, a.id desc limit 1
+             ), 'Yok') not in ('Olumlu','Şartlı');
+      raise exception
+        'Sipariş onaylanamaz: şu adımların onayı eksik → %. '
+        'Sipariş revize edildiyse onaylar yeniden alınır — onaylanan miktar '
+        'ile gönderilecek miktar aynı olmak zorunda.', v_eksik
+        using errcode = 'MI429';
+    end if;
+
+    -- Söz verilen tarih: bu revizyonun kararlarındaki EN GEÇ tarih.
+    -- En erkeni almak, sözü tutamayacağımız bir tarihi müşteriye söylemek
+    -- olurdu.
+    select max(a.promised_on) into v_tarih
+      from public.order_approval a
+     where a.order_id = new.id and a.revision_no = new.current_revision;
+    if v_tarih is not null then new.promised_delivery_date := v_tarih; end if;
+  end if;
+  return new;
+end;
+$$;
+
+comment on function app.siparis_onay_kapisi() is
+  'Siparis Onaylandi olurken: (1) basan son onay yetkilisi olmali (0117 . '
+  'Isletme Muduru; mudur yoksa isletme sahibi . MI403), (2) onay zinciri '
+  'tamam olmali (0053 . MI429). Soz verilen tarihi kararlardan turetir.';
+
+
+-- ── 5 · DURUM OLAYINA İMZA ───────────────────────────────────────────────
+-- ⚠️ Gövde 0050'den HARFİ HARFİNE alındı; değişen tek şey DURUM satırı.
+create or replace function app.siparis_olayi_yaz()
+returns trigger
+language plpgsql
+security definer
+set search_path = ''
+as $$
+begin
+  if tg_table_name = 'sales_order' then
+    if tg_op = 'INSERT' then
+      insert into public.sales_order_event (tenant_id, order_id, kind, to_status, detail, actor_id)
+      values (new.tenant_id, new.id, 'AÇILDI', new.status, new.order_no, new.created_by);
+    elsif new.status is distinct from old.status then
+      -- ⚠️ 0117 · DURUMU KİMİN DEĞİŞTİRDİĞİ ARTIK YAZILIYOR. İmza istemciden
+      -- gelmiyor: oturumdaki kullanıcıyı sunucu okuyor (0087'nin kuralı).
+      -- Oturumsuz yazımda (göç, bakım) NULL kalır; uydurma bir ad yazılmaz.
+      insert into public.sales_order_event (tenant_id, order_id, kind, from_status, to_status, actor_id)
+      values (new.tenant_id, new.id, 'DURUM', old.status, new.status, app.aktif_kullanici_id());
+    end if;
+
+  elsif tg_table_name = 'sales_order_revision' then
+    insert into public.sales_order_event (tenant_id, order_id, kind, detail, actor_id)
+    values (new.tenant_id, new.order_id, 'REVİZYON',
+            format('Rev %s · %s · kaynak: %s · %s',
+                   new.revision_no, new.kind, new.source, new.reason),
+            new.created_by);
+
+  elsif tg_table_name = 'order_discrepancy' then
+    if tg_op = 'INSERT' then
+      insert into public.sales_order_event (tenant_id, order_id, kind, detail, actor_id)
+      values (new.tenant_id, new.order_id, 'FARK',
+              format('%s · %s · %s', new.kind, new.noticed_step, new.description),
+              new.noticed_by);
+    elsif new.status is distinct from old.status and new.status = 'Karara Bağlandı' then
+      insert into public.sales_order_event (tenant_id, order_id, kind, detail, actor_id)
+      values (new.tenant_id, new.order_id, 'FARK KARARI',
+              format('%s · %s', new.resolution, coalesce(new.decision_note, '')),
+              new.decided_by);
     end if;
   end if;
 
-  -- Not BİRİKİYOR, üstüne yazılmıyor.
-  v_satirim := to_char(now(), 'DD.MM.YYYY HH24:MI')
-    || ' · ' || coalesce(v_ad, '(ad yok)')
-    || ' · ' || v_durum
-    || coalesce(' · ' || v_not, '');
+  return null;
+end;
+$$;
 
-  begin
-    update public.callback_request
-       set status       = v_durum,
-           contact_note = coalesce(contact_note || E'\n', '') || v_satirim,
-           -- İlk aramanın imzası bir daha değişmiyor.
-           contacted_at = case when contacted_at is null and v_durum <> 'NEW'
-                               then now() else contacted_at end,
-           contacted_by = case when contacted_by is null and v_durum <> 'NEW'
-                               then v_ben else contacted_by end,
-           updated_at   = now(),
-           updated_by   = v_ben
-     where reference = btrim(p_reference);
-  exception when unique_violation then
-    -- ⚠️ İKİNCİ KAT. Yukarıdaki ön kontrol bunu zaten yakalar; buraya
-    -- düşülmesi, kilidi almayan bir yazma yolunun araya girdiğini gösterir.
-    -- Hangi kısıtın çarptığı OKUNUYOR: başka bir tekillik bu cümleyle
-    -- örtülürse yanlış sebep söylenmiş olur (0110'un dersi).
-    get stacked diagnostics v_kisit = constraint_name;
-    if v_kisit = 'callback_request_acik_talep_tekil' then
-      raise exception
-        'Bu numaranın bekleyen başka bir talebi var. Aynı numara için iki '
-        'açık talep olamaz; önce onu sonuçlandırın.'
-        using errcode = 'MI409';
-    end if;
-    raise;
-  end;
-end $$;
-
-comment on function app.geri_arama_durumu_yaz(text, text, text) is
-  'Geri arama talebinin durumunu yazar (yalniz platform.manage). Imza '
-  'sunucudan. Yeniden NEW yapilirken ayni numaranin baska acik talebi '
-  'varsa MI409 verir ve HICBIR SEY degismez (0116 · MIYOP-109).';
-
+comment on function app.siparis_olayi_yaz() is
+  'Siparis defterine olay yazar (AFTER tetigi). 0117: DURUM olayi da '
+  'imzali — durumu degistiren kullaniciyi sunucu okur.';
 
 -- ── DOĞRULAMA ─────────────────────────────────────────────────────────────
+-- ⚠️ Tanımın yürürlükte olduğu ölçülüyor. Kapının GERÇEKTEN reddettiğini
+-- `db/prova/prova-0117.sql` `authenticated` rolüyle ölçüyor.
 do $$
-declare v_govde text; v_say int;
+declare v_govde text; v_ad text;
 begin
-  -- Tek tanım: imza değişmedi, yanına ikincisi konmamış olmalı.
-  select count(*) into v_say from pg_proc p join pg_namespace n on n.oid = p.pronamespace
-   where n.nspname = 'app' and p.proname = 'geri_arama_durumu_yaz';
-  if v_say <> 1 then
-    raise exception '0116 DOGRULAMA: app.geri_arama_durumu_yaz % tanimli (1 olmali).', v_say;
+  select pg_get_functiondef('app.siparis_onay_kapisi()'::regprocedure) into v_govde;
+  if v_govde !~ 'app\.son_onay_yetkim_var\(\)' then
+    raise exception '0117 DOGRULAMA: kapi son onay yetkisini olcmuyor.';
+  end if;
+  if v_govde !~ 'MI429' or v_govde !~ 'siparis_onayi_tam' then
+    raise exception '0117 DOGRULAMA: zincir kapisi dusmus (MI429).';
+  end if;
+  if v_govde !~ 'promised_delivery_date' then
+    raise exception '0117 DOGRULAMA: soz verilen tarih hesabi dusmus.';
   end if;
 
-  select pg_get_functiondef('app.geri_arama_durumu_yaz(text, text, text)'::regprocedure)
-    into v_govde;
-  if v_govde !~ 'MI409' or v_govde !~ 'pg_advisory_xact_lock' then
-    raise exception '0116 DOGRULAMA: govde cakisma kontrolunu tasimiyor.';
-  end if;
-  if v_govde !~ 'platform\.manage' then
-    raise exception '0116 DOGRULAMA: platform kapisi govdeden dusmus.';
+  if not exists (select 1 from pg_trigger t
+                  where t.tgrelid = 'public.sales_order'::regclass
+                    and t.tgname = 'sales_order_onay_kapisi' and not t.tgisinternal) then
+    raise exception '0117 DOGRULAMA: sales_order_onay_kapisi tetigi bagli degil.';
   end if;
 
-  -- ⚠️ YETKİLER: `create or replace` yetkileri korur — ama "korur" bir
-  -- beklentidir, ölçüm değil.
-  if has_function_privilege('anon', 'public.geri_arama_durumu_yaz(text, text, text)', 'execute') then
-    raise exception '0116 DOGRULAMA: anon durum yazabiliyor.';
+  select pg_get_functiondef('app.siparis_olayi_yaz()'::regprocedure) into v_govde;
+  if v_govde !~ '''DURUM'', old\.status, new\.status, app\.aktif_kullanici_id\(\)' then
+    raise exception '0117 DOGRULAMA: DURUM olayi imzasiz yaziliyor.';
   end if;
-  if not has_function_privilege('authenticated', 'public.geri_arama_durumu_yaz(text, text, text)', 'execute') then
-    raise exception '0116 DOGRULAMA: authenticated kabugu cagiramiyor.';
-  end if;
-  if has_function_privilege('authenticated', 'app.geri_arama_durumu_yaz(text, text, text)', 'execute')
-     or has_function_privilege('anon', 'app.geri_arama_durumu_yaz(text, text, text)', 'execute') then
-    raise exception '0116 DOGRULAMA: ic yardimci disaridan cagrilabiliyor.';
+  if v_govde !~ 'REVİZYON' or v_govde !~ 'FARK KARARI' then
+    raise exception '0117 DOGRULAMA: olay yazicisinin oteki dallari dusmus.';
   end if;
 
-  raise notice '0116 TAMAM · yeniden beklemeye alma cakismasi anlasilir cevap veriyor.';
+  -- Üç yeni fonksiyon: anon ve PUBLIC kapalı, authenticated açık.
+  foreach v_ad in array array[
+    'app.isletmemde_mudur_var()', 'app.son_onay_yetkim_var()',
+    'public.son_onay_yetkim_var()'
+  ] loop
+    if has_function_privilege('anon', v_ad, 'execute') then
+      raise exception '0117 DOGRULAMA: % anon a acik.', v_ad;
+    end if;
+    if not has_function_privilege('authenticated', v_ad, 'execute') then
+      raise exception '0117 DOGRULAMA: % authenticated a kapali.', v_ad;
+    end if;
+  end loop;
+
+  -- ⚠️ İlk taslağın izni yanlışlıkla bir yere uygulandıysa görünsün.
+  if exists (select 1 from public.permission where code = 'operations.final_approve') then
+    raise exception '0117 DOGRULAMA: operations.final_approve izni katalogda '
+                    'duruyor; bu goc izin ACMIYOR.';
+  end if;
+
+  raise notice '0117 TAMAM · son onay: Isletme Muduru (mudur yoksa isletme sahibi).';
 end $$;
 
 
 -- ── ÖZET ──────────────────────────────────────────────────────────────────
-select 'degisen' as ne, 'app.geri_arama_durumu_yaz (imza ayni, yetkiler korundu)' as deger
-union all
-select 'cakisma cevabi', 'MI409 · oteki talebin numarasiyla'
-union all
-select 'cakismada degisen kayit', 'YOK (durum ve not defteri ayni kalir)'
-union all
-select 'acik talep', (select count(*)::text from public.callback_request where status = 'NEW')
-union all
-select 'ayni numarada cift acik talep',
-       (select count(*)::text from (select phone from public.callback_request
-                                     where status = 'NEW' group by phone having count(*) > 1) x)
-union all
-select 'dogrulama', 'gecti';
-
--- ═══════════════════════════════════════════════════════════════════════════
--- SON ÖZET · iki göç + bir salt okunur ölçüm (ekrana ÇIKAN tablo budur)
--- ═══════════════════════════════════════════════════════════════════════════
+-- ⚠️ 5. satır bir UYARIDIR, hata değil: onay bekleyen siparişi olup ne
+-- müdürü ne sahibi olan işletme varsa orada son onayı verebilecek KİMSE yok
+-- demektir (eski deneme kayıtlarında olabilir).
 select ne, deger from (
-  select 1 as sira, '0115 · numune kisitlari yeni sozlesmede' as ne,
-         (select count(*)::text || ' / 3'
-            || case when count(*) = 3 then ' · tamam' else ' · EKSIK' end
-            from pg_constraint
-           where conname in ('witness_sample_code_not_blank',
-                             'witness_sample_event_reason_required',
-                             'witness_sample_event_result_required')
-             and pg_get_constraintdef(oid) ~ 'regexp_replace'
-             and pg_get_constraintdef(oid) !~ 'btrim') as deger
+  select 1 as sira, 'son onay kurali' as ne,
+         'Isletme Muduru . mudur yoksa isletme sahibi' as deger
   union all
-  select 2, '0116 · yeniden acma cakismasi MI409 veriyor',
-         case when pg_get_functiondef(
-                     'app.geri_arama_durumu_yaz(text, text, text)'::regprocedure) ~ 'MI409'
-               and pg_get_functiondef(
-                     'app.geri_arama_durumu_yaz(text, text, text)'::regprocedure) ~ 'pg_advisory_xact_lock'
-              then 'tamam' else 'EKSIK' end
+  select 2, 'aktif isletme sayisi (platform haric)',
+         (select count(*)::text from public.tenant
+           where status = 'Aktif' and not is_platform)
   union all
-  select 3, 'mevzuat fonksiyonu sayisi (beklenen 7 · artakalan imza yok)',
-         (select count(*)::text
-            || case when count(*) = 7 then ' · tamam' else ' · BEKLENMEYEN' end
-            from pg_proc p join pg_namespace n on n.oid = p.pronamespace
-           where n.nspname in ('public', 'app') and p.proname like 'mevzuat%')
+  select 3, 'aktif muduru OLAN isletme',
+         (select count(distinct u.tenant_id)::text
+            from public.app_user u
+            join public.tenant t on t.id = u.tenant_id
+           where u.is_active and t.status = 'Aktif' and not t.is_platform
+             and (u.role_code = 'isletme_muduru'
+                  or exists (select 1 from public.user_role ur
+                              where ur.user_id = u.id
+                                and ur.role_code = 'isletme_muduru')))
   union all
-  select 4, 'numune / olay sayisi (dokunulmadi)',
-         (select count(*)::text from public.witness_sample) || ' / '
-         || (select count(*)::text from public.witness_sample_event)
+  select 4, 'onay bekleyen siparis sayisi',
+         (select count(*)::text from public.sales_order where status = 'Onay Bekliyor')
   union all
-  select 5, 'geri arama talebi sayisi (dokunulmadi)',
-         (select count(*)::text from public.callback_request)
+  select 5, 'UYARI . onay bekleyen siparisi olup son onay verecek KIMSESI olmayan isletme',
+         (select count(distinct s.tenant_id)::text
+            from public.sales_order s
+           where s.status = 'Onay Bekliyor'
+             and not exists (
+               select 1 from public.app_user u
+                where u.tenant_id = s.tenant_id and u.is_active
+                  and (u.role_code in ('isletme_muduru', 'isletme_sahibi')
+                       or exists (select 1 from public.user_role ur
+                                   where ur.user_id = u.id
+                                     and ur.role_code in ('isletme_muduru',
+                                                          'isletme_sahibi')))))
+  union all
+  select 6, 'dogrulama', 'gecti'
 ) t
 order by sira;

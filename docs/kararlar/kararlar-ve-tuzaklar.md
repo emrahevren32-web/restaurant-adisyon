@@ -82,6 +82,14 @@ kişiye attırırdı (0081 kararı, Codex önerisi reddedildi).
 - **Tek giriş kapısı.** Kariyer.net gibi "personel girişi / işveren
   girişi" ayrımı YAPILMAYACAK: MİYOP tek ürün, roller farklı. Giriş alanı
   `ad.soyad@FIRMAKODU` ile e-postayı kendi ayırt ediyor (göç 0078).
+- **Siparişe son onayı tek bir yetkili verir: İşletme Müdürü**
+  (Emrah, 12.11.2026 · göç 0117). Onay zinciri tamamlanınca sipariş
+  kendiliğinden onaylanmaz. İşletmede müdür rolünde aktif kimse yoksa son
+  onayı işletme sahibi verir; müdür atandığı an sahip devreden çıkar.
+  ⚠️ "Müdür yoksa sahip" cümlesi Claude'un eklediği emniyettir (yeni
+  işletme ilk siparişinde kilitlenmesin diye); Emrah isterse tek dal
+  silinerek "yalnız müdür"e çevrilir. Kural izin değil ROL ile yazıldı ve
+  tek yerde duruyor: `app.son_onay_yetkim_var()`.
 
 ---
 
@@ -983,6 +991,33 @@ göreceği hata mesajları** da (`'Çok fazla deneme yapıldı'`) bozuluyordu.
 ⚠️ Doğrusu: `[IO.File]::ReadAllText($yol, [Text.Encoding]::UTF8)`.
 ⚠️ Ve komut kendi çıktısını **ölçmeli**: panoda `ş` var mı, bozuk `Ã` var
 mı. "Kopyaladım" demek yetmez; kopyanın sağlam olduğu gösterilir.
+
+**206 · YARIDA KALMIŞ BİR TURUN TASLAKLARINI BULDUM VE HATIRLAMIYORDUM.**
+(14.11.2026 · göç 0117)
+
+Emrah 12.11 gecesi "müdür olsun, sen yap" deyip yattı. O turun ilk denemesi
+dört dakika çalışıp yarıda kesilmiş: çalışma alanımda **benim yazdığım ama
+hatırlamadığım** bir `0117`, bir prova ve bir ters prova duruyordu. Tur
+14.11'de yeniden başladığında dosyaları buldum.
+
+Yapmadığım iki şey:
+- **Hazır diye kullanmadım.** Taslağın provadan geçip geçmediğini, hangi
+  kararların ölçülerek verildiğini bilmiyordum. Kendi yazdığım bir dosya,
+  içeriğini hatırlamıyorsam başkasının dosyası gibi okunur.
+- **Silmedim.** Kenara aldım, okudum, işe yarayan iki parçasını (0050 ve
+  0053'ten harfi harfine alınmış gövdeler) **canlı tanımla karşılaştırıp**
+  öyle kullandım: fark yalnız eklenen satırlardı.
+
+Ve taslağın ana kararını değiştirdim: taslak yeni bir izin açıyor
+(`operations.final_approve`) ve müdürü olmayan işletmede **kimsenin**
+onaylayamamasını kabul ediyordu. İkisi de savunulabilirdi; ama yeni izin
+altı dondurulmuş listeye dokunuyordu ve "müdür yok" hâli yeni her işletmeyi
+ilk siparişinde durduruyordu. Kural role bağlandı, "müdür yoksa sahip" eklendi.
+
+⚠️ Makineye hiçbir şey yazılmamıştı — bunu da varsaymadım, klasörün
+tarihlerine bakıp gördüm.
+⚠️ Tuzak 200'ün kardeşi: orada bulduğum dosyalar benim değildi, burada
+benimdi. Kural aynı: **tanımadığım dosya ölçülmeden işe girmez.**
 
 **205 · "BEŞ ÖĞE AYNI SIRA NUMARASINI TAŞIYOR" DEDİM; TAŞIMIYORDU.**
 (12.11.2026)
@@ -2635,6 +2670,9 @@ Son söz onun çıktısındadır.
      vermez** (0106). "N ay sonra silinir" demek için kendiliğinden silen
      bir iş gerekir; yoksa metin süre yazmaz, **tutulan** sözü yazar — ve
      o sözün karşılığı (silme fonksiyonu + düğmesi) aynı turda yazılır.
+159. **Tura başlarken çalışma alanında son turdan SONRA değişmiş dosya
+     var mı diye bak** (tuzak 206). Varsa kenara al, oku, ölç; hatırlamadığın
+     bir taslak "hazır iş" değildir.
 158. **Bir bulguyu işe çevirmeden önce YENİDEN ölç** (tuzak 205). Sayı
      arayan aramada sayının bittiği yer de yazılır: `6\b`, `6` değil.
 157. **İki emniyet aynı yere konuyorsa birbirini nasıl GÖRDÜĞÜ ölçülür**

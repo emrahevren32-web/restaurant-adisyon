@@ -75,31 +75,62 @@ Tam döküm: `claude/demo-provasi-sonucu.md`.
   Sipariş oluştuktan sonra **"Tedarikçiye gönder"** demeden Mal Kabul
   açılmıyor; düğmenin adı *"siparişe çevir"* değil **"Siparişe dönüştür"**.
 
-- 🔄 **0.A.1.4 · P2 · ONAY ZİNCİRİ BİTİNCE SİPARİŞ KENDİLİĞİNDEN
-  ONAYLANMIYOR.** Üç adım da Olumlu olduktan sonra sipariş `Onay Bekliyor`
-  kaldı; ayrıca **"Onaylandı"** düğmesine basmak gerekti.
+- 🔄 **0.A.1.4 · P2 · SON ONAY · TEK YETKİLİ** → **KOD BİTTİ (14.11) ·
+  GÖÇ 0117 + EKRAN YÜKLEMESİ BEKLİYOR.**
+  Provada görülen: zincirin üç adımı Olumlu olduktan sonra sipariş
+  `Onay Bekliyor` kaldı; ayrıca **"Onaylandı"** düğmesine basmak gerekti.
   ⛔ **KARAR (Emrah, 12.11.2026):** *"ne olursa olsun son onayı veren tek
-  bir yetkili olsun."* Yani kendiliğinden onay **YOK**; bu bir kusur
-  değil, tasarım. Senaryoya yazıldı (11.11).
-  ⚠️ **AMA BUGÜNKÜ HÂL KARARI TAM KARŞILAMIYOR — ÖLÇÜLDÜ (12.11):**
-  - **"Onaylandı" düğmesini `operations.write` taşıyan HERKES görüyor**
-    (`Siparisler.tsx` · `yazabilirMi(currentUser, 'operations.write')`).
-    Bu, sipariş AÇMA izninin aynısı: siparişi açan kişi son onayı da
-    verebiliyor. Bugün dört rol taşıyor (0061'in ölçümü: admin ·
-    isletme_muduru · isletme_sahibi · super_admin).
-  - **Veritabanı kapısı KİMİN bastığına bakmıyor.**
-    `app.siparis_onay_kapisi()` (0053) yalnız zincirin tamam olduğunu
-    ölçüyor (`MI429`); basan kişinin iznini ölçmüyor.
-  - `operations.approve` (0061) zincirin ADIMLARI için var; son düğme ona
-    bağlı değil.
-  Yani bugün "son onay" var ama **"tek bir yetkili" yok.**
-  - ⬜ **0.A.1.4.1** Son onayın kime ait olduğu **Emrah'a soruldu**
-    (12.11): işletme sahibi mi, işletme müdürü mü, Yetki ekranından
-    seçilen kişi mi.
-  - ⬜ **0.A.1.4.2** Cevaba göre: son onay ayrı bir izne bağlanır
-    (**üç kapı birden**: düğme · rota · veritabanı tetiği) ve prova +
-    ters prova yazılır. ⚠️ Demo için ENGEL DEĞİL: demoda düğmeye Emrah
-    (işletme sahibi) basıyor.
+  bir yetkili olsun."* Kim olacağı sorulunca: *"sence kim olsun? … bence
+  işletme sahibi değil de müdür olsun, çünkü her olan bitenden haberdar
+  olması gerekir adamın … tekrar sormana gerek yok."*
+  **Ölçülen eski hâl (12.11):** düğmeyi `operations.write` taşıyan HERKES
+  görüyordu (sipariş AÇMA izninin aynısı) ve `app.siparis_onay_kapisi()`
+  (0053) kimin bastığına bakmıyordu. "Son onay" vardı, "tek yetkili" yoktu.
+  - ✅ **0.A.1.4.1 · KURAL (göç 0117):** son onayı **İşletme Müdürü**
+    verir. İşletmede müdür rolünde **aktif kimse yoksa işletme sahibi**
+    verir; müdür atandığı AN sahip devreden çıkar.
+    ⚠️ **İkinci cümle Claude'un kararı** (Emrah "sen karar ver" dedi) ve
+    gerekçesi: yeni açılan her işletmede tek kullanıcı sahiptir; kural
+    yalnız "müdür" olsaydı işletme **ilk siparişinde duvara çarpardı**.
+    Emrah'ın cümlesinin özü duruyor: müdürü olan işletmede sahip son
+    onayı VEREMEZ. Geri alması tek dal (`app.son_onay_yetkim_var()`).
+    ⚠️ **İzin değil ROL.** İlk taslak `operations.final_approve` izni
+    açıyordu; vazgeçildi — "müdür yoksa sahip" bir izinle ifade edilemez,
+    kural yine role bakmak zorunda kalır ve iki yerde iki gerçek olurdu.
+  - ✅ **0.A.1.4.2 · ÜÇ YER, TEK KURAL.** Kural yalnız
+    `app.son_onay_yetkim_var()` içinde yazılı. Tetik
+    (`app.siparis_onay_kapisi()`) onu soruyor → `MI403`; ekran
+    (`Siparisler.tsx`) onu soruyor → düğme kapalı + sebebi yazılı.
+    Ekranda rol adı YOK; mimari test bunu ölçüyor.
+    Cevap **canlı**: giriş anındaki izin listesine bağlı değil, müdür
+    atanınca yeniden giriş gerekmiyor.
+    **Kanıt:** `prova-0117.sql` (28 iddia · `authenticated` rolüyle,
+    gerçek UPDATE: müdürsüz işletmede sahip onaylıyor · sipariş açabilen
+    yönetici onaylayamıyor · müdür atanınca sahip onaylayamıyor · müdür
+    onaylıyor · zincir kapısı `MI429` duruyor · reddedilen sipariş
+    değişmiyor · anon kabuğu çağıramıyor) · `prova-0117-ters.sql` (0053'ün
+    gövdesiyle sipariş açabilen herkes onaylıyor — kusur gerçekti) ·
+    `son-onay-kapisi.arch.test.ts` (29) · `son-onay.test.ts` (6).
+    Temiz veritabanı: **118 göç · 73 prova · 0 kırmızı.**
+  - ✅ **0.A.1.4.4 · KİMİN ONAYLADIĞI ARTIK YAZILIYOR.** Yanında bulundu:
+    `app.siparis_olayi_yaz()` (0050) AÇILDI, REVİZYON ve FARK olaylarına
+    imza yazıyor, **DURUM olayına yazmıyordu** — bir siparişi kimin
+    onayladığı hiçbir yerde durmuyordu. 0117 imzayı ekliyor (sunucudan).
+    ⚠️ Geçmiş olaylar doldurulmuyor: o gün yazılmayan bugün bilinemez.
+  - ⬜ **0.A.1.4.3** Yetki ekranındaki izin listesinde "son onay" diye
+    bir satır GÖRÜNMÜYOR (kural izin değil rol). Müdür rolünün
+    açıklamasına bir cümle eklenir. Demo sonrası.
+  - ⬜ **0.A.1.4.5 · İMZA EKRANDA GÖRÜNMÜYOR (ölçüldü, 14.11).** Kim
+    onayladı bilgisi artık YAZILIYOR ama ekran onu göstermiyor:
+    `SiparisOlayi` tipinde kişi alanı yok ve `Siparisler.tsx` olay
+    defterini hiç okumuyor. Değişiklik geçmişi sekmesine *"Onaylayan: …"*
+    satırı eklenir. Demo sonrası; kayıt o güne kadar birikiyor.
+  - ⚠️ **ÖLÇÜLEMEYEN:** `Siparisler.tsx` değişikliği burada yalnız taklit
+    tiplerle denetlendi (değişiklik öncesi ve sonrası hata kümesi aynı);
+    gerçek `tsc` ve ekranın kendisi Emrah'ın makinesinde.
+  - ⚠️ **DEMO:** yeni açılan demo işletmesinde müdür yok → "Onaylandı"ya
+    işletme sahibi basar, senaryo değişmiyor. Demo sırasında bir
+    **İşletme Müdürü** hesabı açılırsa sahip artık onaylayamaz.
 
 - ⬜ **0.A.1.5 · P2 · `KULLANILABİLİR` SÜTUNU BOŞ ÇİZGİ GÖSTERİYOR.**
   Stok Durumu'nda `MIKTAR 200 · KULLANILABİLİR — · MIN 50`; 200 kg var ve
@@ -2322,6 +2353,11 @@ Emrah'ın onayladığı sıra:
   - 🧾 **CODEX 4. TUR · 12.11.2026** (`1a40625` üzerinde · üç yeni P2 +
     MIYOP-105'in eksik kapanışı · yeni P0/P1 YOK). Codex dosya
     değiştirmedi, test koşturmadı; bulgular kaynak okumasıyla.
+    ✅ **CANLIDA (12.11 gecesi):** commit `04d68fa` · göç 0115 + 0116
+    Supabase'e uygulandı; son tablo: `0115 … 3 / 3 · tamam` ·
+    `0116 … tamam` · `mevzuat fonksiyonu … 7 · tamam` (canlıda artakalan
+    eski imza YOK) · numune / olay `1 / 0` · geri arama talebi `5`.
+    ⚠️ Ekran tarafı (0115'in sayma sözleşmesi) 14.11'de hâlâ YÜKLENMEDİ.
     Brif: `docs/kararlar/codex-denetimi-kasim-2026-4tur.md`.
     - ✅ **MIYOP-105 · İKİNCİ YARI · GÖÇ 0115.** 0111 eşik SAYILARINI
       eşitlemişti; **sözleşme ayrıydı**: ekran `trim().length`, veritabanı
@@ -2396,13 +2432,11 @@ Emrah'ın onayladığı sıra:
       durduruyordu** (takipten çıkarma bir "silme" olarak görünüyor,
       yasak denetimi onu da yakalıyordu) — ölçümde görüldü, düzeltildi
       (tuzak 204).
-      ⚠️ **ÖLÇÜLEMEYEN:** betiğin KENDİSİ koşturulmadı (burada PowerShell
-      yok). Emrah'ın ilk koşusu ölçümdür: çıktıda *"Kayda giren dosyalar"*
-      listesi görünmeli ve içinde `.claude/` OLMAMALI.
-      ⚠️ **BİLİNMEYEN:** dosya daha önce commit edilip push edildi mi —
-      buradan görülemiyor. Edildiyse geçmişte durur; betik onu silemez.
-      İlk koşunun listesinde `D .claude/settings.local.json` çıkarsa
-      cevap "evet"tir.
+      ✅ **BETİĞİN KENDİSİ DE ÖLÇÜLDÜ (Emrah'ın koşusu, 13.11 00:19):**
+      çıktıda *"Kayda giren dosyalar (20)"* listesi göründü, içinde
+      `.claude/` **yok**; 117 dosya / 2055 test yeşil; commit `04d68fa`
+      push edildi. Listede `D .claude/settings.local.json` satırı da
+      çıkmadı → dosya daha önce depoya **hiç girmemiş**.
       Ayrıca: `araclar/*.ps1` ve `commit-mesaji.txt` için **ASCII şartı
       artık ölçülüyor** (`kayit-kapsami.arch.test.ts`) — Codex, var olan
       PowerShell testinin bunu ölçmediğini göstermişti.

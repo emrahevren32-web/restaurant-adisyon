@@ -16,6 +16,9 @@
 
 import React from 'react'
 import { yazabilirMi } from '../authorization/yazma-yetkisi'
+import {
+  sonOnayKapaliSebebi, sonOnayYetkisiniOku, type SonOnayYetkisi,
+} from '../sales/son-onay'
 import type { User } from '../types'
 import { getSupabase, isSupabaseConfigured } from '../core/supabase'
 import { createStockRepository, resolveStockRepositoryMode } from '../core/stock/index'
@@ -174,6 +177,10 @@ export default function Siparisler({ currentUser }: Props){
   const [irsaliyeBasiliyor, setIrsaliyeBasiliyor] = React.useState('')
   const [karsilama, setKarsilama] = React.useState<KarsilamaSatiri[]>([])
   const [adimlar, setAdimlar] = React.useState<OnayAdimi[]>([])
+  // Son onay yetkisi (0117): `null` = henüz okunmadı ya da okunamadı.
+  // ⚠️ Giriş anındaki izin listesinden DEĞİL, sunucudan okunuyor: kural
+  // "işletmede müdür var mı"ya bakıyor ve o cevap tarayıcıda yok.
+  const [sonOnay, setSonOnay] = React.useState<SonOnayYetkisi>(null)
   const [onaylar, setOnaylar] = React.useState<Onay[]>([])
   const [sevkDurumu, setSevkDurumu] = React.useState<KalemSevkDurumu[]>([])
   const [islem, setIslem] = React.useState<'yeni' | 'revizyon' | 'fark' | null>(null)
@@ -261,7 +268,7 @@ export default function Siparisler({ currentUser }: Props){
         if(iptal) return
         setBaglam(kurulan)
         const katalog = new PostgresStokKatalogu(getSupabase())
-        const [sp, ms, ns, kl, ad, br] = await Promise.all([
+        const [sp, ms, ns, kl, ad, br, so] = await Promise.all([
           servis.hepsi(kurulan.ctx),
           musteriDeposu.hepsi(kurulan.ctx),
           musteriDeposu.noktalar(kurulan.ctx),
@@ -271,9 +278,13 @@ export default function Siparisler({ currentUser }: Props){
           // Sabit yazsaydık 0059'da eklenen palet/çuval burada görünmezdi ve
           // iki liste sessizce ayrışırdı.
           katalog.birimler(),
+          // Hata fırlatmaz: okunamazsa `null` döner, yalnız "Onaylandı"
+          // düğmesi kapalı kalır.
+          sonOnayYetkisiniOku(),
         ])
         if(iptal) return
         setAdimlar(ad)
+        setSonOnay(so)
         setSiparisler(sp)
         setMusteriler(ms.filter(m => m.aktif))
         setNoktalar(ns.filter(n => n.aktif))
@@ -575,6 +586,10 @@ export default function Siparisler({ currentUser }: Props){
     ? onayDurumu(adimlar, onaylar, secili.guncelRevizyon)
     : []
   const zincirTamam = onayTamamMi(zincirDurumu)
+  // "Onaylandı" düğmesi neden kapalı (açıksa `undefined`). Düğme ve
+  // altındaki açıklama AYNI cevabı kullanıyor.
+  const onaylandiKapaliSebebi = sonOnayKapaliSebebi(
+    sonOnay, zincirTamam, onayOzeti(zincirDurumu))
 
   return (
     <div className="warehouse-page">
@@ -770,24 +785,27 @@ export default function Siparisler({ currentUser }: Props){
               {yazabilir && (
                 <div className="form-actions">
                   {IZINLI_GECISLER[secili.durum].map(d => {
-                    // "Onaylandı" düğmesi, zincir tamamlanmadan ÇALIŞMAZ
-                    // (0053, MI429). Basılabilir bırakıp sunucuya patlatmak,
-                    // kullanıcıya neyi eksik yaptığını bulduran bir tasarım
-                    // olurdu; sebebi burada yazıyor.
-                    const kapali = d === 'Onaylandı' && !zincirTamam
+                    // "Onaylandı" düğmesi iki şey tamam olmadan ÇALIŞMAZ:
+                    // basan kişi son onay yetkilisi olmalı (0117, MI403) ve
+                    // zincir tamamlanmış olmalı (0053, MI429). Basılabilir
+                    // bırakıp sunucuya patlatmak, kullanıcıya neyi eksik
+                    // yaptığını bulduran bir tasarım olurdu; sebebi burada
+                    // yazıyor.
+                    const kapali = d === 'Onaylandı' && onaylandiKapaliSebebi !== undefined
                     return (
                       <button
                         key={d} className="btn" type="button"
                         disabled={kapali || !ayrintiHazir(secim)}
-                        title={kapali ? onayOzeti(zincirDurumu) : undefined}
+                        title={kapali ? onaylandiKapaliSebebi : undefined}
                         onClick={() => { void durumDegistir(d) }}
                       >
                         {d}
                       </button>
                     )
                   })}
-                  {!zincirTamam && IZINLI_GECISLER[secili.durum].includes('Onaylandı') && (
-                    <span className="muted">{onayOzeti(zincirDurumu)}</span>
+                  {onaylandiKapaliSebebi !== undefined
+                    && IZINLI_GECISLER[secili.durum].includes('Onaylandı') && (
+                    <span className="muted">{onaylandiKapaliSebebi}</span>
                   )}
                 </div>
               )}
